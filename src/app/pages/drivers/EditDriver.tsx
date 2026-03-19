@@ -20,14 +20,14 @@ export function EditDriver() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     toast.success('Driver updated successfully');
-    navigate(`/drivers/${id}`);
+    navigate(`/dashboard/drivers/${id}`);
   };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" asChild>
-          <Link to={`/drivers/${id}`}>
+          <Link to={`/dashboard/drivers/${id}`}>
             <ArrowLeft className="w-5 h-5" />
           </Link>
         </Button>
@@ -143,7 +143,7 @@ export function EditDriver() {
                 Save Changes
               </Button>
               <Button type="button" variant="outline" className="w-full" asChild>
-                <Link to={`/drivers/${id}`}>Cancel</Link>
+                <Link to={`/dashboard/drivers/${id}`}>Cancel</Link>
               </Button>
             </div>
           </div>

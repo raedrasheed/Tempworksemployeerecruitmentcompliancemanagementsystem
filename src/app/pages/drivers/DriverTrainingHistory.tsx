@@ -160,7 +160,7 @@ export function DriverTrainingHistory() {
     <div className="space-y-6">
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" asChild>
-          <Link to={`/drivers/${id}`}>
+          <Link to={`/dashboard/drivers/${id}`}>
             <ArrowLeft className="w-5 h-5" />
           </Link>
         </Button>

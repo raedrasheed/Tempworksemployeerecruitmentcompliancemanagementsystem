@@ -7,7 +7,8 @@ import {
   TrendingUp,
   CheckCircle2,
   XCircle,
-  Plane
+  Plane,
+  UserCheck
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
@@ -89,6 +90,48 @@ export function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Applicants Overview Section */}
+      <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <UserCheck className="w-5 h-5 text-[#2563EB]" />
+                Applicants Overview
+              </CardTitle>
+              <CardDescription>Job applicants awaiting review and conversion</CardDescription>
+            </div>
+            <Button asChild>
+              <Link to="/dashboard/applicants">View All Applicants</Link>
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="text-center p-4 bg-white rounded-lg">
+              <div className="text-2xl font-bold text-[#0F172A]">5</div>
+              <div className="text-xs text-muted-foreground mt-1">Total Applicants</div>
+            </div>
+            <div className="text-center p-4 bg-white rounded-lg">
+              <div className="text-2xl font-bold text-blue-600">1</div>
+              <div className="text-xs text-muted-foreground mt-1">New Applications</div>
+            </div>
+            <div className="text-center p-4 bg-white rounded-lg">
+              <div className="text-2xl font-bold text-yellow-600">1</div>
+              <div className="text-xs text-muted-foreground mt-1">Under Review</div>
+            </div>
+            <div className="text-center p-4 bg-white rounded-lg">
+              <div className="text-2xl font-bold text-purple-600">1</div>
+              <div className="text-xs text-muted-foreground mt-1">Interview Scheduled</div>
+            </div>
+            <div className="text-center p-4 bg-white rounded-lg">
+              <div className="text-2xl font-bold text-green-600">1</div>
+              <div className="text-xs text-muted-foreground mt-1">Ready to Convert</div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

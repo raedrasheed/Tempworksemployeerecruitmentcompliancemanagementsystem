@@ -173,7 +173,7 @@ export function DriverPerformanceReview() {
     <div className="space-y-6">
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" asChild>
-          <Link to={`/drivers/${id}`}>
+          <Link to={`/dashboard/drivers/${id}`}>
             <ArrowLeft className="w-5 h-5" />
           </Link>
         </Button>
@@ -256,8 +256,8 @@ export function DriverPerformanceReview() {
                 <PolarGrid stroke="#E2E8F0" />
                 <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748B', fontSize: 12 }} />
                 <PolarRadiusAxis angle={90} domain={[0, 5]} tick={{ fill: '#64748B' }} />
-                <Radar name="Current Quarter" dataKey="current" stroke="#2563EB" fill="#2563EB" fillOpacity={0.5} />
-                <Radar name="Previous Quarter" dataKey="previous" stroke="#94A3B8" fill="#94A3B8" fillOpacity={0.3} />
+                <Radar key="radar-current" name="Current Quarter" dataKey="current" stroke="#2563EB" fill="#2563EB" fillOpacity={0.5} />
+                <Radar key="radar-previous" name="Previous Quarter" dataKey="previous" stroke="#94A3B8" fill="#94A3B8" fillOpacity={0.3} />
                 <Legend />
               </RadarChart>
             </ResponsiveContainer>

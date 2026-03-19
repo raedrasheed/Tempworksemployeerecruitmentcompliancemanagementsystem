@@ -208,7 +208,7 @@ export function WorkflowTimeline() {
                           <p className="text-sm text-muted-foreground">{event.description}</p>
                         </div>
                         <Button size="sm" variant="ghost" asChild>
-                          <Link to={`/drivers/${event.driverId}`}>
+                          <Link to={`/dashboard/drivers/${event.driverId}`}>
                             View Driver
                             <ArrowRight className="w-4 h-4 ml-1" />
                           </Link>

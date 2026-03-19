@@ -8,17 +8,108 @@ import { Input } from '../../components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { mockAgencies } from '../../data/mockData';
+import { FilterSystem, Column, FilterRule, FilterPreset } from '../../components/filters/FilterSystem';
+
+// Define columns for the filter system
+const agencyColumns: Column[] = [
+  { id: 'name', label: 'Agency Name', type: 'text' },
+  { id: 'country', label: 'Country', type: 'text' },
+  { id: 'contactPerson', label: 'Contact Person', type: 'text' },
+  { id: 'email', label: 'Email', type: 'text' },
+  { id: 'phone', label: 'Phone', type: 'text' },
+  { id: 'status', label: 'Status', type: 'enum', options: ['active', 'inactive', 'suspended'] },
+  { id: 'activeDrivers', label: 'Active Employees', type: 'number' },
+  { id: 'totalDrivers', label: 'Total Employees', type: 'number' },
+];
 
 export function AgenciesList() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [activeFilters, setActiveFilters] = useState<FilterRule[]>([]);
+  const [filterLogic, setFilterLogic] = useState<'AND' | 'OR'>('AND');
+  const [savedPresets, setSavedPresets] = useState<FilterPreset[]>([
+    {
+      id: '1',
+      name: 'Active Agencies',
+      rules: [
+        { id: '1', columnId: 'status', operator: 'equals', value: 'active' }
+      ],
+      logic: 'AND'
+    },
+    {
+      id: '2',
+      name: 'Large Agencies',
+      rules: [
+        { id: '1', columnId: 'totalDrivers', operator: 'greaterThan', value: '50' }
+      ],
+      logic: 'AND'
+    }
+  ]);
+
+  // Apply filters to agencies
+  const applyFilters = (agency: any) => {
+    if (activeFilters.length === 0) return true;
+
+    const results = activeFilters.map(filter => {
+      const column = agencyColumns.find(c => c.id === filter.columnId);
+      if (!column) return true;
+
+      const value = (agency as any)[filter.columnId] || '';
+
+      // Apply operator logic
+      switch (filter.operator) {
+        case 'contains':
+          return value.toLowerCase().includes(filter.value.toLowerCase());
+        case 'equals':
+          return value.toString().toLowerCase() === filter.value.toLowerCase();
+        case 'startsWith':
+          return value.toLowerCase().startsWith(filter.value.toLowerCase());
+        case 'endsWith':
+          return value.toLowerCase().endsWith(filter.value.toLowerCase());
+        case 'greaterThan':
+          return parseFloat(value) > parseFloat(filter.value);
+        case 'lessThan':
+          return parseFloat(value) < parseFloat(filter.value);
+        case 'greaterThanOrEqual':
+          return parseFloat(value) >= parseFloat(filter.value);
+        case 'lessThanOrEqual':
+          return parseFloat(value) <= parseFloat(filter.value);
+        case 'between':
+          return parseFloat(value) >= parseFloat(filter.value) && parseFloat(value) <= parseFloat(filter.value2);
+        default:
+          return true;
+      }
+    });
+
+    return filterLogic === 'AND' ? results.every(r => r) : results.some(r => r);
+  };
 
   const filteredAgencies = mockAgencies.filter(agency => {
     const matchesSearch = agency.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          agency.country.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'all' || agency.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const matchesFilters = applyFilters(agency);
+    return matchesSearch && matchesStatus && matchesFilters;
   });
+
+  const handleSavePreset = (name: string, rules: FilterRule[], logic: 'AND' | 'OR') => {
+    const newPreset: FilterPreset = {
+      id: Date.now().toString(),
+      name,
+      rules,
+      logic
+    };
+    setSavedPresets([...savedPresets, newPreset]);
+  };
+
+  const handleLoadPreset = (preset: FilterPreset) => {
+    setActiveFilters(preset.rules);
+    setFilterLogic(preset.logic);
+  };
+
+  const handleDeletePreset = (presetId: string) => {
+    setSavedPresets(savedPresets.filter(p => p.id !== presetId));
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -72,6 +163,18 @@ export function AgenciesList() {
                 <SelectItem value="suspended">Suspended</SelectItem>
               </SelectContent>
             </Select>
+
+            <FilterSystem
+              columns={agencyColumns}
+              activeFilters={activeFilters}
+              onFiltersChange={setActiveFilters}
+              filterLogic={filterLogic}
+              onLogicChange={setFilterLogic}
+              savedPresets={savedPresets}
+              onSavePreset={handleSavePreset}
+              onLoadPreset={handleLoadPreset}
+              onDeletePreset={handleDeletePreset}
+            />
           </div>
         </CardContent>
       </Card>

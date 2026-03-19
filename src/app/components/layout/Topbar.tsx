@@ -1,9 +1,45 @@
-import { Search, Bell, Settings } from 'lucide-react';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router';
+import { Search, Bell, Settings, User, Lock, Globe, Moon, Sun, LogOut, ChevronDown } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '../ui/dropdown-menu';
 
 export function Topbar() {
+  const navigate = useNavigate();
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+
+  const handleLogout = () => {
+    // Clear session/token
+    localStorage.removeItem('authToken');
+    sessionStorage.clear();
+    // Redirect to login
+    navigate('/login');
+  };
+
+  const toggleTheme = () => {
+    const newTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(newTheme);
+    // In production, this would update the theme in the app
+    document.documentElement.classList.toggle('dark');
+  };
+
+  // Mock current user data
+  const currentUser = {
+    name: 'Sarah Johnson',
+    role: 'HR Manager',
+    email: 'sarah.johnson@tempworks.eu',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah'
+  };
+
   return (
     <header className="h-16 bg-white border-b border-[#E2E8F0] px-6 flex items-center gap-4">
       <div className="flex-1 max-w-2xl">
@@ -30,17 +66,94 @@ export function Topbar() {
         
         <div className="w-px h-8 bg-[#E2E8F0]" />
         
-        <div className="flex items-center gap-3">
-          <img 
-            src="https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah" 
-            alt="User" 
-            className="w-8 h-8 rounded-full"
-          />
-          <div>
-            <p className="text-sm font-medium text-[#0F172A]">Sarah Johnson</p>
-            <p className="text-xs text-muted-foreground">HR Manager</p>
-          </div>
-        </div>
+        {/* User Dropdown Menu */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="flex items-center gap-3 hover:bg-[#F8FAFC] rounded-lg px-2 py-1.5 transition-colors">
+              <img 
+                src={currentUser.avatar}
+                alt={currentUser.name}
+                className="w-8 h-8 rounded-full"
+              />
+              <div className="text-left">
+                <p className="text-sm font-medium text-[#0F172A]">{currentUser.name}</p>
+                <p className="text-xs text-muted-foreground">{currentUser.role}</p>
+              </div>
+              <ChevronDown className="w-4 h-4 text-muted-foreground" />
+            </button>
+          </DropdownMenuTrigger>
+          
+          <DropdownMenuContent align="end" className="w-64">
+            {/* User Info Header */}
+            <div className="px-2 py-3">
+              <div className="flex items-center gap-3">
+                <img 
+                  src={currentUser.avatar}
+                  alt={currentUser.name}
+                  className="w-10 h-10 rounded-full"
+                />
+                <div className="flex-1">
+                  <p className="font-medium text-sm">{currentUser.name}</p>
+                  <p className="text-xs text-muted-foreground">{currentUser.role}</p>
+                  <p className="text-xs text-muted-foreground">{currentUser.email}</p>
+                </div>
+              </div>
+            </div>
+            
+            <DropdownMenuSeparator />
+            
+            {/* Menu Items */}
+            <DropdownMenuItem asChild>
+              <Link to="/dashboard/profile" className="cursor-pointer">
+                <User className="w-4 h-4" />
+                <span>Profile</span>
+              </Link>
+            </DropdownMenuItem>
+            
+            <DropdownMenuItem asChild>
+              <Link to="/dashboard/settings" className="cursor-pointer">
+                <Settings className="w-4 h-4" />
+                <span>Account Settings</span>
+              </Link>
+            </DropdownMenuItem>
+            
+            <DropdownMenuItem asChild>
+              <Link to="/dashboard/change-password" className="cursor-pointer">
+                <Lock className="w-4 h-4" />
+                <span>Change Password</span>
+              </Link>
+            </DropdownMenuItem>
+            
+            <DropdownMenuItem asChild>
+              <Link to="/dashboard/notifications" className="cursor-pointer">
+                <Bell className="w-4 h-4" />
+                <span>Notification Preferences</span>
+              </Link>
+            </DropdownMenuItem>
+            
+            <DropdownMenuSeparator />
+            
+            <DropdownMenuItem onClick={toggleTheme}>
+              {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+              <span>Theme: {theme === 'light' ? 'Light' : 'Dark'}</span>
+            </DropdownMenuItem>
+            
+            <DropdownMenuItem>
+              <Globe className="w-4 h-4" />
+              <span>Language: English</span>
+            </DropdownMenuItem>
+            
+            <DropdownMenuSeparator />
+            
+            <DropdownMenuItem 
+              onClick={handleLogout}
+              variant="destructive"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Logout</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );

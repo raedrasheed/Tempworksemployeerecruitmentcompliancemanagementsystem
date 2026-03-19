@@ -7,11 +7,42 @@ import { Badge } from '../../components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { mockDrivers, mockDocuments } from '../../data/mockData';
+import { FilterSystem, Column, FilterRule, FilterPreset } from '../../components/filters/FilterSystem';
+
+// Define columns for the filter system
+const documentColumns: Column[] = [
+  { id: 'driverName', label: 'Employee Name', type: 'text' },
+  { id: 'fileName', label: 'Document Name', type: 'text' },
+  { id: 'type', label: 'Document Type', type: 'text' },
+  { id: 'status', label: 'Status', type: 'enum', options: ['valid', 'expiring_soon', 'expired', 'pending_verification'] },
+  { id: 'expiryDate', label: 'Expiry Date', type: 'date' },
+  { id: 'uploadDate', label: 'Upload Date', type: 'date' },
+];
 
 export function DocumentsCompliance() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [complianceFilter, setComplianceFilter] = useState('all');
+  const [activeFilters, setActiveFilters] = useState<FilterRule[]>([]);
+  const [filterLogic, setFilterLogic] = useState<'AND' | 'OR'>('AND');
+  const [savedPresets, setSavedPresets] = useState<FilterPreset[]>([
+    {
+      id: '1',
+      name: 'Expired Documents',
+      rules: [
+        { id: '1', columnId: 'status', operator: 'equals', value: 'expired' }
+      ],
+      logic: 'AND'
+    },
+    {
+      id: '2',
+      name: 'Expiring This Month',
+      rules: [
+        { id: '1', columnId: 'status', operator: 'equals', value: 'expiring_soon' }
+      ],
+      logic: 'AND'
+    }
+  ]);
 
   // Calculate compliance statistics
   const totalDocuments = mockDocuments.length;
@@ -19,6 +50,38 @@ export function DocumentsCompliance() {
   const expiringDocs = mockDocuments.filter(d => d.status === 'expiring_soon').length;
   const expiredDocs = mockDocuments.filter(d => d.status === 'expired').length;
   const pendingDocs = mockDocuments.filter(d => d.status === 'pending_verification').length;
+
+  // Apply filters to documents
+  const applyFilters = (doc: any) => {
+    if (activeFilters.length === 0) return true;
+
+    const results = activeFilters.map(filter => {
+      const column = documentColumns.find(c => c.id === filter.columnId);
+      if (!column) return true;
+
+      const value = (doc as any)[filter.columnId] || '';
+
+      // Apply operator logic
+      switch (filter.operator) {
+        case 'contains':
+          return value.toLowerCase().includes(filter.value.toLowerCase());
+        case 'equals':
+          return value.toString().toLowerCase() === filter.value.toLowerCase();
+        case 'startsWith':
+          return value.toLowerCase().startsWith(filter.value.toLowerCase());
+        case 'endsWith':
+          return value.toLowerCase().endsWith(filter.value.toLowerCase());
+        case 'before':
+          return new Date(value) < new Date(filter.value);
+        case 'after':
+          return new Date(value) > new Date(filter.value);
+        default:
+          return true;
+      }
+    });
+
+    return filterLogic === 'AND' ? results.every(r => r) : results.some(r => r);
+  };
 
   // Filter documents
   const filteredDocuments = mockDocuments.filter(doc => {
@@ -35,8 +98,29 @@ export function DocumentsCompliance() {
       matchesCompliance = doc.status === 'expired';
     }
     
-    return matchesSearch && matchesStatus && matchesCompliance;
+    const matchesFilters = applyFilters(doc);
+    
+    return matchesSearch && matchesStatus && matchesCompliance && matchesFilters;
   });
+
+  const handleSavePreset = (name: string, rules: FilterRule[], logic: 'AND' | 'OR') => {
+    const newPreset: FilterPreset = {
+      id: Date.now().toString(),
+      name,
+      rules,
+      logic
+    };
+    setSavedPresets([...savedPresets, newPreset]);
+  };
+
+  const handleLoadPreset = (preset: FilterPreset) => {
+    setActiveFilters(preset.rules);
+    setFilterLogic(preset.logic);
+  };
+
+  const handleDeletePreset = (presetId: string) => {
+    setSavedPresets(savedPresets.filter(p => p.id !== presetId));
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -151,41 +235,57 @@ export function DocumentsCompliance() {
           <CardTitle>Filter Documents</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="relative md:col-span-2">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by document or driver name..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="relative md:col-span-2">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by document or driver name..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Document Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="valid">Valid</SelectItem>
+                  <SelectItem value="expiring_soon">Expiring Soon</SelectItem>
+                  <SelectItem value="expired">Expired</SelectItem>
+                  <SelectItem value="pending_verification">Pending Verification</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={complianceFilter} onValueChange={setComplianceFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Compliance Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Compliance</SelectItem>
+                  <SelectItem value="compliant">Compliant</SelectItem>
+                  <SelectItem value="at_risk">At Risk</SelectItem>
+                  <SelectItem value="non_compliant">Non-Compliant</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <FilterSystem
+                columns={documentColumns}
+                activeFilters={activeFilters}
+                onFiltersChange={setActiveFilters}
+                filterLogic={filterLogic}
+                onLogicChange={setFilterLogic}
+                savedPresets={savedPresets}
+                onSavePreset={handleSavePreset}
+                onLoadPreset={handleLoadPreset}
+                onDeletePreset={handleDeletePreset}
               />
             </div>
-            
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="Document Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="valid">Valid</SelectItem>
-                <SelectItem value="expiring_soon">Expiring Soon</SelectItem>
-                <SelectItem value="expired">Expired</SelectItem>
-                <SelectItem value="pending_verification">Pending Verification</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select value={complianceFilter} onValueChange={setComplianceFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="Compliance Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Compliance</SelectItem>
-                <SelectItem value="compliant">Compliant</SelectItem>
-                <SelectItem value="at_risk">At Risk</SelectItem>
-                <SelectItem value="non_compliant">Non-Compliant</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
         </CardContent>
       </Card>

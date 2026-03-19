@@ -8,17 +8,101 @@ import { Badge } from '../../components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { mockApplications } from '../../data/mockData';
+import { FilterSystem, Column, FilterRule, FilterPreset } from '../../components/filters/FilterSystem';
+
+// Define columns for the filter system
+const applicationColumns: Column[] = [
+  { id: 'id', label: 'Application ID', type: 'text' },
+  { id: 'driverName', label: 'Employee Name', type: 'text' },
+  { id: 'position', label: 'Position', type: 'text' },
+  { id: 'nationality', label: 'Nationality', type: 'text' },
+  { id: 'submittedDate', label: 'Submitted Date', type: 'date' },
+  { id: 'status', label: 'Status', type: 'enum', options: ['submitted', 'in_review', 'approved', 'rejected', 'on_hold'] },
+  { id: 'reviewedBy', label: 'Reviewed By', type: 'text' },
+];
 
 export function ApplicationsList() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [activeFilters, setActiveFilters] = useState<FilterRule[]>([]);
+  const [filterLogic, setFilterLogic] = useState<'AND' | 'OR'>('AND');
+  const [savedPresets, setSavedPresets] = useState<FilterPreset[]>([
+    {
+      id: '1',
+      name: 'Pending Review',
+      rules: [
+        { id: '1', columnId: 'status', operator: 'equals', value: 'in_review' }
+      ],
+      logic: 'AND'
+    },
+    {
+      id: '2',
+      name: 'Recent Applications',
+      rules: [
+        { id: '1', columnId: 'submittedDate', operator: 'after', value: '2026-02-01' }
+      ],
+      logic: 'AND'
+    }
+  ]);
+
+  // Apply filters to applications
+  const applyFilters = (app: any) => {
+    if (activeFilters.length === 0) return true;
+
+    const results = activeFilters.map(filter => {
+      const column = applicationColumns.find(c => c.id === filter.columnId);
+      if (!column) return true;
+
+      const value = (app as any)[filter.columnId] || '';
+
+      // Apply operator logic
+      switch (filter.operator) {
+        case 'contains':
+          return value.toLowerCase().includes(filter.value.toLowerCase());
+        case 'equals':
+          return value.toString().toLowerCase() === filter.value.toLowerCase();
+        case 'startsWith':
+          return value.toLowerCase().startsWith(filter.value.toLowerCase());
+        case 'endsWith':
+          return value.toLowerCase().endsWith(filter.value.toLowerCase());
+        case 'before':
+          return new Date(value) < new Date(filter.value);
+        case 'after':
+          return new Date(value) > new Date(filter.value);
+        default:
+          return true;
+      }
+    });
+
+    return filterLogic === 'AND' ? results.every(r => r) : results.some(r => r);
+  };
 
   const filteredApplications = mockApplications.filter(app => {
     const matchesSearch = app.driverName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          app.position.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || app.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const matchesFilters = applyFilters(app);
+    return matchesSearch && matchesStatus && matchesFilters;
   });
+
+  const handleSavePreset = (name: string, rules: FilterRule[], logic: 'AND' | 'OR') => {
+    const newPreset: FilterPreset = {
+      id: Date.now().toString(),
+      name,
+      rules,
+      logic
+    };
+    setSavedPresets([...savedPresets, newPreset]);
+  };
+
+  const handleLoadPreset = (preset: FilterPreset) => {
+    setActiveFilters(preset.rules);
+    setFilterLogic(preset.logic);
+  };
+
+  const handleDeletePreset = (presetId: string) => {
+    setSavedPresets(savedPresets.filter(p => p.id !== presetId));
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -64,10 +148,17 @@ export function ApplicationsList() {
               </SelectContent>
             </Select>
 
-            <Button variant="outline">
-              <Filter className="w-4 h-4 mr-2" />
-              More Filters
-            </Button>
+            <FilterSystem
+              columns={applicationColumns}
+              activeFilters={activeFilters}
+              onFiltersChange={setActiveFilters}
+              filterLogic={filterLogic}
+              onLogicChange={setFilterLogic}
+              savedPresets={savedPresets}
+              onSavePreset={handleSavePreset}
+              onLoadPreset={handleLoadPreset}
+              onDeletePreset={handleDeletePreset}
+            />
           </div>
 
           <div className="border rounded-lg">
@@ -100,7 +191,7 @@ export function ApplicationsList() {
                     <TableCell>{app.reviewedBy || '-'}</TableCell>
                     <TableCell className="text-right">
                       <Button variant="ghost" size="sm" asChild>
-                        <Link to={`/applications/${app.id}`}>
+                        <Link to={`/dashboard/applications/${app.id}`}>
                           <Eye className="w-4 h-4 mr-2" />
                           View
                         </Link>

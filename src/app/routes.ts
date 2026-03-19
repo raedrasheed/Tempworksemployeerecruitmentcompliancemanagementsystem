@@ -9,6 +9,10 @@ import { DriverCertifications } from './pages/drivers/DriverCertifications';
 import { DriverTrainingHistory } from './pages/drivers/DriverTrainingHistory';
 import { DriverComplianceTimeline } from './pages/drivers/DriverComplianceTimeline';
 import { DriverPerformanceReview } from './pages/drivers/DriverPerformanceReview';
+import { ApplicantsList } from './pages/applicants/ApplicantsList';
+import { ApplicantProfile } from './pages/applicants/ApplicantProfile';
+import { AddApplicant } from './pages/applicants/AddApplicant';
+import { EditApplicant } from './pages/applicants/EditApplicant';
 import { ApplicationsList } from './pages/applications/ApplicationsList';
 import { ApplicationDetails } from './pages/applications/ApplicationDetails';
 import { DriverApplicationForm } from './pages/applications/DriverApplicationForm';
@@ -46,9 +50,16 @@ import { Settings } from './pages/settings/Settings';
 import { WorkflowSettings } from './pages/settings/WorkflowSettings';
 import { WorkflowConfiguration } from './pages/settings/WorkflowConfiguration';
 import { DocumentTypes } from './pages/settings/DocumentTypes';
+import { DocumentTypeNew } from './pages/settings/DocumentTypeNew';
+import { DocumentTypeView } from './pages/settings/DocumentTypeView';
+import { DocumentTypeEdit } from './pages/settings/DocumentTypeEdit';
 import { NotificationRules } from './pages/settings/NotificationRules';
 import { SecuritySettings } from './pages/settings/SecuritySettings';
 import { JobTypes } from './pages/settings/JobTypes';
+
+// Profile pages
+import { Profile } from './pages/profile/Profile';
+import { ChangePassword } from './pages/profile/ChangePassword';
 
 // Public pages
 import { LandingPage } from './pages/public/LandingPage';
@@ -89,6 +100,12 @@ export const router = createBrowserRouter([
       { path: 'drivers/:id/training', Component: DriverTrainingHistory },
       { path: 'drivers/:id/compliance-timeline', Component: DriverComplianceTimeline },
       { path: 'drivers/:id/performance', Component: DriverPerformanceReview },
+      
+      // Applicants routes
+      { path: 'applicants', Component: ApplicantsList },
+      { path: 'applicants/add', Component: AddApplicant },
+      { path: 'applicants/:id', Component: ApplicantProfile },
+      { path: 'applicants/:id/edit', Component: EditApplicant },
       
       // Applications routes
       { path: 'applications', Component: ApplicationsList },
@@ -149,8 +166,16 @@ export const router = createBrowserRouter([
       { path: 'settings/workflow', Component: WorkflowSettings },
       { path: 'settings/workflow-configuration', Component: WorkflowConfiguration },
       { path: 'settings/document-types', Component: DocumentTypes },
+      { path: 'settings/document-types/new', Component: DocumentTypeNew },
+      { path: 'settings/document-types/:id', Component: DocumentTypeView },
+      { path: 'settings/document-types/:id/edit', Component: DocumentTypeEdit },
       { path: 'settings/notifications', Component: NotificationRules },
       { path: 'settings/security', Component: SecuritySettings },
+      
+      // Profile routes
+      { path: 'profile', Component: Profile },
+      { path: 'profile/change-password', Component: ChangePassword },
+      { path: 'change-password', Component: ChangePassword },
     ],
   },
 ]);

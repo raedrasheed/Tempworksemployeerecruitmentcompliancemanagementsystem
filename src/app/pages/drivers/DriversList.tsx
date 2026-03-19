@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
-import { Plus, Search, Filter, Download, Eye } from 'lucide-react';
+import { Plus, Search, Download, Eye } from 'lucide-react';
 import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -13,19 +13,102 @@ import {
   TableHeader,
   TableRow,
 } from '../../components/ui/table';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../../components/ui/select';
 import { mockDrivers } from '../../data/mockData';
+import { FilterSystem, Column, FilterRule, FilterPreset } from '../../components/filters/FilterSystem';
+
+// Define columns for the filter system
+const employeeColumns: Column[] = [
+  { id: 'name', label: 'Employee Name', type: 'text' },
+  { id: 'email', label: 'Email', type: 'text' },
+  { id: 'phone', label: 'Phone', type: 'text' },
+  { id: 'nationality', label: 'Nationality', type: 'text' },
+  { id: 'license', label: 'ID / License', type: 'text' },
+  { id: 'experience', label: 'Experience (years)', type: 'number' },
+  { id: 'agency', label: 'Agency', type: 'text' },
+  { id: 'status', label: 'Status', type: 'enum', options: ['active', 'pending', 'inactive', 'suspended'] },
+  { id: 'jobType', label: 'Job Type', type: 'enum', options: ['Truck Driver', 'Warehouse Worker', 'Forklift Operator', 'Logistics Coordinator', 'Construction Worker', 'Technician', 'General Worker'] },
+  { id: 'createdDate', label: 'Created Date', type: 'date' },
+];
 
 export function DriversList() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [jobTypeFilter, setJobTypeFilter] = useState('all');
+  const [activeFilters, setActiveFilters] = useState<FilterRule[]>([]);
+  const [filterLogic, setFilterLogic] = useState<'AND' | 'OR'>('AND');
+  const [savedPresets, setSavedPresets] = useState<FilterPreset[]>([
+    {
+      id: '1',
+      name: 'Active Truck Drivers',
+      rules: [
+        { id: '1', columnId: 'status', operator: 'equals', value: 'active' },
+        { id: '2', columnId: 'jobType', operator: 'equals', value: 'Truck Driver' }
+      ],
+      logic: 'AND'
+    },
+    {
+      id: '2',
+      name: 'Experienced EU Workers',
+      rules: [
+        { id: '1', columnId: 'experience', operator: 'greaterThan', value: '5' },
+        { id: '2', columnId: 'nationality', operator: 'contains', value: 'Poland' }
+      ],
+      logic: 'AND'
+    }
+  ]);
+
+  // Apply filters to drivers
+  const applyFilters = (driver: any) => {
+    if (activeFilters.length === 0) return true;
+
+    const results = activeFilters.map(filter => {
+      const column = employeeColumns.find(c => c.id === filter.columnId);
+      if (!column) return true;
+
+      let value: any;
+      switch (filter.columnId) {
+        case 'name':
+          value = `${driver.firstName} ${driver.lastName}`.toLowerCase();
+          break;
+        case 'experience':
+          value = parseInt(driver.experience.replace(' years', ''));
+          break;
+        case 'createdDate':
+          value = driver.createdAt || '2026-01-01';
+          break;
+        default:
+          value = (driver as any)[filter.columnId] || '';
+      }
+
+      // Apply operator logic
+      switch (filter.operator) {
+        case 'contains':
+          return value.toLowerCase().includes(filter.value.toLowerCase());
+        case 'equals':
+          return value.toString().toLowerCase() === filter.value.toLowerCase();
+        case 'startsWith':
+          return value.toLowerCase().startsWith(filter.value.toLowerCase());
+        case 'endsWith':
+          return value.toLowerCase().endsWith(filter.value.toLowerCase());
+        case 'greaterThan':
+          return parseFloat(value) > parseFloat(filter.value);
+        case 'lessThan':
+          return parseFloat(value) < parseFloat(filter.value);
+        case 'greaterThanOrEqual':
+          return parseFloat(value) >= parseFloat(filter.value);
+        case 'lessThanOrEqual':
+          return parseFloat(value) <= parseFloat(filter.value);
+        case 'between':
+          return parseFloat(value) >= parseFloat(filter.value) && parseFloat(value) <= parseFloat(filter.value2);
+        case 'before':
+          return new Date(value) < new Date(filter.value);
+        case 'after':
+          return new Date(value) > new Date(filter.value);
+        default:
+          return true;
+      }
+    });
+
+    return filterLogic === 'AND' ? results.every(r => r) : results.some(r => r);
+  };
 
   const filteredDrivers = mockDrivers.filter(driver => {
     const matchesSearch = 
@@ -34,11 +117,35 @@ export function DriversList() {
       driver.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       driver.nationality.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesStatus = statusFilter === 'all' || driver.status === statusFilter;
-    const matchesJobType = jobTypeFilter === 'all' || (driver as any).jobType === jobTypeFilter;
+    const matchesFilters = applyFilters(driver);
     
-    return matchesSearch && matchesStatus && matchesJobType;
+    return matchesSearch && matchesFilters;
   });
+
+  const handleSavePreset = (name: string, rules: FilterRule[], logic: 'AND' | 'OR') => {
+    const newPreset: FilterPreset = {
+      id: Date.now().toString(),
+      name,
+      rules,
+      logic
+    };
+    setSavedPresets([...savedPresets, newPreset]);
+  };
+
+  const handleLoadPreset = (preset: FilterPreset) => {
+    setActiveFilters(preset.rules);
+    setFilterLogic(preset.logic);
+  };
+
+  const handleDeletePreset = (presetId: string) => {
+    setSavedPresets(savedPresets.filter(p => p.id !== presetId));
+  };
+
+  const handleExport = () => {
+    // Export filtered results
+    console.log('Exporting', filteredDrivers.length, 'employees');
+    // In production, this would generate CSV/Excel with filtered data
+  };
 
   return (
     <div className="space-y-6">
@@ -67,42 +174,20 @@ export function DriversList() {
                 className="pl-10"
               />
             </div>
-            
-            <Select value={jobTypeFilter} onValueChange={setJobTypeFilter}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Filter by job type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Job Types</SelectItem>
-                <SelectItem value="Truck Driver">Truck Driver</SelectItem>
-                <SelectItem value="Warehouse Worker">Warehouse Worker</SelectItem>
-                <SelectItem value="Forklift Operator">Forklift Operator</SelectItem>
-                <SelectItem value="Logistics Coordinator">Logistics Coordinator</SelectItem>
-                <SelectItem value="Construction Worker">Construction Worker</SelectItem>
-                <SelectItem value="Technician">Technician</SelectItem>
-                <SelectItem value="General Worker">General Worker</SelectItem>
-              </SelectContent>
-            </Select>
 
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
-                <SelectItem value="suspended">Suspended</SelectItem>
-              </SelectContent>
-            </Select>
+            <FilterSystem
+              columns={employeeColumns}
+              activeFilters={activeFilters}
+              onFiltersChange={setActiveFilters}
+              filterLogic={filterLogic}
+              onLogicChange={setFilterLogic}
+              savedPresets={savedPresets}
+              onSavePreset={handleSavePreset}
+              onLoadPreset={handleLoadPreset}
+              onDeletePreset={handleDeletePreset}
+            />
 
-            <Button variant="outline">
-              <Filter className="w-4 h-4 mr-2" />
-              More Filters
-            </Button>
-
-            <Button variant="outline">
+            <Button variant="outline" onClick={handleExport}>
               <Download className="w-4 h-4 mr-2" />
               Export
             </Button>

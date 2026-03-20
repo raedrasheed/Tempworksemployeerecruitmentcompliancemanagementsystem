@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router';
 import { Plus, Search, Download, Eye } from 'lucide-react';
 import { Card, CardContent } from '../../components/ui/card';
@@ -13,8 +13,8 @@ import {
   TableHeader,
   TableRow,
 } from '../../components/ui/table';
-import { mockDrivers } from '../../data/mockData';
 import { FilterSystem, Column, FilterRule, FilterPreset } from '../../components/filters/FilterSystem';
+import { employeesApi } from '../../services/api';
 
 // Define columns for the filter system
 const employeeColumns: Column[] = [
@@ -34,6 +34,29 @@ export function DriversList() {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilters, setActiveFilters] = useState<FilterRule[]>([]);
   const [filterLogic, setFilterLogic] = useState<'AND' | 'OR'>('AND');
+  const [employees, setEmployees] = useState<any[]>([]);
+  const [totalEmployees, setTotalEmployees] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  const fetchEmployees = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params: Record<string, any> = { page: 1, limit: 50 };
+      if (searchTerm) params.search = searchTerm;
+      const result = await employeesApi.list(params);
+      setEmployees(result.data || []);
+      setTotalEmployees(result.meta?.total || 0);
+    } catch {
+      setEmployees([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [searchTerm]);
+
+  useEffect(() => {
+    const timer = setTimeout(fetchEmployees, 300);
+    return () => clearTimeout(timer);
+  }, [fetchEmployees]);
   const [savedPresets, setSavedPresets] = useState<FilterPreset[]>([
     {
       id: '1',
@@ -110,16 +133,10 @@ export function DriversList() {
     return filterLogic === 'AND' ? results.every(r => r) : results.some(r => r);
   };
 
-  const filteredDrivers = mockDrivers.filter(driver => {
-    const matchesSearch = 
-      driver.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      driver.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      driver.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      driver.nationality.toLowerCase().includes(searchTerm.toLowerCase());
-    
+  // Use employees from API, filtered client-side for active filters
+  const filteredDrivers = employees.filter(driver => {
     const matchesFilters = applyFilters(driver);
-    
-    return matchesSearch && matchesFilters;
+    return matchesFilters;
   });
 
   const handleSavePreset = (name: string, rules: FilterRule[], logic: 'AND' | 'OR') => {
@@ -282,7 +299,7 @@ export function DriversList() {
 
           <div className="flex items-center justify-between mt-4">
             <p className="text-sm text-muted-foreground">
-              Showing {filteredDrivers.length} of {mockDrivers.length} employees
+              Showing {filteredDrivers.length} of {totalEmployees} employees
             </p>
             <div className="flex gap-2">
               <Button variant="outline" size="sm">Previous</Button>

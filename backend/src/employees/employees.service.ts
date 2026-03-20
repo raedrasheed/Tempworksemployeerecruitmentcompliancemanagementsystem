@@ -1,0 +1,163 @@
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import { CreateEmployeeDto } from './dto/create-employee.dto';
+import { PaginationDto } from '../common/dto/pagination.dto';
+import { PaginatedResponse } from '../common/dto/pagination-response.dto';
+
+@Injectable()
+export class EmployeesService {
+  constructor(private prisma: PrismaService) {}
+
+  async findAll(query: PaginationDto & { agencyId?: string; status?: string; nationality?: string }) {
+    const { page = 1, limit = 20, search, sortBy = 'createdAt', sortOrder = 'desc', agencyId, status, nationality } = query;
+    const skip = (page - 1) * limit;
+
+    const where: any = { deletedAt: null };
+    if (search) {
+      where.OR = [
+        { firstName: { contains: search, mode: 'insensitive' } },
+        { lastName: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+        { licenseNumber: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+    if (agencyId) where.agencyId = agencyId;
+    if (status) where.status = status;
+    if (nationality) where.nationality = { contains: nationality, mode: 'insensitive' };
+
+    const [data, total] = await Promise.all([
+      this.prisma.employee.findMany({
+        where, skip, take: limit,
+        orderBy: { [sortBy]: sortOrder },
+        include: {
+          agency: { select: { id: true, name: true } },
+          workflowStages: { include: { stage: true }, orderBy: { stage: { order: 'desc' } }, take: 1 },
+        },
+      }),
+      this.prisma.employee.count({ where }),
+    ]);
+
+    return PaginatedResponse.create(data, total, page, limit);
+  }
+
+  async findOne(id: string) {
+    const employee = await this.prisma.employee.findFirst({
+      where: { id, deletedAt: null },
+      include: {
+        agency: true,
+        workflowStages: { include: { stage: true, assignedTo: { select: { id: true, firstName: true, lastName: true } } }, orderBy: { stage: { order: 'asc' } } },
+        complianceAlerts: { where: { status: { in: ['OPEN', 'ACKNOWLEDGED'] } }, orderBy: { severity: 'desc' } },
+      },
+    });
+    if (!employee) throw new NotFoundException('Employee not found');
+    return employee;
+  }
+
+  async create(dto: CreateEmployeeDto) {
+    const existing = await this.prisma.employee.findFirst({ where: { email: dto.email, deletedAt: null } });
+    if (existing) throw new ConflictException('Employee with this email already exists');
+
+    // Get all workflow stages to initialize
+    const stages = await this.prisma.workflowStage.findMany({ where: { isActive: true }, orderBy: { order: 'asc' } });
+
+    const employee = await this.prisma.employee.create({
+      data: {
+        ...dto,
+        dateOfBirth: new Date(dto.dateOfBirth),
+        status: (dto.status as any) || 'PENDING',
+        workflowStages: {
+          create: stages.map((stage) => ({
+            stageId: stage.id,
+            status: 'PENDING',
+          })),
+        },
+      },
+      include: { agency: { select: { id: true, name: true } } },
+    });
+
+    return employee;
+  }
+
+  async update(id: string, dto: Partial<CreateEmployeeDto>) {
+    await this.findOne(id);
+    const data: any = { ...dto };
+    if (dto.dateOfBirth) data.dateOfBirth = new Date(dto.dateOfBirth);
+    return this.prisma.employee.update({ where: { id }, data, include: { agency: { select: { id: true, name: true } } } });
+  }
+
+  async remove(id: string) {
+    await this.findOne(id);
+    await this.prisma.employee.update({ where: { id }, data: { deletedAt: new Date() } });
+    return { message: 'Employee deleted successfully' };
+  }
+
+  async updateStatus(id: string, status: string) {
+    await this.findOne(id);
+    return this.prisma.employee.update({ where: { id }, data: { status: status as any } });
+  }
+
+  async getDocuments(id: string) {
+    await this.findOne(id);
+    return this.prisma.document.findMany({
+      where: { entityType: 'EMPLOYEE', entityId: id, deletedAt: null },
+      include: { documentType: true, uploadedBy: { select: { firstName: true, lastName: true } }, verifiedBy: { select: { firstName: true, lastName: true } } },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async getWorkflow(id: string) {
+    await this.findOne(id);
+    return this.prisma.employeeWorkflowStage.findMany({
+      where: { employeeId: id },
+      include: { stage: true, assignedTo: { select: { id: true, firstName: true, lastName: true } } },
+      orderBy: { stage: { order: 'asc' } },
+    });
+  }
+
+  async getCompliance(id: string) {
+    await this.findOne(id);
+    const [docs, alerts] = await Promise.all([
+      this.prisma.document.findMany({ where: { entityType: 'EMPLOYEE', entityId: id, deletedAt: null }, include: { documentType: true } }),
+      this.prisma.complianceAlert.findMany({ where: { entityType: 'EMPLOYEE', entityId: id }, orderBy: { severity: 'desc' } }),
+    ]);
+    return { documents: docs, alerts };
+  }
+
+  async getCertifications(id: string) {
+    await this.findOne(id);
+    return this.prisma.document.findMany({
+      where: { entityType: 'EMPLOYEE', entityId: id, deletedAt: null, documentType: { category: 'certification' } },
+      include: { documentType: true },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async getTraining(id: string) {
+    await this.findOne(id);
+    const stages = await this.prisma.employeeWorkflowStage.findMany({
+      where: { employeeId: id, stage: { category: 'TRAINING' } },
+      include: { stage: true },
+    });
+    return stages;
+  }
+
+  async getPerformance(id: string) {
+    const employee = await this.findOne(id);
+    const completedStages = await this.prisma.employeeWorkflowStage.count({
+      where: { employeeId: id, status: 'COMPLETED' },
+    });
+    const totalStages = await this.prisma.employeeWorkflowStage.count({ where: { employeeId: id } });
+    const validDocs = await this.prisma.document.count({ where: { entityType: 'EMPLOYEE', entityId: id, status: 'VERIFIED', deletedAt: null } });
+    const totalDocs = await this.prisma.document.count({ where: { entityType: 'EMPLOYEE', entityId: id, deletedAt: null } });
+
+    return {
+      employee: { id: employee.id, firstName: employee.firstName, lastName: employee.lastName },
+      workflowCompletion: totalStages > 0 ? Math.round((completedStages / totalStages) * 100) : 0,
+      documentCompliance: totalDocs > 0 ? Math.round((validDocs / totalDocs) * 100) : 0,
+      completedStages,
+      totalStages,
+      validDocuments: validDocs,
+      totalDocuments: totalDocs,
+    };
+  }
+}

@@ -4,23 +4,32 @@ import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Briefcase, ArrowLeft } from 'lucide-react';
+import { toast } from 'sonner';
+import { authApi } from '../../services/api';
 
 export function LoginPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError('');
 
-    // Simulate authentication
-    setTimeout(() => {
-      setLoading(false);
-      // Redirect to dashboard after successful login
+    try {
+      await authApi.login(email, password);
+      toast.success('Welcome back!');
       navigate('/dashboard');
-    }, 1000);
+    } catch (err: any) {
+      const message = err?.message || 'Login failed. Please check your credentials.';
+      setError(message);
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -91,9 +100,15 @@ export function LoginPage() {
               />
             </div>
 
+            {error && (
+              <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-3">
+                {error}
+              </div>
+            )}
+
             {/* Login Button */}
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               className="w-full bg-[#2563EB] hover:bg-[#1d4ed8]"
               disabled={loading}
             >

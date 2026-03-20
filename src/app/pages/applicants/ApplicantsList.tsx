@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { applicantsApi } from '../../services/api';
 import { Link } from 'react-router';
 import { Search, Plus, Eye, Edit, UserPlus, Download } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
@@ -98,6 +99,32 @@ export function ApplicantsList() {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilters, setActiveFilters] = useState<FilterRule[]>([]);
   const [filterLogic, setFilterLogic] = useState<'AND' | 'OR'>('AND');
+  const [applicantsData, setApplicantsData] = useState<any[]>([]);
+  const [totalApplicants, setTotalApplicants] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  const fetchApplicants = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params: Record<string, any> = { page: 1, limit: 50 };
+      if (searchTerm) params.search = searchTerm;
+      const result = await applicantsApi.list(params);
+      setApplicantsData(result.data || []);
+      setTotalApplicants(result.meta?.total || 0);
+    } catch {
+      setApplicantsData([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [searchTerm]);
+
+  useEffect(() => {
+    const timer = setTimeout(fetchApplicants, 300);
+    return () => clearTimeout(timer);
+  }, [fetchApplicants]);
+
+  // Use API data or fall back to local hardcoded array if API not available
+  const applicants = applicantsData.length > 0 ? applicantsData : [];
   const [savedPresets, setSavedPresets] = useState<FilterPreset[]>([
     {
       id: '1',

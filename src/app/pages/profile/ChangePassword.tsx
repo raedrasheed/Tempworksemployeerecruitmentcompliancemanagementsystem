@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { toast } from 'sonner';
+import { authApi } from '../../services/api';
 import { Eye, EyeOff, Lock, CheckCircle, X, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -46,40 +48,40 @@ export function ChangePassword() {
     { label: 'Contains special character', test: (pwd: string) => /[^a-zA-Z0-9]/.test(pwd) },
   ];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validation
     if (!currentPassword) {
-      alert('Please enter your current password');
+      toast.error('Please enter your current password');
       return;
     }
 
     if (newPassword.length < 8) {
-      alert('New password must be at least 8 characters long');
+      toast.error('New password must be at least 8 characters long');
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      alert('Passwords do not match');
+      toast.error('Passwords do not match');
       return;
     }
 
     if (passwordStrength < 50) {
-      alert('Please choose a stronger password');
+      toast.error('Please choose a stronger password');
       return;
     }
 
-    // In production, this would call the backend API
-    setSuccessMessage(true);
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
-
-    // Hide success message after 5 seconds
-    setTimeout(() => {
-      setSuccessMessage(false);
-    }, 5000);
+    try {
+      await authApi.changePassword(currentPassword, newPassword);
+      setSuccessMessage(true);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      toast.success('Password changed successfully');
+      setTimeout(() => setSuccessMessage(false), 5000);
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to change password');
+    }
   };
 
   return (

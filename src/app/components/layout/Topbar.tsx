@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { Search, Bell, Settings, User, Lock, Globe, Moon, Sun, LogOut, ChevronDown } from 'lucide-react';
 import { Input } from '../ui/input';
@@ -12,32 +12,41 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu';
+import { authApi, getCurrentUser, notificationsApi } from '../../services/api';
+import { toast } from 'sonner';
 
 export function Topbar() {
   const navigate = useNavigate();
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [unreadCount, setUnreadCount] = useState(0);
+  const storedUser = getCurrentUser();
 
-  const handleLogout = () => {
-    // Clear session/token
-    localStorage.removeItem('authToken');
-    sessionStorage.clear();
-    // Redirect to login
+  useEffect(() => {
+    if (storedUser) {
+      notificationsApi.getUnreadCount()
+        .then((res) => setUnreadCount(res?.count || 0))
+        .catch(() => {});
+    }
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await authApi.logout();
+    } catch {}
     navigate('/login');
   };
 
   const toggleTheme = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
     setTheme(newTheme);
-    // In production, this would update the theme in the app
     document.documentElement.classList.toggle('dark');
   };
 
-  // Mock current user data
   const currentUser = {
-    name: 'Sarah Johnson',
-    role: 'HR Manager',
-    email: 'sarah.johnson@tempworks.eu',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah'
+    name: storedUser ? `${storedUser.firstName} ${storedUser.lastName}` : 'User',
+    role: storedUser?.role || 'Staff',
+    email: storedUser?.email || '',
+    avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${storedUser?.firstName || 'User'}`
   };
 
   return (
@@ -53,12 +62,16 @@ export function Topbar() {
       </div>
       
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="w-5 h-5" />
-          <Badge className="absolute -top-1 -right-1 w-5 h-5 flex items-center justify-center p-0 bg-[#EF4444] text-white text-xs">
-            3
-          </Badge>
-        </Button>
+        <Link to="/dashboard/notifications">
+          <Button variant="ghost" size="icon" className="relative">
+            <Bell className="w-5 h-5" />
+            {unreadCount > 0 && (
+              <Badge className="absolute -top-1 -right-1 w-5 h-5 flex items-center justify-center p-0 bg-[#EF4444] text-white text-xs">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </Badge>
+            )}
+          </Button>
+        </Link>
         
         <Button variant="ghost" size="icon">
           <Settings className="w-5 h-5" />

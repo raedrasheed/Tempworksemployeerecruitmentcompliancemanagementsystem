@@ -32,10 +32,10 @@ export class UsersService {
         skip,
         take: Number(limit),
         orderBy: { [sortBy]: sortOrder },
-        include: { role: true, agency: { select: { id: true, name: true } } },
         select: {
           id: true, email: true, firstName: true, lastName: true, phone: true,
           status: true, lastLoginAt: true, createdAt: true,
+          roleId: true, agencyId: true,
           role: { select: { id: true, name: true } },
           agency: { select: { id: true, name: true } },
         },

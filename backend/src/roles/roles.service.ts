@@ -46,7 +46,7 @@ export class RolesService {
 
   async update(id: string, dto: Partial<CreateRoleDto>) {
     const role = await this.findOne(id);
-    if (role.isSystem && dto.name) throw new BadRequestException('Cannot rename system roles');
+    if (role.isSystem && dto.name && dto.name !== role.name) throw new BadRequestException('Cannot rename system roles');
 
     if (dto.permissionIds !== undefined) {
       await this.prisma.rolePermission.deleteMany({ where: { roleId: id } });

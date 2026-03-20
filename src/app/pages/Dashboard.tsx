@@ -1,9 +1,10 @@
 import { Link } from 'react-router';
-import { 
-  Users, 
-  FileCheck, 
-  Clock, 
-  AlertTriangle, 
+import { useState, useEffect } from 'react';
+import {
+  Users,
+  FileCheck,
+  Clock,
+  AlertTriangle,
   TrendingUp,
   CheckCircle2,
   XCircle,
@@ -14,18 +15,34 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 import { Progress } from '../components/ui/progress';
-import { dashboardStats, mockDrivers, mockNotifications, mockDocuments } from '../data/mockData';
+import { reportsApi, complianceApi, getCurrentUser } from '../services/api';
 
 export function Dashboard() {
-  const recentDrivers = mockDrivers.slice(0, 5);
-  const recentAlerts = mockNotifications.filter(n => !n.read).slice(0, 4);
-  const expiringDocs = mockDocuments.filter(d => d.status === 'expiring_soon');
+  const currentUser = getCurrentUser();
+  const [stats, setStats] = useState<any>(null);
+  const [expiringDocs, setExpiringDocs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.all([
+      reportsApi.getDashboard(),
+      complianceApi.getExpiringDocuments(60),
+    ]).then(([dashData, expiringData]) => {
+      setStats(dashData?.stats || dashData);
+      setExpiringDocs(expiringData || []);
+    }).catch(() => {
+      // Fall back to empty state if backend not available
+      setStats({ totalEmployees: 0, activeEmployees: 0, pendingApplications: 0, expiringDocuments: 0 });
+    }).finally(() => setLoading(false));
+  }, []);
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-semibold text-[#0F172A]">Dashboard</h1>
-        <p className="text-muted-foreground mt-1">Welcome back, Sarah Johnson</p>
+        <p className="text-muted-foreground mt-1">
+          Welcome back, {currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : 'User'}
+        </p>
       </div>
 
       {/* Stats Grid */}
@@ -38,9 +55,9 @@ export function Dashboard() {
             <Users className="w-4 h-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-semibold text-[#0F172A]">{dashboardStats.totalDrivers}</div>
+            <div className="text-2xl font-semibold text-[#0F172A]">{loading ? '—' : (stats?.totalEmployees ?? 0)}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              <span className="text-[#22C55E]">+12</span> this month
+              <span className="text-[#22C55E]">+{stats?.completedThisMonth ?? 0}</span> this month
             </p>
           </CardContent>
         </Card>
@@ -53,9 +70,9 @@ export function Dashboard() {
             <CheckCircle2 className="w-4 h-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-semibold text-[#0F172A]">{dashboardStats.activeDrivers}</div>
+            <div className="text-2xl font-semibold text-[#0F172A]">{loading ? '—' : (stats?.activeEmployees ?? 0)}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              {((dashboardStats.activeDrivers / dashboardStats.totalDrivers) * 100).toFixed(0)}% of total
+              {stats?.totalEmployees > 0 ? `${((stats.activeEmployees / stats.totalEmployees) * 100).toFixed(0)}% of total` : '—'}
             </p>
           </CardContent>
         </Card>
@@ -68,9 +85,9 @@ export function Dashboard() {
             <Clock className="w-4 h-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-semibold text-[#0F172A]">{dashboardStats.pendingApplications}</div>
+            <div className="text-2xl font-semibold text-[#0F172A]">{loading ? '—' : (stats?.pendingApplications ?? 0)}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              <span className="text-[#F59E0B]">8</span> need review
+              <span className="text-[#F59E0B]">{stats?.pendingApplications ?? 0}</span> need review
             </p>
           </CardContent>
         </Card>
@@ -83,9 +100,9 @@ export function Dashboard() {
             <AlertTriangle className="w-4 h-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-semibold text-[#0F172A]">{dashboardStats.expiringDocuments}</div>
+            <div className="text-2xl font-semibold text-[#0F172A]">{loading ? '—' : (stats?.expiringDocuments ?? expiringDocs.length)}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              Within 30 days
+              Within 60 days
             </p>
           </CardContent>
         </Card>

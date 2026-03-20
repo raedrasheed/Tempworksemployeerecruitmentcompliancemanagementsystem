@@ -1,0 +1,533 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING
+}
+
+enum AgencyStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum EmployeeStatus {
+  ACTIVE
+  INACTIVE
+  PENDING
+  ONBOARDING
+  TERMINATED
+  ON_LEAVE
+}
+
+enum ApplicantStatus {
+  NEW
+  SCREENING
+  INTERVIEW
+  OFFER
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+  ONBOARDING
+}
+
+enum ApplicationStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  WITHDRAWN
+}
+
+enum DocumentStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+  EXPIRED
+  EXPIRING_SOON
+}
+
+enum WorkflowStageStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  SKIPPED
+  BLOCKED
+}
+
+enum WorkPermitStatus {
+  PENDING
+  APPLIED
+  APPROVED
+  REJECTED
+  EXPIRED
+  CANCELLED
+}
+
+enum VisaStatus {
+  PENDING
+  APPLIED
+  APPOINTMENT_SCHEDULED
+  APPROVED
+  REJECTED
+  EXPIRED
+  CANCELLED
+}
+
+enum AlertSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum AlertStatus {
+  OPEN
+  ACKNOWLEDGED
+  RESOLVED
+  DISMISSED
+}
+
+enum NotificationType {
+  INFO
+  WARNING
+  ERROR
+  SUCCESS
+  COMPLIANCE
+  DOCUMENT_EXPIRY
+  WORKFLOW
+  SYSTEM
+}
+
+enum EntityType {
+  EMPLOYEE
+  APPLICANT
+  APPLICATION
+  AGENCY
+  USER
+}
+
+enum WorkflowCategory {
+  INITIAL
+  DOCUMENTATION
+  COMPLIANCE
+  TRAINING
+  DEPLOYMENT
+  ADMINISTRATIVE
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  isSystem    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  permissions RolePermission[]
+  users       User[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  module    String
+  action    String
+  createdAt DateTime @default(now())
+
+  roles RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model User {
+  id            String      @id @default(uuid())
+  email         String      @unique
+  passwordHash  String
+  firstName     String
+  lastName      String
+  phone         String?
+  roleId        String
+  status        UserStatus  @default(ACTIVE)
+  agencyId      String?
+  lastLoginAt   DateTime?
+  refreshToken  String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  deletedAt     DateTime?
+
+  role   Role    @relation(fields: [roleId], references: [id])
+  agency Agency? @relation(fields: [agencyId], references: [id])
+
+  notifications     Notification[]
+  auditLogs         AuditLog[]
+  uploadedDocuments Document[]     @relation("UploadedDocuments")
+  verifiedDocuments Document[]     @relation("VerifiedDocuments")
+  assignedStages    EmployeeWorkflowStage[] @relation("AssignedStages")
+  reviewedApplications Application[] @relation("ReviewedApplications")
+  resolvedAlerts    ComplianceAlert[] @relation("ResolvedAlerts")
+  updatedSettings   SystemSetting[]
+
+  @@map("users")
+}
+
+model Agency {
+  id            String       @id @default(uuid())
+  name          String
+  country       String
+  contactPerson String
+  email         String
+  phone         String
+  status        AgencyStatus @default(ACTIVE)
+  logoUrl       String?
+  notes         String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  deletedAt     DateTime?
+
+  users     User[]
+  employees Employee[]
+
+  @@map("agencies")
+}
+
+model Employee {
+  id               String         @id @default(uuid())
+  firstName        String
+  lastName         String
+  email            String         @unique
+  phone            String
+  nationality      String
+  status           EmployeeStatus @default(PENDING)
+  dateOfBirth      DateTime
+  licenseNumber    String?
+  licenseCategory  String?
+  yearsExperience  Int            @default(0)
+  agencyId         String
+  photoUrl         String?
+  addressLine1     String
+  addressLine2     String?
+  city             String
+  country          String
+  postalCode       String
+  emergencyContact String?
+  emergencyPhone   String?
+  notes            String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  deletedAt        DateTime?
+
+  agency         Agency                  @relation(fields: [agencyId], references: [id])
+  workflowStages EmployeeWorkflowStage[]
+  documents      Document[]              @relation("EmployeeDocuments")
+  workPermits    WorkPermit[]
+  visas          Visa[]                  @relation("EmployeeVisas")
+  complianceAlerts ComplianceAlert[]     @relation("EmployeeAlerts")
+
+  @@map("employees")
+}
+
+model WorkflowStage {
+  id          String           @id @default(uuid())
+  name        String           @unique
+  order       Int
+  description String?
+  category    WorkflowCategory @default(INITIAL)
+  isActive    Boolean          @default(true)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  employeeStages EmployeeWorkflowStage[]
+
+  @@map("workflow_stages")
+}
+
+model EmployeeWorkflowStage {
+  id           String              @id @default(uuid())
+  employeeId   String
+  stageId      String
+  status       WorkflowStageStatus @default(PENDING)
+  startedAt    DateTime?
+  completedAt  DateTime?
+  notes        String?
+  assignedToId String?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  employee   Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  stage      WorkflowStage @relation(fields: [stageId], references: [id])
+  assignedTo User?         @relation("AssignedStages", fields: [assignedToId], references: [id])
+
+  @@unique([employeeId, stageId])
+  @@map("employee_workflow_stages")
+}
+
+model JobType {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  applicants   Applicant[]
+  applications Application[]
+
+  @@map("job_types")
+}
+
+model Applicant {
+  id                      String          @id @default(uuid())
+  firstName               String
+  lastName                String
+  email                   String          @unique
+  phone                   String
+  nationality             String
+  dateOfBirth             DateTime
+  status                  ApplicantStatus @default(NEW)
+  jobTypeId               String?
+  residencyStatus         String
+  hasNationalInsurance    Boolean         @default(false)
+  nationalInsuranceNumber String?
+  hasWorkAuthorization    Boolean         @default(false)
+  workAuthorizationType   String?
+  workAuthorizationExpiry DateTime?
+  preferredStartDate      DateTime?
+  availability            String
+  willingToRelocate       Boolean         @default(false)
+  preferredLocations      String?
+  salaryExpectation       String?
+  notes                   String?
+  applicationId           String?
+  createdAt               DateTime        @default(now())
+  updatedAt               DateTime        @updatedAt
+  deletedAt               DateTime?
+
+  jobType      JobType?      @relation(fields: [jobTypeId], references: [id])
+  applications Application[]
+  documents    Document[]    @relation("ApplicantDocuments")
+  visas        Visa[]        @relation("ApplicantVisas")
+  complianceAlerts ComplianceAlert[] @relation("ApplicantAlerts")
+
+  @@map("applicants")
+}
+
+model Application {
+  id           String            @id @default(uuid())
+  applicantId  String
+  status       ApplicationStatus @default(DRAFT)
+  submittedAt  DateTime?
+  reviewedAt   DateTime?
+  reviewedById String?
+  jobTypeId    String?
+  notes        String?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  applicant  Applicant @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+  reviewedBy User?     @relation("ReviewedApplications", fields: [reviewedById], references: [id])
+  jobType    JobType?  @relation(fields: [jobTypeId], references: [id])
+
+  @@map("applications")
+}
+
+model DocumentType {
+  id                String   @id @default(uuid())
+  name              String   @unique
+  description       String?
+  category          String
+  required          Boolean  @default(false)
+  trackExpiry       Boolean  @default(true)
+  renewalPeriodDays Int?
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  documents Document[]
+
+  @@map("document_types")
+}
+
+model Document {
+  id             String         @id @default(uuid())
+  name           String
+  documentTypeId String
+  entityType     EntityType
+  entityId       String
+  fileUrl        String
+  mimeType       String
+  fileSize       Int
+  status         DocumentStatus @default(PENDING)
+  issueDate      DateTime?
+  expiryDate     DateTime?
+  issuer         String?
+  documentNumber String?
+  notes          String?
+  uploadedById   String
+  verifiedById   String?
+  verifiedAt     DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  deletedAt      DateTime?
+
+  documentType    DocumentType @relation(fields: [documentTypeId], references: [id])
+  uploadedBy      User         @relation("UploadedDocuments", fields: [uploadedById], references: [id])
+  verifiedBy      User?        @relation("VerifiedDocuments", fields: [verifiedById], references: [id])
+  employee        Employee?    @relation("EmployeeDocuments", fields: [entityId], references: [id], map: "document_employee_fk")
+  applicant       Applicant?   @relation("ApplicantDocuments", fields: [entityId], references: [id], map: "document_applicant_fk")
+  complianceAlerts ComplianceAlert[]
+
+  @@map("documents")
+}
+
+model WorkPermit {
+  id               String           @id @default(uuid())
+  employeeId       String
+  permitType       String
+  status           WorkPermitStatus @default(PENDING)
+  permitNumber     String?
+  applicationDate  DateTime
+  approvalDate     DateTime?
+  expiryDate       DateTime
+  issuingAuthority String?
+  notes            String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@map("work_permits")
+}
+
+model Visa {
+  id              String     @id @default(uuid())
+  entityType      EntityType
+  entityId        String
+  visaType        String
+  status          VisaStatus @default(PENDING)
+  visaNumber      String?
+  applicationDate DateTime
+  appointmentDate DateTime?
+  approvalDate    DateTime?
+  expiryDate      DateTime?
+  embassy         String?
+  notes           String?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  employee  Employee?  @relation("EmployeeVisas", fields: [entityId], references: [id], map: "visa_employee_fk")
+  applicant Applicant? @relation("ApplicantVisas", fields: [entityId], references: [id], map: "visa_applicant_fk")
+
+  @@map("visas")
+}
+
+model Notification {
+  id              String           @id @default(uuid())
+  userId          String
+  title           String
+  message         String
+  type            NotificationType @default(INFO)
+  isRead          Boolean          @default(false)
+  readAt          DateTime?
+  relatedEntity   String?
+  relatedEntityId String?
+  createdAt       DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  userEmail  String?
+  action     String
+  entity     String
+  entityId   String
+  changes    Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}
+
+model ComplianceAlert {
+  id             String        @id @default(uuid())
+  entityType     EntityType
+  entityId       String
+  documentId     String?
+  alertType      String
+  severity       AlertSeverity @default(MEDIUM)
+  message        String
+  status         AlertStatus   @default(OPEN)
+  dueDate        DateTime?
+  resolvedAt     DateTime?
+  resolvedById   String?
+  notes          String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  employee   Employee?  @relation("EmployeeAlerts", fields: [entityId], references: [id], map: "alert_employee_fk")
+  applicant  Applicant? @relation("ApplicantAlerts", fields: [entityId], references: [id], map: "alert_applicant_fk")
+  document   Document?  @relation(fields: [documentId], references: [id])
+  resolvedBy User?      @relation("ResolvedAlerts", fields: [resolvedById], references: [id])
+
+  @@map("compliance_alerts")
+}
+
+model SystemSetting {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       String
+  description String?
+  category    String
+  isPublic    Boolean  @default(false)
+  updatedAt   DateTime @updatedAt
+  updatedById String?
+
+  updatedBy User? @relation(fields: [updatedById], references: [id])
+
+  @@map("system_settings")
+}
+
+model NotificationRule {
+  id              String   @id @default(uuid())
+  name            String
+  trigger         String
+  entityType      String
+  daysBeforeExpiry Int?
+  channels        String[]
+  recipientRoles  String[]
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("notification_rules")
+}

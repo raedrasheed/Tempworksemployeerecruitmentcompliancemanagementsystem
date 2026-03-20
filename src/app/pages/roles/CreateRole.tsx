@@ -28,6 +28,7 @@ export function CreateRole() {
   const [description, setDescription] = useState('');
   const [allPermissions, setAllPermissions] = useState<any[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isSystem, setIsSystem] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [notFound, setNotFound] = useState(false);
@@ -43,6 +44,7 @@ export function CreateRole() {
         if (role) {
           setRoleName(role.name ?? '');
           setDescription(role.description ?? '');
+          setIsSystem(role.isSystem ?? false);
           const ids = (role.permissions ?? []).map((rp: any) => rp.permissionId as string);
           setSelectedIds(new Set(ids));
         }
@@ -106,11 +108,13 @@ export function CreateRole() {
     }
     setSubmitting(true);
     try {
-      const payload = {
-        name: roleName.trim(),
-        description: description.trim(),
+      const payload: { name?: string; description?: string; permissionIds: string[] } = {
         permissionIds: Array.from(selectedIds),
       };
+      if (!isSystem) {
+        payload.name = roleName.trim();
+        payload.description = description.trim();
+      }
       if (isEditMode) {
         await rolesApi.update(id!, payload);
         toast.success('Role updated successfully');
@@ -174,6 +178,8 @@ export function CreateRole() {
               value={roleName}
               onChange={(e) => setRoleName(e.target.value)}
               className="mt-1.5"
+              readOnly={isSystem}
+              disabled={isSystem}
             />
           </div>
           <div>
@@ -183,6 +189,8 @@ export function CreateRole() {
               placeholder="Brief description of this role"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
+              readOnly={isSystem}
+              disabled={isSystem}
               className="mt-1.5"
             />
           </div>

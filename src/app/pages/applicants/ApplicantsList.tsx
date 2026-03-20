@@ -155,8 +155,15 @@ export function ApplicantsList() {
         case 'name':
           value = `${applicant.firstName} ${applicant.lastName}`.toLowerCase();
           break;
-        default:
-          value = (applicant as any)[filter.columnId] || '';
+        case 'jobType': {
+          const jt = applicant.jobType;
+          value = (typeof jt === 'object' && jt !== null ? jt.name : jt) || '';
+          break;
+        }
+        default: {
+          const raw = (applicant as any)[filter.columnId];
+          value = (typeof raw === 'object' && raw !== null ? raw.name : raw) || '';
+        }
       }
 
       switch (filter.operator) {
@@ -379,7 +386,11 @@ export function ApplicantsList() {
                       </div>
                     </td>
                     <td className="py-3 px-4">
-                      <span className="text-sm">{applicant.jobType}</span>
+                      <span className="text-sm">
+                        {typeof applicant.jobType === 'object' && applicant.jobType !== null
+                          ? applicant.jobType.name
+                          : applicant.jobType}
+                      </span>
                     </td>
                     <td className="py-3 px-4">
                       <span className="text-sm">{applicant.applicationDate}</span>

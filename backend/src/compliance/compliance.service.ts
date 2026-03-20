@@ -70,7 +70,7 @@ export class ComplianceService {
       }),
       this.prisma.complianceAlert.count({ where }),
     ]);
-    return new PaginatedResponse(items, total, page, limit);
+    return PaginatedResponse.create(items, total, page, limit);
   }
 
   async updateAlert(id: string, dto: UpdateAlertDto, userId?: string) {

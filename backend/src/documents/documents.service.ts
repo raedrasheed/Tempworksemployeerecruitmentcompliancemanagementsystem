@@ -33,7 +33,7 @@ export class DocumentsService {
       this.prisma.document.findMany({ where, skip, take: Number(limit), orderBy: { [sortBy]: sortOrder }, include: this.docInclude }),
       this.prisma.document.count({ where }),
     ]);
-    return new PaginatedResponse(items, total, page, limit);
+    return PaginatedResponse.create(items, total, page, limit);
   }
 
   async findOne(id: string) {
@@ -50,7 +50,7 @@ export class DocumentsService {
       this.prisma.document.findMany({ where, skip, take: Number(limit), orderBy: { createdAt: 'desc' }, include: this.docInclude }),
       this.prisma.document.count({ where }),
     ]);
-    return new PaginatedResponse(items, total, page, limit);
+    return PaginatedResponse.create(items, total, page, limit);
   }
 
   async create(

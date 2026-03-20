@@ -135,7 +135,7 @@ export class WorkflowService {
       }),
       this.prisma.workPermit.count({ where }),
     ]);
-    return new PaginatedResponse(items, total, page, limit);
+    return PaginatedResponse.create(items, total, page, limit);
   }
 
   async createWorkPermit(dto: CreateWorkPermitDto, createdById?: string) {
@@ -177,7 +177,7 @@ export class WorkflowService {
       this.prisma.visa.findMany({ where, skip: (Number(page) - 1) * Number(limit), take: Number(limit), orderBy: { createdAt: 'desc' } }),
       this.prisma.visa.count({ where }),
     ]);
-    return new PaginatedResponse(items, total, page, limit);
+    return PaginatedResponse.create(items, total, page, limit);
   }
 
   async createVisa(dto: CreateVisaDto, createdById?: string) {

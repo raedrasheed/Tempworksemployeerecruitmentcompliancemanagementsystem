@@ -29,7 +29,7 @@ export class AgenciesService {
       this.prisma.agency.findMany({ where, skip, take: Number(limit), orderBy: { [validSort.includes(sortBy) ? sortBy : 'name']: sortOrder }, include: this.include }),
       this.prisma.agency.count({ where }),
     ]);
-    return new PaginatedResponse(items, total, page, limit);
+    return PaginatedResponse.create(items, total, page, limit);
   }
 
   async findOne(id: string) {
@@ -90,7 +90,7 @@ export class AgenciesService {
       }),
       this.prisma.user.count({ where }),
     ]);
-    return new PaginatedResponse(items, total, page, limit);
+    return PaginatedResponse.create(items, total, page, limit);
   }
 
   async getEmployees(id: string, pagination: PaginationDto) {
@@ -106,7 +106,7 @@ export class AgenciesService {
       }),
       this.prisma.employee.count({ where }),
     ]);
-    return new PaginatedResponse(items, total, page, limit);
+    return PaginatedResponse.create(items, total, page, limit);
   }
 
   async getStats(id: string) {

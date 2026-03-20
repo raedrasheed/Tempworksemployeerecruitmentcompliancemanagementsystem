@@ -18,7 +18,7 @@ export class NotificationsService {
       }),
       this.prisma.notification.count({ where }),
     ]);
-    return new PaginatedResponse(items, total, page, limit);
+    return PaginatedResponse.create(items, total, page, limit);
   }
 
   async getUnreadCount(userId: string) {

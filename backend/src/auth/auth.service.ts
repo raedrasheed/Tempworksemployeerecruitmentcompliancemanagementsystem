@@ -11,6 +11,18 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
+  async validateUser(email: string, password: string) {
+    const user = await this.prisma.user.findFirst({
+      where: { email, deletedAt: null },
+      include: { role: true },
+    });
+    if (!user) return null;
+    if (user.status === 'INACTIVE' || user.status === 'SUSPENDED') return null;
+    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+    if (!isPasswordValid) return null;
+    return user;
+  }
+
   async login(loginDto: LoginDto) {
     const user = await this.prisma.user.findFirst({
       where: { email: loginDto.email, deletedAt: null },

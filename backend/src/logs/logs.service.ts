@@ -52,7 +52,7 @@ export class LogsService {
       this.prisma.auditLog.count({ where }),
     ]);
 
-    return new PaginatedResponse(items, total, page, limit);
+    return PaginatedResponse.create(items, total, page, limit);
   }
 
   async getStats() {

@@ -32,7 +32,7 @@ export class ApplicationsService {
       this.prisma.application.findMany({ where, skip, take: Number(limit), orderBy: { [sortBy === 'createdAt' ? 'createdAt' : 'status']: sortOrder }, include: this.include }),
       this.prisma.application.count({ where }),
     ]);
-    return new PaginatedResponse(items, total, page, limit);
+    return PaginatedResponse.create(items, total, page, limit);
   }
 
   async findOne(id: string) {

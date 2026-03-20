@@ -2,6 +2,15 @@ import { IsString, IsEmail, IsOptional, IsEnum, IsDateString, IsInt, Min } from 
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 
+export enum EmployeeStatusEnum {
+  ACTIVE = 'ACTIVE',
+  INACTIVE = 'INACTIVE',
+  PENDING = 'PENDING',
+  ONBOARDING = 'ONBOARDING',
+  TERMINATED = 'TERMINATED',
+  ON_LEAVE = 'ON_LEAVE',
+}
+
 export class CreateEmployeeDto {
   @ApiProperty() @IsString() firstName: string;
   @ApiProperty() @IsString() lastName: string;
@@ -22,6 +31,6 @@ export class CreateEmployeeDto {
   @ApiPropertyOptional() @IsOptional() @IsString() emergencyContact?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() emergencyPhone?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() notes?: string;
-  @ApiPropertyOptional({ enum: ['ACTIVE','INACTIVE','PENDING','ONBOARDING','TERMINATED','ON_LEAVE'] })
-  @IsOptional() @IsEnum(['ACTIVE','INACTIVE','PENDING','ONBOARDING','TERMINATED','ON_LEAVE']) status?: string;
+  @ApiPropertyOptional({ enum: EmployeeStatusEnum })
+  @IsOptional() @IsEnum(EmployeeStatusEnum) status?: EmployeeStatusEnum;
 }

@@ -34,7 +34,7 @@ export class ApplicantsService {
       this.prisma.applicant.findMany({ where, skip, take: Number(limit), orderBy: { [orderField]: sortOrder }, include: this.include }),
       this.prisma.applicant.count({ where }),
     ]);
-    return new PaginatedResponse(items, total, page, limit);
+    return PaginatedResponse.create(items, total, page, limit);
   }
 
   async findOne(id: string) {

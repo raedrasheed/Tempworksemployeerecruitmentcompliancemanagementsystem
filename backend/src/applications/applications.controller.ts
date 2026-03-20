@@ -9,6 +9,7 @@ import { UpdateApplicationDto } from './dto/update-application.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Public } from '../auth/decorators/public.decorator';
 
@@ -20,6 +21,7 @@ export class ApplicationsController {
   constructor(private readonly applicationsService: ApplicationsService) {}
 
   @Get()
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Finance', 'Read Only')
   @ApiOperation({ summary: 'Get all applications' })
   findAll(@Query() pagination: PaginationDto) {
     return this.applicationsService.findAll(pagination);
@@ -33,6 +35,7 @@ export class ApplicationsController {
   }
 
   @Get(':id')
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Finance', 'Read Only')
   @ApiOperation({ summary: 'Get application by ID' })
   @ApiParam({ name: 'id', description: 'Application UUID' })
   findOne(@Param('id') id: string) {
@@ -40,6 +43,7 @@ export class ApplicationsController {
   }
 
   @Post()
+  @Roles('System Admin', 'HR Manager', 'Recruiter', 'Agency Manager')
   @ApiOperation({ summary: 'Create a new application' })
   create(@Body() dto: CreateApplicationDto, @CurrentUser() user: any) {
     return this.applicationsService.create(dto, user?.id);
@@ -53,12 +57,14 @@ export class ApplicationsController {
   }
 
   @Patch(':id')
+  @Roles('System Admin', 'HR Manager', 'Recruiter', 'Agency Manager')
   @ApiOperation({ summary: 'Update application' })
   update(@Param('id') id: string, @Body() dto: UpdateApplicationDto, @CurrentUser() user: any) {
     return this.applicationsService.update(id, dto, user?.id);
   }
 
   @Patch(':id/status')
+  @Roles('System Admin', 'HR Manager', 'Recruiter', 'Agency Manager')
   @ApiOperation({ summary: 'Update application status' })
   @ApiParam({ name: 'id', description: 'Application UUID' })
   updateStatus(@Param('id') id: string, @Body('status') status: string, @CurrentUser() user: any) {
@@ -66,6 +72,7 @@ export class ApplicationsController {
   }
 
   @Post(':id/notes')
+  @Roles('System Admin', 'HR Manager', 'Recruiter', 'Agency Manager')
   @ApiOperation({ summary: 'Add note to application' })
   @ApiParam({ name: 'id', description: 'Application UUID' })
   addNote(@Param('id') id: string, @Body('note') note: string, @CurrentUser() user: any) {
@@ -73,6 +80,7 @@ export class ApplicationsController {
   }
 
   @Delete(':id')
+  @Roles('System Admin')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Delete application' })
   remove(@Param('id') id: string, @CurrentUser() user: any) {

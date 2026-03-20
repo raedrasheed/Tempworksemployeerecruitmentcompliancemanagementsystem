@@ -17,6 +17,7 @@ import { VerifyDocumentDto } from './dto/verify-document.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 const multerStorage = diskStorage({
@@ -41,12 +42,14 @@ export class DocumentsController {
   constructor(private readonly documentsService: DocumentsService) {}
 
   @Get()
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Finance', 'Read Only')
   @ApiOperation({ summary: 'Get all documents' })
   findAll(@Query() pagination: PaginationDto) {
     return this.documentsService.findAll(pagination);
   }
 
   @Get('expiring')
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Read Only')
   @ApiOperation({ summary: 'Get documents expiring within N days' })
   @ApiParam({ name: 'days', description: 'Days threshold', required: false })
   getExpiring(@Query('days') days?: number) {
@@ -54,6 +57,7 @@ export class DocumentsController {
   }
 
   @Get('entity/:entityType/:entityId')
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Finance', 'Read Only')
   @ApiOperation({ summary: 'Get documents for a specific entity' })
   @ApiParam({ name: 'entityType', description: 'Entity type (EMPLOYEE, APPLICANT, etc.)' })
   @ApiParam({ name: 'entityId', description: 'Entity UUID' })
@@ -66,6 +70,7 @@ export class DocumentsController {
   }
 
   @Get(':id')
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Finance', 'Read Only')
   @ApiOperation({ summary: 'Get document by ID' })
   @ApiParam({ name: 'id', description: 'Document UUID' })
   findOne(@Param('id') id: string) {
@@ -73,6 +78,7 @@ export class DocumentsController {
   }
 
   @Post('upload')
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User')
   @UseInterceptors(FileInterceptor('file', {
     storage: multerStorage,
     limits: { fileSize: parseInt(process.env.MAX_FILE_SIZE || '10485760') },
@@ -115,6 +121,7 @@ export class DocumentsController {
   }
 
   @Patch(':id')
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer')
   @ApiOperation({ summary: 'Update document metadata' })
   @ApiParam({ name: 'id', description: 'Document UUID' })
   update(
@@ -126,6 +133,7 @@ export class DocumentsController {
   }
 
   @Post(':id/verify')
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer')
   @ApiOperation({ summary: 'Verify or reject a document' })
   @ApiParam({ name: 'id', description: 'Document UUID' })
   verify(@Param('id') id: string, @Body() dto: VerifyDocumentDto, @CurrentUser() user: any) {
@@ -133,6 +141,7 @@ export class DocumentsController {
   }
 
   @Delete(':id')
+  @Roles('System Admin')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Soft delete document' })
   @ApiParam({ name: 'id', description: 'Document UUID' })

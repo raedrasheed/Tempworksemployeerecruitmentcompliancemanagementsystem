@@ -6,15 +6,18 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 
 @ApiTags('Users')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('users')
 export class UsersController {
   constructor(private usersService: UsersService) {}
 
   @Get()
+  @Roles('System Admin', 'HR Manager', 'Read Only')
   @ApiOperation({ summary: 'List all users with pagination and filters' })
   @ApiQuery({ name: 'roleId', required: false })
   @ApiQuery({ name: 'status', required: false })
@@ -23,18 +26,21 @@ export class UsersController {
   }
 
   @Get('me')
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Finance', 'Read Only')
   @ApiOperation({ summary: 'Get current user profile' })
   getMe(@CurrentUser('id') userId: string) {
     return this.usersService.findOne(userId);
   }
 
   @Get(':id')
+  @Roles('System Admin', 'HR Manager')
   @ApiOperation({ summary: 'Get user by ID' })
   findOne(@Param('id') id: string) {
     return this.usersService.findOne(id);
   }
 
   @Post()
+  @Roles('System Admin')
   @ApiOperation({ summary: 'Create new user' })
   @ApiResponse({ status: 201, description: 'User created successfully' })
   create(@Body() dto: CreateUserDto) {
@@ -42,18 +48,21 @@ export class UsersController {
   }
 
   @Patch('me/profile')
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Finance', 'Read Only')
   @ApiOperation({ summary: 'Update current user profile' })
   updateProfile(@CurrentUser('id') userId: string, @Body() data: any) {
     return this.usersService.updateProfile(userId, data);
   }
 
   @Patch(':id')
+  @Roles('System Admin')
   @ApiOperation({ summary: 'Update user' })
   update(@Param('id') id: string, @Body() dto: UpdateUserDto) {
     return this.usersService.update(id, dto);
   }
 
   @Delete(':id')
+  @Roles('System Admin')
   @ApiOperation({ summary: 'Delete user (soft delete)' })
   remove(@Param('id') id: string) {
     return this.usersService.remove(id);

@@ -26,7 +26,7 @@ export function UsersList() {
 
   useEffect(() => {
     usersApi.list({ limit: 100 })
-      .then((res: any) => setUsers(res?.data ?? res ?? []))
+      .then((res: any) => setUsers(Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []))
       .catch(() => setUsers([]))
       .finally(() => setLoading(false));
   }, []);

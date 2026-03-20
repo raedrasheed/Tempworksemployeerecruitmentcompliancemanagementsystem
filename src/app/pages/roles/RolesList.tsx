@@ -48,7 +48,7 @@ export function RolesList() {
   const getPermissionCounts = (role: any) => {
     const perms: any[] = role.permissions ?? [];
     return {
-      view: perms.filter((rp: any) => rp.permission?.action === 'view').length,
+      view: perms.filter((rp: any) => rp.permission?.action === 'read').length,
       create: perms.filter((rp: any) => rp.permission?.action === 'create').length,
       edit: perms.filter((rp: any) => rp.permission?.action === 'edit' || rp.permission?.action === 'update').length,
       delete: perms.filter((rp: any) => rp.permission?.action === 'delete').length,

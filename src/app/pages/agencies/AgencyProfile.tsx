@@ -1,4 +1,5 @@
 import { Link, useParams } from 'react-router';
+import { useState, useEffect } from 'react';
 import { ArrowLeft, Building2, Mail, Phone, MapPin, Users, Shield, ChevronRight, Settings } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -6,17 +7,46 @@ import { Badge } from '../../components/ui/badge';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
-import { mockAgencies, mockDrivers } from '../../data/mockData';
+import { toast } from 'sonner';
+import { agenciesApi } from '../../services/api';
 
 export function AgencyProfile() {
   const { id } = useParams();
-  const agency = mockAgencies.find(a => a.id === id);
+  const [agency, setAgency] = useState<any>(null);
+  const [employees, setEmployees] = useState<any[]>([]);
+  const [agencyUsers, setAgencyUsers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+  const [savingSettings, setSavingSettings] = useState(false);
+  const [settings, setSettings] = useState({ defaultRole: 'agency_user', maxUsers: '10' });
 
-  if (!agency) return <div>Agency not found</div>;
+  useEffect(() => {
+    Promise.all([
+      agenciesApi.get(id!),
+      agenciesApi.getEmployees(id!, { limit: 50 }),
+      agenciesApi.getUsers(id!),
+    ]).then(([agencyData, empData, usersData]) => {
+      setAgency(agencyData);
+      setEmployees((empData as any)?.data ?? empData ?? []);
+      setAgencyUsers(usersData ?? []);
+    }).catch(() => setNotFound(true))
+      .finally(() => setLoading(false));
+  }, [id]);
 
-  const agencyDrivers = mockDrivers.filter(d => d.agencyId === id);
-  const maxUsers = 10; // Example from settings
-  const currentUsers = 4; // Example count
+  const handleSaveSettings = async () => {
+    setSavingSettings(true);
+    try {
+      await agenciesApi.update(id!, { settings });
+      toast.success('Settings saved');
+    } catch {
+      toast.error('Failed to save settings');
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
+  if (loading) return <div className="p-8 text-muted-foreground">Loading...</div>;
+  if (notFound || !agency) return <div className="p-8">Agency not found</div>;
 
   return (
     <div className="space-y-6">
@@ -81,8 +111,10 @@ export function AgencyProfile() {
                 <Users className="w-6 h-6 text-[#22C55E]" />
               </div>
               <div>
-                <p className="text-2xl font-semibold">{agency.activeDrivers}</p>
-                <p className="text-sm text-muted-foreground">Active Drivers</p>
+                <p className="text-2xl font-semibold">
+                  {employees.filter(e => e.status === 'ACTIVE').length}
+                </p>
+                <p className="text-sm text-muted-foreground">Active Employees</p>
               </div>
             </div>
           </CardContent>
@@ -95,8 +127,8 @@ export function AgencyProfile() {
                 <Users className="w-6 h-6 text-[#2563EB]" />
               </div>
               <div>
-                <p className="text-2xl font-semibold">{agency.totalDrivers}</p>
-                <p className="text-sm text-muted-foreground">Total Drivers</p>
+                <p className="text-2xl font-semibold">{employees.length}</p>
+                <p className="text-sm text-muted-foreground">Total Employees</p>
               </div>
             </div>
           </CardContent>
@@ -109,7 +141,7 @@ export function AgencyProfile() {
                 <Shield className="w-6 h-6 text-[#22C55E]" />
               </div>
               <div>
-                <p className="text-2xl font-semibold">{currentUsers}/{maxUsers}</p>
+                <p className="text-2xl font-semibold">{agencyUsers.length}/{settings.maxUsers}</p>
                 <p className="text-sm text-muted-foreground">Agency Users</p>
               </div>
             </div>
@@ -123,7 +155,9 @@ export function AgencyProfile() {
                 <Building2 className="w-6 h-6 text-[#22C55E]" />
               </div>
               <div>
-                <Badge className="bg-[#22C55E]">{agency.status}</Badge>
+                <Badge className={agency.status === 'ACTIVE' ? 'bg-[#22C55E]' : 'bg-gray-500'}>
+                  {agency.status}
+                </Badge>
                 <p className="text-sm text-muted-foreground mt-1">Status</p>
               </div>
             </div>
@@ -132,47 +166,48 @@ export function AgencyProfile() {
       </div>
 
       {/* Main Content */}
-      <Tabs defaultValue="drivers" className="space-y-6">
+      <Tabs defaultValue="employees" className="space-y-6">
         <TabsList>
-          <TabsTrigger value="drivers">Drivers</TabsTrigger>
+          <TabsTrigger value="employees">Employees</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="drivers">
+        <TabsContent value="employees">
           <Card>
             <CardHeader>
-              <CardTitle>Agency Drivers ({agencyDrivers.length})</CardTitle>
+              <CardTitle>Agency Employees ({employees.length})</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {agencyDrivers.map((driver) => (
-                  <div key={driver.id} className="flex items-center justify-between p-4 rounded-lg border hover:bg-[#F8FAFC] transition-colors">
-                    <div className="flex items-center gap-4">
-                      <img src={driver.photo} alt={driver.firstName} className="w-12 h-12 rounded-full" />
+              {employees.length === 0 ? (
+                <p className="text-muted-foreground">No employees found for this agency.</p>
+              ) : (
+                <div className="space-y-3">
+                  {employees.map((emp) => (
+                    <div key={emp.id} className="flex items-center justify-between p-4 rounded-lg border hover:bg-[#F8FAFC] transition-colors">
                       <div>
-                        <p className="font-medium">{driver.firstName} {driver.lastName}</p>
-                        <p className="text-sm text-muted-foreground">{driver.email}</p>
+                        <p className="font-medium">{emp.firstName} {emp.lastName}</p>
+                        <p className="text-sm text-muted-foreground">{emp.email}</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Badge className={
+                          emp.status === 'ACTIVE' ? 'bg-[#22C55E]' :
+                          emp.status === 'PENDING' ? 'bg-[#F59E0B]' :
+                          'bg-gray-500'
+                        }>
+                          {emp.status}
+                        </Badge>
+                        <Button size="sm" asChild>
+                          <Link to={`/dashboard/employees/${emp.id}`}>
+                            View Profile
+                            <ChevronRight className="w-4 h-4 ml-1" />
+                          </Link>
+                        </Button>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <Badge className={
-                        driver.status === 'active' ? 'bg-[#22C55E]' :
-                        driver.status === 'pending' ? 'bg-[#F59E0B]' :
-                        'bg-gray-500'
-                      }>
-                        {driver.status}
-                      </Badge>
-                      <Button size="sm" asChild>
-                        <Link to={`/dashboard/drivers/${driver.id}`}>
-                          View Profile
-                          <ChevronRight className="w-4 h-4 ml-1" />
-                        </Link>
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -180,7 +215,7 @@ export function AgencyProfile() {
         <TabsContent value="users">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Agency Users</CardTitle>
+              <CardTitle>Agency Users ({agencyUsers.length})</CardTitle>
               <Button asChild>
                 <Link to={`/dashboard/agencies/${id}/users`}>
                   <Users className="w-4 h-4 mr-2" />
@@ -189,9 +224,21 @@ export function AgencyProfile() {
               </Button>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">
-                {currentUsers} of {maxUsers} users active. Click "Manage All Users" to view and manage agency user accounts.
-              </p>
+              {agencyUsers.length === 0 ? (
+                <p className="text-muted-foreground">No users found for this agency.</p>
+              ) : (
+                <div className="space-y-3">
+                  {agencyUsers.map((user: any) => (
+                    <div key={user.id} className="flex items-center justify-between p-4 rounded-lg border">
+                      <div>
+                        <p className="font-medium">{user.firstName} {user.lastName}</p>
+                        <p className="text-sm text-muted-foreground">{user.email}</p>
+                      </div>
+                      <Badge>{user.role?.name ?? user.status}</Badge>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -202,13 +249,12 @@ export function AgencyProfile() {
               <CardTitle>Agency Settings</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Default Role Setting */}
               <div>
                 <Label htmlFor="defaultRole">Default Role for New Users</Label>
                 <p className="text-sm text-muted-foreground mt-1 mb-3">
                   When the Agency Manager creates a new user, this role will be automatically assigned
                 </p>
-                <Select defaultValue="agency_user">
+                <Select value={settings.defaultRole} onValueChange={val => setSettings(prev => ({ ...prev, defaultRole: val }))}>
                   <SelectTrigger id="defaultRole">
                     <SelectValue />
                   </SelectTrigger>
@@ -220,13 +266,12 @@ export function AgencyProfile() {
                 </Select>
               </div>
 
-              {/* Max Users Setting */}
               <div>
                 <Label htmlFor="maxUsers">Maximum Number of Users</Label>
                 <p className="text-sm text-muted-foreground mt-1 mb-3">
                   Limit the number of active users for this agency
                 </p>
-                <Select defaultValue={maxUsers.toString()}>
+                <Select value={settings.maxUsers} onValueChange={val => setSettings(prev => ({ ...prev, maxUsers: val }))}>
                   <SelectTrigger id="maxUsers">
                     <SelectValue />
                   </SelectTrigger>
@@ -241,9 +286,9 @@ export function AgencyProfile() {
               </div>
 
               <div className="flex justify-end pt-4">
-                <Button>
+                <Button onClick={handleSaveSettings} disabled={savingSettings}>
                   <Settings className="w-4 h-4 mr-2" />
-                  Save Settings
+                  {savingSettings ? 'Saving...' : 'Save Settings'}
                 </Button>
               </div>
             </CardContent>

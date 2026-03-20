@@ -1,24 +1,67 @@
 import { Link, useNavigate, useParams } from 'react-router';
 import { ArrowLeft } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
-import { mockUsers } from '../../data/mockData';
 import { toast } from 'sonner';
+import { usersApi, rolesApi } from '../../services/api';
 
 export function EditUser() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const user = mockUsers.find(u => u.id === id);
+  const [roles, setRoles] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [notFound, setNotFound] = useState(false);
+  const [form, setForm] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    roleId: '',
+    status: '',
+  });
 
-  if (!user) return <div>User not found</div>;
+  useEffect(() => {
+    Promise.all([
+      usersApi.get(id!),
+      rolesApi.list(),
+    ]).then(([user, roleList]) => {
+      setForm({
+        firstName: user.firstName ?? '',
+        lastName: user.lastName ?? '',
+        email: user.email ?? '',
+        phone: user.phone ?? '',
+        roleId: user.role?.id ?? '',
+        status: user.status ?? 'ACTIVE',
+      });
+      setRoles(roleList ?? []);
+    }).catch(() => setNotFound(true))
+      .finally(() => setLoading(false));
+  }, [id]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  if (loading) return <div className="p-8 text-muted-foreground">Loading...</div>;
+  if (notFound) return <div className="p-8">User not found</div>;
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setForm(prev => ({ ...prev, [e.target.id]: e.target.value }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success('User updated successfully');
-    navigate('/dashboard/users');
+    setSubmitting(true);
+    try {
+      await usersApi.update(id!, form);
+      toast.success('User updated successfully');
+      navigate('/dashboard/users');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to update user');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -40,26 +83,48 @@ export function EditUser() {
               <CardTitle>User Information</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Full Name *</Label>
-                <Input id="name" defaultValue={user.name} required />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="firstName">First Name *</Label>
+                  <Input id="firstName" value={form.firstName} onChange={handleChange} required />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lastName">Last Name *</Label>
+                  <Input id="lastName" value={form.lastName} onChange={handleChange} required />
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email">Email *</Label>
-                <Input id="email" type="email" defaultValue={user.email} required />
+                <Input id="email" type="email" value={form.email} onChange={handleChange} required />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="role">Role *</Label>
-                <Select defaultValue={user.role}>
+                <Label htmlFor="phone">Phone</Label>
+                <Input id="phone" type="tel" value={form.phone} onChange={handleChange} />
+              </div>
+              <div className="space-y-2">
+                <Label>Role *</Label>
+                <Select value={form.roleId} onValueChange={val => setForm(prev => ({ ...prev, roleId: val }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {roles.map((role: any) => (
+                      <SelectItem key={role.id} value={role.id}>{role.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Select value={form.status} onValueChange={val => setForm(prev => ({ ...prev, status: val }))}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="internal_recruiter">Internal Recruiter</SelectItem>
-                    <SelectItem value="hr_manager">HR Manager</SelectItem>
-                    <SelectItem value="compliance_officer">Compliance Officer</SelectItem>
-                    <SelectItem value="finance">Finance</SelectItem>
-                    <SelectItem value="system_admin">System Admin</SelectItem>
+                    <SelectItem value="ACTIVE">Active</SelectItem>
+                    <SelectItem value="INACTIVE">Inactive</SelectItem>
+                    <SelectItem value="SUSPENDED">Suspended</SelectItem>
+                    <SelectItem value="PENDING">Pending</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -67,7 +132,9 @@ export function EditUser() {
           </Card>
 
           <div className="flex gap-3">
-            <Button type="submit" className="flex-1">Save Changes</Button>
+            <Button type="submit" className="flex-1" disabled={submitting}>
+              {submitting ? 'Saving...' : 'Save Changes'}
+            </Button>
             <Button type="button" variant="outline" className="flex-1" asChild>
               <Link to="/dashboard/users">Cancel</Link>
             </Button>

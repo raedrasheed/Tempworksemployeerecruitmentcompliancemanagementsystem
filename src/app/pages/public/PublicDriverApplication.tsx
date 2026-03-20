@@ -9,6 +9,8 @@ import { Checkbox } from '../../components/ui/checkbox';
 import { Label } from '../../components/ui/label';
 import { Textarea } from '../../components/ui/textarea';
 import { Badge } from '../../components/ui/badge';
+import { toast } from 'sonner';
+import { applicationsApi } from '../../services/api';
 
 interface FormData {
   // Screen 1: Basic Information
@@ -204,8 +206,18 @@ export function PublicDriverApplication() {
     }
   };
 
-  const handleSubmit = () => {
-    navigate('/application-success');
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
+    setSubmitting(true);
+    try {
+      await applicationsApi.submitPublic(formData);
+      navigate('/application-success');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to submit application. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const getProgressPercentage = () => {
@@ -1673,10 +1685,11 @@ export function PublicDriverApplication() {
                 <Button
                   type="button"
                   onClick={handleSubmit}
+                  disabled={submitting}
                   className="ml-auto gap-2 bg-[#22C55E] hover:bg-[#16a34a]"
                 >
                   <Check className="w-4 h-4" />
-                  Submit Application
+                  {submitting ? 'Submitting...' : 'Submit Application'}
                 </Button>
               )}
             </div>

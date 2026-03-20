@@ -92,7 +92,7 @@ export function DriversList() {
           value = `${driver.firstName} ${driver.lastName}`.toLowerCase();
           break;
         case 'experience':
-          value = parseInt(driver.experience.replace(' years', ''));
+          value = parseInt(String(driver.yearsExperience ?? driver.experience ?? '0'));
           break;
         case 'createdDate':
           value = driver.createdAt || '2026-01-01';
@@ -230,8 +230,8 @@ export function DriversList() {
                   <TableRow key={driver.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <img 
-                          src={driver.photo} 
+                        <img
+                          src={driver.photo || `https://api.dicebear.com/7.x/avataaars/svg?seed=${driver.firstName}`}
                           alt={driver.firstName}
                           className="w-10 h-10 rounded-full"
                         />
@@ -257,11 +257,12 @@ export function DriversList() {
                     </TableCell>
                     <TableCell>{driver.yearsExperience} years</TableCell>
                     <TableCell>
-                      {driver.agencyName ? (
+                      {driver.agency ? (
                         <div className="text-sm">
-                          <div>{driver.agencyName}</div>
-                          <div className="text-muted-foreground">{driver.agencyId}</div>
+                          <div>{driver.agency.name ?? driver.agencyName}</div>
                         </div>
+                      ) : driver.agencyName ? (
+                        <div className="text-sm">{driver.agencyName}</div>
                       ) : (
                         <span className="text-muted-foreground">Direct</span>
                       )}
@@ -280,7 +281,7 @@ export function DriversList() {
                     </TableCell>
                     <TableCell>
                       <span className="text-sm text-muted-foreground">
-                        {driver.currentStage.replace(/_/g, ' ')}
+                        {driver.currentStage ? driver.currentStage.replace(/_/g, ' ') : '—'}
                       </span>
                     </TableCell>
                     <TableCell className="text-right">

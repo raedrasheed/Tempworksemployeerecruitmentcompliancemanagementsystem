@@ -9,8 +9,15 @@ import { Checkbox } from '../../components/ui/checkbox';
 import { toast } from 'sonner';
 import { rolesApi } from '../../services/api';
 
-const ACTIONS = ['view', 'create', 'edit', 'delete'] as const;
+const ACTIONS = ['read', 'create', 'update', 'delete'] as const;
 type Action = typeof ACTIONS[number];
+
+const ACTION_LABELS: Record<Action, string> = {
+  read: 'View',
+  create: 'Create',
+  update: 'Edit',
+  delete: 'Delete',
+};
 
 export function CreateRole() {
   const { id } = useParams();
@@ -202,7 +209,7 @@ export function CreateRole() {
                     {ACTIONS.map(action => (
                       <th key={action} className="text-center p-4 font-semibold text-sm w-1/6">
                         <div className="flex flex-col items-center gap-2">
-                          <span className="capitalize">{action}</span>
+                          <span>{ACTION_LABELS[action]}</span>
                           <Checkbox
                             checked={isActionAllChecked(action)}
                             onCheckedChange={() => handleSelectAllAction(action)}

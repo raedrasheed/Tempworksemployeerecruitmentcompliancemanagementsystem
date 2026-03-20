@@ -15,7 +15,7 @@ export class AgenciesService {
 
   async findAll(pagination: PaginationDto) {
     const { page = 1, limit = 10, search, sortBy = 'name', sortOrder = 'asc' } = pagination;
-    const skip = (page - 1) * limit;
+    const skip = (Number(page) - 1) * Number(limit);
     const where: any = { deletedAt: null };
     if (search) {
       where.OR = [
@@ -26,7 +26,7 @@ export class AgenciesService {
     }
     const validSort = ['name', 'country', 'status', 'createdAt'];
     const [items, total] = await Promise.all([
-      this.prisma.agency.findMany({ where, skip, take: limit, orderBy: { [validSort.includes(sortBy) ? sortBy : 'name']: sortOrder }, include: this.include }),
+      this.prisma.agency.findMany({ where, skip, take: Number(limit), orderBy: { [validSort.includes(sortBy) ? sortBy : 'name']: sortOrder }, include: this.include }),
       this.prisma.agency.count({ where }),
     ]);
     return new PaginatedResponse(items, total, page, limit);
@@ -84,8 +84,8 @@ export class AgenciesService {
     const [items, total] = await Promise.all([
       this.prisma.user.findMany({
         where,
-        skip: (page - 1) * limit,
-        take: limit,
+        skip: (Number(page) - 1) * Number(limit),
+        take: Number(limit),
         select: { id: true, email: true, firstName: true, lastName: true, status: true, role: { select: { name: true } } },
       }),
       this.prisma.user.count({ where }),
@@ -100,8 +100,8 @@ export class AgenciesService {
     const [items, total] = await Promise.all([
       this.prisma.employee.findMany({
         where,
-        skip: (page - 1) * limit,
-        take: limit,
+        skip: (Number(page) - 1) * Number(limit),
+        take: Number(limit),
         select: { id: true, firstName: true, lastName: true, email: true, status: true, licenseCategory: true },
       }),
       this.prisma.employee.count({ where }),

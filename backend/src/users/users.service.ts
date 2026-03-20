@@ -12,7 +12,7 @@ export class UsersService {
 
   async findAll(query: PaginationDto & { roleId?: string; agencyId?: string; status?: string }) {
     const { page = 1, limit = 20, search, sortBy = 'createdAt', sortOrder = 'desc', roleId, agencyId, status } = query;
-    const skip = (page - 1) * limit;
+    const skip = (Number(page) - 1) * Number(limit);
 
     const where: any = { deletedAt: null };
     if (search) {
@@ -30,7 +30,7 @@ export class UsersService {
       this.prisma.user.findMany({
         where,
         skip,
-        take: limit,
+        take: Number(limit),
         orderBy: { [sortBy]: sortOrder },
         include: { role: true, agency: { select: { id: true, name: true } } },
         select: {

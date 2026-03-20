@@ -19,7 +19,7 @@ export class LogsService {
     } = {},
   ) {
     const { page = 1, limit = 20, search } = pagination;
-    const skip = (page - 1) * limit;
+    const skip = (Number(page) - 1) * Number(limit);
 
     const where: any = {};
     if (filters.userId) where.userId = filters.userId;
@@ -43,7 +43,7 @@ export class LogsService {
       this.prisma.auditLog.findMany({
         where,
         skip,
-        take: limit,
+        take: Number(limit),
         orderBy: { createdAt: 'desc' },
         include: {
           user: { select: { id: true, firstName: true, lastName: true, email: true } },

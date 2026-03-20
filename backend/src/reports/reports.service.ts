@@ -43,12 +43,12 @@ export class ReportsService {
 
   async getEmployeeReport(pagination: any) {
     const { page = 1, limit = 10 } = pagination;
-    const skip = (page - 1) * limit;
+    const skip = (Number(page) - 1) * Number(limit);
     const [employees, total] = await Promise.all([
       this.prisma.employee.findMany({
         where: { deletedAt: null },
         skip,
-        take: limit,
+        take: Number(limit),
         select: {
           id: true, firstName: true, lastName: true, email: true,
           nationality: true, status: true, licenseCategory: true,
@@ -65,11 +65,11 @@ export class ReportsService {
 
   async getApplicationsReport(pagination: any) {
     const { page = 1, limit = 10 } = pagination;
-    const skip = (page - 1) * limit;
+    const skip = (Number(page) - 1) * Number(limit);
     const [applications, total] = await Promise.all([
       this.prisma.application.findMany({
         skip,
-        take: limit,
+        take: Number(limit),
         include: {
           applicant: { select: { firstName: true, lastName: true, email: true, nationality: true } },
           jobType: { select: { name: true } },
@@ -84,12 +84,12 @@ export class ReportsService {
 
   async getDocumentsReport(pagination: any) {
     const { page = 1, limit = 10 } = pagination;
-    const skip = (page - 1) * limit;
+    const skip = (Number(page) - 1) * Number(limit);
     const now = new Date();
     const [documents, total, expiredCount, verifiedCount, pendingCount] = await Promise.all([
       this.prisma.document.findMany({
         where: { deletedAt: null },
-        skip, take: limit,
+        skip, take: Number(limit),
         include: { documentType: true, uploadedBy: { select: { firstName: true, lastName: true } } },
         orderBy: { createdAt: 'desc' },
       }),
@@ -103,10 +103,10 @@ export class ReportsService {
 
   async getComplianceReport(pagination: any) {
     const { page = 1, limit = 10 } = pagination;
-    const skip = (page - 1) * limit;
+    const skip = (Number(page) - 1) * Number(limit);
     const [alerts, total] = await Promise.all([
       this.prisma.complianceAlert.findMany({
-        skip, take: limit,
+        skip, take: Number(limit),
         include: {
           document: { include: { documentType: true } },
           resolvedBy: { select: { firstName: true, lastName: true } },
@@ -122,11 +122,11 @@ export class ReportsService {
 
   async getAgenciesReport(pagination: any) {
     const { page = 1, limit = 10 } = pagination;
-    const skip = (page - 1) * limit;
+    const skip = (Number(page) - 1) * Number(limit);
     const [agencies, total] = await Promise.all([
       this.prisma.agency.findMany({
         where: { deletedAt: null },
-        skip, take: limit,
+        skip, take: Number(limit),
         include: { _count: { select: { employees: true, users: true } } },
         orderBy: { name: 'asc' },
       }),

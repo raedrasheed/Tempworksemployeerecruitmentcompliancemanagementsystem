@@ -10,11 +10,11 @@ export class NotificationsService {
 
   async findAll(userId: string, pagination: PaginationDto) {
     const { page = 1, limit = 20 } = pagination;
-    const skip = (page - 1) * limit;
+    const skip = (Number(page) - 1) * Number(limit);
     const where = { userId };
     const [items, total] = await Promise.all([
       this.prisma.notification.findMany({
-        where, skip, take: limit, orderBy: { createdAt: 'desc' },
+        where, skip, take: Number(limit), orderBy: { createdAt: 'desc' },
       }),
       this.prisma.notification.count({ where }),
     ]);

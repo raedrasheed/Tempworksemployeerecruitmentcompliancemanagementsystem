@@ -19,7 +19,7 @@ export class ApplicantsService {
 
   async findAll(pagination: PaginationDto) {
     const { page = 1, limit = 10, search, sortBy = 'createdAt', sortOrder = 'desc' } = pagination;
-    const skip = (page - 1) * limit;
+    const skip = (Number(page) - 1) * Number(limit);
     const where: any = { deletedAt: null };
     if (search) {
       where.OR = [
@@ -31,7 +31,7 @@ export class ApplicantsService {
     const validSort = ['firstName', 'lastName', 'email', 'status', 'createdAt'];
     const orderField = validSort.includes(sortBy) ? sortBy : 'createdAt';
     const [items, total] = await Promise.all([
-      this.prisma.applicant.findMany({ where, skip, take: limit, orderBy: { [orderField]: sortOrder }, include: this.include }),
+      this.prisma.applicant.findMany({ where, skip, take: Number(limit), orderBy: { [orderField]: sortOrder }, include: this.include }),
       this.prisma.applicant.count({ where }),
     ]);
     return new PaginatedResponse(items, total, page, limit);

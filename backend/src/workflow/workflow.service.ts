@@ -128,8 +128,8 @@ export class WorkflowService {
     const [items, total] = await Promise.all([
       this.prisma.workPermit.findMany({
         where,
-        skip: (page - 1) * limit,
-        take: limit,
+        skip: (Number(page) - 1) * Number(limit),
+        take: Number(limit),
         orderBy: { createdAt: 'desc' },
         include: { employee: { select: { id: true, firstName: true, lastName: true, email: true } } },
       }),
@@ -174,7 +174,7 @@ export class WorkflowService {
     const { page = 1, limit = 10 } = pagination;
     const where: any = entityId ? { entityId } : {};
     const [items, total] = await Promise.all([
-      this.prisma.visa.findMany({ where, skip: (page - 1) * limit, take: limit, orderBy: { createdAt: 'desc' } }),
+      this.prisma.visa.findMany({ where, skip: (Number(page) - 1) * Number(limit), take: Number(limit), orderBy: { createdAt: 'desc' } }),
       this.prisma.visa.count({ where }),
     ]);
     return new PaginatedResponse(items, total, page, limit);

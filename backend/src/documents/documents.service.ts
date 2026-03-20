@@ -21,7 +21,7 @@ export class DocumentsService {
 
   async findAll(pagination: PaginationDto) {
     const { page = 1, limit = 10, search, sortBy = 'createdAt', sortOrder = 'desc' } = pagination;
-    const skip = (page - 1) * limit;
+    const skip = (Number(page) - 1) * Number(limit);
     const where: any = { deletedAt: null };
     if (search) {
       where.OR = [
@@ -30,7 +30,7 @@ export class DocumentsService {
       ];
     }
     const [items, total] = await Promise.all([
-      this.prisma.document.findMany({ where, skip, take: limit, orderBy: { [sortBy]: sortOrder }, include: this.docInclude }),
+      this.prisma.document.findMany({ where, skip, take: Number(limit), orderBy: { [sortBy]: sortOrder }, include: this.docInclude }),
       this.prisma.document.count({ where }),
     ]);
     return new PaginatedResponse(items, total, page, limit);
@@ -44,10 +44,10 @@ export class DocumentsService {
 
   async findByEntity(entityType: string, entityId: string, pagination: PaginationDto) {
     const { page = 1, limit = 10 } = pagination;
-    const skip = (page - 1) * limit;
+    const skip = (Number(page) - 1) * Number(limit);
     const where = { entityType: entityType as any, entityId, deletedAt: null };
     const [items, total] = await Promise.all([
-      this.prisma.document.findMany({ where, skip, take: limit, orderBy: { createdAt: 'desc' }, include: this.docInclude }),
+      this.prisma.document.findMany({ where, skip, take: Number(limit), orderBy: { createdAt: 'desc' }, include: this.docInclude }),
       this.prisma.document.count({ where }),
     ]);
     return new PaginatedResponse(items, total, page, limit);

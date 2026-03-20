@@ -10,7 +10,7 @@ export class EmployeesService {
 
   async findAll(query: PaginationDto & { agencyId?: string; status?: string; nationality?: string }) {
     const { page = 1, limit = 20, search, sortBy = 'createdAt', sortOrder = 'desc', agencyId, status, nationality } = query;
-    const skip = (page - 1) * limit;
+    const skip = (Number(page) - 1) * Number(limit);
 
     const where: any = { deletedAt: null };
     if (search) {
@@ -27,7 +27,7 @@ export class EmployeesService {
 
     const [data, total] = await Promise.all([
       this.prisma.employee.findMany({
-        where, skip, take: limit,
+        where, skip, take: Number(limit),
         orderBy: { [sortBy]: sortOrder },
         include: {
           agency: { select: { id: true, name: true } },

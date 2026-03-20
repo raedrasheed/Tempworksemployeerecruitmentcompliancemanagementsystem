@@ -1,19 +1,51 @@
 import { Link, useNavigate } from 'react-router';
 import { ArrowLeft } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { toast } from 'sonner';
+import { usersApi, rolesApi } from '../../services/api';
 
 export function AddUser() {
   const navigate = useNavigate();
+  const [roles, setRoles] = useState<any[]>([]);
+  const [submitting, setSubmitting] = useState(false);
+  const [form, setForm] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    password: '',
+    phone: '',
+    roleId: '',
+  });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    rolesApi.list().then(setRoles).catch(() => {});
+  }, []);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setForm(prev => ({ ...prev, [e.target.id]: e.target.value }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success('User added successfully');
-    navigate('/dashboard/users');
+    if (!form.roleId) {
+      toast.error('Please select a role');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await usersApi.create(form);
+      toast.success('User added successfully');
+      navigate('/dashboard/users');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to add user');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -35,26 +67,44 @@ export function AddUser() {
               <CardTitle>User Information</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Full Name *</Label>
-                <Input id="name" placeholder="Enter full name" required />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="firstName">First Name *</Label>
+                  <Input id="firstName" placeholder="First name" value={form.firstName} onChange={handleChange} required />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lastName">Last Name *</Label>
+                  <Input id="lastName" placeholder="Last name" value={form.lastName} onChange={handleChange} required />
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email">Email *</Label>
-                <Input id="email" type="email" placeholder="user@company.com" required />
+                <Input id="email" type="email" placeholder="user@company.com" value={form.email} onChange={handleChange} required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Password *</Label>
+                <Input id="password" type="password" placeholder="Minimum 8 characters" value={form.password} onChange={handleChange} required minLength={8} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone</Label>
+                <Input id="phone" type="tel" placeholder="+1 234 567 8900" value={form.phone} onChange={handleChange} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="role">Role *</Label>
-                <Select required>
+                <Select value={form.roleId} onValueChange={val => setForm(prev => ({ ...prev, roleId: val }))} required>
                   <SelectTrigger>
                     <SelectValue placeholder="Select role" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="internal_recruiter">Internal Recruiter</SelectItem>
-                    <SelectItem value="hr_manager">HR Manager</SelectItem>
-                    <SelectItem value="compliance_officer">Compliance Officer</SelectItem>
-                    <SelectItem value="finance">Finance</SelectItem>
-                    <SelectItem value="system_admin">System Admin</SelectItem>
+                    {roles.length > 0 ? (
+                      roles.map((role: any) => (
+                        <SelectItem key={role.id} value={role.id}>{role.name}</SelectItem>
+                      ))
+                    ) : (
+                      <>
+                        <SelectItem value="placeholder" disabled>Loading roles...</SelectItem>
+                      </>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -62,7 +112,9 @@ export function AddUser() {
           </Card>
 
           <div className="flex gap-3">
-            <Button type="submit" className="flex-1">Add User</Button>
+            <Button type="submit" className="flex-1" disabled={submitting}>
+              {submitting ? 'Adding...' : 'Add User'}
+            </Button>
             <Button type="button" variant="outline" className="flex-1" asChild>
               <Link to="/dashboard/users">Cancel</Link>
             </Button>

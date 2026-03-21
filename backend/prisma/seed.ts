@@ -69,6 +69,7 @@ async function main() {
         'reports:read','reports:export',
         'notifications:read','notifications:create',
         'users:read',
+        'logs:read',
       ],
     },
     {
@@ -82,6 +83,7 @@ async function main() {
         'compliance:read','compliance:resolve',
         'reports:read','reports:export',
         'notifications:read','notifications:create',
+        'logs:read',
       ],
     },
     {
@@ -97,6 +99,7 @@ async function main() {
         'compliance:read',
         'reports:read',
         'notifications:read',
+        'logs:read',
       ],
     },
     {
@@ -112,6 +115,8 @@ async function main() {
         'compliance:read',
         'reports:read',
         'notifications:read',
+        'users:read',
+        'logs:read',
       ],
     },
     {
@@ -123,6 +128,7 @@ async function main() {
         'documents:read','documents:create',
         'workflow:read',
         'notifications:read',
+        'logs:read',
       ],
     },
     {
@@ -133,6 +139,7 @@ async function main() {
         'employees:read','applicants:read','applications:read',
         'reports:read','reports:export',
         'notifications:read',
+        'logs:read',
       ],
     },
     {

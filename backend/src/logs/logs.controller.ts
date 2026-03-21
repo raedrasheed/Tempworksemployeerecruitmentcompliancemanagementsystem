@@ -15,7 +15,7 @@ export class LogsController {
   constructor(private readonly logsService: LogsService) {}
 
   @Get()
-  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Agency Manager')
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Agency Manager', 'Recruiter', 'Agency User', 'Finance', 'Read Only')
   @ApiOperation({ summary: 'Get audit logs – scoped to the caller\'s visibility' })
   @ApiQuery({ name: 'userId', required: false })
   @ApiQuery({ name: 'entity', required: false })
@@ -41,7 +41,7 @@ export class LogsController {
   }
 
   @Get('stats')
-  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Agency Manager')
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Agency Manager', 'Recruiter', 'Agency User', 'Finance', 'Read Only')
   @ApiOperation({ summary: 'Get audit log statistics – scoped to the caller\'s visibility' })
   getStats(@CurrentUser() caller: any) {
     return this.logsService.getStats(

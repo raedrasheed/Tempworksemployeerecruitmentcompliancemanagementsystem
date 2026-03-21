@@ -1,9 +1,24 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, Catch, ArgumentsHost, ExceptionFilter, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import * as express from 'express';
 import { join } from 'path';
+
+@Catch()
+class AllExceptionsFilter implements ExceptionFilter {
+  private readonly logger = new Logger('ExceptionFilter');
+  catch(exception: unknown, host: ArgumentsHost) {
+    const ctx = host.switchToHttp();
+    const response = ctx.getResponse();
+    const request = ctx.getRequest();
+    const status = exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
+    const message = exception instanceof HttpException ? exception.getResponse() : String((exception as any)?.message || exception);
+    this.logger.error(`[${request.method}] ${request.url} → ${status}`);
+    this.logger.error(exception instanceof Error ? exception.stack : String(exception));
+    response.status(status).json({ statusCode: status, message, path: request.url });
+  }
+}
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { logger: ['error', 'warn', 'log'] });
@@ -18,6 +33,9 @@ async function bootstrap() {
 
   // Global prefix
   app.setGlobalPrefix('api/v1');
+
+  // Global exception logging
+  app.useGlobalFilters(new AllExceptionsFilter());
 
   // Global validation
   app.useGlobalPipes(

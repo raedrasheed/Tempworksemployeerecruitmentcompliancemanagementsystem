@@ -61,7 +61,9 @@ const mockAgencyUsers: AgencyUser[] = [
 ];
 
 export function AgencyUsersManagement() {
-  const { canCreate, canEdit, canDelete } = usePermissions();
+  const { canCreate, canEdit, canDelete, can } = usePermissions();
+  // Agency Managers manage users within their own agency (users module)
+  const canManageUsers = canCreate('users') || can('agencies', 'update');
   const { id } = useParams();
   const agency = mockAgencies.find(a => a.id === id);
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
@@ -102,7 +104,7 @@ export function AgencyUsersManagement() {
           <p className="text-muted-foreground mt-1">{agency.name} • Manage agency user accounts</p>
         </div>
         <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
-          {canCreate('agencies') && (
+          {canManageUsers && (
             <DialogTrigger asChild>
               <Button disabled={!canAddMore}>
                 <Plus className="w-4 h-4 mr-2" />
@@ -275,12 +277,12 @@ export function AgencyUsersManagement() {
                     <td className="p-4 text-sm">{user.createdDate}</td>
                     <td className="p-4">
                       <div className="flex items-center gap-2">
-                        {canEdit('agencies') && (
+                        {(canEdit('users') || can('agencies', 'update')) && (
                           <Button size="sm" variant="ghost">
                             <Edit className="w-4 h-4" />
                           </Button>
                         )}
-                        {canDelete('agencies') && (
+                        {(canDelete('users') || can('agencies', 'delete')) && (
                           <Button size="sm" variant="ghost">
                             <Trash2 className="w-4 h-4 text-[#EF4444]" />
                           </Button>

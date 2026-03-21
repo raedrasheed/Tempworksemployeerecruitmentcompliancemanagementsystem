@@ -552,8 +552,14 @@ export const settingsApi = {
 
   // Workflow Stages
   getWorkflowStages: () => apiFetch<any[]>('/settings/workflow-stages'),
+  createWorkflowStage: (data: any) =>
+    apiFetch<any>('/settings/workflow-stages', { method: 'POST', body: JSON.stringify(data) }),
   updateWorkflowStage: (id: string, data: any) =>
     apiFetch<any>(`/settings/workflow-stages/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteWorkflowStage: (id: string) =>
+    apiFetch(`/settings/workflow-stages/${id}`, { method: 'DELETE' }),
+  reorderWorkflowStages: (orders: { id: string; order: number }[]) =>
+    apiFetch<any>('/settings/workflow-stages/reorder', { method: 'PATCH', body: JSON.stringify({ orders }) }),
 
   // Notification Rules
   getNotificationRules: () => apiFetch<any[]>('/settings/notification-rules'),

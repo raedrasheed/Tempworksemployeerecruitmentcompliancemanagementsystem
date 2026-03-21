@@ -250,14 +250,18 @@ model Employee {
 }
 
 model WorkflowStage {
-  id          String           @id @default(uuid())
-  name        String           @unique
-  order       Int
-  description String?
-  category    WorkflowCategory @default(INITIAL)
-  isActive    Boolean          @default(true)
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  id                   String           @id @default(uuid())
+  name                 String           @unique
+  order                Int
+  description          String?
+  color                String           @default("#2563EB")
+  category             WorkflowCategory @default(INITIAL)
+  isActive             Boolean          @default(true)
+  requirementsDocuments String[]        @default([])
+  requirementsActions  String[]         @default([])
+  requirementsApprovals String[]        @default([])
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
 
   employeeStages EmployeeWorkflowStage[]
 

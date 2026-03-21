@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Plus, Edit, Trash2, GripVertical, Save, FileText, CheckCircle, AlertCircle, Shield } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -7,6 +7,7 @@ import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../../components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { settingsApi } from '../../services/api';
 
 interface WorkflowStage {
   id: string;
@@ -14,169 +15,211 @@ interface WorkflowStage {
   description: string;
   color: string;
   order: number;
-  requirements: {
-    documents: string[];
-    actions: string[];
-    approvals: string[];
-  };
+  requirementsDocuments: string[];
+  requirementsActions: string[];
+  requirementsApprovals: string[];
 }
 
-const initialStages: WorkflowStage[] = [
-  {
-    id: 'S001',
-    name: 'Application Review',
-    description: 'Initial review of driver application',
-    color: '#64748B',
-    order: 1,
-    requirements: {
-      documents: ['Application Form'],
-      actions: ['Initial Screening'],
-      approvals: ['HR Review'],
-    },
-  },
-  {
-    id: 'S002',
-    name: 'Document Verification',
-    description: 'Verify all required documents',
-    color: '#2563EB',
-    order: 2,
-    requirements: {
-      documents: ['Passport', 'Driving License', 'Criminal Record'],
-      actions: ['Document Verification'],
-      approvals: ['Compliance Officer'],
-    },
-  },
-  {
-    id: 'S003',
-    name: 'Interview',
-    description: 'Conduct driver interview',
-    color: '#8B5CF6',
-    order: 3,
-    requirements: {
-      documents: [],
-      actions: ['Schedule Interview', 'Conduct Interview'],
-      approvals: ['Hiring Manager'],
-    },
-  },
-  {
-    id: 'S004',
-    name: 'Medical Examination',
-    description: 'Medical fitness verification',
-    color: '#F59E0B',
-    order: 4,
-    requirements: {
-      documents: ['Medical Certificate'],
-      actions: ['Schedule Medical Exam'],
-      approvals: ['Medical Officer'],
-    },
-  },
-  {
-    id: 'S005',
-    name: 'Work Permit',
-    description: 'Work permit application and processing',
-    color: '#EC4899',
-    order: 5,
-    requirements: {
-      documents: ['Work Permit Application', 'Employment Contract'],
-      actions: ['Submit Application', 'Track Status'],
-      approvals: ['Government Authority'],
-    },
-  },
-  {
-    id: 'S006',
-    name: 'Visa Processing',
-    description: 'Visa application and approval',
-    color: '#06B6D4',
-    order: 6,
-    requirements: {
-      documents: ['Visa Application', 'Embassy Appointment'],
-      actions: ['Book Embassy Appointment', 'Submit Documents'],
-      approvals: ['Embassy Approval'],
-    },
-  },
-  {
-    id: 'S007',
-    name: 'Contract Signing',
-    description: 'Employment contract finalization',
-    color: '#22C55E',
-    order: 7,
-    requirements: {
-      documents: ['Employment Contract', 'Terms Agreement'],
-      actions: ['Sign Contract'],
-      approvals: ['Legal Department'],
-    },
-  },
-];
+interface RequirementsState {
+  documents: string[];
+  actions: string[];
+  approvals: string[];
+}
 
 export function WorkflowConfiguration() {
-  const [stages, setStages] = useState<WorkflowStage[]>(initialStages);
+  const [stages, setStages] = useState<WorkflowStage[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   const [isAddStageOpen, setIsAddStageOpen] = useState(false);
   const [isEditRequirementsOpen, setIsEditRequirementsOpen] = useState(false);
   const [selectedStage, setSelectedStage] = useState<WorkflowStage | null>(null);
-  const [draggedStage, setDraggedStage] = useState<string | null>(null);
+  const [requirements, setRequirements] = useState<RequirementsState>({ documents: [], actions: [], approvals: [] });
+  const [savingReqs, setSavingReqs] = useState(false);
 
   const [newStageName, setNewStageName] = useState('');
   const [newStageDescription, setNewStageDescription] = useState('');
   const [newStageColor, setNewStageColor] = useState('#2563EB');
+  const [addingStage, setAddingStage] = useState(false);
 
-  const handleAddStage = () => {
-    const newStage: WorkflowStage = {
-      id: `S${String(stages.length + 1).padStart(3, '0')}`,
-      name: newStageName,
-      description: newStageDescription,
-      color: newStageColor,
-      order: stages.length + 1,
-      requirements: {
-        documents: [],
-        actions: [],
-        approvals: [],
-      },
-    };
-    setStages([...stages, newStage]);
-    setIsAddStageOpen(false);
-    setNewStageName('');
-    setNewStageDescription('');
-    setNewStageColor('#2563EB');
-  };
+  // New item inputs
+  const [newDocument, setNewDocument] = useState('');
+  const [newAction, setNewAction] = useState('');
+  const [newApproval, setNewApproval] = useState('');
 
-  const handleDeleteStage = (stageId: string) => {
-    if (confirm('Are you sure you want to delete this stage? This will affect all drivers currently in this stage.')) {
-      setStages(stages.filter(s => s.id !== stageId));
+  const draggedId = useRef<string | null>(null);
+
+  // ─── Load data ─────────────────────────────────────────────────────────────
+  const loadStages = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await settingsApi.getWorkflowStages();
+      setStages(
+        (data ?? []).map((s: any) => ({
+          id: s.id,
+          name: s.name,
+          description: s.description ?? '',
+          color: s.color ?? '#2563EB',
+          order: s.order,
+          requirementsDocuments: s.requirementsDocuments ?? [],
+          requirementsActions: s.requirementsActions ?? [],
+          requirementsApprovals: s.requirementsApprovals ?? [],
+        })),
+      );
+    } catch (e: any) {
+      setError(e?.message ?? 'Failed to load workflow stages');
+    } finally {
+      setLoading(false);
     }
   };
 
+  useEffect(() => { loadStages(); }, []);
+
+  // ─── Add stage ─────────────────────────────────────────────────────────────
+  const handleAddStage = async () => {
+    if (!newStageName.trim()) return;
+    setAddingStage(true);
+    try {
+      const created = await settingsApi.createWorkflowStage({
+        name: newStageName.trim(),
+        description: newStageDescription.trim(),
+        color: newStageColor,
+      });
+      setStages(prev => [
+        ...prev,
+        {
+          id: created.id,
+          name: created.name,
+          description: created.description ?? '',
+          color: created.color ?? newStageColor,
+          order: created.order,
+          requirementsDocuments: [],
+          requirementsActions: [],
+          requirementsApprovals: [],
+        },
+      ]);
+      setIsAddStageOpen(false);
+      setNewStageName('');
+      setNewStageDescription('');
+      setNewStageColor('#2563EB');
+    } catch (e: any) {
+      alert(e?.message ?? 'Failed to create stage');
+    } finally {
+      setAddingStage(false);
+    }
+  };
+
+  // ─── Delete stage ──────────────────────────────────────────────────────────
+  const handleDeleteStage = async (stageId: string) => {
+    if (!confirm('Are you sure you want to delete this stage? This will affect all employees currently in this stage.')) return;
+    try {
+      await settingsApi.deleteWorkflowStage(stageId);
+      setStages(prev => prev.filter(s => s.id !== stageId).map((s, i) => ({ ...s, order: i + 1 })));
+    } catch (e: any) {
+      alert(e?.message ?? 'Failed to delete stage');
+    }
+  };
+
+  // ─── Drag and drop ─────────────────────────────────────────────────────────
   const handleDragStart = (stageId: string) => {
-    setDraggedStage(stageId);
+    draggedId.current = stageId;
   };
 
   const handleDragOver = (e: React.DragEvent, targetStageId: string) => {
     e.preventDefault();
-    if (!draggedStage || draggedStage === targetStageId) return;
+    if (!draggedId.current || draggedId.current === targetStageId) return;
 
-    const draggedIndex = stages.findIndex(s => s.id === draggedStage);
+    const draggedIndex = stages.findIndex(s => s.id === draggedId.current);
     const targetIndex = stages.findIndex(s => s.id === targetStageId);
-
     const newStages = [...stages];
     const [removed] = newStages.splice(draggedIndex, 1);
     newStages.splice(targetIndex, 0, removed);
-
-    // Update order
-    newStages.forEach((stage, index) => {
-      stage.order = index + 1;
-    });
-
+    newStages.forEach((stage, index) => { stage.order = index + 1; });
     setStages(newStages);
   };
 
   const handleDragEnd = () => {
-    setDraggedStage(null);
+    draggedId.current = null;
   };
 
+  // ─── Save order ────────────────────────────────────────────────────────────
+  const handleSaveChanges = async () => {
+    setSaving(true);
+    try {
+      await settingsApi.reorderWorkflowStages(stages.map(s => ({ id: s.id, order: s.order })));
+      alert('Workflow configuration saved successfully.');
+    } catch (e: any) {
+      alert(e?.message ?? 'Failed to save changes');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // ─── Edit requirements ─────────────────────────────────────────────────────
   const openRequirementsEditor = (stage: WorkflowStage) => {
     setSelectedStage(stage);
+    setRequirements({
+      documents: [...stage.requirementsDocuments],
+      actions: [...stage.requirementsActions],
+      approvals: [...stage.requirementsApprovals],
+    });
+    setNewDocument('');
+    setNewAction('');
+    setNewApproval('');
     setIsEditRequirementsOpen(true);
   };
 
+  const handleSaveRequirements = async () => {
+    if (!selectedStage) return;
+    setSavingReqs(true);
+    try {
+      await settingsApi.updateWorkflowStage(selectedStage.id, {
+        requirementsDocuments: requirements.documents,
+        requirementsActions: requirements.actions,
+        requirementsApprovals: requirements.approvals,
+      });
+      setStages(prev =>
+        prev.map(s =>
+          s.id === selectedStage.id
+            ? {
+                ...s,
+                requirementsDocuments: requirements.documents,
+                requirementsActions: requirements.actions,
+                requirementsApprovals: requirements.approvals,
+              }
+            : s,
+        ),
+      );
+      setIsEditRequirementsOpen(false);
+    } catch (e: any) {
+      alert(e?.message ?? 'Failed to save requirements');
+    } finally {
+      setSavingReqs(false);
+    }
+  };
+
+  // ─── Requirements helpers ──────────────────────────────────────────────────
+  const addItem = (type: keyof RequirementsState, value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed) return;
+    setRequirements(prev => ({ ...prev, [type]: [...prev[type], trimmed] }));
+  };
+
+  const removeItem = (type: keyof RequirementsState, index: number) => {
+    setRequirements(prev => ({ ...prev, [type]: prev[type].filter((_, i) => i !== index) }));
+  };
+
+  const updateItem = (type: keyof RequirementsState, index: number, value: string) => {
+    setRequirements(prev => {
+      const arr = [...prev[type]];
+      arr[index] = value;
+      return { ...prev, [type]: arr };
+    });
+  };
+
+  // ─── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -186,9 +229,9 @@ export function WorkflowConfiguration() {
           <p className="text-muted-foreground mt-1">Configure recruitment workflow stages and requirements</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" onClick={() => alert('Workflow configuration saved')}>
+          <Button variant="outline" onClick={handleSaveChanges} disabled={saving}>
             <Save className="w-4 h-4 mr-2" />
-            Save Changes
+            {saving ? 'Saving…' : 'Save Changes'}
           </Button>
           <Dialog open={isAddStageOpen} onOpenChange={setIsAddStageOpen}>
             <DialogTrigger asChild>
@@ -244,7 +287,9 @@ export function WorkflowConfiguration() {
                   <Button variant="outline" onClick={() => setIsAddStageOpen(false)}>
                     Cancel
                   </Button>
-                  <Button onClick={handleAddStage}>Add Stage</Button>
+                  <Button onClick={handleAddStage} disabled={addingStage || !newStageName.trim()}>
+                    {addingStage ? 'Adding…' : 'Add Stage'}
+                  </Button>
                 </div>
               </div>
             </DialogContent>
@@ -275,7 +320,7 @@ export function WorkflowConfiguration() {
             <div>
               <p className="font-medium text-[#2563EB]">Drag and Drop to Reorder</p>
               <p className="text-sm text-muted-foreground mt-1">
-                Use the drag handle to reorder workflow stages. Changes will be reflected across the entire system, including the pipeline view and all driver workflows.
+                Use the drag handle to reorder workflow stages. Click "Save Changes" to persist the new order.
               </p>
             </div>
           </div>
@@ -288,73 +333,81 @@ export function WorkflowConfiguration() {
           <CardTitle>Workflow Stages ({stages.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {stages.map((stage) => (
-              <div
-                key={stage.id}
-                draggable
-                onDragStart={() => handleDragStart(stage.id)}
-                onDragOver={(e) => handleDragOver(e, stage.id)}
-                onDragEnd={handleDragEnd}
-                className={`flex items-center gap-4 p-4 border rounded-lg hover:bg-[#F8FAFC] transition-colors cursor-move ${
-                  draggedStage === stage.id ? 'opacity-50' : ''
-                }`}
-              >
-                <GripVertical className="w-5 h-5 text-muted-foreground flex-shrink-0" />
-                
-                <div className="flex items-center gap-3 flex-1">
-                  <div
-                    className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-semibold"
-                    style={{ backgroundColor: stage.color }}
-                  >
-                    {stage.order}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-semibold text-[#0F172A]">{stage.name}</h3>
-                      <Badge variant="outline" style={{ borderColor: stage.color, color: stage.color }}>
-                        Stage {stage.order}
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground mb-2">{stage.description}</p>
-                    
-                    <div className="flex items-center gap-4 text-sm">
-                      <div className="flex items-center gap-1">
-                        <FileText className="w-4 h-4 text-muted-foreground" />
-                        <span>{stage.requirements.documents.length} documents</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <CheckCircle className="w-4 h-4 text-muted-foreground" />
-                        <span>{stage.requirements.actions.length} actions</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <AlertCircle className="w-4 h-4 text-muted-foreground" />
-                        <span>{stage.requirements.approvals.length} approvals</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+          {loading ? (
+            <div className="text-center py-10 text-muted-foreground">Loading stages…</div>
+          ) : error ? (
+            <div className="text-center py-10 text-[#EF4444]">{error}</div>
+          ) : stages.length === 0 ? (
+            <div className="text-center py-10 text-muted-foreground">No stages configured. Click "Add Stage" to get started.</div>
+          ) : (
+            <div className="space-y-3">
+              {stages.map((stage) => (
+                <div
+                  key={stage.id}
+                  draggable
+                  onDragStart={() => handleDragStart(stage.id)}
+                  onDragOver={(e) => handleDragOver(e, stage.id)}
+                  onDragEnd={handleDragEnd}
+                  className={`flex items-center gap-4 p-4 border rounded-lg hover:bg-[#F8FAFC] transition-colors cursor-move ${
+                    draggedId.current === stage.id ? 'opacity-50' : ''
+                  }`}
+                >
+                  <GripVertical className="w-5 h-5 text-muted-foreground flex-shrink-0" />
 
-                <div className="flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => openRequirementsEditor(stage)}
-                  >
-                    <Edit className="w-4 h-4 mr-1" />
-                    Edit Requirements
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => handleDeleteStage(stage.id)}
-                  >
-                    <Trash2 className="w-4 h-4 text-[#EF4444]" />
-                  </Button>
+                  <div className="flex items-center gap-3 flex-1">
+                    <div
+                      className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-semibold"
+                      style={{ backgroundColor: stage.color }}
+                    >
+                      {stage.order}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-semibold text-[#0F172A]">{stage.name}</h3>
+                        <Badge variant="outline" style={{ borderColor: stage.color, color: stage.color }}>
+                          Stage {stage.order}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-2">{stage.description}</p>
+
+                      <div className="flex items-center gap-4 text-sm">
+                        <div className="flex items-center gap-1">
+                          <FileText className="w-4 h-4 text-muted-foreground" />
+                          <span>{stage.requirementsDocuments.length} documents</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <CheckCircle className="w-4 h-4 text-muted-foreground" />
+                          <span>{stage.requirementsActions.length} actions</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <AlertCircle className="w-4 h-4 text-muted-foreground" />
+                          <span>{stage.requirementsApprovals.length} approvals</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => openRequirementsEditor(stage)}
+                    >
+                      <Edit className="w-4 h-4 mr-1" />
+                      Edit Requirements
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleDeleteStage(stage.id)}
+                    >
+                      <Trash2 className="w-4 h-4 text-[#EF4444]" />
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -366,57 +419,120 @@ export function WorkflowConfiguration() {
           </DialogHeader>
           {selectedStage && (
             <div className="space-y-6 pt-4">
+              {/* Required Documents */}
               <div>
                 <Label>Required Documents</Label>
                 <div className="space-y-2 mt-2">
-                  {selectedStage.requirements.documents.map((doc, idx) => (
+                  {requirements.documents.map((doc, idx) => (
                     <div key={idx} className="flex items-center gap-2">
-                      <Input value={doc} readOnly className="flex-1" />
-                      <Button size="sm" variant="ghost">
+                      <Input
+                        value={doc}
+                        onChange={(e) => updateItem('documents', idx, e.target.value)}
+                        className="flex-1"
+                      />
+                      <Button size="sm" variant="ghost" onClick={() => removeItem('documents', idx)}>
                         <Trash2 className="w-4 h-4 text-[#EF4444]" />
                       </Button>
                     </div>
                   ))}
-                  <Button size="sm" variant="outline">
-                    <Plus className="w-4 h-4 mr-1" />
-                    Add Document
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      placeholder="Document name…"
+                      value={newDocument}
+                      onChange={(e) => setNewDocument(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') { addItem('documents', newDocument); setNewDocument(''); }
+                      }}
+                      className="flex-1"
+                    />
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => { addItem('documents', newDocument); setNewDocument(''); }}
+                      disabled={!newDocument.trim()}
+                    >
+                      <Plus className="w-4 h-4 mr-1" />
+                      Add Document
+                    </Button>
+                  </div>
                 </div>
               </div>
 
+              {/* Required Actions */}
               <div>
                 <Label>Required Actions</Label>
                 <div className="space-y-2 mt-2">
-                  {selectedStage.requirements.actions.map((action, idx) => (
+                  {requirements.actions.map((action, idx) => (
                     <div key={idx} className="flex items-center gap-2">
-                      <Input value={action} readOnly className="flex-1" />
-                      <Button size="sm" variant="ghost">
+                      <Input
+                        value={action}
+                        onChange={(e) => updateItem('actions', idx, e.target.value)}
+                        className="flex-1"
+                      />
+                      <Button size="sm" variant="ghost" onClick={() => removeItem('actions', idx)}>
                         <Trash2 className="w-4 h-4 text-[#EF4444]" />
                       </Button>
                     </div>
                   ))}
-                  <Button size="sm" variant="outline">
-                    <Plus className="w-4 h-4 mr-1" />
-                    Add Action
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      placeholder="Action name…"
+                      value={newAction}
+                      onChange={(e) => setNewAction(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') { addItem('actions', newAction); setNewAction(''); }
+                      }}
+                      className="flex-1"
+                    />
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => { addItem('actions', newAction); setNewAction(''); }}
+                      disabled={!newAction.trim()}
+                    >
+                      <Plus className="w-4 h-4 mr-1" />
+                      Add Action
+                    </Button>
+                  </div>
                 </div>
               </div>
 
+              {/* Required Approvals */}
               <div>
                 <Label>Required Approvals</Label>
                 <div className="space-y-2 mt-2">
-                  {selectedStage.requirements.approvals.map((approval, idx) => (
+                  {requirements.approvals.map((approval, idx) => (
                     <div key={idx} className="flex items-center gap-2">
-                      <Input value={approval} readOnly className="flex-1" />
-                      <Button size="sm" variant="ghost">
+                      <Input
+                        value={approval}
+                        onChange={(e) => updateItem('approvals', idx, e.target.value)}
+                        className="flex-1"
+                      />
+                      <Button size="sm" variant="ghost" onClick={() => removeItem('approvals', idx)}>
                         <Trash2 className="w-4 h-4 text-[#EF4444]" />
                       </Button>
                     </div>
                   ))}
-                  <Button size="sm" variant="outline">
-                    <Plus className="w-4 h-4 mr-1" />
-                    Add Approval
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      placeholder="Approval name…"
+                      value={newApproval}
+                      onChange={(e) => setNewApproval(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') { addItem('approvals', newApproval); setNewApproval(''); }
+                      }}
+                      className="flex-1"
+                    />
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => { addItem('approvals', newApproval); setNewApproval(''); }}
+                      disabled={!newApproval.trim()}
+                    >
+                      <Plus className="w-4 h-4 mr-1" />
+                      Add Approval
+                    </Button>
+                  </div>
                 </div>
               </div>
 
@@ -424,8 +540,8 @@ export function WorkflowConfiguration() {
                 <Button variant="outline" onClick={() => setIsEditRequirementsOpen(false)}>
                   Cancel
                 </Button>
-                <Button onClick={() => setIsEditRequirementsOpen(false)}>
-                  Save Requirements
+                <Button onClick={handleSaveRequirements} disabled={savingReqs}>
+                  {savingReqs ? 'Saving…' : 'Save Requirements'}
                 </Button>
               </div>
             </div>

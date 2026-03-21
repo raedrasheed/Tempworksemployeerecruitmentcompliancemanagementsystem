@@ -139,7 +139,32 @@ export class SettingsService {
 
   // ─── Workflow Stages ─────────────────────────────────────────────────────────
   async findWorkflowStages() {
-    return this.prisma.workflowStage.findMany({ orderBy: { order: 'asc' } });
+    return this.prisma.workflowStage.findMany({ where: { isActive: true }, orderBy: { order: 'asc' } });
+  }
+
+  async createWorkflowStage(dto: any, actorId?: string) {
+    const maxOrder = await this.prisma.workflowStage.aggregate({ _max: { order: true } });
+    const nextOrder = (maxOrder._max.order ?? 0) + 1;
+    const stage = await this.prisma.workflowStage.create({
+      data: {
+        name: dto.name,
+        description: dto.description,
+        color: dto.color ?? '#2563EB',
+        order: nextOrder,
+        category: dto.category ?? 'INITIAL',
+        requirementsDocuments: dto.requirementsDocuments ?? [],
+        requirementsActions: dto.requirementsActions ?? [],
+        requirementsApprovals: dto.requirementsApprovals ?? [],
+      },
+    });
+    await this.auditLog.log({
+      userId: actorId,
+      action: 'CREATE',
+      entity: 'WorkflowStage',
+      entityId: stage.id,
+      changes: { name: stage.name },
+    });
+    return stage;
   }
 
   async updateWorkflowStage(id: string, dto: any, actorId?: string) {
@@ -154,6 +179,36 @@ export class SettingsService {
       changes: dto,
     });
     return updated;
+  }
+
+  async deleteWorkflowStage(id: string, actorId?: string) {
+    const stage = await this.prisma.workflowStage.findUnique({ where: { id } });
+    if (!stage) throw new NotFoundException('Workflow stage not found');
+    await this.prisma.workflowStage.update({ where: { id }, data: { isActive: false } });
+    await this.auditLog.log({
+      userId: actorId,
+      action: 'DELETE',
+      entity: 'WorkflowStage',
+      entityId: id,
+      changes: { name: stage.name },
+    });
+    return { message: 'Workflow stage deleted' };
+  }
+
+  async reorderWorkflowStages(orders: { id: string; order: number }[], actorId?: string) {
+    await Promise.all(
+      orders.map(({ id, order }) =>
+        this.prisma.workflowStage.update({ where: { id }, data: { order } }),
+      ),
+    );
+    await this.auditLog.log({
+      userId: actorId,
+      action: 'UPDATE',
+      entity: 'WorkflowStage',
+      entityId: 'bulk',
+      changes: { reorder: orders },
+    });
+    return { message: 'Stages reordered' };
   }
 
   // ─── Notification Rules ──────────────────────────────────────────────────────

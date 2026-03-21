@@ -98,12 +98,35 @@ export class SettingsController {
   @ApiOperation({ summary: 'Get all workflow stages' })
   findWorkflowStages() { return this.settingsService.findWorkflowStages(); }
 
+  @Post('workflow-stages')
+  @Roles('System Admin')
+  @ApiOperation({ summary: 'Create a workflow stage' })
+  createWorkflowStage(@Body() dto: any, @CurrentUser() user: any) {
+    return this.settingsService.createWorkflowStage(dto, user?.id);
+  }
+
+  @Patch('workflow-stages/reorder')
+  @Roles('System Admin')
+  @ApiOperation({ summary: 'Bulk reorder workflow stages' })
+  reorderWorkflowStages(@Body() body: { orders: { id: string; order: number }[] }, @CurrentUser() user: any) {
+    return this.settingsService.reorderWorkflowStages(body.orders, user?.id);
+  }
+
   @Patch('workflow-stages/:id')
   @Roles('System Admin')
   @ApiOperation({ summary: 'Update a workflow stage' })
   @ApiParam({ name: 'id' })
   updateWorkflowStage(@Param('id') id: string, @Body() dto: any, @CurrentUser() user: any) {
     return this.settingsService.updateWorkflowStage(id, dto, user?.id);
+  }
+
+  @Delete('workflow-stages/:id')
+  @Roles('System Admin')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Delete a workflow stage' })
+  @ApiParam({ name: 'id' })
+  deleteWorkflowStage(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.settingsService.deleteWorkflowStage(id, user?.id);
   }
 
   // Notification Rules

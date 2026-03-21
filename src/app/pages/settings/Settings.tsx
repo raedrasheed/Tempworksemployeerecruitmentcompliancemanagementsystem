@@ -1,38 +1,12 @@
 import { Link } from 'react-router';
-import { useState, useEffect } from 'react';
-import { FileType, Bell, Shield, Activity, Building2, GitBranch, Briefcase, Palette } from 'lucide-react';
+import { FileType, Bell, Shield, Activity, GitBranch, Briefcase, Palette } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
-import { toast } from 'sonner';
-import { settingsApi } from '../../services/api';
 
 export function Settings() {
-  const [maxUsers, setMaxUsers] = useState('5');
-  const [savingAgency, setSavingAgency] = useState(false);
-
-  useEffect(() => {
-    settingsApi.getAll(true).then((grouped: any) => {
-      const agencySettings: any[] = grouped?.agency ?? [];
-      const setting = agencySettings.find((s: any) => s.key === 'agency.maxUsersPerAgency');
-      if (setting) setMaxUsers(setting.value);
-    }).catch(() => {});
-  }, []);
-
-  const handleSaveAgencySettings = async () => {
-    setSavingAgency(true);
-    try {
-      await settingsApi.update({ 'agency.maxUsersPerAgency': maxUsers });
-      toast.success('Agency settings saved');
-    } catch {
-      toast.error('Failed to save agency settings');
-    } finally {
-      setSavingAgency(false);
-    }
-  };
-
   const settingsCategories = [
     {
       icon: Briefcase,
@@ -135,45 +109,6 @@ export function Settings() {
           );
         })}
       </div>
-
-      {/* Agency Settings */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-[#EFF6FF] flex items-center justify-center">
-              <Building2 className="w-5 h-5 text-[#2563EB]" />
-            </div>
-            <div>
-              <CardTitle>Agency Configuration</CardTitle>
-              <CardDescription>Global settings for recruitment agencies</CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div>
-            <Label htmlFor="defaultMaxUsers">Default Maximum Users Per Agency</Label>
-            <p className="text-sm text-muted-foreground mt-1 mb-3">
-              Set the limit for how many users an Agency Manager can add to their agency
-            </p>
-            <Select value={maxUsers} onValueChange={setMaxUsers}>
-              <SelectTrigger id="defaultMaxUsers" className="max-w-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {Array.from({ length: 10 }, (_, i) => i + 1).map(n => (
-                  <SelectItem key={n} value={String(n)}>{n} {n === 1 ? 'user' : 'users'}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex justify-end pt-4 border-t">
-            <Button onClick={handleSaveAgencySettings} disabled={savingAgency}>
-              {savingAgency ? 'Saving…' : 'Save Agency Settings'}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Log Retention Policy */}
       <Card>

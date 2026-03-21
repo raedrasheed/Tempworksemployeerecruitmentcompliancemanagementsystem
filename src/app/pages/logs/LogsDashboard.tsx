@@ -55,7 +55,7 @@ function exportToCsv(rows: any[]) {
 
 // ─── component ───────────────────────────────────────────────────────────────
 export function LogsDashboard() {
-  const { currentUser } = useAuthContext();
+  const { user: currentUser } = useAuthContext();
   const isAdmin = currentUser?.role === 'System Admin';
 
   // filters

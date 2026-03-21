@@ -33,6 +33,7 @@ import { StageDetails } from './pages/workflow/StageDetails';
 import { AgenciesList } from './pages/agencies/AgenciesList';
 import { AgencyProfile } from './pages/agencies/AgencyProfile';
 import { AddAgency } from './pages/agencies/AddAgency';
+import { EditAgency } from './pages/agencies/EditAgency';
 import { AgencyUsersManagement } from './pages/agencies/AgencyUsersManagement';
 import { ComplianceDashboard } from './pages/compliance/ComplianceDashboard';
 import { ComplianceAlerts } from './pages/compliance/ComplianceAlerts';
@@ -134,6 +135,7 @@ export const router = createBrowserRouter([
       { path: 'agencies', Component: AgenciesList },
       { path: 'agencies/add', Component: AddAgency },
       { path: 'agencies/:id', Component: AgencyProfile },
+      { path: 'agencies/:id/edit', Component: EditAgency },
       { path: 'agencies/:id/users', Component: AgencyUsersManagement },
       
       // Compliance routes

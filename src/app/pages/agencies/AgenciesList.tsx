@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router';
-import { Plus, Eye, Search } from 'lucide-react';
+import { Plus, Eye, Edit, Trash2, Search } from 'lucide-react';
 import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Input } from '../../components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
+import { toast } from 'sonner';
 import { agenciesApi } from '../../services/api';
 import { FilterSystem, Column, FilterRule, FilterPreset } from '../../components/filters/FilterSystem';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -29,7 +30,7 @@ const getStatusBadge = (status: string) => {
 };
 
 export function AgenciesList() {
-  const { canCreate } = usePermissions();
+  const { canCreate, canEdit, canDelete } = usePermissions();
   const [agencies, setAgencies] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -37,6 +38,17 @@ export function AgenciesList() {
   const [activeFilters, setActiveFilters] = useState<FilterRule[]>([]);
   const [filterLogic, setFilterLogic] = useState<'AND' | 'OR'>('AND');
   const [savedPresets, setSavedPresets] = useState<FilterPreset[]>([]);
+
+  const handleDelete = async (agency: any) => {
+    if (!confirm(`Are you sure you want to delete "${agency.name}"? This action cannot be undone.`)) return;
+    try {
+      await agenciesApi.delete(agency.id);
+      setAgencies(prev => prev.filter(a => a.id !== agency.id));
+      toast.success('Agency deleted successfully');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to delete agency');
+    }
+  };
 
   useEffect(() => {
     agenciesApi.list({ limit: 100 })
@@ -154,12 +166,31 @@ export function AgenciesList() {
                     </TableCell>
                     <TableCell>{getStatusBadge(agency.status)}</TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" asChild>
-                        <Link to={`/dashboard/agencies/${agency.id}`}>
-                          <Eye className="w-4 h-4 mr-2" />
-                          View
-                        </Link>
-                      </Button>
+                      <div className="flex items-center justify-end gap-1">
+                        <Button variant="ghost" size="sm" asChild>
+                          <Link to={`/dashboard/agencies/${agency.id}`}>
+                            <Eye className="w-4 h-4 mr-1" />
+                            View
+                          </Link>
+                        </Button>
+                        {canEdit('agencies') && (
+                          <Button variant="ghost" size="sm" asChild>
+                            <Link to={`/dashboard/agencies/${agency.id}/edit`}>
+                              <Edit className="w-4 h-4" />
+                            </Link>
+                          </Button>
+                        )}
+                        {canDelete('agencies') && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(agency)}
+                            className="text-[#EF4444] hover:text-[#EF4444] hover:bg-[#FEF2F2]"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

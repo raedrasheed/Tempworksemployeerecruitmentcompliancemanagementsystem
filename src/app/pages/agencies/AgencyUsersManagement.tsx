@@ -1,171 +1,77 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router';
-import { ArrowLeft, Plus, Edit, Trash2, Users, Shield, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Users, Shield, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
-import { Input } from '../../components/ui/input';
-import { Label } from '../../components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../../components/ui/dialog';
-import { mockAgencies } from '../../data/mockData';
+import { toast } from 'sonner';
+import { agenciesApi, usersApi, settingsApi } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
 
-interface AgencyUser {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  status: 'active' | 'inactive';
-  lastLogin: string;
-  createdDate: string;
-}
-
-const mockAgencyUsers: AgencyUser[] = [
-  {
-    id: 'AU001',
-    name: 'Maria Schmidt',
-    email: 'maria.schmidt@eurorecruit.com',
-    role: 'Agency Manager',
-    status: 'active',
-    lastLogin: '2024-03-13 09:15',
-    createdDate: '2024-01-15',
-  },
-  {
-    id: 'AU002',
-    name: 'Thomas Weber',
-    email: 'thomas.weber@eurorecruit.com',
-    role: 'Agency User',
-    status: 'active',
-    lastLogin: '2024-03-13 08:42',
-    createdDate: '2024-01-20',
-  },
-  {
-    id: 'AU003',
-    name: 'Anna Mueller',
-    email: 'anna.mueller@eurorecruit.com',
-    role: 'Agency User',
-    status: 'active',
-    lastLogin: '2024-03-12 16:30',
-    createdDate: '2024-02-01',
-  },
-  {
-    id: 'AU004',
-    name: 'Peter Fischer',
-    email: 'peter.fischer@eurorecruit.com',
-    role: 'Agency User',
-    status: 'inactive',
-    lastLogin: '2024-02-28 10:20',
-    createdDate: '2024-01-25',
-  },
-];
-
 export function AgencyUsersManagement() {
-  const { canCreate, canEdit, canDelete, can } = usePermissions();
-  // Agency Managers manage users within their own agency (users module)
-  const canManageUsers = canCreate('users') || can('agencies', 'update');
   const { id } = useParams();
-  const agency = mockAgencies.find(a => a.id === id);
-  const [isAddUserOpen, setIsAddUserOpen] = useState(false);
-  const [newUserName, setNewUserName] = useState('');
-  const [newUserEmail, setNewUserEmail] = useState('');
-  const [newUserRole, setNewUserRole] = useState('');
+  const { canCreate, canDelete, can } = usePermissions();
+  const canManageUsers = canCreate('users') || can('agencies', 'update');
 
-  if (!agency) {
-    return <div>Agency not found</div>;
-  }
+  const [agency, setAgency] = useState<any>(null);
+  const [agencyUsers, setAgencyUsers] = useState<any[]>([]);
+  const [maxUsers, setMaxUsers] = useState<number>(5);
+  const [loading, setLoading] = useState(true);
 
-  const maxUsers = 10; // Example limit
-  const currentUsers = mockAgencyUsers.filter(u => u.status === 'active').length;
-  const canAddMore = currentUsers < maxUsers;
+  useEffect(() => {
+    Promise.all([
+      agenciesApi.get(id!),
+      agenciesApi.getUsers(id!),
+      settingsApi.getAll(true),
+    ]).then(([agencyData, usersResult, settingsResult]) => {
+      setAgency(agencyData);
+      setAgencyUsers((usersResult as any)?.data ?? usersResult ?? []);
+      const agencySettings: any[] = (settingsResult as any)?.agency ?? [];
+      const s = agencySettings.find((x: any) => x.key === 'agency.maxUsersPerAgency');
+      if (s) setMaxUsers(parseInt(s.value, 10));
+    }).catch(() => toast.error('Failed to load agency data'))
+      .finally(() => setLoading(false));
+  }, [id]);
 
-  const handleAddUser = () => {
-    if (!canAddMore) {
-      alert('Maximum number of users for this agency has been reached');
-      return;
+  const handleDeleteUser = async (user: any) => {
+    if (!confirm(`Are you sure you want to remove ${user.firstName} ${user.lastName} from this agency?`)) return;
+    try {
+      await usersApi.delete(user.id);
+      setAgencyUsers(prev => prev.filter(u => u.id !== user.id));
+      toast.success('User removed successfully');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to remove user');
     }
-    alert(`User "${newUserName}" added successfully`);
-    setIsAddUserOpen(false);
-    setNewUserName('');
-    setNewUserEmail('');
-    setNewUserRole('');
   };
+
+  if (loading) return <div className="p-8 text-muted-foreground">Loading...</div>;
+  if (!agency) return <div className="p-8">Agency not found</div>;
+
+  const activeUsers = agencyUsers.filter(u => u.status === 'ACTIVE');
+  const managers = agencyUsers.filter(u => u.role?.name === 'Agency Manager');
+  const atLimit = activeUsers.length >= maxUsers;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" asChild>
-          <Link to={`/agencies/${id}`}>
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
+          <Link to={`/dashboard/agencies/${id}`}><ArrowLeft className="w-5 h-5" /></Link>
         </Button>
         <div className="flex-1">
           <h1 className="text-3xl font-semibold text-[#0F172A]">Agency Users</h1>
-          <p className="text-muted-foreground mt-1">{agency.name} • Manage agency user accounts</p>
+          <p className="text-muted-foreground mt-1">{agency.name} — Manage agency user accounts</p>
         </div>
-        <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
-          {canManageUsers && (
-            <DialogTrigger asChild>
-              <Button disabled={!canAddMore}>
-                <Plus className="w-4 h-4 mr-2" />
-                Add User
-              </Button>
-            </DialogTrigger>
-          )}
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle>Add New Agency User</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 pt-4">
-              <div>
-                <Label htmlFor="userName">Full Name</Label>
-                <Input
-                  id="userName"
-                  placeholder="Enter user name"
-                  value={newUserName}
-                  onChange={(e) => setNewUserName(e.target.value)}
-                  className="mt-1.5"
-                />
-              </div>
-              <div>
-                <Label htmlFor="userEmail">Email</Label>
-                <Input
-                  id="userEmail"
-                  type="email"
-                  placeholder="user@agency.com"
-                  value={newUserEmail}
-                  onChange={(e) => setNewUserEmail(e.target.value)}
-                  className="mt-1.5"
-                />
-              </div>
-              <div>
-                <Label htmlFor="userRole">Role</Label>
-                <Select value={newUserRole} onValueChange={setNewUserRole}>
-                  <SelectTrigger id="userRole" className="mt-1.5">
-                    <SelectValue placeholder="Select role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="agency_manager">Agency Manager</SelectItem>
-                    <SelectItem value="agency_user">Agency User (Default)</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground mt-1.5">
-                  Default role will be assigned automatically
-                </p>
-              </div>
-              <div className="flex justify-end gap-2 pt-4">
-                <Button variant="outline" onClick={() => setIsAddUserOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleAddUser}>Add User</Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+        {canManageUsers && (
+          <Button asChild disabled={atLimit}>
+            <Link to="/dashboard/users/add">
+              <Plus className="w-4 h-4 mr-2" />
+              Add User
+            </Link>
+          </Button>
+        )}
       </div>
 
-      {/* User Limit Warning */}
-      {!canAddMore && (
+      {atLimit && (
         <Card className="border-[#F59E0B] bg-[#FEF3C7]">
           <CardContent className="p-4">
             <div className="flex items-start gap-3">
@@ -173,7 +79,7 @@ export function AgencyUsersManagement() {
               <div>
                 <p className="font-medium text-[#F59E0B]">Maximum number of users reached</p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  This agency has reached the maximum limit of {maxUsers} active users. Please contact support to increase the limit.
+                  This agency has reached the maximum limit of {maxUsers} active users. Contact a System Administrator to increase the limit.
                 </p>
               </div>
             </div>
@@ -181,7 +87,6 @@ export function AgencyUsersManagement() {
         </Card>
       )}
 
-      {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardContent className="p-6">
@@ -190,13 +95,12 @@ export function AgencyUsersManagement() {
                 <Users className="w-6 h-6 text-[#2563EB]" />
               </div>
               <div>
-                <p className="text-2xl font-semibold">{currentUsers}/{maxUsers}</p>
+                <p className="text-2xl font-semibold">{activeUsers.length}/{maxUsers}</p>
                 <p className="text-sm text-muted-foreground">Active Users</p>
               </div>
             </div>
           </CardContent>
         </Card>
-
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-3">
@@ -204,15 +108,12 @@ export function AgencyUsersManagement() {
                 <Shield className="w-6 h-6 text-[#22C55E]" />
               </div>
               <div>
-                <p className="text-2xl font-semibold">
-                  {mockAgencyUsers.filter(u => u.role === 'Agency Manager').length}
-                </p>
+                <p className="text-2xl font-semibold">{managers.length}</p>
                 <p className="text-sm text-muted-foreground">Managers</p>
               </div>
             </div>
           </CardContent>
         </Card>
-
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-3">
@@ -220,9 +121,7 @@ export function AgencyUsersManagement() {
                 <Users className="w-6 h-6 text-[#EF4444]" />
               </div>
               <div>
-                <p className="text-2xl font-semibold">
-                  {mockAgencyUsers.filter(u => u.status === 'inactive').length}
-                </p>
+                <p className="text-2xl font-semibold">{agencyUsers.filter(u => u.status !== 'ACTIVE').length}</p>
                 <p className="text-sm text-muted-foreground">Inactive</p>
               </div>
             </div>
@@ -230,70 +129,69 @@ export function AgencyUsersManagement() {
         </Card>
       </div>
 
-      {/* Users List */}
       <Card>
         <CardHeader>
-          <CardTitle>Agency Users ({mockAgencyUsers.length})</CardTitle>
+          <CardTitle>Agency Users ({agencyUsers.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="border rounded-lg overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-[#F8FAFC] border-b">
-                <tr>
-                  <th className="text-left p-4 font-semibold text-sm">User</th>
-                  <th className="text-left p-4 font-semibold text-sm">Role</th>
-                  <th className="text-left p-4 font-semibold text-sm">Status</th>
-                  <th className="text-left p-4 font-semibold text-sm">Last Login</th>
-                  <th className="text-left p-4 font-semibold text-sm">Created</th>
-                  <th className="text-left p-4 font-semibold text-sm">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {mockAgencyUsers.map((user) => (
-                  <tr key={user.id} className="border-b hover:bg-[#F8FAFC] transition-colors">
-                    <td className="p-4">
-                      <div>
-                        <p className="font-medium">{user.name}</p>
-                        <p className="text-sm text-muted-foreground">{user.email}</p>
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <Badge variant="outline" className={
-                        user.role === 'Agency Manager' 
-                          ? 'bg-[#EFF6FF] text-[#2563EB] border-[#2563EB]'
-                          : 'bg-[#F8FAFC] text-[#64748B] border-[#E2E8F0]'
-                      }>
-                        {user.role}
-                      </Badge>
-                    </td>
-                    <td className="p-4">
-                      <Badge className={
-                        user.status === 'active' ? 'bg-[#22C55E]' : 'bg-gray-500'
-                      }>
-                        {user.status}
-                      </Badge>
-                    </td>
-                    <td className="p-4 text-sm">{user.lastLogin}</td>
-                    <td className="p-4 text-sm">{user.createdDate}</td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-2">
-                        {(canEdit('users') || can('agencies', 'update')) && (
-                          <Button size="sm" variant="ghost">
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                        )}
-                        {(canDelete('users') || can('agencies', 'delete')) && (
-                          <Button size="sm" variant="ghost">
-                            <Trash2 className="w-4 h-4 text-[#EF4444]" />
-                          </Button>
-                        )}
-                      </div>
-                    </td>
+          {agencyUsers.length === 0 ? (
+            <p className="text-muted-foreground text-center py-8">No users found for this agency.</p>
+          ) : (
+            <div className="border rounded-lg overflow-hidden">
+              <table className="w-full">
+                <thead className="bg-[#F8FAFC] border-b">
+                  <tr>
+                    <th className="text-left p-4 font-semibold text-sm">User</th>
+                    <th className="text-left p-4 font-semibold text-sm">Role</th>
+                    <th className="text-left p-4 font-semibold text-sm">Status</th>
+                    <th className="text-left p-4 font-semibold text-sm">Last Login</th>
+                    <th className="text-left p-4 font-semibold text-sm">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {agencyUsers.map((user) => (
+                    <tr key={user.id} className="border-b hover:bg-[#F8FAFC] transition-colors">
+                      <td className="p-4">
+                        <div>
+                          <p className="font-medium">{user.firstName} {user.lastName}</p>
+                          <p className="text-sm text-muted-foreground">{user.email}</p>
+                        </div>
+                      </td>
+                      <td className="p-4">
+                        <Badge variant="outline" className={
+                          user.role?.name === 'Agency Manager'
+                            ? 'bg-[#EFF6FF] text-[#2563EB] border-[#2563EB]'
+                            : 'bg-[#F8FAFC] text-[#64748B] border-[#E2E8F0]'
+                        }>
+                          {user.role?.name ?? '—'}
+                        </Badge>
+                      </td>
+                      <td className="p-4">
+                        <Badge className={user.status === 'ACTIVE' ? 'bg-[#22C55E]' : 'bg-gray-500'}>
+                          {user.status}
+                        </Badge>
+                      </td>
+                      <td className="p-4 text-sm text-muted-foreground">
+                        {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString() : '—'}
+                      </td>
+                      <td className="p-4">
+                        {(canDelete('users') || can('agencies', 'delete')) && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleDeleteUser(user)}
+                            className="text-[#EF4444] hover:text-[#EF4444] hover:bg-[#FEF2F2]"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

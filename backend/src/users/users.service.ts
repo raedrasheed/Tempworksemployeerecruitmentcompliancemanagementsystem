@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
+import { AuditLogService } from '../logs/audit-log.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
@@ -8,9 +9,11 @@ import { PaginatedResponse } from '../common/dto/pagination-response.dto';
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private auditLog: AuditLogService,
+  ) {}
 
-  /** Returns the role name for a given roleId, or null. */
   private async getRoleName(roleId: string): Promise<string | null> {
     const role = await this.prisma.role.findUnique({ where: { id: roleId }, select: { name: true } });
     return role?.name ?? null;
@@ -22,8 +25,6 @@ export class UsersService {
 
     const where: any = { deletedAt: null };
 
-    // Non-admins must never see System Admin users in the list.
-    // Use AND to avoid overwriting a roleId filter applied below.
     if (callerRole !== 'System Admin') {
       where.AND = [{ role: { name: { not: 'System Admin' } } }];
     }
@@ -69,7 +70,6 @@ export class UsersService {
     });
     if (!user) throw new NotFoundException('User not found');
 
-    // Non-admins cannot view a System Admin user
     if (callerRole !== 'System Admin' && (user as any).role?.name === 'System Admin') {
       throw new NotFoundException('User not found');
     }
@@ -78,8 +78,7 @@ export class UsersService {
     return result;
   }
 
-  async create(dto: CreateUserDto, callerRole?: string, callerAgencyId?: string) {
-    // Non-admins cannot create a System Admin user
+  async create(dto: CreateUserDto, callerRole?: string, callerAgencyId?: string, actorId?: string) {
     if (callerRole !== 'System Admin' && dto.roleId) {
       const roleName = await this.getRoleName(dto.roleId);
       if (roleName === 'System Admin') {
@@ -87,7 +86,6 @@ export class UsersService {
       }
     }
 
-    // Agency Managers can only create users for their own agency
     if (callerRole === 'Agency Manager') {
       if (!callerAgencyId) throw new ForbiddenException('Agency Manager has no agency assigned');
       dto.agencyId = callerAgencyId;
@@ -111,19 +109,25 @@ export class UsersService {
       include: { role: { select: { id: true, name: true } }, agency: { select: { id: true, name: true } } },
     });
 
+    await this.auditLog.log({
+      userId: actorId,
+      action: 'CREATE',
+      entity: 'User',
+      entityId: user.id,
+      changes: { email: user.email, role: (user as any).role?.name },
+    });
+
     const { passwordHash: ph, refreshToken, ...result } = user as any;
     return result;
   }
 
-  async update(id: string, dto: UpdateUserDto, callerRole?: string) {
-    const existing = await this.findOne(id, callerRole); // also enforces view restriction
+  async update(id: string, dto: UpdateUserDto, callerRole?: string, actorId?: string) {
+    const existing = await this.findOne(id, callerRole);
 
-    // Non-admins cannot edit a System Admin user
     if (callerRole !== 'System Admin' && existing.role?.name === 'System Admin') {
       throw new ForbiddenException('Only System Admins can edit System Admin users');
     }
 
-    // Non-admins cannot reassign a user to the System Admin role
     if (callerRole !== 'System Admin' && dto.roleId) {
       const roleName = await this.getRoleName(dto.roleId);
       if (roleName === 'System Admin') {
@@ -136,28 +140,54 @@ export class UsersService {
       data: dto as any,
       include: { role: { select: { id: true, name: true } }, agency: { select: { id: true, name: true } } },
     });
+
+    await this.auditLog.log({
+      userId: actorId,
+      action: 'UPDATE',
+      entity: 'User',
+      entityId: id,
+      changes: dto as any,
+    });
+
     const { passwordHash, refreshToken, ...result } = user as any;
     return result;
   }
 
-  async remove(id: string, callerRole?: string) {
-    const existing = await this.findOne(id, callerRole); // also enforces view restriction
+  async remove(id: string, callerRole?: string, actorId?: string) {
+    const existing = await this.findOne(id, callerRole);
 
-    // Non-admins cannot delete a System Admin user
     if (callerRole !== 'System Admin' && existing.role?.name === 'System Admin') {
       throw new ForbiddenException('Only System Admins can delete System Admin users');
     }
 
     await this.prisma.user.update({ where: { id }, data: { deletedAt: new Date() } });
+
+    await this.auditLog.log({
+      userId: actorId,
+      action: 'DELETE',
+      entity: 'User',
+      entityId: id,
+      changes: { email: existing.email },
+    });
+
     return { message: 'User deleted successfully' };
   }
 
-  async updateProfile(userId: string, data: any) {
+  async updateProfile(userId: string, data: any, actorId?: string) {
     const user = await this.prisma.user.update({
       where: { id: userId },
       data: { firstName: data.firstName, lastName: data.lastName, phone: data.phone },
       include: { role: { select: { id: true, name: true } } },
     });
+
+    await this.auditLog.log({
+      userId: actorId || userId,
+      action: 'UPDATE_PROFILE',
+      entity: 'User',
+      entityId: userId,
+      changes: { firstName: data.firstName, lastName: data.lastName, phone: data.phone },
+    });
+
     const { passwordHash, refreshToken, ...result } = user as any;
     return result;
   }

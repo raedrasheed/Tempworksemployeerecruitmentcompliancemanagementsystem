@@ -44,27 +44,27 @@ export class UsersController {
   @ApiOperation({ summary: 'Create new user' })
   @ApiResponse({ status: 201, description: 'User created successfully' })
   create(@Body() dto: CreateUserDto, @CurrentUser() caller: any) {
-    return this.usersService.create(dto, caller?.role, caller?.agencyId);
+    return this.usersService.create(dto, caller?.role, caller?.agencyId, caller?.id);
   }
 
   @Patch('me/profile')
   @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Finance', 'Read Only')
   @ApiOperation({ summary: 'Update current user profile' })
   updateProfile(@CurrentUser('id') userId: string, @Body() data: any) {
-    return this.usersService.updateProfile(userId, data);
+    return this.usersService.updateProfile(userId, data, userId);
   }
 
   @Patch(':id')
   @Roles('System Admin')
   @ApiOperation({ summary: 'Update user' })
   update(@Param('id') id: string, @Body() dto: UpdateUserDto, @CurrentUser() caller: any) {
-    return this.usersService.update(id, dto, caller?.role);
+    return this.usersService.update(id, dto, caller?.role, caller?.id);
   }
 
   @Delete(':id')
   @Roles('System Admin')
   @ApiOperation({ summary: 'Delete user (soft delete)' })
   remove(@Param('id') id: string, @CurrentUser() caller: any) {
-    return this.usersService.remove(id, caller?.role);
+    return this.usersService.remove(id, caller?.role, caller?.id);
   }
 }

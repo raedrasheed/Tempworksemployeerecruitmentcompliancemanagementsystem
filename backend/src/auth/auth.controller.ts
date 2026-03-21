@@ -20,8 +20,9 @@ export class AuthController {
   @ApiOperation({ summary: 'Login with email and password' })
   @ApiResponse({ status: 200, description: 'Returns JWT tokens and user info' })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
-  login(@Body() loginDto: LoginDto) {
-    return this.authService.login(loginDto);
+  login(@Body() loginDto: LoginDto, @Req() req: any) {
+    const ip = req.headers['x-forwarded-for'] || req.ip || 'unknown';
+    return this.authService.login(loginDto, ip);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -29,8 +30,9 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Logout current user' })
-  logout(@CurrentUser('id') userId: string) {
-    return this.authService.logout(userId);
+  logout(@CurrentUser('id') userId: string, @Req() req: any) {
+    const ip = req.headers['x-forwarded-for'] || req.ip || 'unknown';
+    return this.authService.logout(userId, ip);
   }
 
   @Public()
@@ -38,7 +40,6 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Refresh access token' })
   async refresh(@Body() dto: RefreshTokenDto) {
-    // Decode the token to get userId without verification
     const { JwtService } = await import('@nestjs/jwt');
     const jwtService = new JwtService({});
     const decoded = jwtService.decode(dto.refreshToken) as any;
@@ -59,8 +60,9 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Change current user password' })
-  changePassword(@CurrentUser('id') userId: string, @Body() dto: ChangePasswordDto) {
-    return this.authService.changePassword(userId, dto.currentPassword, dto.newPassword);
+  changePassword(@CurrentUser('id') userId: string, @Body() dto: ChangePasswordDto, @Req() req: any) {
+    const ip = req.headers['x-forwarded-for'] || req.ip || 'unknown';
+    return this.authService.changePassword(userId, dto.currentPassword, dto.newPassword, ip);
   }
 
   @Public()

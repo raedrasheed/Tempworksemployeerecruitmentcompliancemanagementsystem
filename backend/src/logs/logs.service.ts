@@ -77,4 +77,23 @@ export class LogsService {
 
     return { total, last24hCount, last7dCount, byEntity, byAction, topUsers };
   }
+
+  async clearLogs(filters: { fromDate?: string; toDate?: string; entity?: string } = {}) {
+    const where: any = {};
+    if (filters.entity) where.entity = filters.entity;
+    if (filters.fromDate || filters.toDate) {
+      where.createdAt = {};
+      if (filters.fromDate) where.createdAt.gte = new Date(filters.fromDate);
+      if (filters.toDate) where.createdAt.lte = new Date(filters.toDate);
+    }
+    const { count } = await this.prisma.auditLog.deleteMany({ where });
+    return { deleted: count, message: `${count} log entries deleted` };
+  }
+
+  async deleteOne(id: string) {
+    const log = await this.prisma.auditLog.findUnique({ where: { id } });
+    if (!log) return { message: 'Not found' };
+    await this.prisma.auditLog.delete({ where: { id } });
+    return { message: 'Log entry deleted' };
+  }
 }

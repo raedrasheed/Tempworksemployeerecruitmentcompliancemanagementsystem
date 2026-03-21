@@ -37,17 +37,21 @@ export class RolesController {
   @Post()
   @Roles('System Admin')
   @ApiOperation({ summary: 'Create new role' })
-  create(@Body() dto: CreateRoleDto) { return this.rolesService.create(dto); }
+  create(@Body() dto: CreateRoleDto, @CurrentUser() caller: any) {
+    return this.rolesService.create(dto, caller?.id);
+  }
 
   @Patch(':id')
   @Roles('System Admin')
   @ApiOperation({ summary: 'Update role' })
-  update(@Param('id') id: string, @Body() dto: Partial<CreateRoleDto>) {
-    return this.rolesService.update(id, dto);
+  update(@Param('id') id: string, @Body() dto: Partial<CreateRoleDto>, @CurrentUser() caller: any) {
+    return this.rolesService.update(id, dto, caller?.id);
   }
 
   @Delete(':id')
   @Roles('System Admin')
   @ApiOperation({ summary: 'Delete role' })
-  remove(@Param('id') id: string) { return this.rolesService.remove(id); }
+  remove(@Param('id') id: string, @CurrentUser() caller: any) {
+    return this.rolesService.remove(id, caller?.id);
+  }
 }

@@ -574,6 +574,16 @@ export const logsApi = {
   },
 
   getStats: () => apiFetch<any>('/logs/stats'),
+
+  clearLogs: (filters?: { fromDate?: string; toDate?: string; entity?: string }) => {
+    const qs = filters ? '?' + new URLSearchParams(Object.fromEntries(
+      Object.entries(filters).filter(([, v]) => v != null),
+    )).toString() : '';
+    return apiFetch<{ deleted: number; message: string }>(`/logs${qs}`, { method: 'DELETE' });
+  },
+
+  deleteOne: (id: string) =>
+    apiFetch<{ message: string }>(`/logs/${id}`, { method: 'DELETE' }),
 };
 
 // ─── Dashboard API ────────────────────────────────────────────────────────────

@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
+import { AuditLogService } from '../logs/audit-log.service';
 import { LoginDto } from './dto/login.dto';
 
 @Injectable()
@@ -9,6 +10,7 @@ export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
+    private auditLog: AuditLogService,
   ) {}
 
   async validateUser(email: string, password: string) {
@@ -23,32 +25,67 @@ export class AuthService {
     return user;
   }
 
-  async login(loginDto: LoginDto) {
+  async login(loginDto: LoginDto, ipAddress?: string) {
     const user = await this.prisma.user.findFirst({
       where: { email: loginDto.email, deletedAt: null },
       include: { role: true },
     });
 
     if (!user) {
+      // Log failed attempt for unknown email
+      await this.auditLog.log({
+        userEmail: loginDto.email,
+        action: 'LOGIN_FAILED',
+        entity: 'User',
+        entityId: 'unknown',
+        changes: { reason: 'User not found' },
+        ipAddress,
+      });
       throw new UnauthorizedException('Invalid credentials');
     }
 
     if (user.status === 'INACTIVE' || user.status === 'SUSPENDED') {
+      await this.auditLog.log({
+        userId: user.id,
+        userEmail: user.email,
+        action: 'LOGIN_FAILED',
+        entity: 'User',
+        entityId: user.id,
+        changes: { reason: 'Account not active', status: user.status },
+        ipAddress,
+      });
       throw new UnauthorizedException('Account is not active');
     }
 
     const isPasswordValid = await bcrypt.compare(loginDto.password, user.passwordHash);
     if (!isPasswordValid) {
+      await this.auditLog.log({
+        userId: user.id,
+        userEmail: user.email,
+        action: 'LOGIN_FAILED',
+        entity: 'User',
+        entityId: user.id,
+        changes: { reason: 'Invalid password' },
+        ipAddress,
+      });
       throw new UnauthorizedException('Invalid credentials');
     }
 
     const tokens = await this.generateTokens(user.id, user.email, user.role.name);
 
-    // Store refresh token hash
     const refreshTokenHash = await bcrypt.hash(tokens.refreshToken, 10);
     await this.prisma.user.update({
       where: { id: user.id },
       data: { refreshToken: refreshTokenHash, lastLoginAt: new Date() },
+    });
+
+    await this.auditLog.log({
+      userId: user.id,
+      userEmail: user.email,
+      action: 'LOGIN',
+      entity: 'User',
+      entityId: user.id,
+      ipAddress,
     });
 
     return {
@@ -65,10 +102,19 @@ export class AuthService {
     };
   }
 
-  async logout(userId: string) {
+  async logout(userId: string, ipAddress?: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
     await this.prisma.user.update({
       where: { id: userId },
       data: { refreshToken: null },
+    });
+    await this.auditLog.log({
+      userId,
+      userEmail: user?.email,
+      action: 'LOGOUT',
+      entity: 'User',
+      entityId: userId,
+      ipAddress,
     });
   }
 
@@ -97,12 +143,23 @@ export class AuthService {
     return tokens;
   }
 
-  async changePassword(userId: string, currentPassword: string, newPassword: string) {
+  async changePassword(userId: string, currentPassword: string, newPassword: string, ipAddress?: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new UnauthorizedException();
 
     const isValid = await bcrypt.compare(currentPassword, user.passwordHash);
-    if (!isValid) throw new BadRequestException('Current password is incorrect');
+    if (!isValid) {
+      await this.auditLog.log({
+        userId,
+        userEmail: user.email,
+        action: 'CHANGE_PASSWORD_FAILED',
+        entity: 'User',
+        entityId: userId,
+        changes: { reason: 'Current password incorrect' },
+        ipAddress,
+      });
+      throw new BadRequestException('Current password is incorrect');
+    }
 
     const newHash = await bcrypt.hash(newPassword, 12);
     await this.prisma.user.update({
@@ -110,13 +167,29 @@ export class AuthService {
       data: { passwordHash: newHash },
     });
 
+    await this.auditLog.log({
+      userId,
+      userEmail: user.email,
+      action: 'CHANGE_PASSWORD',
+      entity: 'User',
+      entityId: userId,
+      ipAddress,
+    });
+
     return { message: 'Password changed successfully' };
   }
 
   async forgotPassword(email: string) {
-    // In production, send reset email. For now return success message
     const user = await this.prisma.user.findFirst({ where: { email, deletedAt: null } });
-    // Always return success to prevent email enumeration
+    if (user) {
+      await this.auditLog.log({
+        userId: user.id,
+        userEmail: user.email,
+        action: 'PASSWORD_RESET_REQUESTED',
+        entity: 'User',
+        entityId: user.id,
+      });
+    }
     return { message: 'If that email exists, a reset link has been sent' };
   }
 

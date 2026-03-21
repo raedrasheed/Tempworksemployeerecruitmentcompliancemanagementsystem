@@ -28,7 +28,7 @@ export function AgencyProfile() {
     ]).then(([agencyData, empData, usersData]) => {
       setAgency(agencyData);
       setEmployees((empData as any)?.data ?? empData ?? []);
-      setAgencyUsers(usersData ?? []);
+      setAgencyUsers((usersData as any)?.data ?? usersData ?? []);
     }).catch(() => setNotFound(true))
       .finally(() => setLoading(false));
   }, [id]);

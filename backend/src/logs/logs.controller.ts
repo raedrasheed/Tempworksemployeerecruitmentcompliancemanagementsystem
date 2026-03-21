@@ -5,6 +5,7 @@ import { PaginationDto } from '../common/dto/pagination.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 @ApiTags('Logs')
 @ApiBearerAuth('access-token')
@@ -14,8 +15,8 @@ export class LogsController {
   constructor(private readonly logsService: LogsService) {}
 
   @Get()
-  @Roles('System Admin', 'HR Manager', 'Compliance Officer')
-  @ApiOperation({ summary: 'Get audit logs with filtering and pagination' })
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Agency Manager')
+  @ApiOperation({ summary: 'Get audit logs – scoped to the caller\'s visibility' })
   @ApiQuery({ name: 'userId', required: false })
   @ApiQuery({ name: 'entity', required: false })
   @ApiQuery({ name: 'entityId', required: false })
@@ -24,6 +25,7 @@ export class LogsController {
   @ApiQuery({ name: 'toDate', required: false })
   findAll(
     @Query() pagination: PaginationDto,
+    @CurrentUser() caller: any,
     @Query('userId') userId?: string,
     @Query('entity') entity?: string,
     @Query('entityId') entityId?: string,
@@ -31,14 +33,20 @@ export class LogsController {
     @Query('fromDate') fromDate?: string,
     @Query('toDate') toDate?: string,
   ) {
-    return this.logsService.findAll(pagination, { userId, entity, entityId, action, fromDate, toDate });
+    return this.logsService.findAll(
+      pagination,
+      { userId, entity, entityId, action, fromDate, toDate },
+      { role: caller.role, userId: caller.id, agencyId: caller.agencyId },
+    );
   }
 
   @Get('stats')
-  @Roles('System Admin', 'HR Manager', 'Compliance Officer')
-  @ApiOperation({ summary: 'Get audit log statistics' })
-  getStats() {
-    return this.logsService.getStats();
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Agency Manager')
+  @ApiOperation({ summary: 'Get audit log statistics – scoped to the caller\'s visibility' })
+  getStats(@CurrentUser() caller: any) {
+    return this.logsService.getStats(
+      { role: caller.role, userId: caller.id, agencyId: caller.agencyId },
+    );
   }
 
   /** Clear all logs, optionally filtered by date range or entity. System Admin only. */

@@ -6,8 +6,11 @@ import { CreateRoleDto } from './dto/create-role.dto';
 export class RolesService {
   constructor(private prisma: PrismaService) {}
 
-  async findAll() {
+  async findAll(callerRole?: string) {
+    // Agency Managers may only assign the Agency User role
+    const nameFilter = callerRole === 'Agency Manager' ? { name: 'Agency User' } : undefined;
     return this.prisma.role.findMany({
+      where: nameFilter,
       include: {
         permissions: { include: { permission: true } },
         _count: { select: { users: true } },

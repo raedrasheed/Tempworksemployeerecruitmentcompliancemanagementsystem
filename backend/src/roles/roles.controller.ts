@@ -5,6 +5,7 @@ import { CreateRoleDto } from './dto/create-role.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 @ApiTags('Roles')
 @ApiBearerAuth()
@@ -16,7 +17,7 @@ export class RolesController {
   @Get()
   @Roles('System Admin', 'HR Manager', 'Agency Manager', 'Read Only')
   @ApiOperation({ summary: 'List all roles' })
-  findAll() { return this.rolesService.findAll(); }
+  findAll(@CurrentUser() user: any) { return this.rolesService.findAll(user?.role); }
 
   @Get('permissions')
   @Roles('System Admin')

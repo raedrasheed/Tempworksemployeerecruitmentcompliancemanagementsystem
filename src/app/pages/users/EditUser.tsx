@@ -7,12 +7,13 @@ import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { toast } from 'sonner';
-import { usersApi, rolesApi } from '../../services/api';
+import { usersApi, rolesApi, agenciesApi } from '../../services/api';
 
 export function EditUser() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [roles, setRoles] = useState<any[]>([]);
+  const [agencies, setAgencies] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [notFound, setNotFound] = useState(false);
@@ -22,6 +23,7 @@ export function EditUser() {
     email: '',
     phone: '',
     roleId: '',
+    agencyId: '',
     status: '',
   });
 
@@ -29,16 +31,19 @@ export function EditUser() {
     Promise.all([
       usersApi.get(id!),
       rolesApi.list(),
-    ]).then(([user, roleList]) => {
+      agenciesApi.list({ limit: 200, status: 'ACTIVE' }),
+    ]).then(([user, roleList, agencyPage]) => {
       setForm({
         firstName: user.firstName ?? '',
         lastName: user.lastName ?? '',
         email: user.email ?? '',
         phone: user.phone ?? '',
         roleId: user.role?.id ?? '',
+        agencyId: user.agency?.id ?? user.agencyId ?? '',
         status: user.status ?? 'ACTIVE',
       });
       setRoles(roleList ?? []);
+      setAgencies(agencyPage?.data ?? []);
     }).catch(() => setNotFound(true))
       .finally(() => setLoading(false));
   }, [id]);
@@ -52,6 +57,10 @@ export function EditUser() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!form.agencyId) {
+      toast.error('Please select an agency');
+      return;
+    }
     setSubmitting(true);
     try {
       await usersApi.update(id!, form);
@@ -110,6 +119,21 @@ export function EditUser() {
                   <SelectContent>
                     {roles.map((role: any) => (
                       <SelectItem key={role.id} value={role.id}>{role.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Agency *</Label>
+                <Select value={form.agencyId} onValueChange={val => setForm(prev => ({ ...prev, agencyId: val }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select agency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {agencies.map((agency: any) => (
+                      <SelectItem key={agency.id} value={agency.id}>
+                        {agency.name} — {agency.country}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

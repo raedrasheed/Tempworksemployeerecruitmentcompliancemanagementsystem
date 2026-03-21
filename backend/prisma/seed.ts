@@ -157,6 +157,23 @@ async function main() {
   }
   console.log(`Upserted ${rolesData.length} roles with permissions`);
 
+  // ── TempWorks Owner Agency (must exist before creating admin user) ─────────
+  const ownerAgency = await prisma.agency.upsert({
+    where: { email: 'admin@tempworks.sk' } as any,
+    update: { name: 'TempWorks', country: 'Slovakia', contactPerson: 'System Owner', phone: '+421 2 0000 0000' },
+    create: {
+      name: 'TempWorks',
+      country: 'Slovakia',
+      contactPerson: 'System Owner',
+      email: 'admin@tempworks.sk',
+      phone: '+421 2 0000 0000',
+      status: 'ACTIVE',
+      notes: 'System owner agency — headquartered in Slovakia',
+    },
+  });
+  const ownerAgencyId = ownerAgency.id;
+  console.log(`Owner agency: TempWorks (Slovakia) — ${ownerAgencyId}`);
+
   // ── Admin User ────────────────────────────────────────────────────────────
   const adminEmail = process.env.SEED_ADMIN_EMAIL || 'admin@tempworks.com';
   const adminPassword = process.env.SEED_ADMIN_PASSWORD || 'Admin@123456';
@@ -165,18 +182,19 @@ async function main() {
 
   await prisma.user.upsert({
     where: { email: adminEmail },
-    update: {},
+    update: { agencyId: ownerAgencyId },
     create: {
       email: adminEmail,
       passwordHash,
       firstName: 'System',
       lastName: 'Admin',
-      phone: '+44 20 0000 0000',
+      phone: '+421 2 0000 0001',
       roleId: adminRoleId,
+      agencyId: ownerAgencyId,
       status: 'ACTIVE',
     },
   });
-  console.log(`Admin user: ${adminEmail}`);
+  console.log(`Admin user: ${adminEmail} → TempWorks (Slovakia)`);
 
   // ── Agencies ──────────────────────────────────────────────────────────────
   const agenciesData = [
@@ -207,20 +225,18 @@ async function main() {
   ];
 
   const agencyMap = new Map<string, string>();
-  for (const a of agenciesData) {
-    const agency = await prisma.agency.upsert({
-      where: { email: a.email } as any,
-      update: {},
-      create: a,
-    });
-    agencyMap.set(a.name, agency.id);
-  }
-  // Use findFirst for agencies without unique email constraint fallback
+  agencyMap.set('TempWorks', ownerAgencyId); // owner agency already created
+
   for (const a of agenciesData) {
     const found = await prisma.agency.findFirst({ where: { email: a.email } });
-    if (found) agencyMap.set(a.name, found.id);
+    if (found) {
+      agencyMap.set(a.name, found.id);
+    } else {
+      const agency = await prisma.agency.create({ data: a });
+      agencyMap.set(a.name, agency.id);
+    }
   }
-  console.log(`Upserted ${agenciesData.length} agencies`);
+  console.log(`Upserted ${agenciesData.length + 1} agencies (including TempWorks Slovakia)`);
 
   // ── Workflow Stages ───────────────────────────────────────────────────────
   const workflowStages = [

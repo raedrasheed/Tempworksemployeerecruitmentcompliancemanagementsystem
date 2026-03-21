@@ -22,9 +22,10 @@ export class UsersService {
 
     const where: any = { deletedAt: null };
 
-    // Non-admins must never see System Admin users in the list
+    // Non-admins must never see System Admin users in the list.
+    // Use AND to avoid overwriting a roleId filter applied below.
     if (callerRole !== 'System Admin') {
-      where.role = { name: { not: 'System Admin' } };
+      where.AND = [{ role: { name: { not: 'System Admin' } } }];
     }
 
     if (search) {

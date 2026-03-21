@@ -7,11 +7,12 @@ import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { toast } from 'sonner';
-import { usersApi, rolesApi } from '../../services/api';
+import { usersApi, rolesApi, agenciesApi } from '../../services/api';
 
 export function AddUser() {
   const navigate = useNavigate();
   const [roles, setRoles] = useState<any[]>([]);
+  const [agencies, setAgencies] = useState<any[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
     firstName: '',
@@ -20,10 +21,17 @@ export function AddUser() {
     password: '',
     phone: '',
     roleId: '',
+    agencyId: '',
   });
 
   useEffect(() => {
-    rolesApi.list().then(setRoles).catch(() => {});
+    Promise.all([
+      rolesApi.list(),
+      agenciesApi.list({ limit: 200, status: 'ACTIVE' }),
+    ]).then(([roleList, agencyPage]) => {
+      setRoles(roleList ?? []);
+      setAgencies(agencyPage?.data ?? []);
+    }).catch(() => {});
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -34,6 +42,10 @@ export function AddUser() {
     e.preventDefault();
     if (!form.roleId) {
       toast.error('Please select a role');
+      return;
+    }
+    if (!form.agencyId) {
+      toast.error('Please select an agency');
       return;
     }
     setSubmitting(true);
@@ -101,9 +113,26 @@ export function AddUser() {
                         <SelectItem key={role.id} value={role.id}>{role.name}</SelectItem>
                       ))
                     ) : (
-                      <>
-                        <SelectItem value="placeholder" disabled>Loading roles...</SelectItem>
-                      </>
+                      <SelectItem value="placeholder" disabled>Loading roles...</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="agency">Agency *</Label>
+                <Select value={form.agencyId} onValueChange={val => setForm(prev => ({ ...prev, agencyId: val }))} required>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select agency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {agencies.length > 0 ? (
+                      agencies.map((agency: any) => (
+                        <SelectItem key={agency.id} value={agency.id}>
+                          {agency.name} — {agency.country}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="placeholder" disabled>Loading agencies...</SelectItem>
                     )}
                   </SelectContent>
                 </Select>

@@ -171,15 +171,15 @@ model User {
   phone         String?
   roleId        String
   status        UserStatus  @default(ACTIVE)
-  agencyId      String?
+  agencyId      String
   lastLoginAt   DateTime?
   refreshToken  String?
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
   deletedAt     DateTime?
 
-  role   Role    @relation(fields: [roleId], references: [id])
-  agency Agency? @relation(fields: [agencyId], references: [id])
+  role   Role   @relation(fields: [roleId], references: [id])
+  agency Agency @relation(fields: [agencyId], references: [id])
 
   notifications     Notification[]
   auditLogs         AuditLog[]

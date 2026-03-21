@@ -158,19 +158,20 @@ async function main() {
   console.log(`Upserted ${rolesData.length} roles with permissions`);
 
   // ── TempWorks Owner Agency (must exist before creating admin user) ─────────
-  const ownerAgency = await prisma.agency.upsert({
-    where: { email: 'admin@tempworks.sk' } as any,
-    update: { name: 'TempWorks', country: 'Slovakia', contactPerson: 'System Owner', phone: '+421 2 0000 0000' },
-    create: {
-      name: 'TempWorks',
-      country: 'Slovakia',
-      contactPerson: 'System Owner',
-      email: 'admin@tempworks.sk',
-      phone: '+421 2 0000 0000',
-      status: 'ACTIVE',
-      notes: 'System owner agency — headquartered in Slovakia',
-    },
-  });
+  let ownerAgency = await prisma.agency.findFirst({ where: { email: 'admin@tempworks.sk' } });
+  if (!ownerAgency) {
+    ownerAgency = await prisma.agency.create({
+      data: {
+        name: 'TempWorks',
+        country: 'Slovakia',
+        contactPerson: 'System Owner',
+        email: 'admin@tempworks.sk',
+        phone: '+421 2 0000 0000',
+        status: 'ACTIVE',
+        notes: 'System owner agency — headquartered in Slovakia',
+      },
+    });
+  }
   const ownerAgencyId = ownerAgency.id;
   console.log(`Owner agency: TempWorks (Slovakia) — ${ownerAgencyId}`);
 

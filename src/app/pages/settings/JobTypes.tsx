@@ -41,6 +41,7 @@ interface JobType {
   id: string;
   name: string;
   description: string | null;
+  requiredDocuments: string[];
   isActive: boolean;
   createdAt: string;
   _count?: { applicants: number; applications: number };
@@ -49,6 +50,7 @@ interface JobType {
 interface FormData {
   name: string;
   description: string;
+  requiredDocuments: string[];
   isActive: boolean;
 }
 
@@ -80,6 +82,7 @@ export function JobTypes() {
   const [formData, setFormData] = useState<FormData>({
     name: '',
     description: '',
+    requiredDocuments: [],
     isActive: true,
   });
 
@@ -111,7 +114,7 @@ export function JobTypes() {
 
   function openCreateDialog() {
     setEditingJobType(null);
-    setFormData({ name: '', description: '', isActive: true });
+    setFormData({ name: '', description: '', requiredDocuments: [], isActive: true });
     setIsDialogOpen(true);
   }
 
@@ -120,9 +123,19 @@ export function JobTypes() {
     setFormData({
       name: jobType.name,
       description: jobType.description ?? '',
+      requiredDocuments: jobType.requiredDocuments ?? [],
       isActive: jobType.isActive,
     });
     setIsDialogOpen(true);
+  }
+
+  function toggleDocument(doc: string) {
+    setFormData((prev) => ({
+      ...prev,
+      requiredDocuments: prev.requiredDocuments.includes(doc)
+        ? prev.requiredDocuments.filter((d) => d !== doc)
+        : [...prev.requiredDocuments, doc],
+    }));
   }
 
   async function handleSave() {
@@ -132,6 +145,7 @@ export function JobTypes() {
       const payload = {
         name: formData.name.trim(),
         description: formData.description.trim() || undefined,
+        requiredDocuments: formData.requiredDocuments,
         isActive: formData.isActive,
       };
 
@@ -293,6 +307,19 @@ export function JobTypes() {
                         <p className="text-sm text-muted-foreground mb-3">{jobType.description}</p>
                       )}
 
+                      {jobType.requiredDocuments?.length > 0 && (
+                        <div className="space-y-1 mb-3">
+                          <p className="text-sm font-medium">Required Documents:</p>
+                          <div className="flex flex-wrap gap-2">
+                            {jobType.requiredDocuments.map((doc) => (
+                              <Badge key={doc} variant="outline" className="bg-[#F8FAFC]">
+                                {doc}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                       <p className="text-xs text-muted-foreground">
                         Created: {new Date(jobType.createdAt).toLocaleDateString()}
                       </p>
@@ -401,15 +428,18 @@ export function JobTypes() {
                 {DOCUMENT_OPTIONS.map((doc) => (
                   <label
                     key={doc}
-                    className="flex items-center gap-2 p-2 border rounded cursor-pointer hover:bg-gray-50 opacity-60"
-                    title="Required documents configuration coming soon"
+                    className="flex items-center gap-2 p-2 border rounded cursor-pointer hover:bg-gray-50"
                   >
-                    <input type="checkbox" disabled className="rounded" />
+                    <input
+                      type="checkbox"
+                      className="rounded"
+                      checked={formData.requiredDocuments.includes(doc)}
+                      onChange={() => toggleDocument(doc)}
+                    />
                     <span className="text-sm">{doc}</span>
                   </label>
                 ))}
               </div>
-              <p className="text-xs text-muted-foreground">Required documents configuration will be available in a future update.</p>
             </div>
           </div>
 

@@ -1,5 +1,5 @@
 import { Link } from 'react-router';
-import { Settings as SettingsIcon, Workflow, FileType, Bell, Shield, Activity, Building2, GitBranch, Briefcase, Palette } from 'lucide-react';
+import { FileType, Bell, Shield, Activity, Building2, Briefcase, Palette } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
@@ -14,12 +14,6 @@ export function Settings() {
       description: 'Configure job types and document requirements',
       path: '/dashboard/settings/job-types',
       badge: 'New',
-    },
-    {
-      icon: Workflow,
-      title: 'Workflow Configuration',
-      description: 'Configure recruitment workflow stages and processes',
-      path: '/dashboard/settings/workflow',
     },
     {
       icon: FileType,
@@ -67,25 +61,6 @@ export function Settings() {
                 </div>
               </div>
             </CardHeader>
-          </Card>
-        </Link>
-
-        <Link to="/dashboard/settings/workflow-configuration">
-          <Card className="hover:shadow-md transition-shadow cursor-pointer">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-12 h-12 rounded-lg bg-[#EFF6FF] flex items-center justify-center">
-                  <GitBranch className="w-6 h-6 text-[#2563EB]" />
-                </div>
-                <h3 className="font-semibold">Workflow Configuration</h3>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Configure recruitment workflow stages, requirements, and stage order. Admin only.
-              </p>
-              <div className="flex items-center gap-2 mt-4">
-                <Badge className="bg-[#EF4444]">Admin Only</Badge>
-              </div>
-            </CardContent>
           </Card>
         </Link>
 

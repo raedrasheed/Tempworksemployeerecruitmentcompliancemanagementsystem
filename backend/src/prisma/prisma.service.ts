@@ -13,6 +13,23 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
 
   async onModuleInit() {
     await this.$connect();
+    await this.dropPolymorphicFkConstraints();
+  }
+
+  private async dropPolymorphicFkConstraints() {
+    const constraints: Array<{ table: string; name: string }> = [
+      { table: 'documents', name: 'document_employee_fk' },
+      { table: 'documents', name: 'document_applicant_fk' },
+      { table: 'visas', name: 'visa_employee_fk' },
+      { table: 'visas', name: 'visa_applicant_fk' },
+      { table: 'compliance_alerts', name: 'alert_employee_fk' },
+      { table: 'compliance_alerts', name: 'alert_applicant_fk' },
+    ];
+    for (const { table, name } of constraints) {
+      await this.$executeRawUnsafe(
+        `ALTER TABLE "${table}" DROP CONSTRAINT IF EXISTS "${name}"`,
+      );
+    }
   }
 
   async onModuleDestroy() {

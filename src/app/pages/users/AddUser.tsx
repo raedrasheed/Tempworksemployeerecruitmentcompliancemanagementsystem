@@ -7,7 +7,7 @@ import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { toast } from 'sonner';
-import { usersApi, rolesApi, agenciesApi, getCurrentUser } from '../../services/api';
+import { usersApi, rolesApi, agenciesApi, settingsApi, getCurrentUser } from '../../services/api';
 
 export function AddUser() {
   const navigate = useNavigate();
@@ -18,6 +18,8 @@ export function AddUser() {
   const [agencies, setAgencies] = useState<any[]>([]);
   const [myAgency, setMyAgency] = useState<any>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [agencyUserCount, setAgencyUserCount] = useState<number | null>(null);
+  const [maxUsersLimit, setMaxUsersLimit] = useState<number | null>(null);
   const [form, setForm] = useState({
     firstName: '',
     lastName: '',
@@ -34,11 +36,25 @@ export function AddUser() {
       ? agenciesApi.get(currentUser.agencyId)
       : agenciesApi.list({ limit: 100 });
 
-    Promise.all([rolesApi.list(), agencyFetch])
-      .then(([roleList, agencyResult]) => {
+    const fetches: Promise<any>[] = [rolesApi.list(), agencyFetch];
+    if (isAgencyManager && currentUser?.agencyId) {
+      fetches.push(
+        usersApi.list({ agencyId: currentUser.agencyId, limit: 1 }),
+        settingsApi.getAll(),
+      );
+    }
+
+    Promise.all(fetches)
+      .then(([roleList, agencyResult, usersResult, settingsResult]) => {
         setRoles(roleList ?? []);
         if (isAgencyManager) {
           setMyAgency(agencyResult);
+          if (usersResult != null) setAgencyUserCount((usersResult as any)?.total ?? 0);
+          if (settingsResult != null) {
+            const agencySettings: any[] = (settingsResult as any)?.agency ?? [];
+            const s = agencySettings.find((x: any) => x.key === 'agency.maxUsersPerAgency');
+            if (s) setMaxUsersLimit(parseInt(s.value, 10));
+          }
         } else {
           setAgencies((agencyResult as any)?.data ?? []);
         }
@@ -84,6 +100,20 @@ export function AddUser() {
           <p className="text-muted-foreground mt-1">Create new system user account</p>
         </div>
       </div>
+
+      {isAgencyManager && maxUsersLimit !== null && agencyUserCount !== null && (
+        <div className={`max-w-2xl rounded-lg border px-4 py-3 text-sm flex items-center gap-2 ${
+          agencyUserCount >= maxUsersLimit
+            ? 'border-[#EF4444] bg-[#FEF2F2] text-[#EF4444]'
+            : 'border-[#2563EB] bg-[#EFF6FF] text-[#2563EB]'
+        }`}>
+          <span className="font-medium">
+            {agencyUserCount >= maxUsersLimit
+              ? `User limit reached (${agencyUserCount}/${maxUsersLimit}). You cannot add more users. Contact a System Administrator to increase the limit.`
+              : `Agency users: ${agencyUserCount} / ${maxUsersLimit}`}
+          </span>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit}>
         <div className="max-w-2xl space-y-6">
@@ -162,7 +192,11 @@ export function AddUser() {
           </Card>
 
           <div className="flex gap-3">
-            <Button type="submit" className="flex-1" disabled={submitting}>
+            <Button
+              type="submit"
+              className="flex-1"
+              disabled={submitting || (isAgencyManager && maxUsersLimit !== null && agencyUserCount !== null && agencyUserCount >= maxUsersLimit)}
+            >
               {submitting ? 'Adding...' : 'Add User'}
             </Button>
             <Button type="button" variant="outline" className="flex-1" asChild>

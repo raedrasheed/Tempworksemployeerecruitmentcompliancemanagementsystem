@@ -1,12 +1,38 @@
 import { Link } from 'react-router';
+import { useState, useEffect } from 'react';
 import { FileType, Bell, Shield, Activity, Building2, GitBranch, Briefcase, Palette } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
+import { toast } from 'sonner';
+import { settingsApi } from '../../services/api';
 
 export function Settings() {
+  const [maxUsers, setMaxUsers] = useState('5');
+  const [savingAgency, setSavingAgency] = useState(false);
+
+  useEffect(() => {
+    settingsApi.getAll().then((grouped: any) => {
+      const agencySettings: any[] = grouped?.agency ?? [];
+      const setting = agencySettings.find((s: any) => s.key === 'agency.maxUsersPerAgency');
+      if (setting) setMaxUsers(setting.value);
+    }).catch(() => {});
+  }, []);
+
+  const handleSaveAgencySettings = async () => {
+    setSavingAgency(true);
+    try {
+      await settingsApi.update({ 'agency.maxUsersPerAgency': maxUsers });
+      toast.success('Agency settings saved');
+    } catch {
+      toast.error('Failed to save agency settings');
+    } finally {
+      setSavingAgency(false);
+    }
+  };
+
   const settingsCategories = [
     {
       icon: Briefcase,
@@ -127,25 +153,24 @@ export function Settings() {
           <div>
             <Label htmlFor="defaultMaxUsers">Default Maximum Users Per Agency</Label>
             <p className="text-sm text-muted-foreground mt-1 mb-3">
-              Set the default limit for how many users each agency can have
+              Set the limit for how many users an Agency Manager can add to their agency
             </p>
-            <Select defaultValue="10">
+            <Select value={maxUsers} onValueChange={setMaxUsers}>
               <SelectTrigger id="defaultMaxUsers" className="max-w-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="5">5 users</SelectItem>
-                <SelectItem value="10">10 users</SelectItem>
-                <SelectItem value="15">15 users</SelectItem>
-                <SelectItem value="20">20 users</SelectItem>
-                <SelectItem value="50">50 users</SelectItem>
-                <SelectItem value="100">100 users</SelectItem>
+                {Array.from({ length: 10 }, (_, i) => i + 1).map(n => (
+                  <SelectItem key={n} value={String(n)}>{n} {n === 1 ? 'user' : 'users'}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
 
           <div className="flex justify-end pt-4 border-t">
-            <Button>Save Agency Settings</Button>
+            <Button onClick={handleSaveAgencySettings} disabled={savingAgency}>
+              {savingAgency ? 'Saving…' : 'Save Agency Settings'}
+            </Button>
           </div>
         </CardContent>
       </Card>

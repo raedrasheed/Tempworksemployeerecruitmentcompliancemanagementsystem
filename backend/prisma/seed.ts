@@ -344,6 +344,7 @@ async function main() {
     { key: 'upload.allowedTypes', value: 'pdf,jpg,jpeg,png,doc,docx', description: 'Allowed file MIME types', category: 'files', isPublic: false },
     { key: 'auth.sessionTimeoutMin', value: '15', description: 'Access token expiry in minutes', category: 'security', isPublic: false },
     { key: 'auth.maxLoginAttempts', value: '5', description: 'Maximum failed login attempts', category: 'security', isPublic: false },
+    { key: 'agency.maxUsersPerAgency', value: '5', description: 'Maximum number of users an Agency Manager can add to their agency', category: 'agency', isPublic: false },
   ];
 
   for (const s of settings) {

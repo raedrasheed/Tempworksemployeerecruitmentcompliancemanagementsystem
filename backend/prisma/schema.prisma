@@ -243,10 +243,7 @@ model Employee {
 
   agency         Agency?                 @relation(fields: [agencyId], references: [id])
   workflowStages EmployeeWorkflowStage[]
-  documents      Document[]              @relation("EmployeeDocuments")
   workPermits    WorkPermit[]
-  visas          Visa[]                  @relation("EmployeeVisas")
-  complianceAlerts ComplianceAlert[]     @relation("EmployeeAlerts")
 
   @@map("employees")
 }
@@ -334,9 +331,6 @@ model Applicant {
 
   jobType      JobType?      @relation(fields: [jobTypeId], references: [id])
   applications Application[]
-  documents    Document[]    @relation("ApplicantDocuments")
-  visas        Visa[]        @relation("ApplicantVisas")
-  complianceAlerts ComplianceAlert[] @relation("ApplicantAlerts")
 
   @@map("applicants")
 }
@@ -403,8 +397,6 @@ model Document {
   documentType    DocumentType @relation(fields: [documentTypeId], references: [id])
   uploadedBy      User         @relation("UploadedDocuments", fields: [uploadedById], references: [id])
   verifiedBy      User?        @relation("VerifiedDocuments", fields: [verifiedById], references: [id])
-  employee        Employee?    @relation("EmployeeDocuments", fields: [entityId], references: [id], map: "document_employee_fk")
-  applicant       Applicant?   @relation("ApplicantDocuments", fields: [entityId], references: [id], map: "document_applicant_fk")
   complianceAlerts ComplianceAlert[]
 
   @@map("documents")
@@ -445,8 +437,6 @@ model Visa {
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
 
-  employee  Employee?  @relation("EmployeeVisas", fields: [entityId], references: [id], map: "visa_employee_fk")
-  applicant Applicant? @relation("ApplicantVisas", fields: [entityId], references: [id], map: "visa_applicant_fk")
 
   @@map("visas")
 }
@@ -503,8 +493,6 @@ model ComplianceAlert {
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
-  employee   Employee?  @relation("EmployeeAlerts", fields: [entityId], references: [id], map: "alert_employee_fk")
-  applicant  Applicant? @relation("ApplicantAlerts", fields: [entityId], references: [id], map: "alert_applicant_fk")
   document   Document?  @relation(fields: [documentId], references: [id])
   resolvedBy User?      @relation("ResolvedAlerts", fields: [resolvedById], references: [id])
 

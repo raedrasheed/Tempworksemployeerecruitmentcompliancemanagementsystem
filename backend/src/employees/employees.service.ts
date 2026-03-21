@@ -46,7 +46,6 @@ export class EmployeesService {
       include: {
         agency: true,
         workflowStages: { include: { stage: true, assignedTo: { select: { id: true, firstName: true, lastName: true } } }, orderBy: { stage: { order: 'asc' } } },
-        complianceAlerts: { where: { status: { in: ['OPEN', 'ACKNOWLEDGED'] } }, orderBy: { severity: 'desc' } },
       },
     });
     if (!employee) throw new NotFoundException('Employee not found');

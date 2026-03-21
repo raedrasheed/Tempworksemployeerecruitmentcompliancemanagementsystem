@@ -13,7 +13,7 @@ export class ApplicantsService {
     return {
       jobType: { select: { id: true, name: true } },
       applications: { orderBy: { createdAt: 'desc' as any }, take: 1 },
-      _count: { select: { documents: true } },
+      _count: { select: { applications: true } },
     };
   }
 

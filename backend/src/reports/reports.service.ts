@@ -54,7 +54,7 @@ export class ReportsService {
           nationality: true, status: true, licenseCategory: true,
           yearsExperience: true, createdAt: true,
           agency: { select: { name: true, country: true } },
-          _count: { select: { documents: true, workPermits: true } },
+          _count: { select: { workPermits: true } },
         },
         orderBy: { createdAt: 'desc' },
       }),

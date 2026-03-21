@@ -1,6 +1,5 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
-import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
 
 @Injectable()
@@ -8,10 +7,8 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   private readonly pool: Pool;
 
   constructor() {
-    const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-    const adapter = new PrismaPg(pool as any);
-    super({ adapter });
-    this.pool = pool;
+    super();
+    this.pool = new Pool({ connectionString: process.env.DATABASE_URL });
   }
 
   async onModuleInit() {
@@ -30,6 +27,8 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
         ALTER TABLE "compliance_alerts" DROP CONSTRAINT IF EXISTS "alert_employee_fk";
         ALTER TABLE "compliance_alerts" DROP CONSTRAINT IF EXISTS "alert_applicant_fk";
       `);
+    } catch {
+      // constraints may not exist yet, ignore
     } finally {
       client.release();
     }
@@ -37,6 +36,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
 
   async onModuleDestroy() {
     await this.$disconnect();
+    await this.pool.end();
   }
 
   async softDelete(model: string, id: string) {

@@ -1,27 +1,33 @@
-import { useState } from 'react';
-import { Download, Search, Filter, CheckSquare, Square, FileArchive, FileDown, ChevronDown } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Download, Search, FileArchive, FileDown } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Badge } from '../../components/ui/badge';
 import { Checkbox } from '../../components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
-import { mockDrivers, mockDocuments, mockAgencies } from '../../data/mockData';
+import { toast } from 'sonner';
+import { employeesApi, agenciesApi, documentsApi } from '../../services/api';
 import { FilterSystem, Column, FilterRule, FilterPreset } from '../../components/filters/FilterSystem';
 
-// Define columns for the filter system
+const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1').replace('/api/v1', '');
+const getFileUrl = (fileUrl: string) => `${API_BASE}${fileUrl}`;
+
 const employeeColumns: Column[] = [
   { id: 'name', label: 'Employee Name', type: 'text' },
   { id: 'email', label: 'Email', type: 'text' },
   { id: 'nationality', label: 'Nationality', type: 'text' },
-  { id: 'agency', label: 'Agency', type: 'text' },
-  { id: 'status', label: 'Status', type: 'enum', options: ['active', 'pending', 'inactive'] },
-  { id: 'jobType', label: 'Job Type', type: 'enum', options: ['Truck Driver', 'Warehouse Worker', 'Forklift Operator', 'Logistics Coordinator', 'Construction Worker', 'Technician', 'General Worker'] },
+  { id: 'status', label: 'Status', type: 'enum', options: ['ACTIVE', 'PENDING', 'INACTIVE', 'SUSPENDED'] },
 ];
 
 export function DriverDocumentExplorer() {
-  const [selectedDrivers, setSelectedDrivers] = useState<string[]>([]);
+  const [employees, setEmployees] = useState<any[]>([]);
+  const [agencies, setAgencies] = useState<any[]>([]);
+  const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
+  const [employeeDocuments, setEmployeeDocuments] = useState<Record<string, any[]>>({});
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
+  const [docCounts, setDocCounts] = useState<Record<string, number>>({});
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [nationalityFilter, setNationalityFilter] = useState('all');
   const [agencyFilter, setAgencyFilter] = useState('all');
@@ -29,136 +35,124 @@ export function DriverDocumentExplorer() {
   const [activeFilters, setActiveFilters] = useState<FilterRule[]>([]);
   const [filterLogic, setFilterLogic] = useState<'AND' | 'OR'>('AND');
   const [savedPresets, setSavedPresets] = useState<FilterPreset[]>([
-    {
-      id: '1',
-      name: 'Active Employees',
-      rules: [
-        { id: '1', columnId: 'status', operator: 'equals', value: 'active' }
-      ],
-      logic: 'AND'
-    }
+    { id: '1', name: 'Active Employees', rules: [{ id: '1', columnId: 'status', operator: 'equals', value: 'ACTIVE' }], logic: 'AND' },
   ]);
 
-  // Get unique nationalities and agencies for filters
-  const nationalities = Array.from(new Set(mockDrivers.map(d => d.nationality)));
-  const agencies = mockAgencies;
+  useEffect(() => {
+    Promise.all([
+      employeesApi.list({ limit: 500 }),
+      agenciesApi.list({ limit: 200 }),
+    ]).then(([empResult, agencyResult]) => {
+      const emps: any[] = (empResult as any)?.data ?? [];
+      setEmployees(emps);
+      setAgencies((agencyResult as any)?.data ?? []);
+      // load doc counts for all employees
+      Promise.all(
+        emps.map(emp =>
+          documentsApi.getByEntity('EMPLOYEE', emp.id)
+            .then((res: any) => ({ id: emp.id, count: (res?.data ?? res ?? []).length }))
+            .catch(() => ({ id: emp.id, count: 0 }))
+        )
+      ).then(counts => {
+        const map: Record<string, number> = {};
+        counts.forEach(c => { map[c.id] = c.count; });
+        setDocCounts(map);
+      });
+    }).catch(() => toast.error('Failed to load employees'))
+      .finally(() => setLoading(false));
+  }, []);
 
-  // Apply filters to drivers
-  const applyFilters = (driver: any) => {
+  // Load documents when employee selection changes
+  useEffect(() => {
+    const toLoad = selectedEmployees.filter(id => !employeeDocuments[id]);
+    if (toLoad.length === 0) return;
+    Promise.all(
+      toLoad.map(id =>
+        documentsApi.getByEntity('EMPLOYEE', id)
+          .then((res: any) => ({ id, docs: res?.data ?? res ?? [] }))
+          .catch(() => ({ id, docs: [] }))
+      )
+    ).then(results => {
+      setEmployeeDocuments(prev => {
+        const next = { ...prev };
+        results.forEach(r => { next[r.id] = r.docs; });
+        return next;
+      });
+    });
+  }, [selectedEmployees]);
+
+  const nationalities = Array.from(new Set(employees.map(e => e.nationality).filter(Boolean)));
+
+  const applyFilters = (emp: any) => {
     if (activeFilters.length === 0) return true;
-
     const results = activeFilters.map(filter => {
-      const column = employeeColumns.find(c => c.id === filter.columnId);
-      if (!column) return true;
-
       let value: any;
-      switch (filter.columnId) {
-        case 'name':
-          value = `${driver.firstName} ${driver.lastName}`.toLowerCase();
-          break;
-        case 'agency':
-          value = driver.agencyName || '';
-          break;
-        default:
-          value = (driver as any)[filter.columnId] || '';
-      }
-
-      // Apply operator logic
+      if (filter.columnId === 'name') value = `${emp.firstName} ${emp.lastName}`.toLowerCase();
+      else value = (emp[filter.columnId] ?? '').toString().toLowerCase();
       switch (filter.operator) {
-        case 'contains':
-          return value.toLowerCase().includes(filter.value.toLowerCase());
-        case 'equals':
-          return value.toString().toLowerCase() === filter.value.toLowerCase();
-        case 'startsWith':
-          return value.toLowerCase().startsWith(filter.value.toLowerCase());
-        case 'endsWith':
-          return value.toLowerCase().endsWith(filter.value.toLowerCase());
-        default:
-          return true;
+        case 'contains':   return value.includes(filter.value.toLowerCase());
+        case 'equals':     return value === filter.value.toLowerCase();
+        case 'startsWith': return value.startsWith(filter.value.toLowerCase());
+        case 'endsWith':   return value.endsWith(filter.value.toLowerCase());
+        default:           return true;
       }
     });
-
     return filterLogic === 'AND' ? results.every(r => r) : results.some(r => r);
   };
 
-  // Filter drivers based on search and filters
-  const filteredDrivers = mockDrivers.filter(driver => {
-    const matchesSearch = driver.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         driver.lastName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         driver.email.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesNationality = nationalityFilter === 'all' || driver.nationality === nationalityFilter;
-    const matchesAgency = agencyFilter === 'all' || driver.agencyId === agencyFilter;
-    const matchesStatus = statusFilter === 'all' || driver.status === statusFilter;
-    const matchesFilters = applyFilters(driver);
-    
-    return matchesSearch && matchesNationality && matchesAgency && matchesStatus && matchesFilters;
+  const filteredEmployees = employees.filter(emp => {
+    const fullName = `${emp.firstName} ${emp.lastName}`.toLowerCase();
+    const matchesSearch = fullName.includes(searchQuery.toLowerCase()) ||
+      emp.email?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesNationality = nationalityFilter === 'all' || emp.nationality === nationalityFilter;
+    const matchesAgency = agencyFilter === 'all' || emp.agencyId === agencyFilter;
+    const matchesStatus = statusFilter === 'all' || emp.status === statusFilter;
+    return matchesSearch && matchesNationality && matchesAgency && matchesStatus && applyFilters(emp);
   });
 
-  const handleSavePreset = (name: string, rules: FilterRule[], logic: 'AND' | 'OR') => {
-    const newPreset: FilterPreset = {
-      id: Date.now().toString(),
-      name,
-      rules,
-      logic
-    };
-    setSavedPresets([...savedPresets, newPreset]);
-  };
-
-  const handleLoadPreset = (preset: FilterPreset) => {
-    setActiveFilters(preset.rules);
-    setFilterLogic(preset.logic);
-  };
-
-  const handleDeletePreset = (presetId: string) => {
-    setSavedPresets(savedPresets.filter(p => p.id !== presetId));
-  };
-
-  // Get documents for selected drivers
-  const selectedDriverDocuments = selectedDrivers.length > 0
-    ? mockDocuments.filter(doc => selectedDrivers.includes(doc.driverId))
-    : [];
-
-  const toggleDriverSelection = (driverId: string) => {
-    setSelectedDrivers(prev =>
-      prev.includes(driverId)
-        ? prev.filter(id => id !== driverId)
-        : [...prev, driverId]
+  const toggleEmployee = (empId: string) => {
+    setSelectedEmployees(prev =>
+      prev.includes(empId) ? prev.filter(id => id !== empId) : [...prev, empId]
     );
-    setSelectedDocuments([]); // Clear document selection when driver selection changes
+    setSelectedDocuments([]);
   };
 
-  const toggleAllDrivers = () => {
-    if (selectedDrivers.length === filteredDrivers.length) {
-      setSelectedDrivers([]);
+  const toggleAllEmployees = () => {
+    if (selectedEmployees.length === filteredEmployees.length) {
+      setSelectedEmployees([]);
     } else {
-      setSelectedDrivers(filteredDrivers.map(d => d.id));
+      setSelectedEmployees(filteredEmployees.map(e => e.id));
     }
     setSelectedDocuments([]);
   };
 
-  const toggleDocumentSelection = (docId: string) => {
+  const toggleDocument = (docId: string) => {
     setSelectedDocuments(prev =>
-      prev.includes(docId)
-        ? prev.filter(id => id !== docId)
-        : [...prev, docId]
+      prev.includes(docId) ? prev.filter(id => id !== docId) : [...prev, docId]
     );
   };
 
+  const allSelectedDocs = selectedEmployees.flatMap(id => employeeDocuments[id] ?? []);
+
   const toggleAllDocuments = () => {
-    if (selectedDocuments.length === selectedDriverDocuments.length) {
+    if (selectedDocuments.length === allSelectedDocs.length) {
       setSelectedDocuments([]);
     } else {
-      setSelectedDocuments(selectedDriverDocuments.map(d => d.id));
+      setSelectedDocuments(allSelectedDocs.map(d => d.id));
     }
   };
 
-  const handleDownloadSelected = () => {
-    alert(`Downloading ${selectedDocuments.length} selected document(s)`);
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'VERIFIED':      return <Badge variant="outline" className="bg-[#F0FDF4] text-[#22C55E] border-[#22C55E]">Valid</Badge>;
+      case 'EXPIRING_SOON': return <Badge variant="outline" className="bg-[#FEF3C7] text-[#F59E0B] border-[#F59E0B]">Expiring Soon</Badge>;
+      case 'EXPIRED':       return <Badge variant="outline" className="bg-[#FEE2E2] text-[#EF4444] border-[#EF4444]">Expired</Badge>;
+      case 'REJECTED':      return <Badge variant="outline" className="bg-[#FEE2E2] text-[#EF4444] border-[#EF4444]">Rejected</Badge>;
+      default:              return <Badge variant="outline" className="bg-[#F8FAFC] text-[#64748B] border-[#E2E8F0]">Pending</Badge>;
+    }
   };
 
-  const handleDownloadAll = () => {
-    alert(`Downloading all ${selectedDriverDocuments.length} documents as ZIP file`);
-  };
+  if (loading) return <div className="p-8 text-muted-foreground">Loading...</div>;
 
   return (
     <div className="space-y-6">
@@ -167,11 +161,9 @@ export function DriverDocumentExplorer() {
         <p className="text-muted-foreground mt-1">Search employees and download their documents</p>
       </div>
 
-      {/* Search and Filters */}
+      {/* Filters */}
       <Card>
-        <CardHeader>
-          <CardTitle>Search & Filter Employees</CardTitle>
-        </CardHeader>
+        <CardHeader><CardTitle>Search & Filter Employees</CardTitle></CardHeader>
         <CardContent>
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
@@ -180,15 +172,12 @@ export function DriverDocumentExplorer() {
                 <Input
                   placeholder="Search by name or email..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={e => setSearchQuery(e.target.value)}
                   className="pl-9"
                 />
               </div>
-              
               <Select value={nationalityFilter} onValueChange={setNationalityFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Nationality" />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Nationality" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Nationalities</SelectItem>
                   {nationalities.map(nat => (
@@ -196,59 +185,47 @@ export function DriverDocumentExplorer() {
                   ))}
                 </SelectContent>
               </Select>
-
               <Select value={agencyFilter} onValueChange={setAgencyFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Agency" />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Agency" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Agencies</SelectItem>
-                  {agencies.map(agency => (
-                    <SelectItem key={agency.id} value={agency.id}>{agency.name}</SelectItem>
+                  {agencies.map(a => (
+                    <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
+                  <SelectItem value="ACTIVE">Active</SelectItem>
+                  <SelectItem value="PENDING">Pending</SelectItem>
+                  <SelectItem value="INACTIVE">Inactive</SelectItem>
+                  <SelectItem value="SUSPENDED">Suspended</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-
-            <div>
-              <FilterSystem
-                columns={employeeColumns}
-                activeFilters={activeFilters}
-                onFiltersChange={setActiveFilters}
-                filterLogic={filterLogic}
-                onLogicChange={setFilterLogic}
-                savedPresets={savedPresets}
-                onSavePreset={handleSavePreset}
-                onLoadPreset={handleLoadPreset}
-                onDeletePreset={handleDeletePreset}
-              />
-            </div>
+            <FilterSystem
+              columns={employeeColumns}
+              activeFilters={activeFilters}
+              onFiltersChange={setActiveFilters}
+              filterLogic={filterLogic}
+              onLogicChange={setFilterLogic}
+              savedPresets={savedPresets}
+              onSavePreset={(name, rules, logic) => setSavedPresets(prev => [...prev, { id: Date.now().toString(), name, rules, logic }])}
+              onLoadPreset={preset => { setActiveFilters(preset.rules); setFilterLogic(preset.logic); }}
+              onDeletePreset={id => setSavedPresets(prev => prev.filter(p => p.id !== id))}
+            />
           </div>
         </CardContent>
       </Card>
 
-      {/* Drivers Table */}
+      {/* Employees Table */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Employees ({filteredDrivers.length})</CardTitle>
-            <div className="flex items-center gap-2">
-              <Badge variant="outline">
-                {selectedDrivers.length} selected
-              </Badge>
-            </div>
+            <CardTitle>Employees ({filteredEmployees.length})</CardTitle>
+            <Badge variant="outline">{selectedEmployees.length} selected</Badge>
           </div>
         </CardHeader>
         <CardContent>
@@ -258,8 +235,8 @@ export function DriverDocumentExplorer() {
                 <tr>
                   <th className="text-left p-4 w-12">
                     <Checkbox
-                      checked={selectedDrivers.length === filteredDrivers.length && filteredDrivers.length > 0}
-                      onCheckedChange={toggleAllDrivers}
+                      checked={selectedEmployees.length === filteredEmployees.length && filteredEmployees.length > 0}
+                      onCheckedChange={toggleAllEmployees}
                     />
                   </th>
                   <th className="text-left p-4 font-semibold text-sm">Employee Name</th>
@@ -270,47 +247,38 @@ export function DriverDocumentExplorer() {
                 </tr>
               </thead>
               <tbody>
-                {filteredDrivers.map((driver) => {
-                  const driverDocs = mockDocuments.filter(d => d.driverId === driver.id);
-                  const isSelected = selectedDrivers.includes(driver.id);
-                  
+                {filteredEmployees.length === 0 ? (
+                  <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">No employees found</td></tr>
+                ) : filteredEmployees.map(emp => {
+                  const isSelected = selectedEmployees.includes(emp.id);
                   return (
-                    <tr 
-                      key={driver.id} 
-                      className={`border-b hover:bg-[#F8FAFC] transition-colors ${isSelected ? 'bg-[#EFF6FF]' : ''}`}
-                    >
+                    <tr key={emp.id} className={`border-b hover:bg-[#F8FAFC] transition-colors ${isSelected ? 'bg-[#EFF6FF]' : ''}`}>
                       <td className="p-4">
-                        <Checkbox
-                          checked={isSelected}
-                          onCheckedChange={() => toggleDriverSelection(driver.id)}
-                        />
+                        <Checkbox checked={isSelected} onCheckedChange={() => toggleEmployee(emp.id)} />
                       </td>
                       <td className="p-4">
                         <div className="flex items-center gap-3">
-                          <img 
-                            src={driver.photo} 
-                            alt={driver.firstName}
-                            className="w-8 h-8 rounded-full"
-                          />
+                          <div className="w-8 h-8 rounded-full bg-[#EFF6FF] flex items-center justify-center text-[#2563EB] text-sm font-semibold">
+                            {emp.firstName?.[0]}{emp.lastName?.[0]}
+                          </div>
                           <div>
-                            <p className="font-medium">{driver.firstName} {driver.lastName}</p>
-                            <p className="text-sm text-muted-foreground">{driver.email}</p>
+                            <p className="font-medium">{emp.firstName} {emp.lastName}</p>
+                            <p className="text-sm text-muted-foreground">{emp.email}</p>
                           </div>
                         </div>
                       </td>
-                      <td className="p-4">{driver.nationality}</td>
-                      <td className="p-4">{driver.agencyName || '-'}</td>
+                      <td className="p-4">{emp.nationality ?? '-'}</td>
+                      <td className="p-4">{emp.agency?.name ?? '-'}</td>
                       <td className="p-4">
                         <Badge className={
-                          driver.status === 'active' ? 'bg-[#22C55E]' :
-                          driver.status === 'pending' ? 'bg-[#F59E0B]' :
-                          'bg-gray-500'
+                          emp.status === 'ACTIVE' ? 'bg-[#22C55E]' :
+                          emp.status === 'PENDING' ? 'bg-[#F59E0B]' : 'bg-gray-500'
                         }>
-                          {driver.status}
+                          {emp.status?.toLowerCase()}
                         </Badge>
                       </td>
                       <td className="p-4">
-                        <Badge variant="outline">{driverDocs.length} docs</Badge>
+                        <Badge variant="outline">{docCounts[emp.id] ?? 0} docs</Badge>
                       </td>
                     </tr>
                   );
@@ -321,36 +289,31 @@ export function DriverDocumentExplorer() {
         </CardContent>
       </Card>
 
-      {/* Documents Section - Shows when drivers are selected */}
-      {selectedDrivers.length > 0 && (
+      {/* Documents section */}
+      {selectedEmployees.length > 0 && (
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle>
-                  {selectedDrivers.length === 1 
-                    ? 'Employee Documents' 
-                    : `Documents from ${selectedDrivers.length} Employees`}
+                  {selectedEmployees.length === 1 ? 'Employee Documents' : `Documents from ${selectedEmployees.length} Employees`}
                 </CardTitle>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {selectedDriverDocuments.length} total documents
-                </p>
+                <p className="text-sm text-muted-foreground mt-1">{allSelectedDocs.length} total documents</p>
               </div>
               <div className="flex items-center gap-2">
-                <Badge variant="outline">
-                  {selectedDocuments.length} selected
-                </Badge>
-                <Button 
-                  variant="outline" 
-                  onClick={handleDownloadSelected}
+                <Badge variant="outline">{selectedDocuments.length} selected</Badge>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    const docs = allSelectedDocs.filter(d => selectedDocuments.includes(d.id));
+                    docs.forEach(d => window.open(getFileUrl(d.fileUrl), '_blank'));
+                  }}
                   disabled={selectedDocuments.length === 0}
                 >
-                  <FileDown className="w-4 h-4 mr-2" />
-                  Download Selected
+                  <FileDown className="w-4 h-4 mr-2" />Download Selected
                 </Button>
-                <Button onClick={handleDownloadAll}>
-                  <FileArchive className="w-4 h-4 mr-2" />
-                  Download All as ZIP
+                <Button onClick={() => allSelectedDocs.forEach(d => window.open(getFileUrl(d.fileUrl), '_blank'))}>
+                  <FileArchive className="w-4 h-4 mr-2" />Download All
                 </Button>
               </div>
             </div>
@@ -362,12 +325,12 @@ export function DriverDocumentExplorer() {
                   <tr>
                     <th className="text-left p-4 w-12">
                       <Checkbox
-                        checked={selectedDocuments.length === selectedDriverDocuments.length && selectedDriverDocuments.length > 0}
+                        checked={selectedDocuments.length === allSelectedDocs.length && allSelectedDocs.length > 0}
                         onCheckedChange={toggleAllDocuments}
                       />
                     </th>
-                    {selectedDrivers.length > 1 && (
-                      <th className="text-left p-4 font-semibold text-sm">Employee Name</th>
+                    {selectedEmployees.length > 1 && (
+                      <th className="text-left p-4 font-semibold text-sm">Employee</th>
                     )}
                     <th className="text-left p-4 font-semibold text-sm">Document Name</th>
                     <th className="text-left p-4 font-semibold text-sm">Document Type</th>
@@ -377,48 +340,33 @@ export function DriverDocumentExplorer() {
                   </tr>
                 </thead>
                 <tbody>
-                  {selectedDriverDocuments.map((doc) => {
+                  {allSelectedDocs.length === 0 ? (
+                    <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">No documents found for selected employees</td></tr>
+                  ) : allSelectedDocs.map(doc => {
                     const isSelected = selectedDocuments.includes(doc.id);
-                    
+                    const emp = employees.find(e => e.id === doc.entityId);
                     return (
-                      <tr 
-                        key={doc.id} 
-                        className={`border-b hover:bg-[#F8FAFC] transition-colors ${isSelected ? 'bg-[#EFF6FF]' : ''}`}
-                      >
+                      <tr key={doc.id} className={`border-b hover:bg-[#F8FAFC] transition-colors ${isSelected ? 'bg-[#EFF6FF]' : ''}`}>
                         <td className="p-4">
-                          <Checkbox
-                            checked={isSelected}
-                            onCheckedChange={() => toggleDocumentSelection(doc.id)}
-                          />
+                          <Checkbox checked={isSelected} onCheckedChange={() => toggleDocument(doc.id)} />
                         </td>
-                        {selectedDrivers.length > 1 && (
+                        {selectedEmployees.length > 1 && (
                           <td className="p-4">
-                            <p className="font-medium">{doc.driverName}</p>
+                            <p className="font-medium">{emp ? `${emp.firstName} ${emp.lastName}` : doc.entityId}</p>
                           </td>
                         )}
                         <td className="p-4">
-                          <p className="font-medium">{doc.fileName}</p>
-                          <p className="text-sm text-muted-foreground">{doc.fileSize}</p>
+                          <p className="font-medium">{doc.name}</p>
+                          <p className="text-sm text-muted-foreground">{(doc.fileSize / 1024).toFixed(1)} KB</p>
                         </td>
-                        <td className="p-4">{doc.type}</td>
+                        <td className="p-4">{doc.documentType?.name ?? '-'}</td>
+                        <td className="p-4">{getStatusBadge(doc.status)}</td>
+                        <td className="p-4">{doc.expiryDate ? new Date(doc.expiryDate).toLocaleDateString() : '-'}</td>
                         <td className="p-4">
-                          <Badge 
-                            variant="outline"
-                            className={
-                              doc.status === 'valid' ? 'bg-[#F0FDF4] text-[#22C55E] border-[#22C55E]' :
-                              doc.status === 'expiring_soon' ? 'bg-[#FEF3C7] text-[#F59E0B] border-[#F59E0B]' :
-                              doc.status === 'expired' ? 'bg-[#FEE2E2] text-[#EF4444] border-[#EF4444]' :
-                              'bg-[#F8FAFC] text-[#64748B] border-[#E2E8F0]'
-                            }
-                          >
-                            {doc.status.replace(/_/g, ' ')}
-                          </Badge>
-                        </td>
-                        <td className="p-4">{doc.expiryDate || '-'}</td>
-                        <td className="p-4">
-                          <Button size="sm" variant="ghost">
-                            <Download className="w-4 h-4 mr-1" />
-                            Download
+                          <Button size="sm" variant="ghost" asChild>
+                            <a href={getFileUrl(doc.fileUrl)} target="_blank" rel="noopener noreferrer" download>
+                              <Download className="w-4 h-4 mr-1" />Download
+                            </a>
                           </Button>
                         </td>
                       </tr>
@@ -431,8 +379,7 @@ export function DriverDocumentExplorer() {
         </Card>
       )}
 
-      {/* Empty State */}
-      {selectedDrivers.length === 0 && (
+      {selectedEmployees.length === 0 && (
         <Card>
           <CardContent className="p-12 text-center">
             <div className="w-16 h-16 rounded-full bg-[#F8FAFC] flex items-center justify-center mx-auto mb-4">

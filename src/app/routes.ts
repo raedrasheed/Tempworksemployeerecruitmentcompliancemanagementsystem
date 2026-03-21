@@ -19,6 +19,7 @@ import { DriverApplicationForm } from './pages/applications/DriverApplicationFor
 import { DocumentsDashboard } from './pages/documents/DocumentsDashboard';
 import { DocumentUpload } from './pages/documents/DocumentUpload';
 import { DocumentPreview } from './pages/documents/DocumentPreview';
+import { EditDocument } from './pages/documents/EditDocument';
 import { DocumentVerification } from './pages/documents/DocumentVerification';
 import { DriverDocumentExplorer } from './pages/documents/DriverDocumentExplorer';
 import { DocumentsCompliance } from './pages/documents/DocumentsCompliance';
@@ -117,6 +118,7 @@ export const router = createBrowserRouter([
       // Documents routes
       { path: 'documents', Component: DocumentsDashboard },
       { path: 'documents/upload', Component: DocumentUpload },
+      { path: 'documents/:id/edit', Component: EditDocument },
       { path: 'documents/:id', Component: DocumentPreview },
       { path: 'documents/:id/verify', Component: DocumentVerification },
       { path: 'document-explorer', Component: DriverDocumentExplorer },

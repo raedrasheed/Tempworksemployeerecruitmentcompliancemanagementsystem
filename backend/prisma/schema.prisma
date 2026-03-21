@@ -351,6 +351,7 @@ model Application {
   notes        String?
   createdAt    DateTime          @default(now())
   updatedAt    DateTime          @updatedAt
+  deletedAt    DateTime?
 
   applicant  Applicant @relation(fields: [applicantId], references: [id], onDelete: Cascade)
   reviewedBy User?     @relation("ReviewedApplications", fields: [reviewedById], references: [id])

@@ -20,7 +20,7 @@ export class ApplicationsService {
   async findAll(pagination: PaginationDto) {
     const { page = 1, limit = 10, search, sortBy = 'createdAt', sortOrder = 'desc' } = pagination;
     const skip = (Number(page) - 1) * Number(limit);
-    const where: any = {};
+    const where: any = { deletedAt: null };
     if (search) {
       where.OR = [
         { applicant: { firstName: { contains: search, mode: 'insensitive' } } },
@@ -36,7 +36,7 @@ export class ApplicationsService {
   }
 
   async findOne(id: string) {
-    const app = await this.prisma.application.findUnique({ where: { id }, include: this.include });
+    const app = await this.prisma.application.findFirst({ where: { id, deletedAt: null }, include: this.include });
     if (!app) throw new NotFoundException(`Application ${id} not found`);
     return app;
   }

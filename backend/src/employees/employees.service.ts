@@ -60,18 +60,20 @@ export class EmployeesService {
     // Get all workflow stages to initialize
     const stages = await this.prisma.workflowStage.findMany({ where: { isActive: true }, orderBy: { order: 'asc' } });
 
+    const { agencyId, ...rest } = dto;
     const employee = await this.prisma.employee.create({
       data: {
-        ...dto,
+        ...rest,
         dateOfBirth: new Date(dto.dateOfBirth),
         status: (dto.status as any) || 'PENDING',
+        ...(agencyId ? { agencyId } : {}),
         workflowStages: {
           create: stages.map((stage) => ({
             stageId: stage.id,
             status: 'PENDING',
           })),
         },
-      },
+      } as any,
       include: { agency: { select: { id: true, name: true } } },
     });
 

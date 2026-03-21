@@ -49,7 +49,10 @@ export class SettingsService {
 
   // ─── Job Types ──────────────────────────────────────────────────────────────
   async findJobTypes() {
-    return this.prisma.jobType.findMany({ where: { isActive: true }, orderBy: { name: 'asc' } });
+    return this.prisma.jobType.findMany({
+      orderBy: { name: 'asc' },
+      include: { _count: { select: { applicants: true, applications: true } } },
+    });
   }
 
   async createJobType(dto: CreateJobTypeDto, actorId?: string) {

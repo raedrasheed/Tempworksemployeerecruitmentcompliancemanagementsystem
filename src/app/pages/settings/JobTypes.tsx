@@ -1,19 +1,19 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { usePermissions } from '../../hooks/usePermissions';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { Card, CardContent } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
-import { 
-  Plus, 
-  Pencil, 
-  Trash2, 
-  Search, 
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Search,
   CheckCircle,
   XCircle,
   Briefcase,
   Save,
-  X
+  X,
 } from 'lucide-react';
 import {
   Dialog,
@@ -21,158 +21,167 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '../../components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../../components/ui/alert-dialog';
 import { Label } from '../../components/ui/label';
 import { Switch } from '../../components/ui/switch';
+import { settingsApi } from '../../services/api';
+import { toast } from 'sonner';
 
 interface JobType {
   id: string;
   name: string;
+  description: string | null;
+  isActive: boolean;
+  createdAt: string;
+  _count?: { applicants: number; applications: number };
+}
+
+interface FormData {
+  name: string;
   description: string;
   isActive: boolean;
-  requiredDocuments: string[];
-  createdAt: string;
-  totalEmployees: number;
 }
+
+const DOCUMENT_OPTIONS = [
+  'Passport',
+  'Driving License',
+  'Work Permit',
+  'Medical Certificate',
+  'Educational Certificate',
+  'Driver Qualification Card',
+  'Forklift License',
+  'Safety Training Certificate',
+  'Technical Certification',
+  'Employment Contract',
+  'Police Clearance',
+  'Visa Documents',
+];
 
 export function JobTypes() {
   const { canCreate, canEdit, canDelete } = usePermissions();
   const [searchQuery, setSearchQuery] = useState('');
+  const [jobTypes, setJobTypes] = useState<JobType[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  // Dialog state
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingJobType, setEditingJobType] = useState<JobType | null>(null);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     name: '',
     description: '',
     isActive: true,
-    requiredDocuments: [] as string[],
   });
 
-  // Mock data
-  const [jobTypes, setJobTypes] = useState<JobType[]>([
-    {
-      id: '1',
-      name: 'Truck Driver',
-      description: 'Professional truck drivers with HGV Class 1 license',
-      isActive: true,
-      requiredDocuments: ['Passport', 'Driving License', 'Driver Qualification Card', 'Medical Certificate'],
-      createdAt: '2024-01-15',
-      totalEmployees: 145,
-    },
-    {
-      id: '2',
-      name: 'Warehouse Worker',
-      description: 'General warehouse and logistics operations',
-      isActive: true,
-      requiredDocuments: ['Passport', 'Work Permit', 'Employment Contract'],
-      createdAt: '2024-01-20',
-      totalEmployees: 89,
-    },
-    {
-      id: '3',
-      name: 'Forklift Operator',
-      description: 'Licensed forklift operators for warehouse operations',
-      isActive: true,
-      requiredDocuments: ['Passport', 'Forklift License', 'Work Permit', 'Medical Certificate'],
-      createdAt: '2024-02-01',
-      totalEmployees: 56,
-    },
-    {
-      id: '4',
-      name: 'Logistics Coordinator',
-      description: 'Coordination and planning of logistics operations',
-      isActive: true,
-      requiredDocuments: ['Passport', 'Educational Certificate', 'Work Permit', 'Employment Contract'],
-      createdAt: '2024-02-10',
-      totalEmployees: 34,
-    },
-    {
-      id: '5',
-      name: 'Construction Worker',
-      description: 'General construction and building site workers',
-      isActive: true,
-      requiredDocuments: ['Passport', 'Work Permit', 'Safety Training Certificate', 'Medical Certificate'],
-      createdAt: '2024-02-15',
-      totalEmployees: 78,
-    },
-    {
-      id: '6',
-      name: 'Technician',
-      description: 'Technical maintenance and repair specialists',
-      isActive: true,
-      requiredDocuments: ['Passport', 'Educational Certificate', 'Technical Certification', 'Work Permit'],
-      createdAt: '2024-03-01',
-      totalEmployees: 42,
-    },
-    {
-      id: '7',
-      name: 'General Worker',
-      description: 'General labor positions across various industries',
-      isActive: false,
-      requiredDocuments: ['Passport', 'Work Permit', 'Employment Contract'],
-      createdAt: '2024-03-05',
-      totalEmployees: 15,
-    },
-  ]);
+  // Delete confirm
+  const [deleteTarget, setDeleteTarget] = useState<JobType | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
-  const filteredJobTypes = jobTypes.filter(jobType =>
-    jobType.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    jobType.description.toLowerCase().includes(searchQuery.toLowerCase())
+  useEffect(() => {
+    loadJobTypes();
+  }, []);
+
+  async function loadJobTypes() {
+    setLoading(true);
+    try {
+      const data = await settingsApi.getJobTypes();
+      setJobTypes(data);
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to load job types');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const filteredJobTypes = jobTypes.filter(
+    (jt) =>
+      jt.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (jt.description ?? '').toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
-  const handleOpenDialog = (jobType?: JobType) => {
-    if (jobType) {
-      setEditingJobType(jobType);
-      setFormData({
-        name: jobType.name,
-        description: jobType.description,
-        isActive: jobType.isActive,
-        requiredDocuments: jobType.requiredDocuments,
-      });
-    } else {
-      setEditingJobType(null);
-      setFormData({
-        name: '',
-        description: '',
-        isActive: true,
-        requiredDocuments: [],
-      });
-    }
+  function openCreateDialog() {
+    setEditingJobType(null);
+    setFormData({ name: '', description: '', isActive: true });
     setIsDialogOpen(true);
-  };
+  }
 
-  const handleSaveJobType = () => {
-    if (editingJobType) {
-      // Update existing job type
-      setJobTypes(prev => prev.map(jt => 
-        jt.id === editingJobType.id 
-          ? { ...jt, ...formData }
-          : jt
-      ));
-    } else {
-      // Create new job type
-      const newJobType: JobType = {
-        id: (jobTypes.length + 1).toString(),
-        ...formData,
-        createdAt: new Date().toISOString().split('T')[0],
-        totalEmployees: 0,
+  function openEditDialog(jobType: JobType) {
+    setEditingJobType(jobType);
+    setFormData({
+      name: jobType.name,
+      description: jobType.description ?? '',
+      isActive: jobType.isActive,
+    });
+    setIsDialogOpen(true);
+  }
+
+  async function handleSave() {
+    if (!formData.name.trim()) return;
+    setSaving(true);
+    try {
+      const payload = {
+        name: formData.name.trim(),
+        description: formData.description.trim() || undefined,
+        isActive: formData.isActive,
       };
-      setJobTypes(prev => [...prev, newJobType]);
-    }
-    setIsDialogOpen(false);
-  };
 
-  const handleDeleteJobType = (id: string) => {
-    if (confirm('Are you sure you want to delete this job type?')) {
-      setJobTypes(prev => prev.filter(jt => jt.id !== id));
+      if (editingJobType) {
+        const updated = await settingsApi.updateJobType(editingJobType.id, payload);
+        setJobTypes((prev) => prev.map((jt) => (jt.id === editingJobType.id ? { ...jt, ...updated } : jt)));
+        toast.success('Job type updated successfully');
+      } else {
+        const created = await settingsApi.createJobType(payload);
+        setJobTypes((prev) => [...prev, created]);
+        toast.success('Job type created successfully');
+      }
+      setIsDialogOpen(false);
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to save job type');
+    } finally {
+      setSaving(false);
     }
-  };
+  }
 
-  const handleToggleActive = (id: string) => {
-    setJobTypes(prev => prev.map(jt =>
-      jt.id === id ? { ...jt, isActive: !jt.isActive } : jt
-    ));
-  };
+  async function handleToggleActive(jobType: JobType) {
+    try {
+      const updated = await settingsApi.updateJobType(jobType.id, { isActive: !jobType.isActive });
+      setJobTypes((prev) => prev.map((jt) => (jt.id === jobType.id ? { ...jt, ...updated } : jt)));
+      toast.success(
+        !jobType.isActive ? `"${jobType.name}" activated` : `"${jobType.name}" deactivated`,
+      );
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to update job type');
+    }
+  }
+
+  async function handleDelete() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await settingsApi.deleteJobType(deleteTarget.id);
+      setJobTypes((prev) => prev.filter((jt) => jt.id !== deleteTarget.id));
+      toast.success(`"${deleteTarget.name}" deactivated successfully`);
+      setDeleteTarget(null);
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to deactivate job type');
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  const totalActive = jobTypes.filter((jt) => jt.isActive).length;
+  const totalInactive = jobTypes.filter((jt) => !jt.isActive).length;
+  const totalApplicants = jobTypes.reduce((acc, jt) => acc + (jt._count?.applicants ?? 0), 0);
 
   return (
     <div className="p-8 space-y-6">
@@ -191,7 +200,7 @@ export function JobTypes() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Total Job Types</p>
-                <p className="text-2xl font-bold">{jobTypes.length}</p>
+                <p className="text-2xl font-bold">{loading ? '—' : jobTypes.length}</p>
               </div>
               <Briefcase className="w-8 h-8 text-[#2563EB]" />
             </div>
@@ -203,9 +212,7 @@ export function JobTypes() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Active Types</p>
-                <p className="text-2xl font-bold text-[#22C55E]">
-                  {jobTypes.filter(jt => jt.isActive).length}
-                </p>
+                <p className="text-2xl font-bold text-[#22C55E]">{loading ? '—' : totalActive}</p>
               </div>
               <CheckCircle className="w-8 h-8 text-[#22C55E]" />
             </div>
@@ -217,9 +224,7 @@ export function JobTypes() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Inactive Types</p>
-                <p className="text-2xl font-bold text-muted-foreground">
-                  {jobTypes.filter(jt => !jt.isActive).length}
-                </p>
+                <p className="text-2xl font-bold text-muted-foreground">{loading ? '—' : totalInactive}</p>
               </div>
               <XCircle className="w-8 h-8 text-muted-foreground" />
             </div>
@@ -230,10 +235,8 @@ export function JobTypes() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Total Employees</p>
-                <p className="text-2xl font-bold">
-                  {jobTypes.reduce((acc, jt) => acc + jt.totalEmployees, 0)}
-                </p>
+                <p className="text-sm text-muted-foreground mb-1">Total Applicants</p>
+                <p className="text-2xl font-bold">{loading ? '—' : totalApplicants}</p>
               </div>
               <Briefcase className="w-8 h-8 text-[#F59E0B]" />
             </div>
@@ -241,7 +244,7 @@ export function JobTypes() {
         </Card>
       </div>
 
-      {/* Actions */}
+      {/* Search + Add */}
       <div className="flex items-center gap-4">
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -252,213 +255,203 @@ export function JobTypes() {
             className="pl-10"
           />
         </div>
-        
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          {canCreate('settings') && (
-            <DialogTrigger asChild>
-              <Button
-                className="bg-[#2563EB] hover:bg-[#1d4ed8]"
-                onClick={() => handleOpenDialog()}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Add Job Type
-              </Button>
-            </DialogTrigger>
-          )}
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>
-                {editingJobType ? 'Edit Job Type' : 'Create New Job Type'}
-              </DialogTitle>
-              <DialogDescription>
-                Configure job type settings and required documents
-              </DialogDescription>
-            </DialogHeader>
-            
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Job Type Name *</Label>
-                <Input
-                  id="name"
-                  placeholder="e.g., Truck Driver"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                />
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Input
-                  id="description"
-                  placeholder="Brief description of the job type"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                />
-              </div>
-
-              <div className="flex items-center justify-between p-4 border rounded-lg">
-                <div>
-                  <Label htmlFor="isActive">Active Status</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Allow new applications for this job type
-                  </p>
-                </div>
-                <Switch
-                  id="isActive"
-                  checked={formData.isActive}
-                  onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Required Documents</Label>
-                <p className="text-sm text-muted-foreground mb-2">
-                  Documents that employees must provide for this job type
-                </p>
-                <div className="grid grid-cols-2 gap-2">
-                  {['Passport', 'Driving License', 'Work Permit', 'Medical Certificate', 
-                    'Educational Certificate', 'Driver Qualification Card', 'Forklift License',
-                    'Safety Training Certificate', 'Technical Certification', 'Employment Contract',
-                    'Police Clearance', 'Visa Documents'].map((doc) => (
-                    <label key={doc} className="flex items-center gap-2 p-2 border rounded cursor-pointer hover:bg-gray-50">
-                      <input
-                        type="checkbox"
-                        checked={formData.requiredDocuments.includes(doc)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setFormData({
-                              ...formData,
-                              requiredDocuments: [...formData.requiredDocuments, doc]
-                            });
-                          } else {
-                            setFormData({
-                              ...formData,
-                              requiredDocuments: formData.requiredDocuments.filter(d => d !== doc)
-                            });
-                          }
-                        }}
-                        className="rounded"
-                      />
-                      <span className="text-sm">{doc}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                <X className="w-4 h-4 mr-2" />
-                Cancel
-              </Button>
-              <Button 
-                className="bg-[#2563EB] hover:bg-[#1d4ed8]"
-                onClick={handleSaveJobType}
-                disabled={!formData.name}
-              >
-                <Save className="w-4 h-4 mr-2" />
-                {editingJobType ? 'Update' : 'Create'}
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        {canCreate('settings') && (
+          <Button className="bg-[#2563EB] hover:bg-[#1d4ed8]" onClick={openCreateDialog}>
+            <Plus className="w-4 h-4 mr-2" />
+            Add Job Type
+          </Button>
+        )}
       </div>
 
       {/* Job Types List */}
-      <div className="space-y-4">
-        {filteredJobTypes.map((jobType) => (
-          <Card key={jobType.id}>
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h3 className="text-lg font-semibold">{jobType.name}</h3>
-                    <Badge variant={jobType.isActive ? 'default' : 'secondary'} className={jobType.isActive ? 'bg-[#22C55E]' : ''}>
-                      {jobType.isActive ? 'Active' : 'Inactive'}
-                    </Badge>
-                    <Badge variant="outline">
-                      {jobType.totalEmployees} {jobType.totalEmployees === 1 ? 'Employee' : 'Employees'}
-                    </Badge>
-                  </div>
-                  
-                  <p className="text-sm text-muted-foreground mb-3">
-                    {jobType.description}
-                  </p>
-
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium">Required Documents:</p>
-                    <div className="flex flex-wrap gap-2">
-                      {jobType.requiredDocuments.map((doc, index) => (
-                        <Badge key={index} variant="outline" className="bg-[#F8FAFC]">
-                          {doc}
+      {loading ? (
+        <div className="py-12 text-center text-muted-foreground">Loading job types...</div>
+      ) : (
+        <div className="space-y-4">
+          {filteredJobTypes.map((jobType) => {
+            const applicantCount = jobType._count?.applicants ?? 0;
+            return (
+              <Card key={jobType.id}>
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h3 className="text-lg font-semibold">{jobType.name}</h3>
+                        <Badge
+                          variant={jobType.isActive ? 'default' : 'secondary'}
+                          className={jobType.isActive ? 'bg-[#22C55E]' : ''}
+                        >
+                          {jobType.isActive ? 'Active' : 'Inactive'}
                         </Badge>
-                      ))}
+                        <Badge variant="outline">
+                          {applicantCount} {applicantCount === 1 ? 'Applicant' : 'Applicants'}
+                        </Badge>
+                      </div>
+
+                      {jobType.description && (
+                        <p className="text-sm text-muted-foreground mb-3">{jobType.description}</p>
+                      )}
+
+                      <p className="text-xs text-muted-foreground">
+                        Created: {new Date(jobType.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2 ml-4">
+                      {canEdit('settings') && (
+                        <Button variant="outline" size="sm" onClick={() => handleToggleActive(jobType)}>
+                          {jobType.isActive ? (
+                            <>
+                              <XCircle className="w-4 h-4 mr-1" />
+                              Deactivate
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle className="w-4 h-4 mr-1" />
+                              Activate
+                            </>
+                          )}
+                        </Button>
+                      )}
+                      {canEdit('settings') && (
+                        <Button variant="outline" size="sm" onClick={() => openEditDialog(jobType)}>
+                          <Pencil className="w-4 h-4 mr-1" />
+                          Edit
+                        </Button>
+                      )}
+                      {canDelete('settings') && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          onClick={() => setDeleteTarget(jobType)}
+                        >
+                          <Trash2 className="w-4 h-4 mr-1" />
+                          Delete
+                        </Button>
+                      )}
                     </div>
                   </div>
+                </CardContent>
+              </Card>
+            );
+          })}
 
-                  <p className="text-xs text-muted-foreground mt-3">
-                    Created: {new Date(jobType.createdAt).toLocaleDateString()}
-                  </p>
-                </div>
+          {filteredJobTypes.length === 0 && !loading && (
+            <Card>
+              <CardContent className="p-12 text-center">
+                <Briefcase className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">
+                  {searchQuery ? 'No job types found matching your search' : 'No job types yet. Add one to get started.'}
+                </p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
 
-                <div className="flex items-center gap-2 ml-4">
-                  {canEdit('settings') && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleToggleActive(jobType.id)}
-                    >
-                      {jobType.isActive ? (
-                        <>
-                          <XCircle className="w-4 h-4 mr-1" />
-                          Deactivate
-                        </>
-                      ) : (
-                        <>
-                          <CheckCircle className="w-4 h-4 mr-1" />
-                          Activate
-                        </>
-                      )}
-                    </Button>
-                  )}
-                  {canEdit('settings') && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleOpenDialog(jobType)}
-                    >
-                      <Pencil className="w-4 h-4 mr-1" />
-                      Edit
-                    </Button>
-                  )}
-                  {canDelete('settings') && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDeleteJobType(jobType.id)}
-                      disabled={jobType.totalEmployees > 0}
-                    >
-                      <Trash2 className="w-4 h-4 mr-1" />
-                      Delete
-                    </Button>
-                  )}
-                </div>
+      {/* Create / Edit Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={(open) => !saving && setIsDialogOpen(open)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{editingJobType ? 'Edit Job Type' : 'Create New Job Type'}</DialogTitle>
+            <DialogDescription>Configure job type settings and required documents</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="jt-name">Job Type Name *</Label>
+              <Input
+                id="jt-name"
+                placeholder="e.g., Truck Driver"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="jt-description">Description</Label>
+              <Input
+                id="jt-description"
+                placeholder="Brief description of the job type"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              />
+            </div>
+
+            <div className="flex items-center justify-between p-4 border rounded-lg">
+              <div>
+                <Label htmlFor="jt-isActive">Active Status</Label>
+                <p className="text-sm text-muted-foreground">Allow new applications for this job type</p>
               </div>
-            </CardContent>
-          </Card>
-        ))}
+              <Switch
+                id="jt-isActive"
+                checked={formData.isActive}
+                onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
+              />
+            </div>
 
-        {filteredJobTypes.length === 0 && (
-          <Card>
-            <CardContent className="p-12 text-center">
-              <Briefcase className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">
-                No job types found matching your search
+            <div className="space-y-2">
+              <Label>Required Documents</Label>
+              <p className="text-sm text-muted-foreground mb-2">
+                Documents that employees must provide for this job type
               </p>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+              <div className="grid grid-cols-2 gap-2">
+                {DOCUMENT_OPTIONS.map((doc) => (
+                  <label
+                    key={doc}
+                    className="flex items-center gap-2 p-2 border rounded cursor-pointer hover:bg-gray-50 opacity-60"
+                    title="Required documents configuration coming soon"
+                  >
+                    <input type="checkbox" disabled className="rounded" />
+                    <span className="text-sm">{doc}</span>
+                  </label>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground">Required documents configuration will be available in a future update.</p>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={saving}>
+              <X className="w-4 h-4 mr-2" />
+              Cancel
+            </Button>
+            <Button
+              className="bg-[#2563EB] hover:bg-[#1d4ed8]"
+              onClick={handleSave}
+              disabled={!formData.name.trim() || saving}
+            >
+              <Save className="w-4 h-4 mr-2" />
+              {saving ? 'Saving...' : editingJobType ? 'Update' : 'Create'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Deactivate Job Type</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to deactivate <strong>{deleteTarget?.name}</strong>? It will no longer appear in
+              job type selectors. Existing applicants and applications will not be affected.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {deleting ? 'Deactivating...' : 'Deactivate'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

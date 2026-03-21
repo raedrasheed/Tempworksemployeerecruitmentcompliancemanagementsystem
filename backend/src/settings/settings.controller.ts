@@ -69,6 +69,13 @@ export class SettingsController {
   @ApiOperation({ summary: 'Get all active document types' })
   findDocumentTypes() { return this.settingsService.findDocumentTypes(); }
 
+  @Get('document-types/:id')
+  @ApiOperation({ summary: 'Get a document type by ID' })
+  @ApiParam({ name: 'id' })
+  findDocumentType(@Param('id') id: string) {
+    return this.settingsService.findDocumentType(id);
+  }
+
   @Post('document-types')
   @Roles('System Admin', 'HR Manager')
   @ApiOperation({ summary: 'Create a document type' })

@@ -94,7 +94,20 @@ export class SettingsService {
 
   // ─── Document Types ──────────────────────────────────────────────────────────
   async findDocumentTypes() {
-    return this.prisma.documentType.findMany({ where: { isActive: true }, orderBy: [{ category: 'asc' }, { name: 'asc' }] });
+    return this.prisma.documentType.findMany({
+      where: { isActive: true },
+      orderBy: [{ category: 'asc' }, { name: 'asc' }],
+      include: { _count: { select: { documents: true } } },
+    });
+  }
+
+  async findDocumentType(id: string) {
+    const dt = await this.prisma.documentType.findUnique({
+      where: { id },
+      include: { _count: { select: { documents: true } } },
+    });
+    if (!dt) throw new NotFoundException('Document type not found');
+    return dt;
   }
 
   async createDocumentType(dto: CreateDocumentTypeDto, actorId?: string) {

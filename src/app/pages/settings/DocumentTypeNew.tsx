@@ -9,9 +9,22 @@ import { Textarea } from '../../components/ui/textarea';
 import { Switch } from '../../components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { toast } from 'sonner';
+import { settingsApi } from '../../services/api';
+
+const CATEGORY_LABELS: Record<string, string> = {
+  identity: 'Identity',
+  license: 'License',
+  medical: 'Medical',
+  legal: 'Legal',
+  employment: 'Employment',
+  insurance: 'Insurance',
+  training: 'Training',
+  other: 'Other',
+};
 
 export function DocumentTypeNew() {
   const navigate = useNavigate();
+  const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -43,10 +56,28 @@ export function DocumentTypeNew() {
 
   const fileFormats = ['PDF', 'JPG', 'PNG', 'DOCX', 'XLSX'];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success('Document type created successfully');
-    navigate('/dashboard/settings/document-types');
+    setSaving(true);
+    try {
+      await settingsApi.createDocumentType({
+        name: formData.name,
+        description: formData.description || undefined,
+        category: CATEGORY_LABELS[formData.category] ?? formData.category,
+        required: formData.required,
+        trackExpiry: formData.expiryTracking,
+        renewalPeriodDays: formData.expiryTracking && formData.expiryWarningDays
+          ? parseInt(formData.expiryWarningDays, 10)
+          : undefined,
+        isActive: true,
+      });
+      toast.success('Document type created successfully');
+      navigate('/dashboard/settings/document-types');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to create document type');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleJobTypeToggle = (jobType: string) => {
@@ -406,9 +437,9 @@ export function DocumentTypeNew() {
 
             {/* Actions */}
             <div className="space-y-3">
-              <Button type="submit" className="w-full" size="lg">
+              <Button type="submit" className="w-full" size="lg" disabled={saving}>
                 <Save className="w-4 h-4 mr-2" />
-                Create Document Type
+                {saving ? 'Creating...' : 'Create Document Type'}
               </Button>
               <Button type="button" variant="outline" className="w-full" asChild>
                 <Link to="/dashboard/settings/document-types">Cancel</Link>

@@ -37,17 +37,20 @@ export function DocumentsCompliance() {
   ]);
 
   useEffect(() => {
-    Promise.all([
-      documentsApi.list({ limit: 200 }),
-      employeesApi.list({ limit: 500 }),
-    ]).then(([docsResult, empResult]) => {
-      setDocuments((docsResult as any)?.data ?? []);
-      const emps: any[] = (empResult as any)?.data ?? [];
-      const map: Record<string, string> = {};
-      emps.forEach(e => { map[e.id] = `${e.firstName} ${e.lastName}`; });
-      setEmployeeMap(map);
-    }).catch(() => toast.error('Failed to load documents'))
-      .finally(() => setLoading(false));
+    const loadDocuments = documentsApi.list({ limit: 200 })
+      .then((res: any) => setDocuments((res as any)?.data ?? []))
+      .catch(() => toast.error('Failed to load documents'));
+
+    const loadEmployees = employeesApi.list({ limit: 500 })
+      .then((res: any) => {
+        const emps: any[] = (res as any)?.data ?? [];
+        const map: Record<string, string> = {};
+        emps.forEach(e => { map[e.id] = `${e.firstName} ${e.lastName}`; });
+        setEmployeeMap(map);
+      })
+      .catch(() => {/* employee names are optional, fail silently */});
+
+    Promise.all([loadDocuments, loadEmployees]).finally(() => setLoading(false));
   }, []);
 
   const handleDelete = async (doc: any) => {

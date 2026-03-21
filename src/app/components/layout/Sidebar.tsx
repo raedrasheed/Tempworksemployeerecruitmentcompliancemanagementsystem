@@ -6,7 +6,6 @@ import {
   FolderOpen,
   GitBranch,
   Building2,
-  ShieldCheck,
   BarChart3,
   Bell,
   UserCog,
@@ -20,23 +19,25 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { cn } from '../ui/utils';
-import { getCurrentUser } from '../../services/api';
+import { useAuthContext } from '../../contexts/AuthContext';
 
+// Each nav item declares which permission (module:read) is required to see it.
+// null means always visible to any authenticated user.
 const allNavigationItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', roles: ['System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Finance', 'Read Only'] },
-  { icon: UserCheck, label: 'Applicants', path: '/dashboard/applicants', roles: ['System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Finance', 'Read Only'] },
-  { icon: Users, label: 'Employees', path: '/dashboard/employees', roles: ['System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Finance', 'Read Only'] },
-  { icon: FileText, label: 'Applications', path: '/dashboard/applications', roles: ['System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Finance', 'Read Only'] },
-  { icon: FolderOpen, label: 'Documents & Compliance', path: '/dashboard/documents-compliance', roles: ['System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Read Only'] },
-  { icon: FileSearch, label: 'Document Explorer', path: '/dashboard/document-explorer', roles: ['System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Read Only'] },
-  { icon: GitBranch, label: 'Workflow Pipeline', path: '/dashboard/workflow', roles: ['System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Read Only'] },
-  { icon: Building2, label: 'Agencies', path: '/dashboard/agencies', roles: ['System Admin', 'HR Manager', 'Compliance Officer', 'Read Only'] },
-  { icon: BarChart3, label: 'Reports', path: '/dashboard/reports', roles: ['System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Finance', 'Read Only'] },
-  { icon: Bell, label: 'Notifications', path: '/dashboard/notifications', roles: ['System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Finance', 'Read Only'] },
-  { icon: UserCog, label: 'Users', path: '/dashboard/users', roles: ['System Admin', 'HR Manager', 'Read Only'] },
-  { icon: Shield, label: 'Roles & Permissions', path: '/dashboard/roles', roles: ['System Admin'] },
-  { icon: Activity, label: 'System Logs', path: '/dashboard/logs', roles: ['System Admin', 'HR Manager', 'Compliance Officer'] },
-  { icon: Settings, label: 'Settings', path: '/dashboard/settings', roles: ['System Admin', 'HR Manager'] },
+  { icon: LayoutDashboard, label: 'Dashboard',             path: '/dashboard',                  permission: null },
+  { icon: UserCheck,       label: 'Applicants',            path: '/dashboard/applicants',       permission: 'applicants:read' },
+  { icon: Users,           label: 'Employees',             path: '/dashboard/employees',        permission: 'employees:read' },
+  { icon: FileText,        label: 'Applications',          path: '/dashboard/applications',     permission: 'applications:read' },
+  { icon: FolderOpen,      label: 'Documents & Compliance',path: '/dashboard/documents-compliance', permission: 'documents:read' },
+  { icon: FileSearch,      label: 'Document Explorer',     path: '/dashboard/document-explorer',permission: 'documents:read' },
+  { icon: GitBranch,       label: 'Workflow Pipeline',     path: '/dashboard/workflow',         permission: 'workflow:read' },
+  { icon: Building2,       label: 'Agencies',              path: '/dashboard/agencies',         permission: 'agencies:read' },
+  { icon: BarChart3,       label: 'Reports',               path: '/dashboard/reports',          permission: 'reports:read' },
+  { icon: Bell,            label: 'Notifications',         path: '/dashboard/notifications',    permission: 'notifications:read' },
+  { icon: UserCog,         label: 'Users',                 path: '/dashboard/users',            permission: 'users:read' },
+  { icon: Shield,          label: 'Roles & Permissions',   path: '/dashboard/roles',            permission: 'roles:read' },
+  { icon: Activity,        label: 'System Logs',           path: '/dashboard/logs',             permission: 'logs:read' },
+  { icon: Settings,        label: 'Settings',              path: '/dashboard/settings',         permission: 'settings:read' },
 ];
 
 interface SidebarProps {
@@ -46,9 +47,16 @@ interface SidebarProps {
 
 export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
   const location = useLocation();
-  const currentUser = getCurrentUser();
-  const userRole = currentUser?.role ?? '';
-  const navigationItems = allNavigationItems.filter(item => item.roles.includes(userRole));
+  const { user } = useAuthContext();
+  const userRole = user?.role ?? '';
+  const permissions = user?.permissions ?? [];
+  const isAdmin = userRole === 'System Admin';
+
+  const navigationItems = allNavigationItems.filter(item => {
+    if (!item.permission) return true; // always visible
+    if (isAdmin) return true;          // admins see everything
+    return permissions.includes(item.permission);
+  });
 
   return (
     <aside 
@@ -121,14 +129,14 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
           isCollapsed && "justify-center"
         )}>
           <img
-            src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser?.firstName ?? 'User'}`}
+            src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.firstName ?? 'User'}`}
             alt="User"
             className="w-8 h-8 rounded-full flex-shrink-0"
           />
           {!isCollapsed && (
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-[#0F172A] truncate">
-                {currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : 'User'}
+                {user ? `${user.firstName} ${user.lastName}` : 'User'}
               </p>
               <p className="text-xs text-muted-foreground truncate">{userRole || 'Guest'}</p>
             </div>

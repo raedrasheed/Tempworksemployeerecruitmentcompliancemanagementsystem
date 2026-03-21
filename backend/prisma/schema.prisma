@@ -195,18 +195,19 @@ model User {
 }
 
 model Agency {
-  id            String       @id @default(uuid())
-  name          String
-  country       String
-  contactPerson String
-  email         String
-  phone         String
-  status        AgencyStatus @default(ACTIVE)
-  logoUrl       String?
-  notes         String?
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
-  deletedAt     DateTime?
+  id                 String       @id @default(uuid())
+  name               String
+  country            String
+  contactPerson      String
+  email              String
+  phone              String
+  status             AgencyStatus @default(ACTIVE)
+  logoUrl            String?
+  notes              String?
+  maxUsersPerAgency  Int          @default(10)
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  deletedAt          DateTime?
 
   users     User[]
   employees Employee[]

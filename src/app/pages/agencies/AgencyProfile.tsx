@@ -18,7 +18,7 @@ export function AgencyProfile() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
-  const [settings, setSettings] = useState({ defaultRole: 'agency_user', maxUsers: '10' });
+  const [settings, setSettings] = useState({ maxUsers: '10' });
 
   useEffect(() => {
     Promise.all([
@@ -29,6 +29,7 @@ export function AgencyProfile() {
       setAgency(agencyData);
       setEmployees((empData as any)?.data ?? empData ?? []);
       setAgencyUsers((usersData as any)?.data ?? usersData ?? []);
+      setSettings({ maxUsers: String((agencyData as any).maxUsersPerAgency ?? 10) });
     }).catch(() => setNotFound(true))
       .finally(() => setLoading(false));
   }, [id]);
@@ -36,7 +37,7 @@ export function AgencyProfile() {
   const handleSaveSettings = async () => {
     setSavingSettings(true);
     try {
-      await agenciesApi.update(id!, { settings });
+      await agenciesApi.update(id!, { maxUsersPerAgency: parseInt(settings.maxUsers, 10) });
       toast.success('Settings saved');
     } catch {
       toast.error('Failed to save settings');
@@ -249,23 +250,6 @@ export function AgencyProfile() {
               <CardTitle>Agency Settings</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div>
-                <Label htmlFor="defaultRole">Default Role for New Users</Label>
-                <p className="text-sm text-muted-foreground mt-1 mb-3">
-                  When the Agency Manager creates a new user, this role will be automatically assigned
-                </p>
-                <Select value={settings.defaultRole} onValueChange={val => setSettings(prev => ({ ...prev, defaultRole: val }))}>
-                  <SelectTrigger id="defaultRole">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="agency_manager">Agency Manager</SelectItem>
-                    <SelectItem value="agency_user">Agency User</SelectItem>
-                    <SelectItem value="recruiter">Recruiter</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
               <div>
                 <Label htmlFor="maxUsers">Maximum Number of Users</Label>
                 <p className="text-sm text-muted-foreground mt-1 mb-3">

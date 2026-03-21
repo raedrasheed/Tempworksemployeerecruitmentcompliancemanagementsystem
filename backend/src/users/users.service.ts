@@ -107,9 +107,9 @@ export class UsersService {
       if (!callerAgencyId) throw new ForbiddenException('Agency Manager has no agency assigned');
       dto.agencyId = callerAgencyId;
 
-      // Enforce max users per agency limit
-      const limitSetting = await this.prisma.systemSetting.findUnique({ where: { key: 'agency.maxUsersPerAgency' } });
-      const maxUsers = limitSetting ? parseInt(limitSetting.value, 10) : 5;
+      // Enforce max users per agency limit using per-agency setting
+      const agency = await this.prisma.agency.findUnique({ where: { id: callerAgencyId }, select: { maxUsersPerAgency: true } });
+      const maxUsers = agency?.maxUsersPerAgency ?? 10;
       const currentCount = await this.prisma.user.count({ where: { agencyId: callerAgencyId, deletedAt: null } });
       if (currentCount >= maxUsers) {
         throw new ForbiddenException(`Agency has reached the maximum user limit of ${maxUsers}. Contact a System Administrator to increase the limit.`);

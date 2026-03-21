@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/ca
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { toast } from 'sonner';
-import { agenciesApi, usersApi, settingsApi } from '../../services/api';
+import { agenciesApi, usersApi } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
 
 export function AgencyUsersManagement() {
@@ -22,13 +22,10 @@ export function AgencyUsersManagement() {
     Promise.all([
       agenciesApi.get(id!),
       agenciesApi.getUsers(id!),
-      settingsApi.getAll(true),
-    ]).then(([agencyData, usersResult, settingsResult]) => {
+    ]).then(([agencyData, usersResult]) => {
       setAgency(agencyData);
       setAgencyUsers((usersResult as any)?.data ?? usersResult ?? []);
-      const agencySettings: any[] = (settingsResult as any)?.agency ?? [];
-      const s = agencySettings.find((x: any) => x.key === 'agency.maxUsersPerAgency');
-      if (s) setMaxUsers(parseInt(s.value, 10));
+      setMaxUsers((agencyData as any).maxUsersPerAgency ?? 10);
     }).catch(() => toast.error('Failed to load agency data'))
       .finally(() => setLoading(false));
   }, [id]);

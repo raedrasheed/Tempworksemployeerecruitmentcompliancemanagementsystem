@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { Search, Bell, Settings, User, Lock, Globe, Moon, Sun, LogOut, ChevronDown, Eye, EyeOff, CheckCircle, X } from 'lucide-react';
+import { Search, Bell, Settings, User, Lock, Globe, Moon, Sun, LogOut, ChevronDown, Eye, EyeOff, CheckCircle, X, Palette } from 'lucide-react';
+import { useTheme } from '../../contexts/ThemeContext';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -176,24 +177,12 @@ function ChangePasswordDialog({ open, onClose }: { open: boolean; onClose: () =>
 
 export function Topbar() {
   const navigate = useNavigate();
-  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-    return (localStorage.getItem('theme') as 'light' | 'dark') || 'light';
-  });
+  const { isDark, toggleDark } = useTheme();
   const [unreadCount, setUnreadCount] = useState(0);
   const [liveUser, setLiveUser] = useState<AuthUser | null>(getCurrentUser());
   const [showChangePassword, setShowChangePassword] = useState(false);
 
-  // Apply saved theme on mount and whenever it changes
   useEffect(() => {
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [theme]);
-
-  useEffect(() => {
-    // Fetch fresh profile data from the API
     authApi.me()
       .then((user) => {
         setLiveUser(user);
@@ -209,12 +198,6 @@ export function Topbar() {
   const handleLogout = async () => {
     try { await authApi.logout(); } catch {}
     navigate('/login');
-  };
-
-  const toggleTheme = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(newTheme);
-    localStorage.setItem('theme', newTheme);
   };
 
   const displayName = liveUser ? `${liveUser.firstName} ${liveUser.lastName}` : 'User';
@@ -294,9 +277,16 @@ export function Topbar() {
 
             <DropdownMenuSeparator />
 
-            <DropdownMenuItem onClick={toggleTheme}>
-              {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
-              <span>Theme: {theme === 'light' ? 'Light' : 'Dark'}</span>
+            <DropdownMenuItem onClick={toggleDark}>
+              {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              <span>Theme: {isDark ? 'Dark' : 'Light'}</span>
+            </DropdownMenuItem>
+
+            <DropdownMenuItem asChild>
+              <Link to="/dashboard/settings/color-scheme" className="cursor-pointer">
+                <Palette className="w-4 h-4" />
+                <span>Color Scheme</span>
+              </Link>
             </DropdownMenuItem>
 
             <DropdownMenuItem>

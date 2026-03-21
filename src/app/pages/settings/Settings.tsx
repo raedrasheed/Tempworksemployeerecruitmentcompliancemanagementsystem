@@ -1,5 +1,5 @@
 import { Link } from 'react-router';
-import { Settings as SettingsIcon, Workflow, FileType, Bell, Shield, Activity, Building2, GitBranch, Briefcase } from 'lucide-react';
+import { Settings as SettingsIcon, Workflow, FileType, Bell, Shield, Activity, Building2, GitBranch, Briefcase, Palette } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
@@ -44,12 +44,32 @@ export function Settings() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-semibold text-[#0F172A]">Settings</h1>
+        <h1 className="text-3xl font-semibold text-foreground">Settings</h1>
         <p className="text-muted-foreground mt-1">Manage system configuration and preferences</p>
       </div>
 
       {/* Settings Menu */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Appearance – always first */}
+        <Link to="/dashboard/settings/color-scheme">
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+            <CardHeader>
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Palette className="w-6 h-6 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <CardTitle>Appearance</CardTitle>
+                    <Badge className="bg-primary text-primary-foreground">Theme</Badge>
+                  </div>
+                  <CardDescription>Color schemes, brand colors &amp; dark mode</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+          </Card>
+        </Link>
+
         <Link to="/dashboard/settings/workflow-configuration">
           <Card className="hover:shadow-md transition-shadow cursor-pointer">
             <CardContent className="p-6">

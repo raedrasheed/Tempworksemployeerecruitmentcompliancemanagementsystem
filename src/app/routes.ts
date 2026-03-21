@@ -47,6 +47,7 @@ import { CreateRole } from './pages/roles/CreateRole';
 import { PermissionsMatrix } from './pages/roles/PermissionsMatrix';
 import { LogsDashboard } from './pages/logs/LogsDashboard';
 import { Settings } from './pages/settings/Settings';
+import { ColorScheme } from './pages/settings/ColorScheme';
 import { WorkflowSettings } from './pages/settings/WorkflowSettings';
 import { WorkflowConfiguration } from './pages/settings/WorkflowConfiguration';
 import { DocumentTypes } from './pages/settings/DocumentTypes';
@@ -171,6 +172,7 @@ export const router = createBrowserRouter([
       { path: 'settings/document-types/:id/edit', Component: DocumentTypeEdit },
       { path: 'settings/notifications', Component: NotificationRules },
       { path: 'settings/security', Component: SecuritySettings },
+      { path: 'settings/color-scheme', Component: ColorScheme },
       
       // Profile routes
       { path: 'profile', Component: Profile },

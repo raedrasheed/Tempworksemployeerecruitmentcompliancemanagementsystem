@@ -459,10 +459,10 @@ export function LogsDashboard() {
 
               <div className="space-y-1.5">
                 <Label htmlFor="clearEntity">Module / Entity (optional)</Label>
-                <Select value={clearEntity} onValueChange={setClearEntity}>
+                <Select value={clearEntity || 'all'} onValueChange={v => setClearEntity(v === 'all' ? '' : v)}>
                   <SelectTrigger id="clearEntity"><SelectValue placeholder="All modules" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All modules</SelectItem>
+                    <SelectItem value="all">All modules</SelectItem>
                     {knownEntities.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
                   </SelectContent>
                 </Select>

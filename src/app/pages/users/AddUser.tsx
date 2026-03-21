@@ -27,11 +27,13 @@ export function AddUser() {
   useEffect(() => {
     Promise.all([
       rolesApi.list(),
-      agenciesApi.list({ limit: 200, status: 'ACTIVE' }),
+      agenciesApi.list({ limit: 100 }),
     ]).then(([roleList, agencyPage]) => {
       setRoles(roleList ?? []);
       setAgencies(agencyPage?.data ?? []);
-    }).catch(() => {});
+    }).catch(() => {
+      toast.error('Failed to load roles or agencies');
+    });
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {

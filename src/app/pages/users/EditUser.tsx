@@ -31,7 +31,7 @@ export function EditUser() {
     Promise.all([
       usersApi.get(id!),
       rolesApi.list(),
-      agenciesApi.list({ limit: 200, status: 'ACTIVE' }),
+      agenciesApi.list({ limit: 100 }),
     ]).then(([user, roleList, agencyPage]) => {
       setForm({
         firstName: user.firstName ?? '',

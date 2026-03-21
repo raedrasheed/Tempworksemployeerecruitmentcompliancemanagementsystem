@@ -155,7 +155,7 @@ export class UsersService {
   async updateProfile(userId: string, data: any) {
     const user = await this.prisma.user.update({
       where: { id: userId },
-      data: { firstName: data.firstName, lastName: data.lastName, phone: data.phone },
+      data: { firstName: data.firstName, lastName: data.lastName, phone: data.phone, nationality: data.nationality },
       include: { role: { select: { id: true, name: true } } },
     });
     const { passwordHash, refreshToken, ...result } = user as any;

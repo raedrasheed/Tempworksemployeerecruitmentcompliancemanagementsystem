@@ -529,7 +529,7 @@ export const settingsApi = {
   getAll: () => apiFetch<any>('/settings'),
 
   update: (data: Record<string, any>) =>
-    apiFetch<any>('/settings', { method: 'PATCH', body: JSON.stringify(data) }),
+    apiFetch<any>('/settings', { method: 'PATCH', body: JSON.stringify({ settings: data }) }),
 
   // Job Types
   getJobTypes: () => apiFetch<any[]>('/settings/job-types'),

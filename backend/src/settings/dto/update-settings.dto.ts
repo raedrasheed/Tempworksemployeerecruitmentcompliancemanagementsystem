@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsBoolean } from 'class-validator';
+import { IsString, IsOptional, IsBoolean, IsObject } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class UpdateSettingDto {
@@ -8,5 +8,6 @@ export class UpdateSettingDto {
 
 export class BatchUpdateSettingsDto {
   @ApiPropertyOptional({ description: 'Key-value map of settings' })
+  @IsObject()
   settings: Record<string, string>;
 }

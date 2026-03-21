@@ -31,7 +31,6 @@ export class EmployeesService {
         orderBy: { [sortBy]: sortOrder },
         include: {
           agency: { select: { id: true, name: true } },
-          workflowStages: { include: { stage: true }, orderBy: { stage: { order: 'desc' } }, take: 1 },
         },
       }),
       this.prisma.employee.count({ where }),

@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router';
-import { Plus, Edit, Search } from 'lucide-react';
+import { Plus, Edit, Search, Trash2 } from 'lucide-react';
 import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Input } from '../../components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
-import { usersApi } from '../../services/api';
+import { usersApi, getCurrentUser } from '../../services/api';
+import { toast } from 'sonner';
 import { FilterSystem, Column, FilterRule, FilterPreset } from '../../components/filters/FilterSystem';
 import { usePermissions } from '../../hooks/usePermissions';
 
@@ -18,7 +19,8 @@ const userColumns: Column[] = [
 ];
 
 export function UsersList() {
-  const { canCreate, canEdit } = usePermissions();
+  const { canCreate, canEdit, canDelete } = usePermissions();
+  const currentUser = getCurrentUser();
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -55,6 +57,17 @@ export function UsersList() {
       (user.role?.name ?? '').toLowerCase().includes(searchQuery.toLowerCase());
     return matchesSearch && applyFilters(user);
   });
+
+  const handleDelete = async (user: any) => {
+    if (!confirm(`Are you sure you want to delete ${user.firstName} ${user.lastName}? This action cannot be undone.`)) return;
+    try {
+      await usersApi.delete(user.id);
+      setUsers(prev => prev.filter(u => u.id !== user.id));
+      toast.success('User deleted successfully');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to delete user');
+    }
+  };
 
   const handleSavePreset = (name: string, rules: FilterRule[], logic: 'AND' | 'OR') => {
     setSavedPresets(prev => [...prev, { id: Date.now().toString(), name, rules, logic }]);
@@ -152,14 +165,26 @@ export function UsersList() {
                       {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString() : '—'}
                     </TableCell>
                     <TableCell className="text-right">
-                      {canEdit('users') && (
-                        <Button variant="ghost" size="sm" asChild>
-                          <Link to={`/dashboard/users/${user.id}/edit`}>
-                            <Edit className="w-4 h-4 mr-2" />
-                            Edit
-                          </Link>
-                        </Button>
-                      )}
+                      <div className="flex items-center justify-end gap-1">
+                        {canEdit('users') && (
+                          <Button variant="ghost" size="sm" asChild>
+                            <Link to={`/dashboard/users/${user.id}/edit`}>
+                              <Edit className="w-4 h-4 mr-2" />
+                              Edit
+                            </Link>
+                          </Button>
+                        )}
+                        {canDelete('users') && user.id !== currentUser?.id && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(user)}
+                            className="text-[#EF4444] hover:text-[#EF4444] hover:bg-[#FEF2F2]"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

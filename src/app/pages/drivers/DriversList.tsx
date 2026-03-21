@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router';
-import { Plus, Search, Download, Eye } from 'lucide-react';
+import { Plus, Search, Download, Eye, Edit, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -32,7 +33,7 @@ const employeeColumns: Column[] = [
 ];
 
 export function DriversList() {
-  const { canCreate, canEdit } = usePermissions();
+  const { canCreate, canEdit, canDelete } = usePermissions();
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilters, setActiveFilters] = useState<FilterRule[]>([]);
   const [filterLogic, setFilterLogic] = useState<'AND' | 'OR'>('AND');
@@ -160,10 +161,20 @@ export function DriversList() {
     setSavedPresets(savedPresets.filter(p => p.id !== presetId));
   };
 
+  const handleDelete = async (employee: any) => {
+    if (!confirm(`Delete "${employee.firstName} ${employee.lastName}"? This cannot be undone.`)) return;
+    try {
+      await employeesApi.delete(employee.id);
+      setEmployees(prev => prev.filter(e => e.id !== employee.id));
+      setTotalEmployees(prev => prev - 1);
+      toast.success('Employee deleted successfully');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to delete employee');
+    }
+  };
+
   const handleExport = () => {
-    // Export filtered results
     console.log('Exporting', filteredDrivers.length, 'employees');
-    // In production, this would generate CSV/Excel with filtered data
   };
 
   return (
@@ -272,15 +283,16 @@ export function DriversList() {
                       )}
                     </TableCell>
                     <TableCell>
-                      <Badge 
-                        variant={driver.status === 'active' ? 'default' : 'secondary'}
+                      <Badge
                         className={
-                          driver.status === 'active' ? 'bg-[#22C55E]' :
-                          driver.status === 'pending' ? 'bg-[#F59E0B]' :
+                          driver.status === 'ACTIVE'     ? 'bg-[#22C55E]' :
+                          driver.status === 'PENDING'    ? 'bg-[#F59E0B]' :
+                          driver.status === 'ONBOARDING' ? 'bg-[#2563EB]' :
+                          driver.status === 'ON_LEAVE'   ? 'bg-[#8B5CF6]' :
                           'bg-gray-500'
                         }
                       >
-                        {driver.status}
+                        {driver.status?.replace(/_/g, ' ').toLowerCase()}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -292,15 +304,23 @@ export function DriversList() {
                       <div className="flex items-center justify-end gap-1">
                         <Button variant="ghost" size="sm" asChild>
                           <Link to={`/dashboard/employees/${driver.id}`}>
-                            <Eye className="w-4 h-4 mr-2" />
-                            View
+                            <Eye className="w-4 h-4 mr-1" />View
                           </Link>
                         </Button>
                         {canEdit('employees') && (
                           <Button variant="ghost" size="sm" asChild>
                             <Link to={`/dashboard/employees/${driver.id}/edit`}>
-                              Edit
+                              <Edit className="w-4 h-4 mr-1" />Edit
                             </Link>
+                          </Button>
+                        )}
+                        {canDelete('employees') && (
+                          <Button
+                            variant="ghost" size="sm"
+                            onClick={() => handleDelete(driver)}
+                            className="text-[#EF4444] hover:text-[#EF4444] hover:bg-[#FEF2F2]"
+                          >
+                            <Trash2 className="w-4 h-4" />
                           </Button>
                         )}
                       </div>

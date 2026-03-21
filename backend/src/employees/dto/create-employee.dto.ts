@@ -21,7 +21,7 @@ export class CreateEmployeeDto {
   @ApiPropertyOptional() @IsOptional() @IsString() licenseNumber?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() licenseCategory?: string;
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsInt() @Min(0) yearsExperience?: number;
-  @ApiProperty() @IsString() agencyId: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() agencyId?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() photoUrl?: string;
   @ApiProperty() @IsString() addressLine1: string;
   @ApiPropertyOptional() @IsOptional() @IsString() addressLine2?: string;

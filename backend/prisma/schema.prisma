@@ -227,7 +227,7 @@ model Employee {
   licenseNumber    String?
   licenseCategory  String?
   yearsExperience  Int            @default(0)
-  agencyId         String
+  agencyId         String?
   photoUrl         String?
   addressLine1     String
   addressLine2     String?
@@ -241,7 +241,7 @@ model Employee {
   updatedAt        DateTime       @updatedAt
   deletedAt        DateTime?
 
-  agency         Agency                  @relation(fields: [agencyId], references: [id])
+  agency         Agency?                 @relation(fields: [agencyId], references: [id])
   workflowStages EmployeeWorkflowStage[]
   documents      Document[]              @relation("EmployeeDocuments")
   workPermits    WorkPermit[]

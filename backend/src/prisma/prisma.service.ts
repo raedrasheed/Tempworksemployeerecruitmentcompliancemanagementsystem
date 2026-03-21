@@ -5,10 +5,13 @@ import { Pool } from 'pg';
 
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
+  private readonly pool: Pool;
+
   constructor() {
     const pool = new Pool({ connectionString: process.env.DATABASE_URL });
     const adapter = new PrismaPg(pool as any);
     super({ adapter });
+    this.pool = pool;
   }
 
   async onModuleInit() {
@@ -17,18 +20,18 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   }
 
   private async dropPolymorphicFkConstraints() {
-    const constraints: Array<{ table: string; name: string }> = [
-      { table: 'documents', name: 'document_employee_fk' },
-      { table: 'documents', name: 'document_applicant_fk' },
-      { table: 'visas', name: 'visa_employee_fk' },
-      { table: 'visas', name: 'visa_applicant_fk' },
-      { table: 'compliance_alerts', name: 'alert_employee_fk' },
-      { table: 'compliance_alerts', name: 'alert_applicant_fk' },
-    ];
-    for (const { table, name } of constraints) {
-      await this.$executeRawUnsafe(
-        `ALTER TABLE "${table}" DROP CONSTRAINT IF EXISTS "${name}"`,
-      );
+    const client = await this.pool.connect();
+    try {
+      await client.query(`
+        ALTER TABLE "documents" DROP CONSTRAINT IF EXISTS "document_employee_fk";
+        ALTER TABLE "documents" DROP CONSTRAINT IF EXISTS "document_applicant_fk";
+        ALTER TABLE "visas" DROP CONSTRAINT IF EXISTS "visa_employee_fk";
+        ALTER TABLE "visas" DROP CONSTRAINT IF EXISTS "visa_applicant_fk";
+        ALTER TABLE "compliance_alerts" DROP CONSTRAINT IF EXISTS "alert_employee_fk";
+        ALTER TABLE "compliance_alerts" DROP CONSTRAINT IF EXISTS "alert_applicant_fk";
+      `);
+    } finally {
+      client.release();
     }
   }
 

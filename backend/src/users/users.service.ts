@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -10,11 +10,23 @@ import { PaginatedResponse } from '../common/dto/pagination-response.dto';
 export class UsersService {
   constructor(private prisma: PrismaService) {}
 
-  async findAll(query: PaginationDto & { roleId?: string; agencyId?: string; status?: string }) {
+  /** Returns the role name for a given roleId, or null. */
+  private async getRoleName(roleId: string): Promise<string | null> {
+    const role = await this.prisma.role.findUnique({ where: { id: roleId }, select: { name: true } });
+    return role?.name ?? null;
+  }
+
+  async findAll(query: PaginationDto & { roleId?: string; agencyId?: string; status?: string }, callerRole?: string) {
     const { page = 1, limit = 20, search, sortBy = 'createdAt', sortOrder = 'desc', roleId, agencyId, status } = query;
     const skip = (Number(page) - 1) * Number(limit);
 
     const where: any = { deletedAt: null };
+
+    // Non-admins must never see System Admin users in the list
+    if (callerRole !== 'System Admin') {
+      where.role = { name: { not: 'System Admin' } };
+    }
+
     if (search) {
       where.OR = [
         { firstName: { contains: search, mode: 'insensitive' } },
@@ -46,7 +58,7 @@ export class UsersService {
     return PaginatedResponse.create(data, total, page, limit);
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, callerRole?: string) {
     const user = await this.prisma.user.findFirst({
       where: { id, deletedAt: null },
       include: {
@@ -56,11 +68,24 @@ export class UsersService {
     });
     if (!user) throw new NotFoundException('User not found');
 
+    // Non-admins cannot view a System Admin user
+    if (callerRole !== 'System Admin' && (user as any).role?.name === 'System Admin') {
+      throw new NotFoundException('User not found');
+    }
+
     const { passwordHash, refreshToken, ...result } = user as any;
     return result;
   }
 
-  async create(dto: CreateUserDto) {
+  async create(dto: CreateUserDto, callerRole?: string) {
+    // Non-admins cannot create a System Admin user
+    if (callerRole !== 'System Admin' && dto.roleId) {
+      const roleName = await this.getRoleName(dto.roleId);
+      if (roleName === 'System Admin') {
+        throw new ForbiddenException('Only System Admins can create System Admin users');
+      }
+    }
+
     const existing = await this.prisma.user.findFirst({ where: { email: dto.email, deletedAt: null } });
     if (existing) throw new ConflictException('User with this email already exists');
 
@@ -83,8 +108,22 @@ export class UsersService {
     return result;
   }
 
-  async update(id: string, dto: UpdateUserDto) {
-    await this.findOne(id);
+  async update(id: string, dto: UpdateUserDto, callerRole?: string) {
+    const existing = await this.findOne(id, callerRole); // also enforces view restriction
+
+    // Non-admins cannot edit a System Admin user
+    if (callerRole !== 'System Admin' && existing.role?.name === 'System Admin') {
+      throw new ForbiddenException('Only System Admins can edit System Admin users');
+    }
+
+    // Non-admins cannot reassign a user to the System Admin role
+    if (callerRole !== 'System Admin' && dto.roleId) {
+      const roleName = await this.getRoleName(dto.roleId);
+      if (roleName === 'System Admin') {
+        throw new ForbiddenException('Only System Admins can assign the System Admin role');
+      }
+    }
+
     const user = await this.prisma.user.update({
       where: { id },
       data: dto as any,
@@ -94,8 +133,14 @@ export class UsersService {
     return result;
   }
 
-  async remove(id: string) {
-    await this.findOne(id);
+  async remove(id: string, callerRole?: string) {
+    const existing = await this.findOne(id, callerRole); // also enforces view restriction
+
+    // Non-admins cannot delete a System Admin user
+    if (callerRole !== 'System Admin' && existing.role?.name === 'System Admin') {
+      throw new ForbiddenException('Only System Admins can delete System Admin users');
+    }
+
     await this.prisma.user.update({ where: { id }, data: { deletedAt: new Date() } });
     return { message: 'User deleted successfully' };
   }

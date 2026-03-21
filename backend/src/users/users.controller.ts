@@ -21,8 +21,8 @@ export class UsersController {
   @ApiOperation({ summary: 'List all users with pagination and filters' })
   @ApiQuery({ name: 'roleId', required: false })
   @ApiQuery({ name: 'status', required: false })
-  findAll(@Query() query: PaginationDto & { roleId?: string; status?: string }) {
-    return this.usersService.findAll(query);
+  findAll(@Query() query: PaginationDto & { roleId?: string; status?: string }, @CurrentUser() caller: any) {
+    return this.usersService.findAll(query, caller?.role);
   }
 
   @Get('me')
@@ -35,16 +35,16 @@ export class UsersController {
   @Get(':id')
   @Roles('System Admin', 'HR Manager')
   @ApiOperation({ summary: 'Get user by ID' })
-  findOne(@Param('id') id: string) {
-    return this.usersService.findOne(id);
+  findOne(@Param('id') id: string, @CurrentUser() caller: any) {
+    return this.usersService.findOne(id, caller?.role);
   }
 
   @Post()
   @Roles('System Admin')
   @ApiOperation({ summary: 'Create new user' })
   @ApiResponse({ status: 201, description: 'User created successfully' })
-  create(@Body() dto: CreateUserDto) {
-    return this.usersService.create(dto);
+  create(@Body() dto: CreateUserDto, @CurrentUser() caller: any) {
+    return this.usersService.create(dto, caller?.role);
   }
 
   @Patch('me/profile')
@@ -57,14 +57,14 @@ export class UsersController {
   @Patch(':id')
   @Roles('System Admin')
   @ApiOperation({ summary: 'Update user' })
-  update(@Param('id') id: string, @Body() dto: UpdateUserDto) {
-    return this.usersService.update(id, dto);
+  update(@Param('id') id: string, @Body() dto: UpdateUserDto, @CurrentUser() caller: any) {
+    return this.usersService.update(id, dto, caller?.role);
   }
 
   @Delete(':id')
   @Roles('System Admin')
   @ApiOperation({ summary: 'Delete user (soft delete)' })
-  remove(@Param('id') id: string) {
-    return this.usersService.remove(id);
+  remove(@Param('id') id: string, @CurrentUser() caller: any) {
+    return this.usersService.remove(id, caller?.role);
   }
 }

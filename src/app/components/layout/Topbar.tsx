@@ -176,10 +176,21 @@ function ChangePasswordDialog({ open, onClose }: { open: boolean; onClose: () =>
 
 export function Topbar() {
   const navigate = useNavigate();
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    return (localStorage.getItem('theme') as 'light' | 'dark') || 'light';
+  });
   const [unreadCount, setUnreadCount] = useState(0);
   const [liveUser, setLiveUser] = useState<AuthUser | null>(getCurrentUser());
   const [showChangePassword, setShowChangePassword] = useState(false);
+
+  // Apply saved theme on mount and whenever it changes
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [theme]);
 
   useEffect(() => {
     // Fetch fresh profile data from the API
@@ -203,7 +214,7 @@ export function Topbar() {
   const toggleTheme = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
     setTheme(newTheme);
-    document.documentElement.classList.toggle('dark');
+    localStorage.setItem('theme', newTheme);
   };
 
   const displayName = liveUser ? `${liveUser.firstName} ${liveUser.lastName}` : 'User';
@@ -212,13 +223,13 @@ export function Topbar() {
   const avatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${liveUser?.firstName || 'User'}`;
 
   return (
-    <header className="h-16 bg-white border-b border-[#E2E8F0] px-6 flex items-center gap-4">
+    <header className="h-16 bg-card border-b border-border px-6 flex items-center gap-4">
       <div className="flex-1 max-w-2xl">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             placeholder="Search employees, applications, documents..."
-            className="pl-10 bg-[#F8FAFC] border-0"
+            className="pl-10 bg-muted border-0"
           />
         </div>
       </div>
@@ -228,7 +239,7 @@ export function Topbar() {
           <Button variant="ghost" size="icon" className="relative">
             <Bell className="w-5 h-5" />
             {unreadCount > 0 && (
-              <Badge className="absolute -top-1 -right-1 w-5 h-5 flex items-center justify-center p-0 bg-[#EF4444] text-white text-xs">
+              <Badge className="absolute -top-1 -right-1 w-5 h-5 flex items-center justify-center p-0 bg-destructive text-destructive-foreground text-xs">
                 {unreadCount > 99 ? '99+' : unreadCount}
               </Badge>
             )}
@@ -239,15 +250,15 @@ export function Topbar() {
           <Settings className="w-5 h-5" />
         </Button>
 
-        <div className="w-px h-8 bg-[#E2E8F0]" />
+        <div className="w-px h-8 bg-border" />
 
         {/* User Dropdown Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex items-center gap-3 hover:bg-[#F8FAFC] rounded-lg px-2 py-1.5 transition-colors">
+            <button className="flex items-center gap-3 hover:bg-accent rounded-lg px-2 py-1.5 transition-colors">
               <img src={avatar} alt={displayName} className="w-8 h-8 rounded-full" />
               <div className="text-left">
-                <p className="text-sm font-medium text-[#0F172A]">{displayName}</p>
+                <p className="text-sm font-medium text-foreground">{displayName}</p>
                 <p className="text-xs text-muted-foreground">{displayRole}</p>
               </div>
               <ChevronDown className="w-4 h-4 text-muted-foreground" />

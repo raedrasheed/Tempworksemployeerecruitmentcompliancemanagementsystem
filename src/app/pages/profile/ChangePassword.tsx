@@ -66,11 +66,6 @@ export function ChangePassword() {
       return;
     }
 
-    if (passwordStrength < 50) {
-      toast.error('Please choose a stronger password');
-      return;
-    }
-
     try {
       await authApi.changePassword(currentPassword, newPassword);
       setSuccessMessage(true);
@@ -80,7 +75,10 @@ export function ChangePassword() {
       toast.success('Password changed successfully');
       setTimeout(() => setSuccessMessage(false), 5000);
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to change password');
+      const msg = Array.isArray(err?.message)
+        ? err.message.join(', ')
+        : (err?.message || 'Failed to change password');
+      toast.error(msg);
     }
   };
 

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router';
 import { Camera, Save, Shield, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -298,7 +299,7 @@ export function Profile() {
                 <Label className="text-muted-foreground text-sm">Password</Label>
                 <p className="text-sm mt-1">••••••••••••</p>
                 <Button variant="outline" size="sm" className="mt-2" asChild>
-                  <a href="/dashboard/change-password">Change Password</a>
+                  <Link to="/dashboard/change-password">Change Password</Link>
                 </Button>
               </div>
             </CardContent>

@@ -40,10 +40,13 @@ function ChangePasswordDialog({ open, onClose }: { open: boolean; onClose: () =>
     return Math.min(s, 100);
   })();
 
-  const strengthLabel = strength < 25 ? { text: 'Weak', color: 'text-red-500' }
-    : strength < 50 ? { text: 'Fair', color: 'text-amber-500' }
-    : strength < 75 ? { text: 'Good', color: 'text-blue-500' }
-    : { text: 'Strong', color: 'text-green-500' };
+  const strengthLabel = strength < 25
+    ? { text: 'Weak',   textColor: 'text-red-500',   barColor: 'bg-red-500' }
+    : strength < 50
+    ? { text: 'Fair',   textColor: 'text-amber-500', barColor: 'bg-amber-500' }
+    : strength < 75
+    ? { text: 'Good',   textColor: 'text-blue-500',  barColor: 'bg-blue-500' }
+    : { text: 'Strong', textColor: 'text-green-500', barColor: 'bg-green-500' };
 
   const handleClose = () => {
     setCurrentPassword('');
@@ -57,7 +60,6 @@ function ChangePasswordDialog({ open, onClose }: { open: boolean; onClose: () =>
     if (!currentPassword) { toast.error('Enter your current password'); return; }
     if (newPassword.length < 8) { toast.error('New password must be at least 8 characters'); return; }
     if (newPassword !== confirmPassword) { toast.error('Passwords do not match'); return; }
-    if (strength < 50) { toast.error('Please choose a stronger password'); return; }
 
     setLoading(true);
     try {
@@ -65,7 +67,10 @@ function ChangePasswordDialog({ open, onClose }: { open: boolean; onClose: () =>
       toast.success('Password changed successfully');
       handleClose();
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to change password');
+      const msg = Array.isArray(err?.message)
+        ? err.message.join(', ')
+        : (err?.message || 'Failed to change password');
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -119,11 +124,11 @@ function ChangePasswordDialog({ open, onClose }: { open: boolean; onClose: () =>
                 <div className="flex gap-1 flex-1 mr-3">
                   {[25, 50, 75, 100].map((threshold) => (
                     <div key={threshold}
-                      className={`h-1 flex-1 rounded-full ${strength >= threshold ? strengthLabel.color.replace('text-', 'bg-') : 'bg-muted'}`}
+                      className={`h-1 flex-1 rounded-full ${strength >= threshold ? strengthLabel.barColor : 'bg-muted'}`}
                     />
                   ))}
                 </div>
-                <span className={strengthLabel.color}>{strengthLabel.text}</span>
+                <span className={strengthLabel.textColor}>{strengthLabel.text}</span>
               </div>
             )}
           </div>

@@ -11,7 +11,7 @@ export class NotificationsService {
   async findAll(userId: string, pagination: PaginationDto) {
     const { page = 1, limit = 20 } = pagination;
     const skip = (Number(page) - 1) * Number(limit);
-    const where = { userId };
+    const where = { userId, deletedAt: null };
     const [items, total] = await Promise.all([
       this.prisma.notification.findMany({
         where, skip, take: Number(limit), orderBy: { createdAt: 'desc' },
@@ -22,7 +22,7 @@ export class NotificationsService {
   }
 
   async getUnreadCount(userId: string) {
-    const count = await this.prisma.notification.count({ where: { userId, isRead: false } });
+    const count = await this.prisma.notification.count({ where: { userId, isRead: false, deletedAt: null } });
     return { count };
   }
 
@@ -44,9 +44,9 @@ export class NotificationsService {
   }
 
   async delete(id: string, userId: string) {
-    const notification = await this.prisma.notification.findFirst({ where: { id, userId } });
+    const notification = await this.prisma.notification.findFirst({ where: { id, userId, deletedAt: null } });
     if (!notification) throw new NotFoundException('Notification not found');
-    await this.prisma.notification.delete({ where: { id } });
+    await this.prisma.notification.update({ where: { id }, data: { deletedAt: new Date() } });
     return { message: 'Notification deleted' };
   }
 

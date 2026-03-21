@@ -52,7 +52,7 @@ export class LogsService {
     const { page = 1, limit = 20, search } = pagination;
     const skip = (Number(page) - 1) * Number(limit);
 
-    const where: any = {};
+    const where: any = { deletedAt: null };
 
     // ── Scope restriction ────────────────────────────────────────────────────
     if (scope) {
@@ -110,7 +110,7 @@ export class LogsService {
     const last7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
     // Build the base scope filter
-    let scopeWhere: any = {};
+    let scopeWhere: any = { deletedAt: null };
     if (scope) {
       const visibleIds = await this.resolveVisibleUserIds(scope);
       if (visibleIds !== undefined) {
@@ -156,14 +156,15 @@ export class LogsService {
       if (filters.fromDate) where.createdAt.gte = new Date(filters.fromDate);
       if (filters.toDate) where.createdAt.lte = new Date(filters.toDate);
     }
-    const { count } = await this.prisma.auditLog.deleteMany({ where });
+    where.deletedAt = null;
+    const { count } = await this.prisma.auditLog.updateMany({ where, data: { deletedAt: new Date() } });
     return { deleted: count, message: `${count} log entries deleted` };
   }
 
   async deleteOne(id: string) {
-    const log = await this.prisma.auditLog.findUnique({ where: { id } });
+    const log = await this.prisma.auditLog.findFirst({ where: { id, deletedAt: null } });
     if (!log) return { message: 'Not found' };
-    await this.prisma.auditLog.delete({ where: { id } });
+    await this.prisma.auditLog.update({ where: { id }, data: { deletedAt: new Date() } });
     return { message: 'Log entry deleted' };
   }
 }

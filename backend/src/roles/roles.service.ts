@@ -12,9 +12,10 @@ export class RolesService {
 
   async findAll(callerRole?: string) {
     const isAdmin = callerRole === 'System Admin';
-    const where = callerRole === 'Agency Manager'
+    const roleFilter = callerRole === 'Agency Manager'
       ? { name: 'Agency User' }
-      : isAdmin ? undefined : { NOT: { name: 'System Admin' } };
+      : isAdmin ? {} : { NOT: { name: 'System Admin' } };
+    const where = { ...roleFilter, deletedAt: null };
 
     return this.prisma.role.findMany({
       where,
@@ -27,8 +28,8 @@ export class RolesService {
   }
 
   async findOne(id: string) {
-    const role = await this.prisma.role.findUnique({
-      where: { id },
+    const role = await this.prisma.role.findFirst({
+      where: { id, deletedAt: null },
       include: {
         permissions: { include: { permission: true } },
         _count: { select: { users: true } },
@@ -97,7 +98,7 @@ export class RolesService {
   async remove(id: string, actorId?: string) {
     const role = await this.findOne(id);
     if (role.isSystem) throw new BadRequestException('Cannot delete system roles');
-    await this.prisma.role.delete({ where: { id } });
+    await this.prisma.role.update({ where: { id }, data: { deletedAt: new Date() } });
 
     await this.auditLog.log({
       userId: actorId,

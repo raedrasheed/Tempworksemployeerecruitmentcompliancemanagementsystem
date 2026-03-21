@@ -228,7 +228,7 @@ export class SettingsService {
 
   // ─── Notification Rules ──────────────────────────────────────────────────────
   async findNotificationRules() {
-    return this.prisma.notificationRule.findMany({ orderBy: { name: 'asc' } });
+    return this.prisma.notificationRule.findMany({ where: { deletedAt: null }, orderBy: { name: 'asc' } });
   }
 
   async createNotificationRule(dto: CreateNotificationRuleDto, actorId?: string) {
@@ -260,7 +260,7 @@ export class SettingsService {
   async deleteNotificationRule(id: string, actorId?: string) {
     const rule = await this.prisma.notificationRule.findUnique({ where: { id } });
     if (!rule) throw new NotFoundException('Notification rule not found');
-    await this.prisma.notificationRule.delete({ where: { id } });
+    await this.prisma.notificationRule.update({ where: { id }, data: { deletedAt: new Date() } });
     await this.auditLog.log({
       userId: actorId,
       action: 'DELETE',

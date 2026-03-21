@@ -128,7 +128,7 @@ export class ApplicationsService {
 
   async remove(id: string, deletedById?: string) {
     await this.findOne(id);
-    await this.prisma.application.delete({ where: { id } });
+    await this.prisma.application.update({ where: { id }, data: { deletedAt: new Date() } });
     if (deletedById) {
       await this.prisma.auditLog.create({
         data: { userId: deletedById, action: 'DELETE', entity: 'Application', entityId: id },

@@ -17,12 +17,12 @@ export class UsersController {
   constructor(private usersService: UsersService) {}
 
   @Get()
-  @Roles('System Admin', 'HR Manager', 'Read Only')
+  @Roles('System Admin', 'HR Manager', 'Read Only', 'Agency Manager')
   @ApiOperation({ summary: 'List all users with pagination and filters' })
   @ApiQuery({ name: 'roleId', required: false })
   @ApiQuery({ name: 'status', required: false })
   findAll(@Query() query: PaginationDto & { roleId?: string; status?: string }, @CurrentUser() caller: any) {
-    return this.usersService.findAll(query, caller?.role);
+    return this.usersService.findAll(query, caller?.role, caller?.agencyId);
   }
 
   @Get('me')
@@ -33,10 +33,10 @@ export class UsersController {
   }
 
   @Get(':id')
-  @Roles('System Admin', 'HR Manager')
+  @Roles('System Admin', 'HR Manager', 'Agency Manager')
   @ApiOperation({ summary: 'Get user by ID' })
   findOne(@Param('id') id: string, @CurrentUser() caller: any) {
-    return this.usersService.findOne(id, caller?.role);
+    return this.usersService.findOne(id, caller?.role, caller?.agencyId);
   }
 
   @Post()

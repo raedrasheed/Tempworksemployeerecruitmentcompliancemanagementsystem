@@ -19,14 +19,27 @@ export class UsersService {
     return role?.name ?? null;
   }
 
-  async findAll(query: PaginationDto & { roleId?: string; agencyId?: string; status?: string }, callerRole?: string) {
-    const { page = 1, limit = 20, search, sortBy = 'createdAt', sortOrder = 'desc', roleId, agencyId, status } = query;
+  async findAll(
+    query: PaginationDto & { roleId?: string; agencyId?: string; status?: string },
+    callerRole?: string,
+    callerAgencyId?: string,
+  ) {
+    const { page = 1, limit = 20, search, sortBy = 'createdAt', sortOrder = 'desc', roleId, status } = query;
     const skip = (Number(page) - 1) * Number(limit);
 
     const where: any = { deletedAt: null };
 
-    if (callerRole !== 'System Admin') {
-      where.AND = [{ role: { name: { not: 'System Admin' } } }];
+    // Agency Managers can only see users inside their own agency
+    if (callerRole === 'Agency Manager') {
+      if (!callerAgencyId) throw new ForbiddenException('Agency Manager has no agency assigned');
+      where.agencyId = callerAgencyId;
+    } else {
+      // Non-admins cannot see System Admin accounts
+      if (callerRole !== 'System Admin') {
+        where.AND = [{ role: { name: { not: 'System Admin' } } }];
+      }
+      // Allow explicit agencyId filter for admins/HR
+      if (query.agencyId) where.agencyId = query.agencyId;
     }
 
     if (search) {
@@ -37,7 +50,6 @@ export class UsersService {
       ];
     }
     if (roleId) where.roleId = roleId;
-    if (agencyId) where.agencyId = agencyId;
     if (status) where.status = status;
 
     const [data, total] = await Promise.all([
@@ -60,7 +72,7 @@ export class UsersService {
     return PaginatedResponse.create(data, total, page, limit);
   }
 
-  async findOne(id: string, callerRole?: string) {
+  async findOne(id: string, callerRole?: string, callerAgencyId?: string) {
     const user = await this.prisma.user.findFirst({
       where: { id, deletedAt: null },
       include: {
@@ -69,6 +81,11 @@ export class UsersService {
       },
     });
     if (!user) throw new NotFoundException('User not found');
+
+    // Agency Managers can only view users inside their own agency
+    if (callerRole === 'Agency Manager' && user.agencyId !== callerAgencyId) {
+      throw new NotFoundException('User not found');
+    }
 
     if (callerRole !== 'System Admin' && (user as any).role?.name === 'System Admin') {
       throw new NotFoundException('User not found');

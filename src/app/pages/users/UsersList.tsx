@@ -8,6 +8,7 @@ import { Input } from '../../components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { usersApi } from '../../services/api';
 import { FilterSystem, Column, FilterRule, FilterPreset } from '../../components/filters/FilterSystem';
+import { usePermissions } from '../../hooks/usePermissions';
 
 const userColumns: Column[] = [
   { id: 'firstName', label: 'First Name', type: 'text' },
@@ -17,6 +18,7 @@ const userColumns: Column[] = [
 ];
 
 export function UsersList() {
+  const { canCreate, canEdit } = usePermissions();
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -65,12 +67,14 @@ export function UsersList() {
           <h1 className="text-3xl font-semibold text-[#0F172A]">User Management</h1>
           <p className="text-muted-foreground mt-1">Manage system users and permissions</p>
         </div>
-        <Button asChild>
-          <Link to="/dashboard/users/add">
-            <Plus className="w-4 h-4 mr-2" />
-            Add User
-          </Link>
-        </Button>
+        {canCreate('users') && (
+          <Button asChild>
+            <Link to="/dashboard/users/add">
+              <Plus className="w-4 h-4 mr-2" />
+              Add User
+            </Link>
+          </Button>
+        )}
       </div>
 
       <Card>
@@ -148,12 +152,14 @@ export function UsersList() {
                       {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString() : '—'}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" asChild>
-                        <Link to={`/dashboard/users/${user.id}/edit`}>
-                          <Edit className="w-4 h-4 mr-2" />
-                          Edit
-                        </Link>
-                      </Button>
+                      {canEdit('users') && (
+                        <Button variant="ghost" size="sm" asChild>
+                          <Link to={`/dashboard/users/${user.id}/edit`}>
+                            <Edit className="w-4 h-4 mr-2" />
+                            Edit
+                          </Link>
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}

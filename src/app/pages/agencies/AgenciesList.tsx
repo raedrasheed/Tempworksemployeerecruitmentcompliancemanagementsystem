@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { agenciesApi } from '../../services/api';
 import { FilterSystem, Column, FilterRule, FilterPreset } from '../../components/filters/FilterSystem';
+import { usePermissions } from '../../hooks/usePermissions';
 
 const agencyColumns: Column[] = [
   { id: 'name', label: 'Agency Name', type: 'text' },
@@ -28,6 +29,7 @@ const getStatusBadge = (status: string) => {
 };
 
 export function AgenciesList() {
+  const { canCreate } = usePermissions();
   const [agencies, setAgencies] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -72,12 +74,14 @@ export function AgenciesList() {
           <h1 className="text-3xl font-semibold text-[#0F172A]">Agencies</h1>
           <p className="text-muted-foreground mt-1">Manage recruitment agency partnerships</p>
         </div>
-        <Button asChild>
-          <Link to="/dashboard/agencies/add">
-            <Plus className="w-4 h-4 mr-2" />
-            Add Agency
-          </Link>
-        </Button>
+        {canCreate('agencies') && (
+          <Button asChild>
+            <Link to="/dashboard/agencies/add">
+              <Plus className="w-4 h-4 mr-2" />
+              Add Agency
+            </Link>
+          </Button>
+        )}
       </div>
 
       <Card>

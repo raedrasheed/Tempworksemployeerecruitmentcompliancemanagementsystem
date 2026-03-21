@@ -16,8 +16,10 @@ import {
 } from '../../components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { rolesApi } from '../../services/api';
+import { usePermissions } from '../../hooks/usePermissions';
 
 export function RolesList() {
+  const { canCreate, canEdit, canDelete } = usePermissions();
   const [roles, setRoles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
@@ -73,12 +75,14 @@ export function RolesList() {
               Permissions Matrix
             </Link>
           </Button>
-          <Button asChild>
-            <Link to="/dashboard/roles/create">
-              <Plus className="w-4 h-4 mr-2" />
-              Create Role
-            </Link>
-          </Button>
+          {canCreate('roles') && (
+            <Button asChild>
+              <Link to="/dashboard/roles/create">
+                <Plus className="w-4 h-4 mr-2" />
+                Create Role
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
 
@@ -199,13 +203,15 @@ export function RolesList() {
                     </div>
 
                     <div className="flex items-center gap-2 ml-4">
-                      <Button size="sm" variant="outline" asChild>
-                        <Link to={`/dashboard/roles/${role.id}/edit`}>
-                          <Edit className="w-4 h-4 mr-1" />
-                          Edit
-                        </Link>
-                      </Button>
-                      {!role.isSystem && (
+                      {canEdit('roles') && (
+                        <Button size="sm" variant="outline" asChild>
+                          <Link to={`/dashboard/roles/${role.id}/edit`}>
+                            <Edit className="w-4 h-4 mr-1" />
+                            Edit
+                          </Link>
+                        </Button>
+                      )}
+                      {canDelete('roles') && !role.isSystem && (
                         <Button
                           size="sm"
                           variant="ghost"

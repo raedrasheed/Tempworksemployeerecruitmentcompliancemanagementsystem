@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { applicantsApi } from '../../services/api';
+import { usePermissions } from '../../hooks/usePermissions';
 import { Link } from 'react-router';
 import { Search, Plus, Eye, Edit, UserPlus, Download } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
@@ -96,6 +97,7 @@ const getStatusColor = (status: string) => {
 };
 
 export function ApplicantsList() {
+  const { canCreate, canEdit } = usePermissions();
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilters, setActiveFilters] = useState<FilterRule[]>([]);
   const [filterLogic, setFilterLogic] = useState<'AND' | 'OR'>('AND');
@@ -232,12 +234,14 @@ export function ApplicantsList() {
             Manage job applicants and convert them to employees
           </p>
         </div>
-        <Button asChild>
-          <Link to="/dashboard/applicants/add">
-            <Plus className="w-4 h-4 mr-2" />
-            Add Applicant
-          </Link>
-        </Button>
+        {canCreate('applicants') && (
+          <Button asChild>
+            <Link to="/dashboard/applicants/add">
+              <Plus className="w-4 h-4 mr-2" />
+              Add Applicant
+            </Link>
+          </Button>
+        )}
       </div>
 
       {/* Stats Cards */}
@@ -407,12 +411,14 @@ export function ApplicantsList() {
                             <Eye className="w-4 h-4" />
                           </Link>
                         </Button>
-                        <Button variant="ghost" size="sm" asChild>
-                          <Link to={`/dashboard/applicants/${applicant.id}/edit`}>
-                            <Edit className="w-4 h-4" />
-                          </Link>
-                        </Button>
-                        {applicant.status === 'Accepted' && (
+                        {canEdit('applicants') && (
+                          <Button variant="ghost" size="sm" asChild>
+                            <Link to={`/dashboard/applicants/${applicant.id}/edit`}>
+                              <Edit className="w-4 h-4" />
+                            </Link>
+                          </Button>
+                        )}
+                        {canCreate('employees') && applicant.status === 'Accepted' && (
                           <Button variant="ghost" size="sm" className="text-green-600">
                             <UserPlus className="w-4 h-4" />
                           </Button>

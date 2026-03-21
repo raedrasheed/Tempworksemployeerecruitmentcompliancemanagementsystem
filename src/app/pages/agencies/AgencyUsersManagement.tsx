@@ -9,6 +9,7 @@ import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../../components/ui/dialog';
 import { mockAgencies } from '../../data/mockData';
+import { usePermissions } from '../../hooks/usePermissions';
 
 interface AgencyUser {
   id: string;
@@ -60,6 +61,7 @@ const mockAgencyUsers: AgencyUser[] = [
 ];
 
 export function AgencyUsersManagement() {
+  const { canCreate, canEdit, canDelete } = usePermissions();
   const { id } = useParams();
   const agency = mockAgencies.find(a => a.id === id);
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
@@ -100,12 +102,14 @@ export function AgencyUsersManagement() {
           <p className="text-muted-foreground mt-1">{agency.name} • Manage agency user accounts</p>
         </div>
         <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
-          <DialogTrigger asChild>
-            <Button disabled={!canAddMore}>
-              <Plus className="w-4 h-4 mr-2" />
-              Add User
-            </Button>
-          </DialogTrigger>
+          {canCreate('agencies') && (
+            <DialogTrigger asChild>
+              <Button disabled={!canAddMore}>
+                <Plus className="w-4 h-4 mr-2" />
+                Add User
+              </Button>
+            </DialogTrigger>
+          )}
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>Add New Agency User</DialogTitle>
@@ -271,12 +275,16 @@ export function AgencyUsersManagement() {
                     <td className="p-4 text-sm">{user.createdDate}</td>
                     <td className="p-4">
                       <div className="flex items-center gap-2">
-                        <Button size="sm" variant="ghost">
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button size="sm" variant="ghost">
-                          <Trash2 className="w-4 h-4 text-[#EF4444]" />
-                        </Button>
+                        {canEdit('agencies') && (
+                          <Button size="sm" variant="ghost">
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                        )}
+                        {canDelete('agencies') && (
+                          <Button size="sm" variant="ghost">
+                            <Trash2 className="w-4 h-4 text-[#EF4444]" />
+                          </Button>
+                        )}
                       </div>
                     </td>
                   </tr>

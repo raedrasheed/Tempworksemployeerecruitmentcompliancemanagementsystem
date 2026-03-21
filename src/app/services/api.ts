@@ -38,6 +38,7 @@ export interface AuthUser {
   lastName: string;
   role: string;
   agencyId?: string;
+  permissions?: string[];
 }
 
 export interface PaginationMeta {
@@ -145,8 +146,15 @@ export const authApi = {
       { method: 'POST', body: JSON.stringify({ email, password }) },
     );
     setTokens(data.accessToken, data.refreshToken);
-    setCurrentUser(data.user);
-    return data;
+    // Fetch full profile including permissions
+    try {
+      const fullUser = await apiFetch<AuthUser>('/auth/me');
+      setCurrentUser(fullUser);
+      return { ...data, user: fullUser };
+    } catch {
+      setCurrentUser(data.user);
+      return data;
+    }
   },
 
   logout: async () => {

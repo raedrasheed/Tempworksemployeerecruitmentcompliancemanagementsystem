@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { usePermissions } from '../../hooks/usePermissions';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
@@ -36,6 +37,7 @@ interface JobType {
 }
 
 export function JobTypes() {
+  const { canCreate, canEdit, canDelete } = usePermissions();
   const [searchQuery, setSearchQuery] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingJobType, setEditingJobType] = useState<JobType | null>(null);
@@ -252,15 +254,17 @@ export function JobTypes() {
         </div>
         
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button 
-              className="bg-[#2563EB] hover:bg-[#1d4ed8]"
-              onClick={() => handleOpenDialog()}
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add Job Type
-            </Button>
-          </DialogTrigger>
+          {canCreate('settings') && (
+            <DialogTrigger asChild>
+              <Button
+                className="bg-[#2563EB] hover:bg-[#1d4ed8]"
+                onClick={() => handleOpenDialog()}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Job Type
+              </Button>
+            </DialogTrigger>
+          )}
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>
@@ -398,40 +402,46 @@ export function JobTypes() {
                 </div>
 
                 <div className="flex items-center gap-2 ml-4">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleToggleActive(jobType.id)}
-                  >
-                    {jobType.isActive ? (
-                      <>
-                        <XCircle className="w-4 h-4 mr-1" />
-                        Deactivate
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle className="w-4 h-4 mr-1" />
-                        Activate
-                      </>
-                    )}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleOpenDialog(jobType)}
-                  >
-                    <Pencil className="w-4 h-4 mr-1" />
-                    Edit
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleDeleteJobType(jobType.id)}
-                    disabled={jobType.totalEmployees > 0}
-                  >
-                    <Trash2 className="w-4 h-4 mr-1" />
-                    Delete
-                  </Button>
+                  {canEdit('settings') && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleToggleActive(jobType.id)}
+                    >
+                      {jobType.isActive ? (
+                        <>
+                          <XCircle className="w-4 h-4 mr-1" />
+                          Deactivate
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle className="w-4 h-4 mr-1" />
+                          Activate
+                        </>
+                      )}
+                    </Button>
+                  )}
+                  {canEdit('settings') && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleOpenDialog(jobType)}
+                    >
+                      <Pencil className="w-4 h-4 mr-1" />
+                      Edit
+                    </Button>
+                  )}
+                  {canDelete('settings') && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDeleteJobType(jobType.id)}
+                      disabled={jobType.totalEmployees > 0}
+                    >
+                      <Trash2 className="w-4 h-4 mr-1" />
+                      Delete
+                    </Button>
+                  )}
                 </div>
               </div>
             </CardContent>

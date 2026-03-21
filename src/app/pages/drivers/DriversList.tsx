@@ -15,6 +15,7 @@ import {
 } from '../../components/ui/table';
 import { FilterSystem, Column, FilterRule, FilterPreset } from '../../components/filters/FilterSystem';
 import { employeesApi } from '../../services/api';
+import { usePermissions } from '../../hooks/usePermissions';
 
 // Define columns for the filter system
 const employeeColumns: Column[] = [
@@ -31,6 +32,7 @@ const employeeColumns: Column[] = [
 ];
 
 export function DriversList() {
+  const { canCreate, canEdit } = usePermissions();
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilters, setActiveFilters] = useState<FilterRule[]>([]);
   const [filterLogic, setFilterLogic] = useState<'AND' | 'OR'>('AND');
@@ -171,12 +173,14 @@ export function DriversList() {
           <h1 className="text-3xl font-semibold text-[#0F172A]">Employees</h1>
           <p className="text-muted-foreground mt-1">Manage and track all employees in the system</p>
         </div>
-        <Button asChild>
-          <Link to="/dashboard/employees/add">
-            <Plus className="w-4 h-4 mr-2" />
-            Add Employee
-          </Link>
-        </Button>
+        {canCreate('employees') && (
+          <Button asChild>
+            <Link to="/dashboard/employees/add">
+              <Plus className="w-4 h-4 mr-2" />
+              Add Employee
+            </Link>
+          </Button>
+        )}
       </div>
 
       <Card>
@@ -285,12 +289,21 @@ export function DriversList() {
                       </span>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" asChild>
-                        <Link to={`/dashboard/employees/${driver.id}`}>
-                          <Eye className="w-4 h-4 mr-2" />
-                          View
-                        </Link>
-                      </Button>
+                      <div className="flex items-center justify-end gap-1">
+                        <Button variant="ghost" size="sm" asChild>
+                          <Link to={`/dashboard/employees/${driver.id}`}>
+                            <Eye className="w-4 h-4 mr-2" />
+                            View
+                          </Link>
+                        </Button>
+                        {canEdit('employees') && (
+                          <Button variant="ghost" size="sm" asChild>
+                            <Link to={`/dashboard/employees/${driver.id}/edit`}>
+                              Edit
+                            </Link>
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

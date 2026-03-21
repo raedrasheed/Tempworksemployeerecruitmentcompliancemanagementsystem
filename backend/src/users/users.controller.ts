@@ -40,11 +40,11 @@ export class UsersController {
   }
 
   @Post()
-  @Roles('System Admin')
+  @Roles('System Admin', 'Agency Manager')
   @ApiOperation({ summary: 'Create new user' })
   @ApiResponse({ status: 201, description: 'User created successfully' })
   create(@Body() dto: CreateUserDto, @CurrentUser() caller: any) {
-    return this.usersService.create(dto, caller?.role);
+    return this.usersService.create(dto, caller?.role, caller?.agencyId);
   }
 
   @Patch('me/profile')

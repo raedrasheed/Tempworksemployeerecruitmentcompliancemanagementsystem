@@ -7,12 +7,16 @@ import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { toast } from 'sonner';
-import { usersApi, rolesApi, agenciesApi } from '../../services/api';
+import { usersApi, rolesApi, agenciesApi, getCurrentUser } from '../../services/api';
 
 export function AddUser() {
   const navigate = useNavigate();
+  const currentUser = getCurrentUser();
+  const isAgencyManager = currentUser?.role === 'Agency Manager';
+
   const [roles, setRoles] = useState<any[]>([]);
   const [agencies, setAgencies] = useState<any[]>([]);
+  const [myAgency, setMyAgency] = useState<any>(null);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
     firstName: '',
@@ -21,19 +25,26 @@ export function AddUser() {
     password: '',
     phone: '',
     roleId: '',
-    agencyId: '',
+    // Agency Managers are locked to their own agency
+    agencyId: isAgencyManager ? (currentUser?.agencyId ?? '') : '',
   });
 
   useEffect(() => {
-    Promise.all([
-      rolesApi.list(),
-      agenciesApi.list({ limit: 100 }),
-    ]).then(([roleList, agencyPage]) => {
-      setRoles(roleList ?? []);
-      setAgencies(agencyPage?.data ?? []);
-    }).catch(() => {
-      toast.error('Failed to load roles or agencies');
-    });
+    const agencyFetch = isAgencyManager && currentUser?.agencyId
+      ? agenciesApi.get(currentUser.agencyId)
+      : agenciesApi.list({ limit: 100 });
+
+    Promise.all([rolesApi.list(), agencyFetch])
+      .then(([roleList, agencyResult]) => {
+        setRoles(roleList ?? []);
+        if (isAgencyManager) {
+          setMyAgency(agencyResult);
+        } else {
+          setAgencies((agencyResult as any)?.data ?? []);
+        }
+      }).catch(() => {
+        toast.error('Failed to load roles or agencies');
+      });
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -122,22 +133,30 @@ export function AddUser() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="agency">Agency *</Label>
-                <Select value={form.agencyId} onValueChange={val => setForm(prev => ({ ...prev, agencyId: val }))} required>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select agency" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {agencies.length > 0 ? (
-                      agencies.map((agency: any) => (
-                        <SelectItem key={agency.id} value={agency.id}>
-                          {agency.name} — {agency.country}
-                        </SelectItem>
-                      ))
-                    ) : (
-                      <SelectItem value="placeholder" disabled>Loading agencies...</SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
+                {isAgencyManager ? (
+                  <Input
+                    value={myAgency ? `${myAgency.name} — ${myAgency.country}` : 'Loading...'}
+                    disabled
+                    className="bg-muted text-muted-foreground cursor-not-allowed"
+                  />
+                ) : (
+                  <Select value={form.agencyId} onValueChange={val => setForm(prev => ({ ...prev, agencyId: val }))} required>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select agency" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {agencies.length > 0 ? (
+                        agencies.map((agency: any) => (
+                          <SelectItem key={agency.id} value={agency.id}>
+                            {agency.name} — {agency.country}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="placeholder" disabled>Loading agencies...</SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
             </CardContent>
           </Card>

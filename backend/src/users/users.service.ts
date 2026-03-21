@@ -78,13 +78,19 @@ export class UsersService {
     return result;
   }
 
-  async create(dto: CreateUserDto, callerRole?: string) {
+  async create(dto: CreateUserDto, callerRole?: string, callerAgencyId?: string) {
     // Non-admins cannot create a System Admin user
     if (callerRole !== 'System Admin' && dto.roleId) {
       const roleName = await this.getRoleName(dto.roleId);
       if (roleName === 'System Admin') {
         throw new ForbiddenException('Only System Admins can create System Admin users');
       }
+    }
+
+    // Agency Managers can only create users for their own agency
+    if (callerRole === 'Agency Manager') {
+      if (!callerAgencyId) throw new ForbiddenException('Agency Manager has no agency assigned');
+      dto.agencyId = callerAgencyId;
     }
 
     const existing = await this.prisma.user.findFirst({ where: { email: dto.email, deletedAt: null } });

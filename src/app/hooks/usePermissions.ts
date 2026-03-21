@@ -1,12 +1,13 @@
-import { getCurrentUser } from '../services/api';
+import { useAuthContext } from '../contexts/AuthContext';
 
 /**
  * Provides permission helpers based on the current user's permissions array.
  * Permissions are stored as "module:action" strings (e.g. "employees:create").
  * System Admins bypass all permission checks.
+ * Reads from reactive AuthContext so changes reflect immediately on re-render.
  */
 export function usePermissions() {
-  const user = getCurrentUser();
+  const { user } = useAuthContext();
   const permissions = user?.permissions ?? [];
   const isAdmin = user?.role === 'System Admin';
 

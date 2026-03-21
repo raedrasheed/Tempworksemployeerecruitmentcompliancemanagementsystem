@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react';
 import { Outlet, useNavigate } from 'react-router';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
-import { authApi, getCurrentUser, setCurrentUser, clearTokens } from '../../services/api';
+import { authApi, getCurrentUser, clearTokens } from '../../services/api';
+import { useAuthContext } from '../../contexts/AuthContext';
 
 export function MainLayout() {
   const navigate = useNavigate();
+  const { updateUser } = useAuthContext();
   const [ready, setReady] = useState(false);
 
   // Load collapsed state from localStorage or default to false
@@ -23,9 +25,9 @@ export function MainLayout() {
       return;
     }
     authApi.me()
-      .then((freshUser) => setCurrentUser(freshUser))
+      .then((freshUser) => updateUser(freshUser))
       .catch(() => {
-        // Keep stale data if /auth/me fails (e.g. offline); errors handled by token refresh
+        // Keep stale data if /auth/me fails; token refresh errors redirect to login
       })
       .finally(() => setReady(true));
   // eslint-disable-next-line react-hooks/exhaustive-deps

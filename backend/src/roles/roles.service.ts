@@ -7,10 +7,16 @@ export class RolesService {
   constructor(private prisma: PrismaService) {}
 
   async findAll(callerRole?: string) {
-    // Agency Managers may only assign the Agency User role
-    const nameFilter = callerRole === 'Agency Manager' ? { name: 'Agency User' } : undefined;
+    const isAdmin = callerRole === 'System Admin';
+
+    // Agency Managers may only assign the Agency User role.
+    // Everyone else (except System Admin) cannot see or assign the System Admin role.
+    const where = callerRole === 'Agency Manager'
+      ? { name: 'Agency User' }
+      : isAdmin ? undefined : { NOT: { name: 'System Admin' } };
+
     return this.prisma.role.findMany({
-      where: nameFilter,
+      where,
       include: {
         permissions: { include: { permission: true } },
         _count: { select: { users: true } },

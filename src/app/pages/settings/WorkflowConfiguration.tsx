@@ -45,27 +45,11 @@ export function WorkflowConfiguration() {
 
   // New item inputs (selected from dropdowns)
   const [newDocument, setNewDocument] = useState('');
-  const [newAction, setNewAction] = useState('');
   const [newApproval, setNewApproval] = useState('');
 
   // Available options for dropdowns
   const [documentTypes, setDocumentTypes] = useState<{ id: string; name: string }[]>([]);
   const [roles, setRoles] = useState<{ id: string; name: string }[]>([]);
-
-  const PREDEFINED_ACTIONS = [
-    'Background Check',
-    'Drug Test',
-    'Reference Check',
-    'Skills Assessment',
-    'Medical Examination',
-    'License Verification',
-    'ID Verification',
-    'Interview',
-    'Training Completion',
-    'Contract Signing',
-    'Orientation Session',
-    'Security Clearance',
-  ];
 
   const draggedId = useRef<string | null>(null);
 
@@ -185,7 +169,6 @@ export function WorkflowConfiguration() {
       approvals: [...stage.requirementsApprovals],
     });
     setNewDocument('');
-    setNewAction('');
     setNewApproval('');
     setIsEditRequirementsOpen(true);
 
@@ -487,45 +470,6 @@ export function WorkflowConfiguration() {
                     >
                       <Plus className="w-4 h-4 mr-1" />
                       Add Document
-                    </Button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Required Actions */}
-              <div>
-                <Label>Required Actions</Label>
-                <div className="space-y-2 mt-2">
-                  {requirements.actions.map((action, idx) => (
-                    <div key={idx} className="flex items-center gap-2">
-                      <div className="flex-1 px-3 py-2 border rounded-md bg-muted/40 text-sm">{action}</div>
-                      <Button size="sm" variant="ghost" onClick={() => removeItem('actions', idx)}>
-                        <Trash2 className="w-4 h-4 text-[#EF4444]" />
-                      </Button>
-                    </div>
-                  ))}
-                  <div className="flex items-center gap-2">
-                    <Select value={newAction} onValueChange={setNewAction}>
-                      <SelectTrigger className="flex-1">
-                        <SelectValue placeholder="Select an action…" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {PREDEFINED_ACTIONS
-                          .filter(a => !requirements.actions.includes(a))
-                          .map(a => (
-                            <SelectItem key={a} value={a}>{a}</SelectItem>
-                          ))
-                        }
-                      </SelectContent>
-                    </Select>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => { addItem('actions', newAction); setNewAction(''); }}
-                      disabled={!newAction}
-                    >
-                      <Plus className="w-4 h-4 mr-1" />
-                      Add Action
                     </Button>
                   </div>
                 </div>

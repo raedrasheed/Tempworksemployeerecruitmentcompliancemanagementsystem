@@ -14,7 +14,7 @@ export function Settings() {
   const [savingAgency, setSavingAgency] = useState(false);
 
   useEffect(() => {
-    settingsApi.getAll().then((grouped: any) => {
+    settingsApi.getAll(true).then((grouped: any) => {
       const agencySettings: any[] = grouped?.agency ?? [];
       const setting = agencySettings.find((s: any) => s.key === 'agency.maxUsersPerAgency');
       if (setting) setMaxUsers(setting.value);

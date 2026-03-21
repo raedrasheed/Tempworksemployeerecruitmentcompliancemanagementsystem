@@ -29,11 +29,10 @@ export class SettingsService {
   async batchUpdate(dto: BatchUpdateSettingsDto, userId: string) {
     const results = [];
     for (const [key, value] of Object.entries(dto.settings ?? {})) {
-      const setting = await this.prisma.systemSetting.findUnique({ where: { key } });
-      if (!setting) continue;
-      const updated = await this.prisma.systemSetting.update({
+      const updated = await this.prisma.systemSetting.upsert({
         where: { key },
-        data: { value, updatedById: userId },
+        update: { value, updatedById: userId },
+        create: { key, value, updatedById: userId, description: key, category: 'agency', isPublic: false },
       });
       results.push(updated);
     }

@@ -526,7 +526,7 @@ export const rolesApi = {
 // ─── Settings API ─────────────────────────────────────────────────────────────
 
 export const settingsApi = {
-  getAll: () => apiFetch<any>('/settings'),
+  getAll: (includePrivate = false) => apiFetch<any>(`/settings${includePrivate ? '?includePrivate=true' : ''}`),
 
   update: (data: Record<string, any>) =>
     apiFetch<any>('/settings', { method: 'PATCH', body: JSON.stringify({ settings: data }) }),

@@ -40,7 +40,7 @@ export function AddUser() {
     if (isAgencyManager && currentUser?.agencyId) {
       fetches.push(
         usersApi.list({ agencyId: currentUser.agencyId, limit: 1 }),
-        settingsApi.getAll(),
+        settingsApi.getAll(true),
       );
     }
 

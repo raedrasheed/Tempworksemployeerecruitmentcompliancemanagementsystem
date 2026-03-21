@@ -1,11 +1,19 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { Search, AlertTriangle, CheckCircle, Clock, FileText, Download, Upload, RefreshCw, Edit, Trash2 } from 'lucide-react';
+import {
+  Search, AlertTriangle, CheckCircle, Clock, FileText,
+  Download, Upload, RefreshCw, Edit, Trash2, CheckCircle2, XCircle,
+} from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Badge } from '../../components/ui/badge';
+import { Textarea } from '../../components/ui/textarea';
+import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from '../../components/ui/dialog';
 import { toast } from 'sonner';
 import { documentsApi, employeesApi } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -22,7 +30,7 @@ const documentColumns: Column[] = [
 
 export function DocumentsCompliance() {
   const navigate = useNavigate();
-  const { canCreate, canEdit, canDelete } = usePermissions();
+  const { canCreate, canEdit, canDelete, can } = usePermissions();
   const [documents, setDocuments] = useState<any[]>([]);
   const [employeeMap, setEmployeeMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
@@ -35,6 +43,13 @@ export function DocumentsCompliance() {
     { id: '1', name: 'Expired Documents', rules: [{ id: '1', columnId: 'status', operator: 'equals', value: 'EXPIRED' }], logic: 'AND' },
     { id: '2', name: 'Expiring Soon', rules: [{ id: '1', columnId: 'status', operator: 'equals', value: 'EXPIRING_SOON' }], logic: 'AND' },
   ]);
+
+  // Inline verify state
+  const [verifying, setVerifying] = useState<string | null>(null);
+  const [rejectDialog, setRejectDialog] = useState<{
+    open: boolean; docId: string; docName: string;
+  }>({ open: false, docId: '', docName: '' });
+  const [rejectionReason, setRejectionReason] = useState('');
 
   useEffect(() => {
     const loadDocuments = documentsApi.list({ limit: 200 })
@@ -61,6 +76,42 @@ export function DocumentsCompliance() {
       toast.success('Document deleted');
     } catch (err: any) {
       toast.error(err?.message || 'Failed to delete document');
+    }
+  };
+
+  const handleApprove = async (doc: any) => {
+    setVerifying(doc.id);
+    try {
+      const updated = await documentsApi.verify(doc.id, { action: 'VERIFY' });
+      setDocuments(prev => prev.map(d => d.id === doc.id ? updated : d));
+      toast.success(`"${doc.name}" approved`);
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to approve document');
+    } finally {
+      setVerifying(null);
+    }
+  };
+
+  const openRejectDialog = (doc: any) => {
+    setRejectDialog({ open: true, docId: doc.id, docName: doc.name });
+    setRejectionReason('');
+  };
+
+  const handleReject = async () => {
+    if (!rejectionReason.trim()) { toast.error('A rejection reason is required'); return; }
+    setVerifying(rejectDialog.docId);
+    try {
+      const updated = await documentsApi.verify(rejectDialog.docId, {
+        action: 'REJECT',
+        reason: rejectionReason.trim(),
+      });
+      setDocuments(prev => prev.map(d => d.id === rejectDialog.docId ? updated : d));
+      toast.success(`"${rejectDialog.docName}" rejected`);
+      setRejectDialog({ open: false, docId: '', docName: '' });
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to reject document');
+    } finally {
+      setVerifying(null);
     }
   };
 
@@ -252,6 +303,49 @@ export function DocumentsCompliance() {
         </CardContent>
       </Card>
 
+      {/* Rejection Reason Dialog */}
+      <Dialog
+        open={rejectDialog.open}
+        onOpenChange={open => !open && setRejectDialog(s => ({ ...s, open: false }))}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject Document</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-muted-foreground">
+              Rejecting:{' '}
+              <span className="font-medium text-[#0F172A]">{rejectDialog.docName}</span>
+            </p>
+            <div className="space-y-2">
+              <Label htmlFor="reject-reason-compliance">
+                Rejection Reason <span className="text-[#EF4444]">*</span>
+              </Label>
+              <Textarea
+                id="reject-reason-compliance"
+                placeholder="Explain why this document is being rejected…"
+                value={rejectionReason}
+                onChange={e => setRejectionReason(e.target.value)}
+                rows={4}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRejectDialog(s => ({ ...s, open: false }))}>
+              Cancel
+            </Button>
+            <Button
+              className="bg-[#EF4444] hover:bg-[#DC2626] text-white"
+              onClick={handleReject}
+              disabled={!!verifying || !rejectionReason.trim()}
+            >
+              <XCircle className="w-4 h-4 mr-2" />
+              {verifying ? 'Rejecting…' : 'Confirm Rejection'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Documents Table */}
       <Card>
         <CardHeader><CardTitle>Documents ({filteredDocuments.length})</CardTitle></CardHeader>
@@ -306,7 +400,31 @@ export function DocumentsCompliance() {
                         </Badge>
                       </td>
                       <td className="p-4">
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1 flex-wrap">
+                          {/* Inline approve/reject for PENDING documents */}
+                          {doc.status === 'PENDING' && can('documents', 'verify') && (
+                            <>
+                              <Button
+                                size="sm"
+                                className="bg-[#22C55E] hover:bg-[#16A34A] text-white"
+                                onClick={() => handleApprove(doc)}
+                                disabled={verifying === doc.id}
+                              >
+                                <CheckCircle2 className="w-3 h-3 mr-1" />
+                                {verifying === doc.id ? '…' : 'Approve'}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-[#EF4444] border-[#EF4444] hover:bg-[#FEF2F2]"
+                                onClick={() => openRejectDialog(doc)}
+                                disabled={verifying === doc.id}
+                              >
+                                <XCircle className="w-3 h-3 mr-1" />
+                                Reject
+                              </Button>
+                            </>
+                          )}
                           {(doc.status === 'EXPIRED' || doc.status === 'EXPIRING_SOON') && canCreate('documents') && (
                             <Button size="sm" variant="outline" asChild>
                               <Link to="/dashboard/documents/upload">

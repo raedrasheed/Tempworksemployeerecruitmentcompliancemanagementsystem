@@ -1,5 +1,5 @@
 import {
-  Injectable, NotFoundException, BadRequestException,
+  Injectable, NotFoundException, BadRequestException, ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateDocumentDto } from './dto/create-document.dto';
@@ -131,6 +131,13 @@ export class DocumentsService {
 
   async verify(id: string, dto: VerifyDocumentDto, verifiedById: string) {
     const doc = await this.findOne(id);
+
+    if (doc.status !== 'PENDING') {
+      throw new BadRequestException(
+        `Document is already ${doc.status.charAt(0) + doc.status.slice(1).toLowerCase()} and cannot be re-verified`,
+      );
+    }
+
     const newStatus = dto.action === VerifyActionEnum.VERIFY ? 'VERIFIED' : 'REJECTED';
     const updated = await this.prisma.document.update({
       where: { id },
@@ -138,10 +145,21 @@ export class DocumentsService {
         status: newStatus as any,
         verifiedById,
         verifiedAt: new Date(),
-        notes: dto.reason ? `${doc.notes || ''}\nVerification note: ${dto.reason}`.trim() : doc.notes,
+        notes: dto.reason
+          ? `${doc.notes || ''}\nVerification note: ${dto.reason}`.trim()
+          : doc.notes,
       },
       include: this.docInclude,
     });
+
+    // On approval, auto-resolve any open compliance alerts tied to this document
+    if (dto.action === VerifyActionEnum.VERIFY) {
+      await this.prisma.complianceAlert.updateMany({
+        where: { documentId: id, status: 'OPEN' },
+        data: { status: 'RESOLVED', resolvedAt: new Date(), resolvedById: verifiedById },
+      });
+    }
+
     await this.prisma.auditLog.create({
       data: {
         userId: verifiedById,

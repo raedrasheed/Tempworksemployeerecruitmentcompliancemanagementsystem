@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router';
 import { ArrowLeft, Mail, Phone, MapPin, Globe, Briefcase, Calendar, FileText, UserPlus, Edit, Trash2, CheckCircle2 } from 'lucide-react';
+import { usePermissions } from '../../hooks/usePermissions';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
@@ -167,6 +168,7 @@ export function ApplicantProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [showConvertDialog, setShowConvertDialog] = useState(false);
+  const { canEdit, canDelete } = usePermissions();
 
   const handleConvertToEmployee = () => {
     toast.success('Applicant converted to Employee successfully!');
@@ -200,16 +202,20 @@ export function ApplicantProfile() {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" asChild>
-            <Link to={`/dashboard/applicants/${id}/edit`}>
-              <Edit className="w-4 h-4 mr-2" />
-              Edit
-            </Link>
-          </Button>
-          <Button variant="outline" className="text-red-600" onClick={handleDelete}>
-            <Trash2 className="w-4 h-4 mr-2" />
-            Delete
-          </Button>
+          {canEdit('applicants') && (
+            <Button variant="outline" asChild>
+              <Link to={`/dashboard/applicants/${id}/edit`}>
+                <Edit className="w-4 h-4 mr-2" />
+                Edit
+              </Link>
+            </Button>
+          )}
+          {canDelete('applicants') && (
+            <Button variant="outline" className="text-red-600" onClick={handleDelete}>
+              <Trash2 className="w-4 h-4 mr-2" />
+              Delete
+            </Button>
+          )}
           {applicantData.status === 'Accepted' && (
             <Button className="bg-green-600 hover:bg-green-700" onClick={() => setShowConvertDialog(true)}>
               <UserPlus className="w-4 h-4 mr-2" />

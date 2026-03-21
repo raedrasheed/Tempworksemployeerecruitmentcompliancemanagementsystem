@@ -169,7 +169,6 @@ model User {
   firstName     String
   lastName      String
   phone         String?
-  nationality   String?
   roleId        String
   status        UserStatus  @default(ACTIVE)
   agencyId      String

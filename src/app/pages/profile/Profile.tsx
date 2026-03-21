@@ -17,7 +17,7 @@ export function Profile() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [userData, setUserData] = useState<any>(null);
-  const [editForm, setEditForm] = useState({ firstName: '', lastName: '', phone: '', nationality: '' });
+  const [editForm, setEditForm] = useState({ firstName: '', lastName: '', phone: '' });
 
   useEffect(() => {
     usersApi.me()
@@ -27,7 +27,6 @@ export function Profile() {
           firstName: user.firstName || '',
           lastName: user.lastName || '',
           phone: user.phone || '',
-          nationality: user.nationality || '',
         });
       })
       .catch(() => toast.error('Failed to load profile'))
@@ -35,7 +34,7 @@ export function Profile() {
   }, []);
 
   const profileCompletion = userData ? (() => {
-    const fields = [userData.firstName, userData.lastName, userData.email, userData.phone, userData.nationality];
+    const fields = [userData.firstName, userData.lastName, userData.email, userData.phone];
     return Math.round((fields.filter(Boolean).length / fields.length) * 100);
   })() : 0;
 
@@ -58,7 +57,6 @@ export function Profile() {
       firstName: userData.firstName || '',
       lastName: userData.lastName || '',
       phone: userData.phone || '',
-      nationality: userData.nationality || '',
     });
     setIsEditing(false);
   };
@@ -191,15 +189,6 @@ export function Profile() {
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label>Nationality</Label>
-                  <Input
-                    value={isEditing ? editForm.nationality : (userData?.nationality || '')}
-                    onChange={(e) => setEditForm({ ...editForm, nationality: e.target.value })}
-                    disabled={!isEditing}
-                    placeholder={isEditing ? 'e.g. United Kingdom' : '—'}
-                  />
-                </div>
               </div>
             </CardContent>
           </Card>

@@ -102,7 +102,7 @@ interface FormData {
   nightDriving: boolean;
 }
 
-export function PublicDriverApplication() {
+export function PublicEmployeeApplication() {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 11; // 10 form steps + 1 review step

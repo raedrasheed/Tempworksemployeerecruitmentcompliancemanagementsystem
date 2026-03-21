@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { Link, useNavigate, useParams } from 'react-router';
 import { ArrowLeft } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -9,25 +9,52 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { toast } from 'sonner';
 import { employeesApi, agenciesApi } from '../../services/api';
 
-export function AddDriver() {
+export function EditEmployee() {
+  const { id } = useParams();
   const navigate = useNavigate();
-  const [agencies, setAgencies] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [agencies, setAgencies] = useState<any[]>([]);
   const [form, setForm] = useState({
     firstName: '', lastName: '', email: '', phone: '',
     nationality: '', dateOfBirth: '',
     agencyId: '',
-    addressLine1: '', city: '', country: '', postalCode: '',
+    addressLine1: '', addressLine2: '', city: '', country: '', postalCode: '',
     licenseNumber: '', licenseCategory: '', yearsExperience: '',
     emergencyContact: '', emergencyPhone: '', notes: '',
     status: 'PENDING',
   });
 
   useEffect(() => {
-    agenciesApi.list({ limit: 200 })
-      .then((res: any) => setAgencies(res?.data ?? []))
-      .catch(() => {});
-  }, []);
+    Promise.all([
+      employeesApi.get(id!),
+      agenciesApi.list({ limit: 200 }),
+    ]).then(([emp, agencyResult]) => {
+      setAgencies((agencyResult as any)?.data ?? []);
+      setForm({
+        firstName: emp.firstName ?? '',
+        lastName: emp.lastName ?? '',
+        email: emp.email ?? '',
+        phone: emp.phone ?? '',
+        nationality: emp.nationality ?? '',
+        dateOfBirth: emp.dateOfBirth ? emp.dateOfBirth.slice(0, 10) : '',
+        agencyId: emp.agencyId ?? '',
+        addressLine1: emp.addressLine1 ?? '',
+        addressLine2: emp.addressLine2 ?? '',
+        city: emp.city ?? '',
+        country: emp.country ?? '',
+        postalCode: emp.postalCode ?? '',
+        licenseNumber: emp.licenseNumber ?? '',
+        licenseCategory: emp.licenseCategory ?? '',
+        yearsExperience: String(emp.yearsExperience ?? ''),
+        emergencyContact: emp.emergencyContact ?? '',
+        emergencyPhone: emp.emergencyPhone ?? '',
+        notes: emp.notes ?? '',
+        status: emp.status ?? 'PENDING',
+      });
+    }).catch(() => toast.error('Failed to load employee'))
+      .finally(() => setLoading(false));
+  }, [id]);
 
   const set = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm(prev => ({ ...prev, [field]: e.target.value }));
@@ -48,34 +75,36 @@ export function AddDriver() {
         country: form.country,
         postalCode: form.postalCode,
         status: form.status,
+        agencyId: form.agencyId || undefined,
+        licenseNumber: form.licenseNumber || undefined,
+        licenseCategory: form.licenseCategory || undefined,
+        yearsExperience: form.yearsExperience ? parseInt(form.yearsExperience, 10) : undefined,
+        emergencyContact: form.emergencyContact || undefined,
+        emergencyPhone: form.emergencyPhone || undefined,
+        notes: form.notes || undefined,
+        addressLine2: form.addressLine2 || undefined,
       };
-      if (form.agencyId) payload.agencyId = form.agencyId;
-      if (form.licenseNumber) payload.licenseNumber = form.licenseNumber;
-      if (form.licenseCategory) payload.licenseCategory = form.licenseCategory;
-      if (form.yearsExperience) payload.yearsExperience = parseInt(form.yearsExperience, 10);
-      if (form.emergencyContact) payload.emergencyContact = form.emergencyContact;
-      if (form.emergencyPhone) payload.emergencyPhone = form.emergencyPhone;
-      if (form.notes) payload.notes = form.notes;
-
-      const created = await employeesApi.create(payload);
-      toast.success('Employee added successfully');
-      navigate(`/dashboard/employees/${created.id}`);
+      await employeesApi.update(id!, payload);
+      toast.success('Employee updated successfully');
+      navigate(`/dashboard/employees/${id}`);
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to add employee');
+      toast.error(err?.message || 'Failed to update employee');
     } finally {
       setSubmitting(false);
     }
   };
 
+  if (loading) return <div className="p-8 text-muted-foreground">Loading...</div>;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" asChild>
-          <Link to="/dashboard/employees"><ArrowLeft className="w-5 h-5" /></Link>
+          <Link to={`/dashboard/employees/${id}`}><ArrowLeft className="w-5 h-5" /></Link>
         </Button>
         <div>
-          <h1 className="text-3xl font-semibold text-[#0F172A]">Add New Employee</h1>
-          <p className="text-muted-foreground mt-1">Enter employee information to create a new profile</p>
+          <h1 className="text-3xl font-semibold text-[#0F172A]">Edit Employee</h1>
+          <p className="text-muted-foreground mt-1">Update employee information</p>
         </div>
       </div>
 
@@ -89,21 +118,21 @@ export function AddDriver() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="firstName">First Name *</Label>
-                    <Input id="firstName" placeholder="First name" value={form.firstName} onChange={set('firstName')} required />
+                    <Input id="firstName" value={form.firstName} onChange={set('firstName')} required />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="lastName">Last Name *</Label>
-                    <Input id="lastName" placeholder="Last name" value={form.lastName} onChange={set('lastName')} required />
+                    <Input id="lastName" value={form.lastName} onChange={set('lastName')} required />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="email">Email *</Label>
-                    <Input id="email" type="email" placeholder="employee@email.com" value={form.email} onChange={set('email')} required />
+                    <Input id="email" type="email" value={form.email} onChange={set('email')} required />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="phone">Phone *</Label>
-                    <Input id="phone" type="tel" placeholder="+48 123 456 789" value={form.phone} onChange={set('phone')} required />
+                    <Input id="phone" type="tel" value={form.phone} onChange={set('phone')} required />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -113,17 +142,17 @@ export function AddDriver() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="nationality">Nationality *</Label>
-                    <Input id="nationality" placeholder="e.g. Poland" value={form.nationality} onChange={set('nationality')} required />
+                    <Input id="nationality" value={form.nationality} onChange={set('nationality')} required />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="emergencyContact">Emergency Contact</Label>
-                    <Input id="emergencyContact" placeholder="Contact name" value={form.emergencyContact} onChange={set('emergencyContact')} />
+                    <Input id="emergencyContact" value={form.emergencyContact} onChange={set('emergencyContact')} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="emergencyPhone">Emergency Phone</Label>
-                    <Input id="emergencyPhone" type="tel" placeholder="+48 000 000 000" value={form.emergencyPhone} onChange={set('emergencyPhone')} />
+                    <Input id="emergencyPhone" type="tel" value={form.emergencyPhone} onChange={set('emergencyPhone')} />
                   </div>
                 </div>
               </CardContent>
@@ -134,20 +163,24 @@ export function AddDriver() {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="addressLine1">Street Address *</Label>
-                  <Input id="addressLine1" placeholder="Street address" value={form.addressLine1} onChange={set('addressLine1')} required />
+                  <Input id="addressLine1" value={form.addressLine1} onChange={set('addressLine1')} required />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="addressLine2">Address Line 2</Label>
+                  <Input id="addressLine2" value={form.addressLine2} onChange={set('addressLine2')} />
                 </div>
                 <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="city">City *</Label>
-                    <Input id="city" placeholder="City" value={form.city} onChange={set('city')} required />
+                    <Input id="city" value={form.city} onChange={set('city')} required />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="postalCode">Postal Code *</Label>
-                    <Input id="postalCode" placeholder="00-000" value={form.postalCode} onChange={set('postalCode')} required />
+                    <Input id="postalCode" value={form.postalCode} onChange={set('postalCode')} required />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="country">Country *</Label>
-                    <Input id="country" placeholder="Country" value={form.country} onChange={set('country')} required />
+                    <Input id="country" value={form.country} onChange={set('country')} required />
                   </div>
                 </div>
               </CardContent>
@@ -158,10 +191,8 @@ export function AddDriver() {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="agencyId">Recruitment Agency</Label>
-                  <Select value={form.agencyId} onValueChange={val => setForm(prev => ({ ...prev, agencyId: val === '__none__' ? '' : val }))}>
-                    <SelectTrigger id="agencyId">
-                      <SelectValue placeholder="Select agency or leave blank for direct hire" />
-                    </SelectTrigger>
+                  <Select value={form.agencyId || '__none__'} onValueChange={val => setForm(prev => ({ ...prev, agencyId: val === '__none__' ? '' : val }))}>
+                    <SelectTrigger id="agencyId"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="__none__">Direct hire (no agency)</SelectItem>
                       {agencies.map(a => (
@@ -173,7 +204,7 @@ export function AddDriver() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="licenseNumber">License Number</Label>
-                    <Input id="licenseNumber" placeholder="e.g. PL-12345-CE" value={form.licenseNumber} onChange={set('licenseNumber')} />
+                    <Input id="licenseNumber" value={form.licenseNumber} onChange={set('licenseNumber')} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="licenseCategory">License Category</Label>
@@ -182,11 +213,11 @@ export function AddDriver() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="yearsExperience">Years of Experience</Label>
-                  <Input id="yearsExperience" type="number" min="0" placeholder="0" value={form.yearsExperience} onChange={set('yearsExperience')} />
+                  <Input id="yearsExperience" type="number" min="0" value={form.yearsExperience} onChange={set('yearsExperience')} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="notes">Notes</Label>
-                  <Input id="notes" placeholder="Optional notes" value={form.notes} onChange={set('notes')} />
+                  <Input id="notes" value={form.notes} onChange={set('notes')} />
                 </div>
               </CardContent>
             </Card>
@@ -195,10 +226,10 @@ export function AddDriver() {
 
           <div className="space-y-6">
             <Card>
-              <CardHeader><CardTitle>Status & Classification</CardTitle></CardHeader>
+              <CardHeader><CardTitle>Status</CardTitle></CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="status">Initial Status *</Label>
+                  <Label htmlFor="status">Status *</Label>
                   <Select value={form.status} onValueChange={val => setForm(prev => ({ ...prev, status: val }))}>
                     <SelectTrigger id="status"><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -207,30 +238,19 @@ export function AddDriver() {
                       <SelectItem value="ACTIVE">Active</SelectItem>
                       <SelectItem value="INACTIVE">Inactive</SelectItem>
                       <SelectItem value="ON_LEAVE">On Leave</SelectItem>
+                      <SelectItem value="TERMINATED">Terminated</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-[#EFF6FF] border-[#2563EB]">
-              <CardHeader><CardTitle className="text-sm">Next Steps</CardTitle></CardHeader>
-              <CardContent>
-                <ul className="text-sm space-y-2 text-muted-foreground">
-                  <li>• Upload required documents</li>
-                  <li>• Verify employee credentials</li>
-                  <li>• Assign to workflow stage</li>
-                  <li>• Begin compliance tracking</li>
-                </ul>
-              </CardContent>
-            </Card>
-
             <div className="flex flex-col gap-3">
               <Button type="submit" className="w-full" disabled={submitting}>
-                {submitting ? 'Adding...' : 'Add Employee'}
+                {submitting ? 'Saving...' : 'Save Changes'}
               </Button>
               <Button type="button" variant="outline" className="w-full" asChild>
-                <Link to="/dashboard/employees">Cancel</Link>
+                <Link to={`/dashboard/employees/${id}`}>Cancel</Link>
               </Button>
             </div>
           </div>

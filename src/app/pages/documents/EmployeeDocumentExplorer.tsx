@@ -20,7 +20,7 @@ const employeeColumns: Column[] = [
   { id: 'status', label: 'Status', type: 'enum', options: ['ACTIVE', 'PENDING', 'INACTIVE', 'SUSPENDED'] },
 ];
 
-export function DriverDocumentExplorer() {
+export function EmployeeDocumentExplorer() {
   const [employees, setEmployees] = useState<any[]>([]);
   const [agencies, setAgencies] = useState<any[]>([]);
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);

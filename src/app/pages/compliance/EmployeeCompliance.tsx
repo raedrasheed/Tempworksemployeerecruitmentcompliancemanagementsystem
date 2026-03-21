@@ -6,7 +6,7 @@ import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { employeesApi } from '../../services/api';
 
-export function DriverCompliance() {
+export function EmployeeCompliance() {
   const { id } = useParams();
   const [employee, setEmployee] = useState<any>(null);
   const [documents, setDocuments] = useState<any[]>([]);

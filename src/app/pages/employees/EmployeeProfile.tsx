@@ -12,7 +12,7 @@ import { usePermissions } from '../../hooks/usePermissions';
 
 const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1').replace('/api/v1', '');
 
-export function DriverProfile() {
+export function EmployeeProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { canEdit, canDelete } = usePermissions();

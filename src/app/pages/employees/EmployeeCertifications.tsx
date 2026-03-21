@@ -98,7 +98,7 @@ const mockCertifications: Certification[] = [
   }
 ];
 
-export function DriverCertifications() {
+export function EmployeeCertifications() {
   const { id } = useParams();
   const driver = mockDrivers.find(d => d.id === id);
   
@@ -114,7 +114,7 @@ export function DriverCertifications() {
     <div className="space-y-6">
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" asChild>
-          <Link to={`/dashboard/drivers/${id}`}>
+          <Link to={`/dashboard/employees/${id}`}>
             <ArrowLeft className="w-5 h-5" />
           </Link>
         </Button>

@@ -1,27 +1,27 @@
 import { createBrowserRouter } from 'react-router';
 import { MainLayout } from './components/layout/MainLayout';
 import { Dashboard } from './pages/Dashboard';
-import { DriversList } from './pages/drivers/DriversList';
-import { DriverProfile } from './pages/drivers/DriverProfile';
-import { AddDriver } from './pages/drivers/AddDriver';
-import { EditDriver } from './pages/drivers/EditDriver';
-import { DriverCertifications } from './pages/drivers/DriverCertifications';
-import { DriverTrainingHistory } from './pages/drivers/DriverTrainingHistory';
-import { DriverComplianceTimeline } from './pages/drivers/DriverComplianceTimeline';
-import { DriverPerformanceReview } from './pages/drivers/DriverPerformanceReview';
+import { EmployeesList } from './pages/employees/EmployeesList';
+import { EmployeeProfile } from './pages/employees/EmployeeProfile';
+import { AddEmployee } from './pages/employees/AddEmployee';
+import { EditEmployee } from './pages/employees/EditEmployee';
+import { EmployeeCertifications } from './pages/employees/EmployeeCertifications';
+import { EmployeeTrainingHistory } from './pages/employees/EmployeeTrainingHistory';
+import { EmployeeComplianceTimeline } from './pages/employees/EmployeeComplianceTimeline';
+import { EmployeePerformanceReview } from './pages/employees/EmployeePerformanceReview';
 import { ApplicantsList } from './pages/applicants/ApplicantsList';
 import { ApplicantProfile } from './pages/applicants/ApplicantProfile';
 import { AddApplicant } from './pages/applicants/AddApplicant';
 import { EditApplicant } from './pages/applicants/EditApplicant';
 import { ApplicationsList } from './pages/applications/ApplicationsList';
 import { ApplicationDetails } from './pages/applications/ApplicationDetails';
-import { DriverApplicationForm } from './pages/applications/DriverApplicationForm';
+import { EmployeeApplicationForm } from './pages/applications/EmployeeApplicationForm';
 import { DocumentsDashboard } from './pages/documents/DocumentsDashboard';
 import { DocumentUpload } from './pages/documents/DocumentUpload';
 import { DocumentPreview } from './pages/documents/DocumentPreview';
 import { EditDocument } from './pages/documents/EditDocument';
 import { DocumentVerification } from './pages/documents/DocumentVerification';
-import { DriverDocumentExplorer } from './pages/documents/DriverDocumentExplorer';
+import { EmployeeDocumentExplorer } from './pages/documents/EmployeeDocumentExplorer';
 import { DocumentsCompliance } from './pages/documents/DocumentsCompliance';
 import { WorkflowOverview } from './pages/workflow/WorkflowOverview';
 import { WorkPermitTracking } from './pages/workflow/WorkPermitTracking';
@@ -38,7 +38,7 @@ import { EditAgency } from './pages/agencies/EditAgency';
 import { AgencyUsersManagement } from './pages/agencies/AgencyUsersManagement';
 import { ComplianceDashboard } from './pages/compliance/ComplianceDashboard';
 import { ComplianceAlerts } from './pages/compliance/ComplianceAlerts';
-import { DriverCompliance } from './pages/compliance/DriverCompliance';
+import { EmployeeCompliance } from './pages/compliance/EmployeeCompliance';
 import { ReportsDashboard } from './pages/reports/ReportsDashboard';
 import { NotificationCenter } from './pages/notifications/NotificationCenter';
 import { UsersList } from './pages/users/UsersList';
@@ -67,14 +67,14 @@ import { ChangePassword } from './pages/profile/ChangePassword';
 // Public pages
 import { LandingPage } from './pages/public/LandingPage';
 import { LoginPage } from './pages/public/LoginPage';
-import { PublicDriverApplication } from './pages/public/PublicDriverApplication';
+import { PublicEmployeeApplication } from './pages/public/PublicEmployeeApplication';
 import { ApplicationSuccess } from './pages/public/ApplicationSuccess';
 
 export const router = createBrowserRouter([
   // Public routes (no MainLayout)
   { path: '/', Component: LandingPage },
   { path: '/login', Component: LoginPage },
-  { path: '/apply', Component: PublicDriverApplication },
+  { path: '/apply', Component: PublicEmployeeApplication },
   { path: '/application-success', Component: ApplicationSuccess },
   
   // Protected routes (with MainLayout)
@@ -84,25 +84,15 @@ export const router = createBrowserRouter([
     children: [
       { index: true, Component: Dashboard },
       
-      // Employees routes (formerly Drivers)
-      { path: 'employees', Component: DriversList },
-      { path: 'employees/add', Component: AddDriver },
-      { path: 'employees/:id', Component: DriverProfile },
-      { path: 'employees/:id/edit', Component: EditDriver },
-      { path: 'employees/:id/certifications', Component: DriverCertifications },
-      { path: 'employees/:id/training', Component: DriverTrainingHistory },
-      { path: 'employees/:id/compliance-timeline', Component: DriverComplianceTimeline },
-      { path: 'employees/:id/performance', Component: DriverPerformanceReview },
-      
-      // Keep legacy driver routes for backward compatibility
-      { path: 'drivers', Component: DriversList },
-      { path: 'drivers/add', Component: AddDriver },
-      { path: 'drivers/:id', Component: DriverProfile },
-      { path: 'drivers/:id/edit', Component: EditDriver },
-      { path: 'drivers/:id/certifications', Component: DriverCertifications },
-      { path: 'drivers/:id/training', Component: DriverTrainingHistory },
-      { path: 'drivers/:id/compliance-timeline', Component: DriverComplianceTimeline },
-      { path: 'drivers/:id/performance', Component: DriverPerformanceReview },
+      // Employees routes
+      { path: 'employees', Component: EmployeesList },
+      { path: 'employees/add', Component: AddEmployee },
+      { path: 'employees/:id', Component: EmployeeProfile },
+      { path: 'employees/:id/edit', Component: EditEmployee },
+      { path: 'employees/:id/certifications', Component: EmployeeCertifications },
+      { path: 'employees/:id/training', Component: EmployeeTrainingHistory },
+      { path: 'employees/:id/compliance-timeline', Component: EmployeeComplianceTimeline },
+      { path: 'employees/:id/performance', Component: EmployeePerformanceReview },
       
       // Applicants routes
       { path: 'applicants', Component: ApplicantsList },
@@ -113,7 +103,7 @@ export const router = createBrowserRouter([
       // Applications routes
       { path: 'applications', Component: ApplicationsList },
       { path: 'applications/:id', Component: ApplicationDetails },
-      { path: 'apply', Component: DriverApplicationForm },
+      { path: 'apply', Component: EmployeeApplicationForm },
       
       // Documents routes
       { path: 'documents', Component: DocumentsDashboard },
@@ -121,7 +111,7 @@ export const router = createBrowserRouter([
       { path: 'documents/:id/edit', Component: EditDocument },
       { path: 'documents/:id', Component: DocumentPreview },
       { path: 'documents/:id/verify', Component: DocumentVerification },
-      { path: 'document-explorer', Component: DriverDocumentExplorer },
+      { path: 'document-explorer', Component: EmployeeDocumentExplorer },
       { path: 'documents-compliance', Component: DocumentsCompliance },
       
       // Workflow routes
@@ -143,7 +133,7 @@ export const router = createBrowserRouter([
       // Compliance routes
       { path: 'compliance', Component: ComplianceDashboard },
       { path: 'compliance/alerts', Component: ComplianceAlerts },
-      { path: 'compliance/drivers/:id', Component: DriverCompliance },
+      { path: 'compliance/employees/:id', Component: EmployeeCompliance },
       
       // Reports routes
       { path: 'reports', Component: ReportsDashboard },

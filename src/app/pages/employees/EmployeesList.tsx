@@ -32,7 +32,7 @@ const employeeColumns: Column[] = [
   { id: 'createdDate', label: 'Created Date', type: 'date' },
 ];
 
-export function DriversList() {
+export function EmployeesList() {
   const { canCreate, canEdit, canDelete } = usePermissions();
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilters, setActiveFilters] = useState<FilterRule[]>([]);

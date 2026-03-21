@@ -6,7 +6,7 @@ import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 
-export function DriverApplicationForm() {
+export function EmployeeApplicationForm() {
   const [formData, setFormData] = useState({
     fullName: '',
     nationality: '',

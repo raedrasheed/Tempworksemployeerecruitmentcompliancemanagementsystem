@@ -7,7 +7,7 @@ import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../../components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
-import { settingsApi } from '../../services/api';
+import { settingsApi, rolesApi } from '../../services/api';
 
 interface WorkflowStage {
   id: string;
@@ -43,10 +43,29 @@ export function WorkflowConfiguration() {
   const [newStageColor, setNewStageColor] = useState('#2563EB');
   const [addingStage, setAddingStage] = useState(false);
 
-  // New item inputs
+  // New item inputs (selected from dropdowns)
   const [newDocument, setNewDocument] = useState('');
   const [newAction, setNewAction] = useState('');
   const [newApproval, setNewApproval] = useState('');
+
+  // Available options for dropdowns
+  const [documentTypes, setDocumentTypes] = useState<{ id: string; name: string }[]>([]);
+  const [roles, setRoles] = useState<{ id: string; name: string }[]>([]);
+
+  const PREDEFINED_ACTIONS = [
+    'Background Check',
+    'Drug Test',
+    'Reference Check',
+    'Skills Assessment',
+    'Medical Examination',
+    'License Verification',
+    'ID Verification',
+    'Interview',
+    'Training Completion',
+    'Contract Signing',
+    'Orientation Session',
+    'Security Clearance',
+  ];
 
   const draggedId = useRef<string | null>(null);
 
@@ -158,7 +177,7 @@ export function WorkflowConfiguration() {
   };
 
   // ─── Edit requirements ─────────────────────────────────────────────────────
-  const openRequirementsEditor = (stage: WorkflowStage) => {
+  const openRequirementsEditor = async (stage: WorkflowStage) => {
     setSelectedStage(stage);
     setRequirements({
       documents: [...stage.requirementsDocuments],
@@ -169,6 +188,18 @@ export function WorkflowConfiguration() {
     setNewAction('');
     setNewApproval('');
     setIsEditRequirementsOpen(true);
+
+    // Fetch dropdown data
+    try {
+      const [docTypes, rolesList] = await Promise.all([
+        settingsApi.getDocumentTypes(),
+        rolesApi.list(),
+      ]);
+      setDocumentTypes((docTypes ?? []).map((d: any) => ({ id: d.id, name: d.name })));
+      setRoles((rolesList ?? []).map((r: any) => ({ id: r.id, name: r.name })));
+    } catch {
+      // silently fall back to empty lists
+    }
   };
 
   const handleSaveRequirements = async () => {
@@ -425,31 +456,34 @@ export function WorkflowConfiguration() {
                 <div className="space-y-2 mt-2">
                   {requirements.documents.map((doc, idx) => (
                     <div key={idx} className="flex items-center gap-2">
-                      <Input
-                        value={doc}
-                        onChange={(e) => updateItem('documents', idx, e.target.value)}
-                        className="flex-1"
-                      />
+                      <div className="flex-1 px-3 py-2 border rounded-md bg-muted/40 text-sm">{doc}</div>
                       <Button size="sm" variant="ghost" onClick={() => removeItem('documents', idx)}>
                         <Trash2 className="w-4 h-4 text-[#EF4444]" />
                       </Button>
                     </div>
                   ))}
                   <div className="flex items-center gap-2">
-                    <Input
-                      placeholder="Document name…"
-                      value={newDocument}
-                      onChange={(e) => setNewDocument(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') { addItem('documents', newDocument); setNewDocument(''); }
-                      }}
-                      className="flex-1"
-                    />
+                    <Select value={newDocument} onValueChange={setNewDocument}>
+                      <SelectTrigger className="flex-1">
+                        <SelectValue placeholder="Select a document type…" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {documentTypes.length === 0 ? (
+                          <SelectItem value="__none__" disabled>No document types configured</SelectItem>
+                        ) : (
+                          documentTypes
+                            .filter(dt => !requirements.documents.includes(dt.name))
+                            .map(dt => (
+                              <SelectItem key={dt.id} value={dt.name}>{dt.name}</SelectItem>
+                            ))
+                        )}
+                      </SelectContent>
+                    </Select>
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() => { addItem('documents', newDocument); setNewDocument(''); }}
-                      disabled={!newDocument.trim()}
+                      disabled={!newDocument || newDocument === '__none__'}
                     >
                       <Plus className="w-4 h-4 mr-1" />
                       Add Document
@@ -464,31 +498,31 @@ export function WorkflowConfiguration() {
                 <div className="space-y-2 mt-2">
                   {requirements.actions.map((action, idx) => (
                     <div key={idx} className="flex items-center gap-2">
-                      <Input
-                        value={action}
-                        onChange={(e) => updateItem('actions', idx, e.target.value)}
-                        className="flex-1"
-                      />
+                      <div className="flex-1 px-3 py-2 border rounded-md bg-muted/40 text-sm">{action}</div>
                       <Button size="sm" variant="ghost" onClick={() => removeItem('actions', idx)}>
                         <Trash2 className="w-4 h-4 text-[#EF4444]" />
                       </Button>
                     </div>
                   ))}
                   <div className="flex items-center gap-2">
-                    <Input
-                      placeholder="Action name…"
-                      value={newAction}
-                      onChange={(e) => setNewAction(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') { addItem('actions', newAction); setNewAction(''); }
-                      }}
-                      className="flex-1"
-                    />
+                    <Select value={newAction} onValueChange={setNewAction}>
+                      <SelectTrigger className="flex-1">
+                        <SelectValue placeholder="Select an action…" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PREDEFINED_ACTIONS
+                          .filter(a => !requirements.actions.includes(a))
+                          .map(a => (
+                            <SelectItem key={a} value={a}>{a}</SelectItem>
+                          ))
+                        }
+                      </SelectContent>
+                    </Select>
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() => { addItem('actions', newAction); setNewAction(''); }}
-                      disabled={!newAction.trim()}
+                      disabled={!newAction}
                     >
                       <Plus className="w-4 h-4 mr-1" />
                       Add Action
@@ -503,31 +537,34 @@ export function WorkflowConfiguration() {
                 <div className="space-y-2 mt-2">
                   {requirements.approvals.map((approval, idx) => (
                     <div key={idx} className="flex items-center gap-2">
-                      <Input
-                        value={approval}
-                        onChange={(e) => updateItem('approvals', idx, e.target.value)}
-                        className="flex-1"
-                      />
+                      <div className="flex-1 px-3 py-2 border rounded-md bg-muted/40 text-sm">{approval}</div>
                       <Button size="sm" variant="ghost" onClick={() => removeItem('approvals', idx)}>
                         <Trash2 className="w-4 h-4 text-[#EF4444]" />
                       </Button>
                     </div>
                   ))}
                   <div className="flex items-center gap-2">
-                    <Input
-                      placeholder="Approval name…"
-                      value={newApproval}
-                      onChange={(e) => setNewApproval(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') { addItem('approvals', newApproval); setNewApproval(''); }
-                      }}
-                      className="flex-1"
-                    />
+                    <Select value={newApproval} onValueChange={setNewApproval}>
+                      <SelectTrigger className="flex-1">
+                        <SelectValue placeholder="Select a role…" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {roles.length === 0 ? (
+                          <SelectItem value="__none__" disabled>No roles configured</SelectItem>
+                        ) : (
+                          roles
+                            .filter(r => !requirements.approvals.includes(r.name))
+                            .map(r => (
+                              <SelectItem key={r.id} value={r.name}>{r.name}</SelectItem>
+                            ))
+                        )}
+                      </SelectContent>
+                    </Select>
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() => { addItem('approvals', newApproval); setNewApproval(''); }}
-                      disabled={!newApproval.trim()}
+                      disabled={!newApproval || newApproval === '__none__'}
                     >
                       <Plus className="w-4 h-4 mr-1" />
                       Add Approval

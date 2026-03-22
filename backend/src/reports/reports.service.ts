@@ -13,30 +13,26 @@ export class ReportsService {
     const [
       totalEmployees, activeEmployees, newEmployeesThisMonth,
       totalApplicants, newApplicantsThisMonth,
-      totalApplications, pendingApplications,
       openAlerts, criticalAlerts,
       expiringDocuments,
       employeesByStatus,
-      applicationsByStatus,
+      applicantsByStatus,
     ] = await Promise.all([
       this.prisma.employee.count({ where: { deletedAt: null } }),
       this.prisma.employee.count({ where: { deletedAt: null, status: 'ACTIVE' } }),
       this.prisma.employee.count({ where: { deletedAt: null, createdAt: { gte: thirtyDaysAgo } } }),
       this.prisma.applicant.count({ where: { deletedAt: null } }),
       this.prisma.applicant.count({ where: { deletedAt: null, createdAt: { gte: thirtyDaysAgo } } }),
-      this.prisma.application.count(),
-      this.prisma.application.count({ where: { status: { in: ['SUBMITTED', 'UNDER_REVIEW'] } } }),
       this.prisma.complianceAlert.count({ where: { status: 'OPEN' } }),
       this.prisma.complianceAlert.count({ where: { status: 'OPEN', severity: 'CRITICAL' } }),
       this.prisma.document.count({ where: { deletedAt: null, expiryDate: { gte: now, lte: thirtyDaysAhead } } }),
       this.prisma.employee.groupBy({ by: ['status'], _count: { id: true }, where: { deletedAt: null } }),
-      this.prisma.application.groupBy({ by: ['status'], _count: { id: true } }),
+      this.prisma.applicant.groupBy({ by: ['status'], _count: { id: true }, where: { deletedAt: null } }),
     ]);
 
     return {
       employees: { total: totalEmployees, active: activeEmployees, newThisMonth: newEmployeesThisMonth, byStatus: employeesByStatus },
-      applicants: { total: totalApplicants, newThisMonth: newApplicantsThisMonth },
-      applications: { total: totalApplications, pending: pendingApplications, byStatus: applicationsByStatus },
+      applicants: { total: totalApplicants, newThisMonth: newApplicantsThisMonth, byStatus: applicantsByStatus },
       compliance: { openAlerts, criticalAlerts, expiringDocuments },
     };
   }
@@ -66,20 +62,21 @@ export class ReportsService {
   async getApplicationsReport(pagination: any) {
     const { page = 1, limit = 10 } = pagination;
     const skip = (Number(page) - 1) * Number(limit);
-    const [applications, total] = await Promise.all([
-      this.prisma.application.findMany({
+    const [applicants, total] = await Promise.all([
+      this.prisma.applicant.findMany({
+        where: { deletedAt: null },
         skip,
         take: Number(limit),
-        include: {
-          applicant: { select: { firstName: true, lastName: true, email: true, nationality: true } },
+        select: {
+          id: true, firstName: true, lastName: true, email: true,
+          nationality: true, status: true, createdAt: true,
           jobType: { select: { name: true } },
-          reviewedBy: { select: { firstName: true, lastName: true } },
         },
         orderBy: { createdAt: 'desc' },
       }),
-      this.prisma.application.count(),
+      this.prisma.applicant.count({ where: { deletedAt: null } }),
     ]);
-    return { data: applications, total, page, limit, totalPages: Math.ceil(total / limit) };
+    return { data: applicants, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
   async getDocumentsReport(pagination: any) {

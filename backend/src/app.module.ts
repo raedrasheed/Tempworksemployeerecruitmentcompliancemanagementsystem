@@ -8,7 +8,6 @@ import { UsersModule } from './users/users.module';
 import { RolesModule } from './roles/roles.module';
 import { EmployeesModule } from './employees/employees.module';
 import { ApplicantsModule } from './applicants/applicants.module';
-import { ApplicationsModule } from './applications/applications.module';
 import { DocumentsModule } from './documents/documents.module';
 import { WorkflowModule } from './workflow/workflow.module';
 import { AgenciesModule } from './agencies/agencies.module';
@@ -28,7 +27,6 @@ import { LogsModule } from './logs/logs.module';
     RolesModule,
     EmployeesModule,
     ApplicantsModule,
-    ApplicationsModule,
     DocumentsModule,
     WorkflowModule,
     AgenciesModule,

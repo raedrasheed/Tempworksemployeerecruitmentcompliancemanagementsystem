@@ -13,9 +13,7 @@ import { ApplicantsList } from './pages/applicants/ApplicantsList';
 import { ApplicantProfile } from './pages/applicants/ApplicantProfile';
 import { AddApplicant } from './pages/applicants/AddApplicant';
 import { EditApplicant } from './pages/applicants/EditApplicant';
-import { ApplicationsList } from './pages/applications/ApplicationsList';
-import { ApplicationDetails } from './pages/applications/ApplicationDetails';
-import { EmployeeApplicationForm } from './pages/applications/EmployeeApplicationForm';
+
 import { DocumentsDashboard } from './pages/documents/DocumentsDashboard';
 import { DocumentUpload } from './pages/documents/DocumentUpload';
 import { DocumentPreview } from './pages/documents/DocumentPreview';
@@ -99,11 +97,6 @@ export const router = createBrowserRouter([
       { path: 'applicants/add', Component: AddApplicant },
       { path: 'applicants/:id', Component: ApplicantProfile },
       { path: 'applicants/:id/edit', Component: EditApplicant },
-      
-      // Applications routes
-      { path: 'applications', Component: ApplicationsList },
-      { path: 'applications/:id', Component: ApplicationDetails },
-      { path: 'apply', Component: EmployeeApplicationForm },
       
       // Documents routes
       { path: 'documents', Component: DocumentsDashboard },

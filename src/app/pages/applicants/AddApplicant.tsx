@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { applicantsApi, applicationsApi, settingsApi } from '../../services/api';
+import { applicantsApi, settingsApi } from '../../services/api';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent } from '../../components/ui/card';
 import { ArrowLeft, ChevronRight, ChevronLeft, UserPlus } from 'lucide-react';
@@ -157,7 +157,7 @@ export function AddApplicant() {
 
       const applicant = await applicantsApi.create(applicantPayload);
 
-      await applicationsApi.create({
+      await applicantsApi.createApplication({
         applicantId: applicant.id,
         status: 'SUBMITTED',
         ...(jobTypeId ? { jobTypeId } : {}),

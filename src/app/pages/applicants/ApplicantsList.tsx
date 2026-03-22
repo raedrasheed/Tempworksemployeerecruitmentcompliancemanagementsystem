@@ -80,19 +80,14 @@ const applicants = [
 ];
 
 const getStatusColor = (status: string) => {
-  switch (status) {
-    case 'New Application':
-      return 'bg-blue-100 text-blue-800';
-    case 'Under Review':
-      return 'bg-yellow-100 text-yellow-800';
-    case 'Interview Scheduled':
-      return 'bg-purple-100 text-purple-800';
-    case 'Accepted':
-      return 'bg-green-100 text-green-800';
-    case 'Rejected':
-      return 'bg-red-100 text-red-800';
-    default:
-      return 'bg-gray-100 text-gray-800';
+  switch (status?.toUpperCase()) {
+    case 'NEW': return 'bg-blue-100 text-blue-800';
+    case 'SCREENING': case 'UNDER_REVIEW': return 'bg-yellow-100 text-yellow-800';
+    case 'INTERVIEW': return 'bg-purple-100 text-purple-800';
+    case 'OFFER': case 'ONBOARDING': case 'ACCEPTED': case 'APPROVED': return 'bg-green-100 text-green-800';
+    case 'REJECTED': case 'WITHDRAWN': return 'bg-red-100 text-red-800';
+    case 'SUBMITTED': return 'bg-indigo-100 text-indigo-800';
+    default: return 'bg-gray-100 text-gray-800';
   }
 };
 
@@ -248,50 +243,39 @@ export function ApplicantsList() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Applicants
-            </CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Applicants</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-[#0F172A]">{applicants.length}</div>
+            <div className="text-2xl font-bold text-[#0F172A]">{totalApplicants}</div>
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              New Applications
-            </CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">New</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">
-              {applicants.filter((a) => a.status === 'New Application').length}
+              {applicants.filter((a) => a.status === 'NEW').length}
             </div>
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Under Review
-            </CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Screening / Review</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-yellow-600">
-              {applicants.filter((a) => a.status === 'Under Review').length}
+              {applicants.filter((a) => a.status === 'SCREENING' || a.status === 'INTERVIEW').length}
             </div>
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Accepted
-            </CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Accepted / Onboarding</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              {applicants.filter((a) => a.status === 'Accepted').length}
+              {applicants.filter((a) => a.status === 'ACCEPTED' || a.status === 'ONBOARDING').length}
             </div>
           </CardContent>
         </Card>
@@ -359,10 +343,13 @@ export function ApplicantsList() {
                     Job Type
                   </th>
                   <th className="text-left py-3 px-4 font-medium text-sm text-muted-foreground">
-                    Application Date
+                    Applied
                   </th>
                   <th className="text-left py-3 px-4 font-medium text-sm text-muted-foreground">
                     Status
+                  </th>
+                  <th className="text-left py-3 px-4 font-medium text-sm text-muted-foreground">
+                    Application
                   </th>
                   <th className="text-left py-3 px-4 font-medium text-sm text-muted-foreground">
                     Actions
@@ -397,12 +384,23 @@ export function ApplicantsList() {
                       </span>
                     </td>
                     <td className="py-3 px-4">
-                      <span className="text-sm">{applicant.applicationDate}</span>
+                      <span className="text-sm">
+                        {applicant.createdAt ? new Date(applicant.createdAt).toLocaleDateString() : applicant.applicationDate || '-'}
+                      </span>
                     </td>
                     <td className="py-3 px-4">
                       <Badge className={getStatusColor(applicant.status)}>
-                        {applicant.status}
+                        {applicant.status?.replace(/_/g, ' ')}
                       </Badge>
+                    </td>
+                    <td className="py-3 px-4">
+                      {applicant.applications?.[0] ? (
+                        <Badge className={getStatusColor(applicant.applications[0].status)}>
+                          {applicant.applications[0].status?.replace(/_/g, ' ')}
+                        </Badge>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2">

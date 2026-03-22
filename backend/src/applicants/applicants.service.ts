@@ -2,6 +2,8 @@ import { Injectable, NotFoundException, ConflictException } from '@nestjs/common
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateApplicantDto } from './dto/create-applicant.dto';
 import { UpdateApplicantDto } from './dto/update-applicant.dto';
+import { CreateApplicationDto } from './dto/create-application.dto';
+import { UpdateApplicationDto } from './dto/update-application.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { PaginatedResponse } from '../common/dto/pagination-response.dto';
 
@@ -122,6 +124,114 @@ export class ApplicantsService {
       },
       orderBy: { createdAt: 'desc' },
     });
+  }
+
+  // ── Application methods (merged from ApplicationsService) ──────────────────
+
+  private get applicationInclude() {
+    return {
+      applicant: { select: { id: true, firstName: true, lastName: true, email: true, phone: true, nationality: true, status: true } },
+      jobType: { select: { id: true, name: true } },
+      reviewedBy: { select: { id: true, firstName: true, lastName: true } },
+    };
+  }
+
+  async findAllApplications(pagination: PaginationDto) {
+    const { page = 1, limit = 10, search, sortBy = 'createdAt', sortOrder = 'desc' } = pagination;
+    const skip = (Number(page) - 1) * Number(limit);
+    const where: any = { deletedAt: null };
+    if (search) {
+      where.OR = [
+        { applicant: { firstName: { contains: search, mode: 'insensitive' } } },
+        { applicant: { lastName: { contains: search, mode: 'insensitive' } } },
+        { applicant: { email: { contains: search, mode: 'insensitive' } } },
+      ];
+    }
+    const [items, total] = await Promise.all([
+      this.prisma.application.findMany({ where, skip, take: Number(limit), orderBy: { [sortBy === 'createdAt' ? 'createdAt' : 'status']: sortOrder }, include: this.applicationInclude }),
+      this.prisma.application.count({ where }),
+    ]);
+    return PaginatedResponse.create(items, total, page, limit);
+  }
+
+  async findOneApplication(id: string) {
+    const app = await this.prisma.application.findFirst({ where: { id, deletedAt: null }, include: this.applicationInclude });
+    if (!app) throw new NotFoundException(`Application ${id} not found`);
+    return app;
+  }
+
+  async createApplication(dto: CreateApplicationDto, createdById?: string) {
+    const applicant = await this.prisma.applicant.findUnique({ where: { id: dto.applicantId } });
+    if (!applicant) throw new NotFoundException('Applicant not found');
+    const application = await this.prisma.application.create({
+      data: { applicantId: dto.applicantId, status: dto.status || 'DRAFT', jobTypeId: dto.jobTypeId, notes: dto.notes },
+      include: this.applicationInclude,
+    });
+    if (createdById) {
+      await this.prisma.auditLog.create({
+        data: { userId: createdById, action: 'CREATE', entity: 'Application', entityId: application.id },
+      });
+    }
+    return application;
+  }
+
+  async updateApplication(id: string, dto: UpdateApplicationDto, updatedById?: string) {
+    await this.findOneApplication(id);
+    const updated = await this.prisma.application.update({
+      where: { id },
+      data: { ...dto, additionalNote: undefined } as any,
+      include: this.applicationInclude,
+    });
+    if (updatedById) {
+      await this.prisma.auditLog.create({
+        data: { userId: updatedById, action: 'UPDATE', entity: 'Application', entityId: id, changes: dto as any },
+      });
+    }
+    return updated;
+  }
+
+  async updateApplicationStatus(id: string, status: string, reviewedById?: string) {
+    await this.findOneApplication(id);
+    const reviewedStatuses = ['APPROVED', 'REJECTED', 'UNDER_REVIEW'];
+    const updated = await this.prisma.application.update({
+      where: { id },
+      data: {
+        status: status as any,
+        reviewedAt: reviewedStatuses.includes(status) ? new Date() : undefined,
+        reviewedById: reviewedStatuses.includes(status) ? reviewedById : undefined,
+        submittedAt: status === 'SUBMITTED' ? new Date() : undefined,
+      },
+      include: this.applicationInclude,
+    });
+    if (reviewedById) {
+      await this.prisma.auditLog.create({
+        data: { userId: reviewedById, action: 'STATUS_CHANGE', entity: 'Application', entityId: id, changes: { status } as any },
+      });
+    }
+    return updated;
+  }
+
+  async addApplicationNote(id: string, note: string, userId?: string) {
+    const app = await this.findOneApplication(id);
+    const existingNotes = app.notes || '';
+    const timestamp = new Date().toISOString();
+    const updatedNotes = existingNotes
+      ? `${existingNotes}\n---\n[${timestamp}] ${note}`
+      : `[${timestamp}] ${note}`;
+    return this.prisma.application.update({
+      where: { id }, data: { notes: updatedNotes }, include: this.applicationInclude,
+    });
+  }
+
+  async deleteApplication(id: string, deletedById?: string) {
+    await this.findOneApplication(id);
+    await this.prisma.application.update({ where: { id }, data: { deletedAt: new Date() } });
+    if (deletedById) {
+      await this.prisma.auditLog.create({
+        data: { userId: deletedById, action: 'DELETE', entity: 'Application', entityId: id },
+      });
+    }
+    return { message: 'Application deleted' };
   }
 
   /** Public combined submission: create applicant + application atomically. No auth required. */

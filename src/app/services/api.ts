@@ -228,7 +228,7 @@ export const employeesApi = {
   getPerformance: (id: string) => apiFetch<any>(`/employees/${id}/performance`),
 };
 
-// ─── Applicants API ──────────────────────────────────────────────────────────
+// ─── Applicants API (includes merged Application methods) ────────────────────
 
 export const applicantsApi = {
   list: (params?: Record<string, any>) => {
@@ -253,42 +253,41 @@ export const applicantsApi = {
       body: JSON.stringify({ status }),
     }),
 
+  /** Get all applications linked to a specific applicant */
   getApplication: (id: string) => apiFetch<any>(`/applicants/${id}/application`),
 
   convertToEmployee: (id: string) =>
     apiFetch<any>(`/applicants/${id}/convert`, { method: 'POST' }),
-};
 
-// ─── Applications API ────────────────────────────────────────────────────────
+  // ── Merged application methods ───────────────────────────────────────────
 
-export const applicationsApi = {
-  list: (params?: Record<string, any>) => {
+  listApplications: (params?: Record<string, any>) => {
     const qs = params ? '?' + new URLSearchParams(params).toString() : '';
-    return apiFetch<PaginatedResponse<any>>(`/applications${qs}`);
+    return apiFetch<PaginatedResponse<any>>(`/applicants/applications${qs}`);
   },
 
-  get: (id: string) => apiFetch<any>(`/applications/${id}`),
+  getApplicationById: (id: string) => apiFetch<any>(`/applicants/applications/${id}`),
 
-  create: (data: any) =>
-    apiFetch<any>('/applications', { method: 'POST', body: JSON.stringify(data) }),
+  createApplication: (data: any) =>
+    apiFetch<any>('/applicants/applications', { method: 'POST', body: JSON.stringify(data) }),
 
-  update: (id: string, data: any) =>
-    apiFetch<any>(`/applications/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  updateApplication: (id: string, data: any) =>
+    apiFetch<any>(`/applicants/applications/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
 
-  updateStatus: (id: string, status: string, notes?: string) =>
-    apiFetch<any>(`/applications/${id}/status`, {
+  updateApplicationStatus: (id: string, status: string) =>
+    apiFetch<any>(`/applicants/applications/${id}/status`, {
       method: 'PATCH',
-      body: JSON.stringify({ status, notes }),
+      body: JSON.stringify({ status }),
     }),
 
-  addNote: (id: string, note: string) =>
-    apiFetch<any>(`/applications/${id}/notes`, {
+  addApplicationNote: (id: string, note: string) =>
+    apiFetch<any>(`/applicants/applications/${id}/notes`, {
       method: 'POST',
       body: JSON.stringify({ note }),
     }),
 
-  delete: (id: string) =>
-    apiFetch(`/applications/${id}`, { method: 'DELETE' }),
+  deleteApplication: (id: string) =>
+    apiFetch(`/applicants/applications/${id}`, { method: 'DELETE' }),
 };
 
 // ─── Public Application API ───────────────────────────────────────────────────

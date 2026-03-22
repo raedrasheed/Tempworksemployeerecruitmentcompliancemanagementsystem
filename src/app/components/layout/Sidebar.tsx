@@ -2,7 +2,6 @@ import { Link, useLocation } from 'react-router';
 import {
   LayoutDashboard,
   Users,
-  FileText,
   FolderOpen,
   GitBranch,
   Building2,
@@ -16,7 +15,7 @@ import {
   Briefcase,
   UserCheck,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
 } from 'lucide-react';
 import { cn } from '../ui/utils';
 import { useAuthContext } from '../../contexts/AuthContext';
@@ -27,7 +26,6 @@ const allNavigationItems = [
   { icon: LayoutDashboard, label: 'Dashboard',             path: '/dashboard',                  permission: null },
   { icon: UserCheck,       label: 'Applicants',            path: '/dashboard/applicants',       permission: 'applicants:read' },
   { icon: Users,           label: 'Employees',             path: '/dashboard/employees',        permission: 'employees:read' },
-  { icon: FileText,        label: 'Applications',          path: '/dashboard/applications',     permission: 'applications:read' },
   { icon: FolderOpen,      label: 'Documents & Compliance',path: '/dashboard/documents-compliance', permission: 'documents:read' },
   { icon: FileSearch,      label: 'Document Explorer',     path: '/dashboard/document-explorer',permission: 'documents:read' },
   { icon: GitBranch,       label: 'Workflow Pipeline',     path: '/dashboard/workflow',         permission: 'workflow:read' },

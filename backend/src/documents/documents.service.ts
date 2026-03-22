@@ -120,11 +120,18 @@ export class DocumentsService {
     }
     if (!docType) throw new BadRequestException('No document types configured');
 
-    const systemUser = await this.prisma.user.findFirst({
-      where: { role: { name: 'System Admin' } },
+    // Try System Admin first, then fall back to any active user
+    let systemUser = await this.prisma.user.findFirst({
+      where: { role: { name: 'System Admin' }, deletedAt: null },
       orderBy: { createdAt: 'asc' },
     });
-    if (!systemUser) throw new BadRequestException('No system user available for upload attribution');
+    if (!systemUser) {
+      systemUser = await this.prisma.user.findFirst({
+        where: { deletedAt: null },
+        orderBy: { createdAt: 'asc' },
+      });
+    }
+    if (!systemUser) throw new BadRequestException('No users found to attribute upload to');
 
     const entityName  = await this.resolveEntityName('APPLICANT', entityId);
     const ts          = Date.now();

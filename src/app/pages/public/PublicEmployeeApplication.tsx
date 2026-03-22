@@ -157,11 +157,15 @@ export function PublicEmployeeApplication() {
       // Upload any documents attached to the application
       const fileItems = uploadedFiles.filter(f => f.file);
       if (fileItems.length > 0 && applicant?.id) {
-        await Promise.allSettled(
+        const results = await Promise.allSettled(
           fileItems.map(item =>
             publicApplicationApi.uploadDocument(applicant.id, item.file!, item.type || item.file!.name, item.type || 'Other'),
           ),
         );
+        const failed = results.filter(r => r.status === 'rejected').length;
+        if (failed > 0) {
+          toast.warning(`Application submitted, but ${failed} document(s) failed to upload. You can contact us to resubmit them.`);
+        }
       }
 
       navigate('/application-success');

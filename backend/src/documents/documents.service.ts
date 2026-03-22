@@ -142,7 +142,7 @@ export class DocumentsService {
         mimeType: file.mimetype,
         fileSize: file.size,
         status: 'PENDING',
-      },
+      } as any,
       include: this.docInclude,
     });
   }

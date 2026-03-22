@@ -123,4 +123,37 @@ export class ApplicantsService {
       orderBy: { createdAt: 'desc' },
     });
   }
+
+  /** Public combined submission: create applicant + application atomically. No auth required. */
+  async publicSubmit(dto: CreateApplicantDto & { jobTypeId?: string; applicationNotes?: string }) {
+    const existing = await this.prisma.applicant.findUnique({ where: { email: dto.email } });
+    if (existing) throw new ConflictException('An application with this email already exists');
+
+    const { jobTypeId, applicationNotes, ...applicantData } = dto;
+    const applicant = await this.prisma.applicant.create({
+      data: {
+        ...applicantData,
+        dateOfBirth: new Date(applicantData.dateOfBirth),
+        workAuthorizationExpiry: applicantData.workAuthorizationExpiry ? new Date(applicantData.workAuthorizationExpiry) : undefined,
+        preferredStartDate: applicantData.preferredStartDate ? new Date(applicantData.preferredStartDate) : undefined,
+        status: 'NEW',
+      },
+    });
+
+    const application = await this.prisma.application.create({
+      data: {
+        applicantId: applicant.id,
+        status: 'SUBMITTED',
+        submittedAt: new Date(),
+        jobTypeId: jobTypeId || undefined,
+        notes: applicationNotes || undefined,
+      },
+      include: {
+        applicant: { select: { id: true, firstName: true, lastName: true, email: true } },
+        jobType: { select: { id: true, name: true } },
+      },
+    });
+
+    return { applicant, application };
+  }
 }

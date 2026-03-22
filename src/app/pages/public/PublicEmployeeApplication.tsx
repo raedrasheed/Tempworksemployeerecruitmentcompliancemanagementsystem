@@ -10,7 +10,7 @@ import { Label } from '../../components/ui/label';
 import { Textarea } from '../../components/ui/textarea';
 import { Badge } from '../../components/ui/badge';
 import { toast } from 'sonner';
-import { applicationsApi } from '../../services/api';
+import { publicApplicationApi } from '../../services/api';
 
 interface FormData {
   // Screen 1: Basic Information
@@ -211,7 +211,89 @@ export function PublicEmployeeApplication() {
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
-      await applicationsApi.submitPublic(formData);
+      const nameParts = formData.fullName.trim().split(/\s+/);
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '-';
+
+      // Build payload matching backend CreateApplicantDto + extra fields
+      const payload = {
+        firstName,
+        lastName,
+        email: formData.email,
+        phone: formData.phone,
+        nationality: formData.nationality,
+        dateOfBirth: formData.dateOfBirth,
+        residencyStatus: formData.hasWorkPermit === 'yes' ? 'Work Permit' : formData.hasResidenceCard === 'yes' ? 'Residence Card' : 'Other',
+        availability: formData.earliestStartDate || 'Immediate',
+        preferredStartDate: formData.earliestStartDate || undefined,
+        willingToRelocate: true,
+        notes: JSON.stringify({
+          passportNumber: formData.passportNumber,
+          passportValidUntil: formData.passportValidUntil,
+          hasEUVisa: formData.hasEUVisa,
+          visaType: formData.visaType,
+          visaValidUntil: formData.visaValidUntil,
+          hasWorkPermit: formData.hasWorkPermit,
+          hasResidenceCard: formData.hasResidenceCard,
+          issuingCountry: formData.issuingCountry,
+          drivingLicenseNumber: formData.drivingLicenseNumber,
+          licenseIssuingCountry: formData.licenseIssuingCountry,
+          licenseValidUntil: formData.licenseValidUntil,
+          categoryA: formData.categoryA,
+          categoryB: formData.categoryB,
+          categoryC: formData.categoryC,
+          categoryD: formData.categoryD,
+          categoryE: formData.categoryE,
+          hasTachographCard: formData.hasTachographCard,
+          tachographNumber: formData.tachographNumber,
+          tachographValidUntil: formData.tachographValidUntil,
+          hasQualificationCard: formData.hasQualificationCard,
+          qualificationValidUntil: formData.qualificationValidUntil,
+          hasADR: formData.hasADR,
+          adrClasses: formData.adrClasses,
+          adrValidUntil: formData.adrValidUntil,
+          hasEUExperience: formData.hasEUExperience,
+          yearsEUExperience: formData.yearsEUExperience,
+          totalCEExperience: formData.totalCEExperience,
+          yearsActiveDriving: formData.yearsActiveDriving,
+          mainlyHomeCountry: formData.mainlyHomeCountry,
+          drivenOtherCountries: formData.drivenOtherCountries,
+          specifyCountries: formData.specifyCountries,
+          kilometersRange: formData.kilometersRange,
+          transportTypes: formData.transportTypes,
+          operationalSkills: formData.operationalSkills,
+          truckBrands: formData.truckBrands,
+          otherBrand: formData.otherBrand,
+          gearboxType: formData.gearboxType,
+          trailerTypes: formData.trailerTypes,
+          mostUsedTrailer: formData.mostUsedTrailer,
+          yearsWithTrailer: formData.yearsWithTrailer,
+          confidentTrailers: formData.confidentTrailers,
+          workRegime: formData.workRegime,
+          trafficAccidents: formData.trafficAccidents,
+          accidentDescription: formData.accidentDescription,
+          aetrViolations: formData.aetrViolations,
+          finesAbroad: formData.finesAbroad,
+          ecoDriving: formData.ecoDriving,
+          englishLevel: formData.englishLevel,
+          germanLevel: formData.germanLevel,
+          russianLevel: formData.russianLevel,
+          otherLanguages: formData.otherLanguages,
+          languageAtWork: formData.languageAtWork,
+          doubleCrewWillingness: formData.doubleCrewWillingness,
+          maxTourWeeks: formData.maxTourWeeks,
+          preferredCountries: formData.preferredCountries,
+          undesiredCountries: formData.undesiredCountries,
+          weekendDriving: formData.weekendDriving,
+          nightDriving: formData.nightDriving,
+          countryOfResidence: formData.countryOfResidence,
+          currentCountryOfResidence: formData.currentCountryOfResidence,
+          permanentAddress: formData.permanentAddress,
+          howDidYouHear: formData.howDidYouHear,
+        }),
+      };
+
+      await publicApplicationApi.submit(payload);
       navigate('/application-success');
     } catch (err: any) {
       toast.error(err?.message || 'Failed to submit application. Please try again.');

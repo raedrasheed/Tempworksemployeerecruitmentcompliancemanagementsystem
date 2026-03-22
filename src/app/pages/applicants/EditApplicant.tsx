@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
+import { applicantsApi } from '../../services/api';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Card, CardContent } from '../../components/ui/card';
@@ -81,83 +82,55 @@ interface FormData {
   nightDriving: boolean;
 }
 
+const EMPTY_FORM: FormData = {
+  fullName: '', dateOfBirth: '', nationality: '', countryOfResidence: '',
+  currentCountryOfResidence: '', permanentAddress: '', phone: '', email: '',
+  earliestStartDate: '', howDidYouHear: '', passportNumber: '', passportValidUntil: '',
+  hasEUVisa: '', visaType: '', visaValidUntil: '', hasWorkPermit: '', hasResidenceCard: '',
+  issuingCountry: '', drivingLicenseNumber: '', licenseIssuingCountry: '', licenseValidUntil: '',
+  categoryA: '', categoryB: '', categoryC: '', categoryD: '', categoryE: '',
+  hasTachographCard: '', tachographNumber: '', tachographValidUntil: '',
+  hasQualificationCard: '', qualificationValidUntil: '', hasADR: '', adrClasses: '',
+  adrValidUntil: '', hasEUExperience: '', yearsEUExperience: '', totalCEExperience: '',
+  yearsActiveDriving: '', mainlyHomeCountry: '', drivenOtherCountries: '', specifyCountries: '',
+  kilometersRange: '', transportTypes: [], operationalSkills: [], truckBrands: [], otherBrand: '',
+  gearboxType: '', trailerTypes: [], mostUsedTrailer: '', yearsWithTrailer: '', confidentTrailers: '',
+  workRegime: [], trafficAccidents: '', accidentDescription: '', aetrViolations: '', finesAbroad: '',
+  ecoDriving: '', englishLevel: '', germanLevel: '', russianLevel: '', otherLanguages: '',
+  languageAtWork: '', doubleCrewWillingness: '', maxTourWeeks: '', preferredCountries: '',
+  undesiredCountries: '', weekendDriving: false, nightDriving: false,
+};
+
 export function EditApplicant() {
   const navigate = useNavigate();
   const { id } = useParams();
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 10;
+  const [loading, setLoading] = useState(true);
 
-  // Pre-filled with existing applicant data
-  const [formData, setFormData] = useState<FormData>({
-    fullName: 'Andrei Popescu',
-    dateOfBirth: '1988-05-15',
-    nationality: 'Romania',
-    countryOfResidence: 'Romania',
-    currentCountryOfResidence: 'Romania',
-    permanentAddress: 'Str. Victoriei 45, Bucharest',
-    phone: '+40 721 234 567',
-    email: 'andrei.popescu@email.com',
-    earliestStartDate: '2026-04-01',
-    howDidYouHear: 'linkedin',
-    passportNumber: 'RO123456789',
-    passportValidUntil: '2030-12-31',
-    hasEUVisa: 'no',
-    visaType: '',
-    visaValidUntil: '',
-    hasWorkPermit: 'yes',
-    hasResidenceCard: 'yes',
-    issuingCountry: 'Romania',
-    drivingLicenseNumber: 'RO-4567-CE',
-    licenseIssuingCountry: 'Romania',
-    licenseValidUntil: '2028-05-15',
-    categoryA: '2005-03-10',
-    categoryB: '2006-04-15',
-    categoryC: '2015-07-20',
-    categoryD: '',
-    categoryE: '2016-09-10',
-    hasTachographCard: 'yes',
-    tachographNumber: 'TACH123456',
-    tachographValidUntil: '2027-03-15',
-    hasQualificationCard: 'yes',
-    qualificationValidUntil: '2027-06-30',
-    hasADR: 'no',
-    adrClasses: '',
-    adrValidUntil: '',
-    hasEUExperience: 'yes',
-    yearsEUExperience: '5',
-    totalCEExperience: '8',
-    yearsActiveDriving: '8',
-    mainlyHomeCountry: 'no',
-    drivenOtherCountries: 'yes',
-    specifyCountries: 'Germany, France, Netherlands, Belgium, Austria',
-    kilometersRange: '> 1,000,000 km',
-    transportTypes: ['international', 'bilateral'],
-    operationalSkills: ['pallet', 'loading', 'cmr', 'securing', 'tachograph'],
-    truckBrands: ['Volvo', 'Scania', 'DAF'],
-    otherBrand: '',
-    gearboxType: 'both',
-    trailerTypes: ['curtain', 'reefer', 'mega'],
-    mostUsedTrailer: 'Curtain Sider',
-    yearsWithTrailer: '7',
-    confidentTrailers: 'Curtain sider, Reefer, Mega',
-    workRegime: [],
-    trafficAccidents: 'no',
-    accidentDescription: '',
-    aetrViolations: 'no',
-    finesAbroad: 'no',
-    ecoDriving: 'yes',
-    englishLevel: 'intermediate',
-    germanLevel: 'basic',
-    russianLevel: '',
-    otherLanguages: 'French (basic)',
-    languageAtWork: 'English',
-    doubleCrewWillingness: 'yes',
-    maxTourWeeks: '3',
-    preferredCountries: 'Germany, Netherlands, Belgium',
-    undesiredCountries: '',
-    weekendDriving: true,
-    nightDriving: true,
-  });
+  const [formData, setFormData] = useState<FormData>(EMPTY_FORM);
+
+  // Load existing applicant data from API
+  useEffect(() => {
+    if (!id) return;
+    applicantsApi.get(id).then((applicant) => {
+      let extra: Record<string, any> = {};
+      try { extra = JSON.parse(applicant.notes || '{}'); } catch { /* ignore */ }
+
+      setFormData({
+        ...EMPTY_FORM,
+        fullName: `${applicant.firstName} ${applicant.lastName}`.trim(),
+        dateOfBirth: applicant.dateOfBirth ? applicant.dateOfBirth.slice(0, 10) : '',
+        nationality: applicant.nationality || '',
+        phone: applicant.phone || '',
+        email: applicant.email || '',
+        earliestStartDate: applicant.preferredStartDate ? applicant.preferredStartDate.slice(0, 10) : '',
+        ...extra,
+      });
+    }).catch(() => {
+      toast.error('Failed to load applicant data');
+    }).finally(() => setLoading(false));
+  }, [id]);
 
   const handleInputChange = (field: keyof FormData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -187,14 +160,52 @@ export function EditApplicant() {
     }
   };
 
-  const handleSubmit = () => {
-    toast.success('Applicant updated successfully');
-    navigate(`/dashboard/applicants/${id}`);
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!id) return;
+    setSubmitting(true);
+    try {
+      const nameParts = formData.fullName.trim().split(/\s+/);
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '-';
+
+      const extraData = { ...formData };
+      delete (extraData as any).fullName;
+      delete (extraData as any).dateOfBirth;
+      delete (extraData as any).nationality;
+      delete (extraData as any).phone;
+      delete (extraData as any).email;
+      delete (extraData as any).earliestStartDate;
+
+      await applicantsApi.update(id, {
+        firstName,
+        lastName,
+        email: formData.email,
+        phone: formData.phone,
+        nationality: formData.nationality,
+        dateOfBirth: formData.dateOfBirth,
+        preferredStartDate: formData.earliestStartDate || undefined,
+        availability: formData.earliestStartDate || 'Immediate',
+        notes: JSON.stringify(extraData),
+      });
+
+      toast.success('Applicant updated successfully');
+      navigate(`/dashboard/applicants/${id}`);
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to update applicant');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const getProgressPercentage = () => {
     return Math.round((currentStep / totalSteps) * 100);
   };
+
+  if (loading) {
+    return <div className="flex items-center justify-center h-64 text-muted-foreground">Loading applicant data...</div>;
+  }
 
   return (
     <div className="space-y-6">
@@ -434,10 +445,11 @@ export function EditApplicant() {
               <Button
                 type="button"
                 onClick={handleSubmit}
+                disabled={submitting}
                 className="ml-auto gap-2 bg-[#22C55E] hover:bg-[#16a34a]"
               >
                 <Save className="w-4 h-4" />
-                Update Applicant
+                {submitting ? 'Saving...' : 'Update Applicant'}
               </Button>
             )}
           </div>

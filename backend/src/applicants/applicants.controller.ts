@@ -11,6 +11,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { Public } from '../auth/decorators/public.decorator';
 
 @ApiTags('Applicants')
 @ApiBearerAuth('access-token')
@@ -40,6 +41,13 @@ export class ApplicantsController {
   @ApiParam({ name: 'id', description: 'Applicant UUID' })
   getApplication(@Param('id') id: string) {
     return this.applicantsService.getApplication(id);
+  }
+
+  @Public()
+  @Post('public/submit')
+  @ApiOperation({ summary: 'Public application form: creates applicant + application (no auth)' })
+  publicSubmit(@Body() dto: any) {
+    return this.applicantsService.publicSubmit(dto);
   }
 
   @Post()

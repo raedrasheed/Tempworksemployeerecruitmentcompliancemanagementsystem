@@ -1,124 +1,152 @@
-import { useState } from 'react';
-import { Link } from 'react-router';
-import { Search, Filter, Eye } from 'lucide-react';
-import { Card, CardContent } from '../../components/ui/card';
+import { useState, useEffect, useCallback } from 'react';
+import { Link, useNavigate } from 'react-router';
+import { Search, Filter, Eye, Plus, Trash2 } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Badge } from '../../components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
-import { mockApplications } from '../../data/mockData';
 import { FilterSystem, Column, FilterRule, FilterPreset } from '../../components/filters/FilterSystem';
+import { applicationsApi } from '../../services/api';
+import { usePermissions } from '../../hooks/usePermissions';
+import { toast } from 'sonner';
 
-// Define columns for the filter system
 const applicationColumns: Column[] = [
   { id: 'id', label: 'Application ID', type: 'text' },
-  { id: 'driverName', label: 'Employee Name', type: 'text' },
-  { id: 'position', label: 'Position', type: 'text' },
+  { id: 'applicantName', label: 'Applicant Name', type: 'text' },
+  { id: 'jobType', label: 'Position', type: 'text' },
   { id: 'nationality', label: 'Nationality', type: 'text' },
-  { id: 'submittedDate', label: 'Submitted Date', type: 'date' },
-  { id: 'status', label: 'Status', type: 'enum', options: ['submitted', 'in_review', 'approved', 'rejected', 'on_hold'] },
-  { id: 'reviewedBy', label: 'Reviewed By', type: 'text' },
+  { id: 'createdAt', label: 'Submitted Date', type: 'date' },
+  { id: 'status', label: 'Status', type: 'enum', options: ['DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'APPROVED', 'REJECTED', 'WITHDRAWN'] },
 ];
 
+const getStatusColor = (status: string) => {
+  switch (status?.toUpperCase()) {
+    case 'APPROVED': return 'bg-green-100 text-green-800';
+    case 'UNDER_REVIEW': return 'bg-blue-100 text-blue-800';
+    case 'REJECTED': return 'bg-red-100 text-red-800';
+    case 'SUBMITTED': return 'bg-purple-100 text-purple-800';
+    case 'WITHDRAWN': return 'bg-gray-100 text-gray-800';
+    default: return 'bg-yellow-100 text-yellow-800';
+  }
+};
+
 export function ApplicationsList() {
+  const navigate = useNavigate();
+  const { canCreate, canDelete } = usePermissions();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [applications, setApplications] = useState<any[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
   const [activeFilters, setActiveFilters] = useState<FilterRule[]>([]);
   const [filterLogic, setFilterLogic] = useState<'AND' | 'OR'>('AND');
   const [savedPresets, setSavedPresets] = useState<FilterPreset[]>([
-    {
-      id: '1',
-      name: 'Pending Review',
-      rules: [
-        { id: '1', columnId: 'status', operator: 'equals', value: 'in_review' }
-      ],
-      logic: 'AND'
-    },
-    {
-      id: '2',
-      name: 'Recent Applications',
-      rules: [
-        { id: '1', columnId: 'submittedDate', operator: 'after', value: '2026-02-01' }
-      ],
-      logic: 'AND'
-    }
+    { id: '1', name: 'Pending Review', rules: [{ id: '1', columnId: 'status', operator: 'equals', value: 'UNDER_REVIEW' }], logic: 'AND' },
+    { id: '2', name: 'Submitted', rules: [{ id: '1', columnId: 'status', operator: 'equals', value: 'SUBMITTED' }], logic: 'AND' },
   ]);
 
-  // Apply filters to applications
+  const fetchApplications = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params: Record<string, any> = { page: 1, limit: 100 };
+      if (searchTerm) params.search = searchTerm;
+      if (statusFilter !== 'all') params.status = statusFilter;
+      const result = await applicationsApi.list(params);
+      setApplications(result.data || []);
+      setTotal(result.meta?.total || 0);
+    } catch {
+      setApplications([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [searchTerm, statusFilter]);
+
+  useEffect(() => {
+    const t = setTimeout(fetchApplications, 300);
+    return () => clearTimeout(t);
+  }, [fetchApplications]);
+
+  const handleDelete = async (appId: string) => {
+    if (!confirm('Delete this application?')) return;
+    try {
+      await applicationsApi.delete(appId);
+      toast.success('Application deleted');
+      fetchApplications();
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to delete application');
+    }
+  };
+
+  // Apply frontend filters
   const applyFilters = (app: any) => {
     if (activeFilters.length === 0) return true;
-
     const results = activeFilters.map(filter => {
-      const column = applicationColumns.find(c => c.id === filter.columnId);
-      if (!column) return true;
-
-      const value = (app as any)[filter.columnId] || '';
-
-      // Apply operator logic
-      switch (filter.operator) {
-        case 'contains':
-          return value.toLowerCase().includes(filter.value.toLowerCase());
-        case 'equals':
-          return value.toString().toLowerCase() === filter.value.toLowerCase();
-        case 'startsWith':
-          return value.toLowerCase().startsWith(filter.value.toLowerCase());
-        case 'endsWith':
-          return value.toLowerCase().endsWith(filter.value.toLowerCase());
-        case 'before':
-          return new Date(value) < new Date(filter.value);
-        case 'after':
-          return new Date(value) > new Date(filter.value);
+      let value: string;
+      switch (filter.columnId) {
+        case 'applicantName':
+          value = app.applicant ? `${app.applicant.firstName} ${app.applicant.lastName}` : '';
+          break;
+        case 'jobType':
+          value = app.jobType?.name || '';
+          break;
+        case 'nationality':
+          value = app.applicant?.nationality || '';
+          break;
         default:
-          return true;
+          value = (app as any)[filter.columnId] || '';
+      }
+      switch (filter.operator) {
+        case 'contains': return value.toLowerCase().includes(filter.value.toLowerCase());
+        case 'equals': return value.toLowerCase() === filter.value.toLowerCase();
+        case 'startsWith': return value.toLowerCase().startsWith(filter.value.toLowerCase());
+        case 'endsWith': return value.toLowerCase().endsWith(filter.value.toLowerCase());
+        case 'before': return new Date(value) < new Date(filter.value);
+        case 'after': return new Date(value) > new Date(filter.value);
+        default: return true;
       }
     });
-
     return filterLogic === 'AND' ? results.every(r => r) : results.some(r => r);
   };
 
-  const filteredApplications = mockApplications.filter(app => {
-    const matchesSearch = app.driverName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         app.position.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || app.status === statusFilter;
-    const matchesFilters = applyFilters(app);
-    return matchesSearch && matchesStatus && matchesFilters;
+  const filtered = applications.filter(app => {
+    const name = app.applicant ? `${app.applicant.firstName} ${app.applicant.lastName}` : '';
+    const matchesSearch = name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (app.jobType?.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      app.id.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesSearch && applyFilters(app);
   });
 
-  const handleSavePreset = (name: string, rules: FilterRule[], logic: 'AND' | 'OR') => {
-    const newPreset: FilterPreset = {
-      id: Date.now().toString(),
-      name,
-      rules,
-      logic
-    };
-    setSavedPresets([...savedPresets, newPreset]);
-  };
-
-  const handleLoadPreset = (preset: FilterPreset) => {
-    setActiveFilters(preset.rules);
-    setFilterLogic(preset.logic);
-  };
-
-  const handleDeletePreset = (presetId: string) => {
-    setSavedPresets(savedPresets.filter(p => p.id !== presetId));
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'approved': return 'bg-[#22C55E]';
-      case 'in_review': return 'bg-[#2563EB]';
-      case 'rejected': return 'bg-[#EF4444]';
-      case 'on_hold': return 'bg-[#F59E0B]';
-      default: return 'bg-gray-500';
-    }
+  // Stats
+  const stats = {
+    total: applications.length,
+    submitted: applications.filter(a => a.status === 'SUBMITTED').length,
+    underReview: applications.filter(a => a.status === 'UNDER_REVIEW').length,
+    approved: applications.filter(a => a.status === 'APPROVED').length,
   };
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-semibold text-[#0F172A]">Applications</h1>
-        <p className="text-muted-foreground mt-1">Manage driver applications and recruitment requests</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-semibold text-[#0F172A]">Applications</h1>
+          <p className="text-muted-foreground mt-1">Manage driver applications and recruitment requests</p>
+        </div>
+        {canCreate('applications') && (
+          <Button onClick={() => navigate('/dashboard/applicants/add')}>
+            <Plus className="w-4 h-4 mr-2" />
+            New Application
+          </Button>
+        )}
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Total</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{stats.total}</div></CardContent></Card>
+        <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Submitted</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-purple-600">{stats.submitted}</div></CardContent></Card>
+        <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Under Review</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-blue-600">{stats.underReview}</div></CardContent></Card>
+        <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Approved</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-green-600">{stats.approved}</div></CardContent></Card>
       </div>
 
       <Card>
@@ -133,18 +161,19 @@ export function ApplicationsList() {
                 className="pl-10"
               />
             </div>
-            
+
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="submitted">Submitted</SelectItem>
-                <SelectItem value="in_review">In Review</SelectItem>
-                <SelectItem value="approved">Approved</SelectItem>
-                <SelectItem value="rejected">Rejected</SelectItem>
-                <SelectItem value="on_hold">On Hold</SelectItem>
+                <SelectItem value="DRAFT">Draft</SelectItem>
+                <SelectItem value="SUBMITTED">Submitted</SelectItem>
+                <SelectItem value="UNDER_REVIEW">Under Review</SelectItem>
+                <SelectItem value="APPROVED">Approved</SelectItem>
+                <SelectItem value="REJECTED">Rejected</SelectItem>
+                <SelectItem value="WITHDRAWN">Withdrawn</SelectItem>
               </SelectContent>
             </Select>
 
@@ -155,53 +184,82 @@ export function ApplicationsList() {
               filterLogic={filterLogic}
               onLogicChange={setFilterLogic}
               savedPresets={savedPresets}
-              onSavePreset={handleSavePreset}
-              onLoadPreset={handleLoadPreset}
-              onDeletePreset={handleDeletePreset}
+              onSavePreset={(name, rules, logic) => setSavedPresets(prev => [...prev, { id: Date.now().toString(), name, rules, logic }])}
+              onLoadPreset={(preset) => { setActiveFilters(preset.rules); setFilterLogic(preset.logic); }}
+              onDeletePreset={(pid) => setSavedPresets(prev => prev.filter(p => p.id !== pid))}
             />
           </div>
 
-          <div className="border rounded-lg">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Application ID</TableHead>
-                  <TableHead>Driver Name</TableHead>
-                  <TableHead>Position</TableHead>
-                  <TableHead>Nationality</TableHead>
-                  <TableHead>Submitted Date</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Reviewed By</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredApplications.map((app) => (
-                  <TableRow key={app.id}>
-                    <TableCell className="font-medium">{app.id}</TableCell>
-                    <TableCell>{app.driverName}</TableCell>
-                    <TableCell>{app.position}</TableCell>
-                    <TableCell>{app.nationality}</TableCell>
-                    <TableCell>{app.submittedDate}</TableCell>
-                    <TableCell>
-                      <Badge className={getStatusColor(app.status)}>
-                        {app.status.replace(/_/g, ' ')}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{app.reviewedBy || '-'}</TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" asChild>
-                        <Link to={`/dashboard/applications/${app.id}`}>
-                          <Eye className="w-4 h-4 mr-2" />
-                          View
-                        </Link>
-                      </Button>
-                    </TableCell>
+          {loading ? (
+            <div className="text-center py-12 text-muted-foreground">Loading applications...</div>
+          ) : (
+            <div className="border rounded-lg">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Application ID</TableHead>
+                    <TableHead>Applicant Name</TableHead>
+                    <TableHead>Position</TableHead>
+                    <TableHead>Nationality</TableHead>
+                    <TableHead>Submitted Date</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Reviewed By</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {filtered.map((app) => (
+                    <TableRow key={app.id}>
+                      <TableCell className="font-mono text-xs">{app.id.slice(0, 8)}…</TableCell>
+                      <TableCell>
+                        {app.applicant
+                          ? `${app.applicant.firstName} ${app.applicant.lastName}`
+                          : '-'}
+                      </TableCell>
+                      <TableCell>{app.jobType?.name || '-'}</TableCell>
+                      <TableCell>{app.applicant?.nationality || '-'}</TableCell>
+                      <TableCell>{app.submittedAt ? new Date(app.submittedAt).toLocaleDateString() : app.createdAt ? new Date(app.createdAt).toLocaleDateString() : '-'}</TableCell>
+                      <TableCell>
+                        <Badge className={getStatusColor(app.status)}>
+                          {app.status?.replace(/_/g, ' ')}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {app.reviewedBy
+                          ? `${app.reviewedBy.firstName} ${app.reviewedBy.lastName}`
+                          : '-'}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button variant="ghost" size="sm" asChild>
+                            <Link to={`/dashboard/applications/${app.id}`}>
+                              <Eye className="w-4 h-4 mr-1" />
+                              View
+                            </Link>
+                          </Button>
+                          {canDelete('applications') && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-600 hover:text-red-700"
+                              onClick={() => handleDelete(app.id)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              {filtered.length === 0 && (
+                <div className="text-center py-12 text-muted-foreground">
+                  No applications found.
+                </div>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -287,9 +287,15 @@ export const applicationsApi = {
       body: JSON.stringify({ note }),
     }),
 
-  // Public route - no auth needed
-  submitPublic: (data: any) =>
-    apiFetch<any>('/applications/public', {
+  delete: (id: string) =>
+    apiFetch(`/applications/${id}`, { method: 'DELETE' }),
+};
+
+// ─── Public Application API ───────────────────────────────────────────────────
+// No auth required - used by the public-facing driver application form
+export const publicApplicationApi = {
+  submit: (data: any) =>
+    apiFetch<any>('/applicants/public/submit', {
       method: 'POST',
       body: JSON.stringify(data),
     }),

@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router';
 import { ArrowLeft, Mail, Phone, MapPin, Globe, Briefcase, Calendar, FileText, UserPlus, Edit, Trash2, CheckCircle2 } from 'lucide-react';
 import { usePermissions } from '../../hooks/usePermissions';
+import { applicantsApi } from '../../services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
@@ -135,16 +136,22 @@ const applicantData = {
 };
 
 const getStatusColor = (status: string) => {
-  switch (status) {
-    case 'New Application':
+  switch (status?.toUpperCase()) {
+    case 'NEW':
+    case 'NEW APPLICATION':
       return 'bg-blue-100 text-blue-800';
-    case 'Under Review':
+    case 'SCREENING':
+    case 'UNDER REVIEW':
       return 'bg-yellow-100 text-yellow-800';
-    case 'Interview Scheduled':
+    case 'INTERVIEW':
+    case 'INTERVIEW SCHEDULED':
       return 'bg-purple-100 text-purple-800';
-    case 'Accepted':
+    case 'ACCEPTED':
+    case 'OFFER':
+    case 'ONBOARDING':
       return 'bg-green-100 text-green-800';
-    case 'Rejected':
+    case 'REJECTED':
+    case 'WITHDRAWN':
       return 'bg-red-100 text-red-800';
     default:
       return 'bg-gray-100 text-gray-800';
@@ -169,18 +176,61 @@ export function ApplicantProfile() {
   const navigate = useNavigate();
   const [showConvertDialog, setShowConvertDialog] = useState(false);
   const { canEdit, canDelete } = usePermissions();
+  const [loading, setLoading] = useState(true);
+  const [applicantData, setApplicantData] = useState<any>(null);
+  const [applications, setApplications] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!id) return;
+    Promise.all([
+      applicantsApi.get(id),
+      applicantsApi.getApplication(id).catch(() => []),
+    ]).then(([applicant, apps]) => {
+      let extra: Record<string, any> = {};
+      try { extra = JSON.parse(applicant.notes || '{}'); } catch { /* ignore */ }
+      setApplicantData({
+        ...applicant,
+        fullName: `${applicant.firstName} ${applicant.lastName}`.trim(),
+        applicationDate: applicant.createdAt ? applicant.createdAt.slice(0, 10) : '',
+        status: applicant.status || 'NEW',
+        ...extra,
+        // Make sure core fields aren't overwritten by extra
+        id: applicant.id,
+        email: applicant.email,
+        phone: applicant.phone,
+        nationality: applicant.nationality,
+        dateOfBirth: applicant.dateOfBirth ? applicant.dateOfBirth.slice(0, 10) : '',
+        preferredStartDate: applicant.preferredStartDate ? applicant.preferredStartDate.slice(0, 10) : '',
+        jobType: applicant.jobType,
+      });
+      setApplications(apps);
+    }).catch(() => {
+      toast.error('Failed to load applicant');
+      navigate('/dashboard/applicants');
+    }).finally(() => setLoading(false));
+  }, [id, navigate]);
 
   const handleConvertToEmployee = () => {
     toast.success('Applicant converted to Employee successfully!');
     navigate('/dashboard/employees');
   };
 
-  const handleDelete = () => {
-    if (confirm('Are you sure you want to delete this applicant?')) {
+  const handleDelete = async () => {
+    if (!id || !confirm('Are you sure you want to delete this applicant?')) return;
+    try {
+      await applicantsApi.delete(id);
       toast.success('Applicant deleted successfully');
       navigate('/dashboard/applicants');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to delete applicant');
     }
   };
+
+  if (loading) {
+    return <div className="flex items-center justify-center h-64 text-muted-foreground">Loading applicant...</div>;
+  }
+
+  if (!applicantData) return null;
 
   return (
     <div className="space-y-6">
@@ -216,7 +266,7 @@ export function ApplicantProfile() {
               Delete
             </Button>
           )}
-          {applicantData.status === 'Accepted' && (
+          {applicantData.status === 'ACCEPTED' && (
             <Button className="bg-green-600 hover:bg-green-700" onClick={() => setShowConvertDialog(true)}>
               <UserPlus className="w-4 h-4 mr-2" />
               Convert to Employee

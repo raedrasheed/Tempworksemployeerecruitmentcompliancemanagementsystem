@@ -1,6 +1,8 @@
 import {
   Injectable, NotFoundException, BadRequestException, ForbiddenException,
 } from '@nestjs/common';
+import { extname, join } from 'path';
+import { promises as fs } from 'fs';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateDocumentDto } from './dto/create-document.dto';
 import { VerifyDocumentDto, VerifyActionEnum } from './dto/verify-document.dto';
@@ -10,6 +12,54 @@ import { PaginatedResponse } from '../common/dto/pagination-response.dto';
 @Injectable()
 export class DocumentsService {
   constructor(private prisma: PrismaService) {}
+
+  /** Strip characters that are unsafe in filenames; collapse repeated underscores. */
+  private sanitize(raw: string): string {
+    return raw
+      .replace(/[^a-zA-Z0-9\-]/g, '_') // replace everything except letters, digits, hyphens
+      .replace(/_+/g, '_')              // collapse repeated underscores
+      .replace(/^_|_$/g, '');           // trim leading/trailing underscores
+  }
+
+  /** Resolve a human-readable entity name from the entity type + id. */
+  private async resolveEntityName(entityType: string, entityId: string): Promise<string> {
+    try {
+      switch (entityType) {
+        case 'EMPLOYEE': {
+          const e = await this.prisma.employee.findUnique({
+            where: { id: entityId },
+            select: { firstName: true, lastName: true },
+          });
+          return e ? `${e.firstName} ${e.lastName}` : 'Unknown';
+        }
+        case 'APPLICANT': {
+          const a = await this.prisma.applicant.findUnique({
+            where: { id: entityId },
+            select: { firstName: true, lastName: true },
+          });
+          return a ? `${a.firstName} ${a.lastName}` : 'Unknown';
+        }
+        case 'AGENCY': {
+          const ag = await this.prisma.agency.findUnique({
+            where: { id: entityId },
+            select: { name: true },
+          });
+          return ag ? ag.name : 'Unknown';
+        }
+        case 'USER': {
+          const u = await this.prisma.user.findUnique({
+            where: { id: entityId },
+            select: { firstName: true, lastName: true },
+          });
+          return u ? `${u.firstName} ${u.lastName}` : 'Unknown';
+        }
+        default:
+          return entityType;
+      }
+    } catch {
+      return entityType;
+    }
+  }
 
   private get docInclude() {
     return {
@@ -61,7 +111,15 @@ export class DocumentsService {
     const docType = await this.prisma.documentType.findUnique({ where: { id: dto.documentTypeId } });
     if (!docType) throw new NotFoundException('Document type not found');
 
-    const fileUrl = `/uploads/${file.filename}`;
+    // Build semantic filename: {EntityName}_{DocumentType}_{timestamp}.{ext}
+    const entityName  = await this.resolveEntityName(dto.entityType, dto.entityId);
+    const ext         = extname(file.originalname);
+    const newFilename = `${this.sanitize(entityName)}_${this.sanitize(docType.name)}_${Date.now()}${ext}`;
+    const newPath     = join(file.destination, newFilename);
+
+    await fs.rename(file.path, newPath);
+
+    const fileUrl = `/uploads/${newFilename}`;
     const doc = await this.prisma.document.create({
       data: {
         name: dto.name,

@@ -31,34 +31,34 @@ export class DocumentsService {
             where: { id: entityId },
             select: { firstName: true, lastName: true },
           });
-          return e ? `${e.firstName} ${e.lastName}` : 'Unknown';
+          return e ? `${e.firstName} ${e.lastName}` : '';
         }
         case 'APPLICANT': {
           const a = await this.prisma.applicant.findUnique({
             where: { id: entityId },
             select: { firstName: true, lastName: true },
           });
-          return a ? `${a.firstName} ${a.lastName}` : 'Unknown';
+          return a ? `${a.firstName} ${a.lastName}` : '';
         }
         case 'AGENCY': {
           const ag = await this.prisma.agency.findUnique({
             where: { id: entityId },
             select: { name: true },
           });
-          return ag ? ag.name : 'Unknown';
+          return ag ? ag.name : '';
         }
         case 'USER': {
           const u = await this.prisma.user.findUnique({
             where: { id: entityId },
             select: { firstName: true, lastName: true },
           });
-          return u ? `${u.firstName} ${u.lastName}` : 'Unknown';
+          return u ? `${u.firstName} ${u.lastName}` : '';
         }
         default:
-          return entityType;
+          return '';
       }
     } catch {
-      return entityType;
+      return '';
     }
   }
 
@@ -117,8 +117,8 @@ export class DocumentsService {
     const entityName   = await this.resolveEntityName(dto.entityType, dto.entityId);
     const ts           = Date.now();
     const ext          = extname(file.originalname);
-    const safeEntity   = this.sanitize(entityName);
-    const safeDocType  = this.sanitize(docType.name);
+    const safeEntity   = this.sanitize(entityName)  || 'Others';
+    const safeDocType  = this.sanitize(docType?.name) || 'Others';
     const folderName   = `${safeEntity}_${ts}`;
     const newFilename  = `${safeEntity}_${safeDocType}_${ts}${ext}`;
     const newDir       = join(file.destination, folderName, safeDocType);

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { applicantsApi, settingsApi } from '../../services/api';
+import { applicantsApi, settingsApi, documentsApi } from '../../services/api';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent } from '../../components/ui/card';
 import { ArrowLeft, ChevronRight, ChevronLeft, UserPlus } from 'lucide-react';
@@ -34,10 +34,12 @@ export function AddApplicant() {
   const [formData, setFormData] = useState<ApplicantFormData>(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [jobTypes, setJobTypes] = useState<JobType[]>([]);
+  const [docTypes, setDocTypes] = useState<any[]>([]);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFileItem[]>([]);
 
   useEffect(() => {
     settingsApi.getJobTypes().then(setJobTypes).catch(() => {});
+    settingsApi.getDocumentTypes().then((res: any) => setDocTypes(res?.data ?? res ?? [])).catch(() => {});
   }, []);
 
   const handleInputChange = (field: keyof ApplicantFormData, value: any) => {
@@ -158,6 +160,30 @@ export function AddApplicant() {
       };
 
       const applicant = await applicantsApi.create(applicantPayload);
+
+      // Upload any documents attached to the application
+      const fileItems = uploadedFiles.filter(f => f.file);
+      if (fileItems.length > 0 && applicant?.id) {
+        const results = await Promise.allSettled(
+          fileItems.map(item => {
+            const docType = docTypes.find(
+              dt => dt.name?.toLowerCase() === item.type?.toLowerCase(),
+            ) ?? docTypes[0];
+            if (!docType) return Promise.reject(new Error('No document types configured'));
+            const fd = new FormData();
+            fd.append('file', item.file!);
+            fd.append('name', item.type || item.file!.name);
+            fd.append('documentTypeId', docType.id);
+            fd.append('entityType', 'APPLICANT');
+            fd.append('entityId', applicant.id);
+            return documentsApi.upload(fd);
+          }),
+        );
+        const failed = results.filter(r => r.status === 'rejected').length;
+        if (failed > 0) {
+          toast.warning(`Applicant created, but ${failed} document(s) failed to upload.`);
+        }
+      }
 
       toast.success('Applicant created successfully');
       navigate(`/dashboard/applicants/${applicant.id}`);

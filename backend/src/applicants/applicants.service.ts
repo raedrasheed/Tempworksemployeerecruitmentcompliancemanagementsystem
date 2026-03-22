@@ -49,7 +49,7 @@ export class ApplicantsService {
     const applicant = await this.prisma.applicant.create({
       data: {
         ...dto,
-        dateOfBirth: new Date(dto.dateOfBirth),
+        dateOfBirth: dto.dateOfBirth ? new Date(dto.dateOfBirth) : undefined,
         workAuthorizationExpiry: dto.workAuthorizationExpiry ? new Date(dto.workAuthorizationExpiry) : undefined,
         preferredStartDate: dto.preferredStartDate ? new Date(dto.preferredStartDate) : undefined,
         status: dto.status || 'NEW',
@@ -119,7 +119,7 @@ export class ApplicantsService {
     const applicant = await this.prisma.applicant.create({
       data: {
         ...applicantData,
-        dateOfBirth: new Date(applicantData.dateOfBirth),
+        dateOfBirth: applicantData.dateOfBirth ? new Date(applicantData.dateOfBirth) : undefined,
         workAuthorizationExpiry: applicantData.workAuthorizationExpiry ? new Date(applicantData.workAuthorizationExpiry) : undefined,
         preferredStartDate: applicantData.preferredStartDate ? new Date(applicantData.preferredStartDate) : undefined,
         status: 'NEW',

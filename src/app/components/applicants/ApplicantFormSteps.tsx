@@ -1,9 +1,17 @@
-import { User, Phone, CreditCard, Briefcase, Shield, FileText, CheckCircle2, Check } from 'lucide-react';
+import { User, Phone, CreditCard, Briefcase, Shield, FileText, CheckCircle2, Check, Upload } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Checkbox } from '../ui/checkbox';
 import { Textarea } from '../ui/textarea';
+
+export interface UploadedFiles {
+  passportCopy?: File | null;
+  driverLicenseCopy?: File | null;
+  tachographCard?: File | null;
+  code95Card?: File | null;
+  adrCertificate?: File | null;
+}
 
 export interface JobType {
   id: string;
@@ -182,9 +190,61 @@ interface Props {
   onInputChange: (field: keyof ApplicantFormData, value: any) => void;
   onArrayToggle: (field: keyof ApplicantFormData, value: string) => void;
   jobTypes?: JobType[];
+  uploadedFiles?: UploadedFiles;
+  onFileChange?: (field: keyof UploadedFiles, file: File | null) => void;
 }
 
-export function ApplicantFormSteps({ currentStep, formData, onInputChange, onArrayToggle, jobTypes = [] }: Props) {
+function FileUploadCard({
+  label, description, required, file, onChange,
+}: {
+  label: string; description: string; required?: boolean;
+  file?: File | null; onChange: (f: File | null) => void;
+}) {
+  return (
+    <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 space-y-3 hover:border-blue-400 transition-colors">
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="font-semibold text-gray-900 text-sm">
+            {label}{required && <span className="text-red-500 ml-0.5">*</span>}
+          </p>
+          <p className="text-xs text-gray-500 mt-0.5">{description}</p>
+        </div>
+        <label className="cursor-pointer p-1.5 rounded hover:bg-gray-100 transition-colors">
+          <Upload className="w-4 h-4 text-gray-400" />
+          <input
+            type="file"
+            accept=".pdf,.jpg,.jpeg,.png"
+            className="sr-only"
+            onChange={(e) => onChange(e.target.files?.[0] ?? null)}
+          />
+        </label>
+      </div>
+      <label className="block cursor-pointer">
+        <div className={`flex items-center gap-2 px-3 py-2 rounded border text-sm ${file ? 'bg-green-50 border-green-300 text-green-800' : 'bg-gray-50 border-gray-200 text-gray-500'}`}>
+          {file ? (
+            <>
+              <Check className="w-4 h-4 text-green-600 shrink-0" />
+              <span className="truncate">{file.name}</span>
+            </>
+          ) : (
+            <>
+              <span className="text-gray-400 text-xs border border-gray-300 rounded px-2 py-0.5 bg-white">Choose File</span>
+              <span>No file chosen</span>
+            </>
+          )}
+        </div>
+        <input
+          type="file"
+          accept=".pdf,.jpg,.jpeg,.png"
+          className="sr-only"
+          onChange={(e) => onChange(e.target.files?.[0] ?? null)}
+        />
+      </label>
+    </div>
+  );
+}
+
+export function ApplicantFormSteps({ currentStep, formData, onInputChange, onArrayToggle, jobTypes = [], uploadedFiles = {}, onFileChange }: Props) {
   return (
     <>
       {/* ── Step 1: Personal ── */}
@@ -617,45 +677,118 @@ export function ApplicantFormSteps({ currentStep, formData, onInputChange, onArr
 
       {/* ── Step 6: Documents ── */}
       {currentStep === 6 && (
-        <div className="space-y-6">
-          <SectionTitle title="Travel & Residence Documents" subtitle="Passport, visa, and residence information" />
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label>Passport Number *</Label>
-              <Input placeholder="Passport number" value={formData.passportNumber} onChange={(e) => onInputChange('passportNumber', e.target.value)} />
+        <div className="space-y-8">
+          {/* Travel info fields */}
+          <div className="space-y-6">
+            <SectionTitle title="Travel & Residence Documents" subtitle="Passport, visa, and residence information" />
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label>Passport Number *</Label>
+                <Input placeholder="Passport number" value={formData.passportNumber} onChange={(e) => onInputChange('passportNumber', e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Passport Valid Until *</Label>
+                <Input type="date" value={formData.passportValidUntil} onChange={(e) => onInputChange('passportValidUntil', e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>EU Visa? *</Label>
+                <RadioGroup name="hasEUVisa" value={formData.hasEUVisa} onChange={(v) => onInputChange('hasEUVisa', v)} />
+              </div>
+              {formData.hasEUVisa === 'yes' && (
+                <>
+                  <div className="space-y-2">
+                    <Label>Visa Type</Label>
+                    <Input placeholder="Visa type" value={formData.visaType} onChange={(e) => onInputChange('visaType', e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Visa Valid Until</Label>
+                    <Input type="date" value={formData.visaValidUntil} onChange={(e) => onInputChange('visaValidUntil', e.target.value)} />
+                  </div>
+                </>
+              )}
+              <div className="space-y-2">
+                <Label>Work Permit in EU? *</Label>
+                <RadioGroup name="hasWorkPermit" value={formData.hasWorkPermit} onChange={(v) => onInputChange('hasWorkPermit', v)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Residence Card in EU? *</Label>
+                <RadioGroup name="hasResidenceCard" value={formData.hasResidenceCard} onChange={(v) => onInputChange('hasResidenceCard', v)} />
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label>Issuing Country</Label>
+                <Input placeholder="Country" value={formData.issuingCountry} onChange={(e) => onInputChange('issuingCountry', e.target.value)} />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label>Passport Valid Until *</Label>
-              <Input type="date" value={formData.passportValidUntil} onChange={(e) => onInputChange('passportValidUntil', e.target.value)} />
+          </div>
+
+          {/* Document uploads */}
+          <div className="space-y-5">
+            <div>
+              <div className="flex items-center gap-2 pb-1 border-b">
+                <Upload className="w-4 h-4 text-gray-500" />
+                <h4 className="font-semibold text-gray-800">Document Upload</h4>
+              </div>
+              <p className="text-sm text-gray-500 mt-1">Upload required documents</p>
             </div>
-            <div className="space-y-2">
-              <Label>EU Visa? *</Label>
-              <RadioGroup name="hasEUVisa" value={formData.hasEUVisa} onChange={(v) => onInputChange('hasEUVisa', v)} />
+
+            {/* Info note */}
+            <div className="flex items-start gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
+              <span className="font-semibold shrink-0">Note:</span>
+              <span>All documents must be clear, legible scans or photos. Accepted formats: PDF, JPG, PNG. Maximum size: 5MB per file.</span>
             </div>
-            {formData.hasEUVisa === 'yes' && (
-              <>
-                <div className="space-y-2">
-                  <Label>Visa Type</Label>
-                  <Input placeholder="Visa type" value={formData.visaType} onChange={(e) => onInputChange('visaType', e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Visa Valid Until</Label>
-                  <Input type="date" value={formData.visaValidUntil} onChange={(e) => onInputChange('visaValidUntil', e.target.value)} />
-                </div>
-              </>
+
+            {/* Required */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Upload className="w-4 h-4 text-gray-600" />
+                <h5 className="font-semibold text-gray-800">Required Documents</h5>
+              </div>
+              <FileUploadCard
+                label="Passport Copy"
+                description="All pages showing personal details and validity"
+                required
+                file={uploadedFiles.passportCopy}
+                onChange={(f) => onFileChange?.('passportCopy', f)}
+              />
+              <FileUploadCard
+                label="Driver's License Copy"
+                description="Both sides of your driving license"
+                required
+                file={uploadedFiles.driverLicenseCopy}
+                onChange={(f) => onFileChange?.('driverLicenseCopy', f)}
+              />
+            </div>
+
+            {/* Conditional */}
+            {(formData.hasTachographCard === 'yes' || formData.hasQualificationCard === 'yes' || formData.hasADR === 'yes') && (
+              <div className="space-y-3">
+                <h5 className="font-semibold text-gray-800">Additional Documents</h5>
+                {formData.hasTachographCard === 'yes' && (
+                  <FileUploadCard
+                    label="Tachograph Card"
+                    description="Front and back of your tachograph card"
+                    file={uploadedFiles.tachographCard}
+                    onChange={(f) => onFileChange?.('tachographCard', f)}
+                  />
+                )}
+                {formData.hasQualificationCard === 'yes' && (
+                  <FileUploadCard
+                    label="Code 95 Qualification Card"
+                    description="Both sides of your Code 95 card"
+                    file={uploadedFiles.code95Card}
+                    onChange={(f) => onFileChange?.('code95Card', f)}
+                  />
+                )}
+                {formData.hasADR === 'yes' && (
+                  <FileUploadCard
+                    label="ADR Certificate"
+                    description="Your ADR certificate document"
+                    file={uploadedFiles.adrCertificate}
+                    onChange={(f) => onFileChange?.('adrCertificate', f)}
+                  />
+                )}
+              </div>
             )}
-            <div className="space-y-2">
-              <Label>Work Permit in EU? *</Label>
-              <RadioGroup name="hasWorkPermit" value={formData.hasWorkPermit} onChange={(v) => onInputChange('hasWorkPermit', v)} />
-            </div>
-            <div className="space-y-2">
-              <Label>Residence Card in EU? *</Label>
-              <RadioGroup name="hasResidenceCard" value={formData.hasResidenceCard} onChange={(v) => onInputChange('hasResidenceCard', v)} />
-            </div>
-            <div className="space-y-2 md:col-span-2">
-              <Label>Issuing Country</Label>
-              <Input placeholder="Country" value={formData.issuingCountry} onChange={(e) => onInputChange('issuingCountry', e.target.value)} />
-            </div>
           </div>
         </div>
       )}

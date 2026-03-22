@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router';
 import { Briefcase, ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { publicApplicationApi, settingsApi } from '../../services/api';
-import { ApplicantFormSteps, ApplicantFormData, StepIndicator } from '../../components/applicants/ApplicantFormSteps';
+import { ApplicantFormSteps, ApplicantFormData, StepIndicator, UploadedFiles } from '../../components/applicants/ApplicantFormSteps';
 
 const EMPTY_FORM: ApplicantFormData = {
   jobTypeId: '',
@@ -35,6 +35,11 @@ export function PublicEmployeeApplication() {
   const [formData, setFormData] = useState<ApplicantFormData>(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [jobTypes, setJobTypes] = useState<{ id: string; name: string }[]>([]);
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFiles>({});
+
+  const handleFileChange = (field: keyof UploadedFiles, file: File | null) => {
+    setUploadedFiles(prev => ({ ...prev, [field]: file }));
+  };
 
   useEffect(() => {
     settingsApi.getJobTypes().then(setJobTypes).catch(() => {});
@@ -197,6 +202,8 @@ export function PublicEmployeeApplication() {
             onInputChange={handleInputChange}
             onArrayToggle={handleArrayToggle}
             jobTypes={jobTypes}
+            uploadedFiles={uploadedFiles}
+            onFileChange={handleFileChange}
           />
 
           {/* Navigation */}

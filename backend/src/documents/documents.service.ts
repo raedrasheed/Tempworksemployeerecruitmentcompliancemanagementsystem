@@ -3,7 +3,7 @@ import {
 } from '@nestjs/common';
 import { extname, join } from 'path';
 import { promises as fs } from 'fs';
-import * as AdmZip from 'adm-zip';
+import AdmZip = require('adm-zip');
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateDocumentDto } from './dto/create-document.dto';
 import { VerifyDocumentDto, VerifyActionEnum } from './dto/verify-document.dto';

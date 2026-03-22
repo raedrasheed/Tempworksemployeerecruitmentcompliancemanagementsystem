@@ -104,7 +104,8 @@ export class DocumentsService {
     return PaginatedResponse.create(items, total, page, limit);
   }
 
-  /** Public upload: resolve document type by name (case-insensitive), fall back to first available. */
+  /** Public upload: resolve document type by name (case-insensitive), fall back to first available.
+   *  Attributes the upload to the first System Admin user found in the DB. */
   async publicCreate(
     file: Express.Multer.File,
     entityId: string,
@@ -118,6 +119,12 @@ export class DocumentsService {
       docType = await this.prisma.documentType.findFirst({ orderBy: { createdAt: 'asc' } });
     }
     if (!docType) throw new BadRequestException('No document types configured');
+
+    const systemUser = await this.prisma.user.findFirst({
+      where: { role: { name: 'System Admin' } },
+      orderBy: { createdAt: 'asc' },
+    });
+    if (!systemUser) throw new BadRequestException('No system user available for upload attribution');
 
     const entityName  = await this.resolveEntityName('APPLICANT', entityId);
     const ts          = Date.now();
@@ -135,13 +142,14 @@ export class DocumentsService {
     return this.prisma.document.create({
       data: {
         name,
-        documentType: { connect: { id: docType.id } },
+        documentTypeId: docType.id,
         entityType: 'APPLICANT' as any,
         entityId,
         fileUrl,
         mimeType: file.mimetype,
         fileSize: file.size,
         status: 'PENDING',
+        uploadedById: systemUser.id,
       },
       include: this.docInclude,
     });

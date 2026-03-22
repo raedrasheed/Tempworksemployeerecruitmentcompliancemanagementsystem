@@ -299,7 +299,7 @@ model Applicant {
   email                   String          @unique
   phone                   String
   nationality             String
-  dateOfBirth             DateTime
+  dateOfBirth             DateTime?
   status                  ApplicantStatus @default(NEW)
   jobTypeId               String?
   residencyStatus         String

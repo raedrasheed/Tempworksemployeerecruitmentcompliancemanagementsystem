@@ -16,7 +16,7 @@ export class CreateApplicantDto {
   @ApiProperty() @IsEmail() email: string;
   @ApiProperty() @IsString() phone: string;
   @ApiProperty() @IsString() nationality: string;
-  @ApiProperty({ example: '1990-01-15' }) @IsDateString() dateOfBirth: string;
+  @ApiPropertyOptional({ example: '1990-01-15' }) @IsOptional() @IsDateString() dateOfBirth?: string;
   @ApiPropertyOptional({ enum: ApplicantStatusEnum }) @IsOptional() @IsEnum(ApplicantStatusEnum) status?: ApplicantStatusEnum;
   @ApiPropertyOptional() @IsOptional() @IsUUID() jobTypeId?: string;
   @ApiProperty({ example: 'UK Citizen' }) @IsString() residencyStatus: string;

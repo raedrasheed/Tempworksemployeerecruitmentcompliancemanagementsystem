@@ -50,7 +50,7 @@ export class SettingsService {
   async findJobTypes() {
     return this.prisma.jobType.findMany({
       orderBy: { name: 'asc' },
-      include: { _count: { select: { applicants: true, applications: true } } },
+      include: { _count: { select: { applicants: true } } },
     });
   }
 

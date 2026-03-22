@@ -135,14 +135,14 @@ export class DocumentsService {
     return this.prisma.document.create({
       data: {
         name,
-        documentTypeId: docType.id,
+        documentType: { connect: { id: docType.id } },
         entityType: 'APPLICANT' as any,
         entityId,
         fileUrl,
         mimeType: file.mimetype,
         fileSize: file.size,
         status: 'PENDING',
-      } as any,
+      },
       include: this.docInclude,
     });
   }

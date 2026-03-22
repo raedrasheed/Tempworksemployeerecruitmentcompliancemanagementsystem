@@ -15,7 +15,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '../../components/ui/dialog';
 import { toast } from 'sonner';
-import { documentsApi, employeesApi } from '../../services/api';
+import { documentsApi, employeesApi, applicantsApi } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
 import { FilterSystem, Column, FilterRule, FilterPreset } from '../../components/filters/FilterSystem';
 
@@ -33,6 +33,7 @@ export function DocumentsCompliance() {
   const { canCreate, canEdit, canDelete, can } = usePermissions();
   const [documents, setDocuments] = useState<any[]>([]);
   const [employeeMap, setEmployeeMap] = useState<Record<string, string>>({});
+  const [applicantMap, setApplicantMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -63,9 +64,18 @@ export function DocumentsCompliance() {
         emps.forEach(e => { map[e.id] = `${e.firstName} ${e.lastName}`; });
         setEmployeeMap(map);
       })
-      .catch(() => {/* employee names are optional, fail silently */});
+      .catch(() => {});
 
-    Promise.all([loadDocuments, loadEmployees]).finally(() => setLoading(false));
+    const loadApplicants = applicantsApi.list({ limit: 500 })
+      .then((res: any) => {
+        const apps: any[] = (res as any)?.data ?? [];
+        const map: Record<string, string> = {};
+        apps.forEach(a => { map[a.id] = `${a.firstName} ${a.lastName}`; });
+        setApplicantMap(map);
+      })
+      .catch(() => {});
+
+    Promise.all([loadDocuments, loadEmployees, loadApplicants]).finally(() => setLoading(false));
   }, []);
 
   const handleDelete = async (doc: any) => {
@@ -143,8 +153,11 @@ export function DocumentsCompliance() {
     return filterLogic === 'AND' ? results.every(r => r) : results.some(r => r);
   };
 
+  const resolveEntityName = (doc: any) =>
+    employeeMap[doc.entityId] ?? applicantMap[doc.entityId] ?? doc.entityId;
+
   const filteredDocuments = documents.filter(doc => {
-    const entityName = employeeMap[doc.entityId] ?? '';
+    const entityName = resolveEntityName(doc);
     const matchesSearch = doc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       entityName.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'all' || doc.status === statusFilter;
@@ -373,7 +386,10 @@ export function DocumentsCompliance() {
                   return (
                     <tr key={doc.id} className="border-b hover:bg-[#F8FAFC] transition-colors">
                       <td className="p-4">
-                        <p className="font-medium">{employeeMap[doc.entityId] ?? doc.entityId}</p>
+                        <p className="font-medium">{resolveEntityName(doc)}</p>
+                        <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${applicantMap[doc.entityId] ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                          {applicantMap[doc.entityId] ? 'Applicant' : 'Employee'}
+                        </span>
                       </td>
                       <td className="p-4">
                         <div>

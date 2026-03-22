@@ -224,7 +224,7 @@ export function ApplicantProfile() {
     return <div className="flex items-center justify-center h-64 text-muted-foreground">Loading applicant...</div>;
   }
 
-  if (!applicantData) return null;
+  if (!applicantData) return <div className="flex items-center justify-center h-64 text-muted-foreground">Failed to load applicant data.</div>;
 
   return (
     <div className="space-y-6">

@@ -5,7 +5,7 @@ import { Button } from '../../components/ui/button';
 import { Card, CardContent } from '../../components/ui/card';
 import { ArrowLeft, ChevronRight, ChevronLeft, Save } from 'lucide-react';
 import { toast } from 'sonner';
-import { ApplicantFormSteps, ApplicantFormData, JobType } from '../../components/applicants/ApplicantFormSteps';
+import { ApplicantFormSteps, ApplicantFormData, JobType, StepIndicator } from '../../components/applicants/ApplicantFormSteps';
 
 const EMPTY_FORM: ApplicantFormData = {
   jobTypeId: '',
@@ -13,7 +13,7 @@ const EMPTY_FORM: ApplicantFormData = {
   currentCountryOfResidence: '', permanentAddress: '', phone: '', email: '',
   earliestStartDate: '', howDidYouHear: '', passportNumber: '', passportValidUntil: '',
   hasEUVisa: '', visaType: '', visaValidUntil: '', hasWorkPermit: '', hasResidenceCard: '',
-  issuingCountry: '', drivingLicenseNumber: '', licenseIssuingCountry: '', licenseValidUntil: '',
+  issuingCountry: '', drivingLicenseNumber: '', licenseIssuingCountry: '', licenseIssueDate: '', licenseValidUntil: '',
   categoryA: '', categoryB: '', categoryC: '', categoryD: '', categoryE: '',
   hasTachographCard: '', tachographNumber: '', tachographValidUntil: '',
   hasQualificationCard: '', qualificationValidUntil: '', hasADR: '', adrClasses: '',
@@ -31,7 +31,7 @@ export function EditApplicant() {
   const navigate = useNavigate();
   const { id } = useParams();
   const [currentStep, setCurrentStep] = useState(1);
-  const totalSteps = 10;
+  const totalSteps = 7;
   const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState<ApplicantFormData>(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
@@ -128,8 +128,6 @@ export function EditApplicant() {
     }
   };
 
-  const getProgressPercentage = () => Math.round((currentStep / totalSteps) * 100);
-
   if (loading) {
     return <div className="flex items-center justify-center h-64 text-muted-foreground">Loading applicant data...</div>;
   }
@@ -149,21 +147,10 @@ export function EditApplicant() {
         </div>
       </div>
 
-      {/* Progress Bar */}
+      {/* Step Indicator */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-sm font-medium text-[#0F172A]">Step {currentStep} of {totalSteps}</p>
-            <p className="text-sm text-muted-foreground">{getProgressPercentage()}% Complete</p>
-          </div>
-          <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-[#2563EB] to-[#3b82f6] transition-all duration-500" style={{ width: `${getProgressPercentage()}%` }} />
-          </div>
-          <div className="flex justify-between mt-4">
-            {Array.from({ length: totalSteps }).map((_, index) => (
-              <div key={index} className={`w-2 h-2 rounded-full transition-all ${index + 1 <= currentStep ? 'bg-[#2563EB] scale-125' : 'bg-gray-300'}`} />
-            ))}
-          </div>
+          <StepIndicator currentStep={currentStep} />
         </CardContent>
       </Card>
 

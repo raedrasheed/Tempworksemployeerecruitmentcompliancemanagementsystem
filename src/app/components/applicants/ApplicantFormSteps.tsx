@@ -1,3 +1,4 @@
+import { User, Phone, CreditCard, Briefcase, Shield, FileText, CheckCircle2, Check } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
@@ -11,26 +12,22 @@ export interface JobType {
 
 export interface ApplicantFormData {
   jobTypeId: string;
+  // Step 1: Personal
   fullName: string;
   dateOfBirth: string;
   nationality: string;
   countryOfResidence: string;
   currentCountryOfResidence: string;
   permanentAddress: string;
+  // Step 2: Contact
   phone: string;
   email: string;
   earliestStartDate: string;
   howDidYouHear: string;
-  passportNumber: string;
-  passportValidUntil: string;
-  hasEUVisa: string;
-  visaType: string;
-  visaValidUntil: string;
-  hasWorkPermit: string;
-  hasResidenceCard: string;
-  issuingCountry: string;
+  // Step 3: License
   drivingLicenseNumber: string;
   licenseIssuingCountry: string;
+  licenseIssueDate: string;
   licenseValidUntil: string;
   categoryA: string;
   categoryB: string;
@@ -45,6 +42,7 @@ export interface ApplicantFormData {
   hasADR: string;
   adrClasses: string;
   adrValidUntil: string;
+  // Step 4: Experience
   hasEUExperience: string;
   yearsEUExperience: string;
   totalCEExperience: string;
@@ -62,6 +60,9 @@ export interface ApplicantFormData {
   mostUsedTrailer: string;
   yearsWithTrailer: string;
   confidentTrailers: string;
+  // Step 5: Background
+  weekendDriving: boolean;
+  nightDriving: boolean;
   workRegime: string[];
   trafficAccidents: string;
   accidentDescription: string;
@@ -77,9 +78,103 @@ export interface ApplicantFormData {
   maxTourWeeks: string;
   preferredCountries: string;
   undesiredCountries: string;
-  weekendDriving: boolean;
-  nightDriving: boolean;
+  // Step 6: Documents
+  passportNumber: string;
+  passportValidUntil: string;
+  hasEUVisa: string;
+  visaType: string;
+  visaValidUntil: string;
+  hasWorkPermit: string;
+  hasResidenceCard: string;
+  issuingCountry: string;
 }
+
+// ── Step Indicator ─────────────────────────────────────────────────────────────
+
+const STEPS = [
+  { label: 'Personal', icon: User },
+  { label: 'Contact', icon: Phone },
+  { label: 'License', icon: CreditCard },
+  { label: 'Experience', icon: Briefcase },
+  { label: 'Background', icon: Shield },
+  { label: 'Documents', icon: FileText },
+  { label: 'Review', icon: CheckCircle2 },
+];
+
+export function StepIndicator({ currentStep }: { currentStep: number }) {
+  const total = STEPS.length;
+  const progress = Math.round((currentStep / total) * 100);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-semibold text-gray-700">Step {currentStep} of {total}</span>
+        <span className="text-sm text-gray-500">{progress}% Complete</span>
+      </div>
+      <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
+        <div
+          className="h-full bg-blue-600 rounded-full transition-all duration-500"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+      <div className="flex items-start justify-between">
+        {STEPS.map((step, index) => {
+          const stepNum = index + 1;
+          const isCompleted = stepNum < currentStep;
+          const isCurrent = stepNum === currentStep;
+          const Icon = step.icon;
+          return (
+            <div key={step.label} className="flex flex-col items-center gap-1.5 flex-1">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                isCompleted
+                  ? 'bg-green-500'
+                  : isCurrent
+                    ? 'bg-blue-600'
+                    : 'bg-gray-100 border-2 border-gray-200'
+              }`}>
+                {isCompleted
+                  ? <Check className="w-4 h-4 text-white" />
+                  : <Icon className={`w-4 h-4 ${isCurrent ? 'text-white' : 'text-gray-400'}`} />
+                }
+              </div>
+              <span className={`text-xs font-medium text-center leading-tight ${
+                isCompleted ? 'text-green-600' : isCurrent ? 'text-blue-600' : 'text-gray-400'
+              }`}>
+                {step.label}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
+
+function RadioGroup({ name, value, onChange }: { name: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <div className="flex gap-4">
+      {['yes', 'no'].map((v) => (
+        <label key={v} className="flex items-center gap-2 cursor-pointer">
+          <input type="radio" name={name} value={v} checked={value === v} onChange={() => onChange(v)} className="w-4 h-4 accent-blue-600" />
+          <span className="capitalize">{v}</span>
+        </label>
+      ))}
+    </div>
+  );
+}
+
+function SectionTitle({ title, subtitle }: { title: string; subtitle?: string }) {
+  return (
+    <div className="mb-4">
+      <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+      {subtitle && <p className="text-sm text-blue-600 mt-0.5">{subtitle}</p>}
+    </div>
+  );
+}
+
+// ── Main Component ─────────────────────────────────────────────────────────────
 
 interface Props {
   currentStep: number;
@@ -92,248 +187,181 @@ interface Props {
 export function ApplicantFormSteps({ currentStep, formData, onInputChange, onArrayToggle, jobTypes = [] }: Props) {
   return (
     <>
-      {/* Step 1: Basic Information */}
+      {/* ── Step 1: Personal ── */}
       {currentStep === 1 && (
         <div className="space-y-6">
-          <div className="text-center mb-8">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#2563EB] to-[#3b82f6] flex items-center justify-center mx-auto mb-4 shadow-lg">
-              <span className="text-2xl font-bold text-white">1</span>
+          <SectionTitle title="Personal Information" subtitle="Tell us about yourself" />
+          {jobTypes.length > 0 && (
+            <div className="space-y-2">
+              <Label>Position / Job Type *</Label>
+              <Select value={formData.jobTypeId} onValueChange={(v) => onInputChange('jobTypeId', v)}>
+                <SelectTrigger><SelectValue placeholder="Select position" /></SelectTrigger>
+                <SelectContent>
+                  {jobTypes.map((jt) => (
+                    <SelectItem key={jt.id} value={jt.id}>{jt.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            <h2 className="text-3xl font-bold text-[#0F172A] mb-2">Basic Information</h2>
-            <p className="text-muted-foreground">Personal details and contact information</p>
-          </div>
+          )}
           <div className="grid md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <Label htmlFor="fullName">Full Name *</Label>
-              <Input id="fullName" placeholder="Full name" value={formData.fullName} onChange={(e) => onInputChange('fullName', e.target.value)} />
+              <Label>Full Name *</Label>
+              <Input placeholder="Full name" value={formData.fullName} onChange={(e) => onInputChange('fullName', e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="dateOfBirth">Date of Birth *</Label>
-              <Input id="dateOfBirth" type="date" value={formData.dateOfBirth} onChange={(e) => onInputChange('dateOfBirth', e.target.value)} />
+              <Label>Date of Birth *</Label>
+              <Input type="date" value={formData.dateOfBirth} onChange={(e) => onInputChange('dateOfBirth', e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="nationality">Nationality *</Label>
-              <Input id="nationality" placeholder="Nationality" value={formData.nationality} onChange={(e) => onInputChange('nationality', e.target.value)} />
+              <Label>Nationality *</Label>
+              <Input placeholder="Nationality" value={formData.nationality} onChange={(e) => onInputChange('nationality', e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="countryOfResidence">Country of Residence *</Label>
-              <Input id="countryOfResidence" placeholder="Country of residence" value={formData.countryOfResidence} onChange={(e) => onInputChange('countryOfResidence', e.target.value)} />
+              <Label>Country of Residence *</Label>
+              <Input placeholder="Country of residence" value={formData.countryOfResidence} onChange={(e) => onInputChange('countryOfResidence', e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="currentCountryOfResidence">Current Country of Residence *</Label>
-              <Input id="currentCountryOfResidence" placeholder="Current country" value={formData.currentCountryOfResidence} onChange={(e) => onInputChange('currentCountryOfResidence', e.target.value)} />
+              <Label>Current Country of Residence *</Label>
+              <Input placeholder="Current country" value={formData.currentCountryOfResidence} onChange={(e) => onInputChange('currentCountryOfResidence', e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="permanentAddress">Permanent Address *</Label>
-              <Input id="permanentAddress" placeholder="Permanent address" value={formData.permanentAddress} onChange={(e) => onInputChange('permanentAddress', e.target.value)} />
+              <Label>Permanent Address *</Label>
+              <Input placeholder="Permanent address" value={formData.permanentAddress} onChange={(e) => onInputChange('permanentAddress', e.target.value)} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Step 2: Contact ── */}
+      {currentStep === 2 && (
+        <div className="space-y-6">
+          <SectionTitle title="Contact Details" subtitle="How can we reach you?" />
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label>Phone (with country code) *</Label>
+              <Input type="tel" placeholder="+xxx xxx xxx xxx" value={formData.phone} onChange={(e) => onInputChange('phone', e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone (with country code) *</Label>
-              <Input id="phone" type="tel" placeholder="+xxx xxx xxx xxx" value={formData.phone} onChange={(e) => onInputChange('phone', e.target.value)} />
+              <Label>E-mail *</Label>
+              <Input type="email" placeholder="email@example.com" value={formData.email} onChange={(e) => onInputChange('email', e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">E-mail *</Label>
-              <Input id="email" type="email" placeholder="email@example.com" value={formData.email} onChange={(e) => onInputChange('email', e.target.value)} />
+              <Label>Earliest Start Date *</Label>
+              <Input type="date" value={formData.earliestStartDate} onChange={(e) => onInputChange('earliestStartDate', e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="earliestStartDate">Earliest Start Date *</Label>
-              <Input id="earliestStartDate" type="date" value={formData.earliestStartDate} onChange={(e) => onInputChange('earliestStartDate', e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="howDidYouHear">How did you hear about us? *</Label>
-              <Select value={formData.howDidYouHear} onValueChange={(value) => onInputChange('howDidYouHear', value)}>
+              <Label>How did you hear about us? *</Label>
+              <Select value={formData.howDidYouHear} onValueChange={(v) => onInputChange('howDidYouHear', v)}>
                 <SelectTrigger><SelectValue placeholder="Select option" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="facebook">Facebook</SelectItem>
                   <SelectItem value="linkedin">LinkedIn</SelectItem>
                   <SelectItem value="jobPortal">Job Portal</SelectItem>
-                  <SelectItem value="friend">Friend/Referral</SelectItem>
+                  <SelectItem value="friend">Friend / Referral</SelectItem>
                   <SelectItem value="agency">Recruitment Agency</SelectItem>
                   <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            {jobTypes.length > 0 && (
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="jobTypeId">Position / Job Type *</Label>
-                <Select value={formData.jobTypeId} onValueChange={(value) => onInputChange('jobTypeId', value)}>
-                  <SelectTrigger><SelectValue placeholder="Select position" /></SelectTrigger>
-                  <SelectContent>
-                    {jobTypes.map((jt) => (
-                      <SelectItem key={jt.id} value={jt.id}>{jt.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
           </div>
         </div>
       )}
 
-      {/* Step 2: Travel & Residence Documents */}
-      {currentStep === 2 && (
-        <div className="space-y-6">
-          <div className="text-center mb-8">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#2563EB] to-[#3b82f6] flex items-center justify-center mx-auto mb-4 shadow-lg">
-              <span className="text-2xl font-bold text-white">2</span>
-            </div>
-            <h2 className="text-3xl font-bold text-[#0F172A] mb-2">Travel & Residence Documents</h2>
-            <p className="text-muted-foreground">Passport, visa, and residence information</p>
-          </div>
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label htmlFor="passportNumber">Passport Number *</Label>
-              <Input id="passportNumber" placeholder="Passport number" value={formData.passportNumber} onChange={(e) => onInputChange('passportNumber', e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="passportValidUntil">Passport Valid Until *</Label>
-              <Input id="passportValidUntil" type="date" value={formData.passportValidUntil} onChange={(e) => onInputChange('passportValidUntil', e.target.value)} />
-            </div>
-            <div className="space-y-2 md:col-span-2">
-              <Label>Do you have EU Visa? *</Label>
-              <div className="flex gap-4">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" name="hasEUVisa" value="yes" checked={formData.hasEUVisa === 'yes'} onChange={(e) => onInputChange('hasEUVisa', e.target.value)} className="w-4 h-4" />
-                  <span>Yes</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" name="hasEUVisa" value="no" checked={formData.hasEUVisa === 'no'} onChange={(e) => onInputChange('hasEUVisa', e.target.value)} className="w-4 h-4" />
-                  <span>No</span>
-                </label>
-              </div>
-            </div>
-            {formData.hasEUVisa === 'yes' && (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="visaType">Visa Type</Label>
-                  <Input id="visaType" placeholder="Visa type" value={formData.visaType} onChange={(e) => onInputChange('visaType', e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="visaValidUntil">Visa Valid Until</Label>
-                  <Input id="visaValidUntil" type="date" value={formData.visaValidUntil} onChange={(e) => onInputChange('visaValidUntil', e.target.value)} />
-                </div>
-              </>
-            )}
-            <div className="space-y-2">
-              <Label>Work Permit in EU? *</Label>
-              <div className="flex gap-4">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" name="hasWorkPermit" value="yes" checked={formData.hasWorkPermit === 'yes'} onChange={(e) => onInputChange('hasWorkPermit', e.target.value)} className="w-4 h-4" />
-                  <span>Yes</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" name="hasWorkPermit" value="no" checked={formData.hasWorkPermit === 'no'} onChange={(e) => onInputChange('hasWorkPermit', e.target.value)} className="w-4 h-4" />
-                  <span>No</span>
-                </label>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Residence Card in EU? *</Label>
-              <div className="flex gap-4">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" name="hasResidenceCard" value="yes" checked={formData.hasResidenceCard === 'yes'} onChange={(e) => onInputChange('hasResidenceCard', e.target.value)} className="w-4 h-4" />
-                  <span>Yes</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" name="hasResidenceCard" value="no" checked={formData.hasResidenceCard === 'no'} onChange={(e) => onInputChange('hasResidenceCard', e.target.value)} className="w-4 h-4" />
-                  <span>No</span>
-                </label>
-              </div>
-            </div>
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="issuingCountry">Issuing Country</Label>
-              <Input id="issuingCountry" placeholder="Country" value={formData.issuingCountry} onChange={(e) => onInputChange('issuingCountry', e.target.value)} />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Step 3: Driving Licence Details */}
+      {/* ── Step 3: License & Qualifications ── */}
       {currentStep === 3 && (
-        <div className="space-y-6">
-          <div className="text-center mb-8">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#2563EB] to-[#3b82f6] flex items-center justify-center mx-auto mb-4 shadow-lg">
-              <span className="text-2xl font-bold text-white">3</span>
+        <div className="space-y-8">
+          <SectionTitle title="Driver's License & Qualifications" subtitle="Information about your driving qualifications" />
+
+          {/* Driver's License Details */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 pb-1 border-b">
+              <CreditCard className="w-4 h-4 text-gray-500" />
+              <h4 className="font-semibold text-gray-800">Driver's License Details</h4>
             </div>
-            <h2 className="text-3xl font-bold text-[#0F172A] mb-2">Driving Licence Details</h2>
-            <p className="text-muted-foreground">Licence categories and certifications</p>
-          </div>
-          <div className="space-y-6">
             <div className="grid md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="drivingLicenseNumber">Driving Licence Number *</Label>
-                <Input id="drivingLicenseNumber" placeholder="Licence number" value={formData.drivingLicenseNumber} onChange={(e) => onInputChange('drivingLicenseNumber', e.target.value)} />
+                <Label>License Number *</Label>
+                <Input placeholder="License number" value={formData.drivingLicenseNumber} onChange={(e) => onInputChange('drivingLicenseNumber', e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="licenseIssuingCountry">Issuing Country *</Label>
-                <Input id="licenseIssuingCountry" placeholder="Country of issue" value={formData.licenseIssuingCountry} onChange={(e) => onInputChange('licenseIssuingCountry', e.target.value)} />
+                <Label>Issuing Authority *</Label>
+                <Input placeholder="Country/Region" value={formData.licenseIssuingCountry} onChange={(e) => onInputChange('licenseIssuingCountry', e.target.value)} />
               </div>
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="licenseValidUntil">Licence Valid Until *</Label>
-                <Input id="licenseValidUntil" type="date" value={formData.licenseValidUntil} onChange={(e) => onInputChange('licenseValidUntil', e.target.value)} />
+              <div className="space-y-2">
+                <Label>Issue Date *</Label>
+                <Input type="date" value={formData.licenseIssueDate} onChange={(e) => onInputChange('licenseIssueDate', e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Expiry Date *</Label>
+                <Input type="date" value={formData.licenseValidUntil} onChange={(e) => onInputChange('licenseValidUntil', e.target.value)} />
               </div>
             </div>
-            <div className="p-6 border rounded-lg bg-[#F8FAFC]">
-              <Label className="text-base font-semibold mb-4 block">Categories - Date Obtained</Label>
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2"><Label htmlFor="categoryA">A:</Label><Input id="categoryA" type="date" value={formData.categoryA} onChange={(e) => onInputChange('categoryA', e.target.value)} /></div>
-                <div className="space-y-2"><Label htmlFor="categoryB">B:</Label><Input id="categoryB" type="date" value={formData.categoryB} onChange={(e) => onInputChange('categoryB', e.target.value)} /></div>
-                <div className="space-y-2"><Label htmlFor="categoryC">C: *</Label><Input id="categoryC" type="date" value={formData.categoryC} onChange={(e) => onInputChange('categoryC', e.target.value)} /></div>
-                <div className="space-y-2"><Label htmlFor="categoryD">D:</Label><Input id="categoryD" type="date" value={formData.categoryD} onChange={(e) => onInputChange('categoryD', e.target.value)} /></div>
-                <div className="space-y-2"><Label htmlFor="categoryE">E: *</Label><Input id="categoryE" type="date" value={formData.categoryE} onChange={(e) => onInputChange('categoryE', e.target.value)} /></div>
-              </div>
+          </div>
+
+          {/* License Categories */}
+          <div className="space-y-3">
+            <div>
+              <Label className="text-sm font-semibold">License Categories Held *</Label>
+              <p className="text-sm text-gray-500 mt-0.5">Select all that apply</p>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              {(['A', 'B', 'C', 'D', 'E'] as const).map((cat) => {
+                const field = `category${cat}` as keyof ApplicantFormData;
+                const isSelected = !!(formData[field] as string);
+                return (
+                  <div key={cat} className="space-y-2">
+                    <label className={`flex items-center justify-center gap-2 p-3 border-2 rounded-lg cursor-pointer transition-all ${isSelected ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}>
+                      <Checkbox
+                        checked={isSelected}
+                        onCheckedChange={(checked) => onInputChange(field, checked ? 'yes' : '')}
+                      />
+                      <span className="font-semibold text-sm">Category {cat}</span>
+                    </label>
+                    {isSelected && (
+                      <Input
+                        type="date"
+                        placeholder="Date obtained"
+                        value={formData[field] === 'yes' ? '' : formData[field] as string}
+                        onChange={(e) => onInputChange(field, e.target.value || 'yes')}
+                        className="text-xs"
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Additional Qualifications */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 pb-1 border-b">
+              <h4 className="font-semibold text-gray-800">Additional Qualifications</h4>
             </div>
             <div className="grid md:grid-cols-2 gap-6">
               <div className="space-y-3">
-                <Label>Driver Tachograph Card</Label>
-                <div className="flex gap-4">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="radio" name="hasTachographCard" value="yes" checked={formData.hasTachographCard === 'yes'} onChange={(e) => onInputChange('hasTachographCard', e.target.value)} className="w-4 h-4" />
-                    <span>Yes</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="radio" name="hasTachographCard" value="no" checked={formData.hasTachographCard === 'no'} onChange={(e) => onInputChange('hasTachographCard', e.target.value)} className="w-4 h-4" />
-                    <span>No</span>
-                  </label>
-                </div>
+                <Label className="font-medium">Driver Tachograph Card</Label>
+                <RadioGroup name="hasTachographCard" value={formData.hasTachographCard} onChange={(v) => onInputChange('hasTachographCard', v)} />
                 {formData.hasTachographCard === 'yes' && (
-                  <div className="space-y-2 mt-2">
-                    <Input placeholder="Number" value={formData.tachographNumber} onChange={(e) => onInputChange('tachographNumber', e.target.value)} />
-                    <Input type="date" placeholder="Valid until" value={formData.tachographValidUntil} onChange={(e) => onInputChange('tachographValidUntil', e.target.value)} />
+                  <div className="grid grid-cols-2 gap-3 mt-2">
+                    <Input placeholder="Card number" value={formData.tachographNumber} onChange={(e) => onInputChange('tachographNumber', e.target.value)} />
+                    <Input type="date" value={formData.tachographValidUntil} onChange={(e) => onInputChange('tachographValidUntil', e.target.value)} />
                   </div>
                 )}
               </div>
               <div className="space-y-3">
-                <Label>Qualification Card - Code 95</Label>
-                <div className="flex gap-4">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="radio" name="hasQualificationCard" value="yes" checked={formData.hasQualificationCard === 'yes'} onChange={(e) => onInputChange('hasQualificationCard', e.target.value)} className="w-4 h-4" />
-                    <span>Yes</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="radio" name="hasQualificationCard" value="no" checked={formData.hasQualificationCard === 'no'} onChange={(e) => onInputChange('hasQualificationCard', e.target.value)} className="w-4 h-4" />
-                    <span>No</span>
-                  </label>
-                </div>
+                <Label className="font-medium">Qualification Card – Code 95</Label>
+                <RadioGroup name="hasQualificationCard" value={formData.hasQualificationCard} onChange={(v) => onInputChange('hasQualificationCard', v)} />
                 {formData.hasQualificationCard === 'yes' && (
                   <Input type="date" placeholder="Valid until" value={formData.qualificationValidUntil} onChange={(e) => onInputChange('qualificationValidUntil', e.target.value)} />
                 )}
               </div>
               <div className="space-y-3 md:col-span-2">
-                <Label>ADR Certificate</Label>
-                <div className="flex gap-4">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="radio" name="hasADR" value="yes" checked={formData.hasADR === 'yes'} onChange={(e) => onInputChange('hasADR', e.target.value)} className="w-4 h-4" />
-                    <span>Yes</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="radio" name="hasADR" value="no" checked={formData.hasADR === 'no'} onChange={(e) => onInputChange('hasADR', e.target.value)} className="w-4 h-4" />
-                    <span>No</span>
-                  </label>
-                </div>
+                <Label className="font-medium">ADR Certificate</Label>
+                <RadioGroup name="hasADR" value={formData.hasADR} onChange={(v) => onInputChange('hasADR', v)} />
                 {formData.hasADR === 'yes' && (
                   <div className="grid md:grid-cols-2 gap-4 mt-2">
-                    <Input placeholder="ADR Classes" value={formData.adrClasses} onChange={(e) => onInputChange('adrClasses', e.target.value)} />
+                    <Input placeholder="ADR classes" value={formData.adrClasses} onChange={(e) => onInputChange('adrClasses', e.target.value)} />
                     <Input type="date" placeholder="Valid until" value={formData.adrValidUntil} onChange={(e) => onInputChange('adrValidUntil', e.target.value)} />
                   </div>
                 )}
@@ -343,97 +371,65 @@ export function ApplicantFormSteps({ currentStep, formData, onInputChange, onArr
         </div>
       )}
 
-      {/* Step 4: International Experience */}
+      {/* ── Step 4: Experience ── */}
       {currentStep === 4 && (
-        <div className="space-y-6">
-          <div className="text-center mb-8">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#2563EB] to-[#3b82f6] flex items-center justify-center mx-auto mb-4 shadow-lg">
-              <span className="text-2xl font-bold text-white">4</span>
-            </div>
-            <h2 className="text-3xl font-bold text-[#0F172A] mb-2">International Experience</h2>
-            <p className="text-muted-foreground">Experience with international transport</p>
-          </div>
-          <div className="space-y-6">
-            <div className="space-y-3">
-              <Label>Have you driven in the EU? *</Label>
-              <div className="flex gap-4">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" name="hasEUExperience" value="yes" checked={formData.hasEUExperience === 'yes'} onChange={(e) => onInputChange('hasEUExperience', e.target.value)} className="w-4 h-4" />
-                  <span>Yes</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" name="hasEUExperience" value="no" checked={formData.hasEUExperience === 'no'} onChange={(e) => onInputChange('hasEUExperience', e.target.value)} className="w-4 h-4" />
-                  <span>No</span>
-                </label>
-              </div>
-            </div>
-            {formData.hasEUExperience === 'yes' && (
-              <div className="space-y-2">
-                <Label htmlFor="yearsEUExperience">Years of EU Experience</Label>
-                <Input id="yearsEUExperience" type="number" min="0" placeholder="Number of years" value={formData.yearsEUExperience} onChange={(e) => onInputChange('yearsEUExperience', e.target.value)} />
-              </div>
-            )}
-            <div className="space-y-2">
-              <Label htmlFor="totalCEExperience">Total C+E Experience (years) *</Label>
-              <Input id="totalCEExperience" type="number" min="0" placeholder="Total years with C+E license" value={formData.totalCEExperience} onChange={(e) => onInputChange('totalCEExperience', e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="yearsActiveDriving">Years of Active Truck Driving (C+E) *</Label>
-              <Input id="yearsActiveDriving" type="number" min="0" placeholder="Years actively driving trucks" value={formData.yearsActiveDriving} onChange={(e) => onInputChange('yearsActiveDriving', e.target.value)} />
-            </div>
-            <div className="space-y-3">
-              <Label>Have you driven mainly in your home country?</Label>
-              <div className="flex gap-4">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" name="mainlyHomeCountry" value="yes" checked={formData.mainlyHomeCountry === 'yes'} onChange={(e) => onInputChange('mainlyHomeCountry', e.target.value)} className="w-4 h-4" />
-                  <span>Yes</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" name="mainlyHomeCountry" value="no" checked={formData.mainlyHomeCountry === 'no'} onChange={(e) => onInputChange('mainlyHomeCountry', e.target.value)} className="w-4 h-4" />
-                  <span>No</span>
-                </label>
-              </div>
-            </div>
-            <div className="space-y-3">
-              <Label>Have you also driven in other countries?</Label>
-              <div className="flex gap-4">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" name="drivenOtherCountries" value="yes" checked={formData.drivenOtherCountries === 'yes'} onChange={(e) => onInputChange('drivenOtherCountries', e.target.value)} className="w-4 h-4" />
-                  <span>Yes</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" name="drivenOtherCountries" value="no" checked={formData.drivenOtherCountries === 'no'} onChange={(e) => onInputChange('drivenOtherCountries', e.target.value)} className="w-4 h-4" />
-                  <span>No</span>
-                </label>
-              </div>
-            </div>
-            {formData.drivenOtherCountries === 'yes' && (
-              <div className="space-y-2">
-                <Label htmlFor="specifyCountries">Specify Countries</Label>
-                <Textarea id="specifyCountries" placeholder="e.g., Germany, France, Netherlands..." rows={3} value={formData.specifyCountries} onChange={(e) => onInputChange('specifyCountries', e.target.value)} />
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+        <div className="space-y-8">
+          <SectionTitle title="Driving Experience" subtitle="Your professional driving background" />
 
-      {/* Step 5: Driver Experience Profile */}
-      {currentStep === 5 && (
-        <div className="space-y-6">
-          <div className="text-center mb-8">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#2563EB] to-[#3b82f6] flex items-center justify-center mx-auto mb-4 shadow-lg">
-              <span className="text-2xl font-bold text-white">5</span>
+          {/* International Experience */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 pb-1 border-b">
+              <h4 className="font-semibold text-gray-800">International Experience</h4>
             </div>
-            <h2 className="text-3xl font-bold text-[#0F172A] mb-2">Driver Experience Profile</h2>
-            <p className="text-muted-foreground">Kilometers and transport types</p>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label>EU/International Driving Experience? *</Label>
+                <RadioGroup name="hasEUExperience" value={formData.hasEUExperience} onChange={(v) => onInputChange('hasEUExperience', v)} />
+              </div>
+              {formData.hasEUExperience === 'yes' && (
+                <>
+                  <div className="space-y-2">
+                    <Label>Years of EU Experience</Label>
+                    <Input type="number" min="0" placeholder="Years" value={formData.yearsEUExperience} onChange={(e) => onInputChange('yearsEUExperience', e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Total C+E Experience (years)</Label>
+                    <Input type="number" min="0" placeholder="Years" value={formData.totalCEExperience} onChange={(e) => onInputChange('totalCEExperience', e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Years Active Driving</Label>
+                    <Input type="number" min="0" placeholder="Years" value={formData.yearsActiveDriving} onChange={(e) => onInputChange('yearsActiveDriving', e.target.value)} />
+                  </div>
+                </>
+              )}
+              <div className="space-y-2">
+                <Label>Mainly drove in home country?</Label>
+                <RadioGroup name="mainlyHomeCountry" value={formData.mainlyHomeCountry} onChange={(v) => onInputChange('mainlyHomeCountry', v)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Driven in other EU countries?</Label>
+                <RadioGroup name="drivenOtherCountries" value={formData.drivenOtherCountries} onChange={(v) => onInputChange('drivenOtherCountries', v)} />
+              </div>
+              {formData.drivenOtherCountries === 'yes' && (
+                <div className="space-y-2 md:col-span-2">
+                  <Label>Specify countries</Label>
+                  <Textarea rows={2} placeholder="e.g. Germany, France, Netherlands..." value={formData.specifyCountries} onChange={(e) => onInputChange('specifyCountries', e.target.value)} />
+                </div>
+              )}
+            </div>
           </div>
-          <div className="space-y-6">
+
+          {/* KM & Transport */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 pb-1 border-b">
+              <h4 className="font-semibold text-gray-800">Driver Experience Profile</h4>
+            </div>
             <div className="space-y-3">
               <Label>Total Kilometers Driven on C+E *</Label>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {['< 500,000 km', '500,000 - 1,000,000 km', '> 1,000,000 km', 'More than specified'].map((range) => (
-                  <label key={range} className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${formData.kilometersRange === range ? 'border-[#2563EB] bg-[#EFF6FF]' : 'border-gray-200 hover:border-gray-300'}`}>
-                    <input type="radio" name="kilometersRange" value={range} checked={formData.kilometersRange === range} onChange={(e) => onInputChange('kilometersRange', e.target.value)} className="w-4 h-4" />
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {['< 500,000 km', '500,000 – 1,000,000 km', '> 1,000,000 km', 'More than specified'].map((range) => (
+                  <label key={range} className={`flex items-center gap-2 p-3 border-2 rounded-lg cursor-pointer text-sm transition-all ${formData.kilometersRange === range ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}>
+                    <input type="radio" name="kilometersRange" value={range} checked={formData.kilometersRange === range} onChange={(e) => onInputChange('kilometersRange', e.target.value)} className="w-4 h-4 accent-blue-600" />
                     <span className="font-medium">{range}</span>
                   </label>
                 ))}
@@ -441,298 +437,268 @@ export function ApplicantFormSteps({ currentStep, formData, onInputChange, onArr
             </div>
             <div className="space-y-3">
               <Label>Transport Types *</Label>
-              <p className="text-sm text-muted-foreground">Select all that apply</p>
-              <div className="grid grid-cols-1 gap-3">
-                {[
-                  { value: 'international', label: 'International Transport' },
-                  { value: 'domestic', label: 'Domestic Transport' },
-                  { value: 'bilateral', label: 'Bilateral Transport' },
-                  { value: 'cabotage', label: 'Cabotage' },
-                ].map((type) => (
-                  <label key={type.value} className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${(formData.transportTypes || []).includes(type.value) ? 'border-[#2563EB] bg-[#EFF6FF]' : 'border-gray-200 hover:border-gray-300'}`}>
-                    <Checkbox checked={(formData.transportTypes || []).includes(type.value)} onCheckedChange={() => onArrayToggle('transportTypes', type.value)} />
-                    <span className="font-medium">{type.label}</span>
+              <div className="grid grid-cols-2 gap-3">
+                {[{ value: 'international', label: 'International Transport' }, { value: 'domestic', label: 'Domestic Transport' }, { value: 'bilateral', label: 'Bilateral Transport' }, { value: 'cabotage', label: 'Cabotage' }].map((t) => (
+                  <label key={t.value} className={`flex items-center gap-3 p-3 border-2 rounded-lg cursor-pointer transition-all ${(formData.transportTypes || []).includes(t.value) ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}>
+                    <Checkbox checked={(formData.transportTypes || []).includes(t.value)} onCheckedChange={() => onArrayToggle('transportTypes', t.value)} />
+                    <span className="font-medium text-sm">{t.label}</span>
                   </label>
                 ))}
               </div>
             </div>
           </div>
-        </div>
-      )}
 
-      {/* Step 6: Operational Skills */}
-      {currentStep === 6 && (
-        <div className="space-y-6">
-          <div className="text-center mb-8">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#2563EB] to-[#3b82f6] flex items-center justify-center mx-auto mb-4 shadow-lg">
-              <span className="text-2xl font-bold text-white">6</span>
-            </div>
-            <h2 className="text-3xl font-bold text-[#0F172A] mb-2">Operational Skills</h2>
-            <p className="text-muted-foreground">Select all applicable skills</p>
-          </div>
+          {/* Operational Skills */}
           <div className="space-y-3">
-            <Label>Select your operational skills</Label>
-            <p className="text-sm text-muted-foreground">Mark all that apply</p>
-            <div className="grid grid-cols-1 gap-3">
-              {[
-                { value: 'pallet', label: 'EUR Pallet Exchange' },
-                { value: 'loading', label: 'Driver Loading and Unloading' },
-                { value: 'cmr', label: 'CMR Documentation' },
-                { value: 'securing', label: 'Load Securing (lashing)' },
-                { value: 'tachograph', label: 'Digital Tachograph Operation' },
-              ].map((skill) => (
-                <label key={skill.value} className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${(formData.operationalSkills || []).includes(skill.value) ? 'border-[#2563EB] bg-[#EFF6FF]' : 'border-gray-200 hover:border-gray-300'}`}>
-                  <Checkbox checked={(formData.operationalSkills || []).includes(skill.value)} onCheckedChange={() => onArrayToggle('operationalSkills', skill.value)} />
-                  <span className="font-medium">{skill.label}</span>
+            <div className="flex items-center gap-2 pb-1 border-b">
+              <h4 className="font-semibold text-gray-800">Operational Skills</h4>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {[{ value: 'pallet', label: 'EUR Pallet Exchange' }, { value: 'loading', label: 'Driver Loading and Unloading' }, { value: 'cmr', label: 'CMR Documentation' }, { value: 'securing', label: 'Load Securing (lashing)' }, { value: 'tachograph', label: 'Digital Tachograph Operation' }].map((s) => (
+                <label key={s.value} className={`flex items-center gap-3 p-3 border-2 rounded-lg cursor-pointer transition-all ${(formData.operationalSkills || []).includes(s.value) ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}>
+                  <Checkbox checked={(formData.operationalSkills || []).includes(s.value)} onCheckedChange={() => onArrayToggle('operationalSkills', s.value)} />
+                  <span className="font-medium text-sm">{s.label}</span>
                 </label>
               ))}
             </div>
           </div>
-        </div>
-      )}
 
-      {/* Step 7: Technical Experience */}
-      {currentStep === 7 && (
-        <div className="space-y-6">
-          <div className="text-center mb-8">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#2563EB] to-[#3b82f6] flex items-center justify-center mx-auto mb-4 shadow-lg">
-              <span className="text-2xl font-bold text-white">7</span>
+          {/* Technical */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 pb-1 border-b">
+              <h4 className="font-semibold text-gray-800">Technical Experience</h4>
             </div>
-            <h2 className="text-3xl font-bold text-[#0F172A] mb-2">Technical Experience</h2>
-            <p className="text-muted-foreground">Truck brands, gearbox, and trailer experience</p>
-          </div>
-          <div className="space-y-6">
             <div className="space-y-3">
               <Label>Truck Brands *</Label>
-              <p className="text-sm text-muted-foreground">Select all brands you have experience with</p>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {['Volvo', 'Scania', 'DAF', 'MAN', 'Mercedes-Benz', 'Iveco'].map((brand) => (
-                  <label key={brand} className={`flex items-center gap-2 p-3 border-2 rounded-lg cursor-pointer transition-all ${(formData.truckBrands || []).includes(brand) ? 'border-[#2563EB] bg-[#EFF6FF]' : 'border-gray-200 hover:border-gray-300'}`}>
+                  <label key={brand} className={`flex items-center gap-2 p-3 border-2 rounded-lg cursor-pointer transition-all ${(formData.truckBrands || []).includes(brand) ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}>
                     <Checkbox checked={(formData.truckBrands || []).includes(brand)} onCheckedChange={() => onArrayToggle('truckBrands', brand)} />
-                    <span className="font-medium">{brand}</span>
+                    <span className="font-medium text-sm">{brand}</span>
                   </label>
                 ))}
               </div>
-              <div className="space-y-2 mt-3">
-                <Label htmlFor="otherBrand">Other Brand</Label>
-                <input type="text" id="otherBrand" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" placeholder="Specify other brands" value={formData.otherBrand} onChange={(e) => onInputChange('otherBrand', e.target.value)} />
-              </div>
+              <Input placeholder="Other brands" value={formData.otherBrand} onChange={(e) => onInputChange('otherBrand', e.target.value)} />
             </div>
             <div className="space-y-3">
               <Label>Gearbox Type *</Label>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                {[
-                  { value: 'manual', label: 'Manual' },
-                  { value: 'automatic', label: 'Automatic' },
-                  { value: 'both', label: 'Both' },
-                ].map((type) => (
-                  <label key={type.value} className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${formData.gearboxType === type.value ? 'border-[#2563EB] bg-[#EFF6FF]' : 'border-gray-200 hover:border-gray-300'}`}>
-                    <input type="radio" name="gearboxType" value={type.value} checked={formData.gearboxType === type.value} onChange={(e) => onInputChange('gearboxType', e.target.value)} className="w-4 h-4" />
-                    <span className="font-medium">{type.label}</span>
+              <div className="grid grid-cols-3 gap-3">
+                {[{ value: 'manual', label: 'Manual' }, { value: 'automatic', label: 'Automatic' }, { value: 'both', label: 'Both' }].map((g) => (
+                  <label key={g.value} className={`flex items-center gap-2 p-3 border-2 rounded-lg cursor-pointer transition-all ${formData.gearboxType === g.value ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}>
+                    <input type="radio" name="gearboxType" value={g.value} checked={formData.gearboxType === g.value} onChange={(e) => onInputChange('gearboxType', e.target.value)} className="w-4 h-4 accent-blue-600" />
+                    <span className="font-medium text-sm">{g.label}</span>
                   </label>
                 ))}
               </div>
             </div>
             <div className="space-y-3">
-              <Label>Trailer Types - Mark All Experience</Label>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {[
-                  { value: 'curtain', label: 'Curtain Sider' },
-                  { value: 'reefer', label: 'Reefer' },
-                  { value: 'tanker', label: 'Tanker' },
-                  { value: 'container', label: 'Container' },
-                  { value: 'walking', label: 'Walking Floor' },
-                  { value: 'lowdeck', label: 'Lowdeck' },
-                  { value: 'mega', label: 'Mega' },
-                  { value: 'swap', label: 'Swap Body' },
-                ].map((trailer) => (
-                  <label key={trailer.value} className={`flex items-center gap-3 p-3 border-2 rounded-lg cursor-pointer transition-all ${(formData.trailerTypes || []).includes(trailer.value) ? 'border-[#2563EB] bg-[#EFF6FF]' : 'border-gray-200 hover:border-gray-300'}`}>
-                    <Checkbox checked={(formData.trailerTypes || []).includes(trailer.value)} onCheckedChange={() => onArrayToggle('trailerTypes', trailer.value)} />
-                    <span className="font-medium">{trailer.label}</span>
+              <Label>Trailer Types</Label>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {[{ value: 'curtain', label: 'Curtain Sider' }, { value: 'reefer', label: 'Reefer' }, { value: 'tanker', label: 'Tanker' }, { value: 'container', label: 'Container' }, { value: 'walking', label: 'Walking Floor' }, { value: 'lowdeck', label: 'Lowdeck' }, { value: 'mega', label: 'Mega' }, { value: 'swap', label: 'Swap Body' }].map((t) => (
+                  <label key={t.value} className={`flex items-center gap-2 p-3 border-2 rounded-lg cursor-pointer transition-all ${(formData.trailerTypes || []).includes(t.value) ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}>
+                    <Checkbox checked={(formData.trailerTypes || []).includes(t.value)} onCheckedChange={() => onArrayToggle('trailerTypes', t.value)} />
+                    <span className="font-medium text-sm">{t.label}</span>
                   </label>
                 ))}
               </div>
+              <div className="grid md:grid-cols-2 gap-4 mt-2">
+                <Input placeholder="Most used trailer" value={formData.mostUsedTrailer} onChange={(e) => onInputChange('mostUsedTrailer', e.target.value)} />
+                <Input type="number" min="0" placeholder="Years with that trailer" value={formData.yearsWithTrailer} onChange={(e) => onInputChange('yearsWithTrailer', e.target.value)} />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Step 5: Background ── */}
+      {currentStep === 5 && (
+        <div className="space-y-8">
+          <SectionTitle title="Safety & Background" subtitle="Safety record, languages, and work preferences" />
+
+          {/* Safety */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 pb-1 border-b">
+              <h4 className="font-semibold text-gray-800">Safety & Discipline</h4>
+            </div>
+            <div className="p-4 bg-gray-50 rounded-lg space-y-3">
+              <Label className="font-medium">Work Regime</Label>
+              <label className="flex items-center gap-3 cursor-pointer">
+                <Checkbox checked={formData.weekendDriving} onCheckedChange={(c) => onInputChange('weekendDriving', c)} />
+                <span className="text-sm">Weekend Driving</span>
+              </label>
+              <label className="flex items-center gap-3 cursor-pointer">
+                <Checkbox checked={formData.nightDriving} onCheckedChange={(c) => onInputChange('nightDriving', c)} />
+                <span className="text-sm">Night Driving</span>
+              </label>
             </div>
             <div className="grid md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="mostUsedTrailer">Which trailer did you use most often?</Label>
-                <Input id="mostUsedTrailer" placeholder="e.g., Curtain Sider" value={formData.mostUsedTrailer} onChange={(e) => onInputChange('mostUsedTrailer', e.target.value)} />
+                <Label>Traffic Accidents (last 3 years) *</Label>
+                <RadioGroup name="trafficAccidents" value={formData.trafficAccidents} onChange={(v) => onInputChange('trafficAccidents', v)} />
+                {formData.trafficAccidents === 'yes' && (
+                  <Textarea rows={2} placeholder="Please describe" value={formData.accidentDescription} onChange={(e) => onInputChange('accidentDescription', e.target.value)} />
+                )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="yearsWithTrailer">Years of experience with this trailer</Label>
-                <Input id="yearsWithTrailer" type="number" min="0" placeholder="Number of years" value={formData.yearsWithTrailer} onChange={(e) => onInputChange('yearsWithTrailer', e.target.value)} />
+                <Label>AETR Violations *</Label>
+                <RadioGroup name="aetrViolations" value={formData.aetrViolations} onChange={(v) => onInputChange('aetrViolations', v)} />
               </div>
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="confidentTrailers">Which trailers are you most confident with? (max. 3)</Label>
-                <Input id="confidentTrailers" placeholder="e.g., Curtain sider, Reefer, Container" value={formData.confidentTrailers} onChange={(e) => onInputChange('confidentTrailers', e.target.value)} />
+              <div className="space-y-2">
+                <Label>Fines Abroad (last 3 years) *</Label>
+                <RadioGroup name="finesAbroad" value={formData.finesAbroad} onChange={(v) => onInputChange('finesAbroad', v)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Eco-Driving (fuel-efficient) *</Label>
+                <RadioGroup name="ecoDriving" value={formData.ecoDriving} onChange={(v) => onInputChange('ecoDriving', v)} />
               </div>
             </div>
           </div>
-        </div>
-      )}
 
-      {/* Step 8: Safety & Discipline */}
-      {currentStep === 8 && (
-        <div className="space-y-6">
-          <div className="text-center mb-8">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#2563EB] to-[#3b82f6] flex items-center justify-center mx-auto mb-4 shadow-lg">
-              <span className="text-2xl font-bold text-white">8</span>
+          {/* Languages */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 pb-1 border-b">
+              <h4 className="font-semibold text-gray-800">Language Skills</h4>
             </div>
-            <h2 className="text-3xl font-bold text-[#0F172A] mb-2">Safety & Discipline</h2>
-            <p className="text-muted-foreground">Safety record and work regime</p>
-          </div>
-          <div className="space-y-6">
-            <div className="p-6 border rounded-lg bg-[#F8FAFC]">
-              <Label className="text-base font-semibold mb-4 block">Work Regime</Label>
-              <div className="space-y-3">
-                <label className="flex items-center gap-3">
-                  <Checkbox checked={formData.weekendDriving} onCheckedChange={(checked) => onInputChange('weekendDriving', checked)} />
-                  <span>Weekend Driving</span>
-                </label>
-                <label className="flex items-center gap-3">
-                  <Checkbox checked={formData.nightDriving} onCheckedChange={(checked) => onInputChange('nightDriving', checked)} />
-                  <span>Night Driving</span>
-                </label>
-              </div>
-            </div>
-            <div className="space-y-3">
-              <Label>Traffic Accidents in the Last 3 Years *</Label>
-              <div className="flex gap-4">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" name="trafficAccidents" value="yes" checked={formData.trafficAccidents === 'yes'} onChange={(e) => onInputChange('trafficAccidents', e.target.value)} className="w-4 h-4" />
-                  <span>Yes</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" name="trafficAccidents" value="no" checked={formData.trafficAccidents === 'no'} onChange={(e) => onInputChange('trafficAccidents', e.target.value)} className="w-4 h-4" />
-                  <span>No</span>
-                </label>
-              </div>
-              {formData.trafficAccidents === 'yes' && (
-                <div className="space-y-2 mt-3">
-                  <Label htmlFor="accidentDescription">If yes - description</Label>
-                  <Textarea id="accidentDescription" rows={3} placeholder="Please describe the accident(s)" value={formData.accidentDescription} onChange={(e) => onInputChange('accidentDescription', e.target.value)} />
-                </div>
-              )}
-            </div>
-            <div className="space-y-3">
-              <Label>AETR Violations *</Label>
-              <div className="flex gap-4">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" name="aetrViolations" value="yes" checked={formData.aetrViolations === 'yes'} onChange={(e) => onInputChange('aetrViolations', e.target.value)} className="w-4 h-4" />
-                  <span>Yes</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" name="aetrViolations" value="no" checked={formData.aetrViolations === 'no'} onChange={(e) => onInputChange('aetrViolations', e.target.value)} className="w-4 h-4" />
-                  <span>No</span>
-                </label>
-              </div>
-            </div>
-            <div className="space-y-3">
-              <Label>Fines Abroad in the Last 3 Years *</Label>
-              <div className="flex gap-4">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" name="finesAbroad" value="yes" checked={formData.finesAbroad === 'yes'} onChange={(e) => onInputChange('finesAbroad', e.target.value)} className="w-4 h-4" />
-                  <span>Yes</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" name="finesAbroad" value="no" checked={formData.finesAbroad === 'no'} onChange={(e) => onInputChange('finesAbroad', e.target.value)} className="w-4 h-4" />
-                  <span>No</span>
-                </label>
-              </div>
-            </div>
-            <div className="space-y-3">
-              <Label>Eco-driving (fuel-efficient driving) *</Label>
-              <div className="flex gap-4">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" name="ecoDriving" value="yes" checked={formData.ecoDriving === 'yes'} onChange={(e) => onInputChange('ecoDriving', e.target.value)} className="w-4 h-4" />
-                  <span>Yes</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" name="ecoDriving" value="no" checked={formData.ecoDriving === 'no'} onChange={(e) => onInputChange('ecoDriving', e.target.value)} className="w-4 h-4" />
-                  <span>No</span>
-                </label>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Step 9: Language Skills */}
-      {currentStep === 9 && (
-        <div className="space-y-6">
-          <div className="text-center mb-8">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#2563EB] to-[#3b82f6] flex items-center justify-center mx-auto mb-4 shadow-lg">
-              <span className="text-2xl font-bold text-white">9</span>
-            </div>
-            <h2 className="text-3xl font-bold text-[#0F172A] mb-2">Language Skills</h2>
-            <p className="text-muted-foreground">Language proficiency levels</p>
-          </div>
-          <div className="space-y-6">
             {[
               { field: 'englishLevel' as keyof ApplicantFormData, label: 'English *' },
               { field: 'germanLevel' as keyof ApplicantFormData, label: 'German' },
               { field: 'russianLevel' as keyof ApplicantFormData, label: 'Russian' },
             ].map(({ field, label }) => (
-              <div key={field} className="space-y-3">
+              <div key={field} className="space-y-2">
                 <Label>{label}</Label>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="grid grid-cols-3 gap-3">
                   {['basic', 'intermediate', 'advanced'].map((level) => (
-                    <label key={level} className={`flex items-center justify-center gap-2 p-4 border-2 rounded-lg cursor-pointer transition-all ${formData[field] === level ? 'border-[#2563EB] bg-[#EFF6FF]' : 'border-gray-200 hover:border-gray-300'}`}>
-                      <input type="radio" name={field} value={level} checked={formData[field] === level} onChange={(e) => onInputChange(field, e.target.value)} className="w-4 h-4" />
-                      <span className="font-medium capitalize">{level}</span>
+                    <label key={level} className={`flex items-center justify-center gap-2 p-3 border-2 rounded-lg cursor-pointer transition-all ${formData[field] === level ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}>
+                      <input type="radio" name={field} value={level} checked={formData[field] === level} onChange={() => onInputChange(field, level)} className="w-4 h-4 accent-blue-600" />
+                      <span className="font-medium text-sm capitalize">{level}</span>
                     </label>
                   ))}
                 </div>
               </div>
             ))}
-            <div className="space-y-2">
-              <Label htmlFor="otherLanguages">Other Languages</Label>
-              <Input id="otherLanguages" placeholder="e.g., French, Italian..." value={formData.otherLanguages} onChange={(e) => onInputChange('otherLanguages', e.target.value)} />
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Other Languages</Label>
+                <Input placeholder="e.g. French, Italian…" value={formData.otherLanguages} onChange={(e) => onInputChange('otherLanguages', e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Language Used at Work</Label>
+                <Input placeholder="Primary work language" value={formData.languageAtWork} onChange={(e) => onInputChange('languageAtWork', e.target.value)} />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="languageAtWork">Language Used at Work</Label>
-              <Input id="languageAtWork" placeholder="Which language do you primarily use?" value={formData.languageAtWork} onChange={(e) => onInputChange('languageAtWork', e.target.value)} />
+          </div>
+
+          {/* Work Flexibility */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 pb-1 border-b">
+              <h4 className="font-semibold text-gray-800">Work Flexibility</h4>
+            </div>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label>Willing to Work in Double Crew? *</Label>
+                <RadioGroup name="doubleCrewWillingness" value={formData.doubleCrewWillingness} onChange={(v) => onInputChange('doubleCrewWillingness', v)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Maximum Tour Length (weeks) *</Label>
+                <Input type="number" min="1" max="12" placeholder="Number of weeks" value={formData.maxTourWeeks} onChange={(e) => onInputChange('maxTourWeeks', e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Preferred Countries</Label>
+                <Textarea rows={2} placeholder="e.g. Germany, Netherlands…" value={formData.preferredCountries} onChange={(e) => onInputChange('preferredCountries', e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Undesired Countries</Label>
+                <Textarea rows={2} placeholder="Countries to avoid (optional)" value={formData.undesiredCountries} onChange={(e) => onInputChange('undesiredCountries', e.target.value)} />
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Step 10: Work Flexibility */}
-      {currentStep === 10 && (
+      {/* ── Step 6: Documents ── */}
+      {currentStep === 6 && (
         <div className="space-y-6">
-          <div className="text-center mb-8">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#2563EB] to-[#3b82f6] flex items-center justify-center mx-auto mb-4 shadow-lg">
-              <span className="text-2xl font-bold text-white">10</span>
+          <SectionTitle title="Travel & Residence Documents" subtitle="Passport, visa, and residence information" />
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label>Passport Number *</Label>
+              <Input placeholder="Passport number" value={formData.passportNumber} onChange={(e) => onInputChange('passportNumber', e.target.value)} />
             </div>
-            <h2 className="text-3xl font-bold text-[#0F172A] mb-2">Work Flexibility</h2>
-            <p className="text-muted-foreground">Availability and work preferences</p>
+            <div className="space-y-2">
+              <Label>Passport Valid Until *</Label>
+              <Input type="date" value={formData.passportValidUntil} onChange={(e) => onInputChange('passportValidUntil', e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>EU Visa? *</Label>
+              <RadioGroup name="hasEUVisa" value={formData.hasEUVisa} onChange={(v) => onInputChange('hasEUVisa', v)} />
+            </div>
+            {formData.hasEUVisa === 'yes' && (
+              <>
+                <div className="space-y-2">
+                  <Label>Visa Type</Label>
+                  <Input placeholder="Visa type" value={formData.visaType} onChange={(e) => onInputChange('visaType', e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Visa Valid Until</Label>
+                  <Input type="date" value={formData.visaValidUntil} onChange={(e) => onInputChange('visaValidUntil', e.target.value)} />
+                </div>
+              </>
+            )}
+            <div className="space-y-2">
+              <Label>Work Permit in EU? *</Label>
+              <RadioGroup name="hasWorkPermit" value={formData.hasWorkPermit} onChange={(v) => onInputChange('hasWorkPermit', v)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Residence Card in EU? *</Label>
+              <RadioGroup name="hasResidenceCard" value={formData.hasResidenceCard} onChange={(v) => onInputChange('hasResidenceCard', v)} />
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <Label>Issuing Country</Label>
+              <Input placeholder="Country" value={formData.issuingCountry} onChange={(e) => onInputChange('issuingCountry', e.target.value)} />
+            </div>
           </div>
-          <div className="space-y-6">
-            <div className="space-y-3">
-              <Label>Willingness to Work in a Double Crew *</Label>
-              <div className="flex gap-4">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" name="doubleCrewWillingness" value="yes" checked={formData.doubleCrewWillingness === 'yes'} onChange={(e) => onInputChange('doubleCrewWillingness', e.target.value)} className="w-4 h-4" />
-                  <span>Yes</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" name="doubleCrewWillingness" value="no" checked={formData.doubleCrewWillingness === 'no'} onChange={(e) => onInputChange('doubleCrewWillingness', e.target.value)} className="w-4 h-4" />
-                  <span>No</span>
-                </label>
+        </div>
+      )}
+
+      {/* ── Step 7: Review ── */}
+      {currentStep === 7 && (
+        <div className="space-y-6">
+          <SectionTitle title="Review Your Application" subtitle="Please review your information before submitting" />
+          <div className="grid md:grid-cols-2 gap-4">
+            {[
+              { label: 'Full Name', value: formData.fullName },
+              { label: 'Date of Birth', value: formData.dateOfBirth },
+              { label: 'Nationality', value: formData.nationality },
+              { label: 'Country of Residence', value: formData.countryOfResidence },
+              { label: 'Phone', value: formData.phone },
+              { label: 'Email', value: formData.email },
+              { label: 'Earliest Start Date', value: formData.earliestStartDate },
+              { label: 'License Number', value: formData.drivingLicenseNumber },
+              { label: 'Issuing Authority', value: formData.licenseIssuingCountry },
+              { label: 'License Expiry', value: formData.licenseValidUntil },
+              { label: 'English Level', value: formData.englishLevel },
+              { label: 'Passport Number', value: formData.passportNumber },
+            ].map(({ label, value }) => value ? (
+              <div key={label} className="p-3 bg-gray-50 rounded-lg">
+                <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">{label}</p>
+                <p className="text-sm font-semibold text-gray-900 mt-0.5">{value}</p>
+              </div>
+            ) : null)}
+          </div>
+          {formData.transportTypes?.length > 0 && (
+            <div className="p-3 bg-gray-50 rounded-lg">
+              <p className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-1">Transport Types</p>
+              <div className="flex flex-wrap gap-2">
+                {formData.transportTypes.map((t) => (
+                  <span key={t} className="px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded-full">{t}</span>
+                ))}
               </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="maxTourWeeks">Maximum Tour Length (weeks) *</Label>
-              <Input id="maxTourWeeks" type="number" min="1" max="12" placeholder="Number of weeks" value={formData.maxTourWeeks} onChange={(e) => onInputChange('maxTourWeeks', e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="preferredCountries">Preferred Countries of Work</Label>
-              <Textarea id="preferredCountries" rows={3} placeholder="List your preferred countries (e.g., Germany, Netherlands, Belgium)" value={formData.preferredCountries} onChange={(e) => onInputChange('preferredCountries', e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="undesiredCountries">Undesired Countries</Label>
-              <Textarea id="undesiredCountries" rows={3} placeholder="List countries you prefer not to work in (optional)" value={formData.undesiredCountries} onChange={(e) => onInputChange('undesiredCountries', e.target.value)} />
-            </div>
+          )}
+          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-sm text-blue-800">
+              By submitting this application you confirm all information provided is accurate and complete.
+            </p>
           </div>
         </div>
       )}

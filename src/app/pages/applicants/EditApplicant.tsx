@@ -91,35 +91,48 @@ export function EditApplicant() {
     }
   };
 
+  const buildUpdatePayload = () => {
+    const nameParts = formData.fullName.trim().split(/\s+/);
+    const firstName = nameParts[0] || '';
+    const lastName = nameParts.slice(1).join(' ') || '-';
+    const extraData = { ...formData };
+    delete (extraData as any).fullName;
+    delete (extraData as any).dateOfBirth;
+    delete (extraData as any).nationality;
+    delete (extraData as any).phone;
+    delete (extraData as any).email;
+    delete (extraData as any).earliestStartDate;
+    return {
+      firstName, lastName,
+      email: formData.email,
+      phone: formData.phone,
+      nationality: formData.nationality,
+      dateOfBirth: formData.dateOfBirth,
+      preferredStartDate: formData.earliestStartDate || undefined,
+      availability: formData.earliestStartDate || 'Immediate',
+      notes: JSON.stringify(extraData),
+      ...(formData.jobTypeId ? { jobTypeId: formData.jobTypeId } : {}),
+    };
+  };
+
+  const handleSave = async () => {
+    if (!id) return;
+    setSubmitting(true);
+    try {
+      await applicantsApi.update(id, buildUpdatePayload());
+      toast.success('Applicant updated successfully');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to update applicant');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!id) return;
     setSubmitting(true);
     try {
-      const nameParts = formData.fullName.trim().split(/\s+/);
-      const firstName = nameParts[0] || '';
-      const lastName = nameParts.slice(1).join(' ') || '-';
-
-      const extraData = { ...formData };
-      delete (extraData as any).fullName;
-      delete (extraData as any).dateOfBirth;
-      delete (extraData as any).nationality;
-      delete (extraData as any).phone;
-      delete (extraData as any).email;
-      delete (extraData as any).earliestStartDate;
-
-      await applicantsApi.update(id, {
-        firstName,
-        lastName,
-        email: formData.email,
-        phone: formData.phone,
-        nationality: formData.nationality,
-        dateOfBirth: formData.dateOfBirth,
-        preferredStartDate: formData.earliestStartDate || undefined,
-        availability: formData.earliestStartDate || 'Immediate',
-        notes: JSON.stringify(extraData),
-        ...(formData.jobTypeId ? { jobTypeId: formData.jobTypeId } : {}),
-      });
-
+      await applicantsApi.update(id, buildUpdatePayload());
       toast.success('Applicant updated successfully');
       navigate(`/dashboard/applicants/${id}`);
     } catch (err: any) {
@@ -170,23 +183,35 @@ export function EditApplicant() {
 
           {/* Navigation Buttons */}
           <div className="flex justify-between pt-8 border-t mt-8">
-            {currentStep > 1 && (
+            {currentStep > 1 ? (
               <Button type="button" variant="outline" onClick={handleBack} className="gap-2">
                 <ChevronLeft className="w-4 h-4" />
                 Back
               </Button>
-            )}
-            {currentStep < totalSteps ? (
-              <Button type="button" onClick={handleNext} className="ml-auto gap-2 bg-[#2563EB] hover:bg-[#1d4ed8]">
-                Next
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-            ) : (
-              <Button type="button" onClick={handleSubmit} disabled={submitting} className="ml-auto gap-2 bg-[#22C55E] hover:bg-[#16a34a]">
+            ) : <div />}
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleSave}
+                disabled={submitting}
+                className="gap-2 border-[#22C55E] text-[#22C55E] hover:bg-green-50"
+              >
                 <Save className="w-4 h-4" />
                 {submitting ? 'Saving...' : 'Update Applicant'}
               </Button>
-            )}
+              {currentStep < totalSteps ? (
+                <Button type="button" onClick={handleNext} className="gap-2 bg-[#2563EB] hover:bg-[#1d4ed8]">
+                  Next
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              ) : (
+                <Button type="button" onClick={handleSubmit} disabled={submitting} className="gap-2 bg-[#22C55E] hover:bg-[#16a34a]">
+                  <Save className="w-4 h-4" />
+                  {submitting ? 'Saving...' : 'Save & Close'}
+                </Button>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>

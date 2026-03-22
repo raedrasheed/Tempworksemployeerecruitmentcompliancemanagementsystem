@@ -21,6 +21,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { Public } from '../auth/decorators/public.decorator';
 
 const multerStorage = diskStorage({
   destination: process.env.UPLOAD_DEST || './uploads',
@@ -97,6 +98,44 @@ export class DocumentsController {
     res.setHeader('Content-Disposition', `attachment; filename="documents_${Date.now()}.zip"`);
     res.setHeader('Content-Length', buffer.length);
     res.end(buffer);
+  }
+
+  @Public()
+  @Post('public/upload')
+  @UseInterceptors(FileInterceptor('file', {
+    storage: multerStorage,
+    limits: { fileSize: parseInt(process.env.MAX_FILE_SIZE || '10485760') },
+    fileFilter: (_req, file, cb) => {
+      if (allowedMimetypes.includes(file.mimetype)) {
+        cb(null, true);
+      } else {
+        cb(new BadRequestException(`File type ${file.mimetype} not allowed`), false);
+      }
+    },
+  }))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Public document upload for applicant submissions (no auth)' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: { type: 'string', format: 'binary' },
+        entityId: { type: 'string' },
+        name: { type: 'string' },
+        documentTypeName: { type: 'string' },
+      },
+      required: ['file', 'entityId', 'name'],
+    },
+  })
+  async publicUpload(
+    @UploadedFile() file: Express.Multer.File,
+    @Body('entityId') entityId: string,
+    @Body('name') name: string,
+    @Body('documentTypeName') documentTypeName: string,
+  ) {
+    if (!file) throw new BadRequestException('File is required');
+    if (!entityId) throw new BadRequestException('entityId is required');
+    return this.documentsService.publicCreate(file, entityId, name || file.originalname, documentTypeName || 'Other');
   }
 
   @Post('upload')

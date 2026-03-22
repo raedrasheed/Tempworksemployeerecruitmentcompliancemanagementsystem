@@ -265,6 +265,15 @@ export const publicApplicationApi = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+
+  uploadDocument: (applicantId: string, file: File, name: string, documentTypeName: string) => {
+    const form = new FormData();
+    form.append('file', file);
+    form.append('entityId', applicantId);
+    form.append('name', name);
+    form.append('documentTypeName', documentTypeName);
+    return apiFetch<any>('/documents/public/upload', { method: 'POST', body: form });
+  },
 };
 
 // ─── Documents API ───────────────────────────────────────────────────────────

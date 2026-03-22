@@ -152,7 +152,18 @@ export function PublicEmployeeApplication() {
         }),
       };
 
-      await publicApplicationApi.submit(payload);
+      const applicant = await publicApplicationApi.submit(payload);
+
+      // Upload any documents attached to the application
+      const fileItems = uploadedFiles.filter(f => f.file);
+      if (fileItems.length > 0 && applicant?.id) {
+        await Promise.allSettled(
+          fileItems.map(item =>
+            publicApplicationApi.uploadDocument(applicant.id, item.file!, item.type || item.file!.name, item.type || 'Other'),
+          ),
+        );
+      }
+
       navigate('/application-success');
     } catch (err: any) {
       toast.error(err?.message || 'Failed to submit application. Please try again.');

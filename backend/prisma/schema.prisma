@@ -356,7 +356,7 @@ model Document {
   issuer         String?
   documentNumber String?
   notes          String?
-  uploadedById   String
+  uploadedById   String?
   verifiedById   String?
   verifiedAt     DateTime?
   createdAt      DateTime       @default(now())
@@ -364,7 +364,7 @@ model Document {
   deletedAt      DateTime?
 
   documentType    DocumentType @relation(fields: [documentTypeId], references: [id])
-  uploadedBy      User         @relation("UploadedDocuments", fields: [uploadedById], references: [id])
+  uploadedBy      User?        @relation("UploadedDocuments", fields: [uploadedById], references: [id])
   verifiedBy      User?        @relation("VerifiedDocuments", fields: [verifiedById], references: [id])
   complianceAlerts ComplianceAlert[]
 

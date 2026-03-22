@@ -104,6 +104,49 @@ export class DocumentsService {
     return PaginatedResponse.create(items, total, page, limit);
   }
 
+  /** Public upload: resolve document type by name (case-insensitive), fall back to first available. */
+  async publicCreate(
+    file: Express.Multer.File,
+    entityId: string,
+    name: string,
+    documentTypeName: string,
+  ) {
+    let docType = await this.prisma.documentType.findFirst({
+      where: { name: { equals: documentTypeName, mode: 'insensitive' } },
+    });
+    if (!docType) {
+      docType = await this.prisma.documentType.findFirst({ orderBy: { createdAt: 'asc' } });
+    }
+    if (!docType) throw new BadRequestException('No document types configured');
+
+    const entityName  = await this.resolveEntityName('APPLICANT', entityId);
+    const ts          = Date.now();
+    const ext         = extname(file.originalname);
+    const safeEntity  = this.sanitize(entityName) || 'Applicant';
+    const safeDocType = this.sanitize(docType.name) || 'Others';
+    const folderName  = `${safeEntity}_${ts}`;
+    const newFilename = `${safeEntity}_${safeDocType}_${ts}${ext}`;
+    const newDir      = join(file.destination, folderName, safeDocType);
+
+    await fs.mkdir(newDir, { recursive: true });
+    await fs.rename(file.path, join(newDir, newFilename));
+
+    const fileUrl = `/uploads/${folderName}/${safeDocType}/${newFilename}`;
+    return this.prisma.document.create({
+      data: {
+        name,
+        documentTypeId: docType.id,
+        entityType: 'APPLICANT' as any,
+        entityId,
+        fileUrl,
+        mimeType: file.mimetype,
+        fileSize: file.size,
+        status: 'PENDING',
+      },
+      include: this.docInclude,
+    });
+  }
+
   async create(
     dto: CreateDocumentDto,
     file: Express.Multer.File,

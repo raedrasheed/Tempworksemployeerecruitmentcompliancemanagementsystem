@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router';
-import { ArrowLeft, Mail, Phone, Globe, Briefcase, Calendar, FileText, UserPlus, Edit, Trash2, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, Globe, Briefcase, Calendar, FileText, UserPlus, Edit, Trash2, CheckCircle2, Download } from 'lucide-react';
 import { usePermissions } from '../../hooks/usePermissions';
-import { applicantsApi } from '../../services/api';
+import { applicantsApi, documentsApi } from '../../services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
@@ -178,6 +178,17 @@ export function ApplicantProfile() {
   const { canEdit, canDelete } = usePermissions();
   const [loading, setLoading] = useState(true);
   const [applicantData, setApplicantData] = useState<any>(null);
+  const [documents, setDocuments] = useState<any[]>([]);
+  const [docsLoading, setDocsLoading] = useState(false);
+
+  useEffect(() => {
+    if (!id) return;
+    setDocsLoading(true);
+    documentsApi.getByEntity('APPLICANT', id)
+      .then((docs: any) => setDocuments(Array.isArray(docs) ? docs : docs?.data ?? []))
+      .catch(() => {})
+      .finally(() => setDocsLoading(false));
+  }, [id]);
 
   useEffect(() => {
     if (!id) return;
@@ -590,9 +601,41 @@ export function ApplicantProfile() {
               <CardTitle>Uploaded Documents</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Documents uploaded for this applicant will appear here once the document management module is linked.
-              </p>
+              {docsLoading ? (
+                <p className="text-sm text-muted-foreground">Loading documents...</p>
+              ) : documents.length === 0 ? (
+                <p className="text-sm text-muted-foreground italic">No documents uploaded for this applicant yet.</p>
+              ) : (
+                <div className="space-y-3">
+                  {documents.map((doc: any) => (
+                    <div key={doc.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <FileText className="w-5 h-5 text-muted-foreground shrink-0" />
+                        <div>
+                          <p className="font-medium text-sm">{doc.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {doc.documentType?.name ?? 'Document'} &bull; {doc.createdAt ? new Date(doc.createdAt).toLocaleDateString() : ''}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge className={getDocumentStatusColor(doc.status)}>
+                          {doc.status}
+                        </Badge>
+                        <a
+                          href={`${import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:3000'}${doc.fileUrl}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-1.5 rounded hover:bg-muted transition-colors"
+                          title="Download"
+                        >
+                          <Download className="w-4 h-4 text-muted-foreground" />
+                        </a>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

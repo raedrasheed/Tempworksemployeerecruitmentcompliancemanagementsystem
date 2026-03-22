@@ -3,6 +3,7 @@ import {
 } from '@nestjs/common';
 import { extname, join } from 'path';
 import { promises as fs } from 'fs';
+import * as archiver from 'archiver';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateDocumentDto } from './dto/create-document.dto';
 import { VerifyDocumentDto, VerifyActionEnum } from './dto/verify-document.dto';
@@ -111,15 +112,21 @@ export class DocumentsService {
     const docType = await this.prisma.documentType.findUnique({ where: { id: dto.documentTypeId } });
     if (!docType) throw new NotFoundException('Document type not found');
 
-    // Build semantic filename: {EntityName}_{DocumentType}_{timestamp}.{ext}
-    const entityName  = await this.resolveEntityName(dto.entityType, dto.entityId);
-    const ext         = extname(file.originalname);
-    const newFilename = `${this.sanitize(entityName)}_${this.sanitize(docType.name)}_${Date.now()}${ext}`;
-    const newPath     = join(file.destination, newFilename);
+    // Build semantic filename and folder structure:
+    //   uploads/{EntityName}_{ts}/{DocumentType}/{EntityName}_{DocumentType}_{ts}.ext
+    const entityName   = await this.resolveEntityName(dto.entityType, dto.entityId);
+    const ts           = Date.now();
+    const ext          = extname(file.originalname);
+    const safeEntity   = this.sanitize(entityName);
+    const safeDocType  = this.sanitize(docType.name);
+    const folderName   = `${safeEntity}_${ts}`;
+    const newFilename  = `${safeEntity}_${safeDocType}_${ts}${ext}`;
+    const newDir       = join(file.destination, folderName, safeDocType);
 
-    await fs.rename(file.path, newPath);
+    await fs.mkdir(newDir, { recursive: true });
+    await fs.rename(file.path, join(newDir, newFilename));
 
-    const fileUrl = `/uploads/${newFilename}`;
+    const fileUrl = `/uploads/${folderName}/${safeDocType}/${newFilename}`;
     const doc = await this.prisma.document.create({
       data: {
         name: dto.name,
@@ -239,6 +246,36 @@ export class DocumentsService {
       });
     }
     return { message: 'Document deleted' };
+  }
+
+  /**
+   * Creates an archiver ZIP stream containing each requested document.
+   * The ZIP preserves the on-disk folder structure:
+   *   {EntityName}_{ts}/{DocumentType}/{filename}.ext
+   * Call archive.pipe(response) then archive.finalize() in the controller.
+   */
+  async createBulkDownloadArchive(ids: string[]) {
+    const docs = await this.prisma.document.findMany({
+      where: { id: { in: ids }, deletedAt: null },
+    });
+
+    const archive = archiver('zip', { zlib: { level: 6 } });
+
+    for (const doc of docs) {
+      // fileUrl = /uploads/{folder}/{subFolder}/{filename}
+      // Strip leading slash → relative path inside the ZIP
+      const zipEntryPath = doc.fileUrl.replace(/^\//, '').replace(/^uploads\//, '');
+      const diskPath     = join(process.cwd(), doc.fileUrl.startsWith('/') ? doc.fileUrl.slice(1) : doc.fileUrl);
+
+      try {
+        await fs.access(diskPath);        // skip missing files gracefully
+        archive.file(diskPath, { name: zipEntryPath });
+      } catch {
+        // file not found on disk — skip
+      }
+    }
+
+    return archive;
   }
 
   async getExpiringDocuments(days = 30) {

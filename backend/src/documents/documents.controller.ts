@@ -1,8 +1,10 @@
 import {
   Controller, Get, Post, Body, Patch, Param, Delete,
   Query, UseGuards, HttpCode, HttpStatus, UseInterceptors,
-  UploadedFile, BadRequestException,
+  UploadedFile, BadRequestException, Res,
 } from '@nestjs/common';
+import { Response } from 'express';
+import { IsArray, IsUUID } from 'class-validator';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
@@ -75,6 +77,26 @@ export class DocumentsController {
   @ApiParam({ name: 'id', description: 'Document UUID' })
   findOne(@Param('id') id: string) {
     return this.documentsService.findOne(id);
+  }
+
+  @Post('bulk-download')
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Finance', 'Read Only')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Download multiple documents as a ZIP archive' })
+  @ApiBody({ schema: { type: 'object', properties: { ids: { type: 'array', items: { type: 'string', format: 'uuid' } } }, required: ['ids'] } })
+  async bulkDownload(
+    @Body() dto: { ids: string[] },
+    @Res() res: Response,
+  ) {
+    if (!dto.ids?.length) {
+      res.status(400).json({ message: 'No document IDs provided' });
+      return;
+    }
+    const archive = await this.documentsService.createBulkDownloadArchive(dto.ids);
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename="documents_${Date.now()}.zip"`);
+    archive.pipe(res);
+    await archive.finalize();
   }
 
   @Post('upload')

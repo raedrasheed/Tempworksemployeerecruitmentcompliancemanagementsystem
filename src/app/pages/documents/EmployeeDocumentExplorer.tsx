@@ -20,6 +20,15 @@ const employeeColumns: Column[] = [
   { id: 'status', label: 'Status', type: 'enum', options: ['ACTIVE', 'PENDING', 'INACTIVE', 'SUSPENDED'] },
 ];
 
+function triggerZipDownload(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export function EmployeeDocumentExplorer() {
   const [employees, setEmployees] = useState<any[]>([]);
   const [agencies, setAgencies] = useState<any[]>([]);
@@ -28,6 +37,7 @@ export function EmployeeDocumentExplorer() {
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
   const [docCounts, setDocCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
+  const [downloading, setDownloading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [nationalityFilter, setNationalityFilter] = useState('all');
   const [agencyFilter, setAgencyFilter] = useState('all');
@@ -304,16 +314,39 @@ export function EmployeeDocumentExplorer() {
                 <Badge variant="outline">{selectedDocuments.length} selected</Badge>
                 <Button
                   variant="outline"
-                  onClick={() => {
-                    const docs = allSelectedDocs.filter(d => selectedDocuments.includes(d.id));
-                    docs.forEach(d => window.open(getFileUrl(d.fileUrl), '_blank'));
+                  disabled={selectedDocuments.length === 0 || downloading}
+                  onClick={async () => {
+                    setDownloading(true);
+                    try {
+                      const blob = await documentsApi.bulkDownload(selectedDocuments);
+                      triggerZipDownload(blob, `selected_documents_${Date.now()}.zip`);
+                    } catch (err: any) {
+                      toast.error(err?.message || 'Download failed');
+                    } finally {
+                      setDownloading(false);
+                    }
                   }}
-                  disabled={selectedDocuments.length === 0}
                 >
-                  <FileDown className="w-4 h-4 mr-2" />Download Selected
+                  <FileDown className="w-4 h-4 mr-2" />
+                  {downloading ? 'Preparing…' : 'Download Selected'}
                 </Button>
-                <Button onClick={() => allSelectedDocs.forEach(d => window.open(getFileUrl(d.fileUrl), '_blank'))}>
-                  <FileArchive className="w-4 h-4 mr-2" />Download All
+                <Button
+                  disabled={allSelectedDocs.length === 0 || downloading}
+                  onClick={async () => {
+                    setDownloading(true);
+                    try {
+                      const ids = allSelectedDocs.map(d => d.id);
+                      const blob = await documentsApi.bulkDownload(ids);
+                      triggerZipDownload(blob, `all_documents_${Date.now()}.zip`);
+                    } catch (err: any) {
+                      toast.error(err?.message || 'Download failed');
+                    } finally {
+                      setDownloading(false);
+                    }
+                  }}
+                >
+                  <FileArchive className="w-4 h-4 mr-2" />
+                  {downloading ? 'Preparing…' : 'Download All'}
                 </Button>
               </div>
             </div>

@@ -324,6 +324,24 @@ export const documentsApi = {
     apiFetch<any[]>(`/documents/entity/${entityType}/${entityId}`),
 
   getDashboard: () => apiFetch<any>('/documents/dashboard'),
+
+  /** Download multiple documents as a structured ZIP file. Returns a Blob. */
+  bulkDownload: async (ids: string[]): Promise<Blob> => {
+    const token = getAccessToken();
+    const res = await fetch(`${API_URL}/documents/bulk-download`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ ids }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error((err as any)?.message || 'Bulk download failed');
+    }
+    return res.blob();
+  },
 };
 
 // ─── Workflow API ─────────────────────────────────────────────────────────────

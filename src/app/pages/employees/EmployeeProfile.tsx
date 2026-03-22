@@ -1,13 +1,16 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router';
-import { ArrowLeft, Edit, Mail, Phone, MapPin, Calendar, FileText, Shield, Briefcase, Clock, Award, GraduationCap, TrendingUp, ChevronRight, Trash2, Download } from 'lucide-react';
+import { ArrowLeft, Edit, Mail, Phone, MapPin, Calendar, FileText, Shield, Briefcase, Clock, Award, GraduationCap, TrendingUp, ChevronRight, Trash2, Download, Upload, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { Progress } from '../../components/ui/progress';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { toast } from 'sonner';
-import { employeesApi } from '../../services/api';
+import { employeesApi, documentsApi, settingsApi } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
 
 const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1').replace('/api/v1', '');
@@ -20,6 +23,15 @@ export function EmployeeProfile() {
   const [documents, setDocuments] = useState<any[]>([]);
   const [workflow, setWorkflow] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [docTypes, setDocTypes] = useState<any[]>([]);
+  const [showUpload, setShowUpload] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadForm, setUploadForm] = useState({ documentTypeId: '', name: '', issueDate: '', expiryDate: '', documentNumber: '', issuer: '' });
+
+  const loadDocs = () => {
+    employeesApi.getDocuments(id!).then(docs => setDocuments(Array.isArray(docs) ? docs : [])).catch(() => {});
+  };
 
   useEffect(() => {
     Promise.all([
@@ -33,6 +45,39 @@ export function EmployeeProfile() {
     }).catch(() => toast.error('Failed to load employee'))
       .finally(() => setLoading(false));
   }, [id]);
+
+  useEffect(() => {
+    settingsApi.getDocumentTypes().then(setDocTypes).catch(() => {});
+  }, []);
+
+  const handleUpload = async () => {
+    if (!uploadFile) { toast.error('Please select a file'); return; }
+    if (!uploadForm.documentTypeId) { toast.error('Please select a document type'); return; }
+    if (!uploadForm.name.trim()) { toast.error('Please enter a document name'); return; }
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', uploadFile);
+      fd.append('name', uploadForm.name);
+      fd.append('documentTypeId', uploadForm.documentTypeId);
+      fd.append('entityType', 'EMPLOYEE');
+      fd.append('entityId', id!);
+      if (uploadForm.issueDate) fd.append('issueDate', uploadForm.issueDate);
+      if (uploadForm.expiryDate) fd.append('expiryDate', uploadForm.expiryDate);
+      if (uploadForm.documentNumber) fd.append('documentNumber', uploadForm.documentNumber);
+      if (uploadForm.issuer) fd.append('issuer', uploadForm.issuer);
+      await documentsApi.upload(fd);
+      toast.success('Document uploaded successfully');
+      setShowUpload(false);
+      setUploadFile(null);
+      setUploadForm({ documentTypeId: '', name: '', issueDate: '', expiryDate: '', documentNumber: '', issuer: '' });
+      loadDocs();
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to upload document');
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleDelete = async () => {
     if (!confirm(`Delete ${employee?.firstName} ${employee?.lastName}? This cannot be undone.`)) return;
@@ -252,11 +297,58 @@ export function EmployeeProfile() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Employee Documents</CardTitle>
-              <Button asChild>
-                <Link to="/dashboard/documents/upload">Upload Document</Link>
-              </Button>
+              {canEdit('employees') && (
+                <Button size="sm" onClick={() => setShowUpload(v => !v)} variant={showUpload ? 'outline' : 'default'}>
+                  {showUpload ? <><X className="w-4 h-4 mr-1" />Cancel</> : <><Upload className="w-4 h-4 mr-1" />Upload Document</>}
+                </Button>
+              )}
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
+
+              {/* Inline upload form */}
+              {showUpload && (
+                <div className="border rounded-lg p-4 space-y-4 bg-muted/30">
+                  <h4 className="font-medium text-sm">New Document</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Document Type *</Label>
+                      <Select value={uploadForm.documentTypeId} onValueChange={v => setUploadForm(f => ({ ...f, documentTypeId: v }))}>
+                        <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
+                        <SelectContent>{docTypes.map(dt => <SelectItem key={dt.id} value={dt.id}>{dt.name}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Document Name *</Label>
+                      <Input placeholder="e.g. Passport" value={uploadForm.name} onChange={e => setUploadForm(f => ({ ...f, name: e.target.value }))} />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Issue Date</Label>
+                      <Input type="date" value={uploadForm.issueDate} onChange={e => setUploadForm(f => ({ ...f, issueDate: e.target.value }))} />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Expiry Date</Label>
+                      <Input type="date" value={uploadForm.expiryDate} onChange={e => setUploadForm(f => ({ ...f, expiryDate: e.target.value }))} />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Document Number</Label>
+                      <Input placeholder="Optional" value={uploadForm.documentNumber} onChange={e => setUploadForm(f => ({ ...f, documentNumber: e.target.value }))} />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Issuer</Label>
+                      <Input placeholder="Optional" value={uploadForm.issuer} onChange={e => setUploadForm(f => ({ ...f, issuer: e.target.value }))} />
+                    </div>
+                    <div className="space-y-1 md:col-span-2">
+                      <Label className="text-xs">File *</Label>
+                      <Input type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onChange={e => setUploadFile(e.target.files?.[0] ?? null)} />
+                      {uploadFile && <p className="text-xs text-muted-foreground">{uploadFile.name} ({(uploadFile.size / 1024).toFixed(1)} KB)</p>}
+                    </div>
+                  </div>
+                  <Button size="sm" onClick={handleUpload} disabled={uploading}>
+                    <Upload className="w-4 h-4 mr-1" />{uploading ? 'Uploading...' : 'Upload'}
+                  </Button>
+                </div>
+              )}
+
               {documents.length === 0 ? (
                 <p className="text-muted-foreground">No documents uploaded yet.</p>
               ) : (

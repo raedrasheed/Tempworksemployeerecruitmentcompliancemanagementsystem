@@ -318,6 +318,7 @@ export function ApplicantProfile() {
               <CardContent className="space-y-3">
                 <InfoRow label="Email" value={applicantData.email} icon={<Mail className="w-4 h-4" />} />
                 <InfoRow label="Phone" value={applicantData.phone} icon={<Phone className="w-4 h-4" />} />
+                <InfoRow label="Job Type" value={applicantData.jobType?.name} icon={<Briefcase className="w-4 h-4" />} />
                 <InfoRow label="Earliest Start Date" value={applicantData.earliestStartDate} />
                 <InfoRow label="How They Heard" value={applicantData.howDidYouHear} />
               </CardContent>

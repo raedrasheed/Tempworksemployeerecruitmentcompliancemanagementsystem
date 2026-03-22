@@ -54,6 +54,7 @@ export function EditApplicant() {
         phone: applicant.phone || '',
         email: applicant.email || '',
         earliestStartDate: applicant.preferredStartDate ? applicant.preferredStartDate.slice(0, 10) : '',
+        jobTypeId: applicant.jobTypeId || '',
         ...extra,
       });
     }).catch(() => {
@@ -115,6 +116,7 @@ export function EditApplicant() {
         preferredStartDate: formData.earliestStartDate || undefined,
         availability: formData.earliestStartDate || 'Immediate',
         notes: JSON.stringify(extraData),
+        ...(formData.jobTypeId ? { jobTypeId: formData.jobTypeId } : {}),
       });
 
       toast.success('Applicant updated successfully');

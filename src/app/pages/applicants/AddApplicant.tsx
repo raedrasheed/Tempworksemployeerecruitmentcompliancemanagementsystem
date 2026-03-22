@@ -153,6 +153,7 @@ export function AddApplicant() {
         preferredStartDate: formData.earliestStartDate || undefined,
         willingToRelocate: true,
         notes: JSON.stringify(extraData),
+        ...(jobTypeId ? { jobTypeId } : {}),
       };
 
       const applicant = await applicantsApi.create(applicantPayload);

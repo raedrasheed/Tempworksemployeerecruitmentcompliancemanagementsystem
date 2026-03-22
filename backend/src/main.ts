@@ -14,8 +14,13 @@ class AllExceptionsFilter implements ExceptionFilter {
     const request = ctx.getRequest();
     const status = exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
     const message = exception instanceof HttpException ? exception.getResponse() : String((exception as any)?.message || exception);
-    this.logger.error(`[${request.method}] ${request.url} → ${status}`);
-    this.logger.error(exception instanceof Error ? exception.stack : String(exception));
+    const logLine = `[${request.method}] ${request.url} → ${status}`;
+    if (status >= 500) {
+      this.logger.error(logLine);
+      this.logger.error(exception instanceof Error ? exception.stack : String(exception));
+    } else {
+      this.logger.warn(logLine);
+    }
     response.status(status).json({ statusCode: status, message, path: request.url });
   }
 }

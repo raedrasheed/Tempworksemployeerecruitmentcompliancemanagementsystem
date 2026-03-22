@@ -253,41 +253,8 @@ export const applicantsApi = {
       body: JSON.stringify({ status }),
     }),
 
-  /** Get all applications linked to a specific applicant */
-  getApplication: (id: string) => apiFetch<any>(`/applicants/${id}/application`),
-
   convertToEmployee: (id: string) =>
     apiFetch<any>(`/applicants/${id}/convert`, { method: 'POST' }),
-
-  // ── Merged application methods ───────────────────────────────────────────
-
-  listApplications: (params?: Record<string, any>) => {
-    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
-    return apiFetch<PaginatedResponse<any>>(`/applicants/applications${qs}`);
-  },
-
-  getApplicationById: (id: string) => apiFetch<any>(`/applicants/applications/${id}`),
-
-  createApplication: (data: any) =>
-    apiFetch<any>('/applicants/applications', { method: 'POST', body: JSON.stringify(data) }),
-
-  updateApplication: (id: string, data: any) =>
-    apiFetch<any>(`/applicants/applications/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
-
-  updateApplicationStatus: (id: string, status: string) =>
-    apiFetch<any>(`/applicants/applications/${id}/status`, {
-      method: 'PATCH',
-      body: JSON.stringify({ status }),
-    }),
-
-  addApplicationNote: (id: string, note: string) =>
-    apiFetch<any>(`/applicants/applications/${id}/notes`, {
-      method: 'POST',
-      body: JSON.stringify({ note }),
-    }),
-
-  deleteApplication: (id: string) =>
-    apiFetch(`/applicants/applications/${id}`, { method: 'DELETE' }),
 };
 
 // ─── Public Application API ───────────────────────────────────────────────────

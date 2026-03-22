@@ -349,9 +349,6 @@ export function ApplicantsList() {
                     Status
                   </th>
                   <th className="text-left py-3 px-4 font-medium text-sm text-muted-foreground">
-                    Application
-                  </th>
-                  <th className="text-left py-3 px-4 font-medium text-sm text-muted-foreground">
                     Actions
                   </th>
                 </tr>
@@ -392,15 +389,6 @@ export function ApplicantsList() {
                       <Badge className={getStatusColor(applicant.status)}>
                         {applicant.status?.replace(/_/g, ' ')}
                       </Badge>
-                    </td>
-                    <td className="py-3 px-4">
-                      {applicant.applications?.[0] ? (
-                        <Badge className={getStatusColor(applicant.applications[0].status)}>
-                          {applicant.applications[0].status?.replace(/_/g, ' ')}
-                        </Badge>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
-                      )}
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2">

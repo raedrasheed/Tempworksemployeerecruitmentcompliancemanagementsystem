@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router';
-import { ArrowLeft, Mail, Phone, Globe, Briefcase, Calendar, FileText, UserPlus, Edit, Trash2, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, Globe, Briefcase, Calendar, FileText, UserPlus, Edit, Trash2, CheckCircle2 } from 'lucide-react';
 import { usePermissions } from '../../hooks/usePermissions';
 import { applicantsApi } from '../../services/api';
-import { Textarea } from '../../components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
@@ -179,17 +178,10 @@ export function ApplicantProfile() {
   const { canEdit, canDelete } = usePermissions();
   const [loading, setLoading] = useState(true);
   const [applicantData, setApplicantData] = useState<any>(null);
-  const [applications, setApplications] = useState<any[]>([]);
-  const [updatingStatus, setUpdatingStatus] = useState(false);
-  const [newNote, setNewNote] = useState('');
-  const [savingNote, setSavingNote] = useState(false);
 
   useEffect(() => {
     if (!id) return;
-    Promise.all([
-      applicantsApi.get(id),
-      applicantsApi.getApplication(id).catch(() => []),
-    ]).then(([applicant, apps]) => {
+    applicantsApi.get(id).then((applicant) => {
       let extra: Record<string, any> = {};
       try { extra = JSON.parse(applicant.notes || '{}'); } catch { /* ignore */ }
       setApplicantData({
@@ -198,7 +190,6 @@ export function ApplicantProfile() {
         applicationDate: applicant.createdAt ? applicant.createdAt.slice(0, 10) : '',
         status: applicant.status || 'NEW',
         ...extra,
-        // Make sure core fields aren't overwritten by extra
         id: applicant.id,
         email: applicant.email,
         phone: applicant.phone,
@@ -207,7 +198,6 @@ export function ApplicantProfile() {
         preferredStartDate: applicant.preferredStartDate ? applicant.preferredStartDate.slice(0, 10) : '',
         jobType: applicant.jobType,
       });
-      setApplications(apps);
     }).catch(() => {
       toast.error('Failed to load applicant');
       navigate('/dashboard/applicants');
@@ -227,34 +217,6 @@ export function ApplicantProfile() {
       navigate('/dashboard/applicants');
     } catch (err: any) {
       toast.error(err?.message || 'Failed to delete applicant');
-    }
-  };
-
-  const handleApplicationStatusChange = async (appId: string, status: string) => {
-    setUpdatingStatus(true);
-    try {
-      const updated = await applicantsApi.updateApplicationStatus(appId, status);
-      setApplications((prev) => prev.map((a) => (a.id === appId ? updated : a)));
-      toast.success(`Application ${status.toLowerCase().replace(/_/g, ' ')}`);
-    } catch (err: any) {
-      toast.error(err?.message || 'Failed to update status');
-    } finally {
-      setUpdatingStatus(false);
-    }
-  };
-
-  const handleSaveNote = async (appId: string) => {
-    if (!newNote.trim()) return;
-    setSavingNote(true);
-    try {
-      const updated = await applicantsApi.addApplicationNote(appId, newNote.trim());
-      setApplications((prev) => prev.map((a) => (a.id === appId ? updated : a)));
-      setNewNote('');
-      toast.success('Note added');
-    } catch (err: any) {
-      toast.error(err?.message || 'Failed to add note');
-    } finally {
-      setSavingNote(false);
     }
   };
 
@@ -316,12 +278,11 @@ export function ApplicantProfile() {
 
       {/* Tabs */}
       <Tabs defaultValue="basic" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="basic">Basic Info</TabsTrigger>
           <TabsTrigger value="experience">Experience</TabsTrigger>
           <TabsTrigger value="skills">Skills & Tech</TabsTrigger>
           <TabsTrigger value="safety">Safety</TabsTrigger>
-          <TabsTrigger value="application">Application</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
         </TabsList>
 
@@ -619,132 +580,6 @@ export function ApplicantProfile() {
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
-
-        {/* Application Tab */}
-        <TabsContent value="application" className="space-y-6">
-          {applications.length === 0 ? (
-            <Card>
-              <CardContent className="pt-6">
-                <p className="text-sm text-muted-foreground">No application on file yet.</p>
-              </CardContent>
-            </Card>
-          ) : applications.map((app: any) => (
-            <div key={app.id} className="space-y-4">
-              {/* Application header + status actions */}
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between flex-wrap gap-4">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Position</p>
-                      <p className="font-semibold text-lg">{app.jobType?.name || 'No position specified'}</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Submitted: {app.submittedAt ? new Date(app.submittedAt).toLocaleString() : new Date(app.createdAt).toLocaleString()}
-                      </p>
-                    </div>
-                    <Badge className={
-                      app.status === 'APPROVED' ? 'bg-green-100 text-green-800' :
-                      app.status === 'REJECTED' ? 'bg-red-100 text-red-800' :
-                      app.status === 'UNDER_REVIEW' ? 'bg-yellow-100 text-yellow-800' :
-                      app.status === 'SUBMITTED' ? 'bg-purple-100 text-purple-800' :
-                      'bg-blue-100 text-blue-800'
-                    }>
-                      {app.status?.replace(/_/g, ' ')}
-                    </Badge>
-                  </div>
-
-                  {/* Review info */}
-                  {app.reviewedAt && (
-                    <div className="mt-4 pt-4 border-t grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-xs text-muted-foreground">Reviewed By</p>
-                        <p className="text-sm font-medium">
-                          {app.reviewedBy ? `${app.reviewedBy.firstName} ${app.reviewedBy.lastName}` : 'N/A'}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Review Date</p>
-                        <p className="text-sm font-medium">{new Date(app.reviewedAt).toLocaleString()}</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Status action buttons */}
-                  <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t">
-                    {app.status !== 'UNDER_REVIEW' && (
-                      <button
-                        disabled={updatingStatus}
-                        onClick={() => handleApplicationStatusChange(app.id, 'UNDER_REVIEW')}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm border rounded-md hover:bg-gray-50 disabled:opacity-50"
-                      >
-                        <Clock className="w-3.5 h-3.5" />
-                        Under Review
-                      </button>
-                    )}
-                    {app.status !== 'APPROVED' && (
-                      <button
-                        disabled={updatingStatus}
-                        onClick={() => handleApplicationStatusChange(app.id, 'APPROVED')}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
-                      >
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        Approve
-                      </button>
-                    )}
-                    {app.status !== 'REJECTED' && (
-                      <button
-                        disabled={updatingStatus}
-                        onClick={() => handleApplicationStatusChange(app.id, 'REJECTED')}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm border border-red-400 text-red-600 rounded-md hover:bg-red-50 disabled:opacity-50"
-                      >
-                        <XCircle className="w-3.5 h-3.5" />
-                        Reject
-                      </button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Notes */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <FileText className="w-4 h-4" />
-                    Application Notes
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {app.notes ? (
-                    <div className="space-y-2">
-                      {app.notes.split('---').map((block: string, i: number) => block.trim() && (
-                        <div key={i} className="bg-gray-50 rounded-lg p-3 text-sm whitespace-pre-wrap">
-                          {block.trim()}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">No notes yet.</p>
-                  )}
-                  <div className="pt-2">
-                    <p className="text-sm font-medium mb-2">Add a note</p>
-                    <Textarea
-                      placeholder="Add notes about this application..."
-                      rows={3}
-                      value={newNote}
-                      onChange={(e) => setNewNote(e.target.value)}
-                    />
-                    <button
-                      className="mt-2 px-4 py-2 text-sm bg-primary text-primary-foreground rounded-md hover:opacity-90 disabled:opacity-50"
-                      disabled={savingNote || !newNote.trim()}
-                      onClick={() => handleSaveNote(app.id)}
-                    >
-                      {savingNote ? 'Saving...' : 'Save Note'}
-                    </button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          ))}
         </TabsContent>
 
         {/* Documents Tab */}

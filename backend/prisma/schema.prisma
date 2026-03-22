@@ -39,14 +39,6 @@ enum ApplicantStatus {
   ONBOARDING
 }
 
-enum ApplicationStatus {
-  DRAFT
-  SUBMITTED
-  UNDER_REVIEW
-  APPROVED
-  REJECTED
-  WITHDRAWN
-}
 
 enum DocumentStatus {
   PENDING
@@ -187,7 +179,7 @@ model User {
   uploadedDocuments Document[]     @relation("UploadedDocuments")
   verifiedDocuments Document[]     @relation("VerifiedDocuments")
   assignedStages    EmployeeWorkflowStage[] @relation("AssignedStages")
-  reviewedApplications Application[] @relation("ReviewedApplications")
+
   resolvedAlerts    ComplianceAlert[] @relation("ResolvedAlerts")
   updatedSettings   SystemSetting[]
 
@@ -297,8 +289,6 @@ model JobType {
   updatedAt         DateTime @updatedAt
 
   applicants   Applicant[]
-  applications Application[]
-
   @@map("job_types")
 }
 
@@ -324,36 +314,15 @@ model Applicant {
   preferredLocations      String?
   salaryExpectation       String?
   notes                   String?
-  applicationId           String?
   createdAt               DateTime        @default(now())
   updatedAt               DateTime        @updatedAt
   deletedAt               DateTime?
 
-  jobType      JobType?      @relation(fields: [jobTypeId], references: [id])
-  applications Application[]
+  jobType JobType? @relation(fields: [jobTypeId], references: [id])
 
   @@map("applicants")
 }
 
-model Application {
-  id           String            @id @default(uuid())
-  applicantId  String
-  status       ApplicationStatus @default(DRAFT)
-  submittedAt  DateTime?
-  reviewedAt   DateTime?
-  reviewedById String?
-  jobTypeId    String?
-  notes        String?
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
-  deletedAt    DateTime?
-
-  applicant  Applicant @relation(fields: [applicantId], references: [id], onDelete: Cascade)
-  reviewedBy User?     @relation("ReviewedApplications", fields: [reviewedById], references: [id])
-  jobType    JobType?  @relation(fields: [jobTypeId], references: [id])
-
-  @@map("applications")
-}
 
 model DocumentType {
   id                String   @id @default(uuid())

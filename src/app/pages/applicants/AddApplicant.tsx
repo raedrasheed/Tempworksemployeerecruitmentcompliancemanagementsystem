@@ -157,12 +157,6 @@ export function AddApplicant() {
 
       const applicant = await applicantsApi.create(applicantPayload);
 
-      await applicantsApi.createApplication({
-        applicantId: applicant.id,
-        status: 'SUBMITTED',
-        ...(jobTypeId ? { jobTypeId } : {}),
-      });
-
       toast.success('Applicant created successfully');
       navigate(`/dashboard/applicants/${applicant.id}`);
     } catch (err: any) {

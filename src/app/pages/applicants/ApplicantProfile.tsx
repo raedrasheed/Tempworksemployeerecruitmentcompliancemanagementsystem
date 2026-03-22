@@ -427,7 +427,7 @@ export function ApplicantProfile() {
                 <div className="pt-2">
                   <p className="text-sm text-muted-foreground mb-2">Transport Types:</p>
                   <div className="flex flex-wrap gap-2">
-                    {applicantData.transportTypes.map((type) => (
+                    {(applicantData.transportTypes || []).map((type: string) => (
                       <Badge key={type} variant="outline">{type}</Badge>
                     ))}
                   </div>
@@ -471,7 +471,7 @@ export function ApplicantProfile() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {applicantData.operationalSkills.map((skill) => (
+                  {(applicantData.operationalSkills || []).map((skill: string) => (
                     <div key={skill} className="flex items-center gap-2">
                       <CheckCircle2 className="w-4 h-4 text-green-600" />
                       <span className="text-sm">{skill}</span>
@@ -493,7 +493,7 @@ export function ApplicantProfile() {
                 <div>
                   <p className="text-sm text-muted-foreground mb-2">Truck Brands:</p>
                   <div className="flex flex-wrap gap-2">
-                    {applicantData.truckBrands.map((brand) => (
+                    {(applicantData.truckBrands || []).map((brand: string) => (
                       <Badge key={brand} variant="outline">{brand}</Badge>
                     ))}
                   </div>
@@ -502,7 +502,7 @@ export function ApplicantProfile() {
                 <div>
                   <p className="text-sm text-muted-foreground mb-2">Trailer Types:</p>
                   <div className="flex flex-wrap gap-2">
-                    {applicantData.trailerTypes.map((trailer) => (
+                    {(applicantData.trailerTypes || []).map((trailer: string) => (
                       <Badge key={trailer} variant="outline">{trailer}</Badge>
                     ))}
                   </div>
@@ -596,29 +596,35 @@ export function ApplicantProfile() {
               <CardTitle>Uploaded Documents</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {applicantData.documents.map((doc) => (
-                  <div key={doc.id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <FileText className="w-5 h-5 text-muted-foreground" />
-                      <div>
-                        <p className="font-medium">{doc.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {doc.type} • Uploaded {doc.uploadDate}
-                        </p>
+              <p className="text-sm text-muted-foreground">
+                Documents uploaded for this applicant will appear here once the document management module is linked.
+              </p>
+              {applications.length > 0 && (
+                <div className="mt-4 space-y-3">
+                  <p className="text-sm font-medium">Linked Applications:</p>
+                  {applications.map((app: any) => (
+                    <div key={app.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <FileText className="w-4 h-4 text-muted-foreground" />
+                        <div>
+                          <p className="font-medium text-sm">{app.jobType?.name || 'No position'}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {app.submittedAt ? new Date(app.submittedAt).toLocaleDateString() : new Date(app.createdAt).toLocaleDateString()}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Badge className={getDocumentStatusColor(doc.status)}>
-                        {doc.status}
+                      <Badge className={
+                        app.status === 'APPROVED' ? 'bg-green-100 text-green-800' :
+                        app.status === 'REJECTED' ? 'bg-red-100 text-red-800' :
+                        app.status === 'SUBMITTED' ? 'bg-purple-100 text-purple-800' :
+                        'bg-blue-100 text-blue-800'
+                      }>
+                        {app.status?.replace(/_/g, ' ')}
                       </Badge>
-                      <Button variant="outline" size="sm">
-                        View
-                      </Button>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -630,19 +636,24 @@ export function ApplicantProfile() {
               <CardTitle>Application Notes</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {applicantData.notes.map((note) => (
-                  <div key={note.id} className="p-4 border rounded-lg">
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="font-medium">{note.author}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {note.date} at {note.time}
-                      </p>
-                    </div>
-                    <p className="text-sm">{note.content}</p>
-                  </div>
-                ))}
-              </div>
+              {applications.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No application notes yet.</p>
+              ) : (
+                <div className="space-y-4">
+                  {applications.map((app: any) =>
+                    app.notes ? (
+                      <div key={app.id} className="p-4 border rounded-lg">
+                        <p className="text-xs font-medium text-muted-foreground mb-2">
+                          Application ({app.jobType?.name || 'No position'}) — {app.status?.replace(/_/g, ' ')}
+                        </p>
+                        {app.notes.split('---').map((block: string, i: number) => block.trim() && (
+                          <p key={i} className="text-sm whitespace-pre-wrap mb-1">{block.trim()}</p>
+                        ))}
+                      </div>
+                    ) : null
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

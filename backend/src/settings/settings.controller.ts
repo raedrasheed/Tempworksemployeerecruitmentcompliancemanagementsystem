@@ -12,6 +12,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { Public } from '../auth/decorators/public.decorator';
 
 @ApiTags('Settings')
 @ApiBearerAuth('access-token')
@@ -36,6 +37,7 @@ export class SettingsController {
   }
 
   // Job Types
+  @Public()
   @Get('job-types')
   @ApiOperation({ summary: 'Get all active job types' })
   findJobTypes() { return this.settingsService.findJobTypes(); }

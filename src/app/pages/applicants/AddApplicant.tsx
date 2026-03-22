@@ -1,13 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { applicantsApi, applicationsApi, settingsApi } from '../../services/api';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent } from '../../components/ui/card';
 import { ArrowLeft, ChevronRight, ChevronLeft, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
-import { ApplicantFormSteps, ApplicantFormData } from '../../components/applicants/ApplicantFormSteps';
+import { ApplicantFormSteps, ApplicantFormData, JobType } from '../../components/applicants/ApplicantFormSteps';
 
 const EMPTY_FORM: ApplicantFormData = {
+  jobTypeId: '',
   fullName: '', dateOfBirth: '', nationality: '', countryOfResidence: '',
   currentCountryOfResidence: '', permanentAddress: '', phone: '', email: '',
   earliestStartDate: '', howDidYouHear: '', passportNumber: '', passportValidUntil: '',
@@ -32,6 +33,11 @@ export function AddApplicant() {
   const totalSteps = 10;
   const [formData, setFormData] = useState<ApplicantFormData>(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
+  const [jobTypes, setJobTypes] = useState<JobType[]>([]);
+
+  useEffect(() => {
+    settingsApi.getJobTypes().then(setJobTypes).catch(() => {});
+  }, []);
 
   const handleInputChange = (field: keyof ApplicantFormData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -133,14 +139,7 @@ export function AddApplicant() {
         howDidYouHear: formData.howDidYouHear,
       };
 
-      let jobTypeId: string | undefined;
-      try {
-        const jobTypes = await settingsApi.getJobTypes();
-        const match = jobTypes.find((jt: any) =>
-          jt.name.toLowerCase().includes('truck') || jt.name.toLowerCase().includes('driver')
-        );
-        jobTypeId = match?.id;
-      } catch { /* ignore */ }
+      const jobTypeId = formData.jobTypeId || undefined;
 
       const applicantPayload = {
         firstName,
@@ -154,7 +153,6 @@ export function AddApplicant() {
         preferredStartDate: formData.earliestStartDate || undefined,
         willingToRelocate: true,
         notes: JSON.stringify(extraData),
-        ...(jobTypeId ? { jobTypeId } : {}),
       };
 
       const applicant = await applicantsApi.create(applicantPayload);
@@ -217,6 +215,7 @@ export function AddApplicant() {
             formData={formData}
             onInputChange={handleInputChange}
             onArrayToggle={handleArrayToggle}
+            jobTypes={jobTypes}
           />
 
           {/* Navigation Buttons */}

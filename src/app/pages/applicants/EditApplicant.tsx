@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
-import { applicantsApi } from '../../services/api';
+import { applicantsApi, settingsApi } from '../../services/api';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent } from '../../components/ui/card';
 import { ArrowLeft, ChevronRight, ChevronLeft, Save } from 'lucide-react';
 import { toast } from 'sonner';
-import { ApplicantFormSteps, ApplicantFormData } from '../../components/applicants/ApplicantFormSteps';
+import { ApplicantFormSteps, ApplicantFormData, JobType } from '../../components/applicants/ApplicantFormSteps';
 
 const EMPTY_FORM: ApplicantFormData = {
+  jobTypeId: '',
   fullName: '', dateOfBirth: '', nationality: '', countryOfResidence: '',
   currentCountryOfResidence: '', permanentAddress: '', phone: '', email: '',
   earliestStartDate: '', howDidYouHear: '', passportNumber: '', passportValidUntil: '',
@@ -34,6 +35,11 @@ export function EditApplicant() {
   const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState<ApplicantFormData>(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
+  const [jobTypes, setJobTypes] = useState<JobType[]>([]);
+
+  useEffect(() => {
+    settingsApi.getJobTypes().then(setJobTypes).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!id) return;
@@ -167,6 +173,7 @@ export function EditApplicant() {
             formData={formData}
             onInputChange={handleInputChange}
             onArrayToggle={handleArrayToggle}
+            jobTypes={jobTypes}
           />
 
           {/* Navigation Buttons */}

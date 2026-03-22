@@ -4,7 +4,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Checkbox } from '../ui/checkbox';
 import { Textarea } from '../ui/textarea';
 
+export interface JobType {
+  id: string;
+  name: string;
+}
+
 export interface ApplicantFormData {
+  jobTypeId: string;
   fullName: string;
   dateOfBirth: string;
   nationality: string;
@@ -80,9 +86,10 @@ interface Props {
   formData: ApplicantFormData;
   onInputChange: (field: keyof ApplicantFormData, value: any) => void;
   onArrayToggle: (field: keyof ApplicantFormData, value: string) => void;
+  jobTypes?: JobType[];
 }
 
-export function ApplicantFormSteps({ currentStep, formData, onInputChange, onArrayToggle }: Props) {
+export function ApplicantFormSteps({ currentStep, formData, onInputChange, onArrayToggle, jobTypes = [] }: Props) {
   return (
     <>
       {/* Step 1: Basic Information */}
@@ -146,6 +153,19 @@ export function ApplicantFormSteps({ currentStep, formData, onInputChange, onArr
                 </SelectContent>
               </Select>
             </div>
+            {jobTypes.length > 0 && (
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="jobTypeId">Position / Job Type *</Label>
+                <Select value={formData.jobTypeId} onValueChange={(value) => onInputChange('jobTypeId', value)}>
+                  <SelectTrigger><SelectValue placeholder="Select position" /></SelectTrigger>
+                  <SelectContent>
+                    {jobTypes.map((jt) => (
+                      <SelectItem key={jt.id} value={jt.id}>{jt.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
         </div>
       )}

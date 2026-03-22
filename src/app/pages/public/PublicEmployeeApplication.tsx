@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -10,10 +10,11 @@ import { Label } from '../../components/ui/label';
 import { Textarea } from '../../components/ui/textarea';
 import { Badge } from '../../components/ui/badge';
 import { toast } from 'sonner';
-import { publicApplicationApi } from '../../services/api';
+import { publicApplicationApi, settingsApi } from '../../services/api';
 
 interface FormData {
   // Screen 1: Basic Information
+  jobTypeId: string;
   fullName: string;
   dateOfBirth: string;
   nationality: string;
@@ -106,8 +107,14 @@ export function PublicEmployeeApplication() {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 11; // 10 form steps + 1 review step
+  const [jobTypes, setJobTypes] = useState<{ id: string; name: string }[]>([]);
+
+  useEffect(() => {
+    settingsApi.getJobTypes().then(setJobTypes).catch(() => {});
+  }, []);
 
   const [formData, setFormData] = useState<FormData>({
+    jobTypeId: '',
     fullName: '',
     dateOfBirth: '',
     nationality: '',
@@ -227,6 +234,7 @@ export function PublicEmployeeApplication() {
         availability: formData.earliestStartDate || 'Immediate',
         preferredStartDate: formData.earliestStartDate || undefined,
         willingToRelocate: true,
+        jobTypeId: formData.jobTypeId || undefined,
         notes: JSON.stringify({
           passportNumber: formData.passportNumber,
           passportValidUntil: formData.passportValidUntil,
@@ -494,6 +502,25 @@ export function PublicEmployeeApplication() {
                       </SelectContent>
                     </Select>
                   </div>
+
+                  {jobTypes.length > 0 && (
+                    <div className="space-y-2 md:col-span-2">
+                      <Label htmlFor="jobTypeId">Position / Job Type *</Label>
+                      <Select
+                        value={formData.jobTypeId}
+                        onValueChange={(value) => handleInputChange('jobTypeId', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select position you are applying for" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {jobTypes.map((jt) => (
+                            <SelectItem key={jt.id} value={jt.id}>{jt.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

@@ -1,17 +1,30 @@
-import { User, Phone, CreditCard, Briefcase, Shield, FileText, CheckCircle2, Check, Upload } from 'lucide-react';
+import { User, Phone, CreditCard, Briefcase, Shield, FileText, CheckCircle2, Check, Upload, Plus, X } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Checkbox } from '../ui/checkbox';
 import { Textarea } from '../ui/textarea';
 
-export interface UploadedFiles {
-  passportCopy?: File | null;
-  driverLicenseCopy?: File | null;
-  tachographCard?: File | null;
-  code95Card?: File | null;
-  adrCertificate?: File | null;
+export interface UploadedFileItem {
+  id: string;
+  type: string;
+  file: File | null;
 }
+
+export const DOCUMENT_TYPES = [
+  'Passport',
+  "Driver's License",
+  'Tachograph Card',
+  'Code 95 / CPC Card',
+  'ADR Certificate',
+  'Visa',
+  'Work Permit',
+  'Residence Card',
+  'Medical Certificate',
+  'Birth Certificate',
+  'NIN / Tax ID',
+  'Other',
+];
 
 export interface JobType {
   id: string;
@@ -190,46 +203,65 @@ interface Props {
   onInputChange: (field: keyof ApplicantFormData, value: any) => void;
   onArrayToggle: (field: keyof ApplicantFormData, value: string) => void;
   jobTypes?: JobType[];
-  uploadedFiles?: UploadedFiles;
-  onFileChange?: (field: keyof UploadedFiles, file: File | null) => void;
+  uploadedFiles?: UploadedFileItem[];
+  onFilesChange?: (files: UploadedFileItem[]) => void;
 }
 
-function FileUploadCard({
-  label, description, required, file, onChange,
+function DocumentRow({
+  item, onTypeChange, onFileChange, onRemove,
 }: {
-  label: string; description: string; required?: boolean;
-  file?: File | null; onChange: (f: File | null) => void;
+  item: UploadedFileItem;
+  onTypeChange: (type: string) => void;
+  onFileChange: (file: File | null) => void;
+  onRemove: () => void;
 }) {
   return (
     <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 space-y-3 hover:border-blue-400 transition-colors">
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="font-semibold text-gray-900 text-sm">
-            {label}{required && <span className="text-red-500 ml-0.5">*</span>}
-          </p>
-          <p className="text-xs text-gray-500 mt-0.5">{description}</p>
+      <div className="flex items-start gap-3">
+        {/* Document type selector */}
+        <div className="flex-1 space-y-1">
+          <label className="text-xs font-medium text-gray-600 uppercase tracking-wide">Document Type *</label>
+          <select
+            value={item.type}
+            onChange={(e) => onTypeChange(e.target.value)}
+            className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <option value="">Select document type…</option>
+            {DOCUMENT_TYPES.map((t) => (
+              <option key={t} value={t}>{t}</option>
+            ))}
+          </select>
         </div>
-        <label className="cursor-pointer p-1.5 rounded hover:bg-gray-100 transition-colors">
-          <Upload className="w-4 h-4 text-gray-400" />
-          <input
-            type="file"
-            accept=".pdf,.jpg,.jpeg,.png"
-            className="sr-only"
-            onChange={(e) => onChange(e.target.files?.[0] ?? null)}
-          />
-        </label>
+        {/* Remove button */}
+        <button
+          type="button"
+          onClick={onRemove}
+          className="mt-5 p-1.5 rounded hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
+          title="Remove document"
+        >
+          <X className="w-4 h-4" />
+        </button>
       </div>
+      {/* File picker */}
       <label className="block cursor-pointer">
-        <div className={`flex items-center gap-2 px-3 py-2 rounded border text-sm ${file ? 'bg-green-50 border-green-300 text-green-800' : 'bg-gray-50 border-gray-200 text-gray-500'}`}>
-          {file ? (
+        <div className={`flex items-center gap-2 px-3 py-2 rounded border text-sm transition-colors ${
+          item.file
+            ? 'bg-green-50 border-green-300 text-green-800'
+            : 'bg-gray-50 border-gray-200 text-gray-500 hover:border-blue-300'
+        }`}>
+          {item.file ? (
             <>
               <Check className="w-4 h-4 text-green-600 shrink-0" />
-              <span className="truncate">{file.name}</span>
+              <span className="truncate font-medium">{item.file.name}</span>
+              <span className="ml-auto text-xs text-green-600 shrink-0">
+                {(item.file.size / 1024 / 1024).toFixed(1)} MB
+              </span>
             </>
           ) : (
             <>
+              <Upload className="w-4 h-4 text-gray-400 shrink-0" />
               <span className="text-gray-400 text-xs border border-gray-300 rounded px-2 py-0.5 bg-white">Choose File</span>
-              <span>No file chosen</span>
+              <span className="text-gray-400">No file chosen</span>
             </>
           )}
         </div>
@@ -237,14 +269,26 @@ function FileUploadCard({
           type="file"
           accept=".pdf,.jpg,.jpeg,.png"
           className="sr-only"
-          onChange={(e) => onChange(e.target.files?.[0] ?? null)}
+          onChange={(e) => onFileChange(e.target.files?.[0] ?? null)}
         />
       </label>
     </div>
   );
 }
 
-export function ApplicantFormSteps({ currentStep, formData, onInputChange, onArrayToggle, jobTypes = [], uploadedFiles = {}, onFileChange }: Props) {
+export function ApplicantFormSteps({ currentStep, formData, onInputChange, onArrayToggle, jobTypes = [], uploadedFiles = [], onFilesChange }: Props) {
+  const addDocument = () => {
+    const newItem: UploadedFileItem = { id: crypto.randomUUID(), type: '', file: null };
+    onFilesChange?.([...uploadedFiles, newItem]);
+  };
+
+  const updateItem = (id: string, patch: Partial<UploadedFileItem>) => {
+    onFilesChange?.(uploadedFiles.map((f) => (f.id === id ? { ...f, ...patch } : f)));
+  };
+
+  const removeItem = (id: string) => {
+    onFilesChange?.(uploadedFiles.filter((f) => f.id !== id));
+  };
   return (
     <>
       {/* ── Step 1: Personal ── */}
@@ -723,72 +767,45 @@ export function ApplicantFormSteps({ currentStep, formData, onInputChange, onArr
 
           {/* Document uploads */}
           <div className="space-y-5">
-            <div>
-              <div className="flex items-center gap-2 pb-1 border-b">
-                <Upload className="w-4 h-4 text-gray-500" />
-                <h4 className="font-semibold text-gray-800">Document Upload</h4>
-              </div>
-              <p className="text-sm text-gray-500 mt-1">Upload required documents</p>
+            <div className="flex items-center gap-2 pb-1 border-b">
+              <Upload className="w-4 h-4 text-gray-500" />
+              <h4 className="font-semibold text-gray-800">Document Upload</h4>
             </div>
 
-            {/* Info note */}
             <div className="flex items-start gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
               <span className="font-semibold shrink-0">Note:</span>
               <span>All documents must be clear, legible scans or photos. Accepted formats: PDF, JPG, PNG. Maximum size: 5MB per file.</span>
             </div>
 
-            {/* Required */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <Upload className="w-4 h-4 text-gray-600" />
-                <h5 className="font-semibold text-gray-800">Required Documents</h5>
-              </div>
-              <FileUploadCard
-                label="Passport Copy"
-                description="All pages showing personal details and validity"
-                required
-                file={uploadedFiles.passportCopy}
-                onChange={(f) => onFileChange?.('passportCopy', f)}
-              />
-              <FileUploadCard
-                label="Driver's License Copy"
-                description="Both sides of your driving license"
-                required
-                file={uploadedFiles.driverLicenseCopy}
-                onChange={(f) => onFileChange?.('driverLicenseCopy', f)}
-              />
-            </div>
-
-            {/* Conditional */}
-            {(formData.hasTachographCard === 'yes' || formData.hasQualificationCard === 'yes' || formData.hasADR === 'yes') && (
+            {/* Dynamic document rows */}
+            {uploadedFiles.length > 0 && (
               <div className="space-y-3">
-                <h5 className="font-semibold text-gray-800">Additional Documents</h5>
-                {formData.hasTachographCard === 'yes' && (
-                  <FileUploadCard
-                    label="Tachograph Card"
-                    description="Front and back of your tachograph card"
-                    file={uploadedFiles.tachographCard}
-                    onChange={(f) => onFileChange?.('tachographCard', f)}
+                {uploadedFiles.map((item) => (
+                  <DocumentRow
+                    key={item.id}
+                    item={item}
+                    onTypeChange={(type) => updateItem(item.id, { type })}
+                    onFileChange={(file) => updateItem(item.id, { file })}
+                    onRemove={() => removeItem(item.id)}
                   />
-                )}
-                {formData.hasQualificationCard === 'yes' && (
-                  <FileUploadCard
-                    label="Code 95 Qualification Card"
-                    description="Both sides of your Code 95 card"
-                    file={uploadedFiles.code95Card}
-                    onChange={(f) => onFileChange?.('code95Card', f)}
-                  />
-                )}
-                {formData.hasADR === 'yes' && (
-                  <FileUploadCard
-                    label="ADR Certificate"
-                    description="Your ADR certificate document"
-                    file={uploadedFiles.adrCertificate}
-                    onChange={(f) => onFileChange?.('adrCertificate', f)}
-                  />
-                )}
+                ))}
               </div>
             )}
+
+            {uploadedFiles.length === 0 && (
+              <p className="text-sm text-gray-400 text-center py-4 border-2 border-dashed border-gray-200 rounded-lg">
+                No documents added yet. Click "Add Document" to upload files.
+              </p>
+            )}
+
+            <button
+              type="button"
+              onClick={addDocument}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-blue-300 rounded-lg text-blue-600 font-medium text-sm hover:border-blue-500 hover:bg-blue-50 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Add Document
+            </button>
           </div>
         </div>
       )}

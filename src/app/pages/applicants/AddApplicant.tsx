@@ -5,7 +5,7 @@ import { Button } from '../../components/ui/button';
 import { Card, CardContent } from '../../components/ui/card';
 import { ArrowLeft, ChevronRight, ChevronLeft, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
-import { ApplicantFormSteps, ApplicantFormData, JobType, StepIndicator, UploadedFiles } from '../../components/applicants/ApplicantFormSteps';
+import { ApplicantFormSteps, ApplicantFormData, JobType, StepIndicator, UploadedFileItem } from '../../components/applicants/ApplicantFormSteps';
 
 const EMPTY_FORM: ApplicantFormData = {
   jobTypeId: '',
@@ -34,11 +34,7 @@ export function AddApplicant() {
   const [formData, setFormData] = useState<ApplicantFormData>(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [jobTypes, setJobTypes] = useState<JobType[]>([]);
-  const [uploadedFiles, setUploadedFiles] = useState<UploadedFiles>({});
-
-  const handleFileChange = (field: keyof UploadedFiles, file: File | null) => {
-    setUploadedFiles(prev => ({ ...prev, [field]: file }));
-  };
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFileItem[]>([]);
 
   useEffect(() => {
     settingsApi.getJobTypes().then(setJobTypes).catch(() => {});
@@ -204,7 +200,7 @@ export function AddApplicant() {
             onArrayToggle={handleArrayToggle}
             jobTypes={jobTypes}
             uploadedFiles={uploadedFiles}
-            onFileChange={handleFileChange}
+            onFilesChange={setUploadedFiles}
           />
 
           {/* Navigation Buttons */}

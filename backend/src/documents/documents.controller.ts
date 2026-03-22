@@ -92,11 +92,11 @@ export class DocumentsController {
       res.status(400).json({ message: 'No document IDs provided' });
       return;
     }
-    const archive = await this.documentsService.createBulkDownloadArchive(dto.ids);
+    const buffer = await this.documentsService.createBulkDownloadArchive(dto.ids);
     res.setHeader('Content-Type', 'application/zip');
     res.setHeader('Content-Disposition', `attachment; filename="documents_${Date.now()}.zip"`);
-    archive.pipe(res);
-    await archive.finalize();
+    res.setHeader('Content-Length', buffer.length);
+    res.end(buffer);
   }
 
   @Post('upload')

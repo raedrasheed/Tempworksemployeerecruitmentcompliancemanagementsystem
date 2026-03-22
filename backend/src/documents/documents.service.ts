@@ -3,7 +3,7 @@ import {
 } from '@nestjs/common';
 import { extname, join } from 'path';
 import { promises as fs } from 'fs';
-import archiver = require('archiver');
+import * as AdmZip from 'adm-zip';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateDocumentDto } from './dto/create-document.dto';
 import { VerifyDocumentDto, VerifyActionEnum } from './dto/verify-document.dto';
@@ -249,33 +249,37 @@ export class DocumentsService {
   }
 
   /**
-   * Creates an archiver ZIP stream containing each requested document.
-   * The ZIP preserves the on-disk folder structure:
+   * Builds an in-memory ZIP buffer containing each requested document.
+   * The ZIP mirrors the on-disk folder structure:
    *   {EntityName}_{ts}/{DocumentType}/{filename}.ext
-   * Call archive.pipe(response) then archive.finalize() in the controller.
    */
-  async createBulkDownloadArchive(ids: string[]) {
+  async createBulkDownloadArchive(ids: string[]): Promise<Buffer> {
     const docs = await this.prisma.document.findMany({
       where: { id: { in: ids }, deletedAt: null },
     });
 
-    const archive = archiver('zip', { zlib: { level: 6 } });
+    const zip = new AdmZip();
 
     for (const doc of docs) {
-      // fileUrl = /uploads/{folder}/{subFolder}/{filename}
-      // Strip leading slash → relative path inside the ZIP
-      const zipEntryPath = doc.fileUrl.replace(/^\//, '').replace(/^uploads\//, '');
-      const diskPath     = join(process.cwd(), doc.fileUrl.startsWith('/') ? doc.fileUrl.slice(1) : doc.fileUrl);
+      // fileUrl = /uploads/{EntityName}_{ts}/{DocType}/{filename}
+      // Strip leading "/uploads/" to get the ZIP-internal path
+      const zipEntryPath = doc.fileUrl.replace(/^\/uploads\//, '');
+      const diskPath     = join(
+        process.cwd(),
+        doc.fileUrl.startsWith('/') ? doc.fileUrl.slice(1) : doc.fileUrl,
+      );
 
       try {
-        await fs.access(diskPath);        // skip missing files gracefully
-        archive.file(diskPath, { name: zipEntryPath });
+        await fs.access(diskPath);
+        const content = await fs.readFile(diskPath);
+        // addFile(entryName, data) — entryName with slashes creates folders in the ZIP
+        zip.addFile(zipEntryPath, content);
       } catch {
-        // file not found on disk — skip
+        // file missing on disk — skip gracefully
       }
     }
 
-    return archive;
+    return zip.toBuffer();
   }
 
   async getExpiringDocuments(days = 30) {

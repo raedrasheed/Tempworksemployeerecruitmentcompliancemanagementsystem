@@ -275,12 +275,13 @@ export class DocumentsService {
       include: this.docInclude,
     });
 
-    // On approval, auto-resolve any open compliance alerts tied to this document
+    // On approval, auto-resolve compliance alerts and check stage auto-completion
     if (dto.action === VerifyActionEnum.VERIFY) {
       await this.prisma.complianceAlert.updateMany({
         where: { documentId: id, status: 'OPEN' },
         data: { status: 'RESOLVED', resolvedAt: new Date(), resolvedById: verifiedById },
       });
+      await this.checkAndAutoCompleteStage(doc.entityType as string, doc.entityId, verifiedById);
     }
 
     await this.prisma.auditLog.create({
@@ -293,6 +294,94 @@ export class DocumentsService {
       },
     });
     return updated;
+  }
+
+  /**
+   * After a document is verified, check whether all required documents for the
+   * entity's current workflow stage are now VERIFIED. If so, auto-complete the
+   * stage and advance the entity to the next stage.
+   */
+  private async checkAndAutoCompleteStage(
+    entityType: string,
+    entityId: string,
+    actorId: string,
+  ): Promise<void> {
+    // 1. Resolve the entity's current stage ID
+    let currentStageId: string | null = null;
+
+    if (entityType === 'EMPLOYEE') {
+      const inProgress = await this.prisma.employeeWorkflowStage.findFirst({
+        where: { employeeId: entityId, status: 'IN_PROGRESS' },
+      });
+      currentStageId = inProgress?.stageId ?? null;
+    } else if (entityType === 'APPLICANT') {
+      const applicant = await this.prisma.applicant.findUnique({
+        where: { id: entityId, deletedAt: null },
+        select: { currentWorkflowStageId: true },
+      });
+      currentStageId = applicant?.currentWorkflowStageId ?? null;
+    }
+
+    if (!currentStageId) return;
+
+    // 2. Get the stage's required document type names
+    const stage = await this.prisma.workflowStage.findUnique({
+      where: { id: currentStageId },
+      select: { id: true, order: true, requirementsDocuments: true },
+    });
+
+    if (!stage || stage.requirementsDocuments.length === 0) return;
+
+    // 3. Check which required document types are VERIFIED for this entity
+    const verifiedDocs = await this.prisma.document.findMany({
+      where: { entityType: entityType as any, entityId, status: 'VERIFIED', deletedAt: null },
+      include: { documentType: { select: { name: true } } },
+    });
+
+    const verifiedNames = new Set((verifiedDocs as any[]).map(d => d.documentType.name));
+    const allMet = stage.requirementsDocuments.every(req => verifiedNames.has(req));
+
+    if (!allMet) return;
+
+    // 4. Find the next active stage
+    const nextStage = await this.prisma.workflowStage.findFirst({
+      where: { order: { gt: stage.order }, isActive: true },
+      orderBy: { order: 'asc' },
+    });
+
+    // 5. Complete current stage and advance
+    if (entityType === 'EMPLOYEE') {
+      await this.prisma.employeeWorkflowStage.updateMany({
+        where: { employeeId: entityId, stageId: currentStageId, status: 'IN_PROGRESS' },
+        data: { status: 'COMPLETED', completedAt: new Date() },
+      });
+      if (nextStage) {
+        await this.prisma.employeeWorkflowStage.upsert({
+          where: { employeeId_stageId: { employeeId: entityId, stageId: nextStage.id } },
+          create: { employeeId: entityId, stageId: nextStage.id, status: 'IN_PROGRESS', startedAt: new Date() },
+          update: { status: 'IN_PROGRESS', startedAt: new Date(), completedAt: null },
+        });
+      }
+    } else if (entityType === 'APPLICANT') {
+      await this.prisma.applicant.update({
+        where: { id: entityId },
+        data: { currentWorkflowStageId: nextStage?.id ?? currentStageId },
+      });
+    }
+
+    await this.prisma.auditLog.create({
+      data: {
+        userId: actorId,
+        action: 'WORKFLOW_STAGE_AUTO_COMPLETE',
+        entity: entityType === 'EMPLOYEE' ? 'Employee' : 'Applicant',
+        entityId,
+        changes: {
+          completedStageId: currentStageId,
+          autoCompleted: true,
+          nextStageId: nextStage?.id ?? null,
+        } as any,
+      },
+    });
   }
 
   async remove(id: string, deletedById?: string) {

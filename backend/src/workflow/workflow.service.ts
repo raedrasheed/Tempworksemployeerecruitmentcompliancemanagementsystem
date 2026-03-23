@@ -184,10 +184,39 @@ export class WorkflowService {
       }),
     ]);
 
+    // Build document checklist for each person if the stage has required docs
+    const buildDocChecklist = async (entityType: string, entityId: string) => {
+      if (stage.requirementsDocuments.length === 0) return [];
+      const docs = await this.prisma.document.findMany({
+        where: { entityType: entityType as any, entityId, deletedAt: null },
+        include: { documentType: { select: { name: true } } },
+      });
+      return stage.requirementsDocuments.map(reqName => {
+        const doc = (docs as any[]).find(d => d.documentType.name === reqName);
+        return { name: reqName, status: doc?.status ?? 'MISSING', documentId: doc?.id ?? null };
+      });
+    };
+
+    const enrichedApplicants = await Promise.all(
+      applicants.map(async (a: any) => ({
+        ...a,
+        docChecklist: await buildDocChecklist('APPLICANT', a.id),
+      })),
+    );
+
+    const enrichedEmployees = await Promise.all(
+      employeeStages.map(async (es: any) => ({
+        ...es.employee,
+        startedAt: es.startedAt,
+        stageStatus: es.status,
+        docChecklist: await buildDocChecklist('EMPLOYEE', es.employee.id),
+      })),
+    );
+
     return {
       stage,
-      applicants,
-      employees: employeeStages.map((es: any) => ({ ...es.employee, startedAt: es.startedAt, stageStatus: es.status })),
+      applicants: enrichedApplicants,
+      employees: enrichedEmployees,
       stats: {
         total: applicants.length + employeeStages.length,
         applicantsCount: applicants.length,

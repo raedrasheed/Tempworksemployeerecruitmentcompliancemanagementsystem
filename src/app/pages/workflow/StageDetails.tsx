@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router';
-import { ArrowLeft, Users, Clock, AlertTriangle, TrendingUp, CheckCircle, Search, ChevronRight, UserCircle } from 'lucide-react';
+import { ArrowLeft, Users, Clock, AlertTriangle, TrendingUp, CheckCircle, XCircle, Search, ChevronRight, UserCircle, FileText, ChevronDown, ChevronUp } from 'lucide-react';
 import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
@@ -13,6 +13,7 @@ export function StageDetails() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [allStages, setAllStages] = useState<any[]>([]);
+  const [expandedDocs, setExpandedDocs] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!stageId) return;
@@ -71,6 +72,7 @@ export function StageDetails() {
         ? Math.floor((Date.now() - new Date(a.createdAt).getTime()) / 86400000)
         : 0,
       linkTo: `/dashboard/applicants/${a.id}`,
+      docChecklist: a.docChecklist ?? [],
     })),
     ...employees.map((e: any) => ({
       id: e.id,
@@ -84,8 +86,17 @@ export function StageDetails() {
         ? Math.floor((Date.now() - new Date(e.startedAt).getTime()) / 86400000)
         : 0,
       linkTo: `/dashboard/employees/${e.id}`,
+      docChecklist: e.docChecklist ?? [],
     })),
   ];
+
+  const toggleDocs = (id: string) => {
+    setExpandedDocs(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
 
   const filtered = allPeople.filter(p =>
     `${p.firstName} ${p.lastName} ${p.email}`.toLowerCase().includes(searchQuery.toLowerCase())
@@ -228,54 +239,125 @@ export function StageDetails() {
             </div>
           ) : (
             <div className="space-y-3">
-              {filtered.map((person) => (
-                <div key={person.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-[#F8FAFC] transition-colors">
-                  <div className="flex items-center gap-4">
-                    {person.photo ? (
-                      <img src={person.photo} alt={person.firstName} className="w-12 h-12 rounded-full object-cover" />
-                    ) : (
-                      <div className="w-12 h-12 rounded-full bg-[#EFF6FF] flex items-center justify-center">
-                        <UserCircle className="w-7 h-7 text-[#2563EB]" />
+              {filtered.map((person) => {
+                const verifiedCount = person.docChecklist.filter((d: any) => d.status === 'VERIFIED').length;
+                const totalRequired = person.docChecklist.length;
+                const allDocsVerified = totalRequired > 0 && verifiedCount === totalRequired;
+                const isExpanded = expandedDocs.has(person.id);
+
+                return (
+                  <div key={person.id} className="border rounded-lg overflow-hidden">
+                    {/* Person row */}
+                    <div className="flex items-center justify-between p-4 hover:bg-[#F8FAFC] transition-colors">
+                      <div className="flex items-center gap-4">
+                        {person.photo ? (
+                          <img src={person.photo} alt={person.firstName} className="w-12 h-12 rounded-full object-cover" />
+                        ) : (
+                          <div className="w-12 h-12 rounded-full bg-[#EFF6FF] flex items-center justify-center">
+                            <UserCircle className="w-7 h-7 text-[#2563EB]" />
+                          </div>
+                        )}
+                        <div>
+                          <p className="font-medium text-[#0F172A]">{person.firstName} {person.lastName}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {person.nationality}{person.email ? ` · ${person.email}` : ''}
+                            {person.jobType ? ` · ${person.jobType}` : ''}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <div className="text-right">
+                          <p className="font-medium text-[#0F172A]">{person.daysInStage}d</p>
+                          <p className="text-xs text-muted-foreground">in stage</p>
+                        </div>
+
+                        {person.daysInStage > 14 && (
+                          <Badge variant="outline" className="border-[#F59E0B] text-[#F59E0B] bg-[#FEF3C7]">
+                            At Risk
+                          </Badge>
+                        )}
+
+                        {/* Document progress pill */}
+                        {totalRequired > 0 && (
+                          <button
+                            onClick={() => toggleDocs(person.id)}
+                            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+                              allDocsVerified
+                                ? 'bg-[#F0FDF4] text-[#22C55E] border-[#22C55E]'
+                                : 'bg-[#FEF3C7] text-[#F59E0B] border-[#F59E0B]'
+                            }`}
+                          >
+                            <FileText className="w-3.5 h-3.5" />
+                            {verifiedCount}/{totalRequired} docs
+                            {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                          </button>
+                        )}
+
+                        <Badge
+                          variant="outline"
+                          className={person.type === 'Applicant'
+                            ? 'border-[#2563EB] text-[#2563EB] bg-[#EFF6FF]'
+                            : 'border-[#22C55E] text-[#22C55E] bg-[#F0FDF4]'}
+                        >
+                          {person.type}
+                        </Badge>
+
+                        <Link to={person.linkTo}>
+                          <Button variant="outline" size="sm">
+                            View Profile <ChevronRight className="w-4 h-4 ml-1" />
+                          </Button>
+                        </Link>
+                      </div>
+                    </div>
+
+                    {/* Expandable document checklist */}
+                    {isExpanded && totalRequired > 0 && (
+                      <div className="border-t bg-[#F8FAFC] px-4 py-3">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                          Required Documents
+                        </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {person.docChecklist.map((doc: any) => (
+                            <div key={doc.name} className="flex items-center gap-2 text-sm">
+                              {doc.status === 'VERIFIED' ? (
+                                <CheckCircle className="w-4 h-4 text-[#22C55E] flex-shrink-0" />
+                              ) : doc.status === 'REJECTED' ? (
+                                <XCircle className="w-4 h-4 text-[#EF4444] flex-shrink-0" />
+                              ) : doc.status === 'PENDING' ? (
+                                <Clock className="w-4 h-4 text-[#F59E0B] flex-shrink-0" />
+                              ) : (
+                                <FileText className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                              )}
+                              <span className={
+                                doc.status === 'VERIFIED' ? 'text-[#0F172A]' :
+                                doc.status === 'REJECTED' ? 'text-[#EF4444]' :
+                                'text-muted-foreground'
+                              }>
+                                {doc.name}
+                              </span>
+                              <span className={`ml-auto text-xs px-1.5 py-0.5 rounded font-medium ${
+                                doc.status === 'VERIFIED' ? 'bg-[#F0FDF4] text-[#22C55E]' :
+                                doc.status === 'REJECTED' ? 'bg-[#FEF2F2] text-[#EF4444]' :
+                                doc.status === 'PENDING' ? 'bg-[#FEF3C7] text-[#F59E0B]' :
+                                'bg-muted text-muted-foreground'
+                              }`}>
+                                {doc.status === 'MISSING' ? 'Not uploaded' : doc.status.charAt(0) + doc.status.slice(1).toLowerCase()}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                        {allDocsVerified && (
+                          <p className="text-xs text-[#22C55E] font-medium mt-2 flex items-center gap-1">
+                            <CheckCircle className="w-3.5 h-3.5" />
+                            All required documents verified — stage will auto-complete
+                          </p>
+                        )}
                       </div>
                     )}
-                    <div>
-                      <p className="font-medium text-[#0F172A]">{person.firstName} {person.lastName}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {person.nationality}{person.email ? ` · ${person.email}` : ''}
-                        {person.jobType ? ` · ${person.jobType}` : ''}
-                      </p>
-                    </div>
                   </div>
-
-                  <div className="flex items-center gap-4">
-                    <div className="text-right">
-                      <p className="font-medium text-[#0F172A]">{person.daysInStage}d</p>
-                      <p className="text-xs text-muted-foreground">in stage</p>
-                    </div>
-
-                    {person.daysInStage > 14 && (
-                      <Badge variant="outline" className="border-[#F59E0B] text-[#F59E0B] bg-[#FEF3C7]">
-                        At Risk
-                      </Badge>
-                    )}
-
-                    <Badge
-                      variant="outline"
-                      className={person.type === 'Applicant'
-                        ? 'border-[#2563EB] text-[#2563EB] bg-[#EFF6FF]'
-                        : 'border-[#22C55E] text-[#22C55E] bg-[#F0FDF4]'}
-                    >
-                      {person.type}
-                    </Badge>
-
-                    <Link to={person.linkTo}>
-                      <Button variant="outline" size="sm">
-                        View Profile <ChevronRight className="w-4 h-4 ml-1" />
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>

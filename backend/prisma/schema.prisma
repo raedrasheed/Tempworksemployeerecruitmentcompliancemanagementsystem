@@ -505,3 +505,64 @@ model NotificationRule {
 
   @@map("notification_rules")
 }
+
+// ─── Dynamic Reporting ───────────────────────────────────────────────────────
+
+model Report {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  description String?
+  dataSource  String    // employees | applicants | documents | compliance_alerts | agencies | work_permits
+  createdById String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  filters  ReportFilter[]
+  columns  ReportColumn[]
+  sorting  ReportSorting[]
+
+  @@map("reports")
+}
+
+model ReportFilter {
+  id        String  @id @default(uuid())
+  reportId  String
+  fieldName String
+  operator  String  // eq | ne | gt | gte | lt | lte | like | between | in | is_null | is_not_null
+  value     String  @default("")
+  value2    String? // used for BETWEEN
+  valueType String  @default("string") // string | number | date | boolean
+
+  report Report @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@map("report_filters")
+}
+
+model ReportColumn {
+  id              String  @id @default(uuid())
+  reportId        String
+  columnName      String
+  displayName     String
+  dataType        String  @default("string") // string | number | date | boolean | enum
+  isGrouped       Boolean @default(false)
+  isAggregated    Boolean @default(false)
+  aggregationType String? // COUNT | SUM | AVG | MIN | MAX
+  position        Int     @default(0)
+
+  report Report @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@map("report_columns")
+}
+
+model ReportSorting {
+  id         String @id @default(uuid())
+  reportId   String
+  columnName String
+  direction  String @default("ASC")
+  position   Int    @default(0)
+
+  report Report @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@map("report_sorting")
+}

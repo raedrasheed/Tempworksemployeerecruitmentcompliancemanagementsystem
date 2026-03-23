@@ -610,3 +610,40 @@ export const logsApi = {
 export const dashboardApi = {
   getStats: () => apiFetch<any>('/reports/dashboard'),
 };
+
+// ─── Dynamic Reports API ──────────────────────────────────────────────────────
+
+export const reportsApi = {
+  // Schema
+  getDataSources: () => apiFetch<any[]>('/reports/data-sources'),
+  getDashboard:   () => apiFetch<any>('/reports/dashboard'),
+
+  // CRUD
+  list:   ()                          => apiFetch<any[]>('/reports'),
+  get:    (id: string)                => apiFetch<any>(`/reports/${id}`),
+  create: (data: any)                 => apiFetch<any>('/reports',      { method: 'POST',   body: JSON.stringify(data) }),
+  update: (id: string, data: any)     => apiFetch<any>(`/reports/${id}`,{ method: 'PUT',    body: JSON.stringify(data) }),
+  delete: (id: string)                => apiFetch<any>(`/reports/${id}`,{ method: 'DELETE' }),
+
+  // Run
+  run: (id: string, opts?: { page?: number; limit?: number }) =>
+    apiFetch<any>(`/reports/${id}/run`, { method: 'POST', body: JSON.stringify(opts ?? {}) }),
+
+  // Export — returns a Blob
+  export: async (id: string, format: 'excel' | 'pdf' | 'word'): Promise<Blob> => {
+    const token = getAccessToken();
+    const res = await fetch(`${API_URL}/reports/${id}/export`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ format }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error((err as any)?.message || 'Export failed');
+    }
+    return res.blob();
+  },
+};

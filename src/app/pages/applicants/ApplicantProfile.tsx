@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router';
 import { ArrowLeft, Mail, Phone, Globe, Briefcase, Calendar, FileText, UserPlus, Edit, Trash2, CheckCircle2, Download, Upload, X } from 'lucide-react';
 import { usePermissions } from '../../hooks/usePermissions';
-import { applicantsApi, documentsApi, settingsApi, workflowApi } from '../../services/api';
+import { applicantsApi, documentsApi, settingsApi, workflowApi, agenciesApi } from '../../services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
@@ -186,6 +186,8 @@ export function ApplicantProfile() {
   const [docTypes, setDocTypes] = useState<any[]>([]);
   const [allStages, setAllStages] = useState<any[]>([]);
   const [changingStage, setChangingStage] = useState(false);
+  const [agencies, setAgencies] = useState<any[]>([]);
+  const [changingAgency, setChangingAgency] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
@@ -205,6 +207,7 @@ export function ApplicantProfile() {
   useEffect(() => {
     settingsApi.getDocumentTypes().then(setDocTypes).catch(() => {});
     workflowApi.getStages().then((stages: any) => setAllStages(Array.isArray(stages) ? stages : [])).catch(() => {});
+    agenciesApi.list({ limit: 200 }).then((res: any) => setAgencies(res?.data ?? [])).catch(() => {});
   }, []);
 
   const handleStageChange = async (stageId: string) => {
@@ -276,6 +279,21 @@ export function ApplicantProfile() {
       navigate('/dashboard/applicants');
     }).finally(() => setLoading(false));
   }, [id, navigate]);
+
+  const handleAgencyChange = async (value: string) => {
+    if (!id) return;
+    const newAgencyId = value === '__none__' ? null : value;
+    setChangingAgency(true);
+    try {
+      const updated = await applicantsApi.update(id, { agencyId: newAgencyId });
+      setApplicantData((prev: any) => ({ ...prev, agencyId: updated.agencyId, agency: updated.agency }));
+      toast.success('Agency updated');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to update agency');
+    } finally {
+      setChangingAgency(false);
+    }
+  };
 
   const handleConvertToEmployee = () => {
     toast.success('Applicant converted to Employee successfully!');
@@ -377,6 +395,37 @@ export function ApplicantProfile() {
                       <SelectItem key={s.id} value={s.id}>
                         {s.name}
                       </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Agency Selector */}
+      {canEdit('applicants') && (
+        <Card>
+          <CardContent className="py-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <div className="flex-1">
+                <p className="text-sm font-medium mb-1">Agency</p>
+                <p className="text-xs text-muted-foreground">Assign this applicant to a recruitment agency</p>
+              </div>
+              <div className="w-full sm:w-64">
+                <Select
+                  value={applicantData.agencyId ?? '__none__'}
+                  onValueChange={handleAgencyChange}
+                  disabled={changingAgency}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="No agency (Direct)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">No Agency (Direct)</SelectItem>
+                    {agencies.map((a: any) => (
+                      <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

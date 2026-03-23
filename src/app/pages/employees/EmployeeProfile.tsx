@@ -10,7 +10,7 @@ import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { toast } from 'sonner';
-import { employeesApi, documentsApi, settingsApi, workflowApi } from '../../services/api';
+import { employeesApi, documentsApi, settingsApi, workflowApi, agenciesApi } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
 
 const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1').replace('/api/v1', '');
@@ -26,6 +26,8 @@ export function EmployeeProfile() {
   const [docTypes, setDocTypes] = useState<any[]>([]);
   const [allStages, setAllStages] = useState<any[]>([]);
   const [changingStage, setChangingStage] = useState(false);
+  const [agencies, setAgencies] = useState<any[]>([]);
+  const [changingAgency, setChangingAgency] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
@@ -56,6 +58,7 @@ export function EmployeeProfile() {
 
   useEffect(() => {
     settingsApi.getDocumentTypes().then(setDocTypes).catch(() => {});
+    agenciesApi.list({ limit: 200 }).then((res: any) => setAgencies(res?.data ?? [])).catch(() => {});
   }, []);
 
   const handleStageChange = async (stageId: string) => {
@@ -98,6 +101,21 @@ export function EmployeeProfile() {
       toast.error(err?.message || 'Failed to upload document');
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleAgencyChange = async (value: string) => {
+    if (!id) return;
+    const newAgencyId = value === '__none__' ? null : value;
+    setChangingAgency(true);
+    try {
+      const updated = await employeesApi.update(id, { agencyId: newAgencyId });
+      setEmployee((prev: any) => ({ ...prev, agencyId: updated.agencyId, agency: updated.agency }));
+      toast.success('Agency updated');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to update agency');
+    } finally {
+      setChangingAgency(false);
     }
   };
 
@@ -294,19 +312,33 @@ export function EmployeeProfile() {
                 </CardContent>
               </Card>
 
-              {employee.agency && (
+              {canEdit('employees') && (
                 <Card>
                   <CardHeader><CardTitle>Agency</CardTitle></CardHeader>
-                  <CardContent>
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-[#F8FAFC] flex items-center justify-center">
-                        <Briefcase className="w-5 h-5 text-[#2563EB]" />
+                  <CardContent className="space-y-3">
+                    {employee.agency && (
+                      <div className="flex items-center gap-3 pb-3 border-b">
+                        <div className="w-8 h-8 rounded-lg bg-[#F8FAFC] flex items-center justify-center">
+                          <Briefcase className="w-4 h-4 text-[#2563EB]" />
+                        </div>
+                        <p className="font-medium text-sm">{employee.agency.name}</p>
                       </div>
-                      <div>
-                        <p className="font-medium">{employee.agency.name}</p>
-                        <p className="text-sm text-muted-foreground">{employee.agencyId}</p>
-                      </div>
-                    </div>
+                    )}
+                    <Select
+                      value={employee.agencyId ?? '__none__'}
+                      onValueChange={handleAgencyChange}
+                      disabled={changingAgency}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="No Agency (Direct)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">No Agency (Direct)</SelectItem>
+                        {agencies.map((a: any) => (
+                          <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </CardContent>
                 </Card>
               )}

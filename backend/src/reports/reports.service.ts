@@ -3,7 +3,8 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import * as ExcelJS from 'exceljs';
-import * as PDFDocument from 'pdfkit';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const PDFDocument = require('pdfkit') as typeof import('pdfkit');
 import {
   Document, Packer, Paragraph, Table, TableRow, TableCell,
   TextRun, HeadingLevel, WidthType,
@@ -415,7 +416,8 @@ export class ReportsService {
       ws.getColumn(i + 1).width = Math.max(col.label.length + 4, 12);
     });
 
-    const buffer = await wb.xlsx.writeBuffer() as Buffer;
+    const raw = await wb.xlsx.writeBuffer();
+    const buffer = Buffer.from(raw as ArrayBuffer);
     return { buffer, mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', filename: `${this.safeFilename(report.name)}.xlsx` };
   }
 
@@ -423,7 +425,7 @@ export class ReportsService {
 
   private toPdf(report: any, columns: any[], rows: any[]): Promise<{ buffer: Buffer; mimeType: string; filename: string }> {
     return new Promise((resolve, reject) => {
-      const doc    = new (PDFDocument as any)({ margin: 36, size: 'A4', layout: 'landscape' });
+      const doc    = new PDFDocument({ margin: 36, size: 'A4', layout: 'landscape' } as any);
       const chunks: Buffer[] = [];
       doc.on('data', (c: Buffer) => chunks.push(c));
       doc.on('end', () => resolve({ buffer: Buffer.concat(chunks), mimeType: 'application/pdf', filename: `${this.safeFilename(report.name)}.pdf` }));

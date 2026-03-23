@@ -7,6 +7,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/ca
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Badge } from '../../components/ui/badge';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../components/ui/table';
 import { FilterSystem, Column, FilterRule, FilterPreset } from '../../components/filters/FilterSystem';
 
 // Define columns for the filter system
@@ -281,20 +289,18 @@ export function ApplicantsList() {
         </Card>
       </div>
 
-      {/* Filters */}
+      {/* Search / Filters / Table */}
       <Card>
-        <CardContent className="pt-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="md:col-span-2">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                <Input
-                  placeholder="Search by name, email, or ID..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+        <CardContent className="p-6">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by name, email, or ID..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
             </div>
 
             <FilterSystem
@@ -314,107 +320,89 @@ export function ApplicantsList() {
               Export
             </Button>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Applicants Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>All Applicants ({filteredApplicants.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left py-3 px-4 font-medium text-sm text-muted-foreground">
-                    Applicant ID
-                  </th>
-                  <th className="text-left py-3 px-4 font-medium text-sm text-muted-foreground">
-                    Full Name
-                  </th>
-                  <th className="text-left py-3 px-4 font-medium text-sm text-muted-foreground">
-                    Nationality
-                  </th>
-                  <th className="text-left py-3 px-4 font-medium text-sm text-muted-foreground">
-                    Contact
-                  </th>
-                  <th className="text-left py-3 px-4 font-medium text-sm text-muted-foreground">
-                    Job Type
-                  </th>
-                  <th className="text-left py-3 px-4 font-medium text-sm text-muted-foreground">
-                    Applied
-                  </th>
-                  <th className="text-left py-3 px-4 font-medium text-sm text-muted-foreground">
-                    Status
-                  </th>
-                  <th className="text-left py-3 px-4 font-medium text-sm text-muted-foreground">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
+          <div className="border rounded-lg">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Applicant</TableHead>
+                  <TableHead>Contact</TableHead>
+                  <TableHead>Nationality</TableHead>
+                  <TableHead>Job Type</TableHead>
+                  <TableHead>Applied</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {filteredApplicants.map((applicant) => (
-                  <tr key={applicant.id} className="border-b hover:bg-[#F8FAFC]">
-                    <td className="py-3 px-4">
-                      <span className="font-mono text-sm">{applicant.id}</span>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="font-medium text-[#0F172A]">
-                        {applicant.firstName} {applicant.lastName}
+                  <TableRow key={applicant.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={applicant.photo || `https://api.dicebear.com/7.x/avataaars/svg?seed=${applicant.firstName}`}
+                          alt={applicant.firstName}
+                          className="w-10 h-10 rounded-full"
+                        />
+                        <div>
+                          <div className="font-medium text-[#0F172A]">
+                            {applicant.firstName} {applicant.lastName}
+                          </div>
+                          <div className="text-sm text-muted-foreground">{applicant.id}</div>
+                        </div>
                       </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className="text-sm">{applicant.nationality}</span>
-                    </td>
-                    <td className="py-3 px-4">
+                    </TableCell>
+                    <TableCell>
                       <div className="text-sm">
                         <div>{applicant.email}</div>
                         <div className="text-muted-foreground">{applicant.phone}</div>
                       </div>
-                    </td>
-                    <td className="py-3 px-4">
+                    </TableCell>
+                    <TableCell>{applicant.nationality}</TableCell>
+                    <TableCell>
                       <span className="text-sm">
                         {typeof applicant.jobType === 'object' && applicant.jobType !== null
                           ? applicant.jobType.name
                           : applicant.jobType}
                       </span>
-                    </td>
-                    <td className="py-3 px-4">
+                    </TableCell>
+                    <TableCell>
                       <span className="text-sm">
-                        {applicant.createdAt ? new Date(applicant.createdAt).toLocaleDateString() : applicant.applicationDate || '-'}
+                        {applicant.createdAt
+                          ? new Date(applicant.createdAt).toLocaleDateString()
+                          : applicant.applicationDate || '-'}
                       </span>
-                    </td>
-                    <td className="py-3 px-4">
+                    </TableCell>
+                    <TableCell>
                       <Badge className={getStatusColor(applicant.status)}>
                         {applicant.status?.replace(/_/g, ' ')}
                       </Badge>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-2">
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
                         <Button variant="ghost" size="sm" asChild>
                           <Link to={`/dashboard/applicants/${applicant.id}`}>
-                            <Eye className="w-4 h-4" />
+                            <Eye className="w-4 h-4 mr-1" />View
                           </Link>
                         </Button>
                         {canEdit('applicants') && (
                           <Button variant="ghost" size="sm" asChild>
                             <Link to={`/dashboard/applicants/${applicant.id}/edit`}>
-                              <Edit className="w-4 h-4" />
+                              <Edit className="w-4 h-4 mr-1" />Edit
                             </Link>
                           </Button>
                         )}
-                        {canCreate('employees') && applicant.status === 'Accepted' && (
+                        {canCreate('employees') && applicant.status === 'ACCEPTED' && (
                           <Button variant="ghost" size="sm" className="text-green-600">
                             <UserPlus className="w-4 h-4" />
                           </Button>
                         )}
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
 
           {filteredApplicants.length === 0 && (
@@ -422,6 +410,16 @@ export function ApplicantsList() {
               <p className="text-muted-foreground">No applicants found matching your criteria.</p>
             </div>
           )}
+
+          <div className="flex items-center justify-between mt-4">
+            <p className="text-sm text-muted-foreground">
+              Showing {filteredApplicants.length} of {totalApplicants} applicants
+            </p>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm">Previous</Button>
+              <Button variant="outline" size="sm">Next</Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>

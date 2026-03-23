@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, ConflictException } from '@nestjs/common
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateApplicantDto } from './dto/create-applicant.dto';
 import { UpdateApplicantDto } from './dto/update-applicant.dto';
+import { ConvertToEmployeeDto } from './dto/convert-to-employee.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { PaginatedResponse } from '../common/dto/pagination-response.dto';
 
@@ -156,5 +157,76 @@ export class ApplicantsService {
       });
     }
     return applicant;
+  }
+
+  async convertToEmployee(id: string, dto: ConvertToEmployeeDto, actorId?: string) {
+    const applicant = await this.findOne(id);
+
+    // Check no employee with same email exists
+    const existing = await this.prisma.employee.findFirst({
+      where: { email: applicant.email, deletedAt: null },
+    });
+    if (existing) {
+      throw new ConflictException(`An employee with email ${applicant.email} already exists`);
+    }
+
+    // Initialize all active workflow stages for the new employee
+    const stages = await this.prisma.workflowStage.findMany({
+      where: { isActive: true },
+      orderBy: { order: 'asc' },
+    });
+
+    // Create employee record from applicant data + supplied address fields
+    const employee = await this.prisma.employee.create({
+      data: {
+        firstName: applicant.firstName,
+        lastName: applicant.lastName,
+        email: applicant.email,
+        phone: applicant.phone,
+        nationality: applicant.nationality,
+        dateOfBirth: applicant.dateOfBirth ?? new Date('1990-01-01'),
+        addressLine1: dto.addressLine1,
+        addressLine2: dto.addressLine2,
+        city: dto.city,
+        country: dto.country,
+        postalCode: dto.postalCode,
+        licenseNumber: dto.licenseNumber,
+        licenseCategory: dto.licenseCategory,
+        yearsExperience: dto.yearsExperience ?? 0,
+        emergencyContact: dto.emergencyContact,
+        emergencyPhone: dto.emergencyPhone,
+        notes: applicant.notes,
+        status: 'ONBOARDING' as any,
+        ...(applicant.agencyId ? { agencyId: applicant.agencyId } : {}),
+        workflowStages: {
+          create: stages.map((stage: any) => ({ stageId: stage.id, status: 'PENDING' })),
+        },
+      } as any,
+      include: { agency: { select: { id: true, name: true } } },
+    });
+
+    // Re-assign all documents from the applicant to the new employee
+    await this.prisma.document.updateMany({
+      where: { entityType: 'APPLICANT', entityId: id, deletedAt: null },
+      data: { entityType: 'EMPLOYEE', entityId: employee.id },
+    });
+
+    // Soft-delete the applicant
+    await this.prisma.applicant.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
+
+    await this.prisma.auditLog.create({
+      data: {
+        userId: actorId ?? employee.id,
+        action: 'CONVERT_TO_EMPLOYEE',
+        entity: 'Applicant',
+        entityId: id,
+        changes: { employeeId: employee.id, email: applicant.email } as any,
+      },
+    });
+
+    return { employee, message: 'Applicant successfully converted to employee' };
   }
 }

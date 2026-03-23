@@ -6,6 +6,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam } from '@nestjs/swagger'
 import { ApplicantsService } from './applicants.service';
 import { CreateApplicantDto } from './dto/create-applicant.dto';
 import { UpdateApplicantDto } from './dto/update-applicant.dto';
+import { ConvertToEmployeeDto } from './dto/convert-to-employee.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -70,6 +71,14 @@ export class ApplicantsController {
   @ApiParam({ name: 'id', description: 'Applicant UUID' })
   setCurrentStage(@Param('id') id: string, @Body('stageId') stageId: string, @CurrentUser() user: any) {
     return this.applicantsService.setCurrentStage(id, stageId || null, user?.id);
+  }
+
+  @Post(':id/convert')
+  @Roles('System Admin', 'HR Manager')
+  @ApiOperation({ summary: 'Convert applicant to employee' })
+  @ApiParam({ name: 'id', description: 'Applicant UUID' })
+  convertToEmployee(@Param('id') id: string, @Body() dto: ConvertToEmployeeDto, @CurrentUser() user: any) {
+    return this.applicantsService.convertToEmployee(id, dto, user?.id);
   }
 
   @Delete(':id')

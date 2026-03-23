@@ -3,7 +3,7 @@ import { Link, useParams, useNavigate } from 'react-router';
 import {
   ArrowLeft, Mail, Phone, Globe, Briefcase, Calendar, FileText,
   UserPlus, Edit, Trash2, Download, Upload, X,
-  Shield, Clock, Award, ChevronRight,
+  Shield, Clock, Award, ChevronRight, MapPin, Loader2,
 } from 'lucide-react';
 import { usePermissions } from '../../hooks/usePermissions';
 import { applicantsApi, documentsApi, settingsApi, workflowApi, agenciesApi } from '../../services/api';
@@ -55,6 +55,11 @@ export function ApplicantProfile() {
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadForm, setUploadForm] = useState({ documentTypeId: '', name: '', issueDate: '', expiryDate: '', documentNumber: '', issuer: '' });
   const [showConvertDialog, setShowConvertDialog] = useState(false);
+  const [converting, setConverting] = useState(false);
+  const [convertForm, setConvertForm] = useState({
+    addressLine1: '', addressLine2: '', city: '', country: '', postalCode: '',
+    licenseNumber: '', licenseCategory: '', yearsExperience: '', emergencyContact: '', emergencyPhone: '',
+  });
 
   const loadDocs = () => {
     if (!id) return;
@@ -171,9 +176,36 @@ export function ApplicantProfile() {
     }
   };
 
-  const handleConvertToEmployee = () => {
-    toast.success('Applicant converted to Employee successfully!');
-    navigate('/dashboard/employees');
+  const handleConvertToEmployee = async () => {
+    if (!id) return;
+    if (!convertForm.addressLine1.trim() || !convertForm.city.trim() || !convertForm.country.trim() || !convertForm.postalCode.trim()) {
+      toast.error('Please fill in all required address fields');
+      return;
+    }
+    setConverting(true);
+    try {
+      const payload: any = {
+        addressLine1: convertForm.addressLine1.trim(),
+        city: convertForm.city.trim(),
+        country: convertForm.country.trim(),
+        postalCode: convertForm.postalCode.trim(),
+      };
+      if (convertForm.addressLine2.trim()) payload.addressLine2 = convertForm.addressLine2.trim();
+      if (convertForm.licenseNumber.trim()) payload.licenseNumber = convertForm.licenseNumber.trim();
+      if (convertForm.licenseCategory.trim()) payload.licenseCategory = convertForm.licenseCategory.trim();
+      if (convertForm.yearsExperience) payload.yearsExperience = Number(convertForm.yearsExperience);
+      if (convertForm.emergencyContact.trim()) payload.emergencyContact = convertForm.emergencyContact.trim();
+      if (convertForm.emergencyPhone.trim()) payload.emergencyPhone = convertForm.emergencyPhone.trim();
+
+      const result = await applicantsApi.convertToEmployee(id, payload);
+      toast.success('Applicant successfully converted to employee');
+      setShowConvertDialog(false);
+      navigate(`/dashboard/employees/${result.employee.id}`);
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to convert applicant to employee');
+    } finally {
+      setConverting(false);
+    }
   };
 
   const validDocs = documents.filter(d => d.status === 'VERIFIED' || d.status === 'Verified').length;
@@ -206,7 +238,7 @@ export function ApplicantProfile() {
               <Trash2 className="w-4 h-4 mr-2" />Delete
             </Button>
           )}
-          {applicantData.status === 'ACCEPTED' && (
+          {canEdit('applicants') && (
             <Button className="bg-[#22C55E] hover:bg-[#16a34a]" onClick={() => setShowConvertDialog(true)}>
               <UserPlus className="w-4 h-4 mr-2" />Convert to Employee
             </Button>
@@ -751,22 +783,103 @@ export function ApplicantProfile() {
 
       {/* Convert to Employee Dialog */}
       {showConvertDialog && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <Card className="max-w-md w-full">
-            <CardHeader><CardTitle>Convert to Employee</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Are you sure you want to convert <strong>{applicantData.fullName}</strong> to an employee?
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <Card className="max-w-xl w-full my-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <UserPlus className="w-5 h-5 text-[#22C55E]" />
+                Convert to Employee
+              </CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                Converting <strong>{applicantData.fullName}</strong> — all documents will be transferred and the applicant record will be archived.
               </p>
-              <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">
-                <li>Create a new employee record</li>
-                <li>Transfer all applicant data and documents</li>
-                <li>Set initial workflow stage to "Application Submitted"</li>
-                <li>Remove applicant from the applicants list</li>
-              </ul>
-              <div className="flex gap-3 mt-6">
-                <Button className="flex-1" onClick={handleConvertToEmployee}>Confirm Conversion</Button>
-                <Button variant="outline" className="flex-1" onClick={() => setShowConvertDialog(false)}>Cancel</Button>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              {/* Read-only applicant info */}
+              <div className="rounded-lg border bg-[#F8FAFC] p-4 grid grid-cols-2 gap-3 text-sm">
+                <div><span className="text-muted-foreground">Name: </span><span className="font-medium">{applicantData.fullName}</span></div>
+                <div><span className="text-muted-foreground">Email: </span><span className="font-medium">{applicantData.email}</span></div>
+                <div><span className="text-muted-foreground">Phone: </span><span className="font-medium">{applicantData.phone}</span></div>
+                <div><span className="text-muted-foreground">Nationality: </span><span className="font-medium">{applicantData.nationality}</span></div>
+              </div>
+
+              {/* Address — required */}
+              <div>
+                <p className="text-sm font-semibold flex items-center gap-1.5 mb-3">
+                  <MapPin className="w-4 h-4 text-[#2563EB]" />Address <span className="text-[#EF4444]">*</span>
+                </p>
+                <div className="space-y-3">
+                  <div>
+                    <Label htmlFor="cv-addr1">Address Line 1 <span className="text-[#EF4444]">*</span></Label>
+                    <Input id="cv-addr1" className="mt-1" value={convertForm.addressLine1}
+                      onChange={e => setConvertForm(p => ({ ...p, addressLine1: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label htmlFor="cv-addr2">Address Line 2</Label>
+                    <Input id="cv-addr2" className="mt-1" value={convertForm.addressLine2}
+                      onChange={e => setConvertForm(p => ({ ...p, addressLine2: e.target.value }))} />
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <Label htmlFor="cv-city">City <span className="text-[#EF4444]">*</span></Label>
+                      <Input id="cv-city" className="mt-1" value={convertForm.city}
+                        onChange={e => setConvertForm(p => ({ ...p, city: e.target.value }))} />
+                    </div>
+                    <div>
+                      <Label htmlFor="cv-country">Country <span className="text-[#EF4444]">*</span></Label>
+                      <Input id="cv-country" className="mt-1" value={convertForm.country}
+                        onChange={e => setConvertForm(p => ({ ...p, country: e.target.value }))} />
+                    </div>
+                    <div>
+                      <Label htmlFor="cv-post">Postal Code <span className="text-[#EF4444]">*</span></Label>
+                      <Input id="cv-post" className="mt-1" value={convertForm.postalCode}
+                        onChange={e => setConvertForm(p => ({ ...p, postalCode: e.target.value }))} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Optional extras */}
+              <div>
+                <p className="text-sm font-semibold mb-3">Additional Details <span className="text-muted-foreground font-normal">(optional)</span></p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label htmlFor="cv-lic">License Number</Label>
+                    <Input id="cv-lic" className="mt-1" value={convertForm.licenseNumber}
+                      onChange={e => setConvertForm(p => ({ ...p, licenseNumber: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label htmlFor="cv-liccat">License Category</Label>
+                    <Input id="cv-liccat" className="mt-1" value={convertForm.licenseCategory}
+                      onChange={e => setConvertForm(p => ({ ...p, licenseCategory: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label htmlFor="cv-yoe">Years Experience</Label>
+                    <Input id="cv-yoe" type="number" min={0} className="mt-1" value={convertForm.yearsExperience}
+                      onChange={e => setConvertForm(p => ({ ...p, yearsExperience: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label htmlFor="cv-ec">Emergency Contact</Label>
+                    <Input id="cv-ec" className="mt-1" value={convertForm.emergencyContact}
+                      onChange={e => setConvertForm(p => ({ ...p, emergencyContact: e.target.value }))} />
+                  </div>
+                  <div className="col-span-2">
+                    <Label htmlFor="cv-ep">Emergency Phone</Label>
+                    <Input id="cv-ep" className="mt-1" value={convertForm.emergencyPhone}
+                      onChange={e => setConvertForm(p => ({ ...p, emergencyPhone: e.target.value }))} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-2 border-t">
+                <Button
+                  className="flex-1 bg-[#22C55E] hover:bg-[#16a34a]"
+                  onClick={handleConvertToEmployee}
+                  disabled={converting || !convertForm.addressLine1.trim() || !convertForm.city.trim() || !convertForm.country.trim() || !convertForm.postalCode.trim()}
+                >
+                  {converting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Converting…</> : <><UserPlus className="w-4 h-4 mr-2" />Confirm Conversion</>}
+                </Button>
+                <Button variant="outline" className="flex-1" onClick={() => setShowConvertDialog(false)} disabled={converting}>Cancel</Button>
               </div>
             </CardContent>
           </Card>

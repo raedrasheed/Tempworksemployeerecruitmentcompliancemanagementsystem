@@ -259,8 +259,8 @@ export const applicantsApi = {
       body: JSON.stringify({ stageId }),
     }),
 
-  convertToEmployee: (id: string) =>
-    apiFetch<any>(`/applicants/${id}/convert`, { method: 'POST' }),
+  convertToEmployee: (id: string, data: any) =>
+    apiFetch<any>(`/applicants/${id}/convert`, { method: 'POST', body: JSON.stringify(data) }),
 };
 
 // ─── Public Application API ───────────────────────────────────────────────────

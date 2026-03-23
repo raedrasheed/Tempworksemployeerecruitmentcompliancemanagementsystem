@@ -33,6 +33,14 @@ export class WorkflowController {
     return this.workflowService.getOverview();
   }
 
+  @Get('stages/:stageId/people')
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Read Only')
+  @ApiOperation({ summary: 'Get applicants and employees currently at a specific stage' })
+  @ApiParam({ name: 'stageId', description: 'WorkflowStage UUID' })
+  getStageDetails(@Param('stageId') stageId: string) {
+    return this.workflowService.getStageDetails(stageId);
+  }
+
   @Get('analytics')
   @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Read Only')
   @ApiOperation({ summary: 'Get workflow analytics and recent activity' })

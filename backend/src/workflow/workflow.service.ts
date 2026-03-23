@@ -165,6 +165,37 @@ export class WorkflowService {
     };
   }
 
+  async getStageDetails(stageId: string) {
+    const stage = await this.prisma.workflowStage.findUnique({ where: { id: stageId } });
+    if (!stage) throw new NotFoundException('Stage not found');
+
+    const [applicants, employeeStages] = await Promise.all([
+      this.prisma.applicant.findMany({
+        where: { currentWorkflowStageId: stageId, deletedAt: null },
+        include: { jobType: { select: { id: true, name: true } } },
+        orderBy: { createdAt: 'asc' },
+      }),
+      this.prisma.employeeWorkflowStage.findMany({
+        where: { stageId, status: 'IN_PROGRESS' },
+        include: {
+          employee: { select: { id: true, firstName: true, lastName: true, email: true, nationality: true, photo: true, status: true } },
+        },
+        orderBy: { startedAt: 'asc' },
+      }),
+    ]);
+
+    return {
+      stage,
+      applicants,
+      employees: employeeStages.map(es => ({ ...es.employee, startedAt: es.startedAt, stageStatus: es.status })),
+      stats: {
+        total: applicants.length + employeeStages.length,
+        applicantsCount: applicants.length,
+        employeesCount: employeeStages.length,
+      },
+    };
+  }
+
   // Work Permits
   async findWorkPermits(pagination: PaginationDto, employeeId?: string) {
     const { page = 1, limit = 10 } = pagination;

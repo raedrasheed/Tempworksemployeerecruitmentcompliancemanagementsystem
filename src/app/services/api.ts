@@ -336,6 +336,8 @@ export const documentsApi = {
 export const workflowApi = {
   getStages: () => apiFetch<any[]>('/workflow/stages'),
 
+  getStageDetails: (stageId: string) => apiFetch<any>(`/workflow/stages/${stageId}/people`),
+
   getOverview: () => apiFetch<any>('/workflow/overview'),
 
   getAnalytics: (params?: Record<string, any>) => {

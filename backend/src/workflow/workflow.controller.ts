@@ -1,7 +1,7 @@
 import {
   Controller, Get, Post, Body, Patch, Param, Query, UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiQuery, ApiBody } from '@nestjs/swagger';
 import { WorkflowService } from './workflow.service';
 import { CreateWorkPermitDto } from './dto/create-work-permit.dto';
 import { CreateVisaDto } from './dto/create-visa.dto';

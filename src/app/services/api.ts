@@ -438,38 +438,6 @@ export const complianceApi = {
 
 // ─── Reports API ──────────────────────────────────────────────────────────────
 
-export const reportsApi = {
-  getDashboard: (params?: Record<string, any>) => {
-    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
-    return apiFetch<any>(`/reports/dashboard${qs}`);
-  },
-
-  getEmployees: (params?: Record<string, any>) => {
-    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
-    return apiFetch<any>(`/reports/employees${qs}`);
-  },
-
-  getApplications: (params?: Record<string, any>) => {
-    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
-    return apiFetch<any>(`/reports/applications${qs}`);
-  },
-
-  getDocuments: (params?: Record<string, any>) => {
-    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
-    return apiFetch<any>(`/reports/documents${qs}`);
-  },
-
-  getCompliance: (params?: Record<string, any>) => {
-    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
-    return apiFetch<any>(`/reports/compliance${qs}`);
-  },
-
-  export: (type: string, params?: Record<string, any>) => {
-    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
-    return apiFetch<Blob>(`/reports/export/${type}${qs}`);
-  },
-};
-
 // ─── Notifications API ────────────────────────────────────────────────────────
 
 export const notificationsApi = {
@@ -616,7 +584,30 @@ export const dashboardApi = {
 export const reportsApi = {
   // Schema
   getDataSources: () => apiFetch<any[]>('/reports/data-sources'),
-  getDashboard:   () => apiFetch<any>('/reports/dashboard'),
+  getDashboard: (params?: Record<string, any>) => {
+    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+    return apiFetch<any>(`/reports/dashboard${qs}`);
+  },
+
+  getEmployees: (params?: Record<string, any>) => {
+    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+    return apiFetch<any>(`/reports/employees${qs}`);
+  },
+
+  getApplications: (params?: Record<string, any>) => {
+    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+    return apiFetch<any>(`/reports/applications${qs}`);
+  },
+
+  getDocuments: (params?: Record<string, any>) => {
+    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+    return apiFetch<any>(`/reports/documents${qs}`);
+  },
+
+  getCompliance: (params?: Record<string, any>) => {
+    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+    return apiFetch<any>(`/reports/compliance${qs}`);
+  },
 
   // CRUD
   list:   ()                          => apiFetch<any[]>('/reports'),

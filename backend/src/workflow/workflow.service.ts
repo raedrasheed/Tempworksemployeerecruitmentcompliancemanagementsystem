@@ -178,7 +178,7 @@ export class WorkflowService {
       this.prisma.employeeWorkflowStage.findMany({
         where: { stageId, status: 'IN_PROGRESS' },
         include: {
-          employee: { select: { id: true, firstName: true, lastName: true, email: true, nationality: true, photo: true, status: true } },
+          employee: { select: { id: true, firstName: true, lastName: true, email: true, nationality: true, photoUrl: true, status: true } },
         },
         orderBy: { startedAt: 'asc' },
       }),
@@ -187,7 +187,7 @@ export class WorkflowService {
     return {
       stage,
       applicants,
-      employees: employeeStages.map(es => ({ ...es.employee, startedAt: es.startedAt, stageStatus: es.status })),
+      employees: employeeStages.map((es: any) => ({ ...es.employee, startedAt: es.startedAt, stageStatus: es.status })),
       stats: {
         total: applicants.length + employeeStages.length,
         applicantsCount: applicants.length,

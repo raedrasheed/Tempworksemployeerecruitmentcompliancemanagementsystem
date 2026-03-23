@@ -64,7 +64,7 @@ export function StageDetails() {
       lastName: a.lastName,
       email: a.email,
       nationality: a.nationality,
-      photo: a.photo,
+      photo: a.photoUrl,
       type: 'Applicant',
       jobType: a.jobType?.name,
       daysInStage: a.createdAt
@@ -78,7 +78,7 @@ export function StageDetails() {
       lastName: e.lastName,
       email: e.email,
       nationality: e.nationality,
-      photo: e.photo,
+      photo: e.photoUrl,
       type: 'Employee',
       daysInStage: e.startedAt
         ? Math.floor((Date.now() - new Date(e.startedAt).getTime()) / 86400000)

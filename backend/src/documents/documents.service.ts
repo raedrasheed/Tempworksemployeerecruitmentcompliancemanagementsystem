@@ -397,33 +397,68 @@ export class DocumentsService {
 
   /**
    * Builds an in-memory ZIP buffer containing each requested document.
-   * The ZIP mirrors the on-disk folder structure:
-   *   {EntityName}_{ts}/{DocumentType}/{filename}.ext
+   * ZIP structure: {EntityName}/{DocumentType}/{filename}.ext
+   *   - All documents for the same person are grouped under one folder.
+   *   - If two docs of the same type share the same name, a numeric
+   *     suffix is appended to avoid silent overwrites.
    */
   async createBulkDownloadArchive(ids: string[]): Promise<Buffer> {
     const docs = await this.prisma.document.findMany({
       where: { id: { in: ids }, deletedAt: null },
+      include: { documentType: { select: { name: true } } },
     });
+
+    // Resolve entity names up-front (deduplicate look-ups by entityId)
+    const entityIds = [...new Set(docs.map(d => d.entityId))];
+    const nameMap: Record<string, string> = {};
+    await Promise.all(
+      entityIds.map(async (eid) => {
+        const doc = docs.find(d => d.entityId === eid)!;
+        const name = await this.resolveEntityName(doc.entityType as string, eid);
+        nameMap[eid] = this.sanitize(name || doc.entityType);
+      }),
+    );
 
     const zip = new AdmZip();
 
+    // Track used ZIP entry paths so we never silently overwrite a file
+    const usedPaths = new Set<string>();
+
     for (const doc of docs) {
-      // fileUrl = /uploads/{EntityName}_{ts}/{DocType}/{filename}
-      // Strip leading "/uploads/" to get the ZIP-internal path
-      const zipEntryPath = doc.fileUrl.replace(/^\/uploads\//, '');
-      const diskPath     = join(
+      const diskPath = join(
         process.cwd(),
         doc.fileUrl.startsWith('/') ? doc.fileUrl.slice(1) : doc.fileUrl,
       );
 
+      let content: Buffer;
       try {
         await fs.access(diskPath);
-        const content = await fs.readFile(diskPath);
-        // addFile(entryName, data) — entryName with slashes creates folders in the ZIP
-        zip.addFile(zipEntryPath, content);
+        content = await fs.readFile(diskPath);
       } catch {
-        // file missing on disk — skip gracefully
+        continue; // file missing on disk — skip gracefully
       }
+
+      // Build a clean, human-readable ZIP entry:
+      //   {EntityName}/{DocumentType}/{doc.name}{ext}
+      const entityFolder = nameMap[doc.entityId] || 'Unknown';
+      const typeFolder   = this.sanitize((doc as any).documentType?.name || 'Documents');
+      const ext          = doc.fileUrl.includes('.')
+        ? '.' + doc.fileUrl.split('.').pop()!
+        : '';
+      const baseName     = this.sanitize(doc.name) || 'document';
+      let entryPath      = `${entityFolder}/${typeFolder}/${baseName}${ext}`;
+
+      // Deduplicate: append counter if path already used
+      if (usedPaths.has(entryPath)) {
+        let counter = 2;
+        while (usedPaths.has(`${entityFolder}/${typeFolder}/${baseName}_${counter}${ext}`)) {
+          counter++;
+        }
+        entryPath = `${entityFolder}/${typeFolder}/${baseName}_${counter}${ext}`;
+      }
+      usedPaths.add(entryPath);
+
+      zip.addFile(entryPath, content);
     }
 
     return zip.toBuffer();

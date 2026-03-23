@@ -308,7 +308,7 @@ export const documentsApi = {
     }),
 
   getByEntity: (entityType: string, entityId: string) =>
-    apiFetch<any[]>(`/documents/entity/${entityType}/${entityId}`),
+    apiFetch<any[]>(`/documents/entity/${entityType}/${entityId}?limit=500`),
 
   getDashboard: () => apiFetch<any>('/documents/dashboard'),
 

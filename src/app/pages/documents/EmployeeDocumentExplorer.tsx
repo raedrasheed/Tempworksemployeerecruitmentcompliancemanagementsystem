@@ -71,11 +71,11 @@ export function EmployeeDocumentExplorer() {
       setEmployees(emps);
       setAgencies((agencyResult as any)?.data ?? []);
       setApplicants(apps);
-      // load doc counts for all employees
+      // load doc counts for all employees (use total from paginated response)
       Promise.all(
         emps.map(emp =>
           documentsApi.getByEntity('EMPLOYEE', emp.id)
-            .then((res: any) => ({ id: emp.id, count: (res?.data ?? res ?? []).length }))
+            .then((res: any) => ({ id: emp.id, count: (res as any)?.total ?? (res?.data ?? res ?? []).length }))
             .catch(() => ({ id: emp.id, count: 0 }))
         )
       ).then(counts => {
@@ -87,7 +87,7 @@ export function EmployeeDocumentExplorer() {
       Promise.all(
         apps.map(app =>
           documentsApi.getByEntity('APPLICANT', app.id)
-            .then((res: any) => ({ id: app.id, count: (res?.data ?? res ?? []).length }))
+            .then((res: any) => ({ id: app.id, count: (res as any)?.total ?? (res?.data ?? res ?? []).length }))
             .catch(() => ({ id: app.id, count: 0 }))
         )
       ).then(counts => {

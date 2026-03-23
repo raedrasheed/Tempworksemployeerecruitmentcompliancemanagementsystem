@@ -15,94 +15,320 @@ import {
   ReportFilterDto, ReportColumnDto, ReportSortingDto,
 } from './dto/report.dto';
 
-// ─── Field Whitelist ─────────────────────────────────────────────────────────
+// ─── Data-Source Registry ─────────────────────────────────────────────────────
 
-const DATA_SOURCE_FIELDS: Record<string, Record<string, { dbCol: string; type: string; label: string }>> = {
+interface FieldDef {
+  alias: string;   // table alias used in query
+  dbCol: string;   // actual column name in the DB
+  type: string;
+  label: string;
+}
+
+interface JoinDef {
+  joinType: 'LEFT' | 'INNER';
+  table: string;   // DB table name
+  alias: string;   // alias in the query
+  /** Fully-written, static ON condition using aliases.  All values are
+   *  hardcoded here — never interpolated from user input — so Prisma.raw is safe. */
+  on: string;
+}
+
+interface SourceDef {
+  label: string;
+  group: 'single' | 'combined';
+  /** Human-readable names of every table that participates */
+  tables: string[];
+  primaryTable: string;
+  primaryAlias: string;
+  /** Primary table has a deletedAt soft-delete column */
+  softDelete: boolean;
+  joins: JoinDef[];
+  fields: Record<string, FieldDef>;
+}
+
+const SOURCE_DEFS: Record<string, SourceDef> = {
+  // ── Single-table sources ──────────────────────────────────────────────────
   employees: {
-    id:              { dbCol: 'id',              type: 'string', label: 'ID' },
-    firstName:       { dbCol: 'firstName',       type: 'string', label: 'First Name' },
-    lastName:        { dbCol: 'lastName',        type: 'string', label: 'Last Name' },
-    email:           { dbCol: 'email',           type: 'string', label: 'Email' },
-    phone:           { dbCol: 'phone',           type: 'string', label: 'Phone' },
-    nationality:     { dbCol: 'nationality',     type: 'string', label: 'Nationality' },
-    status:          { dbCol: 'status',          type: 'enum',   label: 'Status' },
-    dateOfBirth:     { dbCol: 'dateOfBirth',     type: 'date',   label: 'Date of Birth' },
-    licenseNumber:   { dbCol: 'licenseNumber',   type: 'string', label: 'License No.' },
-    licenseCategory: { dbCol: 'licenseCategory', type: 'string', label: 'License Category' },
-    yearsExperience: { dbCol: 'yearsExperience', type: 'number', label: 'Years Exp.' },
-    city:            { dbCol: 'city',            type: 'string', label: 'City' },
-    country:         { dbCol: 'country',         type: 'string', label: 'Country' },
-    createdAt:       { dbCol: 'createdAt',       type: 'date',   label: 'Created At' },
+    label: 'Employees', group: 'single', tables: ['Employees'],
+    primaryTable: 'employees', primaryAlias: 'e', softDelete: true, joins: [],
+    fields: {
+      id:              { alias: 'e', dbCol: 'id',              type: 'string', label: 'ID' },
+      firstName:       { alias: 'e', dbCol: 'firstName',       type: 'string', label: 'First Name' },
+      lastName:        { alias: 'e', dbCol: 'lastName',        type: 'string', label: 'Last Name' },
+      email:           { alias: 'e', dbCol: 'email',           type: 'string', label: 'Email' },
+      phone:           { alias: 'e', dbCol: 'phone',           type: 'string', label: 'Phone' },
+      nationality:     { alias: 'e', dbCol: 'nationality',     type: 'string', label: 'Nationality' },
+      status:          { alias: 'e', dbCol: 'status',          type: 'enum',   label: 'Status' },
+      dateOfBirth:     { alias: 'e', dbCol: 'dateOfBirth',     type: 'date',   label: 'Date of Birth' },
+      licenseNumber:   { alias: 'e', dbCol: 'licenseNumber',   type: 'string', label: 'License No.' },
+      licenseCategory: { alias: 'e', dbCol: 'licenseCategory', type: 'string', label: 'License Category' },
+      yearsExperience: { alias: 'e', dbCol: 'yearsExperience', type: 'number', label: 'Years Exp.' },
+      city:            { alias: 'e', dbCol: 'city',            type: 'string', label: 'City' },
+      country:         { alias: 'e', dbCol: 'country',         type: 'string', label: 'Country' },
+      createdAt:       { alias: 'e', dbCol: 'createdAt',       type: 'date',   label: 'Created At' },
+    },
   },
+
   applicants: {
-    id:                   { dbCol: 'id',                   type: 'string',  label: 'ID' },
-    firstName:            { dbCol: 'firstName',            type: 'string',  label: 'First Name' },
-    lastName:             { dbCol: 'lastName',             type: 'string',  label: 'Last Name' },
-    email:                { dbCol: 'email',                type: 'string',  label: 'Email' },
-    phone:                { dbCol: 'phone',                type: 'string',  label: 'Phone' },
-    nationality:          { dbCol: 'nationality',          type: 'string',  label: 'Nationality' },
-    status:               { dbCol: 'status',               type: 'enum',    label: 'Status' },
-    residencyStatus:      { dbCol: 'residencyStatus',      type: 'string',  label: 'Residency' },
-    hasWorkAuthorization: { dbCol: 'hasWorkAuthorization', type: 'boolean', label: 'Work Auth' },
-    availability:         { dbCol: 'availability',         type: 'string',  label: 'Availability' },
-    salaryExpectation:    { dbCol: 'salaryExpectation',    type: 'string',  label: 'Salary Exp.' },
-    willingToRelocate:    { dbCol: 'willingToRelocate',    type: 'boolean', label: 'Relocate' },
-    createdAt:            { dbCol: 'createdAt',            type: 'date',    label: 'Created At' },
+    label: 'Applicants', group: 'single', tables: ['Applicants'],
+    primaryTable: 'applicants', primaryAlias: 'ap', softDelete: true, joins: [],
+    fields: {
+      id:                   { alias: 'ap', dbCol: 'id',                   type: 'string',  label: 'ID' },
+      firstName:            { alias: 'ap', dbCol: 'firstName',            type: 'string',  label: 'First Name' },
+      lastName:             { alias: 'ap', dbCol: 'lastName',             type: 'string',  label: 'Last Name' },
+      email:                { alias: 'ap', dbCol: 'email',                type: 'string',  label: 'Email' },
+      phone:                { alias: 'ap', dbCol: 'phone',                type: 'string',  label: 'Phone' },
+      nationality:          { alias: 'ap', dbCol: 'nationality',          type: 'string',  label: 'Nationality' },
+      status:               { alias: 'ap', dbCol: 'status',               type: 'enum',    label: 'Status' },
+      residencyStatus:      { alias: 'ap', dbCol: 'residencyStatus',      type: 'string',  label: 'Residency' },
+      hasWorkAuthorization: { alias: 'ap', dbCol: 'hasWorkAuthorization', type: 'boolean', label: 'Work Auth' },
+      availability:         { alias: 'ap', dbCol: 'availability',         type: 'string',  label: 'Availability' },
+      salaryExpectation:    { alias: 'ap', dbCol: 'salaryExpectation',    type: 'string',  label: 'Salary Exp.' },
+      willingToRelocate:    { alias: 'ap', dbCol: 'willingToRelocate',    type: 'boolean', label: 'Relocate' },
+      createdAt:            { alias: 'ap', dbCol: 'createdAt',            type: 'date',    label: 'Created At' },
+    },
   },
+
   documents: {
-    id:             { dbCol: 'id',             type: 'string', label: 'ID' },
-    name:           { dbCol: 'name',           type: 'string', label: 'Name' },
-    entityType:     { dbCol: 'entityType',     type: 'enum',   label: 'Entity Type' },
-    status:         { dbCol: 'status',         type: 'enum',   label: 'Status' },
-    fileSize:       { dbCol: 'fileSize',       type: 'number', label: 'Size (bytes)' },
-    issueDate:      { dbCol: 'issueDate',      type: 'date',   label: 'Issue Date' },
-    expiryDate:     { dbCol: 'expiryDate',     type: 'date',   label: 'Expiry Date' },
-    issuer:         { dbCol: 'issuer',         type: 'string', label: 'Issuer' },
-    documentNumber: { dbCol: 'documentNumber', type: 'string', label: 'Doc No.' },
-    createdAt:      { dbCol: 'createdAt',      type: 'date',   label: 'Created At' },
+    label: 'Documents', group: 'single', tables: ['Documents'],
+    primaryTable: 'documents', primaryAlias: 'doc', softDelete: true, joins: [],
+    fields: {
+      id:             { alias: 'doc', dbCol: 'id',             type: 'string', label: 'ID' },
+      name:           { alias: 'doc', dbCol: 'name',           type: 'string', label: 'Name' },
+      entityType:     { alias: 'doc', dbCol: 'entityType',     type: 'enum',   label: 'Entity Type' },
+      status:         { alias: 'doc', dbCol: 'status',         type: 'enum',   label: 'Status' },
+      fileSize:       { alias: 'doc', dbCol: 'fileSize',       type: 'number', label: 'Size (bytes)' },
+      issueDate:      { alias: 'doc', dbCol: 'issueDate',      type: 'date',   label: 'Issue Date' },
+      expiryDate:     { alias: 'doc', dbCol: 'expiryDate',     type: 'date',   label: 'Expiry Date' },
+      issuer:         { alias: 'doc', dbCol: 'issuer',         type: 'string', label: 'Issuer' },
+      documentNumber: { alias: 'doc', dbCol: 'documentNumber', type: 'string', label: 'Doc No.' },
+      createdAt:      { alias: 'doc', dbCol: 'createdAt',      type: 'date',   label: 'Created At' },
+    },
   },
+
   compliance_alerts: {
-    id:         { dbCol: 'id',         type: 'string', label: 'ID' },
-    entityType: { dbCol: 'entityType', type: 'enum',   label: 'Entity Type' },
-    alertType:  { dbCol: 'alertType',  type: 'string', label: 'Alert Type' },
-    severity:   { dbCol: 'severity',   type: 'enum',   label: 'Severity' },
-    message:    { dbCol: 'message',    type: 'string', label: 'Message' },
-    status:     { dbCol: 'status',     type: 'enum',   label: 'Status' },
-    dueDate:    { dbCol: 'dueDate',    type: 'date',   label: 'Due Date' },
-    createdAt:  { dbCol: 'createdAt',  type: 'date',   label: 'Created At' },
+    label: 'Compliance Alerts', group: 'single', tables: ['Compliance Alerts'],
+    primaryTable: 'compliance_alerts', primaryAlias: 'ca', softDelete: false, joins: [],
+    fields: {
+      id:         { alias: 'ca', dbCol: 'id',         type: 'string', label: 'ID' },
+      entityType: { alias: 'ca', dbCol: 'entityType', type: 'enum',   label: 'Entity Type' },
+      alertType:  { alias: 'ca', dbCol: 'alertType',  type: 'string', label: 'Alert Type' },
+      severity:   { alias: 'ca', dbCol: 'severity',   type: 'enum',   label: 'Severity' },
+      message:    { alias: 'ca', dbCol: 'message',    type: 'string', label: 'Message' },
+      status:     { alias: 'ca', dbCol: 'status',     type: 'enum',   label: 'Status' },
+      dueDate:    { alias: 'ca', dbCol: 'dueDate',    type: 'date',   label: 'Due Date' },
+      createdAt:  { alias: 'ca', dbCol: 'createdAt',  type: 'date',   label: 'Created At' },
+    },
   },
+
   agencies: {
-    id:            { dbCol: 'id',            type: 'string', label: 'ID' },
-    name:          { dbCol: 'name',          type: 'string', label: 'Name' },
-    country:       { dbCol: 'country',       type: 'string', label: 'Country' },
-    contactPerson: { dbCol: 'contactPerson', type: 'string', label: 'Contact' },
-    email:         { dbCol: 'email',         type: 'string', label: 'Email' },
-    phone:         { dbCol: 'phone',         type: 'string', label: 'Phone' },
-    status:        { dbCol: 'status',        type: 'enum',   label: 'Status' },
-    createdAt:     { dbCol: 'createdAt',     type: 'date',   label: 'Created At' },
+    label: 'Agencies', group: 'single', tables: ['Agencies'],
+    primaryTable: 'agencies', primaryAlias: 'ag', softDelete: true, joins: [],
+    fields: {
+      id:            { alias: 'ag', dbCol: 'id',            type: 'string', label: 'ID' },
+      name:          { alias: 'ag', dbCol: 'name',          type: 'string', label: 'Name' },
+      country:       { alias: 'ag', dbCol: 'country',       type: 'string', label: 'Country' },
+      contactPerson: { alias: 'ag', dbCol: 'contactPerson', type: 'string', label: 'Contact' },
+      email:         { alias: 'ag', dbCol: 'email',         type: 'string', label: 'Email' },
+      phone:         { alias: 'ag', dbCol: 'phone',         type: 'string', label: 'Phone' },
+      status:        { alias: 'ag', dbCol: 'status',        type: 'enum',   label: 'Status' },
+      createdAt:     { alias: 'ag', dbCol: 'createdAt',     type: 'date',   label: 'Created At' },
+    },
   },
+
   work_permits: {
-    id:              { dbCol: 'id',              type: 'string', label: 'ID' },
-    permitType:      { dbCol: 'permitType',      type: 'string', label: 'Permit Type' },
-    status:          { dbCol: 'status',          type: 'enum',   label: 'Status' },
-    permitNumber:    { dbCol: 'permitNumber',    type: 'string', label: 'Permit No.' },
-    applicationDate: { dbCol: 'applicationDate', type: 'date',   label: 'Applied' },
-    approvalDate:    { dbCol: 'approvalDate',    type: 'date',   label: 'Approved' },
-    expiryDate:      { dbCol: 'expiryDate',      type: 'date',   label: 'Expiry' },
-    createdAt:       { dbCol: 'createdAt',       type: 'date',   label: 'Created At' },
+    label: 'Work Permits', group: 'single', tables: ['Work Permits'],
+    primaryTable: 'work_permits', primaryAlias: 'wp', softDelete: false, joins: [],
+    fields: {
+      id:              { alias: 'wp', dbCol: 'id',              type: 'string', label: 'ID' },
+      permitType:      { alias: 'wp', dbCol: 'permitType',      type: 'string', label: 'Permit Type' },
+      status:          { alias: 'wp', dbCol: 'status',          type: 'enum',   label: 'Status' },
+      permitNumber:    { alias: 'wp', dbCol: 'permitNumber',    type: 'string', label: 'Permit No.' },
+      applicationDate: { alias: 'wp', dbCol: 'applicationDate', type: 'date',   label: 'Applied' },
+      approvalDate:    { alias: 'wp', dbCol: 'approvalDate',    type: 'date',   label: 'Approved' },
+      expiryDate:      { alias: 'wp', dbCol: 'expiryDate',      type: 'date',   label: 'Expiry' },
+      createdAt:       { alias: 'wp', dbCol: 'createdAt',       type: 'date',   label: 'Created At' },
+    },
   },
-};
 
-// Tables that have a soft-delete deletedAt column
-const SOFT_DELETE_SOURCES = new Set(['employees', 'applicants', 'documents', 'agencies']);
+  // ── Combined / multi-table sources ───────────────────────────────────────
+  employees_documents: {
+    label: 'Employees + Documents',
+    group: 'combined',
+    tables: ['Employees', 'Documents'],
+    primaryTable: 'employees',
+    primaryAlias: 'e',
+    softDelete: true,
+    joins: [{
+      joinType: 'LEFT',
+      table: 'documents',
+      alias: 'd',
+      on: `e.id = d."entityId" AND d."entityType" = 'EMPLOYEE' AND d."deletedAt" IS NULL`,
+    }],
+    fields: {
+      empId:           { alias: 'e', dbCol: 'id',             type: 'string', label: 'Employee ID' },
+      empFirstName:    { alias: 'e', dbCol: 'firstName',      type: 'string', label: 'First Name' },
+      empLastName:     { alias: 'e', dbCol: 'lastName',       type: 'string', label: 'Last Name' },
+      empEmail:        { alias: 'e', dbCol: 'email',          type: 'string', label: 'Email' },
+      empNationality:  { alias: 'e', dbCol: 'nationality',    type: 'string', label: 'Nationality' },
+      empStatus:       { alias: 'e', dbCol: 'status',         type: 'enum',   label: 'Employee Status' },
+      empCountry:      { alias: 'e', dbCol: 'country',        type: 'string', label: 'Country' },
+      docName:         { alias: 'd', dbCol: 'name',           type: 'string', label: 'Document Name' },
+      docNumber:       { alias: 'd', dbCol: 'documentNumber', type: 'string', label: 'Doc Number' },
+      docStatus:       { alias: 'd', dbCol: 'status',         type: 'enum',   label: 'Doc Status' },
+      docIssueDate:    { alias: 'd', dbCol: 'issueDate',      type: 'date',   label: 'Doc Issue Date' },
+      docExpiryDate:   { alias: 'd', dbCol: 'expiryDate',     type: 'date',   label: 'Doc Expiry' },
+      docIssuer:       { alias: 'd', dbCol: 'issuer',         type: 'string', label: 'Doc Issuer' },
+      docCreatedAt:    { alias: 'd', dbCol: 'createdAt',      type: 'date',   label: 'Doc Created At' },
+    },
+  },
 
-const TABLE_MAP: Record<string, string> = {
-  employees:         'employees',
-  applicants:        'applicants',
-  documents:         'documents',
-  compliance_alerts: 'compliance_alerts',
-  agencies:          'agencies',
-  work_permits:      'work_permits',
+  employees_work_permits: {
+    label: 'Employees + Work Permits',
+    group: 'combined',
+    tables: ['Employees', 'Work Permits'],
+    primaryTable: 'employees',
+    primaryAlias: 'e',
+    softDelete: true,
+    joins: [{
+      joinType: 'LEFT',
+      table: 'work_permits',
+      alias: 'wp',
+      on: `e.id = wp."employeeId"`,
+    }],
+    fields: {
+      empId:           { alias: 'e',  dbCol: 'id',              type: 'string', label: 'Employee ID' },
+      empFirstName:    { alias: 'e',  dbCol: 'firstName',       type: 'string', label: 'First Name' },
+      empLastName:     { alias: 'e',  dbCol: 'lastName',        type: 'string', label: 'Last Name' },
+      empEmail:        { alias: 'e',  dbCol: 'email',           type: 'string', label: 'Email' },
+      empNationality:  { alias: 'e',  dbCol: 'nationality',     type: 'string', label: 'Nationality' },
+      empStatus:       { alias: 'e',  dbCol: 'status',          type: 'enum',   label: 'Employee Status' },
+      empCountry:      { alias: 'e',  dbCol: 'country',         type: 'string', label: 'Country' },
+      wpPermitType:    { alias: 'wp', dbCol: 'permitType',      type: 'string', label: 'Permit Type' },
+      wpStatus:        { alias: 'wp', dbCol: 'status',          type: 'enum',   label: 'Permit Status' },
+      wpNumber:        { alias: 'wp', dbCol: 'permitNumber',    type: 'string', label: 'Permit No.' },
+      wpAppliedDate:   { alias: 'wp', dbCol: 'applicationDate', type: 'date',   label: 'Applied Date' },
+      wpApprovedDate:  { alias: 'wp', dbCol: 'approvalDate',    type: 'date',   label: 'Approval Date' },
+      wpExpiryDate:    { alias: 'wp', dbCol: 'expiryDate',      type: 'date',   label: 'Permit Expiry' },
+    },
+  },
+
+  employees_compliance: {
+    label: 'Employees + Compliance Alerts',
+    group: 'combined',
+    tables: ['Employees', 'Compliance Alerts'],
+    primaryTable: 'employees',
+    primaryAlias: 'e',
+    softDelete: true,
+    joins: [{
+      joinType: 'LEFT',
+      table: 'compliance_alerts',
+      alias: 'ca',
+      on: `e.id = ca."entityId" AND ca."entityType" = 'EMPLOYEE'`,
+    }],
+    fields: {
+      empId:          { alias: 'e',  dbCol: 'id',          type: 'string', label: 'Employee ID' },
+      empFirstName:   { alias: 'e',  dbCol: 'firstName',   type: 'string', label: 'First Name' },
+      empLastName:    { alias: 'e',  dbCol: 'lastName',    type: 'string', label: 'Last Name' },
+      empEmail:       { alias: 'e',  dbCol: 'email',       type: 'string', label: 'Email' },
+      empNationality: { alias: 'e',  dbCol: 'nationality', type: 'string', label: 'Nationality' },
+      empStatus:      { alias: 'e',  dbCol: 'status',      type: 'enum',   label: 'Employee Status' },
+      caAlertType:    { alias: 'ca', dbCol: 'alertType',   type: 'string', label: 'Alert Type' },
+      caSeverity:     { alias: 'ca', dbCol: 'severity',    type: 'enum',   label: 'Severity' },
+      caMessage:      { alias: 'ca', dbCol: 'message',     type: 'string', label: 'Alert Message' },
+      caStatus:       { alias: 'ca', dbCol: 'status',      type: 'enum',   label: 'Alert Status' },
+      caDueDate:      { alias: 'ca', dbCol: 'dueDate',     type: 'date',   label: 'Due Date' },
+      caCreatedAt:    { alias: 'ca', dbCol: 'createdAt',   type: 'date',   label: 'Alert Date' },
+    },
+  },
+
+  applicants_documents: {
+    label: 'Applicants + Documents',
+    group: 'combined',
+    tables: ['Applicants', 'Documents'],
+    primaryTable: 'applicants',
+    primaryAlias: 'ap',
+    softDelete: true,
+    joins: [{
+      joinType: 'LEFT',
+      table: 'documents',
+      alias: 'd',
+      on: `ap.id = d."entityId" AND d."entityType" = 'APPLICANT' AND d."deletedAt" IS NULL`,
+    }],
+    fields: {
+      apId:           { alias: 'ap', dbCol: 'id',              type: 'string',  label: 'Applicant ID' },
+      apFirstName:    { alias: 'ap', dbCol: 'firstName',       type: 'string',  label: 'First Name' },
+      apLastName:     { alias: 'ap', dbCol: 'lastName',        type: 'string',  label: 'Last Name' },
+      apEmail:        { alias: 'ap', dbCol: 'email',           type: 'string',  label: 'Email' },
+      apNationality:  { alias: 'ap', dbCol: 'nationality',     type: 'string',  label: 'Nationality' },
+      apStatus:       { alias: 'ap', dbCol: 'status',          type: 'enum',    label: 'Applicant Status' },
+      apResidency:    { alias: 'ap', dbCol: 'residencyStatus', type: 'string',  label: 'Residency' },
+      apWorkAuth:     { alias: 'ap', dbCol: 'hasWorkAuthorization', type: 'boolean', label: 'Work Auth' },
+      apCreatedAt:    { alias: 'ap', dbCol: 'createdAt',       type: 'date',    label: 'Applied At' },
+      docName:        { alias: 'd',  dbCol: 'name',            type: 'string',  label: 'Document Name' },
+      docNumber:      { alias: 'd',  dbCol: 'documentNumber',  type: 'string',  label: 'Doc Number' },
+      docStatus:      { alias: 'd',  dbCol: 'status',          type: 'enum',    label: 'Doc Status' },
+      docExpiryDate:  { alias: 'd',  dbCol: 'expiryDate',      type: 'date',    label: 'Doc Expiry' },
+    },
+  },
+
+  employees_agencies: {
+    label: 'Employees + Agencies',
+    group: 'combined',
+    tables: ['Employees', 'Agencies'],
+    primaryTable: 'employees',
+    primaryAlias: 'e',
+    softDelete: true,
+    joins: [{
+      joinType: 'LEFT',
+      table: 'agencies',
+      alias: 'ag',
+      on: `e."agencyId" = ag.id AND ag."deletedAt" IS NULL`,
+    }],
+    fields: {
+      empId:           { alias: 'e',  dbCol: 'id',            type: 'string', label: 'Employee ID' },
+      empFirstName:    { alias: 'e',  dbCol: 'firstName',     type: 'string', label: 'First Name' },
+      empLastName:     { alias: 'e',  dbCol: 'lastName',      type: 'string', label: 'Last Name' },
+      empEmail:        { alias: 'e',  dbCol: 'email',         type: 'string', label: 'Email' },
+      empNationality:  { alias: 'e',  dbCol: 'nationality',   type: 'string', label: 'Nationality' },
+      empStatus:       { alias: 'e',  dbCol: 'status',        type: 'enum',   label: 'Employee Status' },
+      empCity:         { alias: 'e',  dbCol: 'city',          type: 'string', label: 'City' },
+      empCountry:      { alias: 'e',  dbCol: 'country',       type: 'string', label: 'Country' },
+      empCreatedAt:    { alias: 'e',  dbCol: 'createdAt',     type: 'date',   label: 'Employee Since' },
+      agName:          { alias: 'ag', dbCol: 'name',          type: 'string', label: 'Agency Name' },
+      agCountry:       { alias: 'ag', dbCol: 'country',       type: 'string', label: 'Agency Country' },
+      agContact:       { alias: 'ag', dbCol: 'contactPerson', type: 'string', label: 'Agency Contact' },
+      agStatus:        { alias: 'ag', dbCol: 'status',        type: 'enum',   label: 'Agency Status' },
+    },
+  },
+
+  applicants_compliance: {
+    label: 'Applicants + Compliance Alerts',
+    group: 'combined',
+    tables: ['Applicants', 'Compliance Alerts'],
+    primaryTable: 'applicants',
+    primaryAlias: 'ap',
+    softDelete: true,
+    joins: [{
+      joinType: 'LEFT',
+      table: 'compliance_alerts',
+      alias: 'ca',
+      on: `ap.id = ca."entityId" AND ca."entityType" = 'APPLICANT'`,
+    }],
+    fields: {
+      apId:           { alias: 'ap', dbCol: 'id',          type: 'string', label: 'Applicant ID' },
+      apFirstName:    { alias: 'ap', dbCol: 'firstName',   type: 'string', label: 'First Name' },
+      apLastName:     { alias: 'ap', dbCol: 'lastName',    type: 'string', label: 'Last Name' },
+      apEmail:        { alias: 'ap', dbCol: 'email',       type: 'string', label: 'Email' },
+      apNationality:  { alias: 'ap', dbCol: 'nationality', type: 'string', label: 'Nationality' },
+      apStatus:       { alias: 'ap', dbCol: 'status',      type: 'enum',   label: 'Applicant Status' },
+      caAlertType:    { alias: 'ca', dbCol: 'alertType',   type: 'string', label: 'Alert Type' },
+      caSeverity:     { alias: 'ca', dbCol: 'severity',    type: 'enum',   label: 'Severity' },
+      caMessage:      { alias: 'ca', dbCol: 'message',     type: 'string', label: 'Alert Message' },
+      caStatus:       { alias: 'ca', dbCol: 'status',      type: 'enum',   label: 'Alert Status' },
+      caDueDate:      { alias: 'ca', dbCol: 'dueDate',     type: 'date',   label: 'Due Date' },
+    },
+  },
 };
 
 // ─── Service ─────────────────────────────────────────────────────────────────
@@ -114,10 +340,12 @@ export class ReportsService {
   // ── Schema introspection ─────────────────────────────────────────────────
 
   getDataSources() {
-    return Object.entries(DATA_SOURCE_FIELDS).map(([key, fields]) => ({
+    return Object.entries(SOURCE_DEFS).map(([key, def]) => ({
       key,
-      label: key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
-      fields: Object.entries(fields).map(([f, meta]) => ({
+      label: def.label,
+      group: def.group,
+      tables: def.tables,
+      fields: Object.entries(def.fields).map(([f, meta]) => ({
         key: f, label: meta.label, type: meta.type,
       })),
     }));
@@ -218,39 +446,48 @@ export class ReportsService {
   ): Promise<{ columns: any[]; rows: any[]; total: number; page: number; limit: number }> {
     const { page = 1, limit = 100 } = opts;
     const source = report.dataSource as string;
-    if (!DATA_SOURCE_FIELDS[source]) throw new BadRequestException(`Unknown data source: ${source}`);
+    const def = SOURCE_DEFS[source];
+    if (!def) throw new BadRequestException(`Unknown data source: ${source}`);
 
-    const fieldMeta = DATA_SOURCE_FIELDS[source];
-    const table     = TABLE_MAP[source];
+    const { primaryTable, primaryAlias, softDelete, joins, fields } = def;
 
     // ── Column selection ─────────────────────────────────────────────────
     const cols: any[] = report.columns.length
       ? report.columns
-      : Object.entries(fieldMeta).map(([k, v]) => ({ columnName: k, displayName: (v as any).label, isAggregated: false, aggregationType: null, isGrouped: false }));
+      : Object.entries(fields).map(([k, v]) => ({
+          columnName: k, displayName: v.label,
+          isAggregated: false, aggregationType: null, isGrouped: false,
+        }));
 
     const selectParts: string[] = [];
     for (const col of cols) {
-      const meta = fieldMeta[col.columnName];
-      if (!meta) continue;
-      const dbCol = `"${meta.dbCol}"`;
+      const f = fields[col.columnName];
+      if (!f) continue;
+      const colRef = `${f.alias}."${f.dbCol}"`;
       if (col.isAggregated && col.aggregationType) {
-        selectParts.push(`${col.aggregationType}(${dbCol}) AS "${col.columnName}"`);
+        selectParts.push(`${col.aggregationType}(${colRef}) AS "${col.columnName}"`);
       } else {
-        selectParts.push(`${dbCol} AS "${col.columnName}"`);
+        selectParts.push(`${colRef} AS "${col.columnName}"`);
       }
     }
-    if (selectParts.length === 0) selectParts.push('*');
+    if (selectParts.length === 0) selectParts.push(`${primaryAlias}.*`);
+
+    // ── FROM + JOIN ───────────────────────────────────────────────────────
+    const joinFragments = joins.map(j =>
+      `${j.joinType} JOIN "${j.table}" AS ${j.alias} ON ${j.on}`,
+    );
+    const fromFragment = `"${primaryTable}" AS ${primaryAlias}${joinFragments.length ? ' ' + joinFragments.join(' ') : ''}`;
 
     // ── WHERE clause ─────────────────────────────────────────────────────
-    const conditions: Prisma.Sql[] = SOFT_DELETE_SOURCES.has(source)
-      ? [Prisma.sql`"deletedAt" IS NULL`]
+    const conditions: Prisma.Sql[] = softDelete
+      ? [Prisma.sql`${Prisma.raw(`${primaryAlias}."deletedAt"`)} IS NULL`]
       : [];
 
     for (const filter of (report.filters as any[])) {
-      const meta = fieldMeta[filter.fieldName];
-      if (!meta) continue; // whitelist: skip unknown fields
+      const f = fields[filter.fieldName];
+      if (!f) continue; // whitelist: skip unknown fields
 
-      const col    = Prisma.raw(`"${meta.dbCol}"`);
+      const col    = Prisma.raw(`${f.alias}."${f.dbCol}"`);
       const casted = this.castValue(filter.value, filter.valueType);
 
       switch (filter.operator) {
@@ -279,29 +516,43 @@ export class ReportsService {
     const whereClause = conditions.length ? Prisma.join(conditions, ' AND ') : Prisma.sql`TRUE`;
 
     // ── GROUP BY ──────────────────────────────────────────────────────────
-    const groupedCols = cols.filter((c: any) => c.isGrouped && fieldMeta[c.columnName]);
+    const groupedCols = cols.filter((c: any) => c.isGrouped && fields[c.columnName]);
     const groupByClause = groupedCols.length
-      ? Prisma.sql`GROUP BY ${Prisma.join(groupedCols.map((c: any) => Prisma.raw(`"${fieldMeta[c.columnName].dbCol}"`)), ', ')}`
+      ? Prisma.sql`GROUP BY ${Prisma.join(
+          groupedCols.map((c: any) => Prisma.raw(`${fields[c.columnName].alias}."${fields[c.columnName].dbCol}"`)),
+          ', ',
+        )}`
       : Prisma.empty;
 
     // ── ORDER BY ──────────────────────────────────────────────────────────
     const sortParts = (report.sorting as any[])
-      .filter((s: any) => fieldMeta[s.columnName])
-      .map((s: any) => Prisma.raw(`"${fieldMeta[s.columnName].dbCol}" ${s.direction === 'DESC' ? 'DESC' : 'ASC'}`));
+      .filter((s: any) => fields[s.columnName])
+      .map((s: any) => Prisma.raw(
+        `${fields[s.columnName].alias}."${fields[s.columnName].dbCol}" ${s.direction === 'DESC' ? 'DESC' : 'ASC'}`,
+      ));
+    const fallbackOrder = `${primaryAlias}."createdAt" DESC`;
     const orderByClause = sortParts.length
       ? Prisma.sql`ORDER BY ${Prisma.join(sortParts, ', ')}`
-      : Prisma.sql`ORDER BY "createdAt" DESC`;
+      : Prisma.sql`ORDER BY ${Prisma.raw(fallbackOrder)}`;
 
     // ── Count ─────────────────────────────────────────────────────────────
     const offset = (Number(page) - 1) * Number(limit);
-    const countSql = Prisma.sql`SELECT COUNT(*) AS total FROM "${Prisma.raw(table)}" WHERE ${whereClause}`;
+    // For joined sources use COUNT(DISTINCT primary key) to avoid inflated counts from 1-to-many joins
+    const countExpr = joins.length
+      ? `COUNT(DISTINCT ${primaryAlias}."id")`
+      : 'COUNT(*)';
+    const countSql = Prisma.sql`
+      SELECT ${Prisma.raw(countExpr)} AS total
+      FROM ${Prisma.raw(fromFragment)}
+      WHERE ${whereClause}
+    `;
     const countResult: any[] = await this.prisma.$queryRaw(countSql);
     const total = groupedCols.length ? 0 : Number(countResult[0]?.total ?? 0);
 
     // ── Data ──────────────────────────────────────────────────────────────
     const dataSql = Prisma.sql`
       SELECT ${Prisma.raw(selectParts.join(', '))}
-      FROM "${Prisma.raw(table)}"
+      FROM ${Prisma.raw(fromFragment)}
       WHERE ${whereClause}
       ${groupByClause}
       ${orderByClause}
@@ -318,8 +569,8 @@ export class ReportsService {
 
     return {
       columns: cols
-        .filter((c: any) => fieldMeta[c.columnName])
-        .map((c: any) => ({ key: c.columnName, label: c.displayName, type: fieldMeta[c.columnName]?.type ?? 'string' })),
+        .filter((c: any) => fields[c.columnName])
+        .map((c: any) => ({ key: c.columnName, label: c.displayName, type: fields[c.columnName]?.type ?? 'string' })),
       rows: safeRows,
       total: groupedCols.length ? safeRows.length : total,
       page:  Number(page),

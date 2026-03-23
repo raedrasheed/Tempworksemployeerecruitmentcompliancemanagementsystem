@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   BarChart3, TrendingUp, Users, FileCheck, Plus, Play, Download,
   Trash2, Edit3, FileSpreadsheet, FileText, File, AlertTriangle,
-  RefreshCw, Database, Filter, SortAsc, Layers,
+  RefreshCw, Database, Filter, SortAsc, Layers, Link2,
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -301,9 +301,51 @@ export function ReportsDashboard() {
                     <Select value={builder.dataSource} onValueChange={v => setBuilder(b => ({ ...emptyBuilder(), name: b.name, description: b.description, dataSource: v }))}>
                       <SelectTrigger className="mt-1"><SelectValue placeholder="Select…" /></SelectTrigger>
                       <SelectContent>
-                        {dataSources.map((ds: any) => <SelectItem key={ds.key} value={ds.key}>{ds.label}</SelectItem>)}
+                        {dataSources.some((ds: any) => ds.group === 'single') && (
+                          <>
+                            <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Single Table</div>
+                            {dataSources.filter((ds: any) => ds.group === 'single').map((ds: any) => (
+                              <SelectItem key={ds.key} value={ds.key}>
+                                <div className="flex items-center gap-2">
+                                  <Database className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                                  {ds.label}
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </>
+                        )}
+                        {dataSources.some((ds: any) => ds.group === 'combined') && (
+                          <>
+                            <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide border-t mt-1 pt-2">Combined (Multi-Table)</div>
+                            {dataSources.filter((ds: any) => ds.group === 'combined').map((ds: any) => (
+                              <SelectItem key={ds.key} value={ds.key}>
+                                <div className="flex items-center gap-2">
+                                  <Link2 className="w-3.5 h-3.5 text-[#8B5CF6] shrink-0" />
+                                  {ds.label}
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </>
+                        )}
                       </SelectContent>
                     </Select>
+                    {/* Show join indicator when a combined source is selected */}
+                    {(() => {
+                      const sel = dataSources.find((ds: any) => ds.key === builder.dataSource);
+                      if (!sel || sel.group !== 'combined') return null;
+                      return (
+                        <div className="mt-2 flex items-center gap-1.5 text-xs text-[#8B5CF6]">
+                          <Link2 className="w-3 h-3" />
+                          <span className="font-medium">Joining:</span>
+                          {(sel.tables as string[]).map((t: string, i: number) => (
+                            <span key={t}>
+                              {i > 0 && <span className="text-muted-foreground mx-0.5">+</span>}
+                              <Badge variant="outline" className="text-xs px-1 py-0 border-[#8B5CF6] text-[#8B5CF6]">{t}</Badge>
+                            </span>
+                          ))}
+                        </div>
+                      );
+                    })()}
                   </div>
                 </CardContent>
               </Card>
@@ -483,7 +525,19 @@ export function ReportsDashboard() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <h3 className="font-semibold text-[#0F172A] truncate">{report.name}</h3>
-                      <Badge variant="outline" className="text-xs shrink-0">{report.dataSource?.replace(/_/g, ' ')}</Badge>
+                      {(() => {
+                        const ds = dataSources.find((d: any) => d.key === report.dataSource);
+                        const isCombined = ds?.group === 'combined';
+                        return (
+                          <Badge
+                            variant="outline"
+                            className={`text-xs shrink-0 flex items-center gap-1 ${isCombined ? 'border-[#8B5CF6] text-[#8B5CF6]' : ''}`}
+                          >
+                            {isCombined && <Link2 className="w-3 h-3" />}
+                            {ds?.label ?? report.dataSource?.replace(/_/g, ' ')}
+                          </Badge>
+                        );
+                      })()}
                     </div>
                     {report.description && <p className="text-sm text-muted-foreground mb-2 truncate">{report.description}</p>}
                     <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">

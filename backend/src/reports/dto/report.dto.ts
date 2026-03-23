@@ -67,9 +67,17 @@ export class CreateReportDto {
   @ApiPropertyOptional() @IsOptional() @IsString() description?: string;
 
   @ApiProperty({
-    enum: ['employees', 'applicants', 'documents', 'compliance_alerts', 'agencies', 'work_permits'],
+    enum: [
+      'employees', 'applicants', 'documents', 'compliance_alerts', 'agencies', 'work_permits',
+      'employees_documents', 'employees_work_permits', 'employees_compliance',
+      'applicants_documents', 'employees_agencies', 'applicants_compliance',
+    ],
   })
-  @IsIn(['employees', 'applicants', 'documents', 'compliance_alerts', 'agencies', 'work_permits'])
+  @IsIn([
+    'employees', 'applicants', 'documents', 'compliance_alerts', 'agencies', 'work_permits',
+    'employees_documents', 'employees_work_permits', 'employees_compliance',
+    'applicants_documents', 'employees_agencies', 'applicants_compliance',
+  ])
   dataSource: string;
 
   @ApiPropertyOptional({ type: [ReportFilterDto] })

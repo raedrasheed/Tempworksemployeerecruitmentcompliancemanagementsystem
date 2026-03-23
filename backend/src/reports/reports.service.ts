@@ -239,7 +239,7 @@ export class ReportsService {
     if (selectParts.length === 0) selectParts.push('*');
 
     // ── WHERE clause ─────────────────────────────────────────────────────
-    const conditions: Prisma.Sql[] = [Prisma.sql`"deleted_at" IS NULL`];
+    const conditions: Prisma.Sql[] = [];
 
     for (const filter of (report.filters as any[])) {
       const meta = fieldMeta[filter.fieldName];
@@ -271,7 +271,7 @@ export class ReportsService {
       }
     }
 
-    const whereClause = Prisma.join(conditions, ' AND ');
+    const whereClause = conditions.length ? Prisma.join(conditions, ' AND ') : Prisma.sql`TRUE`;
 
     // ── GROUP BY ──────────────────────────────────────────────────────────
     const groupedCols = cols.filter((c: any) => c.isGrouped && fieldMeta[c.columnName]);

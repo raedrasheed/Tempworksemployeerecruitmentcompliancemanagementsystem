@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { applicantsApi } from '../../services/api';
+import { applicantsApi, workflowApi } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
 import { Link } from 'react-router';
 import { Search, Plus, Eye, Edit, UserPlus, Download, Trash2 } from 'lucide-react';
@@ -16,6 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from '../../components/ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { FilterSystem, Column, FilterRule, FilterPreset } from '../../components/filters/FilterSystem';
 
 // Define columns for the filter system
@@ -108,6 +109,8 @@ export function ApplicantsList() {
   const [applicantsData, setApplicantsData] = useState<any[]>([]);
   const [totalApplicants, setTotalApplicants] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [allStages, setAllStages] = useState<any[]>([]);
+  const [changingStageFor, setChangingStageFor] = useState<string | null>(null);
 
   const fetchApplicants = useCallback(async () => {
     setLoading(true);
@@ -128,6 +131,27 @@ export function ApplicantsList() {
     const timer = setTimeout(fetchApplicants, 300);
     return () => clearTimeout(timer);
   }, [fetchApplicants]);
+
+  useEffect(() => {
+    workflowApi.getStages().then((stages: any) => setAllStages(Array.isArray(stages) ? stages : [])).catch(() => {});
+  }, []);
+
+  const handleStageChange = async (applicantId: string, stageId: string) => {
+    setChangingStageFor(applicantId);
+    try {
+      const updated = await applicantsApi.setCurrentStage(applicantId, stageId);
+      setApplicantsData(prev => prev.map(a =>
+        a.id === applicantId
+          ? { ...a, currentWorkflowStageId: updated.currentWorkflowStageId, currentWorkflowStage: updated.currentWorkflowStage }
+          : a
+      ));
+      toast.success('Stage updated');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to update stage');
+    } finally {
+      setChangingStageFor(null);
+    }
+  };
 
   // Use API data or fall back to local hardcoded array if API not available
   const applicants = applicantsData.length > 0 ? applicantsData : [];
@@ -343,6 +367,7 @@ export function ApplicantsList() {
                   <TableHead>Nationality</TableHead>
                   <TableHead>Job Type</TableHead>
                   <TableHead>Agency</TableHead>
+                  <TableHead>Stage</TableHead>
                   <TableHead>Applied</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -385,6 +410,28 @@ export function ApplicantsList() {
                         <span className="text-sm">{applicant.agency.name}</span>
                       ) : (
                         <span className="text-sm text-muted-foreground">Direct</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {canEdit('applicants') && allStages.length > 0 ? (
+                        <Select
+                          value={applicant.currentWorkflowStageId ?? '__none__'}
+                          onValueChange={(val) => handleStageChange(applicant.id, val)}
+                          disabled={changingStageFor === applicant.id}
+                        >
+                          <SelectTrigger className="h-8 text-xs w-36">
+                            <SelectValue placeholder="No stage" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {allStages.map((s: any) => (
+                              <SelectItem key={s.id} value={s.id} className="text-xs">{s.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">
+                          {applicant.currentWorkflowStage?.name ?? '—'}
+                        </span>
                       )}
                     </TableCell>
                     <TableCell>

@@ -290,7 +290,7 @@ export class ReportsService {
       .map((s: any) => Prisma.raw(`"${fieldMeta[s.columnName].dbCol}" ${s.direction === 'DESC' ? 'DESC' : 'ASC'}`));
     const orderByClause = sortParts.length
       ? Prisma.sql`ORDER BY ${Prisma.join(sortParts, ', ')}`
-      : Prisma.sql`ORDER BY "created_at" DESC`;
+      : Prisma.sql`ORDER BY "createdAt" DESC`;
 
     // ── Count ─────────────────────────────────────────────────────────────
     const offset = (Number(page) - 1) * Number(limit);

@@ -12,6 +12,7 @@ export class ApplicantsService {
   private get include() {
     return {
       jobType: { select: { id: true, name: true } },
+      agency: { select: { id: true, name: true } },
       currentWorkflowStage: { select: { id: true, name: true, color: true, order: true } },
     };
   }

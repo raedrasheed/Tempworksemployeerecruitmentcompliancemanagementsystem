@@ -342,6 +342,7 @@ export function ApplicantsList() {
                   <TableHead>Contact</TableHead>
                   <TableHead>Nationality</TableHead>
                   <TableHead>Job Type</TableHead>
+                  <TableHead>Agency</TableHead>
                   <TableHead>Applied</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -378,6 +379,13 @@ export function ApplicantsList() {
                           ? applicant.jobType.name
                           : applicant.jobType}
                       </span>
+                    </TableCell>
+                    <TableCell>
+                      {applicant.agency ? (
+                        <span className="text-sm">{applicant.agency.name}</span>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">Direct</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       <span className="text-sm">

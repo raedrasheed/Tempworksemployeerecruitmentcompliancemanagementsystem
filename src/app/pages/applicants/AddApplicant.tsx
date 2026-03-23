@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { applicantsApi, settingsApi, documentsApi } from '../../services/api';
+import { applicantsApi, settingsApi, documentsApi, agenciesApi } from '../../services/api';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent } from '../../components/ui/card';
+import { Label } from '../../components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { ArrowLeft, ChevronRight, ChevronLeft, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { ApplicantFormSteps, ApplicantFormData, JobType, StepIndicator, UploadedFileItem } from '../../components/applicants/ApplicantFormSteps';
@@ -36,10 +38,13 @@ export function AddApplicant() {
   const [jobTypes, setJobTypes] = useState<JobType[]>([]);
   const [docTypes, setDocTypes] = useState<any[]>([]);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFileItem[]>([]);
+  const [agencies, setAgencies] = useState<any[]>([]);
+  const [agencyId, setAgencyId] = useState<string>('');
 
   useEffect(() => {
     settingsApi.getJobTypes().then(setJobTypes).catch(() => {});
     settingsApi.getDocumentTypes().then((res: any) => setDocTypes(res?.data ?? res ?? [])).catch(() => {});
+    agenciesApi.list({ limit: 100 }).then((res: any) => setAgencies(res?.data ?? [])).catch(() => {});
   }, []);
 
   const handleInputChange = (field: keyof ApplicantFormData, value: any) => {
@@ -157,6 +162,7 @@ export function AddApplicant() {
         willingToRelocate: true,
         notes: JSON.stringify(extraData),
         ...(jobTypeId ? { jobTypeId } : {}),
+        ...(agencyId && agencyId !== 'none' ? { agencyId } : {}),
       };
 
       const applicant = await applicantsApi.create(applicantPayload);
@@ -208,6 +214,26 @@ export function AddApplicant() {
           <p className="text-muted-foreground mt-1">Driver Application Form</p>
         </div>
       </div>
+
+      {/* Agency */}
+      <Card>
+        <CardContent className="pt-6 pb-6">
+          <div className="max-w-sm">
+            <Label htmlFor="agencyId" className="mb-2 block">Agency <span className="text-muted-foreground font-normal">(optional)</span></Label>
+            <Select value={agencyId} onValueChange={setAgencyId}>
+              <SelectTrigger id="agencyId">
+                <SelectValue placeholder="Select agency..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">No Agency (Direct)</SelectItem>
+                {agencies.map((a) => (
+                  <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Step Indicator */}
       <Card>

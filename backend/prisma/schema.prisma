@@ -201,8 +201,9 @@ model Agency {
   updatedAt          DateTime     @updatedAt
   deletedAt          DateTime?
 
-  users     User[]
-  employees Employee[]
+  users      User[]
+  employees  Employee[]
+  applicants Applicant[]
 
   @@map("agencies")
 }
@@ -303,6 +304,7 @@ model Applicant {
   dateOfBirth             DateTime?
   status                  ApplicantStatus @default(NEW)
   jobTypeId               String?
+  agencyId                String?
   residencyStatus         String
   hasNationalInsurance    Boolean         @default(false)
   nationalInsuranceNumber String?
@@ -322,6 +324,7 @@ model Applicant {
   currentWorkflowStageId String?
 
   jobType              JobType?       @relation(fields: [jobTypeId], references: [id])
+  agency               Agency?        @relation(fields: [agencyId], references: [id])
   currentWorkflowStage WorkflowStage? @relation("ApplicantCurrentStage", fields: [currentWorkflowStageId], references: [id])
 
   @@map("applicants")

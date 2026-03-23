@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
-import { applicantsApi, settingsApi } from '../../services/api';
+import { applicantsApi, settingsApi, agenciesApi } from '../../services/api';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent } from '../../components/ui/card';
+import { Label } from '../../components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { ArrowLeft, ChevronRight, ChevronLeft, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { ApplicantFormSteps, ApplicantFormData, JobType, StepIndicator, UploadedFileItem } from '../../components/applicants/ApplicantFormSteps';
@@ -37,9 +39,12 @@ export function EditApplicant() {
   const [submitting, setSubmitting] = useState(false);
   const [jobTypes, setJobTypes] = useState<JobType[]>([]);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFileItem[]>([]);
+  const [agencies, setAgencies] = useState<any[]>([]);
+  const [agencyId, setAgencyId] = useState<string>('');
 
   useEffect(() => {
     settingsApi.getJobTypes().then(setJobTypes).catch(() => {});
+    agenciesApi.list({ limit: 100 }).then((res: any) => setAgencies(res?.data ?? [])).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -58,6 +63,7 @@ export function EditApplicant() {
         jobTypeId: applicant.jobTypeId || '',
         ...extra,
       });
+      setAgencyId(applicant.agencyId || '');
     }).catch(() => {
       toast.error('Failed to load applicant data');
     }).finally(() => setLoading(false));
@@ -112,6 +118,7 @@ export function EditApplicant() {
       availability: formData.earliestStartDate || 'Immediate',
       notes: JSON.stringify(extraData),
       ...(formData.jobTypeId ? { jobTypeId: formData.jobTypeId } : {}),
+      agencyId: agencyId && agencyId !== 'none' ? agencyId : null,
     };
   };
 
@@ -160,6 +167,26 @@ export function EditApplicant() {
           <p className="text-muted-foreground mt-1">Update applicant information - ID: {id}</p>
         </div>
       </div>
+
+      {/* Agency */}
+      <Card>
+        <CardContent className="pt-6 pb-6">
+          <div className="max-w-sm">
+            <Label htmlFor="agencyId" className="mb-2 block">Agency <span className="text-muted-foreground font-normal">(optional)</span></Label>
+            <Select value={agencyId || 'none'} onValueChange={(v) => setAgencyId(v === 'none' ? '' : v)}>
+              <SelectTrigger id="agencyId">
+                <SelectValue placeholder="Select agency..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">No Agency (Direct)</SelectItem>
+                {agencies.map((a) => (
+                  <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Step Indicator */}
       <Card>

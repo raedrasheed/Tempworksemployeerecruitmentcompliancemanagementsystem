@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router';
 import { ArrowLeft, Mail, Phone, Globe, Briefcase, Calendar, FileText, UserPlus, Edit, Trash2, CheckCircle2, Download, Upload, X } from 'lucide-react';
 import { usePermissions } from '../../hooks/usePermissions';
-import { applicantsApi, documentsApi, settingsApi } from '../../services/api';
+import { applicantsApi, documentsApi, settingsApi, workflowApi } from '../../services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
@@ -184,6 +184,8 @@ export function ApplicantProfile() {
   const [documents, setDocuments] = useState<any[]>([]);
   const [docsLoading, setDocsLoading] = useState(false);
   const [docTypes, setDocTypes] = useState<any[]>([]);
+  const [allStages, setAllStages] = useState<any[]>([]);
+  const [changingStage, setChangingStage] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
@@ -202,7 +204,22 @@ export function ApplicantProfile() {
 
   useEffect(() => {
     settingsApi.getDocumentTypes().then(setDocTypes).catch(() => {});
+    workflowApi.getStages().then((stages: any) => setAllStages(Array.isArray(stages) ? stages : [])).catch(() => {});
   }, []);
+
+  const handleStageChange = async (stageId: string) => {
+    if (!stageId || !id) return;
+    setChangingStage(true);
+    try {
+      const updated = await applicantsApi.setCurrentStage(id, stageId);
+      setApplicantData((prev: any) => ({ ...prev, currentWorkflowStage: updated.currentWorkflowStage, currentWorkflowStageId: updated.currentWorkflowStageId }));
+      toast.success('Workflow stage updated');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to update stage');
+    } finally {
+      setChangingStage(false);
+    }
+  };
 
   const handleUpload = async () => {
     if (!uploadFile) { toast.error('Please select a file'); return; }
@@ -251,6 +268,8 @@ export function ApplicantProfile() {
         dateOfBirth: applicant.dateOfBirth ? applicant.dateOfBirth.slice(0, 10) : '',
         preferredStartDate: applicant.preferredStartDate ? applicant.preferredStartDate.slice(0, 10) : '',
         jobType: applicant.jobType,
+        currentWorkflowStageId: applicant.currentWorkflowStageId ?? null,
+        currentWorkflowStage: applicant.currentWorkflowStage ?? null,
       });
     }).catch(() => {
       toast.error('Failed to load applicant');
@@ -323,12 +342,49 @@ export function ApplicantProfile() {
         </div>
       </div>
 
-      {/* Status Badge */}
-      <div>
+      {/* Status Badge & Workflow Stage */}
+      <div className="flex flex-wrap items-center gap-3">
         <Badge className={getStatusColor(applicantData.status)}>
           {applicantData.status}
         </Badge>
+        {applicantData.currentWorkflowStage && (
+          <Badge style={{ backgroundColor: applicantData.currentWorkflowStage.color ?? '#2563EB' }} className="text-white">
+            {applicantData.currentWorkflowStage.name}
+          </Badge>
+        )}
       </div>
+
+      {/* Workflow Stage Selector */}
+      {canEdit('applicants') && allStages.length > 0 && (
+        <Card>
+          <CardContent className="py-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <div className="flex-1">
+                <p className="text-sm font-medium mb-1">Current Workflow Stage</p>
+                <p className="text-xs text-muted-foreground">Assign this applicant to a recruitment pipeline stage</p>
+              </div>
+              <div className="w-full sm:w-64">
+                <Select
+                  value={applicantData.currentWorkflowStageId ?? ''}
+                  onValueChange={handleStageChange}
+                  disabled={changingStage}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="No stage assigned" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {allStages.map((s: any) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {s.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Tabs */}
       <Tabs defaultValue="basic" className="space-y-6">

@@ -12,6 +12,7 @@ export class ApplicantsService {
   private get include() {
     return {
       jobType: { select: { id: true, name: true } },
+      currentWorkflowStage: { select: { id: true, name: true, color: true, order: true } },
     };
   }
 
@@ -128,6 +129,31 @@ export class ApplicantsService {
       include: this.include,
     });
 
+    return applicant;
+  }
+
+  async setCurrentStage(id: string, stageId: string | null, updatedById?: string) {
+    await this.findOne(id);
+    if (stageId) {
+      const stage = await this.prisma.workflowStage.findUnique({ where: { id: stageId } });
+      if (!stage) throw new NotFoundException('Workflow stage not found');
+    }
+    const applicant = await this.prisma.applicant.update({
+      where: { id },
+      data: { currentWorkflowStageId: stageId },
+      include: this.include,
+    });
+    if (updatedById) {
+      await this.prisma.auditLog.create({
+        data: {
+          userId: updatedById,
+          action: 'WORKFLOW_STAGE_UPDATE',
+          entity: 'Applicant',
+          entityId: id,
+          changes: { currentWorkflowStageId: stageId } as any,
+        },
+      });
+    }
     return applicant;
   }
 }

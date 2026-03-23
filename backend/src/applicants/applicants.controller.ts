@@ -64,6 +64,14 @@ export class ApplicantsController {
     return this.applicantsService.updateStatus(id, status, user?.id);
   }
 
+  @Patch(':id/stage')
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter')
+  @ApiOperation({ summary: 'Set current workflow stage for an applicant' })
+  @ApiParam({ name: 'id', description: 'Applicant UUID' })
+  setCurrentStage(@Param('id') id: string, @Body('stageId') stageId: string, @CurrentUser() user: any) {
+    return this.applicantsService.setCurrentStage(id, stageId || null, user?.id);
+  }
+
   @Delete(':id')
   @Roles('System Admin', 'HR Manager')
   @HttpCode(HttpStatus.OK)

@@ -10,7 +10,7 @@ import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { toast } from 'sonner';
-import { employeesApi, documentsApi, settingsApi } from '../../services/api';
+import { employeesApi, documentsApi, settingsApi, workflowApi } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
 
 const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1').replace('/api/v1', '');
@@ -24,10 +24,16 @@ export function EmployeeProfile() {
   const [workflow, setWorkflow] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [docTypes, setDocTypes] = useState<any[]>([]);
+  const [allStages, setAllStages] = useState<any[]>([]);
+  const [changingStage, setChangingStage] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadForm, setUploadForm] = useState({ documentTypeId: '', name: '', issueDate: '', expiryDate: '', documentNumber: '', issuer: '' });
+
+  const loadWorkflow = () => {
+    employeesApi.getWorkflow(id!).then(wf => setWorkflow(Array.isArray(wf) ? wf : [])).catch(() => {});
+  };
 
   const loadDocs = () => {
     employeesApi.getDocuments(id!).then(docs => setDocuments(Array.isArray(docs) ? docs : [])).catch(() => {});
@@ -38,10 +44,12 @@ export function EmployeeProfile() {
       employeesApi.get(id!),
       employeesApi.getDocuments(id!),
       employeesApi.getWorkflow(id!),
-    ]).then(([emp, docs, wf]) => {
+      workflowApi.getStages(),
+    ]).then(([emp, docs, wf, stages]) => {
       setEmployee(emp);
       setDocuments(Array.isArray(docs) ? docs : []);
       setWorkflow(Array.isArray(wf) ? wf : []);
+      setAllStages(Array.isArray(stages) ? stages : []);
     }).catch(() => toast.error('Failed to load employee'))
       .finally(() => setLoading(false));
   }, [id]);
@@ -49,6 +57,20 @@ export function EmployeeProfile() {
   useEffect(() => {
     settingsApi.getDocumentTypes().then(setDocTypes).catch(() => {});
   }, []);
+
+  const handleStageChange = async (stageId: string) => {
+    if (!stageId || !id) return;
+    setChangingStage(true);
+    try {
+      await workflowApi.setEmployeeCurrentStage(id, stageId);
+      toast.success('Workflow stage updated');
+      loadWorkflow();
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to update stage');
+    } finally {
+      setChangingStage(false);
+    }
+  };
 
   const handleUpload = async () => {
     if (!uploadFile) { toast.error('Please select a file'); return; }
@@ -440,6 +462,41 @@ export function EmployeeProfile() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Change Current Stage */}
+            {canEdit && allStages.length > 0 && (
+              <div>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Change Current Stage</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <p className="text-sm text-muted-foreground">
+                      Select a stage to mark as the active (In Progress) stage. The previous active stage will be marked as completed.
+                    </p>
+                    <Select
+                      value={workflow.find(ws => ws.status === 'IN_PROGRESS')?.stageId ?? ''}
+                      onValueChange={handleStageChange}
+                      disabled={changingStage}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a stage…" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {allStages.map((s: any) => (
+                          <SelectItem key={s.id} value={s.id}>
+                            {s.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {changingStage && (
+                      <p className="text-xs text-muted-foreground">Updating stage…</p>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            )}
           </div>
         </TabsContent>
 

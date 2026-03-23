@@ -253,6 +253,12 @@ export const applicantsApi = {
       body: JSON.stringify({ status }),
     }),
 
+  setCurrentStage: (id: string, stageId: string | null) =>
+    apiFetch<any>(`/applicants/${id}/stage`, {
+      method: 'PATCH',
+      body: JSON.stringify({ stageId }),
+    }),
+
   convertToEmployee: (id: string) =>
     apiFetch<any>(`/applicants/${id}/convert`, { method: 'POST' }),
 };
@@ -341,6 +347,12 @@ export const workflowApi = {
     apiFetch<any>(`/workflow/employees/${employeeId}/stage`, {
       method: 'PATCH',
       body: JSON.stringify(data),
+    }),
+
+  setEmployeeCurrentStage: (employeeId: string, stageId: string) =>
+    apiFetch<any>(`/workflow/employees/${employeeId}/current-stage`, {
+      method: 'PATCH',
+      body: JSON.stringify({ stageId }),
     }),
 
   getTimeline: (employeeId: string) =>

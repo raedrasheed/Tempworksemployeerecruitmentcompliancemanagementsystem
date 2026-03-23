@@ -62,6 +62,19 @@ export class WorkflowController {
     return this.workflowService.updateEmployeeWorkflowStage(employeeId, stageId, dto, user?.id);
   }
 
+  @Patch('employees/:id/current-stage')
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter')
+  @ApiOperation({ summary: 'Set the current (IN_PROGRESS) workflow stage for an employee' })
+  @ApiParam({ name: 'id', description: 'Employee UUID' })
+  @ApiBody({ schema: { type: 'object', properties: { stageId: { type: 'string' } }, required: ['stageId'] } })
+  setEmployeeCurrentStage(
+    @Param('id') employeeId: string,
+    @Body('stageId') stageId: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.workflowService.setEmployeeCurrentStage(employeeId, stageId, user?.id);
+  }
+
   // Work Permits
   @Get('work-permits')
   @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Read Only')

@@ -101,6 +101,42 @@ export class WorkflowService {
     return updated;
   }
 
+  async setEmployeeCurrentStage(employeeId: string, stageId: string, updatedById?: string) {
+    const employee = await this.prisma.employee.findUnique({ where: { id: employeeId, deletedAt: null } });
+    if (!employee) throw new NotFoundException('Employee not found');
+
+    const stage = await this.prisma.workflowStage.findUnique({ where: { id: stageId } });
+    if (!stage) throw new NotFoundException('Workflow stage not found');
+
+    // Complete any currently IN_PROGRESS stages
+    await this.prisma.employeeWorkflowStage.updateMany({
+      where: { employeeId, status: 'IN_PROGRESS' },
+      data: { status: 'COMPLETED', completedAt: new Date() },
+    });
+
+    // Upsert the chosen stage as IN_PROGRESS
+    const result = await this.prisma.employeeWorkflowStage.upsert({
+      where: { employeeId_stageId: { employeeId, stageId } },
+      create: { employeeId, stageId, status: 'IN_PROGRESS', startedAt: new Date() },
+      update: { status: 'IN_PROGRESS', startedAt: new Date(), completedAt: null },
+      include: { stage: true },
+    });
+
+    if (updatedById) {
+      await this.prisma.auditLog.create({
+        data: {
+          userId: updatedById,
+          action: 'WORKFLOW_STAGE_UPDATE',
+          entity: 'Employee',
+          entityId: employeeId,
+          changes: { currentStageId: stageId, currentStageName: stage.name } as any,
+        },
+      });
+    }
+
+    return result;
+  }
+
   async getTimeline(employeeId: string) {
     const employee = await this.prisma.employee.findUnique({
       where: { id: employeeId, deletedAt: null },

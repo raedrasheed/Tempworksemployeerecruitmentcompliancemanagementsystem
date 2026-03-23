@@ -254,7 +254,8 @@ model WorkflowStage {
   createdAt            DateTime         @default(now())
   updatedAt            DateTime         @updatedAt
 
-  employeeStages EmployeeWorkflowStage[]
+  employeeStages    EmployeeWorkflowStage[]
+  applicantsCurrent Applicant[]             @relation("ApplicantCurrentStage")
 
   @@map("workflow_stages")
 }
@@ -318,7 +319,10 @@ model Applicant {
   updatedAt               DateTime        @updatedAt
   deletedAt               DateTime?
 
-  jobType JobType? @relation(fields: [jobTypeId], references: [id])
+  currentWorkflowStageId String?
+
+  jobType              JobType?       @relation(fields: [jobTypeId], references: [id])
+  currentWorkflowStage WorkflowStage? @relation("ApplicantCurrentStage", fields: [currentWorkflowStageId], references: [id])
 
   @@map("applicants")
 }

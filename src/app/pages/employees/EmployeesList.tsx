@@ -236,7 +236,6 @@ export function EmployeesList() {
                   <TableHead>Experience</TableHead>
                   <TableHead>Agency</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Current Stage</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -294,11 +293,6 @@ export function EmployeesList() {
                       >
                         {driver.status?.replace(/_/g, ' ').toLowerCase()}
                       </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-sm text-muted-foreground">
-                        {driver.currentStage ? driver.currentStage.replace(/_/g, ' ') : '—'}
-                      </span>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">

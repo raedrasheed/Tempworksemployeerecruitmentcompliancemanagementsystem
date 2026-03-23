@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { applicantsApi } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
 import { Link } from 'react-router';
-import { Search, Plus, Eye, Edit, UserPlus, Download } from 'lucide-react';
+import { Search, Plus, Eye, Edit, UserPlus, Download, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -223,6 +224,18 @@ export function ApplicantsList() {
     setSavedPresets(savedPresets.filter(p => p.id !== presetId));
   };
 
+  const handleDelete = async (applicant: any) => {
+    if (!confirm(`Delete "${applicant.firstName} ${applicant.lastName}"? This cannot be undone.`)) return;
+    try {
+      await applicantsApi.delete(applicant.id);
+      setApplicantsData(prev => prev.filter(a => a.id !== applicant.id));
+      setTotalApplicants(prev => prev - 1);
+      toast.success('Applicant deleted successfully');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to delete applicant');
+    }
+  };
+
   const handleExport = () => {
     console.log('Exporting', filteredApplicants.length, 'applicants');
   };
@@ -397,6 +410,13 @@ export function ApplicantsList() {
                             <UserPlus className="w-4 h-4" />
                           </Button>
                         )}
+                        <Button
+                          variant="ghost" size="sm"
+                          onClick={() => handleDelete(applicant)}
+                          className="text-[#EF4444] hover:text-[#EF4444] hover:bg-[#FEF2F2]"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>

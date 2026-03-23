@@ -154,7 +154,7 @@ export class SettingsService {
 
   // ─── Workflow Stages ─────────────────────────────────────────────────────────
   async findWorkflowStages() {
-    return this.prisma.workflowStage.findMany({ where: { isActive: true }, orderBy: { order: 'asc' } });
+    return this.prisma.workflowStage.findMany({ orderBy: { order: 'asc' } });
   }
 
   async createWorkflowStage(dto: any, actorId?: string) {

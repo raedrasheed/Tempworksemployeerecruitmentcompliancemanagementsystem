@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Plus, Edit, Trash2, GripVertical, Save, FileText, CheckCircle, AlertCircle, Shield } from 'lucide-react';
+import { Plus, Edit, Trash2, GripVertical, Save, FileText, CheckCircle, AlertCircle, Shield, PowerOff, Power } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
@@ -15,6 +15,7 @@ interface WorkflowStage {
   description: string;
   color: string;
   order: number;
+  isActive: boolean;
   requirementsDocuments: string[];
   requirementsActions: string[];
   requirementsApprovals: string[];
@@ -66,6 +67,7 @@ export function WorkflowConfiguration() {
           description: s.description ?? '',
           color: s.color ?? '#2563EB',
           order: s.order,
+          isActive: s.isActive ?? true,
           requirementsDocuments: s.requirementsDocuments ?? [],
           requirementsActions: s.requirementsActions ?? [],
           requirementsApprovals: s.requirementsApprovals ?? [],
@@ -122,6 +124,19 @@ export function WorkflowConfiguration() {
       setStages(prev => prev.filter(s => s.id !== stageId).map((s, i) => ({ ...s, order: i + 1 })));
     } catch (e: any) {
       alert(e?.message ?? 'Failed to delete stage');
+    }
+  };
+
+  // ─── Toggle active ─────────────────────────────────────────────────────────
+  const handleToggleActive = async (stage: WorkflowStage) => {
+    const next = !stage.isActive;
+    const verb = next ? 'activate' : 'deactivate';
+    if (!confirm(`Are you sure you want to ${verb} the "${stage.name}" stage? ${next ? 'It will re-appear in the workflow.' : 'It will be hidden from the workflow but not deleted.'}`)) return;
+    try {
+      await settingsApi.updateWorkflowStage(stage.id, { isActive: next });
+      setStages(prev => prev.map(s => s.id === stage.id ? { ...s, isActive: next } : s));
+    } catch (e: any) {
+      alert(e?.message ?? `Failed to ${verb} stage`);
     }
   };
 
@@ -344,7 +359,10 @@ export function WorkflowConfiguration() {
       {/* Workflow Stages */}
       <Card>
         <CardHeader>
-          <CardTitle>Workflow Stages ({stages.length})</CardTitle>
+          <CardTitle>
+            Workflow Stages ({stages.filter(s => s.isActive).length} active
+            {stages.some(s => !s.isActive) ? `, ${stages.filter(s => !s.isActive).length} inactive` : ''})
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -358,43 +376,52 @@ export function WorkflowConfiguration() {
               {stages.map((stage) => (
                 <div
                   key={stage.id}
-                  draggable
-                  onDragStart={() => handleDragStart(stage.id)}
-                  onDragOver={(e) => handleDragOver(e, stage.id)}
+                  draggable={stage.isActive}
+                  onDragStart={() => stage.isActive && handleDragStart(stage.id)}
+                  onDragOver={(e) => stage.isActive && handleDragOver(e, stage.id)}
                   onDragEnd={handleDragEnd}
-                  className={`flex items-center gap-4 p-4 border rounded-lg hover:bg-[#F8FAFC] transition-colors cursor-move ${
-                    draggedId.current === stage.id ? 'opacity-50' : ''
-                  }`}
+                  className={`flex items-center gap-4 p-4 border rounded-lg transition-colors ${
+                    stage.isActive
+                      ? 'hover:bg-[#F8FAFC] cursor-move'
+                      : 'bg-[#F8FAFC] opacity-60 cursor-default'
+                  } ${draggedId.current === stage.id ? 'opacity-50' : ''}`}
                 >
-                  <GripVertical className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+                  <GripVertical className={`w-5 h-5 flex-shrink-0 ${stage.isActive ? 'text-muted-foreground' : 'text-muted-foreground/30'}`} />
 
                   <div className="flex items-center gap-3 flex-1">
                     <div
                       className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-semibold"
-                      style={{ backgroundColor: stage.color }}
+                      style={{ backgroundColor: stage.isActive ? stage.color : '#94A3B8' }}
                     >
                       {stage.order}
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-semibold text-[#0F172A]">{stage.name}</h3>
-                        <Badge variant="outline" style={{ borderColor: stage.color, color: stage.color }}>
+                        <h3 className={`font-semibold ${stage.isActive ? 'text-[#0F172A]' : 'text-muted-foreground'}`}>
+                          {stage.name}
+                        </h3>
+                        <Badge variant="outline" style={stage.isActive ? { borderColor: stage.color, color: stage.color } : {}}>
                           Stage {stage.order}
                         </Badge>
+                        {!stage.isActive && (
+                          <Badge variant="outline" className="border-[#94A3B8] text-[#64748B] bg-[#F1F5F9]">
+                            Inactive
+                          </Badge>
+                        )}
                       </div>
                       <p className="text-sm text-muted-foreground mb-2">{stage.description}</p>
 
-                      <div className="flex items-center gap-4 text-sm">
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
                         <div className="flex items-center gap-1">
-                          <FileText className="w-4 h-4 text-muted-foreground" />
+                          <FileText className="w-4 h-4" />
                           <span>{stage.requirementsDocuments.length} documents</span>
                         </div>
                         <div className="flex items-center gap-1">
-                          <CheckCircle className="w-4 h-4 text-muted-foreground" />
+                          <CheckCircle className="w-4 h-4" />
                           <span>{stage.requirementsActions.length} actions</span>
                         </div>
                         <div className="flex items-center gap-1">
-                          <AlertCircle className="w-4 h-4 text-muted-foreground" />
+                          <AlertCircle className="w-4 h-4" />
                           <span>{stage.requirementsApprovals.length} approvals</span>
                         </div>
                       </div>
@@ -402,13 +429,28 @@ export function WorkflowConfiguration() {
                   </div>
 
                   <div className="flex items-center gap-2">
+                    {stage.isActive && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => openRequirementsEditor(stage)}
+                      >
+                        <Edit className="w-4 h-4 mr-1" />
+                        Edit Requirements
+                      </Button>
+                    )}
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => openRequirementsEditor(stage)}
+                      onClick={() => handleToggleActive(stage)}
+                      title={stage.isActive ? 'Deactivate stage' : 'Activate stage'}
+                      className={stage.isActive
+                        ? 'border-[#F59E0B] text-[#F59E0B] hover:bg-[#FEF3C7]'
+                        : 'border-[#22C55E] text-[#22C55E] hover:bg-[#F0FDF4]'}
                     >
-                      <Edit className="w-4 h-4 mr-1" />
-                      Edit Requirements
+                      {stage.isActive
+                        ? <><PowerOff className="w-4 h-4 mr-1" />Deactivate</>
+                        : <><Power className="w-4 h-4 mr-1" />Activate</>}
                     </Button>
                     <Button
                       size="sm"

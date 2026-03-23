@@ -26,12 +26,20 @@ export class WorkflowService {
 
     const overview = await Promise.all(
       stages.map(async (stage) => {
-        const [pending, inProgress, completed] = await Promise.all([
+        const [pending, inProgress, completed, applicantsCount] = await Promise.all([
           this.prisma.employeeWorkflowStage.count({ where: { stageId: stage.id, status: 'PENDING' } }),
           this.prisma.employeeWorkflowStage.count({ where: { stageId: stage.id, status: 'IN_PROGRESS' } }),
           this.prisma.employeeWorkflowStage.count({ where: { stageId: stage.id, status: 'COMPLETED' } }),
+          this.prisma.applicant.count({ where: { currentWorkflowStageId: stage.id, deletedAt: null } }),
         ]);
-        return { ...stage, pending, inProgress, completed, total: pending + inProgress + completed };
+        return {
+          ...stage,
+          pending,
+          inProgress: inProgress + applicantsCount,
+          completed,
+          total: pending + inProgress + completed,
+          applicants: applicantsCount,
+        };
       }),
     );
     return overview;

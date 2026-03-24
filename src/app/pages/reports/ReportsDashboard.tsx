@@ -71,8 +71,28 @@ function KpiCard({ title, icon, value, sub, loading, color }: any) {
   );
 }
 
+// ─── Helpers ────────────────────────────────────────────────────────────────
+function fmtCell(value: any, type?: string): string {
+  if (value === null || value === undefined) return '—';
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+  if (type === 'date' || value instanceof Date) {
+    const d = value instanceof Date ? value : new Date(value);
+    if (!isNaN(d.getTime())) {
+      return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
+  }
+  // Catch ISO date strings even without explicit type hint
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(value)) {
+    const d = new Date(value);
+    if (!isNaN(d.getTime())) {
+      return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
+  }
+  return String(value);
+}
+
 // ─── Preview Table ─────────────────────────────────────────────────────────────
-function PreviewTable({ result, maxRows }: { result: any; maxRows?: number }) {
+function PreviewTable({ result, maxRows, startSerial = 1 }: { result: any; maxRows?: number; startSerial?: number }) {
   const cols: any[] = result.columns ?? [];
   const rows: any[] = (result.rows ?? []).slice(0, maxRows ?? 9999);
   if (!cols.length) return <p className="p-4 text-sm text-muted-foreground">No columns selected.</p>;
@@ -80,6 +100,7 @@ function PreviewTable({ result, maxRows }: { result: any; maxRows?: number }) {
     <table className="w-full text-sm">
       <thead className="bg-[#F8FAFC] border-b">
         <tr>
+          <th className="text-center p-3 font-semibold text-xs whitespace-nowrap border-r w-10 text-muted-foreground">#</th>
           {cols.map((c: any) => (
             <th key={c.key} className="text-left p-3 font-semibold text-xs whitespace-nowrap border-r last:border-r-0">{c.label}</th>
           ))}
@@ -87,16 +108,13 @@ function PreviewTable({ result, maxRows }: { result: any; maxRows?: number }) {
       </thead>
       <tbody>
         {rows.length === 0 ? (
-          <tr><td colSpan={cols.length} className="p-6 text-center text-muted-foreground">No data returned</td></tr>
+          <tr><td colSpan={cols.length + 1} className="p-6 text-center text-muted-foreground">No data returned</td></tr>
         ) : rows.map((row: any, ri: number) => (
           <tr key={ri} className={`border-b ${ri % 2 === 1 ? 'bg-[#F8FAFC]' : ''} hover:bg-[#EFF6FF] transition-colors`}>
+            <td className="p-3 border-r text-xs text-center text-muted-foreground tabular-nums w-10">{startSerial + ri}</td>
             {cols.map((c: any) => (
               <td key={c.key} className="p-3 border-r last:border-r-0 text-xs max-w-[180px] truncate">
-                {row[c.key] instanceof Date
-                  ? new Date(row[c.key]).toLocaleDateString()
-                  : typeof row[c.key] === 'boolean'
-                  ? (row[c.key] ? 'Yes' : 'No')
-                  : (row[c.key] ?? '—')}
+                {fmtCell(row[c.key], c.type)}
               </td>
             ))}
           </tr>

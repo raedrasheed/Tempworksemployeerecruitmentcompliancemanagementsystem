@@ -799,8 +799,8 @@ export class ReportsService {
     wb.created = new Date();
     const ws = wb.addWorksheet(report.name.substring(0, 31));
 
-    // Title
-    const lastCol = String.fromCharCode(64 + Math.max(columns.length, 1));
+    // Title (columns.length data cols + 1 serial col)
+    const lastCol = String.fromCharCode(64 + Math.max(columns.length + 1, 2));
     ws.mergeCells(`A1:${lastCol}1`);
     const titleCell = ws.getCell('A1');
     titleCell.value = report.name;
@@ -814,11 +814,16 @@ export class ReportsService {
       ws.getCell('A3').font  = { size: 9, color: { argb: 'FF94A3B8' } };
     }
 
-    // Header
+    // Header — first column is serial number
     const headerRow = ws.getRow(5);
     headerRow.height = 22;
+    const noCell = headerRow.getCell(1);
+    noCell.value = '#';
+    noCell.font  = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10 };
+    noCell.fill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } };
+    noCell.alignment = { horizontal: 'center', vertical: 'middle' };
     columns.forEach((col, i) => {
-      const cell = headerRow.getCell(i + 1);
+      const cell = headerRow.getCell(i + 2);
       cell.value = col.label;
       cell.font  = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10 };
       cell.fill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } };
@@ -829,16 +834,24 @@ export class ReportsService {
     // Data
     rows.forEach((row, ri) => {
       const wsRow = ws.getRow(ri + 6);
+      // Serial number cell
+      const snCell = wsRow.getCell(1);
+      snCell.value = ri + 1;
+      snCell.alignment = { horizontal: 'center' };
+      if (ri % 2 === 1) snCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
+      snCell.border = { bottom: { style: 'hair', color: { argb: 'FFE2E8F0' } }, right: { style: 'hair', color: { argb: 'FFE2E8F0' } } };
+      // Data cells
       columns.forEach((col, ci) => {
-        const cell = wsRow.getCell(ci + 1);
+        const cell = wsRow.getCell(ci + 2);
         cell.value = this.formatValue(row[col.key]);
         if (ri % 2 === 1) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
         cell.border = { bottom: { style: 'hair', color: { argb: 'FFE2E8F0' } }, right: { style: 'hair', color: { argb: 'FFE2E8F0' } } };
       });
     });
 
+    ws.getColumn(1).width = 6; // # column
     columns.forEach((col, i) => {
-      ws.getColumn(i + 1).width = Math.max(col.label.length + 4, 12);
+      ws.getColumn(i + 2).width = Math.max(col.label.length + 4, 12);
     });
 
     const raw = await wb.xlsx.writeBuffer();
@@ -861,9 +874,10 @@ export class ReportsService {
       if (report.description) doc.fontSize(9).fillColor('#94A3B8').text(report.description, { align: 'center' });
       doc.moveDown(0.6);
 
-      const pageW  = (doc as any).page.width - 72;
+      const snW    = 24; // serial number column width
+      const pageW  = (doc as any).page.width - 72 - snW;
       const colW   = Math.max(Math.floor(pageW / Math.max(columns.length, 1)), 55);
-      const tblW   = colW * columns.length;
+      const tblW   = snW + colW * columns.length;
       const startX = ((doc as any).page.width - tblW) / 2;
       const rowH   = 16;
       const hdrH   = 20;
@@ -872,8 +886,9 @@ export class ReportsService {
       // Header
       doc.rect(startX, y, tblW, hdrH).fill('#2563EB');
       doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(7.5);
+      doc.text('#', startX + 3, y + 6, { width: snW - 6, ellipsis: true });
       columns.forEach((col, i) => {
-        doc.text(col.label, startX + i * colW + 3, y + 6, { width: colW - 6, ellipsis: true });
+        doc.text(col.label, startX + snW + i * colW + 3, y + 6, { width: colW - 6, ellipsis: true });
       });
       y += hdrH;
 
@@ -883,8 +898,9 @@ export class ReportsService {
         if (y + rowH > (doc as any).page.height - 36) { doc.addPage(); y = 36; }
         if (ri % 2 === 0) doc.rect(startX, y, tblW, rowH).fill('#F8FAFC');
         doc.fillColor('#0F172A');
+        doc.text(String(ri + 1), startX + 3, y + 4, { width: snW - 6, ellipsis: true });
         columns.forEach((col, i) => {
-          doc.text(String(this.formatValue(row[col.key]) ?? ''), startX + i * colW + 3, y + 4, { width: colW - 6, ellipsis: true });
+          doc.text(String(this.formatValue(row[col.key]) ?? ''), startX + snW + i * colW + 3, y + 4, { width: colW - 6, ellipsis: true });
         });
         doc.rect(startX, y, tblW, rowH).stroke('#E2E8F0');
         y += rowH;
@@ -898,23 +914,39 @@ export class ReportsService {
   // ── Word ──────────────────────────────────────────────────────────────────
 
   private async toWord(report: any, columns: any[], rows: any[]): Promise<{ buffer: Buffer; mimeType: string; filename: string }> {
-    const headerCells = columns.map(col =>
-      new TableCell({
-        children: [new Paragraph({ children: [new TextRun({ text: col.label, bold: true, color: 'FFFFFF', size: 20 })], spacing: { before: 80, after: 80 } })],
-        shading: { fill: '2563EB' },
-        margins: { top: 80, bottom: 80, left: 120, right: 120 },
-      }),
-    );
+    const snHeaderCell = new TableCell({
+      children: [new Paragraph({ children: [new TextRun({ text: '#', bold: true, color: 'FFFFFF', size: 20 })], spacing: { before: 80, after: 80 } })],
+      shading: { fill: '2563EB' },
+      margins: { top: 80, bottom: 80, left: 120, right: 120 },
+    });
+
+    const headerCells = [
+      snHeaderCell,
+      ...columns.map(col =>
+        new TableCell({
+          children: [new Paragraph({ children: [new TextRun({ text: col.label, bold: true, color: 'FFFFFF', size: 20 })], spacing: { before: 80, after: 80 } })],
+          shading: { fill: '2563EB' },
+          margins: { top: 80, bottom: 80, left: 120, right: 120 },
+        }),
+      ),
+    ];
 
     const dataRows = rows.map((row, ri) =>
       new TableRow({
-        children: columns.map(col =>
+        children: [
           new TableCell({
-            children: [new Paragraph({ children: [new TextRun({ text: String(this.formatValue(row[col.key]) ?? ''), size: 18 })], spacing: { before: 60, after: 60 } })],
+            children: [new Paragraph({ children: [new TextRun({ text: String(ri + 1), size: 18 })], spacing: { before: 60, after: 60 } })],
             shading: ri % 2 === 1 ? { fill: 'F8FAFC' } : undefined,
             margins: { top: 60, bottom: 60, left: 120, right: 120 },
           }),
-        ),
+          ...columns.map(col =>
+            new TableCell({
+              children: [new Paragraph({ children: [new TextRun({ text: String(this.formatValue(row[col.key]) ?? ''), size: 18 })], spacing: { before: 60, after: 60 } })],
+              shading: ri % 2 === 1 ? { fill: 'F8FAFC' } : undefined,
+              margins: { top: 60, bottom: 60, left: 120, right: 120 },
+            }),
+          ),
+        ],
       }),
     );
 
@@ -945,7 +977,15 @@ export class ReportsService {
 
   private formatValue(val: any): string | number | null {
     if (val === null || val === undefined) return '';
-    if (val instanceof Date) return val.toLocaleDateString();
+    if (val instanceof Date) {
+      return val.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
+    if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(val)) {
+      const d = new Date(val);
+      if (!isNaN(d.getTime())) {
+        return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+      }
+    }
     if (typeof val === 'object') return JSON.stringify(val);
     return val;
   }

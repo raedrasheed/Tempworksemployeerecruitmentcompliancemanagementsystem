@@ -1,8 +1,10 @@
 import {
   Controller, Get, Post, Body, Patch, Param, Delete,
   Query, UseGuards, HttpCode, HttpStatus, UseInterceptors,
-  UploadedFile, BadRequestException,
+  UploadedFile, BadRequestException, Res,
 } from '@nestjs/common';
+import { Response } from 'express';
+import { IsArray, IsUUID } from 'class-validator';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
@@ -17,7 +19,9 @@ import { VerifyDocumentDto } from './dto/verify-document.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { Public } from '../auth/decorators/public.decorator';
 
 const multerStorage = diskStorage({
   destination: process.env.UPLOAD_DEST || './uploads',
@@ -41,12 +45,14 @@ export class DocumentsController {
   constructor(private readonly documentsService: DocumentsService) {}
 
   @Get()
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Finance', 'Read Only')
   @ApiOperation({ summary: 'Get all documents' })
   findAll(@Query() pagination: PaginationDto) {
     return this.documentsService.findAll(pagination);
   }
 
   @Get('expiring')
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Read Only')
   @ApiOperation({ summary: 'Get documents expiring within N days' })
   @ApiParam({ name: 'days', description: 'Days threshold', required: false })
   getExpiring(@Query('days') days?: number) {
@@ -54,6 +60,7 @@ export class DocumentsController {
   }
 
   @Get('entity/:entityType/:entityId')
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Finance', 'Read Only')
   @ApiOperation({ summary: 'Get documents for a specific entity' })
   @ApiParam({ name: 'entityType', description: 'Entity type (EMPLOYEE, APPLICANT, etc.)' })
   @ApiParam({ name: 'entityId', description: 'Entity UUID' })
@@ -66,13 +73,73 @@ export class DocumentsController {
   }
 
   @Get(':id')
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Finance', 'Read Only')
   @ApiOperation({ summary: 'Get document by ID' })
   @ApiParam({ name: 'id', description: 'Document UUID' })
   findOne(@Param('id') id: string) {
     return this.documentsService.findOne(id);
   }
 
+  @Post('bulk-download')
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Finance', 'Read Only')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Download multiple documents as a ZIP archive' })
+  @ApiBody({ schema: { type: 'object', properties: { ids: { type: 'array', items: { type: 'string', format: 'uuid' } } }, required: ['ids'] } })
+  async bulkDownload(
+    @Body() dto: { ids: string[] },
+    @Res() res: Response,
+  ) {
+    if (!dto.ids?.length) {
+      res.status(400).json({ message: 'No document IDs provided' });
+      return;
+    }
+    const buffer = await this.documentsService.createBulkDownloadArchive(dto.ids);
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename="documents_${Date.now()}.zip"`);
+    res.setHeader('Content-Length', buffer.length);
+    res.end(buffer);
+  }
+
+  @Public()
+  @Post('public/upload')
+  @UseInterceptors(FileInterceptor('file', {
+    storage: multerStorage,
+    limits: { fileSize: parseInt(process.env.MAX_FILE_SIZE || '10485760') },
+    fileFilter: (_req, file, cb) => {
+      if (allowedMimetypes.includes(file.mimetype)) {
+        cb(null, true);
+      } else {
+        cb(new BadRequestException(`File type ${file.mimetype} not allowed`), false);
+      }
+    },
+  }))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Public document upload for applicant submissions (no auth)' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: { type: 'string', format: 'binary' },
+        entityId: { type: 'string' },
+        name: { type: 'string' },
+        documentTypeName: { type: 'string' },
+      },
+      required: ['file', 'entityId', 'name'],
+    },
+  })
+  async publicUpload(
+    @UploadedFile() file: Express.Multer.File,
+    @Body('entityId') entityId: string,
+    @Body('name') name: string,
+    @Body('documentTypeName') documentTypeName: string,
+  ) {
+    if (!file) throw new BadRequestException('File is required');
+    if (!entityId) throw new BadRequestException('entityId is required');
+    return this.documentsService.publicCreate(file, entityId, name || file.originalname, documentTypeName || 'Other');
+  }
+
   @Post('upload')
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User')
   @UseInterceptors(FileInterceptor('file', {
     storage: multerStorage,
     limits: { fileSize: parseInt(process.env.MAX_FILE_SIZE || '10485760') },
@@ -115,6 +182,7 @@ export class DocumentsController {
   }
 
   @Patch(':id')
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer')
   @ApiOperation({ summary: 'Update document metadata' })
   @ApiParam({ name: 'id', description: 'Document UUID' })
   update(
@@ -126,6 +194,7 @@ export class DocumentsController {
   }
 
   @Post(':id/verify')
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer')
   @ApiOperation({ summary: 'Verify or reject a document' })
   @ApiParam({ name: 'id', description: 'Document UUID' })
   verify(@Param('id') id: string, @Body() dto: VerifyDocumentDto, @CurrentUser() user: any) {
@@ -133,6 +202,7 @@ export class DocumentsController {
   }
 
   @Delete(':id')
+  @Roles('System Admin')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Soft delete document' })
   @ApiParam({ name: 'id', description: 'Document UUID' })

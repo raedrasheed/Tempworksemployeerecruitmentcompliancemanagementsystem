@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { ArrowLeft, Save, Info } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
@@ -9,62 +9,107 @@ import { Textarea } from '../../components/ui/textarea';
 import { Switch } from '../../components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { toast } from 'sonner';
+import { settingsApi } from '../../services/api';
+
+const CATEGORY_LABELS: Record<string, string> = {
+  identity: 'Identity',
+  license: 'License',
+  medical: 'Medical',
+  legal: 'Legal',
+  employment: 'Employment',
+  insurance: 'Insurance',
+  training: 'Training',
+  other: 'Other',
+};
+
+function toCategoryKey(category: string): string {
+  return category.toLowerCase();
+}
 
 export function DocumentTypeEdit() {
   const navigate = useNavigate();
   const { id } = useParams();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [documentCount, setDocumentCount] = useState(0);
 
-  // Pre-filled with existing data
   const [formData, setFormData] = useState({
-    name: 'Passport',
-    description: 'Valid passport required for identity verification and international travel authorization',
-    category: 'identity',
-    required: true,
-    expiryTracking: true,
+    name: '',
+    description: '',
+    category: '',
+    required: false,
+    expiryTracking: false,
     expiryWarningDays: '30',
     allowMultiple: false,
     verificationRequired: true,
     maxFileSize: '10',
-    validationRules: 'Must be valid for at least 6 months from date of upload. Must show clear photo and personal details.',
+    validationRules: '',
   });
 
-  const [selectedJobTypes, setSelectedJobTypes] = useState<string[]>([]);
-  const [selectedFormats, setSelectedFormats] = useState<string[]>(['PDF', 'JPG', 'PNG']);
-
-  const jobTypes = [
-    'Truck Driver',
-    'Delivery Driver',
-    'Warehouse Worker',
-    'Forklift Operator',
-    'Logistics Coordinator',
-    'Construction Worker',
-    'Technician',
-    'General Worker',
-  ];
-
+  const [selectedFormats, setSelectedFormats] = useState<string[]>([]);
   const fileFormats = ['PDF', 'JPG', 'PNG', 'DOCX', 'XLSX'];
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    toast.success('Document type updated successfully');
-    navigate(`/dashboard/settings/document-types/${id}`);
-  };
+  useEffect(() => {
+    if (!id) return;
+    settingsApi.getDocumentType(id)
+      .then((dt: any) => {
+        setFormData({
+          name: dt.name ?? '',
+          description: dt.description ?? '',
+          category: toCategoryKey(dt.category ?? ''),
+          required: dt.required ?? false,
+          expiryTracking: dt.trackExpiry ?? false,
+          expiryWarningDays: dt.renewalPeriodDays ? String(dt.renewalPeriodDays) : '30',
+          allowMultiple: false,
+          verificationRequired: true,
+          maxFileSize: '10',
+          validationRules: '',
+        });
+        setDocumentCount(dt._count?.documents ?? 0);
+      })
+      .catch((err: any) => {
+        toast.error(err?.message || 'Failed to load document type');
+        navigate('/dashboard/settings/document-types');
+      })
+      .finally(() => setLoading(false));
+  }, [id]);
 
-  const handleJobTypeToggle = (jobType: string) => {
-    setSelectedJobTypes(prev =>
-      prev.includes(jobType)
-        ? prev.filter(j => j !== jobType)
-        : [...prev, jobType]
-    );
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await settingsApi.updateDocumentType(id!, {
+        name: formData.name,
+        description: formData.description || undefined,
+        category: CATEGORY_LABELS[formData.category] ?? formData.category,
+        required: formData.required,
+        trackExpiry: formData.expiryTracking,
+        renewalPeriodDays: formData.expiryTracking && formData.expiryWarningDays
+          ? parseInt(formData.expiryWarningDays, 10)
+          : undefined,
+      });
+      toast.success('Document type updated successfully');
+      navigate(`/dashboard/settings/document-types/${id}`);
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to update document type');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleFormatToggle = (format: string) => {
-    setSelectedFormats(prev =>
-      prev.includes(format)
-        ? prev.filter(f => f !== format)
-        : [...prev, format]
+    setSelectedFormats((prev) =>
+      prev.includes(format) ? prev.filter((f) => f !== format) : [...prev, format],
     );
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-24 text-muted-foreground">
+        Loading document type...
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -77,7 +122,7 @@ export function DocumentTypeEdit() {
         </Button>
         <div className="flex-1">
           <h1 className="text-3xl font-semibold text-[#0F172A]">Edit Document Type</h1>
-          <p className="text-muted-foreground mt-1">Update document type configuration • ID: {id}</p>
+          <p className="text-muted-foreground mt-1">Update document type configuration</p>
         </div>
       </div>
 
@@ -257,58 +302,6 @@ export function DocumentTypeEdit() {
               </CardContent>
             </Card>
 
-            {/* Job Type Applicability */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Job Type Applicability</CardTitle>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Select which job types require this document (leave empty for all)
-                </p>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-3">
-                  {jobTypes.map((jobType) => (
-                    <div
-                      key={jobType}
-                      className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                        selectedJobTypes.includes(jobType)
-                          ? 'border-[#2563EB] bg-[#EFF6FF]'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                      onClick={() => handleJobTypeToggle(jobType)}
-                    >
-                      <div className="flex items-center gap-2">
-                        <div
-                          className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
-                            selectedJobTypes.includes(jobType)
-                              ? 'border-[#2563EB] bg-[#2563EB]'
-                              : 'border-gray-300'
-                          }`}
-                        >
-                          {selectedJobTypes.includes(jobType) && (
-                            <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 12 12">
-                              <path d="M10 3L4.5 8.5L2 6" stroke="currentColor" strokeWidth="2" fill="none" />
-                            </svg>
-                          )}
-                        </div>
-                        <span className="text-sm font-medium">{jobType}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                {selectedJobTypes.length === 0 && (
-                  <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                    <div className="flex gap-2">
-                      <Info className="w-4 h-4 text-[#2563EB] mt-0.5" />
-                      <p className="text-sm text-[#2563EB]">
-                        No job types selected. This document will apply to all job types.
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
             {/* Validation Rules */}
             <Card>
               <CardHeader>
@@ -343,15 +336,11 @@ export function DocumentTypeEdit() {
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Status:</span>
-                    <span className="font-medium">
-                      {formData.required ? 'Required' : 'Optional'}
-                    </span>
+                    <span className="font-medium">{formData.required ? 'Required' : 'Optional'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Expiry Tracking:</span>
-                    <span className="font-medium">
-                      {formData.expiryTracking ? 'Enabled' : 'Disabled'}
-                    </span>
+                    <span className="font-medium">{formData.expiryTracking ? 'Enabled' : 'Disabled'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Verification:</span>
@@ -361,27 +350,11 @@ export function DocumentTypeEdit() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Multiple Files:</span>
-                    <span className="font-medium">
-                      {formData.allowMultiple ? 'Allowed' : 'Single File'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">File Formats:</span>
-                    <span className="font-medium">
-                      {selectedFormats.length || 'Any'}
-                    </span>
+                    <span className="font-medium">{formData.allowMultiple ? 'Allowed' : 'Single File'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Max Size:</span>
-                    <span className="font-medium">
-                      {formData.maxFileSize || '10'} MB
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Job Types:</span>
-                    <span className="font-medium">
-                      {selectedJobTypes.length || 'All'}
-                    </span>
+                    <span className="font-medium">{formData.maxFileSize || '10'} MB</span>
                   </div>
                 </div>
               </CardContent>
@@ -399,7 +372,6 @@ export function DocumentTypeEdit() {
                 <ul className="text-sm space-y-2 text-muted-foreground">
                   <li>• Changes will affect existing documents of this type</li>
                   <li>• Making a required document optional may affect compliance</li>
-                  <li>• Changing file format restrictions may invalidate existing uploads</li>
                   <li>• Expiry tracking changes apply to all future notifications</li>
                 </ul>
               </CardContent>
@@ -413,28 +385,16 @@ export function DocumentTypeEdit() {
               <CardContent className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Total Uploads:</span>
-                  <span className="font-semibold">156</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Verified:</span>
-                  <span className="font-semibold text-green-600">142</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Pending:</span>
-                  <span className="font-semibold text-yellow-600">8</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Rejected:</span>
-                  <span className="font-semibold text-red-600">6</span>
+                  <span className="font-semibold">{documentCount}</span>
                 </div>
               </CardContent>
             </Card>
 
             {/* Actions */}
             <div className="space-y-3">
-              <Button type="submit" className="w-full" size="lg">
+              <Button type="submit" className="w-full" size="lg" disabled={saving}>
                 <Save className="w-4 h-4 mr-2" />
-                Save Changes
+                {saving ? 'Saving...' : 'Save Changes'}
               </Button>
               <Button type="button" variant="outline" className="w-full" asChild>
                 <Link to={`/dashboard/settings/document-types/${id}`}>Cancel</Link>

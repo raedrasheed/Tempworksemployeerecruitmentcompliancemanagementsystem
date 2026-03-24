@@ -1,5 +1,5 @@
 import { Link } from 'react-router';
-import { Settings as SettingsIcon, Workflow, FileType, Bell, Shield, Activity, Building2, GitBranch, Briefcase } from 'lucide-react';
+import { FileType, Bell, Shield, Activity, GitBranch, Briefcase, Palette } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
@@ -14,12 +14,6 @@ export function Settings() {
       description: 'Configure job types and document requirements',
       path: '/dashboard/settings/job-types',
       badge: 'New',
-    },
-    {
-      icon: Workflow,
-      title: 'Workflow Configuration',
-      description: 'Configure recruitment workflow stages and processes',
-      path: '/dashboard/settings/workflow',
     },
     {
       icon: FileType,
@@ -44,12 +38,32 @@ export function Settings() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-semibold text-[#0F172A]">Settings</h1>
+        <h1 className="text-3xl font-semibold text-foreground">Settings</h1>
         <p className="text-muted-foreground mt-1">Manage system configuration and preferences</p>
       </div>
 
       {/* Settings Menu */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Appearance – always first */}
+        <Link to="/dashboard/settings/color-scheme">
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+            <CardHeader>
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Palette className="w-6 h-6 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <CardTitle>Appearance</CardTitle>
+                    <Badge className="bg-primary text-primary-foreground">Theme</Badge>
+                  </div>
+                  <CardDescription>Color schemes, brand colors &amp; dark mode</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+          </Card>
+        </Link>
+
         <Link to="/dashboard/settings/workflow-configuration">
           <Card className="hover:shadow-md transition-shadow cursor-pointer">
             <CardContent className="p-6">
@@ -95,46 +109,6 @@ export function Settings() {
           );
         })}
       </div>
-
-      {/* Agency Settings */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-[#EFF6FF] flex items-center justify-center">
-              <Building2 className="w-5 h-5 text-[#2563EB]" />
-            </div>
-            <div>
-              <CardTitle>Agency Configuration</CardTitle>
-              <CardDescription>Global settings for recruitment agencies</CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div>
-            <Label htmlFor="defaultMaxUsers">Default Maximum Users Per Agency</Label>
-            <p className="text-sm text-muted-foreground mt-1 mb-3">
-              Set the default limit for how many users each agency can have
-            </p>
-            <Select defaultValue="10">
-              <SelectTrigger id="defaultMaxUsers" className="max-w-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="5">5 users</SelectItem>
-                <SelectItem value="10">10 users</SelectItem>
-                <SelectItem value="15">15 users</SelectItem>
-                <SelectItem value="20">20 users</SelectItem>
-                <SelectItem value="50">50 users</SelectItem>
-                <SelectItem value="100">100 users</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex justify-end pt-4 border-t">
-            <Button>Save Agency Settings</Button>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Log Retention Policy */}
       <Card>

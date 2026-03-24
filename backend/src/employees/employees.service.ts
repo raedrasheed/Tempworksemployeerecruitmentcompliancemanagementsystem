@@ -10,7 +10,7 @@ export class EmployeesService {
 
   async findAll(query: PaginationDto & { agencyId?: string; status?: string; nationality?: string }) {
     const { page = 1, limit = 20, search, sortBy = 'createdAt', sortOrder = 'desc', agencyId, status, nationality } = query;
-    const skip = (page - 1) * limit;
+    const skip = (Number(page) - 1) * Number(limit);
 
     const where: any = { deletedAt: null };
     if (search) {
@@ -27,11 +27,10 @@ export class EmployeesService {
 
     const [data, total] = await Promise.all([
       this.prisma.employee.findMany({
-        where, skip, take: limit,
+        where, skip, take: Number(limit),
         orderBy: { [sortBy]: sortOrder },
         include: {
           agency: { select: { id: true, name: true } },
-          workflowStages: { include: { stage: true }, orderBy: { stage: { order: 'desc' } }, take: 1 },
         },
       }),
       this.prisma.employee.count({ where }),
@@ -46,7 +45,6 @@ export class EmployeesService {
       include: {
         agency: true,
         workflowStages: { include: { stage: true, assignedTo: { select: { id: true, firstName: true, lastName: true } } }, orderBy: { stage: { order: 'asc' } } },
-        complianceAlerts: { where: { status: { in: ['OPEN', 'ACKNOWLEDGED'] } }, orderBy: { severity: 'desc' } },
       },
     });
     if (!employee) throw new NotFoundException('Employee not found');
@@ -60,18 +58,20 @@ export class EmployeesService {
     // Get all workflow stages to initialize
     const stages = await this.prisma.workflowStage.findMany({ where: { isActive: true }, orderBy: { order: 'asc' } });
 
+    const { agencyId, ...rest } = dto;
     const employee = await this.prisma.employee.create({
       data: {
-        ...dto,
+        ...rest,
         dateOfBirth: new Date(dto.dateOfBirth),
         status: (dto.status as any) || 'PENDING',
+        ...(agencyId ? { agencyId } : {}),
         workflowStages: {
           create: stages.map((stage) => ({
             stageId: stage.id,
             status: 'PENDING',
           })),
         },
-      },
+      } as any,
       include: { agency: { select: { id: true, name: true } } },
     });
 

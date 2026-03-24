@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router';
-import { Plus, Search, Download, Eye } from 'lucide-react';
+import { Plus, Search, Download, Eye, Edit, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -15,6 +16,7 @@ import {
 } from '../../components/ui/table';
 import { FilterSystem, Column, FilterRule, FilterPreset } from '../../components/filters/FilterSystem';
 import { employeesApi } from '../../services/api';
+import { usePermissions } from '../../hooks/usePermissions';
 
 // Define columns for the filter system
 const employeeColumns: Column[] = [
@@ -30,7 +32,8 @@ const employeeColumns: Column[] = [
   { id: 'createdDate', label: 'Created Date', type: 'date' },
 ];
 
-export function DriversList() {
+export function EmployeesList() {
+  const { canCreate, canEdit, canDelete } = usePermissions();
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilters, setActiveFilters] = useState<FilterRule[]>([]);
   const [filterLogic, setFilterLogic] = useState<'AND' | 'OR'>('AND');
@@ -92,7 +95,7 @@ export function DriversList() {
           value = `${driver.firstName} ${driver.lastName}`.toLowerCase();
           break;
         case 'experience':
-          value = parseInt(driver.experience.replace(' years', ''));
+          value = parseInt(String(driver.yearsExperience ?? driver.experience ?? '0'));
           break;
         case 'createdDate':
           value = driver.createdAt || '2026-01-01';
@@ -158,10 +161,20 @@ export function DriversList() {
     setSavedPresets(savedPresets.filter(p => p.id !== presetId));
   };
 
+  const handleDelete = async (employee: any) => {
+    if (!confirm(`Delete "${employee.firstName} ${employee.lastName}"? This cannot be undone.`)) return;
+    try {
+      await employeesApi.delete(employee.id);
+      setEmployees(prev => prev.filter(e => e.id !== employee.id));
+      setTotalEmployees(prev => prev - 1);
+      toast.success('Employee deleted successfully');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to delete employee');
+    }
+  };
+
   const handleExport = () => {
-    // Export filtered results
     console.log('Exporting', filteredDrivers.length, 'employees');
-    // In production, this would generate CSV/Excel with filtered data
   };
 
   return (
@@ -171,12 +184,14 @@ export function DriversList() {
           <h1 className="text-3xl font-semibold text-[#0F172A]">Employees</h1>
           <p className="text-muted-foreground mt-1">Manage and track all employees in the system</p>
         </div>
-        <Button asChild>
-          <Link to="/dashboard/employees/add">
-            <Plus className="w-4 h-4 mr-2" />
-            Add Employee
-          </Link>
-        </Button>
+        {canCreate('employees') && (
+          <Button asChild>
+            <Link to="/dashboard/employees/add">
+              <Plus className="w-4 h-4 mr-2" />
+              Add Employee
+            </Link>
+          </Button>
+        )}
       </div>
 
       <Card>
@@ -221,7 +236,6 @@ export function DriversList() {
                   <TableHead>Experience</TableHead>
                   <TableHead>Agency</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Current Stage</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -230,8 +244,8 @@ export function DriversList() {
                   <TableRow key={driver.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <img 
-                          src={driver.photo} 
+                        <img
+                          src={driver.photo || `https://api.dicebear.com/7.x/avataaars/svg?seed=${driver.firstName}`}
                           alt={driver.firstName}
                           className="w-10 h-10 rounded-full"
                         />
@@ -257,39 +271,53 @@ export function DriversList() {
                     </TableCell>
                     <TableCell>{driver.yearsExperience} years</TableCell>
                     <TableCell>
-                      {driver.agencyName ? (
+                      {driver.agency ? (
                         <div className="text-sm">
-                          <div>{driver.agencyName}</div>
-                          <div className="text-muted-foreground">{driver.agencyId}</div>
+                          <div>{driver.agency.name ?? driver.agencyName}</div>
                         </div>
+                      ) : driver.agencyName ? (
+                        <div className="text-sm">{driver.agencyName}</div>
                       ) : (
                         <span className="text-muted-foreground">Direct</span>
                       )}
                     </TableCell>
                     <TableCell>
-                      <Badge 
-                        variant={driver.status === 'active' ? 'default' : 'secondary'}
+                      <Badge
                         className={
-                          driver.status === 'active' ? 'bg-[#22C55E]' :
-                          driver.status === 'pending' ? 'bg-[#F59E0B]' :
+                          driver.status === 'ACTIVE'     ? 'bg-[#22C55E]' :
+                          driver.status === 'PENDING'    ? 'bg-[#F59E0B]' :
+                          driver.status === 'ONBOARDING' ? 'bg-[#2563EB]' :
+                          driver.status === 'ON_LEAVE'   ? 'bg-[#8B5CF6]' :
                           'bg-gray-500'
                         }
                       >
-                        {driver.status}
+                        {driver.status?.replace(/_/g, ' ').toLowerCase()}
                       </Badge>
                     </TableCell>
-                    <TableCell>
-                      <span className="text-sm text-muted-foreground">
-                        {driver.currentStage.replace(/_/g, ' ')}
-                      </span>
-                    </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" asChild>
-                        <Link to={`/dashboard/employees/${driver.id}`}>
-                          <Eye className="w-4 h-4 mr-2" />
-                          View
-                        </Link>
-                      </Button>
+                      <div className="flex items-center justify-end gap-1">
+                        <Button variant="ghost" size="sm" asChild>
+                          <Link to={`/dashboard/employees/${driver.id}`}>
+                            <Eye className="w-4 h-4 mr-1" />View
+                          </Link>
+                        </Button>
+                        {canEdit('employees') && (
+                          <Button variant="ghost" size="sm" asChild>
+                            <Link to={`/dashboard/employees/${driver.id}/edit`}>
+                              <Edit className="w-4 h-4 mr-1" />Edit
+                            </Link>
+                          </Button>
+                        )}
+                        {canDelete('employees') && (
+                          <Button
+                            variant="ghost" size="sm"
+                            onClick={() => handleDelete(driver)}
+                            className="text-[#EF4444] hover:text-[#EF4444] hover:bg-[#FEF2F2]"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

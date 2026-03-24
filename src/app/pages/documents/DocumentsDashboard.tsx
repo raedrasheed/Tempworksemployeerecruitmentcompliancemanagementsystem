@@ -1,26 +1,47 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router';
 import { Upload, FileCheck, AlertTriangle, Clock, Eye } from 'lucide-react';
+import { usePermissions } from '../../hooks/usePermissions';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { Progress } from '../../components/ui/progress';
-import { mockDocuments } from '../../data/mockData';
+import { toast } from 'sonner';
+import { documentsApi } from '../../services/api';
 
 export function DocumentsDashboard() {
-  const validDocs = mockDocuments.filter(d => d.status === 'valid').length;
-  const expiringDocs = mockDocuments.filter(d => d.status === 'expiring_soon').length;
-  const pendingDocs = mockDocuments.filter(d => d.status === 'pending_review').length;
+  const { canCreate } = usePermissions();
+  const [documents, setDocuments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    documentsApi.list({ limit: 200 })
+      .then((res: any) => setDocuments(res?.data ?? []))
+      .catch(() => toast.error('Failed to load documents'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const validDocs = documents.filter(d => d.status === 'VERIFIED').length;
+  const expiringDocs = documents.filter(d => d.status === 'EXPIRING_SOON').length;
+  const pendingDocs = documents.filter(d => d.status === 'PENDING').length;
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'valid': return 'bg-[#F0FDF4] text-[#22C55E] border-[#22C55E]';
-      case 'expiring_soon': return 'bg-[#FEF3C7] text-[#F59E0B] border-[#F59E0B]';
-      case 'expired': return 'bg-[#FEE2E2] text-[#EF4444] border-[#EF4444]';
-      case 'pending_review': return 'bg-[#EFF6FF] text-[#2563EB] border-[#2563EB]';
+      case 'VERIFIED': return 'bg-[#F0FDF4] text-[#22C55E] border-[#22C55E]';
+      case 'EXPIRING_SOON': return 'bg-[#FEF3C7] text-[#F59E0B] border-[#F59E0B]';
+      case 'EXPIRED': return 'bg-[#FEE2E2] text-[#EF4444] border-[#EF4444]';
+      case 'PENDING': return 'bg-[#EFF6FF] text-[#2563EB] border-[#2563EB]';
       default: return 'bg-[#F8FAFC] text-[#0F172A] border-[#E2E8F0]';
     }
   };
+
+  const getCategoryCount = (typeName: string) =>
+    documents.filter(d => d.documentType?.name === typeName).length;
+
+  const categories = [...new Set(documents.map(d => d.documentType?.name).filter(Boolean))].slice(0, 4);
+
+  if (loading) return <div className="p-8 text-muted-foreground">Loading...</div>;
 
   return (
     <div className="space-y-6">
@@ -29,12 +50,14 @@ export function DocumentsDashboard() {
           <h1 className="text-3xl font-semibold text-[#0F172A]">Documents</h1>
           <p className="text-muted-foreground mt-1">Manage driver documents and compliance materials</p>
         </div>
-        <Button asChild>
-          <Link to="/dashboard/documents/upload">
-            <Upload className="w-4 h-4 mr-2" />
-            Upload Document
-          </Link>
-        </Button>
+        {canCreate('documents') && (
+          <Button asChild>
+            <Link to="/dashboard/documents/upload">
+              <Upload className="w-4 h-4 mr-2" />
+              Upload Document
+            </Link>
+          </Button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -44,7 +67,7 @@ export function DocumentsDashboard() {
             <FileCheck className="w-4 h-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-semibold text-[#0F172A]">{mockDocuments.length}</div>
+            <div className="text-2xl font-semibold text-[#0F172A]">{documents.length}</div>
           </CardContent>
         </Card>
 
@@ -79,24 +102,30 @@ export function DocumentsDashboard() {
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Document Categories</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {['Passport', 'Driving License', 'Medical Certificate', 'Work Permit'].map((category, index) => (
-              <div key={category} className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">{category}</span>
-                  <span className="font-medium">{Math.floor(mockDocuments.length / (index + 1))} documents</span>
-                </div>
-                <Progress value={(100 / (index + 1))} className="h-2" />
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      {categories.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Document Categories</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {categories.map((category) => {
+                const count = getCategoryCount(category);
+                const pct = documents.length > 0 ? Math.round((count / documents.length) * 100) : 0;
+                return (
+                  <div key={category} className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">{category}</span>
+                      <span className="font-medium">{count} document{count !== 1 ? 's' : ''}</span>
+                    </div>
+                    <Progress value={pct} className="h-2" />
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
@@ -107,9 +136,8 @@ export function DocumentsDashboard() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Document Type</TableHead>
-                  <TableHead>Driver</TableHead>
-                  <TableHead>File Name</TableHead>
+                  <TableHead>Document Name</TableHead>
+                  <TableHead>Type</TableHead>
                   <TableHead>Uploaded</TableHead>
                   <TableHead>Expiry Date</TableHead>
                   <TableHead>Status</TableHead>
@@ -117,21 +145,26 @@ export function DocumentsDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {mockDocuments.map((doc) => (
+                {documents.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="p-8 text-center text-muted-foreground">
+                      No documents found. <Link to="/dashboard/documents/upload" className="text-[#2563EB] hover:underline">Upload one</Link>.
+                    </TableCell>
+                  </TableRow>
+                ) : documents.slice(0, 20).map((doc) => (
                   <TableRow key={doc.id}>
-                    <TableCell className="font-medium">{doc.type}</TableCell>
-                    <TableCell>{doc.driverName}</TableCell>
-                    <TableCell>{doc.fileName}</TableCell>
-                    <TableCell>{doc.uploadedDate}</TableCell>
-                    <TableCell>{doc.expiryDate || 'N/A'}</TableCell>
+                    <TableCell className="font-medium">{doc.name}</TableCell>
+                    <TableCell>{doc.documentType?.name ?? '-'}</TableCell>
+                    <TableCell>{new Date(doc.createdAt).toLocaleDateString()}</TableCell>
+                    <TableCell>{doc.expiryDate ? new Date(doc.expiryDate).toLocaleDateString() : 'N/A'}</TableCell>
                     <TableCell>
                       <Badge variant="outline" className={getStatusColor(doc.status)}>
-                        {doc.status.replace(/_/g, ' ')}
+                        {doc.status}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
                       <Button variant="ghost" size="sm" asChild>
-                        <Link to={`/documents/${doc.id}`}>
+                        <Link to={`/dashboard/documents/${doc.id}`}>
                           <Eye className="w-4 h-4 mr-2" />
                           View
                         </Link>

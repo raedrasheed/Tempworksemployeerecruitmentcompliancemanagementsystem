@@ -4,7 +4,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 enum UserStatus {
@@ -40,14 +39,6 @@ enum ApplicantStatus {
   ONBOARDING
 }
 
-enum ApplicationStatus {
-  DRAFT
-  SUBMITTED
-  UNDER_REVIEW
-  APPROVED
-  REJECTED
-  WITHDRAWN
-}
 
 enum DocumentStatus {
   PENDING
@@ -127,12 +118,13 @@ enum WorkflowCategory {
 }
 
 model Role {
-  id          String   @id @default(uuid())
-  name        String   @unique
+  id          String    @id @default(uuid())
+  name        String    @unique
   description String?
-  isSystem    Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  isSystem    Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
 
   permissions RolePermission[]
   users       User[]
@@ -172,22 +164,22 @@ model User {
   phone         String?
   roleId        String
   status        UserStatus  @default(ACTIVE)
-  agencyId      String?
+  agencyId      String
   lastLoginAt   DateTime?
   refreshToken  String?
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
   deletedAt     DateTime?
 
-  role   Role    @relation(fields: [roleId], references: [id])
-  agency Agency? @relation(fields: [agencyId], references: [id])
+  role   Role   @relation(fields: [roleId], references: [id])
+  agency Agency @relation(fields: [agencyId], references: [id])
 
   notifications     Notification[]
   auditLogs         AuditLog[]
   uploadedDocuments Document[]     @relation("UploadedDocuments")
   verifiedDocuments Document[]     @relation("VerifiedDocuments")
   assignedStages    EmployeeWorkflowStage[] @relation("AssignedStages")
-  reviewedApplications Application[] @relation("ReviewedApplications")
+
   resolvedAlerts    ComplianceAlert[] @relation("ResolvedAlerts")
   updatedSettings   SystemSetting[]
 
@@ -195,21 +187,23 @@ model User {
 }
 
 model Agency {
-  id            String       @id @default(uuid())
-  name          String
-  country       String
-  contactPerson String
-  email         String
-  phone         String
-  status        AgencyStatus @default(ACTIVE)
-  logoUrl       String?
-  notes         String?
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
-  deletedAt     DateTime?
+  id                 String       @id @default(uuid())
+  name               String
+  country            String
+  contactPerson      String
+  email              String
+  phone              String
+  status             AgencyStatus @default(ACTIVE)
+  logoUrl            String?
+  notes              String?
+  maxUsersPerAgency  Int          @default(10)
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  deletedAt          DateTime?
 
-  users     User[]
-  employees Employee[]
+  users      User[]
+  employees  Employee[]
+  applicants Applicant[]
 
   @@map("agencies")
 }
@@ -226,7 +220,7 @@ model Employee {
   licenseNumber    String?
   licenseCategory  String?
   yearsExperience  Int            @default(0)
-  agencyId         String
+  agencyId         String?
   photoUrl         String?
   addressLine1     String
   addressLine2     String?
@@ -240,27 +234,29 @@ model Employee {
   updatedAt        DateTime       @updatedAt
   deletedAt        DateTime?
 
-  agency         Agency                  @relation(fields: [agencyId], references: [id])
+  agency         Agency?                 @relation(fields: [agencyId], references: [id])
   workflowStages EmployeeWorkflowStage[]
-  documents      Document[]              @relation("EmployeeDocuments")
   workPermits    WorkPermit[]
-  visas          Visa[]                  @relation("EmployeeVisas")
-  complianceAlerts ComplianceAlert[]     @relation("EmployeeAlerts")
 
   @@map("employees")
 }
 
 model WorkflowStage {
-  id          String           @id @default(uuid())
-  name        String           @unique
-  order       Int
-  description String?
-  category    WorkflowCategory @default(INITIAL)
-  isActive    Boolean          @default(true)
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  id                   String           @id @default(uuid())
+  name                 String           @unique
+  order                Int
+  description          String?
+  color                String           @default("#2563EB")
+  category             WorkflowCategory @default(INITIAL)
+  isActive             Boolean          @default(true)
+  requirementsDocuments String[]        @default([])
+  requirementsActions  String[]         @default([])
+  requirementsApprovals String[]        @default([])
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
 
-  employeeStages EmployeeWorkflowStage[]
+  employeeStages    EmployeeWorkflowStage[]
+  applicantsCurrent Applicant[]             @relation("ApplicantCurrentStage")
 
   @@map("workflow_stages")
 }
@@ -286,16 +282,15 @@ model EmployeeWorkflowStage {
 }
 
 model JobType {
-  id          String   @id @default(uuid())
-  name        String   @unique
-  description String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                String   @id @default(uuid())
+  name              String   @unique
+  description       String?
+  requiredDocuments String[] @default([])
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   applicants   Applicant[]
-  applications Application[]
-
   @@map("job_types")
 }
 
@@ -306,9 +301,10 @@ model Applicant {
   email                   String          @unique
   phone                   String
   nationality             String
-  dateOfBirth             DateTime
+  dateOfBirth             DateTime?
   status                  ApplicantStatus @default(NEW)
   jobTypeId               String?
+  agencyId                String?
   residencyStatus         String
   hasNationalInsurance    Boolean         @default(false)
   nationalInsuranceNumber String?
@@ -321,38 +317,19 @@ model Applicant {
   preferredLocations      String?
   salaryExpectation       String?
   notes                   String?
-  applicationId           String?
   createdAt               DateTime        @default(now())
   updatedAt               DateTime        @updatedAt
   deletedAt               DateTime?
 
-  jobType      JobType?      @relation(fields: [jobTypeId], references: [id])
-  applications Application[]
-  documents    Document[]    @relation("ApplicantDocuments")
-  visas        Visa[]        @relation("ApplicantVisas")
-  complianceAlerts ComplianceAlert[] @relation("ApplicantAlerts")
+  currentWorkflowStageId String?
+
+  jobType              JobType?       @relation(fields: [jobTypeId], references: [id])
+  agency               Agency?        @relation(fields: [agencyId], references: [id])
+  currentWorkflowStage WorkflowStage? @relation("ApplicantCurrentStage", fields: [currentWorkflowStageId], references: [id])
 
   @@map("applicants")
 }
 
-model Application {
-  id           String            @id @default(uuid())
-  applicantId  String
-  status       ApplicationStatus @default(DRAFT)
-  submittedAt  DateTime?
-  reviewedAt   DateTime?
-  reviewedById String?
-  jobTypeId    String?
-  notes        String?
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
-
-  applicant  Applicant @relation(fields: [applicantId], references: [id], onDelete: Cascade)
-  reviewedBy User?     @relation("ReviewedApplications", fields: [reviewedById], references: [id])
-  jobType    JobType?  @relation(fields: [jobTypeId], references: [id])
-
-  @@map("applications")
-}
 
 model DocumentType {
   id                String   @id @default(uuid())
@@ -396,8 +373,6 @@ model Document {
   documentType    DocumentType @relation(fields: [documentTypeId], references: [id])
   uploadedBy      User         @relation("UploadedDocuments", fields: [uploadedById], references: [id])
   verifiedBy      User?        @relation("VerifiedDocuments", fields: [verifiedById], references: [id])
-  employee        Employee?    @relation("EmployeeDocuments", fields: [entityId], references: [id], map: "document_employee_fk")
-  applicant       Applicant?   @relation("ApplicantDocuments", fields: [entityId], references: [id], map: "document_applicant_fk")
   complianceAlerts ComplianceAlert[]
 
   @@map("documents")
@@ -438,8 +413,6 @@ model Visa {
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
 
-  employee  Employee?  @relation("EmployeeVisas", fields: [entityId], references: [id], map: "visa_employee_fk")
-  applicant Applicant? @relation("ApplicantVisas", fields: [entityId], references: [id], map: "visa_applicant_fk")
 
   @@map("visas")
 }
@@ -455,6 +428,7 @@ model Notification {
   relatedEntity   String?
   relatedEntityId String?
   createdAt       DateTime         @default(now())
+  deletedAt       DateTime?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -462,7 +436,7 @@ model Notification {
 }
 
 model AuditLog {
-  id         String   @id @default(uuid())
+  id         String    @id @default(uuid())
   userId     String?
   userEmail  String?
   action     String
@@ -471,7 +445,8 @@ model AuditLog {
   changes    Json?
   ipAddress  String?
   userAgent  String?
-  createdAt  DateTime @default(now())
+  createdAt  DateTime  @default(now())
+  deletedAt  DateTime?
 
   user User? @relation(fields: [userId], references: [id])
 
@@ -494,8 +469,6 @@ model ComplianceAlert {
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
-  employee   Employee?  @relation("EmployeeAlerts", fields: [entityId], references: [id], map: "alert_employee_fk")
-  applicant  Applicant? @relation("ApplicantAlerts", fields: [entityId], references: [id], map: "alert_applicant_fk")
   document   Document?  @relation(fields: [documentId], references: [id])
   resolvedBy User?      @relation("ResolvedAlerts", fields: [resolvedById], references: [id])
 
@@ -518,16 +491,78 @@ model SystemSetting {
 }
 
 model NotificationRule {
-  id              String   @id @default(uuid())
+  id              String    @id @default(uuid())
   name            String
   trigger         String
   entityType      String
   daysBeforeExpiry Int?
   channels        String[]
   recipientRoles  String[]
-  isActive        Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
 
   @@map("notification_rules")
+}
+
+// ─── Dynamic Reporting ───────────────────────────────────────────────────────
+
+model Report {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  description String?
+  dataSource  String    // employees | applicants | documents | compliance_alerts | agencies | work_permits
+  createdById String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  filters  ReportFilter[]
+  columns  ReportColumn[]
+  sorting  ReportSorting[]
+
+  @@map("reports")
+}
+
+model ReportFilter {
+  id        String  @id @default(uuid())
+  reportId  String
+  fieldName String
+  operator  String  // eq | ne | gt | gte | lt | lte | like | between | in | is_null | is_not_null
+  value     String  @default("")
+  value2    String? // used for BETWEEN
+  valueType String  @default("string") // string | number | date | boolean
+
+  report Report @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@map("report_filters")
+}
+
+model ReportColumn {
+  id              String  @id @default(uuid())
+  reportId        String
+  columnName      String
+  displayName     String
+  dataType        String  @default("string") // string | number | date | boolean | enum
+  isGrouped       Boolean @default(false)
+  isAggregated    Boolean @default(false)
+  aggregationType String? // COUNT | SUM | AVG | MIN | MAX
+  position        Int     @default(0)
+
+  report Report @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@map("report_columns")
+}
+
+model ReportSorting {
+  id         String @id @default(uuid())
+  reportId   String
+  columnName String
+  direction  String @default("ASC")
+  position   Int    @default(0)
+
+  report Report @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@map("report_sorting")
 }

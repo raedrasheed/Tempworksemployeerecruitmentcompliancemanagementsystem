@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { authApi, getCurrentUser, clearTokens } from '../services/api';
-import type { AuthUser } from '../services/api';
+import { authApi, clearTokens } from '../services/api';
+import { useAuthContext } from '../contexts/AuthContext';
 
 export function useAuth() {
-  const [user, setUser] = useState<AuthUser | null>(getCurrentUser());
+  const { user, updateUser, clearUser } = useAuthContext();
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -12,7 +12,7 @@ export function useAuth() {
     setLoading(true);
     try {
       const { user: loggedInUser } = await authApi.login(email, password);
-      setUser(loggedInUser);
+      updateUser(loggedInUser);
       navigate('/dashboard');
       return { success: true };
     } catch (err: any) {
@@ -27,7 +27,7 @@ export function useAuth() {
       await authApi.logout();
     } finally {
       clearTokens();
-      setUser(null);
+      clearUser();
       navigate('/login');
     }
   };

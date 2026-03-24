@@ -38,6 +38,7 @@ export interface AuthUser {
   lastName: string;
   role: string;
   agencyId?: string;
+  permissions?: string[];
 }
 
 export interface PaginationMeta {
@@ -145,8 +146,15 @@ export const authApi = {
       { method: 'POST', body: JSON.stringify({ email, password }) },
     );
     setTokens(data.accessToken, data.refreshToken);
-    setCurrentUser(data.user);
-    return data;
+    // Fetch full profile including permissions
+    try {
+      const fullUser = await apiFetch<AuthUser>('/auth/me');
+      setCurrentUser(fullUser);
+      return { ...data, user: fullUser };
+    } catch {
+      setCurrentUser(data.user);
+      return data;
+    }
   },
 
   logout: async () => {
@@ -220,7 +228,7 @@ export const employeesApi = {
   getPerformance: (id: string) => apiFetch<any>(`/employees/${id}/performance`),
 };
 
-// ─── Applicants API ──────────────────────────────────────────────────────────
+// ─── Applicants API (includes merged Application methods) ────────────────────
 
 export const applicantsApi = {
   list: (params?: Record<string, any>) => {
@@ -245,46 +253,33 @@ export const applicantsApi = {
       body: JSON.stringify({ status }),
     }),
 
-  getApplication: (id: string) => apiFetch<any>(`/applicants/${id}/application`),
+  setCurrentStage: (id: string, stageId: string | null) =>
+    apiFetch<any>(`/applicants/${id}/stage`, {
+      method: 'PATCH',
+      body: JSON.stringify({ stageId }),
+    }),
 
-  convertToEmployee: (id: string) =>
-    apiFetch<any>(`/applicants/${id}/convert`, { method: 'POST' }),
+  convertToEmployee: (id: string, data: any) =>
+    apiFetch<any>(`/applicants/${id}/convert`, { method: 'POST', body: JSON.stringify(data) }),
 };
 
-// ─── Applications API ────────────────────────────────────────────────────────
-
-export const applicationsApi = {
-  list: (params?: Record<string, any>) => {
-    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
-    return apiFetch<PaginatedResponse<any>>(`/applications${qs}`);
-  },
-
-  get: (id: string) => apiFetch<any>(`/applications/${id}`),
-
-  create: (data: any) =>
-    apiFetch<any>('/applications', { method: 'POST', body: JSON.stringify(data) }),
-
-  update: (id: string, data: any) =>
-    apiFetch<any>(`/applications/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
-
-  updateStatus: (id: string, status: string, notes?: string) =>
-    apiFetch<any>(`/applications/${id}/status`, {
-      method: 'PATCH',
-      body: JSON.stringify({ status, notes }),
-    }),
-
-  addNote: (id: string, note: string) =>
-    apiFetch<any>(`/applications/${id}/notes`, {
-      method: 'POST',
-      body: JSON.stringify({ note }),
-    }),
-
-  // Public route - no auth needed
-  submitPublic: (data: any) =>
-    apiFetch<any>('/applications/public', {
+// ─── Public Application API ───────────────────────────────────────────────────
+// No auth required - used by the public-facing driver application form
+export const publicApplicationApi = {
+  submit: (data: any) =>
+    apiFetch<any>('/applicants/public/submit', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+
+  uploadDocument: (applicantId: string, file: File, name: string, documentTypeName: string) => {
+    const form = new FormData();
+    form.append('file', file);
+    form.append('entityId', applicantId);
+    form.append('name', name);
+    form.append('documentTypeName', documentTypeName);
+    return apiFetch<any>('/documents/public/upload', { method: 'POST', body: form });
+  },
 };
 
 // ─── Documents API ───────────────────────────────────────────────────────────
@@ -313,15 +308,35 @@ export const documentsApi = {
     }),
 
   getByEntity: (entityType: string, entityId: string) =>
-    apiFetch<any[]>(`/documents/entity/${entityType}/${entityId}`),
+    apiFetch<any[]>(`/documents/entity/${entityType}/${entityId}?limit=500`),
 
   getDashboard: () => apiFetch<any>('/documents/dashboard'),
+
+  /** Download multiple documents as a structured ZIP file. Returns a Blob. */
+  bulkDownload: async (ids: string[]): Promise<Blob> => {
+    const token = getAccessToken();
+    const res = await fetch(`${API_URL}/documents/bulk-download`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ ids }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error((err as any)?.message || 'Bulk download failed');
+    }
+    return res.blob();
+  },
 };
 
 // ─── Workflow API ─────────────────────────────────────────────────────────────
 
 export const workflowApi = {
   getStages: () => apiFetch<any[]>('/workflow/stages'),
+
+  getStageDetails: (stageId: string) => apiFetch<any>(`/workflow/stages/${stageId}/people`),
 
   getOverview: () => apiFetch<any>('/workflow/overview'),
 
@@ -334,6 +349,12 @@ export const workflowApi = {
     apiFetch<any>(`/workflow/employees/${employeeId}/stage`, {
       method: 'PATCH',
       body: JSON.stringify(data),
+    }),
+
+  setEmployeeCurrentStage: (employeeId: string, stageId: string) =>
+    apiFetch<any>(`/workflow/employees/${employeeId}/current-stage`, {
+      method: 'PATCH',
+      body: JSON.stringify({ stageId }),
     }),
 
   getTimeline: (employeeId: string) =>
@@ -417,38 +438,6 @@ export const complianceApi = {
 
 // ─── Reports API ──────────────────────────────────────────────────────────────
 
-export const reportsApi = {
-  getDashboard: (params?: Record<string, any>) => {
-    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
-    return apiFetch<any>(`/reports/dashboard${qs}`);
-  },
-
-  getEmployees: (params?: Record<string, any>) => {
-    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
-    return apiFetch<any>(`/reports/employees${qs}`);
-  },
-
-  getApplications: (params?: Record<string, any>) => {
-    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
-    return apiFetch<any>(`/reports/applications${qs}`);
-  },
-
-  getDocuments: (params?: Record<string, any>) => {
-    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
-    return apiFetch<any>(`/reports/documents${qs}`);
-  },
-
-  getCompliance: (params?: Record<string, any>) => {
-    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
-    return apiFetch<any>(`/reports/compliance${qs}`);
-  },
-
-  export: (type: string, params?: Record<string, any>) => {
-    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
-    return apiFetch<Blob>(`/reports/export/${type}${qs}`);
-  },
-};
-
 // ─── Notifications API ────────────────────────────────────────────────────────
 
 export const notificationsApi = {
@@ -518,10 +507,10 @@ export const rolesApi = {
 // ─── Settings API ─────────────────────────────────────────────────────────────
 
 export const settingsApi = {
-  getAll: () => apiFetch<any>('/settings'),
+  getAll: (includePrivate = false) => apiFetch<any>(`/settings${includePrivate ? '?includePrivate=true' : ''}`),
 
   update: (data: Record<string, any>) =>
-    apiFetch<any>('/settings', { method: 'PATCH', body: JSON.stringify(data) }),
+    apiFetch<any>('/settings', { method: 'PATCH', body: JSON.stringify({ settings: data }) }),
 
   // Job Types
   getJobTypes: () => apiFetch<any[]>('/settings/job-types'),
@@ -544,8 +533,14 @@ export const settingsApi = {
 
   // Workflow Stages
   getWorkflowStages: () => apiFetch<any[]>('/settings/workflow-stages'),
+  createWorkflowStage: (data: any) =>
+    apiFetch<any>('/settings/workflow-stages', { method: 'POST', body: JSON.stringify(data) }),
   updateWorkflowStage: (id: string, data: any) =>
     apiFetch<any>(`/settings/workflow-stages/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteWorkflowStage: (id: string) =>
+    apiFetch(`/settings/workflow-stages/${id}`, { method: 'DELETE' }),
+  reorderWorkflowStages: (orders: { id: string; order: number }[]) =>
+    apiFetch<any>('/settings/workflow-stages/reorder', { method: 'PATCH', body: JSON.stringify({ orders }) }),
 
   // Notification Rules
   getNotificationRules: () => apiFetch<any[]>('/settings/notification-rules'),
@@ -566,10 +561,80 @@ export const logsApi = {
   },
 
   getStats: () => apiFetch<any>('/logs/stats'),
+
+  clearLogs: (filters?: { fromDate?: string; toDate?: string; entity?: string }) => {
+    const qs = filters ? '?' + new URLSearchParams(Object.fromEntries(
+      Object.entries(filters).filter(([, v]) => v != null),
+    )).toString() : '';
+    return apiFetch<{ deleted: number; message: string }>(`/logs${qs}`, { method: 'DELETE' });
+  },
+
+  deleteOne: (id: string) =>
+    apiFetch<{ message: string }>(`/logs/${id}`, { method: 'DELETE' }),
 };
 
 // ─── Dashboard API ────────────────────────────────────────────────────────────
 
 export const dashboardApi = {
   getStats: () => apiFetch<any>('/reports/dashboard'),
+};
+
+// ─── Dynamic Reports API ──────────────────────────────────────────────────────
+
+export const reportsApi = {
+  // Schema
+  getDataSources: () => apiFetch<any[]>('/reports/data-sources'),
+  getDashboard: (params?: Record<string, any>) => {
+    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+    return apiFetch<any>(`/reports/dashboard${qs}`);
+  },
+
+  getEmployees: (params?: Record<string, any>) => {
+    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+    return apiFetch<any>(`/reports/employees${qs}`);
+  },
+
+  getApplications: (params?: Record<string, any>) => {
+    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+    return apiFetch<any>(`/reports/applications${qs}`);
+  },
+
+  getDocuments: (params?: Record<string, any>) => {
+    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+    return apiFetch<any>(`/reports/documents${qs}`);
+  },
+
+  getCompliance: (params?: Record<string, any>) => {
+    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+    return apiFetch<any>(`/reports/compliance${qs}`);
+  },
+
+  // CRUD
+  list:   ()                          => apiFetch<any[]>('/reports'),
+  get:    (id: string)                => apiFetch<any>(`/reports/${id}`),
+  create: (data: any)                 => apiFetch<any>('/reports',      { method: 'POST',   body: JSON.stringify(data) }),
+  update: (id: string, data: any)     => apiFetch<any>(`/reports/${id}`,{ method: 'PUT',    body: JSON.stringify(data) }),
+  delete: (id: string)                => apiFetch<any>(`/reports/${id}`,{ method: 'DELETE' }),
+
+  // Run
+  run: (id: string, opts?: { page?: number; limit?: number }) =>
+    apiFetch<any>(`/reports/${id}/run`, { method: 'POST', body: JSON.stringify(opts ?? {}) }),
+
+  // Export — returns a Blob
+  export: async (id: string, format: 'excel' | 'pdf' | 'word'): Promise<Blob> => {
+    const token = getAccessToken();
+    const res = await fetch(`${API_URL}/reports/${id}/export`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ format }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error((err as any)?.message || 'Export failed');
+    }
+    return res.blob();
+  },
 };

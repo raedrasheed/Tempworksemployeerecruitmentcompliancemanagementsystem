@@ -1,13 +1,24 @@
 import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { AuditLogService } from '../logs/audit-log.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 
 @Injectable()
 export class RolesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private auditLog: AuditLogService,
+  ) {}
 
-  async findAll() {
+  async findAll(callerRole?: string) {
+    const isAdmin = callerRole === 'System Admin';
+    const roleFilter = callerRole === 'Agency Manager'
+      ? { name: 'Agency User' }
+      : isAdmin ? {} : { NOT: { name: 'System Admin' } };
+    const where = { ...roleFilter, deletedAt: null };
+
     return this.prisma.role.findMany({
+      where,
       include: {
         permissions: { include: { permission: true } },
         _count: { select: { users: true } },
@@ -17,8 +28,8 @@ export class RolesService {
   }
 
   async findOne(id: string) {
-    const role = await this.prisma.role.findUnique({
-      where: { id },
+    const role = await this.prisma.role.findFirst({
+      where: { id, deletedAt: null },
       include: {
         permissions: { include: { permission: true } },
         _count: { select: { users: true } },
@@ -28,11 +39,11 @@ export class RolesService {
     return role;
   }
 
-  async create(dto: CreateRoleDto) {
+  async create(dto: CreateRoleDto, actorId?: string) {
     const existing = await this.prisma.role.findUnique({ where: { name: dto.name } });
     if (existing) throw new ConflictException('Role with this name already exists');
 
-    return this.prisma.role.create({
+    const role = await this.prisma.role.create({
       data: {
         name: dto.name,
         description: dto.description,
@@ -42,11 +53,21 @@ export class RolesService {
       },
       include: { permissions: { include: { permission: true } } },
     });
+
+    await this.auditLog.log({
+      userId: actorId,
+      action: 'CREATE',
+      entity: 'Role',
+      entityId: role.id,
+      changes: { name: role.name, permissionCount: dto.permissionIds?.length ?? 0 },
+    });
+
+    return role;
   }
 
-  async update(id: string, dto: Partial<CreateRoleDto>) {
+  async update(id: string, dto: Partial<CreateRoleDto>, actorId?: string) {
     const role = await this.findOne(id);
-    if (role.isSystem && dto.name) throw new BadRequestException('Cannot rename system roles');
+    if (role.isSystem && dto.name && dto.name !== role.name) throw new BadRequestException('Cannot rename system roles');
 
     if (dto.permissionIds !== undefined) {
       await this.prisma.rolePermission.deleteMany({ where: { roleId: id } });
@@ -57,17 +78,36 @@ export class RolesService {
       }
     }
 
-    return this.prisma.role.update({
+    const updated = await this.prisma.role.update({
       where: { id },
       data: { name: dto.name, description: dto.description },
       include: { permissions: { include: { permission: true } } },
     });
+
+    await this.auditLog.log({
+      userId: actorId,
+      action: 'UPDATE',
+      entity: 'Role',
+      entityId: id,
+      changes: { name: dto.name, permissionsUpdated: dto.permissionIds !== undefined },
+    });
+
+    return updated;
   }
 
-  async remove(id: string) {
+  async remove(id: string, actorId?: string) {
     const role = await this.findOne(id);
     if (role.isSystem) throw new BadRequestException('Cannot delete system roles');
-    await this.prisma.role.delete({ where: { id } });
+    await this.prisma.role.update({ where: { id }, data: { deletedAt: new Date() } });
+
+    await this.auditLog.log({
+      userId: actorId,
+      action: 'DELETE',
+      entity: 'Role',
+      entityId: id,
+      changes: { name: role.name },
+    });
+
     return { message: 'Role deleted successfully' };
   }
 

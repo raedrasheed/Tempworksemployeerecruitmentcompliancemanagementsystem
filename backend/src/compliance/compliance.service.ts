@@ -60,8 +60,8 @@ export class ComplianceService {
     const [items, total] = await Promise.all([
       this.prisma.complianceAlert.findMany({
         where,
-        skip: (page - 1) * limit,
-        take: limit,
+        skip: (Number(page) - 1) * Number(limit),
+        take: Number(limit),
         orderBy: [{ severity: 'desc' }, { createdAt: 'desc' }],
         include: {
           document: { include: { documentType: true } },
@@ -70,7 +70,7 @@ export class ComplianceService {
       }),
       this.prisma.complianceAlert.count({ where }),
     ]);
-    return new PaginatedResponse(items, total, page, limit);
+    return PaginatedResponse.create(items, total, page, limit);
   }
 
   async updateAlert(id: string, dto: UpdateAlertDto, userId?: string) {

@@ -3,6 +3,7 @@ import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Download, TrendingUp, TrendingDown, AlertCircle, Clock } from 'lucide-react';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { usePermissions } from '../../hooks/usePermissions';
 
 const stagePerformanceData = [
   { stage: 'Application', avgDays: 2, sla: 3, drivers: 12 },
@@ -42,6 +43,7 @@ const conversionFunnelData = [
 ];
 
 export function WorkflowAnalytics() {
+  const { canEdit } = usePermissions();
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -51,10 +53,12 @@ export function WorkflowAnalytics() {
         </div>
         <div className="flex items-center gap-3">
           <Button variant="outline">Last 30 Days</Button>
-          <Button>
-            <Download className="w-4 h-4 mr-2" />
-            Export Report
-          </Button>
+          {canEdit('reports') && (
+            <Button>
+              <Download className="w-4 h-4 mr-2" />
+              Export Report
+            </Button>
+          )}
         </div>
       </div>
 

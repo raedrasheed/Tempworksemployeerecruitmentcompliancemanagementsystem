@@ -1,91 +1,81 @@
-import { Link, useParams } from 'react-router';
-import { ArrowLeft, Edit, Trash2, FileText, CheckCircle2, XCircle, Users, Calendar, AlertCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Link, useParams, useNavigate } from 'react-router';
+import { ArrowLeft, Edit, Trash2, FileText } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../../components/ui/alert-dialog';
+import { settingsApi } from '../../services/api';
+import { toast } from 'sonner';
 
-// Mock data
-const mockDocumentType = {
-  id: 'DT001',
-  name: 'Passport',
-  description: 'Valid passport required for identity verification and international travel authorization',
-  category: 'Identity Documents',
-  required: true,
-  expiryTracking: true,
-  expiryWarningDays: 30,
-  allowMultiple: false,
-  verificationRequired: true,
-  fileFormats: ['PDF', 'JPG', 'PNG'],
-  maxFileSize: 10,
-  applicableJobTypes: ['All'],
-  validationRules: 'Must be valid for at least 6 months from date of upload. Must show clear photo and personal details.',
-  createdAt: '2024-01-15',
-  createdBy: 'Sarah Johnson',
-  updatedAt: '2024-03-10',
-  updatedBy: 'Michael Chen',
-  status: 'Active',
-  usageStats: {
-    totalUploads: 156,
-    verified: 142,
-    pending: 8,
-    rejected: 6,
-    expiringSoon: 12,
-  },
-  recentActivity: [
-    {
-      id: 1,
-      employeeName: 'Jan Kowalski',
-      action: 'Document Uploaded',
-      date: '2026-03-16',
-      status: 'Verified',
-    },
-    {
-      id: 2,
-      employeeName: 'Maria Silva',
-      action: 'Document Verified',
-      date: '2026-03-15',
-      status: 'Verified',
-    },
-    {
-      id: 3,
-      employeeName: 'Andrei Popescu',
-      action: 'Document Uploaded',
-      date: '2026-03-14',
-      status: 'Pending',
-    },
-    {
-      id: 4,
-      employeeName: 'Olena Kovalenko',
-      action: 'Document Rejected',
-      date: '2026-03-13',
-      status: 'Rejected',
-    },
-    {
-      id: 5,
-      employeeName: 'Dmitri Ivanov',
-      action: 'Document Verified',
-      date: '2026-03-12',
-      status: 'Verified',
-    },
-  ],
-};
+interface DocumentType {
+  id: string;
+  name: string;
+  description?: string;
+  category: string;
+  required: boolean;
+  trackExpiry: boolean;
+  renewalPeriodDays?: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  _count: { documents: number };
+}
 
 export function DocumentTypeView() {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const [docType, setDocType] = useState<DocumentType | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Verified':
-        return 'bg-green-100 text-green-800';
-      case 'Pending':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'Rejected':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+  useEffect(() => {
+    if (!id) return;
+    settingsApi.getDocumentType(id)
+      .then((data: any) => setDocType(data))
+      .catch((err: any) => {
+        toast.error(err?.message || 'Failed to load document type');
+        navigate('/dashboard/settings/document-types');
+      })
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  async function handleDelete() {
+    if (!docType) return;
+    setDeleting(true);
+    try {
+      await settingsApi.deleteDocumentType(docType.id);
+      toast.success(`"${docType.name}" deactivated successfully`);
+      navigate('/dashboard/settings/document-types');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to deactivate document type');
+      setDeleting(false);
+      setShowDeleteDialog(false);
     }
-  };
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-24 text-muted-foreground">
+        Loading document type...
+      </div>
+    );
+  }
+
+  if (!docType) return null;
+
+  const totalUploads = docType._count?.documents ?? 0;
 
   return (
     <div className="space-y-6">
@@ -98,8 +88,8 @@ export function DocumentTypeView() {
             </Link>
           </Button>
           <div>
-            <h1 className="text-3xl font-semibold text-[#0F172A]">{mockDocumentType.name}</h1>
-            <p className="text-muted-foreground mt-1">Document Type ID: {mockDocumentType.id}</p>
+            <h1 className="text-3xl font-semibold text-[#0F172A]">{docType.name}</h1>
+            <p className="text-muted-foreground mt-1 font-mono text-sm">ID: {docType.id}</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -109,28 +99,30 @@ export function DocumentTypeView() {
               Edit
             </Link>
           </Button>
-          <Button variant="outline" className="text-red-600">
+          <Button
+            variant="outline"
+            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+            onClick={() => setShowDeleteDialog(true)}
+          >
             <Trash2 className="w-4 h-4 mr-2" />
-            Delete
+            Deactivate
           </Button>
         </div>
       </div>
 
       {/* Status Badge */}
       <div className="flex items-center gap-2">
-        <Badge className="bg-green-100 text-green-800">
-          {mockDocumentType.status}
+        <Badge className={docType.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}>
+          {docType.isActive ? 'Active' : 'Inactive'}
         </Badge>
-        {mockDocumentType.required && (
-          <Badge variant="outline">Required Document</Badge>
-        )}
-        {mockDocumentType.expiryTracking && (
+        {docType.required && <Badge variant="outline">Required Document</Badge>}
+        {docType.trackExpiry && (
           <Badge variant="outline" className="bg-[#EFF6FF]">Expiry Tracking Enabled</Badge>
         )}
       </div>
 
       {/* Usage Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
@@ -138,68 +130,28 @@ export function DocumentTypeView() {
                 <FileText className="w-5 h-5 text-[#2563EB]" />
               </div>
               <div>
-                <p className="text-2xl font-semibold">{mockDocumentType.usageStats.totalUploads}</p>
+                <p className="text-2xl font-semibold">{totalUploads}</p>
                 <p className="text-sm text-muted-foreground">Total Uploads</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-[#F0FDF4] flex items-center justify-center">
-                <CheckCircle2 className="w-5 h-5 text-[#22C55E]" />
+        {docType.renewalPeriodDays && (
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-[#FEF3C7] flex items-center justify-center">
+                  <span className="text-[#F59E0B] font-bold text-sm">{docType.renewalPeriodDays}d</span>
+                </div>
+                <div>
+                  <p className="text-2xl font-semibold">{docType.renewalPeriodDays}</p>
+                  <p className="text-sm text-muted-foreground">Days Warning Before Expiry</p>
+                </div>
               </div>
-              <div>
-                <p className="text-2xl font-semibold">{mockDocumentType.usageStats.verified}</p>
-                <p className="text-sm text-muted-foreground">Verified</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-[#FEF3C7] flex items-center justify-center">
-                <Calendar className="w-5 h-5 text-[#F59E0B]" />
-              </div>
-              <div>
-                <p className="text-2xl font-semibold">{mockDocumentType.usageStats.pending}</p>
-                <p className="text-sm text-muted-foreground">Pending</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-[#FEE2E2] flex items-center justify-center">
-                <XCircle className="w-5 h-5 text-[#EF4444]" />
-              </div>
-              <div>
-                <p className="text-2xl font-semibold">{mockDocumentType.usageStats.rejected}</p>
-                <p className="text-sm text-muted-foreground">Rejected</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-[#FEF3C7] flex items-center justify-center">
-                <AlertCircle className="w-5 h-5 text-[#F59E0B]" />
-              </div>
-              <div>
-                <p className="text-2xl font-semibold">{mockDocumentType.usageStats.expiringSoon}</p>
-                <p className="text-sm text-muted-foreground">Expiring Soon</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Tabs */}
@@ -207,7 +159,6 @@ export function DocumentTypeView() {
         <TabsList>
           <TabsTrigger value="details">Details</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
-          <TabsTrigger value="activity">Recent Activity</TabsTrigger>
         </TabsList>
 
         {/* Details Tab */}
@@ -221,20 +172,22 @@ export function DocumentTypeView() {
               <CardContent className="space-y-4">
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Document Type Name</p>
-                  <p className="font-medium">{mockDocumentType.name}</p>
+                  <p className="font-medium">{docType.name}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Category</p>
-                  <p className="font-medium">{mockDocumentType.category}</p>
+                  <p className="font-medium">{docType.category}</p>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Description</p>
-                  <p className="font-medium">{mockDocumentType.description}</p>
-                </div>
+                {docType.description && (
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Description</p>
+                    <p className="font-medium">{docType.description}</p>
+                  </div>
+                )}
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Status</p>
-                  <Badge className="bg-green-100 text-green-800">
-                    {mockDocumentType.status}
+                  <Badge className={docType.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}>
+                    {docType.isActive ? 'Active' : 'Inactive'}
                   </Badge>
                 </div>
               </CardContent>
@@ -248,92 +201,25 @@ export function DocumentTypeView() {
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Required Document</span>
-                  <Badge variant={mockDocumentType.required ? 'default' : 'outline'}>
-                    {mockDocumentType.required ? 'Yes' : 'No'}
+                  <Badge variant={docType.required ? 'default' : 'outline'}>
+                    {docType.required ? 'Yes' : 'No'}
                   </Badge>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Expiry Tracking</span>
-                  <Badge variant={mockDocumentType.expiryTracking ? 'default' : 'outline'}>
-                    {mockDocumentType.expiryTracking ? 'Enabled' : 'Disabled'}
+                  <Badge variant={docType.trackExpiry ? 'default' : 'outline'}>
+                    {docType.trackExpiry ? 'Enabled' : 'Disabled'}
                   </Badge>
                 </div>
-                {mockDocumentType.expiryTracking && (
+                {docType.trackExpiry && docType.renewalPeriodDays && (
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">Warning Period</span>
-                    <span className="font-medium">{mockDocumentType.expiryWarningDays} days</span>
+                    <span className="font-medium">{docType.renewalPeriodDays} days</span>
                   </div>
                 )}
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Allow Multiple Uploads</span>
-                  <Badge variant={mockDocumentType.allowMultiple ? 'default' : 'outline'}>
-                    {mockDocumentType.allowMultiple ? 'Yes' : 'No'}
-                  </Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Verification Required</span>
-                  <Badge variant={mockDocumentType.verificationRequired ? 'default' : 'outline'}>
-                    {mockDocumentType.verificationRequired ? 'Yes' : 'No'}
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* File Settings */}
-            <Card>
-              <CardHeader>
-                <CardTitle>File Upload Settings</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <p className="text-sm text-muted-foreground mb-2">Allowed File Formats</p>
-                  <div className="flex flex-wrap gap-2">
-                    {mockDocumentType.fileFormats.map((format) => (
-                      <Badge key={format} variant="outline">
-                        {format}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Maximum File Size</p>
-                  <p className="font-medium">{mockDocumentType.maxFileSize} MB</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Job Type Applicability */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="w-5 h-5" />
-                  Job Type Applicability
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {mockDocumentType.applicableJobTypes.map((jobType) => (
-                    <Badge key={jobType} variant="outline" className="mr-2">
-                      {jobType}
-                    </Badge>
-                  ))}
-                </div>
-                <p className="text-sm text-muted-foreground mt-3">
-                  This document type applies to all job types
-                </p>
               </CardContent>
             </Card>
           </div>
-
-          {/* Validation Rules */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Validation Rules</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm leading-relaxed">{mockDocumentType.validationRules}</p>
-            </CardContent>
-          </Card>
 
           {/* Metadata */}
           <Card>
@@ -343,19 +229,11 @@ export function DocumentTypeView() {
             <CardContent className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Created On</p>
-                <p className="font-medium">{mockDocumentType.createdAt}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Created By</p>
-                <p className="font-medium">{mockDocumentType.createdBy}</p>
+                <p className="font-medium">{new Date(docType.createdAt).toLocaleDateString()}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Last Updated</p>
-                <p className="font-medium">{mockDocumentType.updatedAt}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Updated By</p>
-                <p className="font-medium">{mockDocumentType.updatedBy}</p>
+                <p className="font-medium">{new Date(docType.updatedAt).toLocaleDateString()}</p>
               </div>
             </CardContent>
           </Card>
@@ -371,137 +249,84 @@ export function DocumentTypeView() {
               </p>
             </CardHeader>
             <CardContent>
-              <div className="space-y-6">
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="p-4 border rounded-lg">
-                    <h3 className="font-semibold mb-3">Basic Settings</h3>
-                    <div className="space-y-3 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Document Type:</span>
-                        <span className="font-medium">{mockDocumentType.name}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Category:</span>
-                        <span className="font-medium">{mockDocumentType.category}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Status:</span>
-                        <Badge className="bg-green-100 text-green-800">{mockDocumentType.status}</Badge>
-                      </div>
+              <div className="grid grid-cols-2 gap-6">
+                <div className="p-4 border rounded-lg">
+                  <h3 className="font-semibold mb-3">Basic Settings</h3>
+                  <div className="space-y-3 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Document Type:</span>
+                      <span className="font-medium">{docType.name}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Category:</span>
+                      <span className="font-medium">{docType.category}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Status:</span>
+                      <Badge className={docType.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}>
+                        {docType.isActive ? 'Active' : 'Inactive'}
+                      </Badge>
                     </div>
                   </div>
+                </div>
 
-                  <div className="p-4 border rounded-lg">
-                    <h3 className="font-semibold mb-3">Requirements</h3>
-                    <div className="space-y-3 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Required:</span>
-                        <span className="font-medium">{mockDocumentType.required ? 'Yes' : 'No'}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Verification:</span>
-                        <span className="font-medium">{mockDocumentType.verificationRequired ? 'Required' : 'Optional'}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Multiple Files:</span>
-                        <span className="font-medium">{mockDocumentType.allowMultiple ? 'Allowed' : 'Single Only'}</span>
-                      </div>
+                <div className="p-4 border rounded-lg">
+                  <h3 className="font-semibold mb-3">Requirements</h3>
+                  <div className="space-y-3 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Required:</span>
+                      <span className="font-medium">{docType.required ? 'Yes' : 'No'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Total Uploads:</span>
+                      <span className="font-medium">{totalUploads}</span>
                     </div>
                   </div>
+                </div>
 
-                  <div className="p-4 border rounded-lg">
-                    <h3 className="font-semibold mb-3">Expiry Settings</h3>
-                    <div className="space-y-3 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Tracking:</span>
-                        <span className="font-medium">{mockDocumentType.expiryTracking ? 'Enabled' : 'Disabled'}</span>
-                      </div>
-                      {mockDocumentType.expiryTracking && (
-                        <>
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Warning Period:</span>
-                            <span className="font-medium">{mockDocumentType.expiryWarningDays} days</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Currently Expiring:</span>
-                            <span className="font-medium text-[#F59E0B]">{mockDocumentType.usageStats.expiringSoon}</span>
-                          </div>
-                        </>
-                      )}
+                <div className="p-4 border rounded-lg">
+                  <h3 className="font-semibold mb-3">Expiry Settings</h3>
+                  <div className="space-y-3 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Tracking:</span>
+                      <span className="font-medium">{docType.trackExpiry ? 'Enabled' : 'Disabled'}</span>
                     </div>
-                  </div>
-
-                  <div className="p-4 border rounded-lg">
-                    <h3 className="font-semibold mb-3">File Settings</h3>
-                    <div className="space-y-3 text-sm">
+                    {docType.trackExpiry && docType.renewalPeriodDays && (
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Max Size:</span>
-                        <span className="font-medium">{mockDocumentType.maxFileSize} MB</span>
+                        <span className="text-muted-foreground">Warning Period:</span>
+                        <span className="font-medium">{docType.renewalPeriodDays} days</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Formats:</span>
-                        <span className="font-medium">{mockDocumentType.fileFormats.length} types</span>
-                      </div>
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {mockDocumentType.fileFormats.map((format) => (
-                          <Badge key={format} variant="outline" className="text-xs">
-                            {format}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
-
-        {/* Activity Tab */}
-        <TabsContent value="activity">
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Activity</CardTitle>
-              <p className="text-sm text-muted-foreground mt-1">
-                Recent uploads and actions for this document type
-              </p>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {mockDocumentType.recentActivity.map((activity) => (
-                  <div key={activity.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-[#F8FAFC] transition-colors">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                        activity.status === 'Verified' ? 'bg-green-100' :
-                        activity.status === 'Pending' ? 'bg-yellow-100' :
-                        'bg-red-100'
-                      }`}>
-                        {activity.status === 'Verified' ? (
-                          <CheckCircle2 className="w-5 h-5 text-green-600" />
-                        ) : activity.status === 'Pending' ? (
-                          <Calendar className="w-5 h-5 text-yellow-600" />
-                        ) : (
-                          <XCircle className="w-5 h-5 text-red-600" />
-                        )}
-                      </div>
-                      <div>
-                        <p className="font-medium">{activity.employeeName}</p>
-                        <p className="text-sm text-muted-foreground">{activity.action}</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <Badge className={getStatusColor(activity.status)}>
-                        {activity.status}
-                      </Badge>
-                      <p className="text-sm text-muted-foreground mt-1">{activity.date}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
       </Tabs>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Deactivate Document Type</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to deactivate <strong>{docType.name}</strong>? It will no longer appear in
+              document type lists, but existing documents will not be affected.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {deleting ? 'Deactivating...' : 'Deactivate'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

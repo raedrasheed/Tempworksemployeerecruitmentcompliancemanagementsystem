@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Edit, Trash2, GripVertical, Save, FileText, CheckCircle, AlertCircle } from 'lucide-react';
+import { Plus, Edit, Trash2, GripVertical, Save, FileText, CheckCircle, AlertCircle, ShieldOff } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
@@ -7,6 +7,7 @@ import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../../components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { usePermissions } from '../../hooks/usePermissions';
 
 interface WorkflowStage {
   id: string;
@@ -109,6 +110,7 @@ const initialStages: WorkflowStage[] = [
 ];
 
 export function WorkflowManagement() {
+  const { canEdit } = usePermissions();
   const [stages, setStages] = useState<WorkflowStage[]>(initialStages);
   const [isAddStageOpen, setIsAddStageOpen] = useState(false);
   const [isEditRequirementsOpen, setIsEditRequirementsOpen] = useState(false);
@@ -185,10 +187,13 @@ export function WorkflowManagement() {
           <p className="text-muted-foreground mt-1">Configure recruitment workflow stages and requirements</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" onClick={() => alert('Workflow configuration saved')}>
-            <Save className="w-4 h-4 mr-2" />
-            Save Changes
-          </Button>
+          {canEdit('workflow') && (
+            <Button variant="outline" onClick={() => alert('Workflow configuration saved')}>
+              <Save className="w-4 h-4 mr-2" />
+              Save Changes
+            </Button>
+          )}
+          {canEdit('workflow') && (
           <Dialog open={isAddStageOpen} onOpenChange={setIsAddStageOpen}>
             <DialogTrigger asChild>
               <Button>
@@ -248,6 +253,7 @@ export function WorkflowManagement() {
               </div>
             </DialogContent>
           </Dialog>
+          )}
         </div>
       </div>
 
@@ -276,15 +282,15 @@ export function WorkflowManagement() {
             {stages.map((stage) => (
               <div
                 key={stage.id}
-                draggable
-                onDragStart={() => handleDragStart(stage.id)}
-                onDragOver={(e) => handleDragOver(e, stage.id)}
+                draggable={canEdit('workflow')}
+                onDragStart={() => canEdit('workflow') && handleDragStart(stage.id)}
+                onDragOver={(e) => canEdit('workflow') && handleDragOver(e, stage.id)}
                 onDragEnd={handleDragEnd}
-                className={`flex items-center gap-4 p-4 border rounded-lg hover:bg-[#F8FAFC] transition-colors cursor-move ${
-                  draggedStage === stage.id ? 'opacity-50' : ''
-                }`}
+                className={`flex items-center gap-4 p-4 border rounded-lg hover:bg-[#F8FAFC] transition-colors ${
+                  canEdit('workflow') ? 'cursor-move' : 'cursor-default'
+                } ${draggedStage === stage.id ? 'opacity-50' : ''}`}
               >
-                <GripVertical className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+                <GripVertical className={`w-5 h-5 flex-shrink-0 ${canEdit('workflow') ? 'text-muted-foreground' : 'text-muted-foreground/30'}`} />
                 
                 <div className="flex items-center gap-3 flex-1">
                   <div
@@ -320,21 +326,25 @@ export function WorkflowManagement() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => openRequirementsEditor(stage)}
-                  >
-                    <Edit className="w-4 h-4 mr-1" />
-                    Edit Requirements
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => handleDeleteStage(stage.id)}
-                  >
-                    <Trash2 className="w-4 h-4 text-[#EF4444]" />
-                  </Button>
+                  {canEdit('workflow') && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => openRequirementsEditor(stage)}
+                    >
+                      <Edit className="w-4 h-4 mr-1" />
+                      Edit Requirements
+                    </Button>
+                  )}
+                  {canEdit('workflow') && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleDeleteStage(stage.id)}
+                    >
+                      <Trash2 className="w-4 h-4 text-[#EF4444]" />
+                    </Button>
+                  )}
                 </div>
               </div>
             ))}

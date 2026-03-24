@@ -4,8 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/ca
 import { Badge } from '../../components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { mockDocuments, mockDrivers } from '../../data/mockData';
+import { usePermissions } from '../../hooks/usePermissions';
 
 export function ComplianceDashboard() {
+  const { canView } = usePermissions();
   const expiringDocs = mockDocuments.filter(d => d.status === 'expiring_soon');
   const expiredDocs = mockDocuments.filter(d => d.status === 'expired');
   const validDocs = mockDocuments.filter(d => d.status === 'valid');
@@ -90,20 +92,36 @@ export function ComplianceDashboard() {
         <CardContent>
           <div className="space-y-3">
             {mockDrivers.slice(0, 5).map((driver) => (
-              <Link 
-                key={driver.id} 
-                to={`/compliance/drivers/${driver.id}`}
-                className="flex items-center justify-between p-3 rounded-lg border hover:bg-[#F8FAFC] transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <img src={driver.photo} alt={driver.firstName} className="w-10 h-10 rounded-full" />
-                  <div>
-                    <p className="font-medium">{driver.firstName} {driver.lastName}</p>
-                    <p className="text-sm text-muted-foreground">{driver.nationality}</p>
+              canView('compliance') ? (
+                <Link
+                  key={driver.id}
+                  to={`/compliance/drivers/${driver.id}`}
+                  className="flex items-center justify-between p-3 rounded-lg border hover:bg-[#F8FAFC] transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <img src={driver.photo} alt={driver.firstName} className="w-10 h-10 rounded-full" />
+                    <div>
+                      <p className="font-medium">{driver.firstName} {driver.lastName}</p>
+                      <p className="text-sm text-muted-foreground">{driver.nationality}</p>
+                    </div>
                   </div>
+                  <Badge className="bg-[#22C55E]">Compliant</Badge>
+                </Link>
+              ) : (
+                <div
+                  key={driver.id}
+                  className="flex items-center justify-between p-3 rounded-lg border"
+                >
+                  <div className="flex items-center gap-3">
+                    <img src={driver.photo} alt={driver.firstName} className="w-10 h-10 rounded-full" />
+                    <div>
+                      <p className="font-medium">{driver.firstName} {driver.lastName}</p>
+                      <p className="text-sm text-muted-foreground">{driver.nationality}</p>
+                    </div>
+                  </div>
+                  <Badge className="bg-[#22C55E]">Compliant</Badge>
                 </div>
-                <Badge className="bg-[#22C55E]">Compliant</Badge>
-              </Link>
+              )
             ))}
           </div>
         </CardContent>

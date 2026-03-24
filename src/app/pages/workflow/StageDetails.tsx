@@ -1,227 +1,108 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router';
-import { ArrowLeft, Users, Clock, AlertTriangle, TrendingUp, CheckCircle, Search, Filter, ChevronRight, MoveRight } from 'lucide-react';
+import { ArrowLeft, Users, Clock, AlertTriangle, TrendingUp, CheckCircle, XCircle, Search, ChevronRight, UserCircle, FileText, ChevronDown, ChevronUp } from 'lucide-react';
 import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Input } from '../../components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
-import { mockDrivers } from '../../data/mockData';
-
-const workflowStages = [
-  {
-    id: 'application_submitted',
-    name: 'Application Submitted',
-    order: 1,
-    avgDaysInStage: 5,
-    completionRate: 92,
-    requirements: [
-      { name: 'Application Form', description: 'Complete driver application form' },
-      { name: 'Initial Screening', description: 'Preliminary background check' },
-    ],
-  },
-  {
-    id: 'document_verification',
-    name: 'Document Verification',
-    order: 2,
-    avgDaysInStage: 7,
-    completionRate: 85,
-    requirements: [
-      { name: 'Valid Passport', description: 'Passport must be valid for at least 6 months' },
-      { name: 'Driving License Verification', description: 'Verify CE category driving licenses' },
-      { name: 'Criminal Background Check', description: 'Complete background check clearance' },
-      { name: 'Educational Certificates', description: 'Verify driving school certificates' },
-    ],
-  },
-  {
-    id: 'work_permit_application',
-    name: 'Work Permit Application',
-    order: 3,
-    avgDaysInStage: 21,
-    completionRate: 78,
-    requirements: [
-      { name: 'Work Permit Application', description: 'Submit work permit application form' },
-      { name: 'Employment Contract', description: 'Signed employment contract' },
-      { name: 'Proof of Employment', description: 'Letter from employer' },
-    ],
-  },
-  {
-    id: 'visa_application',
-    name: 'Visa Application',
-    order: 4,
-    avgDaysInStage: 14,
-    completionRate: 82,
-    requirements: [
-      { name: 'Submit Visa Application', description: 'Complete visa application form' },
-      { name: 'Biometric Data Collection', description: 'Biometric data submission' },
-      { name: 'Financial Documents', description: 'Proof of financial stability' },
-    ],
-  },
-  {
-    id: 'visa_approved',
-    name: 'Visa Approved',
-    order: 5,
-    avgDaysInStage: 3,
-    completionRate: 95,
-    requirements: [
-      { name: 'Visa Approval Confirmation', description: 'Receive visa approval notification' },
-    ],
-  },
-  {
-    id: 'embassy_appointment',
-    name: 'Embassy Appointment',
-    order: 6,
-    avgDaysInStage: 10,
-    completionRate: 88,
-    requirements: [
-      { name: 'Schedule Embassy Appointment', description: 'Book appointment slot' },
-      { name: 'Attend Embassy Interview', description: 'Complete embassy interview' },
-    ],
-  },
-  {
-    id: 'arrival_registration',
-    name: 'Arrival Registration',
-    order: 7,
-    avgDaysInStage: 5,
-    completionRate: 90,
-    requirements: [
-      { name: 'Register Arrival', description: 'Complete arrival registration' },
-      { name: 'Address Verification', description: 'Verify local address' },
-    ],
-  },
-  {
-    id: 'residence_permit',
-    name: 'Residence Permit',
-    order: 8,
-    avgDaysInStage: 18,
-    completionRate: 80,
-    requirements: [
-      { name: 'Residence Permit Application', description: 'Submit residence permit application' },
-      { name: 'Biometric Registration', description: 'Complete biometric registration' },
-    ],
-  },
-  {
-    id: 'medical_examination',
-    name: 'Medical Examination',
-    order: 9,
-    avgDaysInStage: 8,
-    completionRate: 92,
-    requirements: [
-      { name: 'Medical Certificate', description: 'Valid medical fitness certificate' },
-      { name: 'Schedule Medical Exam', description: 'Book appointment with certified physician' },
-    ],
-  },
-  {
-    id: 'interview',
-    name: 'Interview',
-    order: 10,
-    avgDaysInStage: 6,
-    completionRate: 85,
-    requirements: [
-      { name: 'Schedule Interview', description: 'Book interview slot with hiring manager' },
-      { name: 'Conduct Interview', description: 'Face-to-face or video interview' },
-      { name: 'Interview Assessment', description: 'Complete assessment form' },
-    ],
-  },
-  {
-    id: 'contract_signing',
-    name: 'Contract Signing',
-    order: 11,
-    avgDaysInStage: 4,
-    completionRate: 95,
-    requirements: [
-      { name: 'Employment Contract', description: 'Final employment contract' },
-      { name: 'Terms Agreement', description: 'Terms and conditions acceptance' },
-      { name: 'Sign Contract', description: 'Contract signature' },
-    ],
-  },
-  {
-    id: 'training',
-    name: 'Training',
-    order: 12,
-    avgDaysInStage: 15,
-    completionRate: 88,
-    requirements: [
-      { name: 'Complete Onboarding Training', description: 'Company onboarding program' },
-      { name: 'Safety Training', description: 'Safety and compliance training' },
-    ],
-  },
-  {
-    id: 'deployment',
-    name: 'Deployment',
-    order: 13,
-    avgDaysInStage: 2,
-    completionRate: 98,
-    requirements: [
-      { name: 'Vehicle Assignment', description: 'Assign vehicle to driver' },
-      { name: 'Route Planning', description: 'Initial route assignment' },
-    ],
-  },
-  {
-    id: 'completed',
-    name: 'Onboarding Completed',
-    order: 14,
-    avgDaysInStage: 0,
-    completionRate: 100,
-    requirements: [
-      { name: 'Stage Requirements', description: 'Complete all required tasks for this stage' },
-    ],
-  },
-];
+import { workflowApi } from '../../services/api';
 
 export function StageDetails() {
-  const { stageId } = useParams();
-  const stage = workflowStages.find(s => s.id === stageId);
-  
+  const { stageId } = useParams<{ stageId: string }>();
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [allStages, setAllStages] = useState<any[]>([]);
+  const [expandedDocs, setExpandedDocs] = useState<Set<string>>(new Set());
 
-  if (!stage) {
+  useEffect(() => {
+    if (!stageId) return;
+    Promise.all([
+      workflowApi.getStageDetails(stageId),
+      workflowApi.getStages(),
+    ])
+      .then(([details, stages]) => {
+        setData(details);
+        setAllStages(Array.isArray(stages) ? stages : []);
+      })
+      .catch(() => setData(null))
+      .finally(() => setLoading(false));
+  }, [stageId]);
+
+  if (loading) {
+    return (
+      <div className="space-y-6 animate-pulse">
+        <div className="h-10 bg-muted rounded w-1/3" />
+        <div className="grid grid-cols-4 gap-4">
+          {[1,2,3,4].map(i => <div key={i} className="h-28 bg-muted rounded" />)}
+        </div>
+        <div className="h-64 bg-muted rounded" />
+      </div>
+    );
+  }
+
+  if (!data) {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
           <AlertTriangle className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
           <h2 className="text-2xl font-semibold mb-2">Stage Not Found</h2>
           <p className="text-muted-foreground mb-4">The requested workflow stage could not be found.</p>
-          <Button asChild>
-            <Link to="/dashboard/workflow">Return to Workflow Pipeline</Link>
-          </Button>
+          <Button asChild><Link to="/dashboard/workflow">Return to Workflow Pipeline</Link></Button>
         </div>
       </div>
     );
   }
 
-  // Get drivers in this stage
-  const driversInStage = mockDrivers.filter(d => d.currentStage === stageId);
+  const { stage, applicants, employees, stats } = data;
+  const totalStages = allStages.length || 14;
 
-  // Filter drivers
-  const filteredDrivers = driversInStage.filter(driver => {
-    const matchesSearch = driver.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         driver.lastName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         driver.email.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesSearch;
-  });
+  // Combine applicants and employees into one list for display
+  const allPeople = [
+    ...applicants.map((a: any) => ({
+      id: a.id,
+      firstName: a.firstName,
+      lastName: a.lastName,
+      email: a.email,
+      nationality: a.nationality,
+      photo: a.photoUrl,
+      type: 'Applicant',
+      jobType: a.jobType?.name,
+      daysInStage: a.createdAt
+        ? Math.floor((Date.now() - new Date(a.createdAt).getTime()) / 86400000)
+        : 0,
+      linkTo: `/dashboard/applicants/${a.id}`,
+      docChecklist: a.docChecklist ?? [],
+    })),
+    ...employees.map((e: any) => ({
+      id: e.id,
+      firstName: e.firstName,
+      lastName: e.lastName,
+      email: e.email,
+      nationality: e.nationality,
+      photo: e.photoUrl,
+      type: 'Employee',
+      daysInStage: e.startedAt
+        ? Math.floor((Date.now() - new Date(e.startedAt).getTime()) / 86400000)
+        : 0,
+      linkTo: `/dashboard/employees/${e.id}`,
+      docChecklist: e.docChecklist ?? [],
+    })),
+  ];
 
-  // Calculate metrics
-  const avgDaysInStage = stage.avgDaysInStage;
-  const atRiskCount = Math.floor(driversInStage.length * 0.3);
-  const completionRate = stage.completionRate;
-
-  const getDaysInStage = (driver: any) => {
-    return Math.floor(Math.random() * 20) + 1;
+  const toggleDocs = (id: string) => {
+    setExpandedDocs(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
   };
 
-  const getDriverStatus = (driver: any) => {
-    const statuses = ['At Risk', 'pending', 'active'];
-    return statuses[Math.floor(Math.random() * statuses.length)];
-  };
+  const filtered = allPeople.filter(p =>
+    `${p.firstName} ${p.lastName} ${p.email}`.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
-  const handleStageChange = (driverId: string, driverName: string, newStageId: string) => {
-    const targetStage = workflowStages.find(s => s.id === newStageId);
-    if (targetStage) {
-      alert(`Moving ${driverName} to ${targetStage.name}\n\nSystem log entry created:\nAction: Stage Transition\nUser: Current User\nDriver: ${driverName}\nFrom: ${stage.name}\nTo: ${targetStage.name}\nTimestamp: ${new Date().toLocaleString()}`);
-      // In a real app, this would update the backend and refresh the data
-    }
-  };
+  const atRiskCount = allPeople.filter(p => p.daysInStage > 14).length;
 
   return (
     <div className="space-y-6">
@@ -229,24 +110,19 @@ export function StageDetails() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Link to="/dashboard/workflow">
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
+            <Button variant="ghost" size="icon"><ArrowLeft className="w-5 h-5" /></Button>
           </Link>
           <div>
             <h1 className="text-3xl font-semibold text-[#0F172A]">{stage.name}</h1>
-            <p className="text-muted-foreground mt-1">Stage {stage.order} of 14 • Manage drivers in this workflow stage</p>
+            <p className="text-muted-foreground mt-1">
+              Stage {stage.order} of {totalStages} • {stage.description || 'Manage people in this workflow stage'}
+            </p>
           </div>
         </div>
-        <Button>
-          <ChevronRight className="w-4 h-4 mr-2" />
-          Export Report
-        </Button>
       </div>
 
-      {/* Metrics Cards */}
+      {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {/* Drivers in Stage */}
         <Card>
           <CardContent className="p-6">
             <div className="flex items-start gap-4">
@@ -254,14 +130,14 @@ export function StageDetails() {
                 <Users className="w-6 h-6 text-[#2563EB]" />
               </div>
               <div>
-                <p className="text-3xl font-semibold text-[#0F172A]">{driversInStage.length}</p>
-                <p className="text-sm text-muted-foreground mt-1">Drivers in Stage</p>
+                <p className="text-3xl font-semibold text-[#0F172A]">{stats.total}</p>
+                <p className="text-sm text-muted-foreground mt-1">Total in Stage</p>
+                <p className="text-xs text-muted-foreground">{stats.applicantsCount} applicants · {stats.employeesCount} employees</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Avg Days in Stage */}
         <Card>
           <CardContent className="p-6">
             <div className="flex items-start gap-4">
@@ -269,14 +145,17 @@ export function StageDetails() {
                 <Clock className="w-6 h-6 text-[#22C55E]" />
               </div>
               <div>
-                <p className="text-3xl font-semibold text-[#0F172A]">{avgDaysInStage}</p>
+                <p className="text-3xl font-semibold text-[#0F172A]">
+                  {allPeople.length > 0
+                    ? Math.round(allPeople.reduce((s, p) => s + p.daysInStage, 0) / allPeople.length)
+                    : 0}
+                </p>
                 <p className="text-sm text-muted-foreground mt-1">Avg. Days in Stage</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* At Risk */}
         <Card>
           <CardContent className="p-6">
             <div className="flex items-start gap-4">
@@ -285,13 +164,12 @@ export function StageDetails() {
               </div>
               <div>
                 <p className="text-3xl font-semibold text-[#0F172A]">{atRiskCount}</p>
-                <p className="text-sm text-muted-foreground mt-1">At Risk (SLA)</p>
+                <p className="text-sm text-muted-foreground mt-1">At Risk (&gt;14 days)</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Completion Rate */}
         <Card>
           <CardContent className="p-6">
             <div className="flex items-start gap-4">
@@ -299,144 +177,184 @@ export function StageDetails() {
                 <TrendingUp className="w-6 h-6 text-[#22C55E]" />
               </div>
               <div>
-                <p className="text-3xl font-semibold text-[#0F172A]">{completionRate}%</p>
-                <p className="text-sm text-muted-foreground mt-1">Completion Rate</p>
+                <p className="text-3xl font-semibold text-[#0F172A]">Stage {stage.order}</p>
+                <p className="text-sm text-muted-foreground mt-1">of {totalStages} total</p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Stage Requirements */}
-      <Card>
-        <CardContent className="p-6">
-          <h2 className="font-semibold text-lg mb-4">Stage Requirements</h2>
-          <div className="space-y-3">
-            {stage.requirements.map((req, index) => (
-              <div key={index} className="flex items-start justify-between p-4 border rounded-lg">
-                <div className="flex items-start gap-3">
-                  <CheckCircle className="w-5 h-5 text-[#22C55E] mt-0.5" />
-                  <div>
+      {/* Requirements */}
+      {(stage.requirementsDocuments?.length > 0 || stage.requirementsActions?.length > 0 || stage.requirementsApprovals?.length > 0) && (
+        <Card>
+          <CardContent className="p-6">
+            <h2 className="font-semibold text-lg mb-4">Stage Requirements</h2>
+            <div className="space-y-3">
+              {[
+                ...stage.requirementsDocuments.map((r: string) => ({ name: r, type: 'Document' })),
+                ...stage.requirementsActions.map((r: string) => ({ name: r, type: 'Action' })),
+                ...stage.requirementsApprovals.map((r: string) => ({ name: r, type: 'Approval' })),
+              ].map((req, i) => (
+                <div key={i} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <CheckCircle className="w-5 h-5 text-[#22C55E]" />
                     <p className="font-medium text-[#0F172A]">{req.name}</p>
-                    <p className="text-sm text-muted-foreground mt-1">{req.description}</p>
                   </div>
+                  <Badge variant="outline" className="border-[#2563EB] text-[#2563EB]">{req.type}</Badge>
                 </div>
-                <Badge variant="outline" className="border-[#EF4444] text-[#EF4444] bg-[#FEF2F2]">
-                  Required
-                </Badge>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
-      {/* Drivers in Stage */}
+      {/* People in Stage */}
       <Card>
         <CardContent className="p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-lg">Drivers in {stage.name}</h2>
-            <div className="flex items-center gap-2">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search drivers..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 w-64"
-                />
-              </div>
-              <Button variant="outline" size="icon">
-                <Filter className="w-4 h-4" />
-              </Button>
+            <h2 className="font-semibold text-lg">People in {stage.name}</h2>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by name or email..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 w-64"
+              />
             </div>
           </div>
 
-          {filteredDrivers.length === 0 ? (
+          {filtered.length === 0 ? (
             <div className="text-center py-12">
               <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-lg font-medium">No drivers in this stage</p>
+              <p className="text-lg font-medium">
+                {allPeople.length === 0 ? 'No one in this stage' : 'No results found'}
+              </p>
               <p className="text-sm text-muted-foreground mt-1">
-                Drivers will appear here when they are moved to this workflow stage
+                {allPeople.length === 0
+                  ? 'People will appear here when assigned to this stage.'
+                  : 'Try a different search term.'}
               </p>
             </div>
           ) : (
             <div className="space-y-3">
-              {filteredDrivers.map((driver) => {
-                const daysInStage = getDaysInStage(driver);
-                const status = getDriverStatus(driver);
+              {filtered.map((person) => {
+                const verifiedCount = person.docChecklist.filter((d: any) => d.status === 'VERIFIED').length;
+                const totalRequired = person.docChecklist.length;
+                const allDocsVerified = totalRequired > 0 && verifiedCount === totalRequired;
+                const isExpanded = expandedDocs.has(person.id);
 
                 return (
-                  <div key={driver.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-[#F8FAFC] transition-colors">
-                    <div className="flex items-center gap-4 flex-1">
-                      <img
-                        src={driver.photo}
-                        alt={driver.firstName}
-                        className="w-12 h-12 rounded-full"
-                      />
-                      <div>
-                        <p className="font-medium text-[#0F172A]">{driver.firstName} {driver.lastName}</p>
-                        <p className="text-sm text-muted-foreground">{driver.nationality} • {driver.email}</p>
+                  <div key={person.id} className="border rounded-lg overflow-hidden">
+                    {/* Person row */}
+                    <div className="flex items-center justify-between p-4 hover:bg-[#F8FAFC] transition-colors">
+                      <div className="flex items-center gap-4">
+                        {person.photo ? (
+                          <img src={person.photo} alt={person.firstName} className="w-12 h-12 rounded-full object-cover" />
+                        ) : (
+                          <div className="w-12 h-12 rounded-full bg-[#EFF6FF] flex items-center justify-center">
+                            <UserCircle className="w-7 h-7 text-[#2563EB]" />
+                          </div>
+                        )}
+                        <div>
+                          <p className="font-medium text-[#0F172A]">{person.firstName} {person.lastName}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {person.nationality}{person.email ? ` · ${person.email}` : ''}
+                            {person.jobType ? ` · ${person.jobType}` : ''}
+                          </p>
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="flex items-center gap-3">
-                      <div className="text-right">
-                        <p className="font-medium text-[#0F172A]">{daysInStage} days</p>
-                        <p className="text-xs text-muted-foreground">In stage</p>
-                      </div>
-                      
-                      {status === 'At Risk' && (
-                        <Badge className="bg-[#FEF3C7] text-[#F59E0B] border-[#F59E0B]" variant="outline">
-                          At Risk
-                        </Badge>
-                      )}
-                      {status === 'pending' && (
-                        <Badge className="bg-[#FEF3C7] text-[#F59E0B]">
-                          pending
-                        </Badge>
-                      )}
-                      {status === 'active' && (
-                        <Badge className="bg-[#F0FDF4] text-[#22C55E]">
-                          active
-                        </Badge>
-                      )}
+                      <div className="flex items-center gap-3">
+                        <div className="text-right">
+                          <p className="font-medium text-[#0F172A]">{person.daysInStage}d</p>
+                          <p className="text-xs text-muted-foreground">in stage</p>
+                        </div>
 
-                      {/* Stage Selector */}
-                      <div className="flex items-center gap-2">
-                        <MoveRight className="w-4 h-4 text-muted-foreground" />
-                        <Select 
-                          defaultValue={driver.currentStage}
-                          onValueChange={(value) => handleStageChange(driver.id, `${driver.firstName} ${driver.lastName}`, value)}
+                        {person.daysInStage > 14 && (
+                          <Badge variant="outline" className="border-[#F59E0B] text-[#F59E0B] bg-[#FEF3C7]">
+                            At Risk
+                          </Badge>
+                        )}
+
+                        {/* Document progress pill */}
+                        {totalRequired > 0 && (
+                          <button
+                            onClick={() => toggleDocs(person.id)}
+                            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+                              allDocsVerified
+                                ? 'bg-[#F0FDF4] text-[#22C55E] border-[#22C55E]'
+                                : 'bg-[#FEF3C7] text-[#F59E0B] border-[#F59E0B]'
+                            }`}
+                          >
+                            <FileText className="w-3.5 h-3.5" />
+                            {verifiedCount}/{totalRequired} docs
+                            {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                          </button>
+                        )}
+
+                        <Badge
+                          variant="outline"
+                          className={person.type === 'Applicant'
+                            ? 'border-[#2563EB] text-[#2563EB] bg-[#EFF6FF]'
+                            : 'border-[#22C55E] text-[#22C55E] bg-[#F0FDF4]'}
                         >
-                          <SelectTrigger className="w-[200px]">
-                            <SelectValue placeholder="Move to stage..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {workflowStages.map((s) => (
-                              <SelectItem 
-                                key={s.id} 
-                                value={s.id}
-                                disabled={s.id === driver.currentStage}
-                              >
-                                <div className="flex items-center justify-between w-full">
-                                  <span>{s.name}</span>
-                                  {s.id === driver.currentStage && (
-                                    <Badge variant="outline" className="ml-2 text-xs">Current</Badge>
-                                  )}
-                                </div>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                          {person.type}
+                        </Badge>
+
+                        <Link to={person.linkTo}>
+                          <Button variant="outline" size="sm">
+                            View Profile <ChevronRight className="w-4 h-4 ml-1" />
+                          </Button>
+                        </Link>
                       </div>
-                      
-                      <Link to={`/dashboard/drivers/${driver.id}`}>
-                        <Button variant="outline">
-                          View Profile
-                          <ChevronRight className="w-4 h-4 ml-1" />
-                        </Button>
-                      </Link>
                     </div>
+
+                    {/* Expandable document checklist */}
+                    {isExpanded && totalRequired > 0 && (
+                      <div className="border-t bg-[#F8FAFC] px-4 py-3">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                          Required Documents
+                        </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {person.docChecklist.map((doc: any) => (
+                            <div key={doc.name} className="flex items-center gap-2 text-sm">
+                              {doc.status === 'VERIFIED' ? (
+                                <CheckCircle className="w-4 h-4 text-[#22C55E] flex-shrink-0" />
+                              ) : doc.status === 'REJECTED' ? (
+                                <XCircle className="w-4 h-4 text-[#EF4444] flex-shrink-0" />
+                              ) : doc.status === 'PENDING' ? (
+                                <Clock className="w-4 h-4 text-[#F59E0B] flex-shrink-0" />
+                              ) : (
+                                <FileText className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                              )}
+                              <span className={
+                                doc.status === 'VERIFIED' ? 'text-[#0F172A]' :
+                                doc.status === 'REJECTED' ? 'text-[#EF4444]' :
+                                'text-muted-foreground'
+                              }>
+                                {doc.name}
+                              </span>
+                              <span className={`ml-auto text-xs px-1.5 py-0.5 rounded font-medium ${
+                                doc.status === 'VERIFIED' ? 'bg-[#F0FDF4] text-[#22C55E]' :
+                                doc.status === 'REJECTED' ? 'bg-[#FEF2F2] text-[#EF4444]' :
+                                doc.status === 'PENDING' ? 'bg-[#FEF3C7] text-[#F59E0B]' :
+                                'bg-muted text-muted-foreground'
+                              }`}>
+                                {doc.status === 'MISSING' ? 'Not uploaded' : doc.status.charAt(0) + doc.status.slice(1).toLowerCase()}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                        {allDocsVerified && (
+                          <p className="text-xs text-[#22C55E] font-medium mt-2 flex items-center gap-1">
+                            <CheckCircle className="w-3.5 h-3.5" />
+                            All required documents verified — stage will auto-complete
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -444,21 +362,6 @@ export function StageDetails() {
           )}
         </CardContent>
       </Card>
-
-      {/* SLA Performance */}
-      {driversInStage.length > 0 && (
-        <Card>
-          <CardContent className="p-6">
-            <h2 className="font-semibold text-lg mb-4">SLA Performance</h2>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Stage Completion Rate</span>
-                <span className="font-semibold text-xl">{completionRate}%</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }

@@ -26,12 +26,20 @@ export class WorkflowService {
 
     const overview = await Promise.all(
       stages.map(async (stage) => {
-        const [pending, inProgress, completed] = await Promise.all([
+        const [pending, inProgress, completed, applicantsCount] = await Promise.all([
           this.prisma.employeeWorkflowStage.count({ where: { stageId: stage.id, status: 'PENDING' } }),
           this.prisma.employeeWorkflowStage.count({ where: { stageId: stage.id, status: 'IN_PROGRESS' } }),
           this.prisma.employeeWorkflowStage.count({ where: { stageId: stage.id, status: 'COMPLETED' } }),
+          this.prisma.applicant.count({ where: { currentWorkflowStageId: stage.id, deletedAt: null } }),
         ]);
-        return { ...stage, pending, inProgress, completed, total: pending + inProgress + completed };
+        return {
+          ...stage,
+          pending,
+          inProgress: inProgress + applicantsCount,
+          completed,
+          total: pending + inProgress + completed,
+          applicants: applicantsCount,
+        };
       }),
     );
     return overview;
@@ -101,6 +109,42 @@ export class WorkflowService {
     return updated;
   }
 
+  async setEmployeeCurrentStage(employeeId: string, stageId: string, updatedById?: string) {
+    const employee = await this.prisma.employee.findUnique({ where: { id: employeeId, deletedAt: null } });
+    if (!employee) throw new NotFoundException('Employee not found');
+
+    const stage = await this.prisma.workflowStage.findUnique({ where: { id: stageId } });
+    if (!stage) throw new NotFoundException('Workflow stage not found');
+
+    // Complete any currently IN_PROGRESS stages
+    await this.prisma.employeeWorkflowStage.updateMany({
+      where: { employeeId, status: 'IN_PROGRESS' },
+      data: { status: 'COMPLETED', completedAt: new Date() },
+    });
+
+    // Upsert the chosen stage as IN_PROGRESS
+    const result = await this.prisma.employeeWorkflowStage.upsert({
+      where: { employeeId_stageId: { employeeId, stageId } },
+      create: { employeeId, stageId, status: 'IN_PROGRESS', startedAt: new Date() },
+      update: { status: 'IN_PROGRESS', startedAt: new Date(), completedAt: null },
+      include: { stage: true },
+    });
+
+    if (updatedById) {
+      await this.prisma.auditLog.create({
+        data: {
+          userId: updatedById,
+          action: 'WORKFLOW_STAGE_UPDATE',
+          entity: 'Employee',
+          entityId: employeeId,
+          changes: { currentStageId: stageId, currentStageName: stage.name } as any,
+        },
+      });
+    }
+
+    return result;
+  }
+
   async getTimeline(employeeId: string) {
     const employee = await this.prisma.employee.findUnique({
       where: { id: employeeId, deletedAt: null },
@@ -121,6 +165,66 @@ export class WorkflowService {
     };
   }
 
+  async getStageDetails(stageId: string) {
+    const stage = await this.prisma.workflowStage.findUnique({ where: { id: stageId } });
+    if (!stage) throw new NotFoundException('Stage not found');
+
+    const [applicants, employeeStages] = await Promise.all([
+      this.prisma.applicant.findMany({
+        where: { currentWorkflowStageId: stageId, deletedAt: null },
+        include: { jobType: { select: { id: true, name: true } } },
+        orderBy: { createdAt: 'asc' },
+      }),
+      this.prisma.employeeWorkflowStage.findMany({
+        where: { stageId, status: 'IN_PROGRESS' },
+        include: {
+          employee: { select: { id: true, firstName: true, lastName: true, email: true, nationality: true, photoUrl: true, status: true } },
+        },
+        orderBy: { startedAt: 'asc' },
+      }),
+    ]);
+
+    // Build document checklist for each person if the stage has required docs
+    const buildDocChecklist = async (entityType: string, entityId: string) => {
+      if (stage.requirementsDocuments.length === 0) return [];
+      const docs = await this.prisma.document.findMany({
+        where: { entityType: entityType as any, entityId, deletedAt: null },
+        include: { documentType: { select: { name: true } } },
+      });
+      return stage.requirementsDocuments.map(reqName => {
+        const doc = (docs as any[]).find(d => d.documentType.name === reqName);
+        return { name: reqName, status: doc?.status ?? 'MISSING', documentId: doc?.id ?? null };
+      });
+    };
+
+    const enrichedApplicants = await Promise.all(
+      applicants.map(async (a: any) => ({
+        ...a,
+        docChecklist: await buildDocChecklist('APPLICANT', a.id),
+      })),
+    );
+
+    const enrichedEmployees = await Promise.all(
+      employeeStages.map(async (es: any) => ({
+        ...es.employee,
+        startedAt: es.startedAt,
+        stageStatus: es.status,
+        docChecklist: await buildDocChecklist('EMPLOYEE', es.employee.id),
+      })),
+    );
+
+    return {
+      stage,
+      applicants: enrichedApplicants,
+      employees: enrichedEmployees,
+      stats: {
+        total: applicants.length + employeeStages.length,
+        applicantsCount: applicants.length,
+        employeesCount: employeeStages.length,
+      },
+    };
+  }
+
   // Work Permits
   async findWorkPermits(pagination: PaginationDto, employeeId?: string) {
     const { page = 1, limit = 10 } = pagination;
@@ -128,14 +232,14 @@ export class WorkflowService {
     const [items, total] = await Promise.all([
       this.prisma.workPermit.findMany({
         where,
-        skip: (page - 1) * limit,
-        take: limit,
+        skip: (Number(page) - 1) * Number(limit),
+        take: Number(limit),
         orderBy: { createdAt: 'desc' },
         include: { employee: { select: { id: true, firstName: true, lastName: true, email: true } } },
       }),
       this.prisma.workPermit.count({ where }),
     ]);
-    return new PaginatedResponse(items, total, page, limit);
+    return PaginatedResponse.create(items, total, page, limit);
   }
 
   async createWorkPermit(dto: CreateWorkPermitDto, createdById?: string) {
@@ -174,10 +278,10 @@ export class WorkflowService {
     const { page = 1, limit = 10 } = pagination;
     const where: any = entityId ? { entityId } : {};
     const [items, total] = await Promise.all([
-      this.prisma.visa.findMany({ where, skip: (page - 1) * limit, take: limit, orderBy: { createdAt: 'desc' } }),
+      this.prisma.visa.findMany({ where, skip: (Number(page) - 1) * Number(limit), take: Number(limit), orderBy: { createdAt: 'desc' } }),
       this.prisma.visa.count({ where }),
     ]);
-    return new PaginatedResponse(items, total, page, limit);
+    return PaginatedResponse.create(items, total, page, limit);
   }
 
   async createVisa(dto: CreateVisaDto, createdById?: string) {

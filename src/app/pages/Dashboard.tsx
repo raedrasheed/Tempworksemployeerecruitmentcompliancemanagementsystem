@@ -36,6 +36,15 @@ export function Dashboard() {
     }).finally(() => setLoading(false));
   }, []);
 
+  const dashboardStats = {
+    avgProcessingTime: stats?.avgProcessingTime ?? '—',
+    approvalRate: stats?.approvalRate ?? '—',
+    visasPending: stats?.visasPending ?? '—',
+  };
+
+  const recentAlerts: any[] = stats?.recentAlerts ?? [];
+  const recentDrivers: any[] = stats?.recentEmployees ?? [];
+
   return (
     <div className="space-y-6">
       <div>

@@ -1,7 +1,14 @@
 import { PrismaClient } from '@prisma/client';
+import { Pool } from 'pg';
+import { PrismaPg } from '@prisma/adapter-pg';
 import * as bcrypt from 'bcrypt';
+import * as dotenv from 'dotenv';
 
-const prisma = new PrismaClient();
+dotenv.config();
+
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const adapter = new PrismaPg(pool);
+const prisma = new PrismaClient({ adapter });
 
 async function main() {
   console.log('Starting database seed...');
@@ -62,6 +69,7 @@ async function main() {
         'reports:read','reports:export',
         'notifications:read','notifications:create',
         'users:read',
+        'logs:read',
       ],
     },
     {
@@ -75,6 +83,7 @@ async function main() {
         'compliance:read','compliance:resolve',
         'reports:read','reports:export',
         'notifications:read','notifications:create',
+        'logs:read',
       ],
     },
     {
@@ -90,6 +99,7 @@ async function main() {
         'compliance:read',
         'reports:read',
         'notifications:read',
+        'logs:read',
       ],
     },
     {
@@ -105,6 +115,8 @@ async function main() {
         'compliance:read',
         'reports:read',
         'notifications:read',
+        'users:read',
+        'logs:read',
       ],
     },
     {
@@ -116,6 +128,7 @@ async function main() {
         'documents:read','documents:create',
         'workflow:read',
         'notifications:read',
+        'logs:read',
       ],
     },
     {
@@ -126,6 +139,7 @@ async function main() {
         'employees:read','applicants:read','applications:read',
         'reports:read','reports:export',
         'notifications:read',
+        'logs:read',
       ],
     },
     {
@@ -157,6 +171,24 @@ async function main() {
   }
   console.log(`Upserted ${rolesData.length} roles with permissions`);
 
+  // ── TempWorks Owner Agency (must exist before creating admin user) ─────────
+  let ownerAgency = await prisma.agency.findFirst({ where: { email: 'admin@tempworks.sk' } });
+  if (!ownerAgency) {
+    ownerAgency = await prisma.agency.create({
+      data: {
+        name: 'TempWorks',
+        country: 'Slovakia',
+        contactPerson: 'System Owner',
+        email: 'admin@tempworks.sk',
+        phone: '+421 2 0000 0000',
+        status: 'ACTIVE',
+        notes: 'System owner agency — headquartered in Slovakia',
+      },
+    });
+  }
+  const ownerAgencyId = ownerAgency.id;
+  console.log(`Owner agency: TempWorks (Slovakia) — ${ownerAgencyId}`);
+
   // ── Admin User ────────────────────────────────────────────────────────────
   const adminEmail = process.env.SEED_ADMIN_EMAIL || 'admin@tempworks.com';
   const adminPassword = process.env.SEED_ADMIN_PASSWORD || 'Admin@123456';
@@ -165,18 +197,19 @@ async function main() {
 
   await prisma.user.upsert({
     where: { email: adminEmail },
-    update: {},
+    update: { agencyId: ownerAgencyId },
     create: {
       email: adminEmail,
       passwordHash,
       firstName: 'System',
       lastName: 'Admin',
-      phone: '+44 20 0000 0000',
+      phone: '+421 2 0000 0001',
       roleId: adminRoleId,
+      agencyId: ownerAgencyId,
       status: 'ACTIVE',
     },
   });
-  console.log(`Admin user: ${adminEmail}`);
+  console.log(`Admin user: ${adminEmail} → TempWorks (Slovakia)`);
 
   // ── Agencies ──────────────────────────────────────────────────────────────
   const agenciesData = [
@@ -207,20 +240,18 @@ async function main() {
   ];
 
   const agencyMap = new Map<string, string>();
-  for (const a of agenciesData) {
-    const agency = await prisma.agency.upsert({
-      where: { email: a.email } as any,
-      update: {},
-      create: a,
-    });
-    agencyMap.set(a.name, agency.id);
-  }
-  // Use findFirst for agencies without unique email constraint fallback
+  agencyMap.set('TempWorks', ownerAgencyId); // owner agency already created
+
   for (const a of agenciesData) {
     const found = await prisma.agency.findFirst({ where: { email: a.email } });
-    if (found) agencyMap.set(a.name, found.id);
+    if (found) {
+      agencyMap.set(a.name, found.id);
+    } else {
+      const agency = await prisma.agency.create({ data: a });
+      agencyMap.set(a.name, agency.id);
+    }
   }
-  console.log(`Upserted ${agenciesData.length} agencies`);
+  console.log(`Upserted ${agenciesData.length + 1} agencies (including TempWorks Slovakia)`);
 
   // ── Workflow Stages ───────────────────────────────────────────────────────
   const workflowStages = [
@@ -313,6 +344,7 @@ async function main() {
     { key: 'upload.allowedTypes', value: 'pdf,jpg,jpeg,png,doc,docx', description: 'Allowed file MIME types', category: 'files', isPublic: false },
     { key: 'auth.sessionTimeoutMin', value: '15', description: 'Access token expiry in minutes', category: 'security', isPublic: false },
     { key: 'auth.maxLoginAttempts', value: '5', description: 'Maximum failed login attempts', category: 'security', isPublic: false },
+    { key: 'agency.maxUsersPerAgency', value: '5', description: 'Maximum number of users an Agency Manager can add to their agency', category: 'agency', isPublic: false },
   ];
 
   for (const s of settings) {

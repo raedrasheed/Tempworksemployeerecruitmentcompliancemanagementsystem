@@ -67,8 +67,8 @@ export class ReportsController {
   @Roles(...EDIT_ROLES)
   @ApiOperation({ summary: 'Update a saved report configuration' })
   @ApiParam({ name: 'id', description: 'Report UUID' })
-  update(@Param('id') id: string, @Body() dto: UpdateReportDto) {
-    return this.reportsService.update(id, dto);
+  update(@Param('id') id: string, @Body() dto: UpdateReportDto, @CurrentUser() user: any) {
+    return this.reportsService.update(id, dto, user?.id);
   }
 
   @Delete(':id')
@@ -76,8 +76,8 @@ export class ReportsController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Delete a saved report configuration' })
   @ApiParam({ name: 'id', description: 'Report UUID' })
-  remove(@Param('id') id: string) {
-    return this.reportsService.remove(id);
+  remove(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.reportsService.remove(id, user?.id);
   }
 
   // ── Run ──────────────────────────────────────────────────────────────────
@@ -86,8 +86,8 @@ export class ReportsController {
   @Roles(...ALL_REPORT_ROLES)
   @ApiOperation({ summary: 'Execute a saved report and return paginated rows + column metadata' })
   @ApiParam({ name: 'id', description: 'Report UUID' })
-  run(@Param('id') id: string, @Body() dto: RunReportDto) {
-    return this.reportsService.run(id, dto);
+  run(@Param('id') id: string, @Body() dto: RunReportDto, @CurrentUser() user: any) {
+    return this.reportsService.run(id, dto, user?.id);
   }
 
   // ── Export ────────────────────────────────────────────────────────────────
@@ -101,8 +101,9 @@ export class ReportsController {
     @Param('id') id: string,
     @Body() dto: ExportReportDto,
     @Res() res: Response,
+    @CurrentUser() user: any,
   ) {
-    const { buffer, mimeType, filename } = await this.reportsService.export(id, dto.format);
+    const { buffer, mimeType, filename } = await this.reportsService.export(id, dto.format, user?.id);
     res.setHeader('Content-Type', mimeType);
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Content-Length', buffer.length);

@@ -528,7 +528,7 @@ export class ReportsService {
     });
     if (existing) throw new ConflictException(`Report name "${dto.name}" is already in use`);
 
-    return this.prisma.report.create({
+    const report = await this.prisma.report.create({
       data: {
         name:        dto.name,
         description: dto.description,
@@ -540,6 +540,14 @@ export class ReportsService {
       },
       include: this.include,
     });
+
+    if (userId) {
+      await this.prisma.auditLog.create({
+        data: { userId, action: 'CREATE', entity: 'Report', entityId: report.id, changes: { name: dto.name, dataSource: dto.dataSource } as any },
+      });
+    }
+
+    return report;
   }
 
   async findAll() {
@@ -559,7 +567,7 @@ export class ReportsService {
     return report;
   }
 
-  async update(id: string, dto: UpdateReportDto) {
+  async update(id: string, dto: UpdateReportDto, updatedById?: string) {
     await this.findOne(id);
     if (dto.name) {
       const conflict = await this.prisma.report.findFirst({
@@ -581,12 +589,22 @@ export class ReportsService {
         },
       }),
     ]);
+    if (updatedById) {
+      await this.prisma.auditLog.create({
+        data: { userId: updatedById, action: 'UPDATE', entity: 'Report', entityId: id, changes: { name: dto.name, dataSource: dto.dataSource } as any },
+      });
+    }
     return this.findOne(id);
   }
 
-  async remove(id: string) {
+  async remove(id: string, deletedById?: string) {
     await this.findOne(id);
     await this.prisma.report.update({ where: { id }, data: { deletedAt: new Date() } });
+    if (deletedById) {
+      await this.prisma.auditLog.create({
+        data: { userId: deletedById, action: 'DELETE', entity: 'Report', entityId: id },
+      });
+    }
     return { message: 'Report deleted' };
   }
 
@@ -604,8 +622,13 @@ export class ReportsService {
 
   // ── Run (dynamic query) ───────────────────────────────────────────────────
 
-  async run(id: string, opts: RunReportDto = {}) {
+  async run(id: string, opts: RunReportDto = {}, userId?: string) {
     const report = await this.findOne(id);
+    if (userId) {
+      await this.prisma.auditLog.create({
+        data: { userId, action: 'RUN', entity: 'Report', entityId: id },
+      });
+    }
     return this.executeReport(report, opts);
   }
 
@@ -749,9 +772,14 @@ export class ReportsService {
 
   // ── Export ────────────────────────────────────────────────────────────────
 
-  async export(id: string, format: ExportFormat): Promise<{ buffer: Buffer; mimeType: string; filename: string }> {
+  async export(id: string, format: ExportFormat, userId?: string): Promise<{ buffer: Buffer; mimeType: string; filename: string }> {
     const report = await this.findOne(id);
     const { columns, rows } = await this.executeReport(report, { page: 1, limit: 50000 });
+    if (userId) {
+      await this.prisma.auditLog.create({
+        data: { userId, action: 'EXPORT', entity: 'Report', entityId: id, changes: { format, rowCount: rows.length } as any },
+      });
+    }
     switch (format) {
       case ExportFormat.EXCEL: return this.toExcel(report, columns, rows);
       case ExportFormat.PDF:   return this.toPdf(report, columns, rows);

@@ -6,6 +6,7 @@ import { PaginationDto } from '../common/dto/pagination.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 const ALL_ROLES = ['System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Finance', 'Read Only'];
 const WRITE_ROLES = ['System Admin', 'HR Manager', 'Agency Manager'];
@@ -62,24 +63,24 @@ export class EmployeesController {
   @Post()
   @Roles(...WRITE_ROLES)
   @ApiOperation({ summary: 'Create new employee' })
-  create(@Body() dto: CreateEmployeeDto) { return this.employeesService.create(dto); }
+  create(@Body() dto: CreateEmployeeDto, @CurrentUser() user: any) { return this.employeesService.create(dto, user?.id); }
 
   @Patch(':id')
   @Roles(...WRITE_ROLES)
   @ApiOperation({ summary: 'Update employee' })
-  update(@Param('id') id: string, @Body() dto: Partial<CreateEmployeeDto>) {
-    return this.employeesService.update(id, dto);
+  update(@Param('id') id: string, @Body() dto: Partial<CreateEmployeeDto>, @CurrentUser() user: any) {
+    return this.employeesService.update(id, dto, user?.id);
   }
 
   @Patch(':id/status')
   @Roles(...WRITE_ROLES)
   @ApiOperation({ summary: 'Update employee status' })
-  updateStatus(@Param('id') id: string, @Body('status') status: string) {
-    return this.employeesService.updateStatus(id, status);
+  updateStatus(@Param('id') id: string, @Body('status') status: string, @CurrentUser() user: any) {
+    return this.employeesService.updateStatus(id, status, user?.id);
   }
 
   @Delete(':id')
   @Roles('System Admin')
   @ApiOperation({ summary: 'Delete employee (soft delete)' })
-  remove(@Param('id') id: string) { return this.employeesService.remove(id); }
+  remove(@Param('id') id: string, @CurrentUser() user: any) { return this.employeesService.remove(id, user?.id); }
 }

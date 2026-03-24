@@ -51,7 +51,7 @@ export class EmployeesService {
     return employee;
   }
 
-  async create(dto: CreateEmployeeDto) {
+  async create(dto: CreateEmployeeDto, createdById?: string) {
     const existing = await this.prisma.employee.findFirst({ where: { email: dto.email, deletedAt: null } });
     if (existing) throw new ConflictException('Employee with this email already exists');
 
@@ -75,25 +75,48 @@ export class EmployeesService {
       include: { agency: { select: { id: true, name: true } } },
     });
 
+    if (createdById) {
+      await this.prisma.auditLog.create({
+        data: { userId: createdById, action: 'CREATE', entity: 'Employee', entityId: employee.id },
+      });
+    }
+
     return employee;
   }
 
-  async update(id: string, dto: Partial<CreateEmployeeDto>) {
+  async update(id: string, dto: Partial<CreateEmployeeDto>, updatedById?: string) {
     await this.findOne(id);
     const data: any = { ...dto };
     if (dto.dateOfBirth) data.dateOfBirth = new Date(dto.dateOfBirth);
-    return this.prisma.employee.update({ where: { id }, data, include: { agency: { select: { id: true, name: true } } } });
+    const employee = await this.prisma.employee.update({ where: { id }, data, include: { agency: { select: { id: true, name: true } } } });
+    if (updatedById) {
+      await this.prisma.auditLog.create({
+        data: { userId: updatedById, action: 'UPDATE', entity: 'Employee', entityId: id, changes: dto as any },
+      });
+    }
+    return employee;
   }
 
-  async remove(id: string) {
+  async remove(id: string, deletedById?: string) {
     await this.findOne(id);
     await this.prisma.employee.update({ where: { id }, data: { deletedAt: new Date() } });
+    if (deletedById) {
+      await this.prisma.auditLog.create({
+        data: { userId: deletedById, action: 'DELETE', entity: 'Employee', entityId: id },
+      });
+    }
     return { message: 'Employee deleted successfully' };
   }
 
-  async updateStatus(id: string, status: string) {
+  async updateStatus(id: string, status: string, updatedById?: string) {
     await this.findOne(id);
-    return this.prisma.employee.update({ where: { id }, data: { status: status as any } });
+    const employee = await this.prisma.employee.update({ where: { id }, data: { status: status as any } });
+    if (updatedById) {
+      await this.prisma.auditLog.create({
+        data: { userId: updatedById, action: 'STATUS_CHANGE', entity: 'Employee', entityId: id, changes: { status } as any },
+      });
+    }
+    return employee;
   }
 
   async getDocuments(id: string) {

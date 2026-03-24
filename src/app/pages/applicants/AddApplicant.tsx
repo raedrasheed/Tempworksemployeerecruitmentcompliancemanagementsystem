@@ -5,8 +5,9 @@ import { Button } from '../../components/ui/button';
 import { Card, CardContent } from '../../components/ui/card';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
-import { ArrowLeft, ChevronRight, ChevronLeft, UserPlus } from 'lucide-react';
+import { ArrowLeft, ChevronRight, ChevronLeft, UserPlus, ShieldOff } from 'lucide-react';
 import { toast } from 'sonner';
+import { usePermissions } from '../../hooks/usePermissions';
 import { ApplicantFormSteps, ApplicantFormData, JobType, StepIndicator, UploadedFileItem } from '../../components/applicants/ApplicantFormSteps';
 
 const EMPTY_FORM: ApplicantFormData = {
@@ -31,6 +32,7 @@ const EMPTY_FORM: ApplicantFormData = {
 
 export function AddApplicant() {
   const navigate = useNavigate();
+  const { canCreate } = usePermissions();
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 7;
   const [formData, setFormData] = useState<ApplicantFormData>(EMPTY_FORM);
@@ -199,6 +201,16 @@ export function AddApplicant() {
       setSubmitting(false);
     }
   };
+
+  if (!canCreate('applicants')) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 gap-3 text-muted-foreground">
+        <ShieldOff className="w-12 h-12 opacity-30" />
+        <p className="text-lg font-semibold text-[#0F172A]">Access Denied</p>
+        <p className="text-sm">You don't have permission to perform this action.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

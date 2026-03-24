@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Plus, Edit, Trash2, GripVertical, Save, FileText, CheckCircle, AlertCircle, Shield, PowerOff, Power } from 'lucide-react';
+import { usePermissions } from '../../hooks/usePermissions';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
@@ -28,6 +29,7 @@ interface RequirementsState {
 }
 
 export function WorkflowConfiguration() {
+  const { canEdit, canDelete, canCreate } = usePermissions();
   const [stages, setStages] = useState<WorkflowStage[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -258,17 +260,20 @@ export function WorkflowConfiguration() {
           <p className="text-muted-foreground mt-1">Configure recruitment workflow stages and requirements</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" onClick={handleSaveChanges} disabled={saving}>
-            <Save className="w-4 h-4 mr-2" />
-            {saving ? 'Saving…' : 'Save Changes'}
-          </Button>
-          <Dialog open={isAddStageOpen} onOpenChange={setIsAddStageOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="w-4 h-4 mr-2" />
-                Add Stage
-              </Button>
-            </DialogTrigger>
+          {canEdit('settings') && (
+            <Button variant="outline" onClick={handleSaveChanges} disabled={saving}>
+              <Save className="w-4 h-4 mr-2" />
+              {saving ? 'Saving…' : 'Save Changes'}
+            </Button>
+          )}
+          {canCreate('settings') && (
+            <Dialog open={isAddStageOpen} onOpenChange={setIsAddStageOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Stage
+                </Button>
+              </DialogTrigger>
             <DialogContent className="sm:max-w-[500px]">
               <DialogHeader>
                 <DialogTitle>Add New Workflow Stage</DialogTitle>
@@ -322,7 +327,8 @@ export function WorkflowConfiguration() {
                 </div>
               </div>
             </DialogContent>
-          </Dialog>
+            </Dialog>
+          )}
         </div>
       </div>
 
@@ -429,7 +435,7 @@ export function WorkflowConfiguration() {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    {stage.isActive && (
+                    {stage.isActive && canEdit('settings') && (
                       <Button
                         size="sm"
                         variant="outline"
@@ -439,26 +445,30 @@ export function WorkflowConfiguration() {
                         Edit Requirements
                       </Button>
                     )}
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleToggleActive(stage)}
-                      title={stage.isActive ? 'Deactivate stage' : 'Activate stage'}
-                      className={stage.isActive
-                        ? 'border-[#F59E0B] text-[#F59E0B] hover:bg-[#FEF3C7]'
-                        : 'border-[#22C55E] text-[#22C55E] hover:bg-[#F0FDF4]'}
-                    >
-                      {stage.isActive
-                        ? <><PowerOff className="w-4 h-4 mr-1" />Deactivate</>
-                        : <><Power className="w-4 h-4 mr-1" />Activate</>}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleDeleteStage(stage.id)}
-                    >
-                      <Trash2 className="w-4 h-4 text-[#EF4444]" />
-                    </Button>
+                    {canEdit('settings') && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleToggleActive(stage)}
+                        title={stage.isActive ? 'Deactivate stage' : 'Activate stage'}
+                        className={stage.isActive
+                          ? 'border-[#F59E0B] text-[#F59E0B] hover:bg-[#FEF3C7]'
+                          : 'border-[#22C55E] text-[#22C55E] hover:bg-[#F0FDF4]'}
+                      >
+                        {stage.isActive
+                          ? <><PowerOff className="w-4 h-4 mr-1" />Deactivate</>
+                          : <><Power className="w-4 h-4 mr-1" />Activate</>}
+                      </Button>
+                    )}
+                    {canDelete('settings') && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleDeleteStage(stage.id)}
+                      >
+                        <Trash2 className="w-4 h-4 text-[#EF4444]" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               ))}

@@ -5,8 +5,9 @@ import { Button } from '../../components/ui/button';
 import { Card, CardContent } from '../../components/ui/card';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
-import { ArrowLeft, ChevronRight, ChevronLeft, Save } from 'lucide-react';
+import { ArrowLeft, ChevronRight, ChevronLeft, Save, ShieldOff } from 'lucide-react';
 import { toast } from 'sonner';
+import { usePermissions } from '../../hooks/usePermissions';
 import { ApplicantFormSteps, ApplicantFormData, JobType, StepIndicator, UploadedFileItem } from '../../components/applicants/ApplicantFormSteps';
 
 const EMPTY_FORM: ApplicantFormData = {
@@ -32,6 +33,7 @@ const EMPTY_FORM: ApplicantFormData = {
 export function EditApplicant() {
   const navigate = useNavigate();
   const { id } = useParams();
+  const { canEdit } = usePermissions();
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 7;
   const [loading, setLoading] = useState(true);
@@ -151,6 +153,16 @@ export function EditApplicant() {
 
   if (loading) {
     return <div className="flex items-center justify-center h-64 text-muted-foreground">Loading applicant data...</div>;
+  }
+
+  if (!canEdit('applicants')) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 gap-3 text-muted-foreground">
+        <ShieldOff className="w-12 h-12 opacity-30" />
+        <p className="text-lg font-semibold text-[#0F172A]">Access Denied</p>
+        <p className="text-sm">You don't have permission to perform this action.</p>
+      </div>
+    );
   }
 
   return (

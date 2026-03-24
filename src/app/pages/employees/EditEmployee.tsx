@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ShieldOff } from 'lucide-react';
+import { usePermissions } from '../../hooks/usePermissions';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -12,6 +13,7 @@ import { employeesApi, agenciesApi } from '../../services/api';
 export function EditEmployee() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { canEdit } = usePermissions();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [agencies, setAgencies] = useState<any[]>([]);
@@ -95,6 +97,16 @@ export function EditEmployee() {
   };
 
   if (loading) return <div className="p-8 text-muted-foreground">Loading...</div>;
+
+  if (!canEdit('employees')) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 gap-3 text-muted-foreground">
+        <ShieldOff className="w-12 h-12 opacity-30" />
+        <p className="text-lg font-semibold text-[#0F172A]">Access Denied</p>
+        <p className="text-sm">You don't have permission to perform this action.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

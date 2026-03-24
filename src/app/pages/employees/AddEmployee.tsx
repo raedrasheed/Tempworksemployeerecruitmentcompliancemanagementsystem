@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ShieldOff } from 'lucide-react';
+import { usePermissions } from '../../hooks/usePermissions';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -11,6 +12,7 @@ import { employeesApi, agenciesApi } from '../../services/api';
 
 export function AddEmployee() {
   const navigate = useNavigate();
+  const { canCreate } = usePermissions();
   const [agencies, setAgencies] = useState<any[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
@@ -66,6 +68,16 @@ export function AddEmployee() {
       setSubmitting(false);
     }
   };
+
+  if (!canCreate('employees')) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 gap-3 text-muted-foreground">
+        <ShieldOff className="w-12 h-12 opacity-30" />
+        <p className="text-lg font-semibold text-[#0F172A]">Access Denied</p>
+        <p className="text-sm">You don't have permission to perform this action.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

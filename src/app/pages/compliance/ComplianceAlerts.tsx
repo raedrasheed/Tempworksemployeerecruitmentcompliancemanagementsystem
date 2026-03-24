@@ -1,8 +1,12 @@
+import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 import { mockNotifications } from '../../data/mockData';
+import { usePermissions } from '../../hooks/usePermissions';
 
 export function ComplianceAlerts() {
+  const { canEdit } = usePermissions();
+
   return (
     <div className="space-y-6">
       <div>
@@ -31,9 +35,16 @@ export function ComplianceAlerts() {
                       <p className="text-sm text-muted-foreground mt-1">{notification.message}</p>
                       <p className="text-xs text-muted-foreground mt-2">{notification.timestamp}</p>
                     </div>
-                    <Badge variant={notification.read ? 'secondary' : 'default'}>
-                      {notification.read ? 'Read' : 'Unread'}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={notification.read ? 'secondary' : 'default'}>
+                        {notification.read ? 'Read' : 'Unread'}
+                      </Badge>
+                      {canEdit('compliance') && !notification.read && (
+                        <Button size="sm" variant="outline">
+                          Resolve
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

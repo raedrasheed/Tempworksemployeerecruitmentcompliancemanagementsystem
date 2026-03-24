@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router';
 import { Upload, FileCheck, AlertTriangle, Clock, Eye } from 'lucide-react';
+import { usePermissions } from '../../hooks/usePermissions';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
@@ -10,6 +11,7 @@ import { toast } from 'sonner';
 import { documentsApi } from '../../services/api';
 
 export function DocumentsDashboard() {
+  const { canCreate } = usePermissions();
   const [documents, setDocuments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -48,12 +50,14 @@ export function DocumentsDashboard() {
           <h1 className="text-3xl font-semibold text-[#0F172A]">Documents</h1>
           <p className="text-muted-foreground mt-1">Manage driver documents and compliance materials</p>
         </div>
-        <Button asChild>
-          <Link to="/dashboard/documents/upload">
-            <Upload className="w-4 h-4 mr-2" />
-            Upload Document
-          </Link>
-        </Button>
+        {canCreate('documents') && (
+          <Button asChild>
+            <Link to="/dashboard/documents/upload">
+              <Upload className="w-4 h-4 mr-2" />
+              Upload Document
+            </Link>
+          </Button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">

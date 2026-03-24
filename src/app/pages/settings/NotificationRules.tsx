@@ -4,8 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/ca
 import { Button } from '../../components/ui/button';
 import { Label } from '../../components/ui/label';
 import { Switch } from '../../components/ui/switch';
+import { usePermissions } from '../../hooks/usePermissions';
 
 export function NotificationRules() {
+  const { canEdit, canCreate, canDelete } = usePermissions();
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -28,21 +31,21 @@ export function NotificationRules() {
               <Label htmlFor="new-application">New Application Received</Label>
               <p className="text-sm text-muted-foreground">Notify when a new driver application is submitted</p>
             </div>
-            <Switch id="new-application" defaultChecked />
+            <Switch id="new-application" defaultChecked disabled={!canEdit('settings')} />
           </div>
           <div className="flex items-center justify-between">
             <div>
               <Label htmlFor="doc-expiry">Document Expiry Alerts</Label>
               <p className="text-sm text-muted-foreground">Send alerts 30 days before document expiration</p>
             </div>
-            <Switch id="doc-expiry" defaultChecked />
+            <Switch id="doc-expiry" defaultChecked disabled={!canEdit('settings')} />
           </div>
           <div className="flex items-center justify-between">
             <div>
               <Label htmlFor="visa-update">Visa Status Updates</Label>
               <p className="text-sm text-muted-foreground">Notify when visa application status changes</p>
             </div>
-            <Switch id="visa-update" defaultChecked />
+            <Switch id="visa-update" defaultChecked disabled={!canEdit('settings')} />
           </div>
         </CardContent>
       </Card>
@@ -57,14 +60,14 @@ export function NotificationRules() {
               <Label htmlFor="workflow-progress">Workflow Progress</Label>
               <p className="text-sm text-muted-foreground">Notify when driver moves to next workflow stage</p>
             </div>
-            <Switch id="workflow-progress" defaultChecked />
+            <Switch id="workflow-progress" defaultChecked disabled={!canEdit('settings')} />
           </div>
           <div className="flex items-center justify-between">
             <div>
               <Label htmlFor="compliance-alerts">Compliance Alerts</Label>
               <p className="text-sm text-muted-foreground">Send alerts for compliance issues</p>
             </div>
-            <Switch id="compliance-alerts" defaultChecked />
+            <Switch id="compliance-alerts" defaultChecked disabled={!canEdit('settings')} />
           </div>
         </CardContent>
       </Card>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
-import { ArrowLeft, Save, Shield } from 'lucide-react';
+import { ArrowLeft, Save, Shield, ShieldOff } from 'lucide-react';
+import { usePermissions } from '../../hooks/usePermissions';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -23,6 +24,7 @@ export function CreateRole() {
   const { id } = useParams();
   const isEditMode = !!id;
   const navigate = useNavigate();
+  const { canCreate, canEdit } = usePermissions();
 
   const [roleName, setRoleName] = useState('');
   const [description, setDescription] = useState('');
@@ -132,6 +134,16 @@ export function CreateRole() {
 
   if (loading) return <div className="p-8 text-muted-foreground">Loading...</div>;
   if (notFound) return <div className="p-8">Role not found.</div>;
+
+  if (isEditMode ? !canEdit('roles') : !canCreate('roles')) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 gap-3 text-muted-foreground">
+        <ShieldOff className="w-12 h-12 opacity-30" />
+        <p className="text-lg font-semibold text-[#0F172A]">Access Denied</p>
+        <p className="text-sm">You don't have permission to perform this action.</p>
+      </div>
+    );
+  }
 
   // Group modules by category using their first segment (fallback to module name)
   const groupedModules = modules.reduce((acc, mod) => {

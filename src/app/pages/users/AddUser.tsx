@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ShieldOff } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { usePermissions } from '../../hooks/usePermissions';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -11,6 +12,7 @@ import { usersApi, rolesApi, agenciesApi, settingsApi, getCurrentUser } from '..
 
 export function AddUser() {
   const navigate = useNavigate();
+  const { canCreate } = usePermissions();
   const currentUser = getCurrentUser();
   const isAgencyManager = currentUser?.role === 'Agency Manager';
 
@@ -88,6 +90,16 @@ export function AddUser() {
       setSubmitting(false);
     }
   };
+
+  if (!canCreate('users')) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 gap-3 text-muted-foreground">
+        <ShieldOff className="w-12 h-12 opacity-30" />
+        <p className="text-lg font-semibold text-[#0F172A]">Access Denied</p>
+        <p className="text-sm">You don't have permission to perform this action.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

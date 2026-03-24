@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ShieldOff } from 'lucide-react';
 import { useState } from 'react';
+import { usePermissions } from '../../hooks/usePermissions';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -9,6 +10,7 @@ import { toast } from 'sonner';
 import { agenciesApi } from '../../services/api';
 
 export function AddAgency() {
+  const { canCreate } = usePermissions();
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
@@ -18,6 +20,16 @@ export function AddAgency() {
     email: '',
     phone: '',
   });
+
+  if (!canCreate('agencies')) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 gap-3 text-muted-foreground">
+        <ShieldOff className="w-12 h-12 opacity-30" />
+        <p className="text-lg font-semibold text-[#0F172A]">Access Denied</p>
+        <p className="text-sm">You don't have permission to perform this action.</p>
+      </div>
+    );
+  }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm(prev => ({ ...prev, [e.target.id]: e.target.value }));

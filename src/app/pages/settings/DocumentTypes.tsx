@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { ArrowLeft, Plus, Eye, Edit, Trash2 } from 'lucide-react';
+import { ArrowLeft, Plus, Eye, Edit, Trash2, ShieldOff } from 'lucide-react';
+import { usePermissions } from '../../hooks/usePermissions';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
@@ -29,6 +30,7 @@ interface DocumentType {
 
 export function DocumentTypes() {
   const navigate = useNavigate();
+  const { canCreate, canEdit, canDelete } = usePermissions();
   const [documentTypes, setDocumentTypes] = useState<DocumentType[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState<DocumentType | null>(null);
@@ -76,12 +78,14 @@ export function DocumentTypes() {
           <h1 className="text-3xl font-semibold text-[#0F172A]">Document Types</h1>
           <p className="text-muted-foreground mt-1">Manage document types and requirements</p>
         </div>
-        <Button asChild>
-          <Link to="/dashboard/settings/document-types/new">
-            <Plus className="w-4 h-4 mr-2" />
-            Add Document Type
-          </Link>
-        </Button>
+        {canCreate('settings') && (
+          <Button asChild>
+            <Link to="/dashboard/settings/document-types/new">
+              <Plus className="w-4 h-4 mr-2" />
+              Add Document Type
+            </Link>
+          </Button>
+        )}
       </div>
 
       {/* Summary Stats */}
@@ -168,19 +172,23 @@ export function DocumentTypes() {
                               <Eye className="w-4 h-4" />
                             </Link>
                           </Button>
-                          <Button variant="ghost" size="sm" asChild>
-                            <Link to={`/dashboard/settings/document-types/${docType.id}/edit`}>
-                              <Edit className="w-4 h-4" />
-                            </Link>
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                            onClick={() => setDeleteTarget(docType)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+                          {canEdit('settings') && (
+                            <Button variant="ghost" size="sm" asChild>
+                              <Link to={`/dashboard/settings/document-types/${docType.id}/edit`}>
+                                <Edit className="w-4 h-4" />
+                              </Link>
+                            </Button>
+                          )}
+                          {canDelete('settings') && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              onClick={() => setDeleteTarget(docType)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )}
                         </div>
                       </td>
                     </tr>

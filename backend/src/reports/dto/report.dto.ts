@@ -69,14 +69,20 @@ export class CreateReportDto {
   @ApiProperty({
     enum: [
       'employees', 'applicants', 'documents', 'compliance_alerts', 'agencies', 'work_permits',
+      'document_types', 'visas',
       'employees_documents', 'employees_work_permits', 'employees_compliance',
       'applicants_documents', 'employees_agencies', 'applicants_compliance',
+      'documents_with_type', 'employees_visas', 'applicants_visas',
+      'employees_documents_type',
     ],
   })
   @IsIn([
     'employees', 'applicants', 'documents', 'compliance_alerts', 'agencies', 'work_permits',
+    'document_types', 'visas',
     'employees_documents', 'employees_work_permits', 'employees_compliance',
     'applicants_documents', 'employees_agencies', 'applicants_compliance',
+    'documents_with_type', 'employees_visas', 'applicants_visas',
+    'employees_documents_type',
   ])
   dataSource: string;
 

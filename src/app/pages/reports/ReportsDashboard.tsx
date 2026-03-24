@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   BarChart3, TrendingUp, Users, FileCheck, Plus, Play, Download,
   Trash2, Edit3, FileSpreadsheet, FileText, File, AlertTriangle,
-  RefreshCw, Database, Filter, SortAsc, Layers, Link2,
+  RefreshCw, Database, Filter, SortAsc, Layers, Link2, ChevronUp, ChevronDown,
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -148,6 +148,16 @@ export function ReportsDashboard() {
     return { ...b, columns: [...b.columns, { columnName: key, displayName: label, dataType: 'string', isGrouped: false, isAggregated: false, aggregationType: null, position: b.columns.length }] };
   });
   const updateColumn = (key: string, patch: any) => setBuilder(b => ({ ...b, columns: b.columns.map((c: any) => c.columnName === key ? { ...c, ...patch } : c) }));
+  const moveColumn = (key: string, dir: 'up' | 'down') => setBuilder(b => {
+    const sorted = [...b.columns].sort((a: any, b: any) => a.position - b.position);
+    const idx = sorted.findIndex((c: any) => c.columnName === key);
+    const swapIdx = dir === 'up' ? idx - 1 : idx + 1;
+    if (idx < 0 || swapIdx < 0 || swapIdx >= sorted.length) return b;
+    const posA = sorted[idx].position;
+    sorted[idx] = { ...sorted[idx], position: sorted[swapIdx].position };
+    sorted[swapIdx] = { ...sorted[swapIdx], position: posA };
+    return { ...b, columns: sorted };
+  });
   const addSort = (key: string) => setBuilder(b => {
     if (b.sorting.find((s: any) => s.columnName === key)) return b;
     return { ...b, sorting: [...b.sorting, { columnName: key, direction: 'ASC', position: b.sorting.length }] };
@@ -389,6 +399,38 @@ export function ReportsDashboard() {
                         </div>
                       );
                     })}
+                    {/* Column order panel — only visible when ≥2 columns selected */}
+                    {builder.columns.length >= 2 && (
+                      <div className="pt-3 border-t mt-1 space-y-1.5">
+                        <p className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
+                          <SortAsc className="w-3.5 h-3.5" />Column Order
+                        </p>
+                        {[...builder.columns]
+                          .sort((a: any, b: any) => a.position - b.position)
+                          .map((col: any, idx: number, arr: any[]) => (
+                            <div key={col.columnName} className="flex items-center gap-1.5 bg-[#EFF6FF] border border-[#BFDBFE] rounded px-2 py-1 text-xs">
+                              <span className="text-muted-foreground w-4 text-center font-mono">{idx + 1}</span>
+                              <span className="flex-1 truncate font-medium">{col.displayName}</span>
+                              <Button
+                                size="icon" variant="ghost"
+                                className="h-5 w-5 text-[#2563EB] disabled:opacity-30"
+                                disabled={idx === 0}
+                                onClick={() => moveColumn(col.columnName, 'up')}
+                              >
+                                <ChevronUp className="w-3.5 h-3.5" />
+                              </Button>
+                              <Button
+                                size="icon" variant="ghost"
+                                className="h-5 w-5 text-[#2563EB] disabled:opacity-30"
+                                disabled={idx === arr.length - 1}
+                                onClick={() => moveColumn(col.columnName, 'down')}
+                              >
+                                <ChevronDown className="w-3.5 h-3.5" />
+                              </Button>
+                            </div>
+                          ))}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               )}

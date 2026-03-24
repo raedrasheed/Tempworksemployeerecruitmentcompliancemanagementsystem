@@ -123,6 +123,7 @@ export function ReportsDashboard() {
   const [runningId, setRunningId]       = useState<string | null>(null);
   const [runResult, setRunResult]       = useState<Record<string, any>>({});
   const [exporting, setExporting]       = useState<Record<string, boolean>>({});
+  const [activeTab, setActiveTab]       = useState('dashboard');
 
   useEffect(() => {
     reportsApi.getDashboard()
@@ -153,7 +154,7 @@ export function ReportsDashboard() {
   });
   const removeSort = (i: number) => setBuilder(b => ({ ...b, sorting: b.sorting.filter((_, j) => j !== i) }));
   const updateSort = (i: number, patch: any) => setBuilder(b => { const s = [...b.sorting]; s[i] = { ...s[i], ...patch }; return { ...b, sorting: s }; });
-  const loadIntoBuilder = (r: any) => { setBuilder({ name: r.name, description: r.description ?? '', dataSource: r.dataSource, filters: r.filters ?? [], columns: r.columns ?? [], sorting: r.sorting ?? [] }); setEditingId(r.id); setPreviewResult(null); };
+  const loadIntoBuilder = (r: any) => { setBuilder({ name: r.name, description: r.description ?? '', dataSource: r.dataSource, filters: r.filters ?? [], columns: r.columns ?? [], sorting: r.sorting ?? [] }); setEditingId(r.id); setPreviewResult(null); setActiveTab('builder'); };
   const resetBuilder = () => { setBuilder(emptyBuilder()); setEditingId(null); setPreviewResult(null); };
   const buildPayload = () => ({ name: builder.name.trim(), description: builder.description.trim() || undefined, dataSource: builder.dataSource, filters: builder.filters.map(({ id: _id, ...f }: any) => f), columns: builder.columns, sorting: builder.sorting });
   const refreshList = async () => { const r: any = await reportsApi.list(); setSavedReports(Array.isArray(r) ? r : (r?.data ?? [])); };
@@ -218,7 +219,7 @@ export function ReportsDashboard() {
         <p className="text-muted-foreground mt-1">Dynamic report builder with Excel, PDF, and Word export</p>
       </div>
 
-      <Tabs defaultValue="dashboard">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="w-full grid grid-cols-3 mb-2">
           <TabsTrigger value="dashboard"><BarChart3 className="w-4 h-4 mr-2" />Dashboard</TabsTrigger>
           <TabsTrigger value="builder"><Plus className="w-4 h-4 mr-2" />Report Builder</TabsTrigger>

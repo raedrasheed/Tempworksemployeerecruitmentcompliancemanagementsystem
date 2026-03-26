@@ -3,13 +3,41 @@ import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
 
+function resolvePoolSsl(
+  databaseUrl: string | undefined,
+): false | { rejectUnauthorized: boolean } | undefined {
+  if (!databaseUrl) return undefined;
+  let url: URL;
+  try {
+    url = new URL(databaseUrl);
+  } catch {
+    return undefined;
+  }
+  const sslmode = url.searchParams.get('sslmode');
+  switch (sslmode) {
+    case 'disable':
+      return false;
+    case 'require':
+    case 'prefer':
+    case 'verify-ca':
+      return { rejectUnauthorized: false };
+    case 'verify-full':
+      return { rejectUnauthorized: true };
+    default:
+      return false;
+  }
+}
+
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   private readonly pool: Pool;
   private readonly logger = new Logger('PrismaService');
 
   constructor() {
-    const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+    const pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: resolvePoolSsl(process.env.DATABASE_URL),
+    });
     const adapter = new PrismaPg(pool as any);
     super({ adapter });
     this.pool = pool;

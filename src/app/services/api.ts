@@ -123,8 +123,9 @@ export async function apiFetch<T = any>(
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({ message: response.statusText }));
+    const rawMessage = errorData.message || 'An error occurred';
     const error: ApiError = {
-      message: errorData.message || 'An error occurred',
+      message: Array.isArray(rawMessage) ? rawMessage.join(', ') : String(rawMessage),
       statusCode: response.status,
       error: errorData.error,
     };

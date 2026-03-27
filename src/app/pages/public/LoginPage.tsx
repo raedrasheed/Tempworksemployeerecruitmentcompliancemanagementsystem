@@ -24,7 +24,8 @@ export function LoginPage() {
       toast.success('Welcome back!');
       navigate('/dashboard');
     } catch (err: any) {
-      const message = err?.message || 'Login failed. Please check your credentials.';
+      const raw = err?.message || 'Login failed. Please check your credentials.';
+      const message = Array.isArray(raw) ? raw.join(', ') : String(raw);
       setError(message);
       toast.error(message);
     } finally {

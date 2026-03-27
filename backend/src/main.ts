@@ -13,7 +13,20 @@ class AllExceptionsFilter implements ExceptionFilter {
     const response = ctx.getResponse();
     const request = ctx.getRequest();
     const status = exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
-    const message = exception instanceof HttpException ? exception.getResponse() : String((exception as any)?.message || exception);
+
+    let message: string;
+    if (exception instanceof HttpException) {
+      const res = exception.getResponse();
+      if (typeof res === 'string') {
+        message = res;
+      } else {
+        const raw = (res as any).message;
+        message = Array.isArray(raw) ? raw.join(', ') : String(raw ?? exception.message);
+      }
+    } else {
+      message = String((exception as any)?.message || exception);
+    }
+
     const logLine = `[${request.method}] ${request.url} → ${status}`;
     if (status >= 500) {
       this.logger.error(logLine);

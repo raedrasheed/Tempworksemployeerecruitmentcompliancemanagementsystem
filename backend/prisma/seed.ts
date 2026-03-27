@@ -19,7 +19,7 @@ function resolvePoolSsl(url?: string): false | { rejectUnauthorized: boolean } |
 }
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: resolvePoolSsl(process.env.DATABASE_URL) });
-const adapter = new PrismaPg(pool);
+const adapter = new PrismaPg(pool as any);
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
@@ -549,15 +549,7 @@ async function main() {
   for (const app of sampleApplicants) {
     const existing = await prisma.applicant.findUnique({ where: { email: app.email } });
     if (!existing) {
-      const applicant = await prisma.applicant.create({ data: app });
-      await prisma.application.create({
-        data: {
-          applicantId: applicant.id,
-          status: 'SUBMITTED',
-          submittedAt: new Date(),
-          jobTypeId: app.jobTypeId,
-        },
-      });
+      await prisma.applicant.create({ data: app });
     }
   }
   console.log(`Created ${sampleApplicants.length} sample applicants`);

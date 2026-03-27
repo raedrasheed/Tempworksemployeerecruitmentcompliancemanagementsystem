@@ -1,26 +1,21 @@
 import { PrismaClient } from '@prisma/client';
-import { Pool } from 'pg';
-import { PrismaPg } from '@prisma/adapter-pg';
 import * as bcrypt from 'bcrypt';
 import * as dotenv from 'dotenv';
 
 dotenv.config();
 
-function resolvePoolSsl(url?: string): false | { rejectUnauthorized: boolean } | undefined {
-  if (!url) return undefined;
-  let parsed: URL;
-  try { parsed = new URL(url); } catch { return undefined; }
-  switch (parsed.searchParams.get('sslmode')) {
-    case 'disable': return false;
-    case 'require': case 'prefer': case 'verify-ca': return { rejectUnauthorized: false };
-    case 'verify-full': return { rejectUnauthorized: true };
-    default: return false;
-  }
+// Use binary engine (not WASM) by disabling SSL at the URL level so Prisma's
+// native engine connects without needing pg-pool/adapter-pg (which loads WASM
+// and can OOM on memory-constrained servers).
+if (process.env.DATABASE_URL) {
+  try {
+    const u = new URL(process.env.DATABASE_URL);
+    u.searchParams.set('sslmode', 'disable');
+    process.env.DATABASE_URL = u.toString();
+  } catch {}
 }
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: resolvePoolSsl(process.env.DATABASE_URL) });
-const adapter = new PrismaPg(pool as any);
-const prisma = new PrismaClient({ adapter });
+const prisma = new PrismaClient();
 
 async function main() {
   console.log('Starting database seed...');

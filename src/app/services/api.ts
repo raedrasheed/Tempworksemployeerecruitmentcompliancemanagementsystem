@@ -108,8 +108,8 @@ export async function apiFetch<T = any>(
     headers,
   });
 
-  // Handle 401 with token refresh
-  if (response.status === 401 && !isRetry) {
+  // Handle 401 with token refresh (skip for auth endpoints to surface real errors)
+  if (response.status === 401 && !isRetry && !path.startsWith('/auth/')) {
     if (!isRefreshing) {
       isRefreshing = true;
       refreshPromise = refreshAccessToken().finally(() => {

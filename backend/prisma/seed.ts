@@ -6,7 +6,19 @@ import * as dotenv from 'dotenv';
 
 dotenv.config();
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+function resolvePoolSsl(url?: string): false | { rejectUnauthorized: boolean } | undefined {
+  if (!url) return undefined;
+  let parsed: URL;
+  try { parsed = new URL(url); } catch { return undefined; }
+  switch (parsed.searchParams.get('sslmode')) {
+    case 'disable': return false;
+    case 'require': case 'prefer': case 'verify-ca': return { rejectUnauthorized: false };
+    case 'verify-full': return { rejectUnauthorized: true };
+    default: return false;
+  }
+}
+
+const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: resolvePoolSsl(process.env.DATABASE_URL) });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
@@ -15,6 +27,7 @@ async function main() {
 
   // ── Permissions ──────────────────────────────────────────────────────────
   const modules = [
+    'dashboard',
     'employees', 'applicants', 'applications', 'documents',
     'workflow', 'agencies', 'compliance', 'reports',
     'notifications', 'settings', 'users', 'roles', 'logs',
@@ -60,6 +73,7 @@ async function main() {
       description: 'Manages HR processes and employees',
       isSystem: true,
       perms: [
+        'dashboard:read',
         'employees:read','employees:create','employees:update',
         'applicants:read','applicants:create','applicants:update',
         'applications:read','applications:create','applications:update',
@@ -77,6 +91,7 @@ async function main() {
       description: 'Manages compliance and document verification',
       isSystem: true,
       perms: [
+        'dashboard:read',
         'employees:read','applicants:read','applications:read',
         'documents:read','documents:create','documents:update','documents:verify',
         'workflow:read','workflow:update',
@@ -91,6 +106,7 @@ async function main() {
       description: 'Handles recruitment and applications',
       isSystem: true,
       perms: [
+        'dashboard:read',
         'employees:read',
         'applicants:read','applicants:create','applicants:update',
         'applications:read','applications:create','applications:update',
@@ -107,6 +123,7 @@ async function main() {
       description: 'Manages agency-specific employees and data',
       isSystem: true,
       perms: [
+        'dashboard:read',
         'employees:read','employees:create','employees:update',
         'applicants:read','applicants:create','applicants:update',
         'applications:read',
@@ -124,6 +141,7 @@ async function main() {
       description: 'Basic agency-level read/create access',
       isSystem: true,
       perms: [
+        'dashboard:read',
         'employees:read','applicants:read','applications:read',
         'documents:read','documents:create',
         'workflow:read',
@@ -136,6 +154,7 @@ async function main() {
       description: 'Financial reporting and read access',
       isSystem: true,
       perms: [
+        'dashboard:read',
         'employees:read','applicants:read','applications:read',
         'reports:read','reports:export',
         'notifications:read',

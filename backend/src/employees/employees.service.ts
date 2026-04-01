@@ -51,7 +51,7 @@ export class EmployeesService {
     return employee;
   }
 
-  async create(dto: CreateEmployeeDto) {
+  async create(dto: CreateEmployeeDto, _actorId?: string) {
     const existing = await this.prisma.employee.findFirst({ where: { email: dto.email, deletedAt: null } });
     if (existing) throw new ConflictException('Employee with this email already exists');
 
@@ -99,20 +99,20 @@ export class EmployeesService {
     return `${prefix}${String(serial).padStart(5, '0')}`;
   }
 
-  async update(id: string, dto: Partial<CreateEmployeeDto>) {
+  async update(id: string, dto: Partial<CreateEmployeeDto>, _actorId?: string) {
     await this.findOne(id);
     const data: any = { ...dto };
     if (dto.dateOfBirth) data.dateOfBirth = new Date(dto.dateOfBirth);
     return this.prisma.employee.update({ where: { id }, data, include: { agency: { select: { id: true, name: true } } } });
   }
 
-  async remove(id: string) {
+  async remove(id: string, _actorId?: string) {
     await this.findOne(id);
     await this.prisma.employee.update({ where: { id }, data: { deletedAt: new Date() } });
     return { message: 'Employee deleted successfully' };
   }
 
-  async updateStatus(id: string, status: string) {
+  async updateStatus(id: string, status: string, _actorId?: string) {
     await this.findOne(id);
     return this.prisma.employee.update({ where: { id }, data: { status: status as any } });
   }

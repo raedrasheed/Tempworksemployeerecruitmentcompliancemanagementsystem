@@ -165,9 +165,15 @@ async function main() {
     }
   }
   for (const [name, mod, action] of [
-    ['documents:verify',   'documents',   'verify'],
-    ['compliance:resolve', 'compliance',  'resolve'],
-    ['reports:export',     'reports',     'export'],
+    ['documents:verify',              'documents',   'verify'],
+    ['compliance:resolve',            'compliance',  'resolve'],
+    ['reports:export',                'reports',     'export'],
+    ['applicants:convert_lead',       'applicants',  'convert_lead'],
+    ['applicants:reassign_agency',    'applicants',  'reassign_agency'],
+    ['applicants:view_financial',     'applicants',  'view_financial'],
+    ['applicants:manage_financial',   'applicants',  'manage_financial'],
+    ['applicants:export',             'applicants',  'export'],
+    ['applicants:bulk_status',        'applicants',  'bulk_status'],
   ]) {
     permMap.set(name, await upsertPermission(name, mod, action));
   }
@@ -178,12 +184,12 @@ async function main() {
   // ── Roles ────────────────────────────────────────────────────────────────────
   const rolesData = [
     { name: 'System Admin',       description: 'Full system access',                             isSystem: true,  perms: allPermNames },
-    { name: 'HR Manager',         description: 'Manages HR processes and employees',              isSystem: true,  perms: ['dashboard:read','employees:read','employees:create','employees:update','applicants:read','applicants:create','applicants:update','applications:read','applications:create','applications:update','documents:read','documents:create','documents:update','documents:verify','workflow:read','workflow:update','compliance:read','compliance:resolve','reports:read','reports:export','notifications:read','notifications:create','users:read','logs:read'] },
-    { name: 'Compliance Officer', description: 'Manages compliance and document verification',   isSystem: true,  perms: ['dashboard:read','employees:read','applicants:read','applications:read','documents:read','documents:create','documents:update','documents:verify','workflow:read','workflow:update','compliance:read','compliance:resolve','reports:read','reports:export','notifications:read','notifications:create','logs:read'] },
-    { name: 'Recruiter',          description: 'Handles recruitment and applications',            isSystem: true,  perms: ['dashboard:read','employees:read','applicants:read','applicants:create','applicants:update','applications:read','applications:create','applications:update','documents:read','documents:create','workflow:read','compliance:read','reports:read','notifications:read','logs:read'] },
+    { name: 'HR Manager',         description: 'Manages HR processes and employees',              isSystem: true,  perms: ['dashboard:read','employees:read','employees:create','employees:update','applicants:read','applicants:create','applicants:update','applicants:convert_lead','applicants:reassign_agency','applicants:view_financial','applicants:manage_financial','applicants:export','applicants:bulk_status','applications:read','applications:create','applications:update','documents:read','documents:create','documents:update','documents:verify','workflow:read','workflow:update','compliance:read','compliance:resolve','reports:read','reports:export','notifications:read','notifications:create','users:read','logs:read'] },
+    { name: 'Compliance Officer', description: 'Manages compliance and document verification',   isSystem: true,  perms: ['dashboard:read','employees:read','applicants:read','applicants:view_financial','applications:read','documents:read','documents:create','documents:update','documents:verify','workflow:read','workflow:update','compliance:read','compliance:resolve','reports:read','reports:export','notifications:read','notifications:create','logs:read'] },
+    { name: 'Recruiter',          description: 'Handles recruitment and applications',            isSystem: true,  perms: ['dashboard:read','employees:read','applicants:read','applicants:create','applicants:update','applicants:convert_lead','applicants:reassign_agency','applicants:view_financial','applicants:export','applicants:bulk_status','applications:read','applications:create','applications:update','documents:read','documents:create','workflow:read','compliance:read','reports:read','notifications:read','logs:read'] },
     { name: 'Agency Manager',     description: 'Manages agency-specific employees and data',     isSystem: true,  perms: ['dashboard:read','employees:read','employees:create','employees:update','applicants:read','applicants:create','applicants:update','applications:read','documents:read','documents:create','workflow:read','compliance:read','reports:read','notifications:read','users:read','logs:read'] },
     { name: 'Agency User',        description: 'Basic agency-level read/create access',          isSystem: true,  perms: ['dashboard:read','employees:read','applicants:read','applications:read','documents:read','documents:create','workflow:read','notifications:read','logs:read'] },
-    { name: 'Finance',            description: 'Financial reporting and read access',             isSystem: true,  perms: ['dashboard:read','employees:read','applicants:read','applications:read','reports:read','reports:export','notifications:read','logs:read'] },
+    { name: 'Finance',            description: 'Financial reporting and read access',             isSystem: true,  perms: ['dashboard:read','employees:read','applicants:read','applicants:view_financial','applications:read','reports:read','reports:export','applicants:export','notifications:read','logs:read'] },
     { name: 'Read Only',          description: 'Read-only access across the system',             isSystem: true,  perms: modules.map(m => `${m}:read`) },
   ];
 
@@ -301,7 +307,9 @@ async function main() {
     { key: 'upload.allowedTypes',            value: 'pdf,jpg,jpeg,png,doc,docx',      description: 'Allowed file MIME types',                                     category: 'files',         isPublic: false },
     { key: 'auth.sessionTimeoutMin',         value: '15',                             description: 'Access token expiry in minutes',                              category: 'security',      isPublic: false },
     { key: 'auth.maxLoginAttempts',          value: '5',                              description: 'Maximum failed login attempts',                                category: 'security',      isPublic: false },
-    { key: 'agency.maxUsersPerAgency',       value: '5',                              description: 'Maximum users an Agency Manager can add',                     category: 'agency',        isPublic: false },
+    { key: 'agency.maxUsersPerAgency',               value: '5',            description: 'Maximum users an Agency Manager can add',                             category: 'agency',        isPublic: false },
+    { key: 'applicants.defaultHoldingAgencyId',       value: '',             description: 'Agency ID that receives Leads when converted to Candidates (leave empty to keep existing agency)', category: 'applicants', isPublic: false },
+    { key: 'applicants.leadVisibleToAgencyUsers',     value: 'false',        description: 'If true, Agency Users can see Leads (not recommended)',                 category: 'applicants',    isPublic: false },
   ];
   for (const s of settingsData) await upsertSetting(s.key, s, adminUserId);
   console.log(`Upserted ${settingsData.length} system settings`);

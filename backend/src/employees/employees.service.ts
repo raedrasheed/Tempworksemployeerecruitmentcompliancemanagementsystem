@@ -58,10 +58,12 @@ export class EmployeesService {
     // Get all workflow stages to initialize
     const stages = await this.prisma.workflowStage.findMany({ where: { isActive: true }, orderBy: { order: 'asc' } });
 
+    const employeeNumber = await this.generateEmployeeNumber();
     const { agencyId, ...rest } = dto;
     const employee = await this.prisma.employee.create({
       data: {
         ...rest,
+        employeeNumber,
         dateOfBirth: new Date(dto.dateOfBirth),
         status: (dto.status as any) || 'PENDING',
         ...(agencyId ? { agencyId } : {}),
@@ -76,6 +78,25 @@ export class EmployeesService {
     });
 
     return employee;
+  }
+
+  private async generateEmployeeNumber(): Promise<string> {
+    const now = new Date();
+    const yyyy = now.getFullYear().toString();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const prefix = `E${yyyy}${mm}`;
+
+    const result: any[] = await this.prisma.$queryRaw`
+      SELECT COALESCE(MAX(
+        CAST(SUBSTRING("employeeNumber" FROM 8) AS INTEGER)
+      ), 0) + 1 AS next_serial
+      FROM employees
+      WHERE "employeeNumber" IS NOT NULL
+        AND "employeeNumber" LIKE ${prefix + '%'}
+    `;
+
+    const serial = result[0]?.next_serial ?? 1;
+    return `${prefix}${String(serial).padStart(5, '0')}`;
   }
 
   async update(id: string, dto: Partial<CreateEmployeeDto>) {

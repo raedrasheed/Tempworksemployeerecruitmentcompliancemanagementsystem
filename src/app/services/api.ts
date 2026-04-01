@@ -260,6 +260,41 @@ export const applicantsApi = {
       body: JSON.stringify({ stageId }),
     }),
 
+  convertLeadToCandidate: (id: string, data?: { agencyId?: string; notes?: string }) =>
+    apiFetch<any>(`/applicants/${id}/convert-to-candidate`, {
+      method: 'POST',
+      body: JSON.stringify(data ?? {}),
+    }),
+
+  reassignAgency: (id: string, data: { agencyId: string; reason?: string; notes?: string }) =>
+    apiFetch<any>(`/applicants/${id}/agency`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+
+  getFinancialProfile: (id: string) =>
+    apiFetch<any>(`/applicants/${id}/financial`),
+
+  upsertFinancialProfile: (id: string, data: any) =>
+    apiFetch<any>(`/applicants/${id}/financial`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+
+  getAgencyHistory: (id: string) =>
+    apiFetch<any[]>(`/applicants/${id}/agency-history`),
+
+  bulkAction: (data: { ids: string[]; action: string; value?: string }) =>
+    apiFetch<any>('/applicants/bulk-action', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  exportCsv: (params?: Record<string, any>) => {
+    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+    return `${(import.meta as any).env?.VITE_API_URL || 'http://localhost:3000/api/v1'}/applicants/export/csv${qs}`;
+  },
+
   convertToEmployee: (id: string, data: any) =>
     apiFetch<any>(`/applicants/${id}/convert`, { method: 'POST', body: JSON.stringify(data) }),
 };

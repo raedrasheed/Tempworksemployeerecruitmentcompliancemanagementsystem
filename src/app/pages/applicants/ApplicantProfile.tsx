@@ -3,10 +3,10 @@ import { Link, useParams, useNavigate } from 'react-router';
 import {
   ArrowLeft, Mail, Phone, Globe, Briefcase, Calendar, FileText,
   UserPlus, Edit, Trash2, Download, Upload, X,
-  Shield, Clock, Award, ChevronRight, MapPin, Loader2,
+  Shield, Clock, Award, ChevronRight, MapPin, Loader2, TrendingUp, History, DollarSign,
 } from 'lucide-react';
 import { usePermissions } from '../../hooks/usePermissions';
-import { applicantsApi, documentsApi, settingsApi, workflowApi, agenciesApi } from '../../services/api';
+import { getCurrentUser, applicantsApi, documentsApi, settingsApi, workflowApi, agenciesApi } from '../../services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
@@ -40,7 +40,9 @@ const docStatusClass = (status: string) => {
 export function ApplicantProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { canEdit, canDelete } = usePermissions();
+  const { canEdit, canDelete, can } = usePermissions();
+  const currentUser = getCurrentUser();
+  const isFinanceOrAdmin = currentUser?.role === 'System Admin' || currentUser?.role === 'HR Manager' || currentUser?.role === 'Finance';
   const [applicantData, setApplicantData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [documents, setDocuments] = useState<any[]>([]);
@@ -60,6 +62,16 @@ export function ApplicantProfile() {
     addressLine1: '', addressLine2: '', city: '', country: '', postalCode: '',
     licenseNumber: '', licenseCategory: '', yearsExperience: '', emergencyContact: '', emergencyPhone: '',
   });
+
+  // Tier / financial / history state
+  const [showConvertLeadDialog, setShowConvertLeadDialog] = useState(false);
+  const [convertingLead, setConvertingLead] = useState(false);
+  const [financialProfile, setFinancialProfile] = useState<any>(null);
+  const [financialLoading, setFinancialLoading] = useState(false);
+  const [savingFinancial, setSavingFinancial] = useState(false);
+  const [financialForm, setFinancialForm] = useState<any>({});
+  const [agencyHistory, setAgencyHistory] = useState<any[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   const loadDocs = () => {
     if (!id) return;
@@ -208,6 +220,57 @@ export function ApplicantProfile() {
     }
   };
 
+  // Load financial profile and agency history when tab is opened
+  const loadFinancialProfile = () => {
+    if (!id || !isFinanceOrAdmin) return;
+    setFinancialLoading(true);
+    applicantsApi.getFinancialProfile(id)
+      .then((data: any) => {
+        setFinancialProfile(data);
+        setFinancialForm(data ?? {});
+      })
+      .catch(() => {})
+      .finally(() => setFinancialLoading(false));
+  };
+
+  const loadAgencyHistory = () => {
+    if (!id) return;
+    setHistoryLoading(true);
+    applicantsApi.getAgencyHistory(id)
+      .then((data: any) => setAgencyHistory(Array.isArray(data) ? data : []))
+      .catch(() => {})
+      .finally(() => setHistoryLoading(false));
+  };
+
+  const handleConvertLeadToCandidate = async () => {
+    if (!id) return;
+    setConvertingLead(true);
+    try {
+      const updated = await applicantsApi.convertLeadToCandidate(id, {});
+      setApplicantData((prev: any) => ({ ...prev, tier: 'CANDIDATE', agencyId: updated.agencyId, agency: updated.agency }));
+      toast.success('Promoted to Candidate');
+      setShowConvertLeadDialog(false);
+    } catch (err: any) {
+      toast.error(err?.message || 'Promotion failed');
+    } finally {
+      setConvertingLead(false);
+    }
+  };
+
+  const handleSaveFinancial = async () => {
+    if (!id) return;
+    setSavingFinancial(true);
+    try {
+      const saved = await applicantsApi.upsertFinancialProfile(id, financialForm);
+      setFinancialProfile(saved);
+      toast.success('Financial profile saved');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to save financial profile');
+    } finally {
+      setSavingFinancial(false);
+    }
+  };
+
   const validDocs = documents.filter(d => d.status === 'VERIFIED' || d.status === 'Verified').length;
   const expiringSoon = documents.filter(d => d.status === 'EXPIRING_SOON').length;
 
@@ -226,21 +289,36 @@ export function ApplicantProfile() {
           <p className="text-muted-foreground mt-1">View and manage applicant information</p>
         </div>
         <div className="flex items-center gap-2">
+          {/* Tier badge */}
+          {applicantData && (
+            <Badge className={applicantData.tier === 'CANDIDATE'
+              ? 'bg-emerald-100 text-emerald-800 border border-emerald-200 text-sm px-3 py-1'
+              : 'bg-amber-100 text-amber-800 border border-amber-200 text-sm px-3 py-1'}>
+              {applicantData.tier ?? 'LEAD'}
+            </Badge>
+          )}
           {canEdit('applicants') && (
-            <Button asChild>
+            <Button asChild variant="outline">
               <Link to={`/dashboard/applicants/${id}/edit`}>
-                <Edit className="w-4 h-4 mr-2" />Edit Profile
+                <Edit className="w-4 h-4 mr-2" />Edit
               </Link>
+            </Button>
+          )}
+          {/* Promote Lead → Candidate */}
+          {canEdit('applicants') && applicantData?.tier === 'LEAD' && (
+            <Button variant="outline" className="text-emerald-700 border-emerald-300" onClick={() => setShowConvertLeadDialog(true)}>
+              <TrendingUp className="w-4 h-4 mr-2" />Promote to Candidate
+            </Button>
+          )}
+          {/* Convert Candidate → Employee */}
+          {canEdit('applicants') && applicantData?.tier === 'CANDIDATE' && (
+            <Button className="bg-[#22C55E] hover:bg-[#16a34a]" onClick={() => setShowConvertDialog(true)}>
+              <UserPlus className="w-4 h-4 mr-2" />Convert to Employee
             </Button>
           )}
           {canDelete('applicants') && (
             <Button variant="outline" className="text-[#EF4444] border-[#EF4444]" onClick={handleDelete}>
               <Trash2 className="w-4 h-4 mr-2" />Delete
-            </Button>
-          )}
-          {canEdit('applicants') && (
-            <Button className="bg-[#22C55E] hover:bg-[#16a34a]" onClick={() => setShowConvertDialog(true)}>
-              <UserPlus className="w-4 h-4 mr-2" />Convert to Employee
             </Button>
           )}
         </div>
@@ -320,6 +398,14 @@ export function ApplicantProfile() {
           <TabsTrigger value="documents">Documents ({documents.length})</TabsTrigger>
           <TabsTrigger value="workflow">Workflow</TabsTrigger>
           <TabsTrigger value="compliance">Compliance</TabsTrigger>
+          {isFinanceOrAdmin && (
+            <TabsTrigger value="financial" onClick={loadFinancialProfile}>
+              <DollarSign className="w-3 h-3 mr-1" />Financial
+            </TabsTrigger>
+          )}
+          <TabsTrigger value="history" onClick={loadAgencyHistory}>
+            <History className="w-3 h-3 mr-1" />Agency History
+          </TabsTrigger>
           <TabsTrigger value="notes">Notes</TabsTrigger>
         </TabsList>
 
@@ -755,6 +841,116 @@ export function ApplicantProfile() {
           </Card>
         </TabsContent>
 
+        {/* Financial Profile */}
+        {isFinanceOrAdmin && (
+          <TabsContent value="financial">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <DollarSign className="w-5 h-5 text-emerald-600" />Financial Profile
+                </CardTitle>
+                {applicantData?.tier !== 'CANDIDATE' && (
+                  <Badge className="bg-amber-100 text-amber-800">Candidates only</Badge>
+                )}
+              </CardHeader>
+              <CardContent>
+                {applicantData?.tier !== 'CANDIDATE' ? (
+                  <p className="text-muted-foreground text-sm">
+                    Financial profile is available for Candidates only. Promote this applicant to Candidate first.
+                  </p>
+                ) : financialLoading ? (
+                  <p className="text-muted-foreground">Loading…</p>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {[
+                        ['bankName', 'Bank Name', 'text'],
+                        ['accountHolder', 'Account Holder', 'text'],
+                        ['accountNumber', 'Account Number', 'text'],
+                        ['sortCode', 'Sort Code', 'text'],
+                        ['iban', 'IBAN', 'text'],
+                        ['taxCode', 'Tax Code', 'text'],
+                        ['niNumber', 'NI Number', 'text'],
+                        ['paymentMethod', 'Payment Method', 'text'],
+                        ['salaryAgreed', 'Agreed Salary', 'number'],
+                        ['currency', 'Currency', 'text'],
+                      ].map(([field, label, type]) => (
+                        <div key={field} className="space-y-1">
+                          <Label className="text-xs">{label}</Label>
+                          <Input
+                            type={type as any}
+                            value={financialForm[field] ?? ''}
+                            onChange={e => setFinancialForm((f: any) => ({ ...f, [field]: e.target.value }))}
+                          />
+                        </div>
+                      ))}
+                      <div className="space-y-1 md:col-span-2">
+                        <Label className="text-xs">Bank Address</Label>
+                        <Input
+                          value={financialForm.bankAddress ?? ''}
+                          onChange={e => setFinancialForm((f: any) => ({ ...f, bankAddress: e.target.value }))}
+                        />
+                      </div>
+                      <div className="space-y-1 md:col-span-2">
+                        <Label className="text-xs">Notes</Label>
+                        <Input
+                          value={financialForm.notes ?? ''}
+                          onChange={e => setFinancialForm((f: any) => ({ ...f, notes: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex gap-2 pt-2 border-t">
+                      <Button size="sm" onClick={handleSaveFinancial} disabled={savingFinancial}>
+                        {savingFinancial ? 'Saving…' : 'Save Financial Profile'}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
+
+        {/* Agency History */}
+        <TabsContent value="history">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <History className="w-5 h-5" />Agency Assignment History
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {historyLoading ? (
+                <p className="text-muted-foreground">Loading…</p>
+              ) : agencyHistory.length === 0 ? (
+                <p className="text-muted-foreground text-sm">No agency assignment history recorded.</p>
+              ) : (
+                <div className="space-y-3">
+                  {agencyHistory.map((h: any) => (
+                    <div key={h.id} className="flex items-start gap-4 p-4 border rounded-lg">
+                      <div className="w-2 h-2 rounded-full bg-blue-500 mt-2 shrink-0" />
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <p className="font-medium">{h.agencyName}</p>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(h.assignedAt).toLocaleDateString()}
+                            {h.removedAt && ` → ${new Date(h.removedAt).toLocaleDateString()}`}
+                          </span>
+                        </div>
+                        {h.reason && <p className="text-sm text-muted-foreground mt-0.5">Reason: {h.reason}</p>}
+                        {h.notes && <p className="text-sm text-muted-foreground mt-0.5">{h.notes}</p>}
+                        {!h.removedAt && (
+                          <Badge className="bg-green-100 text-green-800 mt-1" variant="outline">Current</Badge>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         {/* Notes */}
         <TabsContent value="notes">
           <Card>
@@ -780,6 +976,42 @@ export function ApplicantProfile() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Promote Lead → Candidate Dialog */}
+      {showConvertLeadDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <Card className="max-w-md w-full">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-emerald-600" />Promote to Candidate
+              </CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                <strong>{applicantData?.fullName}</strong> will be promoted from Lead to Candidate.
+                This grants agency users visibility. A holding agency will be assigned if configured.
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800">
+                This action is logged and can be reviewed in Agency History.
+              </div>
+              <div className="flex gap-3">
+                <Button
+                  className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+                  onClick={handleConvertLeadToCandidate}
+                  disabled={convertingLead}
+                >
+                  {convertingLead
+                    ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Promoting…</>
+                    : <><TrendingUp className="w-4 h-4 mr-2" />Confirm Promotion</>}
+                </Button>
+                <Button variant="outline" className="flex-1" onClick={() => setShowConvertLeadDialog(false)} disabled={convertingLead}>
+                  Cancel
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Convert to Employee Dialog */}
       {showConvertDialog && (

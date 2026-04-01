@@ -1,122 +1,71 @@
 import { useState, useEffect, useCallback } from 'react';
-import { applicantsApi, workflowApi } from '../../services/api';
+import { applicantsApi, workflowApi, agenciesApi, settingsApi } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
+import { getCurrentUser, getAccessToken } from '../../services/api';
 import { Link } from 'react-router';
-import { Search, Plus, Eye, Edit, UserPlus, Download, Trash2 } from 'lucide-react';
+import { Search, Plus, Eye, Edit, UserPlus, Download, Trash2, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Badge } from '../../components/ui/badge';
+import { Checkbox } from '../../components/ui/checkbox';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '../../components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
-import { FilterSystem, Column, FilterRule, FilterPreset } from '../../components/filters/FilterSystem';
-
-// Define columns for the filter system
-const applicantColumns: Column[] = [
-  { id: 'name', label: 'Full Name', type: 'text' },
-  { id: 'email', label: 'Email', type: 'text' },
-  { id: 'phone', label: 'Phone', type: 'text' },
-  { id: 'nationality', label: 'Nationality', type: 'text' },
-  { id: 'jobType', label: 'Job Type', type: 'enum', options: ['Truck Driver', 'Delivery Driver', 'Warehouse Worker', 'Forklift Operator', 'Logistics Coordinator', 'Construction Worker', 'Technician', 'General Worker'] },
-  { id: 'status', label: 'Status', type: 'enum', options: ['New Application', 'Under Review', 'Interview Scheduled', 'Accepted', 'Rejected'] },
-  { id: 'applicationDate', label: 'Application Date', type: 'date' },
-];
-
-// Mock data
-const applicants = [
-  {
-    id: 'APP001',
-    firstName: 'Andrei',
-    lastName: 'Popescu',
-    nationality: 'Romania',
-    phone: '+40 721 234 567',
-    email: 'andrei.popescu@email.com',
-    jobType: 'Truck Driver',
-    applicationDate: '2026-03-15',
-    status: 'Under Review',
-  },
-  {
-    id: 'APP002',
-    firstName: 'Olena',
-    lastName: 'Kovalenko',
-    nationality: 'Ukraine',
-    phone: '+380 67 123 4567',
-    email: 'olena.k@email.com',
-    jobType: 'Warehouse Worker',
-    applicationDate: '2026-03-14',
-    status: 'New Application',
-  },
-  {
-    id: 'APP003',
-    firstName: 'Dmitri',
-    lastName: 'Ivanov',
-    nationality: 'Moldova',
-    phone: '+373 69 123 456',
-    email: 'dmitri.ivanov@email.com',
-    jobType: 'Forklift Operator',
-    applicationDate: '2026-03-13',
-    status: 'Interview Scheduled',
-  },
-  {
-    id: 'APP004',
-    firstName: 'Maria',
-    lastName: 'Silva',
-    nationality: 'Portugal',
-    phone: '+351 91 234 5678',
-    email: 'maria.silva@email.com',
-    jobType: 'Logistics Coordinator',
-    applicationDate: '2026-03-12',
-    status: 'Accepted',
-  },
-  {
-    id: 'APP005',
-    firstName: 'Jan',
-    lastName: 'Kowalski',
-    nationality: 'Poland',
-    phone: '+48 501 234 567',
-    email: 'jan.kowalski@email.com',
-    jobType: 'Delivery Driver',
-    applicationDate: '2026-03-10',
-    status: 'Rejected',
-  },
-];
 
 const getStatusColor = (status: string) => {
   switch (status?.toUpperCase()) {
     case 'NEW': return 'bg-blue-100 text-blue-800';
-    case 'SCREENING': case 'UNDER_REVIEW': return 'bg-yellow-100 text-yellow-800';
+    case 'SCREENING': return 'bg-yellow-100 text-yellow-800';
     case 'INTERVIEW': return 'bg-purple-100 text-purple-800';
-    case 'OFFER': case 'ONBOARDING': case 'ACCEPTED': case 'APPROVED': return 'bg-green-100 text-green-800';
+    case 'OFFER': case 'ONBOARDING': case 'ACCEPTED': return 'bg-green-100 text-green-800';
     case 'REJECTED': case 'WITHDRAWN': return 'bg-red-100 text-red-800';
-    case 'SUBMITTED': return 'bg-indigo-100 text-indigo-800';
     default: return 'bg-gray-100 text-gray-800';
   }
 };
 
+const getTierColor = (tier: string) => {
+  if (tier === 'CANDIDATE') return 'bg-emerald-100 text-emerald-800 border border-emerald-200';
+  return 'bg-amber-100 text-amber-800 border border-amber-200';
+};
+
+const STATUSES = ['NEW', 'SCREENING', 'INTERVIEW', 'OFFER', 'ACCEPTED', 'REJECTED', 'WITHDRAWN', 'ONBOARDING'];
+
 export function ApplicantsList() {
-  const { canCreate, canEdit } = usePermissions();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [activeFilters, setActiveFilters] = useState<FilterRule[]>([]);
-  const [filterLogic, setFilterLogic] = useState<'AND' | 'OR'>('AND');
+  const { canCreate, canEdit, canDelete } = usePermissions();
+  const currentUser = getCurrentUser();
+  const isAgencyUser = currentUser?.role === 'Agency User' || currentUser?.role === 'Agency Manager';
+
+  // ── Filters ─────────────────────────────────────────────────────────────────
+  const [searchTerm, setSearchTerm]     = useState('');
+  const [tierFilter, setTierFilter]     = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState<string>('');
+  const [agencyFilter, setAgencyFilter] = useState<string>('');
+
+  // ── Data ─────────────────────────────────────────────────────────────────────
   const [applicantsData, setApplicantsData] = useState<any[]>([]);
   const [totalApplicants, setTotalApplicants] = useState(0);
   const [loading, setLoading] = useState(true);
   const [allStages, setAllStages] = useState<any[]>([]);
+  const [agencies, setAgencies] = useState<any[]>([]);
+  const [jobTypes, setJobTypes] = useState<any[]>([]);
   const [changingStageFor, setChangingStageFor] = useState<string | null>(null);
 
+  // ── Bulk actions ──────────────────────────────────────────────────────────────
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkActionInProgress, setBulkActionInProgress] = useState(false);
+
+  // ── Fetch ─────────────────────────────────────────────────────────────────────
   const fetchApplicants = useCallback(async () => {
     setLoading(true);
     try {
-      const params: Record<string, any> = { page: 1, limit: 50 };
+      const params: Record<string, any> = { page: 1, limit: 100 };
       if (searchTerm) params.search = searchTerm;
+      if (tierFilter) params.tier = tierFilter;
+      if (statusFilter) params.status = statusFilter;
+      if (agencyFilter) params.agencyId = agencyFilter;
       const result = await applicantsApi.list(params);
       setApplicantsData(result.data || []);
       setTotalApplicants(result.meta?.total || 0);
@@ -125,7 +74,7 @@ export function ApplicantsList() {
     } finally {
       setLoading(false);
     }
-  }, [searchTerm]);
+  }, [searchTerm, tierFilter, statusFilter, agencyFilter]);
 
   useEffect(() => {
     const timer = setTimeout(fetchApplicants, 300);
@@ -133,9 +82,18 @@ export function ApplicantsList() {
   }, [fetchApplicants]);
 
   useEffect(() => {
-    workflowApi.getStages().then((stages: any) => setAllStages(Array.isArray(stages) ? stages : [])).catch(() => {});
+    workflowApi.getStages()
+      .then((s: any) => setAllStages(Array.isArray(s) ? s : []))
+      .catch(() => {});
+    agenciesApi.list({ limit: 200 })
+      .then((r: any) => setAgencies(r?.data ?? []))
+      .catch(() => {});
+    settingsApi.getJobTypes?.()
+      .then((jt: any) => setJobTypes(Array.isArray(jt) ? jt : []))
+      .catch(() => {});
   }, []);
 
+  // ── Stage Change ──────────────────────────────────────────────────────────────
   const handleStageChange = async (applicantId: string, stageId: string) => {
     setChangingStageFor(applicantId);
     try {
@@ -143,7 +101,7 @@ export function ApplicantsList() {
       setApplicantsData(prev => prev.map(a =>
         a.id === applicantId
           ? { ...a, currentWorkflowStageId: updated.currentWorkflowStageId, currentWorkflowStage: updated.currentWorkflowStage }
-          : a
+          : a,
       ));
       toast.success('Stage updated');
     } catch (err: any) {
@@ -153,116 +111,90 @@ export function ApplicantsList() {
     }
   };
 
-  // Use API data or fall back to local hardcoded array if API not available
-  const applicants = applicantsData.length > 0 ? applicantsData : [];
-  const [savedPresets, setSavedPresets] = useState<FilterPreset[]>([
-    {
-      id: '1',
-      name: 'Pending Applications',
-      rules: [
-        { id: '1', columnId: 'status', operator: 'equals', value: 'Under Review' }
-      ],
-      logic: 'AND'
-    },
-    {
-      id: '2',
-      name: 'New Truck Drivers',
-      rules: [
-        { id: '1', columnId: 'status', operator: 'equals', value: 'New Application' },
-        { id: '2', columnId: 'jobType', operator: 'equals', value: 'Truck Driver' }
-      ],
-      logic: 'AND'
-    }
-  ]);
-
-  // Apply filters
-  const applyFilters = (applicant: any) => {
-    if (activeFilters.length === 0) return true;
-
-    const results = activeFilters.map(filter => {
-      let value: any;
-      switch (filter.columnId) {
-        case 'name':
-          value = `${applicant.firstName} ${applicant.lastName}`.toLowerCase();
-          break;
-        case 'jobType': {
-          const jt = applicant.jobType;
-          value = (typeof jt === 'object' && jt !== null ? jt.name : jt) || '';
-          break;
-        }
-        default: {
-          const raw = (applicant as any)[filter.columnId];
-          value = (typeof raw === 'object' && raw !== null ? raw.name : raw) || '';
-        }
-      }
-
-      switch (filter.operator) {
-        case 'contains':
-          return value.toLowerCase().includes(filter.value.toLowerCase());
-        case 'equals':
-          return value.toString().toLowerCase() === filter.value.toLowerCase();
-        case 'startsWith':
-          return value.toLowerCase().startsWith(filter.value.toLowerCase());
-        case 'endsWith':
-          return value.toLowerCase().endsWith(filter.value.toLowerCase());
-        case 'before':
-          return new Date(value) < new Date(filter.value);
-        case 'after':
-          return new Date(value) > new Date(filter.value);
-        default:
-          return true;
-      }
-    });
-
-    return filterLogic === 'AND' ? results.every(r => r) : results.some(r => r);
-  };
-
-  const filteredApplicants = applicants.filter((applicant) => {
-    const matchesSearch = 
-      applicant.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      applicant.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      applicant.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      applicant.id.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesFilters = applyFilters(applicant);
-    
-    return matchesSearch && matchesFilters;
-  });
-
-  const handleSavePreset = (name: string, rules: FilterRule[], logic: 'AND' | 'OR') => {
-    const newPreset: FilterPreset = {
-      id: Date.now().toString(),
-      name,
-      rules,
-      logic
-    };
-    setSavedPresets([...savedPresets, newPreset]);
-  };
-
-  const handleLoadPreset = (preset: FilterPreset) => {
-    setActiveFilters(preset.rules);
-    setFilterLogic(preset.logic);
-  };
-
-  const handleDeletePreset = (presetId: string) => {
-    setSavedPresets(savedPresets.filter(p => p.id !== presetId));
-  };
-
+  // ── Delete ────────────────────────────────────────────────────────────────────
   const handleDelete = async (applicant: any) => {
     if (!confirm(`Delete "${applicant.firstName} ${applicant.lastName}"? This cannot be undone.`)) return;
     try {
       await applicantsApi.delete(applicant.id);
       setApplicantsData(prev => prev.filter(a => a.id !== applicant.id));
       setTotalApplicants(prev => prev - 1);
-      toast.success('Applicant deleted successfully');
+      setSelected(prev => { const n = new Set(prev); n.delete(applicant.id); return n; });
+      toast.success('Applicant deleted');
     } catch (err: any) {
       toast.error(err?.message || 'Failed to delete applicant');
     }
   };
 
-  const handleExport = () => {
-    console.log('Exporting', filteredApplicants.length, 'applicants');
+  // ── Bulk selection ────────────────────────────────────────────────────────────
+  const toggleSelect = (id: string) => {
+    setSelected(prev => {
+      const n = new Set(prev);
+      n.has(id) ? n.delete(id) : n.add(id);
+      return n;
+    });
   };
+
+  const toggleSelectAll = () => {
+    if (selected.size === applicantsData.length) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(applicantsData.map(a => a.id)));
+    }
+  };
+
+  // ── Bulk actions ──────────────────────────────────────────────────────────────
+  const handleBulkAction = async (action: string, value?: string) => {
+    if (selected.size === 0) { toast.error('Select at least one applicant'); return; }
+    setBulkActionInProgress(true);
+    try {
+      const result = await applicantsApi.bulkAction({ ids: [...selected], action, value });
+      const failed = result.results?.filter((r: any) => !r.success) ?? [];
+      if (failed.length === 0) {
+        toast.success(`Bulk action applied to ${selected.size} applicant(s)`);
+      } else {
+        toast.warning(`Applied to ${selected.size - failed.length}, failed for ${failed.length}`);
+      }
+      setSelected(new Set());
+      await fetchApplicants();
+    } catch (err: any) {
+      toast.error(err?.message || 'Bulk action failed');
+    } finally {
+      setBulkActionInProgress(false);
+    }
+  };
+
+  // ── CSV Export ────────────────────────────────────────────────────────────────
+  const handleExportCsv = () => {
+    const params: Record<string, any> = {};
+    if (searchTerm) params.search = searchTerm;
+    if (tierFilter) params.tier = tierFilter;
+    if (statusFilter) params.status = statusFilter;
+    if (agencyFilter) params.agencyId = agencyFilter;
+
+    const token = getAccessToken();
+    const csvUrl = applicantsApi.exportCsv(params);
+    // Open URL with bearer token via hidden anchor (token in query param for file downloads)
+    const a = document.createElement('a');
+    // Use fetch + blob to honour auth header
+    fetch(csvUrl, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.blob())
+      .then(blob => {
+        const url = URL.createObjectURL(blob);
+        a.href = url;
+        a.download = `applicants-${Date.now()}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      })
+      .catch(() => toast.error('Export failed'));
+  };
+
+  // ── Stats ─────────────────────────────────────────────────────────────────────
+  const leads      = applicantsData.filter(a => a.tier === 'LEAD');
+  const candidates = applicantsData.filter(a => a.tier === 'CANDIDATE');
+  const newCount   = applicantsData.filter(a => a.status === 'NEW').length;
+  const acceptedCount = applicantsData.filter(a => a.status === 'ACCEPTED' || a.status === 'ONBOARDING').length;
 
   return (
     <div className="space-y-6">
@@ -271,47 +203,47 @@ export function ApplicantsList() {
         <div>
           <h1 className="text-3xl font-semibold text-[#0F172A]">Applicants</h1>
           <p className="text-muted-foreground mt-1">
-            Manage job applicants and convert them to employees
+            Manage leads and candidates, convert to employees
           </p>
         </div>
-        {canCreate('applicants') && (
-          <Button asChild>
-            <Link to="/dashboard/applicants/add">
-              <Plus className="w-4 h-4 mr-2" />
-              Add Applicant
-            </Link>
-          </Button>
-        )}
+        <div className="flex gap-2">
+          {canCreate('applicants') && (
+            <Button asChild>
+              <Link to="/dashboard/applicants/add">
+                <Plus className="w-4 h-4 mr-2" />
+                Add Applicant
+              </Link>
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Applicants</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-[#0F172A]">{totalApplicants}</div>
           </CardContent>
         </Card>
+        {!isAgencyUser && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Leads</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-amber-600">{leads.length}</div>
+            </CardContent>
+          </Card>
+        )}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">New</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Candidates</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
-              {applicants.filter((a) => a.status === 'NEW').length}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Screening / Review</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">
-              {applicants.filter((a) => a.status === 'SCREENING' || a.status === 'INTERVIEW').length}
-            </div>
+            <div className="text-2xl font-bold text-emerald-600">{candidates.length}</div>
           </CardContent>
         </Card>
         <Card>
@@ -319,54 +251,132 @@ export function ApplicantsList() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Accepted / Onboarding</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {applicants.filter((a) => a.status === 'ACCEPTED' || a.status === 'ONBOARDING').length}
-            </div>
+            <div className="text-2xl font-bold text-green-600">{acceptedCount}</div>
           </CardContent>
         </Card>
       </div>
 
+      {/* Bulk action toolbar */}
+      {selected.size > 0 && (
+        <div className="flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-lg px-4 py-2">
+          <span className="text-sm font-medium text-blue-800">{selected.size} selected</span>
+          <div className="flex gap-2 ml-auto">
+            {!isAgencyUser && (
+              <>
+                <Button
+                  variant="outline" size="sm"
+                  disabled={bulkActionInProgress}
+                  onClick={() => handleBulkAction('TIER_CHANGE', 'CANDIDATE')}
+                >
+                  Promote to Candidate
+                </Button>
+                <Button
+                  variant="outline" size="sm"
+                  disabled={bulkActionInProgress}
+                  onClick={() => {
+                    const status = prompt('Enter new status (NEW / SCREENING / INTERVIEW / OFFER / ACCEPTED / REJECTED / WITHDRAWN / ONBOARDING)');
+                    if (status) handleBulkAction('STATUS_CHANGE', status.toUpperCase());
+                  }}
+                >
+                  Change Status
+                </Button>
+              </>
+            )}
+            <Button
+              variant="outline" size="sm" className="text-red-600"
+              disabled={bulkActionInProgress}
+              onClick={() => {
+                if (confirm(`Delete ${selected.size} applicant(s)?`)) handleBulkAction('DELETE');
+              }}
+            >
+              <Trash2 className="w-3 h-3 mr-1" />Delete Selected
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setSelected(new Set())}>Clear</Button>
+          </div>
+        </div>
+      )}
+
       {/* Search / Filters / Table */}
       <Card>
         <CardContent className="p-6">
-          <div className="flex items-center gap-4 mb-6">
-            <div className="flex-1 relative">
+          {/* Filter row */}
+          <div className="flex flex-wrap items-center gap-3 mb-6">
+            <div className="flex-1 min-w-48 relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Search by name, email, or ID..."
+                placeholder="Search name, email..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
               />
             </div>
 
-            <FilterSystem
-              columns={applicantColumns}
-              activeFilters={activeFilters}
-              onFiltersChange={setActiveFilters}
-              filterLogic={filterLogic}
-              onLogicChange={setFilterLogic}
-              savedPresets={savedPresets}
-              onSavePreset={handleSavePreset}
-              onLoadPreset={handleLoadPreset}
-              onDeletePreset={handleDeletePreset}
-            />
+            {!isAgencyUser && (
+              <Select value={tierFilter || '__all__'} onValueChange={v => setTierFilter(v === '__all__' ? '' : v)}>
+                <SelectTrigger className="w-36">
+                  <SelectValue placeholder="All Tiers" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">All Tiers</SelectItem>
+                  <SelectItem value="LEAD">Lead</SelectItem>
+                  <SelectItem value="CANDIDATE">Candidate</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
 
-            <Button variant="outline" onClick={handleExport}>
+            <Select value={statusFilter || '__all__'} onValueChange={v => setStatusFilter(v === '__all__' ? '' : v)}>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="All Statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">All Statuses</SelectItem>
+                {STATUSES.map(s => (
+                  <SelectItem key={s} value={s}>{s.replace(/_/g, ' ')}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {!isAgencyUser && agencies.length > 0 && (
+              <Select value={agencyFilter || '__all__'} onValueChange={v => setAgencyFilter(v === '__all__' ? '' : v)}>
+                <SelectTrigger className="w-44">
+                  <SelectValue placeholder="All Agencies" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">All Agencies</SelectItem>
+                  {agencies.map((a: any) => (
+                    <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+
+            <Button variant="outline" size="sm" onClick={fetchApplicants} disabled={loading}>
+              <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+
+            <Button variant="outline" size="sm" onClick={handleExportCsv}>
               <Download className="w-4 h-4 mr-2" />
-              Export
+              Export CSV
             </Button>
           </div>
 
-          <div className="border rounded-lg">
+          <div className="border rounded-lg overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-10">
+                    <Checkbox
+                      checked={selected.size > 0 && selected.size === applicantsData.length}
+                      onCheckedChange={toggleSelectAll}
+                    />
+                  </TableHead>
                   <TableHead>Applicant</TableHead>
                   <TableHead>Contact</TableHead>
                   <TableHead>Nationality</TableHead>
                   <TableHead>Job Type</TableHead>
                   <TableHead>Agency</TableHead>
+                  {!isAgencyUser && <TableHead>Tier</TableHead>}
                   <TableHead>Stage</TableHead>
                   <TableHead>Applied</TableHead>
                   <TableHead>Status</TableHead>
@@ -374,20 +384,40 @@ export function ApplicantsList() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredApplicants.map((applicant) => (
-                  <TableRow key={applicant.id}>
+                {loading && (
+                  <TableRow>
+                    <TableCell colSpan={isAgencyUser ? 10 : 11} className="text-center py-8 text-muted-foreground">
+                      Loading...
+                    </TableCell>
+                  </TableRow>
+                )}
+                {!loading && applicantsData.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={isAgencyUser ? 10 : 11} className="text-center py-12 text-muted-foreground">
+                      No applicants found matching your criteria.
+                    </TableCell>
+                  </TableRow>
+                )}
+                {!loading && applicantsData.map((applicant) => (
+                  <TableRow key={applicant.id} className={selected.has(applicant.id) ? 'bg-blue-50' : undefined}>
+                    <TableCell>
+                      <Checkbox
+                        checked={selected.has(applicant.id)}
+                        onCheckedChange={() => toggleSelect(applicant.id)}
+                      />
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <img
-                          src={applicant.photo || `https://api.dicebear.com/7.x/avataaars/svg?seed=${applicant.firstName}`}
+                          src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${applicant.firstName}`}
                           alt={applicant.firstName}
-                          className="w-10 h-10 rounded-full"
+                          className="w-9 h-9 rounded-full"
                         />
                         <div>
                           <div className="font-medium text-[#0F172A]">
                             {applicant.firstName} {applicant.lastName}
                           </div>
-                          <div className="text-sm text-muted-foreground">{applicant.id}</div>
+                          <div className="text-xs text-muted-foreground font-mono">{applicant.id.slice(0, 8)}…</div>
                         </div>
                       </div>
                     </TableCell>
@@ -397,21 +427,26 @@ export function ApplicantsList() {
                         <div className="text-muted-foreground">{applicant.phone}</div>
                       </div>
                     </TableCell>
-                    <TableCell>{applicant.nationality}</TableCell>
+                    <TableCell className="text-sm">{applicant.nationality}</TableCell>
                     <TableCell>
                       <span className="text-sm">
                         {typeof applicant.jobType === 'object' && applicant.jobType !== null
                           ? applicant.jobType.name
-                          : applicant.jobType}
+                          : applicant.jobType ?? '—'}
                       </span>
                     </TableCell>
                     <TableCell>
-                      {applicant.agency ? (
-                        <span className="text-sm">{applicant.agency.name}</span>
-                      ) : (
-                        <span className="text-sm text-muted-foreground">Direct</span>
-                      )}
+                      {applicant.agency
+                        ? <span className="text-sm">{applicant.agency.name}</span>
+                        : <span className="text-sm text-muted-foreground">Direct</span>}
                     </TableCell>
+                    {!isAgencyUser && (
+                      <TableCell>
+                        <Badge className={getTierColor(applicant.tier)}>
+                          {applicant.tier}
+                        </Badge>
+                      </TableCell>
+                    )}
                     <TableCell>
                       {canEdit('applicants') && allStages.length > 0 ? (
                         <Select
@@ -438,7 +473,7 @@ export function ApplicantsList() {
                       <span className="text-sm">
                         {applicant.createdAt
                           ? new Date(applicant.createdAt).toLocaleDateString()
-                          : applicant.applicationDate || '-'}
+                          : '—'}
                       </span>
                     </TableCell>
                     <TableCell>
@@ -460,18 +495,15 @@ export function ApplicantsList() {
                             </Link>
                           </Button>
                         )}
-                        {canCreate('employees') && applicant.status === 'ACCEPTED' && (
-                          <Button variant="ghost" size="sm" className="text-green-600">
-                            <UserPlus className="w-4 h-4" />
+                        {canDelete('applicants') && (
+                          <Button
+                            variant="ghost" size="sm"
+                            onClick={() => handleDelete(applicant)}
+                            className="text-[#EF4444] hover:text-[#EF4444] hover:bg-[#FEF2F2]"
+                          >
+                            <Trash2 className="w-4 h-4" />
                           </Button>
                         )}
-                        <Button
-                          variant="ghost" size="sm"
-                          onClick={() => handleDelete(applicant)}
-                          className="text-[#EF4444] hover:text-[#EF4444] hover:bg-[#FEF2F2]"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -480,20 +512,11 @@ export function ApplicantsList() {
             </Table>
           </div>
 
-          {filteredApplicants.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">No applicants found matching your criteria.</p>
-            </div>
-          )}
-
           <div className="flex items-center justify-between mt-4">
             <p className="text-sm text-muted-foreground">
-              Showing {filteredApplicants.length} of {totalApplicants} applicants
+              Showing {applicantsData.length} of {totalApplicants} applicants
+              {selected.size > 0 && ` · ${selected.size} selected`}
             </p>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm">Previous</Button>
-              <Button variant="outline" size="sm">Next</Button>
-            </div>
           </div>
         </CardContent>
       </Card>

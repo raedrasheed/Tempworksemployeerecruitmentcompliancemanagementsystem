@@ -75,6 +75,11 @@ enum VisaStatus {
   CANCELLED
 }
 
+enum ApplicantTier {
+  LEAD
+  CANDIDATE
+}
+
 enum AlertSeverity {
   LOW
   MEDIUM
@@ -210,6 +215,7 @@ model Agency {
 
 model Employee {
   id               String         @id @default(uuid())
+  employeeNumber   String?        @unique
   firstName        String
   lastName         String
   email            String         @unique
@@ -296,6 +302,7 @@ model JobType {
 
 model Applicant {
   id                      String          @id @default(uuid())
+  tier                    ApplicantTier   @default(LEAD)
   firstName               String
   lastName                String
   email                   String          @unique
@@ -317,6 +324,7 @@ model Applicant {
   preferredLocations      String?
   salaryExpectation       String?
   notes                   String?
+  convertedToEmployeeId   String?
   createdAt               DateTime        @default(now())
   updatedAt               DateTime        @updatedAt
   deletedAt               DateTime?
@@ -326,8 +334,49 @@ model Applicant {
   jobType              JobType?       @relation(fields: [jobTypeId], references: [id])
   agency               Agency?        @relation(fields: [agencyId], references: [id])
   currentWorkflowStage WorkflowStage? @relation("ApplicantCurrentStage", fields: [currentWorkflowStageId], references: [id])
+  financialProfile     ApplicantFinancialProfile?
+  agencyHistory        ApplicantAgencyHistory[]
 
   @@map("applicants")
+}
+
+model ApplicantFinancialProfile {
+  id              String    @id @default(uuid())
+  applicantId     String    @unique
+  bankName        String?
+  accountHolder   String?
+  accountNumber   String?
+  sortCode        String?
+  iban            String?
+  bankAddress     String?
+  taxCode         String?
+  niNumber        String?
+  paymentMethod   String?
+  salaryAgreed    Decimal?  @db.Decimal(10, 2)
+  currency        String    @default("GBP")
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  applicant Applicant @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+
+  @@map("applicant_financial_profiles")
+}
+
+model ApplicantAgencyHistory {
+  id           String    @id @default(uuid())
+  applicantId  String
+  agencyId     String?
+  agencyName   String
+  assignedAt   DateTime  @default(now())
+  removedAt    DateTime?
+  assignedById String?
+  reason       String?
+  notes        String?
+
+  applicant Applicant @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+
+  @@map("applicant_agency_history")
 }
 
 

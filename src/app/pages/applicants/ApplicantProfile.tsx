@@ -96,8 +96,77 @@ export function ApplicantProfile() {
     applicantsApi.get(id).then((applicant) => {
       let extra: Record<string, any> = {};
       try { extra = JSON.parse(applicant.notes || '{}'); } catch { /* ignore */ }
+
+      // Map fields from applicationData JSON (submitted form) to profile display names
+      const ad: Record<string, any> = (applicant as any).applicationData ?? {};
+      const quals: any[] = ad.qualifications ?? [];
+      const tachographQual = quals.find((q: any) => /tachograph/i.test(q.type ?? ''));
+      const code95Qual = quals.find((q: any) => /code.?95|cpc/i.test(q.type ?? ''));
+      const adrQual = quals.find((q: any) => /adr/i.test(q.type ?? ''));
+      const langs: any[] = ad.languages ?? [];
+      const findLang = (name: string) => langs.find((l: any) => l.language?.toLowerCase() === name.toLowerCase())?.proficiency ?? '';
+      const otherLangs = langs.filter((l: any) => !['english','german','russian'].includes(l.language?.toLowerCase())).map((l: any) => `${l.language} (${l.proficiency})`).join(', ');
+      const cats: string[] = ad.licenseCategories ?? [];
+
+      const appDataMapped: Record<string, any> = {
+        // Travel & Residence
+        passportNumber: ad.passportNumber,
+        passportValidUntil: ad.passportExpiryDate,
+        hasEUVisa: ad.hasEuVisa === 'yes',
+        hasWorkPermit: ad.hasWorkPermit === 'yes',
+        hasResidenceCard: ad.hasEuResidence === 'yes',
+        issuingCountry: ad.passportCountry,
+        // Driving
+        drivingLicenseNumber: ad.licenseNumber,
+        licenseIssuingCountry: ad.licenseCountry,
+        licenseValidUntil: ad.licenseExpiryDate,
+        categoryA: cats.includes('A') ? 'A' : '',
+        categoryB: cats.includes('B') ? 'B' : '',
+        categoryC: cats.some((c: string) => /^C/i.test(c)) ? 'C' : '',
+        categoryE: cats.some((c: string) => /E/i.test(c)) ? 'E' : '',
+        hasTachographCard: !!tachographQual,
+        tachographNumber: tachographQual?.number ?? '',
+        hasQualificationCard: !!code95Qual,
+        qualificationValidUntil: code95Qual?.expiryDate ?? '',
+        hasADR: !!adrQual,
+        adrClasses: adrQual?.type ?? '',
+        // International Experience
+        hasEUExperience: ['eu','both'].includes(ad.drivingExpType ?? '') || Number(ad.euExpYears) > 0,
+        yearsEUExperience: ad.euExpYears,
+        totalCEExperience: ad.euExpKm ? `${ad.euExpKm} km` : ad.domesticExpYears ? `${ad.domesticExpYears} yrs domestic` : '',
+        yearsActiveDriving: ad.domesticExpYears,
+        drivenOtherCountries: !!(ad.euExpCountries),
+        specifyCountries: ad.euExpCountries,
+        // Safety
+        trafficAccidents: ad.trafficAccidents === 'yes',
+        aetrViolations: false,
+        finesAbroad: false,
+        ecoDriving: false,
+        // Languages
+        englishLevel: findLang('english'),
+        germanLevel: findLang('german'),
+        russianLevel: findLang('russian'),
+        otherLanguages: otherLangs,
+        languageAtWork: langs.find((l: any) => l.proficiency === 'Native' || l.proficiency === 'Fluent')?.language ?? '',
+        // Work Flexibility
+        doubleCrewWillingness: (ad.workRegime ?? []).includes('Double Crew'),
+        maxTourWeeks: '',
+        weekendDriving: ad.weekendDriving,
+        nightDriving: ad.nightDriving,
+        preferredCountries: ad.preferredLocations,
+        undesiredCountries: '',
+        // Personal / Address
+        permanentAddress: ad.homeAddress
+          ? [ad.homeAddress.street, ad.homeAddress.city, ad.homeAddress.country].filter(Boolean).join(', ')
+          : '',
+        countryOfResidence: ad.homeAddress?.country ?? ad.currentAddress?.country ?? '',
+        currentCountryOfResidence: ad.currentAddress?.country ?? ad.homeAddress?.country ?? '',
+        howDidYouHear: ad.howDidYouHear,
+      };
+
       setApplicantData({
         ...applicant,
+        ...appDataMapped,
         fullName: `${applicant.firstName} ${applicant.lastName}`.trim(),
         applicationDate: applicant.createdAt ? applicant.createdAt.slice(0, 10) : '',
         status: applicant.status || 'NEW',

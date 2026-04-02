@@ -127,6 +127,7 @@ export const COUNTRIES: Country[] = [
   { code: 'NG', name: 'Nigeria' },
   { code: 'NO', name: 'Norway' },
   { code: 'OM', name: 'Oman' },
+  { code: 'PS', name: 'Palestine' },
   { code: 'PK', name: 'Pakistan' },
   { code: 'PA', name: 'Panama' },
   { code: 'PY', name: 'Paraguay' },

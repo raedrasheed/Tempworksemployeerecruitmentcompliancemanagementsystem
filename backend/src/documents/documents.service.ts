@@ -145,8 +145,7 @@ export class DocumentsService {
     await fs.mkdir(newDir, { recursive: true });
     await fs.rename(file.path, join(newDir, newFilename));
 
-    const fileUrl = `/uploads/${folderName}/${safeDocType}/${newFilename}`;
-    return this.prisma.document.create({
+    const document = await this.prisma.document.create({
       data: {
         name,
         documentTypeId: docType.id,
@@ -160,6 +159,16 @@ export class DocumentsService {
       },
       include: this.docInclude,
     });
+
+    // If this is a profile photo, set photoUrl on the applicant
+    if (documentTypeName?.toLowerCase().includes('photo')) {
+      await this.prisma.applicant.updateMany({
+        where: { id: entityId },
+        data: { photoUrl: fileUrl },
+      });
+    }
+
+    return document;
   }
 
   async create(

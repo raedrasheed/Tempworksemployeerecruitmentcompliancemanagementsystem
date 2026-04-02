@@ -15,6 +15,7 @@ export interface UploadedFileItem {
   id: string;
   type: string;
   file: File | null;
+  sectionKey?: string;
 }
 
 export interface JobType {
@@ -596,6 +597,44 @@ function ExpiryFields({ expiryDate, noExpiry, onExpiry, onNoExpiry }: { expiryDa
   );
 }
 
+function InlineDocUpload({ label = 'Upload Document', sectionKey, uploadedFiles, onFilesChange }: {
+  label?: string;
+  sectionKey: string;
+  uploadedFiles: UploadedFileItem[];
+  onFilesChange: (files: UploadedFileItem[]) => void;
+}) {
+  const existing = uploadedFiles.find(f => f.sectionKey === sectionKey && f.file);
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (existing) {
+      onFilesChange(uploadedFiles.map(f => f.sectionKey === sectionKey ? { ...f, file, type: label } : f));
+    } else {
+      onFilesChange([...uploadedFiles, { id: crypto.randomUUID(), type: label, sectionKey, file }]);
+    }
+    e.target.value = '';
+  };
+  const handleRemove = () => onFilesChange(uploadedFiles.filter(f => f.sectionKey !== sectionKey));
+  return (
+    <div className="space-y-1 md:col-span-2">
+      <Label className="text-xs">{label}</Label>
+      {existing?.file ? (
+        <div className="flex items-center gap-2 p-2 border rounded-lg bg-green-50 border-green-200">
+          <FileText className="w-4 h-4 text-green-600 shrink-0" />
+          <span className="text-sm text-green-700 truncate flex-1">{existing.file.name}</span>
+          <button type="button" onClick={handleRemove} className="p-0.5 text-gray-400 hover:text-red-500"><X className="w-4 h-4" /></button>
+        </div>
+      ) : (
+        <label className="flex items-center gap-2 p-2 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors">
+          <Upload className="w-4 h-4 text-gray-400" />
+          <span className="text-sm text-gray-500">Click to upload (PDF, JPG, PNG)</span>
+          <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="sr-only" onChange={handleFile} />
+        </label>
+      )}
+    </div>
+  );
+}
+
 // ── Step Components ───────────────────────────────────────────────────────────
 
 function Step1Personal({ d, u, jobTypes, photoFile, onPhotoChange, existingPhotoUrl }: {
@@ -852,7 +891,7 @@ function Step2Contact({ d, u, settings }: { d: ApplicantFormData; u: (fn: (p: Ap
   );
 }
 
-function Step3Identification({ d, u, settings }: { d: ApplicantFormData; u: (fn: (p: ApplicantFormData) => ApplicantFormData) => void; settings: FormSettings }) {
+function Step3Identification({ d, u, settings, uploadedFiles, onFilesChange }: { d: ApplicantFormData; u: (fn: (p: ApplicantFormData) => ApplicantFormData) => void; settings: FormSettings; uploadedFiles: UploadedFileItem[]; onFilesChange: (files: UploadedFileItem[]) => void }) {
   const set = (field: keyof ApplicantFormData) => (value: any) => u(prev => ({ ...prev, [field]: value }));
   return (
     <div className="space-y-8">
@@ -898,6 +937,7 @@ function Step3Identification({ d, u, settings }: { d: ApplicantFormData; u: (fn:
               <Label className="text-xs">Expiry Date</Label>
               <ExpiryFields expiryDate={d.idCardExpiryDate} noExpiry={d.idCardNoExpiry} onExpiry={set('idCardExpiryDate')} onNoExpiry={set('idCardNoExpiry')} />
             </div>
+            <InlineDocUpload label="Upload ID Card" sectionKey="idCard" uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />
           </div>
         )}
       </div>
@@ -934,6 +974,7 @@ function Step3Identification({ d, u, settings }: { d: ApplicantFormData; u: (fn:
               <Label className="text-xs">Purpose of Issue <span className="text-muted-foreground">(optional)</span></Label>
               <Textarea rows={2} placeholder="Describe the purpose for which this visa was issued…" value={d.purposeOfIssue} onChange={e => set('purposeOfIssue')(e.target.value)} />
             </div>
+            <InlineDocUpload label="Upload EU Visa" sectionKey="euVisa" uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />
           </div>
         )}
       </div>
@@ -957,6 +998,7 @@ function Step3Identification({ d, u, settings }: { d: ApplicantFormData; u: (fn:
               <Label className="text-xs">Expiry Date</Label>
               <ExpiryFields expiryDate={d.euResidenceExpiryDate} noExpiry={d.euResidenceNoExpiry} onExpiry={set('euResidenceExpiryDate')} onNoExpiry={set('euResidenceNoExpiry')} />
             </div>
+            <InlineDocUpload label="Upload Residence Permit" sectionKey="euResidence" uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />
           </div>
         )}
       </div>
@@ -984,6 +1026,7 @@ function Step3Identification({ d, u, settings }: { d: ApplicantFormData; u: (fn:
               <Label className="text-xs">Expiry Date</Label>
               <ExpiryFields expiryDate={d.workPermitExpiryDate} noExpiry={d.workPermitNoExpiry} onExpiry={set('workPermitExpiryDate')} onNoExpiry={set('workPermitNoExpiry')} />
             </div>
+            <InlineDocUpload label="Upload Work Permit" sectionKey="workPermit" uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />
           </div>
         )}
       </div>
@@ -1003,6 +1046,7 @@ function Step3Identification({ d, u, settings }: { d: ApplicantFormData; u: (fn:
                   <Label className="text-xs">Country of Issue</Label>
                   <CountrySelect value={d.homeCriminalRecordCountry} onChange={set('homeCriminalRecordCountry')} placeholder="Select country" />
                 </div>
+                <InlineDocUpload label="Upload Home Country Criminal Record" sectionKey="homeCriminalRecord" uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />
               </div>
             )}
           </div>
@@ -1019,6 +1063,7 @@ function Step3Identification({ d, u, settings }: { d: ApplicantFormData; u: (fn:
                   <Label className="text-xs">Country of Issue</Label>
                   <CountrySelect value={d.euCriminalRecordCountry} onChange={set('euCriminalRecordCountry')} countries={EU_COUNTRIES} placeholder="Select EU country" />
                 </div>
+                <InlineDocUpload label="Upload EU Criminal Record" sectionKey="euCriminalRecord" uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />
               </div>
             )}
           </div>
@@ -1028,7 +1073,7 @@ function Step3Identification({ d, u, settings }: { d: ApplicantFormData; u: (fn:
   );
 }
 
-function Step4DrivingLicense({ d, u, settings }: { d: ApplicantFormData; u: (fn: (p: ApplicantFormData) => ApplicantFormData) => void; settings: FormSettings }) {
+function Step4DrivingLicense({ d, u, settings, uploadedFiles, onFilesChange }: { d: ApplicantFormData; u: (fn: (p: ApplicantFormData) => ApplicantFormData) => void; settings: FormSettings; uploadedFiles: UploadedFileItem[]; onFilesChange: (files: UploadedFileItem[]) => void }) {
   const set = (field: keyof ApplicantFormData) => (value: any) => u(prev => ({ ...prev, [field]: value }));
   const toggleCat = (cat: string) => {
     u(prev => ({
@@ -1084,6 +1129,7 @@ function Step4DrivingLicense({ d, u, settings }: { d: ApplicantFormData; u: (fn:
                 <Label className="text-xs">Expiry Date</Label>
                 <ExpiryFields expiryDate={d.licenseExpiryDate} noExpiry={d.licenseNoExpiry} onExpiry={set('licenseExpiryDate')} onNoExpiry={set('licenseNoExpiry')} />
               </div>
+              <InlineDocUpload label="Upload Driving License" sectionKey="drivingLicense" uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />
             </div>
           </div>
           <div className="space-y-3">
@@ -1438,7 +1484,7 @@ function Step7WorkHistory({ d, u }: { d: ApplicantFormData; u: (fn: (p: Applican
   );
 }
 
-function Step8Skills({ d, u }: { d: ApplicantFormData; u: (fn: (p: ApplicantFormData) => ApplicantFormData) => void }) {
+function Step8Skills({ d, u, uploadedFiles, onFilesChange }: { d: ApplicantFormData; u: (fn: (p: ApplicantFormData) => ApplicantFormData) => void; uploadedFiles: UploadedFileItem[]; onFilesChange: (files: UploadedFileItem[]) => void }) {
   const set = (field: keyof ApplicantFormData) => (value: any) => u(prev => ({ ...prev, [field]: value }));
   const toggleSkill = (field: 'computerSkills' | 'softSkills', value: string) => {
     u(prev => {
@@ -1521,9 +1567,12 @@ function Step8Skills({ d, u }: { d: ApplicantFormData; u: (fn: (p: ApplicantForm
           <RadioYN name="hasFirstAid" value={d.hasFirstAid} onChange={set('hasFirstAid')} />
         </div>
         {d.hasFirstAid === 'yes' && (
-          <div className="space-y-1 mt-2">
-            <Label className="text-xs">Expiry Date</Label>
-            <ExpiryFields expiryDate={d.firstAidExpiry} noExpiry={d.firstAidNoExpiry} onExpiry={set('firstAidExpiry')} onNoExpiry={set('firstAidNoExpiry')} />
+          <div className="grid md:grid-cols-2 gap-4 mt-2">
+            <div className="space-y-1">
+              <Label className="text-xs">Expiry Date</Label>
+              <ExpiryFields expiryDate={d.firstAidExpiry} noExpiry={d.firstAidNoExpiry} onExpiry={set('firstAidExpiry')} onNoExpiry={set('firstAidNoExpiry')} />
+            </div>
+            <InlineDocUpload label="Upload First Aid Certificate" sectionKey="firstAid" uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />
           </div>
         )}
       </div>
@@ -1749,12 +1798,12 @@ export function ApplicantFormSteps({
     <>
       {actualTab === 1 && <Step1Personal d={d} u={u} jobTypes={jobTypes} photoFile={photoFile} onPhotoChange={onPhotoChange} existingPhotoUrl={existingPhotoUrl} />}
       {actualTab === 2 && <Step2Contact d={d} u={u} settings={settings} />}
-      {actualTab === 3 && <Step3Identification d={d} u={u} settings={settings} />}
-      {actualTab === 4 && <Step4DrivingLicense d={d} u={u} settings={settings} />}
+      {actualTab === 3 && <Step3Identification d={d} u={u} settings={settings} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />}
+      {actualTab === 4 && <Step4DrivingLicense d={d} u={u} settings={settings} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />}
       {actualTab === 5 && <Step5DrivingExperience d={d} u={u} settings={settings} />}
       {actualTab === 6 && <Step6Education d={d} u={u} settings={settings} />}
       {actualTab === 7 && <Step7WorkHistory d={d} u={u} />}
-      {actualTab === 8 && <Step8Skills d={d} u={u} />}
+      {actualTab === 8 && <Step8Skills d={d} u={u} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />}
       {actualTab === 9 && <Step9Additional d={d} u={u} settings={settings} />}
       {actualTab === 10 && <Step10Documents uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />}
       {actualTab === 11 && <Step11Review d={d} u={u} settings={settings} photoFile={photoFile} existingPhotoUrl={existingPhotoUrl} />}

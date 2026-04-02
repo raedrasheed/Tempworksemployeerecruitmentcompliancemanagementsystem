@@ -136,6 +136,7 @@ export interface ApplicantFormData {
   workPermitCountry: string;
   hasConvictions: string;
   convictionDetails: string;
+  purposeOfIssue: string;
   hasDrivingLicense: string;
   licenseNumber: string;
   licenseIssueDate: string;
@@ -234,6 +235,7 @@ export const EMPTY_FORM: ApplicantFormData = {
   workPermitCountry: '',
   hasConvictions: '',
   convictionDetails: '',
+  purposeOfIssue: '',
   hasDrivingLicense: '',
   licenseNumber: '',
   licenseIssueDate: '',
@@ -985,6 +987,13 @@ function Step3Identification({ d, u, settings }: { d: ApplicantFormData; u: (fn:
             <Textarea rows={3} placeholder="Details..." value={d.convictionDetails} onChange={e => set('convictionDetails')(e.target.value)} />
           </div>
         )}
+      </div>
+      <div className="space-y-4">
+        <SubSection title="Purpose of Issue" />
+        <div className="space-y-1">
+          <Label className="text-xs">Purpose of Issue <span className="text-muted-foreground">(optional)</span></Label>
+          <Textarea rows={3} placeholder="Describe the purpose for which these documents were issued…" value={d.purposeOfIssue} onChange={e => set('purposeOfIssue')(e.target.value)} />
+        </div>
       </div>
     </div>
   );

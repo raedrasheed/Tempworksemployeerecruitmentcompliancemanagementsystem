@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { applicantsApi, settingsApi, agenciesApi } from '../../services/api';
 import { Button } from '../../components/ui/button';
@@ -8,127 +8,95 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { ArrowLeft, ChevronRight, ChevronLeft, Save, ShieldOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePermissions } from '../../hooks/usePermissions';
-import { ApplicantFormSteps, ApplicantFormData, JobType, StepIndicator, UploadedFileItem } from '../../components/applicants/ApplicantFormSteps';
-
-const EMPTY_FORM: ApplicantFormData = {
-  jobTypeId: '',
-  fullName: '', dateOfBirth: '', nationality: '', countryOfResidence: '',
-  currentCountryOfResidence: '', permanentAddress: '', phone: '', email: '',
-  earliestStartDate: '', howDidYouHear: '', passportNumber: '', passportValidUntil: '',
-  hasEUVisa: '', visaType: '', visaValidUntil: '', hasWorkPermit: '', hasResidenceCard: '',
-  issuingCountry: '', drivingLicenseNumber: '', licenseIssuingCountry: '', licenseIssueDate: '', licenseValidUntil: '',
-  categoryA: '', categoryB: '', categoryC: '', categoryD: '', categoryE: '',
-  hasTachographCard: '', tachographNumber: '', tachographValidUntil: '',
-  hasQualificationCard: '', qualificationValidUntil: '', hasADR: '', adrClasses: '',
-  adrValidUntil: '', hasEUExperience: '', yearsEUExperience: '', totalCEExperience: '',
-  yearsActiveDriving: '', mainlyHomeCountry: '', drivenOtherCountries: '', specifyCountries: '',
-  kilometersRange: '', transportTypes: [], operationalSkills: [], truckBrands: [], otherBrand: '',
-  gearboxType: '', trailerTypes: [], mostUsedTrailer: '', yearsWithTrailer: '', confidentTrailers: '',
-  workRegime: [], trafficAccidents: '', accidentDescription: '', aetrViolations: '', finesAbroad: '',
-  ecoDriving: '', englishLevel: '', germanLevel: '', russianLevel: '', otherLanguages: '',
-  languageAtWork: '', doubleCrewWillingness: '', maxTourWeeks: '', preferredCountries: '',
-  undesiredCountries: '', weekendDriving: false, nightDriving: false,
-};
+import { ApplicantFormSteps, EMPTY_FORM, getVisibleTabs, StepIndicator, FormSettings, DEFAULT_FORM_SETTINGS, ApplicantFormData } from '../../components/applicants/ApplicantFormSteps';
 
 export function EditApplicant() {
   const navigate = useNavigate();
   const { id } = useParams();
   const { canEdit } = usePermissions();
   const [currentStep, setCurrentStep] = useState(1);
-  const totalSteps = 7;
   const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState<ApplicantFormData>(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
-  const [jobTypes, setJobTypes] = useState<JobType[]>([]);
-  const [uploadedFiles, setUploadedFiles] = useState<UploadedFileItem[]>([]);
+  const [jobTypes, setJobTypes] = useState<any[]>([]);
+  const [settings, setSettings] = useState<FormSettings>(DEFAULT_FORM_SETTINGS);
+  const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
   const [agencies, setAgencies] = useState<any[]>([]);
   const [agencyId, setAgencyId] = useState<string>('');
 
+  const visibleTabs = useMemo(() => getVisibleTabs(formData), [formData.hasDrivingLicense]);
+
   useEffect(() => {
-    settingsApi.getJobTypes().then(setJobTypes).catch(() => {});
-    agenciesApi.list({ limit: 100 }).then((res: any) => setAgencies(res?.data ?? [])).catch(() => {});
+    Promise.all([
+      settingsApi.getJobTypes().then(setJobTypes).catch(() => {}),
+      settingsApi.getAll().then((res: any) => {
+        const formSettings = res.form ? Object.keys(res.form).reduce((acc: any, key: string) => {
+          try {
+            acc[key.replace('form.', '')] = JSON.parse(res.form[key]);
+          } catch {
+            acc[key.replace('form.', '')] = res.form[key];
+          }
+          return acc;
+        }, {}) : DEFAULT_FORM_SETTINGS;
+        setSettings(formSettings);
+      }).catch(() => {}),
+      agenciesApi.list({ limit: 100 }).then((res: any) => setAgencies(res?.data ?? [])).catch(() => {}),
+    ]);
   }, []);
 
   useEffect(() => {
     if (!id) return;
     applicantsApi.get(id).then((applicant) => {
-      let extra: Record<string, any> = {};
-      try { extra = JSON.parse(applicant.notes || '{}'); } catch { /* ignore */ }
-      setFormData({
-        ...EMPTY_FORM,
-        fullName: `${applicant.firstName} ${applicant.lastName}`.trim(),
-        dateOfBirth: applicant.dateOfBirth ? applicant.dateOfBirth.slice(0, 10) : '',
-        nationality: applicant.nationality || '',
-        phone: applicant.phone || '',
-        email: applicant.email || '',
-        earliestStartDate: applicant.preferredStartDate ? applicant.preferredStartDate.slice(0, 10) : '',
-        jobTypeId: applicant.jobTypeId || '',
-        ...extra,
-      });
+      const appData = applicant.applicationData || EMPTY_FORM;
+      setFormData(appData);
       setAgencyId(applicant.agencyId || '');
     }).catch(() => {
       toast.error('Failed to load applicant data');
     }).finally(() => setLoading(false));
   }, [id]);
 
-  const handleInputChange = (field: keyof ApplicantFormData, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleArrayToggle = (field: keyof ApplicantFormData, value: string) => {
-    setFormData(prev => {
-      const currentArray = (prev[field] as string[]) || [];
-      const newArray = currentArray.includes(value)
-        ? currentArray.filter(item => item !== value)
-        : [...currentArray, value];
-      return { ...prev, [field]: newArray };
-    });
+  const handleUpdate = (updater: (prev: ApplicantFormData) => ApplicantFormData) => {
+    setFormData(updater);
   };
 
   const handleNext = () => {
-    if (currentStep < totalSteps) {
-      setCurrentStep(currentStep + 1);
+    if (currentStep < visibleTabs.length) {
+      setCurrentStep(s => s + 1);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
   const handleBack = () => {
     if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
+      setCurrentStep(s => s - 1);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-  };
-
-  const buildUpdatePayload = () => {
-    const nameParts = formData.fullName.trim().split(/\s+/);
-    const firstName = nameParts[0] || '';
-    const lastName = nameParts.slice(1).join(' ') || '-';
-    const extraData = { ...formData };
-    delete (extraData as any).fullName;
-    delete (extraData as any).dateOfBirth;
-    delete (extraData as any).nationality;
-    delete (extraData as any).phone;
-    delete (extraData as any).email;
-    delete (extraData as any).earliestStartDate;
-    return {
-      firstName, lastName,
-      email: formData.email,
-      phone: formData.phone,
-      nationality: formData.nationality,
-      dateOfBirth: formData.dateOfBirth,
-      preferredStartDate: formData.earliestStartDate || undefined,
-      availability: formData.earliestStartDate || 'Immediate',
-      notes: JSON.stringify(extraData),
-      ...(formData.jobTypeId ? { jobTypeId: formData.jobTypeId } : {}),
-      agencyId: agencyId && agencyId !== 'none' ? agencyId : null,
-    };
   };
 
   const handleSave = async () => {
     if (!id) return;
     setSubmitting(true);
     try {
-      await applicantsApi.update(id, buildUpdatePayload());
+      const payload = {
+        firstName: formData.firstName,
+        middleName: formData.middleName,
+        lastName: formData.lastName,
+        email: formData.email,
+        phone: `${formData.phoneCode} ${formData.phone}`,
+        citizenship: formData.citizenship,
+        gender: formData.gender,
+        dateOfBirth: formData.dateOfBirth,
+        countryOfBirth: formData.countryOfBirth,
+        cityOfBirth: formData.cityOfBirth,
+        hasDrivingLicense: formData.hasDrivingLicense === 'yes',
+        preferredStartDate: formData.preferredStartDate || undefined,
+        availability: formData.availability || 'Immediate',
+        willingToRelocate: formData.willingToRelocate,
+        jobTypeId: formData.jobTypeId || undefined,
+        agencyId: agencyId && agencyId !== 'none' ? agencyId : null,
+        applicationData: formData,
+      };
+      await applicantsApi.update(id, payload);
       toast.success('Applicant updated successfully');
     } catch (err: any) {
       toast.error(err?.message || 'Failed to update applicant');
@@ -141,7 +109,26 @@ export function EditApplicant() {
     if (!id) return;
     setSubmitting(true);
     try {
-      await applicantsApi.update(id, buildUpdatePayload());
+      const payload = {
+        firstName: formData.firstName,
+        middleName: formData.middleName,
+        lastName: formData.lastName,
+        email: formData.email,
+        phone: `${formData.phoneCode} ${formData.phone}`,
+        citizenship: formData.citizenship,
+        gender: formData.gender,
+        dateOfBirth: formData.dateOfBirth,
+        countryOfBirth: formData.countryOfBirth,
+        cityOfBirth: formData.cityOfBirth,
+        hasDrivingLicense: formData.hasDrivingLicense === 'yes',
+        preferredStartDate: formData.preferredStartDate || undefined,
+        availability: formData.availability || 'Immediate',
+        willingToRelocate: formData.willingToRelocate,
+        jobTypeId: formData.jobTypeId || undefined,
+        agencyId: agencyId && agencyId !== 'none' ? agencyId : null,
+        applicationData: formData,
+      };
+      await applicantsApi.update(id, payload);
       toast.success('Applicant updated successfully');
       navigate(`/dashboard/applicants/${id}`);
     } catch (err: any) {
@@ -152,14 +139,14 @@ export function EditApplicant() {
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center h-64 text-muted-foreground">Loading applicant data...</div>;
+    return <div className="flex items-center justify-center h-64 text-muted-foreground">Loading...</div>;
   }
 
   if (!canEdit('applicants')) {
     return (
       <div className="flex flex-col items-center justify-center py-24 gap-3 text-muted-foreground">
         <ShieldOff className="w-12 h-12 opacity-30" />
-        <p className="text-lg font-semibold text-[#0F172A]">Access Denied</p>
+        <p className="text-lg font-semibold">Access Denied</p>
         <p className="text-sm">You don't have permission to perform this action.</p>
       </div>
     );
@@ -167,20 +154,18 @@ export function EditApplicant() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" asChild>
           <Link to={`/dashboard/applicants/${id}`}>
             <ArrowLeft className="w-5 h-5" />
           </Link>
         </Button>
-        <div className="flex-1">
-          <h1 className="text-3xl font-semibold text-[#0F172A]">Edit Applicant</h1>
+        <div>
+          <h1 className="text-3xl font-semibold">Edit Applicant</h1>
           <p className="text-muted-foreground mt-1">Update applicant information - ID: {id}</p>
         </div>
       </div>
 
-      {/* Agency */}
       <Card>
         <CardContent className="pt-6 pb-6">
           <div className="max-w-sm">
@@ -190,7 +175,7 @@ export function EditApplicant() {
                 <SelectValue placeholder="Select agency..." />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">No Agency (Direct)</SelectItem>
+                <SelectItem value="none">No Agency</SelectItem>
                 {agencies.map((a) => (
                   <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
                 ))}
@@ -200,52 +185,49 @@ export function EditApplicant() {
         </CardContent>
       </Card>
 
-      {/* Step Indicator */}
       <Card>
         <CardContent className="pt-6">
-          <StepIndicator currentStep={currentStep} />
+          <StepIndicator currentStep={currentStep} visibleTabs={visibleTabs} />
         </CardContent>
       </Card>
 
-      {/* Form Content */}
       <Card>
         <CardContent className="p-8">
           <ApplicantFormSteps
             currentStep={currentStep}
+            visibleTabs={visibleTabs}
             formData={formData}
-            onInputChange={handleInputChange}
-            onArrayToggle={handleArrayToggle}
+            onChange={handleUpdate}
             jobTypes={jobTypes}
             uploadedFiles={uploadedFiles}
             onFilesChange={setUploadedFiles}
+            settings={settings}
           />
 
-          {/* Navigation Buttons */}
           <div className="flex justify-between pt-8 border-t mt-8">
-            {currentStep > 1 ? (
-              <Button type="button" variant="outline" onClick={handleBack} className="gap-2">
+            {currentStep > 1 && (
+              <Button variant="outline" onClick={handleBack} className="gap-2">
                 <ChevronLeft className="w-4 h-4" />
                 Back
               </Button>
-            ) : <div />}
+            )}
             <div className="flex gap-2">
               <Button
-                type="button"
                 variant="outline"
                 onClick={handleSave}
                 disabled={submitting}
-                className="gap-2 border-[#22C55E] text-[#22C55E] hover:bg-green-50"
+                className="gap-2"
               >
                 <Save className="w-4 h-4" />
-                {submitting ? 'Saving...' : 'Update Applicant'}
+                {submitting ? 'Saving...' : 'Save'}
               </Button>
-              {currentStep < totalSteps ? (
-                <Button type="button" onClick={handleNext} className="gap-2 bg-[#2563EB] hover:bg-[#1d4ed8]">
+              {currentStep < visibleTabs.length ? (
+                <Button onClick={handleNext} className="gap-2 bg-blue-600 hover:bg-blue-700">
                   Next
                   <ChevronRight className="w-4 h-4" />
                 </Button>
               ) : (
-                <Button type="button" onClick={handleSubmit} disabled={submitting} className="gap-2 bg-[#22C55E] hover:bg-[#16a34a]">
+                <Button onClick={handleSubmit} disabled={submitting} className="gap-2 bg-green-600 hover:bg-green-700">
                   <Save className="w-4 h-4" />
                   {submitting ? 'Saving...' : 'Save & Close'}
                 </Button>

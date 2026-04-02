@@ -13,6 +13,18 @@ export class SettingsService {
     private auditLog: AuditLogService,
   ) {}
 
+  async getPublicFormSettings(): Promise<Record<string, any>> {
+    const settings = await this.prisma.systemSetting.findMany({
+      where: { category: 'form' },
+      orderBy: { key: 'asc' },
+    });
+    const result: Record<string, any> = {};
+    for (const s of settings) {
+      try { result[s.key] = JSON.parse(s.value); } catch { result[s.key] = s.value; }
+    }
+    return result;
+  }
+
   async findAll(includePrivate = false) {
     const where = includePrivate ? {} : { isPublic: true };
     const settings = await this.prisma.systemSetting.findMany({

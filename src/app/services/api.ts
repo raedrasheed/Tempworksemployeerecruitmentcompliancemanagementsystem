@@ -302,6 +302,8 @@ export const applicantsApi = {
 // ─── Public Application API ───────────────────────────────────────────────────
 // No auth required - used by the public-facing driver application form
 export const publicApplicationApi = {
+  getFormSettings: () => apiFetch<Record<string, any>>('/settings/public/form'),
+
   submit: (data: any) =>
     apiFetch<any>('/applicants/public/submit', {
       method: 'POST',

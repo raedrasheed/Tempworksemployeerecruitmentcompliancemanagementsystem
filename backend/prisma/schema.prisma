@@ -80,6 +80,13 @@ enum ApplicantTier {
   CANDIDATE
 }
 
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
 enum AlertSeverity {
   LOW
   MEDIUM
@@ -303,27 +310,43 @@ model JobType {
 model Applicant {
   id                      String          @id @default(uuid())
   tier                    ApplicantTier   @default(LEAD)
+  // ── Core identity ─────────────────────────────────────────────────────────
   firstName               String
+  middleName              String?
   lastName                String
   email                   String          @unique
   phone                   String
-  nationality             String
+  // citizenship replaces nationality (nationality kept for backward compat)
+  nationality             String?
+  citizenship             String?
+  gender                  Gender?
   dateOfBirth             DateTime?
+  countryOfBirth          String?
+  cityOfBirth             String?
+  photoUrl                String?
+  hasDrivingLicense       Boolean         @default(false)
+  // ── Status & assignment ───────────────────────────────────────────────────
   status                  ApplicantStatus @default(NEW)
   jobTypeId               String?
   agencyId                String?
-  residencyStatus         String
+  // ── Legacy flat fields (kept for backward compat) ─────────────────────────
+  residencyStatus         String?
   hasNationalInsurance    Boolean         @default(false)
   nationalInsuranceNumber String?
   hasWorkAuthorization    Boolean         @default(false)
   workAuthorizationType   String?
   workAuthorizationExpiry DateTime?
   preferredStartDate      DateTime?
-  availability            String
+  availability            String?
   willingToRelocate       Boolean         @default(false)
   preferredLocations      String?
   salaryExpectation       String?
   notes                   String?
+  // ── Rich structured application data (JSON) ───────────────────────────────
+  // Stores: addresses, passport, ID, visa, residence, work permit, criminal records,
+  // driving license details, driving experience, education[], workHistory[],
+  // skills, emergency contact, additional info, declaration
+  applicationData         Json?
   convertedToEmployeeId   String?
   createdAt               DateTime        @default(now())
   updatedAt               DateTime        @updatedAt

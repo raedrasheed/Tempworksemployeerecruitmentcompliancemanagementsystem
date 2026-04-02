@@ -1,33 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { Briefcase, ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { publicApplicationApi, settingsApi } from '../../services/api';
-import { ApplicantFormSteps, ApplicantFormData, StepIndicator, UploadedFileItem } from '../../components/applicants/ApplicantFormSteps';
-
-const EMPTY_FORM: ApplicantFormData = {
-  jobTypeId: '',
-  fullName: '', dateOfBirth: '', nationality: '', countryOfResidence: '',
-  currentCountryOfResidence: '', permanentAddress: '',
-  phone: '', email: '', earliestStartDate: '', howDidYouHear: '',
-  drivingLicenseNumber: '', licenseIssuingCountry: '', licenseIssueDate: '', licenseValidUntil: '',
-  categoryA: '', categoryB: '', categoryC: '', categoryD: '', categoryE: '',
-  hasTachographCard: '', tachographNumber: '', tachographValidUntil: '',
-  hasQualificationCard: '', qualificationValidUntil: '', hasADR: '', adrClasses: '', adrValidUntil: '',
-  hasEUExperience: '', yearsEUExperience: '', totalCEExperience: '',
-  yearsActiveDriving: '', mainlyHomeCountry: '', drivenOtherCountries: '', specifyCountries: '',
-  kilometersRange: '', transportTypes: [], operationalSkills: [],
-  truckBrands: [], otherBrand: '', gearboxType: '', trailerTypes: [],
-  mostUsedTrailer: '', yearsWithTrailer: '', confidentTrailers: '',
-  weekendDriving: false, nightDriving: false, workRegime: [],
-  trafficAccidents: '', accidentDescription: '', aetrViolations: '', finesAbroad: '', ecoDriving: '',
-  englishLevel: '', germanLevel: '', russianLevel: '', otherLanguages: '', languageAtWork: '',
-  doubleCrewWillingness: '', maxTourWeeks: '', preferredCountries: '', undesiredCountries: '',
-  passportNumber: '', passportValidUntil: '', hasEUVisa: '', visaType: '', visaValidUntil: '',
-  hasWorkPermit: '', hasResidenceCard: '', issuingCountry: '',
-};
-
-const TOTAL_STEPS = 7;
+import { ApplicantFormSteps, EMPTY_FORM, getVisibleTabs, StepIndicator, FormSettings, DEFAULT_FORM_SETTINGS, ApplicantFormData } from '../../components/applicants/ApplicantFormSteps';
 
 export function PublicEmployeeApplication() {
   const navigate = useNavigate();
@@ -35,25 +11,24 @@ export function PublicEmployeeApplication() {
   const [formData, setFormData] = useState<ApplicantFormData>(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [jobTypes, setJobTypes] = useState<{ id: string; name: string }[]>([]);
-  const [uploadedFiles, setUploadedFiles] = useState<UploadedFileItem[]>([]);
+  const [settings, setSettings] = useState<FormSettings>(DEFAULT_FORM_SETTINGS);
+  const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
+
+  const visibleTabs = useMemo(() => getVisibleTabs(formData), [formData.hasDrivingLicense]);
 
   useEffect(() => {
-    settingsApi.getJobTypes().then(setJobTypes).catch(() => {});
+    Promise.all([
+      settingsApi.getJobTypes().then(setJobTypes).catch(() => {}),
+      publicApplicationApi.getFormSettings().then(setSettings).catch(() => {}),
+    ]);
   }, []);
 
-  const handleInputChange = (field: keyof ApplicantFormData, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleArrayToggle = (field: keyof ApplicantFormData, value: string) => {
-    setFormData(prev => {
-      const arr = (prev[field] as string[]) || [];
-      return { ...prev, [field]: arr.includes(value) ? arr.filter(i => i !== value) : [...arr, value] };
-    });
+  const handleUpdate = (updater: (prev: ApplicantFormData) => ApplicantFormData) => {
+    setFormData(updater);
   };
 
   const handleNext = () => {
-    if (currentStep < TOTAL_STEPS) {
+    if (currentStep < visibleTabs.length) {
       setCurrentStep(s => s + 1);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -69,102 +44,39 @@ export function PublicEmployeeApplication() {
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
-      const nameParts = formData.fullName.trim().split(/\s+/);
-      const firstName = nameParts[0] || '';
-      const lastName = nameParts.slice(1).join(' ') || '-';
-
       const payload = {
-        firstName,
-        lastName,
+        firstName: formData.firstName,
+        middleName: formData.middleName,
+        lastName: formData.lastName,
         email: formData.email,
-        phone: formData.phone,
-        nationality: formData.nationality,
+        phone: `${formData.phoneCode} ${formData.phone}`,
+        citizenship: formData.citizenship,
+        gender: formData.gender,
         dateOfBirth: formData.dateOfBirth,
-        residencyStatus: formData.hasWorkPermit === 'yes' ? 'Work Permit' : formData.hasResidenceCard === 'yes' ? 'Residence Card' : 'Other',
-        availability: formData.earliestStartDate || 'Immediate',
-        preferredStartDate: formData.earliestStartDate || undefined,
-        willingToRelocate: true,
+        countryOfBirth: formData.countryOfBirth,
+        cityOfBirth: formData.cityOfBirth,
+        hasDrivingLicense: formData.hasDrivingLicense === 'yes',
+        preferredStartDate: formData.preferredStartDate || undefined,
+        availability: formData.availability || 'Immediate',
+        willingToRelocate: formData.willingToRelocate,
+        preferredLocations: formData.preferredLocations || undefined,
+        salaryExpectation: formData.salaryExpectation || undefined,
         jobTypeId: formData.jobTypeId || undefined,
-        notes: JSON.stringify({
-          passportNumber: formData.passportNumber,
-          passportValidUntil: formData.passportValidUntil,
-          hasEUVisa: formData.hasEUVisa,
-          visaType: formData.visaType,
-          visaValidUntil: formData.visaValidUntil,
-          hasWorkPermit: formData.hasWorkPermit,
-          hasResidenceCard: formData.hasResidenceCard,
-          issuingCountry: formData.issuingCountry,
-          drivingLicenseNumber: formData.drivingLicenseNumber,
-          licenseIssuingCountry: formData.licenseIssuingCountry,
-          licenseIssueDate: formData.licenseIssueDate,
-          licenseValidUntil: formData.licenseValidUntil,
-          categoryA: formData.categoryA,
-          categoryB: formData.categoryB,
-          categoryC: formData.categoryC,
-          categoryD: formData.categoryD,
-          categoryE: formData.categoryE,
-          hasTachographCard: formData.hasTachographCard,
-          tachographNumber: formData.tachographNumber,
-          tachographValidUntil: formData.tachographValidUntil,
-          hasQualificationCard: formData.hasQualificationCard,
-          qualificationValidUntil: formData.qualificationValidUntil,
-          hasADR: formData.hasADR,
-          adrClasses: formData.adrClasses,
-          adrValidUntil: formData.adrValidUntil,
-          hasEUExperience: formData.hasEUExperience,
-          yearsEUExperience: formData.yearsEUExperience,
-          totalCEExperience: formData.totalCEExperience,
-          yearsActiveDriving: formData.yearsActiveDriving,
-          mainlyHomeCountry: formData.mainlyHomeCountry,
-          drivenOtherCountries: formData.drivenOtherCountries,
-          specifyCountries: formData.specifyCountries,
-          kilometersRange: formData.kilometersRange,
-          transportTypes: formData.transportTypes,
-          operationalSkills: formData.operationalSkills,
-          truckBrands: formData.truckBrands,
-          otherBrand: formData.otherBrand,
-          gearboxType: formData.gearboxType,
-          trailerTypes: formData.trailerTypes,
-          mostUsedTrailer: formData.mostUsedTrailer,
-          yearsWithTrailer: formData.yearsWithTrailer,
-          confidentTrailers: formData.confidentTrailers,
-          workRegime: formData.workRegime,
-          weekendDriving: formData.weekendDriving,
-          nightDriving: formData.nightDriving,
-          trafficAccidents: formData.trafficAccidents,
-          accidentDescription: formData.accidentDescription,
-          aetrViolations: formData.aetrViolations,
-          finesAbroad: formData.finesAbroad,
-          ecoDriving: formData.ecoDriving,
-          englishLevel: formData.englishLevel,
-          germanLevel: formData.germanLevel,
-          russianLevel: formData.russianLevel,
-          otherLanguages: formData.otherLanguages,
-          languageAtWork: formData.languageAtWork,
-          doubleCrewWillingness: formData.doubleCrewWillingness,
-          maxTourWeeks: formData.maxTourWeeks,
-          preferredCountries: formData.preferredCountries,
-          undesiredCountries: formData.undesiredCountries,
-          countryOfResidence: formData.countryOfResidence,
-          currentCountryOfResidence: formData.currentCountryOfResidence,
-          permanentAddress: formData.permanentAddress,
-          howDidYouHear: formData.howDidYouHear,
-        }),
+        applicationData: formData,
       };
 
       const applicant = await publicApplicationApi.submit(payload);
 
-      // Upload any documents attached to the application
-      const fileItems = uploadedFiles.filter(f => f.file);
+      const fileItems = uploadedFiles.filter((f: any) => f.file);
       if (fileItems.length > 0 && applicant?.id) {
         const results = await Promise.allSettled(
-          fileItems.map(item =>
+          fileItems.map((item: any) =>
             publicApplicationApi.uploadDocument(applicant.id, item.file!, item.type || item.file!.name, item.type || 'Other'),
           ),
         );
         const failed = results.filter(r => r.status === 'rejected').length;
         if (failed > 0) {
-          toast.warning(`Application submitted, but ${failed} document(s) failed to upload. You can contact us to resubmit them.`);
+          toast.warning(`Application submitted, but ${failed} document(s) failed to upload.`);
         }
       }
 
@@ -178,7 +90,6 @@ export function PublicEmployeeApplication() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Top header — matches Figma */}
       <header className="bg-white border-b shadow-sm">
         <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -190,34 +101,32 @@ export function PublicEmployeeApplication() {
               <p className="text-xs text-gray-500">Driver Application Form</p>
             </div>
           </div>
-          <Link to="/" className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900 transition-colors">
+          <Link to="/" className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900">
             <ChevronLeft className="w-4 h-4" />
             Back to Home
           </Link>
         </div>
       </header>
 
-      {/* Step indicator bar */}
       <div className="bg-white border-b">
         <div className="max-w-5xl mx-auto px-6 py-5">
-          <StepIndicator currentStep={currentStep} />
+          <StepIndicator currentStep={currentStep} visibleTabs={visibleTabs} />
         </div>
       </div>
 
-      {/* Form card */}
       <main className="flex-1 max-w-5xl mx-auto w-full px-6 py-8">
         <div className="bg-white rounded-xl shadow-sm border p-8">
           <ApplicantFormSteps
             currentStep={currentStep}
+            visibleTabs={visibleTabs}
             formData={formData}
-            onInputChange={handleInputChange}
-            onArrayToggle={handleArrayToggle}
+            onChange={handleUpdate}
             jobTypes={jobTypes}
             uploadedFiles={uploadedFiles}
             onFilesChange={setUploadedFiles}
+            settings={settings}
           />
 
-          {/* Navigation */}
           <div className="flex justify-between pt-8 border-t mt-8">
             {currentStep > 1 ? (
               <button
@@ -230,7 +139,7 @@ export function PublicEmployeeApplication() {
               </button>
             ) : <div />}
 
-            {currentStep < TOTAL_STEPS ? (
+            {currentStep < visibleTabs.length ? (
               <button
                 type="button"
                 onClick={handleNext}

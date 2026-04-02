@@ -166,16 +166,40 @@ export class ApplicantsService {
     const existing = await this.prisma.applicant.findUnique({ where: { email: dto.email } });
     if (existing) throw new ConflictException('An application with this email already exists');
 
-    const { applicationNotes, ...applicantData } = dto as any;
+    const { applicationNotes, applicationData, ...coreData } = dto as any;
+
+    // Derive backward-compat fields from rich applicationData if present
+    const appData = applicationData ?? {};
+    const residencyStatus = coreData.residencyStatus
+      || (appData.workPermit?.hasWorkPermit === 'yes' ? 'Work Permit'
+        : appData.euResidence?.hasResidence === 'yes' ? 'EU Residence'
+        : appData.euVisa?.hasVisa === 'yes' ? 'EU Visa'
+        : 'Other');
+    const availability = coreData.availability
+      || appData.additionalInfo?.earliestStartDate
+      || 'Immediate';
+
+    // citizenship ↔ nationality: prefer citizenship, fallback to nationality
+    const citizenship = coreData.citizenship || coreData.nationality || appData.personal?.citizenship;
+    const nationality = coreData.nationality || citizenship;
+
     return this.prisma.applicant.create({
       data: {
-        ...applicantData,
+        ...coreData,
+        citizenship,
+        nationality,
         tier: 'LEAD',
-        dateOfBirth: applicantData.dateOfBirth ? new Date(applicantData.dateOfBirth) : undefined,
-        workAuthorizationExpiry: applicantData.workAuthorizationExpiry ? new Date(applicantData.workAuthorizationExpiry) : undefined,
-        preferredStartDate: applicantData.preferredStartDate ? new Date(applicantData.preferredStartDate) : undefined,
         status: 'NEW',
-        notes: applicantData.notes || (applicationNotes ? `[Submitted] ${applicationNotes}` : undefined),
+        residencyStatus,
+        availability,
+        hasDrivingLicense: coreData.hasDrivingLicense ?? (appData.drivingLicense?.hasDrivingLicense === 'yes'),
+        dateOfBirth: coreData.dateOfBirth ? new Date(coreData.dateOfBirth) : undefined,
+        workAuthorizationExpiry: coreData.workAuthorizationExpiry ? new Date(coreData.workAuthorizationExpiry) : undefined,
+        preferredStartDate: (coreData.preferredStartDate || appData.additionalInfo?.earliestStartDate)
+          ? new Date(coreData.preferredStartDate || appData.additionalInfo.earliestStartDate)
+          : undefined,
+        applicationData: appData,
+        notes: coreData.notes || (applicationNotes ? `[Submitted] ${applicationNotes}` : undefined),
       },
       include: this.include,
     });

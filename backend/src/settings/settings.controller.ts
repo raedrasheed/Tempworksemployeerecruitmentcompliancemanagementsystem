@@ -36,6 +36,12 @@ export class SettingsController {
     return this.settingsService.batchUpdate(dto, user.id);
   }
 
+  // Public form settings (no auth required)
+  @Public()
+  @Get('public/form')
+  @ApiOperation({ summary: 'Get public form configuration (visa types, qualifications, etc.)' })
+  getPublicFormSettings() { return this.settingsService.getPublicFormSettings(); }
+
   // Job Types
   @Public()
   @Get('job-types')

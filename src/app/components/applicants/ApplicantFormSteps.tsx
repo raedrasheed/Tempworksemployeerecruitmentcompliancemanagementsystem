@@ -953,24 +953,24 @@ function Step3Identification({ d, u, settings }: { d: ApplicantFormData; u: (fn:
         )}
       </div>
       <div className="space-y-4">
-        <SubSection title="Work Permit" />
+        <SubSection title="EU Work Permit" />
         <div className="space-y-2">
-          <Label className="text-xs">Do you have a Work Permit?</Label>
+          <Label className="text-xs">Do you have an EU Work Permit?</Label>
           <RadioYN name="hasWorkPermit" value={d.hasWorkPermit} onChange={set('hasWorkPermit')} />
         </div>
         {d.hasWorkPermit === 'yes' && (
           <div className="grid md:grid-cols-2 gap-4 mt-3">
             <div className="space-y-1">
               <Label className="text-xs">Permit Type</Label>
-              <Input placeholder="e.g. Tier 2, Blue Card" value={d.workPermitType} onChange={e => set('workPermitType')(e.target.value)} />
+              <Input placeholder="e.g. Blue Card, Seasonal Worker" value={d.workPermitType} onChange={e => set('workPermitType')(e.target.value)} />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Permit Number</Label>
               <Input placeholder="Number" value={d.workPermitNumber} onChange={e => set('workPermitNumber')(e.target.value)} />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Country</Label>
-              <CountrySelect value={d.workPermitCountry} onChange={set('workPermitCountry')} />
+              <Label className="text-xs">Issuing EU Country</Label>
+              <CountrySelect value={d.workPermitCountry} onChange={set('workPermitCountry')} countries={EU_COUNTRIES} placeholder="Select EU country" />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Expiry Date</Label>

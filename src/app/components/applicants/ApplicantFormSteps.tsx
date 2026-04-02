@@ -920,6 +920,7 @@ function Step3Identification({ d, u, settings, uploadedFiles, onFilesChange }: {
             <ExpiryFields expiryDate={d.passportExpiryDate} noExpiry={d.passportNoExpiry} onExpiry={set('passportExpiryDate')} onNoExpiry={set('passportNoExpiry')} />
           </div>
         </div>
+        <InlineDocUpload label="Upload Passport" sectionKey="passport" uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />
       </div>
       <div className="space-y-4">
         <SubSection title="National ID Card" />

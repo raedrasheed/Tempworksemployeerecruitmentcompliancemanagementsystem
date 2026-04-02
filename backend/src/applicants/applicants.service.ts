@@ -599,11 +599,18 @@ export class ApplicantsService {
    * Example: A20260400001  /  C20260400001  /  E20260400001
    *
    * Strategy: monthly-reset serial per prefix.
-   *   - A counter row keyed on (prefix, year, month) is atomically upserted.
-   *   - PostgreSQL's ON CONFLICT DO UPDATE is a single atomic statement, so
-   *     concurrent requests always receive distinct serials (no lock needed).
-   *   - The returned serial is the NEW value after incrementing, so the first
-   *     ID each month is always …00001.
+   *
+   * Self-healing design — the counter is seeded from the ACTUAL maximum
+   * existing serial in the relevant table column on every call.  This means:
+   *   - If the identifier_sequences table is ever reset/recreated, the next
+   *     generated ID will still be above any already-persisted ID (no collision).
+   *   - GREATEST() ensures we always advance above both the stored counter
+   *     and whatever serials already exist in the real data.
+   *   - The INSERT … ON CONFLICT DO UPDATE is a single atomic PostgreSQL
+   *     statement, so concurrent requests still never receive duplicate serials.
+   *
+   * Serial format: positions 1-7 are [prefix][YYYY][MM], positions 8-12 are
+   * the zero-padded 5-digit serial.  SUBSTRING(col FROM 8) extracts the serial.
    *
    * @param prefix  'A' for Lead, 'C' for Candidate, 'E' for Employee
    */
@@ -611,19 +618,87 @@ export class ApplicantsService {
     const now = new Date();
     const year = now.getFullYear();
     const month = now.getMonth() + 1;
-
-    // Atomic upsert: insert a new counter at 1, or increment an existing one.
-    // The RETURNING clause gives us the value we just claimed.
-    const result: { current: number }[] = await this.prisma.$queryRaw`
-      INSERT INTO "identifier_sequences" ("id", "prefix", "year", "month", "current")
-      VALUES (gen_random_uuid()::text, ${prefix}, ${year}, ${month}, 1)
-      ON CONFLICT ("prefix", "year", "month")
-      DO UPDATE SET "current" = "identifier_sequences"."current" + 1
-      RETURNING "current"
-    `;
-
-    const serial = Number(result[0]?.current ?? 1);
     const mm = String(month).padStart(2, '0');
+    const likePattern = `${prefix}${year}${mm}%`;
+
+    let serial: number;
+
+    if (prefix === 'A') {
+      // Lead: serial derived from applicants.leadNumber
+      const result: { current: number }[] = await this.prisma.$queryRaw`
+        INSERT INTO "identifier_sequences" ("id", "prefix", "year", "month", "current")
+        VALUES (
+          gen_random_uuid()::text, ${prefix}, ${year}, ${month},
+          COALESCE((
+            SELECT MAX(CAST(SUBSTRING("leadNumber" FROM 8) AS INTEGER))
+            FROM "applicants"
+            WHERE "leadNumber" LIKE ${likePattern}
+          ), 0) + 1
+        )
+        ON CONFLICT ("prefix", "year", "month")
+        DO UPDATE SET "current" = GREATEST(
+          "identifier_sequences"."current" + 1,
+          COALESCE((
+            SELECT MAX(CAST(SUBSTRING("leadNumber" FROM 8) AS INTEGER))
+            FROM "applicants"
+            WHERE "leadNumber" LIKE ${likePattern}
+          ), 0) + 1
+        )
+        RETURNING "current"
+      `;
+      serial = Number(result[0]?.current ?? 1);
+
+    } else if (prefix === 'C') {
+      // Candidate: serial derived from applicants.candidateNumber
+      const result: { current: number }[] = await this.prisma.$queryRaw`
+        INSERT INTO "identifier_sequences" ("id", "prefix", "year", "month", "current")
+        VALUES (
+          gen_random_uuid()::text, ${prefix}, ${year}, ${month},
+          COALESCE((
+            SELECT MAX(CAST(SUBSTRING("candidateNumber" FROM 8) AS INTEGER))
+            FROM "applicants"
+            WHERE "candidateNumber" LIKE ${likePattern}
+          ), 0) + 1
+        )
+        ON CONFLICT ("prefix", "year", "month")
+        DO UPDATE SET "current" = GREATEST(
+          "identifier_sequences"."current" + 1,
+          COALESCE((
+            SELECT MAX(CAST(SUBSTRING("candidateNumber" FROM 8) AS INTEGER))
+            FROM "applicants"
+            WHERE "candidateNumber" LIKE ${likePattern}
+          ), 0) + 1
+        )
+        RETURNING "current"
+      `;
+      serial = Number(result[0]?.current ?? 1);
+
+    } else {
+      // Employee: serial derived from employees.employeeNumber
+      const result: { current: number }[] = await this.prisma.$queryRaw`
+        INSERT INTO "identifier_sequences" ("id", "prefix", "year", "month", "current")
+        VALUES (
+          gen_random_uuid()::text, ${prefix}, ${year}, ${month},
+          COALESCE((
+            SELECT MAX(CAST(SUBSTRING("employeeNumber" FROM 8) AS INTEGER))
+            FROM "employees"
+            WHERE "employeeNumber" LIKE ${likePattern}
+          ), 0) + 1
+        )
+        ON CONFLICT ("prefix", "year", "month")
+        DO UPDATE SET "current" = GREATEST(
+          "identifier_sequences"."current" + 1,
+          COALESCE((
+            SELECT MAX(CAST(SUBSTRING("employeeNumber" FROM 8) AS INTEGER))
+            FROM "employees"
+            WHERE "employeeNumber" LIKE ${likePattern}
+          ), 0) + 1
+        )
+        RETURNING "current"
+      `;
+      serial = Number(result[0]?.current ?? 1);
+    }
+
     return `${prefix}${year}${mm}${String(serial).padStart(5, '0')}`;
   }
 }

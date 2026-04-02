@@ -13,15 +13,20 @@ interface Props {
   disabled?: boolean;
 }
 
+const NONE_VALUE = '__none__';
+
 export function CountrySelect({ value, onChange, placeholder = 'Select country', required, className, disabled }: Props) {
+  const selectValue = value === '' ? NONE_VALUE : value;
+  const handleChange = (v: string) => onChange(v === NONE_VALUE ? '' : v);
+
   return (
-    <Select value={value} onValueChange={onChange} disabled={disabled}>
+    <Select value={selectValue} onValueChange={handleChange} disabled={disabled}>
       <SelectTrigger className={className}>
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent className="max-h-64 overflow-y-auto">
         {!required && (
-          <SelectItem value="">— None —</SelectItem>
+          <SelectItem value={NONE_VALUE}>— None —</SelectItem>
         )}
         {COUNTRIES.map(c => (
           <SelectItem key={c.code} value={c.name}>{c.name}</SelectItem>

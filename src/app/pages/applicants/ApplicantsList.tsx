@@ -408,11 +408,12 @@ export function ApplicantsList() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <img
-                          src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${applicant.firstName}`}
-                          alt={applicant.firstName}
-                          className="w-9 h-9 rounded-full"
-                        />
+                        <div className="w-9 h-9 rounded-full overflow-hidden bg-blue-100 flex items-center justify-center shrink-0">
+                          {applicant.photoUrl
+                            ? <img src={`${(import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1').replace('/api/v1', '')}${applicant.photoUrl}`} alt={applicant.firstName} className="w-full h-full object-cover" />
+                            : <span className="text-blue-600 text-sm font-semibold">{applicant.firstName?.[0]}{applicant.lastName?.[0]}</span>
+                          }
+                        </div>
                         <div>
                           <div className="font-medium text-[#0F172A]">
                             {applicant.firstName} {applicant.lastName}

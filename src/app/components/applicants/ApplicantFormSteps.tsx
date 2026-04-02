@@ -922,6 +922,10 @@ function Step3Identification({ d, u, settings }: { d: ApplicantFormData; u: (fn:
               <Label className="text-xs">Expiry Date</Label>
               <ExpiryFields expiryDate={d.euVisaExpiryDate} noExpiry={d.euVisaNoExpiry} onExpiry={set('euVisaExpiryDate')} onNoExpiry={set('euVisaNoExpiry')} />
             </div>
+            <div className="space-y-1 md:col-span-2">
+              <Label className="text-xs">Purpose of Issue <span className="text-muted-foreground">(optional)</span></Label>
+              <Textarea rows={2} placeholder="Describe the purpose for which this visa was issued…" value={d.purposeOfIssue} onChange={e => set('purposeOfIssue')(e.target.value)} />
+            </div>
           </div>
         )}
       </div>
@@ -987,13 +991,6 @@ function Step3Identification({ d, u, settings }: { d: ApplicantFormData; u: (fn:
             <Textarea rows={3} placeholder="Details..." value={d.convictionDetails} onChange={e => set('convictionDetails')(e.target.value)} />
           </div>
         )}
-      </div>
-      <div className="space-y-4">
-        <SubSection title="Purpose of Issue" />
-        <div className="space-y-1">
-          <Label className="text-xs">Purpose of Issue <span className="text-muted-foreground">(optional)</span></Label>
-          <Textarea rows={3} placeholder="Describe the purpose for which these documents were issued…" value={d.purposeOfIssue} onChange={e => set('purposeOfIssue')(e.target.value)} />
-        </div>
       </div>
     </div>
   );

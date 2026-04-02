@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { User, Phone, Shield, CreditCard, Briefcase, GraduationCap, Star, Info, FileText, CheckCircle2, Check, Upload, Plus, X, Trash2 } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -185,6 +185,8 @@ export interface ApplicantFormData {
   salaryExpectation: string;
   additionalNotes: string;
   declarationAccepted: boolean;
+  agreeDataProcessing: boolean;
+  agreeBackground: boolean;
 }
 
 export const EMPTY_FORM: ApplicantFormData = {
@@ -288,6 +290,8 @@ export const EMPTY_FORM: ApplicantFormData = {
   salaryExpectation: '',
   additionalNotes: '',
   declarationAccepted: false,
+  agreeDataProcessing: false,
+  agreeBackground: false,
 };
 
 const TAB_DEFS = [
@@ -1714,9 +1718,42 @@ function Step10Documents({ uploadedFiles, onFilesChange }: { uploadedFiles: Uplo
   );
 }
 
-function Step11Review({ d, u, settings, photoFile, existingPhotoUrl }: { d: ApplicantFormData; u: (fn: (p: ApplicantFormData) => ApplicantFormData) => void; settings: FormSettings; photoFile?: File | null; existingPhotoUrl?: string }) {
+function newCaptcha() {
+  const a = Math.floor(Math.random() * 10) + 1;
+  const b = Math.floor(Math.random() * 10) + 1;
+  return { a, b, answer: String(a + b) };
+}
+
+function Step11Review({ d, u, settings, photoFile, existingPhotoUrl, onCaptchaVerified }: {
+  d: ApplicantFormData;
+  u: (fn: (p: ApplicantFormData) => ApplicantFormData) => void;
+  settings: FormSettings;
+  photoFile?: File | null;
+  existingPhotoUrl?: string;
+  onCaptchaVerified?: (v: boolean) => void;
+}) {
   const set = (field: keyof ApplicantFormData) => (value: any) => u(prev => ({ ...prev, [field]: value }));
   const previewUrl = photoFile ? URL.createObjectURL(photoFile) : existingPhotoUrl ?? null;
+
+  const [captcha, setCaptcha] = useState(newCaptcha);
+  const [captchaInput, setCaptchaInput] = useState('');
+  const [captchaOk, setCaptchaOk] = useState(false);
+
+  const handleCaptchaChange = useCallback((val: string) => {
+    setCaptchaInput(val);
+    const ok = val.trim() === captcha.answer;
+    setCaptchaOk(ok);
+    onCaptchaVerified?.(ok);
+  }, [captcha.answer, onCaptchaVerified]);
+
+  const refreshCaptcha = () => {
+    const c = newCaptcha();
+    setCaptcha(c);
+    setCaptchaInput('');
+    setCaptchaOk(false);
+    onCaptchaVerified?.(false);
+  };
+
   const rows: { label: string; value: string | undefined }[] = [
     { label: 'Name', value: [d.firstName, d.middleName, d.lastName].filter(Boolean).join(' ') },
     { label: 'Email', value: d.email },
@@ -1726,12 +1763,17 @@ function Step11Review({ d, u, settings, photoFile, existingPhotoUrl }: { d: Appl
     { label: 'Preferred Start Date', value: d.preferredStartDate },
   ];
 
+  const STATEMENTS: { field: 'declarationAccepted' | 'agreeDataProcessing' | 'agreeBackground'; text: string }[] = [
+    { field: 'declarationAccepted', text: 'I confirm that all information provided in this application is true, complete and accurate to the best of my knowledge.' },
+    { field: 'agreeDataProcessing', text: 'I consent to the collection and processing of my personal data for recruitment and employment compliance purposes in accordance with applicable data protection legislation.' },
+    { field: 'agreeBackground', text: 'I understand that providing false, misleading or incomplete information may result in my application being rejected or, if employed, in immediate dismissal.' },
+  ];
+
   return (
     <div className="space-y-8">
       <SectionTitle title="Review Your Application" subtitle="Please review all details before submitting" />
 
-      {/* Photo preview in review */}
-      {previewUrl && (
+      {previewUrl ? (
         <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg border">
           <img src={previewUrl} alt="Applicant photo" className="w-16 h-16 rounded-full object-cover border-2 border-blue-200" />
           <div>
@@ -1739,9 +1781,8 @@ function Step11Review({ d, u, settings, photoFile, existingPhotoUrl }: { d: Appl
             <p className="text-sm font-semibold text-green-700 mt-0.5">✓ Photo uploaded</p>
           </div>
         </div>
-      )}
-      {!previewUrl && (
-        <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
+      ) : (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
           <p className="text-sm text-red-700 font-medium">⚠ No photo uploaded — please go back to Tab 1 and upload a photo (required).</p>
         </div>
       )}
@@ -1754,19 +1795,64 @@ function Step11Review({ d, u, settings, photoFile, existingPhotoUrl }: { d: Appl
           </div>
         ))}
       </div>
+
       {d.education.length > 0 && (
         <div className="p-3 bg-gray-50 rounded-lg">
-          <p className="text-xs text-gray-500 font-medium uppercase mb-1">Education</p>
+          <p className="text-xs text-gray-500 font-medium mb-1">Education</p>
           {d.education.map(e => <p key={e.id} className="text-sm text-gray-800">{e.level} — {e.institution}</p>)}
         </div>
       )}
-      <div className="p-5 bg-amber-50 border border-amber-200 rounded-lg space-y-4">
-        <h4 className="text-sm font-semibold text-amber-900">Declaration</h4>
-        <p className="text-sm text-amber-800 leading-relaxed">{settings.declarationText}</p>
-        <label className="flex items-start gap-3 cursor-pointer">
-          <Checkbox checked={d.declarationAccepted} onCheckedChange={c => set('declarationAccepted')(!!c)} className="mt-0.5" />
-          <span className="text-sm font-medium text-amber-900">I confirm that the information provided is true and accurate. *</span>
-        </label>
+
+      {/* Statements & Declaration */}
+      <div className="p-5 bg-amber-50 border border-amber-200 rounded-xl space-y-5">
+        <div>
+          <h4 className="text-sm font-bold text-amber-900 mb-1">Declaration & Agreement</h4>
+          <p className="text-xs text-amber-700">You must agree to all statements below before submitting your application.</p>
+        </div>
+        {settings.declarationText && (
+          <p className="text-sm text-amber-800 leading-relaxed border-l-4 border-amber-300 pl-3">{settings.declarationText}</p>
+        )}
+        <div className="space-y-3">
+          {STATEMENTS.map(({ field, text }) => (
+            <label key={field} className={`flex items-start gap-3 cursor-pointer p-3 rounded-lg border transition-colors ${d[field] ? 'bg-green-50 border-green-300' : 'bg-white border-amber-200 hover:border-amber-400'}`}>
+              <Checkbox checked={d[field] as boolean} onCheckedChange={c => set(field)(!!c)} className="mt-0.5 shrink-0" />
+              <span className="text-sm text-gray-800 leading-relaxed">{text}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      {/* CAPTCHA */}
+      <div className="p-5 border-2 border-gray-200 rounded-xl space-y-4">
+        <div>
+          <h4 className="text-sm font-bold text-gray-800 mb-1">Human Verification</h4>
+          <p className="text-xs text-gray-500">Please solve the equation below to confirm you are human.</p>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center justify-center w-44 h-14 bg-gray-100 border-2 border-gray-300 rounded-lg select-none">
+            <span className="text-xl font-bold text-gray-700 tracking-widest font-mono">{captcha.a} + {captcha.b} = ?</span>
+          </div>
+          <div className="space-y-1 flex-1">
+            <Label className="text-xs">Your answer *</Label>
+            <div className="flex gap-2">
+              <Input
+                type="number"
+                placeholder="Enter answer"
+                value={captchaInput}
+                onChange={e => handleCaptchaChange(e.target.value)}
+                className={captchaInput ? (captchaOk ? 'border-green-400 focus-visible:ring-green-400' : 'border-red-400 focus-visible:ring-red-400') : ''}
+              />
+              <button type="button" onClick={refreshCaptcha} className="px-3 py-2 text-xs text-gray-500 border rounded-md hover:bg-gray-50 shrink-0" title="New question">↺</button>
+            </div>
+          </div>
+          <div className="w-8 shrink-0">
+            {captchaInput && (captchaOk
+              ? <CheckCircle2 className="w-6 h-6 text-green-500" />
+              : <X className="w-6 h-6 text-red-400" />
+            )}
+          </div>
+        </div>
+        {captchaOk && <p className="text-xs text-green-600 font-medium">✓ Verified — you may now submit your application.</p>}
       </div>
     </div>
   );
@@ -1786,6 +1872,7 @@ export interface ApplicantFormStepsProps {
   photoFile?: File | null;
   onPhotoChange?: (file: File | null) => void;
   existingPhotoUrl?: string;
+  onCaptchaVerified?: (v: boolean) => void;
 }
 
 export function ApplicantFormSteps({
@@ -1800,6 +1887,7 @@ export function ApplicantFormSteps({
   photoFile = null,
   onPhotoChange = () => {},
   existingPhotoUrl,
+  onCaptchaVerified,
 }: ApplicantFormStepsProps) {
   const actualTab = visibleTabs[currentStep - 1] ?? 1;
 
@@ -1815,7 +1903,7 @@ export function ApplicantFormSteps({
       {actualTab === 8 && <Step8Skills d={d} u={u} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />}
       {actualTab === 9 && <Step9Additional d={d} u={u} settings={settings} />}
       {actualTab === 10 && <Step10Documents uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />}
-      {actualTab === 11 && <Step11Review d={d} u={u} settings={settings} photoFile={photoFile} existingPhotoUrl={existingPhotoUrl} />}
+      {actualTab === 11 && <Step11Review d={d} u={u} settings={settings} photoFile={photoFile} existingPhotoUrl={existingPhotoUrl} onCaptchaVerified={onCaptchaVerified} />}
     </>
   );
 }

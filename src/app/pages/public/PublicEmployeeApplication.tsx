@@ -14,6 +14,7 @@ export function PublicEmployeeApplication() {
   const [settings, setSettings] = useState<FormSettings>(DEFAULT_FORM_SETTINGS);
   const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [captchaVerified, setCaptchaVerified] = useState(false);
 
   const visibleTabs = useMemo(() => getVisibleTabs(formData), [formData.hasDrivingLicense]);
 
@@ -53,6 +54,14 @@ export function PublicEmployeeApplication() {
   const handleSubmit = async () => {
     if (!photoFile) {
       toast.error('A photo is required. Please go back to the Personal tab and upload your photo.');
+      return;
+    }
+    if (!formData.declarationAccepted || !formData.agreeDataProcessing || !formData.agreeBackground) {
+      toast.error('You must agree to all statements in the Review tab before submitting.');
+      return;
+    }
+    if (!captchaVerified) {
+      toast.error('Please complete the human verification in the Review tab.');
       return;
     }
     setSubmitting(true);
@@ -147,6 +156,7 @@ export function PublicEmployeeApplication() {
             settings={settings}
             photoFile={photoFile}
             onPhotoChange={setPhotoFile}
+            onCaptchaVerified={setCaptchaVerified}
           />
 
           <div className="flex justify-between pt-8 border-t mt-8">

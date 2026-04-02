@@ -2,7 +2,7 @@
  *  All country selects across the site should use this component.
  */
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './select';
-import { COUNTRIES } from '../../data/countries';
+import { COUNTRIES, Country } from '../../data/countries';
 
 interface Props {
   value: string;
@@ -11,11 +11,12 @@ interface Props {
   required?: boolean;
   className?: string;
   disabled?: boolean;
+  countries?: Country[];
 }
 
 const NONE_VALUE = '__none__';
 
-export function CountrySelect({ value, onChange, placeholder = 'Select country', required, className, disabled }: Props) {
+export function CountrySelect({ value, onChange, placeholder = 'Select country', required, className, disabled, countries = COUNTRIES }: Props) {
   const selectValue = value === '' ? NONE_VALUE : value;
   const handleChange = (v: string) => onChange(v === NONE_VALUE ? '' : v);
 
@@ -28,7 +29,7 @@ export function CountrySelect({ value, onChange, placeholder = 'Select country',
         {!required && (
           <SelectItem value={NONE_VALUE}>— None —</SelectItem>
         )}
-        {COUNTRIES.map(c => (
+        {countries.map(c => (
           <SelectItem key={c.code} value={c.name}>
             <span className="flex items-center gap-2">
               <img src={`https://flagcdn.com/w20/${c.code.toLowerCase()}.png`} width={20} height={15} alt={c.code} className="inline-block rounded-sm" />

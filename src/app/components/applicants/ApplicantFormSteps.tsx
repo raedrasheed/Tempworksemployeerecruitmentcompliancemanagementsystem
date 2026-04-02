@@ -7,6 +7,7 @@ import { Checkbox } from '../ui/checkbox';
 import { Textarea } from '../ui/textarea';
 import { AddressForm, AddressData, EMPTY_ADDRESS } from '../ui/AddressForm';
 import { CountrySelect } from '../ui/CountrySelect';
+import { EU_COUNTRIES } from '../../data/countries';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -117,6 +118,7 @@ export interface ApplicantFormData {
   idCardCountry: string;
   hasEuVisa: string;
   euVisaType: string;
+  euVisaCountry: string;
   euVisaNumber: string;
   euVisaExpiryDate: string;
   euVisaNoExpiry: boolean;
@@ -214,6 +216,7 @@ export const EMPTY_FORM: ApplicantFormData = {
   idCardCountry: '',
   hasEuVisa: '',
   euVisaType: '',
+  euVisaCountry: '',
   euVisaNumber: '',
   euVisaExpiryDate: '',
   euVisaNoExpiry: false,
@@ -906,6 +909,10 @@ function Step3Identification({ d, u, settings }: { d: ApplicantFormData; u: (fn:
               </Select>
             </div>
             <div className="space-y-1">
+              <Label className="text-xs">Issuing Country</Label>
+              <CountrySelect value={d.euVisaCountry} onChange={set('euVisaCountry')} countries={EU_COUNTRIES} placeholder="Select EU country" />
+            </div>
+            <div className="space-y-1">
               <Label className="text-xs">Visa Number</Label>
               <Input placeholder="Number" value={d.euVisaNumber} onChange={e => set('euVisaNumber')(e.target.value)} />
             </div>
@@ -930,7 +937,7 @@ function Step3Identification({ d, u, settings }: { d: ApplicantFormData; u: (fn:
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Country</Label>
-              <CountrySelect value={d.euResidenceCountry} onChange={set('euResidenceCountry')} />
+              <CountrySelect value={d.euResidenceCountry} onChange={set('euResidenceCountry')} countries={EU_COUNTRIES} placeholder="Select EU country" />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Expiry Date</Label>

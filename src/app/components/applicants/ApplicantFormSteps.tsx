@@ -1337,7 +1337,7 @@ function Step5DrivingExperience({ d, u, settings }: { d: ApplicantFormData; u: (
   );
 }
 
-function Step6Education({ d, u, settings }: { d: ApplicantFormData; u: (fn: (p: ApplicantFormData) => ApplicantFormData) => void; settings: FormSettings }) {
+function Step6Education({ d, u, settings, uploadedFiles, onFilesChange }: { d: ApplicantFormData; u: (fn: (p: ApplicantFormData) => ApplicantFormData) => void; settings: FormSettings; uploadedFiles: UploadedFileItem[]; onFilesChange: (files: UploadedFileItem[]) => void }) {
   const addEntry = () => {
     u(prev => ({
       ...prev,
@@ -1402,6 +1402,7 @@ function Step6Education({ d, u, settings }: { d: ApplicantFormData; u: (fn: (p: 
               <Label className="text-xs">Degree / Certificate</Label>
               <Input placeholder="Qualification" value={entry.degree} onChange={e => updateEntry(entry.id, 'degree', e.target.value)} />
             </div>
+            <InlineDocUpload label="Upload Certificate / Diploma" sectionKey={`education-${entry.id}`} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />
           </div>
         </div>
       ))}
@@ -1801,7 +1802,7 @@ export function ApplicantFormSteps({
       {actualTab === 3 && <Step3Identification d={d} u={u} settings={settings} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />}
       {actualTab === 4 && <Step4DrivingLicense d={d} u={u} settings={settings} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />}
       {actualTab === 5 && <Step5DrivingExperience d={d} u={u} settings={settings} />}
-      {actualTab === 6 && <Step6Education d={d} u={u} settings={settings} />}
+      {actualTab === 6 && <Step6Education d={d} u={u} settings={settings} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />}
       {actualTab === 7 && <Step7WorkHistory d={d} u={u} />}
       {actualTab === 8 && <Step8Skills d={d} u={u} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />}
       {actualTab === 9 && <Step9Additional d={d} u={u} settings={settings} />}

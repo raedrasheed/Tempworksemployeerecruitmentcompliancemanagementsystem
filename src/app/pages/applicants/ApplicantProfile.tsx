@@ -182,6 +182,15 @@ export function ApplicantProfile() {
         agency: applicant.agency ?? null,
         currentWorkflowStageId: applicant.currentWorkflowStageId ?? null,
         currentWorkflowStage: applicant.currentWorkflowStage ?? null,
+        // Lifecycle identifiers & conversion timestamps
+        leadNumber: (applicant as any).leadNumber ?? null,
+        candidateNumber: (applicant as any).candidateNumber ?? null,
+        candidateConvertedAt: (applicant as any).candidateConvertedAt
+          ? new Date((applicant as any).candidateConvertedAt).toLocaleDateString()
+          : null,
+        employeeConvertedAt: (applicant as any).employeeConvertedAt
+          ? new Date((applicant as any).employeeConvertedAt).toLocaleDateString()
+          : null,
       });
     }).catch(() => {
       toast.error('Failed to load applicant');
@@ -409,7 +418,26 @@ export function ApplicantProfile() {
               <div className="flex items-start justify-between">
                 <div>
                   <h2 className="text-2xl font-semibold text-[#0F172A]">{applicantData.fullName}</h2>
-                  <p className="text-muted-foreground mt-1">Applicant ID: {applicantData.id}</p>
+                  {/* Lifecycle identifier — shows current active stage ID */}
+                  <div className="flex items-center gap-2 mt-1">
+                    {applicantData.tier === 'CANDIDATE' && applicantData.candidateNumber ? (
+                      <span className="font-mono text-sm font-semibold text-purple-700 bg-purple-50 border border-purple-200 rounded px-2 py-0.5">
+                        {applicantData.candidateNumber}
+                      </span>
+                    ) : applicantData.leadNumber ? (
+                      <span className="font-mono text-sm font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded px-2 py-0.5">
+                        {applicantData.leadNumber}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-muted-foreground italic">No identifier (legacy record)</span>
+                    )}
+                    {/* Also show lead number for candidates so traceability is visible */}
+                    {applicantData.tier === 'CANDIDATE' && applicantData.leadNumber && (
+                      <span className="text-xs text-muted-foreground">
+                        (was <span className="font-mono">{applicantData.leadNumber}</span>)
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <Badge className={statusBadgeClass(applicantData.status)}>
                   {applicantData.status?.replace(/_/g, ' ').toLowerCase()}
@@ -535,6 +563,31 @@ export function ApplicantProfile() {
                       </div>
                     </div>
                   ))}
+                </CardContent>
+              </Card>
+
+              {/* Lifecycle Identifiers */}
+              <Card>
+                <CardHeader><CardTitle>Lifecycle Identifiers</CardTitle></CardHeader>
+                <CardContent className="space-y-3 text-sm">
+                  <div className="space-y-2">
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Lead ID</p>
+                      {applicantData.leadNumber
+                        ? <span className="font-mono font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded px-2 py-0.5">{applicantData.leadNumber}</span>
+                        : <span className="text-muted-foreground italic text-xs">Not assigned (legacy)</span>}
+                      <p className="text-xs text-muted-foreground mt-1">Created: {applicantData.applicationDate || '—'}</p>
+                    </div>
+                    <div className="border-t pt-2">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Candidate ID</p>
+                      {applicantData.candidateNumber
+                        ? <span className="font-mono font-semibold text-purple-700 bg-purple-50 border border-purple-200 rounded px-2 py-0.5">{applicantData.candidateNumber}</span>
+                        : <span className="text-muted-foreground italic text-xs">{applicantData.tier === 'LEAD' ? 'Not yet converted' : 'Not assigned (legacy)'}</span>}
+                      {applicantData.candidateConvertedAt && (
+                        <p className="text-xs text-muted-foreground mt-1">Converted: {applicantData.candidateConvertedAt}</p>
+                      )}
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
 

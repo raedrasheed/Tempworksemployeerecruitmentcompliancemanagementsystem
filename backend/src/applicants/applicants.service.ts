@@ -55,6 +55,9 @@ export class ApplicantsService {
         { firstName: { contains: search, mode: 'insensitive' } },
         { lastName: { contains: search, mode: 'insensitive' } },
         { email: { contains: search, mode: 'insensitive' } },
+        // Allow searching by lifecycle identifiers (e.g. "A20260400001", "C20260400001")
+        { leadNumber: { contains: search, mode: 'insensitive' } },
+        { candidateNumber: { contains: search, mode: 'insensitive' } },
       ];
     }
     if (status) where.status = status;
@@ -103,9 +106,13 @@ export class ApplicantsService {
     const existing = await this.prisma.applicant.findUnique({ where: { email: dto.email } });
     if (existing) throw new ConflictException('Applicant with this email already exists');
 
+    // Always generate a Lead identifier for new records created via the admin UI.
+    const leadNumber = await this.generateIdentifier('A');
+
     const applicant = await this.prisma.applicant.create({
       data: {
         ...dto,
+        leadNumber,
         tier: (dto.tier as any) || 'LEAD',
         dateOfBirth: dto.dateOfBirth ? new Date(dto.dateOfBirth) : undefined,
         workAuthorizationExpiry: dto.workAuthorizationExpiry ? new Date(dto.workAuthorizationExpiry) : undefined,
@@ -115,7 +122,7 @@ export class ApplicantsService {
       include: this.include,
     });
 
-    await this.auditLog(actorId, 'CREATE', applicant.id);
+    await this.auditLog(actorId, 'CREATE', applicant.id, { leadNumber });
 
     return applicant;
   }
@@ -183,9 +190,13 @@ export class ApplicantsService {
     const citizenship = coreData.citizenship || coreData.nationality || appData.personal?.citizenship;
     const nationality = coreData.nationality || citizenship;
 
+    // Generate Lead identifier for public submissions
+    const leadNumber = await this.generateIdentifier('A');
+
     return this.prisma.applicant.create({
       data: {
         ...coreData,
+        leadNumber,
         citizenship,
         nationality,
         tier: 'LEAD',
@@ -230,6 +241,11 @@ export class ApplicantsService {
       throw new ConflictException('Applicant is already a Candidate');
     }
 
+    // Guard: candidateNumber should never already be set (double-conversion protection)
+    if ((applicant as any).candidateNumber) {
+      throw new ConflictException('A Candidate identifier has already been assigned to this applicant');
+    }
+
     // Resolve target agency: use provided agencyId, or system default, or keep existing
     let targetAgencyId: string | undefined = dto.agencyId ?? undefined;
 
@@ -243,11 +259,18 @@ export class ApplicantsService {
 
     const prevAgencyId = applicant.agencyId;
     const prevAgencyName = (applicant.agency as any)?.name ?? 'None';
+    const prevLeadNumber = (applicant as any).leadNumber ?? null;
+
+    // Generate Candidate identifier and record the exact conversion timestamp
+    const candidateNumber = await this.generateIdentifier('C');
+    const candidateConvertedAt = new Date();
 
     const updated = await this.prisma.applicant.update({
       where: { id },
       data: {
         tier: 'CANDIDATE',
+        candidateNumber,
+        candidateConvertedAt,
         ...(targetAgencyId ? { agencyId: targetAgencyId } : {}),
       },
       include: this.includeWithRelations,
@@ -279,6 +302,8 @@ export class ApplicantsService {
 
     await this.auditLog(actorId, 'CONVERT_LEAD_TO_CANDIDATE', id, {
       oldTier: 'LEAD', newTier: 'CANDIDATE',
+      oldIdentifier: prevLeadNumber, newIdentifier: candidateNumber,
+      candidateConvertedAt: candidateConvertedAt.toISOString(),
       oldAgencyId: prevAgencyId, newAgencyId: targetAgencyId,
     });
 
@@ -418,7 +443,8 @@ export class ApplicantsService {
     const items: any[] = result.data;
 
     const headers = [
-      'ID', 'Tier', 'First Name', 'Last Name', 'Email', 'Phone', 'Nationality',
+      'ID', 'Lead Number', 'Candidate Number', 'Tier',
+      'First Name', 'Last Name', 'Email', 'Phone', 'Nationality',
       'Status', 'Job Type', 'Agency', 'Residency Status', 'Has NI', 'NI Number',
       'Has Work Auth', 'Work Auth Type', 'Availability', 'Salary Expectation',
       'Preferred Start Date', 'Created At',
@@ -433,7 +459,8 @@ export class ApplicantsService {
     };
 
     const rows = items.map(a => [
-      a.id, a.tier, a.firstName, a.lastName, a.email, a.phone, a.nationality,
+      a.id, a.leadNumber ?? '', a.candidateNumber ?? '', a.tier,
+      a.firstName, a.lastName, a.email, a.phone, a.nationality,
       a.status, a.jobType?.name ?? '', a.agency?.name ?? '',
       a.residencyStatus, a.hasNationalInsurance, a.nationalInsuranceNumber ?? '',
       a.hasWorkAuthorization, a.workAuthorizationType ?? '',
@@ -466,12 +493,25 @@ export class ApplicantsService {
       orderBy: { order: 'asc' },
     });
 
-    // Generate employee number: E + YYYY + MM + 5-digit serial
-    const employeeNumber = await this.generateEmployeeNumber();
+    // Use the centralized identifier generator for the Employee prefix.
+    const employeeNumber = await this.generateIdentifier('E');
+    const employeeConvertedAt = new Date();
+
+    // Carry forward prior-stage identifiers for full traceability on the
+    // employee record (the applicant will be soft-deleted after this).
+    const prevLeadNumber      = (applicant as any).leadNumber      ?? null;
+    const prevCandidateNumber = (applicant as any).candidateNumber ?? null;
+    const prevCandidateConvertedAt = (applicant as any).candidateConvertedAt ?? null;
 
     const employee = await this.prisma.employee.create({
       data: {
         employeeNumber,
+        // ── Lifecycle traceability ──────────────────────────────────────
+        leadNumber: prevLeadNumber,
+        candidateNumber: prevCandidateNumber,
+        candidateConvertedAt: prevCandidateConvertedAt,
+        employeeConvertedAt,
+        // ── Core identity ───────────────────────────────────────────────
         firstName: applicant.firstName,
         lastName: applicant.lastName,
         email: applicant.email,
@@ -504,14 +544,23 @@ export class ApplicantsService {
       data: { entityType: 'EMPLOYEE', entityId: employee.id },
     });
 
-    // Mark applicant as converted (soft delete + store employeeId)
+    // Mark applicant as converted (soft delete + store employeeId + timestamp)
     await this.prisma.applicant.update({
       where: { id },
-      data: { deletedAt: new Date(), convertedToEmployeeId: employee.id },
+      data: {
+        deletedAt: new Date(),
+        convertedToEmployeeId: employee.id,
+        employeeConvertedAt,
+      },
     });
 
     await this.auditLog(actorId, 'CONVERT_TO_EMPLOYEE', id, {
-      employeeId: employee.id, employeeNumber, email: applicant.email,
+      employeeId: employee.id,
+      leadNumber: prevLeadNumber,
+      candidateNumber: prevCandidateNumber,
+      employeeNumber,
+      employeeConvertedAt: employeeConvertedAt.toISOString(),
+      email: applicant.email,
     });
 
     return { employee, employeeNumber, message: 'Applicant successfully converted to employee' };
@@ -543,22 +592,38 @@ export class ApplicantsService {
     }
   }
 
-  private async generateEmployeeNumber(): Promise<string> {
-    // Use a raw query to safely get the next serial number
+  /**
+   * Centralized lifecycle identifier generator.
+   *
+   * Format:  [prefix][YYYY][MM][SSSSS]
+   * Example: A20260400001  /  C20260400001  /  E20260400001
+   *
+   * Strategy: monthly-reset serial per prefix.
+   *   - A counter row keyed on (prefix, year, month) is atomically upserted.
+   *   - PostgreSQL's ON CONFLICT DO UPDATE is a single atomic statement, so
+   *     concurrent requests always receive distinct serials (no lock needed).
+   *   - The returned serial is the NEW value after incrementing, so the first
+   *     ID each month is always …00001.
+   *
+   * @param prefix  'A' for Lead, 'C' for Candidate, 'E' for Employee
+   */
+  private async generateIdentifier(prefix: 'A' | 'C' | 'E'): Promise<string> {
     const now = new Date();
-    const yyyy = now.getFullYear().toString();
-    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1;
 
-    const result: any[] = await this.prisma.$queryRaw`
-      SELECT COALESCE(MAX(
-        CAST(SUBSTRING("employeeNumber" FROM 8) AS INTEGER)
-      ), 0) + 1 AS next_serial
-      FROM employees
-      WHERE "employeeNumber" IS NOT NULL
-        AND "employeeNumber" LIKE ${'E' + yyyy + mm + '%'}
+    // Atomic upsert: insert a new counter at 1, or increment an existing one.
+    // The RETURNING clause gives us the value we just claimed.
+    const result: { current: number }[] = await this.prisma.$queryRaw`
+      INSERT INTO "identifier_sequences" ("id", "prefix", "year", "month", "current")
+      VALUES (gen_random_uuid()::text, ${prefix}, ${year}, ${month}, 1)
+      ON CONFLICT ("prefix", "year", "month")
+      DO UPDATE SET "current" = "identifier_sequences"."current" + 1
+      RETURNING "current"
     `;
 
-    const serial = result[0]?.next_serial ?? 1;
-    return `E${yyyy}${mm}${String(serial).padStart(5, '0')}`;
+    const serial = Number(result[0]?.current ?? 1);
+    const mm = String(month).padStart(2, '0');
+    return `${prefix}${year}${mm}${String(serial).padStart(5, '0')}`;
   }
 }

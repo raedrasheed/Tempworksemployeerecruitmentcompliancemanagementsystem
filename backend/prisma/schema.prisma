@@ -221,8 +221,16 @@ model Agency {
 }
 
 model Employee {
-  id               String         @id @default(uuid())
-  employeeNumber   String?        @unique
+  id                    String         @id @default(uuid())
+  employeeNumber        String?        @unique
+  // ── Lifecycle traceability ────────────────────────────────────────────────
+  // Copied from applicant at conversion time so prior-stage IDs survive
+  // even after the applicant record is soft-deleted.
+  leadNumber            String?
+  candidateNumber       String?
+  candidateConvertedAt  DateTime?
+  employeeConvertedAt   DateTime?
+  // ── Core identity ─────────────────────────────────────────────────────────
   firstName        String
   lastName         String
   email            String         @unique
@@ -342,6 +350,15 @@ model Applicant {
   preferredLocations      String?
   salaryExpectation       String?
   notes                   String?
+  // ── Lifecycle identifiers ─────────────────────────────────────────────────
+  // leadNumber:       assigned at creation          (A + YYYY + MM + 5-digit serial)
+  // candidateNumber:  assigned at Lead→Candidate    (C + YYYY + MM + 5-digit serial)
+  // employeeConvertedAt: timestamp of Candidate→Employee conversion
+  // Serial resets monthly per prefix; generated via identifier_sequences table
+  leadNumber              String?
+  candidateNumber         String?
+  candidateConvertedAt    DateTime?
+  employeeConvertedAt     DateTime?
   // ── Rich structured application data (JSON) ───────────────────────────────
   // Stores: addresses, passport, ID, visa, residence, work permit, criminal records,
   // driving license details, driving experience, education[], workHistory[],
@@ -637,4 +654,28 @@ model ReportSorting {
   report Report @relation(fields: [reportId], references: [id], onDelete: Cascade)
 
   @@map("report_sorting")
+}
+
+// ── Lifecycle Identifier Sequences ───────────────────────────────────────────
+// One row per (prefix, year, month).  The "current" counter is atomically
+// incremented via INSERT … ON CONFLICT DO UPDATE so concurrent requests
+// never produce duplicate identifiers.
+//
+// Prefix meanings:
+//   A  →  Lead / Application  (assigned at applicant creation)
+//   C  →  Candidate           (assigned at Lead→Candidate conversion)
+//   E  →  Employee            (assigned at Candidate→Employee conversion)
+//
+// Serial format:  [prefix][YYYY][MM][SSSSS]
+// Example IDs:    A20260400001  C20260400001  E20260400001
+// Serials reset to 1 at the start of each new month per prefix.
+model IdentifierSequence {
+  id      String @id @default(uuid())
+  prefix  String  // 'A' | 'C' | 'E'
+  year    Int
+  month   Int
+  current Int     @default(0)
+
+  @@unique([prefix, year, month])
+  @@map("identifier_sequences")
 }

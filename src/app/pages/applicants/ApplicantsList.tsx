@@ -418,7 +418,13 @@ export function ApplicantsList() {
                           <div className="font-medium text-[#0F172A]">
                             {applicant.firstName} {applicant.lastName}
                           </div>
-                          <div className="text-xs text-muted-foreground font-mono">{applicant.id.slice(0, 8)}…</div>
+                          <div className="text-xs font-mono text-muted-foreground">
+                            {applicant.tier === 'CANDIDATE' && applicant.candidateNumber
+                              ? <span className="text-purple-600">{applicant.candidateNumber}</span>
+                              : applicant.leadNumber
+                                ? <span className="text-blue-600">{applicant.leadNumber}</span>
+                                : <span className="italic opacity-60">Legacy</span>}
+                          </div>
                         </div>
                       </div>
                     </TableCell>

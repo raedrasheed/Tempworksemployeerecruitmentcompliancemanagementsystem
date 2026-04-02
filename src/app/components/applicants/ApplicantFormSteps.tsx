@@ -1675,12 +1675,20 @@ function Step10Documents({ uploadedFiles, onFilesChange }: { uploadedFiles: Uplo
           <div className="flex items-start gap-3">
             <div className="flex-1 space-y-1">
               <Label className="text-xs">Document Type *</Label>
-              <Select value={item.type} onValueChange={type => updateItem(item.id, { type })}>
-                <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
-                <SelectContent>
-                  {DOC_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              {item.sectionKey ? (
+                <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-md">
+                  <FileText className="w-4 h-4 text-blue-500 shrink-0" />
+                  <span className="text-sm text-blue-800 font-medium">{item.type.replace(/^Upload\s+/i, '')}</span>
+                  <span className="ml-auto text-xs text-blue-500 italic">auto-detected</span>
+                </div>
+              ) : (
+                <Select value={item.type} onValueChange={type => updateItem(item.id, { type })}>
+                  <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
+                  <SelectContent>
+                    {DOC_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
             <button type="button" onClick={() => removeItem(item.id)} className="mt-5 p-1.5 text-gray-400 hover:text-red-500">
               <X className="w-4 h-4" />

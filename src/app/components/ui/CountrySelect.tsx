@@ -2,7 +2,7 @@
  *  All country selects across the site should use this component.
  */
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './select';
-import { COUNTRIES, getFlagEmoji } from '../../data/countries';
+import { COUNTRIES } from '../../data/countries';
 
 interface Props {
   value: string;
@@ -31,7 +31,7 @@ export function CountrySelect({ value, onChange, placeholder = 'Select country',
         {COUNTRIES.map(c => (
           <SelectItem key={c.code} value={c.name}>
             <span className="flex items-center gap-2">
-              <span>{getFlagEmoji(c.code)}</span>
+              <img src={`https://flagcdn.com/w20/${c.code.toLowerCase()}.png`} width={20} height={15} alt={c.code} className="inline-block rounded-sm" />
               <span>{c.name}</span>
             </span>
           </SelectItem>

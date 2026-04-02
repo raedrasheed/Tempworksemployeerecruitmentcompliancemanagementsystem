@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { ArrowLeft, ChevronRight, ChevronLeft, Save, ShieldOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePermissions } from '../../hooks/usePermissions';
+
+const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1').replace('/api/v1', '');
 import { ApplicantFormSteps, EMPTY_FORM, getVisibleTabs, StepIndicator, FormSettings, DEFAULT_FORM_SETTINGS, ApplicantFormData } from '../../components/applicants/ApplicantFormSteps';
 
 export function EditApplicant() {
@@ -52,7 +54,7 @@ export function EditApplicant() {
       const appData = applicant.applicationData || EMPTY_FORM;
       setFormData(appData);
       setAgencyId(applicant.agencyId || '');
-      if (applicant.photoUrl) setExistingPhotoUrl(applicant.photoUrl);
+      if (applicant.photoUrl) setExistingPhotoUrl(applicant.photoUrl.startsWith('http') ? applicant.photoUrl : `${API_BASE}${applicant.photoUrl}`);
     }).catch(() => {
       toast.error('Failed to load applicant data');
     }).finally(() => setLoading(false));

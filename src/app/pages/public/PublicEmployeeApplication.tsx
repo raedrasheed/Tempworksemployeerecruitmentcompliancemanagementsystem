@@ -19,7 +19,15 @@ export function PublicEmployeeApplication() {
   useEffect(() => {
     Promise.all([
       settingsApi.getJobTypes().then(setJobTypes).catch(() => {}),
-      publicApplicationApi.getFormSettings().then(setSettings).catch(() => {}),
+      publicApplicationApi.getFormSettings().then((raw: any) => {
+        if (!raw || typeof raw !== 'object') return;
+        // Strip "form." prefix from keys (handles both old and new backend)
+        const parsed: Record<string, any> = {};
+        for (const [k, v] of Object.entries(raw)) {
+          parsed[k.replace(/^form\./, '')] = v;
+        }
+        setSettings(prev => ({ ...prev, ...parsed }));
+      }).catch(() => {}),
     ]);
   }, []);
 

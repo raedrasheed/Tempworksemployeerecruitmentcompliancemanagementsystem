@@ -529,7 +529,7 @@ function Step2Contact({ d, u, settings }: { d: ApplicantFormData; u: (fn: (p: Ap
             <Select value={d.emergencyRelation} onValueChange={set('emergencyRelation')}>
               <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
               <SelectContent>
-                {settings.familyRelations.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                {(settings.familyRelations ?? []).map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
@@ -609,7 +609,7 @@ function Step3Identification({ d, u, settings }: { d: ApplicantFormData; u: (fn:
               <Select value={d.euVisaType} onValueChange={set('euVisaType')}>
                 <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
                 <SelectContent>
-                  {settings.visaTypes.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                  {(settings.visaTypes ?? []).map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -776,7 +776,7 @@ function Step4DrivingLicense({ d, u, settings }: { d: ApplicantFormData; u: (fn:
                     <Select value={q.type} onValueChange={v => updateQual(q.id, 'type', v)}>
                       <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
                       <SelectContent>
-                        {settings.drivingQualifications.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                        {(settings.drivingQualifications ?? []).map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
@@ -899,7 +899,7 @@ function Step5DrivingExperience({ d, u, settings }: { d: ApplicantFormData; u: (
       <div className="space-y-3">
         <SubSection title="GPS Systems" />
         <div className="flex flex-wrap gap-2">
-          {settings.gpsSystemTypes.map(g => (
+          {(settings.gpsSystemTypes ?? []).map(g => (
             <label key={g} className={`px-3 py-1.5 border-2 rounded-lg cursor-pointer text-sm transition-all ${d.selectedGpsSystems.includes(g) ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}>
               <Checkbox checked={d.selectedGpsSystems.includes(g)} onCheckedChange={() => toggle('selectedGpsSystems', g)} className="sr-only" />
               {g}
@@ -985,7 +985,7 @@ function Step6Education({ d, u, settings }: { d: ApplicantFormData; u: (fn: (p: 
               <Select value={entry.level} onValueChange={v => updateEntry(entry.id, 'level', v)}>
                 <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
                 <SelectContent>
-                  {settings.educationLevels.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
+                  {(settings.educationLevels ?? []).map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -1236,7 +1236,7 @@ function Step9Additional({ d, u, settings }: { d: ApplicantFormData; u: (fn: (p:
           <Select value={d.howDidYouHear} onValueChange={set('howDidYouHear')}>
             <SelectTrigger><SelectValue placeholder="Select option" /></SelectTrigger>
             <SelectContent>
-              {settings.howDidYouHear.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+              {(settings.howDidYouHear ?? []).map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>

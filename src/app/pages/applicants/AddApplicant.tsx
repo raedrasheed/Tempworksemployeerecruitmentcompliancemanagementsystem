@@ -28,15 +28,15 @@ export function AddApplicant() {
     Promise.all([
       settingsApi.getJobTypes().then(setJobTypes).catch(() => {}),
       settingsApi.getAll().then((res: any) => {
-        const formSettings = res.form ? Object.keys(res.form).reduce((acc: any, key: string) => {
-          try {
-            acc[key.replace('form.', '')] = JSON.parse(res.form[key]);
-          } catch {
-            acc[key.replace('form.', '')] = res.form[key];
-          }
-          return acc;
-        }, {}) : DEFAULT_FORM_SETTINGS;
-        setSettings(formSettings);
+        const arr: any[] = Array.isArray(res.form) ? res.form : [];
+        if (arr.length > 0) {
+          const formSettings = arr.reduce((acc: any, item: any) => {
+            const key = String(item.key).replace(/^form\./, '');
+            try { acc[key] = JSON.parse(item.value); } catch { acc[key] = item.value; }
+            return acc;
+          }, {});
+          setSettings((prev: any) => ({ ...prev, ...formSettings }));
+        }
       }).catch(() => {}),
       agenciesApi.list({ limit: 100 }).then((res: any) => setAgencies(res?.data ?? [])).catch(() => {}),
     ]);

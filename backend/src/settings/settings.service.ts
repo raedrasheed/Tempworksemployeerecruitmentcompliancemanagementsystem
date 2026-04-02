@@ -20,7 +20,9 @@ export class SettingsService {
     });
     const result: Record<string, any> = {};
     for (const s of settings) {
-      try { result[s.key] = JSON.parse(s.value); } catch { result[s.key] = s.value; }
+      // Strip category prefix (e.g. "form.visaTypes" → "visaTypes")
+      const key = s.key.replace(/^form\./, '');
+      try { result[key] = JSON.parse(s.value); } catch { result[key] = s.value; }
     }
     return result;
   }

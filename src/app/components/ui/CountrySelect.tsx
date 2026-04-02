@@ -2,7 +2,7 @@
  *  All country selects across the site should use this component.
  */
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './select';
-import { COUNTRIES } from '../../data/countries';
+import { COUNTRIES, getFlagEmoji } from '../../data/countries';
 
 interface Props {
   value: string;
@@ -29,7 +29,12 @@ export function CountrySelect({ value, onChange, placeholder = 'Select country',
           <SelectItem value={NONE_VALUE}>— None —</SelectItem>
         )}
         {COUNTRIES.map(c => (
-          <SelectItem key={c.code} value={c.name}>{c.name}</SelectItem>
+          <SelectItem key={c.code} value={c.name}>
+            <span className="flex items-center gap-2">
+              <span>{getFlagEmoji(c.code)}</span>
+              <span>{c.name}</span>
+            </span>
+          </SelectItem>
         ))}
       </SelectContent>
     </Select>

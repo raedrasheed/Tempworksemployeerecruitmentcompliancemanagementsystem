@@ -7,6 +7,16 @@ export interface Country {
   name: string;
 }
 
+/** Converts an ISO 3166-1 alpha-2 code to its flag emoji (e.g. 'GB' → '🇬🇧'). */
+export function getFlagEmoji(isoCode: string): string {
+  if (!isoCode || isoCode.length !== 2) return '🌐';
+  return isoCode
+    .toUpperCase()
+    .split('')
+    .map(c => String.fromCodePoint(0x1F1E6 - 65 + c.charCodeAt(0)))
+    .join('');
+}
+
 export const COUNTRIES: Country[] = [
   { code: 'AF', name: 'Afghanistan' },
   { code: 'AL', name: 'Albania' },

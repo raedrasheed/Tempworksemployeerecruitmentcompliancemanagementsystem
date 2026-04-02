@@ -134,8 +134,12 @@ export interface ApplicantFormData {
   workPermitExpiryDate: string;
   workPermitNoExpiry: boolean;
   workPermitCountry: string;
-  hasConvictions: string;
-  convictionDetails: string;
+  hasHomeCriminalRecord: string;
+  homeCriminalRecordDate: string;
+  homeCriminalRecordCountry: string;
+  hasEuCriminalRecord: string;
+  euCriminalRecordDate: string;
+  euCriminalRecordCountry: string;
   purposeOfIssue: string;
   hasDrivingLicense: string;
   licenseNumber: string;
@@ -233,8 +237,12 @@ export const EMPTY_FORM: ApplicantFormData = {
   workPermitExpiryDate: '',
   workPermitNoExpiry: false,
   workPermitCountry: '',
-  hasConvictions: '',
-  convictionDetails: '',
+  hasHomeCriminalRecord: '',
+  homeCriminalRecordDate: '',
+  homeCriminalRecordCountry: '',
+  hasEuCriminalRecord: '',
+  euCriminalRecordDate: '',
+  euCriminalRecordCountry: '',
   purposeOfIssue: '',
   hasDrivingLicense: '',
   licenseNumber: '',
@@ -980,17 +988,41 @@ function Step3Identification({ d, u, settings }: { d: ApplicantFormData; u: (fn:
         )}
       </div>
       <div className="space-y-4">
-        <SubSection title="Criminal Records" />
-        <div className="space-y-2">
-          <Label className="text-xs">Do you have any criminal convictions?</Label>
-          <RadioYN name="hasConvictions" value={d.hasConvictions} onChange={set('hasConvictions')} />
-        </div>
-        {d.hasConvictions === 'yes' && (
-          <div className="space-y-1 mt-3">
-            <Label className="text-xs">Please describe</Label>
-            <Textarea rows={3} placeholder="Details..." value={d.convictionDetails} onChange={e => set('convictionDetails')(e.target.value)} />
+        <SubSection title="Criminal Record Declaration" />
+        <div className="space-y-6">
+          <div className="space-y-3">
+            <Label className="text-xs font-medium">Home Country Criminal Record</Label>
+            <RadioYN name="hasHomeCriminalRecord" value={d.hasHomeCriminalRecord} onChange={set('hasHomeCriminalRecord')} />
+            {d.hasHomeCriminalRecord === 'yes' && (
+              <div className="grid md:grid-cols-2 gap-4 mt-2">
+                <div className="space-y-1">
+                  <Label className="text-xs">Date of Issue</Label>
+                  <Input type="date" value={d.homeCriminalRecordDate} onChange={e => set('homeCriminalRecordDate')(e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Country of Issue</Label>
+                  <CountrySelect value={d.homeCriminalRecordCountry} onChange={set('homeCriminalRecordCountry')} placeholder="Select country" />
+                </div>
+              </div>
+            )}
           </div>
-        )}
+          <div className="space-y-3">
+            <Label className="text-xs font-medium">EU Country Criminal Record</Label>
+            <RadioYN name="hasEuCriminalRecord" value={d.hasEuCriminalRecord} onChange={set('hasEuCriminalRecord')} />
+            {d.hasEuCriminalRecord === 'yes' && (
+              <div className="grid md:grid-cols-2 gap-4 mt-2">
+                <div className="space-y-1">
+                  <Label className="text-xs">Date of Issue</Label>
+                  <Input type="date" value={d.euCriminalRecordDate} onChange={e => set('euCriminalRecordDate')(e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Country of Issue</Label>
+                  <CountrySelect value={d.euCriminalRecordCountry} onChange={set('euCriminalRecordCountry')} countries={EU_COUNTRIES} placeholder="Select EU country" />
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -21,6 +21,8 @@ export function EditApplicant() {
   const [jobTypes, setJobTypes] = useState<any[]>([]);
   const [settings, setSettings] = useState<FormSettings>(DEFAULT_FORM_SETTINGS);
   const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [existingPhotoUrl, setExistingPhotoUrl] = useState<string | undefined>();
   const [agencies, setAgencies] = useState<any[]>([]);
   const [agencyId, setAgencyId] = useState<string>('');
 
@@ -50,6 +52,7 @@ export function EditApplicant() {
       const appData = applicant.applicationData || EMPTY_FORM;
       setFormData(appData);
       setAgencyId(applicant.agencyId || '');
+      if (applicant.photoUrl) setExistingPhotoUrl(applicant.photoUrl);
     }).catch(() => {
       toast.error('Failed to load applicant data');
     }).finally(() => setLoading(false));
@@ -202,6 +205,9 @@ export function EditApplicant() {
             uploadedFiles={uploadedFiles}
             onFilesChange={setUploadedFiles}
             settings={settings}
+            photoFile={photoFile}
+            onPhotoChange={setPhotoFile}
+            existingPhotoUrl={existingPhotoUrl}
           />
 
           <div className="flex justify-between pt-8 border-t mt-8">

@@ -19,6 +19,7 @@ export function AddApplicant() {
   const [jobTypes, setJobTypes] = useState<any[]>([]);
   const [settings, setSettings] = useState<FormSettings>(DEFAULT_FORM_SETTINGS);
   const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [agencies, setAgencies] = useState<any[]>([]);
   const [agencyId, setAgencyId] = useState<string>('');
 
@@ -153,6 +154,8 @@ export function AddApplicant() {
             uploadedFiles={uploadedFiles}
             onFilesChange={setUploadedFiles}
             settings={settings}
+            photoFile={photoFile}
+            onPhotoChange={setPhotoFile}
           />
 
           <div className="flex justify-between pt-8 border-t mt-8">

@@ -388,11 +388,70 @@ function ExpiryFields({ expiryDate, noExpiry, onExpiry, onNoExpiry }: { expiryDa
 
 // ── Step Components ───────────────────────────────────────────────────────────
 
-function Step1Personal({ d, u, jobTypes }: { d: ApplicantFormData; u: (fn: (p: ApplicantFormData) => ApplicantFormData) => void; jobTypes: JobType[] }) {
+function Step1Personal({ d, u, jobTypes, photoFile, onPhotoChange, existingPhotoUrl }: {
+  d: ApplicantFormData;
+  u: (fn: (p: ApplicantFormData) => ApplicantFormData) => void;
+  jobTypes: JobType[];
+  photoFile?: File | null;
+  onPhotoChange?: (file: File | null) => void;
+  existingPhotoUrl?: string;
+}) {
   const set = (field: keyof ApplicantFormData) => (value: any) => u(prev => ({ ...prev, [field]: value }));
+
+  // Build preview URL: newly selected file takes priority over existing URL
+  const previewUrl = photoFile ? URL.createObjectURL(photoFile) : existingPhotoUrl ?? null;
+
   return (
     <div className="space-y-8">
       <SectionTitle title="Personal Information" subtitle="Your personal details and address" />
+
+      {/* ── Photo Upload ── */}
+      <div className="space-y-3">
+        <SubSection title="Applicant Photo" />
+        <div className="flex items-start gap-6">
+          {/* Preview circle */}
+          <div className={`w-28 h-28 rounded-full shrink-0 border-2 flex items-center justify-center overflow-hidden ${previewUrl ? 'border-blue-400' : 'border-dashed border-gray-300 bg-gray-50'}`}>
+            {previewUrl ? (
+              <img src={previewUrl} alt="Photo preview" className="w-full h-full object-cover" />
+            ) : (
+              <User className="w-10 h-10 text-gray-300" />
+            )}
+          </div>
+          <div className="flex-1 space-y-3">
+            <div>
+              <p className="text-sm font-medium text-gray-700">Upload Photo <span className="text-red-500">*</span></p>
+              <p className="text-xs text-gray-500 mt-0.5">JPG or PNG, max 5 MB. Clear, front-facing passport-style photo required.</p>
+            </div>
+            <label className="inline-flex cursor-pointer">
+              <div className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 text-sm font-medium transition-colors ${photoFile ? 'border-green-400 bg-green-50 text-green-700' : 'border-blue-300 bg-blue-50 text-blue-700 hover:border-blue-500'}`}>
+                <Upload className="w-4 h-4 shrink-0" />
+                {photoFile ? photoFile.name : 'Choose photo'}
+              </div>
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="sr-only"
+                onChange={e => {
+                  const f = e.target.files?.[0] ?? null;
+                  onPhotoChange?.(f);
+                }}
+              />
+            </label>
+            {photoFile && (
+              <button
+                type="button"
+                onClick={() => onPhotoChange?.(null)}
+                className="flex items-center gap-1.5 text-xs text-red-500 hover:text-red-700"
+              >
+                <X className="w-3.5 h-3.5" /> Remove photo
+              </button>
+            )}
+            {!photoFile && !existingPhotoUrl && (
+              <p className="text-xs text-red-500">A photo is required to complete your application.</p>
+            )}
+          </div>
+        </div>
+      </div>
       {jobTypes.length > 0 && (
         <div className="space-y-2">
           <Label>Position / Job Type *</Label>
@@ -1319,8 +1378,9 @@ function Step10Documents({ uploadedFiles, onFilesChange }: { uploadedFiles: Uplo
   );
 }
 
-function Step11Review({ d, u, settings }: { d: ApplicantFormData; u: (fn: (p: ApplicantFormData) => ApplicantFormData) => void; settings: FormSettings }) {
+function Step11Review({ d, u, settings, photoFile, existingPhotoUrl }: { d: ApplicantFormData; u: (fn: (p: ApplicantFormData) => ApplicantFormData) => void; settings: FormSettings; photoFile?: File | null; existingPhotoUrl?: string }) {
   const set = (field: keyof ApplicantFormData) => (value: any) => u(prev => ({ ...prev, [field]: value }));
+  const previewUrl = photoFile ? URL.createObjectURL(photoFile) : existingPhotoUrl ?? null;
   const rows: { label: string; value: string | undefined }[] = [
     { label: 'Name', value: [d.firstName, d.middleName, d.lastName].filter(Boolean).join(' ') },
     { label: 'Email', value: d.email },
@@ -1333,6 +1393,23 @@ function Step11Review({ d, u, settings }: { d: ApplicantFormData; u: (fn: (p: Ap
   return (
     <div className="space-y-8">
       <SectionTitle title="Review Your Application" subtitle="Please review all details before submitting" />
+
+      {/* Photo preview in review */}
+      {previewUrl && (
+        <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg border">
+          <img src={previewUrl} alt="Applicant photo" className="w-16 h-16 rounded-full object-cover border-2 border-blue-200" />
+          <div>
+            <p className="text-xs text-gray-500 font-medium uppercase">Applicant Photo</p>
+            <p className="text-sm font-semibold text-green-700 mt-0.5">✓ Photo uploaded</p>
+          </div>
+        </div>
+      )}
+      {!previewUrl && (
+        <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-sm text-red-700 font-medium">⚠ No photo uploaded — please go back to Tab 1 and upload a photo (required).</p>
+        </div>
+      )}
+
       <div className="grid md:grid-cols-2 gap-3">
         {rows.filter(r => r.value).map(({ label, value }) => (
           <div key={label} className="p-3 bg-gray-50 rounded-lg">
@@ -1370,6 +1447,9 @@ export interface ApplicantFormStepsProps {
   uploadedFiles?: UploadedFileItem[];
   onFilesChange?: (files: UploadedFileItem[]) => void;
   settings?: FormSettings;
+  photoFile?: File | null;
+  onPhotoChange?: (file: File | null) => void;
+  existingPhotoUrl?: string;
 }
 
 export function ApplicantFormSteps({
@@ -1381,12 +1461,15 @@ export function ApplicantFormSteps({
   uploadedFiles = [],
   onFilesChange = () => {},
   settings = DEFAULT_FORM_SETTINGS,
+  photoFile = null,
+  onPhotoChange = () => {},
+  existingPhotoUrl,
 }: ApplicantFormStepsProps) {
   const actualTab = visibleTabs[currentStep - 1] ?? 1;
 
   return (
     <>
-      {actualTab === 1 && <Step1Personal d={d} u={u} jobTypes={jobTypes} />}
+      {actualTab === 1 && <Step1Personal d={d} u={u} jobTypes={jobTypes} photoFile={photoFile} onPhotoChange={onPhotoChange} existingPhotoUrl={existingPhotoUrl} />}
       {actualTab === 2 && <Step2Contact d={d} u={u} settings={settings} />}
       {actualTab === 3 && <Step3Identification d={d} u={u} settings={settings} />}
       {actualTab === 4 && <Step4DrivingLicense d={d} u={u} settings={settings} />}
@@ -1396,7 +1479,7 @@ export function ApplicantFormSteps({
       {actualTab === 8 && <Step8Skills d={d} u={u} />}
       {actualTab === 9 && <Step9Additional d={d} u={u} settings={settings} />}
       {actualTab === 10 && <Step10Documents uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />}
-      {actualTab === 11 && <Step11Review d={d} u={u} settings={settings} />}
+      {actualTab === 11 && <Step11Review d={d} u={u} settings={settings} photoFile={photoFile} existingPhotoUrl={existingPhotoUrl} />}
     </>
   );
 }

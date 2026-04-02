@@ -13,6 +13,7 @@ export function PublicEmployeeApplication() {
   const [jobTypes, setJobTypes] = useState<{ id: string; name: string }[]>([]);
   const [settings, setSettings] = useState<FormSettings>(DEFAULT_FORM_SETTINGS);
   const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
 
   const visibleTabs = useMemo(() => getVisibleTabs(formData), [formData.hasDrivingLicense]);
 
@@ -50,6 +51,10 @@ export function PublicEmployeeApplication() {
   };
 
   const handleSubmit = async () => {
+    if (!photoFile) {
+      toast.error('A photo is required. Please go back to the Personal tab and upload your photo.');
+      return;
+    }
     setSubmitting(true);
     try {
       const payload = {
@@ -74,6 +79,13 @@ export function PublicEmployeeApplication() {
       };
 
       const applicant = await publicApplicationApi.submit(payload);
+
+      // Upload photo first (required)
+      if (photoFile && applicant?.id) {
+        await publicApplicationApi.uploadDocument(applicant.id, photoFile, 'Profile Photo', 'Profile Photo').catch(() => {
+          toast.warning('Application submitted but photo upload failed. Please contact us to resubmit your photo.');
+        });
+      }
 
       const fileItems = uploadedFiles.filter((f: any) => f.file);
       if (fileItems.length > 0 && applicant?.id) {
@@ -133,6 +145,8 @@ export function PublicEmployeeApplication() {
             uploadedFiles={uploadedFiles}
             onFilesChange={setUploadedFiles}
             settings={settings}
+            photoFile={photoFile}
+            onPhotoChange={setPhotoFile}
           />
 
           <div className="flex justify-between pt-8 border-t mt-8">

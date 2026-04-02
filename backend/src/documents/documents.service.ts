@@ -145,6 +145,7 @@ export class DocumentsService {
     await fs.mkdir(newDir, { recursive: true });
     await fs.rename(file.path, join(newDir, newFilename));
 
+    const fileUrl = `/uploads/${folderName}/${safeDocType}/${newFilename}`;
     const document = await this.prisma.document.create({
       data: {
         name,

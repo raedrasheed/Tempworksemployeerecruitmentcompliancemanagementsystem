@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router';
-import { ArrowLeft, Edit, Mail, Phone, MapPin, Calendar, FileText, Shield, Briefcase, Clock, Award, GraduationCap, TrendingUp, ChevronRight, Trash2, Download, Upload, X } from 'lucide-react';
+import { ArrowLeft, Edit, Mail, Phone, MapPin, Calendar, FileText, Shield, Briefcase, Clock, Award, GraduationCap, TrendingUp, ChevronRight, Trash2, Download, Upload, X, DollarSign } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
@@ -10,8 +10,9 @@ import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { toast } from 'sonner';
-import { employeesApi, documentsApi, settingsApi, workflowApi, agenciesApi } from '../../services/api';
+import { employeesApi, documentsApi, settingsApi, workflowApi, agenciesApi, getCurrentUser } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
+import { FinancialRecordsTab } from '../../components/finance/FinancialRecordsTab';
 
 const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1').replace('/api/v1', '');
 
@@ -19,6 +20,8 @@ export function EmployeeProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { canEdit, canDelete } = usePermissions();
+  const currentUser = getCurrentUser();
+  const isFinanceOrAdmin = currentUser?.role === 'System Admin' || currentUser?.role === 'HR Manager' || currentUser?.role === 'Finance';
   const [employee, setEmployee] = useState<any>(null);
   const [documents, setDocuments] = useState<any[]>([]);
   const [workflow, setWorkflow] = useState<any[]>([]);
@@ -258,6 +261,11 @@ export function EmployeeProfile() {
           <TabsTrigger value="documents">Documents ({documents.length})</TabsTrigger>
           <TabsTrigger value="workflow">Workflow</TabsTrigger>
           <TabsTrigger value="compliance">Compliance</TabsTrigger>
+          {isFinanceOrAdmin && (
+            <TabsTrigger value="financial">
+              <DollarSign className="w-3 h-3 mr-1" />Financial
+            </TabsTrigger>
+          )}
           <TabsTrigger value="notes">Notes</TabsTrigger>
         </TabsList>
 
@@ -569,6 +577,18 @@ export function EmployeeProfile() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* Financial — Transaction Ledger */}
+        {isFinanceOrAdmin && (
+          <TabsContent value="financial">
+            <FinancialRecordsTab
+              entityType="EMPLOYEE"
+              entityId={id!}
+              canWrite={canEdit('employees')}
+              canChangeStatus={currentUser?.role === 'System Admin' || currentUser?.role === 'Finance'}
+            />
+          </TabsContent>
+        )}
 
         {/* Notes */}
         <TabsContent value="notes">

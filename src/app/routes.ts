@@ -46,6 +46,7 @@ import { RolesList } from './pages/roles/RolesList';
 import { CreateRole } from './pages/roles/CreateRole';
 import { PermissionsMatrix } from './pages/roles/PermissionsMatrix';
 import { LogsDashboard } from './pages/logs/LogsDashboard';
+import { FinanceDashboard } from './pages/finance/FinanceDashboard';
 import { Settings } from './pages/settings/Settings';
 import { ColorScheme } from './pages/settings/ColorScheme';
 import { WorkflowSettings } from './pages/settings/WorkflowSettings';
@@ -145,6 +146,9 @@ export const router = createBrowserRouter([
       { path: 'roles/:id/edit', Component: CreateRole },
       { path: 'roles/permissions-matrix', Component: PermissionsMatrix },
       
+      // Finance routes
+      { path: 'finance', Component: FinanceDashboard },
+
       // System Logs routes
       { path: 'logs', Component: LogsDashboard },
       

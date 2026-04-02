@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { usePermissions } from '../../hooks/usePermissions';
 import { getCurrentUser, applicantsApi, documentsApi, settingsApi, workflowApi, agenciesApi } from '../../services/api';
+import { FinancialRecordsTab } from '../../components/finance/FinancialRecordsTab';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
@@ -501,7 +502,10 @@ export function ApplicantProfile() {
           <TabsTrigger value="workflow">Workflow</TabsTrigger>
           <TabsTrigger value="compliance">Compliance</TabsTrigger>
           {isFinanceOrAdmin && (
-            <TabsTrigger value="financial" onClick={loadFinancialProfile}>
+            <TabsTrigger
+              value="financial"
+              onClick={() => { loadFinancialProfile(); }}
+            >
               <DollarSign className="w-3 h-3 mr-1" />Financial
             </TabsTrigger>
           )}
@@ -968,73 +972,78 @@ export function ApplicantProfile() {
           </Card>
         </TabsContent>
 
-        {/* Financial Profile */}
+        {/* Financial — Transaction Ledger */}
         {isFinanceOrAdmin && (
           <TabsContent value="financial">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <DollarSign className="w-5 h-5 text-emerald-600" />Financial Profile
-                </CardTitle>
-                {applicantData?.tier !== 'CANDIDATE' && (
+            {applicantData?.tier !== 'CANDIDATE' ? (
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <DollarSign className="w-5 h-5 text-emerald-600" />Financial Transactions
+                  </CardTitle>
                   <Badge className="bg-amber-100 text-amber-800">Candidates only</Badge>
-                )}
-              </CardHeader>
-              <CardContent>
-                {applicantData?.tier !== 'CANDIDATE' ? (
+                </CardHeader>
+                <CardContent>
                   <p className="text-muted-foreground text-sm">
-                    Financial profile is available for Candidates only. Promote this applicant to Candidate first.
+                    Financial transactions are available for Candidates only. Promote this applicant to Candidate first.
                   </p>
-                ) : financialLoading ? (
-                  <p className="text-muted-foreground">Loading…</p>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {[
-                        ['bankName', 'Bank Name', 'text'],
-                        ['accountHolder', 'Account Holder', 'text'],
-                        ['accountNumber', 'Account Number', 'text'],
-                        ['sortCode', 'Sort Code', 'text'],
-                        ['iban', 'IBAN', 'text'],
-                        ['taxCode', 'Tax Code', 'text'],
-                        ['niNumber', 'NI Number', 'text'],
-                        ['paymentMethod', 'Payment Method', 'text'],
-                        ['salaryAgreed', 'Agreed Salary', 'number'],
-                        ['currency', 'Currency', 'text'],
-                      ].map(([field, label, type]) => (
-                        <div key={field} className="space-y-1">
-                          <Label className="text-xs">{label}</Label>
-                          <Input
-                            type={type as any}
-                            value={financialForm[field] ?? ''}
-                            onChange={e => setFinancialForm((f: any) => ({ ...f, [field]: e.target.value }))}
-                          />
-                        </div>
-                      ))}
-                      <div className="space-y-1 md:col-span-2">
-                        <Label className="text-xs">Bank Address</Label>
-                        <Input
-                          value={financialForm.bankAddress ?? ''}
-                          onChange={e => setFinancialForm((f: any) => ({ ...f, bankAddress: e.target.value }))}
-                        />
-                      </div>
-                      <div className="space-y-1 md:col-span-2">
-                        <Label className="text-xs">Notes</Label>
-                        <Input
-                          value={financialForm.notes ?? ''}
-                          onChange={e => setFinancialForm((f: any) => ({ ...f, notes: e.target.value }))}
-                        />
-                      </div>
-                    </div>
-                    <div className="flex gap-2 pt-2 border-t">
-                      <Button size="sm" onClick={handleSaveFinancial} disabled={savingFinancial}>
-                        {savingFinancial ? 'Saving…' : 'Save Financial Profile'}
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-6">
+                {/* Bank / Tax details card (retained for reference) */}
+                {financialProfile && (
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <DollarSign className="w-4 h-4 text-emerald-600" />Bank & Tax Details
+                      </CardTitle>
+                      <Button
+                        size="sm" variant="outline"
+                        onClick={() => {
+                          if (!id) return;
+                          setSavingFinancial(true);
+                          applicantsApi.upsertFinancialProfile(id, financialForm)
+                            .then((saved: any) => { setFinancialProfile(saved); toast.success('Saved'); })
+                            .catch((err: any) => toast.error(err?.message || 'Save failed'))
+                            .finally(() => setSavingFinancial(false));
+                        }}
+                        disabled={savingFinancial}
+                      >
+                        {savingFinancial ? 'Saving…' : 'Save'}
                       </Button>
-                    </div>
-                  </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        {[
+                          ['bankName', 'Bank Name', 'text'],
+                          ['iban', 'IBAN', 'text'],
+                          ['taxCode', 'Tax Code', 'text'],
+                          ['niNumber', 'NI Number', 'text'],
+                          ['paymentMethod', 'Payment Method', 'text'],
+                        ].map(([field, label, type]) => (
+                          <div key={field} className="space-y-1">
+                            <Label className="text-xs">{label}</Label>
+                            <Input
+                              type={type as any}
+                              value={financialForm[field] ?? ''}
+                              onChange={e => setFinancialForm((f: any) => ({ ...f, [field]: e.target.value }))}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
                 )}
-              </CardContent>
-            </Card>
+                {/* Transaction ledger */}
+                <FinancialRecordsTab
+                  entityType="APPLICANT"
+                  entityId={id!}
+                  canWrite={canEdit('applicants')}
+                  canChangeStatus={currentUser?.role === 'System Admin' || currentUser?.role === 'Finance'}
+                />
+              </div>
+            )}
           </TabsContent>
         )}
 

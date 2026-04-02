@@ -676,3 +676,77 @@ export const reportsApi = {
     return res.blob();
   },
 };
+
+// ─── Finance API ──────────────────────────────────────────────────────────────
+
+export const financeApi = {
+  // Constants (transaction types, payment methods, currencies, statuses)
+  getConstants: () => apiFetch<any>('/finance/constants'),
+
+  // List / filter records (global or per-entity)
+  list: (params?: Record<string, any>) => {
+    const qs = params ? '?' + new URLSearchParams(
+      Object.fromEntries(Object.entries(params).filter(([, v]) => v != null && v !== '')),
+    ).toString() : '';
+    return apiFetch<PaginatedResponse<any>>(`/finance${qs}`);
+  },
+
+  // Totals for a specific person
+  getTotals: (entityType: string, entityId: string) =>
+    apiFetch<any>(`/finance/totals/${entityType}/${entityId}`),
+
+  // Single record
+  get: (id: string) => apiFetch<any>(`/finance/${id}`),
+
+  // Create a new financial record
+  create: (data: Record<string, any>) =>
+    apiFetch<any>('/finance', { method: 'POST', body: JSON.stringify(data) }),
+
+  // Update a record
+  update: (id: string, data: Record<string, any>) =>
+    apiFetch<any>(`/finance/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  // Update status (mark as DEDUCTED + deduction details)
+  updateStatus: (id: string, data: { status: string; deductionAmount?: number; deductionDate?: string; payrollReference?: string }) =>
+    apiFetch<any>(`/finance/${id}/status`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  // Soft-delete a record
+  delete: (id: string) =>
+    apiFetch<any>(`/finance/${id}`, { method: 'DELETE' }),
+
+  // Upload attachment to a record
+  addAttachment: (recordId: string, formData: FormData) => {
+    const token = getAccessToken();
+    return fetch(`${API_URL}/finance/${recordId}/attachments`, {
+      method: 'POST',
+      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: formData,
+    }).then(async res => {
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error((err as any)?.message || 'Upload failed');
+      }
+      return res.json();
+    });
+  },
+
+  // Remove an attachment
+  removeAttachment: (recordId: string, attachmentId: string) =>
+    apiFetch<any>(`/finance/${recordId}/attachments/${attachmentId}`, { method: 'DELETE' }),
+
+  // Export to Excel — returns Blob
+  exportExcel: async (params?: Record<string, any>): Promise<Blob> => {
+    const token = getAccessToken();
+    const qs = params ? '?' + new URLSearchParams(
+      Object.fromEntries(Object.entries(params).filter(([, v]) => v != null && v !== '')),
+    ).toString() : '';
+    const res = await fetch(`${API_URL}/finance/export${qs}`, {
+      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error((err as any)?.message || 'Export failed');
+    }
+    return res.blob();
+  },
+};

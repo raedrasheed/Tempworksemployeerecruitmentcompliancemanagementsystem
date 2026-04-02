@@ -16,6 +16,7 @@ import {
   UserCheck,
   ChevronLeft,
   ChevronRight,
+  DollarSign,
 } from 'lucide-react';
 import { cn } from '../ui/utils';
 import { useAuthContext } from '../../contexts/AuthContext';
@@ -31,6 +32,7 @@ const allNavigationItems = [
   { icon: GitBranch,       label: 'Workflow Pipeline',     path: '/dashboard/workflow',         permission: 'workflow:read' },
   { icon: Building2,       label: 'Agencies',              path: '/dashboard/agencies',         permission: 'agencies:read' },
   { icon: BarChart3,       label: 'Reports',               path: '/dashboard/reports',          permission: 'reports:read' },
+  { icon: DollarSign,     label: 'Finance',               path: '/dashboard/finance',          permission: 'finance:read', roles: ['System Admin', 'HR Manager', 'Finance'] },
   { icon: Bell,            label: 'Notifications',         path: '/dashboard/notifications',    permission: 'notifications:read' },
   { icon: UserCog,         label: 'Users',                 path: '/dashboard/users',            permission: 'users:read' },
   { icon: Shield,          label: 'Roles & Permissions',   path: '/dashboard/roles',            permission: 'roles:read' },
@@ -50,9 +52,10 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
   const permissions = user?.permissions ?? [];
   const isAdmin = userRole === 'System Admin';
 
-  const navigationItems = allNavigationItems.filter(item => {
+  const navigationItems = allNavigationItems.filter((item: any) => {
     if (!item.permission) return true; // always visible
     if (isAdmin) return true;          // admins see everything
+    if (item.roles && item.roles.includes(userRole)) return true; // role-based visibility
     return permissions.includes(item.permission);
   });
 

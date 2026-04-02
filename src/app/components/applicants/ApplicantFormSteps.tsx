@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import ReCAPTCHA from 'react-google-recaptcha';
 import { User, Phone, Shield, CreditCard, Briefcase, GraduationCap, Star, Info, FileText, CheckCircle2, Check, Upload, Plus, X, Trash2 } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -1719,13 +1718,12 @@ function Step10Documents({ uploadedFiles, onFilesChange }: { uploadedFiles: Uplo
   );
 }
 
-function Step11Review({ d, u, settings, photoFile, existingPhotoUrl, onCaptchaVerified }: {
+function Step11Review({ d, u, settings, photoFile, existingPhotoUrl }: {
   d: ApplicantFormData;
   u: (fn: (p: ApplicantFormData) => ApplicantFormData) => void;
   settings: FormSettings;
   photoFile?: File | null;
   existingPhotoUrl?: string;
-  onCaptchaVerified?: (v: boolean) => void;
 }) {
   const set = (field: keyof ApplicantFormData) => (value: any) => u(prev => ({ ...prev, [field]: value }));
   const previewUrl = photoFile ? URL.createObjectURL(photoFile) : existingPhotoUrl ?? null;
@@ -1798,18 +1796,6 @@ function Step11Review({ d, u, settings, photoFile, existingPhotoUrl, onCaptchaVe
         </div>
       </div>
 
-      {/* Google reCAPTCHA */}
-      <div className="p-5 border-2 border-gray-200 rounded-xl space-y-4">
-        <div>
-          <h4 className="text-sm font-bold text-gray-800 mb-1">Human Verification</h4>
-          <p className="text-xs text-gray-500">Please complete the CAPTCHA below to confirm you are human.</p>
-        </div>
-        <ReCAPTCHA
-          sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY ?? '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI'}
-          onChange={token => onCaptchaVerified?.(!!token)}
-          onExpired={() => onCaptchaVerified?.(false)}
-        />
-      </div>
     </div>
   );
 }
@@ -1828,7 +1814,6 @@ export interface ApplicantFormStepsProps {
   photoFile?: File | null;
   onPhotoChange?: (file: File | null) => void;
   existingPhotoUrl?: string;
-  onCaptchaVerified?: (v: boolean) => void;
 }
 
 export function ApplicantFormSteps({
@@ -1843,7 +1828,6 @@ export function ApplicantFormSteps({
   photoFile = null,
   onPhotoChange = () => {},
   existingPhotoUrl,
-  onCaptchaVerified,
 }: ApplicantFormStepsProps) {
   const actualTab = visibleTabs[currentStep - 1] ?? 1;
 
@@ -1859,7 +1843,7 @@ export function ApplicantFormSteps({
       {actualTab === 8 && <Step8Skills d={d} u={u} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />}
       {actualTab === 9 && <Step9Additional d={d} u={u} settings={settings} />}
       {actualTab === 10 && <Step10Documents uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />}
-      {actualTab === 11 && <Step11Review d={d} u={u} settings={settings} photoFile={photoFile} existingPhotoUrl={existingPhotoUrl} onCaptchaVerified={onCaptchaVerified} />}
+      {actualTab === 11 && <Step11Review d={d} u={u} settings={settings} photoFile={photoFile} existingPhotoUrl={existingPhotoUrl} />}
     </>
   );
 }

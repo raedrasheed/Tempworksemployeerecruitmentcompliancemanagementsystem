@@ -1,0 +1,214 @@
+import {
+  Controller, Get, Post, Body, Patch, Param, Delete,
+  Query, UseGuards, HttpCode, HttpStatus, UseInterceptors,
+  UploadedFile, BadRequestException, Res,
+} from '@nestjs/common';
+import { Response } from 'express';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
+import { v4 as uuidv4 } from 'uuid';
+import {
+  ApiTags, ApiOperation, ApiResponse, ApiBearerAuth,
+  ApiParam, ApiConsumes, ApiBody,
+} from '@nestjs/swagger';
+import { FinanceService } from './finance.service';
+import { CreateFinancialRecordDto } from './dto/create-financial-record.dto';
+import { UpdateFinancialRecordDto } from './dto/update-financial-record.dto';
+import { UpdateStatusDto } from './dto/update-status.dto';
+import { FilterFinancialRecordsDto } from './dto/filter-financial-records.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import {
+  FINANCE_READ_ROLES, FINANCE_WRITE_ROLES,
+  FINANCE_STATUS_ROLES, FINANCE_EXPORT_ROLES,
+  TRANSACTION_TYPES, PAYMENT_METHODS,
+  FINANCIAL_RECORD_STATUSES, COMMON_CURRENCIES,
+} from './constants';
+
+const multerStorage = diskStorage({
+  destination: process.env.UPLOAD_DEST || './uploads',
+  filename: (_req, file, cb) => {
+    const uniqueSuffix = `${uuidv4()}${extname(file.originalname)}`;
+    cb(null, uniqueSuffix);
+  },
+});
+
+const allowedMimetypes = [
+  'application/pdf', 'image/jpeg', 'image/jpg', 'image/png',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+];
+
+@ApiTags('Finance')
+@ApiBearerAuth('access-token')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Controller('finance')
+export class FinanceController {
+  constructor(private readonly financeService: FinanceService) {}
+
+  // ── Constants endpoint (used by frontend dropdowns) ──────────────────────────
+
+  @Get('constants')
+  @Roles(...FINANCE_READ_ROLES)
+  @ApiOperation({ summary: 'Get finance module constants (transaction types, payment methods, etc.)' })
+  getConstants() {
+    return {
+      transactionTypes: TRANSACTION_TYPES,
+      paymentMethods: PAYMENT_METHODS,
+      statuses: FINANCIAL_RECORD_STATUSES,
+      currencies: COMMON_CURRENCIES,
+    };
+  }
+
+  // ── List / Global ─────────────────────────────────────────────────────────────
+
+  @Get()
+  @Roles(...FINANCE_READ_ROLES)
+  @ApiOperation({ summary: 'List financial records (paginated + filtered)' })
+  findAll(@Query() filter: FilterFinancialRecordsDto) {
+    return this.financeService.findAll(filter);
+  }
+
+  // ── Export ────────────────────────────────────────────────────────────────────
+
+  @Get('export')
+  @Roles(...FINANCE_EXPORT_ROLES)
+  @ApiOperation({ summary: 'Export financial records as Excel (.xlsx)' })
+  async exportExcel(@Query() filter: FilterFinancialRecordsDto, @Res() res: Response) {
+    const buffer = await this.financeService.exportExcel(filter);
+    const filename = `financial-records-${new Date().toISOString().slice(0, 10)}.xlsx`;
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Length': buffer.length,
+    });
+    res.end(buffer);
+  }
+
+  // ── Totals for an entity ──────────────────────────────────────────────────────
+
+  @Get('totals/:entityType/:entityId')
+  @Roles(...FINANCE_READ_ROLES)
+  @ApiOperation({ summary: 'Get financial totals and current balance for a person' })
+  @ApiParam({ name: 'entityType', description: "'APPLICANT' or 'EMPLOYEE'" })
+  @ApiParam({ name: 'entityId', description: 'Entity UUID' })
+  getTotals(
+    @Param('entityType') entityType: string,
+    @Param('entityId') entityId: string,
+  ) {
+    return this.financeService.getTotals(entityType, entityId);
+  }
+
+  // ── Single record ─────────────────────────────────────────────────────────────
+
+  @Get(':id')
+  @Roles(...FINANCE_READ_ROLES)
+  @ApiOperation({ summary: 'Get a single financial record by ID' })
+  @ApiParam({ name: 'id', description: 'Financial record UUID' })
+  findOne(@Param('id') id: string) {
+    return this.financeService.findOne(id);
+  }
+
+  // ── Create ────────────────────────────────────────────────────────────────────
+
+  @Post()
+  @Roles(...FINANCE_WRITE_ROLES)
+  @ApiOperation({ summary: 'Create a financial record' })
+  @ApiResponse({ status: 201, description: 'Record created' })
+  create(
+    @Body() dto: CreateFinancialRecordDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.financeService.create(dto, user?.id);
+  }
+
+  // ── Update ────────────────────────────────────────────────────────────────────
+
+  @Patch(':id')
+  @Roles(...FINANCE_WRITE_ROLES)
+  @ApiOperation({ summary: 'Update a financial record (partial)' })
+  @ApiParam({ name: 'id', description: 'Financial record UUID' })
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateFinancialRecordDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.financeService.update(id, dto, user?.id);
+  }
+
+  // ── Status / Deduction ────────────────────────────────────────────────────────
+
+  @Patch(':id/status')
+  @Roles(...FINANCE_STATUS_ROLES)
+  @ApiOperation({ summary: 'Update status and deduction details of a financial record' })
+  @ApiParam({ name: 'id', description: 'Financial record UUID' })
+  updateStatus(
+    @Param('id') id: string,
+    @Body() dto: UpdateStatusDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.financeService.updateStatus(id, dto, user?.id);
+  }
+
+  // ── Soft-delete ───────────────────────────────────────────────────────────────
+
+  @Delete(':id')
+  @Roles(...FINANCE_WRITE_ROLES)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Soft-delete a financial record' })
+  @ApiParam({ name: 'id', description: 'Financial record UUID' })
+  remove(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.financeService.remove(id, user?.id);
+  }
+
+  // ── Attachments ───────────────────────────────────────────────────────────────
+
+  @Post(':id/attachments')
+  @Roles(...FINANCE_WRITE_ROLES)
+  @ApiOperation({ summary: 'Upload an attachment to a financial record' })
+  @ApiParam({ name: 'id', description: 'Financial record UUID' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: { file: { type: 'string', format: 'binary' } },
+    },
+  })
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: multerStorage,
+      fileFilter: (_req, file, cb) => {
+        if (!allowedMimetypes.includes(file.mimetype)) {
+          return cb(new BadRequestException(`File type ${file.mimetype} not allowed`), false);
+        }
+        cb(null, true);
+      },
+      limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
+    }),
+  )
+  addAttachment(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+    @CurrentUser() user: any,
+  ) {
+    if (!file) throw new BadRequestException('No file uploaded');
+    return this.financeService.addAttachment(id, file, user?.id);
+  }
+
+  @Delete(':id/attachments/:attachmentId')
+  @Roles(...FINANCE_WRITE_ROLES)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Soft-delete an attachment from a financial record' })
+  @ApiParam({ name: 'id', description: 'Financial record UUID' })
+  @ApiParam({ name: 'attachmentId', description: 'Attachment UUID' })
+  removeAttachment(
+    @Param('id') id: string,
+    @Param('attachmentId') attachmentId: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.financeService.removeAttachment(id, attachmentId, user?.id);
+  }
+}

@@ -16,6 +16,7 @@ import { ReportsModule } from './reports/reports.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { SettingsModule } from './settings/settings.module';
 import { LogsModule } from './logs/logs.module';
+import { FinanceModule } from './finance/finance.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { LogsModule } from './logs/logs.module';
     NotificationsModule,
     SettingsModule,
     LogsModule,
+    FinanceModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

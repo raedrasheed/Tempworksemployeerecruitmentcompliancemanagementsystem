@@ -192,6 +192,11 @@ model User {
   verifiedDocuments Document[]     @relation("VerifiedDocuments")
   assignedStages    EmployeeWorkflowStage[] @relation("AssignedStages")
 
+  // ── Financial record relations ─────────────────────────────────────────
+  financialRecordsPaidBy     FinancialRecord[]            @relation("FRPaidBy")
+  financialRecordsCreated    FinancialRecord[]            @relation("FRCreatedBy")
+  financialAttachments       FinancialRecordAttachment[]  @relation("FRAttachmentUploadedBy")
+
   resolvedAlerts    ComplianceAlert[] @relation("ResolvedAlerts")
   updatedSettings   SystemSetting[]
 
@@ -678,4 +683,85 @@ model IdentifierSequence {
 
   @@unique([prefix, year, month])
   @@map("identifier_sequences")
+}
+
+// ── Financial Records ─────────────────────────────────────────────────────────
+//
+// Tracks all money disbursements made by the company to/for a Candidate or
+// Employee for payroll-deduction reconciliation purposes.
+//
+// ACCOUNTING RULES (explicit):
+//  - companyDisbursedAmount   : money paid BY the company FOR/TO the person.
+//                               Included in all balance calculations.
+//  - employeeOrAgencyPaidAmount: money paid BY the person or their agency.
+//                               Informational only — NOT included in balance.
+//  - Current Balance          : SUM(companyDisbursedAmount)
+//                               - SUM(deductionAmount WHERE NOT NULL)
+//  - Partial deduction IS supported: deductionAmount ≤ companyDisbursedAmount.
+//  - Status PENDING  : not yet fully deducted from payroll.
+//  - Status DEDUCTED : fully reconciled through payroll (set explicitly).
+//
+// LIFECYCLE PORTABILITY:
+//  entityType + entityId mirrors the Document model pattern.
+//  On Candidate→Employee conversion the records are reassigned to
+//  entityType=EMPLOYEE, entityId=<employee.id> so they stay visible
+//  in the Employee profile (same as Document migration behaviour).
+//
+// TRANSACTION TYPE: controlled by TRANSACTION_TYPES constant in backend.
+// PAYMENT METHOD  : controlled by PAYMENT_METHODS constant in backend.
+// Both are stored as plain strings for flexibility without a lookup table.
+model FinancialRecord {
+  id                         String   @id @default(uuid())
+  // ── Entity link ──────────────────────────────────────────────────────────
+  entityType                 String   // 'APPLICANT' | 'EMPLOYEE'
+  entityId                   String
+  // ── Transaction details ──────────────────────────────────────────────────
+  transactionDate            DateTime
+  currency                   String   @default("EUR")
+  transactionType            String
+  description                String?
+  paymentMethod              String?
+  paidByName                 String?   // free-text for display
+  paidById                   String?   // FK to User (nullable for legacy)
+  // ── Amounts ──────────────────────────────────────────────────────────────
+  companyDisbursedAmount     Decimal  @default(0) @db.Decimal(10, 2)
+  employeeOrAgencyPaidAmount Decimal  @default(0) @db.Decimal(10, 2)
+  // ── Deduction tracking ────────────────────────────────────────────────────
+  status                     String   @default("PENDING") // PENDING | DEDUCTED
+  deductionAmount            Decimal? @db.Decimal(10, 2)
+  deductionDate              DateTime?
+  payrollReference           String?
+  notes                      String?
+  createdById                String?
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+  deletedAt                  DateTime?
+
+  paidByUser  User?                       @relation("FRPaidBy",      fields: [paidById],     references: [id])
+  createdBy   User?                       @relation("FRCreatedBy",   fields: [createdById],  references: [id])
+  attachments FinancialRecordAttachment[]
+
+  @@index([entityType, entityId])
+  @@index([status])
+  @@index([transactionDate])
+  @@index([transactionType])
+  @@map("financial_records")
+}
+
+// Attachments for a single FinancialRecord (receipts, invoices, proof docs, etc.)
+model FinancialRecordAttachment {
+  id                String   @id @default(uuid())
+  financialRecordId String
+  name              String
+  fileUrl           String
+  mimeType          String?
+  fileSize          Int?
+  uploadedById      String?
+  createdAt         DateTime @default(now())
+  deletedAt         DateTime?
+
+  financialRecord FinancialRecord @relation(fields: [financialRecordId], references: [id], onDelete: Cascade)
+  uploadedBy      User?           @relation("FRAttachmentUploadedBy", fields: [uploadedById], references: [id])
+
+  @@map("financial_record_attachments")
 }

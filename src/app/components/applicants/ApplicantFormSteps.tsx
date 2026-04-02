@@ -102,6 +102,7 @@ export interface ApplicantFormData {
   emergencyFirstName: string;
   emergencyLastName: string;
   emergencyRelation: string;
+  emergencyPhoneCode: string;
   emergencyPhone: string;
   emergencyEmail: string;
   passportNumber: string;
@@ -198,6 +199,7 @@ export const EMPTY_FORM: ApplicantFormData = {
   emergencyFirstName: '',
   emergencyLastName: '',
   emergencyRelation: '',
+  emergencyPhoneCode: '',
   emergencyPhone: '',
   emergencyEmail: '',
   passportNumber: '',
@@ -803,7 +805,29 @@ function Step2Contact({ d, u, settings }: { d: ApplicantFormData; u: (fn: (p: Ap
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Phone *</Label>
-            <Input type="tel" placeholder="+xx xxx xxx" value={d.emergencyPhone} onChange={e => set('emergencyPhone')(e.target.value)} />
+            <div className="flex gap-2">
+              <Select value={d.emergencyPhoneCode} onValueChange={set('emergencyPhoneCode')}>
+                <SelectTrigger className="w-36 shrink-0">
+                  {d.emergencyPhoneCode
+                    ? <span className="text-sm flex items-center gap-1.5">
+                        <img src={`https://flagcdn.com/w20/${(PHONE_CODES.find(p => p.code === d.emergencyPhoneCode)?.iso ?? 'un').toLowerCase()}.png`} width={20} height={15} alt="" className="inline-block rounded-sm" />
+                        {d.emergencyPhoneCode}
+                      </span>
+                    : <span className="text-sm text-muted-foreground">Code</span>}
+                </SelectTrigger>
+                <SelectContent className="max-h-72">
+                  {PHONE_CODES.map(c => (
+                    <SelectItem key={`${c.label}-${c.code}`} value={c.code}>
+                      <span className="flex items-center gap-2">
+                        <img src={`https://flagcdn.com/w20/${c.iso.toLowerCase()}.png`} width={20} height={15} alt={c.iso} className="inline-block rounded-sm" />
+                        <span>{c.label} ({c.code})</span>
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Input placeholder="Phone" value={d.emergencyPhone} onChange={e => set('emergencyPhone')(e.target.value)} />
+            </div>
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Email</Label>

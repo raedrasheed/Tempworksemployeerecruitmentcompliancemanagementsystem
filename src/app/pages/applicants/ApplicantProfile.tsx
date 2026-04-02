@@ -15,6 +15,7 @@ import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { toast } from 'sonner';
+import { ApplicantPdfExportButton } from '../../components/applicants/ApplicantPdfExport';
 
 const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1').replace('/api/v1', '');
 
@@ -316,6 +317,7 @@ export function ApplicantProfile() {
               <UserPlus className="w-4 h-4 mr-2" />Convert to Employee
             </Button>
           )}
+          <ApplicantPdfExportButton applicant={applicantData} documents={documents} />
           {canDelete('applicants') && (
             <Button variant="outline" className="text-[#EF4444] border-[#EF4444]" onClick={handleDelete}>
               <Trash2 className="w-4 h-4 mr-2" />Delete

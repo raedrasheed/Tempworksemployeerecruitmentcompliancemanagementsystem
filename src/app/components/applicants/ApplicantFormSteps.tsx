@@ -1,4 +1,5 @@
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
+import ReCAPTCHA from 'react-google-recaptcha';
 import { User, Phone, Shield, CreditCard, Briefcase, GraduationCap, Star, Info, FileText, CheckCircle2, Check, Upload, Plus, X, Trash2 } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -1718,12 +1719,6 @@ function Step10Documents({ uploadedFiles, onFilesChange }: { uploadedFiles: Uplo
   );
 }
 
-function newCaptcha() {
-  const a = Math.floor(Math.random() * 10) + 1;
-  const b = Math.floor(Math.random() * 10) + 1;
-  return { a, b, answer: String(a + b) };
-}
-
 function Step11Review({ d, u, settings, photoFile, existingPhotoUrl, onCaptchaVerified }: {
   d: ApplicantFormData;
   u: (fn: (p: ApplicantFormData) => ApplicantFormData) => void;
@@ -1734,25 +1729,6 @@ function Step11Review({ d, u, settings, photoFile, existingPhotoUrl, onCaptchaVe
 }) {
   const set = (field: keyof ApplicantFormData) => (value: any) => u(prev => ({ ...prev, [field]: value }));
   const previewUrl = photoFile ? URL.createObjectURL(photoFile) : existingPhotoUrl ?? null;
-
-  const [captcha, setCaptcha] = useState(newCaptcha);
-  const [captchaInput, setCaptchaInput] = useState('');
-  const [captchaOk, setCaptchaOk] = useState(false);
-
-  const handleCaptchaChange = useCallback((val: string) => {
-    setCaptchaInput(val);
-    const ok = val.trim() === captcha.answer;
-    setCaptchaOk(ok);
-    onCaptchaVerified?.(ok);
-  }, [captcha.answer, onCaptchaVerified]);
-
-  const refreshCaptcha = () => {
-    const c = newCaptcha();
-    setCaptcha(c);
-    setCaptchaInput('');
-    setCaptchaOk(false);
-    onCaptchaVerified?.(false);
-  };
 
   const rows: { label: string; value: string | undefined }[] = [
     { label: 'Name', value: [d.firstName, d.middleName, d.lastName].filter(Boolean).join(' ') },
@@ -1822,37 +1798,17 @@ function Step11Review({ d, u, settings, photoFile, existingPhotoUrl, onCaptchaVe
         </div>
       </div>
 
-      {/* CAPTCHA */}
+      {/* Google reCAPTCHA */}
       <div className="p-5 border-2 border-gray-200 rounded-xl space-y-4">
         <div>
           <h4 className="text-sm font-bold text-gray-800 mb-1">Human Verification</h4>
-          <p className="text-xs text-gray-500">Please solve the equation below to confirm you are human.</p>
+          <p className="text-xs text-gray-500">Please complete the CAPTCHA below to confirm you are human.</p>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center justify-center w-44 h-14 bg-gray-100 border-2 border-gray-300 rounded-lg select-none">
-            <span className="text-xl font-bold text-gray-700 tracking-widest font-mono">{captcha.a} + {captcha.b} = ?</span>
-          </div>
-          <div className="space-y-1 flex-1">
-            <Label className="text-xs">Your answer *</Label>
-            <div className="flex gap-2">
-              <Input
-                type="number"
-                placeholder="Enter answer"
-                value={captchaInput}
-                onChange={e => handleCaptchaChange(e.target.value)}
-                className={captchaInput ? (captchaOk ? 'border-green-400 focus-visible:ring-green-400' : 'border-red-400 focus-visible:ring-red-400') : ''}
-              />
-              <button type="button" onClick={refreshCaptcha} className="px-3 py-2 text-xs text-gray-500 border rounded-md hover:bg-gray-50 shrink-0" title="New question">↺</button>
-            </div>
-          </div>
-          <div className="w-8 shrink-0">
-            {captchaInput && (captchaOk
-              ? <CheckCircle2 className="w-6 h-6 text-green-500" />
-              : <X className="w-6 h-6 text-red-400" />
-            )}
-          </div>
-        </div>
-        {captchaOk && <p className="text-xs text-green-600 font-medium">✓ Verified — you may now submit your application.</p>}
+        <ReCAPTCHA
+          sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY ?? '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI'}
+          onChange={token => onCaptchaVerified?.(!!token)}
+          onExpired={() => onCaptchaVerified?.(false)}
+        />
       </div>
     </div>
   );

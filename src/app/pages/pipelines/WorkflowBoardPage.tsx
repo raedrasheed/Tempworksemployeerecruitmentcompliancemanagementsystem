@@ -429,7 +429,7 @@ export function WorkflowBoardPage() {
             <button onClick={load} className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
               <RefreshCw className="w-4 h-4" />
             </button>
-            <Link to={`/dashboard/settings/pipelines/${id}`} className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+            <Link to={`/dashboard/settings/workflows/${id}`} className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
               <Settings2 className="w-4 h-4" />
             </Link>
             <button
@@ -452,7 +452,7 @@ export function WorkflowBoardPage() {
                 <Layers className="w-16 h-16 text-muted-foreground/30 mb-4" />
                 <h3 className="text-lg font-medium text-foreground mb-2">No stages configured</h3>
                 <p className="text-sm text-muted-foreground mb-4">Add stages to this workflow from the settings page.</p>
-                <Link to={`/dashboard/settings/pipelines/${id}`} className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors">
+                <Link to={`/dashboard/settings/workflows/${id}`} className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors">
                   <Settings2 className="w-4 h-4" /> Workflow Settings
                 </Link>
               </div>

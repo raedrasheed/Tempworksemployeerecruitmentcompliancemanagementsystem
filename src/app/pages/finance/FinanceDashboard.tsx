@@ -377,6 +377,7 @@ export function FinanceDashboard() {
                   <tr className="border-b bg-muted/40">
                     <SortHead col="transactionDate" label="Date" sort={filters} onSort={handleSort} />
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">Person</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden md:table-cell">Paid By</th>
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">Type</th>
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden md:table-cell">Description</th>
                     <SortHead col="companyDisbursedAmount" label="Credit (↑)" sort={filters} onSort={handleSort} align="right" className="text-blue-600" />
@@ -407,6 +408,13 @@ export function FinanceDashboard() {
                         >
                           {rec.entityType === 'EMPLOYEE' ? 'Employee' : 'Candidate'}
                         </Badge>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap hidden md:table-cell">
+                        {rec.paidByName
+                          ? rec.paidByName
+                          : rec.paidByUser
+                          ? `${rec.paidByUser.firstName} ${rec.paidByUser.lastName}`
+                          : <span className="italic">—</span>}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap font-medium">{rec.transactionType}</td>
                       <td className="px-4 py-3 max-w-[180px] truncate text-muted-foreground hidden md:table-cell">
@@ -466,7 +474,7 @@ export function FinanceDashboard() {
                     <td colSpan={2} />
                   </tr>
                   <tr className="bg-muted/10">
-                    <td colSpan={9} className="px-4 py-2 text-xs text-muted-foreground">
+                    <td colSpan={10} className="px-4 py-2 text-xs text-muted-foreground">
                       <span className="text-blue-600 font-medium">Credit (↑)</span> = company disbursed &nbsp;·&nbsp;
                       <span className="text-amber-600 font-medium">Debit (↓)</span> = payroll deduction &nbsp;·&nbsp;
                       <span className="text-slate-500">Emp/Agency</span> = paid by employee/agency (informational, excluded from balance)

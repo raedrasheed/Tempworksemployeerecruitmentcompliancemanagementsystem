@@ -145,7 +145,7 @@ function CreatePipelineModal({ onClose, onCreated }: { onClose: () => void; onCr
       onCreated();
       onClose();
     } catch (err: any) {
-      setError(err.message || 'Failed to create pipeline');
+      setError(err.message || 'Failed to create workflow');
     } finally {
       setSaving(false);
     }
@@ -154,7 +154,7 @@ function CreatePipelineModal({ onClose, onCreated }: { onClose: () => void; onCr
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <div className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-md mx-4 p-6">
-        <h2 className="text-lg font-semibold text-foreground mb-4">New Pipeline</h2>
+        <h2 className="text-lg font-semibold text-foreground mb-4">New Workflow</h2>
         {error && <p className="text-sm text-destructive mb-3">{error}</p>}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -194,13 +194,13 @@ function CreatePipelineModal({ onClose, onCreated }: { onClose: () => void; onCr
           <div className="flex items-center gap-4">
             <label className="flex items-center gap-2 cursor-pointer text-sm">
               <input type="checkbox" checked={form.isDefault} onChange={(e) => setForm({ ...form, isDefault: e.target.checked })} className="rounded" />
-              <span className="text-foreground">Set as default pipeline</span>
+              <span className="text-foreground">Set as default workflow</span>
             </label>
           </div>
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose} className="flex-1 border border-border rounded-lg px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors">Cancel</button>
             <button type="submit" disabled={saving} className="flex-1 bg-primary text-primary-foreground rounded-lg px-4 py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors">
-              {saving ? 'Creating...' : 'Create Pipeline'}
+              {saving ? 'Creating...' : 'Create Workflow'}
             </button>
           </div>
         </form>
@@ -247,7 +247,7 @@ export function PipelinesPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this pipeline? This cannot be undone.')) return;
+    if (!confirm('Delete this workflow? This cannot be undone.')) return;
     try { await pipelineApi.delete(id); load(); } catch {}
   };
 
@@ -257,9 +257,9 @@ export function PipelinesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <Layers className="w-6 h-6 text-primary" /> Workflow Pipelines
+            <Layers className="w-6 h-6 text-primary" /> Workflows
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">Named recruitment pipelines that candidates move through stage by stage</p>
+          <p className="text-sm text-muted-foreground mt-1">Named recruitment workflows that candidates move through stage by stage</p>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={() => setShowArchived(!showArchived)} className={`text-sm px-3 py-1.5 rounded-lg border transition-colors ${showArchived ? 'bg-muted text-foreground border-border' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>
@@ -272,7 +272,7 @@ export function PipelinesPage() {
             onClick={() => setShowCreate(true)}
             className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
           >
-            <Plus className="w-4 h-4" /> New Pipeline
+            <Plus className="w-4 h-4" /> New Workflow
           </button>
         </div>
       </div>
@@ -294,13 +294,13 @@ export function PipelinesPage() {
       ) : pipelines.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <Layers className="w-16 h-16 text-muted-foreground/30 mb-4" />
-          <h3 className="text-lg font-medium text-foreground mb-2">No pipelines yet</h3>
-          <p className="text-sm text-muted-foreground mb-6">Create your first recruitment pipeline to start managing candidate progress.</p>
+          <h3 className="text-lg font-medium text-foreground mb-2">No workflows yet</h3>
+          <p className="text-sm text-muted-foreground mb-6">Create your first recruitment workflow to start managing candidate progress.</p>
           <button
             onClick={() => setShowCreate(true)}
             className="flex items-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
           >
-            <Plus className="w-4 h-4" /> Create Pipeline
+            <Plus className="w-4 h-4" /> Create Workflow
           </button>
         </div>
       ) : (

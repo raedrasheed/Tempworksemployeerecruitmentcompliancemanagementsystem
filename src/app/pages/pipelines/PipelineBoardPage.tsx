@@ -285,7 +285,7 @@ function AssignModal({ pipeline, onClose, onAssigned }: { pipeline: any; onClose
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <div className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-sm mx-4 p-5">
-        <h3 className="text-base font-semibold text-foreground mb-3">Assign Candidate to Pipeline</h3>
+        <h3 className="text-base font-semibold text-foreground mb-3">Assign Candidate to Workflow</h3>
         {error && <p className="text-sm text-destructive mb-3">{error}</p>}
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
@@ -451,9 +451,9 @@ export function PipelineBoardPage() {
               <div className="flex flex-col items-center justify-center py-20 w-full text-center">
                 <Layers className="w-16 h-16 text-muted-foreground/30 mb-4" />
                 <h3 className="text-lg font-medium text-foreground mb-2">No stages configured</h3>
-                <p className="text-sm text-muted-foreground mb-4">Add stages to this pipeline from the settings page.</p>
+                <p className="text-sm text-muted-foreground mb-4">Add stages to this workflow from the settings page.</p>
                 <Link to={`/dashboard/settings/pipelines/${id}`} className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors">
-                  <Settings2 className="w-4 h-4" /> Pipeline Settings
+                  <Settings2 className="w-4 h-4" /> Workflow Settings
                 </Link>
               </div>
             ) : (
@@ -491,7 +491,7 @@ export function PipelineBoardPage() {
               ))
             )}
             {columns.every((c: any) => c.candidates.length === 0) && (
-              <div className="text-center py-12 text-muted-foreground text-sm">No candidates in this pipeline yet.</div>
+              <div className="text-center py-12 text-muted-foreground text-sm">No candidates in this workflow yet.</div>
             )}
           </div>
         </div>

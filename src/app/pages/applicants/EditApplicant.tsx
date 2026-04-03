@@ -78,33 +78,52 @@ export function EditApplicant() {
     }
   };
 
+  const buildPayload = () => ({
+    firstName: formData.firstName,
+    middleName: formData.middleName,
+    lastName: formData.lastName,
+    email: formData.email,
+    phone: `${formData.phoneCode} ${formData.phone}`,
+    citizenship: formData.citizenship,
+    gender: formData.gender,
+    dateOfBirth: formData.dateOfBirth,
+    countryOfBirth: formData.countryOfBirth,
+    cityOfBirth: formData.cityOfBirth,
+    hasDrivingLicense: formData.hasDrivingLicense === 'yes',
+    preferredStartDate: formData.preferredStartDate || undefined,
+    availability: formData.availability || 'Immediate',
+    willingToRelocate: formData.willingToRelocate,
+    jobTypeId: formData.jobTypeId || undefined,
+    agencyId: agencyId && agencyId !== 'none' ? agencyId : null,
+    applicationData: formData,
+  });
+
+  const uploadPhotoIfNeeded = async () => {
+    if (!photoFile || !id) return;
+    try {
+      const updated = await applicantsApi.uploadPhoto(id, photoFile);
+      const resolvedUrl = updated.photoUrl?.startsWith('http')
+        ? updated.photoUrl
+        : `${API_BASE}${updated.photoUrl}`;
+      setExistingPhotoUrl(resolvedUrl);
+      setPhotoFile(null);
+    } catch (photoErr: any) {
+      toast.error(`Profile saved but photo upload failed: ${photoErr?.message ?? 'Unknown error'}`);
+      throw photoErr;
+    }
+  };
+
   const handleSave = async () => {
     if (!id) return;
     setSubmitting(true);
     try {
-      const payload = {
-        firstName: formData.firstName,
-        middleName: formData.middleName,
-        lastName: formData.lastName,
-        email: formData.email,
-        phone: `${formData.phoneCode} ${formData.phone}`,
-        citizenship: formData.citizenship,
-        gender: formData.gender,
-        dateOfBirth: formData.dateOfBirth,
-        countryOfBirth: formData.countryOfBirth,
-        cityOfBirth: formData.cityOfBirth,
-        hasDrivingLicense: formData.hasDrivingLicense === 'yes',
-        preferredStartDate: formData.preferredStartDate || undefined,
-        availability: formData.availability || 'Immediate',
-        willingToRelocate: formData.willingToRelocate,
-        jobTypeId: formData.jobTypeId || undefined,
-        agencyId: agencyId && agencyId !== 'none' ? agencyId : null,
-        applicationData: formData,
-      };
-      await applicantsApi.update(id, payload);
+      await applicantsApi.update(id, buildPayload());
+      await uploadPhotoIfNeeded();
       toast.success('Applicant updated successfully');
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to update applicant');
+      if (!err?.message?.includes('photo upload failed')) {
+        toast.error(err?.message || 'Failed to update applicant');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -114,30 +133,14 @@ export function EditApplicant() {
     if (!id) return;
     setSubmitting(true);
     try {
-      const payload = {
-        firstName: formData.firstName,
-        middleName: formData.middleName,
-        lastName: formData.lastName,
-        email: formData.email,
-        phone: `${formData.phoneCode} ${formData.phone}`,
-        citizenship: formData.citizenship,
-        gender: formData.gender,
-        dateOfBirth: formData.dateOfBirth,
-        countryOfBirth: formData.countryOfBirth,
-        cityOfBirth: formData.cityOfBirth,
-        hasDrivingLicense: formData.hasDrivingLicense === 'yes',
-        preferredStartDate: formData.preferredStartDate || undefined,
-        availability: formData.availability || 'Immediate',
-        willingToRelocate: formData.willingToRelocate,
-        jobTypeId: formData.jobTypeId || undefined,
-        agencyId: agencyId && agencyId !== 'none' ? agencyId : null,
-        applicationData: formData,
-      };
-      await applicantsApi.update(id, payload);
+      await applicantsApi.update(id, buildPayload());
+      await uploadPhotoIfNeeded();
       toast.success('Applicant updated successfully');
       navigate(`/dashboard/applicants/${id}`);
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to update applicant');
+      if (!err?.message?.includes('photo upload failed')) {
+        toast.error(err?.message || 'Failed to update applicant');
+      }
     } finally {
       setSubmitting(false);
     }

@@ -1,9 +1,13 @@
 import {
   Controller, Get, Post, Body, Patch, Param, Delete,
-  Query, UseGuards, HttpCode, HttpStatus, Res,
+  Query, UseGuards, HttpCode, HttpStatus, Res, UseInterceptors, UploadedFile, BadRequestException,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam, ApiConsumes } from '@nestjs/swagger';
 import { Response } from 'express';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
+import { v4 as uuidv4 } from 'uuid';
 import { ApplicantsService } from './applicants.service';
 import { CreateApplicantDto } from './dto/create-applicant.dto';
 import { UpdateApplicantDto } from './dto/update-applicant.dto';
@@ -16,6 +20,11 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Public } from '../auth/decorators/public.decorator';
+
+const photoStorage = diskStorage({
+  destination: process.env.UPLOAD_DEST || './uploads',
+  filename: (_req, file, cb) => cb(null, `${uuidv4()}${extname(file.originalname)}`),
+});
 
 @ApiTags('Applicants')
 @ApiBearerAuth('access-token')
@@ -68,6 +77,28 @@ export class ApplicantsController {
   @ApiOperation({ summary: 'Update applicant fields' })
   update(@Param('id') id: string, @Body() dto: UpdateApplicantDto, @CurrentUser() user: any) {
     return this.applicantsService.update(id, dto, user?.id);
+  }
+
+  // ── Photo Upload ──────────────────────────────────────────────────────────────
+
+  @Patch(':id/photo')
+  @Roles('System Admin', 'HR Manager', 'Recruiter', 'Agency Manager')
+  @ApiOperation({ summary: 'Upload or replace applicant photo' })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('photo', {
+    storage: photoStorage,
+    fileFilter: (_req, file, cb) => {
+      if (!['image/jpeg', 'image/jpg', 'image/png', 'image/webp'].includes(file.mimetype)) {
+        return cb(new BadRequestException('Only JPEG, PNG, and WebP images are allowed'), false);
+      }
+      cb(null, true);
+    },
+    limits: { fileSize: 5 * 1024 * 1024 },
+  }))
+  uploadPhoto(@Param('id') id: string, @UploadedFile() file: Express.Multer.File, @CurrentUser() user: any) {
+    if (!file) throw new BadRequestException('No photo file provided');
+    const photoUrl = `/uploads/${file.filename}`;
+    return this.applicantsService.update(id, { photoUrl } as any, user?.id);
   }
 
   // ── Status ────────────────────────────────────────────────────────────────────

@@ -101,11 +101,11 @@ export function LandingPage() {
                       <ArrowRight className="w-5 h-5 ml-2" />
                     </Button>
                   </Link>
-                  <a href="#jobs">
+                  <Link to="/jobs">
                     <Button size="lg" variant="outline" className="px-8 py-6 text-lg">
                       Explore Jobs
                     </Button>
-                  </a>
+                  </Link>
                   <Link to="/login">
                     <Button size="lg" variant="ghost" className="px-8 py-6 text-lg">
                       Login
@@ -394,7 +394,7 @@ export function LandingPage() {
           </div>
 
           <div className="text-center mt-10">
-            <Link to="/apply">
+            <Link to="/jobs">
               <Button size="lg" variant="outline" className="px-8">
                 View All Positions
                 <ArrowRight className="w-5 h-5 ml-2" />
@@ -559,7 +559,7 @@ export function LandingPage() {
               <ul className="space-y-2 text-sm text-gray-400">
                 <li><a href="#about" className="hover:text-white transition-colors">About Us</a></li>
                 <li><a href="#services" className="hover:text-white transition-colors">Our Services</a></li>
-                <li><a href="#jobs" className="hover:text-white transition-colors">Job Opportunities</a></li>
+                <li><Link to="/jobs" className="hover:text-white transition-colors">Job Opportunities</Link></li>
                 <li><a href="#contact" className="hover:text-white transition-colors">Contact</a></li>
               </ul>
             </div>
@@ -572,7 +572,7 @@ export function LandingPage() {
                     Apply Now
                   </Link>
                 </li>
-                <li><a href="#jobs" className="hover:text-white transition-colors">Browse Jobs</a></li>
+                <li><Link to="/jobs" className="hover:text-white transition-colors">Browse Jobs</Link></li>
                 <li>
                   <Link to="/login" className="hover:text-white transition-colors">
                     Candidate Login

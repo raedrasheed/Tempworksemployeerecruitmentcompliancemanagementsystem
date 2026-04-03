@@ -94,6 +94,12 @@ enum AlertSeverity {
   CRITICAL
 }
 
+enum JobAdStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
 enum AlertStatus {
   OPEN
   ACKNOWLEDGED
@@ -199,6 +205,7 @@ model User {
 
   resolvedAlerts    ComplianceAlert[] @relation("ResolvedAlerts")
   updatedSettings   SystemSetting[]
+  jobAdsCreated     JobAd[]           @relation("JobAdsCreated")
 
   @@map("users")
 }
@@ -375,6 +382,10 @@ model Applicant {
   deletedAt               DateTime?
 
   currentWorkflowStageId String?
+
+  // ── Job Ad linkage ────────────────────────────────────────────────────────
+  jobAdId                 String?
+  jobAd                   JobAd?          @relation(fields: [jobAdId], references: [id])
 
   jobType              JobType?       @relation(fields: [jobTypeId], references: [id])
   agency               Agency?        @relation(fields: [agencyId], references: [id])
@@ -746,6 +757,41 @@ model FinancialRecord {
   @@index([transactionDate])
   @@index([transactionType])
   @@map("financial_records")
+}
+
+// ── Job Ads ───────────────────────────────────────────────────────────────────
+//
+// Represents a published/draft job advertisement. Applicants who apply via the
+// public listing are linked through Applicant.jobAdId (nullable FK).
+//
+// STATUS LIFECYCLE: DRAFT → PUBLISHED → ARCHIVED
+// publishedAt is set automatically when status is moved to PUBLISHED.
+model JobAd {
+  id           String      @id @default(uuid())
+  title        String
+  slug         String      @unique
+  category     String
+  description  String      @db.Text
+  city         String
+  country      String
+  contractType String      @default("Full-time")
+  salaryMin    Decimal?    @db.Decimal(10, 2)
+  salaryMax    Decimal?    @db.Decimal(10, 2)
+  currency     String      @default("GBP")
+  status       JobAdStatus @default(DRAFT)
+  publishedAt  DateTime?
+  createdById  String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  deletedAt    DateTime?
+
+  createdBy  User?       @relation("JobAdsCreated", fields: [createdById], references: [id])
+  applicants Applicant[]
+
+  @@index([status])
+  @@index([country])
+  @@index([category])
+  @@map("job_ads")
 }
 
 // Attachments for a single FinancialRecord (receipts, invoices, proof docs, etc.)

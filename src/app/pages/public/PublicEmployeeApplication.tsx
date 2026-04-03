@@ -1,12 +1,15 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 import { Briefcase, ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { toast } from 'sonner';
-import { publicApplicationApi, settingsApi } from '../../services/api';
+import { publicApplicationApi, settingsApi, publicJobAdsApi } from '../../services/api';
 import { ApplicantFormSteps, EMPTY_FORM, getVisibleTabs, StepIndicator, FormSettings, DEFAULT_FORM_SETTINGS, ApplicantFormData } from '../../components/applicants/ApplicantFormSteps';
 
 export function PublicEmployeeApplication() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const jobAdId = searchParams.get('jobAdId') || undefined;
+  const [jobAd, setJobAd] = useState<{ id: string; title: string; city: string; country: string } | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<ApplicantFormData>(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
@@ -16,6 +19,16 @@ export function PublicEmployeeApplication() {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
 
   const visibleTabs = useMemo(() => getVisibleTabs(formData), [formData.hasDrivingLicense]);
+
+  useEffect(() => {
+    // If coming from a job ad listing, pre-fetch the ad details for display
+    if (jobAdId) {
+      publicJobAdsApi.getBySlug(jobAdId)
+        .catch(() => {
+          // jobAdId might be a UUID not a slug — that's fine, just skip display
+        });
+    }
+  }, [jobAdId]);
 
   useEffect(() => {
     Promise.all([
@@ -79,6 +92,7 @@ export function PublicEmployeeApplication() {
         preferredLocations: formData.preferredLocations || undefined,
         salaryExpectation: formData.salaryExpectation || undefined,
         jobTypeId: formData.jobTypeId || undefined,
+        jobAdId: jobAdId || undefined,
         applicationData: formData,
       };
 
@@ -131,6 +145,18 @@ export function PublicEmployeeApplication() {
           </Link>
         </div>
       </header>
+
+      {jobAdId && (
+        <div className="bg-blue-50 border-b border-blue-100">
+          <div className="max-w-5xl mx-auto px-6 py-3 flex items-center gap-2 text-sm text-blue-700">
+            <Briefcase className="w-4 h-4 flex-shrink-0" />
+            <span>
+              Applying for a specific position.{' '}
+              <Link to="/jobs" className="underline hover:text-blue-900">Browse all jobs</Link>
+            </span>
+          </div>
+        </div>
+      )}
 
       <div className="bg-white border-b">
         <div className="max-w-5xl mx-auto px-6 py-5">

@@ -19,6 +19,7 @@ export class ApplicantsService {
       jobType: { select: { id: true, name: true } },
       agency: { select: { id: true, name: true } },
       currentWorkflowStage: { select: { id: true, name: true, color: true, order: true } },
+      jobAd: { select: { id: true, title: true, slug: true, city: true, country: true, status: true } },
     };
   }
 

@@ -42,6 +42,8 @@ export class CreateApplicantDto {
   @ApiPropertyOptional({ enum: ApplicantStatusEnum }) @IsOptional() @IsEnum(ApplicantStatusEnum) status?: ApplicantStatusEnum;
   @ApiPropertyOptional() @IsOptional() @IsUUID() jobTypeId?: string;
   @ApiPropertyOptional() @IsOptional() @IsUUID() agencyId?: string;
+  @ApiPropertyOptional({ description: 'Job ad the applicant applied from (nullable FK to job_ads)' })
+  @IsOptional() @IsString() jobAdId?: string;
 
   // ── Legacy fields (kept for backward compat with old form) ──────────────────
   @ApiPropertyOptional({ example: 'UK Citizen' }) @IsOptional() @IsString() residencyStatus?: string;

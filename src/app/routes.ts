@@ -63,11 +63,17 @@ import { JobTypes } from './pages/settings/JobTypes';
 import { Profile } from './pages/profile/Profile';
 import { ChangePassword } from './pages/profile/ChangePassword';
 
+// Job Ads dashboard pages
+import { JobAdsList } from './pages/job-ads/JobAdsList';
+import { JobAdForm } from './pages/job-ads/JobAdForm';
+
 // Public pages
 import { LandingPage } from './pages/public/LandingPage';
 import { LoginPage } from './pages/public/LoginPage';
 import { PublicEmployeeApplication } from './pages/public/PublicEmployeeApplication';
 import { ApplicationSuccess } from './pages/public/ApplicationSuccess';
+import { JobListings } from './pages/public/JobListings';
+import { JobDetail } from './pages/public/JobDetail';
 
 export const router = createBrowserRouter([
   // Public routes (no MainLayout)
@@ -75,6 +81,8 @@ export const router = createBrowserRouter([
   { path: '/login', Component: LoginPage },
   { path: '/apply', Component: PublicEmployeeApplication },
   { path: '/application-success', Component: ApplicationSuccess },
+  { path: '/jobs', Component: JobListings },
+  { path: '/jobs/:slug', Component: JobDetail },
   
   // Protected routes (with MainLayout)
   {
@@ -148,6 +156,11 @@ export const router = createBrowserRouter([
       
       // Finance routes
       { path: 'finance', Component: FinanceDashboard },
+
+      // Job Ads routes
+      { path: 'job-ads', Component: JobAdsList },
+      { path: 'job-ads/new', Component: JobAdForm },
+      { path: 'job-ads/:id/edit', Component: JobAdForm },
 
       // System Logs routes
       { path: 'logs', Component: LogsDashboard },

@@ -17,6 +17,7 @@ import {
   ChevronLeft,
   ChevronRight,
   DollarSign,
+  Megaphone,
 } from 'lucide-react';
 import { cn } from '../ui/utils';
 import { useAuthContext } from '../../contexts/AuthContext';
@@ -33,6 +34,7 @@ const allNavigationItems = [
   { icon: Building2,       label: 'Agencies',              path: '/dashboard/agencies',         permission: 'agencies:read' },
   { icon: BarChart3,       label: 'Reports',               path: '/dashboard/reports',          permission: 'reports:read' },
   { icon: DollarSign,     label: 'Finance',               path: '/dashboard/finance',          permission: 'finance:read', roles: ['System Admin', 'HR Manager', 'Finance'] },
+  { icon: Megaphone,      label: 'Job Ads',               path: '/dashboard/job-ads',          permission: 'job-ads:read', roles: ['System Admin', 'HR Manager', 'Recruiter'] },
   { icon: Bell,            label: 'Notifications',         path: '/dashboard/notifications',    permission: 'notifications:read' },
   { icon: UserCog,         label: 'Users',                 path: '/dashboard/users',            permission: 'users:read' },
   { icon: Shield,          label: 'Roles & Permissions',   path: '/dashboard/roles',            permission: 'roles:read' },

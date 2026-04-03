@@ -750,3 +750,55 @@ export const financeApi = {
     return res.blob();
   },
 };
+
+// ─── Job Ads API (Dashboard — authenticated) ──────────────────────────────────
+
+export const jobAdsApi = {
+  // Constants (statuses, categories, contract types, currencies)
+  getConstants: () => apiFetch<any>('/job-ads/constants'),
+
+  // List / filter (paginated)
+  list: (params?: Record<string, any>) => {
+    const qs = params ? '?' + new URLSearchParams(
+      Object.fromEntries(Object.entries(params).filter(([, v]) => v != null && v !== '')),
+    ).toString() : '';
+    return apiFetch<PaginatedResponse<any>>(`/job-ads${qs}`);
+  },
+
+  // Single by ID
+  get: (id: string) => apiFetch<any>(`/job-ads/${id}`),
+
+  // Create
+  create: (data: Record<string, any>) =>
+    apiFetch<any>('/job-ads', { method: 'POST', body: JSON.stringify(data) }),
+
+  // Update (partial)
+  update: (id: string, data: Record<string, any>) =>
+    apiFetch<any>(`/job-ads/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  // Soft-delete
+  delete: (id: string) =>
+    apiFetch<any>(`/job-ads/${id}`, { method: 'DELETE' }),
+};
+
+// ─── Public Job Ads API (no auth required) ────────────────────────────────────
+
+export const publicJobAdsApi = {
+  // List published listings
+  list: (params?: Record<string, any>) => {
+    const qs = params ? '?' + new URLSearchParams(
+      Object.fromEntries(Object.entries(params).filter(([, v]) => v != null && v !== '')),
+    ).toString() : '';
+    return fetch(`${API_URL}/public/jobs${qs}`).then(async res => {
+      if (!res.ok) throw new Error('Failed to load job listings');
+      return res.json() as Promise<PaginatedResponse<any>>;
+    });
+  },
+
+  // Single by slug
+  getBySlug: (slug: string) =>
+    fetch(`${API_URL}/public/jobs/${slug}`).then(async res => {
+      if (!res.ok) throw new Error('Job listing not found');
+      return res.json() as Promise<any>;
+    }),
+};

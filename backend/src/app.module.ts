@@ -17,6 +17,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { SettingsModule } from './settings/settings.module';
 import { LogsModule } from './logs/logs.module';
 import { FinanceModule } from './finance/finance.module';
+import { JobAdsModule } from './job-ads/job-ads.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { FinanceModule } from './finance/finance.module';
     SettingsModule,
     LogsModule,
     FinanceModule,
+    JobAdsModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

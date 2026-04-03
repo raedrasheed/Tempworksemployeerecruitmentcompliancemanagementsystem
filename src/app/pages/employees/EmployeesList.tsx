@@ -244,11 +244,17 @@ export function EmployeesList() {
                   <TableRow key={driver.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <img
-                          src={driver.photo || `https://api.dicebear.com/7.x/avataaars/svg?seed=${driver.firstName}`}
-                          alt={driver.firstName}
-                          className="w-10 h-10 rounded-full"
-                        />
+                        {driver.photoUrl ? (
+                          <img
+                            src={driver.photoUrl.startsWith('http') ? driver.photoUrl : `${(import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1').replace('/api/v1', '')}${driver.photoUrl}`}
+                            alt={driver.firstName}
+                            className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-[#EFF6FF] flex items-center justify-center text-[#2563EB] text-sm font-semibold flex-shrink-0">
+                            {driver.firstName?.[0]}{driver.lastName?.[0]}
+                          </div>
+                        )}
                         <div>
                           <div className="font-medium text-[#0F172A]">
                             {driver.firstName} {driver.lastName}

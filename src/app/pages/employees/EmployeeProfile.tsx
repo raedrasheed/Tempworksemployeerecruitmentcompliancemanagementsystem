@@ -187,8 +187,18 @@ export function EmployeeProfile() {
       <Card>
         <CardContent className="p-6">
           <div className="flex items-start gap-6">
-            <div className="w-24 h-24 rounded-full bg-[#EFF6FF] flex items-center justify-center text-[#2563EB] text-3xl font-semibold">
-              {employee.firstName?.[0]}{employee.lastName?.[0]}
+            <div className="w-24 h-24 rounded-full overflow-hidden flex-shrink-0">
+              {employee.photoUrl ? (
+                <img
+                  src={employee.photoUrl.startsWith('http') ? employee.photoUrl : `${(import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1').replace('/api/v1', '')}${employee.photoUrl}`}
+                  alt={`${employee.firstName} ${employee.lastName}`}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-[#EFF6FF] flex items-center justify-center text-[#2563EB] text-3xl font-semibold">
+                  {employee.firstName?.[0]}{employee.lastName?.[0]}
+                </div>
+              )}
             </div>
             <div className="flex-1">
               <div className="flex items-start justify-between">

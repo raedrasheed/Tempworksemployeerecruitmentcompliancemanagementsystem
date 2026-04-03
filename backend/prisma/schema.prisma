@@ -130,13 +130,15 @@ enum WorkflowCategory {
 }
 
 model Role {
-  id          String    @id @default(uuid())
-  name        String    @unique
-  description String?
-  isSystem    Boolean   @default(false)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  deletedAt   DateTime?
+  id              String    @id @default(uuid())
+  name            String    @unique
+  description     String?
+  isSystem        Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+  deletedBy       String?
+  deletionReason  String?
 
   permissions          RolePermission[]
   users                User[]
@@ -183,6 +185,8 @@ model User {
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
   deletedAt     DateTime?
+  deletedBy     String?
+  deletionReason String?
 
   role   Role   @relation(fields: [roleId], references: [id])
   agency Agency @relation(fields: [agencyId], references: [id])
@@ -219,6 +223,8 @@ model Agency {
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
   deletedAt          DateTime?
+  deletedBy          String?
+  deletionReason     String?
 
   users      User[]
   employees  Employee[]
@@ -261,6 +267,8 @@ model Employee {
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
   deletedAt        DateTime?
+  deletedBy        String?
+  deletionReason   String?
 
   agency         Agency?                 @relation(fields: [agencyId], references: [id])
   workflowStages EmployeeWorkflowStage[]
@@ -375,6 +383,8 @@ model Applicant {
   createdAt               DateTime        @default(now())
   updatedAt               DateTime        @updatedAt
   deletedAt               DateTime?
+  deletedBy               String?
+  deletionReason          String?
 
   currentWorkflowStageId String?
 
@@ -432,19 +442,22 @@ model ApplicantAgencyHistory {
 
 
 model DocumentType {
-  id                String   @id @default(uuid())
-  name              String   @unique
+  id                String    @id @default(uuid())
+  name              String    @unique
   /// Short uppercase code used in business document IDs, e.g. PASS, VISA, TRC.
   /// Generated from the first 4 chars of name if not set explicitly.
   code              String?
   description       String?
   category          String
-  required          Boolean  @default(false)
-  trackExpiry       Boolean  @default(true)
+  required          Boolean   @default(false)
+  trackExpiry       Boolean   @default(true)
   renewalPeriodDays Int?
-  isActive          Boolean  @default(true)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  isActive          Boolean   @default(true)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  deletedAt         DateTime?
+  deletedBy         String?
+  deletionReason    String?
 
   documents    Document[]
   permissions  DocumentTypePermission[]
@@ -481,6 +494,8 @@ model Document {
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
   deletedAt       DateTime?
+  deletedBy       String?
+  deletionReason  String?
 
   documentType     DocumentType     @relation(fields: [documentTypeId], references: [id])
   uploadedBy       User             @relation("UploadedDocuments", fields: [uploadedById], references: [id])
@@ -568,6 +583,8 @@ model Notification {
   relatedEntityId String?
   createdAt       DateTime         @default(now())
   deletedAt       DateTime?
+  deletedBy       String?
+  deletionReason  String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -575,17 +592,19 @@ model Notification {
 }
 
 model AuditLog {
-  id         String    @id @default(uuid())
-  userId     String?
-  userEmail  String?
-  action     String
-  entity     String
-  entityId   String
-  changes    Json?
-  ipAddress  String?
-  userAgent  String?
-  createdAt  DateTime  @default(now())
-  deletedAt  DateTime?
+  id             String    @id @default(uuid())
+  userId         String?
+  userEmail      String?
+  action         String
+  entity         String
+  entityId       String
+  changes        Json?
+  ipAddress      String?
+  userAgent      String?
+  createdAt      DateTime  @default(now())
+  deletedAt      DateTime?
+  deletedBy      String?
+  deletionReason String?
 
   user User? @relation(fields: [userId], references: [id])
 
@@ -641,6 +660,8 @@ model NotificationRule {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   deletedAt       DateTime?
+  deletedBy       String?
+  deletionReason  String?
 
   @@map("notification_rules")
 }
@@ -656,6 +677,8 @@ model Report {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?
+  deletedBy   String?
+  deletionReason String?
 
   filters  ReportFilter[]
   columns  ReportColumn[]
@@ -781,6 +804,8 @@ model FinancialRecord {
   createdAt                  DateTime @default(now())
   updatedAt                  DateTime @updatedAt
   deletedAt                  DateTime?
+  deletedBy                  String?
+  deletionReason             String?
 
   paidByUser  User?                       @relation("FRPaidBy",      fields: [paidById],     references: [id])
   createdBy   User?                       @relation("FRCreatedBy",   fields: [createdById],  references: [id])
@@ -818,6 +843,8 @@ model JobAd {
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
   deletedAt    DateTime?
+  deletedBy    String?
+  deletionReason String?
 
   createdBy  User?       @relation("JobAdsCreated", fields: [createdById], references: [id])
   applicants Applicant[]
@@ -839,6 +866,8 @@ model FinancialRecordAttachment {
   uploadedById      String?
   createdAt         DateTime @default(now())
   deletedAt         DateTime?
+  deletedBy         String?
+  deletionReason    String?
 
   financialRecord FinancialRecord @relation(fields: [financialRecordId], references: [id], onDelete: Cascade)
   uploadedBy      User?           @relation("FRAttachmentUploadedBy", fields: [uploadedById], references: [id])

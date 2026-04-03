@@ -66,6 +66,8 @@ import { ChangePassword } from './pages/profile/ChangePassword';
 // Job Ads dashboard pages
 import { JobAdsList } from './pages/job-ads/JobAdsList';
 import { JobAdForm } from './pages/job-ads/JobAdForm';
+import { DeletedRecords } from './pages/recycle-bin/DeletedRecords';
+import { DatabaseCleanup } from './pages/settings/DatabaseCleanup';
 
 // Public pages
 import { LandingPage } from './pages/public/LandingPage';
@@ -164,7 +166,10 @@ export const router = createBrowserRouter([
 
       // System Logs routes
       { path: 'logs', Component: LogsDashboard },
-      
+
+      // Recycle Bin
+      { path: 'recycle-bin', Component: DeletedRecords },
+
       // Settings routes
       { path: 'settings', Component: Settings },
       { path: 'settings/job-types', Component: JobTypes },
@@ -177,7 +182,8 @@ export const router = createBrowserRouter([
       { path: 'settings/notifications', Component: NotificationRules },
       { path: 'settings/security', Component: SecuritySettings },
       { path: 'settings/color-scheme', Component: ColorScheme },
-      
+      { path: 'settings/database-cleanup', Component: DatabaseCleanup },
+
       // Profile routes
       { path: 'profile', Component: Profile },
       { path: 'profile/change-password', Component: ChangePassword },

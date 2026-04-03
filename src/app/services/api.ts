@@ -830,3 +830,49 @@ export const publicJobAdsApi = {
       return res.json() as Promise<any>;
     }),
 };
+
+// ─── Recycle Bin API ──────────────────────────────────────────────────────────
+
+export const recycleBinApi = {
+  // List deleted records (paginated, filterable)
+  list: (params?: Record<string, any>) => {
+    const qs = params ? '?' + new URLSearchParams(
+      Object.fromEntries(Object.entries(params).filter(([, v]) => v != null && v !== '')),
+    ).toString() : '';
+    return apiFetch<PaginatedResponse<any>>(`/recycle-bin${qs}`);
+  },
+
+  // Count per entity type
+  getCounts: () => apiFetch<Record<string, number>>('/recycle-bin/counts'),
+
+  // Related deleted records for a specific entity
+  getRelated: (entityType: string, id: string) =>
+    apiFetch<any>(`/recycle-bin/${entityType}/${id}/related`),
+
+  // Preview what hard-delete will remove
+  previewHardDelete: (entityType: string, id: string) =>
+    apiFetch<any>(`/recycle-bin/${entityType}/${id}/preview-hard-delete`),
+
+  // Restore a record (optionally with related)
+  restore: (entityType: string, id: string, data: { withRelated?: boolean; reason?: string }) =>
+    apiFetch<any>(`/recycle-bin/${entityType}/${id}/restore`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  // Permanently hard-delete a record
+  hardDelete: (entityType: string, id: string, data: { reason?: string }) =>
+    apiFetch<any>(`/recycle-bin/${entityType}/${id}`, {
+      method: 'DELETE',
+      body: JSON.stringify(data),
+    }),
+
+  // Database cleanup
+  cleanupPreview: () => apiFetch<any>('/recycle-bin/cleanup/preview'),
+
+  cleanupExecute: (data: { confirmPhrase: string; reason?: string; clearAuditLogs?: boolean }) =>
+    apiFetch<any>('/recycle-bin/cleanup/execute', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+};

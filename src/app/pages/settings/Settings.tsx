@@ -1,5 +1,6 @@
 import { Link } from 'react-router';
-import { FileType, Bell, Shield, Activity, GitBranch, Briefcase, Palette } from 'lucide-react';
+import { FileType, Bell, Shield, Activity, GitBranch, Briefcase, Palette, Trash2 } from 'lucide-react';
+import { useAuthContext } from '../../contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
@@ -7,6 +8,9 @@ import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 
 export function Settings() {
+  const { user } = useAuthContext();
+  const isAdmin = user?.role === 'System Admin';
+
   const settingsCategories = [
     {
       icon: Briefcase,
@@ -108,6 +112,28 @@ export function Settings() {
             </Link>
           );
         })}
+
+        {/* Database Cleanup — System Admin only */}
+        {isAdmin && (
+          <Link to="/dashboard/settings/database-cleanup">
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer border-red-200 hover:border-red-400">
+              <CardHeader>
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-lg bg-red-100 flex items-center justify-center">
+                    <Trash2 className="w-6 h-6 text-red-600" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="text-red-800">Database Cleanup</CardTitle>
+                      <Badge className="bg-red-600">Danger Zone</Badge>
+                    </div>
+                    <CardDescription>Reset business data while preserving admin accounts</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+            </Card>
+          </Link>
+        )}
       </div>
 
       {/* Log Retention Policy */}

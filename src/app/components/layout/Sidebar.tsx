@@ -18,6 +18,7 @@ import {
   ChevronRight,
   DollarSign,
   Megaphone,
+  Trash2,
 } from 'lucide-react';
 import { cn } from '../ui/utils';
 import { useAuthContext } from '../../contexts/AuthContext';
@@ -39,6 +40,7 @@ const allNavigationItems = [
   { icon: UserCog,         label: 'Users',                 path: '/dashboard/users',            permission: 'users:read' },
   { icon: Shield,          label: 'Roles & Permissions',   path: '/dashboard/roles',            permission: 'roles:read' },
   { icon: Activity,        label: 'System Logs',           path: '/dashboard/logs',             permission: 'logs:read' },
+  { icon: Trash2,          label: 'Deleted Records',       path: '/dashboard/recycle-bin',      permission: 'logs:read', roles: ['System Admin', 'HR Manager', 'Compliance Officer'] },
   { icon: Settings,        label: 'Settings',              path: '/dashboard/settings',         permission: 'settings:read' },
 ];
 

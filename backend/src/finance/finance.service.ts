@@ -70,7 +70,11 @@ export class FinanceService {
       this.prisma.financialRecord.count({ where }),
     ]);
 
-    return PaginatedResponse.create(items, total, page, limit);
+    // Attach entity (applicant / employee) name to each record so the
+    // global dashboard can show who the disbursement belongs to.
+    const enriched = await this.attachEntityNames(items);
+
+    return PaginatedResponse.create(enriched, total, page, limit);
   }
 
   // ── Totals for one person ────────────────────────────────────────────────────
@@ -292,6 +296,7 @@ export class FinanceService {
     // Column definitions — tuned for payroll accountant use
     sheet.columns = [
       { header: 'Record ID',                key: 'id',               width: 18 },
+      { header: 'Name',                     key: 'entityName',       width: 24 },
       { header: 'Entity Type',              key: 'entityType',       width: 12 },
       { header: 'Entity ID',               key: 'entityId',          width: 18 },
       { header: 'Transaction Date',         key: 'transactionDate',  width: 16 },
@@ -325,6 +330,7 @@ export class FinanceService {
     for (const rec of records as any[]) {
       const row = sheet.addRow({
         id:              rec.id,
+        entityName:      rec.entityName ?? '',
         entityType:      rec.entityType,
         entityId:        rec.entityId,
         transactionDate: rec.transactionDate ? new Date(rec.transactionDate).toLocaleDateString() : '',
@@ -395,6 +401,45 @@ export class FinanceService {
   }
 
   // ── Entity resolution ────────────────────────────────────────────────────────
+
+  /**
+   * Batch-resolve entity names for a list of records.
+   * Groups IDs by entityType → one query per type → merges back.
+   * Returns the original records with an added `entityName` string field.
+   */
+  private async attachEntityNames(records: any[]): Promise<any[]> {
+    const applicantIds = [...new Set(
+      records.filter(r => r.entityType === 'APPLICANT').map(r => r.entityId),
+    )];
+    const employeeIds  = [...new Set(
+      records.filter(r => r.entityType === 'EMPLOYEE').map(r => r.entityId),
+    )];
+
+    const [applicants, employees] = await Promise.all([
+      applicantIds.length
+        ? this.prisma.applicant.findMany({
+            where: { id: { in: applicantIds } },
+            select: { id: true, firstName: true, lastName: true },
+          })
+        : [],
+      employeeIds.length
+        ? this.prisma.employee.findMany({
+            where: { id: { in: employeeIds } },
+            select: { id: true, firstName: true, lastName: true },
+          })
+        : [],
+    ]);
+
+    const applicantMap = new Map(applicants.map((a: any) => [a.id, `${a.firstName} ${a.lastName}`]));
+    const employeeMap  = new Map(employees.map((e: any)  => [e.id, `${e.firstName} ${e.lastName}`]));
+
+    return records.map(r => ({
+      ...r,
+      entityName: r.entityType === 'APPLICANT'
+        ? (applicantMap.get(r.entityId) ?? 'Unknown Applicant')
+        : (employeeMap.get(r.entityId)  ?? 'Unknown Employee'),
+    }));
+  }
 
   private async resolveEntityName(entityType: string, entityId: string): Promise<string> {
     if (entityType === 'APPLICANT') {

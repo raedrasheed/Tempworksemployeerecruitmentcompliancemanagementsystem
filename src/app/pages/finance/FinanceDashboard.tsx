@@ -395,10 +395,8 @@ export function FinanceDashboard() {
                       <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{fmtDate(rec.transactionDate)}</td>
                       <td className="px-4 py-3">
                         <div className="font-medium text-sm">
-                          {rec.paidByName
-                            ? rec.paidByName
-                            : rec.paidByUser
-                            ? `${rec.paidByUser.firstName} ${rec.paidByUser.lastName}`
+                          {rec.entityName
+                            ? rec.entityName
                             : <span className="text-muted-foreground italic">—</span>}
                         </div>
                         <Badge

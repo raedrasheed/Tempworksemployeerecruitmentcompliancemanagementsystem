@@ -112,9 +112,24 @@ export class DocumentsService {
     name: string,
     documentTypeName: string,
   ) {
+    // 1. Exact match (case-insensitive)
     let docType = await this.prisma.documentType.findFirst({
       where: { name: { equals: documentTypeName, mode: 'insensitive' } },
     });
+    // 2. Partial/contains match (e.g. "Driving License" matches "Upload Driving License")
+    if (!docType) {
+      docType = await this.prisma.documentType.findFirst({
+        where: { name: { contains: documentTypeName, mode: 'insensitive' } },
+      });
+    }
+    if (!docType && documentTypeName) {
+      const allTypes = await this.prisma.documentType.findMany();
+      // Find the first type whose name appears as a substring of documentTypeName
+      docType = allTypes.find(t =>
+        documentTypeName.toLowerCase().includes(t.name.toLowerCase()),
+      ) ?? null;
+    }
+    // 3. Last resort: first available type
     if (!docType) {
       docType = await this.prisma.documentType.findFirst({ orderBy: { createdAt: 'asc' } });
     }

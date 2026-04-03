@@ -118,9 +118,13 @@ export function PublicEmployeeApplication() {
       const fileItems = uploadedFiles.filter((f: any) => f.file);
       if (fileItems.length > 0 && applicant?.id) {
         const results = await Promise.allSettled(
-          fileItems.map((item: any) =>
-            publicApplicationApi.uploadDocument(applicant.id, item.file!, item.type || item.file!.name, item.type || 'Other'),
-          ),
+          fileItems.map((item: any) => {
+            // Strip leading "Upload " prefix so the name matches DB document types
+            const rawType: string = item.type || item.file!.name;
+            const docTypeName = rawType.replace(/^Upload\s+/i, '').trim() || 'Other';
+            return publicApplicationApi.uploadDocument(applicant.id, item.file!, rawType, docTypeName);
+          }),
+        );
         );
         const failed = results.filter(r => r.status === 'rejected').length;
         if (failed > 0) {

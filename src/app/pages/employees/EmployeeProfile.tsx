@@ -599,11 +599,6 @@ export function EmployeeProfile() {
                     <CardTitle>{assignment.workflow?.name}</CardTitle>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button size="sm" variant="ghost" asChild>
-                      <Link to={`/dashboard/workflows/${assignment.workflowId}`}>
-                        <ChevronRight className="w-4 h-4 mr-1" /> View Board
-                      </Link>
-                    </Button>
                     {canEdit && (
                       <Button size="sm" variant="ghost" onClick={() => setShowAssignWorkflow(true)}>
                         Change

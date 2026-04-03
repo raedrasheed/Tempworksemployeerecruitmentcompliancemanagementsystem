@@ -430,8 +430,8 @@ export class FinanceService {
         : [],
     ]);
 
-    const applicantMap = new Map(applicants.map((a: any) => [a.id, `${a.firstName} ${a.lastName}`]));
-    const employeeMap  = new Map(employees.map((e: any)  => [e.id, `${e.firstName} ${e.lastName}`]));
+    const applicantMap = new Map<string, string>(applicants.map((a: any) => [a.id, `${a.firstName} ${a.lastName}`] as [string, string]));
+    const employeeMap  = new Map<string, string>(employees.map((e: any)  => [e.id, `${e.firstName} ${e.lastName}`] as [string, string]));
 
     return records.map(r => ({
       ...r,

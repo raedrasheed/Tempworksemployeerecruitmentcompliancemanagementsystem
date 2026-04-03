@@ -94,12 +94,6 @@ enum AlertSeverity {
   CRITICAL
 }
 
-enum JobAdStatus {
-  DRAFT
-  PUBLISHED
-  ARCHIVED
-}
-
 enum AlertStatus {
   OPEN
   ACKNOWLEDGED
@@ -778,7 +772,7 @@ model JobAd {
   salaryMin    Decimal?    @db.Decimal(10, 2)
   salaryMax    Decimal?    @db.Decimal(10, 2)
   currency     String      @default("GBP")
-  status       JobAdStatus @default(DRAFT)
+  status       String      @default("DRAFT")  // DRAFT | PUBLISHED | ARCHIVED
   publishedAt  DateTime?
   createdById  String?
   createdAt    DateTime    @default(now())

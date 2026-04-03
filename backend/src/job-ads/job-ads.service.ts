@@ -1,6 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Prisma, JobAdStatus } from '@prisma/client';
 import { CreateJobAdDto } from './dto/create-job-ad.dto';
 import { UpdateJobAdDto } from './dto/update-job-ad.dto';
 import { FilterJobAdsDto } from './dto/filter-job-ads.dto';
@@ -170,7 +169,7 @@ export class JobAdsService {
         salaryMin:    dto.salaryMin  ?? null,
         salaryMax:    dto.salaryMax  ?? null,
         currency:     dto.currency   ?? 'GBP',
-        status:       (dto.status ?? 'DRAFT') as JobAdStatus,
+        status:       dto.status ?? 'DRAFT',
         publishedAt,
         createdById:  userId ?? null,
       },
@@ -208,7 +207,7 @@ export class JobAdsService {
         ...(dto.salaryMin    !== undefined ? { salaryMin:    dto.salaryMin }    : {}),
         ...(dto.salaryMax    !== undefined ? { salaryMax:    dto.salaryMax }    : {}),
         ...(dto.currency     !== undefined ? { currency:     dto.currency }     : {}),
-        ...(dto.status       !== undefined ? { status:       dto.status as JobAdStatus } : {}),
+        ...(dto.status       !== undefined ? { status:       dto.status } : {}),
         slug,
         publishedAt,
       },

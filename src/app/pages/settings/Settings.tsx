@@ -1,5 +1,5 @@
 import { Link } from 'react-router';
-import { FileType, Bell, Shield, Activity, GitBranch, Briefcase, Palette, Trash2 } from 'lucide-react';
+import { FileType, Bell, Shield, Activity, Layers, Briefcase, Palette, Trash2 } from 'lucide-react';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Label } from '../../components/ui/label';
@@ -68,17 +68,17 @@ export function Settings() {
           </Card>
         </Link>
 
-        <Link to="/dashboard/settings/workflow-configuration">
+        <Link to="/dashboard/workflows">
           <Card className="hover:shadow-md transition-shadow cursor-pointer">
             <CardContent className="p-6">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-12 h-12 rounded-lg bg-[#EFF6FF] flex items-center justify-center">
-                  <GitBranch className="w-6 h-6 text-[#2563EB]" />
+                  <Layers className="w-6 h-6 text-[#2563EB]" />
                 </div>
-                <h3 className="font-semibold">Workflow Configuration</h3>
+                <h3 className="font-semibold">Manage Workflows</h3>
               </div>
               <p className="text-sm text-muted-foreground">
-                Configure recruitment workflow stages, requirements, and stage order. Admin only.
+                Create and configure recruitment workflows. Each workflow has its own stages, requirements, and candidate pipeline.
               </p>
               <div className="flex items-center gap-2 mt-4">
                 <Badge className="bg-[#EF4444]">Admin Only</Badge>

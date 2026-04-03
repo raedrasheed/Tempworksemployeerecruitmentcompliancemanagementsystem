@@ -282,19 +282,19 @@ export function WorkflowSettingsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate(`/dashboard/workflows/${id}`)} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+          <button onClick={() => navigate('/dashboard/workflows')} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
             <ArrowLeft className="w-4 h-4" />
           </button>
           <div>
             <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+              <Link to="/dashboard/settings" className="hover:text-foreground transition-colors">Settings</Link>
+              <span>/</span>
               <Link to="/dashboard/workflows" className="hover:text-foreground transition-colors">Workflows</Link>
               <span>/</span>
-              <Link to={`/dashboard/workflows/${id}`} className="hover:text-foreground transition-colors">{pipeline.name}</Link>
-              <span>/</span>
-              <span className="text-foreground">Configuration</span>
+              <span className="text-foreground">{pipeline.name}</span>
             </div>
-            <h1 className="text-3xl font-semibold text-[#0F172A]">Workflow Configuration</h1>
-            <p className="text-muted-foreground mt-1">Configure stages and settings for <strong>{pipeline.name}</strong></p>
+            <h1 className="text-3xl font-semibold text-[#0F172A]">{pipeline.name}</h1>
+            <p className="text-muted-foreground mt-1">Configure stages and requirements for this workflow</p>
           </div>
         </div>
         <div className="flex items-center gap-3">

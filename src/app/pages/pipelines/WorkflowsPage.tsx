@@ -14,7 +14,7 @@ import {
   Flag,
   MoreVertical,
   Trash2,
-  Edit2,
+  Settings2,
 } from 'lucide-react';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -23,12 +23,14 @@ function PipelineCard({
   pipeline,
   stats,
   onSelect,
+  onConfigure,
   onArchive,
   onDelete,
 }: {
   pipeline: any;
   stats: any;
   onSelect: () => void;
+  onConfigure: () => void;
   onArchive: () => void;
   onDelete: () => void;
 }) {
@@ -62,34 +64,52 @@ function PipelineCard({
           )}
         </div>
 
-        {/* Actions menu */}
-        <div className="relative ml-3" onClick={(e) => e.stopPropagation()}>
+        {/* Actions */}
+        <div className="flex items-center gap-1 ml-3" onClick={(e) => e.stopPropagation()}>
+          {/* Configure button — always visible on hover */}
           <button
-            onClick={() => setMenuOpen(!menuOpen)}
-            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted opacity-0 group-hover:opacity-100 transition-opacity"
+            onClick={onConfigure}
+            title="Configure stages"
+            className="p-1.5 rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity"
           >
-            <MoreVertical className="w-4 h-4" />
+            <Settings2 className="w-4 h-4" />
           </button>
-          {menuOpen && (
-            <div className="absolute right-0 mt-1 w-40 bg-popover border border-border rounded-lg shadow-lg z-10 py-1" onMouseLeave={() => setMenuOpen(false)}>
-              <button
-                onClick={() => { setMenuOpen(false); onArchive(); }}
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted"
-              >
-                <Archive className="w-3.5 h-3.5" /> Archive
-              </button>
-              <button
-                onClick={() => { setMenuOpen(false); onDelete(); }}
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-destructive/10"
-              >
-                <Trash2 className="w-3.5 h-3.5" /> Delete
-              </button>
-            </div>
-          )}
+
+          {/* More menu */}
+          <div className="relative">
+            <button
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <MoreVertical className="w-4 h-4" />
+            </button>
+            {menuOpen && (
+              <div className="absolute right-0 mt-1 w-40 bg-popover border border-border rounded-lg shadow-lg z-10 py-1" onMouseLeave={() => setMenuOpen(false)}>
+                <button
+                  onClick={() => { setMenuOpen(false); onConfigure(); }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted"
+                >
+                  <Settings2 className="w-3.5 h-3.5" /> Configure
+                </button>
+                <button
+                  onClick={() => { setMenuOpen(false); onArchive(); }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted"
+                >
+                  <Archive className="w-3.5 h-3.5" /> Archive
+                </button>
+                <button
+                  onClick={() => { setMenuOpen(false); onDelete(); }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-destructive/10"
+                >
+                  <Trash2 className="w-3.5 h-3.5" /> Delete
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Stage count */}
+      {/* Stage pills */}
       <div className="mt-4 flex flex-wrap gap-1.5">
         {(pipeline.stages || []).slice(0, 5).map((s: any) => (
           <span
@@ -100,9 +120,14 @@ function PipelineCard({
             {s.name}
           </span>
         ))}
-        {pipeline.stages?.length > 5 && (
+        {(pipeline.stages?.length ?? 0) > 5 && (
           <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-medium bg-muted text-muted-foreground">
             +{pipeline.stages.length - 5} more
+          </span>
+        )}
+        {(pipeline.stages?.length ?? 0) === 0 && (
+          <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-medium bg-muted text-muted-foreground italic">
+            No stages — click Configure to add
           </span>
         )}
       </div>
@@ -129,7 +154,7 @@ function PipelineCard({
 
 // ─── Create pipeline modal ─────────────────────────────────────────────────
 
-function CreatePipelineModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
+function CreatePipelineModal({ onClose, onCreated }: { onClose: () => void; onCreated: (id: string) => void }) {
   const [form, setForm] = useState({ name: '', description: '', isDefault: false, isPublic: true, color: '#2563EB' });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -141,8 +166,8 @@ function CreatePipelineModal({ onClose, onCreated }: { onClose: () => void; onCr
     if (!form.name.trim()) { setError('Name is required'); return; }
     setSaving(true);
     try {
-      await workflowApi.create(form);
-      onCreated();
+      const created = await workflowApi.create(form);
+      onCreated(created.id);
       onClose();
     } catch (err: any) {
       setError(err.message || 'Failed to create workflow');
@@ -154,7 +179,8 @@ function CreatePipelineModal({ onClose, onCreated }: { onClose: () => void; onCr
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <div className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-md mx-4 p-6">
-        <h2 className="text-lg font-semibold text-foreground mb-4">New Workflow</h2>
+        <h2 className="text-lg font-semibold text-foreground mb-1">New Workflow</h2>
+        <p className="text-sm text-muted-foreground mb-4">After creation you'll be taken to configure its stages.</p>
         {error && <p className="text-sm text-destructive mb-3">{error}</p>}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -200,7 +226,7 @@ function CreatePipelineModal({ onClose, onCreated }: { onClose: () => void; onCr
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose} className="flex-1 border border-border rounded-lg px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors">Cancel</button>
             <button type="submit" disabled={saving} className="flex-1 bg-primary text-primary-foreground rounded-lg px-4 py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors">
-              {saving ? 'Creating...' : 'Create Workflow'}
+              {saving ? 'Creating...' : 'Create & Configure'}
             </button>
           </div>
         </form>
@@ -226,7 +252,6 @@ export function WorkflowsPage() {
     try {
       const data = await workflowApi.list(showArchived);
       setPipelines(data);
-      // load stats in parallel
       const statsResults = await Promise.allSettled(data.map((p: any) => workflowApi.stats(p.id)));
       const map: Record<string, any> = {};
       statsResults.forEach((r, i) => {
@@ -234,7 +259,7 @@ export function WorkflowsPage() {
       });
       setStatsMap(map);
     } catch (err: any) {
-      setError(err.message || 'Failed to load pipelines');
+      setError(err.message || 'Failed to load workflows');
     } finally {
       setLoading(false);
     }
@@ -251,6 +276,11 @@ export function WorkflowsPage() {
     try { await workflowApi.delete(id); load(); } catch {}
   };
 
+  // After creation, go directly to the configuration page
+  const handleCreated = (id: string) => {
+    navigate(`/dashboard/settings/workflows/${id}`);
+  };
+
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
@@ -259,7 +289,9 @@ export function WorkflowsPage() {
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
             <Layers className="w-6 h-6 text-primary" /> Workflows
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">Named recruitment workflows that candidates move through stage by stage</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Recruitment workflows — each has its own stages, requirements, and candidate pipeline.
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={() => setShowArchived(!showArchived)} className={`text-sm px-3 py-1.5 rounded-lg border transition-colors ${showArchived ? 'bg-muted text-foreground border-border' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>
@@ -311,6 +343,7 @@ export function WorkflowsPage() {
               pipeline={p}
               stats={statsMap[p.id]}
               onSelect={() => navigate(`/dashboard/workflows/${p.id}`)}
+              onConfigure={() => navigate(`/dashboard/settings/workflows/${p.id}`)}
               onArchive={() => handleArchive(p.id)}
               onDelete={() => handleDelete(p.id)}
             />
@@ -319,7 +352,10 @@ export function WorkflowsPage() {
       )}
 
       {showCreate && (
-        <CreatePipelineModal onClose={() => setShowCreate(false)} onCreated={load} />
+        <CreatePipelineModal
+          onClose={() => setShowCreate(false)}
+          onCreated={handleCreated}
+        />
       )}
     </div>
   );

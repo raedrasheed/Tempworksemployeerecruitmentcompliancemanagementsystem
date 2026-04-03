@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { ArrowLeft, Save, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, Save, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import { jobAdsApi } from '../../services/api';
 import { Button } from '../../components/ui/button';
@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/ca
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '../../components/ui/select';
+import { COUNTRIES, getFlagEmoji } from '../../data/countries';
 
 interface Constants {
   statuses:      string[];
@@ -186,7 +187,30 @@ export function JobAdForm() {
             </div>
             <div>
               <Label>Country <span className="text-destructive">*</span></Label>
-              <Input value={form.country} onChange={set('country')} placeholder="e.g. Poland" />
+              <Select
+                value={form.country || '__none__'}
+                onValueChange={v => setForm(p => ({ ...p, country: v === '__none__' ? '' : v }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select country">
+                    {form.country
+                      ? (() => {
+                          const c = COUNTRIES.find(x => x.name === form.country);
+                          return c ? `${getFlagEmoji(c.code)} ${c.name}` : form.country;
+                        })()
+                      : 'Select country'
+                    }
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent className="max-h-64 overflow-y-auto">
+                  <SelectItem value="__none__">Select country</SelectItem>
+                  {COUNTRIES.map(c => (
+                    <SelectItem key={c.code} value={c.name}>
+                      {getFlagEmoji(c.code)} {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </CardContent>

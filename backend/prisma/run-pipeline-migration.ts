@@ -3,7 +3,7 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import * as dotenv from 'dotenv';
 
-dotenv.config({ path: join(__dirname, '../../.env') });
+dotenv.config({ path: join(__dirname, '../.env') });
 
 async function main() {
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });

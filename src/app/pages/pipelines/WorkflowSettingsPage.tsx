@@ -69,6 +69,12 @@ export function WorkflowSettingsPage() {
   const [newUserId, setNewUserId] = useState('');
   const [savingReq, setSavingReq] = useState(false);
 
+  // Edit Stage dialog
+  const [isEditStageOpen, setIsEditStageOpen] = useState(false);
+  const [editStageTarget, setEditStageTarget] = useState<Stage | null>(null);
+  const [editStageForm, setEditStageForm] = useState({ name: '', description: '', color: '#6366F1', slaHours: '', requiresApproval: false, isFinal: false });
+  const [savingEditStage, setSavingEditStage] = useState(false);
+
   // Dropdown options
   const [documentTypes, setDocumentTypes] = useState<{ id: string; name: string }[]>([]);
   const [allUsers, setAllUsers] = useState<{ id: string; firstName: string; lastName: string }[]>([]);
@@ -243,6 +249,42 @@ export function WorkflowSettingsPage() {
       alert(e?.message ?? 'Failed to save requirements');
     } finally {
       setSavingReq(false);
+    }
+  };
+
+  // ─── Edit Stage ───────────────────────────────────────────────────────────
+
+  const openEditStage = (stage: Stage) => {
+    setEditStageTarget(stage);
+    setEditStageForm({
+      name: stage.name,
+      description: stage.description,
+      color: stage.color,
+      slaHours: stage.slaHours?.toString() ?? '',
+      requiresApproval: stage.requiresApproval,
+      isFinal: stage.isFinal,
+    });
+    setIsEditStageOpen(true);
+  };
+
+  const handleSaveEditStage = async () => {
+    if (!editStageTarget || !editStageForm.name.trim()) return;
+    setSavingEditStage(true);
+    try {
+      await workflowApi.updateStage(editStageTarget.id, {
+        name: editStageForm.name.trim(),
+        description: editStageForm.description.trim() || undefined,
+        color: editStageForm.color,
+        slaHours: editStageForm.slaHours ? Number(editStageForm.slaHours) : (null as any),
+        requiresApproval: editStageForm.requiresApproval,
+        isFinal: editStageForm.isFinal,
+      });
+      await load();
+      setIsEditStageOpen(false);
+    } catch (e: any) {
+      alert(e?.message ?? 'Failed to save stage');
+    } finally {
+      setSavingEditStage(false);
     }
   };
 
@@ -504,9 +546,15 @@ export function WorkflowSettingsPage() {
                   </div>
 
                   <div className="flex items-center gap-2">
+                    {canEdit('settings') && (
+                      <Button size="sm" variant="outline" onClick={() => openEditStage(stage)}>
+                        <Edit className="w-4 h-4 mr-1" />
+                        Edit Stage
+                      </Button>
+                    )}
                     {stage.isActive && canEdit('settings') && (
                       <Button size="sm" variant="outline" onClick={() => openEditRequirements(stage)}>
-                        <Edit className="w-4 h-4 mr-1" />
+                        <FileText className="w-4 h-4 mr-1" />
                         Edit Requirements
                       </Button>
                     )}
@@ -637,6 +685,81 @@ export function WorkflowSettingsPage() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Stage Dialog */}
+      <Dialog open={isEditStageOpen} onOpenChange={setIsEditStageOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Edit Stage — {editStageTarget?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div>
+              <Label>Stage Name *</Label>
+              <Input
+                value={editStageForm.name}
+                onChange={e => setEditStageForm({ ...editStageForm, name: e.target.value })}
+                placeholder="e.g. Document Collection"
+                className="mt-1.5"
+              />
+            </div>
+            <div>
+              <Label>Description</Label>
+              <Input
+                value={editStageForm.description}
+                onChange={e => setEditStageForm({ ...editStageForm, description: e.target.value })}
+                placeholder="Brief description…"
+                className="mt-1.5"
+              />
+            </div>
+            <div>
+              <Label>Stage Color</Label>
+              <Select value={editStageForm.color} onValueChange={v => setEditStageForm({ ...editStageForm, color: v })}>
+                <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {COLORS.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>SLA (hours, optional)</Label>
+              <Input
+                type="number"
+                min="1"
+                placeholder="e.g. 48"
+                value={editStageForm.slaHours}
+                onChange={e => setEditStageForm({ ...editStageForm, slaHours: e.target.value })}
+                className="mt-1.5"
+              />
+            </div>
+            <div className="flex items-center gap-6">
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={editStageForm.requiresApproval}
+                  onChange={e => setEditStageForm({ ...editStageForm, requiresApproval: e.target.checked })}
+                  className="rounded"
+                />
+                <span>Requires approval</span>
+              </label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={editStageForm.isFinal}
+                  onChange={e => setEditStageForm({ ...editStageForm, isFinal: e.target.checked })}
+                  className="rounded"
+                />
+                <span>Final stage</span>
+              </label>
+            </div>
+            <div className="flex justify-end gap-2 pt-4 border-t">
+              <Button variant="outline" onClick={() => setIsEditStageOpen(false)}>Cancel</Button>
+              <Button onClick={handleSaveEditStage} disabled={savingEditStage || !editStageForm.name.trim()}>
+                {savingEditStage ? 'Saving…' : 'Save Stage'}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 

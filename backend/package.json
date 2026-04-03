@@ -19,7 +19,8 @@
     "db:migrate:recycle-bin": "ts-node prisma/run-recycle-bin-migration.ts",
     "db:migrate:financial-continuity": "ts-node prisma/run-financial-continuity-migration.ts",
     "db:migrate:pipeline": "ts-node prisma/run-pipeline-migration.ts",
-    "db:migrate:rename-workflow": "ts-node prisma/run-rename-migration.ts"
+    "db:migrate:rename-workflow": "ts-node prisma/run-rename-migration.ts",
+    "db:migrate:isactive": "ts-node prisma/run-isactive-migration.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",

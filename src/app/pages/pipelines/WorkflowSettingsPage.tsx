@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router';
-import { workflowApi } from '../../services/api';
+import { workflowApi, settingsApi, usersApi } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -35,6 +35,9 @@ interface Stage {
   slaHours: number | null;
   requiresApproval: boolean;
   isFinal: boolean;
+  isActive: boolean;
+  requiredDocs: { id: string; documentTypeId: string; documentType: { id: string; name: string } }[];
+  assignedUsers: { stageId: string; userId: string; role: string; user: { id: string; firstName: string; lastName: string; email: string } }[];
 }
 
 export function WorkflowSettingsPage() {
@@ -57,13 +60,18 @@ export function WorkflowSettingsPage() {
   const [addForm, setAddForm] = useState({ name: '', description: '', color: '#2563EB', slaHours: '', requiresApproval: false, isFinal: false });
   const [addingStage, setAddingStage] = useState(false);
 
-  // Edit Stage Requirements dialog
+  // Edit Requirements dialog
   const [isEditReqOpen, setIsEditReqOpen] = useState(false);
   const [selectedStage, setSelectedStage] = useState<Stage | null>(null);
-  const [reqForm, setReqForm] = useState<{ name: string; description: string; color: string; slaHours: string; requiresApproval: boolean; isFinal: boolean }>({
-    name: '', description: '', color: '#2563EB', slaHours: '', requiresApproval: false, isFinal: false,
-  });
+  const [reqDocs, setReqDocs] = useState<{ id: string; name: string }[]>([]);
+  const [reqUsers, setReqUsers] = useState<{ id: string; firstName: string; lastName: string }[]>([]);
+  const [newDocId, setNewDocId] = useState('');
+  const [newUserId, setNewUserId] = useState('');
   const [savingReq, setSavingReq] = useState(false);
+
+  // Dropdown options
+  const [documentTypes, setDocumentTypes] = useState<{ id: string; name: string }[]>([]);
+  const [allUsers, setAllUsers] = useState<{ id: string; firstName: string; lastName: string }[]>([]);
 
   const draggedId = useRef<string | null>(null);
 
@@ -86,6 +94,9 @@ export function WorkflowSettingsPage() {
         slaHours: s.slaHours ?? null,
         requiresApproval: s.requiresApproval ?? false,
         isFinal: s.isFinal ?? false,
+        isActive: s.isActive ?? true,
+        requiredDocs: s.requiredDocs ?? [],
+        assignedUsers: s.assignedUsers ?? [],
       }));
       setStages(mapped);
     } catch (e: any) {
@@ -103,12 +114,10 @@ export function WorkflowSettingsPage() {
     if (!addForm.name.trim()) return;
     setAddingStage(true);
     try {
-      const maxOrder = stages.reduce((m, s) => Math.max(m, s.order), 0);
       await workflowApi.addStage(id!, {
         name: addForm.name.trim(),
         description: addForm.description.trim() || undefined,
         color: addForm.color,
-        order: maxOrder + 1,
         slaHours: addForm.slaHours ? Number(addForm.slaHours) : undefined,
         requiresApproval: addForm.requiresApproval,
         isFinal: addForm.isFinal,
@@ -132,6 +141,20 @@ export function WorkflowSettingsPage() {
       setStages(prev => prev.filter(s => s.id !== stageId).map((s, i) => ({ ...s, order: i + 1 })));
     } catch (e: any) {
       alert(e?.message ?? 'Failed to delete stage');
+    }
+  };
+
+  // ─── Toggle Active ────────────────────────────────────────────────────────
+
+  const handleToggleActive = async (stage: Stage) => {
+    const next = !stage.isActive;
+    const verb = next ? 'activate' : 'deactivate';
+    if (!confirm(`Are you sure you want to ${verb} the "${stage.name}" stage?`)) return;
+    try {
+      await workflowApi.updateStage(stage.id, { isActive: next } as any);
+      setStages(prev => prev.map(s => s.id === stage.id ? { ...s, isActive: next } : s));
+    } catch (e: any) {
+      alert(e?.message ?? `Failed to ${verb} stage`);
     }
   };
 
@@ -182,37 +205,42 @@ export function WorkflowSettingsPage() {
     }
   };
 
-  // ─── Edit Stage dialog ────────────────────────────────────────────────────
+  // ─── Open Edit Requirements dialog ───────────────────────────────────────
 
-  const openEditStage = (stage: Stage) => {
+  const openEditRequirements = async (stage: Stage) => {
     setSelectedStage(stage);
-    setReqForm({
-      name: stage.name,
-      description: stage.description,
-      color: stage.color,
-      slaHours: stage.slaHours?.toString() ?? '',
-      requiresApproval: stage.requiresApproval,
-      isFinal: stage.isFinal,
-    });
+    setReqDocs(stage.requiredDocs.map(rd => ({ id: rd.documentType.id, name: rd.documentType.name })));
+    setReqUsers(stage.assignedUsers.map(au => ({ id: au.user.id, firstName: au.user.firstName, lastName: au.user.lastName })));
+    setNewDocId('');
+    setNewUserId('');
     setIsEditReqOpen(true);
+
+    // Fetch dropdown options
+    try {
+      const [docTypes, usersResult] = await Promise.all([
+        settingsApi.getDocumentTypes(),
+        usersApi.list({ limit: 200 }),
+      ]);
+      setDocumentTypes((docTypes ?? []).map((d: any) => ({ id: d.id, name: d.name })));
+      const usersList = Array.isArray(usersResult) ? usersResult : (usersResult?.data ?? []);
+      setAllUsers(usersList.map((u: any) => ({ id: u.id, firstName: u.firstName, lastName: u.lastName })));
+    } catch {
+      // silently fallback
+    }
   };
 
-  const handleSaveStage = async () => {
-    if (!selectedStage || !reqForm.name.trim()) return;
+  const handleSaveRequirements = async () => {
+    if (!selectedStage) return;
     setSavingReq(true);
     try {
       await workflowApi.updateStage(selectedStage.id, {
-        name: reqForm.name.trim(),
-        description: reqForm.description.trim() || undefined,
-        color: reqForm.color,
-        slaHours: reqForm.slaHours ? Number(reqForm.slaHours) : null,
-        requiresApproval: reqForm.requiresApproval,
-        isFinal: reqForm.isFinal,
+        requiredDocTypeIds: reqDocs.map(d => d.id),
+        assignedUserIds: reqUsers.map(u => u.id),
       });
       await load();
       setIsEditReqOpen(false);
     } catch (e: any) {
-      alert(e?.message ?? 'Failed to save stage');
+      alert(e?.message ?? 'Failed to save requirements');
     } finally {
       setSavingReq(false);
     }
@@ -246,6 +274,9 @@ export function WorkflowSettingsPage() {
     );
   }
 
+  const activeCount = stages.filter(s => s.isActive).length;
+  const inactiveCount = stages.filter(s => !s.isActive).length;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -270,7 +301,7 @@ export function WorkflowSettingsPage() {
           {canEdit('settings') && (
             <Button variant="outline" onClick={handleSaveOrder} disabled={saving}>
               <Save className="w-4 h-4 mr-2" />
-              {saving ? 'Saving…' : 'Save Order'}
+              {saving ? 'Saving…' : 'Save Changes'}
             </Button>
           )}
           {canCreate('settings') && (
@@ -353,7 +384,7 @@ export function WorkflowSettingsPage() {
             <div>
               <p className="font-medium text-[#2563EB]">Drag and Drop to Reorder</p>
               <p className="text-sm text-muted-foreground mt-1">
-                Use the drag handle to reorder stages. Click "Save Order" to persist the new order.
+                Use the drag handle to reorder stages. Click "Save Changes" to persist the new order.
               </p>
             </div>
           </div>
@@ -407,7 +438,7 @@ export function WorkflowSettingsPage() {
       <Card>
         <CardHeader>
           <CardTitle>
-            Workflow Stages ({stages.length} stage{stages.length !== 1 ? 's' : ''})
+            Workflow Stages ({activeCount} active{inactiveCount > 0 ? `, ${inactiveCount} inactive` : ''})
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -418,40 +449,54 @@ export function WorkflowSettingsPage() {
               {stages.map((stage) => (
                 <div
                   key={stage.id}
-                  draggable
-                  onDragStart={() => handleDragStart(stage.id)}
-                  onDragOver={(e) => handleDragOver(e, stage.id)}
+                  draggable={stage.isActive}
+                  onDragStart={() => stage.isActive && handleDragStart(stage.id)}
+                  onDragOver={(e) => stage.isActive && handleDragOver(e, stage.id)}
                   onDragEnd={handleDragEnd}
-                  className={`flex items-center gap-4 p-4 border rounded-lg hover:bg-[#F8FAFC] cursor-move transition-colors ${draggedId.current === stage.id ? 'opacity-50' : ''}`}
+                  className={`flex items-center gap-4 p-4 border rounded-lg transition-colors ${
+                    stage.isActive
+                      ? 'hover:bg-[#F8FAFC] cursor-move'
+                      : 'bg-[#F8FAFC] opacity-60 cursor-default'
+                  } ${draggedId.current === stage.id ? 'opacity-50' : ''}`}
                 >
-                  <GripVertical className="w-5 h-5 flex-shrink-0 text-muted-foreground" />
+                  <GripVertical className={`w-5 h-5 flex-shrink-0 ${stage.isActive ? 'text-muted-foreground' : 'text-muted-foreground/30'}`} />
 
                   <div className="flex items-center gap-3 flex-1">
-                    <div className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-semibold" style={{ backgroundColor: stage.color }}>
+                    <div
+                      className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-semibold"
+                      style={{ backgroundColor: stage.isActive ? stage.color : '#94A3B8' }}
+                    >
                       {stage.order}
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-semibold text-[#0F172A]">{stage.name}</h3>
-                        <Badge variant="outline" style={{ borderColor: stage.color, color: stage.color }}>
+                        <h3 className={`font-semibold ${stage.isActive ? 'text-[#0F172A]' : 'text-muted-foreground'}`}>
+                          {stage.name}
+                        </h3>
+                        <Badge variant="outline" style={stage.isActive ? { borderColor: stage.color, color: stage.color } : {}}>
                           Stage {stage.order}
                         </Badge>
                         {stage.isFinal && (
                           <Badge variant="outline" className="border-emerald-500 text-emerald-600 bg-emerald-50">Final</Badge>
                         )}
+                        {!stage.isActive && (
+                          <Badge variant="outline" className="border-[#94A3B8] text-[#64748B] bg-[#F1F5F9]">Inactive</Badge>
+                        )}
                       </div>
                       {stage.description && <p className="text-sm text-muted-foreground mb-2">{stage.description}</p>}
                       <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <FileText className="w-4 h-4" />
+                          <span>{stage.requiredDocs.length} documents</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <CheckCircle className="w-4 h-4" />
+                          <span>{stage.assignedUsers.length} approvals</span>
+                        </div>
                         {stage.slaHours && (
                           <div className="flex items-center gap-1">
                             <Clock className="w-4 h-4" />
                             <span>{stage.slaHours}h SLA</span>
-                          </div>
-                        )}
-                        {stage.requiresApproval && (
-                          <div className="flex items-center gap-1">
-                            <CheckCircle className="w-4 h-4" />
-                            <span>Requires approval</span>
                           </div>
                         )}
                       </div>
@@ -459,10 +504,24 @@ export function WorkflowSettingsPage() {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    {canEdit('settings') && (
-                      <Button size="sm" variant="outline" onClick={() => openEditStage(stage)}>
+                    {stage.isActive && canEdit('settings') && (
+                      <Button size="sm" variant="outline" onClick={() => openEditRequirements(stage)}>
                         <Edit className="w-4 h-4 mr-1" />
-                        Edit Stage
+                        Edit Requirements
+                      </Button>
+                    )}
+                    {canEdit('settings') && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleToggleActive(stage)}
+                        className={stage.isActive
+                          ? 'border-[#F59E0B] text-[#F59E0B] hover:bg-[#FEF3C7]'
+                          : 'border-[#22C55E] text-[#22C55E] hover:bg-[#F0FDF4]'}
+                      >
+                        {stage.isActive
+                          ? <><PowerOff className="w-4 h-4 mr-1" />Deactivate</>
+                          : <><Power className="w-4 h-4 mr-1" />Activate</>}
                       </Button>
                     )}
                     {canDelete('settings') && (
@@ -478,51 +537,106 @@ export function WorkflowSettingsPage() {
         </CardContent>
       </Card>
 
-      {/* Edit Stage Dialog */}
+      {/* Edit Requirements Dialog */}
       <Dialog open={isEditReqOpen} onOpenChange={setIsEditReqOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[700px]">
           <DialogHeader>
-            <DialogTitle>Edit Stage — {selectedStage?.name}</DialogTitle>
+            <DialogTitle>Edit Stage Requirements - {selectedStage?.name}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 pt-4">
-            <div>
-              <Label>Stage Name</Label>
-              <Input value={reqForm.name} onChange={e => setReqForm({ ...reqForm, name: e.target.value })} className="mt-1.5" />
+          {selectedStage && (
+            <div className="space-y-6 pt-4">
+              {/* Required Documents */}
+              <div>
+                <Label>Required Documents</Label>
+                <div className="space-y-2 mt-2">
+                  {reqDocs.map((doc, idx) => (
+                    <div key={doc.id} className="flex items-center gap-2">
+                      <div className="flex-1 px-3 py-2 border rounded-md bg-muted/40 text-sm">{doc.name}</div>
+                      <Button size="sm" variant="ghost" onClick={() => setReqDocs(prev => prev.filter((_, i) => i !== idx))}>
+                        <Trash2 className="w-4 h-4 text-[#EF4444]" />
+                      </Button>
+                    </div>
+                  ))}
+                  <div className="flex items-center gap-2">
+                    <Select value={newDocId} onValueChange={setNewDocId}>
+                      <SelectTrigger className="flex-1">
+                        <SelectValue placeholder="Select a document type…" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {documentTypes.length === 0 ? (
+                          <SelectItem value="__none__" disabled>No document types configured</SelectItem>
+                        ) : (
+                          documentTypes
+                            .filter(dt => !reqDocs.some(d => d.id === dt.id))
+                            .map(dt => <SelectItem key={dt.id} value={dt.id}>{dt.name}</SelectItem>)
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        const dt = documentTypes.find(d => d.id === newDocId);
+                        if (dt) { setReqDocs(prev => [...prev, dt]); setNewDocId(''); }
+                      }}
+                      disabled={!newDocId || newDocId === '__none__'}
+                    >
+                      <Plus className="w-4 h-4 mr-1" /> Add Document
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Required Approvals */}
+              <div>
+                <Label>Required Approvals</Label>
+                <div className="space-y-2 mt-2">
+                  {reqUsers.map((u, idx) => (
+                    <div key={u.id} className="flex items-center gap-2">
+                      <div className="flex-1 px-3 py-2 border rounded-md bg-muted/40 text-sm">{u.firstName} {u.lastName}</div>
+                      <Button size="sm" variant="ghost" onClick={() => setReqUsers(prev => prev.filter((_, i) => i !== idx))}>
+                        <Trash2 className="w-4 h-4 text-[#EF4444]" />
+                      </Button>
+                    </div>
+                  ))}
+                  <div className="flex items-center gap-2">
+                    <Select value={newUserId} onValueChange={setNewUserId}>
+                      <SelectTrigger className="flex-1">
+                        <SelectValue placeholder="Select a user…" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {allUsers.length === 0 ? (
+                          <SelectItem value="__none__" disabled>No users available</SelectItem>
+                        ) : (
+                          allUsers
+                            .filter(u => !reqUsers.some(r => r.id === u.id))
+                            .map(u => <SelectItem key={u.id} value={u.id}>{u.firstName} {u.lastName}</SelectItem>)
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        const u = allUsers.find(x => x.id === newUserId);
+                        if (u) { setReqUsers(prev => [...prev, u]); setNewUserId(''); }
+                      }}
+                      disabled={!newUserId || newUserId === '__none__'}
+                    >
+                      <Plus className="w-4 h-4 mr-1" /> Add Approval
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4 border-t">
+                <Button variant="outline" onClick={() => setIsEditReqOpen(false)}>Cancel</Button>
+                <Button onClick={handleSaveRequirements} disabled={savingReq}>
+                  {savingReq ? 'Saving…' : 'Save Requirements'}
+                </Button>
+              </div>
             </div>
-            <div>
-              <Label>Description</Label>
-              <Input value={reqForm.description} onChange={e => setReqForm({ ...reqForm, description: e.target.value })} className="mt-1.5" placeholder="Brief description…" />
-            </div>
-            <div>
-              <Label>Stage Color</Label>
-              <Select value={reqForm.color} onValueChange={v => setReqForm({ ...reqForm, color: v })}>
-                <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {COLORS.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>SLA (hours, optional)</Label>
-              <Input type="number" min="1" placeholder="e.g., 48" value={reqForm.slaHours} onChange={e => setReqForm({ ...reqForm, slaHours: e.target.value })} className="mt-1.5" />
-            </div>
-            <div className="flex items-center gap-6">
-              <label className="flex items-center gap-2 text-sm cursor-pointer">
-                <input type="checkbox" checked={reqForm.requiresApproval} onChange={e => setReqForm({ ...reqForm, requiresApproval: e.target.checked })} className="rounded" />
-                <span>Requires approval</span>
-              </label>
-              <label className="flex items-center gap-2 text-sm cursor-pointer">
-                <input type="checkbox" checked={reqForm.isFinal} onChange={e => setReqForm({ ...reqForm, isFinal: e.target.checked })} className="rounded" />
-                <span>Final stage</span>
-              </label>
-            </div>
-            <div className="flex justify-end gap-2 pt-4 border-t">
-              <Button variant="outline" onClick={() => setIsEditReqOpen(false)}>Cancel</Button>
-              <Button onClick={handleSaveStage} disabled={savingReq || !reqForm.name.trim()}>
-                {savingReq ? 'Saving…' : 'Save Stage'}
-              </Button>
-            </div>
-          </div>
+          )}
         </DialogContent>
       </Dialog>
 

@@ -17,6 +17,7 @@ export class CreateWorkflowStageDto {
   @ApiPropertyOptional() @IsOptional() slaHours?: number;
   @ApiPropertyOptional() @IsOptional() @IsBoolean() requiresApproval?: boolean;
   @ApiPropertyOptional() @IsOptional() @IsBoolean() isFinal?: boolean;
+  @ApiPropertyOptional() @IsOptional() @IsBoolean() isActive?: boolean;
   @ApiPropertyOptional() @IsOptional() @IsArray() @IsUUID('4', { each: true }) assignedUserIds?: string[];
   @ApiPropertyOptional() @IsOptional() @IsArray() @IsUUID('4', { each: true }) requiredDocTypeIds?: string[];
 }

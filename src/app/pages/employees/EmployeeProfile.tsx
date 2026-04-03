@@ -44,9 +44,14 @@ export function EmployeeProfile() {
   const [assignWorkflowId, setAssignWorkflowId] = useState('');
   const [assignWorkflowNotes, setAssignWorkflowNotes] = useState('');
   const [assigningWorkflow, setAssigningWorkflow] = useState(false);
+  const [selectedAssignmentId, setSelectedAssignmentId] = useState<string | null>(null);
 
   const loadRecruitmentWorkflows = () => {
-    workflowApi.getEmployeeAssignments(id!).then(res => setRecruitmentWorkflows(Array.isArray(res) ? res : [])).catch(() => {});
+    workflowApi.getEmployeeAssignments(id!).then(res => {
+      const list = Array.isArray(res) ? res : [];
+      setRecruitmentWorkflows(list);
+      setSelectedAssignmentId(prev => prev ?? (list.find((a: any) => a.status === 'ACTIVE') ?? list[0])?.id ?? null);
+    }).catch(() => {});
   };
 
   const loadWorkflow = () => {
@@ -201,6 +206,7 @@ export function EmployeeProfile() {
 
   const completedStages = workflow.filter(s => s.status === 'COMPLETED').length;
   const workflowProgress = workflow.length > 0 ? (completedStages / workflow.length) * 100 : 0;
+  const selectedAssignment = recruitmentWorkflows.find(a => a.id === selectedAssignmentId) ?? null;
 
   if (loading) return <div className="p-8 text-muted-foreground">Loading...</div>;
   if (!employee) return <div className="p-8">Employee not found</div>;
@@ -509,94 +515,9 @@ export function EmployeeProfile() {
         </TabsContent>
 
         {/* Workflow */}
-        <TabsContent value="workflow">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Recruitment Workflow Progress</CardTitle>
-                  <div className="flex items-center gap-4 mt-2">
-                    <Progress value={workflowProgress} className="flex-1" />
-                    <span className="text-sm font-medium">{Math.round(workflowProgress)}%</span>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {workflow.length === 0 ? (
-                    <p className="text-muted-foreground">No workflow stages configured.</p>
-                  ) : (
-                    <div className="space-y-4">
-                      {workflow.map((ws: any, index: number) => {
-                        const isCompleted = ws.status === 'COMPLETED';
-                        const isCurrent = ws.status === 'IN_PROGRESS';
-                        return (
-                          <div key={ws.id} className="flex items-start gap-4">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                              isCompleted ? 'bg-[#22C55E] text-white' :
-                              isCurrent   ? 'bg-[#2563EB] text-white' :
-                              'bg-[#F8FAFC] text-muted-foreground'
-                            }`}>
-                              {index + 1}
-                            </div>
-                            <div className="flex-1 pb-4 border-b last:border-0">
-                              <div className="flex items-center justify-between">
-                                <div>
-                                  <p className={`font-medium ${isCurrent ? 'text-[#2563EB]' : ''}`}>
-                                    {ws.stage?.name}
-                                  </p>
-                                  {ws.stage?.description && (
-                                    <p className="text-sm text-muted-foreground mt-0.5">{ws.stage.description}</p>
-                                  )}
-                                  {isCurrent && <p className="text-sm text-muted-foreground mt-1">Current stage</p>}
-                                </div>
-                                {isCompleted && <Badge className="bg-[#22C55E]">Completed</Badge>}
-                                {isCurrent && <Badge className="bg-[#2563EB]">In Progress</Badge>}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
+        <TabsContent value="workflow" className="space-y-6">
 
-            {/* Change Current Stage */}
-            {canEdit && allStages.length > 0 && (
-              <div>
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">Change Current Stage</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <p className="text-sm text-muted-foreground">
-                      Select a stage to mark as the active (In Progress) stage. The previous active stage will be marked as completed.
-                    </p>
-                    <Select
-                      value={workflow.find(ws => ws.status === 'IN_PROGRESS')?.stageId ?? ''}
-                      onValueChange={handleStageChange}
-                      disabled={changingStage}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a stage…" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {allStages.map((s: any) => (
-                          <SelectItem key={s.id} value={s.id}>
-                            {s.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {changingStage && (
-                      <p className="text-xs text-muted-foreground">Updating stage…</p>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-          </div>
-          {/* Recruitment Workflows card */}
+          {/* ── Recruitment Workflows (top) ─────────────────── */}
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -604,15 +525,15 @@ export function EmployeeProfile() {
                   <Layers className="w-5 h-5 text-primary" /> Recruitment Workflows
                 </CardTitle>
                 {canEdit && (
-                  <Button size="sm" onClick={() => setShowAssignWorkflow(true)}>
+                  <Button size="sm" onClick={() => setShowAssignWorkflow(v => !v)}>
                     <Plus className="w-4 h-4 mr-1" /> Assign to Workflow
                   </Button>
                 )}
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
               {showAssignWorkflow && (
-                <div className="mb-4 p-4 border rounded-lg bg-muted/30 space-y-3">
+                <div className="p-4 border rounded-lg bg-muted/30 space-y-3">
                   <p className="text-sm font-medium">Assign to a Workflow</p>
                   <Select value={assignWorkflowId} onValueChange={setAssignWorkflowId}>
                     <SelectTrigger>
@@ -647,33 +568,37 @@ export function EmployeeProfile() {
                 </div>
               )}
               {recruitmentWorkflows.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No workflow assignments yet.</p>
+                <p className="text-sm text-muted-foreground">No workflow assignments yet. Click "Assign to Workflow" to get started.</p>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {recruitmentWorkflows.map((a: any) => (
-                    <div key={a.id} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div
+                      key={a.id}
+                      className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-colors ${selectedAssignmentId === a.id ? 'border-primary bg-primary/5' : 'hover:bg-muted/30'}`}
+                      onClick={() => setSelectedAssignmentId(a.id)}
+                    >
                       <div className="flex items-center gap-3">
-                        <div className="w-3 h-3 rounded-full" style={{ background: a.workflow?.color ?? '#6366F1' }} />
+                        <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: a.workflow?.color ?? '#6366F1' }} />
                         <div>
                           <p className="font-medium text-sm">{a.workflow?.name}</p>
                           <p className="text-xs text-muted-foreground">
                             Assigned {new Date(a.assignedAt).toLocaleDateString()}
                             {a.assignedBy && ` by ${a.assignedBy.firstName} ${a.assignedBy.lastName}`}
                           </p>
-                          {a.notes && <p className="text-xs text-muted-foreground mt-0.5 italic">"{a.notes}"</p>}
+                          {a.notes && <p className="text-xs text-muted-foreground italic">"{a.notes}"</p>}
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
                         <Badge variant="outline" className={a.status === 'ACTIVE' ? 'border-green-500 text-green-600' : 'border-slate-400 text-slate-500'}>
                           {a.status}
                         </Badge>
-                        <Button size="sm" variant="ghost" asChild>
+                        <Button size="sm" variant="ghost" asChild onClick={(e: React.MouseEvent) => e.stopPropagation()}>
                           <Link to={`/dashboard/workflows/${a.workflowId}`}>
                             <ChevronRight className="w-4 h-4" />
                           </Link>
                         </Button>
                         {canEdit && (
-                          <Button size="sm" variant="ghost" onClick={() => handleRemoveWorkflow(a.workflowId)}>
+                          <Button size="sm" variant="ghost" onClick={(e: React.MouseEvent) => { e.stopPropagation(); handleRemoveWorkflow(a.workflowId); }}>
                             <X className="w-4 h-4 text-destructive" />
                           </Button>
                         )}
@@ -684,6 +609,56 @@ export function EmployeeProfile() {
               )}
             </CardContent>
           </Card>
+
+          {/* ── Stages for selected workflow ─────────────────── */}
+          {selectedAssignment && (
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <div className="w-3 h-3 rounded-full" style={{ background: selectedAssignment.workflow?.color ?? '#6366F1' }} />
+                  <CardTitle className="text-base">{selectedAssignment.workflow?.name} — Stages</CardTitle>
+                  <span className="text-xs text-muted-foreground ml-auto">
+                    {selectedAssignment.workflow?.stages?.length ?? 0} stage{selectedAssignment.workflow?.stages?.length !== 1 ? 's' : ''}
+                  </span>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {(!selectedAssignment.workflow?.stages || selectedAssignment.workflow.stages.length === 0) ? (
+                  <p className="text-sm text-muted-foreground">This workflow has no stages configured yet.</p>
+                ) : (
+                  <div className="space-y-0">
+                    {selectedAssignment.workflow.stages.map((stage: any, index: number) => (
+                      <div key={stage.id} className="flex items-start gap-4 py-3 border-b last:border-0">
+                        <div
+                          className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-white text-sm font-semibold"
+                          style={{ background: stage.color ?? '#6366F1' }}
+                        >
+                          {index + 1}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="font-medium text-sm">{stage.name}</p>
+                            {stage.isFinal && (
+                              <Badge variant="outline" className="text-xs">Final</Badge>
+                            )}
+                            {stage.requiresApproval && (
+                              <Badge variant="outline" className="text-xs border-amber-400 text-amber-600">Requires Approval</Badge>
+                            )}
+                            {stage.slaHours && (
+                              <span className="text-xs text-muted-foreground">SLA: {stage.slaHours}h</span>
+                            )}
+                          </div>
+                          {stage.description && (
+                            <p className="text-xs text-muted-foreground mt-0.5">{stage.description}</p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* Compliance */}

@@ -1,19 +1,10 @@
-import { IsOptional, IsString, IsIn, IsNumberString } from 'class-validator';
+import { IsOptional, IsString } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { PaginationDto } from '../../common/dto/pagination.dto';
 
-export class FilterJobAdsDto {
-  @ApiPropertyOptional() @IsOptional() @IsNumberString()
-  page?: number;
-
-  @ApiPropertyOptional() @IsOptional() @IsNumberString()
-  limit?: number;
-
-  @ApiPropertyOptional({ description: 'Full-text search on title, category, city, country, description' })
-  @IsOptional() @IsString()
-  search?: string;
-
+export class FilterJobAdsDto extends PaginationDto {
   @ApiPropertyOptional({ enum: ['DRAFT', 'PUBLISHED', 'ARCHIVED'] })
-  @IsOptional() @IsString() @IsIn(['DRAFT', 'PUBLISHED', 'ARCHIVED'])
+  @IsOptional() @IsString()
   status?: string;
 
   @ApiPropertyOptional() @IsOptional() @IsString()
@@ -24,11 +15,4 @@ export class FilterJobAdsDto {
 
   @ApiPropertyOptional() @IsOptional() @IsString()
   contractType?: string;
-
-  @ApiPropertyOptional() @IsOptional() @IsString()
-  sortBy?: string;
-
-  @ApiPropertyOptional({ enum: ['asc', 'desc'] })
-  @IsOptional() @IsIn(['asc', 'desc'])
-  sortOrder?: string;
 }

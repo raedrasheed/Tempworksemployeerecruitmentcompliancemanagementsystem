@@ -23,8 +23,8 @@ type WForm = Omit<Workshop, 'id' | 'isActive'>;
 const EMPTY_FORM: WForm = { name: '', contactName: '', phone: '', email: '', address: '', city: '', country: '', notes: '' };
 
 export function WorkshopsList() {
-  const { hasPermission } = usePermissions();
-  const canWrite = hasPermission('vehicles:write');
+  const { canCreate } = usePermissions();
+  const canWrite = canCreate('vehicles');
 
   const [workshops, setWorkshops] = useState<Workshop[]>([]);
   const [loading, setLoading]     = useState(true);

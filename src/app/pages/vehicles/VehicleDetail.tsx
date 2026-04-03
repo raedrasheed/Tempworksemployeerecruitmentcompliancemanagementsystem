@@ -58,8 +58,8 @@ function expiryCell(date: string | null | undefined) {
 export function VehicleDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { hasPermission } = usePermissions();
-  const canWrite = hasPermission('vehicles:write');
+  const { canCreate } = usePermissions();
+  const canWrite = canCreate('vehicles');
 
   const [vehicle, setVehicle]             = useState<any>(null);
   const [loading, setLoading]             = useState(true);

@@ -22,8 +22,8 @@ type MForm = { name: string; description: string; defaultIntervalDays: string; d
 const EMPTY_FORM: MForm = { name: '', description: '', defaultIntervalDays: '', defaultIntervalKm: '' };
 
 export function MaintenanceTypesList() {
-  const { hasPermission } = usePermissions();
-  const canWrite = hasPermission('vehicles:write');
+  const { canCreate } = usePermissions();
+  const canWrite = canCreate('vehicles');
 
   const [types, setTypes]     = useState<MType[]>([]);
   const [loading, setLoading] = useState(true);

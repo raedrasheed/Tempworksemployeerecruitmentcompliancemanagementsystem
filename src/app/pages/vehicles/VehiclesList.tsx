@@ -56,8 +56,8 @@ function expiryBadge(date: string | null | undefined) {
 
 export function VehiclesList() {
   const navigate = useNavigate();
-  const { hasPermission } = usePermissions();
-  const canWrite = hasPermission('vehicles:write');
+  const { canCreate } = usePermissions();
+  const canWrite = canCreate('vehicles');
 
   const [vehicles, setVehicles]     = useState<any[]>([]);
   const [stats, setStats]           = useState<any>(null);

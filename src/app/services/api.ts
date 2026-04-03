@@ -323,8 +323,18 @@ export const publicApplicationApi = {
 // ─── Documents API ───────────────────────────────────────────────────────────
 
 export const documentsApi = {
+  /**
+   * List documents with full filter/sort support.
+   * Supported params: page, limit, search, sortBy, sortOrder,
+   *   status, documentTypeId, entityType, entityId,
+   *   docId, documentNumber, issueDateFrom, issueDateTo,
+   *   expiryDateFrom, expiryDateTo, uploadedById, verifiedById
+   */
   list: (params?: Record<string, any>) => {
-    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+    const clean = params
+      ? Object.fromEntries(Object.entries(params).filter(([, v]) => v !== '' && v != null))
+      : {};
+    const qs = Object.keys(clean).length ? '?' + new URLSearchParams(clean).toString() : '';
     return apiFetch<PaginatedResponse<any>>(`/documents${qs}`);
   },
 
@@ -340,25 +350,43 @@ export const documentsApi = {
     apiFetch(`/documents/${id}`, { method: 'DELETE' }),
 
   verify: (id: string, data: any) =>
-    apiFetch<any>(`/documents/${id}/verify`, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
+    apiFetch<any>(`/documents/${id}/verify`, { method: 'POST', body: JSON.stringify(data) }),
 
-  getByEntity: (entityType: string, entityId: string) =>
-    apiFetch<any[]>(`/documents/entity/${entityType}/${entityId}?limit=500`),
+  /**
+   * Renew a document — creates a new PENDING document linked to the original.
+   * Pass a FormData if you want to upload a new file at the same time.
+   * Pass a plain object (will be JSON-encoded) if no new file.
+   */
+  renew: (id: string, data: FormData | Record<string, any>) => {
+    const isForm = data instanceof FormData;
+    return apiFetch<any>(`/documents/${id}/renew`, {
+      method: 'POST',
+      body: isForm ? data : JSON.stringify(data),
+      ...(isForm ? {} : {}),
+    });
+  },
+
+  getByEntity: (entityType: string, entityId: string, params?: Record<string, any>) => {
+    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+    return apiFetch<PaginatedResponse<any>>(`/documents/entity/${entityType}/${entityId}${qs}`);
+  },
 
   getDashboard: () => apiFetch<any>('/documents/dashboard'),
+
+  getDocTypePermissions: (documentTypeId: string) =>
+    apiFetch<any[]>(`/documents/type-permissions/${documentTypeId}`),
+
+  upsertDocTypePermission: (documentTypeId: string, roleId: string, perms: Record<string, boolean>) =>
+    apiFetch<any>(`/documents/type-permissions/${documentTypeId}/${roleId}`, {
+      method: 'POST', body: JSON.stringify(perms),
+    }),
 
   /** Download multiple documents as a structured ZIP file. Returns a Blob. */
   bulkDownload: async (ids: string[]): Promise<Blob> => {
     const token = getAccessToken();
     const res = await fetch(`${API_URL}/documents/bulk-download`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
+      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       body: JSON.stringify({ ids }),
     });
     if (!res.ok) {

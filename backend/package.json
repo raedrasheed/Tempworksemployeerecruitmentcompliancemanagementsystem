@@ -14,7 +14,8 @@
     "prisma:studio": "prisma studio",
     "seed": "ts-node prisma/seed.ts",
     "db:migrate:finance": "ts-node prisma/run-financial-migration.ts",
-    "db:migrate:job-ads": "ts-node prisma/run-job-ads-migration.ts"
+    "db:migrate:job-ads": "ts-node prisma/run-job-ads-migration.ts",
+    "db:migrate:doc-enhancements": "ts-node prisma/run-document-enhancements.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",

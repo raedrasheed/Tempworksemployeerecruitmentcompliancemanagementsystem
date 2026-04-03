@@ -138,8 +138,9 @@ model Role {
   updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?
 
-  permissions RolePermission[]
-  users       User[]
+  permissions          RolePermission[]
+  users                User[]
+  docTypePermissions   DocumentTypePermission[]
 
   @@map("roles")
 }
@@ -433,6 +434,9 @@ model ApplicantAgencyHistory {
 model DocumentType {
   id                String   @id @default(uuid())
   name              String   @unique
+  /// Short uppercase code used in business document IDs, e.g. PASS, VISA, TRC.
+  /// Generated from the first 4 chars of name if not set explicitly.
+  code              String?
   description       String?
   category          String
   required          Boolean  @default(false)
@@ -442,39 +446,75 @@ model DocumentType {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
-  documents Document[]
+  documents    Document[]
+  permissions  DocumentTypePermission[]
 
   @@map("document_types")
 }
 
 model Document {
-  id             String         @id @default(uuid())
-  name           String
-  documentTypeId String
-  entityType     EntityType
-  entityId       String
-  fileUrl        String
-  mimeType       String
-  fileSize       Int
-  status         DocumentStatus @default(PENDING)
-  issueDate      DateTime?
-  expiryDate     DateTime?
-  issuer         String?
-  documentNumber String?
-  notes          String?
-  uploadedById   String
-  verifiedById   String?
-  verifiedAt     DateTime?
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
-  deletedAt      DateTime?
+  id              String         @id @default(uuid())
+  /// Business document ID: DOC{PersonNumber}{TypeCode}{3-digit sequence}
+  /// E.g. DOCC20260400001PASS001 — unique per non-null value.
+  docId           String?        @unique
+  name            String
+  documentTypeId  String
+  entityType      EntityType
+  entityId        String
+  fileUrl         String
+  mimeType        String
+  fileSize        Int
+  status          DocumentStatus @default(PENDING)
+  issueDate       DateTime?
+  expiryDate      DateTime?
+  issueCountry    String?
+  issuer          String?
+  documentNumber  String?
+  notes           String?
+  /// Populated when status = REJECTED; stored separately from notes.
+  rejectionReason String?
+  uploadedById    String
+  verifiedById    String?
+  verifiedAt      DateTime?
+  /// Self-reference: points to the document this one renews/supersedes.
+  renewedFromId   String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  deletedAt       DateTime?
 
-  documentType    DocumentType @relation(fields: [documentTypeId], references: [id])
-  uploadedBy      User         @relation("UploadedDocuments", fields: [uploadedById], references: [id])
-  verifiedBy      User?        @relation("VerifiedDocuments", fields: [verifiedById], references: [id])
+  documentType     DocumentType     @relation(fields: [documentTypeId], references: [id])
+  uploadedBy       User             @relation("UploadedDocuments", fields: [uploadedById], references: [id])
+  verifiedBy       User?            @relation("VerifiedDocuments", fields: [verifiedById], references: [id])
   complianceAlerts ComplianceAlert[]
+  renewedFrom      Document?        @relation("DocumentRenewal", fields: [renewedFromId], references: [id])
+  renewals         Document[]       @relation("DocumentRenewal")
 
+  @@index([entityType, entityId])
+  @@index([status])
+  @@index([documentTypeId])
+  @@index([expiryDate])
   @@map("documents")
+}
+
+/// Fine-grained per-document-type permissions per role.
+/// A missing row means the role uses its general documents:* permission.
+model DocumentTypePermission {
+  id             String   @id @default(uuid())
+  documentTypeId String
+  roleId         String
+  canUpload      Boolean  @default(true)
+  canView        Boolean  @default(true)
+  canEdit        Boolean  @default(false)
+  canDelete      Boolean  @default(false)
+  canRenew       Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  documentType DocumentType @relation(fields: [documentTypeId], references: [id], onDelete: Cascade)
+  role         Role         @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([documentTypeId, roleId])
+  @@map("document_type_permissions")
 }
 
 model WorkPermit {

@@ -206,6 +206,14 @@ model User {
   updatedSettings   SystemSetting[]
   jobAdsCreated     JobAd[]           @relation("JobAdsCreated")
 
+  // ── Pipeline relations ─────────────────────────────────────────────────
+  pipelinesCreated      Pipeline[]                    @relation("PipelinesCreated")
+  pipelineStageUsers    PipelineStageUser[]            @relation("PipelineStageUsers")
+  pipelineAccess        PipelineAccessUser[]           @relation("PipelineAccess")
+  pipelineAssignments   CandidatePipelineAssignment[] @relation("PipelineAssignments")
+  stageApprovals        CandidateStageApproval[]      @relation("StageApprovals")
+  stageNotes            CandidateStageNote[]           @relation("StageNoteAuthors")
+
   @@map("users")
 }
 
@@ -397,6 +405,7 @@ model Applicant {
   currentWorkflowStage WorkflowStage? @relation("ApplicantCurrentStage", fields: [currentWorkflowStageId], references: [id])
   financialProfile     ApplicantFinancialProfile?
   agencyHistory        ApplicantAgencyHistory[]
+  pipelineAssignments  CandidatePipelineAssignment[]
 
   @@map("applicants")
 }
@@ -460,8 +469,9 @@ model DocumentType {
   deletedBy         String?
   deletionReason    String?
 
-  documents    Document[]
-  permissions  DocumentTypePermission[]
+  documents        Document[]
+  permissions      DocumentTypePermission[]
+  pipelineStageReqs PipelineStageRequiredDoc[]
 
   @@map("document_types")
 }
@@ -887,4 +897,211 @@ model FinancialRecordAttachment {
   uploadedBy      User?           @relation("FRAttachmentUploadedBy", fields: [uploadedById], references: [id])
 
   @@map("financial_record_attachments")
+}
+
+// ── Workflow Pipelines ─────────────────────────────────────────────────────────
+//
+// A Pipeline is a named, ordered recruitment workflow that candidates move through.
+// Multiple pipelines can co-exist (e.g. "UK Driver Onboarding", "EU Logistics Route").
+// Stages inside a pipeline are ordered and can be traversed in parallel.
+// Candidates are assigned to exactly one pipeline at Lead→Candidate conversion.
+//
+// STATUS LIFECYCLE:
+//   Pipeline:  ACTIVE | ARCHIVED
+//   CandidateStageProgress: ACTIVE | COMPLETED | SKIPPED | BLOCKED
+//   CandidatePipelineAssignment: ACTIVE | COMPLETED | WITHDRAWN
+
+enum PipelineStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum CandidateProgressStatus {
+  ACTIVE
+  COMPLETED
+  SKIPPED
+  BLOCKED
+}
+
+enum PipelineAssignmentStatus {
+  ACTIVE
+  COMPLETED
+  WITHDRAWN
+}
+
+enum ApprovalDecision {
+  APPROVED
+  REJECTED
+  PENDING
+}
+
+/// Named recruitment pipeline (e.g. "UK Driver Standard Onboarding")
+model Pipeline {
+  id           String         @id @default(uuid())
+  name         String
+  description  String?        @db.Text
+  status       PipelineStatus @default(ACTIVE)
+  isDefault    Boolean        @default(false)
+  isPublic     Boolean        @default(true)
+  color        String         @default("#2563EB")
+  createdById  String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  deletedAt    DateTime?
+  deletedBy    String?
+  deletionReason String?
+
+  createdBy    User?                       @relation("PipelinesCreated", fields: [createdById], references: [id])
+  stages       PipelineStage[]
+  assignments  CandidatePipelineAssignment[]
+  accessUsers  PipelineAccessUser[]
+
+  @@index([status])
+  @@map("pipelines")
+}
+
+/// Ordered stage within a Pipeline
+model PipelineStage {
+  id              String    @id @default(uuid())
+  pipelineId      String
+  name            String
+  description     String?
+  order           Int
+  color           String    @default("#6366F1")
+  slaHours        Int?      // optional SLA in hours; null means no SLA
+  requiresApproval Boolean  @default(false)
+  isFinal         Boolean   @default(false)  // marks the terminal stage (e.g. "Converted")
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  pipeline         Pipeline                  @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  assignedUsers    PipelineStageUser[]
+  requiredDocs     PipelineStageRequiredDoc[]
+  candidateProgress CandidateStageProgress[]
+
+  @@unique([pipelineId, order])
+  @@index([pipelineId])
+  @@map("pipeline_stages")
+}
+
+/// Users assigned as owners/reviewers for a pipeline stage
+model PipelineStageUser {
+  stageId   String
+  userId    String
+  role      String   @default("REVIEWER") // REVIEWER | OWNER
+
+  stage PipelineStage @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  user  User          @relation("PipelineStageUsers", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([stageId, userId])
+  @@map("pipeline_stage_users")
+}
+
+/// Document types that are required for a pipeline stage to be completed
+model PipelineStageRequiredDoc {
+  id             String  @id @default(uuid())
+  stageId        String
+  documentTypeId String
+  isRequired     Boolean @default(true)
+
+  stage        PipelineStage @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  documentType DocumentType  @relation(fields: [documentTypeId], references: [id], onDelete: Cascade)
+
+  @@unique([stageId, documentTypeId])
+  @@map("pipeline_stage_required_docs")
+}
+
+/// Users with explicit access to a private pipeline
+model PipelineAccessUser {
+  pipelineId String
+  userId     String
+  grantedAt  DateTime @default(now())
+
+  pipeline Pipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  user     User     @relation("PipelineAccess", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([pipelineId, userId])
+  @@map("pipeline_access_users")
+}
+
+/// Assignment of a candidate (Applicant with tier=CANDIDATE) to a Pipeline
+model CandidatePipelineAssignment {
+  id          String                   @id @default(uuid())
+  candidateId String                   // Applicant.id (tier=CANDIDATE)
+  pipelineId  String
+  status      PipelineAssignmentStatus @default(ACTIVE)
+  assignedAt  DateTime                 @default(now())
+  completedAt DateTime?
+  assignedById String?
+  notes       String?
+
+  candidate     Applicant              @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  pipeline      Pipeline               @relation(fields: [pipelineId], references: [id])
+  assignedBy    User?                  @relation("PipelineAssignments", fields: [assignedById], references: [id])
+  stageProgress CandidateStageProgress[]
+
+  @@index([candidateId])
+  @@index([pipelineId])
+  @@map("candidate_pipeline_assignments")
+}
+
+/// Tracks a candidate's progress through one pipeline stage.
+/// Multiple active rows per assignment are allowed (parallel stages).
+model CandidateStageProgress {
+  id           String                  @id @default(uuid())
+  assignmentId String
+  stageId      String
+  status       CandidateProgressStatus @default(ACTIVE)
+  enteredAt    DateTime                @default(now())
+  completedAt  DateTime?
+  slaDeadline  DateTime?               // computed from stage.slaHours + enteredAt
+  flagged      Boolean                 @default(false)
+  flagReason   String?
+  createdAt    DateTime                @default(now())
+  updatedAt    DateTime                @updatedAt
+
+  assignment CandidatePipelineAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  stage      PipelineStage               @relation(fields: [stageId], references: [id])
+  approvals  CandidateStageApproval[]
+  notes      CandidateStageNote[]
+
+  @@index([assignmentId])
+  @@index([stageId])
+  @@index([status])
+  @@map("candidate_stage_progress")
+}
+
+/// Approval record for a stage that requires sign-off
+model CandidateStageApproval {
+  id          String           @id @default(uuid())
+  progressId  String
+  decision    ApprovalDecision @default(PENDING)
+  approvedById String?
+  notes       String?
+  decidedAt   DateTime?
+  createdAt   DateTime         @default(now())
+
+  progress    CandidateStageProgress @relation(fields: [progressId], references: [id], onDelete: Cascade)
+  approvedBy  User?                  @relation("StageApprovals", fields: [approvedById], references: [id])
+
+  @@index([progressId])
+  @@map("candidate_stage_approvals")
+}
+
+/// Notes left on a candidate's stage progress (internal or public)
+model CandidateStageNote {
+  id         String   @id @default(uuid())
+  progressId String
+  content    String   @db.Text
+  isPrivate  Boolean  @default(false)
+  authorId   String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  deletedAt  DateTime?
+
+  progress CandidateStageProgress @relation(fields: [progressId], references: [id], onDelete: Cascade)
+  author   User?                  @relation("StageNoteAuthors", fields: [authorId], references: [id])
+
+  @@index([progressId])
+  @@map("candidate_stage_notes")
 }

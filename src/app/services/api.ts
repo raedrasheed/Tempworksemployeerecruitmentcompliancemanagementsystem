@@ -918,3 +918,69 @@ export const recycleBinApi = {
       body: JSON.stringify(data),
     }),
 };
+
+// ── Pipeline API ──────────────────────────────────────────────────────────────
+
+export const pipelineApi = {
+  // Pipelines
+  list: (includeArchived = false) =>
+    apiFetch<any[]>(`/pipelines${includeArchived ? '?includeArchived=true' : ''}`),
+
+  get: (id: string) => apiFetch<any>(`/pipelines/${id}`),
+
+  board: (id: string) => apiFetch<any>(`/pipelines/${id}/board`),
+
+  candidates: (id: string) => apiFetch<any[]>(`/pipelines/${id}/candidates`),
+
+  stats: (id: string) => apiFetch<any>(`/pipelines/${id}/stats`),
+
+  create: (data: { name: string; description?: string; isDefault?: boolean; isPublic?: boolean; color?: string }) =>
+    apiFetch<any>('/pipelines', { method: 'POST', body: JSON.stringify(data) }),
+
+  update: (id: string, data: Partial<{ name: string; description: string; isDefault: boolean; isPublic: boolean; color: string }>) =>
+    apiFetch<any>(`/pipelines/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  archive: (id: string) =>
+    apiFetch<any>(`/pipelines/${id}/archive`, { method: 'PATCH' }),
+
+  delete: (id: string) =>
+    apiFetch<any>(`/pipelines/${id}`, { method: 'DELETE' }),
+
+  // Stages
+  addStage: (pipelineId: string, data: any) =>
+    apiFetch<any>(`/pipelines/${pipelineId}/stages`, { method: 'POST', body: JSON.stringify(data) }),
+
+  updateStage: (stageId: string, data: any) =>
+    apiFetch<any>(`/pipelines/stages/${stageId}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  deleteStage: (stageId: string) =>
+    apiFetch<any>(`/pipelines/stages/${stageId}`, { method: 'DELETE' }),
+
+  reorderStages: (pipelineId: string, orderedIds: string[]) =>
+    apiFetch<any>(`/pipelines/${pipelineId}/stages/reorder`, { method: 'PATCH', body: JSON.stringify({ orderedIds }) }),
+
+  // Assignments
+  assignCandidate: (data: { candidateId: string; pipelineId: string; notes?: string }) =>
+    apiFetch<any>('/pipelines/assign', { method: 'POST', body: JSON.stringify(data) }),
+
+  getCandidateAssignments: (candidateId: string) =>
+    apiFetch<any[]>(`/pipelines/candidate/${candidateId}/assignments`),
+
+  // Progress
+  advanceToStage: (assignmentId: string, stageId: string) =>
+    apiFetch<any>(`/pipelines/assignments/${assignmentId}/advance`, { method: 'POST', body: JSON.stringify({ stageId }) }),
+
+  updateProgress: (progressId: string, data: { status: string; flagged?: boolean; flagReason?: string }) =>
+    apiFetch<any>(`/pipelines/progress/${progressId}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  // Notes
+  addNote: (progressId: string, data: { content: string; isPrivate?: boolean }) =>
+    apiFetch<any>(`/pipelines/progress/${progressId}/notes`, { method: 'POST', body: JSON.stringify(data) }),
+
+  deleteNote: (noteId: string) =>
+    apiFetch<any>(`/pipelines/notes/${noteId}`, { method: 'DELETE' }),
+
+  // Approvals
+  submitApproval: (progressId: string, data: { decision: 'APPROVED' | 'REJECTED'; notes?: string }) =>
+    apiFetch<any>(`/pipelines/progress/${progressId}/approve`, { method: 'POST', body: JSON.stringify(data) }),
+};

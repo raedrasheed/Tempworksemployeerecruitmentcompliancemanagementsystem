@@ -69,6 +69,11 @@ import { JobAdForm } from './pages/job-ads/JobAdForm';
 import { DeletedRecords } from './pages/recycle-bin/DeletedRecords';
 import { DatabaseCleanup } from './pages/settings/DatabaseCleanup';
 
+// Pipeline pages
+import { PipelinesPage } from './pages/pipelines/PipelinesPage';
+import { PipelineBoardPage } from './pages/pipelines/PipelineBoardPage';
+import { PipelineSettingsPage } from './pages/pipelines/PipelineSettingsPage';
+
 // Public pages
 import { LandingPage } from './pages/public/LandingPage';
 import { LoginPage } from './pages/public/LoginPage';
@@ -118,6 +123,11 @@ export const router = createBrowserRouter([
       { path: 'document-explorer', Component: EmployeeDocumentExplorer },
       { path: 'documents-compliance', Component: DocumentsCompliance },
       
+      // Pipeline routes
+      { path: 'pipelines', Component: PipelinesPage },
+      { path: 'pipelines/:id', Component: PipelineBoardPage },
+      { path: 'settings/pipelines/:id', Component: PipelineSettingsPage },
+
       // Workflow routes
       { path: 'workflow', Component: WorkflowOverview },
       { path: 'workflow/work-permits', Component: WorkPermitTracking },

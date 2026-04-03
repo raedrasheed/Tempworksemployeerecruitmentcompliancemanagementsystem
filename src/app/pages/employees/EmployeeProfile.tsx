@@ -37,21 +37,16 @@ export function EmployeeProfile() {
   const [uploadForm, setUploadForm] = useState({ documentTypeId: '', name: '', issueDate: '', expiryDate: '', documentNumber: '', issuer: '' });
   const [financialProfile, setFinancialProfile] = useState<any>(null);
 
-  // Recruitment workflow assignments
-  const [recruitmentWorkflows, setRecruitmentWorkflows] = useState<any[]>([]);
+  // Recruitment workflow assignment (single)
+  const [assignment, setAssignment] = useState<any>(null);
   const [allWorkflows, setAllWorkflows] = useState<any[]>([]);
   const [showAssignWorkflow, setShowAssignWorkflow] = useState(false);
   const [assignWorkflowId, setAssignWorkflowId] = useState('');
-  const [assignWorkflowNotes, setAssignWorkflowNotes] = useState('');
   const [assigningWorkflow, setAssigningWorkflow] = useState(false);
-  const [selectedAssignmentId, setSelectedAssignmentId] = useState<string | null>(null);
+  const [settingStage, setSettingStage] = useState(false);
 
-  const loadRecruitmentWorkflows = () => {
-    workflowApi.getEmployeeAssignments(id!).then(res => {
-      const list = Array.isArray(res) ? res : [];
-      setRecruitmentWorkflows(list);
-      setSelectedAssignmentId(prev => prev ?? (list.find((a: any) => a.status === 'ACTIVE') ?? list[0])?.id ?? null);
-    }).catch(() => {});
+  const loadRecruitmentWorkflow = () => {
+    workflowApi.getEmployeeAssignment(id!).then(res => setAssignment(res ?? null)).catch(() => {});
   };
 
   const loadWorkflow = () => {
@@ -84,7 +79,7 @@ export function EmployeeProfile() {
       employeesApi.getFinancialProfile(id).then(setFinancialProfile).catch(() => {});
     }
     if (id) {
-      loadRecruitmentWorkflows();
+      loadRecruitmentWorkflow();
       workflowApi.list().then(res => setAllWorkflows(Array.isArray(res) ? res : [])).catch(() => {});
     }
   }, [id]);
@@ -107,27 +102,40 @@ export function EmployeeProfile() {
     if (!assignWorkflowId || !id) return;
     setAssigningWorkflow(true);
     try {
-      await workflowApi.assignEmployee({ employeeId: id, workflowId: assignWorkflowId, notes: assignWorkflowNotes || undefined });
-      toast.success('Employee assigned to workflow');
-      loadRecruitmentWorkflows();
+      await workflowApi.assignEmployee({ employeeId: id, workflowId: assignWorkflowId });
+      toast.success('Workflow connected');
+      loadRecruitmentWorkflow();
       setShowAssignWorkflow(false);
       setAssignWorkflowId('');
-      setAssignWorkflowNotes('');
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to assign workflow');
+      toast.error(err?.message || 'Failed to connect workflow');
     } finally {
       setAssigningWorkflow(false);
     }
   };
 
-  const handleRemoveWorkflow = async (workflowId: string) => {
-    if (!id || !confirm('Remove this employee from the workflow?')) return;
+  const handleSetStage = async (stageId: string) => {
+    if (!id) return;
+    setSettingStage(true);
     try {
-      await workflowApi.removeEmployeeAssignment(id, workflowId);
-      toast.success('Removed from workflow');
-      loadRecruitmentWorkflows();
+      const updated = await workflowApi.setEmployeeCurrentStage(id, stageId);
+      setAssignment(updated);
+      toast.success('Current stage updated');
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to remove');
+      toast.error(err?.message || 'Failed to update stage');
+    } finally {
+      setSettingStage(false);
+    }
+  };
+
+  const handleDisconnectWorkflow = async () => {
+    if (!id || !assignment || !confirm('Disconnect this employee from the workflow?')) return;
+    try {
+      await workflowApi.removeEmployeeAssignment(id, assignment.workflowId);
+      setAssignment(null);
+      toast.success('Workflow disconnected');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to disconnect');
     }
   };
 
@@ -206,7 +214,6 @@ export function EmployeeProfile() {
 
   const completedStages = workflow.filter(s => s.status === 'COMPLETED').length;
   const workflowProgress = workflow.length > 0 ? (completedStages / workflow.length) * 100 : 0;
-  const selectedAssignment = recruitmentWorkflows.find(a => a.id === selectedAssignmentId) ?? null;
 
   if (loading) return <div className="p-8 text-muted-foreground">Loading...</div>;
   if (!employee) return <div className="p-8">Employee not found</div>;
@@ -515,145 +522,161 @@ export function EmployeeProfile() {
         </TabsContent>
 
         {/* Workflow */}
-        <TabsContent value="workflow" className="space-y-6">
-
-          {/* ── Recruitment Workflows (top) ─────────────────── */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
+        <TabsContent value="workflow">
+          {!assignment ? (
+            /* ── No workflow connected ─────────────────────────── */
+            <Card>
+              <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Layers className="w-5 h-5 text-primary" /> Recruitment Workflows
+                  <Layers className="w-5 h-5 text-primary" /> Connect to a Workflow
                 </CardTitle>
-                {canEdit && (
-                  <Button size="sm" onClick={() => setShowAssignWorkflow(v => !v)}>
-                    <Plus className="w-4 h-4 mr-1" /> Assign to Workflow
-                  </Button>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {showAssignWorkflow && (
-                <div className="p-4 border rounded-lg bg-muted/30 space-y-3">
-                  <p className="text-sm font-medium">Assign to a Workflow</p>
-                  <Select value={assignWorkflowId} onValueChange={setAssignWorkflowId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a workflow…" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {allWorkflows
-                        .filter(w => !recruitmentWorkflows.some(a => a.workflowId === w.id))
-                        .map(w => (
+                <p className="text-sm text-muted-foreground mt-1">
+                  This employee is not connected to any workflow yet.
+                </p>
+              </CardHeader>
+              <CardContent>
+                {showAssignWorkflow ? (
+                  <div className="space-y-3 max-w-sm">
+                    <Select value={assignWorkflowId} onValueChange={setAssignWorkflowId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a workflow…" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {allWorkflows.map(w => (
                           <SelectItem key={w.id} value={w.id}>
                             <div className="flex items-center gap-2">
-                              <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: w.color }} />
+                              <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: w.color ?? '#6366F1' }} />
                               {w.name}
                             </div>
                           </SelectItem>
                         ))}
-                    </SelectContent>
-                  </Select>
-                  <Input
-                    placeholder="Notes (optional)…"
-                    value={assignWorkflowNotes}
-                    onChange={e => setAssignWorkflowNotes(e.target.value)}
-                  />
-                  <div className="flex gap-2">
-                    <Button size="sm" onClick={handleAssignWorkflow} disabled={assigningWorkflow || !assignWorkflowId}>
-                      {assigningWorkflow ? 'Assigning…' : 'Confirm'}
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => { setShowAssignWorkflow(false); setAssignWorkflowId(''); setAssignWorkflowNotes(''); }}>
-                      Cancel
-                    </Button>
-                  </div>
-                </div>
-              )}
-              {recruitmentWorkflows.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No workflow assignments yet. Click "Assign to Workflow" to get started.</p>
-              ) : (
-                <div className="space-y-2">
-                  {recruitmentWorkflows.map((a: any) => (
-                    <div
-                      key={a.id}
-                      className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-colors ${selectedAssignmentId === a.id ? 'border-primary bg-primary/5' : 'hover:bg-muted/30'}`}
-                      onClick={() => setSelectedAssignmentId(a.id)}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: a.workflow?.color ?? '#6366F1' }} />
-                        <div>
-                          <p className="font-medium text-sm">{a.workflow?.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            Assigned {new Date(a.assignedAt).toLocaleDateString()}
-                            {a.assignedBy && ` by ${a.assignedBy.firstName} ${a.assignedBy.lastName}`}
-                          </p>
-                          {a.notes && <p className="text-xs text-muted-foreground italic">"{a.notes}"</p>}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className={a.status === 'ACTIVE' ? 'border-green-500 text-green-600' : 'border-slate-400 text-slate-500'}>
-                          {a.status}
-                        </Badge>
-                        <Button size="sm" variant="ghost" asChild onClick={(e: React.MouseEvent) => e.stopPropagation()}>
-                          <Link to={`/dashboard/workflows/${a.workflowId}`}>
-                            <ChevronRight className="w-4 h-4" />
-                          </Link>
-                        </Button>
-                        {canEdit && (
-                          <Button size="sm" variant="ghost" onClick={(e: React.MouseEvent) => { e.stopPropagation(); handleRemoveWorkflow(a.workflowId); }}>
-                            <X className="w-4 h-4 text-destructive" />
-                          </Button>
-                        )}
-                      </div>
+                      </SelectContent>
+                    </Select>
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={handleAssignWorkflow} disabled={assigningWorkflow || !assignWorkflowId}>
+                        {assigningWorkflow ? 'Connecting…' : 'Connect'}
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => { setShowAssignWorkflow(false); setAssignWorkflowId(''); }}>
+                        Cancel
+                      </Button>
                     </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* ── Stages for selected workflow ─────────────────── */}
-          {selectedAssignment && (
+                  </div>
+                ) : (
+                  canEdit && (
+                    <Button onClick={() => setShowAssignWorkflow(true)}>
+                      <Plus className="w-4 h-4 mr-2" /> Connect to Workflow
+                    </Button>
+                  )
+                )}
+              </CardContent>
+            </Card>
+          ) : (
+            /* ── Workflow connected ─────────────────────────────── */
             <Card>
               <CardHeader>
-                <div className="flex items-center gap-3">
-                  <div className="w-3 h-3 rounded-full" style={{ background: selectedAssignment.workflow?.color ?? '#6366F1' }} />
-                  <CardTitle className="text-base">{selectedAssignment.workflow?.name} — Stages</CardTitle>
-                  <span className="text-xs text-muted-foreground ml-auto">
-                    {selectedAssignment.workflow?.stages?.length ?? 0} stage{selectedAssignment.workflow?.stages?.length !== 1 ? 's' : ''}
-                  </span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-4 h-4 rounded-full" style={{ background: assignment.workflow?.color ?? '#6366F1' }} />
+                    <CardTitle>{assignment.workflow?.name}</CardTitle>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" variant="ghost" asChild>
+                      <Link to={`/dashboard/workflows/${assignment.workflowId}`}>
+                        <ChevronRight className="w-4 h-4 mr-1" /> View Board
+                      </Link>
+                    </Button>
+                    {canEdit && (
+                      <Button size="sm" variant="ghost" onClick={() => setShowAssignWorkflow(true)}>
+                        Change
+                      </Button>
+                    )}
+                    {canEdit && (
+                      <Button size="sm" variant="ghost" onClick={handleDisconnectWorkflow}>
+                        <X className="w-4 h-4 text-destructive" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
+                {assignment.assignedBy && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Connected {new Date(assignment.assignedAt).toLocaleDateString()} by {assignment.assignedBy.firstName} {assignment.assignedBy.lastName}
+                  </p>
+                )}
               </CardHeader>
               <CardContent>
-                {(!selectedAssignment.workflow?.stages || selectedAssignment.workflow.stages.length === 0) ? (
+                {showAssignWorkflow && (
+                  <div className="mb-4 p-4 border rounded-lg bg-muted/30 space-y-3">
+                    <p className="text-sm font-medium">Change Workflow</p>
+                    <Select value={assignWorkflowId} onValueChange={setAssignWorkflowId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a workflow…" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {allWorkflows.map(w => (
+                          <SelectItem key={w.id} value={w.id}>
+                            <div className="flex items-center gap-2">
+                              <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: w.color ?? '#6366F1' }} />
+                              {w.name}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={handleAssignWorkflow} disabled={assigningWorkflow || !assignWorkflowId}>
+                        {assigningWorkflow ? 'Saving…' : 'Confirm'}
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => { setShowAssignWorkflow(false); setAssignWorkflowId(''); }}>
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                {(!assignment.workflow?.stages || assignment.workflow.stages.length === 0) ? (
                   <p className="text-sm text-muted-foreground">This workflow has no stages configured yet.</p>
                 ) : (
-                  <div className="space-y-0">
-                    {selectedAssignment.workflow.stages.map((stage: any, index: number) => (
-                      <div key={stage.id} className="flex items-start gap-4 py-3 border-b last:border-0">
-                        <div
-                          className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-white text-sm font-semibold"
-                          style={{ background: stage.color ?? '#6366F1' }}
-                        >
-                          {index + 1}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <p className="font-medium text-sm">{stage.name}</p>
-                            {stage.isFinal && (
-                              <Badge variant="outline" className="text-xs">Final</Badge>
-                            )}
-                            {stage.requiresApproval && (
-                              <Badge variant="outline" className="text-xs border-amber-400 text-amber-600">Requires Approval</Badge>
-                            )}
-                            {stage.slaHours && (
-                              <span className="text-xs text-muted-foreground">SLA: {stage.slaHours}h</span>
+                  <div>
+                    {assignment.currentStageId && (
+                      <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
+                        <span>Current stage:</span>
+                        <span className="font-medium text-foreground">{assignment.currentStage?.name}</span>
+                      </div>
+                    )}
+                    <div className="space-y-0">
+                      {assignment.workflow.stages.map((stage: any, index: number) => {
+                        const isCurrent = stage.id === assignment.currentStageId;
+                        return (
+                          <div
+                            key={stage.id}
+                            className={`flex items-center gap-4 py-3 border-b last:border-0 ${canEdit ? 'cursor-pointer hover:bg-muted/30 rounded-lg px-2 -mx-2 transition-colors' : ''} ${isCurrent ? 'bg-primary/5 rounded-lg px-2 -mx-2' : ''}`}
+                            onClick={() => canEdit && !settingStage && handleSetStage(stage.id)}
+                          >
+                            <div
+                              className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-semibold transition-all ${isCurrent ? 'text-white ring-2 ring-offset-2 ring-primary' : 'text-white opacity-60'}`}
+                              style={{ background: stage.color ?? '#6366F1' }}
+                            >
+                              {index + 1}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <p className={`text-sm font-medium ${isCurrent ? 'text-primary' : ''}`}>{stage.name}</p>
+                                {isCurrent && <Badge className="text-xs bg-primary">Current</Badge>}
+                                {stage.isFinal && <Badge variant="outline" className="text-xs">Final</Badge>}
+                                {stage.requiresApproval && <Badge variant="outline" className="text-xs border-amber-400 text-amber-600">Approval</Badge>}
+                                {stage.slaHours && <span className="text-xs text-muted-foreground">SLA: {stage.slaHours}h</span>}
+                              </div>
+                              {stage.description && <p className="text-xs text-muted-foreground mt-0.5">{stage.description}</p>}
+                            </div>
+                            {canEdit && isCurrent && (
+                              <ChevronRight className="w-4 h-4 text-primary flex-shrink-0" />
                             )}
                           </div>
-                          {stage.description && (
-                            <p className="text-xs text-muted-foreground mt-0.5">{stage.description}</p>
-                          )}
-                        </div>
-                      </div>
-                    ))}
+                        );
+                      })}
+                    </div>
+                    {canEdit && (
+                      <p className="text-xs text-muted-foreground mt-4">Click a stage to set it as the current stage.</p>
+                    )}
                   </div>
                 )}
               </CardContent>

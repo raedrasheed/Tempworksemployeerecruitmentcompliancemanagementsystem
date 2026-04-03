@@ -978,10 +978,11 @@ model WorkflowStage {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
-  workflow          Workflow                     @relation(fields: [workflowId], references: [id], onDelete: Cascade)
-  assignedUsers     WorkflowStageUser[]
-  requiredDocs      WorkflowStageRequiredDoc[]
-  candidateProgress CandidateStageProgress[]
+  workflow              Workflow                       @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  assignedUsers         WorkflowStageUser[]
+  requiredDocs          WorkflowStageRequiredDoc[]
+  candidateProgress     CandidateStageProgress[]
+  employeeCurrentStages EmployeeWorkflowAssignment[]   @relation("EmployeeCurrentStage")
 
   @@unique([workflowId, order])
   @@index([workflowId])
@@ -1112,21 +1113,21 @@ model CandidateStageNote {
 
 /// Links an Employee to a recruitment Workflow for post-hire tracking
 model EmployeeWorkflowAssignment {
-  id           String                   @id @default(uuid())
-  employeeId   String
-  workflowId   String
-  status       WorkflowAssignmentStatus @default(ACTIVE)
-  assignedAt   DateTime                 @default(now())
-  completedAt  DateTime?
-  assignedById String?
-  notes        String?
+  id             String                   @id @default(uuid())
+  employeeId     String                   @unique
+  workflowId     String
+  currentStageId String?
+  status         WorkflowAssignmentStatus @default(ACTIVE)
+  assignedAt     DateTime                 @default(now())
+  completedAt    DateTime?
+  assignedById   String?
+  notes          String?
 
-  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  workflow   Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
-  assignedBy User?    @relation("EmployeeWorkflowAssignments", fields: [assignedById], references: [id])
+  employee     Employee       @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  workflow     Workflow       @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  currentStage WorkflowStage? @relation("EmployeeCurrentStage", fields: [currentStageId], references: [id], onDelete: SetNull)
+  assignedBy   User?          @relation("EmployeeWorkflowAssignments", fields: [assignedById], references: [id])
 
-  @@unique([employeeId, workflowId])
-  @@index([employeeId])
   @@index([workflowId])
   @@map("employee_workflow_assignments")
 }

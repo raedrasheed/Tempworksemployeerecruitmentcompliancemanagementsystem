@@ -279,16 +279,14 @@ export class WorkflowService {
   // ─── Employee Assignments ─────────────────────────────────────────────────
 
   async assignEmployee(dto: AssignEmployeeToWorkflowDto, actorId?: string) {
-    const [employee, workflow] = await Promise.all([
+    const [employee] = await Promise.all([
       this.prisma.employee.findFirst({ where: { id: dto.employeeId, deletedAt: null } }),
       this.getWorkflow(dto.workflowId),
     ]);
     if (!employee) throw new NotFoundException('Employee not found');
 
-    const existing = await this.prisma.employeeWorkflowAssignment.findFirst({
-      where: { employeeId: dto.employeeId, workflowId: dto.workflowId },
-    });
-    if (existing) throw new ConflictException('Employee is already assigned to this workflow');
+    // Delete any existing assignment (one-per-employee rule)
+    await this.prisma.employeeWorkflowAssignment.deleteMany({ where: { employeeId: dto.employeeId } });
 
     const assignment = await this.prisma.employeeWorkflowAssignment.create({
       data: {
@@ -299,7 +297,8 @@ export class WorkflowService {
       },
       include: {
         employee: { select: { id: true, firstName: true, lastName: true, email: true, employeeNumber: true } },
-        workflow: { select: { id: true, name: true, color: true } },
+        workflow: { include: { stages: { orderBy: { order: 'asc' } } } },
+        currentStage: true,
         assignedBy: { select: { id: true, firstName: true, lastName: true } },
       },
     });
@@ -319,13 +318,35 @@ export class WorkflowService {
   }
 
   async getEmployeeWorkflows(employeeId: string) {
-    return this.prisma.employeeWorkflowAssignment.findMany({
+    return this.prisma.employeeWorkflowAssignment.findFirst({
       where: { employeeId },
       include: {
-        workflow: { select: { id: true, name: true, color: true, description: true }, },
+        workflow: { include: { stages: { orderBy: { order: 'asc' } } } },
+        currentStage: true,
         assignedBy: { select: { id: true, firstName: true, lastName: true } },
       },
-      orderBy: { assignedAt: 'desc' },
+    });
+  }
+
+  async setEmployeeCurrentStage(employeeId: string, stageId: string, actorId?: string) {
+    const assignment = await this.prisma.employeeWorkflowAssignment.findUnique({
+      where: { employeeId },
+    });
+    if (!assignment) throw new NotFoundException('No workflow assignment found for this employee');
+
+    const stage = await this.prisma.workflowStage.findFirst({
+      where: { id: stageId, workflowId: assignment.workflowId },
+    });
+    if (!stage) throw new NotFoundException('Stage does not belong to this employee\'s workflow');
+
+    return this.prisma.employeeWorkflowAssignment.update({
+      where: { employeeId },
+      data: { currentStageId: stageId },
+      include: {
+        workflow: { include: { stages: { orderBy: { order: 'asc' } } } },
+        currentStage: true,
+        assignedBy: { select: { id: true, firstName: true, lastName: true } },
+      },
     });
   }
 

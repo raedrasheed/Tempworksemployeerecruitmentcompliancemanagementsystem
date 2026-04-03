@@ -152,6 +152,13 @@ export class WorkflowController {
     return this.workflowService.getEmployeeWorkflows(employeeId);
   }
 
+  @Patch('employee/:employeeId/current-stage')
+  @Roles(...WRITE_ROLES)
+  @ApiOperation({ summary: 'Set the current stage for an employee workflow assignment' })
+  setEmployeeCurrentStage(@Param('employeeId') employeeId: string, @Body('stageId') stageId: string, @Request() req: any) {
+    return this.workflowService.setEmployeeCurrentStage(employeeId, stageId, req.user?.id);
+  }
+
   @Delete('employee/:employeeId/assignments/:workflowId')
   @Roles(...WRITE_ROLES)
   @ApiOperation({ summary: 'Remove an employee from a workflow' })

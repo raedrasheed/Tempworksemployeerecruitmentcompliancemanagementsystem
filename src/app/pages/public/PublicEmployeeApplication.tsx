@@ -9,6 +9,7 @@ export function PublicEmployeeApplication() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const jobAdId = searchParams.get('jobAdId') || undefined;
+  const jobCategory = searchParams.get('jobCategory') || undefined;
   const [jobAd, setJobAd] = useState<{ id: string; title: string; city: string; country: string } | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<ApplicantFormData>(EMPTY_FORM);
@@ -32,7 +33,16 @@ export function PublicEmployeeApplication() {
 
   useEffect(() => {
     Promise.all([
-      settingsApi.getJobTypes().then(setJobTypes).catch(() => {}),
+      settingsApi.getJobTypes().then((types: any[]) => {
+        setJobTypes(types);
+        // Pre-select position when arriving from a job ad
+        if (jobCategory) {
+          const match = types.find((t: any) => t.name === jobCategory);
+          if (match) {
+            setFormData(prev => ({ ...prev, jobTypeId: match.id }));
+          }
+        }
+      }).catch(() => {}),
       publicApplicationApi.getFormSettings().then((raw: any) => {
         if (!raw || typeof raw !== 'object') return;
         // Strip "form." prefix from keys (handles both old and new backend)

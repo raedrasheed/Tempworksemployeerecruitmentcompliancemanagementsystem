@@ -95,10 +95,9 @@ export class ApplicantsController {
     },
     limits: { fileSize: 5 * 1024 * 1024 },
   }))
-  uploadPhoto(@Param('id') id: string, @UploadedFile() file: Express.Multer.File, @CurrentUser() user: any) {
+  uploadPhoto(@Param('id') id: string, @UploadedFile() file: Express.Multer.File) {
     if (!file) throw new BadRequestException('No photo file provided');
-    const photoUrl = `/uploads/${file.filename}`;
-    return this.applicantsService.update(id, { photoUrl } as any, user?.id);
+    return this.applicantsService.uploadPhoto(id, file);
   }
 
   // ── Status ────────────────────────────────────────────────────────────────────

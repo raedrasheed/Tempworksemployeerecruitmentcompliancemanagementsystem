@@ -9,6 +9,8 @@ import { FilterApplicantsDto } from './dto/filter-applicants.dto';
 import { UpsertFinancialProfileDto } from './dto/financial-profile.dto';
 import { BulkActionDto, BulkActionType, AssignAgencyDto, ConvertLeadDto } from './dto/bulk-action.dto';
 import { PaginatedResponse } from '../common/dto/pagination-response.dto';
+import { promises as fs } from 'fs';
+import { join, extname } from 'path';
 
 @Injectable()
 export class ApplicantsService {
@@ -146,6 +148,20 @@ export class ApplicantsService {
     });
     await this.auditLog(actorId, 'UPDATE', id, dto as any);
     return applicant;
+  }
+
+  async uploadPhoto(id: string, file: Express.Multer.File) {
+    const applicant = await this.prisma.applicant.findUnique({ where: { id }, select: { firstName: true, lastName: true } });
+    if (!applicant) throw new NotFoundException('Applicant not found');
+    const safeName   = `${applicant.firstName}_${applicant.lastName}`.replace(/[^a-zA-Z0-9\-]/g, '_').replace(/_+/g, '_');
+    const shortId    = id.replace(/-/g, '');
+    const folderName = `${safeName}_${shortId}`;
+    const photoDir   = join(file.destination, folderName, 'photo');
+    await fs.mkdir(photoDir, { recursive: true });
+    const newFilename = `photo_${Date.now()}${extname(file.originalname)}`;
+    await fs.rename(file.path, join(photoDir, newFilename));
+    const photoUrl = `/uploads/${folderName}/photo/${newFilename}`;
+    return this.prisma.applicant.update({ where: { id }, data: { photoUrl }, include: this.include });
   }
 
   // ── Update Status ─────────────────────────────────────────────────────────────

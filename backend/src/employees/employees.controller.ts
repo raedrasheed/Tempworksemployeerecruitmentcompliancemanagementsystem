@@ -96,8 +96,7 @@ export class EmployeesController {
   }))
   uploadPhoto(@Param('id') id: string, @UploadedFile() file: Express.Multer.File) {
     if (!file) throw new BadRequestException('No photo file provided');
-    const photoUrl = `/uploads/${file.filename}`;
-    return this.employeesService.update(id, { photoUrl } as any);
+    return this.employeesService.uploadPhoto(id, file);
   }
 
   @Patch(':id/status')

@@ -206,7 +206,8 @@ export class DocumentsService {
     const ext         = extname(file.originalname);
     const safeEntity  = this.sanitize(entityName) || 'Applicant';
     const safeDocType = this.sanitize(docType.name) || 'Others';
-    const folderName  = `${safeEntity}_${ts}`;
+    const shortId     = entityId.replace(/-/g, '');
+    const folderName  = `${safeEntity}_${shortId}`;
     const newFilename = `${safeEntity}_${safeDocType}_${ts}${ext}`;
     const newDir      = join(file.destination, folderName, safeDocType);
 
@@ -251,7 +252,8 @@ export class DocumentsService {
     const ext         = extname(file.originalname);
     const safeEntity  = this.sanitize(entityName) || 'Others';
     const safeDocType = this.sanitize(docType.name) || 'Others';
-    const folderName  = `${safeEntity}_${ts}`;
+    const shortId     = dto.entityId.replace(/-/g, '');
+    const folderName  = `${safeEntity}_${shortId}`;
     const newFilename = `${safeEntity}_${safeDocType}_${ts}${ext}`;
     const newDir      = join(file.destination, folderName, safeDocType);
 
@@ -403,7 +405,8 @@ export class DocumentsService {
       const ext         = extname(file.originalname);
       const safeEntity  = this.sanitize(entityName) || 'Others';
       const safeDocType = this.sanitize((original as any).documentType?.name) || 'Others';
-      const folderName  = `${safeEntity}_${ts}`;
+      const shortId     = original.entityId.replace(/-/g, '');
+      const folderName  = `${safeEntity}_${shortId}`;
       const newFilename = `${safeEntity}_${safeDocType}_renewal_${ts}${ext}`;
       const newDir      = join(file.destination, folderName, safeDocType);
       await fs.mkdir(newDir, { recursive: true });

@@ -190,11 +190,19 @@ export class WorkflowService {
 
   async reorderStages(workflowId: string, orderedIds: string[]) {
     await this.getWorkflow(workflowId);
-    await Promise.all(
-      orderedIds.map((id, idx) =>
-        this.prisma.workflowStage.update({ where: { id }, data: { order: idx + 1 } }),
-      ),
-    );
+    // Use a transaction with sequential updates to avoid intermediate unique-constraint
+    // violations on (workflowId, order). First shift all orders to a safe negative
+    // range, then assign the final values sequentially.
+    await this.prisma.$transaction(async (tx) => {
+      // Step 1: move all to temporary negative values to vacate the constraint space
+      for (let i = 0; i < orderedIds.length; i++) {
+        await tx.workflowStage.update({ where: { id: orderedIds[i] }, data: { order: -(i + 1) } });
+      }
+      // Step 2: assign final positive order values
+      for (let i = 0; i < orderedIds.length; i++) {
+        await tx.workflowStage.update({ where: { id: orderedIds[i] }, data: { order: i + 1 } });
+      }
+    });
     return this.getWorkflow(workflowId);
   }
 

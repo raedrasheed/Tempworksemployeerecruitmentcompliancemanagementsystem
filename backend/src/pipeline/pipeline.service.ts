@@ -378,15 +378,32 @@ export class WorkflowService {
     });
     if (!stage) throw new NotFoundException('Stage does not belong to this employee\'s workflow');
 
-    return this.prisma.employeeWorkflowAssignment.update({
-      where: { employeeId },
-      data: { currentStageId: stageId },
-      include: {
-        workflow: { include: { stages: { orderBy: { order: 'asc' } } } },
-        currentStage: true,
-        assignedBy: { select: { id: true, firstName: true, lastName: true } },
-      },
-    });
+    const [updated, approvals] = await Promise.all([
+      this.prisma.employeeWorkflowAssignment.update({
+        where: { employeeId },
+        data: { currentStageId: stageId },
+        include: {
+          workflow: {
+            include: {
+              stages: {
+                orderBy: { order: 'asc' },
+                include: {
+                  requiredDocs: { include: { documentType: { select: { id: true, name: true, category: true } } } },
+                  assignedUsers: { include: { user: { select: { id: true, firstName: true, lastName: true, email: true } } } },
+                },
+              },
+            },
+          },
+          currentStage: true,
+          assignedBy: { select: { id: true, firstName: true, lastName: true } },
+        },
+      }),
+      this.prisma.employeeStageApproval.findMany({
+        where: { employeeId },
+        include: { approvedBy: { select: { id: true, firstName: true, lastName: true } } },
+      }),
+    ]);
+    return { ...updated, stageApprovals: approvals };
   }
 
   async removeEmployeeWorkflow(employeeId: string, workflowId: string, actorId?: string) {

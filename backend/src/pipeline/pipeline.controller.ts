@@ -8,6 +8,7 @@ import {
   CreateStageNoteDto,
   CreateStageApprovalDto,
   AssignCandidateToWorkflowDto,
+  AssignEmployeeToWorkflowDto,
 } from './dto/create-pipeline.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -133,6 +134,29 @@ export class WorkflowController {
   @ApiOperation({ summary: 'Get all workflow assignments for a candidate' })
   getCandidateAssignments(@Param('candidateId') candidateId: string) {
     return this.workflowService.getCandidateAssignments(candidateId);
+  }
+
+  // ─── Employee Assignments ─────────────────────────────────────────────────
+
+  @Post('assign-employee')
+  @Roles(...WRITE_ROLES)
+  @ApiOperation({ summary: 'Assign an employee to a workflow' })
+  assignEmployee(@Body() dto: AssignEmployeeToWorkflowDto, @Request() req: any) {
+    return this.workflowService.assignEmployee(dto, req.user?.id);
+  }
+
+  @Get('employee/:employeeId/assignments')
+  @Roles(...ALL_ROLES)
+  @ApiOperation({ summary: 'Get all workflow assignments for an employee' })
+  getEmployeeWorkflows(@Param('employeeId') employeeId: string) {
+    return this.workflowService.getEmployeeWorkflows(employeeId);
+  }
+
+  @Delete('employee/:employeeId/assignments/:workflowId')
+  @Roles(...WRITE_ROLES)
+  @ApiOperation({ summary: 'Remove an employee from a workflow' })
+  removeEmployeeWorkflow(@Param('employeeId') employeeId: string, @Param('workflowId') workflowId: string, @Request() req: any) {
+    return this.workflowService.removeEmployeeWorkflow(employeeId, workflowId, req.user?.id);
   }
 
   // ─── Progress ─────────────────────────────────────────────────────────────

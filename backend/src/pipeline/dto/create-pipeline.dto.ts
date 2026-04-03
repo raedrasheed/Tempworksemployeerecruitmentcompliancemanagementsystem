@@ -44,3 +44,9 @@ export class AssignCandidateToWorkflowDto {
   @ApiProperty() @IsUUID() workflowId: string;
   @ApiPropertyOptional() @IsOptional() @IsString() notes?: string;
 }
+
+export class AssignEmployeeToWorkflowDto {
+  @ApiProperty() @IsUUID() employeeId: string;
+  @ApiProperty() @IsUUID() workflowId: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() notes?: string;
+}

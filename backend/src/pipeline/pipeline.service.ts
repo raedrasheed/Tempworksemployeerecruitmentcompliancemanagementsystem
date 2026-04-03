@@ -7,6 +7,7 @@ import {
   CreateStageNoteDto,
   CreateStageApprovalDto,
   AssignCandidateToWorkflowDto,
+  AssignEmployeeToWorkflowDto,
 } from './dto/create-pipeline.dto';
 
 const WORKFLOW_STAGE_INCLUDE = {
@@ -273,6 +274,73 @@ export class WorkflowService {
       },
       orderBy: { assignedAt: 'desc' },
     });
+  }
+
+  // ─── Employee Assignments ─────────────────────────────────────────────────
+
+  async assignEmployee(dto: AssignEmployeeToWorkflowDto, actorId?: string) {
+    const [employee, workflow] = await Promise.all([
+      this.prisma.employee.findFirst({ where: { id: dto.employeeId, deletedAt: null } }),
+      this.getWorkflow(dto.workflowId),
+    ]);
+    if (!employee) throw new NotFoundException('Employee not found');
+
+    const existing = await this.prisma.employeeWorkflowAssignment.findFirst({
+      where: { employeeId: dto.employeeId, workflowId: dto.workflowId },
+    });
+    if (existing) throw new ConflictException('Employee is already assigned to this workflow');
+
+    const assignment = await this.prisma.employeeWorkflowAssignment.create({
+      data: {
+        employeeId: dto.employeeId,
+        workflowId: dto.workflowId,
+        assignedById: actorId,
+        notes: dto.notes,
+      },
+      include: {
+        employee: { select: { id: true, firstName: true, lastName: true, email: true, employeeNumber: true } },
+        workflow: { select: { id: true, name: true, color: true } },
+        assignedBy: { select: { id: true, firstName: true, lastName: true } },
+      },
+    });
+
+    if (actorId) {
+      await this.prisma.auditLog.create({
+        data: {
+          userId: actorId,
+          action: 'ASSIGN',
+          entity: 'EmployeeWorkflowAssignment',
+          entityId: assignment.id,
+          changes: { employeeId: dto.employeeId, workflowId: dto.workflowId } as any,
+        },
+      });
+    }
+    return assignment;
+  }
+
+  async getEmployeeWorkflows(employeeId: string) {
+    return this.prisma.employeeWorkflowAssignment.findMany({
+      where: { employeeId },
+      include: {
+        workflow: { select: { id: true, name: true, color: true, description: true }, },
+        assignedBy: { select: { id: true, firstName: true, lastName: true } },
+      },
+      orderBy: { assignedAt: 'desc' },
+    });
+  }
+
+  async removeEmployeeWorkflow(employeeId: string, workflowId: string, actorId?: string) {
+    const assignment = await this.prisma.employeeWorkflowAssignment.findFirst({
+      where: { employeeId, workflowId },
+    });
+    if (!assignment) throw new NotFoundException('Assignment not found');
+    await this.prisma.employeeWorkflowAssignment.delete({ where: { id: assignment.id } });
+    if (actorId) {
+      await this.prisma.auditLog.create({
+        data: { userId: actorId, action: 'DELETE', entity: 'EmployeeWorkflowAssignment', entityId: assignment.id },
+      });
+    }
+    return { message: 'Employee removed from workflow' };
   }
 
   async getWorkflowCandidates(workflowId: string) {

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router';
-import { ArrowLeft, Edit, Mail, Phone, MapPin, Calendar, FileText, Shield, Briefcase, Clock, Award, GraduationCap, TrendingUp, ChevronRight, Trash2, Download, Upload, X, DollarSign } from 'lucide-react';
+import { ArrowLeft, Edit, Mail, Phone, MapPin, Calendar, FileText, Shield, Briefcase, Clock, Award, GraduationCap, TrendingUp, ChevronRight, Trash2, Download, Upload, X, DollarSign, Plus, Layers } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
@@ -10,7 +10,7 @@ import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { toast } from 'sonner';
-import { employeesApi, documentsApi, settingsApi, employeeWorkflowApi, agenciesApi, getCurrentUser } from '../../services/api';
+import { employeesApi, documentsApi, settingsApi, employeeWorkflowApi, agenciesApi, workflowApi, getCurrentUser } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
 import { FinancialRecordsTab } from '../../components/finance/FinancialRecordsTab';
 
@@ -36,6 +36,18 @@ export function EmployeeProfile() {
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadForm, setUploadForm] = useState({ documentTypeId: '', name: '', issueDate: '', expiryDate: '', documentNumber: '', issuer: '' });
   const [financialProfile, setFinancialProfile] = useState<any>(null);
+
+  // Recruitment workflow assignments
+  const [recruitmentWorkflows, setRecruitmentWorkflows] = useState<any[]>([]);
+  const [allWorkflows, setAllWorkflows] = useState<any[]>([]);
+  const [showAssignWorkflow, setShowAssignWorkflow] = useState(false);
+  const [assignWorkflowId, setAssignWorkflowId] = useState('');
+  const [assignWorkflowNotes, setAssignWorkflowNotes] = useState('');
+  const [assigningWorkflow, setAssigningWorkflow] = useState(false);
+
+  const loadRecruitmentWorkflows = () => {
+    workflowApi.getEmployeeAssignments(id!).then(res => setRecruitmentWorkflows(Array.isArray(res) ? res : [])).catch(() => {});
+  };
 
   const loadWorkflow = () => {
     employeesApi.getWorkflow(id!).then(wf => setWorkflow(Array.isArray(wf) ? wf : [])).catch(() => {});
@@ -66,6 +78,10 @@ export function EmployeeProfile() {
     if (id && isFinanceOrAdmin) {
       employeesApi.getFinancialProfile(id).then(setFinancialProfile).catch(() => {});
     }
+    if (id) {
+      loadRecruitmentWorkflows();
+      workflowApi.list().then(res => setAllWorkflows(Array.isArray(res) ? res : [])).catch(() => {});
+    }
   }, [id]);
 
   const handleStageChange = async (stageId: string) => {
@@ -79,6 +95,34 @@ export function EmployeeProfile() {
       toast.error(err?.message || 'Failed to update stage');
     } finally {
       setChangingStage(false);
+    }
+  };
+
+  const handleAssignWorkflow = async () => {
+    if (!assignWorkflowId || !id) return;
+    setAssigningWorkflow(true);
+    try {
+      await workflowApi.assignEmployee({ employeeId: id, workflowId: assignWorkflowId, notes: assignWorkflowNotes || undefined });
+      toast.success('Employee assigned to workflow');
+      loadRecruitmentWorkflows();
+      setShowAssignWorkflow(false);
+      setAssignWorkflowId('');
+      setAssignWorkflowNotes('');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to assign workflow');
+    } finally {
+      setAssigningWorkflow(false);
+    }
+  };
+
+  const handleRemoveWorkflow = async (workflowId: string) => {
+    if (!id || !confirm('Remove this employee from the workflow?')) return;
+    try {
+      await workflowApi.removeEmployeeAssignment(id, workflowId);
+      toast.success('Removed from workflow');
+      loadRecruitmentWorkflows();
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to remove');
     }
   };
 
@@ -552,6 +596,94 @@ export function EmployeeProfile() {
               </div>
             )}
           </div>
+          {/* Recruitment Workflows card */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Layers className="w-5 h-5 text-primary" /> Recruitment Workflows
+                </CardTitle>
+                {canEdit && (
+                  <Button size="sm" onClick={() => setShowAssignWorkflow(true)}>
+                    <Plus className="w-4 h-4 mr-1" /> Assign to Workflow
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              {showAssignWorkflow && (
+                <div className="mb-4 p-4 border rounded-lg bg-muted/30 space-y-3">
+                  <p className="text-sm font-medium">Assign to a Workflow</p>
+                  <Select value={assignWorkflowId} onValueChange={setAssignWorkflowId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a workflow…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {allWorkflows
+                        .filter(w => !recruitmentWorkflows.some(a => a.workflowId === w.id))
+                        .map(w => (
+                          <SelectItem key={w.id} value={w.id}>
+                            <div className="flex items-center gap-2">
+                              <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: w.color }} />
+                              {w.name}
+                            </div>
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    placeholder="Notes (optional)…"
+                    value={assignWorkflowNotes}
+                    onChange={e => setAssignWorkflowNotes(e.target.value)}
+                  />
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={handleAssignWorkflow} disabled={assigningWorkflow || !assignWorkflowId}>
+                      {assigningWorkflow ? 'Assigning…' : 'Confirm'}
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => { setShowAssignWorkflow(false); setAssignWorkflowId(''); setAssignWorkflowNotes(''); }}>
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
+              {recruitmentWorkflows.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No workflow assignments yet.</p>
+              ) : (
+                <div className="space-y-3">
+                  {recruitmentWorkflows.map((a: any) => (
+                    <div key={a.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <div className="w-3 h-3 rounded-full" style={{ background: a.workflow?.color ?? '#6366F1' }} />
+                        <div>
+                          <p className="font-medium text-sm">{a.workflow?.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Assigned {new Date(a.assignedAt).toLocaleDateString()}
+                            {a.assignedBy && ` by ${a.assignedBy.firstName} ${a.assignedBy.lastName}`}
+                          </p>
+                          {a.notes && <p className="text-xs text-muted-foreground mt-0.5 italic">"{a.notes}"</p>}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className={a.status === 'ACTIVE' ? 'border-green-500 text-green-600' : 'border-slate-400 text-slate-500'}>
+                          {a.status}
+                        </Badge>
+                        <Button size="sm" variant="ghost" asChild>
+                          <Link to={`/dashboard/workflows/${a.workflowId}`}>
+                            <ChevronRight className="w-4 h-4" />
+                          </Link>
+                        </Button>
+                        {canEdit && (
+                          <Button size="sm" variant="ghost" onClick={() => handleRemoveWorkflow(a.workflowId)}>
+                            <X className="w-4 h-4 text-destructive" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* Compliance */}

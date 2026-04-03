@@ -210,7 +210,8 @@ model User {
   workflowsCreated      Workflow[]                    @relation("WorkflowsCreated")
   workflowStageUsers    WorkflowStageUser[]            @relation("WorkflowStageUsers")
   workflowAccess        WorkflowAccessUser[]           @relation("WorkflowAccess")
-  workflowAssignments   CandidateWorkflowAssignment[] @relation("WorkflowAssignments")
+  workflowAssignments         CandidateWorkflowAssignment[]  @relation("WorkflowAssignments")
+  employeeWorkflowAssignments EmployeeWorkflowAssignment[]   @relation("EmployeeWorkflowAssignments")
   stageApprovals        CandidateStageApproval[]      @relation("StageApprovals")
   stageNotes            CandidateStageNote[]           @relation("StageNoteAuthors")
 
@@ -281,6 +282,7 @@ model Employee {
   agency         Agency?        @relation(fields: [agencyId], references: [id])
   employeeStages EmployeeStage[]
   workPermits    WorkPermit[]
+  workflowAssignments EmployeeWorkflowAssignment[]
 
   @@map("employees")
 }
@@ -951,10 +953,11 @@ model Workflow {
   deletedBy    String?
   deletionReason String?
 
-  createdBy    User?                        @relation("WorkflowsCreated", fields: [createdById], references: [id])
-  stages       WorkflowStage[]
-  assignments  CandidateWorkflowAssignment[]
-  accessUsers  WorkflowAccessUser[]
+  createdBy           User?                        @relation("WorkflowsCreated", fields: [createdById], references: [id])
+  stages              WorkflowStage[]
+  assignments         CandidateWorkflowAssignment[]
+  employeeAssignments EmployeeWorkflowAssignment[]
+  accessUsers         WorkflowAccessUser[]
 
   @@index([status])
   @@map("workflows")
@@ -1105,4 +1108,25 @@ model CandidateStageNote {
 
   @@index([progressId])
   @@map("candidate_stage_notes")
+}
+
+/// Links an Employee to a recruitment Workflow for post-hire tracking
+model EmployeeWorkflowAssignment {
+  id           String                   @id @default(uuid())
+  employeeId   String
+  workflowId   String
+  status       WorkflowAssignmentStatus @default(ACTIVE)
+  assignedAt   DateTime                 @default(now())
+  completedAt  DateTime?
+  assignedById String?
+  notes        String?
+
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  workflow   Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  assignedBy User?    @relation("EmployeeWorkflowAssignments", fields: [assignedById], references: [id])
+
+  @@unique([employeeId, workflowId])
+  @@index([employeeId])
+  @@index([workflowId])
+  @@map("employee_workflow_assignments")
 }

@@ -207,6 +207,23 @@ export const employeesApi = {
   update: (id: string, data: any) =>
     apiFetch<any>(`/employees/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
 
+  uploadPhoto: (id: string, file: File): Promise<any> => {
+    const token = getAccessToken();
+    const form = new FormData();
+    form.append('photo', file);
+    return fetch(`${API_URL}/employees/${id}/photo`, {
+      method: 'PATCH',
+      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: form,
+    }).then(async res => {
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error((err as any)?.message || 'Photo upload failed');
+      }
+      return res.json();
+    });
+  },
+
   delete: (id: string) =>
     apiFetch(`/employees/${id}`, { method: 'DELETE' }),
 

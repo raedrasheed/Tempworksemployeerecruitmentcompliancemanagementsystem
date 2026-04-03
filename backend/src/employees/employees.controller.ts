@@ -1,5 +1,9 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
+import { v4 as uuidv4 } from 'uuid';
 import { EmployeesService } from './employees.service';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
@@ -9,6 +13,11 @@ import { Roles } from '../auth/decorators/roles.decorator';
 
 const ALL_ROLES = ['System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Finance', 'Read Only'];
 const WRITE_ROLES = ['System Admin', 'HR Manager', 'Agency Manager'];
+
+const photoStorage = diskStorage({
+  destination: process.env.UPLOAD_DEST || './uploads',
+  filename: (_req, file, cb) => cb(null, `${uuidv4()}${extname(file.originalname)}`),
+});
 
 @ApiTags('Employees')
 @ApiBearerAuth()
@@ -69,6 +78,26 @@ export class EmployeesController {
   @ApiOperation({ summary: 'Update employee' })
   update(@Param('id') id: string, @Body() dto: Partial<CreateEmployeeDto>) {
     return this.employeesService.update(id, dto);
+  }
+
+  @Patch(':id/photo')
+  @Roles(...WRITE_ROLES)
+  @ApiOperation({ summary: 'Upload or replace employee photo' })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('photo', {
+    storage: photoStorage,
+    fileFilter: (_req, file, cb) => {
+      if (!['image/jpeg', 'image/jpg', 'image/png', 'image/webp'].includes(file.mimetype)) {
+        return cb(new BadRequestException('Only JPEG, PNG, and WebP images are allowed'), false);
+      }
+      cb(null, true);
+    },
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
+  }))
+  uploadPhoto(@Param('id') id: string, @UploadedFile() file: Express.Multer.File) {
+    if (!file) throw new BadRequestException('No photo file provided');
+    const photoUrl = `/uploads/${file.filename}`;
+    return this.employeesService.update(id, { photoUrl } as any);
   }
 
   @Patch(':id/status')

@@ -530,6 +530,7 @@ export class ApplicantsService {
         emergencyContact: dto.emergencyContact,
         emergencyPhone: dto.emergencyPhone,
         notes: applicant.notes,
+        photoUrl: (applicant as any).photoUrl ?? null,
         status: 'ONBOARDING' as any,
         ...(applicant.agencyId ? { agencyId: applicant.agencyId } : {}),
         workflowStages: {

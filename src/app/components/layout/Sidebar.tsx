@@ -31,7 +31,6 @@ const allNavigationItems = [
   { icon: Users,           label: 'Employees',             path: '/dashboard/employees',        permission: 'employees:read' },
   { icon: FolderOpen,      label: 'Documents & Compliance',path: '/dashboard/documents-compliance', permission: 'documents:read' },
   { icon: FileSearch,      label: 'Document Explorer',     path: '/dashboard/document-explorer',permission: 'documents:read' },
-  { icon: Layers,          label: 'Workflows',             path: '/dashboard/workflows',        permission: 'workflow:read' },
   { icon: Building2,       label: 'Agencies',              path: '/dashboard/agencies',         permission: 'agencies:read' },
   { icon: BarChart3,       label: 'Reports',               path: '/dashboard/reports',          permission: 'reports:read' },
   { icon: DollarSign,     label: 'Finance',               path: '/dashboard/finance',          permission: 'finance:read', roles: ['System Admin', 'HR Manager', 'Finance'] },

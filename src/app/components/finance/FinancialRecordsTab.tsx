@@ -29,7 +29,7 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { toast } from 'sonner';
-import { financeApi, getAccessToken } from '../../services/api';
+import { financeApi, usersApi, getAccessToken } from '../../services/api';
 
 const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1').replace('/api/v1', '');
 
@@ -89,8 +89,10 @@ const EMPTY_FORM = {
   description: '',
   paymentMethod: '',
   paidByName: '',
+  paidById: '',
   companyDisbursedAmount: '',
   employeeOrAgencyPaidAmount: '',
+  payrollReference: '',
   notes: '',
 };
 
@@ -148,10 +150,16 @@ export function FinancialRecordsTab({ entityType, entityId, canWrite, canChangeS
   // Delete confirm
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  // Attachment upload
+  // Attachment upload (on existing records via expanded row)
   const [attachingId, setAttachingId] = useState<string | null>(null);
   const [attachFile, setAttachFile] = useState<File | null>(null);
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
+
+  // Staff list for "Paid By" dropdown
+  const [staffList, setStaffList] = useState<{ id: string; name: string }[]>([]);
+
+  // Pending files queued inside the Add/Edit modal (uploaded after record save)
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
 
   // ── Data loaders ────────────────────────────────────────────────────────────
 
@@ -178,6 +186,14 @@ export function FinancialRecordsTab({ entityType, entityId, canWrite, canChangeS
 
   useEffect(() => {
     financeApi.getConstants().then(c => setConstants(c as Constants)).catch(() => {});
+    // Load all internal staff (agency users + system users) for the Paid By dropdown
+    usersApi.list({ limit: 200, status: 'ACTIVE' }).then((res: any) => {
+      const users: any[] = res?.data ?? [];
+      setStaffList(users.map((u: any) => ({
+        id: u.id,
+        name: `${u.firstName} ${u.lastName}`.trim() + (u.role ? ` (${u.role})` : ''),
+      })));
+    }).catch(() => {});
   }, []);
 
   // ── Running balance ─────────────────────────────────────────────────────────
@@ -197,6 +213,7 @@ export function FinancialRecordsTab({ entityType, entityId, canWrite, canChangeS
   const openAdd = () => {
     setEditRecord(null);
     setForm({ ...EMPTY_FORM });
+    setPendingFiles([]);
     setShowModal(true);
   };
 
@@ -209,14 +226,17 @@ export function FinancialRecordsTab({ entityType, entityId, canWrite, canChangeS
       description: rec.description ?? '',
       paymentMethod: rec.paymentMethod ?? '',
       paidByName: rec.paidByName ?? '',
+      paidById: rec.paidByUser?.id ?? '',
       companyDisbursedAmount: rec.companyDisbursedAmount ?? '',
       employeeOrAgencyPaidAmount: rec.employeeOrAgencyPaidAmount ?? '',
+      payrollReference: rec.payrollReference ?? '',
       notes: rec.notes ?? '',
     });
+    setPendingFiles([]);
     setShowModal(true);
   };
 
-  const closeModal = () => { setShowModal(false); setEditRecord(null); };
+  const closeModal = () => { setShowModal(false); setEditRecord(null); setPendingFiles([]); };
 
   const handleSave = async () => {
     if (!form.transactionType) { toast.error('Please select a transaction type'); return; }
@@ -227,6 +247,8 @@ export function FinancialRecordsTab({ entityType, entityId, canWrite, canChangeS
     }
     setSaving(true);
     try {
+      // Resolve paid-by: prefer dropdown selection, fall back to free-text
+      const selectedStaff = staffList.find(s => s.id === form.paidById);
       const payload = {
         entityType,
         entityId,
@@ -235,18 +257,37 @@ export function FinancialRecordsTab({ entityType, entityId, canWrite, canChangeS
         transactionType: form.transactionType,
         description: form.description || undefined,
         paymentMethod: form.paymentMethod || undefined,
-        paidByName: form.paidByName || undefined,
+        paidByName: selectedStaff ? selectedStaff.name.split(' (')[0] : (form.paidByName || undefined),
+        paidById: form.paidById || undefined,
         companyDisbursedAmount: Number(form.companyDisbursedAmount),
         employeeOrAgencyPaidAmount: Number(form.employeeOrAgencyPaidAmount || 0),
+        payrollReference: form.payrollReference || undefined,
         notes: form.notes || undefined,
       };
+
+      let savedId: string;
       if (editRecord) {
         await financeApi.update(editRecord.id, payload);
+        savedId = editRecord.id;
         toast.success('Record updated');
       } else {
-        await financeApi.create(payload);
+        const created = await financeApi.create(payload) as any;
+        savedId = created.id;
         toast.success('Record created');
       }
+
+      // Upload any pending files queued inside the modal
+      if (pendingFiles.length > 0) {
+        await Promise.allSettled(
+          pendingFiles.map(file => {
+            const fd = new FormData();
+            fd.append('file', file);
+            return financeApi.addAttachment(savedId, fd);
+          }),
+        );
+        if (pendingFiles.length > 0) toast.success(`${pendingFiles.length} attachment(s) uploaded`);
+      }
+
       closeModal();
       loadRecords();
     } catch (err: any) {
@@ -764,17 +805,41 @@ export function FinancialRecordsTab({ entityType, entityId, canWrite, canChangeS
                     </SelectContent>
                   </Select>
                 </div>
-                {/* Paid by */}
+                {/* Paid by — staff dropdown */}
                 <div className="space-y-1">
-                  <Label className="text-xs">Paid By (staff name)</Label>
+                  <Label className="text-xs">Paid By (staff)</Label>
+                  <Select
+                    value={form.paidById || '__none__'}
+                    onValueChange={v => {
+                      if (v === '__none__') {
+                        setForm(f => ({ ...f, paidById: '', paidByName: '' }));
+                      } else {
+                        const staff = staffList.find(s => s.id === v);
+                        setForm(f => ({ ...f, paidById: v, paidByName: staff ? staff.name.split(' (')[0] : '' }));
+                      }
+                    }}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Select staff…" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">— Not specified —</SelectItem>
+                      {staffList.map(s => (
+                        <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {/* Payroll Reference */}
+                <div className="space-y-1">
+                  <Label className="text-xs">Payroll Reference</Label>
                   <Input
-                    placeholder="Name of staff who recorded / made payment"
-                    value={form.paidByName}
-                    onChange={e => setForm(f => ({ ...f, paidByName: e.target.value }))}
+                    placeholder="e.g. PAY-2026-04"
+                    value={form.payrollReference}
+                    onChange={e => setForm(f => ({ ...f, payrollReference: e.target.value }))}
                   />
+                  <p className="text-xs text-muted-foreground">For reconciliation purposes</p>
                 </div>
                 {/* Notes */}
-                <div className="space-y-1 md:col-span-2">
+                <div className="space-y-1">
                   <Label className="text-xs">Notes</Label>
                   <Input
                     placeholder="Internal notes"
@@ -783,6 +848,75 @@ export function FinancialRecordsTab({ entityType, entityId, canWrite, canChangeS
                   />
                 </div>
               </div>
+
+              {/* Attachments — queue files before saving */}
+              <div className="space-y-2 pt-1 border-t">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-medium flex items-center gap-1.5">
+                    <Paperclip className="w-3.5 h-3.5" />
+                    Attached Documents
+                    {pendingFiles.length > 0 && (
+                      <Badge variant="outline" className="text-xs ml-1">{pendingFiles.length} queued</Badge>
+                    )}
+                  </Label>
+                  <label className="cursor-pointer">
+                    <span className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium">
+                      <Plus className="w-3.5 h-3.5" />Add file
+                    </span>
+                    <input
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                      multiple
+                      className="hidden"
+                      onChange={e => {
+                        const files = Array.from(e.target.files ?? []);
+                        if (files.length) setPendingFiles(prev => [...prev, ...files]);
+                        e.target.value = '';
+                      }}
+                    />
+                  </label>
+                </div>
+                {/* Existing attachments (edit mode) */}
+                {editRecord && (editRecord.attachments ?? []).length > 0 && (
+                  <div className="space-y-1">
+                    {editRecord.attachments!.map(att => (
+                      <div key={att.id} className="flex items-center justify-between gap-2 p-2 border rounded bg-muted/20 text-xs">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <FileText className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                          <a href={`${API_BASE}${att.fileUrl}`} target="_blank" rel="noreferrer"
+                            className="text-blue-600 hover:underline truncate">{att.name}</a>
+                        </div>
+                        <Button size="icon" variant="ghost" className="h-5 w-5 text-red-400 shrink-0"
+                          onClick={() => handleRemoveAttachment(editRecord.id, att.id)}>
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {/* Pending (new) files */}
+                {pendingFiles.length > 0 && (
+                  <div className="space-y-1">
+                    {pendingFiles.map((file, idx) => (
+                      <div key={idx} className="flex items-center justify-between gap-2 p-2 border border-dashed rounded bg-blue-50/40 text-xs">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <FileText className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                          <span className="truncate text-blue-700">{file.name}</span>
+                          <span className="text-muted-foreground shrink-0">({(file.size / 1024).toFixed(0)} KB)</span>
+                        </div>
+                        <Button size="icon" variant="ghost" className="h-5 w-5 text-red-400 shrink-0"
+                          onClick={() => setPendingFiles(prev => prev.filter((_, i) => i !== idx))}>
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {pendingFiles.length === 0 && (!editRecord || (editRecord.attachments ?? []).length === 0) && (
+                  <p className="text-xs text-muted-foreground">No files attached. Click "Add file" to attach receipts, invoices, or proof documents.</p>
+                )}
+              </div>
+
               <div className="flex gap-3 pt-2 border-t">
                 <Button className="flex-1" onClick={handleSave} disabled={saving}>
                   {saving ? 'Saving…' : editRecord ? 'Save Changes' : 'Create Record'}

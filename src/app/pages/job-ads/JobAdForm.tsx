@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { ArrowLeft, Save, Eye } from 'lucide-react';
 import { toast } from 'sonner';
-import { jobAdsApi } from '../../services/api';
+import { jobAdsApi, settingsApi } from '../../services/api';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
@@ -15,14 +15,12 @@ import { CountrySelect } from '../../components/ui/CountrySelect';
 interface Constants {
   statuses:      string[];
   contractTypes: string[];
-  categories:    string[];
   currencies:    string[];
 }
 
 const DEFAULT_CONSTANTS: Constants = {
   statuses:      ['DRAFT', 'PUBLISHED', 'ARCHIVED'],
   contractTypes: ['Full-time', 'Part-time', 'Contract', 'Temporary', 'Internship', 'Seasonal'],
-  categories:    ['Truck Driver', 'Warehouse Staff', 'Forklift Operator', 'Logistics', 'Construction', 'Other'],
   currencies:    ['GBP', 'EUR', 'USD', 'PLN'],
 };
 
@@ -46,12 +44,17 @@ export function JobAdForm() {
 
   const [form, setForm] = useState(EMPTY_FORM);
   const [constants, setConstants] = useState<Constants>(DEFAULT_CONSTANTS);
+  const [categories, setCategories] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(isEdit);
 
   useEffect(() => {
     jobAdsApi.getConstants()
       .then((c: any) => setConstants(c))
+      .catch(() => {});
+
+    settingsApi.getJobTypes()
+      .then((types: any[]) => setCategories(types.filter((t: any) => t.isActive).map((t: any) => t.name)))
       .catch(() => {});
 
     if (isEdit && id) {
@@ -160,7 +163,7 @@ export function JobAdForm() {
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {constants.categories.map(c => (
+                  {categories.map(c => (
                     <SelectItem key={c} value={c}>{c}</SelectItem>
                   ))}
                 </SelectContent>

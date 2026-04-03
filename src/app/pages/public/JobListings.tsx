@@ -4,7 +4,7 @@ import {
   Search, MapPin, Briefcase, Clock, ChevronLeft, ChevronRight,
   ArrowRight, Filter, X,
 } from 'lucide-react';
-import { publicJobAdsApi } from '../../services/api';
+import { publicJobAdsApi, settingsApi } from '../../services/api';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { CountrySelect } from '../../components/ui/CountrySelect';
@@ -38,6 +38,7 @@ export function JobListings() {
   const [countryFilter, setCountryFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [contractFilter, setContractFilter] = useState('');
+  const [categories, setCategories]   = useState<string[]>([]);
   const [page, setPage]               = useState(1);
   const limit = 12;
 
@@ -60,6 +61,12 @@ export function JobListings() {
       setLoading(false);
     }
   }, [search, countryFilter, categoryFilter, contractFilter]);
+
+  useEffect(() => {
+    settingsApi.getJobTypes()
+      .then((types: any[]) => setCategories(types.filter((t: any) => t.isActive).map((t: any) => t.name)))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     setPage(1);
@@ -164,7 +171,7 @@ export function JobListings() {
                     className="mt-1.5 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                   >
                     <option value="">All Categories</option>
-                    {['Truck Driver','Warehouse Staff','Forklift Operator','Logistics','Construction','Manufacturing','Cleaning','Security','Healthcare','Hospitality','Administrative','Other'].map(c => (
+                    {categories.map(c => (
                       <option key={c} value={c}>{c}</option>
                     ))}
                   </select>

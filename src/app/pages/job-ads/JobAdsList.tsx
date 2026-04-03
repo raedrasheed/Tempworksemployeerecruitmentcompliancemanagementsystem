@@ -6,8 +6,7 @@ import {
   ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { jobAdsApi } from '../../services/api';
-import { getCurrentUser } from '../../services/api';
+import { jobAdsApi, settingsApi, getCurrentUser } from '../../services/api';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Input } from '../../components/ui/input';
@@ -62,9 +61,9 @@ export function JobAdsList() {
   }, [search, statusFilter, categoryFilter, countryFilter]);
 
   useEffect(() => {
-    jobAdsApi.getConstants().then((c: any) => {
-      setCategories(c.categories ?? []);
-    }).catch(() => {});
+    settingsApi.getJobTypes()
+      .then((types: any[]) => setCategories(types.filter((t: any) => t.isActive).map((t: any) => t.name)))
+      .catch(() => {});
   }, []);
 
   useEffect(() => {

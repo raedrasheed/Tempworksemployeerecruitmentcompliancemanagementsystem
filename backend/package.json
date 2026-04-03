@@ -22,7 +22,8 @@
     "db:migrate:rename-workflow": "ts-node prisma/run-rename-migration.ts",
     "db:migrate:isactive": "ts-node prisma/run-isactive-migration.ts",
     "db:migrate:employee-workflow": "ts-node prisma/run-employee-workflow-migration.ts",
-    "db:migrate:employee-workflow-stage": "ts-node prisma/run-employee-workflow-current-stage-migration.ts"
+    "db:migrate:employee-workflow-stage": "ts-node prisma/run-employee-workflow-current-stage-migration.ts",
+    "db:migrate:employee-stage-approvals": "ts-node prisma/run-employee-stage-approvals-migration.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",

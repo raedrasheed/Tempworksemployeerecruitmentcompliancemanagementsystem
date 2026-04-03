@@ -212,7 +212,8 @@ model User {
   workflowAccess        WorkflowAccessUser[]           @relation("WorkflowAccess")
   workflowAssignments         CandidateWorkflowAssignment[]  @relation("WorkflowAssignments")
   employeeWorkflowAssignments EmployeeWorkflowAssignment[]   @relation("EmployeeWorkflowAssignments")
-  stageApprovals        CandidateStageApproval[]      @relation("StageApprovals")
+  stageApprovals           CandidateStageApproval[]      @relation("StageApprovals")
+  employeeStageApprovals   EmployeeStageApproval[]       @relation("EmployeeStageApprovals")
   stageNotes            CandidateStageNote[]           @relation("StageNoteAuthors")
 
   @@map("users")
@@ -282,7 +283,8 @@ model Employee {
   agency         Agency?        @relation(fields: [agencyId], references: [id])
   employeeStages EmployeeStage[]
   workPermits    WorkPermit[]
-  workflowAssignments EmployeeWorkflowAssignment[]
+  workflowAssignments    EmployeeWorkflowAssignment[]
+  stageApprovals         EmployeeStageApproval[]
 
   @@map("employees")
 }
@@ -982,7 +984,8 @@ model WorkflowStage {
   assignedUsers         WorkflowStageUser[]
   requiredDocs          WorkflowStageRequiredDoc[]
   candidateProgress     CandidateStageProgress[]
-  employeeCurrentStages EmployeeWorkflowAssignment[]   @relation("EmployeeCurrentStage")
+  employeeCurrentStages   EmployeeWorkflowAssignment[]   @relation("EmployeeCurrentStage")
+  employeeStageApprovals  EmployeeStageApproval[]
 
   @@unique([workflowId, order])
   @@index([workflowId])
@@ -1130,4 +1133,21 @@ model EmployeeWorkflowAssignment {
 
   @@index([workflowId])
   @@map("employee_workflow_assignments")
+}
+
+model EmployeeStageApproval {
+  id           String   @id @default(uuid())
+  employeeId   String
+  stageId      String
+  approvedById String
+  approvedAt   DateTime @default(now())
+  notes        String?
+
+  employee   Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  stage      WorkflowStage @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  approvedBy User          @relation("EmployeeStageApprovals", fields: [approvedById], references: [id])
+
+  @@unique([employeeId, stageId])
+  @@index([employeeId])
+  @@map("employee_stage_approvals")
 }

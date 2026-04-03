@@ -159,6 +159,13 @@ export class WorkflowController {
     return this.workflowService.setEmployeeCurrentStage(employeeId, stageId, req.user?.id);
   }
 
+  @Post('employee/:employeeId/stages/:stageId/approve')
+  @Roles(...WRITE_ROLES)
+  @ApiOperation({ summary: 'Approve a stage for an employee' })
+  approveEmployeeStage(@Param('employeeId') employeeId: string, @Param('stageId') stageId: string, @Body('notes') notes: string, @Request() req: any) {
+    return this.workflowService.approveEmployeeStage(employeeId, stageId, req.user?.id, notes);
+  }
+
   @Delete('employee/:employeeId/assignments/:workflowId')
   @Roles(...WRITE_ROLES)
   @ApiOperation({ summary: 'Remove an employee from a workflow' })

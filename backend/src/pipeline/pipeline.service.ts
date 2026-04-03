@@ -318,14 +318,53 @@ export class WorkflowService {
   }
 
   async getEmployeeWorkflows(employeeId: string) {
-    return this.prisma.employeeWorkflowAssignment.findFirst({
-      where: { employeeId },
-      include: {
-        workflow: { include: { stages: { orderBy: { order: 'asc' } } } },
-        currentStage: true,
-        assignedBy: { select: { id: true, firstName: true, lastName: true } },
-      },
+    const [assignment, approvals] = await Promise.all([
+      this.prisma.employeeWorkflowAssignment.findFirst({
+        where: { employeeId },
+        include: {
+          workflow: {
+            include: {
+              stages: {
+                orderBy: { order: 'asc' },
+                include: {
+                  requiredDocs: { include: { documentType: { select: { id: true, name: true, category: true } } } },
+                  assignedUsers: { include: { user: { select: { id: true, firstName: true, lastName: true, email: true } } } },
+                },
+              },
+            },
+          },
+          currentStage: true,
+          assignedBy: { select: { id: true, firstName: true, lastName: true } },
+        },
+      }),
+      this.prisma.employeeStageApproval.findMany({
+        where: { employeeId },
+        include: { approvedBy: { select: { id: true, firstName: true, lastName: true } } },
+      }),
+    ]);
+
+    if (!assignment) return null;
+    return { ...assignment, stageApprovals: approvals };
+  }
+
+  async approveEmployeeStage(employeeId: string, stageId: string, actorId: string, notes?: string) {
+    const assignment = await this.prisma.employeeWorkflowAssignment.findUnique({ where: { employeeId } });
+    if (!assignment) throw new NotFoundException('No workflow assignment found for this employee');
+
+    const stage = await this.prisma.workflowStage.findFirst({
+      where: { id: stageId, workflowId: assignment.workflowId },
+      include: { assignedUsers: true },
     });
+    if (!stage) throw new NotFoundException('Stage not found in this employee\'s workflow');
+
+    const approval = await this.prisma.employeeStageApproval.upsert({
+      where: { employeeId_stageId: { employeeId, stageId } },
+      create: { id: require('crypto').randomUUID(), employeeId, stageId, approvedById: actorId, notes },
+      update: { approvedById: actorId, approvedAt: new Date(), notes },
+      include: { approvedBy: { select: { id: true, firstName: true, lastName: true } } },
+    });
+
+    return approval;
   }
 
   async setEmployeeCurrentStage(employeeId: string, stageId: string, actorId?: string) {

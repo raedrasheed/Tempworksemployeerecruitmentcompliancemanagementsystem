@@ -44,6 +44,8 @@ export function EmployeeProfile() {
   const [assignWorkflowId, setAssignWorkflowId] = useState('');
   const [assigningWorkflow, setAssigningWorkflow] = useState(false);
   const [settingStage, setSettingStage] = useState(false);
+  const [expandedStageId, setExpandedStageId] = useState<string | null>(null);
+  const [approvingStageId, setApprovingStageId] = useState<string | null>(null);
 
   const loadRecruitmentWorkflow = () => {
     workflowApi.getEmployeeAssignment(id!).then(res => setAssignment(res ?? null)).catch(() => {});
@@ -136,6 +138,23 @@ export function EmployeeProfile() {
       toast.success('Workflow disconnected');
     } catch (err: any) {
       toast.error(err?.message || 'Failed to disconnect');
+    }
+  };
+
+  const handleApproveStage = async (stageId: string) => {
+    if (!id) return;
+    setApprovingStageId(stageId);
+    try {
+      const approval = await workflowApi.approveEmployeeStage(id, stageId);
+      setAssignment((prev: any) => prev ? {
+        ...prev,
+        stageApprovals: [...(prev.stageApprovals ?? []).filter((a: any) => a.stageId !== stageId), approval],
+      } : prev);
+      toast.success('Stage approved');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to approve stage');
+    } finally {
+      setApprovingStageId(null);
     }
   };
 
@@ -635,48 +654,146 @@ export function EmployeeProfile() {
                 {(!assignment.workflow?.stages || assignment.workflow.stages.length === 0) ? (
                   <p className="text-sm text-muted-foreground">This workflow has no stages configured yet.</p>
                 ) : (
-                  <div>
-                    {assignment.currentStageId && (
-                      <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
-                        <span>Current stage:</span>
-                        <span className="font-medium text-foreground">{assignment.currentStage?.name}</span>
-                      </div>
-                    )}
-                    <div className="space-y-0">
-                      {assignment.workflow.stages.map((stage: any, index: number) => {
-                        const isCurrent = stage.id === assignment.currentStageId;
-                        return (
+                  <div className="space-y-1">
+                    {assignment.workflow.stages.map((stage: any, index: number) => {
+                      const isCurrent = stage.id === assignment.currentStageId;
+                      const isExpanded = expandedStageId === stage.id;
+                      const stageApproval = assignment.stageApprovals?.find((a: any) => a.stageId === stage.id);
+                      const isApproved = !!stageApproval;
+                      const currentUserIsApprover = stage.assignedUsers?.some((u: any) => u.userId === currentUser?.id);
+
+                      return (
+                        <div key={stage.id} className={`rounded-lg border transition-all ${isCurrent ? 'border-primary/40 bg-primary/5' : 'border-transparent hover:border-border hover:bg-muted/30'}`}>
+                          {/* Stage row */}
                           <div
-                            key={stage.id}
-                            className={`flex items-center gap-4 py-3 border-b last:border-0 ${canEdit ? 'cursor-pointer hover:bg-muted/30 rounded-lg px-2 -mx-2 transition-colors' : ''} ${isCurrent ? 'bg-primary/5 rounded-lg px-2 -mx-2' : ''}`}
-                            onClick={() => canEdit && !settingStage && handleSetStage(stage.id)}
+                            className="flex items-center gap-3 px-3 py-3 cursor-pointer"
+                            onClick={() => setExpandedStageId(isExpanded ? null : stage.id)}
                           >
                             <div
-                              className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-semibold transition-all ${isCurrent ? 'text-white ring-2 ring-offset-2 ring-primary' : 'text-white opacity-60'}`}
+                              className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-semibold ${isCurrent ? 'text-white ring-2 ring-offset-1 ring-primary' : 'text-white opacity-60'}`}
                               style={{ background: stage.color ?? '#6366F1' }}
                             >
                               {index + 1}
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex flex-wrap items-center gap-2">
-                                <p className={`text-sm font-medium ${isCurrent ? 'text-primary' : ''}`}>{stage.name}</p>
+                                <span className={`text-sm font-medium ${isCurrent ? 'text-primary' : ''}`}>{stage.name}</span>
                                 {isCurrent && <Badge className="text-xs bg-primary">Current</Badge>}
+                                {isApproved && <Badge className="text-xs bg-green-500">Approved</Badge>}
                                 {stage.isFinal && <Badge variant="outline" className="text-xs">Final</Badge>}
-                                {stage.requiresApproval && <Badge variant="outline" className="text-xs border-amber-400 text-amber-600">Approval</Badge>}
+                                {stage.requiresApproval && !isApproved && <Badge variant="outline" className="text-xs border-amber-400 text-amber-600">Needs Approval</Badge>}
                                 {stage.slaHours && <span className="text-xs text-muted-foreground">SLA: {stage.slaHours}h</span>}
                               </div>
                               {stage.description && <p className="text-xs text-muted-foreground mt-0.5">{stage.description}</p>}
                             </div>
-                            {canEdit && isCurrent && (
-                              <ChevronRight className="w-4 h-4 text-primary flex-shrink-0" />
-                            )}
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              {canEdit && !isCurrent && (
+                                <Button
+                                  size="sm" variant="ghost"
+                                  className="text-xs h-7"
+                                  onClick={(e) => { e.stopPropagation(); handleSetStage(stage.id); }}
+                                  disabled={settingStage}
+                                >
+                                  Set Current
+                                </Button>
+                              )}
+                              <ChevronRight className={`w-4 h-4 text-muted-foreground transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                            </div>
                           </div>
-                        );
-                      })}
-                    </div>
-                    {canEdit && (
-                      <p className="text-xs text-muted-foreground mt-4">Click a stage to set it as the current stage.</p>
-                    )}
+
+                          {/* Expanded panel */}
+                          {isExpanded && (
+                            <div className="px-3 pb-4 border-t pt-3 space-y-4">
+
+                              {/* Required Documents */}
+                              <div>
+                                <p className="text-xs font-semibold uppercase text-muted-foreground mb-2">Required Documents</p>
+                                {!stage.requiredDocs || stage.requiredDocs.length === 0 ? (
+                                  <p className="text-xs text-muted-foreground">No required documents for this stage.</p>
+                                ) : (
+                                  <div className="space-y-1.5">
+                                    {stage.requiredDocs.map((rd: any) => {
+                                      const uploaded = documents.find((d: any) =>
+                                        d.documentTypeId === rd.documentTypeId
+                                      );
+                                      return (
+                                        <div key={rd.id} className="flex items-center justify-between p-2 rounded-md border bg-background">
+                                          <div className="flex items-center gap-2">
+                                            <FileText className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                                            <div>
+                                              <p className="text-xs font-medium">{rd.documentType?.name}</p>
+                                              {rd.documentType?.category && <p className="text-[11px] text-muted-foreground">{rd.documentType.category}</p>}
+                                            </div>
+                                          </div>
+                                          {uploaded ? (
+                                            <Badge className="text-xs bg-green-500">Uploaded</Badge>
+                                          ) : (
+                                            <Badge variant="outline" className="text-xs border-red-400 text-red-500">Missing</Badge>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Approval */}
+                              <div>
+                                <p className="text-xs font-semibold uppercase text-muted-foreground mb-2">Stage Approval</p>
+                                {isApproved ? (
+                                  <div className="flex items-center gap-2 p-2 rounded-md border bg-green-50 border-green-200">
+                                    <Badge className="bg-green-500 text-xs">Approved</Badge>
+                                    <span className="text-xs text-muted-foreground">
+                                      by {stageApproval.approvedBy?.firstName} {stageApproval.approvedBy?.lastName}
+                                      {' · '}{new Date(stageApproval.approvedAt).toLocaleDateString()}
+                                    </span>
+                                    {stageApproval.notes && <span className="text-xs text-muted-foreground italic">— "{stageApproval.notes}"</span>}
+                                  </div>
+                                ) : stage.assignedUsers?.length > 0 ? (
+                                  <div className="space-y-2">
+                                    <div className="space-y-1">
+                                      {stage.assignedUsers.map((u: any) => (
+                                        <div key={u.userId} className="flex items-center gap-2 text-xs text-muted-foreground">
+                                          <div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center text-[10px] font-semibold">
+                                            {u.user?.firstName?.[0]}{u.user?.lastName?.[0]}
+                                          </div>
+                                          {u.user?.firstName} {u.user?.lastName}
+                                          <span className="text-[11px] px-1.5 py-0.5 bg-muted rounded">{u.role}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                    {(canEdit || currentUserIsApprover) && (
+                                      <Button
+                                        size="sm"
+                                        onClick={() => handleApproveStage(stage.id)}
+                                        disabled={approvingStageId === stage.id}
+                                        className="h-7 text-xs"
+                                      >
+                                        {approvingStageId === stage.id ? 'Approving…' : 'Approve Stage'}
+                                      </Button>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <div className="space-y-2">
+                                    <p className="text-xs text-muted-foreground">No approvers assigned to this stage.</p>
+                                    {canEdit && (
+                                      <Button
+                                        size="sm"
+                                        onClick={() => handleApproveStage(stage.id)}
+                                        disabled={approvingStageId === stage.id}
+                                        className="h-7 text-xs"
+                                      >
+                                        {approvingStageId === stage.id ? 'Approving…' : 'Approve Stage'}
+                                      </Button>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </CardContent>

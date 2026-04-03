@@ -976,6 +976,9 @@ export const workflowApi = {
   setEmployeeCurrentStage: (employeeId: string, stageId: string) =>
     apiFetch<any>(`/workflows/employee/${employeeId}/current-stage`, { method: 'PATCH', body: JSON.stringify({ stageId }) }),
 
+  approveEmployeeStage: (employeeId: string, stageId: string, notes?: string) =>
+    apiFetch<any>(`/workflows/employee/${employeeId}/stages/${stageId}/approve`, { method: 'POST', body: JSON.stringify({ notes }) }),
+
   removeEmployeeAssignment: (employeeId: string, workflowId: string) =>
     apiFetch<any>(`/workflows/employee/${employeeId}/assignments/${workflowId}`, { method: 'DELETE' }),
 

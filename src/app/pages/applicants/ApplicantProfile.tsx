@@ -411,7 +411,12 @@ export function ApplicantProfile() {
           <div className="flex items-start gap-6">
             <div className="w-24 h-24 rounded-full shrink-0 overflow-hidden bg-[#EFF6FF] flex items-center justify-center">
               {applicantData.photoUrl
-                ? <img src={`${API_BASE}${applicantData.photoUrl}`} alt={applicantData.fullName} className="w-full h-full object-cover" />
+                ? <img
+                    src={applicantData.photoUrl.startsWith('http') ? applicantData.photoUrl : `${API_BASE}${applicantData.photoUrl}`}
+                    alt={applicantData.fullName}
+                    className="w-full h-full object-cover"
+                    onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                  />
                 : <span className="text-[#2563EB] text-3xl font-semibold">{applicantData.firstName?.[0]}{applicantData.lastName?.[0]}</span>
               }
             </div>

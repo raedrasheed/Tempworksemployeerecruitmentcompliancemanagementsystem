@@ -108,6 +108,12 @@ export class WorkflowService {
   async addStage(workflowId: string, dto: CreateWorkflowStageDto, actorId?: string) {
     await this.getWorkflow(workflowId);
 
+    // Auto-assign order if not provided
+    if (dto.order == null) {
+      const last = await this.prisma.workflowStage.findFirst({ where: { workflowId }, orderBy: { order: 'desc' } });
+      dto.order = last ? last.order + 1 : 1;
+    }
+
     // Check for order conflict and shift if needed
     const conflict = await this.prisma.workflowStage.findFirst({ where: { workflowId, order: dto.order } });
     if (conflict) {
@@ -129,7 +135,7 @@ export class WorkflowService {
         requiredDocs: requiredDocTypeIds?.length
           ? { create: requiredDocTypeIds.map((documentTypeId) => ({ documentTypeId })) }
           : undefined,
-      },
+      } as any,
       include: WORKFLOW_STAGE_INCLUDE,
     });
     if (actorId) {

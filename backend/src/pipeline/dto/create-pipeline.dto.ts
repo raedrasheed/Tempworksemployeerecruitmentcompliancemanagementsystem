@@ -12,7 +12,7 @@ export class CreateWorkflowDto {
 export class CreateWorkflowStageDto {
   @ApiProperty() @IsString() @MaxLength(100) name: string;
   @ApiPropertyOptional() @IsOptional() @IsString() description?: string;
-  @ApiProperty() order: number;
+  @ApiPropertyOptional() @IsOptional() order?: number;
   @ApiPropertyOptional() @IsOptional() @IsString() color?: string;
   @ApiPropertyOptional() @IsOptional() slaHours?: number;
   @ApiPropertyOptional() @IsOptional() @IsBoolean() requiresApproval?: boolean;

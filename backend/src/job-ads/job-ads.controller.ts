@@ -13,6 +13,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { Public } from '../common/decorators/public.decorator';
 import {
   JOB_ADS_READ_ROLES, JOB_ADS_WRITE_ROLES,
   JOB_AD_STATUSES, CONTRACT_TYPES, JOB_CATEGORIES, COMMON_CURRENCIES,
@@ -25,12 +26,14 @@ import {
 export class PublicJobAdsController {
   constructor(private readonly jobAdsService: JobAdsService) {}
 
+  @Public()
   @Get()
   @ApiOperation({ summary: 'List published job ads (public, no auth)' })
   findPublished(@Query() filter: FilterJobAdsDto) {
     return this.jobAdsService.findPublished(filter);
   }
 
+  @Public()
   @Get(':slug')
   @ApiOperation({ summary: 'Get a single published job ad by slug (public, no auth)' })
   @ApiParam({ name: 'slug', description: 'URL-friendly slug' })

@@ -20,6 +20,7 @@ import { FinanceModule } from './finance/finance.module';
 import { JobAdsModule } from './job-ads/job-ads.module';
 import { RecycleBinModule } from './recycle-bin/recycle-bin.module';
 import { WorkflowPipelineModule } from './pipeline/pipeline.module';
+import { AttendanceModule } from './attendance/attendance.module';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { WorkflowPipelineModule } from './pipeline/pipeline.module';
     JobAdsModule,
     RecycleBinModule,
     WorkflowPipelineModule,
+    AttendanceModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

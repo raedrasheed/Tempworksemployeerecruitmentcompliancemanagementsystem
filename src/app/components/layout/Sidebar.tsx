@@ -19,6 +19,7 @@ import {
   DollarSign,
   Megaphone,
   Trash2,
+  ClipboardList,
 } from 'lucide-react';
 import { cn } from '../ui/utils';
 import { useAuthContext } from '../../contexts/AuthContext';
@@ -29,6 +30,7 @@ const allNavigationItems = [
   { icon: LayoutDashboard, label: 'Dashboard',             path: '/dashboard',                  permission: null },
   { icon: UserCheck,       label: 'Applicants',            path: '/dashboard/applicants',       permission: 'applicants:read' },
   { icon: Users,           label: 'Employees',             path: '/dashboard/employees',        permission: 'employees:read' },
+  { icon: ClipboardList,   label: 'Attendance Sheets',     path: '/dashboard/attendance',       permission: 'attendance:read' },
   { icon: FolderOpen,      label: 'Documents & Compliance',path: '/dashboard/documents-compliance', permission: 'documents:read' },
   { icon: FileSearch,      label: 'Document Explorer',     path: '/dashboard/document-explorer',permission: 'documents:read' },
   { icon: Building2,       label: 'Agencies',              path: '/dashboard/agencies',         permission: 'agencies:read' },

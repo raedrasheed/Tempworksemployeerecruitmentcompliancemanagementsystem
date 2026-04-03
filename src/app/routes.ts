@@ -82,6 +82,10 @@ import { ApplicationSuccess } from './pages/public/ApplicationSuccess';
 import { JobListings } from './pages/public/JobListings';
 import { JobDetail } from './pages/public/JobDetail';
 
+// Attendance pages
+import { AttendanceList } from './pages/attendance/AttendanceList';
+import { AttendanceSheet } from './pages/attendance/AttendanceSheet';
+
 export const router = createBrowserRouter([
   // Public routes (no MainLayout)
   { path: '/', Component: LandingPage },
@@ -166,6 +170,10 @@ export const router = createBrowserRouter([
       { path: 'roles/:id/edit', Component: CreateRole },
       { path: 'roles/permissions-matrix', Component: PermissionsMatrix },
       
+      // Attendance routes
+      { path: 'attendance', Component: AttendanceList },
+      { path: 'attendance/:id', Component: AttendanceSheet },
+
       // Finance routes
       { path: 'finance', Component: FinanceDashboard },
 

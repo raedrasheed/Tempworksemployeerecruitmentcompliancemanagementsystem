@@ -1000,3 +1000,84 @@ export const workflowApi = {
   submitApproval: (progressId: string, data: { decision: 'APPROVED' | 'REJECTED'; notes?: string }) =>
     apiFetch<any>(`/workflows/progress/${progressId}/approve`, { method: 'POST', body: JSON.stringify(data) }),
 };
+
+// ── Attendance API ─────────────────────────────────────────────────────────────
+
+export const attendanceApi = {
+  /**
+   * List employees with their aggregated attendance stats for the given month/year.
+   * Returns paginated { data: [...], meta: { total, page, limit, totalPages } }
+   */
+  listEmployees: (params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    month?: number;
+    year?: number;
+    status?: string;
+    driversOnly?: boolean;
+  }) => {
+    const qs = new URLSearchParams();
+    if (params.page != null) qs.set('page', String(params.page));
+    if (params.limit != null) qs.set('limit', String(params.limit));
+    if (params.search) qs.set('search', params.search);
+    if (params.month != null) qs.set('month', String(params.month));
+    if (params.year != null) qs.set('year', String(params.year));
+    if (params.status) qs.set('status', params.status);
+    if (params.driversOnly != null) qs.set('driversOnly', String(params.driversOnly));
+    return apiFetch<any>(`/attendance/employees?${qs.toString()}`);
+  },
+
+  /**
+   * Get a single employee's attendance records + summary for the given month/year.
+   */
+  getEmployeeAttendance: (employeeId: string | undefined, params: { month: number; year: number }) => {
+    const qs = new URLSearchParams({
+      month: String(params.month),
+      year: String(params.year),
+    });
+    return apiFetch<any>(`/attendance/employees/${employeeId}?${qs.toString()}`);
+  },
+
+  /**
+   * Create a new attendance record (upsert by employeeId + date).
+   */
+  upsert: (data: {
+    employeeId: string | undefined;
+    date: string;
+    status: string;
+    checkIn?: string;
+    checkOut?: string;
+    workingHours?: number | string;
+    notes?: string;
+  }) => apiFetch<any>('/attendance', { method: 'POST', body: JSON.stringify(data) }),
+
+  /**
+   * Update an existing attendance record by id.
+   */
+  update: (recordId: string, data: {
+    status?: string;
+    checkIn?: string;
+    checkOut?: string;
+    workingHours?: number | string;
+    notes?: string;
+  }) => apiFetch<any>(`/attendance/${recordId}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  /**
+   * Export the attendance sheet as an Excel file.
+   * Returns a Blob suitable for createObjectURL.
+   */
+  exportExcel: async (params: { month: number; year: number; driversOnly?: boolean }): Promise<Blob> => {
+    const token = getAccessToken();
+    const qs = new URLSearchParams({
+      month: String(params.month),
+      year: String(params.year),
+      driversOnly: String(params.driversOnly ?? false),
+    });
+    const res = await fetch(`${API_URL}/attendance/export/excel?${qs.toString()}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) throw new Error('Export failed');
+    return res.blob();
+  },
+};

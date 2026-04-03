@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router';
 import {
   Search, MapPin, Briefcase, Clock, ChevronLeft, ChevronRight,
-  ArrowRight, Filter, X,
+  ArrowRight, Filter, X, LayoutGrid, List,
 } from 'lucide-react';
 import { publicJobAdsApi, settingsApi } from '../../services/api';
 import { Button } from '../../components/ui/button';
@@ -39,6 +39,7 @@ export function JobListings() {
   const [categoryFilter, setCategoryFilter] = useState('');
   const [contractFilter, setContractFilter] = useState('');
   const [categories, setCategories]   = useState<string[]>([]);
+  const [viewMode, setViewMode]       = useState<'grid' | 'list'>('grid');
   const [page, setPage]               = useState(1);
   const limit = 12;
 
@@ -196,9 +197,27 @@ export function JobListings() {
 
           {/* Job grid */}
           <main className="flex-1">
-            {/* Result count */}
-            <div className="mb-4 text-sm text-muted-foreground">
-              {loading ? 'Loading…' : `${meta.total} job${meta.total !== 1 ? 's' : ''} found`}
+            {/* Result count + view toggle */}
+            <div className="mb-4 flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">
+                {loading ? 'Loading…' : `${meta.total} job${meta.total !== 1 ? 's' : ''} found`}
+              </span>
+              <div className="flex items-center gap-1 border rounded-md p-0.5 bg-white">
+                <button
+                  onClick={() => setViewMode('grid')}
+                  title="Grid view"
+                  className={`p-1.5 rounded transition-colors ${viewMode === 'grid' ? 'bg-primary text-white' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setViewMode('list')}
+                  title="List view"
+                  className={`p-1.5 rounded transition-colors ${viewMode === 'list' ? 'bg-primary text-white' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  <List className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
             {error && (
@@ -215,49 +234,93 @@ export function JobListings() {
               </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {jobs.map(job => {
-                const salary = formatSalary(job.salaryMin, job.salaryMax, job.currency);
-                return (
-                  <Link key={job.id} to={`/jobs/${job.slug}`}>
-                    <Card className="h-full hover:shadow-md hover:border-blue-300 transition-all cursor-pointer group">
-                      <CardContent className="p-5 flex flex-col h-full">
-                        <div className="flex items-start justify-between mb-3">
-                          <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${CONTRACT_TYPE_COLORS[job.contractType] ?? 'bg-gray-100 text-gray-700'}`}>
-                            {job.contractType}
-                          </span>
-                          <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
-                        </div>
-
-                        <h3 className="font-semibold text-foreground text-base mb-1 line-clamp-2 group-hover:text-primary transition-colors">
-                          {job.title}
-                        </h3>
-                        <p className="text-xs text-muted-foreground mb-3">{job.category}</p>
-
-                        <div className="space-y-1.5 mt-auto">
-                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                            <MapPin className="w-3.5 h-3.5" />
-                            {job.city}, {job.country}
+            {viewMode === 'grid' ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {jobs.map(job => {
+                  const salary = formatSalary(job.salaryMin, job.salaryMax, job.currency);
+                  return (
+                    <Link key={job.id} to={`/jobs/${job.slug}`}>
+                      <Card className="h-full hover:shadow-md hover:border-blue-300 transition-all cursor-pointer group">
+                        <CardContent className="p-5 flex flex-col h-full">
+                          <div className="flex items-start justify-between mb-3">
+                            <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${CONTRACT_TYPE_COLORS[job.contractType] ?? 'bg-gray-100 text-gray-700'}`}>
+                              {job.contractType}
+                            </span>
+                            <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
                           </div>
-                          {salary && (
+                          <h3 className="font-semibold text-foreground text-base mb-1 line-clamp-2 group-hover:text-primary transition-colors">
+                            {job.title}
+                          </h3>
+                          <p className="text-xs text-muted-foreground mb-3">{job.category}</p>
+                          <div className="space-y-1.5 mt-auto">
                             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                              <Briefcase className="w-3.5 h-3.5" />
-                              {salary}
+                              <MapPin className="w-3.5 h-3.5" />
+                              {job.city}, {job.country}
                             </div>
-                          )}
-                          {job.publishedAt && (
-                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                              <Clock className="w-3.5 h-3.5" />
-                              Posted {new Date(job.publishedAt).toLocaleDateString()}
+                            {salary && (
+                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                <Briefcase className="w-3.5 h-3.5" />
+                                {salary}
+                              </div>
+                            )}
+                            {job.publishedAt && (
+                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                <Clock className="w-3.5 h-3.5" />
+                                Posted {new Date(job.publishedAt).toLocaleDateString()}
+                              </div>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {jobs.map(job => {
+                  const salary = formatSalary(job.salaryMin, job.salaryMax, job.currency);
+                  return (
+                    <Link key={job.id} to={`/jobs/${job.slug}`}>
+                      <Card className="hover:shadow-md hover:border-blue-300 transition-all cursor-pointer group">
+                        <CardContent className="p-4 flex items-center gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${CONTRACT_TYPE_COLORS[job.contractType] ?? 'bg-gray-100 text-gray-700'}`}>
+                                {job.contractType}
+                              </span>
+                              <span className="text-xs text-muted-foreground">{job.category}</span>
                             </div>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </Link>
-                );
-              })}
-            </div>
+                            <h3 className="font-semibold text-foreground text-sm group-hover:text-primary transition-colors truncate">
+                              {job.title}
+                            </h3>
+                          </div>
+                          <div className="hidden sm:flex items-center gap-4 text-xs text-muted-foreground flex-shrink-0">
+                            <span className="flex items-center gap-1">
+                              <MapPin className="w-3.5 h-3.5" />
+                              {job.city}, {job.country}
+                            </span>
+                            {salary && (
+                              <span className="flex items-center gap-1">
+                                <Briefcase className="w-3.5 h-3.5" />
+                                {salary}
+                              </span>
+                            )}
+                            {job.publishedAt && (
+                              <span className="flex items-center gap-1">
+                                <Clock className="w-3.5 h-3.5" />
+                                {new Date(job.publishedAt).toLocaleDateString()}
+                              </span>
+                            )}
+                          </div>
+                          <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all flex-shrink-0" />
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
 
             {/* Pagination */}
             {meta.totalPages > 1 && (

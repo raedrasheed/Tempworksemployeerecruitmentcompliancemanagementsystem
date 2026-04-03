@@ -1081,3 +1081,116 @@ export const attendanceApi = {
     return res.blob();
   },
 };
+
+// ─── Vehicles API ─────────────────────────────────────────────────────────────
+
+export const vehiclesApi = {
+  // Vehicles
+  list: (params: {
+    page?: number; limit?: number; search?: string; type?: string;
+    status?: string; agencyId?: string; expiringInDays?: number;
+  } = {}) => {
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => v != null && qs.set(k, String(v)));
+    return apiFetch<any>(`/vehicles?${qs.toString()}`);
+  },
+
+  getOne: (id: string) => apiFetch<any>(`/vehicles/${id}`),
+
+  create: (data: {
+    type: string; registrationNumber: string; make: string; model: string;
+    status?: string; year?: number; color?: string; vin?: string; fuelType?: string;
+    currentMileage?: number; notes?: string; motExpiryDate?: string; taxExpiryDate?: string;
+    insuranceExpiryDate?: string; grossWeight?: number; payloadCapacity?: number;
+    numberOfAxles?: number; tankerCapacity?: number; refrigerationUnit?: string;
+    trailerLength?: number; agencyId?: string;
+  }) => apiFetch<any>('/vehicles', { method: 'POST', body: JSON.stringify(data) }),
+
+  update: (id: string, data: Record<string, any>) =>
+    apiFetch<any>(`/vehicles/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  delete: (id: string) => apiFetch<any>(`/vehicles/${id}`, { method: 'DELETE' }),
+
+  getStats: () => apiFetch<any>('/vehicles/stats'),
+
+  // Driver assignments
+  getDriverHistory: (vehicleId: string) => apiFetch<any>(`/vehicles/${vehicleId}/drivers`),
+
+  assignDriver: (vehicleId: string, data: { employeeId: string; startDate: string; notes?: string }) =>
+    apiFetch<any>(`/vehicles/${vehicleId}/drivers`, { method: 'POST', body: JSON.stringify(data) }),
+
+  unassignDriver: (vehicleId: string, assignmentId: string) =>
+    apiFetch<any>(`/vehicles/${vehicleId}/drivers/${assignmentId}`, { method: 'DELETE' }),
+
+  // Documents
+  addDocument: (vehicleId: string, data: {
+    name: string; documentType: string; fileUrl?: string; fileName?: string; fileSize?: number;
+    expiryDate?: string; issuedDate?: string; issuer?: string; notes?: string;
+  }) => apiFetch<any>(`/vehicles/${vehicleId}/documents`, { method: 'POST', body: JSON.stringify(data) }),
+
+  updateDocument: (vehicleId: string, docId: string, data: Record<string, any>) =>
+    apiFetch<any>(`/vehicles/${vehicleId}/documents/${docId}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  deleteDocument: (vehicleId: string, docId: string) =>
+    apiFetch<any>(`/vehicles/${vehicleId}/documents/${docId}`, { method: 'DELETE' }),
+
+  // Maintenance types
+  listMaintenanceTypes: () => apiFetch<any>('/vehicles/maintenance/types'),
+
+  createMaintenanceType: (data: { name: string; description?: string; defaultIntervalDays?: number; defaultIntervalKm?: number }) =>
+    apiFetch<any>('/vehicles/maintenance/types', { method: 'POST', body: JSON.stringify(data) }),
+
+  updateMaintenanceType: (id: string, data: Record<string, any>) =>
+    apiFetch<any>(`/vehicles/maintenance/types/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  deleteMaintenanceType: (id: string) =>
+    apiFetch<any>(`/vehicles/maintenance/types/${id}`, { method: 'DELETE' }),
+
+  // Workshops
+  listWorkshops: () => apiFetch<any>('/vehicles/workshops'),
+
+  getWorkshop: (id: string) => apiFetch<any>(`/vehicles/workshops/${id}`),
+
+  createWorkshop: (data: {
+    name: string; contactName?: string; phone?: string; email?: string;
+    address?: string; city?: string; country?: string; notes?: string;
+  }) => apiFetch<any>('/vehicles/workshops', { method: 'POST', body: JSON.stringify(data) }),
+
+  updateWorkshop: (id: string, data: Record<string, any>) =>
+    apiFetch<any>(`/vehicles/workshops/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  deleteWorkshop: (id: string) =>
+    apiFetch<any>(`/vehicles/workshops/${id}`, { method: 'DELETE' }),
+
+  // Maintenance records
+  listMaintenance: (params: {
+    page?: number; limit?: number; vehicleId?: string; status?: string; dateFrom?: string; dateTo?: string;
+  } = {}) => {
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => v != null && qs.set(k, String(v)));
+    return apiFetch<any>(`/vehicles/maintenance/records?${qs.toString()}`);
+  },
+
+  getMaintenance: (id: string) => apiFetch<any>(`/vehicles/maintenance/records/${id}`),
+
+  createMaintenance: (data: Record<string, any>) =>
+    apiFetch<any>('/vehicles/maintenance/records', { method: 'POST', body: JSON.stringify(data) }),
+
+  updateMaintenance: (id: string, data: Record<string, any>) =>
+    apiFetch<any>(`/vehicles/maintenance/records/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  deleteMaintenance: (id: string) =>
+    apiFetch<any>(`/vehicles/maintenance/records/${id}`, { method: 'DELETE' }),
+
+  // Export
+  exportExcel: async (params: { type?: string; status?: string } = {}): Promise<Blob> => {
+    const token = getAccessToken();
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => v != null && qs.set(k, String(v)));
+    const res = await fetch(`${API_URL}/vehicles/export/excel?${qs.toString()}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) throw new Error('Export failed');
+    return res.blob();
+  },
+};

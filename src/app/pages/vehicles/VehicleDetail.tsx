@@ -1,0 +1,585 @@
+import { useState, useEffect, useCallback } from 'react';
+import { useNavigate, useParams } from 'react-router';
+import {
+  ArrowLeft, Edit, Truck, User, FileText, Wrench, Plus,
+  Trash2, Calendar, AlertTriangle, ChevronDown, ChevronRight,
+} from 'lucide-react';
+import { toast } from 'sonner';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { Button } from '../../components/ui/button';
+import { Badge } from '../../components/ui/badge';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '../../components/ui/select';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from '../../components/ui/dialog';
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from '../../components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
+import { vehiclesApi } from '../../services/api';
+import { usePermissions } from '../../hooks/usePermissions';
+
+const MAINTENANCE_STATUSES = ['SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'];
+
+function statusBadge(status: string) {
+  const map: Record<string, string> = {
+    ACTIVE: 'bg-green-100 text-green-800',
+    INACTIVE: 'bg-gray-100 text-gray-700',
+    IN_MAINTENANCE: 'bg-yellow-100 text-yellow-800',
+    SCRAPPED: 'bg-red-100 text-red-800',
+  };
+  return <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${map[status] ?? 'bg-gray-100 text-gray-700'}`}>{status.replace('_', ' ')}</span>;
+}
+
+function mStatusBadge(status: string) {
+  const map: Record<string, string> = {
+    SCHEDULED: 'bg-blue-100 text-blue-800',
+    IN_PROGRESS: 'bg-yellow-100 text-yellow-800',
+    COMPLETED: 'bg-green-100 text-green-800',
+    CANCELLED: 'bg-gray-100 text-gray-600',
+  };
+  return <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${map[status] ?? 'bg-gray-100 text-gray-700'}`}>{status.replace('_', ' ')}</span>;
+}
+
+function expiryCell(date: string | null | undefined) {
+  if (!date) return <span className="text-muted-foreground text-xs">—</span>;
+  const d = new Date(date);
+  const days = Math.ceil((d.getTime() - Date.now()) / 86400000);
+  const text = d.toLocaleDateString();
+  if (days < 0)  return <span className="text-red-600 text-xs font-medium flex items-center gap-1"><AlertTriangle className="w-3 h-3" />{text} (Expired)</span>;
+  if (days <= 30) return <span className="text-amber-600 text-xs font-medium flex items-center gap-1"><AlertTriangle className="w-3 h-3" />{text} ({days}d)</span>;
+  return <span className="text-xs">{text}</span>;
+}
+
+export function VehicleDetail() {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { hasPermission } = usePermissions();
+  const canWrite = hasPermission('vehicles:write');
+
+  const [vehicle, setVehicle]             = useState<any>(null);
+  const [loading, setLoading]             = useState(true);
+  const [workshops, setWorkshops]         = useState<any[]>([]);
+  const [maintenanceTypes, setMtnTypes]   = useState<any[]>([]);
+
+  // Assign driver dialog
+  const [assignDialog, setAssignDialog]   = useState(false);
+  const [driverEmployeeId, setDriverEmpId] = useState('');
+  const [driverStartDate, setDriverStart] = useState(new Date().toISOString().split('T')[0]);
+  const [assigningSaving, setAssignSaving] = useState(false);
+
+  // Add document dialog
+  const [docDialog, setDocDialog]         = useState(false);
+  const [docForm, setDocForm]             = useState({ name: '', documentType: 'MOT', expiryDate: '', notes: '' });
+  const [docSaving, setDocSaving]         = useState(false);
+
+  // Maintenance dialog
+  const [mainDialog, setMainDialog]       = useState(false);
+  const [mainForm, setMainForm]           = useState<any>({
+    maintenanceTypeId: '', workshopId: '', status: 'SCHEDULED',
+    scheduledDate: '', description: '', mileageAtService: '', cost: '', notes: '',
+  });
+  const [mainSaving, setMainSaving]       = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [v, ws, mt] = await Promise.all([
+        vehiclesApi.getOne(id!),
+        vehiclesApi.listWorkshops(),
+        vehiclesApi.listMaintenanceTypes(),
+      ]);
+      setVehicle(v);
+      setWorkshops(ws);
+      setMtnTypes(mt);
+    } catch {
+      toast.error('Failed to load vehicle');
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleDelete = async () => {
+    if (!confirm('Delete this vehicle? This action cannot be undone easily.')) return;
+    try {
+      await vehiclesApi.delete(id!);
+      toast.success('Vehicle deleted');
+      navigate('/dashboard/vehicles');
+    } catch {
+      toast.error('Delete failed');
+    }
+  };
+
+  const handleAssignDriver = async () => {
+    if (!driverEmployeeId.trim()) { toast.error('Employee ID required'); return; }
+    setAssignSaving(true);
+    try {
+      await vehiclesApi.assignDriver(id!, { employeeId: driverEmployeeId, startDate: driverStartDate });
+      toast.success('Driver assigned');
+      setAssignDialog(false);
+      load();
+    } catch {
+      toast.error('Failed to assign driver');
+    } finally {
+      setAssignSaving(false);
+    }
+  };
+
+  const handleUnassign = async (assignmentId: string) => {
+    if (!confirm('End this driver assignment?')) return;
+    try {
+      await vehiclesApi.unassignDriver(id!, assignmentId);
+      toast.success('Driver unassigned');
+      load();
+    } catch {
+      toast.error('Failed to unassign driver');
+    }
+  };
+
+  const handleAddDoc = async () => {
+    if (!docForm.name.trim()) { toast.error('Document name required'); return; }
+    setDocSaving(true);
+    try {
+      await vehiclesApi.addDocument(id!, { ...docForm, expiryDate: docForm.expiryDate || undefined });
+      toast.success('Document added');
+      setDocDialog(false);
+      setDocForm({ name: '', documentType: 'MOT', expiryDate: '', notes: '' });
+      load();
+    } catch {
+      toast.error('Failed to add document');
+    } finally {
+      setDocSaving(false);
+    }
+  };
+
+  const handleDeleteDoc = async (docId: string) => {
+    if (!confirm('Delete this document?')) return;
+    try {
+      await vehiclesApi.deleteDocument(id!, docId);
+      toast.success('Document deleted');
+      load();
+    } catch {
+      toast.error('Failed to delete document');
+    }
+  };
+
+  const handleAddMaintenance = async () => {
+    setMainSaving(true);
+    try {
+      await vehiclesApi.createMaintenance({
+        vehicleId: id!,
+        maintenanceTypeId: mainForm.maintenanceTypeId || undefined,
+        workshopId: mainForm.workshopId || undefined,
+        status: mainForm.status,
+        scheduledDate: mainForm.scheduledDate || undefined,
+        description: mainForm.description || undefined,
+        mileageAtService: mainForm.mileageAtService ? parseInt(mainForm.mileageAtService) : undefined,
+        cost: mainForm.cost ? parseFloat(mainForm.cost) : undefined,
+        notes: mainForm.notes || undefined,
+      });
+      toast.success('Maintenance record added');
+      setMainDialog(false);
+      setMainForm({ maintenanceTypeId: '', workshopId: '', status: 'SCHEDULED', scheduledDate: '', description: '', mileageAtService: '', cost: '', notes: '' });
+      load();
+    } catch {
+      toast.error('Failed to add maintenance record');
+    } finally {
+      setMainSaving(false);
+    }
+  };
+
+  const handleDeleteMaintenance = async (recId: string) => {
+    if (!confirm('Delete this maintenance record?')) return;
+    try {
+      await vehiclesApi.deleteMaintenance(recId);
+      toast.success('Record deleted');
+      load();
+    } catch {
+      toast.error('Failed to delete record');
+    }
+  };
+
+  if (loading) return <div className="p-6 text-muted-foreground">Loading…</div>;
+  if (!vehicle) return <div className="p-6 text-red-600">Vehicle not found</div>;
+
+  const activeDriver = vehicle.driverAssignments?.find((a: any) => a.isActive);
+
+  return (
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard/vehicles')}>
+            <ArrowLeft className="w-4 h-4 mr-1" /> Back
+          </Button>
+          <div>
+            <h1 className="text-xl font-bold flex items-center gap-2">
+              <Truck className="w-5 h-5 text-primary" />
+              {vehicle.registrationNumber}
+            </h1>
+            <p className="text-sm text-muted-foreground">{vehicle.make} {vehicle.model} · {vehicle.type?.replace('_', ' ')}</p>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          {statusBadge(vehicle.status)}
+          {canWrite && (
+            <>
+              <Button size="sm" variant="outline" onClick={() => navigate(`/dashboard/vehicles/${id}/edit`)}>
+                <Edit className="w-4 h-4 mr-1" /> Edit
+              </Button>
+              <Button size="sm" variant="destructive" onClick={handleDelete}>
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
+
+      <Tabs defaultValue="overview">
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="driver">Driver ({vehicle.driverAssignments?.length ?? 0})</TabsTrigger>
+          <TabsTrigger value="documents">Documents ({vehicle.documents?.length ?? 0})</TabsTrigger>
+          <TabsTrigger value="maintenance">Maintenance ({vehicle.maintenanceRecords?.length ?? 0})</TabsTrigger>
+        </TabsList>
+
+        {/* Overview Tab */}
+        <TabsContent value="overview" className="space-y-4 mt-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card>
+              <CardHeader><CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Vehicle Info</CardTitle></CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                {[
+                  ['Year', vehicle.year ?? '—'],
+                  ['Color', vehicle.color ?? '—'],
+                  ['VIN', vehicle.vin ?? '—'],
+                  ['Fuel Type', vehicle.fuelType ?? '—'],
+                  ['Current Mileage', vehicle.currentMileage ? `${vehicle.currentMileage.toLocaleString()} km` : '—'],
+                  ['Agency', vehicle.agency?.name ?? '—'],
+                ].map(([label, value]) => (
+                  <div key={label as string} className="flex justify-between">
+                    <span className="text-muted-foreground">{label}</span>
+                    <span className="font-medium">{value}</span>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader><CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Compliance</CardTitle></CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">MOT Expiry</span>
+                  {expiryCell(vehicle.motExpiryDate)}
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Tax Expiry</span>
+                  {expiryCell(vehicle.taxExpiryDate)}
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Insurance Expiry</span>
+                  {expiryCell(vehicle.insuranceExpiryDate)}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {vehicle.notes && (
+            <Card>
+              <CardContent className="pt-4 text-sm text-muted-foreground">{vehicle.notes}</CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        {/* Driver Tab */}
+        <TabsContent value="driver" className="space-y-4 mt-4">
+          <div className="flex justify-between items-center">
+            <h3 className="font-medium">Driver Assignments</h3>
+            {canWrite && (
+              <Button size="sm" onClick={() => setAssignDialog(true)}>
+                <User className="w-4 h-4 mr-2" /> Assign Driver
+              </Button>
+            )}
+          </div>
+
+          {activeDriver && (
+            <Card className="border-green-200 bg-green-50">
+              <CardContent className="pt-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-green-200 flex items-center justify-center">
+                      <User className="w-5 h-5 text-green-700" />
+                    </div>
+                    <div>
+                      <p className="font-medium">{activeDriver.employee.firstName} {activeDriver.employee.lastName}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Licence: {activeDriver.employee.licenseNumber ?? '—'} · Since {new Date(activeDriver.startDate).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <Badge className="bg-green-200 text-green-800 text-xs">Active</Badge>
+                  </div>
+                  {canWrite && (
+                    <Button size="sm" variant="outline" onClick={() => handleUnassign(activeDriver.id)}>
+                      End Assignment
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Driver</TableHead>
+                <TableHead>Licence</TableHead>
+                <TableHead>From</TableHead>
+                <TableHead>To</TableHead>
+                <TableHead>Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {vehicle.driverAssignments?.length === 0 ? (
+                <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">No assignments</TableCell></TableRow>
+              ) : vehicle.driverAssignments?.map((a: any) => (
+                <TableRow key={a.id}>
+                  <TableCell>{a.employee.firstName} {a.employee.lastName}</TableCell>
+                  <TableCell className="font-mono text-sm">{a.employee.licenseNumber ?? '—'}</TableCell>
+                  <TableCell className="text-sm">{new Date(a.startDate).toLocaleDateString()}</TableCell>
+                  <TableCell className="text-sm">{a.endDate ? new Date(a.endDate).toLocaleDateString() : '—'}</TableCell>
+                  <TableCell>
+                    <span className={`text-xs px-2 py-0.5 rounded ${a.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+                      {a.isActive ? 'Active' : 'Ended'}
+                    </span>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TabsContent>
+
+        {/* Documents Tab */}
+        <TabsContent value="documents" className="space-y-4 mt-4">
+          <div className="flex justify-between items-center">
+            <h3 className="font-medium">Vehicle Documents</h3>
+            {canWrite && (
+              <Button size="sm" onClick={() => setDocDialog(true)}>
+                <Plus className="w-4 h-4 mr-2" /> Add Document
+              </Button>
+            )}
+          </div>
+
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Issuer</TableHead>
+                <TableHead>Issued</TableHead>
+                <TableHead>Expires</TableHead>
+                {canWrite && <TableHead className="text-right">Actions</TableHead>}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {vehicle.documents?.length === 0 ? (
+                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">No documents</TableCell></TableRow>
+              ) : vehicle.documents?.map((doc: any) => (
+                <TableRow key={doc.id}>
+                  <TableCell className="font-medium">{doc.name}</TableCell>
+                  <TableCell className="text-sm">{doc.documentType}</TableCell>
+                  <TableCell className="text-sm">{doc.issuer ?? '—'}</TableCell>
+                  <TableCell className="text-sm">{doc.issuedDate ? new Date(doc.issuedDate).toLocaleDateString() : '—'}</TableCell>
+                  <TableCell>{expiryCell(doc.expiryDate)}</TableCell>
+                  {canWrite && (
+                    <TableCell className="text-right">
+                      <Button size="sm" variant="ghost" onClick={() => handleDeleteDoc(doc.id)}>
+                        <Trash2 className="w-4 h-4 text-destructive" />
+                      </Button>
+                    </TableCell>
+                  )}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TabsContent>
+
+        {/* Maintenance Tab */}
+        <TabsContent value="maintenance" className="space-y-4 mt-4">
+          <div className="flex justify-between items-center">
+            <h3 className="font-medium">Maintenance Records</h3>
+            {canWrite && (
+              <Button size="sm" onClick={() => setMainDialog(true)}>
+                <Plus className="w-4 h-4 mr-2" /> Add Record
+              </Button>
+            )}
+          </div>
+
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Type</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Scheduled</TableHead>
+                <TableHead>Completed</TableHead>
+                <TableHead>Workshop</TableHead>
+                <TableHead>Cost</TableHead>
+                {canWrite && <TableHead className="text-right">Actions</TableHead>}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {vehicle.maintenanceRecords?.length === 0 ? (
+                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">No maintenance records</TableCell></TableRow>
+              ) : vehicle.maintenanceRecords?.map((rec: any) => (
+                <TableRow key={rec.id}>
+                  <TableCell className="font-medium text-sm">{rec.maintenanceType?.name ?? rec.description ?? '—'}</TableCell>
+                  <TableCell>{mStatusBadge(rec.status)}</TableCell>
+                  <TableCell className="text-sm">{rec.scheduledDate ? new Date(rec.scheduledDate).toLocaleDateString() : '—'}</TableCell>
+                  <TableCell className="text-sm">{rec.completedDate ? new Date(rec.completedDate).toLocaleDateString() : '—'}</TableCell>
+                  <TableCell className="text-sm">{rec.workshop?.name ?? '—'}</TableCell>
+                  <TableCell className="text-sm">{rec.cost ? `£${rec.cost.toFixed(2)}` : '—'}</TableCell>
+                  {canWrite && (
+                    <TableCell className="text-right">
+                      <Button size="sm" variant="ghost" onClick={() => handleDeleteMaintenance(rec.id)}>
+                        <Trash2 className="w-4 h-4 text-destructive" />
+                      </Button>
+                    </TableCell>
+                  )}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TabsContent>
+      </Tabs>
+
+      {/* Assign Driver Dialog */}
+      <Dialog open={assignDialog} onOpenChange={setAssignDialog}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Assign Driver</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1">
+              <Label>Employee ID (UUID)</Label>
+              <Input value={driverEmployeeId} onChange={(e) => setDriverEmpId(e.target.value)} placeholder="Employee UUID" />
+              <p className="text-xs text-muted-foreground">Enter the employee's UUID from the Employees page</p>
+            </div>
+            <div className="space-y-1">
+              <Label>Start Date</Label>
+              <Input type="date" value={driverStartDate} onChange={(e) => setDriverStart(e.target.value)} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAssignDialog(false)}>Cancel</Button>
+            <Button onClick={handleAssignDriver} disabled={assigningSaving}>
+              {assigningSaving ? 'Assigning…' : 'Assign Driver'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Document Dialog */}
+      <Dialog open={docDialog} onOpenChange={setDocDialog}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Add Vehicle Document</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1">
+              <Label>Document Name *</Label>
+              <Input value={docForm.name} onChange={(e) => setDocForm((f) => ({ ...f, name: e.target.value }))} placeholder="e.g. MOT Certificate" />
+            </div>
+            <div className="space-y-1">
+              <Label>Document Type</Label>
+              <Select value={docForm.documentType} onValueChange={(v) => setDocForm((f) => ({ ...f, documentType: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {['MOT', 'Insurance', 'Road Tax', 'Registration', 'Inspection', 'Other'].map((t) =>
+                    <SelectItem key={t} value={t}>{t}</SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>Expiry Date</Label>
+              <Input type="date" value={docForm.expiryDate} onChange={(e) => setDocForm((f) => ({ ...f, expiryDate: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <Label>Notes</Label>
+              <Input value={docForm.notes} onChange={(e) => setDocForm((f) => ({ ...f, notes: e.target.value }))} placeholder="Optional notes" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDocDialog(false)}>Cancel</Button>
+            <Button onClick={handleAddDoc} disabled={docSaving}>{docSaving ? 'Adding…' : 'Add Document'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Maintenance Dialog */}
+      <Dialog open={mainDialog} onOpenChange={setMainDialog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Add Maintenance Record</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label>Maintenance Type</Label>
+                <Select value={mainForm.maintenanceTypeId || 'none'} onValueChange={(v) => setMainForm((f: any) => ({ ...f, maintenanceTypeId: v === 'none' ? '' : v }))}>
+                  <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Not specified</SelectItem>
+                    {maintenanceTypes.map((mt: any) => <SelectItem key={mt.id} value={mt.id}>{mt.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label>Status</Label>
+                <Select value={mainForm.status} onValueChange={(v) => setMainForm((f: any) => ({ ...f, status: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {MAINTENANCE_STATUSES.map((s) => <SelectItem key={s} value={s}>{s.replace('_', ' ')}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label>Scheduled Date</Label>
+                <Input type="date" value={mainForm.scheduledDate} onChange={(e) => setMainForm((f: any) => ({ ...f, scheduledDate: e.target.value }))} />
+              </div>
+              <div className="space-y-1">
+                <Label>Workshop</Label>
+                <Select value={mainForm.workshopId || 'none'} onValueChange={(v) => setMainForm((f: any) => ({ ...f, workshopId: v === 'none' ? '' : v }))}>
+                  <SelectTrigger><SelectValue placeholder="Select workshop" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Not specified</SelectItem>
+                    {workshops.map((w: any) => <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label>Mileage at Service</Label>
+                <Input type="number" value={mainForm.mileageAtService} onChange={(e) => setMainForm((f: any) => ({ ...f, mileageAtService: e.target.value }))} placeholder="km" />
+              </div>
+              <div className="space-y-1">
+                <Label>Total Cost (£)</Label>
+                <Input type="number" step="0.01" value={mainForm.cost} onChange={(e) => setMainForm((f: any) => ({ ...f, cost: e.target.value }))} placeholder="0.00" />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label>Description</Label>
+              <Input value={mainForm.description} onChange={(e) => setMainForm((f: any) => ({ ...f, description: e.target.value }))} placeholder="Work description" />
+            </div>
+            <div className="space-y-1">
+              <Label>Notes</Label>
+              <Input value={mainForm.notes} onChange={(e) => setMainForm((f: any) => ({ ...f, notes: e.target.value }))} placeholder="Additional notes" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setMainDialog(false)}>Cancel</Button>
+            <Button onClick={handleAddMaintenance} disabled={mainSaving}>{mainSaving ? 'Saving…' : 'Add Record'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

@@ -24,7 +24,8 @@
     "db:migrate:employee-workflow": "ts-node prisma/run-employee-workflow-migration.ts",
     "db:migrate:employee-workflow-stage": "ts-node prisma/run-employee-workflow-current-stage-migration.ts",
     "db:migrate:employee-stage-approvals": "ts-node prisma/run-employee-stage-approvals-migration.ts",
-    "db:migrate:attendance": "ts-node prisma/run-attendance-migration.ts"
+    "db:migrate:attendance": "ts-node prisma/run-attendance-migration.ts",
+    "db:migrate:vehicles": "ts-node prisma/run-vehicles-migration.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",

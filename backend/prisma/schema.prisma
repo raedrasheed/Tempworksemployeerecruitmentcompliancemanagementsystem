@@ -218,6 +218,13 @@ model User {
   attendanceUpdated        AttendanceRecord[]            @relation("AttendanceUpdatedBy")
   stageNotes            CandidateStageNote[]           @relation("StageNoteAuthors")
 
+  // ── Vehicle relations ──────────────────────────────────────────────────
+  vehiclesCreated         Vehicle[]                     @relation("VehicleCreatedBy")
+  vehiclesUpdated         Vehicle[]                     @relation("VehicleUpdatedBy")
+  vehicleDocsUploaded     VehicleDocument[]             @relation("VehicleDocUploadedBy")
+  maintenanceCreated      MaintenanceRecord[]           @relation("MaintenanceCreatedBy")
+  maintenanceUpdated      MaintenanceRecord[]           @relation("MaintenanceUpdatedBy")
+
   @@map("users")
 }
 
@@ -241,6 +248,7 @@ model Agency {
   users      User[]
   employees  Employee[]
   applicants Applicant[]
+  vehicles   Vehicle[]
 
   @@map("agencies")
 }
@@ -288,6 +296,7 @@ model Employee {
   workflowAssignments    EmployeeWorkflowAssignment[]
   stageApprovals         EmployeeStageApproval[]
   attendanceRecords      AttendanceRecord[]      @relation("EmployeeAttendance")
+  vehicleAssignments     VehicleDriverAssignment[]
 
   @@map("employees")
 }
@@ -951,6 +960,39 @@ enum AttendanceStatus {
   HOLIDAY
 }
 
+enum VehicleType {
+  TRUCK
+  CAR
+  VAN
+  TANKER
+  TRAILER
+  REFRIGERATED_TRAILER
+  SPECIALTY
+}
+
+enum VehicleStatus {
+  ACTIVE
+  INACTIVE
+  IN_MAINTENANCE
+  SCRAPPED
+}
+
+enum FuelType {
+  DIESEL
+  PETROL
+  ELECTRIC
+  HYBRID
+  GAS
+  OTHER
+}
+
+enum MaintenanceStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
 /// Named recruitment workflow (e.g. "UK Driver Standard Onboarding")
 model Workflow {
   id           String         @id @default(uuid())
@@ -1187,4 +1229,188 @@ model AttendanceRecord {
   @@index([employeeId])
   @@index([date])
   @@map("attendance_records")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// VEHICLE MANAGEMENT MODULE
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Workshop / garage used for vehicle maintenance
+model Workshop {
+  id          String   @id @default(uuid())
+  name        String
+  contactName String?
+  phone       String?
+  email       String?
+  address     String?
+  city        String?
+  country     String?
+  notes       String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  maintenanceRecords MaintenanceRecord[]
+
+  @@map("workshops")
+}
+
+/// Configurable maintenance/service type (e.g. "Oil Change", "Tyre Rotation")
+model MaintenanceType {
+  id                  String   @id @default(uuid())
+  name                String
+  description         String?
+  defaultIntervalDays Int?
+  defaultIntervalKm   Int?
+  isActive            Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  maintenanceRecords MaintenanceRecord[]
+
+  @@map("maintenance_types")
+}
+
+/// Vehicle master record
+model Vehicle {
+  id                  String        @id @default(uuid())
+  registrationNumber  String        @unique
+  type                VehicleType
+  status              VehicleStatus @default(ACTIVE)
+  make                String
+  model               String
+  year                Int?
+  color               String?
+  vin                 String?       @unique
+  fuelType            FuelType?
+  currentMileage      Int?
+  notes               String?
+  // Compliance expiry dates
+  motExpiryDate       DateTime?     @db.Date
+  taxExpiryDate       DateTime?     @db.Date
+  insuranceExpiryDate DateTime?     @db.Date
+  // Type-specific fields
+  grossWeight         Float?
+  payloadCapacity     Float?
+  numberOfAxles       Int?
+  tankerCapacity      Float?
+  refrigerationUnit   String?
+  trailerLength       Float?
+  agencyId            String?
+  createdById         String?
+  updatedById         String?
+  deletedAt           DateTime?
+  deletedBy           String?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  agency             Agency?                   @relation(fields: [agencyId], references: [id])
+  createdBy          User?                     @relation("VehicleCreatedBy", fields: [createdById], references: [id])
+  updatedBy          User?                     @relation("VehicleUpdatedBy", fields: [updatedById], references: [id])
+  driverAssignments  VehicleDriverAssignment[]
+  documents          VehicleDocument[]
+  maintenanceRecords MaintenanceRecord[]
+
+  @@index([registrationNumber])
+  @@index([status])
+  @@index([type])
+  @@map("vehicles")
+}
+
+/// Maps a driver (employee) to a vehicle — one active assignment per vehicle
+model VehicleDriverAssignment {
+  id         String    @id @default(uuid())
+  vehicleId  String
+  employeeId String
+  startDate  DateTime  @db.Date
+  endDate    DateTime? @db.Date
+  isActive   Boolean   @default(true)
+  notes      String?
+  createdAt  DateTime  @default(now())
+
+  vehicle  Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
+  @@index([employeeId])
+  @@map("vehicle_driver_assignments")
+}
+
+/// Vehicle-specific document (independent of employee documents)
+model VehicleDocument {
+  id           String    @id @default(uuid())
+  vehicleId    String
+  name         String
+  documentType String
+  fileUrl      String?
+  fileName     String?
+  fileSize     Int?
+  expiryDate   DateTime? @db.Date
+  issuedDate   DateTime? @db.Date
+  issuer       String?
+  notes        String?
+  uploadedById String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  vehicle    Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  uploadedBy User?   @relation("VehicleDocUploadedBy", fields: [uploadedById], references: [id])
+
+  @@index([vehicleId])
+  @@map("vehicle_documents")
+}
+
+/// Service / maintenance log entry for a vehicle
+model MaintenanceRecord {
+  id                 String            @id @default(uuid())
+  vehicleId          String
+  maintenanceTypeId  String?
+  workshopId         String?
+  status             MaintenanceStatus @default(SCHEDULED)
+  scheduledDate      DateTime?         @db.Date
+  completedDate      DateTime?         @db.Date
+  mileageAtService   Int?
+  nextServiceDate    DateTime?         @db.Date
+  nextServiceMileage Int?
+  cost               Float?
+  laborCost          Float?
+  partsCost          Float?
+  description        String?
+  technicianName     String?
+  invoiceNumber      String?
+  notes              String?
+  createdById        String?
+  updatedById        String?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  vehicle         Vehicle          @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  maintenanceType MaintenanceType? @relation(fields: [maintenanceTypeId], references: [id])
+  workshop        Workshop?        @relation(fields: [workshopId], references: [id])
+  createdBy       User?            @relation("MaintenanceCreatedBy", fields: [createdById], references: [id])
+  updatedBy       User?            @relation("MaintenanceUpdatedBy", fields: [updatedById], references: [id])
+  spareParts      MaintenanceRecordSparePart[]
+
+  @@index([vehicleId])
+  @@index([status])
+  @@index([scheduledDate])
+  @@map("maintenance_records")
+}
+
+/// Spare parts used in a maintenance record
+model MaintenanceRecordSparePart {
+  id                  String   @id @default(uuid())
+  maintenanceRecordId String
+  partName            String
+  partNumber          String?
+  quantity            Int      @default(1)
+  unitCost            Float?
+  totalCost           Float?
+  supplier            String?
+  createdAt           DateTime @default(now())
+
+  maintenanceRecord MaintenanceRecord @relation(fields: [maintenanceRecordId], references: [id], onDelete: Cascade)
+
+  @@index([maintenanceRecordId])
+  @@map("maintenance_record_spare_parts")
 }

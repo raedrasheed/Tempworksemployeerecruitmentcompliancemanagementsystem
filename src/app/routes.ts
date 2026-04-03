@@ -86,6 +86,13 @@ import { JobDetail } from './pages/public/JobDetail';
 import { AttendanceList } from './pages/attendance/AttendanceList';
 import { AttendanceSheet } from './pages/attendance/AttendanceSheet';
 
+// Vehicle Management pages
+import { VehiclesList } from './pages/vehicles/VehiclesList';
+import { VehicleDetail } from './pages/vehicles/VehicleDetail';
+import { VehicleForm } from './pages/vehicles/VehicleForm';
+import { WorkshopsList } from './pages/vehicles/WorkshopsList';
+import { MaintenanceTypesList } from './pages/vehicles/MaintenanceTypesList';
+
 export const router = createBrowserRouter([
   // Public routes (no MainLayout)
   { path: '/', Component: LandingPage },
@@ -173,6 +180,14 @@ export const router = createBrowserRouter([
       // Attendance routes
       { path: 'attendance', Component: AttendanceList },
       { path: 'attendance/:id', Component: AttendanceSheet },
+
+      // Vehicle Management routes
+      { path: 'vehicles', Component: VehiclesList },
+      { path: 'vehicles/new', Component: VehicleForm },
+      { path: 'vehicles/:id', Component: VehicleDetail },
+      { path: 'vehicles/:id/edit', Component: VehicleForm },
+      { path: 'vehicles/workshops', Component: WorkshopsList },
+      { path: 'vehicles/maintenance-types', Component: MaintenanceTypesList },
 
       // Finance routes
       { path: 'finance', Component: FinanceDashboard },

@@ -46,7 +46,7 @@ export class EmployeesService {
       where: { id, deletedAt: null },
       include: {
         agency: true,
-        workflowStages: { include: { stage: true, assignedTo: { select: { id: true, firstName: true, lastName: true } } }, orderBy: { stage: { order: 'asc' } } },
+        employeeStages: { include: { stage: true, assignedTo: { select: { id: true, firstName: true, lastName: true } } }, orderBy: { stage: { order: 'asc' } } },
       },
     });
     if (!employee) throw new NotFoundException('Employee not found');
@@ -58,7 +58,7 @@ export class EmployeesService {
     if (existing) throw new ConflictException('Employee with this email already exists');
 
     // Get all workflow stages to initialize
-    const stages = await this.prisma.workflowStage.findMany({ where: { isActive: true }, orderBy: { order: 'asc' } });
+    const stages = await this.prisma.stageTemplate.findMany({ where: { isActive: true }, orderBy: { order: 'asc' } });
 
     const employeeNumber = await this.generateEmployeeNumber();
     const { agencyId, ...rest } = dto;
@@ -69,7 +69,7 @@ export class EmployeesService {
         dateOfBirth: new Date(dto.dateOfBirth),
         status: (dto.status as any) || 'PENDING',
         ...(agencyId ? { agencyId } : {}),
-        workflowStages: {
+        employeeStages: {
           create: stages.map((stage) => ({
             stageId: stage.id,
             status: 'PENDING',
@@ -159,7 +159,7 @@ export class EmployeesService {
 
   async getWorkflow(id: string) {
     await this.findOne(id);
-    return this.prisma.employeeWorkflowStage.findMany({
+    return this.prisma.employeeStage.findMany({
       where: { employeeId: id },
       include: { stage: true, assignedTo: { select: { id: true, firstName: true, lastName: true } } },
       orderBy: { stage: { order: 'asc' } },
@@ -186,7 +186,7 @@ export class EmployeesService {
 
   async getTraining(id: string) {
     await this.findOne(id);
-    const stages = await this.prisma.employeeWorkflowStage.findMany({
+    const stages = await this.prisma.employeeStage.findMany({
       where: { employeeId: id, stage: { category: 'TRAINING' } },
       include: { stage: true },
     });
@@ -195,10 +195,10 @@ export class EmployeesService {
 
   async getPerformance(id: string) {
     const employee = await this.findOne(id);
-    const completedStages = await this.prisma.employeeWorkflowStage.count({
+    const completedStages = await this.prisma.employeeStage.count({
       where: { employeeId: id, status: 'COMPLETED' },
     });
-    const totalStages = await this.prisma.employeeWorkflowStage.count({ where: { employeeId: id } });
+    const totalStages = await this.prisma.employeeStage.count({ where: { employeeId: id } });
     const validDocs = await this.prisma.document.count({ where: { entityType: 'EMPLOYEE', entityId: id, status: 'VERIFIED', deletedAt: null } });
     const totalDocs = await this.prisma.document.count({ where: { entityType: 'EMPLOYEE', entityId: id, deletedAt: null } });
 

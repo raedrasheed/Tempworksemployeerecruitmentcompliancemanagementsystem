@@ -195,7 +195,7 @@ model User {
   auditLogs         AuditLog[]
   uploadedDocuments Document[]     @relation("UploadedDocuments")
   verifiedDocuments Document[]     @relation("VerifiedDocuments")
-  assignedStages    EmployeeWorkflowStage[] @relation("AssignedStages")
+  assignedStages    EmployeeStage[] @relation("AssignedStages")
 
   // ── Financial record relations ─────────────────────────────────────────
   financialRecordsPaidBy     FinancialRecord[]            @relation("FRPaidBy")
@@ -206,11 +206,11 @@ model User {
   updatedSettings   SystemSetting[]
   jobAdsCreated     JobAd[]           @relation("JobAdsCreated")
 
-  // ── Pipeline relations ─────────────────────────────────────────────────
-  pipelinesCreated      Pipeline[]                    @relation("PipelinesCreated")
-  pipelineStageUsers    PipelineStageUser[]            @relation("PipelineStageUsers")
-  pipelineAccess        PipelineAccessUser[]           @relation("PipelineAccess")
-  pipelineAssignments   CandidatePipelineAssignment[] @relation("PipelineAssignments")
+  // ── Workflow relations ─────────────────────────────────────────────────
+  workflowsCreated      Workflow[]                    @relation("WorkflowsCreated")
+  workflowStageUsers    WorkflowStageUser[]            @relation("WorkflowStageUsers")
+  workflowAccess        WorkflowAccessUser[]           @relation("WorkflowAccess")
+  workflowAssignments   CandidateWorkflowAssignment[] @relation("WorkflowAssignments")
   stageApprovals        CandidateStageApproval[]      @relation("StageApprovals")
   stageNotes            CandidateStageNote[]           @relation("StageNoteAuthors")
 
@@ -278,14 +278,14 @@ model Employee {
   deletedBy        String?
   deletionReason   String?
 
-  agency         Agency?                 @relation(fields: [agencyId], references: [id])
-  workflowStages EmployeeWorkflowStage[]
+  agency         Agency?        @relation(fields: [agencyId], references: [id])
+  employeeStages EmployeeStage[]
   workPermits    WorkPermit[]
 
   @@map("employees")
 }
 
-model WorkflowStage {
+model StageTemplate {
   id                   String           @id @default(uuid())
   name                 String           @unique
   order                Int
@@ -299,13 +299,13 @@ model WorkflowStage {
   createdAt            DateTime         @default(now())
   updatedAt            DateTime         @updatedAt
 
-  employeeStages    EmployeeWorkflowStage[]
-  applicantsCurrent Applicant[]             @relation("ApplicantCurrentStage")
+  employeeStages    EmployeeStage[]
+  applicantsCurrent Applicant[]     @relation("ApplicantCurrentStage")
 
-  @@map("workflow_stages")
+  @@map("stage_templates")
 }
 
-model EmployeeWorkflowStage {
+model EmployeeStage {
   id           String              @id @default(uuid())
   employeeId   String
   stageId      String
@@ -318,11 +318,11 @@ model EmployeeWorkflowStage {
   updatedAt    DateTime            @updatedAt
 
   employee   Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  stage      WorkflowStage @relation(fields: [stageId], references: [id])
+  stage      StageTemplate @relation(fields: [stageId], references: [id])
   assignedTo User?         @relation("AssignedStages", fields: [assignedToId], references: [id])
 
   @@unique([employeeId, stageId])
-  @@map("employee_workflow_stages")
+  @@map("employee_stages")
 }
 
 model JobType {
@@ -402,10 +402,10 @@ model Applicant {
 
   jobType              JobType?       @relation(fields: [jobTypeId], references: [id])
   agency               Agency?        @relation(fields: [agencyId], references: [id])
-  currentWorkflowStage WorkflowStage? @relation("ApplicantCurrentStage", fields: [currentWorkflowStageId], references: [id])
+  currentWorkflowStage StageTemplate? @relation("ApplicantCurrentStage", fields: [currentWorkflowStageId], references: [id])
   financialProfile     ApplicantFinancialProfile?
   agencyHistory        ApplicantAgencyHistory[]
-  pipelineAssignments  CandidatePipelineAssignment[]
+  workflowAssignments  CandidateWorkflowAssignment[]
 
   @@map("applicants")
 }
@@ -469,9 +469,9 @@ model DocumentType {
   deletedBy         String?
   deletionReason    String?
 
-  documents        Document[]
-  permissions      DocumentTypePermission[]
-  pipelineStageReqs PipelineStageRequiredDoc[]
+  documents         Document[]
+  permissions       DocumentTypePermission[]
+  workflowStageReqs WorkflowStageRequiredDoc[]
 
   @@map("document_types")
 }
@@ -907,11 +907,11 @@ model FinancialRecordAttachment {
 // Candidates are assigned to exactly one pipeline at Lead→Candidate conversion.
 //
 // STATUS LIFECYCLE:
-//   Pipeline:  ACTIVE | ARCHIVED
+//   Workflow:  ACTIVE | ARCHIVED
 //   CandidateStageProgress: ACTIVE | COMPLETED | SKIPPED | BLOCKED
-//   CandidatePipelineAssignment: ACTIVE | COMPLETED | WITHDRAWN
+//   CandidateWorkflowAssignment: ACTIVE | COMPLETED | WITHDRAWN
 
-enum PipelineStatus {
+enum WorkflowStatus {
   ACTIVE
   ARCHIVED
 }
@@ -923,7 +923,7 @@ enum CandidateProgressStatus {
   BLOCKED
 }
 
-enum PipelineAssignmentStatus {
+enum WorkflowAssignmentStatus {
   ACTIVE
   COMPLETED
   WITHDRAWN
@@ -935,12 +935,12 @@ enum ApprovalDecision {
   PENDING
 }
 
-/// Named recruitment pipeline (e.g. "UK Driver Standard Onboarding")
-model Pipeline {
+/// Named recruitment workflow (e.g. "UK Driver Standard Onboarding")
+model Workflow {
   id           String         @id @default(uuid())
   name         String
   description  String?        @db.Text
-  status       PipelineStatus @default(ACTIVE)
+  status       WorkflowStatus @default(ACTIVE)
   isDefault    Boolean        @default(false)
   isPublic     Boolean        @default(true)
   color        String         @default("#2563EB")
@@ -951,101 +951,101 @@ model Pipeline {
   deletedBy    String?
   deletionReason String?
 
-  createdBy    User?                       @relation("PipelinesCreated", fields: [createdById], references: [id])
-  stages       PipelineStage[]
-  assignments  CandidatePipelineAssignment[]
-  accessUsers  PipelineAccessUser[]
+  createdBy    User?                        @relation("WorkflowsCreated", fields: [createdById], references: [id])
+  stages       WorkflowStage[]
+  assignments  CandidateWorkflowAssignment[]
+  accessUsers  WorkflowAccessUser[]
 
   @@index([status])
-  @@map("pipelines")
+  @@map("workflows")
 }
 
-/// Ordered stage within a Pipeline
-model PipelineStage {
+/// Ordered stage within a Workflow
+model WorkflowStage {
   id              String    @id @default(uuid())
-  pipelineId      String
+  workflowId      String
   name            String
   description     String?
   order           Int
   color           String    @default("#6366F1")
-  slaHours        Int?      // optional SLA in hours; null means no SLA
+  slaHours        Int?
   requiresApproval Boolean  @default(false)
-  isFinal         Boolean   @default(false)  // marks the terminal stage (e.g. "Converted")
+  isFinal         Boolean   @default(false)
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
-  pipeline         Pipeline                  @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
-  assignedUsers    PipelineStageUser[]
-  requiredDocs     PipelineStageRequiredDoc[]
+  workflow          Workflow                     @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  assignedUsers     WorkflowStageUser[]
+  requiredDocs      WorkflowStageRequiredDoc[]
   candidateProgress CandidateStageProgress[]
 
-  @@unique([pipelineId, order])
-  @@index([pipelineId])
-  @@map("pipeline_stages")
+  @@unique([workflowId, order])
+  @@index([workflowId])
+  @@map("workflow_stages")
 }
 
-/// Users assigned as owners/reviewers for a pipeline stage
-model PipelineStageUser {
+/// Users assigned as owners/reviewers for a workflow stage
+model WorkflowStageUser {
   stageId   String
   userId    String
-  role      String   @default("REVIEWER") // REVIEWER | OWNER
+  role      String   @default("REVIEWER")
 
-  stage PipelineStage @relation(fields: [stageId], references: [id], onDelete: Cascade)
-  user  User          @relation("PipelineStageUsers", fields: [userId], references: [id], onDelete: Cascade)
+  stage WorkflowStage @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  user  User          @relation("WorkflowStageUsers", fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([stageId, userId])
-  @@map("pipeline_stage_users")
+  @@map("workflow_stage_users")
 }
 
-/// Document types that are required for a pipeline stage to be completed
-model PipelineStageRequiredDoc {
+/// Document types required for a workflow stage to be completed
+model WorkflowStageRequiredDoc {
   id             String  @id @default(uuid())
   stageId        String
   documentTypeId String
   isRequired     Boolean @default(true)
 
-  stage        PipelineStage @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  stage        WorkflowStage @relation(fields: [stageId], references: [id], onDelete: Cascade)
   documentType DocumentType  @relation(fields: [documentTypeId], references: [id], onDelete: Cascade)
 
   @@unique([stageId, documentTypeId])
-  @@map("pipeline_stage_required_docs")
+  @@map("workflow_stage_required_docs")
 }
 
-/// Users with explicit access to a private pipeline
-model PipelineAccessUser {
-  pipelineId String
+/// Users with explicit access to a private workflow
+model WorkflowAccessUser {
+  workflowId String
   userId     String
   grantedAt  DateTime @default(now())
 
-  pipeline Pipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
-  user     User     @relation("PipelineAccess", fields: [userId], references: [id], onDelete: Cascade)
+  workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  user     User     @relation("WorkflowAccess", fields: [userId], references: [id], onDelete: Cascade)
 
-  @@id([pipelineId, userId])
-  @@map("pipeline_access_users")
+  @@id([workflowId, userId])
+  @@map("workflow_access_users")
 }
 
-/// Assignment of a candidate (Applicant with tier=CANDIDATE) to a Pipeline
-model CandidatePipelineAssignment {
-  id          String                   @id @default(uuid())
-  candidateId String                   // Applicant.id (tier=CANDIDATE)
-  pipelineId  String
-  status      PipelineAssignmentStatus @default(ACTIVE)
-  assignedAt  DateTime                 @default(now())
-  completedAt DateTime?
+/// Assignment of a candidate to a Workflow
+model CandidateWorkflowAssignment {
+  id           String                    @id @default(uuid())
+  candidateId  String
+  workflowId   String
+  status       WorkflowAssignmentStatus  @default(ACTIVE)
+  assignedAt   DateTime                  @default(now())
+  completedAt  DateTime?
   assignedById String?
-  notes       String?
+  notes        String?
 
   candidate     Applicant              @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  pipeline      Pipeline               @relation(fields: [pipelineId], references: [id])
-  assignedBy    User?                  @relation("PipelineAssignments", fields: [assignedById], references: [id])
+  workflow      Workflow               @relation(fields: [workflowId], references: [id])
+  assignedBy    User?                  @relation("WorkflowAssignments", fields: [assignedById], references: [id])
   stageProgress CandidateStageProgress[]
 
   @@index([candidateId])
-  @@index([pipelineId])
-  @@map("candidate_pipeline_assignments")
+  @@index([workflowId])
+  @@map("candidate_workflow_assignments")
 }
 
-/// Tracks a candidate's progress through one pipeline stage.
+/// Tracks a candidate's progress through one workflow stage.
 /// Multiple active rows per assignment are allowed (parallel stages).
 model CandidateStageProgress {
   id           String                  @id @default(uuid())
@@ -1054,14 +1054,14 @@ model CandidateStageProgress {
   status       CandidateProgressStatus @default(ACTIVE)
   enteredAt    DateTime                @default(now())
   completedAt  DateTime?
-  slaDeadline  DateTime?               // computed from stage.slaHours + enteredAt
+  slaDeadline  DateTime?
   flagged      Boolean                 @default(false)
   flagReason   String?
   createdAt    DateTime                @default(now())
   updatedAt    DateTime                @updatedAt
 
-  assignment CandidatePipelineAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
-  stage      PipelineStage               @relation(fields: [stageId], references: [id])
+  assignment CandidateWorkflowAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  stage      WorkflowStage               @relation(fields: [stageId], references: [id])
   approvals  CandidateStageApproval[]
   notes      CandidateStageNote[]
 

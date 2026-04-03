@@ -11,7 +11,7 @@ export class WorkflowService {
   constructor(private prisma: PrismaService) {}
 
   async getStages() {
-    return this.prisma.workflowStage.findMany({
+    return this.prisma.stageTemplate.findMany({
       where: { isActive: true },
       orderBy: { order: 'asc' },
       include: { _count: { select: { employeeStages: true } } },
@@ -19,7 +19,7 @@ export class WorkflowService {
   }
 
   async getOverview() {
-    const stages = await this.prisma.workflowStage.findMany({
+    const stages = await this.prisma.stageTemplate.findMany({
       where: { isActive: true },
       orderBy: { order: 'asc' },
     });
@@ -27,9 +27,9 @@ export class WorkflowService {
     const overview = await Promise.all(
       stages.map(async (stage) => {
         const [pending, inProgress, completed, applicantsCount] = await Promise.all([
-          this.prisma.employeeWorkflowStage.count({ where: { stageId: stage.id, status: 'PENDING' } }),
-          this.prisma.employeeWorkflowStage.count({ where: { stageId: stage.id, status: 'IN_PROGRESS' } }),
-          this.prisma.employeeWorkflowStage.count({ where: { stageId: stage.id, status: 'COMPLETED' } }),
+          this.prisma.employeeStage.count({ where: { stageId: stage.id, status: 'PENDING' } }),
+          this.prisma.employeeStage.count({ where: { stageId: stage.id, status: 'IN_PROGRESS' } }),
+          this.prisma.employeeStage.count({ where: { stageId: stage.id, status: 'COMPLETED' } }),
           this.prisma.applicant.count({ where: { currentWorkflowStageId: stage.id, deletedAt: null } }),
         ]);
         return {
@@ -48,11 +48,11 @@ export class WorkflowService {
   async getAnalytics() {
     const [totalEmployees, stageBreakdown, recentActivity] = await Promise.all([
       this.prisma.employee.count({ where: { deletedAt: null } }),
-      this.prisma.employeeWorkflowStage.groupBy({
+      this.prisma.employeeStage.groupBy({
         by: ['status'],
         _count: { id: true },
       }),
-      this.prisma.employeeWorkflowStage.findMany({
+      this.prisma.employeeStage.findMany({
         where: { updatedAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } },
         include: {
           employee: { select: { id: true, firstName: true, lastName: true } },
@@ -71,7 +71,7 @@ export class WorkflowService {
     dto: UpdateWorkflowStageDto,
     updatedById?: string,
   ) {
-    const workflowEntry = await this.prisma.employeeWorkflowStage.findUnique({
+    const workflowEntry = await this.prisma.employeeStage.findUnique({
       where: { employeeId_stageId: { employeeId, stageId } },
       include: { stage: true },
     });
@@ -89,7 +89,7 @@ export class WorkflowService {
       updateData.completedAt = new Date();
     }
 
-    const updated = await this.prisma.employeeWorkflowStage.update({
+    const updated = await this.prisma.employeeStage.update({
       where: { employeeId_stageId: { employeeId, stageId } },
       data: updateData,
       include: { stage: true, assignedTo: { select: { id: true, firstName: true, lastName: true } } },
@@ -113,17 +113,17 @@ export class WorkflowService {
     const employee = await this.prisma.employee.findUnique({ where: { id: employeeId, deletedAt: null } });
     if (!employee) throw new NotFoundException('Employee not found');
 
-    const stage = await this.prisma.workflowStage.findUnique({ where: { id: stageId } });
+    const stage = await this.prisma.stageTemplate.findUnique({ where: { id: stageId } });
     if (!stage) throw new NotFoundException('Workflow stage not found');
 
     // Complete any currently IN_PROGRESS stages
-    await this.prisma.employeeWorkflowStage.updateMany({
+    await this.prisma.employeeStage.updateMany({
       where: { employeeId, status: 'IN_PROGRESS' },
       data: { status: 'COMPLETED', completedAt: new Date() },
     });
 
     // Upsert the chosen stage as IN_PROGRESS
-    const result = await this.prisma.employeeWorkflowStage.upsert({
+    const result = await this.prisma.employeeStage.upsert({
       where: { employeeId_stageId: { employeeId, stageId } },
       create: { employeeId, stageId, status: 'IN_PROGRESS', startedAt: new Date() },
       update: { status: 'IN_PROGRESS', startedAt: new Date(), completedAt: null },
@@ -149,7 +149,7 @@ export class WorkflowService {
     const employee = await this.prisma.employee.findUnique({
       where: { id: employeeId, deletedAt: null },
       include: {
-        workflowStages: {
+        employeeStages: {
           include: {
             stage: true,
             assignedTo: { select: { id: true, firstName: true, lastName: true } },
@@ -161,12 +161,12 @@ export class WorkflowService {
     if (!employee) throw new NotFoundException(`Employee ${employeeId} not found`);
     return {
       employee: { id: employee.id, firstName: employee.firstName, lastName: employee.lastName, status: employee.status },
-      timeline: employee.workflowStages,
+      timeline: employee.employeeStages,
     };
   }
 
   async getStageDetails(stageId: string) {
-    const stage = await this.prisma.workflowStage.findUnique({ where: { id: stageId } });
+    const stage = await this.prisma.stageTemplate.findUnique({ where: { id: stageId } });
     if (!stage) throw new NotFoundException('Stage not found');
 
     const [applicants, employeeStages] = await Promise.all([
@@ -175,7 +175,7 @@ export class WorkflowService {
         include: { jobType: { select: { id: true, name: true } } },
         orderBy: { createdAt: 'asc' },
       }),
-      this.prisma.employeeWorkflowStage.findMany({
+      this.prisma.employeeStage.findMany({
         where: { stageId, status: 'IN_PROGRESS' },
         include: {
           employee: { select: { id: true, firstName: true, lastName: true, email: true, nationality: true, photoUrl: true, status: true } },

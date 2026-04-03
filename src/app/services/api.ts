@@ -434,9 +434,9 @@ export const documentsApi = {
   },
 };
 
-// ─── Workflow API ─────────────────────────────────────────────────────────────
+// ─── Employee Workflow API ────────────────────────────────────────────────────
 
-export const workflowApi = {
+export const employeeWorkflowApi = {
   getStages: () => apiFetch<any[]>('/workflow/stages'),
 
   getStageDetails: (stageId: string) => apiFetch<any>(`/workflow/stages/${stageId}/people`),
@@ -919,68 +919,68 @@ export const recycleBinApi = {
     }),
 };
 
-// ── Pipeline API ──────────────────────────────────────────────────────────────
+// ── Workflow API ──────────────────────────────────────────────────────────────
 
-export const pipelineApi = {
-  // Pipelines
+export const workflowApi = {
+  // Workflows
   list: (includeArchived = false) =>
-    apiFetch<any[]>(`/pipelines${includeArchived ? '?includeArchived=true' : ''}`),
+    apiFetch<any[]>(`/workflows${includeArchived ? '?includeArchived=true' : ''}`),
 
-  get: (id: string) => apiFetch<any>(`/pipelines/${id}`),
+  get: (id: string) => apiFetch<any>(`/workflows/${id}`),
 
-  board: (id: string) => apiFetch<any>(`/pipelines/${id}/board`),
+  board: (id: string) => apiFetch<any>(`/workflows/${id}/board`),
 
-  candidates: (id: string) => apiFetch<any[]>(`/pipelines/${id}/candidates`),
+  candidates: (id: string) => apiFetch<any[]>(`/workflows/${id}/candidates`),
 
-  stats: (id: string) => apiFetch<any>(`/pipelines/${id}/stats`),
+  stats: (id: string) => apiFetch<any>(`/workflows/${id}/stats`),
 
   create: (data: { name: string; description?: string; isDefault?: boolean; isPublic?: boolean; color?: string }) =>
-    apiFetch<any>('/pipelines', { method: 'POST', body: JSON.stringify(data) }),
+    apiFetch<any>('/workflows', { method: 'POST', body: JSON.stringify(data) }),
 
   update: (id: string, data: Partial<{ name: string; description: string; isDefault: boolean; isPublic: boolean; color: string }>) =>
-    apiFetch<any>(`/pipelines/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+    apiFetch<any>(`/workflows/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
 
   archive: (id: string) =>
-    apiFetch<any>(`/pipelines/${id}/archive`, { method: 'PATCH' }),
+    apiFetch<any>(`/workflows/${id}/archive`, { method: 'PATCH' }),
 
   delete: (id: string) =>
-    apiFetch<any>(`/pipelines/${id}`, { method: 'DELETE' }),
+    apiFetch<any>(`/workflows/${id}`, { method: 'DELETE' }),
 
   // Stages
-  addStage: (pipelineId: string, data: any) =>
-    apiFetch<any>(`/pipelines/${pipelineId}/stages`, { method: 'POST', body: JSON.stringify(data) }),
+  addStage: (workflowId: string, data: any) =>
+    apiFetch<any>(`/workflows/${workflowId}/stages`, { method: 'POST', body: JSON.stringify(data) }),
 
   updateStage: (stageId: string, data: any) =>
-    apiFetch<any>(`/pipelines/stages/${stageId}`, { method: 'PATCH', body: JSON.stringify(data) }),
+    apiFetch<any>(`/workflows/stages/${stageId}`, { method: 'PATCH', body: JSON.stringify(data) }),
 
   deleteStage: (stageId: string) =>
-    apiFetch<any>(`/pipelines/stages/${stageId}`, { method: 'DELETE' }),
+    apiFetch<any>(`/workflows/stages/${stageId}`, { method: 'DELETE' }),
 
-  reorderStages: (pipelineId: string, orderedIds: string[]) =>
-    apiFetch<any>(`/pipelines/${pipelineId}/stages/reorder`, { method: 'PATCH', body: JSON.stringify({ orderedIds }) }),
+  reorderStages: (workflowId: string, orderedIds: string[]) =>
+    apiFetch<any>(`/workflows/${workflowId}/stages/reorder`, { method: 'PATCH', body: JSON.stringify({ orderedIds }) }),
 
   // Assignments
-  assignCandidate: (data: { candidateId: string; pipelineId: string; notes?: string }) =>
-    apiFetch<any>('/pipelines/assign', { method: 'POST', body: JSON.stringify(data) }),
+  assignCandidate: (data: { candidateId: string; workflowId: string; notes?: string }) =>
+    apiFetch<any>('/workflows/assign', { method: 'POST', body: JSON.stringify(data) }),
 
   getCandidateAssignments: (candidateId: string) =>
-    apiFetch<any[]>(`/pipelines/candidate/${candidateId}/assignments`),
+    apiFetch<any[]>(`/workflows/candidate/${candidateId}/assignments`),
 
   // Progress
   advanceToStage: (assignmentId: string, stageId: string) =>
-    apiFetch<any>(`/pipelines/assignments/${assignmentId}/advance`, { method: 'POST', body: JSON.stringify({ stageId }) }),
+    apiFetch<any>(`/workflows/assignments/${assignmentId}/advance`, { method: 'POST', body: JSON.stringify({ stageId }) }),
 
   updateProgress: (progressId: string, data: { status: string; flagged?: boolean; flagReason?: string }) =>
-    apiFetch<any>(`/pipelines/progress/${progressId}`, { method: 'PATCH', body: JSON.stringify(data) }),
+    apiFetch<any>(`/workflows/progress/${progressId}`, { method: 'PATCH', body: JSON.stringify(data) }),
 
   // Notes
   addNote: (progressId: string, data: { content: string; isPrivate?: boolean }) =>
-    apiFetch<any>(`/pipelines/progress/${progressId}/notes`, { method: 'POST', body: JSON.stringify(data) }),
+    apiFetch<any>(`/workflows/progress/${progressId}/notes`, { method: 'POST', body: JSON.stringify(data) }),
 
   deleteNote: (noteId: string) =>
-    apiFetch<any>(`/pipelines/notes/${noteId}`, { method: 'DELETE' }),
+    apiFetch<any>(`/workflows/notes/${noteId}`, { method: 'DELETE' }),
 
   // Approvals
   submitApproval: (progressId: string, data: { decision: 'APPROVED' | 'REJECTED'; notes?: string }) =>
-    apiFetch<any>(`/pipelines/progress/${progressId}/approve`, { method: 'POST', body: JSON.stringify(data) }),
+    apiFetch<any>(`/workflows/progress/${progressId}/approve`, { method: 'POST', body: JSON.stringify(data) }),
 };

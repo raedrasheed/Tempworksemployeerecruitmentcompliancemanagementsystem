@@ -5,7 +5,7 @@ import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Input } from '../../components/ui/input';
-import { workflowApi } from '../../services/api';
+import { employeeWorkflowApi } from '../../services/api';
 
 export function StageDetails() {
   const { stageId } = useParams<{ stageId: string }>();
@@ -18,8 +18,8 @@ export function StageDetails() {
   useEffect(() => {
     if (!stageId) return;
     Promise.all([
-      workflowApi.getStageDetails(stageId),
-      workflowApi.getStages(),
+      employeeWorkflowApi.getStageDetails(stageId),
+      employeeWorkflowApi.getStages(),
     ])
       .then(([details, stages]) => {
         setData(details);

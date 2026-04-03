@@ -10,7 +10,7 @@ import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { toast } from 'sonner';
-import { employeesApi, documentsApi, settingsApi, workflowApi, agenciesApi, getCurrentUser } from '../../services/api';
+import { employeesApi, documentsApi, settingsApi, employeeWorkflowApi, agenciesApi, getCurrentUser } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
 import { FinancialRecordsTab } from '../../components/finance/FinancialRecordsTab';
 
@@ -50,7 +50,7 @@ export function EmployeeProfile() {
       employeesApi.get(id!),
       employeesApi.getDocuments(id!),
       employeesApi.getWorkflow(id!),
-      workflowApi.getStages(),
+      employeeWorkflowApi.getStages(),
     ]).then(([emp, docs, wf, stages]) => {
       setEmployee(emp);
       setDocuments(Array.isArray(docs) ? docs : []);
@@ -72,7 +72,7 @@ export function EmployeeProfile() {
     if (!stageId || !id) return;
     setChangingStage(true);
     try {
-      await workflowApi.setEmployeeCurrentStage(id, stageId);
+      await employeeWorkflowApi.setEmployeeCurrentStage(id, stageId);
       toast.success('Workflow stage updated');
       loadWorkflow();
     } catch (err: any) {

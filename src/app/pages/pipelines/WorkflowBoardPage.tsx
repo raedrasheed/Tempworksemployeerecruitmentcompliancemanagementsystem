@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router';
-import { pipelineApi } from '../../services/api';
+import { workflowApi } from '../../services/api';
 import {
   ArrowLeft,
   Layers,
@@ -177,7 +177,7 @@ function NoteModal({ progressId, onClose }: { progressId: string; onClose: () =>
     if (!content.trim()) return;
     setSaving(true);
     try {
-      await pipelineApi.addNote(progressId, { content, isPrivate });
+      await workflowApi.addNote(progressId, { content, isPrivate });
       onClose();
     } finally {
       setSaving(false);
@@ -224,7 +224,7 @@ function AdvanceModal({ assignmentId, pipeline, onClose, onAdvanced }: { assignm
     if (!selectedStageId) return;
     setSaving(true);
     try {
-      await pipelineApi.advanceToStage(assignmentId, selectedStageId);
+      await workflowApi.advanceToStage(assignmentId, selectedStageId);
       onAdvanced();
       onClose();
     } finally {
@@ -272,7 +272,7 @@ function AssignModal({ pipeline, onClose, onAssigned }: { pipeline: any; onClose
     if (!candidateId.trim()) { setError('Candidate ID is required'); return; }
     setSaving(true);
     try {
-      await pipelineApi.assignCandidate({ candidateId, pipelineId: pipeline.id, notes: notes || undefined });
+      await workflowApi.assignCandidate({ candidateId, workflowId: pipeline.id, notes: notes || undefined });
       onAssigned();
       onClose();
     } catch (err: any) {
@@ -334,7 +334,7 @@ function StatsBar({ stats }: { stats: any }) {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
-export function PipelineBoardPage() {
+export function WorkflowBoardPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [board, setBoard] = useState<any>(null);
@@ -353,8 +353,8 @@ export function PipelineBoardPage() {
     setError('');
     try {
       const [boardData, statsData] = await Promise.all([
-        pipelineApi.board(id),
-        pipelineApi.stats(id),
+        workflowApi.board(id),
+        workflowApi.stats(id),
       ]);
       setBoard(boardData);
       setStats(statsData);
@@ -369,7 +369,7 @@ export function PipelineBoardPage() {
 
   const handleFlag = async (progressId: string, flagged: boolean) => {
     try {
-      await pipelineApi.updateProgress(progressId, { status: 'ACTIVE', flagged });
+      await workflowApi.updateProgress(progressId, { status: 'ACTIVE', flagged });
       load();
     } catch {}
   };
@@ -405,7 +405,7 @@ export function PipelineBoardPage() {
       {/* Header */}
       <div className="px-6 py-4 border-b border-border bg-card flex-shrink-0">
         <div className="flex items-center gap-3 mb-3">
-          <button onClick={() => navigate('/dashboard/pipelines')} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+          <button onClick={() => navigate('/dashboard/workflows')} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
             <ArrowLeft className="w-4 h-4" />
           </button>
           <div className="flex items-center gap-2">

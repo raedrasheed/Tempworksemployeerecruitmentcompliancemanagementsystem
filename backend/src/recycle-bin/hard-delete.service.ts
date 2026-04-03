@@ -116,7 +116,7 @@ export class HardDeleteService {
 
       // EmployeeWorkflowStages and WorkPermits cascade from Employee (onDelete: Cascade)
       // but Prisma deleteMany doesn't trigger cascades — we delete them explicitly
-      deleted.workflowStages = (await tx.employeeWorkflowStage.deleteMany({ where: { employeeId: id } })).count;
+      deleted.workflowStages = (await tx.employeeStage.deleteMany({ where: { employeeId: id } })).count;
       deleted.workPermits = (await tx.workPermit.deleteMany({ where: { employeeId: id } })).count;
 
       deleted.employee = (await tx.employee.delete({ where: { id } })).id ? 1 : 0;

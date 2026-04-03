@@ -6,7 +6,7 @@ import {
   Shield, Clock, Award, ChevronRight, MapPin, Loader2, TrendingUp, History, DollarSign,
 } from 'lucide-react';
 import { usePermissions } from '../../hooks/usePermissions';
-import { getCurrentUser, applicantsApi, documentsApi, settingsApi, workflowApi, agenciesApi } from '../../services/api';
+import { getCurrentUser, applicantsApi, documentsApi, settingsApi, employeeWorkflowApi, agenciesApi } from '../../services/api';
 import { FinancialRecordsTab } from '../../components/finance/FinancialRecordsTab';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -88,7 +88,7 @@ export function ApplicantProfile() {
 
   useEffect(() => {
     settingsApi.getDocumentTypes().then(setDocTypes).catch(() => {});
-    workflowApi.getStages().then((stages: any) => setAllStages(Array.isArray(stages) ? stages : [])).catch(() => {});
+    employeeWorkflowApi.getStages().then((stages: any) => setAllStages(Array.isArray(stages) ? stages : [])).catch(() => {});
     agenciesApi.list({ limit: 200 }).then((res: any) => setAgencies(res?.data ?? [])).catch(() => {});
   }, []);
 

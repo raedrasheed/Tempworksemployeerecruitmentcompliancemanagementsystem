@@ -238,7 +238,7 @@ export class ApplicantsService {
   async setCurrentStage(id: string, stageId: string | null, actorId?: string) {
     await this.findOne(id);
     if (stageId) {
-      const stage = await this.prisma.workflowStage.findUnique({ where: { id: stageId } });
+      const stage = await this.prisma.stageTemplate.findUnique({ where: { id: stageId } });
       if (!stage) throw new NotFoundException('Workflow stage not found');
     }
     const applicant = await this.prisma.applicant.update({
@@ -505,7 +505,7 @@ export class ApplicantsService {
       throw new ConflictException(`An employee with email ${applicant.email} already exists`);
     }
 
-    const stages = await this.prisma.workflowStage.findMany({
+    const stages = await this.prisma.stageTemplate.findMany({
       where: { isActive: true },
       orderBy: { order: 'asc' },
     });

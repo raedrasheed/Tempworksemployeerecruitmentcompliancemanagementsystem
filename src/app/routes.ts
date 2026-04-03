@@ -70,9 +70,9 @@ import { DeletedRecords } from './pages/recycle-bin/DeletedRecords';
 import { DatabaseCleanup } from './pages/settings/DatabaseCleanup';
 
 // Pipeline pages
-import { PipelinesPage } from './pages/pipelines/PipelinesPage';
-import { PipelineBoardPage } from './pages/pipelines/PipelineBoardPage';
-import { PipelineSettingsPage } from './pages/pipelines/PipelineSettingsPage';
+import { WorkflowsPage } from './pages/pipelines/WorkflowsPage';
+import { WorkflowBoardPage } from './pages/pipelines/WorkflowBoardPage';
+import { WorkflowSettingsPage } from './pages/pipelines/WorkflowSettingsPage';
 
 // Public pages
 import { LandingPage } from './pages/public/LandingPage';
@@ -123,10 +123,10 @@ export const router = createBrowserRouter([
       { path: 'document-explorer', Component: EmployeeDocumentExplorer },
       { path: 'documents-compliance', Component: DocumentsCompliance },
       
-      // Pipeline routes
-      { path: 'pipelines', Component: PipelinesPage },
-      { path: 'pipelines/:id', Component: PipelineBoardPage },
-      { path: 'settings/pipelines/:id', Component: PipelineSettingsPage },
+      // Workflow (recruitment pipeline) routes
+      { path: 'workflows', Component: WorkflowsPage },
+      { path: 'workflows/:id', Component: WorkflowBoardPage },
+      { path: 'settings/workflows/:id', Component: WorkflowSettingsPage },
 
       // Workflow routes
       { path: 'workflow', Component: WorkflowOverview },

@@ -547,7 +547,7 @@ export class DocumentsService {
   private async checkAndAutoCompleteStage(entityType: string, entityId: string, actorId: string) {
     let currentStageId: string | null = null;
     if (entityType === 'EMPLOYEE') {
-      const s = await this.prisma.employeeWorkflowStage.findFirst({ where: { employeeId: entityId, status: 'IN_PROGRESS' } });
+      const s = await this.prisma.employeeStage.findFirst({ where: { employeeId: entityId, status: 'IN_PROGRESS' } });
       currentStageId = s?.stageId ?? null;
     } else if (entityType === 'APPLICANT') {
       const a = await this.prisma.applicant.findUnique({ where: { id: entityId, deletedAt: null }, select: { currentWorkflowStageId: true } });
@@ -555,7 +555,7 @@ export class DocumentsService {
     }
     if (!currentStageId) return;
 
-    const stage = await this.prisma.workflowStage.findUnique({ where: { id: currentStageId }, select: { id: true, order: true, requirementsDocuments: true } });
+    const stage = await this.prisma.stageTemplate.findUnique({ where: { id: currentStageId }, select: { id: true, order: true, requirementsDocuments: true } });
     if (!stage || stage.requirementsDocuments.length === 0) return;
 
     const verifiedDocs = await this.prisma.document.findMany({
@@ -565,12 +565,12 @@ export class DocumentsService {
     const verifiedNames = new Set((verifiedDocs as any[]).map(d => d.documentType.name));
     if (!stage.requirementsDocuments.every(r => verifiedNames.has(r))) return;
 
-    const nextStage = await this.prisma.workflowStage.findFirst({ where: { order: { gt: stage.order }, isActive: true }, orderBy: { order: 'asc' } });
+    const nextStage = await this.prisma.stageTemplate.findFirst({ where: { order: { gt: stage.order }, isActive: true }, orderBy: { order: 'asc' } });
 
     if (entityType === 'EMPLOYEE') {
-      await this.prisma.employeeWorkflowStage.updateMany({ where: { employeeId: entityId, stageId: currentStageId, status: 'IN_PROGRESS' }, data: { status: 'COMPLETED', completedAt: new Date() } });
+      await this.prisma.employeeStage.updateMany({ where: { employeeId: entityId, stageId: currentStageId, status: 'IN_PROGRESS' }, data: { status: 'COMPLETED', completedAt: new Date() } });
       if (nextStage) {
-        await this.prisma.employeeWorkflowStage.upsert({
+        await this.prisma.employeeStage.upsert({
           where: { employeeId_stageId: { employeeId: entityId, stageId: nextStage.id } },
           create: { employeeId: entityId, stageId: nextStage.id, status: 'IN_PROGRESS', startedAt: new Date() },
           update: { status: 'IN_PROGRESS', startedAt: new Date(), completedAt: null },

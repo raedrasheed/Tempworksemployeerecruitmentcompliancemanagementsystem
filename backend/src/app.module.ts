@@ -19,7 +19,7 @@ import { LogsModule } from './logs/logs.module';
 import { FinanceModule } from './finance/finance.module';
 import { JobAdsModule } from './job-ads/job-ads.module';
 import { RecycleBinModule } from './recycle-bin/recycle-bin.module';
-import { PipelineModule } from './pipeline/pipeline.module';
+import { WorkflowPipelineModule } from './pipeline/pipeline.module';
 
 @Module({
   imports: [
@@ -42,7 +42,7 @@ import { PipelineModule } from './pipeline/pipeline.module';
     FinanceModule,
     JobAdsModule,
     RecycleBinModule,
-    PipelineModule,
+    WorkflowPipelineModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

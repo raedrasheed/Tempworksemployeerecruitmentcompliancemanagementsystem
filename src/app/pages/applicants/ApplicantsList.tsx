@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { applicantsApi, workflowApi, agenciesApi, settingsApi } from '../../services/api';
+import { applicantsApi, employeeWorkflowApi, agenciesApi, settingsApi } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
 import { getCurrentUser, getAccessToken } from '../../services/api';
 import { Link } from 'react-router';
@@ -82,7 +82,7 @@ export function ApplicantsList() {
   }, [fetchApplicants]);
 
   useEffect(() => {
-    workflowApi.getStages()
+    employeeWorkflowApi.getStages()
       .then((s: any) => setAllStages(Array.isArray(s) ? s : []))
       .catch(() => {});
     agenciesApi.list({ limit: 200 })

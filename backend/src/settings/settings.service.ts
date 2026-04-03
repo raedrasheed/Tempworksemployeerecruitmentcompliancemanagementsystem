@@ -168,13 +168,13 @@ export class SettingsService {
 
   // ─── Workflow Stages ─────────────────────────────────────────────────────────
   async findWorkflowStages() {
-    return this.prisma.workflowStage.findMany({ orderBy: { order: 'asc' } });
+    return this.prisma.stageTemplate.findMany({ orderBy: { order: 'asc' } });
   }
 
   async createWorkflowStage(dto: any, actorId?: string) {
-    const maxOrder = await this.prisma.workflowStage.aggregate({ _max: { order: true } });
+    const maxOrder = await this.prisma.stageTemplate.aggregate({ _max: { order: true } });
     const nextOrder = (maxOrder._max.order ?? 0) + 1;
-    const stage = await this.prisma.workflowStage.create({
+    const stage = await this.prisma.stageTemplate.create({
       data: {
         name: dto.name,
         description: dto.description,
@@ -189,7 +189,7 @@ export class SettingsService {
     await this.auditLog.log({
       userId: actorId,
       action: 'CREATE',
-      entity: 'WorkflowStage',
+      entity: 'StageTemplate',
       entityId: stage.id,
       changes: { name: stage.name },
     });
@@ -197,13 +197,13 @@ export class SettingsService {
   }
 
   async updateWorkflowStage(id: string, dto: any, actorId?: string) {
-    const stage = await this.prisma.workflowStage.findUnique({ where: { id } });
+    const stage = await this.prisma.stageTemplate.findUnique({ where: { id } });
     if (!stage) throw new NotFoundException('Workflow stage not found');
-    const updated = await this.prisma.workflowStage.update({ where: { id }, data: dto });
+    const updated = await this.prisma.stageTemplate.update({ where: { id }, data: dto });
     await this.auditLog.log({
       userId: actorId,
       action: 'UPDATE',
-      entity: 'WorkflowStage',
+      entity: 'StageTemplate',
       entityId: id,
       changes: dto,
     });
@@ -211,13 +211,13 @@ export class SettingsService {
   }
 
   async deleteWorkflowStage(id: string, actorId?: string) {
-    const stage = await this.prisma.workflowStage.findUnique({ where: { id } });
+    const stage = await this.prisma.stageTemplate.findUnique({ where: { id } });
     if (!stage) throw new NotFoundException('Workflow stage not found');
-    await this.prisma.workflowStage.update({ where: { id }, data: { isActive: false } });
+    await this.prisma.stageTemplate.update({ where: { id }, data: { isActive: false } });
     await this.auditLog.log({
       userId: actorId,
       action: 'DELETE',
-      entity: 'WorkflowStage',
+      entity: 'StageTemplate',
       entityId: id,
       changes: { name: stage.name },
     });
@@ -227,13 +227,13 @@ export class SettingsService {
   async reorderWorkflowStages(orders: { id: string; order: number }[], actorId?: string) {
     await Promise.all(
       orders.map(({ id, order }) =>
-        this.prisma.workflowStage.update({ where: { id }, data: { order } }),
+        this.prisma.stageTemplate.update({ where: { id }, data: { order } }),
       ),
     );
     await this.auditLog.log({
       userId: actorId,
       action: 'UPDATE',
-      entity: 'WorkflowStage',
+      entity: 'StageTemplate',
       entityId: 'bulk',
       changes: { reorder: orders },
     });

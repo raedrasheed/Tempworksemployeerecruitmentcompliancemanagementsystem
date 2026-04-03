@@ -68,8 +68,8 @@ export class DatabaseCleanupService {
       this.prisma.workPermit.count(),
       this.prisma.visa.count(),
       this.prisma.report.count(),
-      this.prisma.employeeWorkflowStage.count(),
-      this.prisma.employeeWorkflowStage.count(),
+      this.prisma.employeeStage.count(),
+      this.prisma.employeeStage.count(),
       this.prisma.identifierSequence.count(),
       this.prisma.auditLog.count(),
     ]);
@@ -97,7 +97,7 @@ export class DatabaseCleanupService {
         roles: preservedRoles.map(r => r.name),
         agencies: preservedAgencyIds.length,
         systemSettings: await this.prisma.systemSetting.count(),
-        workflowStages: await this.prisma.workflowStage.count(),
+        workflowStages: await this.prisma.stageTemplate.count(),
         jobTypes: await this.prisma.jobType.count(),
         documentTypes: await this.prisma.documentType.count(),
         permissions: await this.prisma.permission.count(),
@@ -152,7 +152,7 @@ export class DatabaseCleanupService {
       removed.visas = (await this.prisma.visa.deleteMany({})).count;
 
       // 10. Employee workflow stages (FK to employees)
-      removed.employeeWorkflowStages = (await this.prisma.employeeWorkflowStage.deleteMany({})).count;
+      removed.employeeWorkflowStages = (await this.prisma.employeeStage.deleteMany({})).count;
 
       // 11. Employees
       removed.employees = (await this.prisma.employee.deleteMany({})).count;

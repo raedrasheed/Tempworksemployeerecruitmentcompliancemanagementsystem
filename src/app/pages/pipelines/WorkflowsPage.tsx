@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router';
-import { pipelineApi } from '../../services/api';
+import { workflowApi } from '../../services/api';
 import {
   Layers,
   Plus,
@@ -141,7 +141,7 @@ function CreatePipelineModal({ onClose, onCreated }: { onClose: () => void; onCr
     if (!form.name.trim()) { setError('Name is required'); return; }
     setSaving(true);
     try {
-      await pipelineApi.create(form);
+      await workflowApi.create(form);
       onCreated();
       onClose();
     } catch (err: any) {
@@ -211,7 +211,7 @@ function CreatePipelineModal({ onClose, onCreated }: { onClose: () => void; onCr
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
-export function PipelinesPage() {
+export function WorkflowsPage() {
   const navigate = useNavigate();
   const [pipelines, setPipelines] = useState<any[]>([]);
   const [statsMap, setStatsMap] = useState<Record<string, any>>({});
@@ -224,10 +224,10 @@ export function PipelinesPage() {
     setLoading(true);
     setError('');
     try {
-      const data = await pipelineApi.list(showArchived);
+      const data = await workflowApi.list(showArchived);
       setPipelines(data);
       // load stats in parallel
-      const statsResults = await Promise.allSettled(data.map((p: any) => pipelineApi.stats(p.id)));
+      const statsResults = await Promise.allSettled(data.map((p: any) => workflowApi.stats(p.id)));
       const map: Record<string, any> = {};
       statsResults.forEach((r, i) => {
         if (r.status === 'fulfilled') map[data[i].id] = r.value;
@@ -243,12 +243,12 @@ export function PipelinesPage() {
   useEffect(() => { load(); }, [load]);
 
   const handleArchive = async (id: string) => {
-    try { await pipelineApi.archive(id); load(); } catch {}
+    try { await workflowApi.archive(id); load(); } catch {}
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm('Delete this workflow? This cannot be undone.')) return;
-    try { await pipelineApi.delete(id); load(); } catch {}
+    try { await workflowApi.delete(id); load(); } catch {}
   };
 
   return (
@@ -310,7 +310,7 @@ export function PipelinesPage() {
               key={p.id}
               pipeline={p}
               stats={statsMap[p.id]}
-              onSelect={() => navigate(`/dashboard/pipelines/${p.id}`)}
+              onSelect={() => navigate(`/dashboard/workflows/${p.id}`)}
               onArchive={() => handleArchive(p.id)}
               onDelete={() => handleDelete(p.id)}
             />

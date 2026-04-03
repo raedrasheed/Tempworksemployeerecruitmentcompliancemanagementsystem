@@ -1,7 +1,7 @@
 import { IsString, IsOptional, IsBoolean, IsHexColor, MaxLength, IsArray, IsUUID } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-export class CreatePipelineDto {
+export class CreateWorkflowDto {
   @ApiProperty() @IsString() @MaxLength(120) name: string;
   @ApiPropertyOptional() @IsOptional() @IsString() description?: string;
   @ApiPropertyOptional() @IsOptional() @IsBoolean() isDefault?: boolean;
@@ -9,7 +9,7 @@ export class CreatePipelineDto {
   @ApiPropertyOptional() @IsOptional() @IsString() color?: string;
 }
 
-export class CreatePipelineStageDto {
+export class CreateWorkflowStageDto {
   @ApiProperty() @IsString() @MaxLength(100) name: string;
   @ApiPropertyOptional() @IsOptional() @IsString() description?: string;
   @ApiProperty() order: number;
@@ -21,7 +21,7 @@ export class CreatePipelineStageDto {
   @ApiPropertyOptional() @IsOptional() @IsArray() @IsUUID('4', { each: true }) requiredDocTypeIds?: string[];
 }
 
-export class UpdatePipelineStageProgressDto {
+export class UpdateWorkflowStageProgressDto {
   @ApiProperty({ enum: ['ACTIVE', 'COMPLETED', 'SKIPPED', 'BLOCKED'] })
   @IsString() status: string;
   @ApiPropertyOptional() @IsOptional() @IsBoolean() flagged?: boolean;
@@ -38,8 +38,8 @@ export class CreateStageApprovalDto {
   @ApiPropertyOptional() @IsOptional() @IsString() notes?: string;
 }
 
-export class AssignCandidateToPipelineDto {
+export class AssignCandidateToWorkflowDto {
   @ApiProperty() @IsUUID() candidateId: string;
-  @ApiProperty() @IsUUID() pipelineId: string;
+  @ApiProperty() @IsUUID() workflowId: string;
   @ApiPropertyOptional() @IsOptional() @IsString() notes?: string;
 }

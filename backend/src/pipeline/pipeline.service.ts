@@ -1,56 +1,56 @@
 import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import {
-  CreatePipelineDto,
-  CreatePipelineStageDto,
-  UpdatePipelineStageProgressDto,
+  CreateWorkflowDto,
+  CreateWorkflowStageDto,
+  UpdateWorkflowStageProgressDto,
   CreateStageNoteDto,
   CreateStageApprovalDto,
-  AssignCandidateToPipelineDto,
+  AssignCandidateToWorkflowDto,
 } from './dto/create-pipeline.dto';
 
-const PIPELINE_STAGE_INCLUDE = {
+const WORKFLOW_STAGE_INCLUDE = {
   assignedUsers: { include: { user: { select: { id: true, firstName: true, lastName: true, email: true } } } },
   requiredDocs: { include: { documentType: { select: { id: true, name: true, category: true } } } },
   _count: { select: { candidateProgress: true } },
 } as const;
 
-const PIPELINE_INCLUDE = {
-  stages: { orderBy: { order: 'asc' as const }, include: PIPELINE_STAGE_INCLUDE },
+const WORKFLOW_INCLUDE = {
+  stages: { orderBy: { order: 'asc' as const }, include: WORKFLOW_STAGE_INCLUDE },
   _count: { select: { assignments: true } },
   createdBy: { select: { id: true, firstName: true, lastName: true } },
 } as const;
 
 @Injectable()
-export class PipelineService {
+export class WorkflowService {
   constructor(private prisma: PrismaService) {}
 
-  // ─── Pipelines ────────────────────────────────────────────────────────────
+  // ─── Workflows ────────────────────────────────────────────────────────────
 
-  async listPipelines(includeArchived = false) {
+  async listWorkflows(includeArchived = false) {
     const where: any = { deletedAt: null };
     if (!includeArchived) where.status = 'ACTIVE';
-    return this.prisma.pipeline.findMany({
+    return this.prisma.workflow.findMany({
       where,
       orderBy: [{ isDefault: 'desc' }, { name: 'asc' }],
-      include: PIPELINE_INCLUDE,
+      include: WORKFLOW_INCLUDE,
     });
   }
 
-  async getPipeline(id: string) {
-    const pipeline = await this.prisma.pipeline.findFirst({
+  async getWorkflow(id: string) {
+    const workflow = await this.prisma.workflow.findFirst({
       where: { id, deletedAt: null },
-      include: PIPELINE_INCLUDE,
+      include: WORKFLOW_INCLUDE,
     });
-    if (!pipeline) throw new NotFoundException('Pipeline not found');
-    return pipeline;
+    if (!workflow) throw new NotFoundException('Workflow not found');
+    return workflow;
   }
 
-  async createPipeline(dto: CreatePipelineDto, createdById?: string) {
+  async createWorkflow(dto: CreateWorkflowDto, createdById?: string) {
     if (dto.isDefault) {
-      await this.prisma.pipeline.updateMany({ where: { isDefault: true, deletedAt: null }, data: { isDefault: false } });
+      await this.prisma.workflow.updateMany({ where: { isDefault: true, deletedAt: null }, data: { isDefault: false } });
     }
-    return this.prisma.pipeline.create({
+    return this.prisma.workflow.create({
       data: {
         name: dto.name,
         description: dto.description,
@@ -59,16 +59,16 @@ export class PipelineService {
         color: dto.color ?? '#2563EB',
         createdById,
       },
-      include: PIPELINE_INCLUDE,
+      include: WORKFLOW_INCLUDE,
     });
   }
 
-  async updatePipeline(id: string, dto: Partial<CreatePipelineDto>, updatedById?: string) {
-    await this.getPipeline(id);
+  async updateWorkflow(id: string, dto: Partial<CreateWorkflowDto>, updatedById?: string) {
+    await this.getWorkflow(id);
     if (dto.isDefault) {
-      await this.prisma.pipeline.updateMany({ where: { isDefault: true, deletedAt: null, id: { not: id } }, data: { isDefault: false } });
+      await this.prisma.workflow.updateMany({ where: { isDefault: true, deletedAt: null, id: { not: id } }, data: { isDefault: false } });
     }
-    const updated = await this.prisma.pipeline.update({
+    const updated = await this.prisma.workflow.update({
       where: { id },
       data: {
         ...(dto.name !== undefined && { name: dto.name }),
@@ -77,52 +77,52 @@ export class PipelineService {
         ...(dto.isPublic !== undefined && { isPublic: dto.isPublic }),
         ...(dto.color !== undefined && { color: dto.color }),
       },
-      include: PIPELINE_INCLUDE,
+      include: WORKFLOW_INCLUDE,
     });
     if (updatedById) {
-      await this.prisma.auditLog.create({ data: { userId: updatedById, action: 'UPDATE', entity: 'Pipeline', entityId: id, changes: dto as any } });
+      await this.prisma.auditLog.create({ data: { userId: updatedById, action: 'UPDATE', entity: 'Workflow', entityId: id, changes: dto as any } });
     }
     return updated;
   }
 
-  async archivePipeline(id: string, actorId?: string) {
-    await this.getPipeline(id);
-    const updated = await this.prisma.pipeline.update({ where: { id }, data: { status: 'ARCHIVED' as any } });
+  async archiveWorkflow(id: string, actorId?: string) {
+    await this.getWorkflow(id);
+    const updated = await this.prisma.workflow.update({ where: { id }, data: { status: 'ARCHIVED' as any } });
     if (actorId) {
-      await this.prisma.auditLog.create({ data: { userId: actorId, action: 'ARCHIVE', entity: 'Pipeline', entityId: id } });
+      await this.prisma.auditLog.create({ data: { userId: actorId, action: 'ARCHIVE', entity: 'Workflow', entityId: id } });
     }
     return updated;
   }
 
-  async deletePipeline(id: string, actorId?: string) {
-    await this.getPipeline(id);
-    await this.prisma.pipeline.update({ where: { id }, data: { deletedAt: new Date(), deletedBy: actorId } });
+  async deleteWorkflow(id: string, actorId?: string) {
+    await this.getWorkflow(id);
+    await this.prisma.workflow.update({ where: { id }, data: { deletedAt: new Date(), deletedBy: actorId } });
     if (actorId) {
-      await this.prisma.auditLog.create({ data: { userId: actorId, action: 'DELETE', entity: 'Pipeline', entityId: id } });
+      await this.prisma.auditLog.create({ data: { userId: actorId, action: 'DELETE', entity: 'Workflow', entityId: id } });
     }
-    return { message: 'Pipeline deleted' };
+    return { message: 'Workflow deleted' };
   }
 
   // ─── Stages ───────────────────────────────────────────────────────────────
 
-  async addStage(pipelineId: string, dto: CreatePipelineStageDto, actorId?: string) {
-    await this.getPipeline(pipelineId);
+  async addStage(workflowId: string, dto: CreateWorkflowStageDto, actorId?: string) {
+    await this.getWorkflow(workflowId);
 
     // Check for order conflict and shift if needed
-    const conflict = await this.prisma.pipelineStage.findFirst({ where: { pipelineId, order: dto.order } });
+    const conflict = await this.prisma.workflowStage.findFirst({ where: { workflowId, order: dto.order } });
     if (conflict) {
       await this.prisma.$executeRaw`
-        UPDATE "pipeline_stages"
+        UPDATE "workflow_stages"
         SET "order" = "order" + 1
-        WHERE "pipelineId" = ${pipelineId} AND "order" >= ${dto.order}
+        WHERE "workflowId" = ${workflowId} AND "order" >= ${dto.order}
       `;
     }
 
     const { assignedUserIds, requiredDocTypeIds, ...stageData } = dto;
-    const stage = await this.prisma.pipelineStage.create({
+    const stage = await this.prisma.workflowStage.create({
       data: {
         ...stageData,
-        pipelineId,
+        workflowId,
         assignedUsers: assignedUserIds?.length
           ? { create: assignedUserIds.map((userId) => ({ userId, role: 'REVIEWER' })) }
           : undefined,
@@ -130,16 +130,16 @@ export class PipelineService {
           ? { create: requiredDocTypeIds.map((documentTypeId) => ({ documentTypeId })) }
           : undefined,
       },
-      include: PIPELINE_STAGE_INCLUDE,
+      include: WORKFLOW_STAGE_INCLUDE,
     });
     if (actorId) {
-      await this.prisma.auditLog.create({ data: { userId: actorId, action: 'CREATE', entity: 'PipelineStage', entityId: stage.id, changes: { pipelineId } as any } });
+      await this.prisma.auditLog.create({ data: { userId: actorId, action: 'CREATE', entity: 'WorkflowStage', entityId: stage.id, changes: { workflowId } as any } });
     }
     return stage;
   }
 
-  async updateStage(stageId: string, dto: Partial<CreatePipelineStageDto>, actorId?: string) {
-    const stage = await this.prisma.pipelineStage.findUnique({ where: { id: stageId } });
+  async updateStage(stageId: string, dto: Partial<CreateWorkflowStageDto>, actorId?: string) {
+    const stage = await this.prisma.workflowStage.findUnique({ where: { id: stageId } });
     if (!stage) throw new NotFoundException('Stage not found');
 
     const { assignedUserIds, requiredDocTypeIds, ...stageData } = dto;
@@ -148,9 +148,9 @@ export class PipelineService {
 
     // Replace assigned users if provided
     if (assignedUserIds !== undefined) {
-      await this.prisma.pipelineStageUser.deleteMany({ where: { stageId } });
+      await this.prisma.workflowStageUser.deleteMany({ where: { stageId } });
       if (assignedUserIds.length) {
-        await this.prisma.pipelineStageUser.createMany({
+        await this.prisma.workflowStageUser.createMany({
           data: assignedUserIds.map((userId) => ({ stageId, userId, role: 'REVIEWER' })),
           skipDuplicates: true,
         });
@@ -159,61 +159,61 @@ export class PipelineService {
 
     // Replace required docs if provided
     if (requiredDocTypeIds !== undefined) {
-      await this.prisma.pipelineStageRequiredDoc.deleteMany({ where: { stageId } });
+      await this.prisma.workflowStageRequiredDoc.deleteMany({ where: { stageId } });
       if (requiredDocTypeIds.length) {
-        await this.prisma.pipelineStageRequiredDoc.createMany({
+        await this.prisma.workflowStageRequiredDoc.createMany({
           data: requiredDocTypeIds.map((documentTypeId) => ({ stageId, documentTypeId })),
           skipDuplicates: true,
         });
       }
     }
 
-    return this.prisma.pipelineStage.update({
+    return this.prisma.workflowStage.update({
       where: { id: stageId },
       data: updatePayload,
-      include: PIPELINE_STAGE_INCLUDE,
+      include: WORKFLOW_STAGE_INCLUDE,
     });
   }
 
   async deleteStage(stageId: string, actorId?: string) {
-    const stage = await this.prisma.pipelineStage.findUnique({ where: { id: stageId } });
+    const stage = await this.prisma.workflowStage.findUnique({ where: { id: stageId } });
     if (!stage) throw new NotFoundException('Stage not found');
-    await this.prisma.pipelineStage.delete({ where: { id: stageId } });
+    await this.prisma.workflowStage.delete({ where: { id: stageId } });
     return { message: 'Stage deleted' };
   }
 
-  async reorderStages(pipelineId: string, orderedIds: string[]) {
-    await this.getPipeline(pipelineId);
+  async reorderStages(workflowId: string, orderedIds: string[]) {
+    await this.getWorkflow(workflowId);
     await Promise.all(
       orderedIds.map((id, idx) =>
-        this.prisma.pipelineStage.update({ where: { id }, data: { order: idx + 1 } }),
+        this.prisma.workflowStage.update({ where: { id }, data: { order: idx + 1 } }),
       ),
     );
-    return this.getPipeline(pipelineId);
+    return this.getWorkflow(workflowId);
   }
 
   // ─── Assignments ──────────────────────────────────────────────────────────
 
-  async assignCandidate(dto: AssignCandidateToPipelineDto, actorId?: string) {
-    const [candidate, pipeline] = await Promise.all([
+  async assignCandidate(dto: AssignCandidateToWorkflowDto, actorId?: string) {
+    const [candidate, workflow] = await Promise.all([
       this.prisma.applicant.findFirst({ where: { id: dto.candidateId, tier: 'CANDIDATE', deletedAt: null } }),
-      this.getPipeline(dto.pipelineId),
+      this.getWorkflow(dto.workflowId),
     ]);
     if (!candidate) throw new NotFoundException('Candidate not found');
 
-    // Check for existing active assignment to same pipeline
-    const existing = await this.prisma.candidatePipelineAssignment.findFirst({
-      where: { candidateId: dto.candidateId, pipelineId: dto.pipelineId, status: 'ACTIVE' },
+    // Check for existing active assignment to same workflow
+    const existing = await this.prisma.candidateWorkflowAssignment.findFirst({
+      where: { candidateId: dto.candidateId, workflowId: dto.workflowId, status: 'ACTIVE' },
     });
-    if (existing) throw new ConflictException('Candidate already has an active assignment in this pipeline');
+    if (existing) throw new ConflictException('Candidate already has an active assignment in this workflow');
 
     // Get first stage
-    const firstStage = (pipeline as any).stages?.[0];
+    const firstStage = (workflow as any).stages?.[0];
 
-    const assignment = await this.prisma.candidatePipelineAssignment.create({
+    const assignment = await this.prisma.candidateWorkflowAssignment.create({
       data: {
         candidateId: dto.candidateId,
-        pipelineId: dto.pipelineId,
+        workflowId: dto.workflowId,
         assignedById: actorId,
         notes: dto.notes,
         stageProgress: firstStage
@@ -230,24 +230,24 @@ export class PipelineService {
       },
       include: {
         candidate: { select: { id: true, firstName: true, lastName: true, email: true, candidateNumber: true } },
-        pipeline: { select: { id: true, name: true } },
+        workflow: { select: { id: true, name: true } },
         stageProgress: { include: { stage: true } },
       },
     });
 
     if (actorId) {
       await this.prisma.auditLog.create({
-        data: { userId: actorId, action: 'ASSIGN', entity: 'CandidatePipelineAssignment', entityId: assignment.id, changes: { candidateId: dto.candidateId, pipelineId: dto.pipelineId } as any },
+        data: { userId: actorId, action: 'ASSIGN', entity: 'CandidateWorkflowAssignment', entityId: assignment.id, changes: { candidateId: dto.candidateId, workflowId: dto.workflowId } as any },
       });
     }
     return assignment;
   }
 
   async getCandidateAssignments(candidateId: string) {
-    return this.prisma.candidatePipelineAssignment.findMany({
+    return this.prisma.candidateWorkflowAssignment.findMany({
       where: { candidateId },
       include: {
-        pipeline: { select: { id: true, name: true, color: true } },
+        workflow: { select: { id: true, name: true, color: true } },
         stageProgress: {
           orderBy: { enteredAt: 'asc' },
           include: {
@@ -261,10 +261,10 @@ export class PipelineService {
     });
   }
 
-  async getPipelineCandidates(pipelineId: string) {
-    await this.getPipeline(pipelineId);
-    return this.prisma.candidatePipelineAssignment.findMany({
-      where: { pipelineId, status: 'ACTIVE' },
+  async getWorkflowCandidates(workflowId: string) {
+    await this.getWorkflow(workflowId);
+    return this.prisma.candidateWorkflowAssignment.findMany({
+      where: { workflowId, status: 'ACTIVE' },
       include: {
         candidate: { select: { id: true, firstName: true, lastName: true, email: true, phone: true, candidateNumber: true, photoUrl: true, nationality: true, status: true } },
         stageProgress: {
@@ -276,14 +276,14 @@ export class PipelineService {
     });
   }
 
-  async getPipelineBoardView(pipelineId: string) {
-    const pipeline = await this.getPipeline(pipelineId);
-    const stages = (pipeline as any).stages as any[];
+  async getWorkflowBoardView(workflowId: string) {
+    const workflow = await this.getWorkflow(workflowId);
+    const stages = (workflow as any).stages as any[];
 
     const columns = await Promise.all(
       stages.map(async (stage: any) => {
         const progressItems = await this.prisma.candidateStageProgress.findMany({
-          where: { stageId: stage.id, status: 'ACTIVE', assignment: { pipelineId } },
+          where: { stageId: stage.id, status: 'ACTIVE', assignment: { workflowId } },
           include: {
             assignment: {
               include: {
@@ -315,20 +315,20 @@ export class PipelineService {
       }),
     );
 
-    return { pipeline, columns };
+    return { workflow, columns };
   }
 
   // ─── Stage Progress ───────────────────────────────────────────────────────
 
   async advanceToStage(assignmentId: string, stageId: string, actorId?: string) {
-    const assignment = await this.prisma.candidatePipelineAssignment.findUnique({
+    const assignment = await this.prisma.candidateWorkflowAssignment.findUnique({
       where: { id: assignmentId },
-      include: { pipeline: { include: { stages: { orderBy: { order: 'asc' } } } } },
+      include: { workflow: { include: { stages: { orderBy: { order: 'asc' } } } } },
     });
     if (!assignment) throw new NotFoundException('Assignment not found');
 
-    const stage = (assignment.pipeline as any).stages.find((s: any) => s.id === stageId);
-    if (!stage) throw new BadRequestException('Stage does not belong to this pipeline');
+    const stage = (assignment.workflow as any).stages.find((s: any) => s.id === stageId);
+    if (!stage) throw new BadRequestException('Stage does not belong to this workflow');
 
     const existing = await this.prisma.candidateStageProgress.findFirst({
       where: { assignmentId, stageId, status: 'ACTIVE' },
@@ -356,7 +356,7 @@ export class PipelineService {
     return progress;
   }
 
-  async updateProgress(progressId: string, dto: UpdatePipelineStageProgressDto, actorId?: string) {
+  async updateProgress(progressId: string, dto: UpdateWorkflowStageProgressDto, actorId?: string) {
     const progress = await this.prisma.candidateStageProgress.findUnique({ where: { id: progressId }, include: { stage: true } });
     if (!progress) throw new NotFoundException('Progress record not found');
 
@@ -374,7 +374,7 @@ export class PipelineService {
 
     // If final stage completed, complete the assignment
     if (dto.status === 'COMPLETED' && (progress.stage as any).isFinal) {
-      await this.prisma.candidatePipelineAssignment.update({
+      await this.prisma.candidateWorkflowAssignment.update({
         where: { id: (updated as any).assignmentId },
         data: { status: 'COMPLETED', completedAt: new Date() },
       });
@@ -426,16 +426,16 @@ export class PipelineService {
 
   // ─── Stats ────────────────────────────────────────────────────────────────
 
-  async getPipelineStats(pipelineId: string) {
-    await this.getPipeline(pipelineId);
+  async getWorkflowStats(workflowId: string) {
+    await this.getWorkflow(workflowId);
     const [totalActive, totalCompleted, flaggedCount] = await Promise.all([
-      this.prisma.candidatePipelineAssignment.count({ where: { pipelineId, status: 'ACTIVE' } }),
-      this.prisma.candidatePipelineAssignment.count({ where: { pipelineId, status: 'COMPLETED' } }),
-      this.prisma.candidateStageProgress.count({ where: { assignment: { pipelineId }, flagged: true, status: 'ACTIVE' } }),
+      this.prisma.candidateWorkflowAssignment.count({ where: { workflowId, status: 'ACTIVE' } }),
+      this.prisma.candidateWorkflowAssignment.count({ where: { workflowId, status: 'COMPLETED' } }),
+      this.prisma.candidateStageProgress.count({ where: { assignment: { workflowId }, flagged: true, status: 'ACTIVE' } }),
     ]);
 
     const slaBreached = await this.prisma.candidateStageProgress.count({
-      where: { assignment: { pipelineId }, status: 'ACTIVE', slaDeadline: { lt: new Date() } },
+      where: { assignment: { workflowId }, status: 'ACTIVE', slaDeadline: { lt: new Date() } },
     });
 
     return { totalActive, totalCompleted, flaggedCount, slaBreached };

@@ -5,14 +5,14 @@ import { Button } from '../../components/ui/button';
 import { Progress } from '../../components/ui/progress';
 import { Link } from 'react-router';
 import { Clock, BarChart3, ChevronRight } from 'lucide-react';
-import { workflowApi } from '../../services/api';
+import { employeeWorkflowApi } from '../../services/api';
 
 export function WorkflowOverview() {
   const [stages, setStages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    workflowApi.getOverview()
+    employeeWorkflowApi.getOverview()
       .then((data: any) => setStages(Array.isArray(data) ? data : []))
       .catch(() => setStages([]))
       .finally(() => setLoading(false));

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router';
-import { pipelineApi } from '../../services/api';
+import { workflowApi } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -37,7 +37,7 @@ interface Stage {
   isFinal: boolean;
 }
 
-export function PipelineSettingsPage() {
+export function WorkflowSettingsPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { canEdit, canDelete, canCreate } = usePermissions();
@@ -74,7 +74,7 @@ export function PipelineSettingsPage() {
     setLoading(true);
     setError(null);
     try {
-      const data = await pipelineApi.get(id);
+      const data = await workflowApi.get(id);
       setPipeline(data);
       setMetaForm({ name: data.name, description: data.description ?? '', color: data.color ?? '#2563EB', isDefault: data.isDefault, isPublic: data.isPublic });
       const mapped: Stage[] = (data.stages ?? []).map((s: any) => ({
@@ -104,7 +104,7 @@ export function PipelineSettingsPage() {
     setAddingStage(true);
     try {
       const maxOrder = stages.reduce((m, s) => Math.max(m, s.order), 0);
-      await pipelineApi.addStage(id!, {
+      await workflowApi.addStage(id!, {
         name: addForm.name.trim(),
         description: addForm.description.trim() || undefined,
         color: addForm.color,
@@ -128,7 +128,7 @@ export function PipelineSettingsPage() {
   const handleDeleteStage = async (stageId: string, stageName: string) => {
     if (!confirm(`Delete the "${stageName}" stage? Candidates currently in this stage will lose their progress.`)) return;
     try {
-      await pipelineApi.deleteStage(stageId);
+      await workflowApi.deleteStage(stageId);
       setStages(prev => prev.filter(s => s.id !== stageId).map((s, i) => ({ ...s, order: i + 1 })));
     } catch (e: any) {
       alert(e?.message ?? 'Failed to delete stage');
@@ -158,7 +158,7 @@ export function PipelineSettingsPage() {
   const handleSaveOrder = async () => {
     setSaving(true);
     try {
-      await pipelineApi.reorderStages(id!, stages.map(s => s.id));
+      await workflowApi.reorderStages(id!, stages.map(s => s.id));
       alert('Stage order saved successfully.');
     } catch (e: any) {
       alert(e?.message ?? 'Failed to save order');
@@ -173,7 +173,7 @@ export function PipelineSettingsPage() {
     if (!metaForm.name.trim()) return;
     setSavingMeta(true);
     try {
-      await pipelineApi.update(id!, metaForm);
+      await workflowApi.update(id!, metaForm);
       await load();
     } catch (e: any) {
       alert(e?.message ?? 'Failed to save workflow details');
@@ -201,7 +201,7 @@ export function PipelineSettingsPage() {
     if (!selectedStage || !reqForm.name.trim()) return;
     setSavingReq(true);
     try {
-      await pipelineApi.updateStage(selectedStage.id, {
+      await workflowApi.updateStage(selectedStage.id, {
         name: reqForm.name.trim(),
         description: reqForm.description.trim() || undefined,
         color: reqForm.color,
@@ -223,8 +223,8 @@ export function PipelineSettingsPage() {
   const handleArchive = async () => {
     if (!confirm('Archive this workflow? No new candidates can be assigned but existing progress is preserved.')) return;
     try {
-      await pipelineApi.archive(id!);
-      navigate('/dashboard/pipelines');
+      await workflowApi.archive(id!);
+      navigate('/dashboard/workflows');
     } catch {}
   };
 
@@ -251,14 +251,14 @@ export function PipelineSettingsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate(`/dashboard/pipelines/${id}`)} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+          <button onClick={() => navigate(`/dashboard/workflows/${id}`)} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
             <ArrowLeft className="w-4 h-4" />
           </button>
           <div>
             <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-              <Link to="/dashboard/pipelines" className="hover:text-foreground transition-colors">Workflows</Link>
+              <Link to="/dashboard/workflows" className="hover:text-foreground transition-colors">Workflows</Link>
               <span>/</span>
-              <Link to={`/dashboard/pipelines/${id}`} className="hover:text-foreground transition-colors">{pipeline.name}</Link>
+              <Link to={`/dashboard/workflows/${id}`} className="hover:text-foreground transition-colors">{pipeline.name}</Link>
               <span>/</span>
               <span className="text-foreground">Configuration</span>
             </div>

@@ -254,7 +254,7 @@ export class RecycleBinService {
         willDelete.financialRecords = await this.prisma.financialRecord.count({ where: { entityId: id, entityType: 'EMPLOYEE' } });
         willDelete.financialAttachments = await this.countAttachmentsForEntity(id, 'EMPLOYEE');
         willDelete.complianceAlerts = await this.prisma.complianceAlert.count({ where: { entityId: id } });
-        willDelete.workflowStages = await this.prisma.employeeWorkflowStage.count({ where: { employeeId: id } });
+        willDelete.workflowStages = await this.prisma.employeeStage.count({ where: { employeeId: id } });
         willDelete.workPermits = await this.prisma.workPermit.count({ where: { employeeId: id } });
         willDelete.visas = await this.prisma.visa.count({ where: { entityId: id } });
         willDelete.employee = 1;

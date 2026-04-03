@@ -4,10 +4,10 @@ import {
   Search, MapPin, Briefcase, Clock, ChevronLeft, ChevronRight,
   ArrowRight, Filter, X,
 } from 'lucide-react';
-import { COUNTRIES, getFlagEmoji } from '../../data/countries';
 import { publicJobAdsApi } from '../../services/api';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
+import { CountrySelect } from '../../components/ui/CountrySelect';
 import { Badge } from '../../components/ui/badge';
 import { Card, CardContent } from '../../components/ui/card';
 
@@ -147,16 +147,13 @@ export function JobListings() {
 
                 <div>
                   <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Country</label>
-                  <select
-                    value={countryFilter}
-                    onChange={e => setCountryFilter(e.target.value)}
-                    className="mt-1.5 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                  >
-                    <option value="">All Countries</option>
-                    {COUNTRIES.map(c => (
-                      <option key={c.code} value={c.name}>{getFlagEmoji(c.code)} {c.name}</option>
-                    ))}
-                  </select>
+                  <div className="mt-1.5">
+                    <CountrySelect
+                      value={countryFilter}
+                      onChange={setCountryFilter}
+                      placeholder="All Countries"
+                    />
+                  </div>
                 </div>
 
                 <div>

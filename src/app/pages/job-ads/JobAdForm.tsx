@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/ca
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '../../components/ui/select';
-import { COUNTRIES, getFlagEmoji } from '../../data/countries';
+import { CountrySelect } from '../../components/ui/CountrySelect';
 
 interface Constants {
   statuses:      string[];
@@ -187,22 +187,12 @@ export function JobAdForm() {
             </div>
             <div>
               <Label>Country <span className="text-destructive">*</span></Label>
-              <Select
-                value={form.country || '__none__'}
-                onValueChange={v => setForm(p => ({ ...p, country: v === '__none__' ? '' : v }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select country" />
-                </SelectTrigger>
-                <SelectContent className="max-h-64 overflow-y-auto">
-                  <SelectItem value="__none__">— Select country —</SelectItem>
-                  {COUNTRIES.map(c => (
-                    <SelectItem key={c.code} value={c.name}>
-                      {getFlagEmoji(c.code)}&nbsp;{c.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <CountrySelect
+                value={form.country}
+                onChange={v => setForm(p => ({ ...p, country: v }))}
+                placeholder="Select country"
+                required
+              />
             </div>
           </div>
         </CardContent>

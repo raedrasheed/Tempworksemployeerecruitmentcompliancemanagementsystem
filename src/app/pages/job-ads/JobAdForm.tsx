@@ -192,21 +192,13 @@ export function JobAdForm() {
                 onValueChange={v => setForm(p => ({ ...p, country: v === '__none__' ? '' : v }))}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select country">
-                    {form.country
-                      ? (() => {
-                          const c = COUNTRIES.find(x => x.name === form.country);
-                          return c ? `${getFlagEmoji(c.code)} ${c.name}` : form.country;
-                        })()
-                      : 'Select country'
-                    }
-                  </SelectValue>
+                  <SelectValue placeholder="Select country" />
                 </SelectTrigger>
                 <SelectContent className="max-h-64 overflow-y-auto">
-                  <SelectItem value="__none__">Select country</SelectItem>
+                  <SelectItem value="__none__">— Select country —</SelectItem>
                   {COUNTRIES.map(c => (
                     <SelectItem key={c.code} value={c.name}>
-                      {getFlagEmoji(c.code)} {c.name}
+                      {getFlagEmoji(c.code)}&nbsp;{c.name}
                     </SelectItem>
                   ))}
                 </SelectContent>

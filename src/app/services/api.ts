@@ -244,6 +244,9 @@ export const employeesApi = {
   getTraining: (id: string) => apiFetch<any[]>(`/employees/${id}/training`),
 
   getPerformance: (id: string) => apiFetch<any>(`/employees/${id}/performance`),
+
+  // Banking/salary profile inherited from candidate stage (ApplicantFinancialProfile)
+  getFinancialProfile: (id: string) => apiFetch<any>(`/employees/${id}/financial-profile`),
 };
 
 // ─── Applicants API (includes merged Application methods) ────────────────────
@@ -753,9 +756,14 @@ export const financeApi = {
     return apiFetch<PaginatedResponse<any>>(`/finance${qs}`);
   },
 
-  // Totals for a specific person
+  // Totals for a specific entity (current stage only)
   getTotals: (entityType: string, entityId: string) =>
     apiFetch<any>(`/finance/totals/${entityType}/${entityId}`),
+
+  // All financial records + totals for a person across ALL lifecycle stages
+  // Uses stable applicantId — works whether person is Lead/Candidate or Employee
+  getPersonRecords: (applicantId: string) =>
+    apiFetch<any>(`/finance/person/${applicantId}`),
 
   // Single record
   get: (id: string) => apiFetch<any>(`/finance/${id}`),

@@ -1,5 +1,5 @@
 import {
-  Injectable, NotFoundException, BadRequestException, ForbiddenException,
+  Injectable, NotFoundException, BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateFinancialRecordDto } from './dto/create-financial-record.dto';
@@ -77,7 +77,7 @@ export class FinanceService {
     return PaginatedResponse.create(enriched, total, page, limit);
   }
 
-  // ── Totals for one person ────────────────────────────────────────────────────
+  // ── Totals for one entity (current stage) ───────────────────────────────────
 
   /**
    * Balance calculation rules:
@@ -108,6 +108,103 @@ export class FinanceService {
     return { totalDisbursed, totalDeducted, currentBalance, totalEmpAgency, recordCount };
   }
 
+  // ── All records + totals for a person across ALL lifecycle stages ────────────
+
+  /**
+   * Returns all financial records for a person identified by their stable
+   * applicantId, regardless of which stage they are at now.
+   *
+   * This is the correct cross-lifecycle view: it works whether the person
+   * is still a Lead/Candidate (entityType=APPLICANT) or has been converted
+   * to an Employee (entityType=EMPLOYEE, applicantId still set).
+   *
+   * Also returns the ApplicantFinancialProfile (banking/salary details) so
+   * the Employee profile can display it after conversion.
+   */
+  async getPersonRecords(applicantId: string) {
+    // Resolve applicant (include soft-deleted so converted persons are found)
+    const applicant = await this.prisma.applicant.findUnique({
+      where: { id: applicantId },
+      select: {
+        id: true, firstName: true, lastName: true, email: true,
+        tier: true, deletedAt: true, convertedToEmployeeId: true,
+        leadNumber: true, candidateNumber: true,
+        financialProfile: true,
+      },
+    });
+    if (!applicant) throw new NotFoundException(`Applicant ${applicantId} not found`);
+
+    // Resolve linked employee if converted
+    let employee: any = null;
+    if (applicant.convertedToEmployeeId) {
+      employee = await this.prisma.employee.findUnique({
+        where: { id: applicant.convertedToEmployeeId },
+        select: {
+          id: true, firstName: true, lastName: true, email: true,
+          employeeNumber: true, status: true,
+        },
+      });
+    }
+
+    // All financial records across all stages for this person
+    const records = await this.prisma.financialRecord.findMany({
+      where: {
+        applicantId,
+        deletedAt: null,
+      },
+      orderBy: { transactionDate: 'desc' },
+      include: this.recordInclude,
+    });
+
+    // Aggregate totals across all stages
+    const agg = await this.prisma.financialRecord.aggregate({
+      where: { applicantId, deletedAt: null },
+      _sum: {
+        companyDisbursedAmount:     true,
+        employeeOrAgencyPaidAmount: true,
+        deductionAmount:            true,
+      },
+      _count: { id: true },
+    });
+
+    const totalDisbursed = Number(agg._sum.companyDisbursedAmount     ?? 0);
+    const totalDeducted  = Number(agg._sum.deductionAmount            ?? 0);
+    const totalEmpAgency = Number(agg._sum.employeeOrAgencyPaidAmount ?? 0);
+    const currentBalance = totalDisbursed - totalDeducted;
+
+    // Stage breakdown for reporting
+    const byStage = records.reduce((acc: Record<string, number>, r: any) => {
+      const stage = r.stageAtCreation ?? 'UNKNOWN';
+      acc[stage] = (acc[stage] ?? 0) + 1;
+      return acc;
+    }, {});
+
+    return {
+      applicant: {
+        id: applicant.id,
+        name: `${applicant.firstName} ${applicant.lastName}`,
+        email: applicant.email,
+        tier: applicant.tier,
+        isConverted: !!applicant.convertedToEmployeeId,
+        leadNumber: applicant.leadNumber,
+        candidateNumber: applicant.candidateNumber,
+      },
+      employee: employee ? {
+        id: employee.id,
+        name: `${employee.firstName} ${employee.lastName}`,
+        employeeNumber: employee.employeeNumber,
+        status: employee.status,
+      } : null,
+      financialProfile: applicant.financialProfile ?? null,
+      records,
+      totals: {
+        totalDisbursed, totalDeducted, currentBalance, totalEmpAgency,
+        recordCount: agg._count.id,
+        byStage,
+      },
+    };
+  }
+
   // ── CRUD ─────────────────────────────────────────────────────────────────────
 
   async findOne(id: string) {
@@ -124,13 +221,16 @@ export class FinanceService {
       throw new BadRequestException('entityType must be APPLICANT or EMPLOYEE');
     }
 
-    // Verify entity exists
-    await this.resolveEntityName(dto.entityType, dto.entityId);
+    // Verify entity exists and resolve stable applicantId + stageAtCreation
+    const { applicantId, stageAtCreation } =
+      await this.resolvePersonIdentity(dto.entityType, dto.entityId);
 
     const record = await this.prisma.financialRecord.create({
       data: {
         entityType:                 dto.entityType,
         entityId:                   dto.entityId,
+        applicantId,
+        stageAtCreation,
         transactionDate:            new Date(dto.transactionDate),
         currency:                   dto.currency ?? 'EUR',
         transactionType:            dto.transactionType,
@@ -149,6 +249,7 @@ export class FinanceService {
 
     await this.auditLog(actorId, 'FINANCIAL_RECORD_CREATED', record.id, {
       entityType: dto.entityType, entityId: dto.entityId,
+      applicantId, stageAtCreation,
       transactionType: dto.transactionType,
       companyDisbursedAmount: dto.companyDisbursedAmount,
     });
@@ -297,6 +398,7 @@ export class FinanceService {
     sheet.columns = [
       { header: 'Record ID',                key: 'id',               width: 18 },
       { header: 'Name',                     key: 'entityName',       width: 24 },
+      { header: 'Stage At Creation',        key: 'stageAtCreation',  width: 14 },
       { header: 'Entity Type',              key: 'entityType',       width: 12 },
       { header: 'Entity ID',               key: 'entityId',          width: 18 },
       { header: 'Transaction Date',         key: 'transactionDate',  width: 16 },
@@ -331,6 +433,7 @@ export class FinanceService {
       const row = sheet.addRow({
         id:              rec.id,
         entityName:      rec.entityName ?? '',
+        stageAtCreation: rec.stageAtCreation ?? '',
         entityType:      rec.entityType,
         entityId:        rec.entityId,
         transactionDate: rec.transactionDate ? new Date(rec.transactionDate).toLocaleDateString() : '',
@@ -376,15 +479,15 @@ export class FinanceService {
       sheet.addRow({});  // spacer
       const totalsRow = sheet.addRow({
         id:              'TOTALS',
-        companyDisbursed: { formula: `SUM(H${dataStart}:H${dataEnd})` },
-        empAgency:        { formula: `SUM(I${dataStart}:I${dataEnd})` },
-        deductionAmount:  { formula: `SUM(M${dataStart}:M${dataEnd})` },
+        companyDisbursed: { formula: `SUM(J${dataStart}:J${dataEnd})` },
+        empAgency:        { formula: `SUM(K${dataStart}:K${dataEnd})` },
+        deductionAmount:  { formula: `SUM(O${dataStart}:O${dataEnd})` },
       });
       totalsRow.eachCell((cell) => {
         cell.font = { bold: true };
         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEFF6FF' } };
       });
-      ['H', 'I', 'M'].forEach((col) => {
+      ['J', 'K', 'O'].forEach((col) => {
         const cell = totalsRow.getCell(col);
         cell.numFmt = '#,##0.00';
       });
@@ -405,7 +508,7 @@ export class FinanceService {
   /**
    * Batch-resolve entity names for a list of records.
    * Groups IDs by entityType → one query per type → merges back.
-   * Returns the original records with an added `entityName` string field.
+   * Includes soft-deleted applicants so names still resolve after conversion.
    */
   private async attachEntityNames(records: any[]): Promise<any[]> {
     const applicantIds = [...new Set(
@@ -417,6 +520,8 @@ export class FinanceService {
 
     const [applicants, employees] = await Promise.all([
       applicantIds.length
+        // Include soft-deleted: after conversion the applicant is soft-deleted
+        // but the name must still resolve for historical records
         ? this.prisma.applicant.findMany({
             where: { id: { in: applicantIds } },
             select: { id: true, firstName: true, lastName: true },
@@ -441,23 +546,50 @@ export class FinanceService {
     }));
   }
 
-  private async resolveEntityName(entityType: string, entityId: string): Promise<string> {
+  /**
+   * Resolve the stable person identity for a new financial record.
+   *
+   * For APPLICANT entities: applicantId = entityId, stageAtCreation from tier.
+   * For EMPLOYEE entities: resolve back to the originating applicant.
+   *
+   * Also validates the entity exists (throws NotFoundException if not).
+   * NOTE: Does NOT filter by deletedAt — converted applicants are soft-deleted
+   * but remain the stable person reference.
+   */
+  private async resolvePersonIdentity(
+    entityType: string,
+    entityId: string,
+  ): Promise<{ applicantId: string | null; stageAtCreation: string }> {
     if (entityType === 'APPLICANT') {
       const a = await this.prisma.applicant.findUnique({
-        where: { id: entityId, deletedAt: null },
-        select: { firstName: true, lastName: true },
+        where: { id: entityId },
+        select: { firstName: true, lastName: true, tier: true, deletedAt: true },
       });
-      if (!a) throw new NotFoundException(`Applicant ${entityId} not found`);
-      return `${a.firstName} ${a.lastName}`;
+      if (!a || (a.deletedAt !== null))
+        throw new NotFoundException(`Applicant ${entityId} not found or has been converted`);
+      const stageAtCreation = (a.tier as string) === 'LEAD' ? 'LEAD' : 'CANDIDATE';
+      return { applicantId: entityId, stageAtCreation };
     }
+
     if (entityType === 'EMPLOYEE') {
       const e = await this.prisma.employee.findUnique({
         where: { id: entityId, deletedAt: null },
         select: { firstName: true, lastName: true },
       });
       if (!e) throw new NotFoundException(`Employee ${entityId} not found`);
-      return `${e.firstName} ${e.lastName}`;
+
+      // Try to find the originating applicant via convertedToEmployeeId
+      const originApplicant = await this.prisma.applicant.findFirst({
+        where: { convertedToEmployeeId: entityId },
+        select: { id: true },
+      });
+
+      return {
+        applicantId: originApplicant?.id ?? null,
+        stageAtCreation: 'EMPLOYEE',
+      };
     }
+
     throw new BadRequestException('Invalid entityType');
   }
 

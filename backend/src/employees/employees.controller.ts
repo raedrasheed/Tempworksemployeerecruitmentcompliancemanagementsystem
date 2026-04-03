@@ -68,6 +68,11 @@ export class EmployeesController {
   @ApiOperation({ summary: 'Get employee performance metrics' })
   getPerformance(@Param('id') id: string) { return this.employeesService.getPerformance(id); }
 
+  @Get(':id/financial-profile')
+  @Roles('System Admin', 'HR Manager', 'Finance', 'Compliance Officer', 'Read Only')
+  @ApiOperation({ summary: 'Get the banking/salary profile for an employee (from applicant financial profile via employeeId link)' })
+  getFinancialProfile(@Param('id') id: string) { return this.employeesService.getFinancialProfile(id); }
+
   @Post()
   @Roles(...WRITE_ROLES)
   @ApiOperation({ summary: 'Create new employee' })

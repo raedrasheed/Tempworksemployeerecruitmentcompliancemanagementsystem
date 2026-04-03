@@ -102,6 +102,23 @@ export class FinanceController {
     return this.financeService.getTotals(entityType, entityId);
   }
 
+  // ── Cross-lifecycle person view ───────────────────────────────────────────────
+
+  @Get('person/:applicantId')
+  @Roles(...FINANCE_READ_ROLES)
+  @ApiOperation({
+    summary: 'Get all financial records for a person across ALL lifecycle stages',
+    description:
+      'Uses the stable applicantId to retrieve all records whether the person ' +
+      'is still a Lead/Candidate or has been converted to an Employee. ' +
+      'Also returns the ApplicantFinancialProfile (banking/salary details) ' +
+      'and aggregated totals across all stages.',
+  })
+  @ApiParam({ name: 'applicantId', description: 'Applicant UUID (stable person reference)' })
+  getPersonRecords(@Param('applicantId') applicantId: string) {
+    return this.financeService.getPersonRecords(applicantId);
+  }
+
   // ── Single record ─────────────────────────────────────────────────────────────
 
   @Get(':id')

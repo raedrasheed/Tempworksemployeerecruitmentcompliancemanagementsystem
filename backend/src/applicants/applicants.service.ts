@@ -562,6 +562,26 @@ export class ApplicantsService {
       data: { entityType: 'EMPLOYEE', entityId: employee.id },
     });
 
+    // Re-assign financial records from applicant to employee.
+    // Preserve applicantId (stable person reference) for cross-stage queries.
+    // stageAtCreation is NOT changed — it records what stage the person was
+    // when the record was created, which is historical fact.
+    const financialReassignResult = await this.prisma.financialRecord.updateMany({
+      where: { entityType: 'APPLICANT', entityId: id, deletedAt: null },
+      data: {
+        entityType: 'EMPLOYEE',
+        entityId: employee.id,
+        applicantId: id, // stamp stable person reference (idempotent)
+      },
+    });
+
+    // Link the ApplicantFinancialProfile (banking/salary details) to the
+    // new employee so it remains accessible from the Employee profile.
+    await (this.prisma as any).applicantFinancialProfile.updateMany({
+      where: { applicantId: id },
+      data: { employeeId: employee.id },
+    });
+
     // Mark applicant as converted (soft delete + store employeeId + timestamp)
     await this.prisma.applicant.update({
       where: { id },
@@ -579,6 +599,8 @@ export class ApplicantsService {
       employeeNumber,
       employeeConvertedAt: employeeConvertedAt.toISOString(),
       email: applicant.email,
+      financialRecordsReassigned: financialReassignResult.count,
+      financialContinuityPreserved: true,
     });
 
     return { employee, employeeNumber, message: 'Applicant successfully converted to employee' };

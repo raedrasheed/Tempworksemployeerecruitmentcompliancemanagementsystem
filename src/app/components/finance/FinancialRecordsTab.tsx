@@ -501,6 +501,7 @@ export function FinancialRecordsTab({ entityType, entityId, canWrite, canChangeS
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Date</th>
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Type</th>
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">Description</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Stage</th>
                     <th className="text-right px-4 py-3 font-medium text-blue-600 whitespace-nowrap">Credit (↑)</th>
                     <th className="text-right px-4 py-3 font-medium text-slate-500 whitespace-nowrap">Emp/Agency</th>
                     <th className="text-right px-4 py-3 font-medium text-amber-600 whitespace-nowrap">Debit (↓)</th>
@@ -525,6 +526,19 @@ export function FinancialRecordsTab({ entityType, entityId, canWrite, canChangeS
                         </td>
                         <td className="px-4 py-3 max-w-[200px] truncate text-muted-foreground">
                           {rec.description || '—'}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          {rec.stageAtCreation && (
+                            <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border ${
+                              rec.stageAtCreation === 'EMPLOYEE'
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                : rec.stageAtCreation === 'CANDIDATE'
+                                  ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                  : 'bg-amber-50 text-amber-700 border-amber-200'
+                            }`}>
+                              {rec.stageAtCreation}
+                            </span>
+                          )}
                         </td>
                         <td className="px-4 py-3 text-right font-semibold text-blue-700 whitespace-nowrap">
                           {Number(rec.companyDisbursedAmount) > 0

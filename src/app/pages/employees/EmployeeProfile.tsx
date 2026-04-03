@@ -35,6 +35,7 @@ export function EmployeeProfile() {
   const [uploading, setUploading] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadForm, setUploadForm] = useState({ documentTypeId: '', name: '', issueDate: '', expiryDate: '', documentNumber: '', issuer: '' });
+  const [financialProfile, setFinancialProfile] = useState<any>(null);
 
   const loadWorkflow = () => {
     employeesApi.getWorkflow(id!).then(wf => setWorkflow(Array.isArray(wf) ? wf : [])).catch(() => {});
@@ -62,7 +63,10 @@ export function EmployeeProfile() {
   useEffect(() => {
     settingsApi.getDocumentTypes().then(setDocTypes).catch(() => {});
     agenciesApi.list({ limit: 200 }).then((res: any) => setAgencies(res?.data ?? [])).catch(() => {});
-  }, []);
+    if (id && isFinanceOrAdmin) {
+      employeesApi.getFinancialProfile(id).then(setFinancialProfile).catch(() => {});
+    }
+  }, [id]);
 
   const handleStageChange = async (stageId: string) => {
     if (!stageId || !id) return;
@@ -588,9 +592,55 @@ export function EmployeeProfile() {
           </Card>
         </TabsContent>
 
-        {/* Financial — Transaction Ledger */}
+        {/* Financial — Banking/Salary Profile + Transaction Ledger */}
         {isFinanceOrAdmin && (
-          <TabsContent value="financial">
+          <TabsContent value="financial" className="space-y-6">
+            {/* Banking / Salary Details — inherited from Candidate stage */}
+            {financialProfile && (
+              <Card className="border-blue-100">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center gap-2">
+                    <CardTitle className="text-base">Banking &amp; Salary Profile</CardTitle>
+                    <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                      From Candidate Stage
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Banking and salary details captured during the candidate stage are retained after conversion.
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 text-sm">
+                    {[
+                      ['Bank Name', financialProfile.bankName],
+                      ['Account Holder', financialProfile.accountHolder],
+                      ['Account Number', financialProfile.accountNumber],
+                      ['Sort Code', financialProfile.sortCode],
+                      ['IBAN', financialProfile.iban],
+                      ['Tax Code', financialProfile.taxCode],
+                      ['NI Number', financialProfile.niNumber],
+                      ['Payment Method', financialProfile.paymentMethod],
+                      ['Salary Agreed', financialProfile.salaryAgreed != null
+                        ? `${financialProfile.currency ?? 'GBP'} ${Number(financialProfile.salaryAgreed).toLocaleString('en-GB', { minimumFractionDigits: 2 })}`
+                        : null],
+                    ].filter(([, v]) => v).map(([label, value]) => (
+                      <div key={label as string}>
+                        <p className="text-xs text-muted-foreground">{label}</p>
+                        <p className="font-medium">{value}</p>
+                      </div>
+                    ))}
+                    {financialProfile.notes && (
+                      <div className="col-span-full">
+                        <p className="text-xs text-muted-foreground">Notes</p>
+                        <p className="text-sm">{financialProfile.notes}</p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Transaction Ledger */}
             <FinancialRecordsTab
               entityType="EMPLOYEE"
               entityId={id!}

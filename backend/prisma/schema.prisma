@@ -404,6 +404,7 @@ model Applicant {
 model ApplicantFinancialProfile {
   id              String    @id @default(uuid())
   applicantId     String    @unique
+  employeeId      String?   @unique  // set when applicant is converted to employee; enables lookup from employee profile
   bankName        String?
   accountHolder   String?
   accountNumber   String?
@@ -775,14 +776,26 @@ model IdentifierSequence {
 //  entityType=EMPLOYEE, entityId=<employee.id> so they stay visible
 //  in the Employee profile (same as Document migration behaviour).
 //
+//  applicantId (stable person reference):
+//  Stores the original applicant UUID that survives the conversion.
+//  Allows querying "all financial records for this person across all stages".
+//  Set at record creation and never changed.
+//
+//  stageAtCreation: the lifecycle stage of the person when the record was
+//  created. Values: 'LEAD' | 'CANDIDATE' | 'EMPLOYEE'. Used for audit
+//  display ("created during Candidate stage") without affecting ownership.
+//
 // TRANSACTION TYPE: controlled by TRANSACTION_TYPES constant in backend.
 // PAYMENT METHOD  : controlled by PAYMENT_METHODS constant in backend.
 // Both are stored as plain strings for flexibility without a lookup table.
 model FinancialRecord {
   id                         String   @id @default(uuid())
-  // ── Entity link ──────────────────────────────────────────────────────────
+  // ── Entity link (reassigned on conversion) ───────────────────────────────
   entityType                 String   // 'APPLICANT' | 'EMPLOYEE'
   entityId                   String
+  // ── Stable person identity (never changes across lifecycle) ──────────────
+  applicantId                String?  // original applicant UUID (null for manually created employee records with no applicant origin)
+  stageAtCreation            String?  // 'LEAD' | 'CANDIDATE' | 'EMPLOYEE' — stage when record was created
   // ── Transaction details ──────────────────────────────────────────────────
   transactionDate            DateTime
   currency                   String   @default("EUR")
@@ -812,6 +825,7 @@ model FinancialRecord {
   attachments FinancialRecordAttachment[]
 
   @@index([entityType, entityId])
+  @@index([applicantId])
   @@index([status])
   @@index([transactionDate])
   @@index([transactionType])

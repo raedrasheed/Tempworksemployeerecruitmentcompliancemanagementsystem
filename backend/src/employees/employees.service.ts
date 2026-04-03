@@ -122,6 +122,21 @@ export class EmployeesService {
     return this.prisma.employee.update({ where: { id }, data: { photoUrl }, include: { agency: { select: { id: true, name: true } } } });
   }
 
+  /**
+   * Get the banking/salary profile for a converted employee.
+   * Looks up the ApplicantFinancialProfile via the employeeId link
+   * that is set during Candidate→Employee conversion.
+   * Returns null if the employee was not converted from an applicant
+   * or if no financial profile was created at the candidate stage.
+   */
+  async getFinancialProfile(id: string) {
+    await this.findOne(id);
+    const profile = await (this.prisma as any).applicantFinancialProfile.findUnique({
+      where: { employeeId: id },
+    });
+    return profile ?? null;
+  }
+
   async remove(id: string, _actorId?: string) {
     await this.findOne(id);
     await this.prisma.employee.update({ where: { id }, data: { deletedAt: new Date() } });

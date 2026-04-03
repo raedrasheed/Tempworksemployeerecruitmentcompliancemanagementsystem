@@ -125,7 +125,6 @@ export function PublicEmployeeApplication() {
             return publicApplicationApi.uploadDocument(applicant.id, item.file!, rawType, docTypeName);
           }),
         );
-        );
         const failed = results.filter(r => r.status === 'rejected').length;
         if (failed > 0) {
           toast.warning(`Application submitted, but ${failed} document(s) failed to upload.`);

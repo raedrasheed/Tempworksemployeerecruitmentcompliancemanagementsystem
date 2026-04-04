@@ -14,7 +14,7 @@ export class FilterAttendanceEmployeesDto extends PaginationDto {
   @ApiPropertyOptional({ description: 'Year e.g. 2024' }) @IsOptional() @Type(() => Number) @IsInt() @Min(2000) @Max(2100) year?: number;
   @ApiPropertyOptional({ enum: ATTENDANCE_STATUSES }) @IsOptional() @IsString() status?: string;
   @ApiPropertyOptional({ description: 'Filter drivers only (has licenseNumber or licenseCategory)' })
-  @IsOptional() @Transform(({ value }) => value === 'true' || value === true) @IsBoolean() driversOnly?: boolean;
+  @IsOptional() @Transform(({ obj, key }) => { const v = obj?.[key]; return v === true || v === 'true'; }) @IsBoolean() driversOnly?: boolean;
   @ApiPropertyOptional() @IsOptional() @IsString() agencyId?: string;
 }
 
@@ -51,5 +51,5 @@ export class ExportAttendanceDto {
   @ApiProperty({ description: 'Month 1-12' }) @Type(() => Number) @IsInt() @Min(1) @Max(12) month: number;
   @ApiProperty({ description: 'Year e.g. 2024' }) @Type(() => Number) @IsInt() @Min(2000) @Max(2100) year: number;
   @ApiPropertyOptional({ description: 'Specific employee UUID for per-driver export' }) @IsOptional() @IsUUID() employeeId?: string;
-  @ApiPropertyOptional() @IsOptional() @Transform(({ value }) => value === 'true' || value === true) @IsBoolean() driversOnly?: boolean;
+  @ApiPropertyOptional() @IsOptional() @Transform(({ obj, key }) => { const v = obj?.[key]; return v === true || v === 'true'; }) @IsBoolean() driversOnly?: boolean;
 }

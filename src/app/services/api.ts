@@ -1209,3 +1209,60 @@ export const vehiclesApi = {
     return res.blob();
   },
 };
+
+// ── Backup & Restore API ───────────────────────────────────────────────────────
+
+export const backupApi = {
+  /** List all backups (paginated) */
+  list: (params: { page?: number; limit?: number; search?: string; status?: string } = {}) => {
+    const qs = new URLSearchParams();
+    if (params.page   != null) qs.set('page',   String(params.page));
+    if (params.limit  != null) qs.set('limit',  String(params.limit));
+    if (params.search)         qs.set('search', params.search);
+    if (params.status)         qs.set('status', params.status);
+    return apiFetch<any>(`/backup?${qs.toString()}`);
+  },
+
+  /** Get single backup */
+  get: (id: string) => apiFetch<any>(`/backup/${id}`),
+
+  /** Check if a backup/restore operation is running */
+  status: () => apiFetch<{ locked: boolean }>('/backup/status'),
+
+  /** Preview/validate before restore */
+  preview: (id: string) => apiFetch<any>(`/backup/${id}/preview`),
+
+  /** Create a new backup */
+  create: (data: { notes?: string }) =>
+    apiFetch<any>('/backup', { method: 'POST', body: JSON.stringify(data) }),
+
+  /** Download backup file as Blob */
+  download: async (id: string, fileName: string): Promise<void> => {
+    const token = getAccessToken();
+    const res = await fetch(`${API_URL}/backup/${id}/download`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) throw new Error('Download failed');
+    const blob = await res.blob();
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = fileName;
+    a.click();
+    URL.revokeObjectURL(url);
+  },
+
+  /** Restore from a backup */
+  restore: (
+    id: string,
+    data: {
+      restoreMode: string;
+      confirmPhrase: string;
+      notes?: string;
+      skipSafetyBackup?: boolean;
+    },
+  ) => apiFetch<any>(`/backup/${id}/restore`, { method: 'POST', body: JSON.stringify(data) }),
+
+  /** Delete a backup */
+  delete: (id: string) => apiFetch<any>(`/backup/${id}`, { method: 'DELETE' }),
+};

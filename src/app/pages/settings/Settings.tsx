@@ -1,5 +1,5 @@
 import { Link } from 'react-router';
-import { FileType, Bell, Shield, Activity, Layers, Briefcase, Palette, Trash2 } from 'lucide-react';
+import { FileType, Bell, Shield, Activity, Layers, Briefcase, Palette, Trash2, Database } from 'lucide-react';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Label } from '../../components/ui/label';
@@ -112,6 +112,28 @@ export function Settings() {
             </Link>
           );
         })}
+
+        {/* Database Backup & Restore — System Admin only */}
+        {isAdmin && (
+          <Link to="/dashboard/settings/database-backup">
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer border-blue-200 hover:border-blue-400">
+              <CardHeader>
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
+                    <Database className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="text-blue-800">Database Backup & Restore</CardTitle>
+                      <Badge className="bg-blue-600">Admin Only</Badge>
+                    </div>
+                    <CardDescription>Create, manage, and restore full PostgreSQL backups</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+            </Card>
+          </Link>
+        )}
 
         {/* Database Cleanup — System Admin only */}
         {isAdmin && (

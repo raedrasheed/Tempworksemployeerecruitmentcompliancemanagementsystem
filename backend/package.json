@@ -27,7 +27,8 @@
     "db:migrate:attendance": "ts-node prisma/run-attendance-migration.ts",
     "db:migrate:vehicles": "ts-node prisma/run-vehicles-migration.ts",
     "db:migrate:employee-job-type": "ts-node prisma/run-employee-job-type-migration.ts",
-    "db:migrate:vehicle-soft-deletes": "ts-node prisma/run-vehicle-soft-deletes-migration.ts"
+    "db:migrate:vehicle-soft-deletes": "ts-node prisma/run-vehicle-soft-deletes-migration.ts",
+    "db:migrate:backup": "ts-node prisma/run-backup-migration.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",

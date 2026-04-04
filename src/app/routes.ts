@@ -67,7 +67,8 @@ import { ChangePassword } from './pages/profile/ChangePassword';
 import { JobAdsList } from './pages/job-ads/JobAdsList';
 import { JobAdForm } from './pages/job-ads/JobAdForm';
 import { DeletedRecords } from './pages/recycle-bin/DeletedRecords';
-import { DatabaseCleanup } from './pages/settings/DatabaseCleanup';
+import { DatabaseCleanup }  from './pages/settings/DatabaseCleanup';
+import { DatabaseBackup }   from './pages/settings/DatabaseBackup';
 
 // Pipeline pages
 import { WorkflowsPage } from './pages/pipelines/WorkflowsPage';
@@ -216,6 +217,7 @@ export const router = createBrowserRouter([
       { path: 'settings/security', Component: SecuritySettings },
       { path: 'settings/color-scheme', Component: ColorScheme },
       { path: 'settings/database-cleanup', Component: DatabaseCleanup },
+      { path: 'settings/database-backup',  Component: DatabaseBackup  },
 
       // Profile routes
       { path: 'profile', Component: Profile },

@@ -224,6 +224,7 @@ model User {
   vehicleDocsUploaded     VehicleDocument[]             @relation("VehicleDocUploadedBy")
   maintenanceCreated      MaintenanceRecord[]           @relation("MaintenanceCreatedBy")
   maintenanceUpdated      MaintenanceRecord[]           @relation("MaintenanceUpdatedBy")
+  systemBackups           SystemBackup[]                @relation("BackupCreatedBy")
 
   @@map("users")
 }
@@ -1425,4 +1426,27 @@ model MaintenanceRecordSparePart {
 
   @@index([maintenanceRecordId])
   @@map("maintenance_record_spare_parts")
+}
+
+// ── Database Backup ────────────────────────────────────────────────────────────
+
+model SystemBackup {
+  id           String    @id @default(uuid())
+  fileName     String
+  filePath     String
+  fileSize     BigInt?
+  backupType   String    @default("FULL")
+  status       String    @default("PENDING")
+  notes        String?
+  errorMessage String?
+  metadata     Json?
+  createdAt    DateTime  @default(now())
+  completedAt  DateTime?
+  createdById  String?
+
+  createdBy User? @relation("BackupCreatedBy", fields: [createdById], references: [id])
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("system_backups")
 }

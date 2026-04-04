@@ -22,6 +22,7 @@ import { RecycleBinModule } from './recycle-bin/recycle-bin.module';
 import { WorkflowPipelineModule } from './pipeline/pipeline.module';
 import { AttendanceModule } from './attendance/attendance.module';
 import { VehiclesModule } from './vehicles/vehicles.module';
+import { BackupModule }   from './backup/backup.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { VehiclesModule } from './vehicles/vehicles.module';
     WorkflowPipelineModule,
     AttendanceModule,
     VehiclesModule,
+    BackupModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

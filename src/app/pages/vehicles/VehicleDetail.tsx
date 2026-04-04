@@ -80,17 +80,19 @@ export function VehicleDetail() {
   const [pickerOpen, setPickerOpen]         = useState(false);
   const pickerRef                           = useRef<HTMLDivElement>(null);
 
-  // Add document dialog
+  // Add / Edit document dialog
   const [docDialog, setDocDialog]         = useState(false);
-  const [docForm, setDocForm]             = useState({ name: '', documentType: 'MOT', expiryDate: '', notes: '' });
+  const [editingDoc, setEditingDoc]       = useState<any>(null);
+  const [docForm, setDocForm]             = useState({ name: '', documentType: 'MOT', expiryDate: '', issuedDate: '', issuer: '', notes: '' });
   const [docFile, setDocFile]             = useState<File | null>(null);
   const [docSaving, setDocSaving]         = useState(false);
 
-  // Maintenance dialog
+  // Add / Edit maintenance dialog
   const [mainDialog, setMainDialog]       = useState(false);
+  const [editingMain, setEditingMain]     = useState<any>(null);
   const [mainForm, setMainForm]           = useState<any>({
     maintenanceTypeId: '', workshopId: '', status: 'SCHEDULED',
-    scheduledDate: '', description: '', mileageAtService: '', cost: '', notes: '',
+    scheduledDate: '', completedDate: '', description: '', mileageAtService: '', cost: '', notes: '',
   });
   const [mainSaving, setMainSaving]       = useState(false);
 
@@ -184,22 +186,60 @@ export function VehicleDetail() {
     }
   };
 
-  const handleAddDoc = async () => {
+  const openAddDoc = () => {
+    setEditingDoc(null);
+    setDocForm({ name: '', documentType: 'MOT', expiryDate: '', issuedDate: '', issuer: '', notes: '' });
+    setDocFile(null);
+    setDocDialog(true);
+  };
+
+  const openEditDoc = (doc: any) => {
+    setEditingDoc(doc);
+    setDocForm({
+      name:         doc.name ?? '',
+      documentType: doc.documentType ?? 'MOT',
+      expiryDate:   doc.expiryDate ? doc.expiryDate.split('T')[0] : '',
+      issuedDate:   doc.issuedDate ? doc.issuedDate.split('T')[0] : '',
+      issuer:       doc.issuer ?? '',
+      notes:        doc.notes ?? '',
+    });
+    setDocFile(null);
+    setDocDialog(true);
+  };
+
+  const handleSaveDoc = async () => {
     if (!docForm.name.trim()) { toast.error('Document name required'); return; }
     setDocSaving(true);
     try {
-      await vehiclesApi.addDocument(
-        id!,
-        { ...docForm, expiryDate: docForm.expiryDate || undefined },
-        docFile ?? undefined,
-      );
-      toast.success('Document added');
+      if (editingDoc) {
+        await vehiclesApi.updateDocument(id!, editingDoc.id, {
+          name:         docForm.name,
+          documentType: docForm.documentType,
+          expiryDate:   docForm.expiryDate || undefined,
+          issuedDate:   docForm.issuedDate || undefined,
+          issuer:       docForm.issuer || undefined,
+          notes:        docForm.notes || undefined,
+        });
+        toast.success('Document updated');
+      } else {
+        await vehiclesApi.addDocument(
+          id!,
+          {
+            name:         docForm.name,
+            documentType: docForm.documentType,
+            expiryDate:   docForm.expiryDate || undefined,
+            issuedDate:   docForm.issuedDate || undefined,
+            issuer:       docForm.issuer || undefined,
+            notes:        docForm.notes || undefined,
+          },
+          docFile ?? undefined,
+        );
+        toast.success('Document added');
+      }
       setDocDialog(false);
-      setDocForm({ name: '', documentType: 'MOT', expiryDate: '', notes: '' });
-      setDocFile(null);
       load();
     } catch {
-      toast.error('Failed to add document');
+      toast.error(editingDoc ? 'Failed to update document' : 'Failed to add document');
     } finally {
       setDocSaving(false);
     }
@@ -216,26 +256,55 @@ export function VehicleDetail() {
     }
   };
 
-  const handleAddMaintenance = async () => {
+  const BLANK_MAIN = { maintenanceTypeId: '', workshopId: '', status: 'SCHEDULED', scheduledDate: '', completedDate: '', description: '', mileageAtService: '', cost: '', notes: '' };
+
+  const openAddMaintenance = () => {
+    setEditingMain(null);
+    setMainForm(BLANK_MAIN);
+    setMainDialog(true);
+  };
+
+  const openEditMaintenance = (rec: any) => {
+    setEditingMain(rec);
+    setMainForm({
+      maintenanceTypeId: rec.maintenanceTypeId ?? '',
+      workshopId:        rec.workshopId ?? '',
+      status:            rec.status ?? 'SCHEDULED',
+      scheduledDate:     rec.scheduledDate ? rec.scheduledDate.split('T')[0] : '',
+      completedDate:     rec.completedDate ? rec.completedDate.split('T')[0] : '',
+      description:       rec.description ?? '',
+      mileageAtService:  rec.mileageAtService ?? '',
+      cost:              rec.cost ?? '',
+      notes:             rec.notes ?? '',
+    });
+    setMainDialog(true);
+  };
+
+  const handleSaveMaintenance = async () => {
     setMainSaving(true);
     try {
-      await vehiclesApi.createMaintenance({
-        vehicleId: id!,
+      const payload: any = {
         maintenanceTypeId: mainForm.maintenanceTypeId || undefined,
-        workshopId: mainForm.workshopId || undefined,
-        status: mainForm.status,
-        scheduledDate: mainForm.scheduledDate || undefined,
-        description: mainForm.description || undefined,
-        mileageAtService: mainForm.mileageAtService ? parseInt(mainForm.mileageAtService) : undefined,
-        cost: mainForm.cost ? parseFloat(mainForm.cost) : undefined,
-        notes: mainForm.notes || undefined,
-      });
-      toast.success('Maintenance record added');
+        workshopId:        mainForm.workshopId || undefined,
+        status:            mainForm.status,
+        scheduledDate:     mainForm.scheduledDate || undefined,
+        completedDate:     mainForm.completedDate || undefined,
+        description:       mainForm.description || undefined,
+        mileageAtService:  mainForm.mileageAtService ? parseInt(mainForm.mileageAtService) : undefined,
+        cost:              mainForm.cost ? parseFloat(mainForm.cost) : undefined,
+        notes:             mainForm.notes || undefined,
+      };
+      if (editingMain) {
+        await vehiclesApi.updateMaintenance(editingMain.id, payload);
+        toast.success('Maintenance record updated');
+      } else {
+        await vehiclesApi.createMaintenance({ vehicleId: id!, ...payload });
+        toast.success('Maintenance record added');
+      }
       setMainDialog(false);
-      setMainForm({ maintenanceTypeId: '', workshopId: '', status: 'SCHEDULED', scheduledDate: '', description: '', mileageAtService: '', cost: '', notes: '' });
       load();
     } catch {
-      toast.error('Failed to add maintenance record');
+      toast.error(editingMain ? 'Failed to update record' : 'Failed to add maintenance record');
     } finally {
       setMainSaving(false);
     }
@@ -422,7 +491,7 @@ export function VehicleDetail() {
           <div className="flex justify-between items-center">
             <h3 className="font-medium">Vehicle Documents</h3>
             {canWrite && (
-              <Button size="sm" onClick={() => setDocDialog(true)}>
+              <Button size="sm" onClick={openAddDoc}>
                 <Plus className="w-4 h-4 mr-2" /> Add Document
               </Button>
             )}
@@ -464,9 +533,14 @@ export function VehicleDetail() {
                         </a>
                       )}
                       {canWrite && (
-                        <Button size="sm" variant="ghost" onClick={() => handleDeleteDoc(doc.id)}>
-                          <Trash2 className="w-4 h-4 text-destructive" />
-                        </Button>
+                        <>
+                          <Button size="sm" variant="ghost" onClick={() => openEditDoc(doc)}>
+                            <Edit className="w-4 h-4 text-muted-foreground" />
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => handleDeleteDoc(doc.id)}>
+                            <Trash2 className="w-4 h-4 text-destructive" />
+                          </Button>
+                        </>
                       )}
                     </div>
                   </TableCell>
@@ -481,7 +555,7 @@ export function VehicleDetail() {
           <div className="flex justify-between items-center">
             <h3 className="font-medium">Maintenance Records</h3>
             {canWrite && (
-              <Button size="sm" onClick={() => setMainDialog(true)}>
+              <Button size="sm" onClick={openAddMaintenance}>
                 <Plus className="w-4 h-4 mr-2" /> Add Record
               </Button>
             )}
@@ -512,9 +586,14 @@ export function VehicleDetail() {
                   <TableCell className="text-sm">{rec.cost ? `£${rec.cost.toFixed(2)}` : '—'}</TableCell>
                   {canWrite && (
                     <TableCell className="text-right">
-                      <Button size="sm" variant="ghost" onClick={() => handleDeleteMaintenance(rec.id)}>
-                        <Trash2 className="w-4 h-4 text-destructive" />
-                      </Button>
+                      <div className="flex items-center justify-end gap-1">
+                        <Button size="sm" variant="ghost" onClick={() => openEditMaintenance(rec)}>
+                          <Edit className="w-4 h-4 text-muted-foreground" />
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => handleDeleteMaintenance(rec.id)}>
+                          <Trash2 className="w-4 h-4 text-destructive" />
+                        </Button>
+                      </div>
                     </TableCell>
                   )}
                 </TableRow>
@@ -614,10 +693,10 @@ export function VehicleDetail() {
         </DialogContent>
       </Dialog>
 
-      {/* Add Document Dialog */}
-      <Dialog open={docDialog} onOpenChange={setDocDialog}>
+      {/* Add / Edit Document Dialog */}
+      <Dialog open={docDialog} onOpenChange={(open) => { setDocDialog(open); if (!open) setDocFile(null); }}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Add Vehicle Document</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editingDoc ? 'Edit Document' : 'Add Vehicle Document'}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-1">
               <Label>Document Name *</Label>
@@ -634,37 +713,51 @@ export function VehicleDetail() {
                 </SelectContent>
               </Select>
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label>Issued Date</Label>
+                <Input type="date" value={docForm.issuedDate} onChange={(e) => setDocForm((f) => ({ ...f, issuedDate: e.target.value }))} />
+              </div>
+              <div className="space-y-1">
+                <Label>Expiry Date</Label>
+                <Input type="date" value={docForm.expiryDate} onChange={(e) => setDocForm((f) => ({ ...f, expiryDate: e.target.value }))} />
+              </div>
+            </div>
             <div className="space-y-1">
-              <Label>Expiry Date</Label>
-              <Input type="date" value={docForm.expiryDate} onChange={(e) => setDocForm((f) => ({ ...f, expiryDate: e.target.value }))} />
+              <Label>Issuer</Label>
+              <Input value={docForm.issuer} onChange={(e) => setDocForm((f) => ({ ...f, issuer: e.target.value }))} placeholder="e.g. DVSA" />
             </div>
             <div className="space-y-1">
               <Label>Notes</Label>
               <Input value={docForm.notes} onChange={(e) => setDocForm((f) => ({ ...f, notes: e.target.value }))} placeholder="Optional notes" />
             </div>
-            <div className="space-y-1">
-              <Label>File <span className="text-muted-foreground text-xs">(optional, max 20 MB)</span></Label>
-              <input
-                type="file"
-                className="block w-full text-sm text-muted-foreground file:mr-3 file:py-1 file:px-3 file:rounded file:border file:border-input file:text-sm file:bg-background file:cursor-pointer hover:file:bg-accent cursor-pointer"
-                onChange={(e) => setDocFile(e.target.files?.[0] ?? null)}
-              />
-              {docFile && (
-                <p className="text-xs text-muted-foreground">{docFile.name} ({(docFile.size / 1024).toFixed(0)} KB)</p>
-              )}
-            </div>
+            {!editingDoc && (
+              <div className="space-y-1">
+                <Label>File <span className="text-muted-foreground text-xs">(optional, max 20 MB)</span></Label>
+                <input
+                  type="file"
+                  className="block w-full text-sm text-muted-foreground file:mr-3 file:py-1 file:px-3 file:rounded file:border file:border-input file:text-sm file:bg-background file:cursor-pointer hover:file:bg-accent cursor-pointer"
+                  onChange={(e) => setDocFile(e.target.files?.[0] ?? null)}
+                />
+                {docFile && (
+                  <p className="text-xs text-muted-foreground">{docFile.name} ({(docFile.size / 1024).toFixed(0)} KB)</p>
+                )}
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => { setDocDialog(false); setDocFile(null); }}>Cancel</Button>
-            <Button onClick={handleAddDoc} disabled={docSaving}>{docSaving ? 'Adding…' : 'Add Document'}</Button>
+            <Button onClick={handleSaveDoc} disabled={docSaving}>
+              {docSaving ? 'Saving…' : editingDoc ? 'Save Changes' : 'Add Document'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Add Maintenance Dialog */}
+      {/* Add / Edit Maintenance Dialog */}
       <Dialog open={mainDialog} onOpenChange={setMainDialog}>
         <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>Add Maintenance Record</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editingMain ? 'Edit Maintenance Record' : 'Add Maintenance Record'}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
@@ -691,6 +784,10 @@ export function VehicleDetail() {
                 <Input type="date" value={mainForm.scheduledDate} onChange={(e) => setMainForm((f: any) => ({ ...f, scheduledDate: e.target.value }))} />
               </div>
               <div className="space-y-1">
+                <Label>Completed Date</Label>
+                <Input type="date" value={mainForm.completedDate} onChange={(e) => setMainForm((f: any) => ({ ...f, completedDate: e.target.value }))} />
+              </div>
+              <div className="space-y-1">
                 <Label>Workshop</Label>
                 <Select value={mainForm.workshopId || 'none'} onValueChange={(v) => setMainForm((f: any) => ({ ...f, workshopId: v === 'none' ? '' : v }))}>
                   <SelectTrigger><SelectValue placeholder="Select workshop" /></SelectTrigger>
@@ -704,7 +801,7 @@ export function VehicleDetail() {
                 <Label>Mileage at Service</Label>
                 <Input type="number" value={mainForm.mileageAtService} onChange={(e) => setMainForm((f: any) => ({ ...f, mileageAtService: e.target.value }))} placeholder="km" />
               </div>
-              <div className="space-y-1">
+              <div className="space-y-1 col-span-2">
                 <Label>Total Cost (£)</Label>
                 <Input type="number" step="0.01" value={mainForm.cost} onChange={(e) => setMainForm((f: any) => ({ ...f, cost: e.target.value }))} placeholder="0.00" />
               </div>
@@ -720,7 +817,9 @@ export function VehicleDetail() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setMainDialog(false)}>Cancel</Button>
-            <Button onClick={handleAddMaintenance} disabled={mainSaving}>{mainSaving ? 'Saving…' : 'Add Record'}</Button>
+            <Button onClick={handleSaveMaintenance} disabled={mainSaving}>
+              {mainSaving ? 'Saving…' : editingMain ? 'Save Changes' : 'Add Record'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

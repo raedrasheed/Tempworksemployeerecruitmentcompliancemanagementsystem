@@ -6,6 +6,7 @@ const photoUrl = (url?: string | null) => url ? `${API_BASE}${url}` : null;
 import {
   ArrowLeft, Users, Clock, AlertTriangle, TrendingUp,
   CheckCircle, Search, ChevronRight, UserCircle, Flag,
+  ThumbsUp, ThumbsDown, X,
 } from 'lucide-react';
 import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -13,20 +14,128 @@ import { Badge } from '../../components/ui/badge';
 import { Input } from '../../components/ui/input';
 import { workflowApi } from '../../services/api';
 
+// ─── Approve Modal ────────────────────────────────────────────────────────────
+
+function ApproveModal({
+  person,
+  stageId,
+  onClose,
+  onDone,
+}: {
+  person: any;
+  stageId: string;
+  onClose: () => void;
+  onDone: () => void;
+}) {
+  const [decision, setDecision] = useState<'APPROVED' | 'REJECTED'>('APPROVED');
+  const [notes, setNotes]       = useState('');
+  const [saving, setSaving]     = useState(false);
+  const [error, setError]       = useState('');
+
+  const submit = async () => {
+    setSaving(true);
+    setError('');
+    try {
+      if (person.personType === 'EMPLOYEE') {
+        await workflowApi.approveEmployeeStage(person.personId, stageId, notes || undefined);
+      } else {
+        await workflowApi.submitApproval(person.progressId, { decision, notes: notes || undefined });
+      }
+      onDone();
+    } catch (err: any) {
+      setError(err.message || 'Failed to submit approval');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-md mx-4 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-foreground">Stage Approval</h2>
+          <button onClick={onClose} className="p-1.5 rounded-md hover:bg-muted text-muted-foreground">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <p className="text-sm text-muted-foreground mb-5">
+          Submitting approval for <span className="font-medium text-foreground">{person.firstName} {person.lastName}</span>
+        </p>
+
+        {/* Decision — not shown for employees (employee approval is always "approved") */}
+        {person.personType !== 'EMPLOYEE' && (
+          <div className="flex gap-3 mb-4">
+            <button
+              onClick={() => setDecision('APPROVED')}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg border text-sm font-medium transition-colors ${
+                decision === 'APPROVED'
+                  ? 'bg-emerald-50 border-emerald-500 text-emerald-700'
+                  : 'border-border text-muted-foreground hover:bg-muted'
+              }`}
+            >
+              <ThumbsUp className="w-4 h-4" /> Approve
+            </button>
+            <button
+              onClick={() => setDecision('REJECTED')}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg border text-sm font-medium transition-colors ${
+                decision === 'REJECTED'
+                  ? 'bg-red-50 border-red-400 text-red-700'
+                  : 'border-border text-muted-foreground hover:bg-muted'
+              }`}
+            >
+              <ThumbsDown className="w-4 h-4" /> Reject
+            </button>
+          </div>
+        )}
+
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-foreground mb-1">Notes (optional)</label>
+          <textarea
+            className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
+            rows={3}
+            placeholder="Add any notes or reasons..."
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+          />
+        </div>
+
+        {error && <p className="text-sm text-destructive mb-3">{error}</p>}
+
+        <div className="flex gap-3">
+          <Button variant="outline" className="flex-1" onClick={onClose} disabled={saving}>Cancel</Button>
+          <Button
+            className={`flex-1 ${decision === 'REJECTED' && person.personType !== 'EMPLOYEE' ? 'bg-red-600 hover:bg-red-700' : ''}`}
+            onClick={submit}
+            disabled={saving}
+          >
+            {saving ? 'Submitting...' : person.personType === 'EMPLOYEE' ? 'Approve' : decision === 'APPROVED' ? 'Approve' : 'Reject'}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
+
 export function WorkflowStageDetailsPage() {
   const { stageId } = useParams<{ stageId: string }>();
   const navigate = useNavigate();
-  const [data, setData]         = useState<any>(null);
-  const [loading, setLoading]   = useState(true);
-  const [search, setSearch]     = useState('');
+  const [data, setData]             = useState<any>(null);
+  const [loading, setLoading]       = useState(true);
+  const [search, setSearch]         = useState('');
+  const [approvePerson, setApprovePerson] = useState<any>(null);
 
-  useEffect(() => {
+  const load = () => {
     if (!stageId) return;
     workflowApi.getWorkflowStageDetails(stageId)
       .then(setData)
       .catch(() => setData(null))
       .finally(() => setLoading(false));
-  }, [stageId]);
+  };
+
+  useEffect(() => { load(); }, [stageId]);
 
   if (loading) {
     return (
@@ -137,13 +246,13 @@ export function WorkflowStageDetailsPage() {
         </Card>
       </div>
 
-      {/* Stage Requirements */}
-      {stage.requiredDocs?.length > 0 && (
+      {/* Stage Requirements + Responsible */}
+      {(stage.requiredDocs?.length > 0 || stage.assignedUsers?.length > 0) && (
         <Card>
           <CardContent className="p-6">
             <h2 className="font-semibold text-lg mb-4">Stage Requirements</h2>
             <div className="space-y-3">
-              {stage.requiredDocs.map((rd: any) => (
+              {stage.requiredDocs?.map((rd: any) => (
                 <div key={rd.id} className="flex items-center justify-between p-4 border rounded-lg">
                   <div className="flex items-center gap-3">
                     <CheckCircle className="w-5 h-5 text-[#22C55E]" />
@@ -152,15 +261,22 @@ export function WorkflowStageDetailsPage() {
                   <Badge variant="outline" className="border-[#2563EB] text-[#2563EB]">Document</Badge>
                 </div>
               ))}
-              {stage.requiresApproval && stage.assignedUsers?.map((au: any) => (
-                <div key={au.userId} className="flex items-center justify-between p-4 border rounded-lg">
+
+              {/* Responsible approvers */}
+              {stage.assignedUsers?.map((au: any) => (
+                <div key={au.userId} className="flex items-center justify-between p-4 border rounded-lg bg-purple-50/50">
                   <div className="flex items-center gap-3">
-                    <CheckCircle className="w-5 h-5 text-[#22C55E]" />
-                    <p className="font-medium text-[#0F172A]">
-                      {au.user ? `${au.user.firstName} ${au.user.lastName}` : 'Reviewer'}
-                    </p>
+                    <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
+                      <UserCircle className="w-5 h-5 text-purple-600" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-[#0F172A]">
+                        {au.user ? `${au.user.firstName} ${au.user.lastName}` : 'Reviewer'}
+                      </p>
+                      <p className="text-xs text-muted-foreground">Responsible approver</p>
+                    </div>
                   </div>
-                  <Badge variant="outline" className="border-[#8B5CF6] text-[#8B5CF6]">Approval</Badge>
+                  <Badge variant="outline" className="border-[#8B5CF6] text-[#8B5CF6]">Responsible</Badge>
                 </div>
               ))}
             </div>
@@ -258,6 +374,16 @@ export function WorkflowStageDetailsPage() {
                       </Badge>
                     )}
 
+                    {/* Approve button */}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-emerald-500 text-emerald-700 hover:bg-emerald-50"
+                      onClick={() => setApprovePerson(item)}
+                    >
+                      <ThumbsUp className="w-3.5 h-3.5 mr-1" /> Approve
+                    </Button>
+
                     {item.profileLink && (
                       <Link to={item.profileLink}>
                         <Button variant="outline" size="sm">
@@ -272,6 +398,16 @@ export function WorkflowStageDetailsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Approve Modal */}
+      {approvePerson && stageId && (
+        <ApproveModal
+          person={approvePerson}
+          stageId={stageId}
+          onClose={() => setApprovePerson(null)}
+          onDone={() => { setApprovePerson(null); load(); }}
+        />
+      )}
     </div>
   );
 }

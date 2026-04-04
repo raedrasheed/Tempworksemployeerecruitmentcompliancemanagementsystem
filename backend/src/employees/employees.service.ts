@@ -10,8 +10,8 @@ import { join, extname } from 'path';
 export class EmployeesService {
   constructor(private prisma: PrismaService) {}
 
-  async findAll(query: PaginationDto & { agencyId?: string; status?: string; nationality?: string }) {
-    const { page = 1, limit = 20, search, sortBy = 'createdAt', sortOrder = 'desc', agencyId, status, nationality } = query;
+  async findAll(query: PaginationDto & { agencyId?: string; status?: string; nationality?: string; driversOnly?: boolean }) {
+    const { page = 1, limit = 20, search, sortBy = 'createdAt', sortOrder = 'desc', agencyId, status, nationality, driversOnly } = query;
     const skip = (Number(page) - 1) * Number(limit);
 
     const where: any = { deletedAt: null };
@@ -26,6 +26,13 @@ export class EmployeesService {
     if (agencyId) where.agencyId = agencyId;
     if (status) where.status = status;
     if (nationality) where.nationality = { contains: nationality, mode: 'insensitive' };
+    if (driversOnly) {
+      where.OR = [
+        ...(where.OR ?? []),
+        { licenseNumber: { not: null } },
+        { licenseCategory: { not: null } },
+      ];
+    }
 
     const [data, total] = await Promise.all([
       this.prisma.employee.findMany({

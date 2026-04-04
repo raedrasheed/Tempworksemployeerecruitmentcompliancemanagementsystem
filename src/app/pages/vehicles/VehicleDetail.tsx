@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import {
   ArrowLeft, Edit, Truck, User, FileText, Wrench, Plus,
-  Trash2, Calendar, AlertTriangle, ChevronDown, ChevronRight,
+  Trash2, AlertTriangle, Search, ChevronDown,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
@@ -20,7 +20,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '../../components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
-import { vehiclesApi } from '../../services/api';
+import { vehiclesApi, employeesApi } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
 
 const MAINTENANCE_STATUSES = ['SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'];
@@ -67,10 +67,18 @@ export function VehicleDetail() {
   const [maintenanceTypes, setMtnTypes]   = useState<any[]>([]);
 
   // Assign driver dialog
-  const [assignDialog, setAssignDialog]   = useState(false);
-  const [driverEmployeeId, setDriverEmpId] = useState('');
-  const [driverStartDate, setDriverStart] = useState(new Date().toISOString().split('T')[0]);
-  const [assigningSaving, setAssignSaving] = useState(false);
+  const [assignDialog, setAssignDialog]     = useState(false);
+  const [driverEmployeeId, setDriverEmpId]  = useState('');
+  const [driverSelectedName, setDriverName] = useState('');
+  const [driverStartDate, setDriverStart]   = useState(new Date().toISOString().split('T')[0]);
+  const [assigningSaving, setAssignSaving]  = useState(false);
+
+  // Driver picker search
+  const [driverSearch, setDriverSearch]     = useState('');
+  const [driverOptions, setDriverOptions]   = useState<any[]>([]);
+  const [driverLoading, setDriverLoading]   = useState(false);
+  const [pickerOpen, setPickerOpen]         = useState(false);
+  const pickerRef                           = useRef<HTMLDivElement>(null);
 
   // Add document dialog
   const [docDialog, setDocDialog]         = useState(false);
@@ -105,6 +113,40 @@ export function VehicleDetail() {
 
   useEffect(() => { load(); }, [load]);
 
+  // Load driver options when the assign dialog opens or search changes
+  useEffect(() => {
+    if (!assignDialog) return;
+    let cancelled = false;
+    setDriverLoading(true);
+    const timer = setTimeout(async () => {
+      try {
+        const res = await employeesApi.list({
+          driversOnly: 'true',
+          search: driverSearch || undefined,
+          limit: 50,
+          status: 'ACTIVE',
+        });
+        if (!cancelled) setDriverOptions(res.data ?? []);
+      } catch {
+        // non-critical
+      } finally {
+        if (!cancelled) setDriverLoading(false);
+      }
+    }, 250);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [assignDialog, driverSearch]);
+
+  // Close picker on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
+        setPickerOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
   const handleDelete = async () => {
     if (!confirm('Delete this vehicle? This action cannot be undone easily.')) return;
     try {
@@ -117,7 +159,7 @@ export function VehicleDetail() {
   };
 
   const handleAssignDriver = async () => {
-    if (!driverEmployeeId.trim()) { toast.error('Employee ID required'); return; }
+    if (!driverEmployeeId) { toast.error('Please select a driver'); return; }
     setAssignSaving(true);
     try {
       await vehiclesApi.assignDriver(id!, { employeeId: driverEmployeeId, startDate: driverStartDate });
@@ -302,7 +344,13 @@ export function VehicleDetail() {
           <div className="flex justify-between items-center">
             <h3 className="font-medium">Driver Assignments</h3>
             {canWrite && (
-              <Button size="sm" onClick={() => setAssignDialog(true)}>
+              <Button size="sm" onClick={() => {
+                setDriverEmpId('');
+                setDriverName('');
+                setDriverSearch('');
+                setPickerOpen(false);
+                setAssignDialog(true);
+              }}>
                 <User className="w-4 h-4 mr-2" /> Assign Driver
               </Button>
             )}
@@ -458,15 +506,77 @@ export function VehicleDetail() {
       </Tabs>
 
       {/* Assign Driver Dialog */}
-      <Dialog open={assignDialog} onOpenChange={setAssignDialog}>
+      <Dialog open={assignDialog} onOpenChange={(open) => {
+        setAssignDialog(open);
+        if (!open) { setPickerOpen(false); setDriverSearch(''); }
+      }}>
         <DialogContent>
           <DialogHeader><DialogTitle>Assign Driver</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
-            <div className="space-y-1">
-              <Label>Employee ID (UUID)</Label>
-              <Input value={driverEmployeeId} onChange={(e) => setDriverEmpId(e.target.value)} placeholder="Employee UUID" />
-              <p className="text-xs text-muted-foreground">Enter the employee's UUID from the Employees page</p>
+            {/* Searchable employee picker */}
+            <div className="space-y-1" ref={pickerRef}>
+              <Label>Select Driver *</Label>
+              {/* Selected employee display / search input */}
+              <div className="relative">
+                <div
+                  className="flex items-center border rounded-md px-3 py-2 gap-2 cursor-text bg-background focus-within:ring-2 focus-within:ring-ring"
+                  onClick={() => setPickerOpen(true)}
+                >
+                  <Search className="w-4 h-4 text-muted-foreground shrink-0" />
+                  {driverSelectedName && !pickerOpen ? (
+                    <span className="text-sm flex-1">{driverSelectedName}</span>
+                  ) : (
+                    <input
+                      autoFocus={pickerOpen}
+                      className="flex-1 text-sm bg-transparent outline-none placeholder:text-muted-foreground"
+                      placeholder="Search by name or licence…"
+                      value={driverSearch}
+                      onChange={(e) => { setDriverSearch(e.target.value); setPickerOpen(true); }}
+                      onFocus={() => setPickerOpen(true)}
+                    />
+                  )}
+                  {driverSelectedName && (
+                    <button
+                      type="button"
+                      className="text-muted-foreground hover:text-foreground text-xs ml-auto"
+                      onClick={(e) => { e.stopPropagation(); setDriverEmpId(''); setDriverName(''); setDriverSearch(''); setPickerOpen(true); }}
+                    >✕</button>
+                  )}
+                </div>
+
+                {/* Dropdown */}
+                {pickerOpen && (
+                  <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-md max-h-60 overflow-y-auto">
+                    {driverLoading ? (
+                      <div className="py-3 text-center text-sm text-muted-foreground">Searching…</div>
+                    ) : driverOptions.length === 0 ? (
+                      <div className="py-3 text-center text-sm text-muted-foreground">No drivers found</div>
+                    ) : driverOptions.map((emp: any) => (
+                      <button
+                        key={emp.id}
+                        type="button"
+                        className={`w-full text-left px-3 py-2 text-sm hover:bg-accent flex items-start gap-2 ${driverEmployeeId === emp.id ? 'bg-accent font-medium' : ''}`}
+                        onClick={() => {
+                          setDriverEmpId(emp.id);
+                          setDriverName(`${emp.firstName} ${emp.lastName}`);
+                          setDriverSearch('');
+                          setPickerOpen(false);
+                        }}
+                      >
+                        <User className="w-4 h-4 mt-0.5 shrink-0 text-muted-foreground" />
+                        <div>
+                          <p className="font-medium">{emp.firstName} {emp.lastName}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {[emp.licenseCategory, emp.licenseNumber].filter(Boolean).join(' · ') || 'Driver'}
+                          </p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
+
             <div className="space-y-1">
               <Label>Start Date</Label>
               <Input type="date" value={driverStartDate} onChange={(e) => setDriverStart(e.target.value)} />
@@ -474,7 +584,7 @@ export function VehicleDetail() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAssignDialog(false)}>Cancel</Button>
-            <Button onClick={handleAssignDriver} disabled={assigningSaving}>
+            <Button onClick={handleAssignDriver} disabled={assigningSaving || !driverEmployeeId}>
               {assigningSaving ? 'Assigning…' : 'Assign Driver'}
             </Button>
           </DialogFooter>

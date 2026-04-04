@@ -583,6 +583,72 @@ export class WorkflowService {
     });
   }
 
+  // ─── WorkflowStage Detail ─────────────────────────────────────────────────
+
+  async getWorkflowStageDetails(stageId: string) {
+    const stage = await this.prisma.workflowStage.findUnique({
+      where: { id: stageId },
+      include: {
+        requiredDocs: { include: { documentType: { select: { id: true, name: true, category: true } } } },
+        assignedUsers: { include: { user: { select: { id: true, firstName: true, lastName: true } } } },
+        workflow: { select: { id: true, name: true } },
+      },
+    });
+    if (!stage) throw new NotFoundException('Stage not found');
+
+    // All stages in the workflow for "Stage X of Y"
+    const allStages = await this.prisma.workflowStage.findMany({
+      where: { workflowId: stage.workflowId },
+      orderBy: { order: 'asc' },
+      select: { id: true, order: true, name: true },
+    });
+
+    // Active candidates in this stage
+    const progressItems = await this.prisma.candidateStageProgress.findMany({
+      where: { stageId, status: 'ACTIVE' },
+      include: {
+        assignment: {
+          include: {
+            candidate: {
+              select: {
+                id: true, firstName: true, lastName: true, email: true,
+                candidateNumber: true, photoUrl: true, nationality: true,
+              },
+            },
+          },
+        },
+        approvals: { orderBy: { createdAt: 'desc' }, take: 1 },
+      },
+      orderBy: { enteredAt: 'asc' },
+    });
+
+    const candidates = progressItems.map((p) => {
+      const daysInStage = Math.floor((Date.now() - new Date(p.enteredAt).getTime()) / 86400000);
+      return {
+        progressId: p.id,
+        assignmentId: p.assignmentId,
+        enteredAt: p.enteredAt,
+        slaDeadline: p.slaDeadline,
+        flagged: p.flagged,
+        daysInStage,
+        latestApproval: (p.approvals as any[])[0] ?? null,
+        candidate: (p.assignment as any).candidate,
+      };
+    });
+
+    const avgDays = candidates.length > 0
+      ? Math.round(candidates.reduce((s, c) => s + c.daysInStage, 0) / candidates.length)
+      : 0;
+    const atRiskCount = candidates.filter(c => c.daysInStage > 14).length;
+
+    return {
+      stage,
+      allStages,
+      candidates,
+      stats: { total: candidates.length, avgDays, atRiskCount },
+    };
+  }
+
   // ─── Stats ────────────────────────────────────────────────────────────────
 
   async getWorkflowStats(workflowId: string) {

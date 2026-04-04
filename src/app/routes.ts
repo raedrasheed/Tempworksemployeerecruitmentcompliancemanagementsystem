@@ -74,6 +74,7 @@ import { DatabaseBackup }   from './pages/settings/DatabaseBackup';
 import { WorkflowsPage } from './pages/pipelines/WorkflowsPage';
 import { WorkflowBoardPage } from './pages/pipelines/WorkflowBoardPage';
 import { WorkflowSettingsPage } from './pages/pipelines/WorkflowSettingsPage';
+import { WorkflowStageDetailsPage } from './pages/pipelines/WorkflowStageDetailsPage';
 
 // Public pages
 import { LandingPage } from './pages/public/LandingPage';
@@ -138,6 +139,7 @@ export const router = createBrowserRouter([
       // Workflow (recruitment pipeline) routes
       { path: 'workflows', Component: WorkflowsPage },
       { path: 'workflows/:id', Component: WorkflowBoardPage },
+      { path: 'workflows/stage/:stageId', Component: WorkflowStageDetailsPage },
       { path: 'settings/workflows/:id', Component: WorkflowSettingsPage },
 
       // Workflow routes

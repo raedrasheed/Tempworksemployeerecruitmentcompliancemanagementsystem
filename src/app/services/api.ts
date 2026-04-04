@@ -953,6 +953,9 @@ export const workflowApi = {
   addStage: (workflowId: string, data: any) =>
     apiFetch<any>(`/workflows/${workflowId}/stages`, { method: 'POST', body: JSON.stringify(data) }),
 
+  getWorkflowStageDetails: (stageId: string) =>
+    apiFetch<any>(`/workflows/stages/${stageId}/details`),
+
   updateStage: (stageId: string, data: any) =>
     apiFetch<any>(`/workflows/stages/${stageId}`, { method: 'PATCH', body: JSON.stringify(data) }),
 

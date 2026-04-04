@@ -219,7 +219,7 @@ function StageCard({ col, totalStages, totalActive }: { col: any; totalStages: n
 
         {/* View Details link */}
         <Link
-          to={`/dashboard/workflow/stage/${stage.id}`}
+          to={`/dashboard/workflows/stage/${stage.id}`}
           className="text-sm text-[#2563EB] hover:text-[#1d4ed8] flex items-center gap-1 font-medium"
         >
           View Details

@@ -106,6 +106,13 @@ export class WorkflowController {
     return this.workflowService.reorderStages(workflowId, orderedIds);
   }
 
+  @Get('stages/:stageId/details')
+  @Roles(...ALL_ROLES)
+  @ApiOperation({ summary: 'Get WorkflowStage detail view: stage info, requirements, and active candidates' })
+  getWorkflowStageDetails(@Param('stageId') stageId: string) {
+    return this.workflowService.getWorkflowStageDetails(stageId);
+  }
+
   @Patch('stages/:stageId')
   @Roles(...ADMIN_ROLES)
   @ApiOperation({ summary: 'Update a workflow stage' })

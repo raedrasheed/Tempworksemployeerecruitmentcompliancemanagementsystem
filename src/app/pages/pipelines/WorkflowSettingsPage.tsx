@@ -45,13 +45,13 @@ export function WorkflowSettingsPage() {
   const navigate = useNavigate();
   const { canEdit, canDelete, canCreate } = usePermissions();
 
-  const [pipeline, setPipeline] = useState<any>(null);
+  const [workflow, setWorkflow] = useState<any>(null);
   const [stages, setStages] = useState<Stage[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Pipeline metadata edit
+  // Workflow metadata edit
   const [metaForm, setMetaForm] = useState({ name: '', description: '', color: '#2563EB', isDefault: false, isPublic: true });
   const [savingMeta, setSavingMeta] = useState(false);
 
@@ -89,7 +89,7 @@ export function WorkflowSettingsPage() {
     setError(null);
     try {
       const data = await workflowApi.get(id);
-      setPipeline(data);
+      setWorkflow(data);
       setMetaForm({ name: data.name, description: data.description ?? '', color: data.color ?? '#2563EB', isDefault: data.isDefault, isPublic: data.isPublic });
       const mapped: Stage[] = (data.stages ?? []).map((s: any) => ({
         id: s.id,
@@ -308,7 +308,7 @@ export function WorkflowSettingsPage() {
     );
   }
 
-  if (error || !pipeline) {
+  if (error || !workflow) {
     return (
       <div className="p-6">
         <div className="text-center py-10 text-[#EF4444]">{error ?? 'Workflow not found'}</div>
@@ -333,9 +333,9 @@ export function WorkflowSettingsPage() {
               <span>/</span>
               <Link to="/dashboard/workflows" className="hover:text-foreground transition-colors">Workflows</Link>
               <span>/</span>
-              <span className="text-foreground">{pipeline.name}</span>
+              <span className="text-foreground">{workflow.name}</span>
             </div>
-            <h1 className="text-3xl font-semibold text-[#0F172A]">{pipeline.name}</h1>
+            <h1 className="text-3xl font-semibold text-[#0F172A]">{workflow.name}</h1>
             <p className="text-muted-foreground mt-1">Configure stages and requirements for this workflow</p>
           </div>
         </div>

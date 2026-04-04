@@ -48,7 +48,7 @@ export function StageDetails() {
           <AlertTriangle className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
           <h2 className="text-2xl font-semibold mb-2">Stage Not Found</h2>
           <p className="text-muted-foreground mb-4">The requested workflow stage could not be found.</p>
-          <Button asChild><Link to="/dashboard/workflow">Return to Workflow Pipeline</Link></Button>
+          <Button asChild><Link to="/dashboard/workflow">Return to Workflow</Link></Button>
         </div>
       </div>
     );

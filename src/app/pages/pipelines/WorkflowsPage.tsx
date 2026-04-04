@@ -42,25 +42,25 @@ function WorkflowCard({
       onClick={onSelect}
     >
       {/* Color stripe */}
-      <div className="absolute top-0 left-0 right-0 h-1 rounded-t-xl" style={{ background: pipeline.color }} />
+      <div className="absolute top-0 left-0 right-0 h-1 rounded-t-xl" style={{ background: workflow.color }} />
 
       <div className="flex items-start justify-between mt-1">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            {pipeline.isDefault && (
+            {workflow.isDefault && (
               <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200">
                 <Star className="w-2.5 h-2.5" /> Default
               </span>
             )}
-            {pipeline.status === 'ARCHIVED' && (
+            {workflow.status === 'ARCHIVED' && (
               <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-500 border border-slate-200">
                 <Archive className="w-2.5 h-2.5" /> Archived
               </span>
             )}
           </div>
-          <h3 className="font-semibold text-foreground text-base leading-tight">{pipeline.name}</h3>
-          {pipeline.description && (
-            <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{pipeline.description}</p>
+          <h3 className="font-semibold text-foreground text-base leading-tight">{workflow.name}</h3>
+          {workflow.description && (
+            <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{workflow.description}</p>
           )}
         </div>
 
@@ -111,7 +111,7 @@ function WorkflowCard({
 
       {/* Stage pills */}
       <div className="mt-4 flex flex-wrap gap-1.5">
-        {(pipeline.stages || []).slice(0, 5).map((s: any) => (
+        {(workflow.stages || []).slice(0, 5).map((s: any) => (
           <span
             key={s.id}
             className="inline-block px-2 py-0.5 rounded-full text-[10px] font-medium text-white"
@@ -120,12 +120,12 @@ function WorkflowCard({
             {s.name}
           </span>
         ))}
-        {(pipeline.stages?.length ?? 0) > 5 && (
+        {(workflow.stages?.length ?? 0) > 5 && (
           <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-medium bg-muted text-muted-foreground">
-            +{pipeline.stages.length - 5} more
+            +{workflow.stages.length - 5} more
           </span>
         )}
-        {(pipeline.stages?.length ?? 0) === 0 && (
+        {(workflow.stages?.length ?? 0) === 0 && (
           <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-medium bg-muted text-muted-foreground italic">
             No stages — click Configure to add
           </span>
@@ -134,7 +134,7 @@ function WorkflowCard({
 
       {/* Stats row */}
       <div className="mt-4 pt-4 border-t border-border flex items-center gap-4 text-xs text-muted-foreground">
-        <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" /> {stats?.totalActive ?? pipeline._count?.assignments ?? 0} active</span>
+        <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" /> {stats?.totalActive ?? workflow._count?.assignments ?? 0} active</span>
         <span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5" /> {stats?.totalCompleted ?? 0} completed</span>
         {(stats?.flaggedCount ?? 0) > 0 && (
           <span className="flex items-center gap-1 text-amber-600"><Flag className="w-3.5 h-3.5" /> {stats.flaggedCount} flagged</span>
@@ -152,9 +152,9 @@ function WorkflowCard({
   );
 }
 
-// ─── Create pipeline modal ─────────────────────────────────────────────────
+// ─── Create workflow modal ─────────────────────────────────────────────────
 
-function CreatePipelineModal({ onClose, onCreated }: { onClose: () => void; onCreated: (id: string) => void }) {
+function CreateWorkflowModal({ onClose, onCreated }: { onClose: () => void; onCreated: (id: string) => void }) {
   const [form, setForm] = useState({ name: '', description: '', isDefault: false, isPublic: true, color: '#2563EB' });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -239,7 +239,7 @@ function CreatePipelineModal({ onClose, onCreated }: { onClose: () => void; onCr
 
 export function WorkflowsPage() {
   const navigate = useNavigate();
-  const [pipelines, setPipelines] = useState<any[]>([]);
+  const [workflows, setWorkflows] = useState<any[]>([]);
   const [statsMap, setStatsMap] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -251,7 +251,7 @@ export function WorkflowsPage() {
     setError('');
     try {
       const data = await workflowApi.list(showArchived);
-      setPipelines(data);
+      setWorkflows(data);
       const statsResults = await Promise.allSettled(data.map((p: any) => workflowApi.stats(p.id)));
       const map: Record<string, any> = {};
       statsResults.forEach((r, i) => {
@@ -290,7 +290,7 @@ export function WorkflowsPage() {
             <Layers className="w-6 h-6 text-primary" /> Workflows
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Recruitment workflows — each has its own stages, requirements, and candidate pipeline.
+            Recruitment workflows — each has its own stages, requirements, and candidate workflow.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -323,7 +323,7 @@ export function WorkflowsPage() {
             </div>
           ))}
         </div>
-      ) : pipelines.length === 0 ? (
+      ) : workflows.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <Layers className="w-16 h-16 text-muted-foreground/30 mb-4" />
           <h3 className="text-lg font-medium text-foreground mb-2">No workflows yet</h3>
@@ -337,10 +337,10 @@ export function WorkflowsPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {pipelines.map((p) => (
-            <PipelineCard
+          {workflows.map((p) => (
+            <WorkflowCard
               key={p.id}
-              pipeline={p}
+              workflow={p}
               stats={statsMap[p.id]}
               onSelect={() => navigate(`/dashboard/workflows/${p.id}`)}
               onConfigure={() => navigate(`/dashboard/settings/workflows/${p.id}`)}
@@ -352,7 +352,7 @@ export function WorkflowsPage() {
       )}
 
       {showCreate && (
-        <CreatePipelineModal
+        <CreateWorkflowModal
           onClose={() => setShowCreate(false)}
           onCreated={handleCreated}
         />

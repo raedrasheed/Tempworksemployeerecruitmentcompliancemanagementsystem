@@ -876,7 +876,7 @@ export function ApplicantProfile() {
             <div className="lg:col-span-2">
               <Card>
                 <CardHeader>
-                  <CardTitle>Recruitment Pipeline</CardTitle>
+                  <CardTitle>Recruitment Workflow</CardTitle>
                 </CardHeader>
                 <CardContent>
                   {allStages.length === 0 ? (
@@ -917,7 +917,7 @@ export function ApplicantProfile() {
                   <CardHeader><CardTitle className="text-base">Change Current Stage</CardTitle></CardHeader>
                   <CardContent className="space-y-3">
                     <p className="text-sm text-muted-foreground">
-                      Assign this applicant to a pipeline stage.
+                      Assign this applicant to a workflow stage.
                     </p>
                     <Select
                       value={applicantData.currentWorkflowStageId ?? ''}

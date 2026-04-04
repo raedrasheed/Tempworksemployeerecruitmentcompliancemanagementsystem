@@ -70,7 +70,7 @@ function NoteModal({ progressId, onClose }: { progressId: string; onClose: () =>
 
 // ─── Advance Stage Modal ──────────────────────────────────────────────────────
 
-function AdvanceModal({ assignmentId, pipeline, onClose, onAdvanced }: { assignmentId: string; pipeline: any; onClose: () => void; onAdvanced: () => void }) {
+function AdvanceModal({ assignmentId, workflow, onClose, onAdvanced }: { assignmentId: string; workflow: any; onClose: () => void; onAdvanced: () => void }) {
   const [selectedStageId, setSelectedStageId] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -93,7 +93,7 @@ function AdvanceModal({ assignmentId, pipeline, onClose, onAdvanced }: { assignm
         <h3 className="text-base font-semibold text-foreground mb-3">Advance to Stage</h3>
         <form onSubmit={handleSubmit} className="space-y-3">
           <div className="space-y-1.5">
-            {pipeline?.stages?.map((s: any) => (
+            {workflow?.stages?.map((s: any) => (
               <label key={s.id} className="flex items-center gap-3 p-2.5 rounded-lg border cursor-pointer hover:bg-muted transition-colors" style={{ borderColor: selectedStageId === s.id ? s.color : undefined }}>
                 <input type="radio" name="stage" value={s.id} checked={selectedStageId === s.id} onChange={() => setSelectedStageId(s.id)} className="sr-only" />
                 <div className="w-2.5 h-2.5 rounded-full" style={{ background: s.color }} />
@@ -116,7 +116,7 @@ function AdvanceModal({ assignmentId, pipeline, onClose, onAdvanced }: { assignm
 
 // ─── Assign Candidate Modal ───────────────────────────────────────────────────
 
-function AssignModal({ pipeline, onClose, onAssigned }: { pipeline: any; onClose: () => void; onAssigned: () => void }) {
+function AssignModal({ workflow, onClose, onAssigned }: { workflow: any; onClose: () => void; onAssigned: () => void }) {
   const [candidateId, setCandidateId] = useState('');
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
@@ -127,7 +127,7 @@ function AssignModal({ pipeline, onClose, onAssigned }: { pipeline: any; onClose
     if (!candidateId.trim()) { setError('Candidate ID is required'); return; }
     setSaving(true);
     try {
-      await workflowApi.assignCandidate({ candidateId, workflowId: pipeline.id, notes: notes || undefined });
+      await workflowApi.assignCandidate({ candidateId, workflowId: workflow.id, notes: notes || undefined });
       onAssigned();
       onClose();
     } catch (err: any) {
@@ -288,7 +288,7 @@ export function WorkflowBoardPage() {
   }
 
   // Backend returns { workflow, columns } — "pipeline" is an alias for "workflow"
-  const pipeline   = board?.workflow ?? board?.pipeline;
+  const workflowData   = board?.workflow ?? board?.pipeline;
   const columns: any[] = board?.columns ?? [];
   const totalStages    = columns.length;
   const totalActive    = stats?.totalActive ?? 0;
@@ -307,14 +307,14 @@ export function WorkflowBoardPage() {
           </button>
           <div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full" style={{ background: pipeline?.color ?? '#2563EB' }} />
-              <h1 className="text-2xl font-semibold text-[#0F172A]">{pipeline?.name}</h1>
-              {pipeline?.isDefault && (
+              <div className="w-3 h-3 rounded-full" style={{ background: workflowData?.color ?? '#2563EB' }} />
+              <h1 className="text-2xl font-semibold text-[#0F172A]">{workflowData?.name}</h1>
+              {workflowData?.isDefault && (
                 <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200">Default</span>
               )}
             </div>
-            {pipeline?.description && (
-              <p className="text-muted-foreground text-sm mt-0.5">{pipeline.description}</p>
+            {workflowData?.description && (
+              <p className="text-muted-foreground text-sm mt-0.5">{workflowData.description}</p>
             )}
           </div>
         </div>
@@ -398,13 +398,13 @@ export function WorkflowBoardPage() {
       {advanceState && (
         <AdvanceModal
           assignmentId={advanceState.assignmentId}
-          pipeline={pipeline}
+          workflow={workflowData}
           onClose={() => setAdvanceState(null)}
           onAdvanced={load}
         />
       )}
       {showAssign && (
-        <AssignModal pipeline={pipeline} onClose={() => setShowAssign(false)} onAssigned={load} />
+        <AssignModal workflow={workflowData} onClose={() => setShowAssign(false)} onAssigned={load} />
       )}
     </div>
   );

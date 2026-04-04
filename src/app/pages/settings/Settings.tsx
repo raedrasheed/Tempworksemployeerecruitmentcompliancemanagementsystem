@@ -78,7 +78,7 @@ export function Settings() {
                 <h3 className="font-semibold">Manage Workflows</h3>
               </div>
               <p className="text-sm text-muted-foreground">
-                Create and configure recruitment workflows. Each workflow has its own stages, requirements, and candidate pipeline.
+                Create and configure recruitment workflows. Each workflow has its own stages, requirements, and candidate workflow.
               </p>
               <div className="flex items-center gap-2 mt-4">
                 <Badge className="bg-[#EF4444]">Admin Only</Badge>

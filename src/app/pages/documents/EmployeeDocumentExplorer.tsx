@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Download, Search, FileArchive, FileDown } from 'lucide-react';
+import { useNavigate } from 'react-router';
+import { Download, Search, FileArchive, FileDown, ArrowLeft } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -30,6 +31,7 @@ function triggerZipDownload(blob: Blob, filename: string) {
 }
 
 export function EmployeeDocumentExplorer() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'employees' | 'applicants'>('employees');
 
   // ── Employees state ──
@@ -254,7 +256,12 @@ export function EmployeeDocumentExplorer() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-semibold text-[#0F172A]">Document Explorer</h1>
+        <div className="flex items-center gap-3 mb-2">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <h1 className="text-3xl font-semibold text-[#0F172A]">Document Explorer</h1>
+        </div>
         <p className="text-muted-foreground mt-1">Search employees and applicants to view and download their documents</p>
       </div>
 

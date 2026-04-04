@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router';
 import {
   Search, AlertTriangle, CheckCircle, Clock, FileText,
   Download, Upload, RefreshCw, Edit, Trash2, CheckCircle2, XCircle,
-  ChevronLeft, ChevronRight, ArrowUpDown, Filter, X,
+  ChevronLeft, ChevronRight, ArrowUpDown, Filter, X, ArrowLeft,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -222,7 +222,12 @@ export function DocumentsCompliance() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-semibold text-[#0F172A]">Documents & Compliance</h1>
+          <div className="flex items-center gap-3 mb-2">
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <h1 className="text-3xl font-semibold text-[#0F172A]">Documents & Compliance</h1>
+          </div>
           <p className="text-muted-foreground mt-1">Monitor driver documents and compliance status</p>
         </div>
         {canCreate('documents') && (

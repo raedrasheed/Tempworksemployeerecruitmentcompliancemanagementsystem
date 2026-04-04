@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import {
-  Search, CheckCircle2, XCircle, FileText, Eye, Clock, ShieldCheck,
+  Search, CheckCircle2, XCircle, FileText, Eye, Clock, ShieldCheck, ArrowLeft,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -18,6 +18,7 @@ import { usePermissions } from '../../hooks/usePermissions';
 
 export function DocumentVerification() {
   const { can } = usePermissions();
+  const navigate = useNavigate();
   const [documents, setDocuments]     = useState<any[]>([]);
   const [employeeMap, setEmployeeMap] = useState<Record<string, string>>({});
   const [loading, setLoading]         = useState(true);
@@ -106,7 +107,12 @@ export function DocumentVerification() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-semibold text-[#0F172A]">Document Verification</h1>
+          <div className="flex items-center gap-3 mb-2">
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <h1 className="text-3xl font-semibold text-[#0F172A]">Document Verification</h1>
+          </div>
           <p className="text-muted-foreground mt-1">
             Review and approve pending driver documents
           </p>

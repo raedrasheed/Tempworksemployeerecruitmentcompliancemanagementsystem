@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router';
 import { usePermissions } from '../../hooks/usePermissions';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -14,6 +15,7 @@ import {
   Briefcase,
   Save,
   X,
+  ArrowLeft,
 } from 'lucide-react';
 import {
   Dialog,
@@ -71,6 +73,7 @@ const DOCUMENT_OPTIONS = [
 
 export function JobTypes() {
   const { canCreate, canEdit, canDelete } = usePermissions();
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [jobTypes, setJobTypes] = useState<JobType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -201,7 +204,12 @@ export function JobTypes() {
     <div className="p-8 space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-[#0F172A] mb-2">Job Types Configuration</h1>
+        <div className="flex items-center gap-3 mb-2">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <h1 className="text-3xl font-bold text-[#0F172A]">Job Types Configuration</h1>
+        </div>
         <p className="text-muted-foreground">
           Manage job types and their document requirements for employee recruitment
         </p>

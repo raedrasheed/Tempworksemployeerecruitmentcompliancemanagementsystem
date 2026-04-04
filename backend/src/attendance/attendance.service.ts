@@ -152,7 +152,7 @@ export class AttendanceService {
   // ── Get single employee attendance ──────────────────────────────────────────
 
   async getEmployeeAttendance(employeeId: string, dto: GetEmployeeAttendanceDto) {
-    const employee = await this.prisma.employee.findUnique({
+    const employee = await this.prisma.employee.findFirst({
       where: { id: employeeId, deletedAt: null },
       select: {
         id:              true,
@@ -213,7 +213,7 @@ export class AttendanceService {
 
   async upsertRecord(dto: UpsertAttendanceDto, actorId?: string) {
     // Validate employee
-    const employee = await this.prisma.employee.findUnique({
+    const employee = await this.prisma.employee.findFirst({
       where: { id: dto.employeeId, deletedAt: null },
       select: { id: true, firstName: true, lastName: true, employeeNumber: true },
     });

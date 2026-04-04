@@ -106,7 +106,7 @@ export class AttendanceService {
       this.prisma.employee.count({ where }),
     ]);
 
-    // Compute date range for stats if requested
+    // Compute date range for stats
     let statsFrom: Date | null = null;
     let statsTo:   Date | null = null;
 
@@ -119,30 +119,60 @@ export class AttendanceService {
       if (dateTo)   statsTo   = new Date(dateTo   + 'T00:00:00.000Z');
     }
 
-    // Enrich each employee with attendance stats
+    const zeroStats = {
+      presentCount: 0, absentCount: 0, lateCount: 0,
+      onLeaveCount: 0, halfDayCount: 0, holidayCount: 0,
+      totalWorkingHours: 0, todayStatus: null as string | null,
+    };
+
+    // Enrich each employee with attendance stats — wrapped in try/catch so a
+    // missing table or Prisma client mismatch never silently kills the list.
+    const today = new Date().toISOString().split('T')[0];
+
     const enriched = await Promise.all(
       employees.map(async (emp) => {
-        if (!statsFrom && !statsTo && !status) {
-          return { ...emp, attendanceStats: null };
+        try {
+          const attWhere: any = { employeeId: emp.id };
+          if (statsFrom || statsTo) {
+            attWhere.date = {};
+            if (statsFrom) attWhere.date.gte = statsFrom;
+            if (statsTo)   attWhere.date.lte = statsTo;
+          }
+          if (status) attWhere.status = status;
+
+          const records = await (this.prisma as any).attendanceRecord.findMany({
+            where: attWhere,
+            select: { status: true, workingHours: true, date: true },
+          });
+
+          const counts: Record<string, number> = {
+            presentCount: 0, absentCount: 0, lateCount: 0,
+            onLeaveCount: 0, halfDayCount: 0, holidayCount: 0,
+          };
+          let totalWorkingHours = 0;
+          let todayStatus: string | null = null;
+
+          for (const r of records) {
+            const dateStr = r.date instanceof Date
+              ? r.date.toISOString().split('T')[0]
+              : String(r.date).slice(0, 10);
+            if (dateStr === today) todayStatus = r.status;
+
+            switch (r.status) {
+              case 'PRESENT':  counts.presentCount++;  break;
+              case 'ABSENT':   counts.absentCount++;   break;
+              case 'LATE':     counts.lateCount++;     break;
+              case 'ON_LEAVE': counts.onLeaveCount++;  break;
+              case 'HALF_DAY': counts.halfDayCount++;  break;
+              case 'HOLIDAY':  counts.holidayCount++;  break;
+            }
+            if (r.workingHours) totalWorkingHours += Number(r.workingHours);
+          }
+
+          return { ...emp, ...counts, totalWorkingHours, todayStatus };
+        } catch {
+          return { ...emp, ...zeroStats };
         }
-
-        const attWhere: any = { employeeId: emp.id };
-        if (statsFrom || statsTo) {
-          attWhere.date = {};
-          if (statsFrom) attWhere.date.gte = statsFrom;
-          if (statsTo)   attWhere.date.lte = statsTo;
-        }
-        if (status) attWhere.status = status;
-
-        const grouped = await (this.prisma as any).attendanceRecord.groupBy({
-          by:    ['status'],
-          where: attWhere,
-          _count: { status: true },
-          _sum:   { workingHours: true },
-        });
-
-        const stats = this.buildStatsFromGroupBy(grouped);
-        return { ...emp, attendanceStats: stats };
       }),
     );
 

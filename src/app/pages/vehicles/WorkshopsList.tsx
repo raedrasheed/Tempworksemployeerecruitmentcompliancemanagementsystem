@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Wrench, Pencil, Trash2, X, Save } from 'lucide-react';
+import { useNavigate } from 'react-router';
+import { Plus, Wrench, Pencil, Trash2, X, Save, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -25,6 +26,7 @@ const EMPTY_FORM: WForm = { name: '', contactName: '', phone: '', email: '', add
 export function WorkshopsList() {
   const { canCreate } = usePermissions();
   const canWrite = canCreate('vehicles');
+  const navigate = useNavigate();
 
   const [workshops, setWorkshops] = useState<Workshop[]>([]);
   const [loading, setLoading]     = useState(true);
@@ -91,10 +93,15 @@ export function WorkshopsList() {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Wrench className="w-6 h-6 text-primary" />
-            Workshop Register
-          </h1>
+          <div className="flex items-center gap-3 mb-2">
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <h1 className="text-2xl font-bold flex items-center gap-2">
+              <Wrench className="w-6 h-6 text-primary" />
+              Workshop Register
+            </h1>
+          </div>
           <p className="text-sm text-muted-foreground mt-1">Manage garages and service centres used for vehicle maintenance</p>
         </div>
         {canWrite && (

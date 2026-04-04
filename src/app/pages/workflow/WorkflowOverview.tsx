@@ -3,11 +3,12 @@ import { Card, CardContent } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { Progress } from '../../components/ui/progress';
-import { Link } from 'react-router';
-import { Clock, BarChart3, ChevronRight } from 'lucide-react';
+import { Link, useNavigate } from 'react-router';
+import { Clock, BarChart3, ChevronRight, ArrowLeft } from 'lucide-react';
 import { employeeWorkflowApi } from '../../services/api';
 
 export function WorkflowOverview() {
+  const navigate = useNavigate();
   const [stages, setStages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -25,7 +26,12 @@ export function WorkflowOverview() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-semibold text-[#0F172A]">Workflow Overview</h1>
+          <div className="flex items-center gap-3 mb-6">
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <h1 className="text-3xl font-semibold text-[#0F172A]">Workflow Overview</h1>
+          </div>
           <p className="text-muted-foreground mt-1">Track recruitment workflow and driver progression</p>
         </div>
         <div className="flex items-center gap-3">

@@ -1,5 +1,5 @@
-import { Link } from 'react-router';
-import { FileText, CheckCircle2, Clock, AlertTriangle, User, Calendar, ArrowRight } from 'lucide-react';
+import { Link, useNavigate } from 'react-router';
+import { FileText, CheckCircle2, Clock, AlertTriangle, User, Calendar, ArrowRight, ArrowLeft } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
@@ -109,11 +109,17 @@ const mockTimelineEvents: TimelineEvent[] = [
 ];
 
 export function WorkflowTimeline() {
+  const navigate = useNavigate();
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-semibold text-[#0F172A]">Workflow Activity Timeline</h1>
+          <div className="flex items-center gap-3 mb-6">
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <h1 className="text-3xl font-semibold text-[#0F172A]">Workflow Activity Timeline</h1>
+          </div>
           <p className="text-muted-foreground mt-1">Real-time activity feed of all workflow events and updates</p>
         </div>
         <div className="flex items-center gap-3">

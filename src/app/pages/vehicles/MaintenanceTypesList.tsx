@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Settings, Pencil, Trash2, Save } from 'lucide-react';
+import { useNavigate } from 'react-router';
+import { Plus, Settings, Pencil, Trash2, Save, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -24,6 +25,7 @@ const EMPTY_FORM: MForm = { name: '', description: '', defaultIntervalDays: '', 
 export function MaintenanceTypesList() {
   const { canCreate } = usePermissions();
   const canWrite = canCreate('vehicles');
+  const navigate = useNavigate();
 
   const [types, setTypes]     = useState<MType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -88,10 +90,15 @@ export function MaintenanceTypesList() {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Settings className="w-6 h-6 text-primary" />
-            Maintenance Types
-          </h1>
+          <div className="flex items-center gap-3 mb-2">
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <h1 className="text-2xl font-bold flex items-center gap-2">
+              <Settings className="w-6 h-6 text-primary" />
+              Maintenance Types
+            </h1>
+          </div>
           <p className="text-sm text-muted-foreground mt-1">Configure service types and default intervals</p>
         </div>
         {canWrite && (

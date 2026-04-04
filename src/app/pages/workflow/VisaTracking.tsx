@@ -1,17 +1,26 @@
+import { useNavigate } from 'react-router';
+import { ArrowLeft } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { mockDrivers } from '../../data/mockData';
 
 export function VisaTracking() {
-  const visaDrivers = mockDrivers.filter(d => 
+  const navigate = useNavigate();
+  const visaDrivers = mockDrivers.filter(d =>
     d.currentStage === 'visa_application' || d.currentStage === 'visa_approved' || d.currentStage === 'embassy_appointment'
   );
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-semibold text-[#0F172A]">Visa Tracking</h1>
+        <div className="flex items-center gap-3 mb-6">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <h1 className="text-3xl font-semibold text-[#0F172A]">Visa Tracking</h1>
+        </div>
         <p className="text-muted-foreground mt-1">Monitor visa applications and embassy appointments</p>
       </div>
 

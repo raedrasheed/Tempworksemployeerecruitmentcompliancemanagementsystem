@@ -370,6 +370,7 @@ export function EmployeeProfile() {
                     ['Full Name', `${employee.firstName} ${employee.lastName}`],
                     ['Date of Birth', employee.dateOfBirth ? new Date(employee.dateOfBirth).toLocaleDateString() : '—'],
                     ['Nationality', employee.nationality],
+                    ['Job Type', employee.jobType?.name ?? '—'],
                     ['License Number', employee.licenseNumber ?? '—'],
                     ['License Category', employee.licenseCategory ?? '—'],
                     ['Years Experience', `${employee.yearsExperience ?? 0} years`],

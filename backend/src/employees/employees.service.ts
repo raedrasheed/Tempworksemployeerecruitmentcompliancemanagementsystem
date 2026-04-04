@@ -39,7 +39,8 @@ export class EmployeesService {
         where, skip, take: Number(limit),
         orderBy: { [sortBy]: sortOrder },
         include: {
-          agency: { select: { id: true, name: true } },
+          agency:   { select: { id: true, name: true } },
+          jobType:  { select: { id: true, name: true } },
         },
       }),
       this.prisma.employee.count({ where }),
@@ -52,7 +53,8 @@ export class EmployeesService {
     const employee = await this.prisma.employee.findFirst({
       where: { id, deletedAt: null },
       include: {
-        agency: true,
+        agency:   true,
+        jobType:  { select: { id: true, name: true } },
         employeeStages: { include: { stage: true, assignedTo: { select: { id: true, firstName: true, lastName: true } } }, orderBy: { stage: { order: 'asc' } } },
       },
     });

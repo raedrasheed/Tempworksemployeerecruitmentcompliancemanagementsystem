@@ -8,7 +8,7 @@ import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { toast } from 'sonner';
-import { employeesApi, agenciesApi } from '../../services/api';
+import { employeesApi, agenciesApi, settingsApi } from '../../services/api';
 
 const API_BASE = import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:3000';
 
@@ -27,6 +27,7 @@ export function EditEmployee() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [agencies, setAgencies] = useState<any[]>([]);
+  const [jobTypes, setJobTypes] = useState<any[]>([]);
 
   // Photo state
   const [currentPhotoUrl, setCurrentPhotoUrl] = useState<string | null>(null);
@@ -37,7 +38,7 @@ export function EditEmployee() {
   const [form, setForm] = useState({
     firstName: '', lastName: '', email: '', phone: '',
     nationality: '', dateOfBirth: '',
-    agencyId: '',
+    agencyId: '', jobTypeId: '',
     addressLine1: '', addressLine2: '', city: '', country: '', postalCode: '',
     licenseNumber: '', licenseCategory: '', yearsExperience: '',
     emergencyContact: '', emergencyPhone: '', notes: '',
@@ -48,8 +49,10 @@ export function EditEmployee() {
     Promise.all([
       employeesApi.get(id!),
       agenciesApi.list({ limit: 200 }),
-    ]).then(([emp, agencyResult]) => {
+      settingsApi.getJobTypes().catch(() => []),
+    ]).then(([emp, agencyResult, jt]) => {
       setAgencies((agencyResult as any)?.data ?? []);
+      setJobTypes(Array.isArray(jt) ? jt.filter((j: any) => j.isActive !== false) : []);
       setCurrentPhotoUrl(emp.photoUrl ?? null);
       setForm({
         firstName: emp.firstName ?? '',
@@ -58,7 +61,8 @@ export function EditEmployee() {
         phone: emp.phone ?? '',
         nationality: emp.nationality ?? '',
         dateOfBirth: emp.dateOfBirth ? emp.dateOfBirth.slice(0, 10) : '',
-        agencyId: emp.agencyId ?? '',
+        agencyId:  emp.agencyId  ?? '',
+        jobTypeId: emp.jobTypeId ?? '',
         addressLine1: emp.addressLine1 ?? '',
         addressLine2: emp.addressLine2 ?? '',
         city: emp.city ?? '',
@@ -111,7 +115,8 @@ export function EditEmployee() {
         country: form.country,
         postalCode: form.postalCode,
         status: form.status,
-        agencyId: form.agencyId || undefined,
+        agencyId:  form.agencyId  || undefined,
+        jobTypeId: form.jobTypeId || undefined,
         licenseNumber: form.licenseNumber || undefined,
         licenseCategory: form.licenseCategory || undefined,
         yearsExperience: form.yearsExperience ? parseInt(form.yearsExperience, 10) : undefined,
@@ -254,17 +259,31 @@ export function EditEmployee() {
             <Card>
               <CardHeader><CardTitle>Professional Information</CardTitle></CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="agencyId">Recruitment Agency</Label>
-                  <Select value={form.agencyId || '__none__'} onValueChange={val => setForm(prev => ({ ...prev, agencyId: val === '__none__' ? '' : val }))}>
-                    <SelectTrigger id="agencyId"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none__">Direct hire (no agency)</SelectItem>
-                      {agencies.map(a => (
-                        <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="agencyId">Recruitment Agency</Label>
+                    <Select value={form.agencyId || '__none__'} onValueChange={val => setForm(prev => ({ ...prev, agencyId: val === '__none__' ? '' : val }))}>
+                      <SelectTrigger id="agencyId"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">Direct hire (no agency)</SelectItem>
+                        {agencies.map(a => (
+                          <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="jobTypeId">Job Type</Label>
+                    <Select value={form.jobTypeId || '__none__'} onValueChange={val => setForm(prev => ({ ...prev, jobTypeId: val === '__none__' ? '' : val }))}>
+                      <SelectTrigger id="jobTypeId"><SelectValue placeholder="Select job type" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">Not specified</SelectItem>
+                        {jobTypes.map((jt: any) => (
+                          <SelectItem key={jt.id} value={jt.id}>{jt.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">

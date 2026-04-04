@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router';
 import {
   Search, Download, Eye, Plus, Truck, Filter, RefreshCw, X,
-  AlertTriangle, Car, Container, Thermometer,
+  AlertTriangle, Car, Container, Thermometer, Edit,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
@@ -254,9 +254,16 @@ export function VehiclesList() {
                     <TableCell>{expiryBadge(v.motExpiryDate)}</TableCell>
                     <TableCell>{expiryBadge(v.insuranceExpiryDate)}</TableCell>
                     <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                      <Button size="sm" variant="ghost" onClick={() => navigate(`/dashboard/vehicles/${v.id}`)}>
-                        <Eye className="w-4 h-4" />
-                      </Button>
+                      <div className="flex items-center justify-end gap-1">
+                        <Button size="sm" variant="ghost" onClick={() => navigate(`/dashboard/vehicles/${v.id}`)}>
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                        {canWrite && (
+                          <Button size="sm" variant="ghost" onClick={() => navigate(`/dashboard/vehicles/${v.id}/edit`)}>
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 );

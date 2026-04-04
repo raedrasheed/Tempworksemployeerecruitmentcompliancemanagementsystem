@@ -35,7 +35,7 @@ const SORT_OPTIONS = [
   { value: 'issueDate',     label: 'Issue Date' },
   { value: 'expiryDate',    label: 'Expiry Date' },
   { value: 'documentNumber',label: 'Doc Number' },
-  { value: 'docId',         label: 'Business ID' },
+  { value: 'docId',         label: 'Doc ID' },
   { value: 'verifiedAt',    label: 'Verified At' },
 ];
 
@@ -319,7 +319,7 @@ export function DocumentsCompliance() {
           {/* Row 2: docId + docNumber + expiry range */}
           <div className="flex flex-wrap gap-2">
             <Input
-              placeholder="Business ID (e.g. DOCC2026…)"
+              placeholder="Doc ID (e.g. DOCC2026…)"
               value={docIdFilter}
               onChange={e => setDocIdFilter(e.target.value)}
               className="w-52"
@@ -422,16 +422,13 @@ export function DocumentsCompliance() {
               <thead className="bg-muted/40 border-b">
                 <tr>
                   <th className="text-left p-3 font-medium text-muted-foreground whitespace-nowrap">
-                    Business ID <SortBtn field="docId" />
+                    Doc ID <SortBtn field="docId" />
                   </th>
                   <th className="text-left p-3 font-medium text-muted-foreground">Owner</th>
                   <th className="text-left p-3 font-medium text-muted-foreground">
                     Document <SortBtn field="name" />
                   </th>
                   <th className="text-left p-3 font-medium text-muted-foreground hidden md:table-cell">Type</th>
-                  <th className="text-left p-3 font-medium text-muted-foreground hidden lg:table-cell">
-                    Doc # <SortBtn field="documentNumber" />
-                  </th>
                   <th className="text-left p-3 font-medium text-muted-foreground">
                     Status <SortBtn field="status" />
                   </th>
@@ -487,10 +484,6 @@ export function DocumentsCompliance() {
                       </td>
                       {/* Type */}
                       <td className="p-3 hidden md:table-cell text-muted-foreground">{doc.documentType?.name ?? '—'}</td>
-                      {/* Physical doc number */}
-                      <td className="p-3 hidden lg:table-cell text-muted-foreground font-mono text-xs">
-                        {doc.documentNumber ?? '—'}
-                      </td>
                       {/* Status + rejection reason */}
                       <td className="p-3">
                         {getStatusBadge(doc.status)}

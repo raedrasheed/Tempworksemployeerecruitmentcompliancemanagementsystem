@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router';
+import { useState } from 'react';
 import {
   LayoutDashboard,
   Users,
@@ -16,23 +17,48 @@ import {
   UserCheck,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   DollarSign,
   Megaphone,
   Trash2,
   ClipboardList,
   Truck,
+  Wrench,
+  Factory,
 } from 'lucide-react';
 import { cn } from '../ui/utils';
 import { useAuthContext } from '../../contexts/AuthContext';
 
+interface NavChild {
+  icon: React.ElementType;
+  label: string;
+  path: string;
+}
+
+interface NavItem {
+  icon: React.ElementType;
+  label: string;
+  path: string;
+  permission: string | null;
+  roles?: string[];
+  children?: NavChild[];
+}
+
 // Each nav item declares which permission (module:read) is required to see it.
 // null means always visible to any authenticated user.
-const allNavigationItems = [
+const allNavigationItems: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard',             path: '/dashboard',                  permission: null },
   { icon: UserCheck,       label: 'Applicants',            path: '/dashboard/applicants',       permission: 'applicants:read' },
   { icon: Users,           label: 'Employees',             path: '/dashboard/employees',        permission: 'employees:read' },
   { icon: ClipboardList,   label: 'Attendance Sheets',     path: '/dashboard/attendance',       permission: 'attendance:read' },
-  { icon: Truck,           label: 'Vehicles',              path: '/dashboard/vehicles',         permission: 'vehicles:read' },
+  {
+    icon: Truck, label: 'Vehicles', path: '/dashboard/vehicles', permission: 'vehicles:read',
+    children: [
+      { icon: Truck,   label: 'Fleet',              path: '/dashboard/vehicles' },
+      { icon: Factory, label: 'Workshops',          path: '/dashboard/vehicles/workshops' },
+      { icon: Wrench,  label: 'Maintenance Types',  path: '/dashboard/vehicles/maintenance-types' },
+    ],
+  },
   { icon: FolderOpen,      label: 'Documents & Compliance',path: '/dashboard/documents-compliance', permission: 'documents:read' },
   { icon: FileSearch,      label: 'Document Explorer',     path: '/dashboard/document-explorer',permission: 'documents:read' },
   { icon: Building2,       label: 'Agencies',              path: '/dashboard/agencies',         permission: 'agencies:read' },
@@ -59,12 +85,26 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
   const permissions = user?.permissions ?? [];
   const isAdmin = userRole === 'System Admin';
 
-  const navigationItems = allNavigationItems.filter((item: any) => {
-    if (!item.permission) return true; // always visible
-    if (isAdmin) return true;          // admins see everything
-    if (item.roles && item.roles.includes(userRole)) return true; // role-based visibility
+  const navigationItems = allNavigationItems.filter((item) => {
+    if (!item.permission) return true;
+    if (isAdmin) return true;
+    if (item.roles && item.roles.includes(userRole)) return true;
     return permissions.includes(item.permission);
   });
+
+  // Track which parent items have their sub-nav expanded.
+  // Auto-expand if any child path is currently active.
+  const [expanded, setExpanded] = useState<Record<string, boolean>>(() => {
+    const init: Record<string, boolean> = {};
+    for (const item of allNavigationItems) {
+      if (item.children?.some((c) => location.pathname.startsWith(c.path) && c.path !== item.path)) {
+        init[item.path] = true;
+      }
+    }
+    return init;
+  });
+
+  const toggleExpand = (path: string) => setExpanded((prev) => ({ ...prev, [path]: !prev[path] }));
 
   return (
     <aside
@@ -97,33 +137,98 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
       <nav className="flex-1 overflow-y-auto p-4">
         <ul className="space-y-1">
           {navigationItems.map((item) => {
-            const isActive = location.pathname === item.path ||
-                           (item.path !== '/' && location.pathname.startsWith(item.path));
+            const hasChildren = !!item.children?.length;
+            const isParentActive = location.pathname === item.path ||
+              (item.path !== '/dashboard' && location.pathname.startsWith(item.path));
+            const isOpen = expanded[item.path] ?? false;
 
             return (
               <li key={item.path}>
-                <Link
-                  to={item.path}
-                  className={cn(
-                    "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors relative group",
-                    isActive
-                      ? "bg-primary text-primary-foreground"
-                      : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                    isCollapsed && "justify-center"
-                  )}
-                  title={isCollapsed ? item.label : undefined}
-                >
-                  <item.icon className="w-5 h-5 flex-shrink-0" />
-                  {!isCollapsed && <span className="text-sm">{item.label}</span>}
+                {/* Parent row */}
+                {hasChildren ? (
+                  <button
+                    type="button"
+                    onClick={() => toggleExpand(item.path)}
+                    className={cn(
+                      "w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors relative group",
+                      isParentActive
+                        ? "bg-primary/10 text-primary font-medium"
+                        : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                      isCollapsed && "justify-center",
+                    )}
+                    title={isCollapsed ? item.label : undefined}
+                  >
+                    <item.icon className="w-5 h-5 flex-shrink-0" />
+                    {!isCollapsed && (
+                      <>
+                        <span className="text-sm flex-1 text-left">{item.label}</span>
+                        <ChevronDown className={cn("w-4 h-4 transition-transform", isOpen && "rotate-180")} />
+                      </>
+                    )}
+                    {isCollapsed && (
+                      <div className="absolute left-full ml-2 px-3 py-2 bg-popover text-popover-foreground border border-border text-sm rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
+                        {item.label}
+                        <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1 w-2 h-2 bg-popover rotate-45 border-l border-b border-border" />
+                      </div>
+                    )}
+                  </button>
+                ) : (
+                  <Link
+                    to={item.path}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors relative group",
+                      isParentActive
+                        ? "bg-primary text-primary-foreground"
+                        : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                      isCollapsed && "justify-center",
+                    )}
+                    title={isCollapsed ? item.label : undefined}
+                  >
+                    <item.icon className="w-5 h-5 flex-shrink-0" />
+                    {!isCollapsed && <span className="text-sm">{item.label}</span>}
+                    {isCollapsed && (
+                      <div className="absolute left-full ml-2 px-3 py-2 bg-popover text-popover-foreground border border-border text-sm rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
+                        {item.label}
+                        <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1 w-2 h-2 bg-popover rotate-45 border-l border-b border-border" />
+                      </div>
+                    )}
+                  </Link>
+                )}
 
-                  {/* Tooltip for collapsed state */}
-                  {isCollapsed && (
-                    <div className="absolute left-full ml-2 px-3 py-2 bg-popover text-popover-foreground border border-border text-sm rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
-                      {item.label}
-                      <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1 w-2 h-2 bg-popover rotate-45 border-l border-b border-border" />
-                    </div>
-                  )}
-                </Link>
+                {/* Sub-nav children */}
+                {hasChildren && (isOpen || isCollapsed) && (
+                  <ul className={cn("mt-1 space-y-0.5", !isCollapsed && "pl-4")}>
+                    {item.children!.map((child) => {
+                      const childActive = child.path === item.path
+                        ? location.pathname === child.path
+                        : location.pathname.startsWith(child.path);
+                      return (
+                        <li key={child.path}>
+                          <Link
+                            to={child.path}
+                            className={cn(
+                              "flex items-center gap-3 px-3 py-1.5 rounded-lg transition-colors relative group text-sm",
+                              childActive
+                                ? "bg-primary text-primary-foreground"
+                                : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                              isCollapsed && "justify-center px-2",
+                            )}
+                            title={isCollapsed ? child.label : undefined}
+                          >
+                            <child.icon className="w-4 h-4 flex-shrink-0" />
+                            {!isCollapsed && <span>{child.label}</span>}
+                            {isCollapsed && (
+                              <div className="absolute left-full ml-2 px-3 py-2 bg-popover text-popover-foreground border border-border text-sm rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
+                                {child.label}
+                                <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1 w-2 h-2 bg-popover rotate-45 border-l border-b border-border" />
+                              </div>
+                            )}
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
               </li>
             );
           })}

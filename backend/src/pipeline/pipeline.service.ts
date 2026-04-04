@@ -437,7 +437,7 @@ export class WorkflowService {
 
   async getWorkflowBoardView(workflowId: string) {
     const workflow = await this.getWorkflow(workflowId);
-    const stages = (workflow as any).stages as any[];
+    const stages = ((workflow as any).stages as any[]).filter((s: any) => s.isActive !== false);
 
     // Fetch ALL employee assignments for this workflow once, group by currentStageId in JS
     // (avoid enum/text cast issue by not filtering status in Prisma)

@@ -31,11 +31,15 @@ export class WorkflowService {
   async listWorkflows(includeArchived = false) {
     const where: any = { deletedAt: null };
     if (!includeArchived) where.status = 'ACTIVE';
-    return this.prisma.workflow.findMany({
+    const workflows = await this.prisma.workflow.findMany({
       where,
       orderBy: [{ isDefault: 'desc' }, { name: 'asc' }],
       include: WORKFLOW_INCLUDE,
     });
+    return workflows.map((w: any) => ({
+      ...w,
+      stages: (w.stages as any[]).filter((s: any) => s.isActive !== false),
+    }));
   }
 
   async getWorkflow(id: string) {

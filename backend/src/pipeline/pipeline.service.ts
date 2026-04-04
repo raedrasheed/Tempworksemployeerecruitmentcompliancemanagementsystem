@@ -623,8 +623,9 @@ export class WorkflowService {
         orderBy: { enteredAt: 'asc' },
       }),
       // Active employees whose currentStageId === this stage
+      // Note: filter status in JS to avoid Prisma enum/text cast issue with pg adapter
       this.prisma.employeeWorkflowAssignment.findMany({
-        where: { currentStageId: stageId, status: 'ACTIVE' },
+        where: { currentStageId: stageId },
         include: {
           employee: {
             select: {
@@ -661,8 +662,8 @@ export class WorkflowService {
       };
     });
 
-    // Map employees
-    const employeeEntries = employeeAssignments.map((ea) => {
+    // Map employees (filter ACTIVE in JS — avoids Prisma enum/text cast issue with pg adapter)
+    const employeeEntries = employeeAssignments.filter(ea => ea.status === 'ACTIVE').map((ea) => {
       const emp = (ea as any).employee;
       const daysInStage = Math.floor((Date.now() - new Date(ea.assignedAt).getTime()) / 86400000);
       return {

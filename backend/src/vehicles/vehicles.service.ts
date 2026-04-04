@@ -234,7 +234,7 @@ export class VehiclesService {
   // ── Maintenance Types ────────────────────────────────────────────────────────
 
   async listMaintenanceTypes() {
-    return this.prisma.maintenanceType.findMany({ where: { isActive: true }, orderBy: { name: 'asc' } });
+    return this.prisma.maintenanceType.findMany({ where: { isActive: true, deletedAt: null } as any, orderBy: { name: 'asc' } });
   }
 
   async createMaintenanceType(dto: CreateMaintenanceTypeDto) {
@@ -247,11 +247,15 @@ export class VehiclesService {
     return this.prisma.maintenanceType.update({ where: { id }, data: dto });
   }
 
-  async deleteMaintenanceType(id: string) {
+  async deleteMaintenanceType(id: string, userId?: string) {
     const mt = await this.prisma.maintenanceType.findUnique({ where: { id } });
     if (!mt) throw new NotFoundException('Maintenance type not found');
-    await this.prisma.maintenanceType.update({ where: { id }, data: { isActive: false } });
-    return { message: 'Maintenance type deactivated' };
+    if ((mt as any).deletedAt) throw new NotFoundException('Maintenance type not found');
+    await (this.prisma.maintenanceType as any).update({
+      where: { id },
+      data: { deletedAt: new Date(), deletedBy: userId ?? null },
+    });
+    return { message: 'Maintenance type deleted' };
   }
 
   // ── Workshops ────────────────────────────────────────────────────────────────

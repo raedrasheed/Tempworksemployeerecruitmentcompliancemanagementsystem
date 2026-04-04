@@ -103,9 +103,9 @@ export class VehiclesController {
   @Delete('maintenance/types/:id')
   @Roles(...WRITE_ROLES)
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Deactivate a maintenance type' })
-  deleteMaintenanceType(@Param('id') id: string) {
-    return this.vehiclesService.deleteMaintenanceType(id);
+  @ApiOperation({ summary: 'Soft-delete a maintenance type' })
+  deleteMaintenanceType(@Param('id') id: string, @Request() req: any) {
+    return this.vehiclesService.deleteMaintenanceType(id, req.user?.id);
   }
 
   @Get('maintenance/records')

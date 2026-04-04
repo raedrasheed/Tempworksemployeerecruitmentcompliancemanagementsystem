@@ -49,6 +49,7 @@ export class RestoreService {
       case 'VEHICLE':     return this.restoreVehicle(id, actorId, withRelated, reason);
       case 'VEHICLE_DOCUMENT': return this.restoreVehicleDocument(id, actorId, reason);
       case 'MAINTENANCE_RECORD': return this.restoreMaintenanceRecord(id, actorId, reason);
+      case 'MAINTENANCE_TYPE':   return this.restoreMaintenanceType(id, actorId, reason);
       default:
         throw new BadRequestException(`No restore handler for entity type: ${entityType}`);
     }
@@ -348,6 +349,16 @@ export class RestoreService {
     await (this.prisma as any).maintenanceRecord.update({ where: { id }, data: { deletedAt: null, deletedBy: null } });
     await this.logRestore('MAINTENANCE_RECORD', id, actorId, { maintenanceRecord: 1 }, reason).catch(() => {});
     return { success: true, entityType: 'MAINTENANCE_RECORD', id, restored: { maintenanceRecord: 1 }, skipped: {}, warnings: [] };
+  }
+
+  private async restoreMaintenanceType(id: string, actorId: string, reason?: string): Promise<RestoreResult> {
+    const record = await (this.prisma as any).maintenanceType.findUnique({ where: { id } });
+    if (!record) throw new NotFoundException(`Maintenance type ${id} not found`);
+    if (!record.deletedAt) throw new ConflictException('Maintenance type is not deleted');
+
+    await (this.prisma as any).maintenanceType.update({ where: { id }, data: { deletedAt: null, deletedBy: null } });
+    await this.logRestore('MAINTENANCE_TYPE', id, actorId, { maintenanceType: 1 }, reason).catch(() => {});
+    return { success: true, entityType: 'MAINTENANCE_TYPE', id, restored: { maintenanceType: 1 }, skipped: {}, warnings: [] };
   }
 
   // ── Helpers ─────────────────────────────────────────────────────────────────

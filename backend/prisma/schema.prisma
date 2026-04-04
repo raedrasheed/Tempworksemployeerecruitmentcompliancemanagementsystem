@@ -1261,14 +1261,16 @@ model Workshop {
 
 /// Configurable maintenance/service type (e.g. "Oil Change", "Tyre Rotation")
 model MaintenanceType {
-  id                  String   @id @default(uuid())
+  id                  String    @id @default(uuid())
   name                String
   description         String?
   defaultIntervalDays Int?
   defaultIntervalKm   Int?
-  isActive            Boolean  @default(true)
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  isActive            Boolean   @default(true)
+  deletedAt           DateTime?
+  deletedBy           String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
   maintenanceRecords MaintenanceRecord[]
 

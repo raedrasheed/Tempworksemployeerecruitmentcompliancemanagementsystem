@@ -41,6 +41,7 @@ export class HardDeleteService {
       case 'VEHICLE':     return this.hardDeleteVehicle(id, actorId, reason);
       case 'VEHICLE_DOCUMENT': return this.hardDeleteVehicleDocument(id, actorId, reason);
       case 'MAINTENANCE_RECORD': return this.hardDeleteMaintenanceRecord(id, actorId, reason);
+      case 'MAINTENANCE_TYPE':   return this.hardDeleteMaintenanceType(id, actorId, reason);
       default:
         throw new BadRequestException(`No hard-delete handler for entity type: ${entityType}`);
     }
@@ -354,6 +355,15 @@ export class HardDeleteService {
 
     await this.logHardDelete('MAINTENANCE_RECORD', id, actorId, deleted, reason).catch(() => {});
     return { success: true, entityType: 'MAINTENANCE_RECORD', id, deleted, warnings: [] };
+  }
+
+  private async hardDeleteMaintenanceType(id: string, actorId: string, reason?: string): Promise<HardDeleteResult> {
+    const record = await (this.prisma as any).maintenanceType.findUnique({ where: { id } });
+    if (!record) throw new NotFoundException(`Maintenance type ${id} not found`);
+
+    await (this.prisma as any).maintenanceType.delete({ where: { id } });
+    await this.logHardDelete('MAINTENANCE_TYPE', id, actorId, { maintenanceType: 1 }, reason).catch(() => {});
+    return { success: true, entityType: 'MAINTENANCE_TYPE', id, deleted: { maintenanceType: 1 }, warnings: [] };
   }
 
   // ── Helpers ─────────────────────────────────────────────────────────────────

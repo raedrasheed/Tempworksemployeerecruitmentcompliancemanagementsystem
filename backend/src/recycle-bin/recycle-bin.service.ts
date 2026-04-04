@@ -105,6 +105,12 @@ export const ENTITY_POLICIES: Record<
     canHardDelete: true,
     notes: 'Maintenance record leaf node; spare parts cascade-delete with the record',
   },
+  MAINTENANCE_TYPE: {
+    canRestore: true,
+    canRestoreWithRelated: false,
+    canHardDelete: true,
+    notes: 'Hard delete blocked if active maintenance records reference this type',
+  },
 };
 
 export interface DeletedRecord {
@@ -143,7 +149,7 @@ export class RecycleBinService {
     const [
       applicants, employees, users, agencies, documents,
       docTypes, jobAds, financialRecords, roles, reports,
-      vehicles, vehicleDocs, maintenanceRecords,
+      vehicles, vehicleDocs, maintenanceRecords, maintenanceTypes,
     ] = await Promise.all([
       this.getDeletedApplicants(filter, 50),
       this.getDeletedEmployees(filter, 50),
@@ -158,12 +164,13 @@ export class RecycleBinService {
       this.getDeletedVehicles(filter, 50),
       this.getDeletedVehicleDocuments(filter, 50),
       this.getDeletedMaintenanceRecords(filter, 50),
+      this.getDeletedMaintenanceTypes(filter, 50),
     ]);
 
     records = [
       ...applicants, ...employees, ...users, ...agencies, ...documents,
       ...docTypes, ...jobAds, ...financialRecords, ...roles, ...reports,
-      ...vehicles, ...vehicleDocs, ...maintenanceRecords,
+      ...vehicles, ...vehicleDocs, ...maintenanceRecords, ...maintenanceTypes,
     ];
 
     records.sort((a, b) => {
@@ -182,7 +189,7 @@ export class RecycleBinService {
     const [
       applicants, employees, users, agencies, documents,
       docTypes, jobAds, financialRecords, roles, reports,
-      vehicles, vehicleDocs, maintenanceRecords,
+      vehicles, vehicleDocs, maintenanceRecords, maintenanceTypes,
     ] = await Promise.all([
       this.prisma.applicant.count({ where: { deletedAt: { not: null } } }),
       this.prisma.employee.count({ where: { deletedAt: { not: null } } }),
@@ -197,6 +204,7 @@ export class RecycleBinService {
       this.prisma.vehicle.count({ where: { deletedAt: { not: null } } }),
       (this.prisma as any).vehicleDocument.count({ where: { deletedAt: { not: null } } }),
       (this.prisma as any).maintenanceRecord.count({ where: { deletedAt: { not: null } } }),
+      (this.prisma as any).maintenanceType.count({ where: { deletedAt: { not: null } } }),
     ]);
 
     return {
@@ -213,8 +221,9 @@ export class RecycleBinService {
       VEHICLE: vehicles,
       VEHICLE_DOCUMENT: vehicleDocs,
       MAINTENANCE_RECORD: maintenanceRecords,
+      MAINTENANCE_TYPE: maintenanceTypes,
       total: applicants + employees + users + agencies + documents + docTypes
-        + jobAds + financialRecords + roles + reports + vehicles + vehicleDocs + maintenanceRecords,
+        + jobAds + financialRecords + roles + reports + vehicles + vehicleDocs + maintenanceRecords + maintenanceTypes,
     };
   }
 
@@ -387,6 +396,17 @@ export class RecycleBinService {
         willDelete.maintenanceRecord = 1;
         break;
       }
+      case 'MAINTENANCE_TYPE': {
+        const activeUsage = await (this.prisma as any).maintenanceRecord.count({
+          where: { maintenanceTypeId: id, deletedAt: null },
+        });
+        if (activeUsage > 0) {
+          blocked = true;
+          blockedReason = `${activeUsage} active maintenance record(s) reference this type. Delete them first.`;
+        }
+        willDelete.maintenanceType = 1;
+        break;
+      }
       default:
         willDelete.record = 1;
     }
@@ -529,6 +549,15 @@ export class RecycleBinService {
         ]);
         break;
       }
+      case 'MAINTENANCE_TYPE': {
+        const where = this.buildMaintenanceTypeWhere(filter);
+        [data, total] = await Promise.all([
+          (this.prisma as any).maintenanceType.findMany({ where, orderBy: { deletedAt: sortOrder }, skip, take: Number(limit) })
+            .then((rs: any[]) => rs.map((r: any) => this.mapMaintenanceType(r))),
+          (this.prisma as any).maintenanceType.count({ where }),
+        ]);
+        break;
+      }
     }
 
     // Enrich with related deleted counts
@@ -618,6 +647,12 @@ export class RecycleBinService {
     const where = this.buildMaintenanceRecordWhere(f);
     const rs = await (this.prisma as any).maintenanceRecord.findMany({ where, orderBy: { deletedAt: 'desc' }, take: max });
     return rs.map((r: any) => this.mapMaintenanceRecord(r));
+  }
+
+  private async getDeletedMaintenanceTypes(f: ListDeletedDto, max: number) {
+    const where = this.buildMaintenanceTypeWhere(f);
+    const rs = await (this.prisma as any).maintenanceType.findMany({ where, orderBy: { deletedAt: 'desc' }, take: max });
+    return rs.map((r: any) => this.mapMaintenanceType(r));
   }
 
   // ── WHERE clause builders ───────────────────────────────────────────────────
@@ -785,6 +820,17 @@ export class RecycleBinService {
         { description: { contains: f.search, mode: 'insensitive' } },
         { invoiceNumber: { contains: f.search, mode: 'insensitive' } },
         { technicianName: { contains: f.search, mode: 'insensitive' } },
+      ];
+    }
+    return w;
+  }
+
+  private buildMaintenanceTypeWhere(f: ListDeletedDto) {
+    const w = this.baseDeletedWhere(f);
+    if (f.search) {
+      w.OR = [
+        { name: { contains: f.search, mode: 'insensitive' } },
+        { description: { contains: f.search, mode: 'insensitive' } },
       ];
     }
     return w;
@@ -1000,6 +1046,22 @@ export class RecycleBinService {
       canHardDelete: policy.canHardDelete,
       relatedDeletedCount: 0,
       extra: { documentType: r.documentType, vehicleId: r.vehicleId, issuer: r.issuer },
+    };
+  }
+
+  mapMaintenanceType(r: any): DeletedRecord {
+    const policy = ENTITY_POLICIES.MAINTENANCE_TYPE;
+    return {
+      entityType: 'MAINTENANCE_TYPE',
+      id: r.id,
+      displayName: r.name,
+      deletedAt: r.deletedAt,
+      deletedBy: r.deletedBy ?? undefined,
+      canRestore: policy.canRestore,
+      canRestoreWithRelated: policy.canRestoreWithRelated,
+      canHardDelete: policy.canHardDelete,
+      relatedDeletedCount: 0,
+      extra: { description: r.description },
     };
   }
 

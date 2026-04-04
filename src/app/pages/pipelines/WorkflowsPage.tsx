@@ -19,15 +19,15 @@ import {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function PipelineCard({
-  pipeline,
+function WorkflowCard({
+  workflow,
   stats,
   onSelect,
   onConfigure,
   onArchive,
   onDelete,
 }: {
-  pipeline: any;
+  workflow: any;
   stats: any;
   onSelect: () => void;
   onConfigure: () => void;

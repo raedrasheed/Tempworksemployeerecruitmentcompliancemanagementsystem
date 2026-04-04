@@ -122,7 +122,7 @@ export function WorkflowAnalytics() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Active in Pipeline</p>
+                <p className="text-sm text-muted-foreground">Active in Workflow</p>
                 <p className="text-3xl font-semibold text-[#0F172A] mt-1">101</p>
                 <div className="flex items-center gap-1 mt-2">
                   <TrendingUp className="w-4 h-4 text-[#2563EB]" />

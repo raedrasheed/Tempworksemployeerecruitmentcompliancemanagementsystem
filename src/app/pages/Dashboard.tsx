@@ -62,7 +62,7 @@ function timeAgo(dateStr: string) {
   return `${Math.floor(h / 24)}d ago`;
 }
 
-// Map pipeline stage names to the 4 required display categories
+// Map workflow stage names to the 4 required display categories
 const STAGE_KEYWORDS: { label: string; keywords: string[] }[] = [
   { label: 'Document Verification', keywords: ['document', 'verification', 'doc'] },
   { label: 'Work Permit',           keywords: ['permit', 'work permit'] },
@@ -111,7 +111,7 @@ export function Dashboard() {
   const employees      = data?.employees   ?? {};
   const applicants     = data?.applicants  ?? {};
   const documents      = data?.documents   ?? {};
-  const pipeline       = data?.pipeline    ?? {};
+  const workflow       = data?.pipeline    ?? {};
   const recentEmps     = data?.recentEmployees   ?? [];
   const expiredDocs    = data?.expiredDocuments  ?? [];
   const recentActivity = data?.recentActivity    ?? [];
@@ -127,17 +127,17 @@ export function Dashboard() {
   const expiringSoon        = documents.expiringSoon          ?? 0;
   const expiredUnrenewed    = documents.expiredUnrenewedCount ?? 0;
 
-  const pipelineStages: any[]    = pipeline.stages           ?? [];
-  const avgDays:         number | null = pipeline.avgProcessingDays ?? null;
-  const approvalRate:    number | null = pipeline.approvalRate      ?? null;
+  const workflowStages: any[]    = workflow.stages           ?? [];
+  const avgDays:         number | null = workflow.avgProcessingDays ?? null;
+  const approvalRate:    number | null = workflow.approvalRate      ?? null;
 
-  // Aggregate pipeline into the 4 required categories
-  const pipelineSummary = STAGE_KEYWORDS.map(cat => {
-    const matching = pipelineStages.filter(s => matchStageToCategory(s.name) === cat.label);
+  // Aggregate workflow into the 4 required categories
+  const workflowSummary = STAGE_KEYWORDS.map(cat => {
+    const matching = workflowStages.filter(s => matchStageToCategory(s.name) === cat.label);
     const count    = matching.reduce((sum, s) => sum + (s.count ?? 0), 0);
     return { label: cat.label, count };
   });
-  const pipelineTotal = pipelineSummary.reduce((s, c) => s + c.count, 0);
+  const workflowTotal = workflowSummary.reduce((s, c) => s + c.count, 0);
 
   // Applicant status lookups
   const appStatus = (s: string) => appByStatus.find(x => x.status === s)?.count ?? 0;
@@ -294,18 +294,18 @@ export function Dashboard() {
         </CardContent>
       </Card>
 
-      {/* ── Widget Row 3: Pipeline + Activity ── */}
+      {/* ── Widget Row 3: Workflow + Activity ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* 5. Recruitment Pipeline */}
+        {/* 5. Recruitment Workflow */}
         <Card className="lg:col-span-2">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>Recruitment Pipeline</CardTitle>
+                <CardTitle>Recruitment Workflow</CardTitle>
                 <CardDescription>Current stage distribution of employees in the recruitment process</CardDescription>
               </div>
               <Button asChild variant="ghost" size="sm">
-                <Link to="/dashboard/workflows">View Pipeline <ChevronRight className="w-3 h-3 ml-1" /></Link>
+                <Link to="/dashboard/workflows">View Workflow <ChevronRight className="w-3 h-3 ml-1" /></Link>
               </Button>
             </div>
           </CardHeader>
@@ -317,10 +317,10 @@ export function Dashboard() {
                     <div className="h-2 bg-muted animate-pulse rounded" />
                   </div>
                 ))
-              : pipelineStages.length === 0
-              ? <p className="text-sm text-muted-foreground py-4 text-center">No active pipeline stages configured.</p>
-              : pipelineSummary.map(({ label, count }) => {
-                  const pct = pipelineTotal > 0 ? Math.round((count / pipelineTotal) * 100) : 0;
+              : workflowStages.length === 0
+              ? <p className="text-sm text-muted-foreground py-4 text-center">No active workflow stages configured.</p>
+              : workflowSummary.map(({ label, count }) => {
+                  const pct = workflowTotal > 0 ? Math.round((count / workflowTotal) * 100) : 0;
                   return (
                     <div key={label} className="space-y-1.5">
                       <div className="flex items-center justify-between text-sm">

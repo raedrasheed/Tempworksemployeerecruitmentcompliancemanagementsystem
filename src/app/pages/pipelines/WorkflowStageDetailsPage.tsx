@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router';
+
+const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1').replace('/api/v1', '');
+const photoUrl = (url?: string | null) => url ? `${API_BASE}${url}` : null;
 import {
   ArrowLeft, Users, Clock, AlertTriangle, TrendingUp,
   CheckCircle, Search, ChevronRight, UserCircle, Flag,
@@ -200,7 +203,7 @@ export function WorkflowStageDetailsPage() {
                   <div className="flex items-center gap-4">
                     <div className="w-10 h-10 rounded-full bg-[#EFF6FF] flex items-center justify-center overflow-hidden shrink-0">
                       {item.photoUrl
-                        ? <img src={item.photoUrl} alt={item.firstName} className="w-full h-full object-cover" />
+                        ? <img src={photoUrl(item.photoUrl)!} alt={item.firstName} className="w-full h-full object-cover" />
                         : <UserCircle className="w-6 h-6 text-[#2563EB]" />
                       }
                     </div>

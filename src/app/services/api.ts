@@ -1064,6 +1064,12 @@ export const attendanceApi = {
   }) => apiFetch<any>(`/attendance/${recordId}`, { method: 'PATCH', body: JSON.stringify(data) }),
 
   /**
+   * Delete an attendance record by id.
+   */
+  delete: (recordId: string) =>
+    apiFetch<any>(`/attendance/${recordId}`, { method: 'DELETE' }),
+
+  /**
    * Export the attendance sheet as an Excel file.
    * Returns a Blob suitable for createObjectURL.
    */

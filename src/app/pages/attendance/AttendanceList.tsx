@@ -130,7 +130,7 @@ export function AttendanceList() {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [statusFilter, setStatusFilter] = useState('');
-  const [driversOnly, setDriversOnly] = useState(true);
+  const [driversOnly, setDriversOnly] = useState(false);
 
   // Sort state
   const [sortBy, setSortBy] = useState('name');
@@ -140,7 +140,7 @@ export function AttendanceList() {
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportMonth, setExportMonth] = useState(new Date().getMonth() + 1);
   const [exportYear, setExportYear] = useState(new Date().getFullYear());
-  const [exportDriversOnly, setExportDriversOnly] = useState(true);
+  const [exportDriversOnly, setExportDriversOnly] = useState(false);
   const [exporting, setExporting] = useState(false);
 
   // ── Fetch ──────────────────────────────────────────────────────────────────────
@@ -228,7 +228,7 @@ export function AttendanceList() {
     setSelectedMonth(new Date().getMonth() + 1);
     setSelectedYear(new Date().getFullYear());
     setStatusFilter('');
-    setDriversOnly(true);
+    setDriversOnly(false);
     setPage(1);
   };
 
@@ -237,7 +237,7 @@ export function AttendanceList() {
     selectedMonth !== new Date().getMonth() + 1 ||
     selectedYear !== new Date().getFullYear() ||
     statusFilter !== '' ||
-    !driversOnly;
+    driversOnly;
 
   // ── Export ─────────────────────────────────────────────────────────────────────
 
@@ -276,7 +276,7 @@ export function AttendanceList() {
             Attendance Sheets
           </h1>
           <p className="text-muted-foreground mt-1">
-            Track and manage employee attendance
+            Track and manage attendance for all employees
           </p>
         </div>
         <div className="flex gap-2">
@@ -301,7 +301,7 @@ export function AttendanceList() {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground uppercase tracking-wide">
-                  Total Drivers
+                  Total Employees
                 </p>
                 <p className="text-2xl font-bold text-blue-700">{totalDriversCount}</p>
               </div>
@@ -366,7 +366,7 @@ export function AttendanceList() {
             <div className="flex-1 min-w-[200px] relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Search by driver name..."
+                placeholder="Search by employee name..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-10"
@@ -441,7 +441,7 @@ export function AttendanceList() {
                 onCheckedChange={setDriversOnly}
               />
               <Label htmlFor="drivers-only" className="text-sm cursor-pointer">
-                Drivers Only
+                Drivers Only (License)
               </Label>
             </div>
 
@@ -469,7 +469,7 @@ export function AttendanceList() {
               <ClipboardList className="w-10 h-10 mx-auto mb-3 opacity-30" />
               <p className="font-medium">No employees found</p>
               <p className="text-sm mt-1">
-                Try adjusting the filters or search term.
+                Try adjusting the filters or search term, or turn off "Drivers Only" to show all employees.
               </p>
               {hasFilters && (
                 <Button variant="outline" size="sm" className="mt-4" onClick={clearFilters}>
@@ -485,7 +485,7 @@ export function AttendanceList() {
                     <TableHead className="w-10 text-center">#</TableHead>
                     <SortHead
                       col="name"
-                      label="Driver"
+                      label="Employee"
                       sortBy={sortBy}
                       sortOrder={sortOrder}
                       onSort={handleSort}
@@ -721,7 +721,7 @@ export function AttendanceList() {
                 onCheckedChange={setExportDriversOnly}
               />
               <Label htmlFor="export-drivers-only" className="cursor-pointer">
-                Drivers Only
+                Drivers Only (License)
               </Label>
             </div>
 
@@ -730,7 +730,7 @@ export function AttendanceList() {
               <strong>
                 {MONTH_NAMES[exportMonth - 1]} {exportYear}
               </strong>
-              {exportDriversOnly ? ' (drivers only)' : ' (all employees)'}.
+              {exportDriversOnly ? ' (drivers with license only)' : ' (all employees)'}.
             </p>
           </div>
 

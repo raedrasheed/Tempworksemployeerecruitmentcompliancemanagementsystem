@@ -14,6 +14,7 @@ import {
   ChevronRight,
   RefreshCw,
   ClipboardList,
+  Trash2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
@@ -264,6 +265,11 @@ export function AttendanceSheet() {
     notes: '',
   });
 
+  // Delete confirmation state
+  const [deleteRecord, setDeleteRecord] = useState<any>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
   // Bulk fill modal
   const [showBulkFill, setShowBulkFill] = useState(false);
 
@@ -379,6 +385,22 @@ export function AttendanceSheet() {
       toast.error(err?.message || 'Failed to save attendance record');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteRecord?.id) return;
+    setDeleting(true);
+    try {
+      await attendanceApi.delete(deleteRecord.id);
+      toast.success('Attendance record deleted');
+      setShowDeleteModal(false);
+      setDeleteRecord(null);
+      fetchData();
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to delete attendance record');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -676,27 +698,39 @@ export function AttendanceSheet() {
 
                         {/* Actions */}
                         <TableCell className="text-right">
-                          {record ? (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => openEditModal(record, day.date)}
-                              className="h-7 px-2"
-                            >
-                              <Pencil className="w-3.5 h-3.5 mr-1" />
-                              Edit
-                            </Button>
-                          ) : (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => openEditModal(null, day.date)}
-                              className="h-7 px-2 text-muted-foreground hover:text-foreground"
-                            >
-                              <Plus className="w-3.5 h-3.5 mr-1" />
-                              Add
-                            </Button>
-                          )}
+                          <div className="flex items-center justify-end gap-1">
+                            {record ? (
+                              <>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => openEditModal(record, day.date)}
+                                  className="h-7 px-2"
+                                >
+                                  <Pencil className="w-3.5 h-3.5 mr-1" />
+                                  Edit
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => { setDeleteRecord(record); setShowDeleteModal(true); }}
+                                  className="h-7 px-2 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </Button>
+                              </>
+                            ) : (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => openEditModal(null, day.date)}
+                                className="h-7 px-2 text-muted-foreground hover:text-foreground"
+                              >
+                                <Plus className="w-3.5 h-3.5 mr-1" />
+                                Add
+                              </Button>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
@@ -842,6 +876,56 @@ export function AttendanceSheet() {
         records={records}
         onSuccess={fetchData}
       />
+
+      {/* Delete Confirmation Modal */}
+      <Dialog open={showDeleteModal} onOpenChange={(open) => { if (!open) { setShowDeleteModal(false); setDeleteRecord(null); } }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <Trash2 className="w-5 h-5" />
+              Delete Attendance Record
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-3">
+            <p className="text-sm text-muted-foreground">
+              Are you sure you want to delete the attendance record for{' '}
+              <strong>{deleteRecord?.date?.slice(0, 10)}</strong>?
+              This action cannot be undone.
+            </p>
+            {deleteRecord && (
+              <div className="mt-3 p-3 rounded-md bg-muted/40 text-sm space-y-1">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Status:</span>
+                  <Badge variant="outline" className={`text-xs ${statusColors[deleteRecord.status] ?? ''}`}>
+                    {statusLabels[deleteRecord.status] ?? deleteRecord.status}
+                  </Badge>
+                </div>
+                {deleteRecord.checkIn && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Check In:</span>
+                    <span className="font-mono">{deleteRecord.checkIn}</span>
+                  </div>
+                )}
+                {deleteRecord.checkOut && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Check Out:</span>
+                    <span className="font-mono">{deleteRecord.checkOut}</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowDeleteModal(false); setDeleteRecord(null); }} disabled={deleting}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+              <Trash2 className="w-4 h-4 mr-1" />
+              {deleting ? 'Deleting…' : 'Delete Record'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

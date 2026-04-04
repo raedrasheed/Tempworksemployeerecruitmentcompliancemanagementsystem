@@ -1124,9 +1124,18 @@ export const vehiclesApi = {
 
   // Documents
   addDocument: (vehicleId: string, data: {
-    name: string; documentType: string; fileUrl?: string; fileName?: string; fileSize?: number;
-    expiryDate?: string; issuedDate?: string; issuer?: string; notes?: string;
-  }) => apiFetch<any>(`/vehicles/${vehicleId}/documents`, { method: 'POST', body: JSON.stringify(data) }),
+    name: string; documentType: string; expiryDate?: string; issuedDate?: string; issuer?: string; notes?: string;
+  }, file?: File) => {
+    const form = new FormData();
+    form.append('name', data.name);
+    form.append('documentType', data.documentType);
+    if (data.expiryDate) form.append('expiryDate', data.expiryDate);
+    if (data.issuedDate) form.append('issuedDate', data.issuedDate);
+    if (data.issuer)     form.append('issuer', data.issuer);
+    if (data.notes)      form.append('notes', data.notes);
+    if (file)            form.append('file', file);
+    return apiFetch<any>(`/vehicles/${vehicleId}/documents`, { method: 'POST', body: form });
+  },
 
   updateDocument: (vehicleId: string, docId: string, data: Record<string, any>) =>
     apiFetch<any>(`/vehicles/${vehicleId}/documents/${docId}`, { method: 'PATCH', body: JSON.stringify(data) }),

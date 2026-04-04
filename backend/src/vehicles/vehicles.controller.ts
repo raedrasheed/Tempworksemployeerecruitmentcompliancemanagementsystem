@@ -1,9 +1,14 @@
 import {
   Controller, Get, Post, Patch, Delete, Body, Param, Query,
   UseGuards, HttpCode, HttpStatus, Res, Request,
+  UseInterceptors, UploadedFile, BadRequestException,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
+import { v4 as uuidv4 } from 'uuid';
 import { Response } from 'express';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
 import { VehiclesService } from './vehicles.service';
 import {
   FilterVehiclesDto,
@@ -234,9 +239,24 @@ export class VehiclesController {
 
   @Post(':vehicleId/documents')
   @Roles(...WRITE_ROLES)
-  @ApiOperation({ summary: 'Add a document to a vehicle' })
-  addDocument(@Param('vehicleId') vehicleId: string, @Body() dto: CreateVehicleDocumentDto, @Request() req: any) {
-    return this.vehiclesService.addDocument(vehicleId, dto, req.user?.id);
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Add a document (with optional file upload) to a vehicle' })
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: process.env.UPLOAD_DEST || './uploads',
+        filename: (_req, file, cb) => cb(null, `${uuidv4()}${extname(file.originalname)}`),
+      }),
+      limits: { fileSize: 20 * 1024 * 1024 }, // 20 MB
+    }),
+  )
+  addDocument(
+    @Param('vehicleId') vehicleId: string,
+    @Body() dto: CreateVehicleDocumentDto,
+    @UploadedFile() file: Express.Multer.File,
+    @Request() req: any,
+  ) {
+    return this.vehiclesService.addDocument(vehicleId, dto, req.user?.id, file);
   }
 
   @Patch(':vehicleId/documents/:docId')

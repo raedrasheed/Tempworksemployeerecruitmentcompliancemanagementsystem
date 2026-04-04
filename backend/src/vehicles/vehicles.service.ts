@@ -193,12 +193,17 @@ export class VehiclesService {
 
   // ── Documents ────────────────────────────────────────────────────────────────
 
-  async addDocument(vehicleId: string, dto: CreateVehicleDocumentDto, userId: string) {
+  async addDocument(vehicleId: string, dto: CreateVehicleDocumentDto, userId: string, file?: Express.Multer.File) {
     await this.findVehicleOrFail(vehicleId);
     const { expiryDate, issuedDate, ...rest } = dto;
     const data: any = { ...rest, vehicleId, uploadedById: userId };
     if (expiryDate)  data.expiryDate  = new Date(expiryDate);
     if (issuedDate)  data.issuedDate  = new Date(issuedDate);
+    if (file) {
+      data.fileUrl  = `/uploads/${file.filename}`;
+      data.fileName = file.originalname;
+      data.fileSize = file.size;
+    }
     return this.prisma.vehicleDocument.create({ data });
   }
 

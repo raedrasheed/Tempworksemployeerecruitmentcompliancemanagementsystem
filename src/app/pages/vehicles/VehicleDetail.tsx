@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import {
   ArrowLeft, Edit, Truck, User, FileText, Wrench, Plus,
-  Trash2, AlertTriangle, Search, ChevronDown,
+  Trash2, AlertTriangle, Search, ChevronDown, Download,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
@@ -83,6 +83,7 @@ export function VehicleDetail() {
   // Add document dialog
   const [docDialog, setDocDialog]         = useState(false);
   const [docForm, setDocForm]             = useState({ name: '', documentType: 'MOT', expiryDate: '', notes: '' });
+  const [docFile, setDocFile]             = useState<File | null>(null);
   const [docSaving, setDocSaving]         = useState(false);
 
   // Maintenance dialog
@@ -187,10 +188,15 @@ export function VehicleDetail() {
     if (!docForm.name.trim()) { toast.error('Document name required'); return; }
     setDocSaving(true);
     try {
-      await vehiclesApi.addDocument(id!, { ...docForm, expiryDate: docForm.expiryDate || undefined });
+      await vehiclesApi.addDocument(
+        id!,
+        { ...docForm, expiryDate: docForm.expiryDate || undefined },
+        docFile ?? undefined,
+      );
       toast.success('Document added');
       setDocDialog(false);
       setDocForm({ name: '', documentType: 'MOT', expiryDate: '', notes: '' });
+      setDocFile(null);
       load();
     } catch {
       toast.error('Failed to add document');
@@ -430,7 +436,7 @@ export function VehicleDetail() {
                 <TableHead>Issuer</TableHead>
                 <TableHead>Issued</TableHead>
                 <TableHead>Expires</TableHead>
-                {canWrite && <TableHead className="text-right">Actions</TableHead>}
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -443,13 +449,27 @@ export function VehicleDetail() {
                   <TableCell className="text-sm">{doc.issuer ?? '—'}</TableCell>
                   <TableCell className="text-sm">{doc.issuedDate ? new Date(doc.issuedDate).toLocaleDateString() : '—'}</TableCell>
                   <TableCell>{expiryCell(doc.expiryDate)}</TableCell>
-                  {canWrite && (
-                    <TableCell className="text-right">
-                      <Button size="sm" variant="ghost" onClick={() => handleDeleteDoc(doc.id)}>
-                        <Trash2 className="w-4 h-4 text-destructive" />
-                      </Button>
-                    </TableCell>
-                  )}
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      {doc.fileUrl && (
+                        <a
+                          href={`${(import.meta.env.VITE_API_URL as string | undefined)?.replace('/api/v1', '') ?? 'http://localhost:3000'}${doc.fileUrl}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          download={doc.fileName ?? undefined}
+                          className="inline-flex items-center justify-center h-8 w-8 rounded-md hover:bg-accent"
+                          title={`Download ${doc.fileName ?? 'file'}`}
+                        >
+                          <Download className="w-4 h-4 text-muted-foreground" />
+                        </a>
+                      )}
+                      {canWrite && (
+                        <Button size="sm" variant="ghost" onClick={() => handleDeleteDoc(doc.id)}>
+                          <Trash2 className="w-4 h-4 text-destructive" />
+                        </Button>
+                      )}
+                    </div>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -622,9 +642,20 @@ export function VehicleDetail() {
               <Label>Notes</Label>
               <Input value={docForm.notes} onChange={(e) => setDocForm((f) => ({ ...f, notes: e.target.value }))} placeholder="Optional notes" />
             </div>
+            <div className="space-y-1">
+              <Label>File <span className="text-muted-foreground text-xs">(optional, max 20 MB)</span></Label>
+              <input
+                type="file"
+                className="block w-full text-sm text-muted-foreground file:mr-3 file:py-1 file:px-3 file:rounded file:border file:border-input file:text-sm file:bg-background file:cursor-pointer hover:file:bg-accent cursor-pointer"
+                onChange={(e) => setDocFile(e.target.files?.[0] ?? null)}
+              />
+              {docFile && (
+                <p className="text-xs text-muted-foreground">{docFile.name} ({(docFile.size / 1024).toFixed(0)} KB)</p>
+              )}
+            </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDocDialog(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => { setDocDialog(false); setDocFile(null); }}>Cancel</Button>
             <Button onClick={handleAddDoc} disabled={docSaving}>{docSaving ? 'Adding…' : 'Add Document'}</Button>
           </DialogFooter>
         </DialogContent>

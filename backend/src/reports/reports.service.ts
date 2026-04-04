@@ -763,31 +763,171 @@ export class ReportsService {
   // ── Dashboard ─────────────────────────────────────────────────────────────
 
   async getDashboard() {
-    const now   = new Date();
-    const ago30 = new Date(now); ago30.setDate(ago30.getDate() - 30);
-    const fwd30 = new Date(now); fwd30.setDate(fwd30.getDate() + 30);
+    const now              = new Date();
+    const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const fwd60            = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000);
 
     const [
-      totalEmp, activeEmp, newEmp, empByStatus,
-      totalApp, newApp, appByStatus,
-      openAlerts, critAlerts, expiringDocs,
+      totalEmp, activeEmp, empThisMonth,
+      pendingApps, totalApp, appByStatus,
+      expiringSoonCount, expiredUnrenewedCount,
+      stageTemplates,
+      avgDaysResult,
+      approvedCount, decidedCount,
+      recentEmployees,
+      expiredDocsList,
+      recentActivity,
     ] = await Promise.all([
+      // ── Employees ──
       this.prisma.employee.count({ where: { deletedAt: null } }),
       this.prisma.employee.count({ where: { deletedAt: null, status: 'ACTIVE' } }),
-      this.prisma.employee.count({ where: { deletedAt: null, createdAt: { gte: ago30 } } }),
-      this.prisma.employee.groupBy({ by: ['status'], where: { deletedAt: null }, _count: { id: true } }),
+      this.prisma.employee.count({ where: { deletedAt: null, createdAt: { gte: startOfThisMonth } } }),
+
+      // ── Applicants ──
+      // "Pending" = status NEW (submitted but no action taken yet)
+      this.prisma.applicant.count({ where: { deletedAt: null, status: 'NEW' } }),
       this.prisma.applicant.count({ where: { deletedAt: null } }),
-      this.prisma.applicant.count({ where: { deletedAt: null, createdAt: { gte: ago30 } } }),
       this.prisma.applicant.groupBy({ by: ['status'], where: { deletedAt: null }, _count: { id: true } }),
-      this.prisma.complianceAlert.count({ where: { status: 'OPEN' } }),
-      this.prisma.complianceAlert.count({ where: { status: 'OPEN', severity: 'CRITICAL' } }),
-      this.prisma.document.count({ where: { deletedAt: null, expiryDate: { not: null, lte: fwd30, gte: now } } }),
+
+      // ── Documents ──
+      // Expiring soon: expiryDate in (now, +60 days] (excludes already expired)
+      this.prisma.document.count({ where: { deletedAt: null, expiryDate: { not: null, lte: fwd60, gt: now } } }),
+      // Expired and not yet renewed: expiryDate < now AND no renewal doc exists
+      this.prisma.document.count({ where: { deletedAt: null, expiryDate: { lt: now }, renewals: { none: {} } } }),
+
+      // ── Pipeline (StageTemplates with active EmployeeStage counts) ──
+      this.prisma.stageTemplate.findMany({
+        where: { isActive: true },
+        orderBy: { order: 'asc' },
+        include: {
+          _count: { select: { employeeStages: { where: { status: 'IN_PROGRESS' } } } },
+        },
+      }),
+
+      // ── Avg processing days: average (completedAt - startedAt) across completed stages ──
+      // Uses raw SQL because Prisma doesn't aggregate date diffs natively
+      this.prisma.$queryRaw`
+        SELECT COALESCE(
+          AVG(EXTRACT(EPOCH FROM ("completedAt" - "startedAt")) / 86400.0), 0
+        )::float AS avg_days
+        FROM employee_stages
+        WHERE status = 'COMPLETED'
+          AND "completedAt" IS NOT NULL
+          AND "startedAt"   IS NOT NULL
+      ` as Promise<{ avg_days: number }[]>,
+
+      // ── Approval rate: approved / (approved + rejected) ──
+      this.prisma.candidateStageApproval.count({ where: { decision: 'APPROVED' } }),
+      this.prisma.candidateStageApproval.count({ where: { decision: { in: ['APPROVED', 'REJECTED'] } } }),
+
+      // ── Recent employees: last 5 registrations ──
+      this.prisma.employee.findMany({
+        where: { deletedAt: null },
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+        select: {
+          id: true, firstName: true, lastName: true,
+          employeeNumber: true, status: true, createdAt: true, photoUrl: true,
+        },
+      }),
+
+      // ── Expired documents (not yet renewed), latest 5 ──
+      this.prisma.document.findMany({
+        where: { deletedAt: null, expiryDate: { lt: now }, renewals: { none: {} } },
+        orderBy: { expiryDate: 'asc' },
+        take: 5,
+        include: { documentType: { select: { name: true, code: true } } },
+      }),
+
+      // ── Recent activity from audit log, last 10 entries ──
+      this.prisma.auditLog.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+        select: { id: true, action: true, entity: true, entityId: true, userEmail: true, createdAt: true },
+      }),
     ]);
 
+    // Batch-resolve owner names for expired documents
+    const eIds = expiredDocsList.filter(d => d.entityType === 'EMPLOYEE').map(d => d.entityId);
+    const aIds = expiredDocsList.filter(d => d.entityType === 'APPLICANT').map(d => d.entityId);
+    const [docEmps, docApps] = await Promise.all([
+      eIds.length ? this.prisma.employee.findMany({ where: { id: { in: eIds } }, select: { id: true, firstName: true, lastName: true } }) : [],
+      aIds.length ? this.prisma.applicant.findMany({ where: { id: { in: aIds } }, select: { id: true, firstName: true, lastName: true } }) : [],
+    ]);
+    const empNameMap = Object.fromEntries(docEmps.map(e => [e.id, `${e.firstName} ${e.lastName}`]));
+    const appNameMap = Object.fromEntries(docApps.map(a => [a.id, `${a.firstName} ${a.lastName}`]));
+
+    const avgDays = avgDaysResult[0]?.avg_days
+      ? parseFloat((avgDaysResult[0].avg_days as any).toFixed(1))
+      : null;
+    const approvalRate = decidedCount > 0
+      ? parseFloat(((approvedCount / decidedCount) * 100).toFixed(1))
+      : null;
+
     return {
-      employees:  { total: totalEmp, active: activeEmp, newThisMonth: newEmp, byStatus: empByStatus.map(e => ({ status: e.status, count: e._count.id })) },
-      applicants: { total: totalApp, newThisMonth: newApp, byStatus: appByStatus.map(a => ({ status: a.status, count: a._count.id })) },
-      compliance: { openAlerts, criticalAlerts: critAlerts, expiringDocuments: expiringDocs },
+      // Widget 1: Total Employees
+      // Widget 2: Active Employees
+      employees: {
+        total:        totalEmp,
+        active:       activeEmp,
+        newThisMonth: empThisMonth,  // delta = employees added this calendar month
+      },
+
+      // Widget 3: Pending Applications
+      // "Pending" defined as: applicant.status = 'NEW' (submitted, no action taken yet)
+      applicants: {
+        total:   totalApp,
+        pending: pendingApps,
+        byStatus: appByStatus.map(a => ({ status: a.status, count: (a._count as any).id })),
+      },
+
+      // Widget 4: Expiring Documents
+      // Widget 8: Expired Documents (not yet renewed)
+      documents: {
+        // expiringSoon: expiryDate in (now, now+60d]; already-expired excluded
+        expiringSoon:          expiringSoonCount,
+        // expiredUnrenewed: expiryDate < now AND no renewal document exists
+        expiredUnrenewedCount: expiredUnrenewedCount,
+      },
+
+      // Widget 5: Recruitment Pipeline
+      // stages: StageTemplate list with IN_PROGRESS employee count
+      // avgProcessingDays: mean calendar days across all COMPLETED employee stages
+      // approvalRate: approved / (approved+rejected) × 100 across all candidate stage approvals
+      pipeline: {
+        stages: stageTemplates.map(st => ({
+          id:       st.id,
+          name:     st.name,
+          order:    st.order,
+          category: st.category,
+          color:    st.color,
+          count:    (st._count as any).employeeStages,
+        })),
+        avgProcessingDays: avgDays,
+        approvalRate:      approvalRate,
+      },
+
+      // Widget 7: Recent Employees
+      recentEmployees,
+
+      // Widget 8: Expired Documents List
+      expiredDocuments: expiredDocsList.map(doc => ({
+        id:           doc.id,
+        docId:        doc.docId,
+        name:         doc.name,
+        entityType:   doc.entityType,
+        entityId:     doc.entityId,
+        expiryDate:   doc.expiryDate,
+        status:       doc.status,
+        documentType: doc.documentType,
+        ownerName:    doc.entityType === 'EMPLOYEE'
+          ? (empNameMap[doc.entityId] ?? null)
+          : (appNameMap[doc.entityId] ?? null),
+      })),
+
+      // Widget 6: Recent Activity Feed
+      // Source: AuditLog — covers all UPLOAD/VERIFY/REJECT/CREATE/UPDATE/DELETE events
+      recentActivity,
     };
   }
 

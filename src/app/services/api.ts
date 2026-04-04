@@ -679,6 +679,9 @@ export const logsApi = {
 // ─── Dashboard API ────────────────────────────────────────────────────────────
 
 export const dashboardApi = {
+  /** Returns fully-enriched dashboard payload (employees, applicants, documents, pipeline, recent lists) */
+  getOverview: () => apiFetch<any>('/reports/dashboard'),
+  // Legacy alias kept for backward compatibility
   getStats: () => apiFetch<any>('/reports/dashboard'),
 };
 

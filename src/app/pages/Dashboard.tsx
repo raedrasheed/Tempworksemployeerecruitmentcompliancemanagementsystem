@@ -1,352 +1,569 @@
 import { Link } from 'react-router';
 import { useState, useEffect } from 'react';
 import {
-  Users,
-  FileCheck,
-  Clock,
-  AlertTriangle,
-  TrendingUp,
-  CheckCircle2,
-  XCircle,
-  Plane,
-  UserCheck
+  Users, FileCheck, Clock, AlertTriangle, TrendingUp,
+  CheckCircle2, ArrowUp, ArrowDown, Minus, Activity,
+  FileX, Zap, BarChart3, UserPlus, RefreshCw, ChevronRight,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 import { Progress } from '../components/ui/progress';
-import { reportsApi, complianceApi, getCurrentUser } from '../services/api';
+import { dashboardApi, getCurrentUser } from '../services/api';
+import { usePermissions } from '../hooks/usePermissions';
+
+const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1').replace('/api/v1', '');
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+function getStatusColor(status: string) {
+  const map: Record<string, string> = {
+    ACTIVE:      'bg-emerald-100 text-emerald-700',
+    INACTIVE:    'bg-gray-100 text-gray-600',
+    PENDING:     'bg-amber-100 text-amber-700',
+    ONBOARDING:  'bg-blue-100 text-blue-700',
+    TERMINATED:  'bg-red-100 text-red-600',
+    ON_LEAVE:    'bg-purple-100 text-purple-700',
+  };
+  return map[status] ?? 'bg-gray-100 text-gray-600';
+}
+
+function activityColor(action: string) {
+  const a = action?.toUpperCase() ?? '';
+  if (a.includes('DELETE') || a.includes('REJECT'))   return 'bg-red-500';
+  if (a.includes('CREATE') || a.includes('UPLOAD'))   return 'bg-emerald-500';
+  if (a.includes('UPDATE') || a.includes('EDIT'))     return 'bg-blue-500';
+  if (a.includes('VERIFY') || a.includes('APPROVE'))  return 'bg-emerald-500';
+  if (a.includes('LOGIN') || a.includes('LOGOUT'))    return 'bg-gray-400';
+  return 'bg-amber-500';
+}
+
+function activityLabel(action: string, entity: string) {
+  const a = action?.toUpperCase() ?? '';
+  const e = entity ? entity.charAt(0).toUpperCase() + entity.slice(1).toLowerCase() : '';
+  if (a === 'UPLOAD')  return `${e} uploaded`;
+  if (a === 'VERIFY')  return `${e} verified`;
+  if (a === 'REJECT')  return `${e} rejected`;
+  if (a === 'CREATE')  return `${e} created`;
+  if (a === 'UPDATE')  return `${e} updated`;
+  if (a === 'DELETE')  return `${e} deleted`;
+  if (a === 'RENEW')   return `${e} renewed`;
+  if (a === 'CONVERT') return `${e} converted`;
+  return `${e} ${action?.toLowerCase() ?? ''}`.trim();
+}
+
+function timeAgo(dateStr: string) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1)  return 'just now';
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
+}
+
+// Map pipeline stage names to the 4 required display categories
+const STAGE_KEYWORDS: { label: string; keywords: string[] }[] = [
+  { label: 'Document Verification', keywords: ['document', 'verification', 'doc'] },
+  { label: 'Work Permit',           keywords: ['permit', 'work permit'] },
+  { label: 'Visa',                  keywords: ['visa'] },
+  { label: 'Onboarding',            keywords: ['onboard', 'onboarding', 'deployment'] },
+];
+
+function matchStageToCategory(stageName: string) {
+  const lower = stageName.toLowerCase();
+  for (const cat of STAGE_KEYWORDS) {
+    if (cat.keywords.some(k => lower.includes(k))) return cat.label;
+  }
+  return null;
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
 
 export function Dashboard() {
   const currentUser = getCurrentUser();
-  const [stats, setStats] = useState<any>(null);
-  const [expiringDocs, setExpiringDocs] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { canCreate, can } = usePermissions();
 
-  useEffect(() => {
-    Promise.all([
-      reportsApi.getDashboard(),
-      complianceApi.getExpiringDocuments(60),
-    ]).then(([dashData, expiringData]) => {
-      setStats(dashData?.stats || dashData);
-      setExpiringDocs(expiringData || []);
-    }).catch(() => {
-      // Fall back to empty state if backend not available
-      setStats({ totalEmployees: 0, activeEmployees: 0, pendingApplications: 0, expiringDocuments: 0 });
-    }).finally(() => setLoading(false));
-  }, []);
+  const [data,       setData]       = useState<any>(null);
+  const [loading,    setLoading]    = useState(true);
+  const [error,      setError]      = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const dashboardStats = {
-    avgProcessingTime: stats?.avgProcessingTime ?? '—',
-    approvalRate: stats?.approvalRate ?? '—',
-    visasPending: stats?.visasPending ?? '—',
+  const load = async (showRefresh = false) => {
+    if (showRefresh) setRefreshing(true);
+    else             setLoading(true);
+    setError(false);
+    try {
+      const result = await dashboardApi.getOverview();
+      setData(result);
+    } catch {
+      setError(true);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   };
 
-  const recentAlerts: any[] = stats?.recentAlerts ?? [];
-  const recentDrivers: any[] = stats?.recentEmployees ?? [];
+  useEffect(() => { load(); }, []);
+
+  // ── Derived values ─────────────────────────────────────────────────────────
+
+  const employees      = data?.employees   ?? {};
+  const applicants     = data?.applicants  ?? {};
+  const documents      = data?.documents   ?? {};
+  const pipeline       = data?.pipeline    ?? {};
+  const recentEmps     = data?.recentEmployees   ?? [];
+  const expiredDocs    = data?.expiredDocuments  ?? [];
+  const recentActivity = data?.recentActivity    ?? [];
+
+  const totalEmp       = employees.total        ?? 0;
+  const activeEmp      = employees.active       ?? 0;
+  const deltaThisMonth = employees.newThisMonth ?? 0;
+
+  const pendingApps    = applicants.pending      ?? 0;
+  const totalApps      = applicants.total        ?? 0;
+  const appByStatus: { status: string; count: number }[] = applicants.byStatus ?? [];
+
+  const expiringSoon        = documents.expiringSoon          ?? 0;
+  const expiredUnrenewed    = documents.expiredUnrenewedCount ?? 0;
+
+  const pipelineStages: any[]    = pipeline.stages           ?? [];
+  const avgDays:         number | null = pipeline.avgProcessingDays ?? null;
+  const approvalRate:    number | null = pipeline.approvalRate      ?? null;
+
+  // Aggregate pipeline into the 4 required categories
+  const pipelineSummary = STAGE_KEYWORDS.map(cat => {
+    const matching = pipelineStages.filter(s => matchStageToCategory(s.name) === cat.label);
+    const count    = matching.reduce((sum, s) => sum + (s.count ?? 0), 0);
+    return { label: cat.label, count };
+  });
+  const pipelineTotal = pipelineSummary.reduce((s, c) => s + c.count, 0);
+
+  // Applicant status lookups
+  const appStatus = (s: string) => appByStatus.find(x => x.status === s)?.count ?? 0;
+
+  // ── Stat card sub-component ────────────────────────────────────────────────
+  const Skeleton = () => <div className="h-7 w-16 bg-muted animate-pulse rounded" />;
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-semibold text-[#0F172A]">Dashboard</h1>
-        <p className="text-muted-foreground mt-1">
-          Welcome back, {currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : 'User'}
-        </p>
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-semibold text-[#0F172A]">Dashboard</h1>
+          <p className="text-muted-foreground mt-1">
+            Welcome back, {currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : 'User'}
+          </p>
+        </div>
+        <Button variant="outline" size="sm" onClick={() => load(true)} disabled={refreshing}>
+          <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Employees
-            </CardTitle>
-            <Users className="w-4 h-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-semibold text-[#0F172A]">{loading ? '—' : (stats?.totalEmployees ?? 0)}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              <span className="text-[#22C55E]">+{stats?.completedThisMonth ?? 0}</span> this month
-            </p>
-          </CardContent>
-        </Card>
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          Failed to load dashboard data. <button className="underline" onClick={() => load()}>Retry</button>
+        </div>
+      )}
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Active Employees
-            </CardTitle>
-            <CheckCircle2 className="w-4 h-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-semibold text-[#0F172A]">{loading ? '—' : (stats?.activeEmployees ?? 0)}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {stats?.totalEmployees > 0 ? `${((stats.activeEmployees / stats.totalEmployees) * 100).toFixed(0)}% of total` : '—'}
-            </p>
-          </CardContent>
-        </Card>
+      {/* ── Widget Row 1: Summary KPI Cards ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* 1. Total Employees */}
+        <Link to="/dashboard/employees" className="group">
+          <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total Employees</CardTitle>
+              <Users className="w-4 h-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              {loading ? <Skeleton /> : <div className="text-3xl font-bold text-[#0F172A]">{totalEmp}</div>}
+              <div className="flex items-center gap-1 mt-1 text-xs">
+                {deltaThisMonth > 0
+                  ? <><ArrowUp className="w-3 h-3 text-emerald-500" /><span className="text-emerald-600 font-medium">+{deltaThisMonth}</span><span className="text-muted-foreground ml-1">this month</span></>
+                  : deltaThisMonth < 0
+                  ? <><ArrowDown className="w-3 h-3 text-red-500" /><span className="text-red-600 font-medium">{deltaThisMonth}</span><span className="text-muted-foreground ml-1">this month</span></>
+                  : <><Minus className="w-3 h-3 text-muted-foreground" /><span className="text-muted-foreground">No change this month</span></>
+                }
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Pending Applications
-            </CardTitle>
-            <Clock className="w-4 h-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-semibold text-[#0F172A]">{loading ? '—' : (stats?.pendingApplications ?? 0)}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              <span className="text-[#F59E0B]">{stats?.pendingApplications ?? 0}</span> need review
-            </p>
-          </CardContent>
-        </Card>
+        {/* 2. Active Employees */}
+        <Link to="/dashboard/employees?status=ACTIVE" className="group">
+          <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Active Employees</CardTitle>
+              <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+            </CardHeader>
+            <CardContent>
+              {loading ? <Skeleton /> : <div className="text-3xl font-bold text-[#0F172A]">{activeEmp}</div>}
+              <div className="flex items-center gap-1 mt-1 text-xs">
+                <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />
+                <span className="text-emerald-600 font-medium">Active</span>
+                {totalEmp > 0 && !loading && (
+                  <span className="text-muted-foreground ml-1">
+                    ({((activeEmp / totalEmp) * 100).toFixed(0)}% of total)
+                  </span>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Expiring Documents
-            </CardTitle>
-            <AlertTriangle className="w-4 h-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-semibold text-[#0F172A]">{loading ? '—' : (stats?.expiringDocuments ?? expiringDocs.length)}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Within 60 days
-            </p>
-          </CardContent>
-        </Card>
+        {/* 3. Pending Applications */}
+        <Link to="/dashboard/applicants?status=NEW" className="group">
+          <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Pending Applications</CardTitle>
+              <Clock className="w-4 h-4 text-amber-500" />
+            </CardHeader>
+            <CardContent>
+              {loading ? <Skeleton /> : <div className="text-3xl font-bold text-[#0F172A]">{pendingApps}</div>}
+              <div className="flex items-center gap-1 mt-1 text-xs">
+                {pendingApps > 0
+                  ? <><span className="inline-flex items-center gap-1 bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full font-medium">{pendingApps} need review</span></>
+                  : <span className="text-muted-foreground">All reviewed</span>
+                }
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        {/* 4. Expiring Documents */}
+        <Link to="/dashboard/documents-compliance?status=EXPIRING_SOON" className="group">
+          <Card className={`hover:shadow-md transition-shadow cursor-pointer h-full ${expiringSoon > 0 ? 'border-amber-300' : ''}`}>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Expiring Documents</CardTitle>
+              <AlertTriangle className={`w-4 h-4 ${expiringSoon > 0 ? 'text-amber-500' : 'text-muted-foreground'}`} />
+            </CardHeader>
+            <CardContent>
+              {loading
+                ? <Skeleton />
+                : <div className={`text-3xl font-bold ${expiringSoon > 0 ? 'text-amber-600' : 'text-[#0F172A]'}`}>{expiringSoon}</div>
+              }
+              <div className="mt-1 text-xs">
+                {expiringSoon > 0
+                  ? <span className="text-amber-600 font-medium">Within 60 days — action needed</span>
+                  : <span className="text-muted-foreground">Within 60 days</span>
+                }
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
       </div>
 
-      {/* Applicants Overview Section */}
+      {/* ── Widget Row 2: Applicants Overview ── */}
       <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <div>
-              <CardTitle className="flex items-center gap-2">
-                <UserCheck className="w-5 h-5 text-[#2563EB]" />
+              <CardTitle className="flex items-center gap-2 text-[#0F172A]">
+                <Users className="w-5 h-5 text-[#2563EB]" />
                 Applicants Overview
               </CardTitle>
-              <CardDescription>Job applicants awaiting review and conversion</CardDescription>
+              <CardDescription>Job applicants by current status</CardDescription>
             </div>
-            <Button asChild>
+            <Button asChild size="sm">
               <Link to="/dashboard/applicants">View All Applicants</Link>
             </Button>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <div className="text-center p-4 bg-white rounded-lg">
-              <div className="text-2xl font-bold text-[#0F172A]">5</div>
-              <div className="text-xs text-muted-foreground mt-1">Total Applicants</div>
-            </div>
-            <div className="text-center p-4 bg-white rounded-lg">
-              <div className="text-2xl font-bold text-blue-600">1</div>
-              <div className="text-xs text-muted-foreground mt-1">New Applications</div>
-            </div>
-            <div className="text-center p-4 bg-white rounded-lg">
-              <div className="text-2xl font-bold text-yellow-600">1</div>
-              <div className="text-xs text-muted-foreground mt-1">Under Review</div>
-            </div>
-            <div className="text-center p-4 bg-white rounded-lg">
-              <div className="text-2xl font-bold text-purple-600">1</div>
-              <div className="text-xs text-muted-foreground mt-1">Interview Scheduled</div>
-            </div>
-            <div className="text-center p-4 bg-white rounded-lg">
-              <div className="text-2xl font-bold text-green-600">1</div>
-              <div className="text-xs text-muted-foreground mt-1">Ready to Convert</div>
-            </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+            {[
+              { label: 'Total',             value: totalApps,            color: 'text-[#0F172A]',  link: '/dashboard/applicants' },
+              { label: 'New / Unreviewed',  value: appStatus('NEW'),      color: 'text-blue-600',   link: '/dashboard/applicants?status=NEW' },
+              { label: 'Screening',         value: appStatus('SCREENING'),color: 'text-amber-600',  link: '/dashboard/applicants?status=SCREENING' },
+              { label: 'Interview',         value: appStatus('INTERVIEW'),color: 'text-purple-600', link: '/dashboard/applicants?status=INTERVIEW' },
+              { label: 'Offer Made',        value: appStatus('OFFER'),    color: 'text-indigo-600', link: '/dashboard/applicants?status=OFFER' },
+              { label: 'Accepted',          value: appStatus('ACCEPTED'), color: 'text-emerald-600',link: '/dashboard/applicants?status=ACCEPTED' },
+            ].map(({ label, value, color, link }) => (
+              <Link key={label} to={link}>
+                <div className="text-center p-3 bg-white rounded-lg hover:shadow-sm transition-shadow cursor-pointer">
+                  {loading
+                    ? <div className="h-7 w-10 bg-muted animate-pulse rounded mx-auto" />
+                    : <div className={`text-2xl font-bold ${color}`}>{value}</div>
+                  }
+                  <div className="text-xs text-muted-foreground mt-1 leading-tight">{label}</div>
+                </div>
+              </Link>
+            ))}
           </div>
         </CardContent>
       </Card>
 
-      {/* Main Content Grid */}
+      {/* ── Widget Row 3: Pipeline + Activity ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Recruitment Pipeline */}
+        {/* 5. Recruitment Pipeline */}
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>Recruitment Pipeline</CardTitle>
-            <CardDescription>Current status of employee recruitment process</CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Recruitment Pipeline</CardTitle>
+                <CardDescription>Current stage distribution of employees in the recruitment process</CardDescription>
+              </div>
+              <Button asChild variant="ghost" size="sm">
+                <Link to="/dashboard/workflow">View Pipeline <ChevronRight className="w-3 h-3 ml-1" /></Link>
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Document Verification</span>
-                <span className="font-medium">15 employees</span>
-              </div>
-              <Progress value={60} className="h-2" />
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Work Permit Processing</span>
-                <span className="font-medium">8 employees</span>
-              </div>
-              <Progress value={35} className="h-2" />
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Visa Application</span>
-                <span className="font-medium">12 employees</span>
-              </div>
-              <Progress value={50} className="h-2" />
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Final Onboarding</span>
-                <span className="font-medium">6 employees</span>
-              </div>
-              <Progress value={25} className="h-2" />
-            </div>
+            {loading
+              ? [1, 2, 3, 4].map(i => (
+                  <div key={i} className="space-y-1">
+                    <div className="h-4 bg-muted animate-pulse rounded w-1/3" />
+                    <div className="h-2 bg-muted animate-pulse rounded" />
+                  </div>
+                ))
+              : pipelineStages.length === 0
+              ? <p className="text-sm text-muted-foreground py-4 text-center">No active pipeline stages configured.</p>
+              : pipelineSummary.map(({ label, count }) => {
+                  const pct = pipelineTotal > 0 ? Math.round((count / pipelineTotal) * 100) : 0;
+                  return (
+                    <div key={label} className="space-y-1.5">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">{label}</span>
+                        <span className="font-medium">{count} employee{count !== 1 ? 's' : ''}</span>
+                      </div>
+                      <Progress value={pct} className="h-2" />
+                    </div>
+                  );
+                })
+            }
 
             <div className="pt-4 border-t">
-              <div className="grid grid-cols-3 gap-4 text-center">
+              <div className="grid grid-cols-2 gap-4 text-center">
                 <div>
-                  <div className="text-2xl font-semibold text-[#2563EB]">{dashboardStats.avgProcessingTime}</div>
+                  <div className="text-2xl font-semibold text-[#2563EB]">
+                    {loading ? '—' : avgDays !== null ? `${avgDays}d` : '—'}
+                  </div>
                   <div className="text-xs text-muted-foreground mt-1">Avg. Processing Days</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-semibold text-[#22C55E]">{dashboardStats.approvalRate}%</div>
+                  <div className="text-2xl font-semibold text-emerald-600">
+                    {loading ? '—' : approvalRate !== null ? `${approvalRate}%` : '—'}
+                  </div>
                   <div className="text-xs text-muted-foreground mt-1">Approval Rate</div>
-                </div>
-                <div>
-                  <div className="text-2xl font-semibold text-[#F59E0B]">{dashboardStats.visasPending}</div>
-                  <div className="text-xs text-muted-foreground mt-1">Visas Pending</div>
                 </div>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Recent Activity */}
+        {/* 6. Recent Activity Feed */}
         <Card>
           <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
-            <CardDescription>Latest updates and changes</CardDescription>
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="w-4 h-4 text-muted-foreground" />
+              Recent Activity
+            </CardTitle>
+            <CardDescription>Latest system events</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {recentAlerts.map((alert) => (
-                <div key={alert.id} className="flex gap-3">
-                  <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${
-                    alert.type === 'warning' ? 'bg-[#F59E0B]' :
-                    alert.type === 'success' ? 'bg-[#22C55E]' :
-                    alert.type === 'error' ? 'bg-[#EF4444]' :
-                    'bg-[#2563EB]'
-                  }`} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-[#0F172A]">{alert.title}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{alert.message}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{alert.timestamp}</p>
-                  </div>
+            {loading
+              ? <div className="space-y-3">
+                  {[1,2,3,4].map(i => <div key={i} className="h-12 bg-muted animate-pulse rounded" />)}
                 </div>
-              ))}
-            </div>
-            <Button variant="outline" className="w-full mt-4" asChild>
-              <Link to="/dashboard/notifications">View All Notifications</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Bottom Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Employees */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Employees</CardTitle>
-            <CardDescription>Latest employee registrations</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {recentDrivers.map((driver) => (
-                <div key={driver.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-[#F8FAFC] transition-colors">
-                  <div className="flex items-center gap-3">
-                    <img 
-                      src={driver.photo} 
-                      alt={driver.firstName} 
-                      className="w-10 h-10 rounded-full"
-                    />
-                    <div>
-                      <p className="text-sm font-medium text-[#0F172A]">
-                        {driver.firstName} {driver.lastName}
-                      </p>
-                      <p className="text-xs text-muted-foreground">{driver.nationality}</p>
+              : recentActivity.length === 0
+              ? <p className="text-sm text-muted-foreground py-4 text-center">No recent activity.</p>
+              : <div className="space-y-3">
+                  {recentActivity.map((item: any) => (
+                    <div key={item.id} className="flex gap-3">
+                      <span className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${activityColor(item.action)}`} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-[#0F172A] leading-tight">
+                          {activityLabel(item.action, item.entity)}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {item.userEmail ?? 'System'}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {timeAgo(item.createdAt)}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                  <Badge variant={driver.status === 'active' ? 'default' : 'secondary'}>
-                    {driver.status}
-                  </Badge>
+                  ))}
                 </div>
-              ))}
-            </div>
-            <Button variant="outline" className="w-full mt-4" asChild>
-              <Link to="/dashboard/employees">View All Employees</Link>
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Expiring Documents */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Expiring Documents</CardTitle>
-            <CardDescription>Documents requiring renewal soon</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {expiringDocs.map((doc) => (
-                <div key={doc.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-[#F8FAFC] transition-colors">
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-[#0F172A]">{doc.type}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{doc.driverName}</p>
-                    <p className="text-xs text-muted-foreground">Expires: {doc.expiryDate}</p>
-                  </div>
-                  <Badge variant="outline" className="bg-[#FEF3C7] text-[#F59E0B] border-[#F59E0B]">
-                    Expiring Soon
-                  </Badge>
-                </div>
-              ))}
-            </div>
-            <Button variant="outline" className="w-full mt-4" asChild>
-              <Link to="/dashboard/compliance">View Compliance Dashboard</Link>
+            }
+            <Button variant="outline" className="w-full mt-4" size="sm" asChild>
+              <Link to="/dashboard/logs">View All Activity</Link>
             </Button>
           </CardContent>
         </Card>
       </div>
 
-      {/* Quick Actions */}
+      {/* ── Widget Row 4: Recent Employees + Expired Documents ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* 7. Recent Employees */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Recent Employees</CardTitle>
+                <CardDescription>Latest registrations</CardDescription>
+              </div>
+              <Button asChild variant="ghost" size="sm">
+                <Link to="/dashboard/employees">View All <ChevronRight className="w-3 h-3 ml-1" /></Link>
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {loading
+              ? <div className="space-y-3">
+                  {[1,2,3].map(i => <div key={i} className="h-14 bg-muted animate-pulse rounded" />)}
+                </div>
+              : recentEmps.length === 0
+              ? <div className="text-center py-8 text-muted-foreground text-sm">No employees registered yet.</div>
+              : <div className="space-y-2">
+                  {recentEmps.map((emp: any) => (
+                    <Link key={emp.id} to={`/dashboard/employees/${emp.id}`}>
+                      <div className="flex items-center justify-between p-3 rounded-lg hover:bg-[#F8FAFC] transition-colors">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-full overflow-hidden bg-blue-100 flex items-center justify-center shrink-0">
+                            {emp.photoUrl
+                              ? <img
+                                  src={`${API_BASE}${emp.photoUrl}`}
+                                  alt={emp.firstName}
+                                  className="w-full h-full object-cover"
+                                />
+                              : <span className="text-blue-600 text-sm font-semibold">
+                                  {emp.firstName?.[0]}{emp.lastName?.[0]}
+                                </span>
+                            }
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-[#0F172A]">
+                              {emp.firstName} {emp.lastName}
+                            </p>
+                            <p className="text-xs text-muted-foreground font-mono">
+                              {emp.employeeNumber ?? '—'}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {emp.createdAt ? new Date(emp.createdAt).toLocaleDateString() : '—'}
+                            </p>
+                          </div>
+                        </div>
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${getStatusColor(emp.status)}`}>
+                          {emp.status}
+                        </span>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+            }
+          </CardContent>
+        </Card>
+
+        {/* 8. Expired Documents (not yet renewed) */}
+        <Card className={expiredUnrenewed > 0 ? 'border-red-200' : ''}>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <FileX className={`w-4 h-4 ${expiredUnrenewed > 0 ? 'text-red-500' : 'text-muted-foreground'}`} />
+                  Expired Documents
+                </CardTitle>
+                <CardDescription>
+                  {loading ? '…' : `${expiredUnrenewed} expired with no renewal`}
+                </CardDescription>
+              </div>
+              <Button asChild variant="ghost" size="sm">
+                <Link to="/dashboard/documents-compliance">View All <ChevronRight className="w-3 h-3 ml-1" /></Link>
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {loading
+              ? <div className="space-y-3">
+                  {[1,2,3].map(i => <div key={i} className="h-14 bg-muted animate-pulse rounded" />)}
+                </div>
+              : expiredDocs.length === 0
+              ? <div className="text-center py-8 text-muted-foreground text-sm">
+                  {expiredUnrenewed === 0 ? 'No expired documents without renewals.' : 'Showing 0 of 0 expired documents.'}
+                </div>
+              : <div className="space-y-2">
+                  {expiredDocs.map((doc: any) => {
+                    const expDate  = doc.expiryDate ? new Date(doc.expiryDate) : null;
+                    const daysAgo  = expDate ? Math.floor((Date.now() - expDate.getTime()) / 86400000) : null;
+                    return (
+                      <Link key={doc.id} to={`/dashboard/documents/${doc.id}`}>
+                        <div className="flex items-center justify-between p-3 rounded-lg hover:bg-red-50 transition-colors">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-[#0F172A] truncate">{doc.name}</p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {doc.ownerName ?? doc.entityId?.slice(0, 8)}
+                              {doc.documentType?.name ? ` · ${doc.documentType.name}` : ''}
+                            </p>
+                            {expDate && (
+                              <p className="text-xs text-red-500">
+                                Expired {expDate.toLocaleDateString()} ({daysAgo}d ago)
+                              </p>
+                            )}
+                          </div>
+                          <Badge variant="outline" className="bg-red-50 text-red-600 border-red-300 ml-2 shrink-0">
+                            Expired
+                          </Badge>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                  {expiredUnrenewed > 5 && (
+                    <p className="text-xs text-muted-foreground text-center pt-1">
+                      +{expiredUnrenewed - 5} more —{' '}
+                      <Link to="/dashboard/documents-compliance" className="underline">view all</Link>
+                    </p>
+                  )}
+                </div>
+            }
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* ── Widget Row 5: Quick Actions ── */}
       <Card>
         <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-          <CardDescription>Frequently used actions</CardDescription>
+          <CardTitle className="flex items-center gap-2">
+            <Zap className="w-4 h-4 text-muted-foreground" />
+            Quick Actions
+          </CardTitle>
+          <CardDescription>Shortcuts to common tasks</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Button variant="outline" className="h-auto flex-col gap-2 p-4" asChild>
-              <Link to="/dashboard/employees/add">
-                <Users className="w-6 h-6" />
-                <span>Add Employee</span>
-              </Link>
-            </Button>
-            <Button variant="outline" className="h-auto flex-col gap-2 p-4" asChild>
-              <Link to="/dashboard/documents/upload">
-                <FileCheck className="w-6 h-6" />
-                <span>Upload Document</span>
-              </Link>
-            </Button>
-            <Button variant="outline" className="h-auto flex-col gap-2 p-4" asChild>
-              <Link to="/dashboard/workflow">
-                <TrendingUp className="w-6 h-6" />
-                <span>View Workflow</span>
-              </Link>
-            </Button>
-            <Button variant="outline" className="h-auto flex-col gap-2 p-4" asChild>
-              <Link to="/dashboard/reports">
-                <Plane className="w-6 h-6" />
-                <span>Reports</span>
-              </Link>
-            </Button>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {canCreate('employees') && (
+              <Button variant="outline" className="h-auto flex-col gap-2 p-4 hover:bg-blue-50 hover:border-blue-300" asChild>
+                <Link to="/dashboard/employees/add">
+                  <UserPlus className="w-6 h-6 text-blue-600" />
+                  <span className="text-sm">Add Employee</span>
+                </Link>
+              </Button>
+            )}
+            {canCreate('documents') && (
+              <Button variant="outline" className="h-auto flex-col gap-2 p-4 hover:bg-emerald-50 hover:border-emerald-300" asChild>
+                <Link to="/dashboard/documents/upload">
+                  <FileCheck className="w-6 h-6 text-emerald-600" />
+                  <span className="text-sm">Upload Document</span>
+                </Link>
+              </Button>
+            )}
+            {can('workflow', 'read') && (
+              <Button variant="outline" className="h-auto flex-col gap-2 p-4 hover:bg-purple-50 hover:border-purple-300" asChild>
+                <Link to="/dashboard/workflow">
+                  <TrendingUp className="w-6 h-6 text-purple-600" />
+                  <span className="text-sm">View Workflow</span>
+                </Link>
+              </Button>
+            )}
+            {can('reports', 'read') && (
+              <Button variant="outline" className="h-auto flex-col gap-2 p-4 hover:bg-amber-50 hover:border-amber-300" asChild>
+                <Link to="/dashboard/reports">
+                  <BarChart3 className="w-6 h-6 text-amber-600" />
+                  <span className="text-sm">Reports</span>
+                </Link>
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>

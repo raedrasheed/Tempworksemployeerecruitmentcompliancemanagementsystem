@@ -42,7 +42,7 @@ function findBinary(name: string): string | null {
   const ext   = isWin ? '.exe' : '';
   const bin   = name + ext;
 
-  // 1. Caller-supplied env override
+  // 1. Caller-supplied env override (highest priority)
   const envOverride = process.env.PG_BIN_PATH
     ? path.join(process.env.PG_BIN_PATH, bin)
     : null;
@@ -52,18 +52,33 @@ function findBinary(name: string): string | null {
   const unixPaths = [
     `/usr/bin/${bin}`,
     `/usr/local/bin/${bin}`,
-    `/usr/lib/postgresql/16/bin/${bin}`,
-    `/usr/lib/postgresql/15/bin/${bin}`,
-    `/usr/lib/postgresql/14/bin/${bin}`,
-    `/usr/lib/postgresql/13/bin/${bin}`,
     `/opt/homebrew/bin/${bin}`,
+    `/opt/homebrew/opt/postgresql@16/bin/${bin}`,
+    `/opt/homebrew/opt/postgresql@15/bin/${bin}`,
+    `/opt/homebrew/opt/postgresql@14/bin/${bin}`,
   ];
+  for (let v = 20; v >= 10; v--) {
+    unixPaths.push(`/usr/lib/postgresql/${v}/bin/${bin}`);
+  }
 
-  // 3. Common Windows paths
+  // 3. Windows: scan Program Files\PostgreSQL for any installed version
   const winPaths: string[] = [];
   if (isWin) {
-    for (const v of ['16', '15', '14', '13']) {
-      winPaths.push(`C:\\Program Files\\PostgreSQL\\${v}\\bin\\${bin}`);
+    const roots = [
+      'C:\\Program Files\\PostgreSQL',
+      'C:\\Program Files (x86)\\PostgreSQL',
+    ];
+    for (const root of roots) {
+      try {
+        if (fs.existsSync(root)) {
+          const versions = fs.readdirSync(root)
+            .filter(d => /^\d+/.test(d))
+            .sort((a, b) => parseFloat(b) - parseFloat(a)); // newest first
+          for (const v of versions) {
+            winPaths.push(`${root}\\${v}\\bin\\${bin}`);
+          }
+        }
+      } catch { /* ignore read errors */ }
     }
   }
 
@@ -71,11 +86,13 @@ function findBinary(name: string): string | null {
     if (fs.existsSync(p)) return p;
   }
 
-  // 4. Try PATH
+  // 4. Try every directory in PATH
   const pathDirs = (process.env.PATH || '').split(path.delimiter);
   for (const dir of pathDirs) {
-    const full = path.join(dir, bin);
-    if (fs.existsSync(full)) return full;
+    try {
+      const full = path.join(dir, bin);
+      if (fs.existsSync(full)) return full;
+    } catch { /* ignore */ }
   }
 
   return null;

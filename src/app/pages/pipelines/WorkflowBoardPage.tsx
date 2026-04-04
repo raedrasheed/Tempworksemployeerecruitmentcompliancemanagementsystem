@@ -287,7 +287,8 @@ export function WorkflowBoardPage() {
     );
   }
 
-  const pipeline   = board?.pipeline;
+  // Backend returns { workflow, columns } — "pipeline" is an alias for "workflow"
+  const pipeline   = board?.workflow ?? board?.pipeline;
   const columns: any[] = board?.columns ?? [];
   const totalStages    = columns.length;
   const totalActive    = stats?.totalActive ?? 0;

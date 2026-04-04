@@ -498,7 +498,7 @@ export function AttendanceSheet() {
                 <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-sm text-muted-foreground">
                   <span className="flex items-center gap-1.5">
                     <User className="w-3.5 h-3.5" />
-                    ID: {employee.employeeId ?? employee.id?.slice(0, 8) ?? '—'}
+                    ID: {employee.employeeNumber ?? '—'}
                   </span>
                   {employee.licenseCategory && (
                     <span className="flex items-center gap-1.5">

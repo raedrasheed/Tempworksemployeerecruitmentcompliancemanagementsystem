@@ -259,7 +259,7 @@ export function EmployeesList() {
                           <div className="font-medium text-[#0F172A]">
                             {driver.firstName} {driver.lastName}
                           </div>
-                          <div className="text-sm text-muted-foreground">{driver.id}</div>
+                          <div className="text-sm text-muted-foreground">{driver.employeeNumber ?? '—'}</div>
                         </div>
                       </div>
                     </TableCell>

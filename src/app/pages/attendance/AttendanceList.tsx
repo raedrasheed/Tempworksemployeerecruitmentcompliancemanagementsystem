@@ -568,7 +568,7 @@ export function AttendanceList() {
                         </TableCell>
 
                         <TableCell className="text-sm text-muted-foreground">
-                          {emp.employeeNumber ?? emp.id?.slice(0, 8) ?? '—'}
+                          {emp.employeeNumber ?? '—'}
                         </TableCell>
 
                         <TableCell className="text-sm">

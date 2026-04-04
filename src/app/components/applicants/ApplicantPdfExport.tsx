@@ -73,7 +73,7 @@ function ApplicantPDF({ applicant, photoDataUrl }: { applicant: any; photoDataUr
         <View style={S.header}>
           <View style={S.headerLeft}>
             <Text style={S.appTitle}>{applicant.fullName}</Text>
-            <Text style={S.appSubtitle}>Applicant ID: {applicant.id}</Text>
+            <Text style={S.appSubtitle}>Applicant ID: {applicant.candidateNumber ?? applicant.leadNumber ?? applicant.applicationNumber ?? applicant.id}</Text>
             <Text style={S.appDate}>Applied: {applicant.applicationDate} · Generated: {now}</Text>
           </View>
           {photoDataUrl && <Image src={photoDataUrl} style={S.headerPhoto} />}

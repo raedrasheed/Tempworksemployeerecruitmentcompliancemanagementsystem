@@ -142,7 +142,7 @@ export function UsersList() {
                     <TableCell>
                       <div>
                         <div className="font-medium">{user.firstName} {user.lastName}</div>
-                        <div className="text-sm text-muted-foreground">{user.id}</div>
+                        <div className="text-sm text-muted-foreground">{user.email}</div>
                       </div>
                     </TableCell>
                     <TableCell>{user.email}</TableCell>

@@ -972,6 +972,9 @@ export const workflowApi = {
   getCandidateAssignments: (candidateId: string) =>
     apiFetch<any[]>(`/workflows/candidate/${candidateId}/assignments`),
 
+  removeCandidateAssignment: (candidateId: string, assignmentId: string) =>
+    apiFetch<any>(`/workflows/candidate/${candidateId}/assignments/${assignmentId}`, { method: 'DELETE' }),
+
   // Employee assignments
   assignEmployee: (data: { employeeId: string; workflowId: string; notes?: string }) =>
     apiFetch<any>('/workflows/assign-employee', { method: 'POST', body: JSON.stringify(data) }),

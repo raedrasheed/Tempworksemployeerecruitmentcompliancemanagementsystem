@@ -143,6 +143,13 @@ export class WorkflowController {
     return this.workflowService.getCandidateAssignments(candidateId);
   }
 
+  @Delete('candidate/:candidateId/assignments/:assignmentId')
+  @Roles(...WRITE_ROLES)
+  @ApiOperation({ summary: 'Remove a candidate from a workflow assignment' })
+  removeCandidateAssignment(@Param('candidateId') candidateId: string, @Param('assignmentId') assignmentId: string) {
+    return this.workflowService.removeCandidateAssignment(candidateId, assignmentId);
+  }
+
   // ─── Employee Assignments ─────────────────────────────────────────────────
 
   @Post('assign-employee')

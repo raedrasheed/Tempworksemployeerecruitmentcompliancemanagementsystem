@@ -4,9 +4,10 @@ import {
   ArrowLeft, Mail, Phone, Globe, Briefcase, Calendar, FileText,
   UserPlus, Edit, Trash2, Download, Upload, X,
   Shield, Clock, Award, ChevronRight, MapPin, Loader2, TrendingUp, History, DollarSign,
+  Layers, Plus,
 } from 'lucide-react';
 import { usePermissions } from '../../hooks/usePermissions';
-import { getCurrentUser, applicantsApi, documentsApi, settingsApi, employeeWorkflowApi, agenciesApi } from '../../services/api';
+import { getCurrentUser, applicantsApi, documentsApi, settingsApi, employeeWorkflowApi, agenciesApi, workflowApi } from '../../services/api';
 import { FinancialRecordsTab } from '../../components/finance/FinancialRecordsTab';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -52,6 +53,14 @@ export function ApplicantProfile() {
   const [docTypes, setDocTypes] = useState<any[]>([]);
   const [allStages, setAllStages] = useState<any[]>([]);
   const [changingStage, setChangingStage] = useState(false);
+  const [candidateAssignment, setCandidateAssignment] = useState<any>(null);
+  const [allWorkflows, setAllWorkflows] = useState<any[]>([]);
+  const [showAssignWorkflow, setShowAssignWorkflow] = useState(false);
+  const [assignWorkflowId, setAssignWorkflowId] = useState('');
+  const [assigningWorkflow, setAssigningWorkflow] = useState(false);
+  const [settingStage, setSettingStage] = useState(false);
+  const [expandedStageId, setExpandedStageId] = useState<string | null>(null);
+  const [approvingProgressId, setApprovingProgressId] = useState<string | null>(null);
   const [agencies, setAgencies] = useState<any[]>([]);
   const [changingAgency, setChangingAgency] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
@@ -84,6 +93,13 @@ export function ApplicantProfile() {
       .finally(() => setDocsLoading(false));
   };
 
+  const loadCandidateWorkflow = () => {
+    if (!id) return;
+    workflowApi.getCandidateAssignments(id)
+      .then(assignments => setCandidateAssignment(assignments?.[0] ?? null))
+      .catch(() => {});
+  };
+
   useEffect(() => { loadDocs(); }, [id]);
 
   useEffect(() => {
@@ -91,6 +107,11 @@ export function ApplicantProfile() {
     employeeWorkflowApi.getStages().then((stages: any) => setAllStages(Array.isArray(stages) ? stages : [])).catch(() => {});
     agenciesApi.list({ limit: 200 }).then((res: any) => setAgencies(res?.data ?? [])).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    loadCandidateWorkflow();
+    workflowApi.list().then(res => setAllWorkflows(Array.isArray(res) ? res : [])).catch(() => {});
+  }, [id]);
 
   useEffect(() => {
     if (!id) return;
@@ -210,6 +231,60 @@ export function ApplicantProfile() {
       toast.error(err?.message || 'Failed to update stage');
     } finally {
       setChangingStage(false);
+    }
+  };
+
+  const handleAssignCandidateWorkflow = async () => {
+    if (!assignWorkflowId || !id) return;
+    setAssigningWorkflow(true);
+    try {
+      await workflowApi.assignCandidate({ candidateId: id, workflowId: assignWorkflowId });
+      toast.success('Workflow connected');
+      loadCandidateWorkflow();
+      setShowAssignWorkflow(false);
+      setAssignWorkflowId('');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to connect workflow');
+    } finally {
+      setAssigningWorkflow(false);
+    }
+  };
+
+  const handleDisconnectCandidateWorkflow = async () => {
+    if (!id || !candidateAssignment || !confirm('Disconnect this applicant from the workflow?')) return;
+    try {
+      await workflowApi.removeCandidateAssignment(id, candidateAssignment.id);
+      setCandidateAssignment(null);
+      toast.success('Workflow disconnected');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to disconnect');
+    }
+  };
+
+  const handleSetCandidateStage = async (stageId: string) => {
+    if (!candidateAssignment) return;
+    setSettingStage(true);
+    try {
+      await workflowApi.advanceToStage(candidateAssignment.id, stageId);
+      loadCandidateWorkflow();
+      toast.success('Current stage updated');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to update stage');
+    } finally {
+      setSettingStage(false);
+    }
+  };
+
+  const handleApproveCandidateStage = async (progressId: string) => {
+    setApprovingProgressId(progressId);
+    try {
+      await workflowApi.submitApproval(progressId, { decision: 'APPROVED' });
+      loadCandidateWorkflow();
+      toast.success('Stage approved');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to approve stage');
+    } finally {
+      setApprovingProgressId(null);
     }
   };
 

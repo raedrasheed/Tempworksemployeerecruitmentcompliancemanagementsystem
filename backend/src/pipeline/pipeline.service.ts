@@ -266,18 +266,44 @@ export class WorkflowService {
     return this.prisma.candidateWorkflowAssignment.findMany({
       where: { candidateId },
       include: {
-        workflow: { select: { id: true, name: true, color: true } },
+        workflow: {
+          select: {
+            id: true, name: true, color: true,
+            stages: {
+              where: { isActive: true },
+              orderBy: { order: 'asc' },
+              include: {
+                requiredDocs: { include: { documentType: { select: { id: true, name: true, category: true } } } },
+                assignedUsers: { include: { user: { select: { id: true, firstName: true, lastName: true } } } },
+              },
+            },
+          },
+        },
         stageProgress: {
           orderBy: { enteredAt: 'asc' },
           include: {
             stage: true,
-            approvals: { orderBy: { createdAt: 'desc' }, take: 1 },
+            approvals: {
+              orderBy: { createdAt: 'desc' },
+              take: 1,
+              include: { approvedBy: { select: { id: true, firstName: true, lastName: true } } },
+            },
             notes: { where: { deletedAt: null }, orderBy: { createdAt: 'desc' } },
           },
         },
+        assignedBy: { select: { id: true, firstName: true, lastName: true } },
       },
       orderBy: { assignedAt: 'desc' },
     });
+  }
+
+  async removeCandidateAssignment(candidateId: string, assignmentId: string) {
+    const assignment = await this.prisma.candidateWorkflowAssignment.findFirst({
+      where: { id: assignmentId, candidateId },
+    });
+    if (!assignment) throw new NotFoundException('Assignment not found');
+    await this.prisma.candidateWorkflowAssignment.delete({ where: { id: assignmentId } });
+    return { success: true };
   }
 
   // ─── Employee Assignments ─────────────────────────────────────────────────

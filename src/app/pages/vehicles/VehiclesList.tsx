@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router';
 import {
   Search, Download, Eye, Plus, Truck, Filter, RefreshCw, X,
-  AlertTriangle, Car, Container, Thermometer, Edit,
+  AlertTriangle, Car, Container, Thermometer, Edit, Trash2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
@@ -99,6 +99,18 @@ export function VehiclesList() {
 
   useEffect(() => { loadVehicles(); }, [loadVehicles]);
   useEffect(() => { loadStats(); }, [loadStats]);
+
+  const handleDelete = async (vehicleId: string) => {
+    if (!confirm('Delete this vehicle? This cannot be undone easily.')) return;
+    try {
+      await vehiclesApi.delete(vehicleId);
+      toast.success('Vehicle deleted');
+      loadVehicles();
+      loadStats();
+    } catch {
+      toast.error('Failed to delete vehicle');
+    }
+  };
 
   const handleExport = async () => {
     setExporting(true);
@@ -259,9 +271,14 @@ export function VehiclesList() {
                           <Eye className="w-4 h-4" />
                         </Button>
                         {canWrite && (
-                          <Button size="sm" variant="ghost" onClick={() => navigate(`/dashboard/vehicles/${v.id}/edit`)}>
-                            <Edit className="w-4 h-4" />
-                          </Button>
+                          <>
+                            <Button size="sm" variant="ghost" onClick={() => navigate(`/dashboard/vehicles/${v.id}/edit`)}>
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => handleDelete(v.id)}>
+                              <Trash2 className="w-4 h-4 text-destructive" />
+                            </Button>
+                          </>
                         )}
                       </div>
                     </TableCell>

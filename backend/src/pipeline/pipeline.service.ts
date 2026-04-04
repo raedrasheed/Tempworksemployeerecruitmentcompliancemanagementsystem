@@ -439,6 +439,19 @@ export class WorkflowService {
     const workflow = await this.getWorkflow(workflowId);
     const stages = (workflow as any).stages as any[];
 
+    // Fetch ALL employee assignments for this workflow once, group by currentStageId in JS
+    // (avoid enum/text cast issue by not filtering status in Prisma)
+    const allEmpAssignments = await this.prisma.employeeWorkflowAssignment.findMany({
+      where: { workflowId },
+      select: { currentStageId: true, status: true },
+    });
+    const empCountByStage = allEmpAssignments
+      .filter(ea => ea.status === 'ACTIVE' && ea.currentStageId)
+      .reduce<Record<string, number>>((acc, ea) => {
+        acc[ea.currentStageId!] = (acc[ea.currentStageId!] ?? 0) + 1;
+        return acc;
+      }, {});
+
     const columns = await Promise.all(
       stages.map(async (stage: any) => {
         const progressItems = await this.prisma.candidateStageProgress.findMany({
@@ -455,6 +468,8 @@ export class WorkflowService {
           orderBy: { enteredAt: 'asc' },
         });
 
+        const empCount = empCountByStage[stage.id] ?? 0;
+
         return {
           stage,
           candidates: progressItems.map((p) => ({
@@ -469,7 +484,8 @@ export class WorkflowService {
             recentNotes: p.notes,
             candidate: (p.assignment as any).candidate,
           })),
-          count: progressItems.length,
+          // count = active candidates + active employees in this stage
+          count: progressItems.length + empCount,
         };
       }),
     );
@@ -710,16 +726,26 @@ export class WorkflowService {
 
   async getWorkflowStats(workflowId: string) {
     await this.getWorkflow(workflowId);
-    const [totalActive, totalCompleted, flaggedCount] = await Promise.all([
+    const [candidateActive, candidateCompleted, flaggedCount, slaBreached, empAssignments] = await Promise.all([
       this.prisma.candidateWorkflowAssignment.count({ where: { workflowId, status: 'ACTIVE' } }),
       this.prisma.candidateWorkflowAssignment.count({ where: { workflowId, status: 'COMPLETED' } }),
       this.prisma.candidateStageProgress.count({ where: { assignment: { workflowId }, flagged: true, status: 'ACTIVE' } }),
+      this.prisma.candidateStageProgress.count({ where: { assignment: { workflowId }, status: 'ACTIVE', slaDeadline: { lt: new Date() } } }),
+      // Fetch employee assignments and filter in JS (avoid enum/text cast issue)
+      this.prisma.employeeWorkflowAssignment.findMany({
+        where: { workflowId },
+        select: { status: true },
+      }),
     ]);
 
-    const slaBreached = await this.prisma.candidateStageProgress.count({
-      where: { assignment: { workflowId }, status: 'ACTIVE', slaDeadline: { lt: new Date() } },
-    });
+    const empActive    = empAssignments.filter(ea => ea.status === 'ACTIVE').length;
+    const empCompleted = empAssignments.filter(ea => ea.status === 'COMPLETED').length;
 
-    return { totalActive, totalCompleted, flaggedCount, slaBreached };
+    return {
+      totalActive:    candidateActive    + empActive,
+      totalCompleted: candidateCompleted + empCompleted,
+      flaggedCount,
+      slaBreached,
+    };
   }
 }

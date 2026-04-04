@@ -124,7 +124,6 @@ export function VehicleDetail() {
           driversOnly: 'true',
           search: driverSearch || undefined,
           limit: 50,
-          status: 'ACTIVE',
         });
         if (!cancelled) setDriverOptions(res.data ?? []);
       } catch {
@@ -567,7 +566,11 @@ export function VehicleDetail() {
                         <div>
                           <p className="font-medium">{emp.firstName} {emp.lastName}</p>
                           <p className="text-xs text-muted-foreground">
-                            {[emp.licenseCategory, emp.licenseNumber].filter(Boolean).join(' · ') || 'Driver'}
+                            {[
+                              emp.jobType?.name,
+                              emp.licenseCategory,
+                              emp.licenseNumber,
+                            ].filter(Boolean).join(' · ') || 'Driver'}
                           </p>
                         </div>
                       </button>

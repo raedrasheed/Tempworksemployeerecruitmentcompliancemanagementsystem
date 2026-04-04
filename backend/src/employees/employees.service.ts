@@ -27,10 +27,13 @@ export class EmployeesService {
     if (status) where.status = status;
     if (nationality) where.nationality = { contains: nationality, mode: 'insensitive' };
     if (driversOnly) {
+      // Include employees who have a licence field OR any job type assigned
+      // (job type covers cases like "Flatbed Driver" with no licence yet entered)
       where.OR = [
         ...(where.OR ?? []),
-        { licenseNumber: { not: null } },
+        { licenseNumber:  { not: null } },
         { licenseCategory: { not: null } },
+        { jobTypeId:      { not: null } },
       ];
     }
 

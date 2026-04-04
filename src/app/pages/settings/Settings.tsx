@@ -50,7 +50,7 @@ export function Settings() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* Appearance – always first */}
         <Link to="/dashboard/settings/color-scheme">
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
             <CardHeader>
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -69,21 +69,21 @@ export function Settings() {
         </Link>
 
         <Link to="/dashboard/workflows">
-          <Card className="hover:shadow-md transition-shadow cursor-pointer">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-3 mb-3">
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
+            <CardHeader>
+              <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-lg bg-[#EFF6FF] flex items-center justify-center">
                   <Layers className="w-6 h-6 text-[#2563EB]" />
                 </div>
-                <h3 className="font-semibold">Manage Workflows</h3>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <CardTitle>Manage Workflows</CardTitle>
+                    <Badge className="bg-[#EF4444]">Admin Only</Badge>
+                  </div>
+                  <CardDescription>Create and configure recruitment workflows</CardDescription>
+                </div>
               </div>
-              <p className="text-sm text-muted-foreground">
-                Create and configure recruitment workflows. Each workflow has its own stages, requirements, and candidate workflow.
-              </p>
-              <div className="flex items-center gap-2 mt-4">
-                <Badge className="bg-[#EF4444]">Admin Only</Badge>
-              </div>
-            </CardContent>
+            </CardHeader>
           </Card>
         </Link>
 
@@ -91,7 +91,7 @@ export function Settings() {
           const Icon = category.icon;
           return (
             <Link key={category.path} to={category.path}>
-              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
                 <CardHeader>
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-lg bg-[#EFF6FF] flex items-center justify-center">
@@ -116,7 +116,7 @@ export function Settings() {
         {/* Database Backup & Restore — System Admin only */}
         {isAdmin && (
           <Link to="/dashboard/settings/database-backup">
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer border-blue-200 hover:border-blue-400">
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full border-blue-200 hover:border-blue-400">
               <CardHeader>
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
@@ -138,7 +138,7 @@ export function Settings() {
         {/* Database Cleanup — System Admin only */}
         {isAdmin && (
           <Link to="/dashboard/settings/database-cleanup">
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer border-red-200 hover:border-red-400">
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full border-red-200 hover:border-red-400">
               <CardHeader>
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-lg bg-red-100 flex items-center justify-center">

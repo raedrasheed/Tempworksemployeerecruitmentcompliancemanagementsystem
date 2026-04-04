@@ -377,7 +377,6 @@ export function ApplicantsList() {
                   <TableHead>Job Type</TableHead>
                   <TableHead>Agency</TableHead>
                   {!isAgencyUser && <TableHead>Tier</TableHead>}
-                  <TableHead>Stage</TableHead>
                   <TableHead>Applied</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -386,14 +385,14 @@ export function ApplicantsList() {
               <TableBody>
                 {loading && (
                   <TableRow>
-                    <TableCell colSpan={isAgencyUser ? 10 : 11} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={isAgencyUser ? 9 : 10} className="text-center py-8 text-muted-foreground">
                       Loading...
                     </TableCell>
                   </TableRow>
                 )}
                 {!loading && applicantsData.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={isAgencyUser ? 10 : 11} className="text-center py-12 text-muted-foreground">
+                    <TableCell colSpan={isAgencyUser ? 9 : 10} className="text-center py-12 text-muted-foreground">
                       No applicants found matching your criteria.
                     </TableCell>
                   </TableRow>
@@ -454,28 +453,6 @@ export function ApplicantsList() {
                         </Badge>
                       </TableCell>
                     )}
-                    <TableCell>
-                      {canEdit('applicants') && allStages.length > 0 ? (
-                        <Select
-                          value={applicant.currentWorkflowStageId ?? '__none__'}
-                          onValueChange={(val) => handleStageChange(applicant.id, val)}
-                          disabled={changingStageFor === applicant.id}
-                        >
-                          <SelectTrigger className="h-8 text-xs w-36">
-                            <SelectValue placeholder="No stage" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {allStages.map((s: any) => (
-                              <SelectItem key={s.id} value={s.id} className="text-xs">{s.name}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <span className="text-sm text-muted-foreground">
-                          {applicant.currentWorkflowStage?.name ?? '—'}
-                        </span>
-                      )}
-                    </TableCell>
                     <TableCell>
                       <span className="text-sm">
                         {applicant.createdAt

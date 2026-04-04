@@ -50,6 +50,7 @@ export class RestoreService {
       case 'VEHICLE_DOCUMENT': return this.restoreVehicleDocument(id, actorId, reason);
       case 'MAINTENANCE_RECORD': return this.restoreMaintenanceRecord(id, actorId, reason);
       case 'MAINTENANCE_TYPE':   return this.restoreMaintenanceType(id, actorId, reason);
+      case 'WORKSHOP':           return this.restoreWorkshop(id, actorId, reason);
       default:
         throw new BadRequestException(`No restore handler for entity type: ${entityType}`);
     }
@@ -359,6 +360,16 @@ export class RestoreService {
     await (this.prisma as any).maintenanceType.update({ where: { id }, data: { deletedAt: null, deletedBy: null } });
     await this.logRestore('MAINTENANCE_TYPE', id, actorId, { maintenanceType: 1 }, reason).catch(() => {});
     return { success: true, entityType: 'MAINTENANCE_TYPE', id, restored: { maintenanceType: 1 }, skipped: {}, warnings: [] };
+  }
+
+  private async restoreWorkshop(id: string, actorId: string, reason?: string): Promise<RestoreResult> {
+    const record = await (this.prisma as any).workshop.findUnique({ where: { id } });
+    if (!record) throw new NotFoundException(`Workshop ${id} not found`);
+    if (!record.deletedAt) throw new ConflictException('Workshop is not deleted');
+
+    await (this.prisma as any).workshop.update({ where: { id }, data: { deletedAt: null, deletedBy: null } });
+    await this.logRestore('WORKSHOP', id, actorId, { workshop: 1 }, reason).catch(() => {});
+    return { success: true, entityType: 'WORKSHOP', id, restored: { workshop: 1 }, skipped: {}, warnings: [] };
   }
 
   // ── Helpers ─────────────────────────────────────────────────────────────────

@@ -111,6 +111,12 @@ export const ENTITY_POLICIES: Record<
     canHardDelete: true,
     notes: 'Hard delete blocked if active maintenance records reference this type',
   },
+  WORKSHOP: {
+    canRestore: true,
+    canRestoreWithRelated: false,
+    canHardDelete: true,
+    notes: 'Hard delete blocked if active maintenance records reference this workshop',
+  },
 };
 
 export interface DeletedRecord {
@@ -149,7 +155,7 @@ export class RecycleBinService {
     const [
       applicants, employees, users, agencies, documents,
       docTypes, jobAds, financialRecords, roles, reports,
-      vehicles, vehicleDocs, maintenanceRecords, maintenanceTypes,
+      vehicles, vehicleDocs, maintenanceRecords, maintenanceTypes, workshops,
     ] = await Promise.all([
       this.getDeletedApplicants(filter, 50),
       this.getDeletedEmployees(filter, 50),
@@ -165,12 +171,13 @@ export class RecycleBinService {
       this.getDeletedVehicleDocuments(filter, 50),
       this.getDeletedMaintenanceRecords(filter, 50),
       this.getDeletedMaintenanceTypes(filter, 50),
+      this.getDeletedWorkshops(filter, 50),
     ]);
 
     records = [
       ...applicants, ...employees, ...users, ...agencies, ...documents,
       ...docTypes, ...jobAds, ...financialRecords, ...roles, ...reports,
-      ...vehicles, ...vehicleDocs, ...maintenanceRecords, ...maintenanceTypes,
+      ...vehicles, ...vehicleDocs, ...maintenanceRecords, ...maintenanceTypes, ...workshops,
     ];
 
     records.sort((a, b) => {
@@ -189,7 +196,7 @@ export class RecycleBinService {
     const [
       applicants, employees, users, agencies, documents,
       docTypes, jobAds, financialRecords, roles, reports,
-      vehicles, vehicleDocs, maintenanceRecords, maintenanceTypes,
+      vehicles, vehicleDocs, maintenanceRecords, maintenanceTypes, workshops,
     ] = await Promise.all([
       this.prisma.applicant.count({ where: { deletedAt: { not: null } } }),
       this.prisma.employee.count({ where: { deletedAt: { not: null } } }),
@@ -205,6 +212,7 @@ export class RecycleBinService {
       (this.prisma as any).vehicleDocument.count({ where: { deletedAt: { not: null } } }),
       (this.prisma as any).maintenanceRecord.count({ where: { deletedAt: { not: null } } }),
       (this.prisma as any).maintenanceType.count({ where: { deletedAt: { not: null } } }),
+      (this.prisma as any).workshop.count({ where: { deletedAt: { not: null } } }),
     ]);
 
     return {
@@ -222,8 +230,9 @@ export class RecycleBinService {
       VEHICLE_DOCUMENT: vehicleDocs,
       MAINTENANCE_RECORD: maintenanceRecords,
       MAINTENANCE_TYPE: maintenanceTypes,
+      WORKSHOP: workshops,
       total: applicants + employees + users + agencies + documents + docTypes
-        + jobAds + financialRecords + roles + reports + vehicles + vehicleDocs + maintenanceRecords + maintenanceTypes,
+        + jobAds + financialRecords + roles + reports + vehicles + vehicleDocs + maintenanceRecords + maintenanceTypes + workshops,
     };
   }
 
@@ -407,6 +416,17 @@ export class RecycleBinService {
         willDelete.maintenanceType = 1;
         break;
       }
+      case 'WORKSHOP': {
+        const activeUsage = await (this.prisma as any).maintenanceRecord.count({
+          where: { workshopId: id, deletedAt: null },
+        });
+        if (activeUsage > 0) {
+          blocked = true;
+          blockedReason = `${activeUsage} active maintenance record(s) reference this workshop. Delete them first.`;
+        }
+        willDelete.workshop = 1;
+        break;
+      }
       default:
         willDelete.record = 1;
     }
@@ -558,6 +578,15 @@ export class RecycleBinService {
         ]);
         break;
       }
+      case 'WORKSHOP': {
+        const where = this.buildWorkshopWhere(filter);
+        [data, total] = await Promise.all([
+          (this.prisma as any).workshop.findMany({ where, orderBy: { deletedAt: sortOrder }, skip, take: Number(limit) })
+            .then((rs: any[]) => rs.map((r: any) => this.mapWorkshop(r))),
+          (this.prisma as any).workshop.count({ where }),
+        ]);
+        break;
+      }
     }
 
     // Enrich with related deleted counts
@@ -653,6 +682,12 @@ export class RecycleBinService {
     const where = this.buildMaintenanceTypeWhere(f);
     const rs = await (this.prisma as any).maintenanceType.findMany({ where, orderBy: { deletedAt: 'desc' }, take: max });
     return rs.map((r: any) => this.mapMaintenanceType(r));
+  }
+
+  private async getDeletedWorkshops(f: ListDeletedDto, max: number) {
+    const where = this.buildWorkshopWhere(f);
+    const rs = await (this.prisma as any).workshop.findMany({ where, orderBy: { deletedAt: 'desc' }, take: max });
+    return rs.map((r: any) => this.mapWorkshop(r));
   }
 
   // ── WHERE clause builders ───────────────────────────────────────────────────
@@ -831,6 +866,19 @@ export class RecycleBinService {
       w.OR = [
         { name: { contains: f.search, mode: 'insensitive' } },
         { description: { contains: f.search, mode: 'insensitive' } },
+      ];
+    }
+    return w;
+  }
+
+  private buildWorkshopWhere(f: ListDeletedDto) {
+    const w = this.baseDeletedWhere(f);
+    if (f.search) {
+      w.OR = [
+        { name: { contains: f.search, mode: 'insensitive' } },
+        { city: { contains: f.search, mode: 'insensitive' } },
+        { contactName: { contains: f.search, mode: 'insensitive' } },
+        { email: { contains: f.search, mode: 'insensitive' } },
       ];
     }
     return w;
@@ -1078,6 +1126,22 @@ export class RecycleBinService {
       canHardDelete: policy.canHardDelete,
       relatedDeletedCount: 0,
       extra: { status: r.status, vehicleId: r.vehicleId, cost: r.cost },
+    };
+  }
+
+  mapWorkshop(r: any): DeletedRecord {
+    const policy = ENTITY_POLICIES.WORKSHOP;
+    return {
+      entityType: 'WORKSHOP',
+      id: r.id,
+      displayName: r.name,
+      deletedAt: r.deletedAt,
+      deletedBy: r.deletedBy ?? undefined,
+      canRestore: policy.canRestore,
+      canRestoreWithRelated: policy.canRestoreWithRelated,
+      canHardDelete: policy.canHardDelete,
+      relatedDeletedCount: 0,
+      extra: { city: r.city, contactName: r.contactName, phone: r.phone, email: r.email },
     };
   }
 

@@ -1241,7 +1241,7 @@ model AttendanceRecord {
 
 /// Workshop / garage used for vehicle maintenance
 model Workshop {
-  id          String   @id @default(uuid())
+  id          String    @id @default(uuid())
   name        String
   contactName String?
   phone       String?
@@ -1250,9 +1250,11 @@ model Workshop {
   city        String?
   country     String?
   notes       String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  isActive    Boolean   @default(true)
+  deletedAt   DateTime?
+  deletedBy   String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   maintenanceRecords MaintenanceRecord[]
 

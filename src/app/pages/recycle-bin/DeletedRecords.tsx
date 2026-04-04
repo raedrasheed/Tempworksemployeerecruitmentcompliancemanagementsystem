@@ -63,6 +63,7 @@ const ENTITY_LABELS: Record<string, { label: string; icon: any; color: string }>
   VEHICLE_DOCUMENT:    { label: 'Vehicle Document',     icon: FileText,  color: 'bg-blue-100 text-blue-800' },
   MAINTENANCE_RECORD:  { label: 'Maintenance Record',   icon: Wrench,    color: 'bg-amber-100 text-amber-800' },
   MAINTENANCE_TYPE:    { label: 'Maintenance Type',     icon: Wrench,    color: 'bg-orange-100 text-orange-800' },
+  WORKSHOP:            { label: 'Workshop',             icon: Building2, color: 'bg-slate-100 text-slate-800' },
 };
 
 function formatDate(iso: string) {

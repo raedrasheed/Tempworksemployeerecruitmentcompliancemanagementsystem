@@ -261,7 +261,7 @@ export class VehiclesService {
   // ── Workshops ────────────────────────────────────────────────────────────────
 
   async listWorkshops() {
-    return this.prisma.workshop.findMany({ orderBy: { name: 'asc' } });
+    return this.prisma.workshop.findMany({ where: { deletedAt: null } as any, orderBy: { name: 'asc' } });
   }
 
   async getWorkshop(id: string) {
@@ -280,10 +280,14 @@ export class VehiclesService {
     return this.prisma.workshop.update({ where: { id }, data: dto });
   }
 
-  async deleteWorkshop(id: string) {
+  async deleteWorkshop(id: string, userId?: string) {
     const w = await this.prisma.workshop.findUnique({ where: { id } });
     if (!w) throw new NotFoundException('Workshop not found');
-    await this.prisma.workshop.delete({ where: { id } });
+    if ((w as any).deletedAt) throw new NotFoundException('Workshop not found');
+    await (this.prisma.workshop as any).update({
+      where: { id },
+      data: { deletedAt: new Date(), deletedBy: userId ?? null },
+    });
     return { message: 'Workshop deleted successfully' };
   }
 

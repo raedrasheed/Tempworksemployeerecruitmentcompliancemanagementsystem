@@ -177,9 +177,9 @@ export class VehiclesController {
   @Delete('workshops/:id')
   @Roles(...WRITE_ROLES)
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Delete a workshop' })
-  deleteWorkshop(@Param('id') id: string) {
-    return this.vehiclesService.deleteWorkshop(id);
+  @ApiOperation({ summary: 'Soft-delete a workshop' })
+  deleteWorkshop(@Param('id') id: string, @Request() req: any) {
+    return this.vehiclesService.deleteWorkshop(id, req.user?.id);
   }
 
   // ── 4. Parametric single-vehicle routes (:id must come last) ────────────────

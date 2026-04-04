@@ -286,7 +286,7 @@ export function EmployeeProfile() {
                   <h2 className="text-2xl font-semibold text-[#0F172A]">
                     {employee.firstName} {employee.lastName}
                   </h2>
-                  <p className="text-muted-foreground mt-1">Employee ID: {employee.id}</p>
+                  <p className="text-muted-foreground mt-1">Employee ID: {employee.employeeNumber ?? employee.id}</p>
                 </div>
                 <Badge className={statusBadgeClass(employee.status)}>
                   {employee.status?.replace(/_/g, ' ').toLowerCase()}

@@ -23,6 +23,7 @@ import {
   Trash2,
   ClipboardList,
   Truck,
+  Wrench,
   Factory,
 } from 'lucide-react';
 import { cn } from '../ui/utils';
@@ -53,8 +54,9 @@ const allNavigationItems: NavItem[] = [
   {
     icon: Truck, label: 'Vehicles', path: '/dashboard/vehicles', permission: 'vehicles:read',
     children: [
-      { icon: Truck,   label: 'Fleet',      path: '/dashboard/vehicles' },
-      { icon: Factory, label: 'Workshops',  path: '/dashboard/vehicles/workshops' },
+      { icon: Truck,   label: 'Fleet',              path: '/dashboard/vehicles' },
+      { icon: Factory, label: 'Workshops',          path: '/dashboard/vehicles/workshops' },
+      { icon: Wrench,  label: 'Maintenance Types',  path: '/dashboard/vehicles/maintenance-types' },
     ],
   },
   { icon: FolderOpen,      label: 'Documents & Compliance',path: '/dashboard/documents-compliance', permission: 'documents:read' },

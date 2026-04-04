@@ -467,11 +467,14 @@ export function DocumentsCompliance() {
                       <td className="p-3">
                         <div className="flex flex-col gap-0.5">
                           <button
-                            className="text-left text-sm font-medium hover:text-primary truncate max-w-[140px]"
+                            className="text-left text-sm font-medium hover:text-primary truncate max-w-[160px]"
                             onClick={() => setEntityTypeF(doc.entityType)}
                           >
-                            {doc.entityId.slice(0, 8)}…
+                            {doc.ownerName ?? doc.entityId.slice(0, 8) + '…'}
                           </button>
+                          {doc.ownerSystemId && (
+                            <span className="text-xs text-muted-foreground font-mono">{doc.ownerSystemId}</span>
+                          )}
                           <span className={`text-xs px-1.5 py-0.5 rounded w-fit font-medium ${doc.entityType === 'APPLICANT' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
                             {doc.entityType === 'APPLICANT' ? 'Applicant' : 'Employee'}
                           </span>

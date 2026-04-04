@@ -124,7 +124,30 @@ export class DocumentsService {
       }),
       this.prisma.document.count({ where }),
     ]);
-    return PaginatedResponse.create(items, total, page, limit);
+
+    // Batch-resolve owner names to avoid N+1 queries
+    const empIds = [...new Set(items.filter(d => d.entityType === 'EMPLOYEE').map(d => d.entityId))];
+    const appIds = [...new Set(items.filter(d => d.entityType === 'APPLICANT').map(d => d.entityId))];
+    const [emps, apps] = await Promise.all([
+      empIds.length ? this.prisma.employee.findMany({ where: { id: { in: empIds } }, select: { id: true, firstName: true, lastName: true, employeeNumber: true } }) : [],
+      appIds.length ? this.prisma.applicant.findMany({ where: { id: { in: appIds } }, select: { id: true, firstName: true, lastName: true, candidateNumber: true, leadNumber: true } }) : [],
+    ]);
+    const empMap = Object.fromEntries(emps.map(e => [e.id, e]));
+    const appMap = Object.fromEntries(apps.map(a => [a.id, a]));
+
+    const enriched = items.map(doc => {
+      if (doc.entityType === 'EMPLOYEE') {
+        const e = empMap[doc.entityId];
+        return { ...doc, ownerName: e ? `${e.firstName} ${e.lastName}` : null, ownerSystemId: e?.employeeNumber ?? null };
+      }
+      if (doc.entityType === 'APPLICANT') {
+        const a = appMap[doc.entityId];
+        return { ...doc, ownerName: a ? `${a.firstName} ${a.lastName}` : null, ownerSystemId: a?.candidateNumber ?? a?.leadNumber ?? null };
+      }
+      return { ...doc, ownerName: null, ownerSystemId: null };
+    });
+
+    return PaginatedResponse.create(enriched, total, page, limit);
   }
 
   async findOne(id: string) {

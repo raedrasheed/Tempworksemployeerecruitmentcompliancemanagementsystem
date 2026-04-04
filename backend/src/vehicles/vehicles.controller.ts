@@ -139,9 +139,9 @@ export class VehiclesController {
   @Delete('maintenance/records/:id')
   @Roles(...WRITE_ROLES)
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Delete a maintenance record' })
-  deleteMaintenance(@Param('id') id: string) {
-    return this.vehiclesService.deleteMaintenanceRecord(id);
+  @ApiOperation({ summary: 'Soft-delete a maintenance record' })
+  deleteMaintenance(@Param('id') id: string, @Request() req: any) {
+    return this.vehiclesService.deleteMaintenanceRecord(id, req.user?.id);
   }
 
   // ── 3. Static sub-resource routes — workshops (before :id) ──────────────────
@@ -273,8 +273,8 @@ export class VehiclesController {
   @Delete(':vehicleId/documents/:docId')
   @Roles(...WRITE_ROLES)
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Delete a vehicle document' })
-  deleteDocument(@Param('vehicleId') vehicleId: string, @Param('docId') docId: string) {
-    return this.vehiclesService.deleteDocument(vehicleId, docId);
+  @ApiOperation({ summary: 'Soft-delete a vehicle document' })
+  deleteDocument(@Param('vehicleId') vehicleId: string, @Param('docId') docId: string, @Request() req: any) {
+    return this.vehiclesService.deleteDocument(vehicleId, docId, req.user?.id);
   }
 }

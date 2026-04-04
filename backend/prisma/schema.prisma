@@ -1354,6 +1354,8 @@ model VehicleDocument {
   issuer       String?
   notes        String?
   uploadedById String?
+  deletedAt    DateTime?
+  deletedBy    String?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
@@ -1385,6 +1387,8 @@ model MaintenanceRecord {
   notes              String?
   createdById        String?
   updatedById        String?
+  deletedAt          DateTime?
+  deletedBy          String?
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
 

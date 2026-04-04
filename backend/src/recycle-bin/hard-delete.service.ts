@@ -38,6 +38,9 @@ export class HardDeleteService {
       case 'ROLE':        return this.hardDeleteRole(id, actorId, reason);
       case 'NOTIFICATION': return this.hardDeleteNotification(id, actorId, reason);
       case 'REPORT':      return this.hardDeleteReport(id, actorId, reason);
+      case 'VEHICLE':     return this.hardDeleteVehicle(id, actorId, reason);
+      case 'VEHICLE_DOCUMENT': return this.hardDeleteVehicleDocument(id, actorId, reason);
+      case 'MAINTENANCE_RECORD': return this.hardDeleteMaintenanceRecord(id, actorId, reason);
       default:
         throw new BadRequestException(`No hard-delete handler for entity type: ${entityType}`);
     }
@@ -311,6 +314,46 @@ export class HardDeleteService {
 
     await this.logHardDelete('REPORT', id, actorId, deleted, reason).catch(() => {});
     return { success: true, entityType: 'REPORT', id, deleted, warnings: [] };
+  }
+
+  private async hardDeleteVehicle(id: string, actorId: string, reason?: string): Promise<HardDeleteResult> {
+    const record = await this.prisma.vehicle.findUnique({ where: { id } });
+    if (!record) throw new NotFoundException(`Vehicle ${id} not found`);
+
+    const deleted: Record<string, number> = {};
+    await this.prisma.$transaction(async (tx: any) => {
+      deleted.spareParts = (await tx.maintenanceRecordSparePart.deleteMany({ where: { maintenanceRecord: { vehicleId: id } } })).count;
+      deleted.maintenanceRecords = (await tx.maintenanceRecord.deleteMany({ where: { vehicleId: id } })).count;
+      deleted.vehicleDocuments = (await tx.vehicleDocument.deleteMany({ where: { vehicleId: id } })).count;
+      deleted.driverAssignments = (await tx.vehicleDriverAssignment.deleteMany({ where: { vehicleId: id } })).count;
+      deleted.vehicle = (await tx.vehicle.delete({ where: { id } })).id ? 1 : 0;
+    });
+
+    await this.logHardDelete('VEHICLE', id, actorId, deleted, reason).catch(() => {});
+    return { success: true, entityType: 'VEHICLE', id, deleted, warnings: [] };
+  }
+
+  private async hardDeleteVehicleDocument(id: string, actorId: string, reason?: string): Promise<HardDeleteResult> {
+    const record = await (this.prisma as any).vehicleDocument.findUnique({ where: { id } });
+    if (!record) throw new NotFoundException(`Vehicle document ${id} not found`);
+
+    await (this.prisma as any).vehicleDocument.delete({ where: { id } });
+    await this.logHardDelete('VEHICLE_DOCUMENT', id, actorId, { vehicleDocument: 1 }, reason).catch(() => {});
+    return { success: true, entityType: 'VEHICLE_DOCUMENT', id, deleted: { vehicleDocument: 1 }, warnings: [] };
+  }
+
+  private async hardDeleteMaintenanceRecord(id: string, actorId: string, reason?: string): Promise<HardDeleteResult> {
+    const record = await (this.prisma as any).maintenanceRecord.findUnique({ where: { id } });
+    if (!record) throw new NotFoundException(`Maintenance record ${id} not found`);
+
+    const deleted: Record<string, number> = {};
+    await this.prisma.$transaction(async (tx: any) => {
+      deleted.spareParts = (await tx.maintenanceRecordSparePart.deleteMany({ where: { maintenanceRecordId: id } })).count;
+      deleted.maintenanceRecord = (await tx.maintenanceRecord.delete({ where: { id } })).id ? 1 : 0;
+    });
+
+    await this.logHardDelete('MAINTENANCE_RECORD', id, actorId, deleted, reason).catch(() => {});
+    return { success: true, entityType: 'MAINTENANCE_RECORD', id, deleted, warnings: [] };
   }
 
   // ── Helpers ─────────────────────────────────────────────────────────────────

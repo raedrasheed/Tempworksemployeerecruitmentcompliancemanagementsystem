@@ -86,6 +86,25 @@ export const ENTITY_POLICIES: Record<
     canHardDelete: true,
     notes: 'Report filters/columns/sorting cascade-delete with report; no separate restore needed',
   },
+  VEHICLE: {
+    canRestore: true,
+    canRestoreWithRelated: true,
+    canHardDelete: true,
+    relatedEntities: ['VEHICLE_DOCUMENT', 'MAINTENANCE_RECORD'],
+    notes: 'Restoring with related also restores soft-deleted vehicle documents and maintenance records',
+  },
+  VEHICLE_DOCUMENT: {
+    canRestore: true,
+    canRestoreWithRelated: false,
+    canHardDelete: true,
+    notes: 'Vehicle document leaf node; no related records to restore',
+  },
+  MAINTENANCE_RECORD: {
+    canRestore: true,
+    canRestoreWithRelated: false,
+    canHardDelete: true,
+    notes: 'Maintenance record leaf node; spare parts cascade-delete with the record',
+  },
 };
 
 export interface DeletedRecord {
@@ -124,6 +143,7 @@ export class RecycleBinService {
     const [
       applicants, employees, users, agencies, documents,
       docTypes, jobAds, financialRecords, roles, reports,
+      vehicles, vehicleDocs, maintenanceRecords,
     ] = await Promise.all([
       this.getDeletedApplicants(filter, 50),
       this.getDeletedEmployees(filter, 50),
@@ -135,11 +155,15 @@ export class RecycleBinService {
       this.getDeletedFinancialRecords(filter, 50),
       this.getDeletedRoles(filter, 50),
       this.getDeletedReports(filter, 50),
+      this.getDeletedVehicles(filter, 50),
+      this.getDeletedVehicleDocuments(filter, 50),
+      this.getDeletedMaintenanceRecords(filter, 50),
     ]);
 
     records = [
       ...applicants, ...employees, ...users, ...agencies, ...documents,
       ...docTypes, ...jobAds, ...financialRecords, ...roles, ...reports,
+      ...vehicles, ...vehicleDocs, ...maintenanceRecords,
     ];
 
     records.sort((a, b) => {
@@ -158,6 +182,7 @@ export class RecycleBinService {
     const [
       applicants, employees, users, agencies, documents,
       docTypes, jobAds, financialRecords, roles, reports,
+      vehicles, vehicleDocs, maintenanceRecords,
     ] = await Promise.all([
       this.prisma.applicant.count({ where: { deletedAt: { not: null } } }),
       this.prisma.employee.count({ where: { deletedAt: { not: null } } }),
@@ -169,6 +194,9 @@ export class RecycleBinService {
       this.prisma.financialRecord.count({ where: { deletedAt: { not: null } } }),
       this.prisma.role.count({ where: { deletedAt: { not: null } } }),
       this.prisma.report.count({ where: { deletedAt: { not: null } } }),
+      this.prisma.vehicle.count({ where: { deletedAt: { not: null } } }),
+      (this.prisma as any).vehicleDocument.count({ where: { deletedAt: { not: null } } }),
+      (this.prisma as any).maintenanceRecord.count({ where: { deletedAt: { not: null } } }),
     ]);
 
     return {
@@ -182,8 +210,11 @@ export class RecycleBinService {
       FINANCIAL_RECORD: financialRecords,
       ROLE: roles,
       REPORT: reports,
+      VEHICLE: vehicles,
+      VEHICLE_DOCUMENT: vehicleDocs,
+      MAINTENANCE_RECORD: maintenanceRecords,
       total: applicants + employees + users + agencies + documents + docTypes
-        + jobAds + financialRecords + roles + reports,
+        + jobAds + financialRecords + roles + reports + vehicles + vehicleDocs + maintenanceRecords,
     };
   }
 
@@ -216,6 +247,19 @@ export class RecycleBinService {
         where: { financialRecordId: id, deletedAt: { not: null } },
       });
       summary.FINANCIAL_ATTACHMENT = attachments.length;
+    }
+
+    if (entityType === 'VEHICLE') {
+      const docs = await (this.prisma as any).vehicleDocument.findMany({
+        where: { vehicleId: id, deletedAt: { not: null } },
+      });
+      const maint = await (this.prisma as any).maintenanceRecord.findMany({
+        where: { vehicleId: id, deletedAt: { not: null } },
+      });
+      relatedRecords.push(...docs.map((d: any) => this.mapVehicleDocument(d)));
+      relatedRecords.push(...maint.map((m: any) => this.mapMaintenanceRecord(m)));
+      summary.VEHICLE_DOCUMENT = docs.length;
+      summary.MAINTENANCE_RECORD = maint.length;
     }
 
     return {
@@ -325,6 +369,22 @@ export class RecycleBinService {
         willDelete.columns = await this.prisma.reportColumn.count({ where: { reportId: id } });
         willDelete.sorting = await this.prisma.reportSorting.count({ where: { reportId: id } });
         willDelete.report = 1;
+        break;
+      }
+      case 'VEHICLE': {
+        willDelete.documents = await (this.prisma as any).vehicleDocument.count({ where: { vehicleId: id } });
+        willDelete.maintenanceRecords = await (this.prisma as any).maintenanceRecord.count({ where: { vehicleId: id } });
+        willDelete.driverAssignments = await this.prisma.vehicleDriverAssignment.count({ where: { vehicleId: id } });
+        willDelete.vehicle = 1;
+        break;
+      }
+      case 'VEHICLE_DOCUMENT': {
+        willDelete.vehicleDocument = 1;
+        break;
+      }
+      case 'MAINTENANCE_RECORD': {
+        willDelete.spareParts = await (this.prisma as any).maintenanceRecordSparePart.count({ where: { maintenanceRecordId: id } });
+        willDelete.maintenanceRecord = 1;
         break;
       }
       default:
@@ -442,6 +502,33 @@ export class RecycleBinService {
         ]);
         break;
       }
+      case 'VEHICLE': {
+        const where = this.buildVehicleWhere(filter);
+        [data, total] = await Promise.all([
+          this.prisma.vehicle.findMany({ where, orderBy: { deletedAt: sortOrder }, skip, take: Number(limit) })
+            .then(rs => rs.map(r => this.mapVehicle(r))),
+          this.prisma.vehicle.count({ where }),
+        ]);
+        break;
+      }
+      case 'VEHICLE_DOCUMENT': {
+        const where = this.buildVehicleDocWhere(filter);
+        [data, total] = await Promise.all([
+          (this.prisma as any).vehicleDocument.findMany({ where, orderBy: { deletedAt: sortOrder }, skip, take: Number(limit) })
+            .then((rs: any[]) => rs.map(r => this.mapVehicleDocument(r))),
+          (this.prisma as any).vehicleDocument.count({ where }),
+        ]);
+        break;
+      }
+      case 'MAINTENANCE_RECORD': {
+        const where = this.buildMaintenanceRecordWhere(filter);
+        [data, total] = await Promise.all([
+          (this.prisma as any).maintenanceRecord.findMany({ where, orderBy: { deletedAt: sortOrder }, skip, take: Number(limit) })
+            .then((rs: any[]) => rs.map(r => this.mapMaintenanceRecord(r))),
+          (this.prisma as any).maintenanceRecord.count({ where }),
+        ]);
+        break;
+      }
     }
 
     // Enrich with related deleted counts
@@ -513,6 +600,24 @@ export class RecycleBinService {
     const where = this.buildReportWhere(f);
     const rs = await this.prisma.report.findMany({ where, orderBy: { deletedAt: 'desc' }, take: max });
     return rs.map(r => this.mapReport(r));
+  }
+
+  private async getDeletedVehicles(f: ListDeletedDto, max: number) {
+    const where = this.buildVehicleWhere(f);
+    const rs = await this.prisma.vehicle.findMany({ where, orderBy: { deletedAt: 'desc' }, take: max });
+    return rs.map(r => this.mapVehicle(r));
+  }
+
+  private async getDeletedVehicleDocuments(f: ListDeletedDto, max: number) {
+    const where = this.buildVehicleDocWhere(f);
+    const rs = await (this.prisma as any).vehicleDocument.findMany({ where, orderBy: { deletedAt: 'desc' }, take: max });
+    return rs.map((r: any) => this.mapVehicleDocument(r));
+  }
+
+  private async getDeletedMaintenanceRecords(f: ListDeletedDto, max: number) {
+    const where = this.buildMaintenanceRecordWhere(f);
+    const rs = await (this.prisma as any).maintenanceRecord.findMany({ where, orderBy: { deletedAt: 'desc' }, take: max });
+    return rs.map((r: any) => this.mapMaintenanceRecord(r));
   }
 
   // ── WHERE clause builders ───────────────────────────────────────────────────
@@ -643,6 +748,43 @@ export class RecycleBinService {
         { name: { contains: f.search, mode: 'insensitive' } },
         { description: { contains: f.search, mode: 'insensitive' } },
         { dataSource: { contains: f.search, mode: 'insensitive' } },
+      ];
+    }
+    return w;
+  }
+
+  private buildVehicleWhere(f: ListDeletedDto) {
+    const w = this.baseDeletedWhere(f);
+    if (f.search) {
+      w.OR = [
+        { registrationNumber: { contains: f.search, mode: 'insensitive' } },
+        { make: { contains: f.search, mode: 'insensitive' } },
+        { model: { contains: f.search, mode: 'insensitive' } },
+        { vin: { contains: f.search, mode: 'insensitive' } },
+      ];
+    }
+    return w;
+  }
+
+  private buildVehicleDocWhere(f: ListDeletedDto) {
+    const w = this.baseDeletedWhere(f);
+    if (f.search) {
+      w.OR = [
+        { name: { contains: f.search, mode: 'insensitive' } },
+        { documentType: { contains: f.search, mode: 'insensitive' } },
+        { issuer: { contains: f.search, mode: 'insensitive' } },
+      ];
+    }
+    return w;
+  }
+
+  private buildMaintenanceRecordWhere(f: ListDeletedDto) {
+    const w = this.baseDeletedWhere(f);
+    if (f.search) {
+      w.OR = [
+        { description: { contains: f.search, mode: 'insensitive' } },
+        { invoiceNumber: { contains: f.search, mode: 'insensitive' } },
+        { technicianName: { contains: f.search, mode: 'insensitive' } },
       ];
     }
     return w;
@@ -828,6 +970,55 @@ export class RecycleBinService {
     };
   }
 
+  mapVehicle(r: any): DeletedRecord {
+    const policy = ENTITY_POLICIES.VEHICLE;
+    return {
+      entityType: 'VEHICLE',
+      id: r.id,
+      displayName: `${r.make} ${r.model} (${r.registrationNumber})`,
+      businessId: r.registrationNumber,
+      deletedAt: r.deletedAt,
+      deletedBy: r.deletedBy ?? undefined,
+      canRestore: policy.canRestore,
+      canRestoreWithRelated: policy.canRestoreWithRelated,
+      canHardDelete: policy.canHardDelete,
+      relatedDeletedCount: 0,
+      extra: { type: r.type, status: r.status, vin: r.vin },
+    };
+  }
+
+  mapVehicleDocument(r: any): DeletedRecord {
+    const policy = ENTITY_POLICIES.VEHICLE_DOCUMENT;
+    return {
+      entityType: 'VEHICLE_DOCUMENT',
+      id: r.id,
+      displayName: r.name,
+      deletedAt: r.deletedAt,
+      deletedBy: r.deletedBy ?? undefined,
+      canRestore: policy.canRestore,
+      canRestoreWithRelated: policy.canRestoreWithRelated,
+      canHardDelete: policy.canHardDelete,
+      relatedDeletedCount: 0,
+      extra: { documentType: r.documentType, vehicleId: r.vehicleId, issuer: r.issuer },
+    };
+  }
+
+  mapMaintenanceRecord(r: any): DeletedRecord {
+    const policy = ENTITY_POLICIES.MAINTENANCE_RECORD;
+    return {
+      entityType: 'MAINTENANCE_RECORD',
+      id: r.id,
+      displayName: r.description ?? r.invoiceNumber ?? `Maintenance ${r.id.slice(0, 8)}`,
+      deletedAt: r.deletedAt,
+      deletedBy: r.deletedBy ?? undefined,
+      canRestore: policy.canRestore,
+      canRestoreWithRelated: policy.canRestoreWithRelated,
+      canHardDelete: policy.canHardDelete,
+      relatedDeletedCount: 0,
+      extra: { status: r.status, vehicleId: r.vehicleId, cost: r.cost },
+    };
+  }
+
   // ── Helpers ─────────────────────────────────────────────────────────────────
 
   private async enrichRelatedCounts(records: DeletedRecord[]): Promise<DeletedRecord[]> {
@@ -844,6 +1035,12 @@ export class RecycleBinService {
           rec.relatedDeletedCount = await this.prisma.financialRecordAttachment.count({
             where: { financialRecordId: rec.id, deletedAt: { not: null } },
           });
+        } else if (rec.entityType === 'VEHICLE') {
+          const [docs, maint] = await Promise.all([
+            (this.prisma as any).vehicleDocument.count({ where: { vehicleId: rec.id, deletedAt: { not: null } } }),
+            (this.prisma as any).maintenanceRecord.count({ where: { vehicleId: rec.id, deletedAt: { not: null } } }),
+          ]);
+          rec.relatedDeletedCount = docs + maint;
         }
       }),
     );

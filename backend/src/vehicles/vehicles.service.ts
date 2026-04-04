@@ -84,8 +84,9 @@ export class VehiclesService {
           },
           orderBy: { createdAt: 'desc' },
         },
-        documents: { orderBy: { createdAt: 'desc' } },
+        documents: { where: { deletedAt: null } as any, orderBy: { createdAt: 'desc' } },
         maintenanceRecords: {
+          where: { deletedAt: null } as any,
           include: {
             maintenanceType: true,
             workshop: true,
@@ -219,10 +220,14 @@ export class VehiclesService {
     return this.prisma.vehicleDocument.update({ where: { id: docId }, data });
   }
 
-  async deleteDocument(vehicleId: string, docId: string) {
-    const doc = await this.prisma.vehicleDocument.findFirst({ where: { id: docId, vehicleId } });
+  async deleteDocument(vehicleId: string, docId: string, userId?: string) {
+    const doc = await this.prisma.vehicleDocument.findFirst({ where: { id: docId, vehicleId } as any });
     if (!doc) throw new NotFoundException('Document not found');
-    await this.prisma.vehicleDocument.delete({ where: { id: docId } });
+    if ((doc as any).deletedAt) throw new NotFoundException('Document not found');
+    await (this.prisma.vehicleDocument as any).update({
+      where: { id: docId },
+      data: { deletedAt: new Date(), deletedBy: userId ?? null },
+    });
     return { message: 'Document deleted successfully' };
   }
 
@@ -283,7 +288,7 @@ export class VehiclesService {
   async listMaintenanceRecords(dto: FilterMaintenanceDto) {
     const { page = 1, limit = 20, vehicleId, status, dateFrom, dateTo } = dto;
     const skip = (page - 1) * limit;
-    const where: any = {};
+    const where: any = { deletedAt: null } as any;
 
     if (vehicleId) where.vehicleId = vehicleId;
     if (status)    where.status    = status;
@@ -413,10 +418,14 @@ export class VehiclesService {
     });
   }
 
-  async deleteMaintenanceRecord(id: string) {
+  async deleteMaintenanceRecord(id: string, userId?: string) {
     const existing = await this.prisma.maintenanceRecord.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Maintenance record not found');
-    await this.prisma.maintenanceRecord.delete({ where: { id } });
+    if ((existing as any).deletedAt) throw new NotFoundException('Maintenance record not found');
+    await (this.prisma.maintenanceRecord as any).update({
+      where: { id },
+      data: { deletedAt: new Date(), deletedBy: userId ?? null },
+    });
     return { message: 'Maintenance record deleted successfully' };
   }
 

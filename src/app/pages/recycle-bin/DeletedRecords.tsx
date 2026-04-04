@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   Search, RefreshCw, Trash2, RotateCcw, Eye, AlertTriangle,
   ChevronLeft, ChevronRight, Users, FileText, Building2, Briefcase,
-  DollarSign, Shield, Bell, BarChart3, FolderOpen, UserCheck,
+  DollarSign, Shield, Bell, BarChart3, FolderOpen, UserCheck, Truck, Wrench,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -57,8 +57,11 @@ const ENTITY_LABELS: Record<string, { label: string; icon: any; color: string }>
   JOB_AD:           { label: 'Job Ad',            icon: Briefcase,  color: 'bg-yellow-100 text-yellow-800' },
   FINANCIAL_RECORD: { label: 'Financial Record',  icon: DollarSign, color: 'bg-emerald-100 text-emerald-800' },
   ROLE:             { label: 'Role',              icon: Shield,     color: 'bg-indigo-100 text-indigo-800' },
-  NOTIFICATION:     { label: 'Notification',      icon: Bell,       color: 'bg-gray-100 text-gray-800' },
-  REPORT:           { label: 'Report',            icon: BarChart3,  color: 'bg-pink-100 text-pink-800' },
+  NOTIFICATION:        { label: 'Notification',        icon: Bell,      color: 'bg-gray-100 text-gray-800' },
+  REPORT:              { label: 'Report',               icon: BarChart3, color: 'bg-pink-100 text-pink-800' },
+  VEHICLE:             { label: 'Vehicle',              icon: Truck,     color: 'bg-sky-100 text-sky-800' },
+  VEHICLE_DOCUMENT:    { label: 'Vehicle Document',     icon: FileText,  color: 'bg-blue-100 text-blue-800' },
+  MAINTENANCE_RECORD:  { label: 'Maintenance Record',   icon: Wrench,    color: 'bg-amber-100 text-amber-800' },
 };
 
 function formatDate(iso: string) {

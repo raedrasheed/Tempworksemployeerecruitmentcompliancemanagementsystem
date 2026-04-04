@@ -46,6 +46,9 @@ export class RestoreService {
       case 'FINANCIAL_RECORD': return this.restoreFinancialRecord(id, actorId, withRelated, reason);
       case 'ROLE':        return this.restoreRole(id, actorId, reason);
       case 'REPORT':      return this.restoreReport(id, actorId, reason);
+      case 'VEHICLE':     return this.restoreVehicle(id, actorId, withRelated, reason);
+      case 'VEHICLE_DOCUMENT': return this.restoreVehicleDocument(id, actorId, reason);
+      case 'MAINTENANCE_RECORD': return this.restoreMaintenanceRecord(id, actorId, reason);
       default:
         throw new BadRequestException(`No restore handler for entity type: ${entityType}`);
     }
@@ -299,6 +302,52 @@ export class RestoreService {
     await this.prisma.report.update({ where: { id }, data: { deletedAt: null, deletedBy: null, deletionReason: null } });
     await this.logRestore('REPORT', id, actorId, { report: 1 }, reason).catch(() => {});
     return { success: true, entityType: 'REPORT', id, restored: { report: 1 }, skipped: {}, warnings };
+  }
+
+  private async restoreVehicle(id: string, actorId: string, withRelated: boolean, reason?: string): Promise<RestoreResult> {
+    const record = await this.prisma.vehicle.findUnique({ where: { id } });
+    if (!record) throw new NotFoundException(`Vehicle ${id} not found`);
+    if (!record.deletedAt) throw new ConflictException('Vehicle is not deleted');
+
+    const restored: Record<string, number> = {};
+    await this.prisma.vehicle.update({ where: { id }, data: { deletedAt: null, deletedBy: null } });
+    restored.vehicle = 1;
+
+    if (withRelated) {
+      const docs = await (this.prisma as any).vehicleDocument.updateMany({
+        where: { vehicleId: id, deletedAt: { not: null } },
+        data: { deletedAt: null, deletedBy: null },
+      });
+      const maint = await (this.prisma as any).maintenanceRecord.updateMany({
+        where: { vehicleId: id, deletedAt: { not: null } },
+        data: { deletedAt: null, deletedBy: null },
+      });
+      restored.vehicleDocuments = docs.count;
+      restored.maintenanceRecords = maint.count;
+    }
+
+    await this.logRestore('VEHICLE', id, actorId, restored, reason).catch(() => {});
+    return { success: true, entityType: 'VEHICLE', id, restored, skipped: {}, warnings: [] };
+  }
+
+  private async restoreVehicleDocument(id: string, actorId: string, reason?: string): Promise<RestoreResult> {
+    const record = await (this.prisma as any).vehicleDocument.findUnique({ where: { id } });
+    if (!record) throw new NotFoundException(`Vehicle document ${id} not found`);
+    if (!record.deletedAt) throw new ConflictException('Vehicle document is not deleted');
+
+    await (this.prisma as any).vehicleDocument.update({ where: { id }, data: { deletedAt: null, deletedBy: null } });
+    await this.logRestore('VEHICLE_DOCUMENT', id, actorId, { vehicleDocument: 1 }, reason).catch(() => {});
+    return { success: true, entityType: 'VEHICLE_DOCUMENT', id, restored: { vehicleDocument: 1 }, skipped: {}, warnings: [] };
+  }
+
+  private async restoreMaintenanceRecord(id: string, actorId: string, reason?: string): Promise<RestoreResult> {
+    const record = await (this.prisma as any).maintenanceRecord.findUnique({ where: { id } });
+    if (!record) throw new NotFoundException(`Maintenance record ${id} not found`);
+    if (!record.deletedAt) throw new ConflictException('Maintenance record is not deleted');
+
+    await (this.prisma as any).maintenanceRecord.update({ where: { id }, data: { deletedAt: null, deletedBy: null } });
+    await this.logRestore('MAINTENANCE_RECORD', id, actorId, { maintenanceRecord: 1 }, reason).catch(() => {});
+    return { success: true, entityType: 'MAINTENANCE_RECORD', id, restored: { maintenanceRecord: 1 }, skipped: {}, warnings: [] };
   }
 
   // ── Helpers ─────────────────────────────────────────────────────────────────

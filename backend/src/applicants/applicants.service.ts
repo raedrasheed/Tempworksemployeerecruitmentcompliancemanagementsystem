@@ -549,7 +549,7 @@ export class ApplicantsService {
         photoUrl: (applicant as any).photoUrl ?? null,
         status: 'ONBOARDING' as any,
         ...(applicant.agencyId ? { agencyId: applicant.agencyId } : {}),
-        workflowStages: {
+        workflowAssignments: {
           create: stages.map((s: any) => ({ stageId: s.id, status: 'PENDING' })),
         },
       } as any,

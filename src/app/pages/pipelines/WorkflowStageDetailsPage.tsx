@@ -50,11 +50,11 @@ export function WorkflowStageDetailsPage() {
     );
   }
 
-  const { stage, allStages, candidates, stats } = data;
+  const { stage, allStages, people, stats } = data;
   const totalStages = allStages?.length ?? 0;
 
-  const filtered = candidates.filter((c: any) => {
-    const name = `${c.candidate?.firstName ?? ''} ${c.candidate?.lastName ?? ''} ${c.candidate?.email ?? ''}`.toLowerCase();
+  const filtered = (people ?? []).filter((p: any) => {
+    const name = `${p.firstName ?? ''} ${p.lastName ?? ''} ${p.email ?? ''}`.toLowerCase();
     return name.includes(search.toLowerCase());
   });
 
@@ -85,7 +85,7 @@ export function WorkflowStageDetailsPage() {
               <div>
                 <p className="text-3xl font-semibold text-[#0F172A]">{stats.total}</p>
                 <p className="text-sm text-muted-foreground mt-1">Total in Stage</p>
-                <p className="text-xs text-muted-foreground">0 employees · {stats.total} applicants</p>
+                <p className="text-xs text-muted-foreground">{stats.employeesCount} employees · {stats.candidatesCount} applicants</p>
               </div>
             </div>
           </CardContent>
@@ -185,80 +185,86 @@ export function WorkflowStageDetailsPage() {
             <div className="text-center py-12">
               <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
               <p className="text-lg font-medium">
-                {candidates.length === 0 ? 'No one in this stage' : 'No results found'}
+                {(people ?? []).length === 0 ? 'No one in this stage' : 'No results found'}
               </p>
               <p className="text-sm text-muted-foreground mt-1">
-                {candidates.length === 0
+                {(people ?? []).length === 0
                   ? 'People will appear here when assigned to this stage.'
                   : 'Try a different search term.'}
               </p>
             </div>
           ) : (
             <div className="space-y-3">
-              {filtered.map((item: any) => {
-                const c = item.candidate;
-                return (
-                  <div key={item.progressId} className="flex items-center justify-between p-4 border rounded-lg hover:bg-[#F8FAFC] transition-colors">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-full bg-[#EFF6FF] flex items-center justify-center overflow-hidden shrink-0">
-                        {c?.photoUrl
-                          ? <img src={c.photoUrl} alt={c.firstName} className="w-full h-full object-cover" />
-                          : <UserCircle className="w-6 h-6 text-[#2563EB]" />
-                        }
-                      </div>
-                      <div>
-                        <p className="font-medium text-[#0F172A]">{c?.firstName} {c?.lastName}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {c?.nationality}{c?.email ? ` · ${c.email}` : ''}
-                          {c?.candidateNumber ? ` · ${c.candidateNumber}` : ''}
-                        </p>
-                      </div>
+              {filtered.map((item: any) => (
+                <div key={item.progressId} className="flex items-center justify-between p-4 border rounded-lg hover:bg-[#F8FAFC] transition-colors">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-full bg-[#EFF6FF] flex items-center justify-center overflow-hidden shrink-0">
+                      {item.photoUrl
+                        ? <img src={item.photoUrl} alt={item.firstName} className="w-full h-full object-cover" />
+                        : <UserCircle className="w-6 h-6 text-[#2563EB]" />
+                      }
                     </div>
-
-                    <div className="flex items-center gap-3">
-                      <div className="text-right">
-                        <p className="font-medium text-[#0F172A]">{item.daysInStage}d</p>
-                        <p className="text-xs text-muted-foreground">in stage</p>
-                      </div>
-
-                      {item.daysInStage > 14 && (
-                        <Badge variant="outline" className="border-[#F59E0B] text-[#F59E0B] bg-[#FEF3C7]">
-                          At Risk
-                        </Badge>
-                      )}
-
-                      {item.flagged && (
-                        <Badge variant="outline" className="border-amber-500 text-amber-600 bg-amber-50">
-                          <Flag className="w-3 h-3 mr-1" /> Flagged
-                        </Badge>
-                      )}
-
-                      {item.latestApproval && (
-                        <Badge
-                          variant="outline"
-                          className={
-                            item.latestApproval.decision === 'APPROVED'
-                              ? 'border-emerald-500 text-emerald-600 bg-emerald-50'
-                              : item.latestApproval.decision === 'REJECTED'
-                              ? 'border-red-400 text-red-600 bg-red-50'
-                              : 'border-amber-400 text-amber-600 bg-amber-50'
-                          }
-                        >
-                          {item.latestApproval.decision}
-                        </Badge>
-                      )}
-
-                      {c?.id && (
-                        <Link to={`/dashboard/applicants/${c.id}`}>
-                          <Button variant="outline" size="sm">
-                            View Profile <ChevronRight className="w-4 h-4 ml-1" />
-                          </Button>
-                        </Link>
-                      )}
+                    <div>
+                      <p className="font-medium text-[#0F172A]">{item.firstName} {item.lastName}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {item.nationality}{item.email ? ` · ${item.email}` : ''}
+                        {item.systemId ? ` · ${item.systemId}` : ''}
+                      </p>
                     </div>
                   </div>
-                );
-              })}
+
+                  <div className="flex items-center gap-3">
+                    <div className="text-right">
+                      <p className="font-medium text-[#0F172A]">{item.daysInStage}d</p>
+                      <p className="text-xs text-muted-foreground">in stage</p>
+                    </div>
+
+                    {item.daysInStage > 14 && (
+                      <Badge variant="outline" className="border-[#F59E0B] text-[#F59E0B] bg-[#FEF3C7]">
+                        At Risk
+                      </Badge>
+                    )}
+
+                    {item.flagged && (
+                      <Badge variant="outline" className="border-amber-500 text-amber-600 bg-amber-50">
+                        <Flag className="w-3 h-3 mr-1" /> Flagged
+                      </Badge>
+                    )}
+
+                    <Badge
+                      variant="outline"
+                      className={item.personType === 'EMPLOYEE'
+                        ? 'border-emerald-500 text-emerald-600 bg-emerald-50'
+                        : 'border-[#2563EB] text-[#2563EB] bg-[#EFF6FF]'}
+                    >
+                      {item.personType === 'EMPLOYEE' ? 'Employee' : 'Applicant'}
+                    </Badge>
+
+                    {item.latestApproval && (
+                      <Badge
+                        variant="outline"
+                        className={
+                          item.latestApproval.decision === 'APPROVED'
+                            ? 'border-emerald-500 text-emerald-600 bg-emerald-50'
+                            : item.latestApproval.decision === 'REJECTED'
+                            ? 'border-red-400 text-red-600 bg-red-50'
+                            : 'border-amber-400 text-amber-600 bg-amber-50'
+                        }
+                      >
+                        {item.latestApproval.decision}
+                      </Badge>
+                    )}
+
+                    {item.profileLink && (
+                      <Link to={item.profileLink}>
+                        <Button variant="outline" size="sm">
+                          View Profile <ChevronRight className="w-4 h-4 ml-1" />
+                        </Button>
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </CardContent>

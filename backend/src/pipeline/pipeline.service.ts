@@ -603,49 +603,105 @@ export class WorkflowService {
       select: { id: true, order: true, name: true },
     });
 
-    // Active candidates in this stage
-    const progressItems = await this.prisma.candidateStageProgress.findMany({
-      where: { stageId, status: 'ACTIVE' },
-      include: {
-        assignment: {
-          include: {
-            candidate: {
-              select: {
-                id: true, firstName: true, lastName: true, email: true,
-                candidateNumber: true, photoUrl: true, nationality: true,
+    // Active candidates in this stage (via CandidateStageProgress)
+    const [progressItems, employeeAssignments] = await Promise.all([
+      this.prisma.candidateStageProgress.findMany({
+        where: { stageId, status: 'ACTIVE' },
+        include: {
+          assignment: {
+            include: {
+              candidate: {
+                select: {
+                  id: true, firstName: true, lastName: true, email: true,
+                  candidateNumber: true, photoUrl: true, nationality: true,
+                },
               },
             },
           },
+          approvals: { orderBy: { createdAt: 'desc' }, take: 1 },
         },
-        approvals: { orderBy: { createdAt: 'desc' }, take: 1 },
-      },
-      orderBy: { enteredAt: 'asc' },
-    });
+        orderBy: { enteredAt: 'asc' },
+      }),
+      // Active employees whose currentStageId === this stage
+      this.prisma.employeeWorkflowAssignment.findMany({
+        where: { currentStageId: stageId, status: 'ACTIVE' },
+        include: {
+          employee: {
+            select: {
+              id: true, firstName: true, lastName: true, email: true,
+              employeeNumber: true, photoUrl: true, nationality: true, status: true,
+            },
+          },
+        },
+        orderBy: { assignedAt: 'asc' },
+      }),
+    ]);
 
-    const candidates = progressItems.map((p) => {
+    // Map candidates
+    const candidateEntries = progressItems.map((p) => {
       const daysInStage = Math.floor((Date.now() - new Date(p.enteredAt).getTime()) / 86400000);
+      const candidate = (p.assignment as any).candidate;
       return {
         progressId: p.id,
         assignmentId: p.assignmentId,
-        enteredAt: p.enteredAt,
+        personType: 'CANDIDATE' as const,
+        personId:   candidate?.id,
+        firstName:  candidate?.firstName,
+        lastName:   candidate?.lastName,
+        email:      candidate?.email,
+        systemId:   candidate?.candidateNumber,
+        photoUrl:   candidate?.photoUrl,
+        nationality: candidate?.nationality,
+        enteredAt:  p.enteredAt,
         slaDeadline: p.slaDeadline,
-        flagged: p.flagged,
+        flagged:    p.flagged,
         daysInStage,
         latestApproval: (p.approvals as any[])[0] ?? null,
-        candidate: (p.assignment as any).candidate,
+        profileLink: `/dashboard/applicants/${candidate?.id}`,
       };
     });
 
-    const avgDays = candidates.length > 0
-      ? Math.round(candidates.reduce((s, c) => s + c.daysInStage, 0) / candidates.length)
+    // Map employees
+    const employeeEntries = employeeAssignments.map((ea) => {
+      const emp = (ea as any).employee;
+      const daysInStage = Math.floor((Date.now() - new Date(ea.assignedAt).getTime()) / 86400000);
+      return {
+        progressId:  ea.id,
+        assignmentId: ea.id,
+        personType:  'EMPLOYEE' as const,
+        personId:    emp?.id,
+        firstName:   emp?.firstName,
+        lastName:    emp?.lastName,
+        email:       emp?.email,
+        systemId:    emp?.employeeNumber,
+        photoUrl:    emp?.photoUrl,
+        nationality: emp?.nationality,
+        enteredAt:   ea.assignedAt,
+        slaDeadline: null,
+        flagged:     false,
+        daysInStage,
+        latestApproval: null,
+        profileLink: `/dashboard/employees/${emp?.id}`,
+      };
+    });
+
+    const allPeople = [...candidateEntries, ...employeeEntries];
+    const avgDays = allPeople.length > 0
+      ? Math.round(allPeople.reduce((s, c) => s + c.daysInStage, 0) / allPeople.length)
       : 0;
-    const atRiskCount = candidates.filter(c => c.daysInStage > 14).length;
+    const atRiskCount = allPeople.filter(c => c.daysInStage > 14).length;
 
     return {
       stage,
       allStages,
-      candidates,
-      stats: { total: candidates.length, avgDays, atRiskCount },
+      people: allPeople,
+      stats: {
+        total:          allPeople.length,
+        candidatesCount: candidateEntries.length,
+        employeesCount:  employeeEntries.length,
+        avgDays,
+        atRiskCount,
+      },
     };
   }
 

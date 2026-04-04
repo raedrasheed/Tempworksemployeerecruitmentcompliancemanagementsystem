@@ -305,7 +305,7 @@ export function Dashboard() {
                 <CardDescription>Current stage distribution of employees in the recruitment process</CardDescription>
               </div>
               <Button asChild variant="ghost" size="sm">
-                <Link to="/dashboard/workflow">View Pipeline <ChevronRight className="w-3 h-3 ml-1" /></Link>
+                <Link to="/dashboard/workflows">View Pipeline <ChevronRight className="w-3 h-3 ml-1" /></Link>
               </Button>
             </div>
           </CardHeader>
@@ -550,7 +550,7 @@ export function Dashboard() {
             )}
             {can('workflow', 'read') && (
               <Button variant="outline" className="h-auto flex-col gap-2 p-4 hover:bg-purple-50 hover:border-purple-300" asChild>
-                <Link to="/dashboard/workflow">
+                <Link to="/dashboard/workflows">
                   <TrendingUp className="w-6 h-6 text-purple-600" />
                   <span className="text-sm">View Workflow</span>
                 </Link>

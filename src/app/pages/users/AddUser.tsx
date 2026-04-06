@@ -11,7 +11,12 @@ import { Checkbox } from '../../components/ui/checkbox';
 import { toast } from 'sonner';
 import { usersApi, rolesApi, agenciesApi, settingsApi, getCurrentUser } from '../../services/api';
 
-const GENDERS = ['Male', 'Female', 'Non-binary', 'Prefer not to say'];
+const GENDERS = [
+  { value: 'MALE', label: 'Male' },
+  { value: 'FEMALE', label: 'Female' },
+  { value: 'OTHER', label: 'Other' },
+  { value: 'PREFER_NOT_TO_SAY', label: 'Prefer not to say' },
+];
 const LANGUAGES = ['English', 'Arabic', 'Polish', 'German', 'French', 'Spanish', 'Italian', 'Romanian', 'Ukrainian'];
 const TIMEZONES = [
   'UTC', 'Europe/London', 'Europe/Warsaw', 'Europe/Berlin', 'Europe/Paris',
@@ -329,7 +334,7 @@ export function AddUser() {
                     </SelectTrigger>
                     <SelectContent>
                       {GENDERS.map(g => (
-                        <SelectItem key={g} value={g}>{g}</SelectItem>
+                        <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>

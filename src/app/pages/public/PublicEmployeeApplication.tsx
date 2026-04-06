@@ -1,19 +1,20 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { Briefcase, ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { toast } from 'sonner';
-import ReCAPTCHA from 'react-google-recaptcha';
+import { GoogleReCaptchaProvider, useGoogleReCaptcha } from 'react-google-recaptcha-v3';
 import { publicApplicationApi, settingsApi, publicJobAdsApi } from '../../services/api';
 import { ApplicantFormSteps, EMPTY_FORM, getVisibleTabs, StepIndicator, FormSettings, DEFAULT_FORM_SETTINGS, ApplicantFormData } from '../../components/applicants/ApplicantFormSteps';
 
 const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY as string;
 
-export function PublicEmployeeApplication() {
+// ── Inner form (needs reCAPTCHA context) ────────────────────────────────────
+
+function ApplicationForm() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const jobAdId = searchParams.get('jobAdId') || undefined;
   const jobCategory = searchParams.get('jobCategory') || undefined;
-  const [jobAd, setJobAd] = useState<{ id: string; title: string; city: string; country: string } | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<ApplicantFormData>(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
@@ -21,18 +22,13 @@ export function PublicEmployeeApplication() {
   const [settings, setSettings] = useState<FormSettings>(DEFAULT_FORM_SETTINGS);
   const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
-  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
-  const recaptchaRef = useRef<ReCAPTCHA>(null);
 
+  const { executeRecaptcha } = useGoogleReCaptcha();
   const visibleTabs = useMemo(() => getVisibleTabs(formData), [formData.hasDrivingLicense]);
 
   useEffect(() => {
-    // If coming from a job ad listing, pre-fetch the ad details for display
     if (jobAdId) {
-      publicJobAdsApi.getBySlug(jobAdId)
-        .catch(() => {
-          // jobAdId might be a UUID not a slug — that's fine, just skip display
-        });
+      publicJobAdsApi.getBySlug(jobAdId).catch(() => {});
     }
   }, [jobAdId]);
 
@@ -40,17 +36,13 @@ export function PublicEmployeeApplication() {
     Promise.all([
       settingsApi.getJobTypes().then((types: any[]) => {
         setJobTypes(types);
-        // Pre-select position when arriving from a job ad
         if (jobCategory) {
           const match = types.find((t: any) => t.name === jobCategory);
-          if (match) {
-            setFormData(prev => ({ ...prev, jobTypeId: match.id }));
-          }
+          if (match) setFormData(prev => ({ ...prev, jobTypeId: match.id }));
         }
       }).catch(() => {}),
       publicApplicationApi.getFormSettings().then((raw: any) => {
         if (!raw || typeof raw !== 'object') return;
-        // Strip "form." prefix from keys (handles both old and new backend)
         const parsed: Record<string, any> = {};
         for (const [k, v] of Object.entries(raw)) {
           parsed[k.replace(/^form\./, '')] = v;
@@ -73,17 +65,12 @@ export function PublicEmployeeApplication() {
 
   const handleBack = () => {
     if (currentStep > 1) {
-      // If leaving the last step, reset captcha
-      if (currentStep === visibleTabs.length) {
-        setCaptchaToken(null);
-        recaptchaRef.current?.reset();
-      }
       setCurrentStep(s => s - 1);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     if (!photoFile) {
       toast.error('A photo is required. Please go back to the Personal tab and upload your photo.');
       return;
@@ -92,12 +79,16 @@ export function PublicEmployeeApplication() {
       toast.error('You must agree to all statements in the Review tab before submitting.');
       return;
     }
-    if (!captchaToken) {
-      toast.error('Please complete the reCAPTCHA verification before submitting.');
+    if (!executeRecaptcha) {
+      toast.error('reCAPTCHA is not ready yet. Please try again in a moment.');
       return;
     }
+
     setSubmitting(true);
     try {
+      // Execute reCAPTCHA v3 silently — returns a token for backend verification
+      const recaptchaToken = await executeRecaptcha('submit_application');
+
       const payload = {
         firstName: formData.firstName,
         middleName: formData.middleName,
@@ -118,11 +109,11 @@ export function PublicEmployeeApplication() {
         jobTypeId: formData.jobTypeId || undefined,
         jobAdId: jobAdId || undefined,
         applicationData: formData,
+        recaptchaToken,
       };
 
       const applicant = await publicApplicationApi.submit(payload);
 
-      // Upload photo first (required)
       if (photoFile && applicant?.id) {
         await publicApplicationApi.uploadDocument(applicant.id, photoFile, 'Profile Photo', 'Profile Photo').catch(() => {
           toast.warning('Application submitted but photo upload failed. Please contact us to resubmit your photo.');
@@ -133,7 +124,6 @@ export function PublicEmployeeApplication() {
       if (fileItems.length > 0 && applicant?.id) {
         const results = await Promise.allSettled(
           fileItems.map((item: any) => {
-            // Strip leading "Upload " prefix so the name matches DB document types
             const rawType: string = item.type || item.file!.name;
             const docTypeName = rawType.replace(/^Upload\s+/i, '').trim() || 'Other';
             return publicApplicationApi.uploadDocument(applicant.id, item.file!, rawType, docTypeName);
@@ -151,7 +141,7 @@ export function PublicEmployeeApplication() {
     } finally {
       setSubmitting(false);
     }
-  };
+  }, [executeRecaptcha, formData, photoFile, uploadedFiles, jobAdId, navigate]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -206,19 +196,6 @@ export function PublicEmployeeApplication() {
             onPhotoChange={setPhotoFile}
           />
 
-          {/* Google reCAPTCHA v2 — shown only on the last step */}
-          {currentStep === visibleTabs.length && (
-            <div className="mt-8 flex flex-col items-start gap-2">
-              <ReCAPTCHA
-                ref={recaptchaRef}
-                sitekey={RECAPTCHA_SITE_KEY}
-                onChange={(token) => setCaptchaToken(token)}
-                onExpired={() => setCaptchaToken(null)}
-                onError={() => setCaptchaToken(null)}
-              />
-            </div>
-          )}
-
           <div className="flex justify-between pt-8 border-t mt-8">
             {currentStep > 1 ? (
               <button
@@ -244,9 +221,8 @@ export function PublicEmployeeApplication() {
               <button
                 type="button"
                 onClick={handleSubmit}
-                disabled={submitting || !captchaToken}
-                className="ml-auto flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                title={!captchaToken ? 'Complete the reCAPTCHA to submit' : undefined}
+                disabled={submitting}
+                className="ml-auto flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 transition-colors"
               >
                 <Check className="w-4 h-4" />
                 {submitting ? 'Submitting…' : 'Submit Application'}
@@ -256,5 +232,15 @@ export function PublicEmployeeApplication() {
         </div>
       </main>
     </div>
+  );
+}
+
+// ── Public export — wraps with reCAPTCHA v3 provider ────────────────────────
+
+export function PublicEmployeeApplication() {
+  return (
+    <GoogleReCaptchaProvider reCaptchaKey={RECAPTCHA_SITE_KEY}>
+      <ApplicationForm />
+    </GoogleReCaptchaProvider>
   );
 }

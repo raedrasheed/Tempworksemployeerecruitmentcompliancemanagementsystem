@@ -283,14 +283,20 @@ export function Profile() {
                         <SelectValue placeholder="Select gender" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Male">Male</SelectItem>
-                        <SelectItem value="Female">Female</SelectItem>
-                        <SelectItem value="Non-binary">Non-binary</SelectItem>
-                        <SelectItem value="Prefer not to say">Prefer not to say</SelectItem>
+                        <SelectItem value="MALE">Male</SelectItem>
+                        <SelectItem value="FEMALE">Female</SelectItem>
+                        <SelectItem value="OTHER">Other</SelectItem>
+                        <SelectItem value="PREFER_NOT_TO_SAY">Prefer not to say</SelectItem>
                       </SelectContent>
                     </Select>
                   ) : (
-                    <Input value={userData?.gender || '—'} disabled />
+                    <Input value={
+                      userData?.gender === 'MALE' ? 'Male' :
+                      userData?.gender === 'FEMALE' ? 'Female' :
+                      userData?.gender === 'OTHER' ? 'Other' :
+                      userData?.gender === 'PREFER_NOT_TO_SAY' ? 'Prefer not to say' :
+                      userData?.gender || '—'
+                    } disabled />
                   )}
                 </div>
 

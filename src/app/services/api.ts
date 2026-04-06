@@ -530,6 +530,8 @@ export const agenciesApi = {
   },
 
   getStats: (id: string) => apiFetch<any>(`/agencies/${id}/stats`),
+
+  listPublic: () => apiFetch<{ id: string; name: string }[]>('/agencies/public'),
 };
 
 // ─── Compliance API ───────────────────────────────────────────────────────────

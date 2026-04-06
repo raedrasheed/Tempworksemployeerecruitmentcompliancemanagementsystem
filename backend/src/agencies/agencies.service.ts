@@ -13,6 +13,14 @@ export class AgenciesService {
     return { _count: { select: { users: true, employees: true } } };
   }
 
+  async listPublic(): Promise<{ id: string; name: string }[]> {
+    return this.prisma.agency.findMany({
+      where: { deletedAt: null },
+      select: { id: true, name: true },
+      orderBy: { name: 'asc' },
+    });
+  }
+
   async findAll(pagination: PaginationDto) {
     const { page = 1, limit = 10, search, sortBy = 'name', sortOrder = 'asc' } = pagination;
     const skip = (Number(page) - 1) * Number(limit);

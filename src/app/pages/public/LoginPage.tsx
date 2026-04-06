@@ -1,19 +1,34 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
-import { Briefcase, ArrowLeft } from 'lucide-react';
+import { Briefcase, ArrowLeft, ChevronDown, X } from 'lucide-react';
 import { toast } from 'sonner';
-import { authApi, setTokens, setCurrentUser } from '../../services/api';
+import { authApi, agenciesApi, setTokens, setCurrentUser } from '../../services/api';
 
 export function LoginPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [agencyName, setAgencyName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Agency dropdown state
+  const [agencies, setAgencies] = useState<{ id: string; name: string }[]>([]);
+  const [selectedAgency, setSelectedAgency] = useState<{ id: string; name: string } | null>(null);
+  const [agencySearch, setAgencySearch] = useState('');
+  const [agencyOpen, setAgencyOpen] = useState(false);
+
+  useEffect(() => {
+    agenciesApi.listPublic()
+      .then(data => setAgencies(Array.isArray(data) ? data : []))
+      .catch(() => setAgencies([]));
+  }, []);
+
+  const filteredAgencies = agencies.filter(a =>
+    a.name.toLowerCase().includes(agencySearch.toLowerCase())
+  );
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,7 +36,7 @@ export function LoginPage() {
     setError('');
 
     try {
-      const result = await authApi.login(email, password, agencyName || undefined);
+      const result = await authApi.login(email, password, selectedAgency?.id || undefined);
       toast.success('Welcome back!');
 
       if ((result as any)?.passwordExpired) {
@@ -73,27 +88,79 @@ export function LoginPage() {
 
         <CardContent className="space-y-6">
           <form onSubmit={handleLogin} className="space-y-4">
-            {/* Agency Field (optional) */}
+
+            {/* Agency Dropdown (optional) */}
             <div className="space-y-2">
-              <label htmlFor="agencyName" className="text-sm font-medium">
+              <label className="text-sm font-medium">
                 Agency <span className="text-muted-foreground font-normal">(optional)</span>
               </label>
-              <Input
-                id="agencyName"
-                type="text"
-                placeholder="Enter your agency name if required"
-                value={agencyName}
-                onChange={(e) => setAgencyName(e.target.value)}
-                autoComplete="organization"
-              />
-              <p className="text-xs text-muted-foreground">Leave blank if you are not associated with a specific agency</p>
+
+              <div className="relative">
+                {/* Selected value / trigger */}
+                <button
+                  type="button"
+                  onClick={() => { setAgencyOpen(o => !o); setAgencySearch(''); }}
+                  className="w-full flex items-center justify-between border rounded-md px-3 py-2 text-sm bg-white hover:border-[#2563EB] focus:outline-none focus:ring-2 focus:ring-[#2563EB] transition-colors"
+                >
+                  {selectedAgency ? (
+                    <span className="text-[#0F172A]">{selectedAgency.name}</span>
+                  ) : (
+                    <span className="text-muted-foreground">Select your agency...</span>
+                  )}
+                  <div className="flex items-center gap-1">
+                    {selectedAgency && (
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        onClick={(e) => { e.stopPropagation(); setSelectedAgency(null); }}
+                        onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); setSelectedAgency(null); } }}
+                        className="p-0.5 hover:bg-gray-100 rounded"
+                      >
+                        <X className="w-3.5 h-3.5 text-muted-foreground" />
+                      </span>
+                    )}
+                    <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${agencyOpen ? 'rotate-180' : ''}`} />
+                  </div>
+                </button>
+
+                {/* Dropdown panel */}
+                {agencyOpen && (
+                  <div className="absolute z-50 mt-1 w-full bg-white border rounded-md shadow-lg">
+                    <div className="p-2 border-b">
+                      <Input
+                        autoFocus
+                        placeholder="Search agencies..."
+                        value={agencySearch}
+                        onChange={e => setAgencySearch(e.target.value)}
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                    <div className="max-h-48 overflow-y-auto py-1">
+                      {filteredAgencies.length === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center py-4">No agencies found</p>
+                      ) : filteredAgencies.map(agency => (
+                        <button
+                          key={agency.id}
+                          type="button"
+                          className={`w-full text-left px-3 py-2 text-sm hover:bg-[#EFF6FF] transition-colors ${selectedAgency?.id === agency.id ? 'bg-[#EFF6FF] text-[#2563EB] font-medium' : ''}`}
+                          onClick={() => { setSelectedAgency(agency); setAgencyOpen(false); }}
+                        >
+                          {agency.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <p className="text-xs text-muted-foreground">
+                Leave blank if you are not associated with a specific agency
+              </p>
             </div>
 
             {/* Email Field */}
             <div className="space-y-2">
-              <label htmlFor="email" className="text-sm font-medium">
-                Email Address
-              </label>
+              <label htmlFor="email" className="text-sm font-medium">Email Address</label>
               <Input
                 id="email"
                 type="email"
@@ -108,9 +175,7 @@ export function LoginPage() {
             {/* Password Field */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label htmlFor="password" className="text-sm font-medium">
-                  Password
-                </label>
+                <label htmlFor="password" className="text-sm font-medium">Password</label>
                 <Link to="/forgot-password" className="text-sm text-[#2563EB] hover:underline">
                   Forgot password?
                 </Link>
@@ -132,7 +197,6 @@ export function LoginPage() {
               </div>
             )}
 
-            {/* Login Button */}
             <Button
               type="submit"
               className="w-full bg-[#2563EB] hover:bg-[#1d4ed8]"
@@ -142,7 +206,6 @@ export function LoginPage() {
             </Button>
           </form>
 
-          {/* Divider */}
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t"></div>
@@ -152,21 +215,15 @@ export function LoginPage() {
             </div>
           </div>
 
-          {/* Additional Info */}
           <div className="text-center space-y-3">
-            <p className="text-sm text-muted-foreground">
-              Looking for a job opportunity?
-            </p>
+            <p className="text-sm text-muted-foreground">Looking for a job opportunity?</p>
             <Link to="/apply">
-              <Button variant="outline" className="w-full">
-                Submit Job Application
-              </Button>
+              <Button variant="outline" className="w-full">Submit Job Application</Button>
             </Link>
           </div>
         </CardContent>
       </Card>
 
-      {/* Footer */}
       <div className="absolute bottom-4 text-center text-sm text-muted-foreground">
         <p>&copy; 2026 TempWorks Europe - Secure Access</p>
       </div>

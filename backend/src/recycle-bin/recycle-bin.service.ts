@@ -77,8 +77,8 @@ export const ENTITY_POLICIES: Record<
   NOTIFICATION: {
     canRestore: true,
     canRestoreWithRelated: false,
-    canHardDelete: false,
-    notes: 'Notifications can be restored; hard delete not permitted',
+    canHardDelete: true,
+    notes: 'Notifications can be restored or permanently deleted',
   },
   REPORT: {
     canRestore: true,

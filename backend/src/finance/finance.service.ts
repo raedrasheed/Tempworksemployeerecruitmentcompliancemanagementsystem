@@ -1,7 +1,9 @@
 import {
-  Injectable, NotFoundException, BadRequestException,
+  Injectable, NotFoundException, BadRequestException, Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NOTIF_EVENTS } from '../notifications/notification-events';
 import { CreateFinancialRecordDto } from './dto/create-financial-record.dto';
 import { UpdateFinancialRecordDto } from './dto/update-financial-record.dto';
 import { UpdateStatusDto } from './dto/update-status.dto';
@@ -11,9 +13,19 @@ import * as ExcelJS from 'exceljs';
 import { join, extname } from 'path';
 import { promises as fs } from 'fs';
 
+// Roles that receive financial notifications
+const FINANCE_ROLES = ['System Admin', 'Finance', 'HR Manager'];
+// High-balance threshold in EUR (also check SystemSetting key 'notifications.highBalanceThreshold')
+const DEFAULT_HIGH_BALANCE_THRESHOLD = 500;
+
 @Injectable()
 export class FinanceService {
-  constructor(private prisma: PrismaService) {}
+  private readonly logger = new Logger(FinanceService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   // ── Prisma include helpers ───────────────────────────────────────────────────
 
@@ -254,11 +266,28 @@ export class FinanceService {
       companyDisbursedAmount: dto.companyDisbursedAmount,
     });
 
+    // ── Notification ─────────────────────────────────────────────────────────
+    const entityName = await this.resolveEntityNameForNotif(dto.entityType, dto.entityId);
+    this.notifications.notifyUsersByRoles(
+      FINANCE_ROLES,
+      NOTIF_EVENTS.FINANCIAL_RECORD_CREATED,
+      'New Financial Record Added',
+      `A new financial record was added for ${entityName}: ${dto.transactionType}` +
+        (dto.companyDisbursedAmount ? ` — ${dto.currency ?? 'EUR'} ${dto.companyDisbursedAmount}` : ''),
+      dto.entityType,
+      dto.entityId,
+    ).catch(e => this.logger.error('Notification error (create):', e));
+
+    // Check high balance after creation
+    this.checkAndNotifyHighBalance(dto.entityType, dto.entityId).catch(
+      e => this.logger.error('High balance check error:', e),
+    );
+
     return record;
   }
 
   async update(id: string, dto: UpdateFinancialRecordDto, actorId?: string) {
-    await this.findOne(id);
+    const existing = await this.findOne(id);
     const data: any = { ...dto };
     if (dto.transactionDate) data.transactionDate = new Date(dto.transactionDate);
 
@@ -267,15 +296,39 @@ export class FinanceService {
     });
 
     await this.auditLog(actorId, 'FINANCIAL_RECORD_UPDATED', id, dto as any);
+
+    // ── Notification ─────────────────────────────────────────────────────────
+    const entityName = await this.resolveEntityNameForNotif(existing.entityType, existing.entityId);
+    this.notifications.notifyUsersByRoles(
+      FINANCE_ROLES,
+      NOTIF_EVENTS.FINANCIAL_RECORD_UPDATED,
+      'Financial Record Updated',
+      `A financial record was updated for ${entityName}.`,
+      existing.entityType,
+      existing.entityId,
+    ).catch(e => this.logger.error('Notification error (update):', e));
+
     return updated;
   }
 
   async remove(id: string, actorId?: string) {
-    await this.findOne(id);
+    const existing = await this.findOne(id);
     await this.prisma.financialRecord.update({
       where: { id }, data: { deletedAt: new Date() },
     });
     await this.auditLog(actorId, 'FINANCIAL_RECORD_DELETED', id);
+
+    // ── Notification ─────────────────────────────────────────────────────────
+    const entityName = await this.resolveEntityNameForNotif(existing.entityType, existing.entityId);
+    this.notifications.notifyUsersByRoles(
+      FINANCE_ROLES,
+      NOTIF_EVENTS.FINANCIAL_RECORD_DELETED,
+      'Financial Record Deleted',
+      `A financial record was deleted for ${entityName}.`,
+      existing.entityType,
+      existing.entityId,
+    ).catch(e => this.logger.error('Notification error (delete):', e));
+
     return { message: 'Financial record deleted' };
   }
 
@@ -314,6 +367,21 @@ export class FinanceService {
       deductionDate: dto.deductionDate,
       payrollReference: dto.payrollReference,
     });
+
+    // ── Notification ─────────────────────────────────────────────────────────
+    if (dto.status === 'DEDUCTED') {
+      const entityName = await this.resolveEntityNameForNotif(record.entityType, record.entityId);
+      const amount = dto.deductionAmount ?? record.companyDisbursedAmount;
+      this.notifications.notifyUsersByRoles(
+        FINANCE_ROLES,
+        NOTIF_EVENTS.FINANCIAL_RECORD_DEDUCTED,
+        'Record Marked for Deduction',
+        `A financial record for ${entityName} has been marked as deducted` +
+          (amount ? ` (${record.currency} ${amount})` : '') + '.',
+        record.entityType,
+        record.entityId,
+      ).catch(e => this.logger.error('Notification error (deduct):', e));
+    }
 
     return updated;
   }
@@ -591,6 +659,64 @@ export class FinanceService {
     }
 
     throw new BadRequestException('Invalid entityType');
+  }
+
+  // ── Notification helpers ──────────────────────────────────────────────────────
+
+  /** Resolve a short entity name for notification messages. */
+  private async resolveEntityNameForNotif(entityType: string, entityId: string): Promise<string> {
+    try {
+      if (entityType === 'APPLICANT') {
+        const a = await this.prisma.applicant.findUnique({ where: { id: entityId }, select: { firstName: true, lastName: true } });
+        return a ? `${a.firstName} ${a.lastName}` : 'Unknown';
+      }
+      if (entityType === 'EMPLOYEE') {
+        const e = await this.prisma.employee.findUnique({ where: { id: entityId }, select: { firstName: true, lastName: true } });
+        return e ? `${e.firstName} ${e.lastName}` : 'Unknown';
+      }
+    } catch { /* ignore */ }
+    return 'Unknown';
+  }
+
+  /**
+   * Check if the current balance for an entity exceeds the high-balance threshold.
+   * Fires FINANCIAL_HIGH_BALANCE notification if it does and no alert was sent in the last 24h.
+   *
+   * Threshold is read from SystemSetting 'notifications.highBalanceThreshold' (value in EUR).
+   * Falls back to DEFAULT_HIGH_BALANCE_THRESHOLD (500 EUR).
+   *
+   * Spam prevention: only one alert per entity per 24 hours.
+   */
+  private async checkAndNotifyHighBalance(entityType: string, entityId: string): Promise<void> {
+    const totals = await this.getTotals(entityType, entityId);
+    if (totals.currentBalance <= 0) return;
+
+    // Read threshold from system settings (if configured)
+    let threshold = DEFAULT_HIGH_BALANCE_THRESHOLD;
+    try {
+      const setting = await this.prisma.systemSetting.findUnique({
+        where: { key: 'notifications.highBalanceThreshold' },
+        select: { value: true },
+      });
+      if (setting) threshold = parseFloat(setting.value) || DEFAULT_HIGH_BALANCE_THRESHOLD;
+    } catch { /* use default */ }
+
+    if (totals.currentBalance < threshold) return;
+
+    // Spam guard
+    const alreadySent = await this.notifications.wasHighBalanceAlertRecentlySent(entityId);
+    if (alreadySent) return;
+
+    const entityName = await this.resolveEntityNameForNotif(entityType, entityId);
+    await this.notifications.notifyUsersByRoles(
+      FINANCE_ROLES,
+      NOTIF_EVENTS.FINANCIAL_HIGH_BALANCE,
+      'High Balance Alert',
+      `Outstanding balance for ${entityName} has reached ${totals.currentBalance.toFixed(2)} EUR` +
+        ` (threshold: ${threshold} EUR).`,
+      entityType,
+      entityId,
+    );
   }
 
   // ── Audit ────────────────────────────────────────────────────────────────────

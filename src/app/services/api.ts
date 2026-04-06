@@ -578,6 +578,16 @@ export const notificationsApi = {
 
   delete: (id: string) =>
     apiFetch(`/notifications/${id}`, { method: 'DELETE' }),
+
+  getPreferences: () => apiFetch<any>('/notifications/preferences'),
+
+  updatePreferences: (preferences: Record<string, { in_app: boolean; email: boolean; sms: boolean }>) =>
+    apiFetch<any>('/notifications/preferences', {
+      method: 'PUT',
+      body: JSON.stringify({ preferences }),
+    }),
+
+  getEventTypes: () => apiFetch<any[]>('/notifications/event-types'),
 };
 
 // ─── Users API ────────────────────────────────────────────────────────────────

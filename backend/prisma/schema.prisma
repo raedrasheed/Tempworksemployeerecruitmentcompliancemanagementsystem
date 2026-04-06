@@ -111,6 +111,7 @@ enum NotificationType {
   DOCUMENT_EXPIRY
   WORKFLOW
   SYSTEM
+  FINANCIAL
 }
 
 enum EntityType {
@@ -653,6 +654,10 @@ model Notification {
   title           String
   message         String
   type            NotificationType @default(INFO)
+  // Specific event type string (e.g. DOCUMENT_UPLOADED, FINANCIAL_RECORD_CREATED)
+  eventType       String?
+  // Delivery channel: in_app | email
+  channel         String           @default("in_app")
   isRead          Boolean          @default(false)
   readAt          DateTime?
   relatedEntity   String?
@@ -664,6 +669,9 @@ model Notification {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId, isRead])
+  @@index([userId, eventType])
+  @@index([userId, type])
   @@map("notifications")
 }
 

@@ -3,9 +3,13 @@ import { MulterModule } from '@nestjs/platform-express';
 import { DocumentsService } from './documents.service';
 import { DocumentsController } from './documents.controller';
 import { DocumentIdService } from './document-id.service';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [MulterModule.register({ dest: process.env.UPLOAD_DEST || './uploads' })],
+  imports: [
+    MulterModule.register({ dest: process.env.UPLOAD_DEST || './uploads' }),
+    NotificationsModule,
+  ],
   controllers: [DocumentsController],
   providers: [DocumentsService, DocumentIdService],
   exports: [DocumentsService, DocumentIdService],

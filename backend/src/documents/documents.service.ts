@@ -1,10 +1,12 @@
 import {
-  Injectable, NotFoundException, BadRequestException, ForbiddenException,
+  Injectable, NotFoundException, BadRequestException, ForbiddenException, Logger,
 } from '@nestjs/common';
 import { extname, join } from 'path';
 import { promises as fs } from 'fs';
 import AdmZip = require('adm-zip');
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NOTIF_EVENTS } from '../notifications/notification-events';
 import { DocumentIdService } from './document-id.service';
 import { CreateDocumentDto } from './dto/create-document.dto';
 import { VerifyDocumentDto, VerifyActionEnum } from './dto/verify-document.dto';
@@ -13,11 +15,17 @@ import { RenewDocumentDto } from './dto/renew-document.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { PaginatedResponse } from '../common/dto/pagination-response.dto';
 
+// Roles that receive document notifications
+const DOC_NOTIFY_ROLES = ['System Admin', 'HR Manager', 'Compliance Officer'];
+
 @Injectable()
 export class DocumentsService {
+  private readonly logger = new Logger(DocumentsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly documentIdService: DocumentIdService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   // ── Helpers ────────────────────────────────────────────────────────────────
@@ -329,8 +337,33 @@ export class DocumentsService {
             status:    'OPEN', dueDate: expiry,
           },
         });
+        // Fire expiring-soon or already-expired notification
+        const isExpired = daysUntilExpiry <= 0;
+        this.notifications.notifyUploaderAndRoles(
+          uploadedById,
+          DOC_NOTIFY_ROLES,
+          isExpired ? NOTIF_EVENTS.DOCUMENT_EXPIRED : NOTIF_EVENTS.DOCUMENT_EXPIRING_SOON,
+          isExpired ? 'Document Expired' : 'Document Expiring Soon',
+          isExpired
+            ? `Document "${dto.name}" for ${entityName} has already expired.`
+            : `Document "${dto.name}" for ${entityName} expires in ${daysUntilExpiry} days.`,
+          dto.entityType,
+          dto.entityId,
+        ).catch(e => this.logger.error('Doc expiry notification error:', e));
       }
     }
+
+    // Notify on every upload
+    this.notifications.notifyUploaderAndRoles(
+      uploadedById,
+      DOC_NOTIFY_ROLES,
+      NOTIF_EVENTS.DOCUMENT_UPLOADED,
+      'New Document Uploaded',
+      `A new document "${dto.name}" was uploaded for ${entityName}.`,
+      dto.entityType,
+      dto.entityId,
+    ).catch(e => this.logger.error('Doc upload notification error:', e));
+
     return doc;
   }
 

@@ -39,6 +39,7 @@ import { ComplianceAlerts } from './pages/compliance/ComplianceAlerts';
 import { EmployeeCompliance } from './pages/compliance/EmployeeCompliance';
 import { ReportsDashboard } from './pages/reports/ReportsDashboard';
 import { NotificationCenter } from './pages/notifications/NotificationCenter';
+import { NotificationSettings } from './pages/notifications/NotificationSettings';
 import { UsersList } from './pages/users/UsersList';
 import { AddUser } from './pages/users/AddUser';
 import { EditUser } from './pages/users/EditUser';
@@ -179,6 +180,7 @@ export const router = createBrowserRouter([
       
       // Notifications routes
       { path: 'notifications', Component: NotificationCenter },
+      { path: 'notifications/settings', Component: NotificationSettings },
       
       // Users routes
       { path: 'users', Component: UsersList },

@@ -55,6 +55,16 @@ export class EmailService {
     await this.sendMail(to, 'Welcome to TempWorks!', this.buildWelcomeTemplate(name));
   }
 
+  async sendNotificationEmail(
+    to: string,
+    name: string,
+    title: string,
+    message: string,
+    eventType?: string,
+  ): Promise<void> {
+    await this.sendMail(to, title, this.buildNotificationTemplate(name, title, message, eventType));
+  }
+
   // ---------------------------------------------------------------------------
   // Core send — calls Resend REST API directly (no SDK, no SMTP)
   // ---------------------------------------------------------------------------
@@ -194,6 +204,31 @@ export class EmailService {
       <p>Hello <strong>${this.escape(name)}</strong>,</p>
       <p>Welcome to <strong>TempWorks</strong>! Your account is now active.</p>
       <p>Log in with your email and the password you set during activation.</p>
+    `);
+  }
+
+  private buildNotificationTemplate(name: string, title: string, message: string, eventType?: string): string {
+    const iconMap: Record<string, string> = {
+      DOCUMENT_EXPIRING_SOON:   '⚠️',
+      DOCUMENT_EXPIRED:         '🔴',
+      DOCUMENT_UPLOADED:        '📄',
+      FINANCIAL_RECORD_CREATED: '💰',
+      FINANCIAL_RECORD_UPDATED: '✏️',
+      FINANCIAL_RECORD_DELETED: '🗑️',
+      FINANCIAL_RECORD_DEDUCTED:'💸',
+      FINANCIAL_HIGH_BALANCE:   '⚡',
+    };
+    const icon = eventType ? (iconMap[eventType] ?? '🔔') : '🔔';
+    return this.baseTemplate(title, `
+      <p>Hello <strong>${this.escape(name)}</strong>,</p>
+      <p style="font-size:28px;margin:0 0 16px;">${icon}</p>
+      <p><strong>${this.escape(title)}</strong></p>
+      <p>${this.escape(message)}</p>
+      <hr style="border:none;border-top:1px solid #e5e7eb;margin:20px 0;" />
+      <p style="font-size:12px;color:#888;">
+        You received this because you have email notifications enabled for this event type.<br/>
+        Manage your preferences in TempWorks under <strong>Notifications → Settings</strong>.
+      </p>
     `);
   }
 

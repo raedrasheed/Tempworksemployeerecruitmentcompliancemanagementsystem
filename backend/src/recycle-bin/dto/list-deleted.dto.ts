@@ -5,7 +5,8 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 export const SUPPORTED_ENTITY_TYPES = [
   'APPLICANT', 'EMPLOYEE', 'USER', 'AGENCY', 'DOCUMENT',
   'JOB_AD', 'FINANCIAL_RECORD', 'ROLE', 'NOTIFICATION', 'REPORT',
-  'DOCUMENT_TYPE',
+  'DOCUMENT_TYPE', 'VEHICLE', 'VEHICLE_DOCUMENT', 'MAINTENANCE_RECORD',
+  'MAINTENANCE_TYPE', 'WORKSHOP',
 ] as const;
 
 export type SupportedEntityType = typeof SUPPORTED_ENTITY_TYPES[number];

@@ -154,7 +154,7 @@ export class RecycleBinService {
     // All entity types — load up to 50 per type and combine
     const [
       applicants, employees, users, agencies, documents,
-      docTypes, jobAds, financialRecords, roles, reports,
+      docTypes, jobAds, financialRecords, roles, notifications, reports,
       vehicles, vehicleDocs, maintenanceRecords, maintenanceTypes, workshops,
     ] = await Promise.all([
       this.getDeletedApplicants(filter, 50),
@@ -166,6 +166,7 @@ export class RecycleBinService {
       this.getDeletedJobAds(filter, 50),
       this.getDeletedFinancialRecords(filter, 50),
       this.getDeletedRoles(filter, 50),
+      this.getDeletedNotifications(filter, 50),
       this.getDeletedReports(filter, 50),
       this.getDeletedVehicles(filter, 50),
       this.getDeletedVehicleDocuments(filter, 50),
@@ -176,7 +177,7 @@ export class RecycleBinService {
 
     records = [
       ...applicants, ...employees, ...users, ...agencies, ...documents,
-      ...docTypes, ...jobAds, ...financialRecords, ...roles, ...reports,
+      ...docTypes, ...jobAds, ...financialRecords, ...roles, ...notifications, ...reports,
       ...vehicles, ...vehicleDocs, ...maintenanceRecords, ...maintenanceTypes, ...workshops,
     ];
 
@@ -195,7 +196,7 @@ export class RecycleBinService {
   async getEntityCounts(): Promise<Record<string, number>> {
     const [
       applicants, employees, users, agencies, documents,
-      docTypes, jobAds, financialRecords, roles, reports,
+      docTypes, jobAds, financialRecords, roles, notifications, reports,
       vehicles, vehicleDocs, maintenanceRecords, maintenanceTypes, workshops,
     ] = await Promise.all([
       this.prisma.applicant.count({ where: { deletedAt: { not: null } } }),
@@ -207,6 +208,7 @@ export class RecycleBinService {
       this.prisma.jobAd.count({ where: { deletedAt: { not: null } } }),
       this.prisma.financialRecord.count({ where: { deletedAt: { not: null } } }),
       this.prisma.role.count({ where: { deletedAt: { not: null } } }),
+      this.prisma.notification.count({ where: { deletedAt: { not: null } } }),
       this.prisma.report.count({ where: { deletedAt: { not: null } } }),
       this.prisma.vehicle.count({ where: { deletedAt: { not: null } } }),
       (this.prisma as any).vehicleDocument.count({ where: { deletedAt: { not: null } } }),
@@ -225,6 +227,7 @@ export class RecycleBinService {
       JOB_AD: jobAds,
       FINANCIAL_RECORD: financialRecords,
       ROLE: roles,
+      NOTIFICATION: notifications,
       REPORT: reports,
       VEHICLE: vehicles,
       VEHICLE_DOCUMENT: vehicleDocs,
@@ -232,7 +235,8 @@ export class RecycleBinService {
       MAINTENANCE_TYPE: maintenanceTypes,
       WORKSHOP: workshops,
       total: applicants + employees + users + agencies + documents + docTypes
-        + jobAds + financialRecords + roles + reports + vehicles + vehicleDocs + maintenanceRecords + maintenanceTypes + workshops,
+        + jobAds + financialRecords + roles + notifications + reports
+        + vehicles + vehicleDocs + maintenanceRecords + maintenanceTypes + workshops,
     };
   }
 
@@ -533,6 +537,15 @@ export class RecycleBinService {
         ]);
         break;
       }
+      case 'NOTIFICATION': {
+        const where = this.buildNotificationWhere(filter);
+        [data, total] = await Promise.all([
+          this.prisma.notification.findMany({ where, orderBy: { deletedAt: sortOrder }, skip, take: Number(limit) })
+            .then(rs => rs.map(r => this.mapNotification(r))),
+          this.prisma.notification.count({ where }),
+        ]);
+        break;
+      }
       case 'REPORT': {
         const where = this.buildReportWhere(filter);
         [data, total] = await Promise.all([
@@ -658,6 +671,12 @@ export class RecycleBinService {
     const where = this.buildReportWhere(f);
     const rs = await this.prisma.report.findMany({ where, orderBy: { deletedAt: 'desc' }, take: max });
     return rs.map(r => this.mapReport(r));
+  }
+
+  private async getDeletedNotifications(f: ListDeletedDto, max: number) {
+    const where = this.buildNotificationWhere(f);
+    const rs = await this.prisma.notification.findMany({ where, orderBy: { deletedAt: 'desc' }, take: max });
+    return rs.map(r => this.mapNotification(r));
   }
 
   private async getDeletedVehicles(f: ListDeletedDto, max: number) {
@@ -879,6 +898,17 @@ export class RecycleBinService {
         { city: { contains: f.search, mode: 'insensitive' } },
         { contactName: { contains: f.search, mode: 'insensitive' } },
         { email: { contains: f.search, mode: 'insensitive' } },
+      ];
+    }
+    return w;
+  }
+
+  private buildNotificationWhere(f: ListDeletedDto) {
+    const w = this.baseDeletedWhere(f);
+    if (f.search) {
+      w.OR = [
+        { title: { contains: f.search, mode: 'insensitive' } },
+        { message: { contains: f.search, mode: 'insensitive' } },
       ];
     }
     return w;
@@ -1142,6 +1172,23 @@ export class RecycleBinService {
       canHardDelete: policy.canHardDelete,
       relatedDeletedCount: 0,
       extra: { city: r.city, contactName: r.contactName, phone: r.phone, email: r.email },
+    };
+  }
+
+  mapNotification(r: any): DeletedRecord {
+    const policy = ENTITY_POLICIES.NOTIFICATION;
+    return {
+      entityType: 'NOTIFICATION',
+      id: r.id,
+      displayName: r.title,
+      deletedAt: r.deletedAt,
+      deletedBy: r.deletedBy ?? undefined,
+      deletionReason: r.deletionReason ?? undefined,
+      canRestore: policy.canRestore,
+      canRestoreWithRelated: policy.canRestoreWithRelated,
+      canHardDelete: policy.canHardDelete,
+      relatedDeletedCount: 0,
+      extra: { message: r.message, type: r.type, eventType: r.eventType, userId: r.userId },
     };
   }
 

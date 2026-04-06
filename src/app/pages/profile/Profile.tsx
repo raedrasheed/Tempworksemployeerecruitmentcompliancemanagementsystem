@@ -10,7 +10,7 @@ import { Progress } from '../../components/ui/progress';
 import { Switch } from '../../components/ui/switch';
 import { Separator } from '../../components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
-import { usersApi, BACKEND_URL } from '../../services/api';
+import { usersApi, authApi, BACKEND_URL } from '../../services/api';
 import { toast } from 'sonner';
 
 export function Profile() {
@@ -35,19 +35,28 @@ export function Profile() {
   });
 
   useEffect(() => {
-    usersApi.me()
-      .then((user) => {
-        setUserData(user);
+    Promise.all([authApi.me(), usersApi.me().catch(() => null)])
+      .then(([authUser, fullUser]) => {
+        // authUser always has firstName/lastName/email; fullUser has extended profile fields
+        const merged = { ...fullUser, ...authUser, ...(fullUser ?? {}) };
+        // Keep authUser identity fields as the source of truth
+        merged.firstName = authUser.firstName;
+        merged.lastName = authUser.lastName;
+        merged.email = authUser.email;
+        if (!merged.role || typeof merged.role === 'string') {
+          merged.role = fullUser?.role ?? { name: authUser.role };
+        }
+        setUserData(merged);
         setEditForm({
-          phone: user.phone || '',
-          dateOfBirth: user.dateOfBirth ? user.dateOfBirth.slice(0, 10) : '',
-          gender: user.gender || '',
-          citizenship: user.citizenship || '',
-          addressLine1: user.addressLine1 || '',
-          addressLine2: user.addressLine2 || '',
-          city: user.city || '',
-          country: user.country || '',
-          postalCode: user.postalCode || '',
+          phone: merged.phone || '',
+          dateOfBirth: merged.dateOfBirth ? merged.dateOfBirth.slice(0, 10) : '',
+          gender: merged.gender || '',
+          citizenship: merged.citizenship || '',
+          addressLine1: merged.addressLine1 || '',
+          addressLine2: merged.addressLine2 || '',
+          city: merged.city || '',
+          country: merged.country || '',
+          postalCode: merged.postalCode || '',
         });
       })
       .catch(() => toast.error('Failed to load profile'))
@@ -111,9 +120,13 @@ export function Profile() {
     ?? (userData?.photoUrl ? `${BACKEND_URL}${userData.photoUrl}` : null)
     ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${userData?.firstName || 'User'}`;
   const displayName = userData ? `${userData.firstName} ${userData.lastName}` : '';
-  const roleName = userData?.role?.name || '';
+  const roleName = (typeof userData?.role === 'string' ? userData.role : userData?.role?.name) || '';
   const agencyName = userData?.agency ? `${userData.agency.name}${userData.agency.country ? ` — ${userData.agency.country}` : ''}` : 'N/A';
-  const permissions: string[] = (userData?.role?.permissions ?? []).map((p: any) => p.permission?.name || p.name).filter(Boolean);
+  const permissions: string[] = Array.isArray(userData?.role?.permissions)
+    ? userData.role.permissions.map((p: any) => p.permission?.name || p.name).filter(Boolean)
+    : Array.isArray(userData?.permissions)
+    ? userData.permissions
+    : [];
 
   const formatDate = (val: string | null | undefined) => {
     if (!val) return '—';

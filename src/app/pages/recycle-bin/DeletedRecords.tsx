@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
-  Search, RefreshCw, RotateCcw, Eye,
+  Search, RefreshCw, RotateCcw, Eye, Trash2,
   ChevronLeft, ChevronRight, Users, FileText, Building2, Briefcase,
   DollarSign, Shield, Bell, BarChart3, FolderOpen, UserCheck, Truck, Wrench,
 } from 'lucide-react';
@@ -103,6 +103,10 @@ export function DeletedRecords() {
   const [restoreLoading, setRestoreLoading] = useState(false);
   const [showRestoreDialog, setShowRestoreDialog] = useState(false);
 
+  const [hardDeleteTarget, setHardDeleteTarget] = useState<DeletedRecord | null>(null);
+  const [hardDeleteLoading, setHardDeleteLoading] = useState(false);
+  const [showHardDeleteDialog, setShowHardDeleteDialog] = useState(false);
+
   // ── Fetch ──────────────────────────────────────────────────────────────────
   const fetchRecords = useCallback(async () => {
     setLoading(true);
@@ -181,6 +185,24 @@ export function DeletedRecords() {
       toast.error(e?.message ?? 'Restore failed');
     } finally {
       setRestoreLoading(false);
+    }
+  };
+
+  // ── Hard delete ────────────────────────────────────────────────────────────
+  const executeHardDelete = async () => {
+    if (!hardDeleteTarget) return;
+    setHardDeleteLoading(true);
+    try {
+      await recycleBinApi.hardDelete(hardDeleteTarget.entityType, hardDeleteTarget.id, {});
+      toast.success(`Permanently deleted: ${hardDeleteTarget.displayName}`);
+      setShowHardDeleteDialog(false);
+      setHardDeleteTarget(null);
+      fetchRecords();
+      fetchCounts();
+    } catch (e: any) {
+      toast.error(e?.message ?? 'Delete failed');
+    } finally {
+      setHardDeleteLoading(false);
     }
   };
 
@@ -339,6 +361,11 @@ export function DeletedRecords() {
                             <span className="text-xs">+related</span>
                           </Button>
                         )}
+                        {rec.canHardDelete && (
+                          <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => { setHardDeleteTarget(rec); setShowHardDeleteDialog(true); }} title="Permanently delete">
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -441,6 +468,28 @@ export function DeletedRecords() {
         </DialogContent>
       </Dialog>
 
+      {/* ── Hard Delete Confirm Dialog ───────────────────────────────────── */}
+      <Dialog open={showHardDeleteDialog} onOpenChange={open => { if (!open) { setShowHardDeleteDialog(false); setHardDeleteTarget(null); } }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="w-5 h-5" />
+              Permanently Delete
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to permanently delete <strong>{hardDeleteTarget?.displayName}</strong>? This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowHardDeleteDialog(false); setHardDeleteTarget(null); }}>
+              Cancel
+            </Button>
+            <Button variant="destructive" disabled={hardDeleteLoading} onClick={executeHardDelete}>
+              {hardDeleteLoading ? 'Deleting…' : 'Delete Permanently'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

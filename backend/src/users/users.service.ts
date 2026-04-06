@@ -649,4 +649,25 @@ export class UsersService {
     // Ensure no sensitive fields leaked (already excluded via select)
     return users;
   }
+
+  async getActivationLink(userId: string): Promise<{ url: string }> {
+    const user = await this.prisma.user.findFirst({
+      where: { id: userId, deletedAt: null },
+    });
+    if (!user) throw new NotFoundException('User not found');
+
+    if (user.status !== 'PENDING' && user.status !== 'INACTIVE') {
+      throw new BadRequestException('Activation link is only available for PENDING or INACTIVE accounts');
+    }
+
+    // Invalidate old unused tokens and generate a fresh one
+    await this.prisma.activationToken.updateMany({
+      where: { userId: user.id, usedAt: null },
+      data: { usedAt: new Date() },
+    });
+
+    const token = await this.authService.generateUserActivationToken(userId);
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    return { url: `${frontendUrl}/activate?token=${token}` };
+  }
 }

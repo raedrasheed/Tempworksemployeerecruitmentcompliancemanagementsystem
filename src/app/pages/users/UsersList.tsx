@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router';
-import { Plus, Edit, Search, Trash2, Upload, Download } from 'lucide-react';
+import { Plus, Edit, Search, Trash2, Upload, Download, Copy, Check } from 'lucide-react';
 import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
@@ -46,6 +46,12 @@ export function UsersList() {
   const [showImportModal, setShowImportModal] = useState(false);
   const [csvText, setCsvText] = useState('');
   const [importing, setImporting] = useState(false);
+
+  // Activation link modal state
+  const [activationLink, setActivationLink] = useState<string | null>(null);
+  const [activationLinkUser, setActivationLinkUser] = useState<string>('');
+  const [linkCopied, setLinkCopied] = useState(false);
+  const [loadingLink, setLoadingLink] = useState<string | null>(null);
 
   useEffect(() => {
     usersApi.list({ limit: 100 })
@@ -116,6 +122,29 @@ export function UsersList() {
     } finally {
       setImporting(false);
     }
+  };
+
+  const handleGetActivationLink = async (user: any) => {
+    setLoadingLink(user.id);
+    try {
+      const res = await usersApi.getActivationLink(user.id);
+      setActivationLink(res.url);
+      setActivationLinkUser(`${user.firstName} ${user.lastName}`);
+      setLinkCopied(false);
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to generate activation link');
+    } finally {
+      setLoadingLink(null);
+    }
+  };
+
+  const handleCopyLink = () => {
+    if (!activationLink) return;
+    navigator.clipboard.writeText(activationLink).then(() => {
+      setLinkCopied(true);
+      toast.success('Activation link copied to clipboard');
+      setTimeout(() => setLinkCopied(false), 3000);
+    });
   };
 
   const handleExport = async () => {
@@ -252,6 +281,19 @@ export function UsersList() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
+                        {canEdit('users') && (user.status === 'PENDING' || user.status === 'INACTIVE') && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleGetActivationLink(user)}
+                            disabled={loadingLink === user.id}
+                            className="text-amber-600 hover:text-amber-700 hover:bg-amber-50 text-xs"
+                            title="Get activation link"
+                          >
+                            <Copy className="w-3.5 h-3.5 mr-1" />
+                            {loadingLink === user.id ? '...' : 'Activation Link'}
+                          </Button>
+                        )}
                         {canEdit('users') && (
                           <Button variant="ghost" size="sm" asChild>
                             <Link to={`/dashboard/users/${user.id}/edit`}>
@@ -279,6 +321,31 @@ export function UsersList() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Activation Link Modal */}
+      {activationLink && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg space-y-4 p-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-[#0F172A]">Activation Link</h2>
+              <Button variant="ghost" size="sm" onClick={() => setActivationLink(null)}>✕</Button>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Share this link with <strong>{activationLinkUser}</strong> so they can set their password and activate their account. The link expires in <strong>60 minutes</strong>.
+            </p>
+            <div className="bg-gray-50 border rounded-md p-3 break-all text-sm font-mono text-gray-700">
+              {activationLink}
+            </div>
+            <div className="flex gap-3 pt-1">
+              <Button className="flex-1" onClick={handleCopyLink}>
+                {linkCopied ? <Check className="w-4 h-4 mr-2 text-green-400" /> : <Copy className="w-4 h-4 mr-2" />}
+                {linkCopied ? 'Copied!' : 'Copy Link'}
+              </Button>
+              <Button variant="outline" className="flex-1" onClick={() => setActivationLink(null)}>Close</Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Bulk Import Modal */}
       {showImportModal && (

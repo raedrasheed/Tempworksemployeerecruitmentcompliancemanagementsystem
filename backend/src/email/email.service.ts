@@ -1,10 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-
-// TODO: Install nodemailer for production email sending:
-//   npm install nodemailer @types/nodemailer
-// Until then, emails are logged to console as a fallback.
-// import * as nodemailer from 'nodemailer';
+import * as nodemailer from 'nodemailer';
 
 @Injectable()
 export class EmailService {
@@ -96,41 +92,31 @@ export class EmailService {
 
   private async sendMail(to: string, subject: string, html: string): Promise<void> {
     if (!this.smtpConfigured) {
-      // TODO: Replace this console fallback with actual nodemailer transport
-      // once nodemailer is installed and SMTP env vars are configured.
       this.logger.log(
-        `[EMAIL FALLBACK] To: ${to} | Subject: ${subject}\n` +
-        `[EMAIL FALLBACK] Body (HTML stripped): ${html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().substring(0, 300)}...`,
+        `[EMAIL FALLBACK — no SMTP configured] To: ${to} | Subject: ${subject}\n` +
+        `Body preview: ${html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().substring(0, 400)}`,
       );
       return;
     }
 
-    // TODO: Uncomment the block below after running: npm install nodemailer @types/nodemailer
-    // -------------------------------------------------------------------------
-    // try {
-    //   const transporter = nodemailer.createTransporter({
-    //     host: this.smtpHost,
-    //     port: this.smtpPort,
-    //     secure: this.smtpPort === 465,
-    //     auth: { user: this.smtpUser, pass: this.smtpPass },
-    //   });
-    //   await transporter.sendMail({
-    //     from: this.smtpFrom,
-    //     to,
-    //     subject,
-    //     html,
-    //   });
-    //   this.logger.log(`Email sent to ${to}: ${subject}`);
-    // } catch (err: any) {
-    //   this.logger.error(`Failed to send email to ${to}: ${err?.message}`, err?.stack);
-    //   // Graceful fallback — do not rethrow; email failure must never break main flow
-    // }
-    // -------------------------------------------------------------------------
-
-    // Temporary: even when SMTP vars are set, log until nodemailer is installed
-    this.logger.log(
-      `[EMAIL STUB — nodemailer not installed] To: ${to} | Subject: ${subject}`,
-    );
+    try {
+      const transporter = nodemailer.createTransport({
+        host: this.smtpHost,
+        port: this.smtpPort,
+        secure: this.smtpPort === 465,
+        auth: { user: this.smtpUser, pass: this.smtpPass },
+      });
+      await transporter.sendMail({
+        from: this.smtpFrom,
+        to,
+        subject,
+        html,
+      });
+      this.logger.log(`Email sent to ${to}: ${subject}`);
+    } catch (err: any) {
+      this.logger.error(`Failed to send email to ${to}: ${err?.message}`, err?.stack);
+      // Graceful fallback — email failure must never break main flow
+    }
   }
 
   // ---------------------------------------------------------------------------

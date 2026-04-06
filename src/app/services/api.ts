@@ -617,6 +617,9 @@ export const usersApi = {
 
   bulkExport: (params?: any) =>
     apiFetch<any[]>(`/users/bulk-export?${new URLSearchParams(params || {})}`),
+
+  getActivationLink: (id: string) =>
+    apiFetch<{ url: string }>(`/users/${id}/activation-link`),
 };
 
 // ─── Roles API ────────────────────────────────────────────────────────────────

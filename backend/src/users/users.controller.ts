@@ -129,6 +129,15 @@ export class UsersController {
     return this.usersService.unlockUser(id, actorId);
   }
 
+  // ── Activation link (for PENDING users without SMTP) ─────────────────────────
+
+  @Get(':id/activation-link')
+  @Roles('System Admin', 'HR Manager')
+  @ApiOperation({ summary: 'Generate a fresh activation link for a PENDING/INACTIVE user' })
+  getActivationLink(@Param('id') id: string) {
+    return this.usersService.getActivationLink(id);
+  }
+
   // ── Permission overrides ──────────────────────────────────────────────────────
 
   @Get(':id/permissions')

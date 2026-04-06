@@ -1,22 +1,21 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Resend } from 'resend';
+import * as https from 'https';
 
 @Injectable()
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
-  private readonly resend: Resend | null = null;
+  private readonly apiKey: string;
   private readonly from: string;
   private readonly frontendUrl: string;
 
   constructor(private config: ConfigService) {
-    const apiKey = this.config.get<string>('RESEND_API_KEY', '');
+    this.apiKey = this.config.get<string>('RESEND_API_KEY', '');
     this.from = this.config.get<string>('SMTP_FROM', 'TempWorks <onboarding@resend.dev>');
     this.frontendUrl = this.config.get<string>('FRONTEND_URL', 'http://localhost:5173');
 
-    if (apiKey) {
-      this.resend = new Resend(apiKey);
-      this.logger.log(`Email service ready. FROM: ${this.from}`);
+    if (this.apiKey) {
+      this.logger.log(`Email service ready (Resend API). FROM: ${this.from}`);
     } else {
       this.logger.warn(
         'RESEND_API_KEY not set — emails will be logged to console only. ' +
@@ -29,23 +28,12 @@ export class EmailService {
   // Public send methods
   // ---------------------------------------------------------------------------
 
-  async sendActivationEmail(
-    to: string,
-    name: string,
-    token: string,
-    frontendUrl?: string,
-  ): Promise<void> {
+  async sendActivationEmail(to: string, name: string, token: string, frontendUrl?: string): Promise<void> {
     const url = `${frontendUrl ?? this.frontendUrl}/activate?token=${token}`;
     await this.sendMail(to, 'Activate Your TempWorks Account', this.buildActivationTemplate(name, url));
   }
 
-  async sendPasswordResetEmail(
-    to: string,
-    name: string,
-    token: string,
-    frontendUrl?: string,
-    isAdminInitiated = false,
-  ): Promise<void> {
+  async sendPasswordResetEmail(to: string, name: string, token: string, frontendUrl?: string, isAdminInitiated = false): Promise<void> {
     const url = `${frontendUrl ?? this.frontendUrl}/reset-password?token=${token}`;
     const subject = isAdminInitiated
       ? 'Your TempWorks Password Has Been Reset by an Administrator'
@@ -67,31 +55,57 @@ export class EmailService {
   }
 
   // ---------------------------------------------------------------------------
-  // Core send logic
+  // Core send — calls Resend REST API directly (no SDK, no SMTP)
   // ---------------------------------------------------------------------------
 
-  private async sendMail(to: string, subject: string, html: string): Promise<void> {
-    if (!this.resend) {
-      // Console fallback — shows the full activation/reset URL for manual sharing
-      const plainText = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-      this.logger.log(
-        `[EMAIL FALLBACK — no RESEND_API_KEY] To: ${to}\nSubject: ${subject}\nPreview: ${plainText.substring(0, 500)}`,
-      );
-      return;
+  private sendMail(to: string, subject: string, html: string): Promise<void> {
+    if (!this.apiKey) {
+      const preview = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().substring(0, 500);
+      this.logger.log(`[EMAIL FALLBACK] To: ${to} | Subject: ${subject}\nPreview: ${preview}`);
+      return Promise.resolve();
     }
 
-    try {
-      const result = await this.resend.emails.send({
-        from: this.from,
-        to,
-        subject,
-        html,
+    const payload = JSON.stringify({ from: this.from, to, subject, html });
+
+    return new Promise((resolve) => {
+      const req = https.request(
+        {
+          hostname: 'api.resend.com',
+          path: '/emails',
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${this.apiKey}`,
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(payload),
+          },
+        },
+        (res) => {
+          let body = '';
+          res.on('data', (chunk) => { body += chunk; });
+          res.on('end', () => {
+            if (res.statusCode && res.statusCode < 300) {
+              try {
+                const parsed = JSON.parse(body);
+                this.logger.log(`Email sent to ${to} | id: ${parsed?.id ?? 'n/a'}`);
+              } catch {
+                this.logger.log(`Email sent to ${to}`);
+              }
+            } else {
+              this.logger.error(`Resend API error ${res.statusCode} for ${to}: ${body}`);
+            }
+            resolve();
+          });
+        },
+      );
+
+      req.on('error', (err) => {
+        this.logger.error(`Failed to send email to ${to}: ${err.message}`);
+        resolve(); // Graceful — never let email failure break main flow
       });
-      this.logger.log(`Email sent to ${to} | id: ${(result as any)?.data?.id ?? 'n/a'}`);
-    } catch (err: any) {
-      this.logger.error(`Failed to send email to ${to}: ${err?.message}`, err?.stack);
-      // Graceful — never let email failure break the main flow
-    }
+
+      req.write(payload);
+      req.end();
+    });
   }
 
   // ---------------------------------------------------------------------------

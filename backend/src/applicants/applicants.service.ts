@@ -190,7 +190,10 @@ export class ApplicantsService {
 
   // ── Remove ────────────────────────────────────────────────────────────────────
 
-  async remove(id: string, actorId?: string) {
+  async remove(id: string, actorId?: string, actor?: { role: string; agencyId?: string }) {
+    if (actor && actor.role === 'Agency User') {
+      throw new ForbiddenException('Agency users cannot directly delete candidates. Please submit a delete request.');
+    }
     await this.findOne(id);
     await this.prisma.applicant.update({ where: { id }, data: { deletedAt: new Date() } });
     await this.auditLog(actorId, 'DELETE', id);
@@ -342,7 +345,11 @@ export class ApplicantsService {
 
   // ── Reassign Agency ───────────────────────────────────────────────────────────
 
-  async reassignAgency(id: string, dto: AssignAgencyDto, actorId?: string) {
+  async reassignAgency(id: string, dto: AssignAgencyDto, actorId?: string, actor?: { role: string; agencyId?: string }) {
+    if (actor && this.isAgencyUser(actor.role)) {
+      throw new ForbiddenException('Agency users cannot change a candidate\'s agency.');
+    }
+
     const applicant = await this.findOne(id);
 
     const newAgency = await this.prisma.agency.findUnique({ where: { id: dto.agencyId } });
@@ -504,7 +511,11 @@ export class ApplicantsService {
 
   // ── Convert Applicant → Employee ──────────────────────────────────────────────
 
-  async convertToEmployee(id: string, dto: ConvertToEmployeeDto, actorId?: string) {
+  async convertToEmployee(id: string, dto: ConvertToEmployeeDto, actorId?: string, actor?: { role: string; agencyId?: string }) {
+    if (actor && this.isAgencyUser(actor.role)) {
+      throw new ForbiddenException('Agency users cannot convert candidates to employees.');
+    }
+
     const applicant = await this.findOne(id);
 
     if (applicant.tier !== 'CANDIDATE') {
@@ -617,6 +628,81 @@ export class ApplicantsService {
     });
 
     return { employee, employeeNumber, message: 'Applicant successfully converted to employee' };
+  }
+
+  // ── Candidate Delete Requests ─────────────────────────────────────────────────
+
+  async requestDelete(candidateId: string, reason: string, requestedById: string) {
+    const applicant = await this.prisma.applicant.findFirst({ where: { id: candidateId, deletedAt: null } });
+    if (!applicant) throw new NotFoundException('Candidate not found');
+
+    // Check no pending request already exists
+    const existing = await this.prisma.candidateDeleteRequest.findFirst({
+      where: { candidateId, status: 'PENDING' },
+    });
+    if (existing) throw new BadRequestException('A delete request for this candidate is already pending review.');
+
+    const request = await this.prisma.candidateDeleteRequest.create({
+      data: { candidateId, requestedById, reason, status: 'PENDING' },
+    });
+
+    await this.auditLog(requestedById, 'DELETE_REQUEST_SUBMITTED', candidateId, { reason });
+
+    return request;
+  }
+
+  async getDeleteRequests(query: any) {
+    const { page = 1, limit = 20, status } = query;
+    const where: any = {};
+    if (status) where.status = status;
+
+    const [data, total] = await Promise.all([
+      this.prisma.candidateDeleteRequest.findMany({
+        where,
+        include: {
+          applicant: { select: { id: true, firstName: true, lastName: true, candidateNumber: true } },
+          requestedBy: { select: { id: true, firstName: true, lastName: true, email: true } },
+          reviewedBy: { select: { id: true, firstName: true, lastName: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: (Number(page) - 1) * Number(limit),
+        take: Number(limit),
+      }),
+      this.prisma.candidateDeleteRequest.count({ where }),
+    ]);
+
+    return { data, meta: { total, page: Number(page), limit: Number(limit), totalPages: Math.ceil(total / Number(limit)) } };
+  }
+
+  async reviewDeleteRequest(requestId: string, status: 'APPROVED' | 'REJECTED', reviewNotes: string | undefined, reviewedById: string) {
+    const request = await this.prisma.candidateDeleteRequest.findUnique({
+      where: { id: requestId },
+      include: { applicant: true },
+    });
+    if (!request) throw new NotFoundException('Delete request not found');
+    if (request.status !== 'PENDING') throw new BadRequestException('This request has already been reviewed.');
+
+    await this.prisma.candidateDeleteRequest.update({
+      where: { id: requestId },
+      data: { status, reviewedById, reviewedAt: new Date(), reviewNotes },
+    });
+
+    if (status === 'APPROVED') {
+      // Perform soft delete of the candidate
+      await this.prisma.applicant.update({
+        where: { id: request.candidateId },
+        data: {
+          deletedAt: new Date(),
+          deletedBy: reviewedById,
+          deletionReason: reviewNotes || 'Approved delete request',
+        } as any,
+      });
+      await this.auditLog(reviewedById, 'DELETE_REQUEST_APPROVED', request.candidateId, { requestId });
+    } else {
+      await this.auditLog(reviewedById, 'DELETE_REQUEST_REJECTED', request.candidateId, { requestId, reviewNotes });
+    }
+
+    return { success: true, status };
   }
 
   // ── Private Helpers ───────────────────────────────────────────────────────────

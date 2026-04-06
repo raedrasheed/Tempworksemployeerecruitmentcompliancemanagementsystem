@@ -1,15 +1,43 @@
 import { Link } from 'react-router';
-import { FileType, Bell, Shield, Activity, Layers, Briefcase, Palette, Trash2, Database } from 'lucide-react';
+import { FileType, Bell, Shield, Activity, Layers, Briefcase, Palette, Trash2, Database, Server } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { useAuthContext } from '../../contexts/AuthContext';
+import { API_URL } from '../../services/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 
+interface SystemInfo {
+  version: string;
+  organizationName: string;
+  lastUpdated: string;
+}
+
+interface SystemStats {
+  totalUsers: number;
+  databaseStatus: string;
+}
+
 export function Settings() {
   const { user } = useAuthContext();
   const isAdmin = user?.role === 'System Admin';
+
+  const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
+  const [systemStats, setSystemStats] = useState<SystemStats | null>(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem('access_token') ?? '';
+    const headers = { Authorization: `Bearer ${token}` };
+    Promise.all([
+      fetch(`${API_URL}/settings/system-info`, { headers }).then((r) => r.json()).catch(() => null),
+      fetch(`${API_URL}/settings/system-stats`, { headers }).then((r) => r.json()).catch(() => null),
+    ]).then(([info, stats]) => {
+      if (info) setSystemInfo(info);
+      if (stats) setSystemStats(stats);
+    });
+  }, []);
 
   const settingsCategories = [
     {
@@ -135,6 +163,28 @@ export function Settings() {
           </Link>
         )}
 
+        {/* System Information — System Admin only */}
+        {isAdmin && (
+          <Link to="/dashboard/settings/system-information">
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full border-slate-200 hover:border-slate-400">
+              <CardHeader>
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-lg bg-slate-100 flex items-center justify-center">
+                    <Server className="w-6 h-6 text-slate-600" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="text-slate-800">System Information</CardTitle>
+                      <Badge className="bg-[#EF4444]">Admin Only</Badge>
+                    </div>
+                    <CardDescription>Edit version, contact info, and organization details</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+            </Card>
+          </Link>
+        )}
+
         {/* Database Cleanup — System Admin only */}
         {isAdmin && (
           <Link to="/dashboard/settings/database-cleanup">
@@ -198,25 +248,42 @@ export function Settings() {
 
       <Card>
         <CardHeader>
-          <CardTitle>System Information</CardTitle>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center">
+                <Server className="w-5 h-5 text-slate-600" />
+              </div>
+              <div>
+                <CardTitle>System Information</CardTitle>
+                <CardDescription>
+                  {systemInfo?.organizationName ? systemInfo.organizationName : 'Live system data from database'}
+                </CardDescription>
+              </div>
+            </div>
+            {isAdmin && (
+              <Link to="/dashboard/settings/system-information">
+                <Button variant="outline" size="sm">Edit</Button>
+              </Link>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-sm text-muted-foreground">System Version</p>
-              <p className="font-medium mt-1">v2.4.0</p>
+              <p className="font-medium mt-1">{systemInfo?.version || 'Not set'}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Last Updated</p>
-              <p className="font-medium mt-1">March 10, 2026</p>
+              <p className="font-medium mt-1">{systemInfo?.lastUpdated || 'Not set'}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Database Status</p>
-              <p className="font-medium mt-1 text-[#22C55E]">Connected</p>
+              <p className="font-medium mt-1 text-[#22C55E]">{systemStats?.databaseStatus ?? '…'}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Total Users</p>
-              <p className="font-medium mt-1">24</p>
+              <p className="font-medium mt-1">{systemStats?.totalUsers ?? '…'}</p>
             </div>
           </div>
         </CardContent>

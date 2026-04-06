@@ -74,6 +74,7 @@ import { JobAdForm } from './pages/job-ads/JobAdForm';
 import { DeletedRecords } from './pages/recycle-bin/DeletedRecords';
 import { DatabaseCleanup }  from './pages/settings/DatabaseCleanup';
 import { DatabaseBackup }   from './pages/settings/DatabaseBackup';
+import { SystemInformation } from './pages/settings/SystemInformation';
 
 // Pipeline pages
 import { WorkflowsPage } from './pages/pipelines/WorkflowsPage';
@@ -233,6 +234,7 @@ export const router = createBrowserRouter([
       { path: 'settings/color-scheme', Component: ColorScheme },
       { path: 'settings/database-cleanup', Component: DatabaseCleanup },
       { path: 'settings/database-backup',  Component: DatabaseBackup  },
+      { path: 'settings/system-information', Component: SystemInformation },
 
       // Profile routes
       { path: 'profile', Component: Profile },

@@ -144,6 +144,22 @@ export class SettingsController {
     return this.settingsService.deleteWorkflowStage(id, user?.id);
   }
 
+  // System Information
+  @Get('system-info')
+  @ApiOperation({ summary: 'Get system information settings' })
+  getSystemInfo() { return this.settingsService.getSystemInfo(); }
+
+  @Get('system-stats')
+  @ApiOperation({ summary: 'Get live system statistics' })
+  getSystemStats() { return this.settingsService.getSystemStats(); }
+
+  @Patch('system-info')
+  @Roles('System Admin')
+  @ApiOperation({ summary: 'Update system information settings' })
+  updateSystemInfo(@Body() data: Record<string, string>, @CurrentUser() user: any) {
+    return this.settingsService.updateSystemInfo(data, user.id);
+  }
+
   // Notification Rules
   @Get('notification-rules')
   @ApiOperation({ summary: 'Get all notification rules' })

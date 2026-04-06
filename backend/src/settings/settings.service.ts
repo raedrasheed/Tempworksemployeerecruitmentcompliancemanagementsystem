@@ -240,6 +240,65 @@ export class SettingsService {
     return { message: 'Stages reordered' };
   }
 
+  // ─── System Information ──────────────────────────────────────────────────────
+  private readonly SYSTEM_INFO_KEYS = [
+    'system.version',
+    'system.organizationName',
+    'system.contactEmail',
+    'system.supportPhone',
+    'system.address',
+    'system.website',
+    'system.lastUpdated',
+  ];
+
+  async getSystemInfo(): Promise<Record<string, string>> {
+    const settings = await this.prisma.systemSetting.findMany({
+      where: { category: 'system' },
+    });
+    const map: Record<string, string> = {};
+    for (const key of this.SYSTEM_INFO_KEYS) {
+      const found = settings.find((s) => s.key === key);
+      map[key.replace('system.', '')] = found?.value ?? '';
+    }
+    return map;
+  }
+
+  async updateSystemInfo(data: Record<string, string>, userId: string): Promise<Record<string, string>> {
+    for (const [field, value] of Object.entries(data)) {
+      const key = `system.${field}`;
+      if (!this.SYSTEM_INFO_KEYS.includes(key)) continue;
+      await this.prisma.systemSetting.upsert({
+        where: { key },
+        update: { value, updatedById: userId },
+        create: { key, value, updatedById: userId, description: field, category: 'system', isPublic: false },
+      });
+    }
+    await this.auditLog.log({
+      userId,
+      action: 'UPDATE',
+      entity: 'SystemInfo',
+      entityId: 'system',
+      changes: data as any,
+    });
+    return this.getSystemInfo();
+  }
+
+  async getSystemStats(): Promise<Record<string, any>> {
+    const [userCount, employeeCount, applicantCount, agencyCount] = await Promise.all([
+      this.prisma.user.count({ where: { deletedAt: null } }),
+      this.prisma.employee.count({ where: { deletedAt: null } }),
+      this.prisma.applicant.count({ where: { deletedAt: null } }),
+      this.prisma.agency.count({ where: { deletedAt: null } }),
+    ]);
+    return {
+      totalUsers: userCount,
+      totalEmployees: employeeCount,
+      totalApplicants: applicantCount,
+      totalAgencies: agencyCount,
+      databaseStatus: 'Connected',
+    };
+  }
+
   // ─── Notification Rules ──────────────────────────────────────────────────────
   async findNotificationRules() {
     return this.prisma.notificationRule.findMany({ where: { deletedAt: null }, orderBy: { name: 'asc' } });

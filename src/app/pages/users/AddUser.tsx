@@ -1,6 +1,6 @@
 import { Link, useNavigate } from 'react-router';
-import { ArrowLeft, ShieldOff } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { ArrowLeft, ShieldOff, Camera, X } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
 import { usePermissions } from '../../hooks/usePermissions';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -38,6 +38,9 @@ export function AddUser() {
   const [agencyUserCount, setAgencyUserCount] = useState<number | null>(null);
   const [maxUsersLimit, setMaxUsersLimit] = useState<number | null>(null);
   const [sendActivationEmail, setSendActivationEmail] = useState(true);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState({
     // Identity
@@ -155,7 +158,10 @@ export function AddUser() {
         payload.password = form.password;
       }
 
-      await usersApi.create(payload);
+      const newUser = await usersApi.create(payload);
+      if (photoFile && newUser?.id) {
+        try { await usersApi.uploadPhoto(newUser.id, photoFile); } catch { /* non-fatal */ }
+      }
       toast.success('User added successfully');
       navigate('/dashboard/users');
     } catch (err: any) {
@@ -210,6 +216,44 @@ export function AddUser() {
               <CardTitle>Identity</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Photo upload */}
+              <div className="flex items-center gap-4">
+                <div className="relative w-20 h-20 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden bg-gray-50 shrink-0">
+                  {photoPreview ? (
+                    <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
+                  ) : (
+                    <Camera className="w-7 h-7 text-gray-400" />
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Profile Photo</p>
+                  <p className="text-xs text-muted-foreground">JPG, PNG or GIF · max 5 MB</p>
+                  <div className="flex gap-2">
+                    <Button type="button" variant="outline" size="sm" onClick={() => photoInputRef.current?.click()}>
+                      <Camera className="w-3.5 h-3.5 mr-1" />
+                      {photoPreview ? 'Change' : 'Upload'}
+                    </Button>
+                    {photoPreview && (
+                      <Button type="button" variant="ghost" size="sm" onClick={() => { setPhotoFile(null); setPhotoPreview(null); }}>
+                        <X className="w-3.5 h-3.5" />
+                      </Button>
+                    )}
+                  </div>
+                  <input
+                    ref={photoInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={e => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setPhotoFile(file);
+                      setPhotoPreview(URL.createObjectURL(file));
+                    }}
+                  />
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="firstName">First Name *</Label>

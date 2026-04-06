@@ -1,5 +1,8 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, UploadedFile, UseInterceptors, BadRequestException } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname, join } from 'path';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery, ApiConsumes } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -111,12 +114,31 @@ export class UsersController {
 
   @Post(':id/photo')
   @Roles('System Admin', 'HR Manager')
-  @ApiOperation({ summary: 'Set user photo URL' })
-  uploadPhoto(
+  @ApiOperation({ summary: 'Upload user profile photo' })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('photo', {
+    storage: diskStorage({
+      destination: join(process.cwd(), 'uploads', 'avatars'),
+      filename: (_req, file, cb) => {
+        const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
+        cb(null, `avatar-${unique}${extname(file.originalname)}`);
+      },
+    }),
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
+    fileFilter: (_req, file, cb) => {
+      if (!file.mimetype.startsWith('image/')) {
+        return cb(new BadRequestException('Only image files are allowed'), false);
+      }
+      cb(null, true);
+    },
+  }))
+  async uploadPhoto(
     @Param('id') id: string,
-    @Body('photoUrl') photoUrl: string,
+    @UploadedFile() file: Express.Multer.File,
     @CurrentUser('id') actorId: string,
   ) {
+    if (!file) throw new BadRequestException('No file uploaded');
+    const photoUrl = `/uploads/avatars/${file.filename}`;
     return this.usersService.uploadPhoto(id, photoUrl, actorId);
   }
 

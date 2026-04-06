@@ -1,6 +1,6 @@
 import { Link, useNavigate, useParams } from 'react-router';
-import { ArrowLeft, ShieldOff, Unlock, RefreshCw, Mail } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { ArrowLeft, ShieldOff, Unlock, RefreshCw, Mail, Camera, X } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
 import { usePermissions } from '../../hooks/usePermissions';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -43,6 +43,11 @@ export function EditUser() {
   const [lockedAt, setLockedAt] = useState<string | null>(null);
   const [userStatus, setUserStatus] = useState('');
   const [userNumber, setUserNumber] = useState<string | null>(null);
+  const [existingPhotoUrl, setExistingPhotoUrl] = useState<string | null>(null);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState({
     // Identity
@@ -82,6 +87,7 @@ export function EditUser() {
       setLockedAt(user.lockedAt ?? null);
       setUserStatus(user.status ?? 'ACTIVE');
       setUserNumber(user.userNumber ?? null);
+      setExistingPhotoUrl(user.photoUrl ?? null);
       setForm({
         firstName: user.firstName ?? '',
         middleName: user.middleName ?? '',
@@ -141,6 +147,11 @@ export function EditUser() {
     setSubmitting(true);
     try {
       await usersApi.update(id!, form);
+      if (photoFile) {
+        setUploadingPhoto(true);
+        try { await usersApi.uploadPhoto(id!, photoFile); } catch { /* non-fatal */ }
+        finally { setUploadingPhoto(false); }
+      }
       toast.success('User updated successfully');
       navigate('/dashboard/users');
     } catch (err: any) {
@@ -241,6 +252,46 @@ export function EditUser() {
               <CardTitle>Identity</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Photo upload */}
+              <div className="flex items-center gap-4">
+                <div className="relative w-20 h-20 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden bg-gray-50 shrink-0">
+                  {photoPreview ? (
+                    <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
+                  ) : existingPhotoUrl ? (
+                    <img src={`http://localhost:3000${existingPhotoUrl}`} alt="Photo" className="w-full h-full object-cover" />
+                  ) : (
+                    <Camera className="w-7 h-7 text-gray-400" />
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Profile Photo</p>
+                  <p className="text-xs text-muted-foreground">JPG, PNG or GIF · max 5 MB</p>
+                  <div className="flex gap-2">
+                    <Button type="button" variant="outline" size="sm" onClick={() => photoInputRef.current?.click()} disabled={uploadingPhoto}>
+                      <Camera className="w-3.5 h-3.5 mr-1" />
+                      {photoPreview || existingPhotoUrl ? 'Change' : 'Upload'}
+                    </Button>
+                    {(photoPreview || existingPhotoUrl) && (
+                      <Button type="button" variant="ghost" size="sm" onClick={() => { setPhotoFile(null); setPhotoPreview(null); }}>
+                        <X className="w-3.5 h-3.5" />
+                      </Button>
+                    )}
+                  </div>
+                  <input
+                    ref={photoInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={e => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setPhotoFile(file);
+                      setPhotoPreview(URL.createObjectURL(file));
+                    }}
+                  />
+                </div>
+              </div>
+
               {userNumber && (
                 <div className="space-y-2">
                   <Label>User Number</Label>

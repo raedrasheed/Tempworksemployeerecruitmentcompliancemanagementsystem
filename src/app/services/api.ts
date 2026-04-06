@@ -605,6 +605,21 @@ export const usersApi = {
   updatePreferences: (data: any) =>
     apiFetch<any>('/users/preferences', { method: 'PATCH', body: JSON.stringify(data) }),
 
+  uploadPhoto: (id: string, file: File) => {
+    const form = new FormData();
+    form.append('photo', file);
+    const token = localStorage.getItem('accessToken');
+    return fetch(`${API_URL}/users/${id}/photo`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: form,
+    }).then(async r => {
+      const data = await r.json();
+      if (!r.ok) throw new Error(data?.message || 'Upload failed');
+      return data;
+    });
+  },
+
   unlockUser: (id: string) =>
     apiFetch<any>(`/users/${id}/unlock`, { method: 'POST' }),
 

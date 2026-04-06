@@ -330,6 +330,7 @@ export class AuthService {
       firstName: user.firstName,
       lastName: user.lastName,
       phone: user.phone,
+      photoUrl: (user as any).photoUrl ?? null,
       role: user.role.name,
       roleId: user.roleId,
       agencyId: user.agencyId,

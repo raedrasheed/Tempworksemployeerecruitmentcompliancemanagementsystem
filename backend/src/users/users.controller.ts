@@ -2,6 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, Up
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
+import { mkdirSync } from 'fs';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery, ApiConsumes } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -112,13 +113,50 @@ export class UsersController {
 
   // ── Photo upload ──────────────────────────────────────────────────────────────
 
+  // Any logged-in user can upload their own photo
+  @Post('me/photo')
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Finance', 'Read Only')
+  @ApiOperation({ summary: 'Upload own profile photo' })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('photo', {
+    storage: diskStorage({
+      destination: (req, file, cb) => {
+        const dir = join(process.cwd(), 'uploads', 'avatars');
+        mkdirSync(dir, { recursive: true });
+        cb(null, dir);
+      },
+      filename: (_req, file, cb) => {
+        const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
+        cb(null, `avatar-${unique}${extname(file.originalname)}`);
+      },
+    }),
+    limits: { fileSize: 5 * 1024 * 1024 },
+    fileFilter: (_req, file, cb) => {
+      if (!file.mimetype.startsWith('image/')) return cb(new BadRequestException('Only image files are allowed'), false);
+      cb(null, true);
+    },
+  }))
+  async uploadOwnPhoto(
+    @UploadedFile() file: Express.Multer.File,
+    @CurrentUser('id') actorId: string,
+  ) {
+    if (!file) throw new BadRequestException('No file uploaded');
+    const photoUrl = `/uploads/avatars/${file.filename}`;
+    return this.usersService.uploadPhoto(actorId, photoUrl, actorId);
+  }
+
+  // Admin/HR can upload photo for any user
   @Post(':id/photo')
   @Roles('System Admin', 'HR Manager')
   @ApiOperation({ summary: 'Upload user profile photo' })
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('photo', {
     storage: diskStorage({
-      destination: join(process.cwd(), 'uploads', 'avatars'),
+      destination: (_req, _file, cb) => {
+        const dir = join(process.cwd(), 'uploads', 'avatars');
+        mkdirSync(dir, { recursive: true });
+        cb(null, dir);
+      },
       filename: (_req, file, cb) => {
         const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
         cb(null, `avatar-${unique}${extname(file.originalname)}`);

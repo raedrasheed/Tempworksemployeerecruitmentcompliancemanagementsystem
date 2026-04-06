@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router';
 import { Camera, Save, Shield, CheckCircle, AlertCircle, Loader2, Settings } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
@@ -10,7 +10,7 @@ import { Progress } from '../../components/ui/progress';
 import { Switch } from '../../components/ui/switch';
 import { Separator } from '../../components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
-import { usersApi } from '../../services/api';
+import { usersApi, BACKEND_URL } from '../../services/api';
 import { toast } from 'sonner';
 
 export function Profile() {
@@ -18,7 +18,10 @@ export function Profile() {
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [userData, setUserData] = useState<any>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
   const [editForm, setEditForm] = useState({
     phone: '',
     dateOfBirth: '',
@@ -89,7 +92,24 @@ export function Profile() {
     setIsEditing(false);
   };
 
-  const avatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${userData?.firstName || 'User'}`;
+  const handlePhotoChange = async (file: File) => {
+    setPhotoPreview(URL.createObjectURL(file));
+    setUploadingPhoto(true);
+    try {
+      const result = await usersApi.uploadOwnPhoto(file);
+      setUserData((prev: any) => ({ ...prev, photoUrl: result?.photoUrl ?? prev?.photoUrl }));
+      toast.success('Photo updated successfully');
+    } catch (err: any) {
+      toast.error(err?.message || 'Photo upload failed');
+      setPhotoPreview(null);
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const avatarSrc = photoPreview
+    ?? (userData?.photoUrl ? `${BACKEND_URL}${userData.photoUrl}` : null)
+    ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${userData?.firstName || 'User'}`;
   const displayName = userData ? `${userData.firstName} ${userData.lastName}` : '';
   const roleName = userData?.role?.name || '';
   const agencyName = userData?.agency ? `${userData.agency.name}${userData.agency.country ? ` — ${userData.agency.country}` : ''}` : 'N/A';
@@ -176,16 +196,28 @@ export function Profile() {
               {/* Avatar */}
               <div className="flex items-center gap-6">
                 <div className="relative">
-                  <img src={avatar} alt={displayName} className="w-24 h-24 rounded-full" />
-                  {isEditing && (
-                    <button className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-[#2563EB] flex items-center justify-center text-white hover:bg-[#1D4ED8] transition-colors">
-                      <Camera className="w-4 h-4" />
-                    </button>
-                  )}
+                  <img src={avatarSrc} alt={displayName} className="w-24 h-24 rounded-full object-cover border border-gray-200" />
+                  <button
+                    type="button"
+                    onClick={() => photoInputRef.current?.click()}
+                    disabled={uploadingPhoto}
+                    title="Change profile photo"
+                    className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-[#2563EB] flex items-center justify-center text-white hover:bg-[#1D4ED8] transition-colors disabled:opacity-50"
+                  >
+                    {uploadingPhoto ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
+                  </button>
+                  <input
+                    ref={photoInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={e => { const f = e.target.files?.[0]; if (f) handlePhotoChange(f); }}
+                  />
                 </div>
                 <div>
                   <h3 className="font-semibold">{displayName}</h3>
                   <p className="text-sm text-muted-foreground">{roleName}</p>
+                  <p className="text-xs text-muted-foreground mt-1">Click the camera icon to change your photo</p>
                 </div>
               </div>
 

@@ -4,6 +4,7 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import * as express from 'express';
 import { join } from 'path';
+import { mkdirSync } from 'fs';
 
 @Catch()
 class AllExceptionsFilter implements ExceptionFilter {
@@ -66,6 +67,8 @@ async function bootstrap() {
   );
 
   // Serve uploaded files
+  // Ensure upload directories exist (safe on all OSes)
+  mkdirSync(join(process.cwd(), 'uploads', 'avatars'), { recursive: true });
   app.use('/uploads', express.static(join(process.cwd(), 'uploads')));
 
   // Swagger

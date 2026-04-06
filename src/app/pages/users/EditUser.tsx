@@ -9,7 +9,7 @@ import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Badge } from '../../components/ui/badge';
 import { toast } from 'sonner';
-import { usersApi, rolesApi, agenciesApi, authApi, getCurrentUser } from '../../services/api';
+import { usersApi, rolesApi, agenciesApi, authApi, getCurrentUser, BACKEND_URL } from '../../services/api';
 
 const GENDERS = [
   { value: 'MALE', label: 'Male' },
@@ -258,7 +258,7 @@ export function EditUser() {
                   {photoPreview ? (
                     <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
                   ) : existingPhotoUrl ? (
-                    <img src={`http://localhost:3000${existingPhotoUrl}`} alt="Photo" className="w-full h-full object-cover" />
+                    <img src={`${BACKEND_URL}${existingPhotoUrl}`} alt="Photo" className="w-full h-full object-cover" />
                   ) : (
                     <Camera className="w-7 h-7 text-gray-400" />
                   )}

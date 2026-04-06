@@ -1,6 +1,7 @@
 // Central API client for TempWorks backend
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
+export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
+export const BACKEND_URL = API_URL.replace('/api/v1', '');
 
 // ─── Token Management ────────────────────────────────────────────────────────
 
@@ -610,6 +611,21 @@ export const usersApi = {
     form.append('photo', file);
     const token = localStorage.getItem('accessToken');
     return fetch(`${API_URL}/users/${id}/photo`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: form,
+    }).then(async r => {
+      const data = await r.json();
+      if (!r.ok) throw new Error(data?.message || 'Upload failed');
+      return data;
+    });
+  },
+
+  uploadOwnPhoto: (file: File) => {
+    const form = new FormData();
+    form.append('photo', file);
+    const token = localStorage.getItem('accessToken');
+    return fetch(`${API_URL}/users/me/photo`, {
       method: 'POST',
       headers: token ? { Authorization: `Bearer ${token}` } : {},
       body: form,

@@ -19,7 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../ui/dialog';
-import { authApi, getCurrentUser, setCurrentUser, notificationsApi, type AuthUser } from '../../services/api';
+import { authApi, getCurrentUser, setCurrentUser, notificationsApi, BACKEND_URL, type AuthUser } from '../../services/api';
 import { toast } from 'sonner';
 
 function ChangePasswordDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -203,7 +203,9 @@ export function Topbar() {
   const displayName = liveUser ? `${liveUser.firstName} ${liveUser.lastName}` : 'User';
   const displayRole = liveUser?.role || 'Staff';
   const displayEmail = liveUser?.email || '';
-  const avatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${liveUser?.firstName || 'User'}`;
+  const avatar = liveUser?.photoUrl
+    ? `${BACKEND_URL}${liveUser.photoUrl}`
+    : `https://api.dicebear.com/7.x/avataaars/svg?seed=${liveUser?.firstName || 'User'}`;
 
   return (
     <header className="h-16 bg-card border-b border-border px-6 flex items-center gap-4">

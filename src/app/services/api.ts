@@ -40,6 +40,7 @@ export interface AuthUser {
   role: string;
   agencyId?: string;
   permissions?: string[];
+  photoUrl?: string;
 }
 
 export interface PaginationMeta {

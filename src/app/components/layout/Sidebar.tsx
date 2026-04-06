@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../ui/utils';
 import { useAuthContext } from '../../contexts/AuthContext';
+import { BACKEND_URL } from '../../services/api';
 
 interface NavChild {
   icon: React.ElementType;
@@ -242,9 +243,11 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
           isCollapsed && "justify-center"
         )}>
           <img
-            src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.firstName ?? 'User'}`}
+            src={user?.photoUrl
+              ? `${BACKEND_URL}${user.photoUrl}`
+              : `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.firstName ?? 'User'}`}
             alt="User"
-            className="w-8 h-8 rounded-full flex-shrink-0"
+            className="w-8 h-8 rounded-full flex-shrink-0 object-cover"
           />
           {!isCollapsed && (
             <div className="flex-1 min-w-0">

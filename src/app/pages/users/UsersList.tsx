@@ -7,7 +7,7 @@ import { Badge } from '../../components/ui/badge';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
-import { usersApi, getCurrentUser } from '../../services/api';
+import { usersApi, getCurrentUser, BACKEND_URL } from '../../services/api';
 import { toast } from 'sonner';
 import { FilterSystem, Column, FilterRule, FilterPreset } from '../../components/filters/FilterSystem';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -255,9 +255,18 @@ export function UsersList() {
                       </span>
                     </TableCell>
                     <TableCell>
-                      <div>
-                        <div className="font-medium">{user.firstName} {user.lastName}</div>
-                        <div className="text-sm text-muted-foreground">{user.email}</div>
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={user.photoUrl
+                            ? `${BACKEND_URL}${user.photoUrl}`
+                            : `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.firstName}`}
+                          alt={`${user.firstName} ${user.lastName}`}
+                          className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                        />
+                        <div>
+                          <div className="font-medium">{user.firstName} {user.lastName}</div>
+                          <div className="text-sm text-muted-foreground">{user.email}</div>
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell>{user.email}</TableCell>

@@ -190,9 +190,15 @@ export function Topbar() {
       })
       .catch(() => {});
 
-    notificationsApi.getUnreadCount()
-      .then((res) => setUnreadCount(res?.count || 0))
-      .catch(() => {});
+    const fetchUnread = () => {
+      notificationsApi.getUnreadCount()
+        .then((res) => setUnreadCount(res?.count || 0))
+        .catch(() => {});
+    };
+
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 30_000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleLogout = async () => {

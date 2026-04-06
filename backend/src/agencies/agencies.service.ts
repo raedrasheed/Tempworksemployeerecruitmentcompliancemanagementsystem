@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateAgencyDto } from './dto/create-agency.dto';
 import { UpdateAgencyDto } from './dto/update-agency.dto';
@@ -33,7 +33,13 @@ export class AgenciesService {
   }
 
   async findOne(id: string) {
-    const agency = await this.prisma.agency.findUnique({ where: { id, deletedAt: null }, include: this.include });
+    const agency = await this.prisma.agency.findUnique({
+      where: { id, deletedAt: null },
+      include: {
+        ...this.include,
+        manager: { select: { id: true, firstName: true, lastName: true, email: true } },
+      },
+    });
     if (!agency) throw new NotFoundException(`Agency ${id} not found`);
     return agency;
   }
@@ -118,5 +124,28 @@ export class AgenciesService {
       this.prisma.employee.count({ where: { agencyId: id, deletedAt: null, status: 'PENDING' } }),
     ]);
     return { users, employees, activeEmployees, pendingEmployees };
+  }
+
+  async setManager(agencyId: string, userId: string, actorId?: string) {
+    // Verify user belongs to this agency
+    const user = await this.prisma.user.findFirst({ where: { id: userId, agencyId, deletedAt: null } });
+    if (!user) throw new BadRequestException('User does not belong to this agency');
+
+    await this.prisma.agency.update({
+      where: { id: agencyId },
+      data: { managerId: userId },
+    });
+
+    await this.prisma.auditLog.create({
+      data: {
+        userId: actorId,
+        action: 'SET_AGENCY_MANAGER',
+        entity: 'Agency',
+        entityId: agencyId,
+        changes: { managerId: userId } as any,
+      },
+    });
+
+    return this.findOne(agencyId);
   }
 }

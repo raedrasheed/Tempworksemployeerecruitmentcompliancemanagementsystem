@@ -11,6 +11,7 @@ enum UserStatus {
   INACTIVE
   SUSPENDED
   PENDING
+  TERMINATED
 }
 
 enum AgencyStatus {
@@ -172,11 +173,25 @@ model RolePermission {
 
 model User {
   id            String      @id @default(uuid())
+  userNumber    String?     @unique
   email         String      @unique
   passwordHash  String
   firstName     String
+  middleName    String?
   lastName      String
   phone         String?
+  dateOfBirth   DateTime?
+  gender        Gender?
+  citizenship   String?
+  addressLine1  String?
+  addressLine2  String?
+  city          String?
+  country       String?
+  postalCode    String?
+  jobTitle      String?
+  department    String?
+  startDate     DateTime?
+  photoUrl      String?
   roleId        String
   status        UserStatus  @default(ACTIVE)
   agencyId      String
@@ -187,6 +202,22 @@ model User {
   deletedAt     DateTime?
   deletedBy     String?
   deletionReason String?
+
+  // Auth security fields
+  failedLoginAttempts Int      @default(0)
+  lockedAt            DateTime?
+  passwordChangedAt   DateTime?
+  passwordExpiresAt   DateTime?
+
+  // Preferences
+  preferredLanguage String?  @default("en")
+  timeZone          String?  @default("UTC")
+  notificationPrefs Json?
+
+  // Self-referencing creator relation
+  createdById   String?
+  createdBy     User?    @relation("UserCreatedBy", fields: [createdById], references: [id])
+  createdUsers  User[]   @relation("UserCreatedBy")
 
   role   Role   @relation(fields: [roleId], references: [id])
   agency Agency @relation(fields: [agencyId], references: [id])
@@ -226,6 +257,16 @@ model User {
   maintenanceUpdated      MaintenanceRecord[]           @relation("MaintenanceUpdatedBy")
   systemBackups           SystemBackup[]                @relation("BackupCreatedBy")
 
+  // Agency manager back-relation
+  managedAgencies   Agency[] @relation("AgencyManager")
+
+  // Token relations
+  activationTokens        ActivationToken[]
+  passwordResetTokens     PasswordResetToken[]
+  deleteRequests          CandidateDeleteRequest[] @relation("DeleteRequestedBy")
+  reviewedDeleteRequests  CandidateDeleteRequest[] @relation("DeleteRequestReviewedBy")
+  permissionOverrides     AgencyUserPermission[]
+
   @@map("users")
 }
 
@@ -240,6 +281,7 @@ model Agency {
   logoUrl            String?
   notes              String?
   maxUsersPerAgency  Int          @default(10)
+  managerId          String?
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
   deletedAt          DateTime?
@@ -250,6 +292,7 @@ model Agency {
   employees  Employee[]
   applicants Applicant[]
   vehicles   Vehicle[]
+  manager    User?    @relation("AgencyManager", fields: [managerId], references: [id])
 
   @@map("agencies")
 }
@@ -427,6 +470,7 @@ model Applicant {
   financialProfile     ApplicantFinancialProfile?
   agencyHistory        ApplicantAgencyHistory[]
   workflowAssignments  CandidateWorkflowAssignment[]
+  deleteRequests       CandidateDeleteRequest[]
 
   @@map("applicants")
 }
@@ -1449,4 +1493,76 @@ model SystemBackup {
   @@index([status])
   @@index([createdAt])
   @@map("system_backups")
+}
+
+// ── Auth Token Models ─────────────────────────────────────────────────────────
+
+model ActivationToken {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@map("activation_tokens")
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String    @unique
+  type      String    @default("USER_INITIATED") // USER_INITIATED | ADMIN_INITIATED
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@map("password_reset_tokens")
+}
+
+// ── Candidate Delete Requests ─────────────────────────────────────────────────
+
+model CandidateDeleteRequest {
+  id            String    @id @default(uuid())
+  candidateId   String
+  applicant     Applicant @relation(fields: [candidateId], references: [id])
+  requestedById String
+  requestedBy   User      @relation("DeleteRequestedBy", fields: [requestedById], references: [id])
+  reason        String
+  status        String    @default("PENDING") // PENDING | APPROVED | REJECTED
+  reviewedById  String?
+  reviewedBy    User?     @relation("DeleteRequestReviewedBy", fields: [reviewedById], references: [id])
+  reviewedAt    DateTime?
+  reviewNotes   String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@map("candidate_delete_requests")
+}
+
+// ── Per-user Permission Overrides ─────────────────────────────────────────────
+
+model AgencyUserPermission {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permission  String   // e.g. "finance:read", "candidates:delete"
+  granted     Boolean  @default(true)  // true=grant override, false=revoke override
+  grantedById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, permission])
+  @@map("agency_user_permissions")
+}
+
+// ── User Number Sequence ───────────────────────────────────────────────────────
+
+model UserNumberSequence {
+  id      Int @id @default(autoincrement())
+  current Int @default(0)
+
+  @@map("user_number_sequences")
 }

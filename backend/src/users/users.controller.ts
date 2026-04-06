@@ -3,6 +3,8 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@ne
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+import { UpdatePreferencesDto } from './dto/update-preferences.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -16,6 +18,55 @@ import { Roles } from '../auth/decorators/roles.decorator';
 export class UsersController {
   constructor(private usersService: UsersService) {}
 
+  // ── Bulk operations (must be defined before :id routes) ─────────────────────
+
+  @Post('bulk-import')
+  @Roles('System Admin', 'HR Manager')
+  @ApiOperation({ summary: 'Bulk import users from CSV records' })
+  bulkImport(@Body() dto: { records: any[] }, @CurrentUser('id') actorId: string) {
+    return this.usersService.bulkImport(dto.records, actorId);
+  }
+
+  @Get('bulk-export')
+  @Roles('System Admin', 'HR Manager')
+  @ApiOperation({ summary: 'Bulk export users (no pagination)' })
+  bulkExport(@Query() query: any, @CurrentUser() caller: any) {
+    return this.usersService.bulkExport(query, caller?.role, caller?.agencyId);
+  }
+
+  // ── Self-update routes (must be before :id) ──────────────────────────────────
+
+  @Get('me')
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Finance', 'Read Only')
+  @ApiOperation({ summary: 'Get current user profile' })
+  getMe(@CurrentUser('id') userId: string) {
+    return this.usersService.findOne(userId);
+  }
+
+  @Patch('profile')
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Finance', 'Read Only')
+  @ApiOperation({ summary: 'Update own profile (restricted fields only)' })
+  updateProfile(@CurrentUser('id') userId: string, @Body() dto: UpdateProfileDto) {
+    return this.usersService.updateProfile(userId, dto, userId);
+  }
+
+  @Patch('preferences')
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Finance', 'Read Only')
+  @ApiOperation({ summary: 'Update own preferences (language, timezone, notifications)' })
+  updatePreferences(@CurrentUser('id') userId: string, @Body() dto: UpdatePreferencesDto) {
+    return this.usersService.updatePreferences(userId, dto, userId);
+  }
+
+  // Legacy self-profile update route (kept for backward compatibility)
+  @Patch('me/profile')
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Finance', 'Read Only')
+  @ApiOperation({ summary: 'Update current user profile (legacy route)' })
+  updateMeProfile(@CurrentUser('id') userId: string, @Body() dto: UpdateProfileDto) {
+    return this.usersService.updateProfile(userId, dto, userId);
+  }
+
+  // ── List ──────────────────────────────────────────────────────────────────────
+
   @Get()
   @Roles('System Admin', 'HR Manager', 'Read Only', 'Agency Manager')
   @ApiOperation({ summary: 'List all users with pagination and filters' })
@@ -25,12 +76,7 @@ export class UsersController {
     return this.usersService.findAll(query, caller?.role, caller?.agencyId);
   }
 
-  @Get('me')
-  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Finance', 'Read Only')
-  @ApiOperation({ summary: 'Get current user profile' })
-  getMe(@CurrentUser('id') userId: string) {
-    return this.usersService.findOne(userId);
-  }
+  // ── Single user ───────────────────────────────────────────────────────────────
 
   @Get(':id')
   @Roles('System Admin', 'HR Manager', 'Agency Manager')
@@ -47,16 +93,9 @@ export class UsersController {
     return this.usersService.create(dto, caller?.role, caller?.agencyId, caller?.id);
   }
 
-  @Patch('me/profile')
-  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Finance', 'Read Only')
-  @ApiOperation({ summary: 'Update current user profile' })
-  updateProfile(@CurrentUser('id') userId: string, @Body() data: any) {
-    return this.usersService.updateProfile(userId, data, userId);
-  }
-
   @Patch(':id')
-  @Roles('System Admin')
-  @ApiOperation({ summary: 'Update user' })
+  @Roles('System Admin', 'HR Manager')
+  @ApiOperation({ summary: 'Update user (admin-only fields enforced by role)' })
   update(@Param('id') id: string, @Body() dto: UpdateUserDto, @CurrentUser() caller: any) {
     return this.usersService.update(id, dto, caller?.role, caller?.id);
   }
@@ -66,5 +105,58 @@ export class UsersController {
   @ApiOperation({ summary: 'Delete user (soft delete)' })
   remove(@Param('id') id: string, @CurrentUser() caller: any) {
     return this.usersService.remove(id, caller?.role, caller?.id);
+  }
+
+  // ── Photo upload ──────────────────────────────────────────────────────────────
+
+  @Post(':id/photo')
+  @Roles('System Admin', 'HR Manager')
+  @ApiOperation({ summary: 'Set user photo URL' })
+  uploadPhoto(
+    @Param('id') id: string,
+    @Body('photoUrl') photoUrl: string,
+    @CurrentUser('id') actorId: string,
+  ) {
+    return this.usersService.uploadPhoto(id, photoUrl, actorId);
+  }
+
+  // ── Unlock user ───────────────────────────────────────────────────────────────
+
+  @Post(':id/unlock')
+  @Roles('System Admin', 'HR Manager')
+  @ApiOperation({ summary: 'Unlock a locked user account' })
+  unlockUser(@Param('id') id: string, @CurrentUser('id') actorId: string) {
+    return this.usersService.unlockUser(id, actorId);
+  }
+
+  // ── Permission overrides ──────────────────────────────────────────────────────
+
+  @Get(':id/permissions')
+  @Roles('System Admin', 'HR Manager')
+  @ApiOperation({ summary: 'Get user role permissions + overrides' })
+  getUserPermissions(@Param('id') id: string) {
+    return this.usersService.getUserPermissions(id);
+  }
+
+  @Post(':id/permissions')
+  @Roles('System Admin')
+  @ApiOperation({ summary: 'Grant or revoke a permission override for a user' })
+  setPermission(
+    @Param('id') id: string,
+    @Body() dto: { permission: string; granted: boolean },
+    @CurrentUser('id') actorId: string,
+  ) {
+    return this.usersService.setPermissionOverride(id, dto.permission, dto.granted, actorId);
+  }
+
+  @Delete(':id/permissions/:permission')
+  @Roles('System Admin')
+  @ApiOperation({ summary: 'Remove a permission override for a user' })
+  removePermission(
+    @Param('id') id: string,
+    @Param('permission') permission: string,
+    @CurrentUser('id') actorId: string,
+  ) {
+    return this.usersService.removePermissionOverride(id, permission, actorId);
   }
 }

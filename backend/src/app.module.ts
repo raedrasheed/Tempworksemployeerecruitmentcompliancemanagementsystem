@@ -23,12 +23,14 @@ import { WorkflowPipelineModule } from './pipeline/pipeline.module';
 import { AttendanceModule } from './attendance/attendance.module';
 import { VehiclesModule } from './vehicles/vehicles.module';
 import { BackupModule }   from './backup/backup.module';
+import { EmailModule } from './email/email.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
     PrismaModule,
+    EmailModule,
     AuthModule,
     UsersModule,
     RolesModule,

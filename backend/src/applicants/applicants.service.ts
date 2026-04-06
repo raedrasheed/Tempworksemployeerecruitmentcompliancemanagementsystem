@@ -1,5 +1,5 @@
 import {
-  Injectable, NotFoundException, ConflictException, ForbiddenException,
+  Injectable, NotFoundException, ConflictException, ForbiddenException, BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateApplicantDto } from './dto/create-applicant.dto';
@@ -105,7 +105,12 @@ export class ApplicantsService {
 
   // ── Create ────────────────────────────────────────────────────────────────────
 
-  async create(dto: CreateApplicantDto & { tier?: string }, actorId?: string) {
+  async create(dto: CreateApplicantDto & { tier?: string }, actorId?: string, actor?: { role: string; agencyId?: string }) {
+    // Agency users can only create candidates in their own agency
+    if (actor && this.isAgencyUser(actor.role) && actor.agencyId) {
+      (dto as any).agencyId = actor.agencyId;
+    }
+
     const existing = await this.prisma.applicant.findUnique({ where: { email: dto.email } });
     if (existing) throw new ConflictException('Applicant with this email already exists');
 
@@ -132,8 +137,16 @@ export class ApplicantsService {
 
   // ── Update ────────────────────────────────────────────────────────────────────
 
-  async update(id: string, dto: UpdateApplicantDto, actorId?: string) {
-    const existing = await this.findOne(id);
+  async update(id: string, dto: UpdateApplicantDto, actorId?: string, actor?: { role: string; agencyId?: string }) {
+    const existing = await this.findOne(id, actor);
+
+    // Agency User/Manager can only edit candidates in their own agency
+    if (actor && this.isAgencyUser(actor.role)) {
+      if (actor.agencyId && existing.agencyId !== actor.agencyId) {
+        throw new ForbiddenException('You can only edit candidates in your own agency');
+      }
+    }
+
     if (dto.email && dto.email !== existing.email) {
       const dup = await this.prisma.applicant.findFirst({ where: { email: dto.email, NOT: { id } } });
       if (dup) throw new ConflictException('Email already in use');

@@ -5,12 +5,13 @@ import { Input } from '../../components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Briefcase, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
-import { authApi } from '../../services/api';
+import { authApi, setTokens, setCurrentUser } from '../../services/api';
 
 export function LoginPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [agencyName, setAgencyName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -20,8 +21,16 @@ export function LoginPage() {
     setError('');
 
     try {
-      await authApi.login(email, password);
+      const result = await authApi.login(email, password, agencyName || undefined);
       toast.success('Welcome back!');
+
+      if ((result as any)?.passwordExpired) {
+        navigate('/change-password', {
+          state: { message: 'Your password has expired. Please set a new one.' },
+        });
+        return;
+      }
+
       navigate('/dashboard');
     } catch (err: any) {
       const raw = err?.message || 'Login failed. Please check your credentials.';
@@ -64,6 +73,22 @@ export function LoginPage() {
 
         <CardContent className="space-y-6">
           <form onSubmit={handleLogin} className="space-y-4">
+            {/* Agency Field (optional) */}
+            <div className="space-y-2">
+              <label htmlFor="agencyName" className="text-sm font-medium">
+                Agency <span className="text-muted-foreground font-normal">(optional)</span>
+              </label>
+              <Input
+                id="agencyName"
+                type="text"
+                placeholder="Enter your agency name if required"
+                value={agencyName}
+                onChange={(e) => setAgencyName(e.target.value)}
+                autoComplete="organization"
+              />
+              <p className="text-xs text-muted-foreground">Leave blank if you are not associated with a specific agency</p>
+            </div>
+
             {/* Email Field */}
             <div className="space-y-2">
               <label htmlFor="email" className="text-sm font-medium">
@@ -86,9 +111,9 @@ export function LoginPage() {
                 <label htmlFor="password" className="text-sm font-medium">
                   Password
                 </label>
-                <a href="#" className="text-sm text-[#2563EB] hover:underline">
+                <Link to="/forgot-password" className="text-sm text-[#2563EB] hover:underline">
                   Forgot password?
-                </a>
+                </Link>
               </div>
               <Input
                 id="password"

@@ -141,10 +141,10 @@ export async function apiFetch<T = any>(
 // ─── Auth API ────────────────────────────────────────────────────────────────
 
 export const authApi = {
-  login: async (email: string, password: string) => {
-    const data = await apiFetch<{ accessToken: string; refreshToken: string; user: AuthUser }>(
+  login: async (email: string, password: string, agencyId?: string) => {
+    const data = await apiFetch<{ accessToken: string; refreshToken: string; user: AuthUser; passwordExpired?: boolean }>(
       '/auth/login',
-      { method: 'POST', body: JSON.stringify({ email, password }) },
+      { method: 'POST', body: JSON.stringify({ email, password, ...(agencyId && { agencyId }) }) },
     );
     setTokens(data.accessToken, data.refreshToken);
     // Fetch full profile including permissions
@@ -179,16 +179,22 @@ export const authApi = {
     }),
 
   forgotPassword: (email: string) =>
-    apiFetch('/auth/forgot-password', {
-      method: 'POST',
-      body: JSON.stringify({ email }),
-    }),
+    apiFetch<void>('/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) }),
 
   resetPassword: (token: string, newPassword: string) =>
-    apiFetch('/auth/reset-password', {
-      method: 'POST',
-      body: JSON.stringify({ token, newPassword }),
-    }),
+    apiFetch<void>('/auth/reset-password', { method: 'POST', body: JSON.stringify({ token, newPassword }) }),
+
+  activateAccount: (token: string, password: string) =>
+    apiFetch<{ accessToken: string; refreshToken: string; user: any }>(
+      '/auth/activate',
+      { method: 'POST', body: JSON.stringify({ token, password }) }
+    ),
+
+  adminResetPassword: (userId: string) =>
+    apiFetch<void>(`/auth/admin/reset-password/${userId}`, { method: 'POST' }),
+
+  resendActivation: (userId: string) =>
+    apiFetch<void>(`/auth/resend-activation/${userId}`, { method: 'POST' }),
 };
 
 // ─── Employees API ───────────────────────────────────────────────────────────
@@ -334,6 +340,15 @@ export const applicantsApi = {
       return res.json();
     });
   },
+
+  requestDelete: (id: string, reason: string) =>
+    apiFetch<any>(`/applicants/${id}/delete-request`, { method: 'POST', body: JSON.stringify({ reason }) }),
+
+  getDeleteRequests: (params?: any) =>
+    apiFetch<any>(`/applicants/delete-requests?${new URLSearchParams(params || {})}`),
+
+  reviewDeleteRequest: (requestId: string, status: 'APPROVED' | 'REJECTED', reviewNotes?: string) =>
+    apiFetch<any>(`/applicants/delete-requests/${requestId}`, { method: 'PATCH', body: JSON.stringify({ status, reviewNotes }) }),
 };
 
 // ─── Public Application API ───────────────────────────────────────────────────
@@ -583,7 +598,25 @@ export const usersApi = {
     apiFetch(`/users/${id}`, { method: 'DELETE' }),
 
   updateProfile: (data: any) =>
-    apiFetch<any>('/users/me/profile', { method: 'PATCH', body: JSON.stringify(data) }),
+    apiFetch<any>('/users/profile', { method: 'PATCH', body: JSON.stringify(data) }),
+
+  updatePreferences: (data: any) =>
+    apiFetch<any>('/users/preferences', { method: 'PATCH', body: JSON.stringify(data) }),
+
+  unlockUser: (id: string) =>
+    apiFetch<any>(`/users/${id}/unlock`, { method: 'POST' }),
+
+  setPermissionOverride: (id: string, permission: string, granted: boolean) =>
+    apiFetch<any>(`/users/${id}/permissions`, { method: 'POST', body: JSON.stringify({ permission, granted }) }),
+
+  getUserPermissions: (id: string) =>
+    apiFetch<any>(`/users/${id}/permissions`),
+
+  bulkImport: (records: any[]) =>
+    apiFetch<any>('/users/bulk-import', { method: 'POST', body: JSON.stringify({ records }) }),
+
+  bulkExport: (params?: any) =>
+    apiFetch<any[]>(`/users/bulk-export?${new URLSearchParams(params || {})}`),
 };
 
 // ─── Roles API ────────────────────────────────────────────────────────────────

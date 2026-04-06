@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
-  Search, RefreshCw, RotateCcw, Eye, Trash2,
+  Search, RefreshCw, RotateCcw, Eye, Trash2, Shield,
   ChevronLeft, ChevronRight, Users, FileText, Building2, Briefcase,
-  DollarSign, Shield, Bell, BarChart3, FolderOpen, UserCheck, Truck, Wrench,
+  DollarSign, Bell, BarChart3, FolderOpen, UserCheck, Truck, Wrench,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -12,7 +12,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
 import { Label } from '../../components/ui/label';
 import { recycleBinApi } from '../../services/api';
+import { useAuthContext } from '../../contexts/AuthContext';
 import { toast } from 'sonner';
+
+const RECYCLE_BIN_ROLES = ['System Admin', 'HR Manager', 'Compliance Officer'];
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -76,6 +79,20 @@ function EntityBadge({ entityType }: { entityType: string }) {
 // ── Main Component ────────────────────────────────────────────────────────────
 
 export function DeletedRecords() {
+  const { user } = useAuthContext();
+
+  if (!user || !RECYCLE_BIN_ROLES.includes(user.role ?? '')) {
+    return (
+      <div className="p-8 flex items-center justify-center min-h-64">
+        <div className="text-center">
+          <Shield className="w-12 h-12 mx-auto text-red-500 mb-3 opacity-60" />
+          <h2 className="text-lg font-semibold mb-1">Access Denied</h2>
+          <p className="text-muted-foreground text-sm">Only System Admins, HR Managers, and Compliance Officers can access Deleted Records.</p>
+        </div>
+      </div>
+    );
+  }
+
   // ── State ──────────────────────────────────────────────────────────────────
   const [records, setRecords] = useState<DeletedRecord[]>([]);
   const [counts, setCounts] = useState<Record<string, number>>({});

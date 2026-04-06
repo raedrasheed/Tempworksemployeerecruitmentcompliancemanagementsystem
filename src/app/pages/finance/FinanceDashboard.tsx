@@ -63,8 +63,10 @@ export function FinanceDashboard() {
   const navigate = useNavigate();
   const currentUser = getCurrentUser();
 
-  // Access guard
-  const allowed = ['System Admin', 'HR Manager', 'Finance'].includes(currentUser?.role ?? '');
+  // Access guard — matches backend FINANCE_READ_ROLES
+  const allowed = ['System Admin', 'HR Manager', 'Finance', 'Recruiter'].includes(currentUser?.role ?? '');
+  // Export guard — matches backend FINANCE_EXPORT_ROLES (Recruiter cannot export)
+  const canExport = ['System Admin', 'HR Manager', 'Finance'].includes(currentUser?.role ?? '');
 
   const [records, setRecords] = useState<any[]>([]);
   const [meta, setMeta] = useState<any>(null);
@@ -198,9 +200,11 @@ export function FinanceDashboard() {
           <Button variant="outline" size="sm" onClick={() => setShowFilters(v => !v)}>
             <Filter className="w-4 h-4 mr-1" />{showFilters ? 'Hide Filters' : 'Filters'}
           </Button>
-          <Button size="sm" onClick={handleExport} disabled={exporting}>
-            <Download className="w-4 h-4 mr-1" />{exporting ? 'Exporting…' : 'Export Excel'}
-          </Button>
+          {canExport && (
+            <Button size="sm" onClick={handleExport} disabled={exporting}>
+              <Download className="w-4 h-4 mr-1" />{exporting ? 'Exporting…' : 'Export Excel'}
+            </Button>
+          )}
         </div>
       </div>
 

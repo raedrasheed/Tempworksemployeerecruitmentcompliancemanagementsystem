@@ -75,10 +75,10 @@ export const ENTITY_POLICIES: Record<
     notes: 'Hard delete blocked if users are currently assigned this role',
   },
   NOTIFICATION: {
-    canRestore: false,
+    canRestore: true,
     canRestoreWithRelated: false,
-    canHardDelete: true,
-    notes: 'Notifications are transient; restore is not meaningful',
+    canHardDelete: false,
+    notes: 'Notifications can be restored; hard delete not permitted',
   },
   REPORT: {
     canRestore: true,

@@ -51,6 +51,7 @@ export class RestoreService {
       case 'MAINTENANCE_RECORD': return this.restoreMaintenanceRecord(id, actorId, reason);
       case 'MAINTENANCE_TYPE':   return this.restoreMaintenanceType(id, actorId, reason);
       case 'WORKSHOP':           return this.restoreWorkshop(id, actorId, reason);
+      case 'NOTIFICATION':       return this.restoreNotification(id, actorId, reason);
       default:
         throw new BadRequestException(`No restore handler for entity type: ${entityType}`);
     }
@@ -370,6 +371,16 @@ export class RestoreService {
     await (this.prisma as any).workshop.update({ where: { id }, data: { deletedAt: null, deletedBy: null } });
     await this.logRestore('WORKSHOP', id, actorId, { workshop: 1 }, reason).catch(() => {});
     return { success: true, entityType: 'WORKSHOP', id, restored: { workshop: 1 }, skipped: {}, warnings: [] };
+  }
+
+  private async restoreNotification(id: string, actorId: string, reason?: string): Promise<RestoreResult> {
+    const record = await this.prisma.notification.findUnique({ where: { id } });
+    if (!record) throw new NotFoundException(`Notification ${id} not found`);
+    if (!record.deletedAt) throw new ConflictException('Notification is not deleted');
+
+    await this.prisma.notification.update({ where: { id }, data: { deletedAt: null, deletedBy: null, deletionReason: null } });
+    await this.logRestore('NOTIFICATION', id, actorId, { notification: 1 }, reason).catch(() => {});
+    return { success: true, entityType: 'NOTIFICATION', id, restored: { notification: 1 }, skipped: {}, warnings: [] };
   }
 
   // ── Helpers ─────────────────────────────────────────────────────────────────

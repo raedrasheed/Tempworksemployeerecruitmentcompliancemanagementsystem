@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
-  Search, RefreshCw, Trash2, RotateCcw, Eye, AlertTriangle,
+  Search, RefreshCw, RotateCcw, Eye,
   ChevronLeft, ChevronRight, Users, FileText, Building2, Briefcase,
   DollarSign, Shield, Bell, BarChart3, FolderOpen, UserCheck, Truck, Wrench,
 } from 'lucide-react';
@@ -10,9 +10,7 @@ import { Input } from '../../components/ui/input';
 import { Badge } from '../../components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
-import { Label } from '../../components/ui/label';
 import { recycleBinApi } from '../../services/api';
-import { useAuthContext } from '../../contexts/AuthContext';
 import { toast } from 'sonner';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -36,13 +34,6 @@ interface DeletedRecord {
 interface RelatedData {
   relatedRecords: DeletedRecord[];
   summary: Record<string, number>;
-}
-
-interface HardDeletePreview {
-  canDelete: boolean;
-  blockedReason?: string;
-  willDelete: Record<string, number>;
-  totalRecords: number;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -84,9 +75,6 @@ function EntityBadge({ entityType }: { entityType: string }) {
 // ── Main Component ────────────────────────────────────────────────────────────
 
 export function DeletedRecords() {
-  const { user } = useAuthContext();
-  const isAdmin = user?.role === 'System Admin';
-
   // ── State ──────────────────────────────────────────────────────────────────
   const [records, setRecords] = useState<DeletedRecord[]>([]);
   const [counts, setCounts] = useState<Record<string, number>>({});
@@ -113,13 +101,6 @@ export function DeletedRecords() {
   const [restoreWithRelated, setRestoreWithRelated] = useState(false);
   const [restoreLoading, setRestoreLoading] = useState(false);
   const [showRestoreDialog, setShowRestoreDialog] = useState(false);
-
-  const [hardDeleteTarget, setHardDeleteTarget] = useState<DeletedRecord | null>(null);
-  const [hardDeletePreview, setHardDeletePreview] = useState<HardDeletePreview | null>(null);
-  const [hardDeleteLoading, setHardDeleteLoading] = useState(false);
-  const [showHardDeleteDialog, setShowHardDeleteDialog] = useState(false);
-  const [hardDeleteConfirm, setHardDeleteConfirm] = useState('');
-  const [hardDeleteReason, setHardDeleteReason] = useState('');
 
   // ── Fetch ──────────────────────────────────────────────────────────────────
   const fetchRecords = useCallback(async () => {
@@ -199,43 +180,6 @@ export function DeletedRecords() {
       toast.error(e?.message ?? 'Restore failed');
     } finally {
       setRestoreLoading(false);
-    }
-  };
-
-  // ── Hard delete dialog ─────────────────────────────────────────────────────
-  const openHardDelete = async (rec: DeletedRecord) => {
-    setHardDeleteTarget(rec);
-    setHardDeleteConfirm('');
-    setHardDeleteReason('');
-    setHardDeletePreview(null);
-    setShowHardDeleteDialog(true);
-    try {
-      const preview = await recycleBinApi.previewHardDelete(rec.entityType, rec.id);
-      setHardDeletePreview(preview);
-    } catch {
-      toast.error('Failed to load deletion preview');
-    }
-  };
-
-  const executeHardDelete = async () => {
-    if (!hardDeleteTarget) return;
-    const expectedConfirm = `DELETE ${hardDeleteTarget.displayName}`;
-    if (hardDeleteConfirm !== expectedConfirm) {
-      toast.error(`Type exactly: ${expectedConfirm}`);
-      return;
-    }
-    setHardDeleteLoading(true);
-    try {
-      await recycleBinApi.hardDelete(hardDeleteTarget.entityType, hardDeleteTarget.id, { reason: hardDeleteReason });
-      toast.success(`Permanently deleted: ${hardDeleteTarget.displayName}`);
-      setShowHardDeleteDialog(false);
-      setHardDeleteTarget(null);
-      fetchRecords();
-      fetchCounts();
-    } catch (e: any) {
-      toast.error(e?.message ?? 'Hard delete failed');
-    } finally {
-      setHardDeleteLoading(false);
     }
   };
 
@@ -394,11 +338,6 @@ export function DeletedRecords() {
                             <span className="text-xs">+related</span>
                           </Button>
                         )}
-                        {rec.canHardDelete && isAdmin && (
-                          <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => openHardDelete(rec)} title="Permanently delete">
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        )}
                       </div>
                     </td>
                   </tr>
@@ -501,87 +440,6 @@ export function DeletedRecords() {
         </DialogContent>
       </Dialog>
 
-      {/* ── Hard Delete Dialog ───────────────────────────────────────────── */}
-      <Dialog open={showHardDeleteDialog} onOpenChange={open => { if (!open) { setShowHardDeleteDialog(false); setHardDeleteTarget(null); } }}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-destructive">
-              <AlertTriangle className="w-5 h-5" />
-              Permanent Deletion
-            </DialogTitle>
-            <DialogDescription>
-              This action is <strong>irreversible</strong>. The record and all related data will be permanently removed from the database.
-            </DialogDescription>
-          </DialogHeader>
-
-          {hardDeletePreview ? (
-            <div className="space-y-3">
-              {!hardDeletePreview.canDelete && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded text-sm text-red-800">
-                  <strong>Blocked:</strong> {hardDeletePreview.blockedReason}
-                </div>
-              )}
-              {hardDeletePreview.canDelete && (
-                <>
-                  <div className="p-3 bg-amber-50 border border-amber-200 rounded">
-                    <p className="text-sm font-medium text-amber-900 mb-2">
-                      This will permanently delete {hardDeletePreview.totalRecords} record(s):
-                    </p>
-                    <ul className="text-sm text-amber-800 space-y-1">
-                      {Object.entries(hardDeletePreview.willDelete).map(([key, count]) => (
-                        <li key={key} className="flex justify-between">
-                          <span className="capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
-                          <Badge variant="secondary">{count}</Badge>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-sm">Reason for deletion (optional)</Label>
-                    <Input
-                      placeholder="Enter reason…"
-                      value={hardDeleteReason}
-                      onChange={e => setHardDeleteReason(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-sm">
-                      Type <code className="bg-muted px-1 rounded">DELETE {hardDeleteTarget?.displayName}</code> to confirm:
-                    </Label>
-                    <Input
-                      placeholder={`DELETE ${hardDeleteTarget?.displayName}`}
-                      value={hardDeleteConfirm}
-                      onChange={e => setHardDeleteConfirm(e.target.value)}
-                      className="font-mono"
-                    />
-                  </div>
-                </>
-              )}
-            </div>
-          ) : (
-            <div className="py-4 text-center text-muted-foreground">Loading preview…</div>
-          )}
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => { setShowHardDeleteDialog(false); setHardDeleteTarget(null); }}>
-              Cancel
-            </Button>
-            {hardDeletePreview?.canDelete && (
-              <Button
-                variant="destructive"
-                disabled={hardDeleteLoading || hardDeleteConfirm !== `DELETE ${hardDeleteTarget?.displayName}`}
-                onClick={executeHardDelete}
-              >
-                {hardDeleteLoading ? 'Deleting…' : (
-                  <><Trash2 className="w-4 h-4 mr-2" />Permanently Delete</>
-                )}
-              </Button>
-            )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

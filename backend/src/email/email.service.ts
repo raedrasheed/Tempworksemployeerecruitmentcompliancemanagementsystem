@@ -10,16 +10,17 @@ export class EmailService {
   private readonly frontendUrl: string;
 
   constructor(private config: ConfigService) {
-    this.apiKey = this.config.get<string>('RESEND_API_KEY', '');
-    this.from = this.config.get<string>('SMTP_FROM', 'TempWorks <onboarding@resend.dev>');
-    this.frontendUrl = this.config.get<string>('FRONTEND_URL', 'http://localhost:5173');
+    this.apiKey = this.config.get<string>('RESEND_API_KEY', '') || process.env.RESEND_API_KEY || '';
+    this.from = this.config.get<string>('SMTP_FROM', 'TempWorks <onboarding@resend.dev>') || process.env.SMTP_FROM || 'TempWorks <onboarding@resend.dev>';
+    this.frontendUrl = this.config.get<string>('FRONTEND_URL', 'http://localhost:5173') || process.env.FRONTEND_URL || 'http://localhost:5173';
 
     if (this.apiKey) {
-      this.logger.log(`Email service ready (Resend API). FROM: ${this.from}`);
+      this.logger.log(`Email service ready (Resend API). Key: ${this.apiKey.substring(0, 8)}... FROM: ${this.from}`);
     } else {
-      this.logger.warn(
-        'RESEND_API_KEY not set — emails will be logged to console only. ' +
-        'Add RESEND_API_KEY=re_xxx to backend/.env to enable real email delivery.',
+      this.logger.error(
+        'RESEND_API_KEY not found in environment! ' +
+        `ConfigService returned: "${this.config.get('RESEND_API_KEY')}" | process.env: "${process.env.RESEND_API_KEY}". ` +
+        'Emails will NOT be sent. Restart the backend after fixing .env',
       );
     }
   }

@@ -62,6 +62,10 @@ import { JobTypes } from './pages/settings/JobTypes';
 // Profile pages
 import { Profile } from './pages/profile/Profile';
 import { ChangePassword } from './pages/profile/ChangePassword';
+import { UserPreferences } from './pages/profile/UserPreferences';
+
+// Applicant management pages
+import { CandidateDeleteRequests } from './pages/applicants/CandidateDeleteRequests';
 
 // Job Ads dashboard pages
 import { JobAdsList } from './pages/job-ads/JobAdsList';
@@ -79,6 +83,9 @@ import { WorkflowStageDetailsPage } from './pages/pipelines/WorkflowStageDetails
 // Public pages
 import { LandingPage } from './pages/public/LandingPage';
 import { LoginPage } from './pages/public/LoginPage';
+import { ActivationPage } from './pages/public/ActivationPage';
+import { ForgotPasswordPage } from './pages/public/ForgotPasswordPage';
+import { ResetPasswordPage } from './pages/public/ResetPasswordPage';
 import { PublicEmployeeApplication } from './pages/public/PublicEmployeeApplication';
 import { ApplicationSuccess } from './pages/public/ApplicationSuccess';
 import { JobListings } from './pages/public/JobListings';
@@ -99,6 +106,9 @@ export const router = createBrowserRouter([
   // Public routes (no MainLayout)
   { path: '/', Component: LandingPage },
   { path: '/login', Component: LoginPage },
+  { path: '/activate', Component: ActivationPage },
+  { path: '/forgot-password', Component: ForgotPasswordPage },
+  { path: '/reset-password', Component: ResetPasswordPage },
   { path: '/apply', Component: PublicEmployeeApplication },
   { path: '/application-success', Component: ApplicationSuccess },
   { path: '/jobs', Component: JobListings },
@@ -124,6 +134,7 @@ export const router = createBrowserRouter([
       // Applicants routes
       { path: 'applicants', Component: ApplicantsList },
       { path: 'applicants/add', Component: AddApplicant },
+      { path: 'applicants/delete-requests', Component: CandidateDeleteRequests },
       { path: 'applicants/:id', Component: ApplicantProfile },
       { path: 'applicants/:id/edit', Component: EditApplicant },
       
@@ -225,6 +236,7 @@ export const router = createBrowserRouter([
       { path: 'profile', Component: Profile },
       { path: 'profile/change-password', Component: ChangePassword },
       { path: 'change-password', Component: ChangePassword },
+      { path: 'preferences', Component: UserPreferences },
     ],
   },
 ]);

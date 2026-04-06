@@ -37,6 +37,7 @@ export function EditUser() {
   const [notFound, setNotFound] = useState(false);
   const [lockedAt, setLockedAt] = useState<string | null>(null);
   const [userStatus, setUserStatus] = useState('');
+  const [userNumber, setUserNumber] = useState<string | null>(null);
 
   const [form, setForm] = useState({
     // Identity
@@ -75,6 +76,7 @@ export function EditUser() {
     ]).then(([user, roleList, agencyPage]) => {
       setLockedAt(user.lockedAt ?? null);
       setUserStatus(user.status ?? 'ACTIVE');
+      setUserNumber(user.userNumber ?? null);
       setForm({
         firstName: user.firstName ?? '',
         middleName: user.middleName ?? '',
@@ -234,6 +236,12 @@ export function EditUser() {
               <CardTitle>Identity</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {userNumber && (
+                <div className="space-y-2">
+                  <Label>User Number</Label>
+                  <Input value={userNumber} disabled className="bg-muted text-muted-foreground font-mono cursor-not-allowed" />
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="firstName">First Name *</Label>

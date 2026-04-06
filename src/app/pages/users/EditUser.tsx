@@ -149,7 +149,7 @@ export function EditUser() {
       await usersApi.update(id!, form);
       if (photoFile) {
         setUploadingPhoto(true);
-        try { await usersApi.uploadPhoto(id!, photoFile); } catch { /* non-fatal */ }
+        try { await usersApi.uploadPhoto(id!, photoFile); }
         finally { setUploadingPhoto(false); }
       }
       toast.success('User updated successfully');

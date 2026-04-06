@@ -609,7 +609,7 @@ export const usersApi = {
   uploadPhoto: (id: string, file: File) => {
     const form = new FormData();
     form.append('photo', file);
-    const token = localStorage.getItem('accessToken');
+    const token = localStorage.getItem('access_token');
     return fetch(`${API_URL}/users/${id}/photo`, {
       method: 'POST',
       headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -624,7 +624,7 @@ export const usersApi = {
   uploadOwnPhoto: (file: File) => {
     const form = new FormData();
     form.append('photo', file);
-    const token = localStorage.getItem('accessToken');
+    const token = localStorage.getItem('access_token');
     return fetch(`${API_URL}/users/me/photo`, {
       method: 'POST',
       headers: token ? { Authorization: `Bearer ${token}` } : {},

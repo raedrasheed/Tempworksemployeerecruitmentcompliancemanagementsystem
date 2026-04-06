@@ -160,7 +160,7 @@ export function AddUser() {
 
       const newUser = await usersApi.create(payload);
       if (photoFile && newUser?.id) {
-        try { await usersApi.uploadPhoto(newUser.id, photoFile); } catch { /* non-fatal */ }
+        await usersApi.uploadPhoto(newUser.id, photoFile);
       }
       toast.success('User added successfully');
       navigate('/dashboard/users');

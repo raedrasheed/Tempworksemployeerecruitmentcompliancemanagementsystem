@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router';
-import { Plus, Edit, Search, Trash2 } from 'lucide-react';
+import { Plus, Edit, Search, Trash2, Upload, Download } from 'lucide-react';
 import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { usersApi, getCurrentUser } from '../../services/api';
 import { toast } from 'sonner';
@@ -18,6 +19,19 @@ const userColumns: Column[] = [
   { id: 'status', label: 'Status', type: 'enum', options: ['ACTIVE', 'INACTIVE', 'SUSPENDED', 'PENDING'] },
 ];
 
+// Simple CSV parser — splits into rows and columns
+function parseCsvText(text: string): any[] {
+  const lines = text.trim().split('\n').filter(l => l.trim());
+  if (lines.length < 2) return [];
+  const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+  return lines.slice(1).map(line => {
+    const values = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+    const record: any = {};
+    headers.forEach((h, i) => { record[h] = values[i] ?? ''; });
+    return record;
+  });
+}
+
 export function UsersList() {
   const { canCreate, canEdit, canDelete } = usePermissions();
   const currentUser = getCurrentUser();
@@ -27,6 +41,11 @@ export function UsersList() {
   const [activeFilters, setActiveFilters] = useState<FilterRule[]>([]);
   const [filterLogic, setFilterLogic] = useState<'AND' | 'OR'>('AND');
   const [savedPresets, setSavedPresets] = useState<FilterPreset[]>([]);
+
+  // Bulk import modal state
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [csvText, setCsvText] = useState('');
+  const [importing, setImporting] = useState(false);
 
   useEffect(() => {
     usersApi.list({ limit: 100 })
@@ -73,6 +92,55 @@ export function UsersList() {
     setSavedPresets(prev => [...prev, { id: Date.now().toString(), name, rules, logic }]);
   };
 
+  const handleBulkImport = async () => {
+    if (!csvText.trim()) {
+      toast.error('Please paste CSV data first');
+      return;
+    }
+    const records = parseCsvText(csvText);
+    if (records.length === 0) {
+      toast.error('No valid records found. Ensure CSV has a header row.');
+      return;
+    }
+    setImporting(true);
+    try {
+      await usersApi.bulkImport(records);
+      toast.success(`${records.length} record(s) imported successfully`);
+      setShowImportModal(false);
+      setCsvText('');
+      // Reload list
+      const res: any = await usersApi.list({ limit: 100 });
+      setUsers(Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []);
+    } catch (err: any) {
+      toast.error(err?.message || 'Bulk import failed');
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const handleExport = async () => {
+    try {
+      const data = await usersApi.bulkExport();
+      if (!Array.isArray(data) || data.length === 0) {
+        toast.info('No data to export');
+        return;
+      }
+      const headers = Object.keys(data[0]).join(',');
+      const rows = data.map(row => Object.values(row).map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(','));
+      const csv = [headers, ...rows].join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `users-export-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success('Export downloaded');
+    } catch (err: any) {
+      toast.error(err?.message || 'Export failed');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -80,14 +148,26 @@ export function UsersList() {
           <h1 className="text-3xl font-semibold text-[#0F172A]">User Management</h1>
           <p className="text-muted-foreground mt-1">Manage system users and permissions</p>
         </div>
-        {canCreate('users') && (
-          <Button asChild>
-            <Link to="/dashboard/users/add">
-              <Plus className="w-4 h-4 mr-2" />
-              Add User
-            </Link>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleExport}>
+            <Download className="w-4 h-4 mr-2" />
+            Export
           </Button>
-        )}
+          {canCreate('users') && (
+            <Button variant="outline" size="sm" onClick={() => setShowImportModal(true)}>
+              <Upload className="w-4 h-4 mr-2" />
+              Bulk Import
+            </Button>
+          )}
+          {canCreate('users') && (
+            <Button asChild>
+              <Link to="/dashboard/users/add">
+                <Plus className="w-4 h-4 mr-2" />
+                Add User
+              </Link>
+            </Button>
+          )}
+        </div>
       </div>
 
       <Card>
@@ -123,6 +203,7 @@ export function UsersList() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-24">#</TableHead>
                   <TableHead>User</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Role</TableHead>
@@ -134,11 +215,16 @@ export function UsersList() {
               </TableHeader>
               <TableBody>
                 {loading ? (
-                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
                 ) : filteredUsers.length === 0 ? (
-                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No users found</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No users found</TableCell></TableRow>
                 ) : filteredUsers.map((user) => (
                   <TableRow key={user.id}>
+                    <TableCell>
+                      <span className="font-mono text-xs text-muted-foreground">
+                        {user.userNumber ?? '—'}
+                      </span>
+                    </TableCell>
                     <TableCell>
                       <div>
                         <div className="font-medium">{user.firstName} {user.lastName}</div>
@@ -193,6 +279,56 @@ export function UsersList() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Bulk Import Modal */}
+      {showImportModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl space-y-4 p-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-[#0F172A]">Bulk Import Users</h2>
+              <Button variant="ghost" size="sm" onClick={() => { setShowImportModal(false); setCsvText(''); }}>
+                ✕
+              </Button>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Paste CSV data below. The first row must be a header row with field names
+              (e.g. <code className="bg-gray-100 px-1 rounded text-xs">firstName,lastName,email,roleId,agencyId</code>).
+            </p>
+            <div className="space-y-2">
+              <Label htmlFor="csvInput">CSV Data</Label>
+              <textarea
+                id="csvInput"
+                rows={10}
+                className="w-full border rounded-md p-3 text-sm font-mono resize-y focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+                placeholder={`firstName,lastName,email,roleId,agencyId\nJohn,Smith,john@example.com,role-id,agency-id`}
+                value={csvText}
+                onChange={(e) => setCsvText(e.target.value)}
+              />
+            </div>
+            {csvText.trim() && (
+              <p className="text-xs text-muted-foreground">
+                Preview: {parseCsvText(csvText).length} record(s) detected
+              </p>
+            )}
+            <div className="flex gap-3 pt-2">
+              <Button
+                className="flex-1"
+                onClick={handleBulkImport}
+                disabled={importing || !csvText.trim()}
+              >
+                {importing ? 'Importing...' : 'Import Records'}
+              </Button>
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => { setShowImportModal(false); setCsvText(''); }}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

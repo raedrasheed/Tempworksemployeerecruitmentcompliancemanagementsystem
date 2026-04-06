@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
-import { Briefcase, ChevronLeft, ChevronRight, Check } from 'lucide-react';
+import { Briefcase, ChevronLeft, ChevronRight, Check, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { publicApplicationApi, settingsApi, publicJobAdsApi } from '../../services/api';
 import { ApplicantFormSteps, EMPTY_FORM, getVisibleTabs, StepIndicator, FormSettings, DEFAULT_FORM_SETTINGS, ApplicantFormData } from '../../components/applicants/ApplicantFormSteps';
+import { SimpleCaptcha } from '../../components/ui/SimpleCaptcha';
 
 export function PublicEmployeeApplication() {
   const navigate = useNavigate();
@@ -18,6 +19,7 @@ export function PublicEmployeeApplication() {
   const [settings, setSettings] = useState<FormSettings>(DEFAULT_FORM_SETTINGS);
   const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [captchaVerified, setCaptchaVerified] = useState(false);
 
   const visibleTabs = useMemo(() => getVisibleTabs(formData), [formData.hasDrivingLicense]);
 
@@ -68,6 +70,8 @@ export function PublicEmployeeApplication() {
 
   const handleBack = () => {
     if (currentStep > 1) {
+      // If leaving the last step, reset captcha
+      if (currentStep === visibleTabs.length) setCaptchaVerified(false);
       setCurrentStep(s => s - 1);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -80,6 +84,10 @@ export function PublicEmployeeApplication() {
     }
     if (!formData.declarationAccepted || !formData.agreeDataProcessing || !formData.agreeBackground) {
       toast.error('You must agree to all statements in the Review tab before submitting.');
+      return;
+    }
+    if (!captchaVerified) {
+      toast.error('Please complete the CAPTCHA verification before submitting.');
       return;
     }
     setSubmitting(true);
@@ -192,6 +200,18 @@ export function PublicEmployeeApplication() {
             onPhotoChange={setPhotoFile}
           />
 
+          {/* CAPTCHA — shown only on the last step */}
+          {currentStep === visibleTabs.length && (
+            <div className="mt-8 p-5 bg-gray-50 rounded-xl border border-gray-200">
+              <div className="flex items-center gap-2 mb-3">
+                <ShieldCheck className="w-5 h-5 text-blue-600" />
+                <h3 className="font-semibold text-gray-800">Security Verification</h3>
+                <span className="text-sm text-gray-500">— please solve the puzzle below</span>
+              </div>
+              <SimpleCaptcha onVerify={setCaptchaVerified} />
+            </div>
+          )}
+
           <div className="flex justify-between pt-8 border-t mt-8">
             {currentStep > 1 ? (
               <button
@@ -217,8 +237,9 @@ export function PublicEmployeeApplication() {
               <button
                 type="button"
                 onClick={handleSubmit}
-                disabled={submitting}
-                className="ml-auto flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 transition-colors"
+                disabled={submitting || !captchaVerified}
+                className="ml-auto flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                title={!captchaVerified ? 'Complete the CAPTCHA to submit' : undefined}
               >
                 <Check className="w-4 h-4" />
                 {submitting ? 'Submitting…' : 'Submit Application'}

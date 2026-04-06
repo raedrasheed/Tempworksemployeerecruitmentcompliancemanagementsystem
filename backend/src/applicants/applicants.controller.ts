@@ -64,19 +64,19 @@ export class ApplicantsController {
   // ── Create ────────────────────────────────────────────────────────────────────
 
   @Post()
-  @Roles('System Admin', 'HR Manager', 'Recruiter', 'Agency Manager')
-  @ApiOperation({ summary: 'Create a new applicant (defaults tier=LEAD)' })
+  @Roles('System Admin', 'HR Manager', 'Recruiter', 'Agency Manager', 'Agency User')
+  @ApiOperation({ summary: 'Create a new applicant (defaults tier=LEAD; agency users forced into own agency)' })
   create(@Body() dto: CreateApplicantDto & { tier?: string }, @CurrentUser() user: any) {
-    return this.applicantsService.create(dto, user?.id);
+    return this.applicantsService.create(dto, user?.id, { role: user?.role, agencyId: user?.agencyId });
   }
 
   // ── Update ────────────────────────────────────────────────────────────────────
 
   @Patch(':id')
-  @Roles('System Admin', 'HR Manager', 'Recruiter', 'Agency Manager')
-  @ApiOperation({ summary: 'Update applicant fields' })
+  @Roles('System Admin', 'HR Manager', 'Recruiter', 'Agency Manager', 'Agency User')
+  @ApiOperation({ summary: 'Update applicant fields (agency users can only edit own-agency candidates)' })
   update(@Param('id') id: string, @Body() dto: UpdateApplicantDto, @CurrentUser() user: any) {
-    return this.applicantsService.update(id, dto, user?.id);
+    return this.applicantsService.update(id, dto, user?.id, { role: user?.role, agencyId: user?.agencyId });
   }
 
   // ── Photo Upload ──────────────────────────────────────────────────────────────
@@ -137,7 +137,7 @@ export class ApplicantsController {
   @ApiOperation({ summary: 'Reassign applicant to a different agency (records history)' })
   @ApiParam({ name: 'id', description: 'Applicant UUID' })
   reassignAgency(@Param('id') id: string, @Body() dto: AssignAgencyDto, @CurrentUser() user: any) {
-    return this.applicantsService.reassignAgency(id, dto, user?.id);
+    return this.applicantsService.reassignAgency(id, dto, user?.id, { role: user?.role, agencyId: user?.agencyId });
   }
 
   // ── Financial Profile ─────────────────────────────────────────────────────────
@@ -204,7 +204,7 @@ export class ApplicantsController {
   @ApiOperation({ summary: 'Convert Candidate to employee (CANDIDATE tier required)' })
   @ApiParam({ name: 'id', description: 'Applicant UUID' })
   convertToEmployee(@Param('id') id: string, @Body() dto: ConvertToEmployeeDto, @CurrentUser() user: any) {
-    return this.applicantsService.convertToEmployee(id, dto, user?.id);
+    return this.applicantsService.convertToEmployee(id, dto, user?.id, { role: user?.role, agencyId: user?.agencyId });
   }
 
   // ── Delete ────────────────────────────────────────────────────────────────────
@@ -214,6 +214,39 @@ export class ApplicantsController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Soft delete applicant' })
   remove(@Param('id') id: string, @CurrentUser() user: any) {
-    return this.applicantsService.remove(id, user?.id);
+    return this.applicantsService.remove(id, user?.id, { role: user?.role, agencyId: user?.agencyId });
+  }
+
+  // ── Candidate Delete Requests ─────────────────────────────────────────────────
+
+  @Post('delete-requests')
+  @Roles('System Admin', 'HR Manager')
+  @ApiOperation({ summary: 'List all candidate delete requests' })
+  getDeleteRequests(@Query() query: any) {
+    return this.applicantsService.getDeleteRequests(query);
+  }
+
+  @Patch('delete-requests/:requestId')
+  @Roles('System Admin', 'HR Manager')
+  @ApiOperation({ summary: 'Approve or reject a candidate delete request' })
+  @ApiParam({ name: 'requestId', description: 'Delete Request UUID' })
+  reviewDeleteRequest(
+    @Param('requestId') requestId: string,
+    @Body() dto: { status: 'APPROVED' | 'REJECTED'; reviewNotes?: string },
+    @CurrentUser() user: any,
+  ) {
+    return this.applicantsService.reviewDeleteRequest(requestId, dto.status, dto.reviewNotes, user?.id);
+  }
+
+  @Post(':id/delete-request')
+  @Roles('Agency Manager', 'Agency User')
+  @ApiOperation({ summary: 'Submit a delete request for a candidate (agency users only)' })
+  @ApiParam({ name: 'id', description: 'Applicant UUID' })
+  requestDelete(
+    @Param('id') id: string,
+    @Body('reason') reason: string,
+    @CurrentUser('id') requestedById: string,
+  ) {
+    return this.applicantsService.requestDelete(id, reason, requestedById);
   }
 }

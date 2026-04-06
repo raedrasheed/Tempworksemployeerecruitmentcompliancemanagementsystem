@@ -7,8 +7,18 @@ import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { Checkbox } from '../../components/ui/checkbox';
 import { toast } from 'sonner';
 import { usersApi, rolesApi, agenciesApi, settingsApi, getCurrentUser } from '../../services/api';
+
+const GENDERS = ['Male', 'Female', 'Non-binary', 'Prefer not to say'];
+const LANGUAGES = ['English', 'Arabic', 'Polish', 'German', 'French', 'Spanish', 'Italian', 'Romanian', 'Ukrainian'];
+const TIMEZONES = [
+  'UTC', 'Europe/London', 'Europe/Warsaw', 'Europe/Berlin', 'Europe/Paris',
+  'Europe/Madrid', 'Europe/Rome', 'Europe/Bucharest', 'Europe/Kiev',
+  'America/New_York', 'America/Chicago', 'America/Los_Angeles',
+  'Asia/Dubai', 'Asia/Riyadh',
+];
 
 export function AddUser() {
   const navigate = useNavigate();
@@ -22,15 +32,37 @@ export function AddUser() {
   const [submitting, setSubmitting] = useState(false);
   const [agencyUserCount, setAgencyUserCount] = useState<number | null>(null);
   const [maxUsersLimit, setMaxUsersLimit] = useState<number | null>(null);
+  const [sendActivationEmail, setSendActivationEmail] = useState(true);
+
   const [form, setForm] = useState({
+    // Identity
     firstName: '',
+    middleName: '',
     lastName: '',
     email: '',
-    password: '',
-    phone: '',
+    // Work Information
     roleId: '',
-    // Agency Managers are locked to their own agency
     agencyId: isAgencyManager ? (currentUser?.agencyId ?? '') : '',
+    jobTitle: '',
+    department: '',
+    startDate: '',
+    status: 'PENDING',
+    // Personal Details
+    dateOfBirth: '',
+    gender: '',
+    citizenship: '',
+    phone: '',
+    // Address
+    addressLine1: '',
+    addressLine2: '',
+    city: '',
+    country: '',
+    postalCode: '',
+    // Preferences
+    preferredLanguage: 'English',
+    timeZone: 'Europe/London',
+    // Auth
+    password: '',
   });
 
   useEffect(() => {
@@ -69,6 +101,10 @@ export function AddUser() {
     setForm(prev => ({ ...prev, [e.target.id]: e.target.value }));
   };
 
+  const handleSelect = (field: string, value: string) => {
+    setForm(prev => ({ ...prev, [field]: value }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.roleId) {
@@ -79,9 +115,42 @@ export function AddUser() {
       toast.error('Please select an agency');
       return;
     }
+    if (!sendActivationEmail && !form.password) {
+      toast.error('Please enter a password or enable Send Activation Email');
+      return;
+    }
+
     setSubmitting(true);
     try {
-      await usersApi.create(form);
+      const payload: any = {
+        firstName: form.firstName,
+        middleName: form.middleName || undefined,
+        lastName: form.lastName,
+        email: form.email,
+        roleId: form.roleId,
+        agencyId: form.agencyId,
+        jobTitle: form.jobTitle || undefined,
+        department: form.department || undefined,
+        startDate: form.startDate || undefined,
+        status: form.status,
+        dateOfBirth: form.dateOfBirth || undefined,
+        gender: form.gender || undefined,
+        citizenship: form.citizenship || undefined,
+        phone: form.phone || undefined,
+        addressLine1: form.addressLine1 || undefined,
+        addressLine2: form.addressLine2 || undefined,
+        city: form.city || undefined,
+        country: form.country || undefined,
+        postalCode: form.postalCode || undefined,
+        preferredLanguage: form.preferredLanguage || undefined,
+        timeZone: form.timeZone || undefined,
+        sendActivationEmail,
+      };
+      if (!sendActivationEmail && form.password) {
+        payload.password = form.password;
+      }
+
+      await usersApi.create(payload);
       toast.success('User added successfully');
       navigate('/dashboard/users');
     } catch (err: any) {
@@ -129,9 +198,11 @@ export function AddUser() {
 
       <form onSubmit={handleSubmit}>
         <div className="max-w-2xl space-y-6">
+
+          {/* Identity */}
           <Card>
             <CardHeader>
-              <CardTitle>User Information</CardTitle>
+              <CardTitle>Identity</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -140,25 +211,30 @@ export function AddUser() {
                   <Input id="firstName" placeholder="First name" value={form.firstName} onChange={handleChange} required />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="lastName">Last Name *</Label>
-                  <Input id="lastName" placeholder="Last name" value={form.lastName} onChange={handleChange} required />
+                  <Label htmlFor="middleName">Middle Name</Label>
+                  <Input id="middleName" placeholder="Middle name" value={form.middleName} onChange={handleChange} />
                 </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lastName">Last Name *</Label>
+                <Input id="lastName" placeholder="Last name" value={form.lastName} onChange={handleChange} required />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email">Email *</Label>
                 <Input id="email" type="email" placeholder="user@company.com" value={form.email} onChange={handleChange} required />
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Work Information */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Work Information</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="password">Password *</Label>
-                <Input id="password" type="password" placeholder="Minimum 8 characters" value={form.password} onChange={handleChange} required minLength={8} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone</Label>
-                <Input id="phone" type="tel" placeholder="+1 234 567 8900" value={form.phone} onChange={handleChange} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="role">Role *</Label>
-                <Select value={form.roleId} onValueChange={val => setForm(prev => ({ ...prev, roleId: val }))} required>
+                <Label>Role *</Label>
+                <Select value={form.roleId} onValueChange={val => handleSelect('roleId', val)} required>
                   <SelectTrigger>
                     <SelectValue placeholder="Select role" />
                   </SelectTrigger>
@@ -174,7 +250,7 @@ export function AddUser() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="agency">Agency *</Label>
+                <Label>Agency *</Label>
                 {isAgencyManager ? (
                   <Input
                     value={myAgency ? `${myAgency.name} — ${myAgency.country}` : 'Loading...'}
@@ -182,7 +258,7 @@ export function AddUser() {
                     className="bg-muted text-muted-foreground cursor-not-allowed"
                   />
                 ) : (
-                  <Select value={form.agencyId} onValueChange={val => setForm(prev => ({ ...prev, agencyId: val }))} required>
+                  <Select value={form.agencyId} onValueChange={val => handleSelect('agencyId', val)} required>
                     <SelectTrigger>
                       <SelectValue placeholder="Select agency" />
                     </SelectTrigger>
@@ -200,6 +276,182 @@ export function AddUser() {
                   </Select>
                 )}
               </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="jobTitle">Job Title</Label>
+                  <Input id="jobTitle" placeholder="e.g. Recruitment Officer" value={form.jobTitle} onChange={handleChange} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="department">Department</Label>
+                  <Input id="department" placeholder="e.g. Operations" value={form.department} onChange={handleChange} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="startDate">Start Date</Label>
+                  <Input id="startDate" type="date" value={form.startDate} onChange={handleChange} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Status</Label>
+                  <Select value={form.status} onValueChange={val => handleSelect('status', val)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ACTIVE">Active</SelectItem>
+                      <SelectItem value="INACTIVE">Inactive</SelectItem>
+                      <SelectItem value="SUSPENDED">Suspended</SelectItem>
+                      <SelectItem value="PENDING">Pending</SelectItem>
+                      <SelectItem value="TERMINATED">Terminated</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Personal Details */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Personal Details</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="dateOfBirth">Date of Birth</Label>
+                  <Input id="dateOfBirth" type="date" value={form.dateOfBirth} onChange={handleChange} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Gender</Label>
+                  <Select value={form.gender} onValueChange={val => handleSelect('gender', val)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select gender" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {GENDERS.map(g => (
+                        <SelectItem key={g} value={g}>{g}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="citizenship">Citizenship</Label>
+                  <Input id="citizenship" placeholder="e.g. British" value={form.citizenship} onChange={handleChange} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone</Label>
+                  <Input id="phone" type="tel" placeholder="+44 20 7123 4567" value={form.phone} onChange={handleChange} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Address */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Address</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="addressLine1">Address Line 1</Label>
+                <Input id="addressLine1" placeholder="Street address" value={form.addressLine1} onChange={handleChange} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="addressLine2">Address Line 2</Label>
+                <Input id="addressLine2" placeholder="Apartment, suite, etc." value={form.addressLine2} onChange={handleChange} />
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="city">City</Label>
+                  <Input id="city" placeholder="City" value={form.city} onChange={handleChange} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="country">Country</Label>
+                  <Input id="country" placeholder="Country" value={form.country} onChange={handleChange} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="postalCode">Postal Code</Label>
+                  <Input id="postalCode" placeholder="Post code" value={form.postalCode} onChange={handleChange} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Preferences */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Preferences</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Preferred Language</Label>
+                  <Select value={form.preferredLanguage} onValueChange={val => handleSelect('preferredLanguage', val)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {LANGUAGES.map(l => (
+                        <SelectItem key={l} value={l}>{l}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Time Zone</Label>
+                  <Select value={form.timeZone} onValueChange={val => handleSelect('timeZone', val)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TIMEZONES.map(tz => (
+                        <SelectItem key={tz} value={tz}>{tz}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Account Setup */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Account Setup</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center gap-3">
+                <Checkbox
+                  id="sendActivationEmail"
+                  checked={sendActivationEmail}
+                  onCheckedChange={(checked) => setSendActivationEmail(!!checked)}
+                />
+                <div>
+                  <Label htmlFor="sendActivationEmail" className="cursor-pointer font-medium">
+                    Send activation email
+                  </Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    The user will receive an email with a link to set their password
+                  </p>
+                </div>
+              </div>
+
+              {!sendActivationEmail && (
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password *</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="Minimum 8 characters"
+                    value={form.password}
+                    onChange={handleChange}
+                    required={!sendActivationEmail}
+                    minLength={8}
+                  />
+                </div>
+              )}
             </CardContent>
           </Card>
 

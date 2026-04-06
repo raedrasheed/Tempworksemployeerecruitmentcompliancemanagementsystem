@@ -191,34 +191,22 @@ export function Profile() {
 
               <Separator />
 
-              {/* Fields */}
+              {/* Read-only identity fields */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>First Name</Label>
-                  <Input
-                    value={isEditing ? editForm.firstName : (userData?.firstName || '')}
-                    onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })}
-                    disabled={!isEditing}
-                  />
+                  <Input value={userData?.firstName || ''} disabled className="bg-[#F8FAFC]" />
+                  <p className="text-xs text-muted-foreground">Contact admin to update</p>
                 </div>
 
                 <div className="space-y-2">
                   <Label>Last Name</Label>
-                  <Input
-                    value={isEditing ? editForm.lastName : (userData?.lastName || '')}
-                    onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })}
-                    disabled={!isEditing}
-                  />
+                  <Input value={userData?.lastName || ''} disabled className="bg-[#F8FAFC]" />
                 </div>
 
                 <div className="space-y-2">
                   <Label>Email Address</Label>
-                  <Input
-                    type="email"
-                    value={userData?.email || ''}
-                    disabled
-                    className="bg-[#F8FAFC]"
-                  />
+                  <Input type="email" value={userData?.email || ''} disabled className="bg-[#F8FAFC]" />
                   <p className="text-xs text-muted-foreground">Email cannot be changed</p>
                 </div>
 
@@ -232,6 +220,95 @@ export function Profile() {
                   />
                 </div>
 
+                <div className="space-y-2">
+                  <Label>Date of Birth</Label>
+                  <Input
+                    type={isEditing ? 'date' : 'text'}
+                    value={isEditing ? editForm.dateOfBirth : (userData?.dateOfBirth ? new Date(userData.dateOfBirth).toLocaleDateString() : '—')}
+                    onChange={(e) => setEditForm({ ...editForm, dateOfBirth: e.target.value })}
+                    disabled={!isEditing}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Gender</Label>
+                  {isEditing ? (
+                    <Select value={editForm.gender} onValueChange={val => setEditForm({ ...editForm, gender: val })}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select gender" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Male">Male</SelectItem>
+                        <SelectItem value="Female">Female</SelectItem>
+                        <SelectItem value="Non-binary">Non-binary</SelectItem>
+                        <SelectItem value="Prefer not to say">Prefer not to say</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Input value={userData?.gender || '—'} disabled />
+                  )}
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <Label>Citizenship</Label>
+                  <Input
+                    value={isEditing ? editForm.citizenship : (userData?.citizenship || '—')}
+                    onChange={(e) => setEditForm({ ...editForm, citizenship: e.target.value })}
+                    disabled={!isEditing}
+                    placeholder={isEditing ? 'e.g. British' : ''}
+                  />
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Address fields */}
+              <div>
+                <h4 className="text-sm font-semibold text-[#0F172A] mb-3">Address</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2 md:col-span-2">
+                    <Label>Address Line 1</Label>
+                    <Input
+                      value={isEditing ? editForm.addressLine1 : (userData?.addressLine1 || '—')}
+                      onChange={(e) => setEditForm({ ...editForm, addressLine1: e.target.value })}
+                      disabled={!isEditing}
+                      placeholder={isEditing ? 'Street address' : ''}
+                    />
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label>Address Line 2</Label>
+                    <Input
+                      value={isEditing ? editForm.addressLine2 : (userData?.addressLine2 || '')}
+                      onChange={(e) => setEditForm({ ...editForm, addressLine2: e.target.value })}
+                      disabled={!isEditing}
+                      placeholder={isEditing ? 'Apartment, suite, etc.' : ''}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>City</Label>
+                    <Input
+                      value={isEditing ? editForm.city : (userData?.city || '—')}
+                      onChange={(e) => setEditForm({ ...editForm, city: e.target.value })}
+                      disabled={!isEditing}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Country</Label>
+                    <Input
+                      value={isEditing ? editForm.country : (userData?.country || '—')}
+                      onChange={(e) => setEditForm({ ...editForm, country: e.target.value })}
+                      disabled={!isEditing}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Postal Code</Label>
+                    <Input
+                      value={isEditing ? editForm.postalCode : (userData?.postalCode || '—')}
+                      onChange={(e) => setEditForm({ ...editForm, postalCode: e.target.value })}
+                      disabled={!isEditing}
+                    />
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -251,6 +328,32 @@ export function Profile() {
                 <div className="space-y-2">
                   <Label>Agency</Label>
                   <Input value={agencyName} disabled className="bg-[#F8FAFC]" />
+                </div>
+
+                {userData?.jobTitle && (
+                  <div className="space-y-2">
+                    <Label>Job Title</Label>
+                    <Input value={userData.jobTitle} disabled className="bg-[#F8FAFC]" />
+                  </div>
+                )}
+
+                {userData?.department && (
+                  <div className="space-y-2">
+                    <Label>Department</Label>
+                    <Input value={userData.department} disabled className="bg-[#F8FAFC]" />
+                  </div>
+                )}
+
+                {userData?.startDate && (
+                  <div className="space-y-2">
+                    <Label>Start Date</Label>
+                    <Input value={formatDate(userData.startDate)} disabled className="bg-[#F8FAFC]" />
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label>Status</Label>
+                  <Input value={userData?.status || '—'} disabled className="bg-[#F8FAFC]" />
                 </div>
               </div>
 
@@ -279,6 +382,18 @@ export function Profile() {
               <CardTitle>Account Information</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {userData?.userNumber && (
+                <>
+                  <div>
+                    <Label className="text-muted-foreground text-sm">User Number</Label>
+                    <p className="font-bold mt-1 text-lg text-[#2563EB] font-mono">
+                      {userData.userNumber}
+                    </p>
+                  </div>
+                  <Separator />
+                </>
+              )}
+
               <div>
                 <Label className="text-muted-foreground text-sm">Account Created</Label>
                 <p className="font-medium mt-1">{formatDate(userData?.createdAt)}</p>

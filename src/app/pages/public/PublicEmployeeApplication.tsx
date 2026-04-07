@@ -1,10 +1,10 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { Briefcase, ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { toast } from 'sonner';
-import ReCAPTCHA from 'react-google-recaptcha';
 import { publicApplicationApi, settingsApi, publicJobAdsApi } from '../../services/api';
 import { ApplicantFormSteps, EMPTY_FORM, getVisibleTabs, StepIndicator, FormSettings, DEFAULT_FORM_SETTINGS, ApplicantFormData } from '../../components/applicants/ApplicantFormSteps';
+import { ReCaptchaV2 } from '../../components/ui/ReCaptchaV2';
 
 const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY as string;
 
@@ -21,7 +21,6 @@ export function PublicEmployeeApplication() {
   const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
-  const recaptchaRef = useRef<ReCAPTCHA>(null);
 
   const visibleTabs = useMemo(() => getVisibleTabs(formData), [formData.hasDrivingLicense]);
 
@@ -64,16 +63,13 @@ export function PublicEmployeeApplication() {
 
   const handleBack = () => {
     if (currentStep > 1) {
-      if (currentStep === visibleTabs.length) {
-        setCaptchaToken(null);
-        recaptchaRef.current?.reset();
-      }
+      if (currentStep === visibleTabs.length) setCaptchaToken(null);
       setCurrentStep(s => s - 1);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     if (!photoFile) {
       toast.error('A photo is required. Please go back to the Personal tab and upload your photo.');
       return;
@@ -141,7 +137,7 @@ export function PublicEmployeeApplication() {
     } finally {
       setSubmitting(false);
     }
-  };
+  }, [formData, photoFile, captchaToken, uploadedFiles, jobAdId, navigate]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -196,15 +192,13 @@ export function PublicEmployeeApplication() {
             onPhotoChange={setPhotoFile}
           />
 
-          {/* reCAPTCHA v2 checkbox — shown only on the last step */}
+          {/* reCAPTCHA v2 "I am not a robot" checkbox — last step only */}
           {currentStep === visibleTabs.length && (
             <div className="mt-8">
-              <ReCAPTCHA
-                ref={recaptchaRef}
-                sitekey={RECAPTCHA_SITE_KEY}
-                onChange={(token) => setCaptchaToken(token)}
+              <ReCaptchaV2
+                siteKey={RECAPTCHA_SITE_KEY}
+                onVerify={(token) => setCaptchaToken(token)}
                 onExpired={() => setCaptchaToken(null)}
-                onError={() => setCaptchaToken(null)}
               />
             </div>
           )}

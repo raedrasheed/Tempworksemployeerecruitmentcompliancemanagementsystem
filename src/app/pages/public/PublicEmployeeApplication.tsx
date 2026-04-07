@@ -1,17 +1,14 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { Briefcase, ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { toast } from 'sonner';
-import { GoogleReCaptchaProvider, useGoogleReCaptcha } from 'react-google-recaptcha-v3';
+import ReCAPTCHA from 'react-google-recaptcha';
 import { publicApplicationApi, settingsApi, publicJobAdsApi } from '../../services/api';
 import { ApplicantFormSteps, EMPTY_FORM, getVisibleTabs, StepIndicator, FormSettings, DEFAULT_FORM_SETTINGS, ApplicantFormData } from '../../components/applicants/ApplicantFormSteps';
-import { SimpleCaptcha } from '../../components/ui/SimpleCaptcha';
 
 const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY as string;
 
-// ── Inner form (needs reCAPTCHA context) ────────────────────────────────────
-
-function ApplicationForm() {
+export function PublicEmployeeApplication() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const jobAdId = searchParams.get('jobAdId') || undefined;
@@ -23,9 +20,9 @@ function ApplicationForm() {
   const [settings, setSettings] = useState<FormSettings>(DEFAULT_FORM_SETTINGS);
   const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
-  const [captchaVerified, setCaptchaVerified] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const recaptchaRef = useRef<ReCAPTCHA>(null);
 
-  const { executeRecaptcha } = useGoogleReCaptcha();
   const visibleTabs = useMemo(() => getVisibleTabs(formData), [formData.hasDrivingLicense]);
 
   useEffect(() => {
@@ -67,13 +64,16 @@ function ApplicationForm() {
 
   const handleBack = () => {
     if (currentStep > 1) {
-      if (currentStep === visibleTabs.length) setCaptchaVerified(false);
+      if (currentStep === visibleTabs.length) {
+        setCaptchaToken(null);
+        recaptchaRef.current?.reset();
+      }
       setCurrentStep(s => s - 1);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
-  const handleSubmit = useCallback(async () => {
+  const handleSubmit = async () => {
     if (!photoFile) {
       toast.error('A photo is required. Please go back to the Personal tab and upload your photo.');
       return;
@@ -82,20 +82,13 @@ function ApplicationForm() {
       toast.error('You must agree to all statements in the Review tab before submitting.');
       return;
     }
-    if (!captchaVerified) {
-      toast.error('Please complete the CAPTCHA verification before submitting.');
-      return;
-    }
-    if (!executeRecaptcha) {
-      toast.error('reCAPTCHA is not ready yet. Please try again in a moment.');
+    if (!captchaToken) {
+      toast.error('Please complete the "I am not a robot" verification before submitting.');
       return;
     }
 
     setSubmitting(true);
     try {
-      // Execute reCAPTCHA v3 silently — returns a token for backend verification
-      const recaptchaToken = await executeRecaptcha('submit_application');
-
       const payload = {
         firstName: formData.firstName,
         middleName: formData.middleName,
@@ -148,7 +141,7 @@ function ApplicationForm() {
     } finally {
       setSubmitting(false);
     }
-  }, [executeRecaptcha, captchaVerified, formData, photoFile, uploadedFiles, jobAdId, navigate]);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -203,11 +196,16 @@ function ApplicationForm() {
             onPhotoChange={setPhotoFile}
           />
 
-          {/* Visible CAPTCHA challenge on last step */}
+          {/* reCAPTCHA v2 checkbox — shown only on the last step */}
           {currentStep === visibleTabs.length && (
-            <div className="mt-8 p-5 bg-gray-50 rounded-xl border border-gray-200">
-              <p className="text-sm font-semibold text-gray-700 mb-3">Security Verification — please solve the puzzle below</p>
-              <SimpleCaptcha onVerify={setCaptchaVerified} />
+            <div className="mt-8">
+              <ReCAPTCHA
+                ref={recaptchaRef}
+                sitekey={RECAPTCHA_SITE_KEY}
+                onChange={(token) => setCaptchaToken(token)}
+                onExpired={() => setCaptchaToken(null)}
+                onError={() => setCaptchaToken(null)}
+              />
             </div>
           )}
 
@@ -236,8 +234,9 @@ function ApplicationForm() {
               <button
                 type="button"
                 onClick={handleSubmit}
-                disabled={submitting || !captchaVerified}
+                disabled={submitting || !captchaToken}
                 className="ml-auto flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                title={!captchaToken ? 'Please complete the reCAPTCHA' : undefined}
               >
                 <Check className="w-4 h-4" />
                 {submitting ? 'Submitting…' : 'Submit Application'}
@@ -247,15 +246,5 @@ function ApplicationForm() {
         </div>
       </main>
     </div>
-  );
-}
-
-// ── Public export — wraps with reCAPTCHA v3 provider ────────────────────────
-
-export function PublicEmployeeApplication() {
-  return (
-    <GoogleReCaptchaProvider reCaptchaKey={RECAPTCHA_SITE_KEY}>
-      <ApplicationForm />
-    </GoogleReCaptchaProvider>
   );
 }

@@ -380,9 +380,17 @@ export function EmployeeDocumentExplorer() {
                       </td>
                       <td className="p-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-[#EFF6FF] flex items-center justify-center text-[#2563EB] text-sm font-semibold">
-                            {emp.firstName?.[0]}{emp.lastName?.[0]}
-                          </div>
+                          {emp.photoUrl ? (
+                            <img
+                              src={emp.photoUrl.startsWith('http') ? emp.photoUrl : `${API_BASE}${emp.photoUrl}`}
+                              alt={emp.firstName}
+                              className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                            />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-[#EFF6FF] flex items-center justify-center text-[#2563EB] text-sm font-semibold flex-shrink-0">
+                              {emp.firstName?.[0]}{emp.lastName?.[0]}
+                            </div>
+                          )}
                           <div>
                             <p className="font-medium">{emp.firstName} {emp.lastName}</p>
                             <p className="text-sm text-muted-foreground">{emp.email}</p>
@@ -606,9 +614,17 @@ export function EmployeeDocumentExplorer() {
                         </td>
                         <td className="p-4">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-[#F5F3FF] flex items-center justify-center text-[#7C3AED] text-sm font-semibold">
-                              {app.firstName?.[0]}{app.lastName?.[0]}
-                            </div>
+                            {app.photoUrl ? (
+                              <img
+                                src={app.photoUrl.startsWith('http') ? app.photoUrl : `${API_BASE}${app.photoUrl}`}
+                                alt={app.firstName}
+                                className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                              />
+                            ) : (
+                              <div className="w-8 h-8 rounded-full bg-[#F5F3FF] flex items-center justify-center text-[#7C3AED] text-sm font-semibold flex-shrink-0">
+                                {app.firstName?.[0]}{app.lastName?.[0]}
+                              </div>
+                            )}
                             <div>
                               <p className="font-medium">{app.firstName} {app.lastName}</p>
                               <p className="text-sm text-muted-foreground">{app.email}</p>

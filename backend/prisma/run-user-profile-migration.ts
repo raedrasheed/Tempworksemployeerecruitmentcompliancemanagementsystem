@@ -15,6 +15,7 @@ import { Pool } from 'pg';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import * as dotenv from 'dotenv';
+import { resolvePoolSsl } from './pg-ssl';
 
 dotenv.config();
 
@@ -24,19 +25,8 @@ if (!DATABASE_URL) {
   process.exit(1);
 }
 
-function resolveSsl(url: string): false | { rejectUnauthorized: boolean } | undefined {
-  try {
-    const u = new URL(url);
-    const mode = u.searchParams.get('sslmode');
-    if (mode === 'disable') return false;
-    if (mode === 'require' || mode === 'prefer' || mode === 'verify-ca') return { rejectUnauthorized: false };
-    if (mode === 'verify-full') return { rejectUnauthorized: true };
-    return false;
-  } catch { return false; }
-}
-
 async function main() {
-  const pool = new Pool({ connectionString: DATABASE_URL, ssl: resolveSsl(DATABASE_URL!) });
+  const pool = new Pool({ connectionString: DATABASE_URL, ssl: resolvePoolSsl(DATABASE_URL) });
   const client = await pool.connect();
 
   try {

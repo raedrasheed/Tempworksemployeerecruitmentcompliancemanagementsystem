@@ -1,26 +1,30 @@
 import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { Pool } from 'pg';
+import { Pool, PoolConfig } from 'pg';
 
-function resolvePoolSsl(
-  databaseUrl: string | undefined,
-): false | { rejectUnauthorized: boolean } | undefined {
-  if (!databaseUrl) return undefined;
+// Inline copy of backend/prisma/pg-ssl.ts — kept in sync manually because the
+// prisma/ directory sits outside the NestJS compile root. See pg-ssl.ts for
+// the full documentation of the supported libpq sslmode values.
+function resolvePoolSsl(databaseUrl: string | undefined): PoolConfig['ssl'] {
+  if (!databaseUrl) return false;
+
   let url: URL;
   try {
     url = new URL(databaseUrl);
   } catch {
-    return undefined;
+    return false;
   }
-  const sslmode = url.searchParams.get('sslmode');
-  switch (sslmode) {
+
+  switch (url.searchParams.get('sslmode')) {
     case 'disable':
+    case 'allow':
       return false;
-    case 'require':
     case 'prefer':
-    case 'verify-ca':
+    case 'require':
       return { rejectUnauthorized: false };
+    case 'verify-ca':
+      return { rejectUnauthorized: true, checkServerIdentity: () => undefined };
     case 'verify-full':
       return { rejectUnauthorized: true };
     default:

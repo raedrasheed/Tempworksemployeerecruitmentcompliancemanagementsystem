@@ -7,22 +7,7 @@ require('dotenv').config();
 const { Pool } = require('pg');
 const bcrypt = require('bcrypt');
 const { randomUUID } = require('crypto');
-
-// ── SSL helper ────────────────────────────────────────────────────────────────
-function resolvePoolSsl(url) {
-  if (!url) return false;
-  try {
-    const u = new URL(url);
-    switch (u.searchParams.get('sslmode')) {
-      case 'disable':    return false;
-      case 'require':
-      case 'prefer':
-      case 'verify-ca':  return { rejectUnauthorized: false };
-      case 'verify-full': return { rejectUnauthorized: true };
-      default:           return false;
-    }
-  } catch { return false; }
-}
+const { resolvePoolSsl } = require('./pg-ssl');
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,

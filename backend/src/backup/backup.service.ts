@@ -23,17 +23,30 @@ interface DBConn {
   database: string;
   username: string;
   password: string;
+  /** libpq sslmode from the connection URL, forwarded via PGSSLMODE to
+   *  pg_dump/pg_restore so SSL-required servers accept the connection. */
+  sslmode?: string;
 }
 
 function parseDatabaseUrl(url: string): DBConn {
   const u = new URL(url);
+  const sslmode = u.searchParams.get('sslmode') ?? undefined;
   return {
     host:     u.hostname || 'localhost',
     port:     parseInt(u.port || '5432', 10),
     database: u.pathname.slice(1),
     username: decodeURIComponent(u.username),
     password: decodeURIComponent(u.password),
+    sslmode,
   };
+}
+
+/** Build the env vars that pg_dump/pg_restore need to talk to a
+ *  (potentially SSL-protected) server. */
+function pgEnv(conn: DBConn): NodeJS.ProcessEnv {
+  const env: NodeJS.ProcessEnv = { ...process.env, PGPASSWORD: conn.password };
+  if (conn.sslmode) env.PGSSLMODE = conn.sslmode;
+  return env;
 }
 
 /** Search common paths + PATH for a binary, return first found absolute path */
@@ -175,7 +188,7 @@ export class BackupService {
 
       this.logger.log(`Running pg_dump → ${outputPath}`);
       const child = spawn(pgDump, args, {
-        env: { ...process.env, PGPASSWORD: conn.password },
+        env: pgEnv(conn),
         stdio: ['ignore', 'pipe', 'pipe'],
       });
 
@@ -235,7 +248,7 @@ export class BackupService {
 
       this.logger.log(`Running pg_restore (mode=${mode}) ← ${backupPath}`);
       const child = spawn(pgRestore, args, {
-        env: { ...process.env, PGPASSWORD: conn.password },
+        env: pgEnv(conn),
         stdio: ['ignore', 'pipe', 'pipe'],
       });
 

@@ -4,6 +4,7 @@
   "description": "TempWorks Europe Recruitment Compliance Management System - Backend API",
   "scripts": {
     "build": "prisma generate && node -e \"try{require('fs').unlinkSync('dist/tsconfig.build.tsbuildinfo')}catch(e){}\" && nest build",
+    "build:server": "node -e \"try{require('fs').unlinkSync('dist/tsconfig.build.tsbuildinfo')}catch(e){}\" && nest build",
     "start": "nest start",
     "start:dev": "prisma generate && node -e \"try{require('fs').unlinkSync('dist/tsconfig.build.tsbuildinfo')}catch(e){}\" && nest start --watch",
     "start:prod": "node dist/main",

@@ -1,16 +1,16 @@
 import { Link } from 'react-router';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent } from '../../components/ui/card';
-import { 
-  CheckCircle, 
-  TrendingUp, 
-  Globe, 
-  Shield, 
-  Clock, 
-  Users, 
-  ArrowRight, 
-  FileText, 
-  Briefcase, 
+import {
+  CheckCircle,
+  TrendingUp,
+  Globe,
+  Shield,
+  Clock,
+  Users,
+  ArrowRight,
+  FileText,
+  Briefcase,
   MapPin,
   Target,
   Heart,
@@ -29,8 +29,15 @@ import {
   Facebook,
   Languages
 } from 'lucide-react';
+import { useBranding } from '../../hooks/useBranding';
+import { BACKEND_URL } from '../../services/api';
 
 export function LandingPage() {
+  const branding = useBranding();
+  const logoSrc = branding.logoUrl
+    ? (branding.logoUrl.startsWith('http') ? branding.logoUrl : `${BACKEND_URL}${branding.logoUrl}`)
+    : undefined;
+
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
@@ -38,12 +45,12 @@ export function LandingPage() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-[#2563EB] flex items-center justify-center">
-                <Briefcase className="w-6 h-6 text-white" />
+              <div className="w-10 h-10 rounded-lg bg-[#2563EB] flex items-center justify-center overflow-hidden">
+                {logoSrc ? <img src={logoSrc} alt="Logo" className="w-full h-full object-cover" /> : <Briefcase className="w-6 h-6 text-white" />}
               </div>
               <div>
-                <span className="text-xl font-bold text-[#0F172A]">TempWorks Europe</span>
-                <p className="text-xs text-muted-foreground">Professional Recruitment Solutions</p>
+                <span className="text-xl font-bold text-[#0F172A]">{branding.companyName}</span>
+                <p className="text-xs text-muted-foreground">{branding.tagline}</p>
               </div>
             </div>
             <nav className="hidden md:flex items-center gap-8">
@@ -86,13 +93,13 @@ export function LandingPage() {
             <div className="grid md:grid-cols-2 gap-12 items-center">
               <div>
                 <div className="inline-block px-4 py-2 bg-[#2563EB]/10 rounded-full mb-6">
-                  <span className="text-sm font-semibold text-[#2563EB]">Trusted European Recruitment Partner</span>
+                  <span className="text-sm font-semibold text-[#2563EB]">{branding.heroBadge}</span>
                 </div>
                 <h1 className="text-5xl md:text-6xl font-bold text-[#0F172A] mb-6 leading-tight">
-                  Connecting Skilled Workers with Opportunities in Europe
+                  {branding.heroHeadline}
                 </h1>
                 <p className="text-xl text-muted-foreground mb-8">
-                  We help professionals start their careers in Germany with legal employment, visa support, and professional onboarding.
+                  {branding.heroDescription}
                 </p>
                 <div className="flex flex-col sm:flex-row items-start gap-4">
                   <Link to="/apply">
@@ -161,21 +168,21 @@ export function LandingPage() {
                 <div className="w-20 h-20 rounded-full bg-[#EFF6FF] flex items-center justify-center mx-auto mb-4">
                   <Target className="w-10 h-10 text-[#2563EB]" />
                 </div>
-                <h3 className="text-2xl font-bold text-[#0F172A] mb-2">500+</h3>
+                <h3 className="text-2xl font-bold text-[#0F172A] mb-2">{branding.statPlacements}</h3>
                 <p className="text-muted-foreground">Successful Placements</p>
               </div>
               <div className="text-center">
                 <div className="w-20 h-20 rounded-full bg-[#F0FDF4] flex items-center justify-center mx-auto mb-4">
                   <Briefcase className="w-10 h-10 text-[#22C55E]" />
                 </div>
-                <h3 className="text-2xl font-bold text-[#0F172A] mb-2">50+</h3>
+                <h3 className="text-2xl font-bold text-[#0F172A] mb-2">{branding.statPartners}</h3>
                 <p className="text-muted-foreground">Partner Companies</p>
               </div>
               <div className="text-center">
                 <div className="w-20 h-20 rounded-full bg-[#FEF3C7] flex items-center justify-center mx-auto mb-4">
                   <Globe className="w-10 h-10 text-[#F59E0B]" />
                 </div>
-                <h3 className="text-2xl font-bold text-[#0F172A] mb-2">15</h3>
+                <h3 className="text-2xl font-bold text-[#0F172A] mb-2">{branding.statCountries}</h3>
                 <p className="text-muted-foreground">Countries Served</p>
               </div>
             </div>
@@ -439,7 +446,7 @@ export function LandingPage() {
                 <div className="text-white/80">Support Available</div>
               </div>
               <div>
-                <div className="text-3xl font-bold mb-2">500+</div>
+                <div className="text-3xl font-bold mb-2">{branding.statPlacements}</div>
                 <div className="text-white/80">Successful Placements</div>
               </div>
             </div>
@@ -465,11 +472,7 @@ export function LandingPage() {
                   <MapPin className="w-8 h-8 text-[#2563EB]" />
                 </div>
                 <h3 className="font-bold mb-3">Head Office</h3>
-                <p className="text-sm text-muted-foreground">
-                  Königsallee 27<br />
-                  40212 Düsseldorf<br />
-                  Germany
-                </p>
+                <p className="text-sm text-muted-foreground">{branding.address}</p>
               </CardContent>
             </Card>
 
@@ -480,9 +483,9 @@ export function LandingPage() {
                 </div>
                 <h3 className="font-bold mb-3">Email Us</h3>
                 <p className="text-sm text-muted-foreground">
-                  info@tempworks.eu<br />
-                  recruitment@tempworks.eu<br />
-                  support@tempworks.eu
+                  {branding.emailInfo}<br />
+                  {branding.emailRecruitment}<br />
+                  {branding.emailSupport}
                 </p>
               </CardContent>
             </Card>
@@ -494,8 +497,8 @@ export function LandingPage() {
                 </div>
                 <h3 className="font-bold mb-3">Call Us</h3>
                 <p className="text-sm text-muted-foreground">
-                  +49 211 1234 5678<br />
-                  +49 211 1234 5679<br />
+                  {branding.phone1}<br />
+                  {branding.phone2}<br />
                   Mon-Fri: 9:00-18:00 CET
                 </p>
               </CardContent>
@@ -506,19 +509,19 @@ export function LandingPage() {
           <div className="text-center">
             <h3 className="font-bold mb-4">Connect With Us</h3>
             <div className="flex items-center justify-center gap-4">
-              <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" 
+              <a href={branding.linkedIn} target="_blank" rel="noopener noreferrer"
                  className="w-12 h-12 rounded-full bg-[#0A66C2] flex items-center justify-center hover:scale-110 transition-transform">
                 <Linkedin className="w-6 h-6 text-white" />
               </a>
-              <a href="https://facebook.com" target="_blank" rel="noopener noreferrer"
+              <a href={branding.facebook} target="_blank" rel="noopener noreferrer"
                  className="w-12 h-12 rounded-full bg-[#1877F2] flex items-center justify-center hover:scale-110 transition-transform">
                 <Facebook className="w-6 h-6 text-white" />
               </a>
-              <a href="mailto:info@tempworks.eu"
+              <a href={`mailto:${branding.emailInfo}`}
                  className="w-12 h-12 rounded-full bg-[#EA4335] flex items-center justify-center hover:scale-110 transition-transform">
                 <Mail className="w-6 h-6 text-white" />
               </a>
-              <a href="tel:+492111234567"
+              <a href={`tel:${branding.phone1.replace(/\s/g, '')}`}
                  className="w-12 h-12 rounded-full bg-[#22C55E] flex items-center justify-center hover:scale-110 transition-transform">
                 <Phone className="w-6 h-6 text-white" />
               </a>
@@ -533,22 +536,20 @@ export function LandingPage() {
           <div className="grid md:grid-cols-4 gap-8 mb-8">
             <div>
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 rounded-lg bg-[#2563EB] flex items-center justify-center">
-                  <Briefcase className="w-5 h-5 text-white" />
+                <div className="w-8 h-8 rounded-lg bg-[#2563EB] flex items-center justify-center overflow-hidden">
+                  {logoSrc ? <img src={logoSrc} alt="Logo" className="w-full h-full object-cover" /> : <Briefcase className="w-5 h-5 text-white" />}
                 </div>
-                <span className="font-bold">TempWorks Europe</span>
+                <span className="font-bold">{branding.companyName}</span>
               </div>
-              <p className="text-sm text-gray-400 mb-4">
-                Professional recruitment solutions connecting skilled workers with leading European employers.
-              </p>
+              <p className="text-sm text-gray-400 mb-4">{branding.footerTagline}</p>
               <div className="flex items-center gap-3">
-                <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="hover:text-[#2563EB] transition-colors">
+                <a href={branding.linkedIn} target="_blank" rel="noopener noreferrer" className="hover:text-[#2563EB] transition-colors">
                   <Linkedin className="w-5 h-5" />
                 </a>
-                <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="hover:text-[#2563EB] transition-colors">
+                <a href={branding.facebook} target="_blank" rel="noopener noreferrer" className="hover:text-[#2563EB] transition-colors">
                   <Facebook className="w-5 h-5" />
                 </a>
-                <a href="mailto:info@tempworks.eu" className="hover:text-[#2563EB] transition-colors">
+                <a href={`mailto:${branding.emailInfo}`} className="hover:text-[#2563EB] transition-colors">
                   <Mail className="w-5 h-5" />
                 </a>
               </div>
@@ -596,12 +597,12 @@ export function LandingPage() {
           <div className="border-t border-gray-800 pt-8">
             <div className="grid md:grid-cols-2 gap-4">
               <div className="text-sm text-gray-400">
-                <p>&copy; 2026 TempWorks Europe GmbH. All rights reserved.</p>
-                <p className="mt-1">Registered in Germany | HRB 123456 | VAT: DE123456789</p>
+                <p>&copy; 2026 {branding.companyName}. All rights reserved.</p>
+                <p className="mt-1">{branding.vatInfo}</p>
               </div>
               <div className="text-sm text-gray-400 md:text-right">
-                <p>Königsallee 27, 40212 Düsseldorf, Germany</p>
-                <p className="mt-1">Tel: +49 211 1234 5678 | Email: info@tempworks.eu</p>
+                <p>{branding.address}</p>
+                <p className="mt-1">Tel: {branding.phone1} | Email: {branding.emailInfo}</p>
               </div>
             </div>
           </div>

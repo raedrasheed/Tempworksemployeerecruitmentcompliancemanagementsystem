@@ -105,7 +105,7 @@ export function PublicEmployeeApplication() {
         jobTypeId: formData.jobTypeId || undefined,
         jobAdId: jobAdId || undefined,
         applicationData: formData,
-        recaptchaToken,
+        recaptchaToken: captchaToken,
       };
 
       const applicant = await publicApplicationApi.submit(payload);

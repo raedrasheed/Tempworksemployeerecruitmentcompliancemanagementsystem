@@ -202,11 +202,28 @@ export class ApplicantsService {
 
   // ── Public Submit ─────────────────────────────────────────────────────────────
 
-  async publicSubmit(dto: CreateApplicantDto & { applicationNotes?: string }) {
+  async publicSubmit(dto: CreateApplicantDto & { applicationNotes?: string; recaptchaToken?: string }) {
+    // ── Server-side reCAPTCHA v2 verification ──────────────────────────────────
+    const secretKey = process.env.RECAPTCHA_SECRET_KEY;
+    if (secretKey) {
+      if (!dto.recaptchaToken) {
+        throw new BadRequestException('reCAPTCHA verification required');
+      }
+      const verifyRes = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `secret=${encodeURIComponent(secretKey)}&response=${encodeURIComponent(dto.recaptchaToken)}`,
+      });
+      const verifyData = await verifyRes.json() as { success: boolean; 'error-codes'?: string[] };
+      if (!verifyData.success) {
+        throw new BadRequestException('reCAPTCHA verification failed. Please try again.');
+      }
+    }
+
     const existing = await this.prisma.applicant.findUnique({ where: { email: dto.email } });
     if (existing) throw new ConflictException('An application with this email already exists');
 
-    const { applicationNotes, applicationData, ...coreData } = dto as any;
+    const { applicationNotes, applicationData, recaptchaToken: _token, ...coreData } = dto as any;
 
     // Derive backward-compat fields from rich applicationData if present
     const appData = applicationData ?? {};

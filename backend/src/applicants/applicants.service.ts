@@ -1,6 +1,7 @@
 import {
   Injectable, NotFoundException, ConflictException, ForbiddenException, BadRequestException,
 } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateApplicantDto } from './dto/create-applicant.dto';
 import { UpdateApplicantDto } from './dto/update-applicant.dto';
@@ -781,10 +782,11 @@ export class ApplicantsService {
 
     if (prefix === 'A') {
       // Lead: serial derived from applicants.leadNumber
+      const newId1 = randomUUID();
       const result: { current: number }[] = await this.prisma.$queryRaw`
         INSERT INTO "identifier_sequences" ("id", "prefix", "year", "month", "current")
         VALUES (
-          gen_random_uuid()::text, ${prefix}, ${year}, ${month},
+          ${newId1}, ${prefix}, ${year}, ${month},
           COALESCE((
             SELECT MAX(CAST(SUBSTRING("leadNumber" FROM 8) AS INTEGER))
             FROM "applicants"
@@ -806,10 +808,11 @@ export class ApplicantsService {
 
     } else if (prefix === 'C') {
       // Candidate: serial derived from applicants.candidateNumber
+      const newId2 = randomUUID();
       const result: { current: number }[] = await this.prisma.$queryRaw`
         INSERT INTO "identifier_sequences" ("id", "prefix", "year", "month", "current")
         VALUES (
-          gen_random_uuid()::text, ${prefix}, ${year}, ${month},
+          ${newId2}, ${prefix}, ${year}, ${month},
           COALESCE((
             SELECT MAX(CAST(SUBSTRING("candidateNumber" FROM 8) AS INTEGER))
             FROM "applicants"
@@ -831,10 +834,11 @@ export class ApplicantsService {
 
     } else {
       // Employee: serial derived from employees.employeeNumber
+      const newId3 = randomUUID();
       const result: { current: number }[] = await this.prisma.$queryRaw`
         INSERT INTO "identifier_sequences" ("id", "prefix", "year", "month", "current")
         VALUES (
-          gen_random_uuid()::text, ${prefix}, ${year}, ${month},
+          ${newId3}, ${prefix}, ${year}, ${month},
           COALESCE((
             SELECT MAX(CAST(SUBSTRING("employeeNumber" FROM 8) AS INTEGER))
             FROM "employees"

@@ -33,14 +33,14 @@ const getTierColor = (tier: string) => {
 
 const STATUSES = ['NEW', 'SCREENING', 'INTERVIEW', 'OFFER', 'ACCEPTED', 'REJECTED', 'WITHDRAWN', 'ONBOARDING'];
 
-export function ApplicantsList() {
+export function CandidatesList() {
   const { canCreate, canEdit, canDelete } = usePermissions();
   const currentUser = getCurrentUser();
   const isAgencyUser = currentUser?.role === 'Agency User' || currentUser?.role === 'Agency Manager';
 
   // ── Filters ─────────────────────────────────────────────────────────────────
   const [searchTerm, setSearchTerm]     = useState('');
-  const [tierFilter]                    = useState<string>('LEAD');
+  const [tierFilter]                    = useState<string>('CANDIDATE');
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [agencyFilter, setAgencyFilter] = useState<string>('');
 
@@ -201,9 +201,9 @@ export function ApplicantsList() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-semibold text-[#0F172A]">Applicants</h1>
+          <h1 className="text-3xl font-semibold text-[#0F172A]">Candidates</h1>
           <p className="text-muted-foreground mt-1">
-            Manage leads and convert to candidates
+            Manage candidates and convert to employees
           </p>
         </div>
         <div className="flex gap-2">
@@ -380,7 +380,7 @@ export function ApplicantsList() {
                 {!loading && applicantsData.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={isAgencyUser ? 9 : 10} className="text-center py-12 text-muted-foreground">
-                      No applicants found matching your criteria.
+                      No candidates found matching your criteria.
                     </TableCell>
                   </TableRow>
                 )}
@@ -485,7 +485,7 @@ export function ApplicantsList() {
 
           <div className="flex items-center justify-between mt-4">
             <p className="text-sm text-muted-foreground">
-              Showing {applicantsData.length} of {totalApplicants} applicants
+              Showing {applicantsData.length} of {totalApplicants} candidates
               {selected.size > 0 && ` · ${selected.size} selected`}
             </p>
           </div>

@@ -10,6 +10,7 @@ import { EmployeeTrainingHistory } from './pages/employees/EmployeeTrainingHisto
 import { EmployeeComplianceTimeline } from './pages/employees/EmployeeComplianceTimeline';
 import { EmployeePerformanceReview } from './pages/employees/EmployeePerformanceReview';
 import { ApplicantsList } from './pages/applicants/ApplicantsList';
+import { CandidatesList } from './pages/applicants/CandidatesList';
 import { ApplicantProfile } from './pages/applicants/ApplicantProfile';
 import { AddApplicant } from './pages/applicants/AddApplicant';
 import { EditApplicant } from './pages/applicants/EditApplicant';
@@ -139,6 +140,9 @@ export const router = createBrowserRouter([
       { path: 'applicants/delete-requests', Component: CandidateDeleteRequests },
       { path: 'applicants/:id', Component: ApplicantProfile },
       { path: 'applicants/:id/edit', Component: EditApplicant },
+
+      // Candidates routes
+      { path: 'candidates', Component: CandidatesList },
       
       // Documents routes
       { path: 'documents', Component: DocumentsDashboard },

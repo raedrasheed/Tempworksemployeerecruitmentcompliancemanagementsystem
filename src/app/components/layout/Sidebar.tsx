@@ -50,6 +50,7 @@ interface NavItem {
 const allNavigationItems: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard',             path: '/dashboard',                  permission: null },
   { icon: UserCheck,       label: 'Applicants',            path: '/dashboard/applicants',       permission: 'applicants:read' },
+  { icon: UserCheck,       label: 'Candidates',            path: '/dashboard/candidates',       permission: 'applicants:read' },
   { icon: Users,           label: 'Employees',             path: '/dashboard/employees',        permission: 'employees:read' },
   { icon: ClipboardList,   label: 'Attendance Sheets',     path: '/dashboard/attendance',       permission: 'attendance:read' },
   {

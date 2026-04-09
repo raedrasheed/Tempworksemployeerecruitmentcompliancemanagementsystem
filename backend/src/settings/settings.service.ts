@@ -46,7 +46,11 @@ export class SettingsService {
       const updated = await this.prisma.systemSetting.upsert({
         where: { key },
         update: { value, updatedById: userId },
-        create: { key, value, updatedById: userId, description: key, category: 'agency', isPublic: false },
+        create: {
+          key, value, updatedById: userId, description: key,
+          category: key.split('.')[0] || 'general',
+          isPublic: key.startsWith('branding.'),
+        },
       });
       results.push(updated);
     }
@@ -61,9 +65,10 @@ export class SettingsService {
   }
 
   // ─── Branding ────────────────────────────────────────────────────────────────
-  async getBranding(): Promise<{ companyName?: string; logoUrl?: string }> {
+  async getBranding(): Promise<Record<string, string>> {
+    // Query by key prefix — batchUpdate may store with a different category
     const settings = await this.prisma.systemSetting.findMany({
-      where: { category: 'branding' },
+      where: { key: { startsWith: 'branding.' } },
     });
     const result: Record<string, string> = {};
     for (const s of settings) {

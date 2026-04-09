@@ -228,16 +228,6 @@ export function CandidatesList() {
             <div className="text-2xl font-bold text-[#0F172A]">{totalApplicants}</div>
           </CardContent>
         </Card>
-        {!isAgencyUser && (
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Leads</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-amber-600">{leads.length}</div>
-            </CardContent>
-          </Card>
-        )}
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Candidates</CardTitle>

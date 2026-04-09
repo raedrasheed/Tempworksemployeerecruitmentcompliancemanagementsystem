@@ -29,6 +29,7 @@ import {
 import { cn } from '../ui/utils';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { BACKEND_URL } from '../../services/api';
+import { useBranding } from '../../hooks/useBranding';
 
 interface NavChild {
   icon: React.ElementType;
@@ -84,6 +85,7 @@ interface SidebarProps {
 export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
   const location = useLocation();
   const { user } = useAuthContext();
+  const branding = useBranding();
   const userRole = user?.role ?? '';
   const permissions = user?.permissions ?? [];
   const isAdmin = userRole === 'System Admin';
@@ -122,13 +124,21 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
           "flex items-center gap-3 mb-2",
           isCollapsed && "justify-center"
         )}>
-          <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
-            <Briefcase className="w-6 h-6 text-primary-foreground" />
+          <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center flex-shrink-0 overflow-hidden">
+            {branding.logoUrl ? (
+              <img
+                src={branding.logoUrl.startsWith('http') ? branding.logoUrl : `${BACKEND_URL}${branding.logoUrl}`}
+                alt="Logo"
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <Briefcase className="w-6 h-6 text-primary-foreground" />
+            )}
           </div>
           {!isCollapsed && (
             <div>
               <h1 className="text-lg font-bold text-sidebar-foreground">
-                TempWorks Europe
+                {branding.companyName}
               </h1>
               <p className="text-xs text-muted-foreground">Recruitment Platform</p>
             </div>

@@ -78,6 +78,7 @@ import { DeletedRecords } from './pages/recycle-bin/DeletedRecords';
 import { DatabaseCleanup }  from './pages/settings/DatabaseCleanup';
 import { DatabaseBackup }   from './pages/settings/DatabaseBackup';
 import { SystemInformation } from './pages/settings/SystemInformation';
+import { BrandingSettings } from './pages/settings/BrandingSettings';
 
 // Pipeline pages
 import { WorkflowsPage } from './pages/pipelines/WorkflowsPage';
@@ -243,6 +244,7 @@ export const router = createBrowserRouter([
       { path: 'settings/database-cleanup', Component: DatabaseCleanup },
       { path: 'settings/database-backup',  Component: DatabaseBackup  },
       { path: 'settings/system-information', Component: SystemInformation },
+      { path: 'settings/branding', Component: BrandingSettings },
 
       // Profile routes
       { path: 'profile', Component: Profile },

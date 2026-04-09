@@ -60,6 +60,29 @@ export class SettingsService {
     return results;
   }
 
+  // ─── Branding ────────────────────────────────────────────────────────────────
+  async getBranding(): Promise<{ companyName?: string; logoUrl?: string }> {
+    const settings = await this.prisma.systemSetting.findMany({
+      where: { category: 'branding' },
+    });
+    const result: Record<string, string> = {};
+    for (const s of settings) {
+      result[s.key.replace('branding.', '')] = s.value;
+    }
+    return result;
+  }
+
+  async uploadLogo(file: Express.Multer.File, userId: string) {
+    const logoUrl = `/uploads/${file.filename}`;
+    await this.prisma.systemSetting.upsert({
+      where: { key: 'branding.logoUrl' },
+      update: { value: logoUrl, updatedById: userId },
+      create: { key: 'branding.logoUrl', value: logoUrl, category: 'branding', description: 'Company logo URL', isPublic: true, updatedById: userId },
+    });
+    await this.auditLog.log({ userId, action: 'UPDATE', entity: 'Settings', entityId: 'branding.logoUrl', changes: { logoUrl } });
+    return { logoUrl };
+  }
+
   // ─── Job Types ──────────────────────────────────────────────────────────────
   async findJobTypes() {
     return this.prisma.jobType.findMany({

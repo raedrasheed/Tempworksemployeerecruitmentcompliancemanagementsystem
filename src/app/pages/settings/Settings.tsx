@@ -1,5 +1,5 @@
 import { Link } from 'react-router';
-import { FileType, Bell, Shield, Activity, Layers, Briefcase, Palette, Trash2, Database, Server } from 'lucide-react';
+import { FileType, Bell, Shield, Activity, Layers, Briefcase, Palette, Trash2, Database, Server, Building2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { API_URL } from '../../services/api';
@@ -140,6 +140,28 @@ export function Settings() {
             </Link>
           );
         })}
+
+        {/* Company Branding — System Admin only */}
+        {isAdmin && (
+          <Link to="/dashboard/settings/branding">
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full border-indigo-200 hover:border-indigo-400">
+              <CardHeader>
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-lg bg-indigo-100 flex items-center justify-center">
+                    <Building2 className="w-6 h-6 text-indigo-600" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="text-indigo-800">Company Branding</CardTitle>
+                      <Badge className="bg-[#EF4444]">Admin Only</Badge>
+                    </div>
+                    <CardDescription>Company name and logo shown across the platform</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+            </Card>
+          </Link>
+        )}
 
         {/* Database Backup & Restore — System Admin only */}
         {isAdmin && (

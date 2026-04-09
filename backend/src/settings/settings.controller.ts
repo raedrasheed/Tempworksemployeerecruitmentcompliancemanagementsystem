@@ -1,8 +1,12 @@
 import {
   Controller, Get, Post, Body, Patch, Param, Delete,
   Query, UseGuards, HttpCode, HttpStatus,
+  UseInterceptors, UploadedFile, BadRequestException,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiQuery, ApiConsumes } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
 import { SettingsService } from './settings.service';
 import { BatchUpdateSettingsDto } from './dto/update-settings.dto';
 import { CreateJobTypeDto } from './dto/create-job-type.dto';
@@ -142,6 +146,28 @@ export class SettingsController {
   @ApiParam({ name: 'id' })
   deleteWorkflowStage(@Param('id') id: string, @CurrentUser() user: any) {
     return this.settingsService.deleteWorkflowStage(id, user?.id);
+  }
+
+  // Branding
+  @Public()
+  @Get('branding')
+  @ApiOperation({ summary: 'Get company branding settings (public)' })
+  getBranding() { return this.settingsService.getBranding(); }
+
+  @Post('branding/logo')
+  @Roles('System Admin')
+  @ApiOperation({ summary: 'Upload company logo' })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('logo', {
+    storage: diskStorage({
+      destination: process.env.UPLOAD_DEST || './uploads',
+      filename: (_req, file, cb) => cb(null, `logo-${Date.now()}${extname(file.originalname)}`),
+    }),
+    limits: { fileSize: 2 * 1024 * 1024 },
+  }))
+  uploadLogo(@UploadedFile() file: Express.Multer.File, @CurrentUser() user: any) {
+    if (!file) throw new BadRequestException('No logo file provided');
+    return this.settingsService.uploadLogo(file, user.id);
   }
 
   // System Information

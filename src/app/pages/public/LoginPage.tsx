@@ -5,10 +5,12 @@ import { Input } from '../../components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Briefcase, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
-import { authApi, setTokens, setCurrentUser } from '../../services/api';
+import { authApi, setTokens, setCurrentUser, BACKEND_URL } from '../../services/api';
+import { useBranding } from '../../hooks/useBranding';
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const branding = useBranding();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -56,11 +58,19 @@ export function LoginPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center pb-4">
           <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="w-12 h-12 rounded-lg bg-[#2563EB] flex items-center justify-center">
-              <Briefcase className="w-7 h-7 text-white" />
+            <div className="w-12 h-12 rounded-lg bg-[#2563EB] flex items-center justify-center overflow-hidden">
+              {branding.logoUrl ? (
+                <img
+                  src={branding.logoUrl.startsWith('http') ? branding.logoUrl : `${BACKEND_URL}${branding.logoUrl}`}
+                  alt="Logo"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <Briefcase className="w-7 h-7 text-white" />
+              )}
             </div>
             <div className="text-left">
-              <span className="text-xl font-bold text-[#0F172A] block">TempWorks Europe</span>
+              <span className="text-xl font-bold text-[#0F172A] block">{branding.companyName}</span>
               <span className="text-xs text-muted-foreground">Professional Recruitment</span>
             </div>
           </div>
@@ -140,7 +150,7 @@ export function LoginPage() {
       </Card>
 
       <div className="absolute bottom-4 text-center text-sm text-muted-foreground">
-        <p>&copy; 2026 TempWorks Europe - Secure Access</p>
+        <p>&copy; 2026 {branding.companyName} - Secure Access</p>
       </div>
     </div>
   );

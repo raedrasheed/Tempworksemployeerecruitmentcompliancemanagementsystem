@@ -725,6 +725,24 @@ export const settingsApi = {
   reorderWorkflowStages: (orders: { id: string; order: number }[]) =>
     apiFetch<any>('/settings/workflow-stages/reorder', { method: 'PATCH', body: JSON.stringify({ orders }) }),
 
+  // Branding
+  getBranding: () => apiFetch<{ companyName?: string; logoUrl?: string }>('/settings/branding'),
+  uploadLogo: async (file: File) => {
+    const formData = new FormData();
+    formData.append('logo', file);
+    const token = localStorage.getItem('access_token') ?? '';
+    const res = await fetch(`${API_URL}/settings/branding/logo`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error((err as any).message || 'Upload failed');
+    }
+    return res.json() as Promise<{ logoUrl: string }>;
+  },
+
   // Notification Rules
   getNotificationRules: () => apiFetch<any[]>('/settings/notification-rules'),
   createNotificationRule: (data: any) =>

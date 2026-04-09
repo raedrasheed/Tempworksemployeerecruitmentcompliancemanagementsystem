@@ -451,7 +451,7 @@ export function CandidatesList() {
                         </Button>
                         {canEdit('applicants') && (
                           <Button variant="ghost" size="sm" asChild>
-                            <Link to={`/dashboard/applicants/${applicant.id}/edit`}>
+                            <Link to={`/dashboard/candidates/${applicant.id}/edit`}>
                               <Edit className="w-4 h-4 mr-1" />Edit
                             </Link>
                           </Button>

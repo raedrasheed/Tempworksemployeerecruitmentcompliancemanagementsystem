@@ -15,6 +15,7 @@ import { ApplicantProfile } from './pages/applicants/ApplicantProfile';
 import { CandidateProfile } from './pages/applicants/CandidateProfile';
 import { AddApplicant } from './pages/applicants/AddApplicant';
 import { EditApplicant } from './pages/applicants/EditApplicant';
+import { EditCandidate } from './pages/applicants/EditCandidate';
 
 import { DocumentsDashboard } from './pages/documents/DocumentsDashboard';
 import { DocumentUpload } from './pages/documents/DocumentUpload';
@@ -145,6 +146,7 @@ export const router = createBrowserRouter([
       // Candidates routes
       { path: 'candidates', Component: CandidatesList },
       { path: 'candidates/:id', Component: CandidateProfile },
+      { path: 'candidates/:id/edit', Component: EditCandidate },
       
       // Documents routes
       { path: 'documents', Component: DocumentsDashboard },

@@ -4,7 +4,8 @@ import {
   Search, MapPin, Briefcase, Clock, ChevronLeft, ChevronRight,
   ArrowRight, Filter, X, LayoutGrid, List,
 } from 'lucide-react';
-import { publicJobAdsApi, settingsApi } from '../../services/api';
+import { publicJobAdsApi, settingsApi, BACKEND_URL } from '../../services/api';
+import { useBranding } from '../../hooks/useBranding';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { CountrySelect } from '../../components/ui/CountrySelect';
@@ -29,6 +30,7 @@ function formatSalary(min: any, max: any, currency: string): string {
 }
 
 export function JobListings() {
+  const branding = useBranding();
   const [jobs, setJobs]     = useState<any[]>([]);
   const [meta, setMeta]     = useState({ total: 0, page: 1, limit: 20, totalPages: 1 });
   const [loading, setLoading] = useState(true);
@@ -88,11 +90,15 @@ export function JobListings() {
       <header className="border-b bg-white shadow-sm sticky top-0 z-30">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-[#2563EB] flex items-center justify-center">
-              <Briefcase className="w-6 h-6 text-white" />
+            <div className="w-10 h-10 rounded-lg bg-[#2563EB] flex items-center justify-center overflow-hidden">
+              {branding.logoUrl ? (
+                <img src={branding.logoUrl.startsWith('http') ? branding.logoUrl : `${BACKEND_URL}${branding.logoUrl}`} alt="Logo" className="w-full h-full object-cover" />
+              ) : (
+                <Briefcase className="w-6 h-6 text-white" />
+              )}
             </div>
             <div>
-              <span className="text-xl font-bold text-[#0F172A]">TempWorks Europe</span>
+              <span className="text-xl font-bold text-[#0F172A]">{branding.companyName}</span>
               <p className="text-xs text-muted-foreground">Current Job Openings</p>
             </div>
           </Link>
@@ -112,7 +118,7 @@ export function JobListings() {
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-4xl font-bold mb-3">Current Job Openings</h1>
           <p className="text-blue-200 text-lg max-w-2xl mx-auto mb-8">
-            Browse our latest opportunities and start your journey with TempWorks Europe.
+            Browse our latest opportunities and start your journey with {branding.companyName}.
           </p>
           {/* Search bar */}
           <div className="max-w-xl mx-auto flex gap-2">

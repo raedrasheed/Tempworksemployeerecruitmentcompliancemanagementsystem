@@ -2,13 +2,15 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { Briefcase, ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { toast } from 'sonner';
-import { publicApplicationApi, settingsApi, publicJobAdsApi } from '../../services/api';
+import { publicApplicationApi, settingsApi, publicJobAdsApi, BACKEND_URL } from '../../services/api';
+import { useBranding } from '../../hooks/useBranding';
 import { ApplicantFormSteps, EMPTY_FORM, getVisibleTabs, StepIndicator, FormSettings, DEFAULT_FORM_SETTINGS, ApplicantFormData } from '../../components/applicants/ApplicantFormSteps';
 import { ReCaptchaV2 } from '../../components/ui/ReCaptchaV2';
 
 const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY as string;
 
 export function PublicEmployeeApplication() {
+  const branding = useBranding();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const jobAdId = searchParams.get('jobAdId') || undefined;
@@ -144,11 +146,15 @@ export function PublicEmployeeApplication() {
       <header className="bg-white border-b shadow-sm">
         <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-              <Briefcase className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center overflow-hidden">
+              {branding.logoUrl ? (
+                <img src={branding.logoUrl.startsWith('http') ? branding.logoUrl : `${BACKEND_URL}${branding.logoUrl}`} alt="Logo" className="w-full h-full object-cover" />
+              ) : (
+                <Briefcase className="w-5 h-5 text-white" />
+              )}
             </div>
             <div>
-              <p className="font-bold text-gray-900 leading-tight">TempWorks Europe</p>
+              <p className="font-bold text-gray-900 leading-tight">{branding.companyName}</p>
               <p className="text-xs text-gray-500">Driver Application Form</p>
             </div>
           </div>

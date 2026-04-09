@@ -4,7 +4,8 @@ import {
   ArrowLeft, MapPin, Briefcase, Clock, Calendar, ChevronRight,
   AlertTriangle,
 } from 'lucide-react';
-import { publicJobAdsApi } from '../../services/api';
+import { publicJobAdsApi, BACKEND_URL } from '../../services/api';
+import { useBranding } from '../../hooks/useBranding';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Card, CardContent } from '../../components/ui/card';
@@ -27,6 +28,7 @@ const CONTRACT_TYPE_COLORS: Record<string, string> = {
 };
 
 export function JobDetail() {
+  const branding = useBranding();
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const [job, setJob] = useState<any>(null);
@@ -72,10 +74,14 @@ export function JobDetail() {
       <header className="border-b bg-white shadow-sm sticky top-0 z-30">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-[#2563EB] flex items-center justify-center">
-              <Briefcase className="w-6 h-6 text-white" />
+            <div className="w-10 h-10 rounded-lg bg-[#2563EB] flex items-center justify-center overflow-hidden">
+              {branding.logoUrl ? (
+                <img src={branding.logoUrl.startsWith('http') ? branding.logoUrl : `${BACKEND_URL}${branding.logoUrl}`} alt="Logo" className="w-full h-full object-cover" />
+              ) : (
+                <Briefcase className="w-6 h-6 text-white" />
+              )}
             </div>
-            <span className="text-xl font-bold text-[#0F172A]">TempWorks Europe</span>
+            <span className="text-xl font-bold text-[#0F172A]">{branding.companyName}</span>
           </Link>
           <div className="flex items-center gap-3">
             <Link to="/jobs">

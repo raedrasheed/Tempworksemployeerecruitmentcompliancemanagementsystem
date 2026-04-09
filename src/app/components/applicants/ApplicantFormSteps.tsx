@@ -523,7 +523,7 @@ const SOFT_SKILLS = ['Teamwork', 'Communication', 'Time Management', 'Problem So
 
 // ── Step Indicator ────────────────────────────────────────────────────────────
 
-export function StepIndicator({ currentStep, visibleTabs }: { currentStep: number; visibleTabs: number[] }) {
+export function StepIndicator({ currentStep, visibleTabs, onStepClick }: { currentStep: number; visibleTabs: number[]; onStepClick?: (step: number) => void }) {
   const total = visibleTabs.length;
   const progress = Math.round((currentStep / total) * 100);
 
@@ -544,14 +544,19 @@ export function StepIndicator({ currentStep, visibleTabs }: { currentStep: numbe
           const isCurrent = visIdx === currentStep;
           const { Icon } = def;
           return (
-            <div key={tabId} className="flex flex-col items-center gap-1 flex-1 min-w-0">
-              <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-all ${isCompleted ? 'bg-green-500' : isCurrent ? 'bg-blue-600' : 'bg-gray-100 border-2 border-gray-200'}`}>
+            <button
+              key={tabId}
+              type="button"
+              onClick={() => onStepClick?.(visIdx)}
+              className={`flex flex-col items-center gap-1 flex-1 min-w-0 ${onStepClick ? 'cursor-pointer group' : 'cursor-default'}`}
+            >
+              <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-all ${isCompleted ? 'bg-green-500' : isCurrent ? 'bg-blue-600' : 'bg-gray-100 border-2 border-gray-200'} ${onStepClick && !isCurrent ? 'group-hover:ring-2 group-hover:ring-blue-300' : ''}`}>
                 {isCompleted ? <Check className="w-4 h-4 text-white" /> : <Icon className={`w-4 h-4 ${isCurrent ? 'text-white' : 'text-gray-400'}`} />}
               </div>
               <span className={`text-xs font-medium text-center leading-tight truncate w-full ${isCompleted ? 'text-green-600' : isCurrent ? 'text-blue-600' : 'text-gray-400'}`}>
                 {def.label}
               </span>
-            </div>
+            </button>
           );
         })}
       </div>

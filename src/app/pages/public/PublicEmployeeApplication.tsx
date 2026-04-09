@@ -179,7 +179,7 @@ export function PublicEmployeeApplication() {
 
       <div className="bg-white border-b">
         <div className="max-w-5xl mx-auto px-6 py-5">
-          <StepIndicator currentStep={currentStep} visibleTabs={visibleTabs} />
+          <StepIndicator currentStep={currentStep} visibleTabs={visibleTabs} onStepClick={(step) => { if (step === visibleTabs.length) setCaptchaToken(null); setCurrentStep(step); window.scrollTo({ top: 0, behavior: 'smooth' }); }} />
         </div>
       </div>
 

@@ -195,7 +195,7 @@ export function EditApplicant() {
 
       <Card>
         <CardContent className="pt-6">
-          <StepIndicator currentStep={currentStep} visibleTabs={visibleTabs} />
+          <StepIndicator currentStep={currentStep} visibleTabs={visibleTabs} onStepClick={(step) => { setCurrentStep(step); window.scrollTo({ top: 0, behavior: 'smooth' }); }} />
         </CardContent>
       </Card>
 

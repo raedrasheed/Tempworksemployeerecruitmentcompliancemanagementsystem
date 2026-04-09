@@ -12,6 +12,7 @@ import { EmployeePerformanceReview } from './pages/employees/EmployeePerformance
 import { ApplicantsList } from './pages/applicants/ApplicantsList';
 import { CandidatesList } from './pages/applicants/CandidatesList';
 import { ApplicantProfile } from './pages/applicants/ApplicantProfile';
+import { CandidateProfile } from './pages/applicants/CandidateProfile';
 import { AddApplicant } from './pages/applicants/AddApplicant';
 import { EditApplicant } from './pages/applicants/EditApplicant';
 
@@ -143,6 +144,7 @@ export const router = createBrowserRouter([
 
       // Candidates routes
       { path: 'candidates', Component: CandidatesList },
+      { path: 'candidates/:id', Component: CandidateProfile },
       
       // Documents routes
       { path: 'documents', Component: DocumentsDashboard },

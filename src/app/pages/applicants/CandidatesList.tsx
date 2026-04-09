@@ -445,7 +445,7 @@ export function CandidatesList() {
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
                         <Button variant="ghost" size="sm" asChild>
-                          <Link to={`/dashboard/applicants/${applicant.id}`}>
+                          <Link to={`/dashboard/candidates/${applicant.id}`}>
                             <Eye className="w-4 h-4 mr-1" />View
                           </Link>
                         </Button>

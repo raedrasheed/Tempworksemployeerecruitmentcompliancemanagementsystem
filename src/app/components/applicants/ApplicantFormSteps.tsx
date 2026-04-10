@@ -53,6 +53,7 @@ export interface WorkHistoryEntry {
   endDate: string;
   current: boolean;
   responsibilities: string;
+  reasonForLeaving: string;
   referenceName: string;
   referencePhone: string;
   referenceEmail: string;
@@ -1428,7 +1429,7 @@ function Step7WorkHistory({ d, u }: { d: ApplicantFormData; u: (fn: (p: Applican
   const addEntry = () => {
     u(prev => ({
       ...prev,
-      workHistory: [...prev.workHistory, { id: crypto.randomUUID(), company: '', jobTitle: '', country: '', startDate: '', endDate: '', current: false, responsibilities: '', referenceName: '', referencePhone: '', referenceEmail: '' }],
+      workHistory: [...prev.workHistory, { id: crypto.randomUUID(), company: '', jobTitle: '', country: '', startDate: '', endDate: '', current: false, responsibilities: '', reasonForLeaving: '', referenceName: '', referencePhone: '', referenceEmail: '' }],
     }));
   };
   const updateEntry = (id: string, field: keyof WorkHistoryEntry, value: any) => {
@@ -1479,6 +1480,10 @@ function Step7WorkHistory({ d, u }: { d: ApplicantFormData; u: (fn: (p: Applican
             <div className="space-y-1 md:col-span-2">
               <Label className="text-xs">Responsibilities</Label>
               <Textarea rows={2} placeholder="Main duties..." value={entry.responsibilities} onChange={e => updateEntry(entry.id, 'responsibilities', e.target.value)} />
+            </div>
+            <div className="space-y-1 md:col-span-2">
+              <Label className="text-xs">Reason for Leaving</Label>
+              <Input placeholder="e.g. Contract ended, career change..." value={entry.reasonForLeaving} onChange={e => updateEntry(entry.id, 'reasonForLeaving', e.target.value)} />
             </div>
             <div className="space-y-1 md:col-span-2">
               <Label className="text-xs font-semibold">Reference <span className="text-gray-400 font-normal">(optional)</span></Label>

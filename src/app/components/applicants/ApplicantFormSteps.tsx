@@ -1799,7 +1799,7 @@ function Step10Documents({ uploadedFiles, onFilesChange }: { uploadedFiles: Uplo
   );
 }
 
-function printApplicationSummary(d: ApplicantFormData) {
+async function printApplicationSummary(d: ApplicantFormData, uploadedFiles: UploadedFileItem[]) {
   const field = (label: string, value: string | undefined | null | boolean) => {
     const v = typeof value === 'boolean' ? (value ? 'Yes' : 'No') : value;
     if (!v) return '';
@@ -1807,6 +1807,23 @@ function printApplicationSummary(d: ApplicantFormData) {
   };
   const section = (title: string, content: string) =>
     content.trim() ? `<div class="section"><h2>${title}</h2>${content}</div>` : '';
+
+  // Read image files as data URLs for embedding
+  const readAsDataUrl = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+  const filesWithData = await Promise.all(
+    uploadedFiles.filter(f => f.file).map(async f => {
+      const isImage = f.file!.type.startsWith('image/');
+      const dataUrl = isImage ? await readAsDataUrl(f.file!).catch(() => null) : null;
+      return { label: f.type || f.sectionKey || 'Document', name: f.file!.name, isImage, isPdf: f.file!.type === 'application/pdf', dataUrl };
+    })
+  );
 
   const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"/><title>Application Summary</title>
 <style>
@@ -1858,6 +1875,12 @@ ${section('Additional Information', `<div class="grid">
   ${field('Weekend Driving', d.weekendDriving)}${field('Night Driving', d.nightDriving)}
   ${field('How did you hear', d.howDidYouHear)}
 </div>`)}
+${filesWithData.length > 0 ? section('Uploaded Documents', filesWithData.map(f => `
+<div class="entry">
+  <div class="entry-title">${f.label} — <span style="font-weight:normal;color:#6b7280;">${f.name}</span></div>
+  ${f.isImage && f.dataUrl ? `<img src="${f.dataUrl}" style="max-width:100%;max-height:320px;margin-top:8px;border-radius:4px;border:1px solid #e5e7eb;" />` : ''}
+  ${f.isPdf ? `<p style="color:#6b7280;font-size:12px;margin:4px 0 0;">PDF document — open original file to view contents.</p>` : ''}
+</div>`).join('')) : ''}
 </body></html>`;
 
   const win = window.open('', '_blank');
@@ -1888,12 +1911,13 @@ function ReviewSection({ title, children }: { title: string; children: ReactNode
   );
 }
 
-function Step11Review({ d, u, settings, photoFile, existingPhotoUrl }: {
+function Step11Review({ d, u, settings, photoFile, existingPhotoUrl, uploadedFiles = [] }: {
   d: ApplicantFormData;
   u: (fn: (p: ApplicantFormData) => ApplicantFormData) => void;
   settings: FormSettings;
   photoFile?: File | null;
   existingPhotoUrl?: string;
+  uploadedFiles?: UploadedFileItem[];
 }) {
   const set = (field: keyof ApplicantFormData) => (value: any) => u(prev => ({ ...prev, [field]: value }));
   const previewUrl = photoFile ? URL.createObjectURL(photoFile) : existingPhotoUrl ?? null;
@@ -1910,7 +1934,7 @@ function Step11Review({ d, u, settings, photoFile, existingPhotoUrl }: {
         <SectionTitle title="Review Your Application" subtitle="Please review all details before submitting" />
         <button
           type="button"
-          onClick={() => printApplicationSummary(d)}
+          onClick={() => printApplicationSummary(d, uploadedFiles)}
           className="flex items-center gap-2 px-4 py-2 border-2 border-blue-300 rounded-lg text-blue-600 text-sm font-medium hover:border-blue-500 hover:bg-blue-50 transition-all flex-shrink-0"
         >
           <FileText className="w-4 h-4" />
@@ -2063,6 +2087,23 @@ function Step11Review({ d, u, settings, photoFile, existingPhotoUrl }: {
         </div>
       </ReviewSection>
 
+      {/* Uploaded Documents */}
+      {uploadedFiles.filter(f => f.file).length > 0 && (
+        <ReviewSection title="Uploaded Documents">
+          <div className="space-y-2">
+            {uploadedFiles.filter(f => f.file).map(f => (
+              <div key={f.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border">
+                <FileText className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-semibold text-gray-900">{f.type || f.sectionKey || 'Document'}</p>
+                  <p className="text-xs text-gray-500">{f.file!.name}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </ReviewSection>
+      )}
+
       {/* Declaration */}
       <div className="p-5 bg-amber-50 border border-amber-200 rounded-xl space-y-5">
         <div>
@@ -2128,7 +2169,7 @@ export function ApplicantFormSteps({
       {actualTab === 8 && <Step8Skills d={d} u={u} settings={settings} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />}
       {actualTab === 9 && <Step9Additional d={d} u={u} settings={settings} />}
       {actualTab === 10 && <Step10Documents uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />}
-      {actualTab === 11 && <Step11Review d={d} u={u} settings={settings} photoFile={photoFile} existingPhotoUrl={existingPhotoUrl} />}
+      {actualTab === 11 && <Step11Review d={d} u={u} settings={settings} photoFile={photoFile} existingPhotoUrl={existingPhotoUrl} uploadedFiles={uploadedFiles} />}
     </>
   );
 }

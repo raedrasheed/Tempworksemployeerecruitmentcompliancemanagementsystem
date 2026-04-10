@@ -1241,9 +1241,9 @@ function Step5DrivingExperience({ d, u, settings }: { d: ApplicantFormData; u: (
               <Label className="text-xs">Total KM</Label>
               <Input placeholder="e.g. 500000" value={d.euExpKm} onChange={e => set('euExpKm')(e.target.value)} />
             </div>
-            <div className="space-y-1 md:col-span-3">
-              <Label className="text-xs">Countries</Label>
-              <Textarea rows={2} placeholder="Germany, France, Netherlands..." value={d.euExpCountries} onChange={e => set('euExpCountries')(e.target.value)} />
+            <div className="space-y-1">
+              <Label className="text-xs">Country</Label>
+              <CountrySelect value={d.euExpCountries} onChange={set('euExpCountries')} />
             </div>
           </div>
         </div>

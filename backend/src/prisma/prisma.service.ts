@@ -60,7 +60,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   }
 
   private async dropPolymorphicFkConstraints() {
-    const statements = [
+    const namedConstraints = [
       `ALTER TABLE "documents" DROP CONSTRAINT IF EXISTS "document_employee_fk"`,
       `ALTER TABLE "documents" DROP CONSTRAINT IF EXISTS "document_applicant_fk"`,
       `ALTER TABLE "visas" DROP CONSTRAINT IF EXISTS "visa_employee_fk"`,
@@ -69,13 +69,37 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       `ALTER TABLE "compliance_alerts" DROP CONSTRAINT IF EXISTS "alert_applicant_fk"`,
       `ALTER TABLE "applicants" DROP CONSTRAINT IF EXISTS "applicants_email_key"`,
     ];
-    for (const sql of statements) {
+    for (const sql of namedConstraints) {
       try {
         await this.$executeRawUnsafe(sql);
       } catch {
         // constraint may not exist yet, ignore
       }
     }
+
+    // Drop the unique constraint on applicants.email by column lookup
+    // (handles any constraint name, not just the Prisma default)
+    try {
+      const rows = await this.$queryRaw<{ conname: string }[]>`
+        SELECT con.conname
+        FROM   pg_constraint con
+        JOIN   pg_class       rel ON rel.oid = con.conrelid
+        JOIN   pg_attribute   att ON att.attrelid = rel.oid
+                                 AND att.attnum = ANY(con.conkey)
+        WHERE  rel.relname  = 'applicants'
+          AND  att.attname  = 'email'
+          AND  con.contype  = 'u'
+      `;
+      for (const row of rows) {
+        await this.$executeRawUnsafe(
+          `ALTER TABLE "applicants" DROP CONSTRAINT IF EXISTS "${row.conname}"`,
+        );
+        this.logger.log(`Dropped unique constraint "${row.conname}" on applicants.email`);
+      }
+    } catch {
+      // ignore — constraint already gone or table doesn't exist yet
+    }
+
     this.logger.log('Startup constraints cleanup complete');
   }
 

@@ -5,6 +5,37 @@ import { AppModule } from './app.module';
 import * as express from 'express';
 import { join } from 'path';
 import { mkdirSync } from 'fs';
+import { Client } from 'pg';
+
+async function runStartupMigrations() {
+  const logger = new Logger('StartupMigrations');
+  const client = new Client({ connectionString: process.env.DATABASE_URL });
+  try {
+    await client.connect();
+    // Drop any unique constraint on applicants.email (find by column, not by name)
+    const res = await client.query(`
+      SELECT con.conname
+      FROM   pg_constraint con
+      JOIN   pg_class       rel ON rel.oid = con.conrelid
+      JOIN   pg_attribute   att ON att.attrelid = rel.oid
+                               AND att.attnum = ANY(con.conkey)
+      WHERE  rel.relname = 'applicants'
+        AND  att.attname = 'email'
+        AND  con.contype = 'u'
+    `);
+    for (const row of res.rows) {
+      await client.query(`ALTER TABLE applicants DROP CONSTRAINT "${row.conname}"`);
+      logger.log(`Dropped unique constraint "${row.conname}" on applicants.email`);
+    }
+    if (res.rows.length === 0) {
+      logger.log('applicants.email unique constraint already removed');
+    }
+  } catch (err: any) {
+    logger.error('Startup migration error: ' + (err?.message ?? err));
+  } finally {
+    await client.end();
+  }
+}
 
 @Catch()
 class AllExceptionsFilter implements ExceptionFilter {
@@ -40,6 +71,8 @@ class AllExceptionsFilter implements ExceptionFilter {
 }
 
 async function bootstrap() {
+  await runStartupMigrations();
+
   const app = await NestFactory.create(AppModule, { logger: ['error', 'warn', 'log'] });
 
   // CORS

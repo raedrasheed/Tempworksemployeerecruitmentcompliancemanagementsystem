@@ -53,7 +53,9 @@ export interface WorkHistoryEntry {
   endDate: string;
   current: boolean;
   responsibilities: string;
-  references: string;
+  referenceName: string;
+  referencePhone: string;
+  referenceEmail: string;
 }
 
 export interface LanguageEntry {
@@ -1426,7 +1428,7 @@ function Step7WorkHistory({ d, u }: { d: ApplicantFormData; u: (fn: (p: Applican
   const addEntry = () => {
     u(prev => ({
       ...prev,
-      workHistory: [...prev.workHistory, { id: crypto.randomUUID(), company: '', jobTitle: '', country: '', startDate: '', endDate: '', current: false, responsibilities: '', references: '' }],
+      workHistory: [...prev.workHistory, { id: crypto.randomUUID(), company: '', jobTitle: '', country: '', startDate: '', endDate: '', current: false, responsibilities: '', referenceName: '', referencePhone: '', referenceEmail: '' }],
     }));
   };
   const updateEntry = (id: string, field: keyof WorkHistoryEntry, value: any) => {
@@ -1479,8 +1481,19 @@ function Step7WorkHistory({ d, u }: { d: ApplicantFormData; u: (fn: (p: Applican
               <Textarea rows={2} placeholder="Main duties..." value={entry.responsibilities} onChange={e => updateEntry(entry.id, 'responsibilities', e.target.value)} />
             </div>
             <div className="space-y-1 md:col-span-2">
-              <Label className="text-xs">Reference Contact</Label>
-              <Input placeholder="Name & phone (optional)" value={entry.references} onChange={e => updateEntry(entry.id, 'references', e.target.value)} />
+              <Label className="text-xs font-semibold">Reference <span className="text-gray-400 font-normal">(optional)</span></Label>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Reference Name</Label>
+              <Input placeholder="Full name" value={entry.referenceName} onChange={e => updateEntry(entry.id, 'referenceName', e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Reference Phone</Label>
+              <Input placeholder="+44 7700 000000" value={entry.referencePhone} onChange={e => updateEntry(entry.id, 'referencePhone', e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Reference Email</Label>
+              <Input type="email" placeholder="reference@company.com" value={entry.referenceEmail} onChange={e => updateEntry(entry.id, 'referenceEmail', e.target.value)} />
             </div>
           </div>
         </div>

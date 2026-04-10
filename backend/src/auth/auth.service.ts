@@ -38,7 +38,7 @@ export class AuthService {
   // ---------------------------------------------------------------------------
   async validateUser(email: string, password: string) {
     const user = await this.prisma.user.findFirst({
-      where: { email, deletedAt: null },
+      where: { email: email.trim().toLowerCase(), deletedAt: null },
       include: { role: true },
     });
     if (!user) return null;
@@ -55,14 +55,15 @@ export class AuthService {
     loginDto: { agencyId?: string; email: string; password: string },
     ipAddress?: string,
   ) {
+    const normalizedEmail = loginDto.email.trim().toLowerCase();
     const user = await this.prisma.user.findFirst({
-      where: { email: loginDto.email, deletedAt: null },
+      where: { email: normalizedEmail, deletedAt: null },
       include: { role: true, agency: { select: { id: true, name: true } } },
     });
 
     if (!user) {
       await this.auditLog.log({
-        userEmail: loginDto.email,
+        userEmail: normalizedEmail,
         action: 'LOGIN_FAILED',
         entity: 'User',
         entityId: 'unknown',
@@ -429,7 +430,7 @@ export class AuthService {
   // ---------------------------------------------------------------------------
   async forgotPassword(email: string): Promise<void> {
     const user = await this.prisma.user.findFirst({
-      where: { email, deletedAt: null },
+      where: { email: email.trim().toLowerCase(), deletedAt: null },
     });
 
     if (user && user.status === 'ACTIVE') {

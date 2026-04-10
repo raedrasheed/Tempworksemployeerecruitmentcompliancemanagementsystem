@@ -206,7 +206,8 @@ export class UsersService {
       }
     }
 
-    const existing = await this.prisma.user.findFirst({ where: { email: dto.email } });
+    const normalizedEmail = dto.email.trim().toLowerCase();
+    const existing = await this.prisma.user.findFirst({ where: { email: normalizedEmail } });
     if (existing) throw new ConflictException('User with this email already exists');
 
     // Generate user number
@@ -223,7 +224,7 @@ export class UsersService {
     // Create user with all fields
     const user = await this.prisma.user.create({
       data: {
-        email: dto.email,
+        email: normalizedEmail,
         passwordHash,
         firstName: dto.firstName,
         middleName: dto.middleName,
@@ -561,7 +562,8 @@ export class UsersService {
       }
 
       // Check for duplicate email
-      const existing = await this.prisma.user.findFirst({ where: { email: record.email } });
+      const bulkEmail = record.email.trim().toLowerCase();
+      const existing = await this.prisma.user.findFirst({ where: { email: bulkEmail } });
       if (existing) {
         failed++;
         errors.push(`${rowLabel}: User with email ${record.email} already exists`);
@@ -572,7 +574,7 @@ export class UsersService {
         const userNumber = await this.getNextUserNumber();
         await this.prisma.user.create({
           data: {
-            email: record.email,
+            email: bulkEmail,
             passwordHash: '',
             firstName: record.firstName,
             middleName: record.middleName,

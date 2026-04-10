@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { User, Phone, Shield, CreditCard, Briefcase, GraduationCap, Star, Info, FileText, CheckCircle2, Check, Upload, Plus, X, Trash2 } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -1799,6 +1799,95 @@ function Step10Documents({ uploadedFiles, onFilesChange }: { uploadedFiles: Uplo
   );
 }
 
+function printApplicationSummary(d: ApplicantFormData) {
+  const field = (label: string, value: string | undefined | null | boolean) => {
+    const v = typeof value === 'boolean' ? (value ? 'Yes' : 'No') : value;
+    if (!v) return '';
+    return `<div class="field"><span class="label">${label}</span><span class="value">${v}</span></div>`;
+  };
+  const section = (title: string, content: string) =>
+    content.trim() ? `<div class="section"><h2>${title}</h2>${content}</div>` : '';
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"/><title>Application Summary</title>
+<style>
+  body{font-family:Arial,sans-serif;margin:32px;color:#1f2937;font-size:13px;}
+  h1{color:#1a56db;margin-bottom:4px;}
+  .ref{font-size:12px;color:#6b7280;margin-bottom:24px;}
+  h2{font-size:13px;font-weight:700;color:#1a56db;border-bottom:1px solid #e5e7eb;padding-bottom:4px;margin:20px 0 8px;}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .field{display:flex;flex-direction:column;gap:2px;}
+  .label{font-size:10px;text-transform:uppercase;color:#6b7280;font-weight:600;}
+  .value{color:#111827;}
+  .entry{border:1px solid #e5e7eb;border-radius:6px;padding:8px 12px;margin-bottom:6px;}
+  .entry-title{font-weight:700;margin-bottom:4px;}
+  @media print{body{margin:16px;}}
+</style></head><body>
+<h1>Application Summary</h1>
+<p class="ref">Submitted by: ${[d.firstName, d.middleName, d.lastName].filter(Boolean).join(' ')} &nbsp;|&nbsp; ${d.email}</p>
+<div class="grid">
+${section('Personal Information', `<div class="grid">
+  ${field('First Name', d.firstName)}${field('Middle Name', d.middleName)}${field('Last Name', d.lastName)}
+  ${field('Date of Birth', d.dateOfBirth)}${field('Gender', d.gender)}${field('Citizenship', d.citizenship)}
+  ${field('Country of Birth', d.countryOfBirth)}${field('City of Birth', d.cityOfBirth)}
+</div>`)}
+${section('Contact', `<div class="grid">
+  ${field('Email', d.email)}${field('Phone', d.phone ? `${d.phoneCode} ${d.phone}` : '')}
+  ${field('Emergency Contact', d.emergencyContact)}${field('Emergency Phone', d.emergencyPhone)}
+</div>`)}
+</div>
+${d.hasDrivingLicense === 'yes' ? section('Driving License', `<div class="grid">
+  ${field('License Number', d.licenseNumber)}${field('Issuing Country', d.licenseCountry)}
+  ${field('Categories', d.licenseCategories?.join(', '))}${field('Issue Date', d.licenseIssueDate)}
+  ${field('First Issue Date', d.licenseFirstIssueDate)}${field('Expiry', d.licenseNoExpiry ? 'No Expiry' : d.licenseExpiryDate)}
+</div>`) : ''}
+${d.drivingExpType ? section('Driving Experience', `<div class="grid">
+  ${field('Experience Type', d.drivingExpType)}
+  ${(d.drivingExpType === 'eu' || d.drivingExpType === 'both') ? field('EU Years', d.euExpYears) + field('EU KM', d.euExpKm) + field('EU Country', d.euExpCountries) : ''}
+  ${(d.drivingExpType === 'domestic' || d.drivingExpType === 'both') ? field('Domestic Years', d.domesticExpYears) + field('Domestic KM', d.domesticExpKm) + field('Domestic Country', d.domesticExpCountry) : ''}
+  ${field('Transport Types', d.transportTypes?.join(', '))}${field('Truck Brands', d.truckBrands?.join(', '))}
+  ${field('Gearbox', d.gearboxType)}
+</div>`) : ''}
+${d.education.length > 0 ? section('Education', d.education.map(e => `<div class="entry"><div class="entry-title">${e.level || 'Degree'} — ${e.institution || ''}</div>${field('Field', e.fieldOfStudy)}${field('Country', e.country)}${field('Period', [e.startDate, e.current ? 'Present' : e.endDate].filter(Boolean).join(' – '))}</div>`).join('')) : ''}
+${d.workHistory.length > 0 ? section('Work Experience', d.workHistory.map(w => `<div class="entry"><div class="entry-title">${w.jobTitle || 'Position'} — ${w.company || ''}</div>${field('Country', w.country)}${field('Period', [w.startDate, w.current ? 'Present' : w.endDate].filter(Boolean).join(' – '))}${field('Reason for Leaving', w.reasonForLeaving)}${field('Reference', w.referenceName ? `${w.referenceName} | ${w.referencePhone} | ${w.referenceEmail}` : '')}</div>`).join('')) : ''}
+${d.languages.length > 0 ? section('Languages', d.languages.map(l => `<div class="entry"><div class="entry-title">${l.language}${l.motherTongue ? ' (Mother Tongue)' : ''}</div>${field('Speaking', l.speakingLevel)}${field('Reading', l.readingLevel)}${field('Writing', l.writingLevel)}${field('Listening', l.listeningLevel)}</div>`).join('')) : ''}
+${d.skills.length > 0 ? section('Skills', `<div class="grid">${d.skills.map(s => field(s.skill, s.level || '—')).join('')}</div>`) : ''}
+${section('Additional Information', `<div class="grid">
+  ${field('Preferred Start Date', d.preferredStartDate)}${field('Availability', d.availability)}
+  ${field('Annual Salary Expectation (EUR)', d.salaryExpectation)}${field('Willing to Relocate', d.willingToRelocate)}
+  ${d.willingToRelocate ? field('Preferred Locations', d.preferredLocations) : ''}
+  ${field('Weekend Driving', d.weekendDriving)}${field('Night Driving', d.nightDriving)}
+  ${field('How did you hear', d.howDidYouHear)}
+</div>`)}
+</body></html>`;
+
+  const win = window.open('', '_blank');
+  if (win) {
+    win.document.write(html);
+    win.document.close();
+    setTimeout(() => win.print(), 300);
+  }
+}
+
+function ReviewField({ label, value }: { label: string; value?: string | null | boolean }) {
+  const display = typeof value === 'boolean' ? (value ? 'Yes' : 'No') : value;
+  if (!display) return null;
+  return (
+    <div className="p-3 bg-gray-50 rounded-lg">
+      <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">{label}</p>
+      <p className="text-sm font-semibold text-gray-900 mt-0.5">{display}</p>
+    </div>
+  );
+}
+
+function ReviewSection({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <div className="space-y-3">
+      <h3 className="text-sm font-bold text-blue-700 border-b border-blue-100 pb-1">{title}</h3>
+      {children}
+    </div>
+  );
+}
+
 function Step11Review({ d, u, settings, photoFile, existingPhotoUrl }: {
   d: ApplicantFormData;
   u: (fn: (p: ApplicantFormData) => ApplicantFormData) => void;
@@ -1809,15 +1898,6 @@ function Step11Review({ d, u, settings, photoFile, existingPhotoUrl }: {
   const set = (field: keyof ApplicantFormData) => (value: any) => u(prev => ({ ...prev, [field]: value }));
   const previewUrl = photoFile ? URL.createObjectURL(photoFile) : existingPhotoUrl ?? null;
 
-  const rows: { label: string; value: string | undefined }[] = [
-    { label: 'Name', value: [d.firstName, d.middleName, d.lastName].filter(Boolean).join(' ') },
-    { label: 'Email', value: d.email },
-    { label: 'Phone', value: d.phone ? `${d.phoneCode} ${d.phone}` : undefined },
-    { label: 'Passport', value: d.passportNumber },
-    { label: 'Driving License', value: d.hasDrivingLicense === 'yes' ? 'Yes' : 'No' },
-    { label: 'Preferred Start Date', value: d.preferredStartDate },
-  ];
-
   const STATEMENTS: { field: 'declarationAccepted' | 'agreeDataProcessing' | 'agreeBackground'; text: string }[] = [
     { field: 'declarationAccepted', text: 'I confirm that all information provided in this application is true, complete and accurate to the best of my knowledge.' },
     { field: 'agreeDataProcessing', text: 'I consent to the collection and processing of my personal data for recruitment and employment compliance purposes in accordance with applicable data protection legislation.' },
@@ -1826,8 +1906,19 @@ function Step11Review({ d, u, settings, photoFile, existingPhotoUrl }: {
 
   return (
     <div className="space-y-8">
-      <SectionTitle title="Review Your Application" subtitle="Please review all details before submitting" />
+      <div className="flex items-center justify-between">
+        <SectionTitle title="Review Your Application" subtitle="Please review all details before submitting" />
+        <button
+          type="button"
+          onClick={() => printApplicationSummary(d)}
+          className="flex items-center gap-2 px-4 py-2 border-2 border-blue-300 rounded-lg text-blue-600 text-sm font-medium hover:border-blue-500 hover:bg-blue-50 transition-all flex-shrink-0"
+        >
+          <FileText className="w-4 h-4" />
+          Download Application
+        </button>
+      </div>
 
+      {/* Photo */}
       {previewUrl ? (
         <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg border">
           <img src={previewUrl} alt="Applicant photo" className="w-16 h-16 rounded-full object-cover border-2 border-blue-200" />
@@ -1842,23 +1933,137 @@ function Step11Review({ d, u, settings, photoFile, existingPhotoUrl }: {
         </div>
       )}
 
-      <div className="grid md:grid-cols-2 gap-3">
-        {rows.filter(r => r.value).map(({ label, value }) => (
-          <div key={label} className="p-3 bg-gray-50 rounded-lg">
-            <p className="text-xs text-gray-500 font-medium uppercase">{label}</p>
-            <p className="text-sm font-semibold text-gray-900 mt-0.5">{value}</p>
-          </div>
-        ))}
-      </div>
-
-      {d.education.length > 0 && (
-        <div className="p-3 bg-gray-50 rounded-lg">
-          <p className="text-xs text-gray-500 font-medium mb-1">Education</p>
-          {d.education.map(e => <p key={e.id} className="text-sm text-gray-800">{e.level} — {e.institution}</p>)}
+      {/* Personal */}
+      <ReviewSection title="Personal Information">
+        <div className="grid md:grid-cols-2 gap-3">
+          <ReviewField label="Full Name" value={[d.firstName, d.middleName, d.lastName].filter(Boolean).join(' ')} />
+          <ReviewField label="Date of Birth" value={d.dateOfBirth} />
+          <ReviewField label="Gender" value={d.gender} />
+          <ReviewField label="Citizenship" value={d.citizenship} />
+          <ReviewField label="Country of Birth" value={d.countryOfBirth} />
+          <ReviewField label="City of Birth" value={d.cityOfBirth} />
         </div>
+      </ReviewSection>
+
+      {/* Contact */}
+      <ReviewSection title="Contact Details">
+        <div className="grid md:grid-cols-2 gap-3">
+          <ReviewField label="Email" value={d.email} />
+          <ReviewField label="Phone" value={d.phone ? `${d.phoneCode} ${d.phone}` : undefined} />
+          <ReviewField label="Emergency Contact" value={d.emergencyContact} />
+          <ReviewField label="Emergency Phone" value={d.emergencyPhone} />
+        </div>
+      </ReviewSection>
+
+      {/* Driving License */}
+      {d.hasDrivingLicense === 'yes' && (
+        <ReviewSection title="Driving License">
+          <div className="grid md:grid-cols-2 gap-3">
+            <ReviewField label="License Number" value={d.licenseNumber} />
+            <ReviewField label="Issuing Country" value={d.licenseCountry} />
+            <ReviewField label="Categories" value={d.licenseCategories?.join(', ')} />
+            <ReviewField label="First Issue Date" value={d.licenseFirstIssueDate} />
+            <ReviewField label="Issue Date" value={d.licenseIssueDate} />
+            <ReviewField label="Expiry" value={d.licenseNoExpiry ? 'No Expiry' : d.licenseExpiryDate} />
+          </div>
+        </ReviewSection>
       )}
 
-      {/* Statements & Declaration */}
+      {/* Driving Experience */}
+      {d.drivingExpType && (
+        <ReviewSection title="Driving Experience">
+          <div className="grid md:grid-cols-2 gap-3">
+            <ReviewField label="Type" value={d.drivingExpType} />
+            {(d.drivingExpType === 'eu' || d.drivingExpType === 'both') && <>
+              <ReviewField label="EU Years" value={d.euExpYears} />
+              <ReviewField label="EU Total KM" value={d.euExpKm} />
+              <ReviewField label="EU Country" value={d.euExpCountries} />
+            </>}
+            {(d.drivingExpType === 'domestic' || d.drivingExpType === 'both') && <>
+              <ReviewField label="Domestic Years" value={d.domesticExpYears} />
+              <ReviewField label="Domestic Total KM" value={d.domesticExpKm} />
+              <ReviewField label="Domestic Country" value={d.domesticExpCountry} />
+            </>}
+            <ReviewField label="Transport Types" value={d.transportTypes?.join(', ')} />
+            <ReviewField label="Truck Brands" value={d.truckBrands?.join(', ')} />
+            <ReviewField label="Gearbox" value={d.gearboxType} />
+            <ReviewField label="Traffic Accidents" value={d.trafficAccidents} />
+            {d.trafficAccidents === 'yes' && <ReviewField label="Accident Details" value={d.accidentDescription} />}
+          </div>
+        </ReviewSection>
+      )}
+
+      {/* Education */}
+      {d.education.length > 0 && (
+        <ReviewSection title="Education">
+          {d.education.map(e => (
+            <div key={e.id} className="p-3 bg-gray-50 rounded-lg space-y-1">
+              <p className="text-sm font-semibold text-gray-900">{e.level} — {e.institution}</p>
+              {e.fieldOfStudy && <p className="text-xs text-gray-500">{e.fieldOfStudy}</p>}
+              {e.country && <p className="text-xs text-gray-500">{e.country} · {e.startDate} – {e.current ? 'Present' : e.endDate}</p>}
+            </div>
+          ))}
+        </ReviewSection>
+      )}
+
+      {/* Work History */}
+      {d.workHistory.length > 0 && (
+        <ReviewSection title="Work Experience">
+          {d.workHistory.map(w => (
+            <div key={w.id} className="p-3 bg-gray-50 rounded-lg space-y-1">
+              <p className="text-sm font-semibold text-gray-900">{w.jobTitle} — {w.company}</p>
+              <p className="text-xs text-gray-500">{w.country} · {w.startDate} – {w.current ? 'Present' : w.endDate}</p>
+              {w.reasonForLeaving && <p className="text-xs text-gray-500">Left: {w.reasonForLeaving}</p>}
+              {w.referenceName && <p className="text-xs text-gray-500">Ref: {w.referenceName} · {w.referencePhone} · {w.referenceEmail}</p>}
+            </div>
+          ))}
+        </ReviewSection>
+      )}
+
+      {/* Languages */}
+      {d.languages.length > 0 && (
+        <ReviewSection title="Languages">
+          <div className="grid md:grid-cols-2 gap-3">
+            {d.languages.map(l => (
+              <div key={l.id} className="p-3 bg-gray-50 rounded-lg">
+                <p className="text-sm font-semibold text-gray-900">{l.language}{l.motherTongue ? ' (Mother Tongue)' : ''}</p>
+                <p className="text-xs text-gray-500 mt-0.5">Speaking: {l.speakingLevel || '—'} · Reading: {l.readingLevel || '—'} · Writing: {l.writingLevel || '—'} · Listening: {l.listeningLevel || '—'}</p>
+              </div>
+            ))}
+          </div>
+        </ReviewSection>
+      )}
+
+      {/* Skills */}
+      {d.skills.length > 0 && (
+        <ReviewSection title="Skills">
+          <div className="grid md:grid-cols-2 gap-3">
+            {d.skills.map(s => (
+              <div key={s.id} className="p-3 bg-gray-50 rounded-lg flex items-center justify-between">
+                <span className="text-sm font-semibold text-gray-900">{s.skill}</span>
+                {s.level && <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">{s.level}</span>}
+              </div>
+            ))}
+          </div>
+        </ReviewSection>
+      )}
+
+      {/* Additional */}
+      <ReviewSection title="Additional Information">
+        <div className="grid md:grid-cols-2 gap-3">
+          <ReviewField label="Preferred Start Date" value={d.preferredStartDate} />
+          <ReviewField label="Availability" value={d.availability} />
+          <ReviewField label="Annual Salary Expectation (EUR)" value={d.salaryExpectation} />
+          <ReviewField label="Willing to Relocate" value={d.willingToRelocate} />
+          {d.willingToRelocate && <ReviewField label="Preferred Locations" value={d.preferredLocations} />}
+          <ReviewField label="Weekend Driving" value={d.weekendDriving} />
+          <ReviewField label="Night Driving" value={d.nightDriving} />
+          <ReviewField label="How did you hear about us" value={d.howDidYouHear} />
+          {d.additionalNotes && <div className="md:col-span-2"><ReviewField label="Additional Notes" value={d.additionalNotes} /></div>}
+        </div>
+      </ReviewSection>
+
+      {/* Declaration */}
       <div className="p-5 bg-amber-50 border border-amber-200 rounded-xl space-y-5">
         <div>
           <h4 className="text-sm font-bold text-amber-900 mb-1">Declaration & Agreement</h4>
@@ -1876,7 +2081,6 @@ function Step11Review({ d, u, settings, photoFile, existingPhotoUrl }: {
           ))}
         </div>
       </div>
-
     </div>
   );
 }

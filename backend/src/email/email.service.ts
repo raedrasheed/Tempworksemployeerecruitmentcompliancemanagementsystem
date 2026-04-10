@@ -55,6 +55,10 @@ export class EmailService {
     await this.sendMail(to, 'Welcome to TempWorks!', this.buildWelcomeTemplate(name));
   }
 
+  async sendApplicationConfirmation(to: string, name: string, reference: string, appData: Record<string, any>): Promise<void> {
+    await this.sendMail(to, `Application Received – Reference ${reference}`, this.buildApplicationConfirmationTemplate(name, reference, appData));
+  }
+
   async sendNotificationEmail(
     to: string,
     name: string,
@@ -229,6 +233,68 @@ export class EmailService {
         You received this because you have email notifications enabled for this event type.<br/>
         Manage your preferences in TempWorks under <strong>Notifications → Settings</strong>.
       </p>
+    `);
+  }
+
+  private buildApplicationConfirmationTemplate(name: string, reference: string, d: Record<string, any>): string {
+    const row = (label: string, value: string | undefined | null) =>
+      value ? `<tr><td style="padding:6px 12px;color:#6b7280;font-size:13px;white-space:nowrap;vertical-align:top;">${this.escape(label)}</td><td style="padding:6px 12px;font-size:13px;color:#111827;">${this.escape(String(value))}</td></tr>` : '';
+
+    const section = (title: string, rows: string) =>
+      rows.trim() ? `<h3 style="margin:24px 0 6px;font-size:14px;color:#1a56db;border-bottom:1px solid #e5e7eb;padding-bottom:4px;">${title}</h3><table style="width:100%;border-collapse:collapse;">${rows}</table>` : '';
+
+    const personal = section('Personal Information', [
+      row('Full Name', [d.firstName, d.middleName, d.lastName].filter(Boolean).join(' ')),
+      row('Date of Birth', d.dateOfBirth),
+      row('Gender', d.gender),
+      row('Citizenship', d.citizenship),
+      row('Country of Birth', d.countryOfBirth),
+    ].join(''));
+
+    const contact = section('Contact', [
+      row('Email', d.email),
+      row('Phone', d.phone ? `${d.phoneCode || ''} ${d.phone}`.trim() : undefined),
+      row('Address', [d.address?.street, d.address?.city, d.address?.country].filter(Boolean).join(', ')),
+    ].join(''));
+
+    const driving = d.hasDrivingLicense === 'yes' ? section('Driving License', [
+      row('License Number', d.licenseNumber),
+      row('Categories', Array.isArray(d.licenseCategories) ? d.licenseCategories.join(', ') : d.licenseCategories),
+      row('Issuing Country', d.licenseCountry),
+      row('Experience Type', d.drivingExpType),
+    ].join('')) : '';
+
+    const edu = Array.isArray(d.education) && d.education.length
+      ? section('Education', d.education.map((e: any) => row(e.level || 'Degree', [e.institution, e.country].filter(Boolean).join(' – '))).join(''))
+      : '';
+
+    const work = Array.isArray(d.workHistory) && d.workHistory.length
+      ? section('Work Experience', d.workHistory.map((w: any) => row(w.jobTitle || 'Position', [w.company, w.country].filter(Boolean).join(' – '))).join(''))
+      : '';
+
+    const langs = Array.isArray(d.languages) && d.languages.length
+      ? section('Languages', d.languages.map((l: any) => row(l.language, l.motherTongue ? 'Mother Tongue' : [l.speakingLevel, l.readingLevel].filter(Boolean).join(' / '))).join(''))
+      : '';
+
+    const skills = Array.isArray(d.skills) && d.skills.length
+      ? section('Skills', d.skills.map((s: any) => row(s.skill, s.level || '—')).join(''))
+      : '';
+
+    const additional = section('Additional', [
+      row('Preferred Start Date', d.preferredStartDate),
+      row('Annual Salary Expectation (EUR)', d.salaryExpectation),
+      row('Willing to Relocate', d.willingToRelocate ? 'Yes' : 'No'),
+    ].join(''));
+
+    return this.baseTemplate('Application Received', `
+      <p>Dear <strong>${this.escape(name)}</strong>,</p>
+      <p>Thank you for submitting your application. We have received it successfully and our team will review it shortly.</p>
+      <div style="background:#f0f9ff;border-left:4px solid #1a56db;padding:12px 16px;border-radius:4px;margin:16px 0;">
+        <p style="margin:0;font-size:13px;color:#1e40af;">Your application reference number: <strong style="font-size:16px;">${this.escape(reference)}</strong></p>
+      </div>
+      <p>Below is a summary of the information you submitted:</p>
+      ${personal}${contact}${driving}${edu}${work}${langs}${skills}${additional}
+      <p style="margin-top:24px;">If you have any questions, please do not hesitate to contact us.</p>
     `);
   }
 

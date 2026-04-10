@@ -3,6 +3,7 @@ import {
 } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
+import { EmailService } from '../email/email.service';
 import { CreateApplicantDto } from './dto/create-applicant.dto';
 import { UpdateApplicantDto } from './dto/update-applicant.dto';
 import { ConvertToEmployeeDto } from './dto/convert-to-employee.dto';
@@ -15,7 +16,7 @@ import { join, extname } from 'path';
 
 @Injectable()
 export class ApplicantsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService, private email: EmailService) {}
 
   private get include() {
     return {
@@ -244,7 +245,7 @@ export class ApplicantsService {
     // Generate Lead identifier for public submissions
     const leadNumber = await this.generateIdentifier('A');
 
-    return this.prisma.applicant.create({
+    const applicant = await this.prisma.applicant.create({
       data: {
         ...coreData,
         leadNumber,
@@ -265,6 +266,12 @@ export class ApplicantsService {
       },
       include: this.include,
     });
+
+    // Send confirmation email (fire-and-forget — never blocks submit)
+    const fullName = [coreData.firstName, coreData.lastName].filter(Boolean).join(' ');
+    this.email.sendApplicationConfirmation(coreData.email, fullName, leadNumber, appData).catch(() => {});
+
+    return applicant;
   }
 
   // ── Set Workflow Stage ────────────────────────────────────────────────────────

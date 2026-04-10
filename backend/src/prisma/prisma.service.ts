@@ -77,25 +77,28 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       }
     }
 
-    // Drop the unique constraint on applicants.email by column lookup
-    // (handles any constraint name, not just the Prisma default)
+    // Drop ANY unique constraint on applicants.email by dynamic lookup.
+    // Uses a DO block so it works regardless of the constraint name.
     try {
-      const rows = await this.$queryRaw<{ conname: string }[]>`
-        SELECT con.conname
-        FROM   pg_constraint con
-        JOIN   pg_class       rel ON rel.oid = con.conrelid
-        JOIN   pg_attribute   att ON att.attrelid = rel.oid
-                                 AND att.attnum = ANY(con.conkey)
-        WHERE  rel.relname  = 'applicants'
-          AND  att.attname  = 'email'
-          AND  con.contype  = 'u'
-      `;
-      for (const row of rows) {
-        await this.$executeRawUnsafe(
-          `ALTER TABLE "applicants" DROP CONSTRAINT IF EXISTS "${row.conname}"`,
-        );
-        this.logger.log(`Dropped unique constraint "${row.conname}" on applicants.email`);
-      }
+      await this.$executeRawUnsafe(`
+        DO $$
+        DECLARE v_conname text;
+        BEGIN
+          SELECT con.conname INTO v_conname
+          FROM   pg_constraint con
+          JOIN   pg_class       rel ON rel.oid = con.conrelid
+          JOIN   pg_attribute   att ON att.attrelid = rel.oid
+                                   AND att.attnum = ANY(con.conkey)
+          WHERE  rel.relname = 'applicants'
+            AND  att.attname = 'email'
+            AND  con.contype = 'u'
+          LIMIT 1;
+          IF v_conname IS NOT NULL THEN
+            EXECUTE 'ALTER TABLE applicants DROP CONSTRAINT ' || quote_ident(v_conname);
+          END IF;
+        END;
+        $$
+      `);
     } catch {
       // ignore — constraint already gone or table doesn't exist yet
     }

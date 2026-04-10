@@ -144,6 +144,7 @@ export interface ApplicantFormData {
   purposeOfIssue: string;
   hasDrivingLicense: string;
   licenseNumber: string;
+  licenseFirstIssueDate: string;
   licenseIssueDate: string;
   licenseExpiryDate: string;
   licenseNoExpiry: boolean;
@@ -249,6 +250,7 @@ export const EMPTY_FORM: ApplicantFormData = {
   purposeOfIssue: '',
   hasDrivingLicense: '',
   licenseNumber: '',
+  licenseFirstIssueDate: '',
   licenseIssueDate: '',
   licenseExpiryDate: '',
   licenseNoExpiry: false,
@@ -1130,6 +1132,10 @@ function Step4DrivingLicense({ d, u, settings, uploadedFiles, onFilesChange }: {
               <div className="space-y-1">
                 <Label className="text-xs">Issuing Country *</Label>
                 <CountrySelect value={d.licenseCountry} onChange={set('licenseCountry')} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">First Issue Date <span className="text-gray-400">(optional)</span></Label>
+                <Input type="date" value={d.licenseFirstIssueDate} onChange={e => set('licenseFirstIssueDate')(e.target.value)} />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Issue Date</Label>

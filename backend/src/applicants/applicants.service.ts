@@ -134,6 +134,10 @@ export class ApplicantsService {
 
     await this.auditLog(actorId, 'CREATE', applicant.id, { leadNumber });
 
+    // Send confirmation email (fire-and-forget — never blocks response)
+    const fullName = [dto.firstName, dto.lastName].filter(Boolean).join(' ');
+    this.email.sendApplicationConfirmation(dto.email, fullName, leadNumber, (dto as any).applicationData ?? {}).catch(() => {});
+
     return applicant;
   }
 

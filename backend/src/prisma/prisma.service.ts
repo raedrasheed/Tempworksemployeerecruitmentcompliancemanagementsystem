@@ -69,6 +69,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
         ALTER TABLE "visas" DROP CONSTRAINT IF EXISTS "visa_applicant_fk";
         ALTER TABLE "compliance_alerts" DROP CONSTRAINT IF EXISTS "alert_employee_fk";
         ALTER TABLE "compliance_alerts" DROP CONSTRAINT IF EXISTS "alert_applicant_fk";
+        ALTER TABLE "applicants" DROP CONSTRAINT IF EXISTS "applicants_email_key";
       `);
     } catch {
       // constraints may not exist yet, ignore

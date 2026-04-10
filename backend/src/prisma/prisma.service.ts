@@ -60,50 +60,47 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   }
 
   private async dropPolymorphicFkConstraints() {
-    const namedConstraints = [
-      `ALTER TABLE "documents" DROP CONSTRAINT IF EXISTS "document_employee_fk"`,
-      `ALTER TABLE "documents" DROP CONSTRAINT IF EXISTS "document_applicant_fk"`,
-      `ALTER TABLE "visas" DROP CONSTRAINT IF EXISTS "visa_employee_fk"`,
-      `ALTER TABLE "visas" DROP CONSTRAINT IF EXISTS "visa_applicant_fk"`,
-      `ALTER TABLE "compliance_alerts" DROP CONSTRAINT IF EXISTS "alert_employee_fk"`,
-      `ALTER TABLE "compliance_alerts" DROP CONSTRAINT IF EXISTS "alert_applicant_fk"`,
-      `ALTER TABLE "applicants" DROP CONSTRAINT IF EXISTS "applicants_email_key"`,
-    ];
-    for (const sql of namedConstraints) {
-      try {
-        await this.$executeRawUnsafe(sql);
-      } catch {
-        // constraint may not exist yet, ignore
-      }
-    }
-
-    // Drop ANY unique constraint on applicants.email by dynamic lookup.
-    // Uses a DO block so it works regardless of the constraint name.
+    const client = await this.pool.connect();
     try {
-      await this.$executeRawUnsafe(`
-        DO $$
-        DECLARE v_conname text;
-        BEGIN
-          SELECT con.conname INTO v_conname
-          FROM   pg_constraint con
-          JOIN   pg_class       rel ON rel.oid = con.conrelid
-          JOIN   pg_attribute   att ON att.attrelid = rel.oid
-                                   AND att.attnum = ANY(con.conkey)
-          WHERE  rel.relname = 'applicants'
-            AND  att.attname = 'email'
-            AND  con.contype = 'u'
-          LIMIT 1;
-          IF v_conname IS NOT NULL THEN
-            EXECUTE 'ALTER TABLE applicants DROP CONSTRAINT ' || quote_ident(v_conname);
-          END IF;
-        END;
-        $$
-      `);
-    } catch {
-      // ignore — constraint already gone or table doesn't exist yet
-    }
+      // Drop named FK constraints (ignore errors — may not exist)
+      const named = [
+        `ALTER TABLE "documents" DROP CONSTRAINT IF EXISTS "document_employee_fk"`,
+        `ALTER TABLE "documents" DROP CONSTRAINT IF EXISTS "document_applicant_fk"`,
+        `ALTER TABLE "visas" DROP CONSTRAINT IF EXISTS "visa_employee_fk"`,
+        `ALTER TABLE "visas" DROP CONSTRAINT IF EXISTS "visa_applicant_fk"`,
+        `ALTER TABLE "compliance_alerts" DROP CONSTRAINT IF EXISTS "alert_employee_fk"`,
+        `ALTER TABLE "compliance_alerts" DROP CONSTRAINT IF EXISTS "alert_applicant_fk"`,
+      ];
+      for (const sql of named) {
+        try { await client.query(sql); } catch { /* may not exist */ }
+      }
 
-    this.logger.log('Startup constraints cleanup complete');
+      // Find every unique constraint on applicants.email and drop it
+      const res = await client.query(`
+        SELECT con.conname
+        FROM   pg_constraint con
+        JOIN   pg_class       rel ON rel.oid = con.conrelid
+        JOIN   pg_attribute   att ON att.attrelid = rel.oid
+                                 AND att.attnum = ANY(con.conkey)
+        WHERE  rel.relname = 'applicants'
+          AND  att.attname = 'email'
+          AND  con.contype = 'u'
+      `);
+
+      if (res.rows.length === 0) {
+        this.logger.log('applicants.email — no unique constraint found (already clean)');
+      }
+      for (const row of res.rows) {
+        await client.query(`ALTER TABLE applicants DROP CONSTRAINT "${row.conname}"`);
+        this.logger.log(`Dropped unique constraint "${row.conname}" on applicants.email`);
+      }
+
+      this.logger.log('Startup constraints cleanup complete');
+    } catch (err: any) {
+      this.logger.error('Startup constraints cleanup error:', err?.message ?? err);
+    } finally {
+      client.release();
+    }
   }
 
   async onModuleDestroy() {

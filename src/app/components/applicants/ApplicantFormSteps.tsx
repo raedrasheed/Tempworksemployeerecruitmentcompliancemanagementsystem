@@ -1330,20 +1330,6 @@ function Step5DrivingExperience({ d, u, settings }: { d: ApplicantFormData; u: (
         <SubSection title="Work Preferences" />
         <div className="grid md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label className="text-xs">Work Regime</Label>
-            <div className="flex gap-4">
-              {['Weekend Driving', 'Night Driving'].map(r => (
-                <label key={r} className="flex items-center gap-2 cursor-pointer text-sm">
-                  <Checkbox
-                    checked={r === 'Weekend Driving' ? d.weekendDriving : d.nightDriving}
-                    onCheckedChange={c => set(r === 'Weekend Driving' ? 'weekendDriving' : 'nightDriving')(!!c)}
-                  />
-                  {r}
-                </label>
-              ))}
-            </div>
-          </div>
-          <div className="space-y-2">
             <Label className="text-xs">Traffic Accidents (last 3 years)?</Label>
             <RadioYN name="trafficAccidents" value={d.trafficAccidents} onChange={set('trafficAccidents')} />
           </div>
@@ -1665,6 +1651,20 @@ function Step9Additional({ d, u, settings }: { d: ApplicantFormData; u: (fn: (p:
             <Input placeholder="Cities / countries" value={d.preferredLocations} onChange={e => set('preferredLocations')(e.target.value)} />
           </div>
         )}
+        <div className="space-y-2 md:col-span-2">
+          <Label className="text-xs">Work Regime</Label>
+          <div className="flex gap-4">
+            {(['Weekend Driving', 'Night Driving'] as const).map(r => (
+              <label key={r} className="flex items-center gap-2 cursor-pointer text-sm">
+                <Checkbox
+                  checked={r === 'Weekend Driving' ? d.weekendDriving : d.nightDriving}
+                  onCheckedChange={c => set(r === 'Weekend Driving' ? 'weekendDriving' : 'nightDriving')(!!c)}
+                />
+                {r}
+              </label>
+            ))}
+          </div>
+        </div>
         <div className="space-y-1 md:col-span-2">
           <Label className="text-xs">Additional Notes</Label>
           <Textarea rows={4} placeholder="Anything else you'd like us to know..." value={d.additionalNotes} onChange={e => set('additionalNotes')(e.target.value)} />

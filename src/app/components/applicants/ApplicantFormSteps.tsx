@@ -853,11 +853,12 @@ function Step2Contact({ d, u, settings }: { d: ApplicantFormData; u: (fn: (p: Ap
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Email *</Label>
-            <Input type="email" placeholder="email@example.com" value={d.email} onChange={e => set('email')(e.target.value)} />
+            <Input type="email" placeholder="email@example.com" value={d.email} onChange={e => set('email')(e.target.value)} className={d.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email) ? 'border-red-400 focus-visible:ring-red-400' : ''} />
+            {d.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email) && <p className="text-xs text-red-500 mt-1">Please enter a valid email address</p>}
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Confirm Email *</Label>
-            <Input type="email" placeholder="Repeat email" value={d.emailConfirm} onChange={e => set('emailConfirm')(e.target.value)} onPaste={e => e.preventDefault()} />
+            <Input type="email" placeholder="Repeat email" value={d.emailConfirm} onChange={e => set('emailConfirm')(e.target.value)} onPaste={e => e.preventDefault()} className={d.emailConfirm && d.email !== d.emailConfirm ? 'border-red-400 focus-visible:ring-red-400' : ''} />
             {d.emailConfirm && d.email !== d.emailConfirm && <p className="text-xs text-red-500 mt-1">Emails do not match</p>}
           </div>
         </div>

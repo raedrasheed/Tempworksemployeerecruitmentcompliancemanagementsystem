@@ -1699,8 +1699,8 @@ function Step9Additional({ d, u, settings }: { d: ApplicantFormData; u: (fn: (p:
           </Select>
         </div>
         <div className="space-y-1">
-          <Label className="text-xs">Salary Expectation</Label>
-          <Input placeholder="e.g. £35,000" value={d.salaryExpectation} onChange={e => set('salaryExpectation')(e.target.value)} />
+          <Label className="text-xs">Annual Salary Expectation (in EUR)</Label>
+          <Input placeholder="e.g. 35,000" value={d.salaryExpectation} onChange={e => set('salaryExpectation')(e.target.value)} />
         </div>
         <div className="space-y-2 md:col-span-2">
           <label className="flex items-center gap-2 cursor-pointer">

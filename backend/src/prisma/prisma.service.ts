@@ -60,22 +60,23 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   }
 
   private async dropPolymorphicFkConstraints() {
-    const client = await this.pool.connect();
-    try {
-      await client.query(`
-        ALTER TABLE "documents" DROP CONSTRAINT IF EXISTS "document_employee_fk";
-        ALTER TABLE "documents" DROP CONSTRAINT IF EXISTS "document_applicant_fk";
-        ALTER TABLE "visas" DROP CONSTRAINT IF EXISTS "visa_employee_fk";
-        ALTER TABLE "visas" DROP CONSTRAINT IF EXISTS "visa_applicant_fk";
-        ALTER TABLE "compliance_alerts" DROP CONSTRAINT IF EXISTS "alert_employee_fk";
-        ALTER TABLE "compliance_alerts" DROP CONSTRAINT IF EXISTS "alert_applicant_fk";
-        ALTER TABLE "applicants" DROP CONSTRAINT IF EXISTS "applicants_email_key";
-      `);
-    } catch {
-      // constraints may not exist yet, ignore
-    } finally {
-      client.release();
+    const statements = [
+      `ALTER TABLE "documents" DROP CONSTRAINT IF EXISTS "document_employee_fk"`,
+      `ALTER TABLE "documents" DROP CONSTRAINT IF EXISTS "document_applicant_fk"`,
+      `ALTER TABLE "visas" DROP CONSTRAINT IF EXISTS "visa_employee_fk"`,
+      `ALTER TABLE "visas" DROP CONSTRAINT IF EXISTS "visa_applicant_fk"`,
+      `ALTER TABLE "compliance_alerts" DROP CONSTRAINT IF EXISTS "alert_employee_fk"`,
+      `ALTER TABLE "compliance_alerts" DROP CONSTRAINT IF EXISTS "alert_applicant_fk"`,
+      `ALTER TABLE "applicants" DROP CONSTRAINT IF EXISTS "applicants_email_key"`,
+    ];
+    for (const sql of statements) {
+      try {
+        await this.$executeRawUnsafe(sql);
+      } catch {
+        // constraint may not exist yet, ignore
+      }
     }
+    this.logger.log('Startup constraints cleanup complete');
   }
 
   async onModuleDestroy() {

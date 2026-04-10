@@ -819,10 +819,11 @@ function Step1Personal({ d, u, jobTypes, photoFile, onPhotoChange, existingPhoto
 
 function Step2Contact({ d, u, settings }: { d: ApplicantFormData; u: (fn: (p: ApplicantFormData) => ApplicantFormData) => void; settings: FormSettings }) {
   const set = (field: keyof ApplicantFormData) => (value: any) => u(prev => ({ ...prev, [field]: value }));
-  const [touched, setTouched] = useState({ email: false, emailConfirm: false });
-  const touch = (field: 'email' | 'emailConfirm') => () => setTouched(t => ({ ...t, [field]: true }));
+  const [touched, setTouched] = useState({ email: false, emailConfirm: false, emergencyEmail: false });
+  const touch = (field: 'email' | 'emailConfirm' | 'emergencyEmail') => () => setTouched(t => ({ ...t, [field]: true }));
   const emailInvalid = (touched.email || !!d.email) && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email);
   const confirmMismatch = (touched.emailConfirm || !!d.emailConfirm) && d.email !== d.emailConfirm;
+  const emergencyEmailInvalid = (touched.emergencyEmail || !!d.emergencyEmail) && !!d.emergencyEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.emergencyEmail);
   return (
     <div className="space-y-8">
       <SectionTitle title="Contact Details" subtitle="Phone, email and emergency contact" />
@@ -930,7 +931,15 @@ function Step2Contact({ d, u, settings }: { d: ApplicantFormData; u: (fn: (p: Ap
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Email</Label>
-            <Input type="email" placeholder="emergency@email.com" value={d.emergencyEmail} onChange={e => set('emergencyEmail')(e.target.value)} />
+            <Input
+              type="email"
+              placeholder="emergency@email.com"
+              value={d.emergencyEmail}
+              onChange={e => set('emergencyEmail')(e.target.value)}
+              onBlur={touch('emergencyEmail')}
+              className={emergencyEmailInvalid ? 'border-red-400 focus-visible:ring-red-400' : ''}
+            />
+            {emergencyEmailInvalid && <p className="text-xs text-red-500 mt-1">Please enter a valid email address</p>}
           </div>
         </div>
       </div>

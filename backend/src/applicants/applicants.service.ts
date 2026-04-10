@@ -119,9 +119,15 @@ export class ApplicantsService {
     // Always generate a Lead identifier for new records created via the admin UI.
     const leadNumber = await this.generateIdentifier('A');
 
+    // Ensure nationality is always populated — mirror publicSubmit fallback logic
+    const citizenship = (dto as any).citizenship || (dto as any).nationality;
+    const nationality = (dto as any).nationality || citizenship;
+
     const applicant = await this.prisma.applicant.create({
       data: {
         ...dto,
+        citizenship,
+        nationality,
         leadNumber,
         tier: (dto.tier as any) || 'LEAD',
         dateOfBirth: dto.dateOfBirth ? new Date(dto.dateOfBirth) : undefined,

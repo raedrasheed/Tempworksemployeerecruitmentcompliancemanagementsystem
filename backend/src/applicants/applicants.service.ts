@@ -113,9 +113,6 @@ export class ApplicantsService {
       (dto as any).agencyId = actor.agencyId;
     }
 
-    const existing = await this.prisma.applicant.findUnique({ where: { email: dto.email } });
-    if (existing) throw new ConflictException('Applicant with this email already exists');
-
     // Always generate a Lead identifier for new records created via the admin UI.
     const leadNumber = await this.generateIdentifier('A');
 
@@ -231,9 +228,6 @@ export class ApplicantsService {
         throw new BadRequestException('reCAPTCHA verification failed. Please try again.');
       }
     }
-
-    const existing = await this.prisma.applicant.findUnique({ where: { email: dto.email } });
-    if (existing) throw new ConflictException('An application with this email already exists');
 
     const { applicationNotes, applicationData, recaptchaToken: _token, ...coreData } = dto as any;
 

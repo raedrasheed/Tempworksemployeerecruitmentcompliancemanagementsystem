@@ -410,7 +410,7 @@ model Applicant {
   firstName               String
   middleName              String?
   lastName                String
-  email                   String          @unique
+  email                   String
   phone                   String
   // citizenship replaces nationality (nationality kept for backward compat)
   nationality             String?

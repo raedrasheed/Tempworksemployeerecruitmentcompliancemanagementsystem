@@ -156,7 +156,8 @@ export interface ApplicantFormData {
   euExpCountries: string;
   euExpKm: string;
   domesticExpYears: string;
-  domesticExpRegions: string;
+  domesticExpKm: string;
+  domesticExpCountry: string;
   transportTypes: string[];
   truckBrands: string[];
   otherBrand: string;
@@ -262,7 +263,8 @@ export const EMPTY_FORM: ApplicantFormData = {
   euExpCountries: '',
   euExpKm: '',
   domesticExpYears: '',
-  domesticExpRegions: '',
+  domesticExpKm: '',
+  domesticExpCountry: '',
   transportTypes: [],
   truckBrands: [],
   otherBrand: '',
@@ -1249,14 +1251,18 @@ function Step5DrivingExperience({ d, u, settings }: { d: ApplicantFormData; u: (
       {(d.drivingExpType === 'domestic' || d.drivingExpType === 'both') && (
         <div className="space-y-4">
           <SubSection title="Domestic Experience" />
-          <div className="grid md:grid-cols-2 gap-4">
+          <div className="grid md:grid-cols-3 gap-4">
             <div className="space-y-1">
               <Label className="text-xs">Years</Label>
               <Input type="number" min="0" placeholder="Years" value={d.domesticExpYears} onChange={e => set('domesticExpYears')(e.target.value)} />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Regions</Label>
-              <Input placeholder="Regions driven" value={d.domesticExpRegions} onChange={e => set('domesticExpRegions')(e.target.value)} />
+              <Label className="text-xs">Total KM</Label>
+              <Input placeholder="e.g. 100000" value={d.domesticExpKm} onChange={e => set('domesticExpKm')(e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Country</Label>
+              <CountrySelect value={d.domesticExpCountry} onChange={set('domesticExpCountry')} />
             </div>
           </div>
         </div>

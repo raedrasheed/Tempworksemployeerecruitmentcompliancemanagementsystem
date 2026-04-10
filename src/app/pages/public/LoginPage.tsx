@@ -15,6 +15,8 @@ export function LoginPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [emailTouched, setEmailTouched] = useState(false);
+  const emailInvalid = emailTouched && !!email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,9 +94,12 @@ export function LoginPage() {
                 placeholder="your.email@company.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                onBlur={() => setEmailTouched(true)}
+                className={emailInvalid ? 'border-red-400 focus-visible:ring-red-400' : ''}
                 required
                 autoComplete="email"
               />
+              {emailInvalid && <p className="text-xs text-red-500">Please enter a valid email address</p>}
             </div>
 
             {/* Password Field */}

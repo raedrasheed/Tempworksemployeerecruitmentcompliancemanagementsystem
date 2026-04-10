@@ -819,6 +819,10 @@ function Step1Personal({ d, u, jobTypes, photoFile, onPhotoChange, existingPhoto
 
 function Step2Contact({ d, u, settings }: { d: ApplicantFormData; u: (fn: (p: ApplicantFormData) => ApplicantFormData) => void; settings: FormSettings }) {
   const set = (field: keyof ApplicantFormData) => (value: any) => u(prev => ({ ...prev, [field]: value }));
+  const [touched, setTouched] = useState({ email: false, emailConfirm: false });
+  const touch = (field: 'email' | 'emailConfirm') => () => setTouched(t => ({ ...t, [field]: true }));
+  const emailInvalid = (touched.email || !!d.email) && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email);
+  const confirmMismatch = (touched.emailConfirm || !!d.emailConfirm) && d.email !== d.emailConfirm;
   return (
     <div className="space-y-8">
       <SectionTitle title="Contact Details" subtitle="Phone, email and emergency contact" />
@@ -853,13 +857,28 @@ function Step2Contact({ d, u, settings }: { d: ApplicantFormData; u: (fn: (p: Ap
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Email *</Label>
-            <Input type="email" placeholder="email@example.com" value={d.email} onChange={e => set('email')(e.target.value)} className={d.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email) ? 'border-red-400 focus-visible:ring-red-400' : ''} />
-            {d.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email) && <p className="text-xs text-red-500 mt-1">Please enter a valid email address</p>}
+            <Input
+              type="email"
+              placeholder="email@example.com"
+              value={d.email}
+              onChange={e => set('email')(e.target.value)}
+              onBlur={touch('email')}
+              className={emailInvalid ? 'border-red-400 focus-visible:ring-red-400' : ''}
+            />
+            {emailInvalid && <p className="text-xs text-red-500 mt-1">Please enter a valid email address</p>}
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Confirm Email *</Label>
-            <Input type="email" placeholder="Repeat email" value={d.emailConfirm} onChange={e => set('emailConfirm')(e.target.value)} onPaste={e => e.preventDefault()} className={d.emailConfirm && d.email !== d.emailConfirm ? 'border-red-400 focus-visible:ring-red-400' : ''} />
-            {d.emailConfirm && d.email !== d.emailConfirm && <p className="text-xs text-red-500 mt-1">Emails do not match</p>}
+            <Input
+              type="email"
+              placeholder="Repeat email"
+              value={d.emailConfirm}
+              onChange={e => set('emailConfirm')(e.target.value)}
+              onBlur={touch('emailConfirm')}
+              onPaste={e => e.preventDefault()}
+              className={confirmMismatch ? 'border-red-400 focus-visible:ring-red-400' : ''}
+            />
+            {confirmMismatch && <p className="text-xs text-red-500 mt-1">Emails do not match</p>}
           </div>
         </div>
       </div>

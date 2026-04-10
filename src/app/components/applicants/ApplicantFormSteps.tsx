@@ -62,7 +62,11 @@ export interface WorkHistoryEntry {
 export interface LanguageEntry {
   id: string;
   language: string;
-  proficiency: string;
+  motherTongue: boolean;
+  speakingLevel: string;
+  readingLevel: string;
+  writingLevel: string;
+  listeningLevel: string;
   hasCertificate: boolean;
   certificate: string;
 }
@@ -523,6 +527,8 @@ const LICENSE_CATEGORIES = ['AM', 'A1', 'A2', 'A', 'B1', 'B', 'BE', 'C1', 'C1E',
 const TRUCK_BRANDS = ['Volvo', 'Scania', 'DAF', 'MAN', 'Mercedes-Benz', 'Iveco'];
 
 const PROFICIENCY_LEVELS = ['A1 - Beginner', 'A2 - Elementary', 'B1 - Intermediate', 'B2 - Upper Intermediate', 'C1 - Advanced', 'C2 - Mastery', 'Native'];
+
+const LANGUAGES = ['Albanian', 'Arabic', 'Bosnian', 'Bulgarian', 'Chinese (Cantonese)', 'Chinese (Mandarin)', 'Croatian', 'Czech', 'Danish', 'Dutch', 'English', 'Estonian', 'Finnish', 'French', 'German', 'Greek', 'Hungarian', 'Italian', 'Latvian', 'Lithuanian', 'Macedonian', 'Maltese', 'Norwegian', 'Persian', 'Polish', 'Portuguese', 'Romanian', 'Russian', 'Serbian', 'Slovak', 'Slovenian', 'Spanish', 'Swedish', 'Turkish', 'Ukrainian', 'Urdu', 'Other'];
 
 const COMPUTER_SKILLS = ['Microsoft Office', 'Email', 'Transport Management Software', 'GPS / Navigation', 'Tachograph Software', 'Other'];
 
@@ -1522,7 +1528,7 @@ function Step8Skills({ d, u, uploadedFiles, onFilesChange }: { d: ApplicantFormD
   const addLang = () => {
     u(prev => ({
       ...prev,
-      languages: [...prev.languages, { id: crypto.randomUUID(), language: '', proficiency: '', hasCertificate: false, certificate: '' }],
+      languages: [...prev.languages, { id: crypto.randomUUID(), language: '', motherTongue: false, speakingLevel: '', readingLevel: '', writingLevel: '', listeningLevel: '', hasCertificate: false, certificate: '' }],
     }));
   };
   const updateLang = (id: string, field: keyof LanguageEntry, value: any) => {
@@ -1548,23 +1554,34 @@ function Step8Skills({ d, u, uploadedFiles, onFilesChange }: { d: ApplicantFormD
             <div className="grid md:grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs">Language</Label>
-                <Input placeholder="e.g. English" value={lang.language} onChange={e => updateLang(lang.id, 'language', e.target.value)} />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Proficiency</Label>
-                <Select value={lang.proficiency} onValueChange={v => updateLang(lang.id, 'proficiency', v)}>
-                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                <Select value={lang.language} onValueChange={v => updateLang(lang.id, 'language', v)}>
+                  <SelectTrigger><SelectValue placeholder="Select language" /></SelectTrigger>
                   <SelectContent>
-                    {PROFICIENCY_LEVELS.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
+                    {LANGUAGES.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex items-center gap-2 mt-1">
+              <div className="flex items-center gap-2 mt-5">
+                <Checkbox checked={lang.motherTongue} onCheckedChange={c => updateLang(lang.id, 'motherTongue', !!c)} />
+                <Label className="text-xs cursor-pointer">Mother Tongue</Label>
+              </div>
+              {(['Speaking', 'Reading', 'Writing', 'Listening'] as const).map(skill => (
+                <div key={skill} className="space-y-1">
+                  <Label className="text-xs">{skill}</Label>
+                  <Select value={(lang as any)[`${skill.toLowerCase()}Level`]} onValueChange={v => updateLang(lang.id, `${skill.toLowerCase()}Level` as keyof LanguageEntry, v)}>
+                    <SelectTrigger><SelectValue placeholder="Level" /></SelectTrigger>
+                    <SelectContent>
+                      {PROFICIENCY_LEVELS.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ))}
+              <div className="flex items-center gap-2 mt-1 md:col-span-2">
                 <Checkbox checked={lang.hasCertificate} onCheckedChange={c => updateLang(lang.id, 'hasCertificate', !!c)} />
                 <Label className="text-xs cursor-pointer">Has Certificate</Label>
               </div>
               {lang.hasCertificate && (
-                <div className="space-y-1">
+                <div className="space-y-1 md:col-span-2">
                   <Label className="text-xs">Certificate</Label>
                   <Input placeholder="e.g. IELTS 7.5" value={lang.certificate} onChange={e => updateLang(lang.id, 'certificate', e.target.value)} />
                 </div>

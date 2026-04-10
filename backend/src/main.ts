@@ -12,8 +12,9 @@ async function runStartupMigrations() {
   const client = new Client({ connectionString: process.env.DATABASE_URL });
   try {
     await client.connect();
-    // Drop any unique constraint on applicants.email (find by column, not by name)
-    const res = await client.query(`
+
+    // 1. Drop unique CONSTRAINTS on applicants.email
+    const constraints = await client.query(`
       SELECT con.conname
       FROM   pg_constraint con
       JOIN   pg_class       rel ON rel.oid = con.conrelid
@@ -23,12 +24,29 @@ async function runStartupMigrations() {
         AND  att.attname = 'email'
         AND  con.contype = 'u'
     `);
-    for (const row of res.rows) {
+    for (const row of constraints.rows) {
       await client.query(`ALTER TABLE applicants DROP CONSTRAINT "${row.conname}"`);
       logger.log(`Dropped unique constraint "${row.conname}" on applicants.email`);
     }
-    if (res.rows.length === 0) {
-      logger.log('applicants.email unique constraint already removed');
+
+    // 2. Drop unique INDEXES on applicants.email (Prisma may create an index not a constraint)
+    const indexes = await client.query(`
+      SELECT i.relname AS indexname
+      FROM   pg_index ix
+      JOIN   pg_class t  ON t.oid = ix.indrelid
+      JOIN   pg_class i  ON i.oid = ix.indexrelid
+      JOIN   pg_attribute a ON a.attrelid = t.oid AND a.attnum = ANY(ix.indkey)
+      WHERE  t.relname     = 'applicants'
+        AND  a.attname     = 'email'
+        AND  ix.indisunique = true
+    `);
+    for (const row of indexes.rows) {
+      await client.query(`DROP INDEX IF EXISTS "${row.indexname}"`);
+      logger.log(`Dropped unique index "${row.indexname}" on applicants.email`);
+    }
+
+    if (constraints.rows.length === 0 && indexes.rows.length === 0) {
+      logger.log('applicants.email — no unique constraint or index found');
     }
   } catch (err: any) {
     logger.error('Startup migration error: ' + (err?.message ?? err));

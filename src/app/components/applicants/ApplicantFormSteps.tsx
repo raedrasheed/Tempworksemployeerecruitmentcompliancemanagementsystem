@@ -59,6 +59,13 @@ export interface WorkHistoryEntry {
   referenceEmail: string;
 }
 
+export interface SkillEntry {
+  id: string;
+  skill: string;
+  level: string;
+  isCustom?: boolean;
+}
+
 export interface LanguageEntry {
   id: string;
   language: string;
@@ -79,6 +86,7 @@ export interface FormSettings {
   howDidYouHear: string[];
   educationLevels: string[];
   declarationText: string;
+  skills: string[];
 }
 
 export const DEFAULT_FORM_SETTINGS: FormSettings = {
@@ -89,6 +97,7 @@ export const DEFAULT_FORM_SETTINGS: FormSettings = {
   howDidYouHear: ['Facebook', 'LinkedIn', 'Job Portal', 'Friend / Referral', 'Recruitment Agency', 'Google Search', 'Company Website', 'Other'],
   educationLevels: ["Primary School", "Secondary School", "High School / A-Levels", "Vocational Training", "Associate Degree", "Bachelor's Degree", "Master's Degree", "Doctoral Degree", "Professional Certification", "Other"],
   declarationText: 'I declare that the information provided in this application is true, complete and accurate to the best of my knowledge. I understand that providing false or misleading information may result in my application being rejected or employment being terminated.',
+  skills: ['Microsoft Office', 'Email', 'GPS / Navigation', 'Transport Management Software', 'Tachograph Software', 'Teamwork', 'Communication', 'Time Management', 'Problem Solving', 'Customer Service', 'Self-motivated', 'Adaptability'],
 };
 
 export interface ApplicantFormData {
@@ -180,11 +189,10 @@ export interface ApplicantFormData {
   education: EducationEntry[];
   workHistory: WorkHistoryEntry[];
   languages: LanguageEntry[];
-  computerSkills: string[];
+  skills: SkillEntry[];
   hasFirstAid: string;
   firstAidExpiry: string;
   firstAidNoExpiry: boolean;
-  softSkills: string[];
   toolsDescription: string;
   preferredStartDate: string;
   howDidYouHear: string;
@@ -287,11 +295,10 @@ export const EMPTY_FORM: ApplicantFormData = {
   education: [],
   workHistory: [],
   languages: [],
-  computerSkills: [],
+  skills: [],
   hasFirstAid: '',
   firstAidExpiry: '',
   firstAidNoExpiry: false,
-  softSkills: [],
   toolsDescription: '',
   preferredStartDate: '',
   howDidYouHear: '',
@@ -530,9 +537,7 @@ const PROFICIENCY_LEVELS = ['A1 - Beginner', 'A2 - Elementary', 'B1 - Intermedia
 
 const LANGUAGES = ['Albanian', 'Arabic', 'Bosnian', 'Bulgarian', 'Chinese (Cantonese)', 'Chinese (Mandarin)', 'Croatian', 'Czech', 'Danish', 'Dutch', 'English', 'Estonian', 'Finnish', 'French', 'German', 'Greek', 'Hungarian', 'Italian', 'Latvian', 'Lithuanian', 'Macedonian', 'Maltese', 'Norwegian', 'Persian', 'Polish', 'Portuguese', 'Romanian', 'Russian', 'Serbian', 'Slovak', 'Slovenian', 'Spanish', 'Swedish', 'Turkish', 'Ukrainian', 'Urdu', 'Other'];
 
-const COMPUTER_SKILLS = ['Microsoft Office', 'Email', 'Transport Management Software', 'GPS / Navigation', 'Tachograph Software', 'Other'];
-
-const SOFT_SKILLS = ['Teamwork', 'Communication', 'Time Management', 'Problem Solving', 'Customer Service', 'Self-motivated', 'Adaptability'];
+const SKILL_LEVELS = ['Beginner', 'Intermediate', 'Advanced', 'Expert'];
 
 // ── Step Indicator ────────────────────────────────────────────────────────────
 
@@ -1517,13 +1522,19 @@ function Step7WorkHistory({ d, u }: { d: ApplicantFormData; u: (fn: (p: Applican
   );
 }
 
-function Step8Skills({ d, u, uploadedFiles, onFilesChange }: { d: ApplicantFormData; u: (fn: (p: ApplicantFormData) => ApplicantFormData) => void; uploadedFiles: UploadedFileItem[]; onFilesChange: (files: UploadedFileItem[]) => void }) {
+function Step8Skills({ d, u, settings, uploadedFiles, onFilesChange }: { d: ApplicantFormData; u: (fn: (p: ApplicantFormData) => ApplicantFormData) => void; settings: FormSettings; uploadedFiles: UploadedFileItem[]; onFilesChange: (files: UploadedFileItem[]) => void }) {
   const set = (field: keyof ApplicantFormData) => (value: any) => u(prev => ({ ...prev, [field]: value }));
-  const toggleSkill = (field: 'computerSkills' | 'softSkills', value: string) => {
-    u(prev => {
-      const arr = prev[field] as string[];
-      return { ...prev, [field]: arr.includes(value) ? arr.filter(x => x !== value) : [...arr, value] };
-    });
+  const addPresetSkill = (skill: string) => {
+    u(prev => ({ ...prev, skills: [...prev.skills, { id: crypto.randomUUID(), skill, level: '', isCustom: false }] }));
+  };
+  const addCustomSkill = () => {
+    u(prev => ({ ...prev, skills: [...prev.skills, { id: crypto.randomUUID(), skill: '', level: '', isCustom: true }] }));
+  };
+  const updateSkill = (id: string, field: keyof SkillEntry, value: any) => {
+    u(prev => ({ ...prev, skills: prev.skills.map(s => s.id === id ? { ...s, [field]: value } : s) }));
+  };
+  const removeSkill = (id: string) => {
+    u(prev => ({ ...prev, skills: prev.skills.filter(s => s.id !== id) }));
   };
   const addLang = () => {
     u(prev => ({
@@ -1593,16 +1604,44 @@ function Step8Skills({ d, u, uploadedFiles, onFilesChange }: { d: ApplicantFormD
           <Plus className="w-4 h-4" /> Add Language
         </button>
       </div>
-      <div className="space-y-3">
-        <SubSection title="Computer Skills" />
-        <div className="flex flex-wrap gap-2">
-          {COMPUTER_SKILLS.map(s => (
-            <label key={s} className={`px-3 py-1.5 border-2 rounded-lg cursor-pointer text-sm transition-all ${d.computerSkills.includes(s) ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}>
-              <Checkbox checked={d.computerSkills.includes(s)} onCheckedChange={() => toggleSkill('computerSkills', s)} className="sr-only" />
-              {s}
-            </label>
-          ))}
-        </div>
+      <div className="space-y-4">
+        <SubSection title="Skills" />
+        {d.skills.map(entry => (
+          <div key={entry.id} className="flex items-center gap-2">
+            {entry.isCustom ? (
+              <Input
+                value={entry.skill}
+                onChange={e => updateSkill(entry.id, 'skill', e.target.value)}
+                placeholder="Skill name"
+                className="flex-1"
+              />
+            ) : (
+              <span className="flex-1 text-sm px-3 py-2 bg-blue-50 border border-blue-200 rounded-md">{entry.skill}</span>
+            )}
+            <Select value={entry.level} onValueChange={v => updateSkill(entry.id, 'level', v)}>
+              <SelectTrigger className="w-36"><SelectValue placeholder="Level" /></SelectTrigger>
+              <SelectContent>
+                {SKILL_LEVELS.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <button type="button" onClick={() => removeSkill(entry.id)} className="p-1 text-gray-400 hover:text-red-500 flex-shrink-0">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        ))}
+        {(settings.skills ?? []).filter(s => !d.skills.some(e => e.skill === s)).length > 0 && (
+          <div className="flex flex-wrap gap-2 pt-1">
+            {(settings.skills ?? []).filter(s => !d.skills.some(e => e.skill === s)).map(s => (
+              <button key={s} type="button" onClick={() => addPresetSkill(s)}
+                className="px-3 py-1.5 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-600 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-all">
+                + {s}
+              </button>
+            ))}
+          </div>
+        )}
+        <button type="button" onClick={addCustomSkill} className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-blue-300 rounded-lg text-blue-600 text-sm font-medium hover:border-blue-500 hover:bg-blue-50">
+          <Plus className="w-4 h-4" /> Add Custom Skill
+        </button>
       </div>
       <div className="space-y-3">
         <SubSection title="First Aid Certificate" />
@@ -1619,17 +1658,6 @@ function Step8Skills({ d, u, uploadedFiles, onFilesChange }: { d: ApplicantFormD
             <InlineDocUpload label="Upload First Aid Certificate" sectionKey="firstAid" uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />
           </div>
         )}
-      </div>
-      <div className="space-y-3">
-        <SubSection title="Soft Skills" />
-        <div className="flex flex-wrap gap-2">
-          {SOFT_SKILLS.map(s => (
-            <label key={s} className={`px-3 py-1.5 border-2 rounded-lg cursor-pointer text-sm transition-all ${d.softSkills.includes(s) ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}>
-              <Checkbox checked={d.softSkills.includes(s)} onCheckedChange={() => toggleSkill('softSkills', s)} className="sr-only" />
-              {s}
-            </label>
-          ))}
-        </div>
       </div>
       <div className="space-y-2">
         <SubSection title="Tools & Equipment" />
@@ -1893,7 +1921,7 @@ export function ApplicantFormSteps({
       {actualTab === 5 && <Step5DrivingExperience d={d} u={u} settings={settings} />}
       {actualTab === 6 && <Step6Education d={d} u={u} settings={settings} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />}
       {actualTab === 7 && <Step7WorkHistory d={d} u={u} />}
-      {actualTab === 8 && <Step8Skills d={d} u={u} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />}
+      {actualTab === 8 && <Step8Skills d={d} u={u} settings={settings} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />}
       {actualTab === 9 && <Step9Additional d={d} u={u} settings={settings} />}
       {actualTab === 10 && <Step10Documents uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />}
       {actualTab === 11 && <Step11Review d={d} u={u} settings={settings} photoFile={photoFile} existingPhotoUrl={existingPhotoUrl} />}

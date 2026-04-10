@@ -1,5 +1,5 @@
 import { Link } from 'react-router';
-import { FileType, Bell, Shield, Activity, Layers, Briefcase, Palette, Trash2, Database, Server, Building2 } from 'lucide-react';
+import { FileType, Bell, Shield, Activity, Layers, Briefcase, Palette, Trash2, Database, Server, Building2, Star } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { API_URL } from '../../services/api';
@@ -156,6 +156,28 @@ export function Settings() {
                       <Badge className="bg-[#EF4444]">Admin Only</Badge>
                     </div>
                     <CardDescription>Company name and logo shown across the platform</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+            </Card>
+          </Link>
+        )}
+
+        {/* Skills List */}
+        {isAdmin && (
+          <Link to="/dashboard/settings/skills">
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full border-amber-200 hover:border-amber-400">
+              <CardHeader>
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-lg bg-amber-100 flex items-center justify-center">
+                    <Star className="w-6 h-6 text-amber-600" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="text-amber-800">Skills List</CardTitle>
+                      <Badge className="bg-[#EF4444]">Admin Only</Badge>
+                    </div>
+                    <CardDescription>Manage predefined skills shown in the applicant form</CardDescription>
                   </div>
                 </div>
               </CardHeader>

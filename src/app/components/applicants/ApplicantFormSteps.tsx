@@ -1317,23 +1317,39 @@ function Step5DrivingExperience({ d, u, settings }: { d: ApplicantFormData; u: (
       )}
       <div className="space-y-3">
         <SubSection title="Transport Types" />
-        <div className="grid grid-cols-2 gap-2">
-          {(settings.transportTypes ?? []).map(t => (
-            <label key={t} className={`flex items-center gap-2 p-3 border-2 rounded-lg cursor-pointer text-sm transition-all ${d.transportTypes.includes(t) ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}>
-              <Checkbox checked={d.transportTypes.includes(t)} onCheckedChange={() => toggle('transportTypes', t)} />
+        <div className="flex flex-wrap gap-2">
+          {d.transportTypes.map(t => (
+            <span key={t} className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-lg text-sm">
               {t}
-            </label>
+              <button type="button" onClick={() => toggle('transportTypes', t)} className="text-gray-400 hover:text-red-500 ml-1">
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          ))}
+          {(settings.transportTypes ?? []).filter(t => !d.transportTypes.includes(t)).map(t => (
+            <button key={t} type="button" onClick={() => toggle('transportTypes', t)}
+              className="px-3 py-1.5 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-600 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-all">
+              + {t}
+            </button>
           ))}
         </div>
       </div>
       <div className="space-y-3">
         <SubSection title="Truck Brands" />
         <div className="flex flex-wrap gap-2">
-          {(settings.truckBrands ?? []).map(b => (
-            <label key={b} className={`px-3 py-1.5 border-2 rounded-lg cursor-pointer text-sm transition-all ${d.truckBrands.includes(b) ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}>
-              <Checkbox checked={d.truckBrands.includes(b)} onCheckedChange={() => toggle('truckBrands', b)} className="sr-only" />
+          {d.truckBrands.map(b => (
+            <span key={b} className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-lg text-sm">
               {b}
-            </label>
+              <button type="button" onClick={() => toggle('truckBrands', b)} className="text-gray-400 hover:text-red-500 ml-1">
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          ))}
+          {(settings.truckBrands ?? []).filter(b => !d.truckBrands.includes(b)).map(b => (
+            <button key={b} type="button" onClick={() => toggle('truckBrands', b)}
+              className="px-3 py-1.5 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-600 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-all">
+              + {b}
+            </button>
           ))}
         </div>
         <Input placeholder="Other brands" value={d.otherBrand} onChange={e => set('otherBrand')(e.target.value)} />
@@ -1352,22 +1368,38 @@ function Step5DrivingExperience({ d, u, settings }: { d: ApplicantFormData; u: (
       <div className="space-y-3">
         <SubSection title="GPS Systems" />
         <div className="flex flex-wrap gap-2">
-          {(settings.gpsSystemTypes ?? []).map(g => (
-            <label key={g} className={`px-3 py-1.5 border-2 rounded-lg cursor-pointer text-sm transition-all ${d.selectedGpsSystems.includes(g) ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}>
-              <Checkbox checked={d.selectedGpsSystems.includes(g)} onCheckedChange={() => toggle('selectedGpsSystems', g)} className="sr-only" />
+          {d.selectedGpsSystems.map(g => (
+            <span key={g} className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-lg text-sm">
               {g}
-            </label>
+              <button type="button" onClick={() => toggle('selectedGpsSystems', g)} className="text-gray-400 hover:text-red-500 ml-1">
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          ))}
+          {(settings.gpsSystemTypes ?? []).filter(g => !d.selectedGpsSystems.includes(g)).map(g => (
+            <button key={g} type="button" onClick={() => toggle('selectedGpsSystems', g)}
+              className="px-3 py-1.5 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-600 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-all">
+              + {g}
+            </button>
           ))}
         </div>
       </div>
       <div className="space-y-3">
         <SubSection title="Trailer Types" />
-        <div className="grid grid-cols-2 gap-2">
-          {(settings.trailerTypes ?? []).map(t => (
-            <label key={t} className={`flex items-center gap-2 p-3 border-2 rounded-lg cursor-pointer text-sm transition-all ${d.trailerTypes.includes(t) ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}>
-              <Checkbox checked={d.trailerTypes.includes(t)} onCheckedChange={() => toggle('trailerTypes', t)} />
+        <div className="flex flex-wrap gap-2">
+          {d.trailerTypes.map(t => (
+            <span key={t} className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-lg text-sm">
               {t}
-            </label>
+              <button type="button" onClick={() => toggle('trailerTypes', t)} className="text-gray-400 hover:text-red-500 ml-1">
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          ))}
+          {(settings.trailerTypes ?? []).filter(t => !d.trailerTypes.includes(t)).map(t => (
+            <button key={t} type="button" onClick={() => toggle('trailerTypes', t)}
+              className="px-3 py-1.5 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-600 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-all">
+              + {t}
+            </button>
           ))}
         </div>
         <div className="grid md:grid-cols-2 gap-3 mt-2">

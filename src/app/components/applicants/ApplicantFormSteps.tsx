@@ -87,6 +87,9 @@ export interface FormSettings {
   educationLevels: string[];
   declarationText: string;
   skills: string[];
+  transportTypes: string[];
+  truckBrands: string[];
+  trailerTypes: string[];
 }
 
 export const DEFAULT_FORM_SETTINGS: FormSettings = {
@@ -95,6 +98,9 @@ export const DEFAULT_FORM_SETTINGS: FormSettings = {
   drivingQualifications: ['Tachograph Card', 'C95 / CPC Card', 'ADR Certificate', 'Medical Certificate', 'DVLA Check', 'Transport Manager CPC'],
   gpsSystemTypes: ['TomTom', 'Garmin', 'Webfleet', 'Sygic', 'HERE', 'Google Maps', 'Other'],
   howDidYouHear: ['Facebook', 'LinkedIn', 'Job Portal', 'Friend / Referral', 'Recruitment Agency', 'Google Search', 'Company Website', 'Other'],
+  transportTypes: ['International', 'Domestic', 'Bilateral', 'Cabotage', 'Hazardous', 'Refrigerated'],
+  truckBrands: ['Volvo', 'Scania', 'DAF', 'MAN', 'Mercedes-Benz', 'Iveco'],
+  trailerTypes: ['Curtain Sider', 'Reefer', 'Tanker', 'Container', 'Walking Floor', 'Lowdeck', 'Mega', 'Swap Body'],
   educationLevels: ["Primary School", "Secondary School", "High School / A-Levels", "Vocational Training", "Associate Degree", "Bachelor's Degree", "Master's Degree", "Doctoral Degree", "Professional Certification", "Other"],
   declarationText: 'I declare that the information provided in this application is true, complete and accurate to the best of my knowledge. I understand that providing false or misleading information may result in my application being rejected or employment being terminated.',
   skills: ['Microsoft Office', 'Email', 'GPS / Navigation', 'Transport Management Software', 'Tachograph Software', 'Teamwork', 'Communication', 'Time Management', 'Problem Solving', 'Customer Service', 'Self-motivated', 'Adaptability'],
@@ -531,7 +537,6 @@ const PHONE_CODES: { label: string; code: string; iso: string }[] = [
 
 const LICENSE_CATEGORIES = ['AM', 'A1', 'A2', 'A', 'B1', 'B', 'BE', 'C1', 'C1E', 'C', 'CE', 'D1', 'D1E', 'D', 'DE', 'T'];
 
-const TRUCK_BRANDS = ['Volvo', 'Scania', 'DAF', 'MAN', 'Mercedes-Benz', 'Iveco'];
 
 const PROFICIENCY_LEVELS = ['A1 - Beginner', 'A2 - Elementary', 'B1 - Intermediate', 'B2 - Upper Intermediate', 'C1 - Advanced', 'C2 - Mastery', 'Native'];
 
@@ -1313,7 +1318,7 @@ function Step5DrivingExperience({ d, u, settings }: { d: ApplicantFormData; u: (
       <div className="space-y-3">
         <SubSection title="Transport Types" />
         <div className="grid grid-cols-2 gap-2">
-          {['International', 'Domestic', 'Bilateral', 'Cabotage', 'Hazardous', 'Refrigerated'].map(t => (
+          {(settings.transportTypes ?? []).map(t => (
             <label key={t} className={`flex items-center gap-2 p-3 border-2 rounded-lg cursor-pointer text-sm transition-all ${d.transportTypes.includes(t) ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}>
               <Checkbox checked={d.transportTypes.includes(t)} onCheckedChange={() => toggle('transportTypes', t)} />
               {t}
@@ -1324,7 +1329,7 @@ function Step5DrivingExperience({ d, u, settings }: { d: ApplicantFormData; u: (
       <div className="space-y-3">
         <SubSection title="Truck Brands" />
         <div className="flex flex-wrap gap-2">
-          {TRUCK_BRANDS.map(b => (
+          {(settings.truckBrands ?? []).map(b => (
             <label key={b} className={`px-3 py-1.5 border-2 rounded-lg cursor-pointer text-sm transition-all ${d.truckBrands.includes(b) ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}>
               <Checkbox checked={d.truckBrands.includes(b)} onCheckedChange={() => toggle('truckBrands', b)} className="sr-only" />
               {b}
@@ -1358,7 +1363,7 @@ function Step5DrivingExperience({ d, u, settings }: { d: ApplicantFormData; u: (
       <div className="space-y-3">
         <SubSection title="Trailer Types" />
         <div className="grid grid-cols-2 gap-2">
-          {['Curtain Sider', 'Reefer', 'Tanker', 'Container', 'Walking Floor', 'Lowdeck', 'Mega', 'Swap Body'].map(t => (
+          {(settings.trailerTypes ?? []).map(t => (
             <label key={t} className={`flex items-center gap-2 p-3 border-2 rounded-lg cursor-pointer text-sm transition-all ${d.trailerTypes.includes(t) ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}>
               <Checkbox checked={d.trailerTypes.includes(t)} onCheckedChange={() => toggle('trailerTypes', t)} />
               {t}

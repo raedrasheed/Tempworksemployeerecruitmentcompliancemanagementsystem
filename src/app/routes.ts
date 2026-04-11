@@ -80,6 +80,9 @@ import { DatabaseBackup }   from './pages/settings/DatabaseBackup';
 import { SystemInformation } from './pages/settings/SystemInformation';
 import { BrandingSettings } from './pages/settings/BrandingSettings';
 import { SkillsSettings } from './pages/settings/SkillsSettings';
+import { TransportTypesSettings } from './pages/settings/TransportTypesSettings';
+import { TruckBrandsSettings } from './pages/settings/TruckBrandsSettings';
+import { TrailerTypesSettings } from './pages/settings/TrailerTypesSettings';
 
 // Pipeline pages
 import { WorkflowsPage } from './pages/pipelines/WorkflowsPage';
@@ -247,6 +250,9 @@ export const router = createBrowserRouter([
       { path: 'settings/system-information', Component: SystemInformation },
       { path: 'settings/branding', Component: BrandingSettings },
       { path: 'settings/skills', Component: SkillsSettings },
+      { path: 'settings/transport-types', Component: TransportTypesSettings },
+      { path: 'settings/truck-brands', Component: TruckBrandsSettings },
+      { path: 'settings/trailer-types', Component: TrailerTypesSettings },
 
       // Profile routes
       { path: 'profile', Component: Profile },

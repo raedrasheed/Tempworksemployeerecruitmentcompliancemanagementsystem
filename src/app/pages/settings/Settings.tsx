@@ -1,5 +1,5 @@
 import { Link } from 'react-router';
-import { FileType, Bell, Shield, Activity, Layers, Briefcase, Palette, Trash2, Database, Server, Building2, Star } from 'lucide-react';
+import { FileType, Bell, Shield, Activity, Layers, Briefcase, Palette, Trash2, Database, Server, Building2, Star, Truck, Tag, GitBranch } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { API_URL } from '../../services/api';
@@ -178,6 +178,72 @@ export function Settings() {
                       <Badge className="bg-[#EF4444]">Admin Only</Badge>
                     </div>
                     <CardDescription>Manage predefined skills shown in the applicant form</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+            </Card>
+          </Link>
+        )}
+
+        {/* Transport Types */}
+        {isAdmin && (
+          <Link to="/dashboard/settings/transport-types">
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full border-blue-200 hover:border-blue-400">
+              <CardHeader>
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
+                    <GitBranch className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="text-blue-800">Transport Types</CardTitle>
+                      <Badge className="bg-[#EF4444]">Admin Only</Badge>
+                    </div>
+                    <CardDescription>Manage transport type options in the applicant form</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+            </Card>
+          </Link>
+        )}
+
+        {/* Truck Brands */}
+        {isAdmin && (
+          <Link to="/dashboard/settings/truck-brands">
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full border-blue-200 hover:border-blue-400">
+              <CardHeader>
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
+                    <Truck className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="text-blue-800">Truck Brands</CardTitle>
+                      <Badge className="bg-[#EF4444]">Admin Only</Badge>
+                    </div>
+                    <CardDescription>Manage truck brand options in the applicant form</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+            </Card>
+          </Link>
+        )}
+
+        {/* Trailer Types */}
+        {isAdmin && (
+          <Link to="/dashboard/settings/trailer-types">
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full border-blue-200 hover:border-blue-400">
+              <CardHeader>
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
+                    <Tag className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="text-blue-800">Trailer Types</CardTitle>
+                      <Badge className="bg-[#EF4444]">Admin Only</Badge>
+                    </div>
+                    <CardDescription>Manage trailer type options in the applicant form</CardDescription>
                   </div>
                 </div>
               </CardHeader>

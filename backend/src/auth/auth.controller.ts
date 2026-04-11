@@ -144,11 +144,12 @@ export class AuthController {
   @Roles('System Admin', 'HR Manager')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Admin-initiated password reset for a user' })
-  adminResetPassword(
+  async adminResetPassword(
     @Param('userId') userId: string,
     @CurrentUser('id') actorId: string,
   ) {
-    return this.authService.adminResetPassword(userId, actorId);
+    await this.authService.adminResetPassword(userId, actorId);
+    return { message: 'Password reset email sent successfully' };
   }
 
   // ---------------------------------------------------------------------------
@@ -160,10 +161,11 @@ export class AuthController {
   @Roles('System Admin', 'HR Manager')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Resend activation email to a PENDING/INACTIVE user' })
-  resendActivation(
+  async resendActivation(
     @Param('userId') userId: string,
     @CurrentUser('id') actorId: string,
   ) {
-    return this.authService.resendActivation(userId, actorId);
+    await this.authService.resendActivation(userId, actorId);
+    return { message: 'Activation email resent successfully' };
   }
 }

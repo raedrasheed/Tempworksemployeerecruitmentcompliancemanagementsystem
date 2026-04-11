@@ -134,23 +134,14 @@ export class EmailService {
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>${title}</title>
-  <style>
-    body { margin:0; padding:0; background:#f4f6f9; font-family:Arial,sans-serif; color:#333; }
-    .wrapper { max-width:600px; margin:40px auto; background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,.08); }
-    .header { background:#1a56db; padding:24px 32px; }
-    .header h1 { margin:0; color:#fff; font-size:22px; }
-    .content { padding:32px; line-height:1.6; }
-    .content p { margin:0 0 16px; }
-    .btn { display:inline-block; margin:16px 0; padding:12px 28px; background:#1a56db; color:#fff; text-decoration:none; border-radius:6px; font-weight:bold; font-size:15px; }
-    .footer { background:#f4f6f9; padding:20px 32px; font-size:12px; color:#666; text-align:center; }
-    .notice { background:#fff8e1; border-left:4px solid #f59e0b; padding:12px 16px; margin:16px 0; border-radius:4px; font-size:13px; }
-  </style>
 </head>
-<body>
-  <div class="wrapper">
-    <div class="header"><h1>TempWorks</h1></div>
-    <div class="content">${body}</div>
-    <div class="footer">
+<body style="margin:0;padding:0;background:#f4f6f9;font-family:Arial,sans-serif;color:#333;">
+  <div style="max-width:600px;margin:40px auto;background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08);">
+    <div style="background:#1a56db;padding:24px 32px;">
+      <h1 style="margin:0;color:#ffffff;font-size:22px;">TempWorks</h1>
+    </div>
+    <div style="padding:32px;line-height:1.6;">${body}</div>
+    <div style="background:#f4f6f9;padding:20px 32px;font-size:12px;color:#666;text-align:center;">
       &copy; ${new Date().getFullYear()} TempWorks. Automated message — do not reply.<br/>
       If you did not request this, contact your administrator.
     </div>
@@ -159,15 +150,23 @@ export class EmailService {
 </html>`;
   }
 
+  private btn(text: string, url: string): string {
+    return `<a href="${url}" style="display:inline-block;margin:16px 0;padding:12px 28px;background:#1a56db;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:bold;font-size:15px;">${text}</a>`;
+  }
+
+  private notice(text: string): string {
+    return `<p style="background:#fff8e1;border-left:4px solid #f59e0b;padding:12px 16px;margin:16px 0;border-radius:4px;font-size:13px;">${text}</p>`;
+  }
+
   private buildActivationTemplate(name: string, url: string): string {
     return this.baseTemplate('Activate Your Account', `
-      <p>Hello <strong>${this.escape(name)}</strong>,</p>
-      <p>Welcome to TempWorks! Your account has been created and is ready to activate.</p>
-      <p>Click the button below to set your password and activate your account:</p>
-      <a href="${url}" class="btn">Activate My Account</a>
-      <p class="notice">This link expires in <strong>60 minutes</strong>. Contact your admin to resend if it expires.</p>
-      <p>If the button doesn't work, copy this link into your browser:</p>
-      <p style="word-break:break-all;font-size:13px;color:#555;">${url}</p>
+      <p style="margin:0 0 16px;">Hello <strong>${this.escape(name)}</strong>,</p>
+      <p style="margin:0 0 16px;">Welcome to TempWorks! Your account has been created and is ready to activate.</p>
+      <p style="margin:0 0 16px;">Click the button below to set your password and activate your account:</p>
+      ${this.btn('Activate My Account', url)}
+      ${this.notice('This link expires in <strong>60 minutes</strong>. Contact your admin to resend if it expires.')}
+      <p style="margin:16px 0 8px;">If the button doesn't work, copy this link into your browser:</p>
+      <p style="word-break:break-all;font-size:13px;"><a href="${url}" style="color:#1a56db;">${url}</a></p>
     `);
   }
 
@@ -176,30 +175,30 @@ export class EmailService {
       ? 'An administrator has initiated a password reset for your account.'
       : 'We received a request to reset your TempWorks password.';
     return this.baseTemplate('Reset Your Password', `
-      <p>Hello <strong>${this.escape(name)}</strong>,</p>
-      <p>${intro}</p>
-      <a href="${url}" class="btn">Reset My Password</a>
-      <p class="notice">This link expires in <strong>60 minutes</strong>.</p>
-      <p>If you didn't request this, ignore this email or contact your admin.</p>
-      <p style="word-break:break-all;font-size:13px;color:#555;">${url}</p>
+      <p style="margin:0 0 16px;">Hello <strong>${this.escape(name)}</strong>,</p>
+      <p style="margin:0 0 16px;">${intro}</p>
+      ${this.btn('Reset My Password', url)}
+      ${this.notice('This link expires in <strong>60 minutes</strong>.')}
+      <p style="margin:16px 0 8px;">If you didn't request this, ignore this email or contact your admin.</p>
+      <p style="word-break:break-all;font-size:13px;"><a href="${url}" style="color:#1a56db;">${url}</a></p>
     `);
   }
 
   private buildPasswordExpiredTemplate(name: string, url: string): string {
     return this.baseTemplate('Password Expired', `
-      <p>Hello <strong>${this.escape(name)}</strong>,</p>
-      <p>Your TempWorks password has expired. Please log in and set a new one.</p>
-      <a href="${url}" class="btn">Go to Login</a>
-      <p class="notice">Passwords expire every 30 days. Please choose a strong, unique password.</p>
+      <p style="margin:0 0 16px;">Hello <strong>${this.escape(name)}</strong>,</p>
+      <p style="margin:0 0 16px;">Your TempWorks password has expired. Please log in and set a new one.</p>
+      ${this.btn('Go to Login', url)}
+      ${this.notice('Passwords expire every 30 days. Please choose a strong, unique password.')}
     `);
   }
 
   private buildAccountLockedTemplate(name: string): string {
     return this.baseTemplate('Account Temporarily Locked', `
-      <p>Hello <strong>${this.escape(name)}</strong>,</p>
-      <p>Your TempWorks account has been <strong>temporarily locked</strong> due to multiple failed login attempts.</p>
-      <p class="notice">It will automatically unlock after <strong>30 minutes</strong>.</p>
-      <p>If you did not attempt to log in, contact your administrator immediately.</p>
+      <p style="margin:0 0 16px;">Hello <strong>${this.escape(name)}</strong>,</p>
+      <p style="margin:0 0 16px;">Your TempWorks account has been <strong>temporarily locked</strong> due to multiple failed login attempts.</p>
+      ${this.notice('It will automatically unlock after <strong>30 minutes</strong>.')}
+      <p style="margin:0 0 16px;">If you did not attempt to log in, contact your administrator immediately.</p>
     `);
   }
 

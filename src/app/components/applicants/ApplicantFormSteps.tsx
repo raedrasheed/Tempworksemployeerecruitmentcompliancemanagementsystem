@@ -1262,6 +1262,21 @@ function Step5DrivingExperience({ d, u, settings }: { d: ApplicantFormData; u: (
       return { ...prev, [field]: arr.includes(value) ? arr.filter(x => x !== value) : [...arr, value] };
     });
   };
+  const addCustom = (field: 'transportTypes' | 'truckBrands' | 'trailerTypes', value: string) => {
+    const v = value.trim();
+    if (!v) return;
+    u(prev => {
+      const arr = prev[field] as string[];
+      if (arr.includes(v)) return prev;
+      return { ...prev, [field]: [...arr, v] };
+    });
+  };
+  const [customInputs, setCustomInputs] = useState({ transportTypes: '', truckBrands: '', trailerTypes: '' });
+  const setCustom = (field: keyof typeof customInputs) => (val: string) => setCustomInputs(p => ({ ...p, [field]: val }));
+  const confirmCustom = (field: 'transportTypes' | 'truckBrands' | 'trailerTypes') => {
+    addCustom(field, customInputs[field]);
+    setCustomInputs(p => ({ ...p, [field]: '' }));
+  };
 
   return (
     <div className="space-y-8">
@@ -1333,6 +1348,14 @@ function Step5DrivingExperience({ d, u, settings }: { d: ApplicantFormData; u: (
             </button>
           ))}
         </div>
+        <div className="flex gap-2">
+          <Input placeholder="+ Add custom type" value={customInputs.transportTypes} onChange={e => setCustom('transportTypes')(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && confirmCustom('transportTypes')} className="text-sm" />
+          {customInputs.transportTypes.trim() && (
+            <button type="button" onClick={() => confirmCustom('transportTypes')}
+              className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">Add</button>
+          )}
+        </div>
       </div>
       <div className="space-y-3">
         <SubSection title="Truck Brands" />
@@ -1352,7 +1375,14 @@ function Step5DrivingExperience({ d, u, settings }: { d: ApplicantFormData; u: (
             </button>
           ))}
         </div>
-        <Input placeholder="Other brands" value={d.otherBrand} onChange={e => set('otherBrand')(e.target.value)} />
+        <div className="flex gap-2">
+          <Input placeholder="+ Add custom brand" value={customInputs.truckBrands} onChange={e => setCustom('truckBrands')(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && confirmCustom('truckBrands')} className="text-sm" />
+          {customInputs.truckBrands.trim() && (
+            <button type="button" onClick={() => confirmCustom('truckBrands')}
+              className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">Add</button>
+          )}
+        </div>
       </div>
       <div className="space-y-3">
         <SubSection title="Gearbox Type" />
@@ -1401,6 +1431,14 @@ function Step5DrivingExperience({ d, u, settings }: { d: ApplicantFormData; u: (
               + {t}
             </button>
           ))}
+        </div>
+        <div className="flex gap-2">
+          <Input placeholder="+ Add custom trailer type" value={customInputs.trailerTypes} onChange={e => setCustom('trailerTypes')(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && confirmCustom('trailerTypes')} className="text-sm" />
+          {customInputs.trailerTypes.trim() && (
+            <button type="button" onClick={() => confirmCustom('trailerTypes')}
+              className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">Add</button>
+          )}
         </div>
         <div className="grid md:grid-cols-2 gap-3 mt-2">
           <Input placeholder="Most used trailer" value={d.mostUsedTrailer} onChange={e => set('mostUsedTrailer')(e.target.value)} />

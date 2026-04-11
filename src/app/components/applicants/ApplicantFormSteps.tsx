@@ -1737,12 +1737,6 @@ function Step9Additional({ d, u, settings }: { d: ApplicantFormData; u: (fn: (p:
             <span className="text-sm font-medium">Willing to relocate</span>
           </label>
         </div>
-        {d.willingToRelocate && (
-          <div className="space-y-1 md:col-span-2">
-            <Label className="text-xs">Preferred Locations</Label>
-            <Input placeholder="Cities / countries" value={d.preferredLocations} onChange={e => set('preferredLocations')(e.target.value)} />
-          </div>
-        )}
         <div className="space-y-2 md:col-span-2">
           <Label className="text-xs">Work Regime</Label>
           <div className="flex gap-4">
@@ -1900,7 +1894,6 @@ ${d.skills.length > 0 ? section('Skills', `<div class="grid">${d.skills.map(s =>
 ${section('Additional Information', `<div class="grid">
   ${field('Preferred Start Date', d.preferredStartDate)}${field('Availability', d.availability)}
   ${field('Annual Salary Expectation (EUR)', d.salaryExpectation)}${field('Willing to Relocate', d.willingToRelocate)}
-  ${d.willingToRelocate ? field('Preferred Locations', d.preferredLocations) : ''}
   ${field('Weekend Driving', d.weekendDriving)}${field('Night Driving', d.nightDriving)}
   ${field('How did you hear', d.howDidYouHear)}
 </div>`)}
@@ -2108,7 +2101,6 @@ function Step11Review({ d, u, settings, photoFile, existingPhotoUrl, uploadedFil
           <ReviewField label="Availability" value={d.availability} />
           <ReviewField label="Annual Salary Expectation (EUR)" value={d.salaryExpectation} />
           <ReviewField label="Willing to Relocate" value={d.willingToRelocate} />
-          {d.willingToRelocate && <ReviewField label="Preferred Locations" value={d.preferredLocations} />}
           <ReviewField label="Weekend Driving" value={d.weekendDriving} />
           <ReviewField label="Night Driving" value={d.nightDriving} />
           <ReviewField label="How did you hear about us" value={d.howDidYouHear} />

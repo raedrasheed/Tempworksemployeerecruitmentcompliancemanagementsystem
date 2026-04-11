@@ -842,7 +842,7 @@ function Step1Personal({ d, u, jobTypes, photoFile, onPhotoChange, existingPhoto
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Full Address *</Label>
-              <AddressForm label="" value={d.abroadAddress} onChange={set('abroadAddress')} />
+              <AddressForm label="" value={d.abroadAddress ?? { ...EMPTY_ADDRESS }} onChange={set('abroadAddress')} />
             </div>
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-1">

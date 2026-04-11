@@ -1,4 +1,5 @@
-import { useState, type ReactNode } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
+import { settingsApi } from '../../services/api';
 import { User, Phone, Shield, CreditCard, Briefcase, GraduationCap, Star, Info, FileText, CheckCircle2, Check, Upload, Plus, X, Trash2 } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -1889,8 +1890,20 @@ function Step9Additional({ d, u, settings }: { d: ApplicantFormData; u: (fn: (p:
   );
 }
 
+const FALLBACK_DOC_TYPES = ['Passport', "Driver's License", 'Tachograph Card', 'C95 / CPC Card', 'ADR Certificate', 'Visa', 'Work Permit', 'Residence Card', 'Medical Certificate', 'First Aid Certificate', 'Other'];
+
 function Step10Documents({ uploadedFiles, onFilesChange }: { uploadedFiles: UploadedFileItem[]; onFilesChange: (files: UploadedFileItem[]) => void }) {
-  const DOC_TYPES = ['Passport', "Driver's License", 'Tachograph Card', 'C95 / CPC Card', 'ADR Certificate', 'Visa', 'Work Permit', 'Residence Card', 'Medical Certificate', 'First Aid Certificate', 'Other'];
+  const [docTypes, setDocTypes] = useState<string[]>(FALLBACK_DOC_TYPES);
+
+  useEffect(() => {
+    settingsApi.getDocumentTypes()
+      .then((data: any[]) => {
+        const names = data.filter(d => d.isActive !== false).map(d => d.name).filter(Boolean);
+        if (names.length > 0) setDocTypes(names);
+      })
+      .catch(() => {});
+  }, []);
+
   const addDoc = () => {
     onFilesChange([...uploadedFiles, { id: crypto.randomUUID(), type: '', file: null }]);
   };
@@ -1922,7 +1935,7 @@ function Step10Documents({ uploadedFiles, onFilesChange }: { uploadedFiles: Uplo
                 <Select value={item.type} onValueChange={type => updateItem(item.id, { type })}>
                   <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
                   <SelectContent>
-                    {DOC_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                    {docTypes.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                   </SelectContent>
                 </Select>
               )}

@@ -115,6 +115,7 @@ export interface ApplicantFormData {
   dateOfBirth: string;
   gender: string;
   citizenship: string;
+  otherCitizenships: string[];
   countryOfBirth: string;
   cityOfBirth: string;
   homeAddress: AddressData;
@@ -226,6 +227,7 @@ export const EMPTY_FORM: ApplicantFormData = {
   dateOfBirth: '',
   gender: '',
   citizenship: '',
+  otherCitizenships: [],
   countryOfBirth: '',
   cityOfBirth: '',
   homeAddress: { ...EMPTY_ADDRESS },
@@ -791,9 +793,40 @@ function Step1Personal({ d, u, jobTypes, photoFile, onPhotoChange, existingPhoto
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-1">
+          <div className="space-y-1 md:col-span-2">
             <Label className="text-xs">Citizenship *</Label>
-            <CountrySelect value={d.citizenship} onChange={set('citizenship')} placeholder="Select citizenship" />
+            <div className="space-y-2">
+              <CountrySelect value={d.citizenship} onChange={set('citizenship')} placeholder="Select citizenship" />
+              {(d.otherCitizenships ?? []).map((c, idx) => (
+                <div key={idx} className="flex items-center gap-2">
+                  <div className="flex-1">
+                    <CountrySelect
+                      value={c}
+                      onChange={v => {
+                        const updated = [...(d.otherCitizenships ?? [])];
+                        updated[idx] = v;
+                        set('otherCitizenships')(updated);
+                      }}
+                      placeholder="Select additional citizenship"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => set('otherCitizenships')((d.otherCitizenships ?? []).filter((_, i) => i !== idx))}
+                    className="p-1.5 text-gray-400 hover:text-red-500 shrink-0"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => set('otherCitizenships')([...(d.otherCitizenships ?? []), ''])}
+                className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-800 mt-1"
+              >
+                <Plus className="w-3.5 h-3.5" /> Add another citizenship
+              </button>
+            </div>
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Country of Birth</Label>
@@ -2009,7 +2042,7 @@ async function printApplicationSummary(d: ApplicantFormData, uploadedFiles: Uplo
 <div class="grid">
 ${section('Personal Information', `<div class="grid">
   ${field('First Name', d.firstName)}${field('Middle Name', d.middleName)}${field('Last Name', d.lastName)}
-  ${field('Date of Birth', d.dateOfBirth)}${field('Gender', d.gender)}${field('Citizenship', d.citizenship)}
+  ${field('Date of Birth', d.dateOfBirth)}${field('Gender', d.gender)}${field('Citizenship', [d.citizenship, ...(d.otherCitizenships ?? [])].filter(Boolean).join(', '))}
   ${field('Country of Birth', d.countryOfBirth)}${field('City of Birth', d.cityOfBirth)}
   ${field('Lived abroad 6+ months (last 12 months)', d.livedAbroadRecently)}
   ${d.livedAbroadRecently === 'yes' ? field('Country (Abroad)', d.abroadCountry) + field('Address (Abroad)', [d.abroadAddress?.line1, d.abroadAddress?.city, d.abroadAddress?.country].filter(Boolean).join(', ')) + field('Period Abroad', d.abroadDateFrom && d.abroadDateTo ? d.abroadDateFrom + ' \u2013 ' + d.abroadDateTo : '') : ''}
@@ -2129,7 +2162,7 @@ function Step11Review({ d, u, settings, photoFile, existingPhotoUrl, uploadedFil
           <ReviewField label="Full Name" value={[d.firstName, d.middleName, d.lastName].filter(Boolean).join(' ')} />
           <ReviewField label="Date of Birth" value={d.dateOfBirth} />
           <ReviewField label="Gender" value={d.gender} />
-          <ReviewField label="Citizenship" value={d.citizenship} />
+          <ReviewField label="Citizenship" value={[d.citizenship, ...(d.otherCitizenships ?? [])].filter(Boolean).join(', ')} />
           <ReviewField label="Country of Birth" value={d.countryOfBirth} />
           <ReviewField label="City of Birth" value={d.cityOfBirth} />
           <ReviewField label="Lived abroad 6+ months (last 12 months)" value={d.livedAbroadRecently} />

@@ -1652,7 +1652,16 @@ function Step7WorkHistory({ d, u, uploadedFiles, onFilesChange }: { d: Applicant
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Reference Email</Label>
-              <Input type="email" placeholder="reference@company.com" value={entry.referenceEmail} onChange={e => updateEntry(entry.id, 'referenceEmail', e.target.value)} />
+              <Input
+                type="email"
+                placeholder="reference@company.com"
+                value={entry.referenceEmail}
+                onChange={e => updateEntry(entry.id, 'referenceEmail', e.target.value)}
+                className={entry.referenceEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(entry.referenceEmail) ? 'border-red-400 focus-visible:ring-red-400' : ''}
+              />
+              {entry.referenceEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(entry.referenceEmail) && (
+                <p className="text-xs text-red-500 mt-0.5">Please enter a valid email address</p>
+              )}
             </div>
             <InlineDocUpload
               label={`Work Experience Document — ${entry.company || `Position ${i + 1}`}`}

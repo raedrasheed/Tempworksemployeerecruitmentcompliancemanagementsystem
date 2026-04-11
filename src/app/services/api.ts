@@ -137,7 +137,9 @@ export async function apiFetch<T = any>(
   // Handle no-content responses
   if (response.status === 204) return undefined as T;
 
-  return response.json();
+  const text = await response.text();
+  if (!text.trim()) return undefined as T;
+  return JSON.parse(text) as T;
 }
 
 // ─── Auth API ────────────────────────────────────────────────────────────────

@@ -1579,7 +1579,7 @@ function Step6Education({ d, u, settings, uploadedFiles, onFilesChange }: { d: A
   );
 }
 
-function Step7WorkHistory({ d, u }: { d: ApplicantFormData; u: (fn: (p: ApplicantFormData) => ApplicantFormData) => void }) {
+function Step7WorkHistory({ d, u, uploadedFiles, onFilesChange }: { d: ApplicantFormData; u: (fn: (p: ApplicantFormData) => ApplicantFormData) => void; uploadedFiles: UploadedFileItem[]; onFilesChange: (files: UploadedFileItem[]) => void }) {
   const addEntry = () => {
     u(prev => ({
       ...prev,
@@ -1654,6 +1654,12 @@ function Step7WorkHistory({ d, u }: { d: ApplicantFormData; u: (fn: (p: Applican
               <Label className="text-xs">Reference Email</Label>
               <Input type="email" placeholder="reference@company.com" value={entry.referenceEmail} onChange={e => updateEntry(entry.id, 'referenceEmail', e.target.value)} />
             </div>
+            <InlineDocUpload
+              label={`Work Experience Document — ${entry.company || `Position ${i + 1}`}`}
+              sectionKey={`work-exp-${entry.id}`}
+              uploadedFiles={uploadedFiles}
+              onFilesChange={onFilesChange}
+            />
           </div>
         </div>
       ))}
@@ -2308,7 +2314,7 @@ export function ApplicantFormSteps({
       {actualTab === 4 && <Step4DrivingLicense d={d} u={u} settings={settings} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />}
       {actualTab === 5 && <Step5DrivingExperience d={d} u={u} settings={settings} />}
       {actualTab === 6 && <Step6Education d={d} u={u} settings={settings} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />}
-      {actualTab === 7 && <Step7WorkHistory d={d} u={u} />}
+      {actualTab === 7 && <Step7WorkHistory d={d} u={u} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />}
       {actualTab === 8 && <Step8Skills d={d} u={u} settings={settings} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />}
       {actualTab === 9 && <Step9Additional d={d} u={u} settings={settings} />}
       {actualTab === 10 && <Step10Documents uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />}

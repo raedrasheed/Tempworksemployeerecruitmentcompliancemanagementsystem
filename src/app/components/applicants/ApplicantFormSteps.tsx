@@ -210,6 +210,11 @@ export interface ApplicantFormData {
   declarationAccepted: boolean;
   agreeDataProcessing: boolean;
   agreeBackground: boolean;
+  livedAbroadRecently: string;
+  abroadCountry: string;
+  abroadAddress: AddressData;
+  abroadDateFrom: string;
+  abroadDateTo: string;
 }
 
 export const EMPTY_FORM: ApplicantFormData = {
@@ -316,6 +321,11 @@ export const EMPTY_FORM: ApplicantFormData = {
   declarationAccepted: false,
   agreeDataProcessing: false,
   agreeBackground: false,
+  livedAbroadRecently: '',
+  abroadCountry: '',
+  abroadAddress: { ...EMPTY_ADDRESS },
+  abroadDateFrom: '',
+  abroadDateTo: '',
 };
 
 const TAB_DEFS = [
@@ -817,6 +827,35 @@ function Step1Personal({ d, u, jobTypes, photoFile, onPhotoChange, existingPhoto
         </div>
         {!d.sameAsHomeAddress && <AddressForm label="" value={d.currentAddress} onChange={set('currentAddress')} required />}
         {d.sameAsHomeAddress && <div className="p-3 bg-gray-50 rounded border text-sm text-gray-600">Same as home address above.</div>}
+      </div>
+      <div className="space-y-4">
+        <SubSection title="Previous Country of Residence" />
+        <div className="space-y-3">
+          <Label className="text-sm font-medium">Have you lived in another country for 6 months or more within the last 12 months?</Label>
+          <RadioYN name="livedAbroadRecently" value={d.livedAbroadRecently} onChange={set('livedAbroadRecently')} />
+        </div>
+        {d.livedAbroadRecently === 'yes' && (
+          <div className="space-y-4 pt-2 border-l-2 border-blue-100 pl-4">
+            <div className="space-y-1">
+              <Label className="text-xs">Country *</Label>
+              <CountrySelect value={d.abroadCountry} onChange={set('abroadCountry')} placeholder="Select country" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Full Address *</Label>
+              <AddressForm label="" value={d.abroadAddress} onChange={set('abroadAddress')} />
+            </div>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <Label className="text-xs">Date From *</Label>
+                <Input type="date" value={d.abroadDateFrom} onChange={e => set('abroadDateFrom')(e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Date To *</Label>
+                <Input type="date" value={d.abroadDateTo} onChange={e => set('abroadDateTo')(e.target.value)} />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1944,6 +1983,8 @@ ${section('Personal Information', `<div class="grid">
   ${field('First Name', d.firstName)}${field('Middle Name', d.middleName)}${field('Last Name', d.lastName)}
   ${field('Date of Birth', d.dateOfBirth)}${field('Gender', d.gender)}${field('Citizenship', d.citizenship)}
   ${field('Country of Birth', d.countryOfBirth)}${field('City of Birth', d.cityOfBirth)}
+  ${field('Lived abroad 6+ months (last 12 months)', d.livedAbroadRecently)}
+  ${d.livedAbroadRecently === 'yes' ? field('Country (Abroad)', d.abroadCountry) + field('Address (Abroad)', [d.abroadAddress?.line1, d.abroadAddress?.city, d.abroadAddress?.country].filter(Boolean).join(', ')) + field('Period Abroad', d.abroadDateFrom && d.abroadDateTo ? d.abroadDateFrom + ' \u2013 ' + d.abroadDateTo : '') : ''}
 </div>`)}
 ${section('Contact', `<div class="grid">
   ${field('Email', d.email)}${field('Phone', d.phone ? `${d.phoneCode} ${d.phone}` : '')}
@@ -2063,6 +2104,12 @@ function Step11Review({ d, u, settings, photoFile, existingPhotoUrl, uploadedFil
           <ReviewField label="Citizenship" value={d.citizenship} />
           <ReviewField label="Country of Birth" value={d.countryOfBirth} />
           <ReviewField label="City of Birth" value={d.cityOfBirth} />
+          <ReviewField label="Lived abroad 6+ months (last 12 months)" value={d.livedAbroadRecently} />
+          {d.livedAbroadRecently === 'yes' && <>
+            <ReviewField label="Country (Abroad)" value={d.abroadCountry} />
+            <ReviewField label="Address (Abroad)" value={[d.abroadAddress?.line1, d.abroadAddress?.city, d.abroadAddress?.country].filter(Boolean).join(', ')} />
+            <ReviewField label="Period Abroad" value={d.abroadDateFrom && d.abroadDateTo ? `${d.abroadDateFrom} – ${d.abroadDateTo}` : d.abroadDateFrom || d.abroadDateTo} />
+          </>}
         </div>
       </ReviewSection>
 

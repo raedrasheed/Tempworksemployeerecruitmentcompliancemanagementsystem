@@ -23,12 +23,15 @@ export function PublicEmployeeApplication() {
   const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [jobAdTitle, setJobAdTitle] = useState<string | undefined>(undefined);
 
   const visibleTabs = useMemo(() => getVisibleTabs(formData), [formData.hasDrivingLicense]);
 
   useEffect(() => {
     if (jobAdId) {
-      publicJobAdsApi.getBySlug(jobAdId).catch(() => {});
+      publicJobAdsApi.getBySlug(jobAdId)
+        .then((ad: any) => { if (ad?.title) setJobAdTitle(ad.title); })
+        .catch(() => {});
     }
   }, [jobAdId]);
 
@@ -202,6 +205,7 @@ export function PublicEmployeeApplication() {
             settings={settings}
             photoFile={photoFile}
             onPhotoChange={setPhotoFile}
+            jobAdTitle={jobAdTitle}
           />
 
           {/* reCAPTCHA v2 "I am not a robot" checkbox — last step only */}

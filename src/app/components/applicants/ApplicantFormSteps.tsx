@@ -731,13 +731,14 @@ function InlineDocUpload({ label = 'Upload Document', sectionKey, uploadedFiles,
 
 // ── Step Components ───────────────────────────────────────────────────────────
 
-function Step1Personal({ d, u, jobTypes, photoFile, onPhotoChange, existingPhotoUrl }: {
+function Step1Personal({ d, u, jobTypes, photoFile, onPhotoChange, existingPhotoUrl, jobAdTitle }: {
   d: ApplicantFormData;
   u: (fn: (p: ApplicantFormData) => ApplicantFormData) => void;
   jobTypes: JobType[];
   photoFile?: File | null;
   onPhotoChange?: (file: File | null) => void;
   existingPhotoUrl?: string;
+  jobAdTitle?: string;
 }) {
   const set = (field: keyof ApplicantFormData) => (value: any) => u(prev => ({ ...prev, [field]: value }));
 
@@ -748,17 +749,26 @@ function Step1Personal({ d, u, jobTypes, photoFile, onPhotoChange, existingPhoto
     <div className="space-y-8">
       <SectionTitle title="Personal Information" subtitle="Your personal details and address" />
 
-      {/* ── Job Category ── */}
+      {/* ── Job Category / Job Title ── */}
       <div className="space-y-2">
-        <SubSection title="Job Category" />
-        <Select value={d.jobTypeId} onValueChange={set('jobTypeId')} disabled={jobTypes.length === 0}>
-          <SelectTrigger>
-            <SelectValue placeholder={jobTypes.length === 0 ? 'Loading categories…' : 'Select job category'} />
-          </SelectTrigger>
-          <SelectContent>
-            {jobTypes.map(jt => <SelectItem key={jt.id} value={jt.id}>{jt.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        {jobAdTitle ? (
+          <>
+            <SubSection title="Job Title" />
+            <Input value={jobAdTitle} disabled className="bg-muted text-muted-foreground cursor-not-allowed" />
+          </>
+        ) : (
+          <>
+            <SubSection title="Job Category" />
+            <Select value={d.jobTypeId} onValueChange={set('jobTypeId')} disabled={jobTypes.length === 0}>
+              <SelectTrigger>
+                <SelectValue placeholder={jobTypes.length === 0 ? 'Loading categories…' : 'Select job category'} />
+              </SelectTrigger>
+              <SelectContent>
+                {jobTypes.map(jt => <SelectItem key={jt.id} value={jt.id}>{jt.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </>
+        )}
       </div>
 
       {/* ── Photo Upload ── */}
@@ -2434,6 +2444,7 @@ export interface ApplicantFormStepsProps {
   photoFile?: File | null;
   onPhotoChange?: (file: File | null) => void;
   existingPhotoUrl?: string;
+  jobAdTitle?: string;
 }
 
 export function ApplicantFormSteps({
@@ -2448,12 +2459,13 @@ export function ApplicantFormSteps({
   photoFile = null,
   onPhotoChange = () => {},
   existingPhotoUrl,
+  jobAdTitle,
 }: ApplicantFormStepsProps) {
   const actualTab = visibleTabs[currentStep - 1] ?? 1;
 
   return (
     <>
-      {actualTab === 1 && <Step1Personal d={d} u={u} jobTypes={jobTypes} photoFile={photoFile} onPhotoChange={onPhotoChange} existingPhotoUrl={existingPhotoUrl} />}
+      {actualTab === 1 && <Step1Personal d={d} u={u} jobTypes={jobTypes} photoFile={photoFile} onPhotoChange={onPhotoChange} existingPhotoUrl={existingPhotoUrl} jobAdTitle={jobAdTitle} />}
       {actualTab === 2 && <Step2Contact d={d} u={u} settings={settings} />}
       {actualTab === 3 && <Step3Identification d={d} u={u} settings={settings} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />}
       {actualTab === 4 && <Step4DrivingLicense d={d} u={u} settings={settings} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />}

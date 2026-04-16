@@ -161,6 +161,7 @@ export interface ApplicantFormData {
   hasWorkPermit: string;
   workPermitType: string;
   workPermitNumber: string;
+  workPermitIssueDate: string;
   workPermitExpiryDate: string;
   workPermitNoExpiry: boolean;
   workPermitCountry: string;
@@ -278,6 +279,7 @@ export const EMPTY_FORM: ApplicantFormData = {
   hasWorkPermit: '',
   workPermitType: '',
   workPermitNumber: '',
+  workPermitIssueDate: '',
   workPermitExpiryDate: '',
   workPermitNoExpiry: false,
   workPermitCountry: '',
@@ -1266,6 +1268,10 @@ function Step3Identification({ d, u, settings, uploadedFiles, onFilesChange }: {
             <div className="space-y-1">
               <Label className="text-xs">Issuing EU Country</Label>
               <CountrySelect value={d.workPermitCountry} onChange={set('workPermitCountry')} countries={EU_COUNTRIES} placeholder="Select EU country" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Issue Date</Label>
+              <Input type="date" value={d.workPermitIssueDate} onChange={e => set('workPermitIssueDate')(e.target.value)} />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Expiry Date</Label>

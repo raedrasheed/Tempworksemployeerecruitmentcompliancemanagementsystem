@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 export function Profile() {
   const [isEditing, setIsEditing] = useState(false);
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+  const [twoFactorSaving, setTwoFactorSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -49,6 +50,7 @@ export function Profile() {
           merged.role = fullUser?.role ?? { name: authUser.role };
         }
         setUserData(merged);
+        setTwoFactorEnabled(Boolean(merged?.twoFactorEnabled));
         setEditForm({
           phone: merged.phone || '',
           dateOfBirth: merged.dateOfBirth ? merged.dateOfBirth.slice(0, 10) : '',
@@ -529,7 +531,31 @@ export function Profile() {
                     Add an extra layer of security to your account
                   </p>
                 </div>
-                <Switch checked={twoFactorEnabled} onCheckedChange={setTwoFactorEnabled} />
+                <Switch
+                  checked={twoFactorEnabled}
+                  disabled={twoFactorSaving}
+                  onCheckedChange={async (checked) => {
+                    setTwoFactorSaving(true);
+                    // Optimistic toggle so the UI feels instant
+                    setTwoFactorEnabled(checked);
+                    try {
+                      if (checked) {
+                        await authApi.enableTwoFactor();
+                        toast.success('Two-factor authentication enabled. A code will be emailed on every sign-in.');
+                      } else {
+                        await authApi.disableTwoFactor();
+                        toast.success('Two-factor authentication disabled');
+                      }
+                      setUserData((prev: any) => prev ? { ...prev, twoFactorEnabled: checked } : prev);
+                    } catch (err: any) {
+                      // Roll back on error
+                      setTwoFactorEnabled(!checked);
+                      toast.error(err?.message || 'Failed to update 2FA');
+                    } finally {
+                      setTwoFactorSaving(false);
+                    }
+                  }}
+                />
               </div>
 
               {twoFactorEnabled && (

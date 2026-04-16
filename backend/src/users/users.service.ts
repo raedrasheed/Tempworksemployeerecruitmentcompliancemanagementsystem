@@ -94,6 +94,7 @@ export class UsersService {
       notificationPrefs: true,
       failedLoginAttempts: true,
       lockedAt: true,
+      twoFactorEnabled: true,
       lastLoginAt: true,
       createdById: true,
       createdAt: true,

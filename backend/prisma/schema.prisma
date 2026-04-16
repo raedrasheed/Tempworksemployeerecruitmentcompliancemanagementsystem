@@ -210,6 +210,10 @@ model User {
   passwordChangedAt   DateTime?
   passwordExpiresAt   DateTime?
 
+  // Two-factor authentication (email OTP)
+  twoFactorEnabled    Boolean  @default(false)
+  twoFactorChallenges TwoFactorChallenge[]
+
   // Preferences
   preferredLanguage String?  @default("en")
   timeZone          String?  @default("UTC")
@@ -1530,6 +1534,25 @@ model PasswordResetToken {
   createdAt DateTime  @default(now())
 
   @@map("password_reset_tokens")
+}
+
+// Two-factor authentication: a login challenge awaiting OTP confirmation.
+// Created when a user with 2FA enabled passes password validation; the
+// OTP is delivered via email and must be submitted within the expiry.
+model TwoFactorChallenge {
+  id         String    @id @default(uuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  challenge  String    @unique            // opaque id returned to the client
+  codeHash   String                       // bcrypt hash of the OTP
+  attempts   Int       @default(0)
+  expiresAt  DateTime
+  consumedAt DateTime?
+  ipAddress  String?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId])
+  @@map("two_factor_challenges")
 }
 
 // ── Candidate Delete Requests ─────────────────────────────────────────────────

@@ -42,7 +42,7 @@ export class AuthService {
       include: { role: true },
     });
     if (!user) return null;
-    if (user.status === 'INACTIVE' || user.status === 'SUSPENDED') return null;
+    if (user.status !== 'ACTIVE') return null;
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
     if (!isPasswordValid) return null;
     return user;

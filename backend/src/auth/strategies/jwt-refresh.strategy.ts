@@ -23,6 +23,9 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
     if (!user || !user.refreshToken) {
       throw new UnauthorizedException('Access denied');
     }
+    if (user.status !== 'ACTIVE') {
+      throw new UnauthorizedException(`Account is ${user.status.toLowerCase()}`);
+    }
     return { ...payload, refreshToken };
   }
 }

@@ -18,8 +18,13 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       where: { id: payload.sub, deletedAt: null },
       include: { role: true },
     });
-    if (!user || user.status === 'INACTIVE') {
-      throw new UnauthorizedException('User not found or inactive');
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+    if (user.status !== 'ACTIVE') {
+      // Any non-ACTIVE status (INACTIVE, SUSPENDED, PENDING, TERMINATED)
+      // immediately terminates the session — no need to wait for next login.
+      throw new UnauthorizedException(`Account is ${user.status.toLowerCase()}`);
     }
     return {
       id: user.id,

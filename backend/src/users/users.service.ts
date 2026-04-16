@@ -321,6 +321,18 @@ export class UsersService {
     if (updateData.dateOfBirth) updateData.dateOfBirth = new Date(updateData.dateOfBirth);
     if (updateData.startDate) updateData.startDate = new Date(updateData.startDate);
 
+    // If admin is moving the user out of ACTIVE, terminate every live session:
+    // null the refresh token so it can never be exchanged again. The JWT
+    // strategy already re-checks user.status on every request, so any
+    // outstanding access tokens are rejected on the next API call.
+    const statusChangedToNonActive =
+      updateData.status !== undefined
+      && updateData.status !== 'ACTIVE'
+      && existing.status !== updateData.status;
+    if (statusChangedToNonActive) {
+      updateData.refreshToken = null;
+    }
+
     const user = await this.prisma.user.update({
       where: { id },
       data: updateData,
@@ -334,6 +346,16 @@ export class UsersService {
       entityId: id,
       changes: updateData,
     });
+
+    if (statusChangedToNonActive) {
+      await this.auditLog.log({
+        userId: actorId,
+        action: 'SESSIONS_TERMINATED',
+        entity: 'User',
+        entityId: id,
+        changes: { reason: `Status changed to ${updateData.status}`, previousStatus: existing.status },
+      });
+    }
 
     const { passwordHash, refreshToken, ...result } = user as any;
     return result;

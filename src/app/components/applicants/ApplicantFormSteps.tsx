@@ -420,6 +420,10 @@ export function getStepErrors(
   // ── Tab 3: Identification & Legal Status ──────────────────────────────────
   if (actualTab === 3) {
     if (!d.passportNumber?.trim()) errors.push('Passport Number is required.');
+    // If the job ad requires a Passport upload, validate it here (upload widget is on this tab)
+    const passportDocName = requiredDocuments?.find(n => n.toLowerCase() === 'passport');
+    if (passportDocName && !hasFile(`required:${passportDocName}`))
+      errors.push('This position requires a Passport upload — please upload your passport before continuing.');
     if (!d.hasIdCard) errors.push('Please answer whether you have a National ID Card.');
     if (!d.hasEuVisa) errors.push('Please answer whether you have an EU Visa.');
     if (!d.hasEuResidence) errors.push('Please answer whether you have an EU Residence Permit.');
@@ -790,25 +794,35 @@ function InlineDocUpload({ label = 'Upload Document', sectionKey, uploadedFiles,
   uploadedFiles: UploadedFileItem[];
   onFilesChange: (files: UploadedFileItem[]) => void;
 }) {
-  const existing = uploadedFiles.find(f => f.sectionKey === sectionKey && f.file);
+  // Find any entry with this sectionKey, including placeholder entries (file=null).
+  // This ensures required-doc placeholders are updated in-place rather than duplicated.
+  const entry = uploadedFiles.find(f => f.sectionKey === sectionKey);
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (existing) {
+    if (entry) {
       onFilesChange(uploadedFiles.map(f => f.sectionKey === sectionKey ? { ...f, file, type: label } : f));
     } else {
       onFilesChange([...uploadedFiles, { id: crypto.randomUUID(), type: label, sectionKey, file }]);
     }
     e.target.value = '';
   };
-  const handleRemove = () => onFilesChange(uploadedFiles.filter(f => f.sectionKey !== sectionKey));
+  // Required-doc entries (sectionKey starts with 'required:') keep their placeholder entry so
+  // Step 10 can still render the slot — just clear the file. Optional entries are removed entirely.
+  const handleRemove = () => {
+    if (sectionKey.startsWith('required:')) {
+      onFilesChange(uploadedFiles.map(f => f.sectionKey === sectionKey ? { ...f, file: null } : f));
+    } else {
+      onFilesChange(uploadedFiles.filter(f => f.sectionKey !== sectionKey));
+    }
+  };
   return (
     <div className="space-y-1 md:col-span-2">
       <Label className="text-xs">{label}</Label>
-      {existing?.file ? (
+      {entry?.file ? (
         <div className="flex items-center gap-2 p-2 border rounded-lg bg-green-50 border-green-200">
           <FileText className="w-4 h-4 text-green-600 shrink-0" />
-          <span className="text-sm text-green-700 truncate flex-1">{existing.file.name}</span>
+          <span className="text-sm text-green-700 truncate flex-1">{entry.file.name}</span>
           <button type="button" onClick={handleRemove} className="p-0.5 text-gray-400 hover:text-red-500"><X className="w-4 h-4" /></button>
         </div>
       ) : (
@@ -1216,13 +1230,22 @@ function Step2Contact({ d, u, settings }: { d: ApplicantFormData; u: (fn: (p: Ap
   );
 }
 
-function Step3Identification({ d, u, settings, uploadedFiles, onFilesChange }: { d: ApplicantFormData; u: (fn: (p: ApplicantFormData) => ApplicantFormData) => void; settings: FormSettings; uploadedFiles: UploadedFileItem[]; onFilesChange: (files: UploadedFileItem[]) => void }) {
+function Step3Identification({ d, u, settings, uploadedFiles, onFilesChange, requiredDocuments = [] }: { d: ApplicantFormData; u: (fn: (p: ApplicantFormData) => ApplicantFormData) => void; settings: FormSettings; uploadedFiles: UploadedFileItem[]; onFilesChange: (files: UploadedFileItem[]) => void; requiredDocuments?: string[] }) {
   const set = (field: keyof ApplicantFormData) => (value: any) => u(prev => ({ ...prev, [field]: value }));
+  // If the job ad requires a passport, wire the upload widget directly to the required-doc slot
+  const passportDocName = requiredDocuments.find(n => n.toLowerCase() === 'passport');
+  const passportSectionKey = passportDocName ? `required:${passportDocName}` : 'passport';
   return (
     <div className="space-y-8">
       <SectionTitle title="Identification & Legal Status" subtitle="Passport, ID and residency documents" />
       <div className="space-y-4">
         <SubSection title="Passport" />
+        {passportDocName && (
+          <div className="flex items-center gap-2 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
+            Passport upload is required for this position
+          </div>
+        )}
         <div className="grid md:grid-cols-2 gap-4">
           <div className="space-y-1">
             <Label className="text-xs">Passport Number *</Label>
@@ -1241,7 +1264,7 @@ function Step3Identification({ d, u, settings, uploadedFiles, onFilesChange }: {
             <ExpiryFields expiryDate={d.passportExpiryDate} noExpiry={d.passportNoExpiry} onExpiry={set('passportExpiryDate')} onNoExpiry={set('passportNoExpiry')} />
           </div>
         </div>
-        <InlineDocUpload label="Upload Passport" sectionKey="passport" uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />
+        <InlineDocUpload label={passportDocName ? 'Upload Passport (Required)' : 'Upload Passport'} sectionKey={passportSectionKey} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />
       </div>
       <div className="space-y-4">
         <SubSection title="National ID Card" />
@@ -2689,7 +2712,7 @@ export function ApplicantFormSteps({
     <>
       {actualTab === 1 && <Step1Personal d={d} u={u} jobTypes={jobTypes} photoFile={photoFile} onPhotoChange={onPhotoChange} existingPhotoUrl={existingPhotoUrl} jobAdTitle={jobAdTitle} />}
       {actualTab === 2 && <Step2Contact d={d} u={u} settings={settings} />}
-      {actualTab === 3 && <Step3Identification d={d} u={u} settings={settings} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />}
+      {actualTab === 3 && <Step3Identification d={d} u={u} settings={settings} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} requiredDocuments={requiredDocuments} />}
       {actualTab === 4 && <Step4DrivingLicense d={d} u={u} settings={settings} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />}
       {actualTab === 5 && <Step5DrivingExperience d={d} u={u} settings={settings} />}
       {actualTab === 6 && <Step6Education d={d} u={u} settings={settings} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />}

@@ -308,18 +308,21 @@ export function UsersList() {
 
       {/* Filter bar */}
       <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-wrap gap-3 items-center">
-            <div className="relative flex-1 min-w-48">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Search name, email, role, agency, phone, dept…"
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                className="pl-9"
-              />
-            </div>
+        <CardContent className="p-4 space-y-3">
+          {/* Row 1: search (full width, so the icon can't get pushed out of
+              place by wrapping filter pills) */}
+          <div className="relative w-full">
+            <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Search name, email, role, agency, phone, dept…"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="pl-9 w-full"
+            />
+          </div>
 
+          {/* Row 2: filter pills + column picker */}
+          <div className="flex flex-wrap gap-3 items-center">
             {roleOptions.length > 0 && (
               <Select value={roleFilter || '__all__'} onValueChange={v => setRoleFilter(v === '__all__' ? '' : v)}>
                 <SelectTrigger className="w-44"><SelectValue placeholder="All Roles" /></SelectTrigger>

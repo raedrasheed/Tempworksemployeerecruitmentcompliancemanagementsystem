@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { applicantsApi, employeeWorkflowApi, agenciesApi, settingsApi } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
 import { getCurrentUser, getAccessToken } from '../../services/api';
 import { Link } from 'react-router';
-import { Search, Plus, Eye, Edit, UserPlus, Download, Trash2, RefreshCw } from 'lucide-react';
+import { Search, Plus, Eye, Edit, Download, Trash2, RefreshCw, ArrowUp, ArrowDown, ArrowUpDown, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -33,16 +33,59 @@ const getTierColor = (tier: string) => {
 
 const STATUSES = ['NEW', 'SCREENING', 'INTERVIEW', 'OFFER', 'ACCEPTED', 'REJECTED', 'WITHDRAWN', 'ONBOARDING'];
 
+type SortField = 'firstName' | 'email' | 'nationality' | 'jobType' | 'agency' | 'tier' | 'createdAt' | 'status';
+type SortOrder = 'asc' | 'desc';
+
+function SortableHead({
+  label, field, sortBy, sortOrder, onSort, className,
+}: {
+  label: string; field: SortField; sortBy: SortField; sortOrder: SortOrder; onSort: (f: SortField) => void; className?: string;
+}) {
+  const active = sortBy === field;
+  return (
+    <TableHead className={className}>
+      <button
+        onClick={() => onSort(field)}
+        className="flex items-center gap-1 hover:text-foreground font-medium group"
+      >
+        {label}
+        {active
+          ? sortOrder === 'asc'
+            ? <ArrowUp className="w-3 h-3 text-blue-600" />
+            : <ArrowDown className="w-3 h-3 text-blue-600" />
+          : <ArrowUpDown className="w-3 h-3 opacity-30 group-hover:opacity-60" />}
+      </button>
+    </TableHead>
+  );
+}
+
 export function ApplicantsList() {
   const { canCreate, canEdit, canDelete } = usePermissions();
   const currentUser = getCurrentUser();
   const isAgencyUser = currentUser?.role === 'Agency User' || currentUser?.role === 'Agency Manager';
 
   // ── Filters ─────────────────────────────────────────────────────────────────
-  const [searchTerm, setSearchTerm]     = useState('');
-  const [tierFilter]                    = useState<string>('LEAD');
-  const [statusFilter, setStatusFilter] = useState<string>('');
-  const [agencyFilter, setAgencyFilter] = useState<string>('');
+  const [searchTerm, setSearchTerm]           = useState('');
+  const [tierFilter]                          = useState<string>('LEAD');
+  const [statusFilter, setStatusFilter]       = useState<string>('');
+  const [agencyFilter, setAgencyFilter]       = useState<string>('');
+  const [nationalityFilter, setNationalityFilter] = useState<string>('');
+  const [jobTypeFilter, setJobTypeFilter]     = useState<string>('');
+  const [dateFrom, setDateFrom]               = useState<string>('');
+  const [dateTo, setDateTo]                   = useState<string>('');
+
+  // ── Sorting (client-side) ─────────────────────────────────────────────────
+  const [sortBy, setSortBy]       = useState<SortField>('createdAt');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+
+  const handleSort = (field: SortField) => {
+    if (sortBy === field) {
+      setSortOrder(o => (o === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortBy(field);
+      setSortOrder('asc');
+    }
+  };
 
   // ── Data ─────────────────────────────────────────────────────────────────────
   const [applicantsData, setApplicantsData] = useState<any[]>([]);
@@ -61,11 +104,13 @@ export function ApplicantsList() {
   const fetchApplicants = useCallback(async () => {
     setLoading(true);
     try {
-      const params: Record<string, any> = { page: 1, limit: 100 };
+      const params: Record<string, any> = { page: 1, limit: 500 };
       if (searchTerm) params.search = searchTerm;
       if (tierFilter) params.tier = tierFilter;
       if (statusFilter) params.status = statusFilter;
       if (agencyFilter) params.agencyId = agencyFilter;
+      if (nationalityFilter) params.nationality = nationalityFilter;
+      if (jobTypeFilter) params.jobTypeId = jobTypeFilter;
       const result = await applicantsApi.list(params);
       setApplicantsData(result.data || []);
       setTotalApplicants(result.meta?.total || 0);
@@ -74,7 +119,7 @@ export function ApplicantsList() {
     } finally {
       setLoading(false);
     }
-  }, [searchTerm, tierFilter, statusFilter, agencyFilter]);
+  }, [searchTerm, tierFilter, statusFilter, agencyFilter, nationalityFilter, jobTypeFilter]);
 
   useEffect(() => {
     const timer = setTimeout(fetchApplicants, 300);
@@ -92,6 +137,73 @@ export function ApplicantsList() {
       .then((jt: any) => setJobTypes(Array.isArray(jt) ? jt : []))
       .catch(() => {});
   }, []);
+
+  // ── Sorted + date-filtered data ───────────────────────────────────────────
+  const displayData = useMemo(() => {
+    let data = applicantsData;
+
+    // Client-side date range filter (backend doesn't support it)
+    if (dateFrom || dateTo) {
+      const from = dateFrom ? new Date(dateFrom).getTime() : -Infinity;
+      const to   = dateTo   ? new Date(dateTo + 'T23:59:59').getTime() : Infinity;
+      data = data.filter(a => {
+        const t = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        return t >= from && t <= to;
+      });
+    }
+
+    // Client-side sort
+    return [...data].sort((a, b) => {
+      let aVal: any, bVal: any;
+      switch (sortBy) {
+        case 'firstName':
+          aVal = `${a.firstName ?? ''} ${a.lastName ?? ''}`.toLowerCase();
+          bVal = `${b.firstName ?? ''} ${b.lastName ?? ''}`.toLowerCase();
+          break;
+        case 'email':
+          aVal = a.email?.toLowerCase() ?? '';
+          bVal = b.email?.toLowerCase() ?? '';
+          break;
+        case 'nationality':
+          aVal = a.nationality?.toLowerCase() ?? '';
+          bVal = b.nationality?.toLowerCase() ?? '';
+          break;
+        case 'jobType':
+          aVal = (typeof a.jobType === 'object' ? a.jobType?.name : a.jobType)?.toLowerCase() ?? '';
+          bVal = (typeof b.jobType === 'object' ? b.jobType?.name : b.jobType)?.toLowerCase() ?? '';
+          break;
+        case 'agency':
+          aVal = a.agency?.name?.toLowerCase() ?? '';
+          bVal = b.agency?.name?.toLowerCase() ?? '';
+          break;
+        case 'tier':
+          aVal = a.tier ?? '';
+          bVal = b.tier ?? '';
+          break;
+        case 'createdAt':
+          aVal = a.createdAt ?? '';
+          bVal = b.createdAt ?? '';
+          break;
+        case 'status':
+          aVal = a.status ?? '';
+          bVal = b.status ?? '';
+          break;
+        default:
+          aVal = '';
+          bVal = '';
+      }
+      if (aVal == null) aVal = '';
+      if (bVal == null) bVal = '';
+      const cmp = aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+      return sortOrder === 'asc' ? cmp : -cmp;
+    });
+  }, [applicantsData, sortBy, sortOrder, dateFrom, dateTo]);
+
+  // ── Unique nationality list (for dropdown) ─────────────────────────────────
+  const nationalityOptions = useMemo(() => {
+    const all = applicantsData.map(a => a.nationality).filter(Boolean) as string[];
+    return [...new Set(all)].sort();
+  }, [applicantsData]);
 
   // ── Stage Change ──────────────────────────────────────────────────────────────
   const handleStageChange = async (applicantId: string, stageId: string) => {
@@ -135,10 +247,10 @@ export function ApplicantsList() {
   };
 
   const toggleSelectAll = () => {
-    if (selected.size === applicantsData.length) {
+    if (selected.size === displayData.length) {
       setSelected(new Set());
     } else {
-      setSelected(new Set(applicantsData.map(a => a.id)));
+      setSelected(new Set(displayData.map(a => a.id)));
     }
   };
 
@@ -170,12 +282,12 @@ export function ApplicantsList() {
     if (tierFilter) params.tier = tierFilter;
     if (statusFilter) params.status = statusFilter;
     if (agencyFilter) params.agencyId = agencyFilter;
+    if (nationalityFilter) params.nationality = nationalityFilter;
+    if (jobTypeFilter) params.jobTypeId = jobTypeFilter;
 
     const token = getAccessToken();
     const csvUrl = applicantsApi.exportCsv(params);
-    // Open URL with bearer token via hidden anchor (token in query param for file downloads)
     const a = document.createElement('a');
-    // Use fetch + blob to honour auth header
     fetch(csvUrl, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.blob())
       .then(blob => {
@@ -190,11 +302,23 @@ export function ApplicantsList() {
       .catch(() => toast.error('Export failed'));
   };
 
+  // ── Clear all filters ─────────────────────────────────────────────────────────
+  const hasActiveFilters = searchTerm || statusFilter || agencyFilter || nationalityFilter || jobTypeFilter || dateFrom || dateTo;
+  const clearFilters = () => {
+    setSearchTerm('');
+    setStatusFilter('');
+    setAgencyFilter('');
+    setNationalityFilter('');
+    setJobTypeFilter('');
+    setDateFrom('');
+    setDateTo('');
+  };
+
   // ── Stats ─────────────────────────────────────────────────────────────────────
-  const leads      = applicantsData.filter(a => a.tier === 'LEAD');
-  const candidates = applicantsData.filter(a => a.tier === 'CANDIDATE');
-  const newCount   = applicantsData.filter(a => a.status === 'NEW').length;
+  const leads       = applicantsData.filter(a => a.tier === 'LEAD');
   const acceptedCount = applicantsData.filter(a => a.status === 'ACCEPTED' || a.status === 'ONBOARDING').length;
+
+  const colCount = isAgencyUser ? 9 : 10;
 
   return (
     <div className="space-y-6">
@@ -202,9 +326,7 @@ export function ApplicantsList() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-semibold text-[#0F172A]">Applicants</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage leads and convert to candidates
-          </p>
+          <p className="text-muted-foreground mt-1">Manage leads and convert to candidates</p>
         </div>
         <div className="flex gap-2">
           {canCreate('applicants') && (
@@ -255,32 +377,21 @@ export function ApplicantsList() {
           <div className="flex gap-2 ml-auto">
             {!isAgencyUser && (
               <>
-                <Button
-                  variant="outline" size="sm"
-                  disabled={bulkActionInProgress}
-                  onClick={() => handleBulkAction('TIER_CHANGE', 'CANDIDATE')}
-                >
+                <Button variant="outline" size="sm" disabled={bulkActionInProgress}
+                  onClick={() => handleBulkAction('TIER_CHANGE', 'CANDIDATE')}>
                   Promote to Candidate
                 </Button>
-                <Button
-                  variant="outline" size="sm"
-                  disabled={bulkActionInProgress}
+                <Button variant="outline" size="sm" disabled={bulkActionInProgress}
                   onClick={() => {
                     const status = prompt('Enter new status (NEW / SCREENING / INTERVIEW / OFFER / ACCEPTED / REJECTED / WITHDRAWN / ONBOARDING)');
                     if (status) handleBulkAction('STATUS_CHANGE', status.toUpperCase());
-                  }}
-                >
+                  }}>
                   Change Status
                 </Button>
               </>
             )}
-            <Button
-              variant="outline" size="sm" className="text-red-600"
-              disabled={bulkActionInProgress}
-              onClick={() => {
-                if (confirm(`Delete ${selected.size} applicant(s)?`)) handleBulkAction('DELETE');
-              }}
-            >
+            <Button variant="outline" size="sm" className="text-red-600" disabled={bulkActionInProgress}
+              onClick={() => { if (confirm(`Delete ${selected.size} applicant(s)?`)) handleBulkAction('DELETE'); }}>
               <Trash2 className="w-3 h-3 mr-1" />Delete Selected
             </Button>
             <Button variant="ghost" size="sm" onClick={() => setSelected(new Set())}>Clear</Button>
@@ -291,53 +402,112 @@ export function ApplicantsList() {
       {/* Search / Filters / Table */}
       <Card>
         <CardContent className="p-6">
-          {/* Filter row */}
-          <div className="flex flex-wrap items-center gap-3 mb-6">
-            <div className="flex-1 min-w-48 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Search name, email..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
+          {/* Filter rows */}
+          <div className="space-y-3 mb-6">
+            {/* Row 1: search + status + agency + actions */}
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex-1 min-w-48 relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search name, email, ID..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
 
-            <Select value={statusFilter || '__all__'} onValueChange={v => setStatusFilter(v === '__all__' ? '' : v)}>
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="All Statuses" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__all__">All Statuses</SelectItem>
-                {STATUSES.map(s => (
-                  <SelectItem key={s} value={s}>{s.replace(/_/g, ' ')}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {!isAgencyUser && agencies.length > 0 && (
-              <Select value={agencyFilter || '__all__'} onValueChange={v => setAgencyFilter(v === '__all__' ? '' : v)}>
-                <SelectTrigger className="w-44">
-                  <SelectValue placeholder="All Agencies" />
+              <Select value={statusFilter || '__all__'} onValueChange={v => setStatusFilter(v === '__all__' ? '' : v)}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="All Statuses" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__all__">All Agencies</SelectItem>
-                  {agencies.map((a: any) => (
-                    <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                  <SelectItem value="__all__">All Statuses</SelectItem>
+                  {STATUSES.map(s => (
+                    <SelectItem key={s} value={s}>{s.replace(/_/g, ' ')}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-            )}
 
-            <Button variant="outline" size="sm" onClick={fetchApplicants} disabled={loading}>
-              <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
-              Refresh
-            </Button>
+              {!isAgencyUser && agencies.length > 0 && (
+                <Select value={agencyFilter || '__all__'} onValueChange={v => setAgencyFilter(v === '__all__' ? '' : v)}>
+                  <SelectTrigger className="w-44">
+                    <SelectValue placeholder="All Agencies" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">All Agencies</SelectItem>
+                    {agencies.map((a: any) => (
+                      <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
 
-            <Button variant="outline" size="sm" onClick={handleExportCsv}>
-              <Download className="w-4 h-4 mr-2" />
-              Export CSV
-            </Button>
+              <Button variant="outline" size="sm" onClick={fetchApplicants} disabled={loading}>
+                <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+
+              <Button variant="outline" size="sm" onClick={handleExportCsv}>
+                <Download className="w-4 h-4 mr-2" />
+                Export CSV
+              </Button>
+            </div>
+
+            {/* Row 2: nationality + job category + date range + clear */}
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Nationality dropdown (derived from loaded data) */}
+              <Select value={nationalityFilter || '__all__'} onValueChange={v => setNationalityFilter(v === '__all__' ? '' : v)}>
+                <SelectTrigger className="w-44">
+                  <SelectValue placeholder="All Nationalities" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">All Nationalities</SelectItem>
+                  {nationalityOptions.map(n => (
+                    <SelectItem key={n} value={n}>{n}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* Job Category */}
+              {jobTypes.length > 0 && (
+                <Select value={jobTypeFilter || '__all__'} onValueChange={v => setJobTypeFilter(v === '__all__' ? '' : v)}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue placeholder="All Job Categories" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">All Job Categories</SelectItem>
+                    {jobTypes.map((jt: any) => (
+                      <SelectItem key={jt.id} value={jt.id}>{jt.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+
+              {/* Date range */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-muted-foreground whitespace-nowrap">Applied from</span>
+                <Input
+                  type="date"
+                  value={dateFrom}
+                  onChange={e => setDateFrom(e.target.value)}
+                  className="w-36 text-sm"
+                />
+                <span className="text-xs text-muted-foreground">to</span>
+                <Input
+                  type="date"
+                  value={dateTo}
+                  onChange={e => setDateTo(e.target.value)}
+                  className="w-36 text-sm"
+                />
+              </div>
+
+              {hasActiveFilters && (
+                <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground hover:text-foreground">
+                  <X className="w-3.5 h-3.5 mr-1" />
+                  Clear filters
+                </Button>
+              )}
+            </div>
           </div>
 
           <div className="border rounded-lg overflow-x-auto">
@@ -346,37 +516,37 @@ export function ApplicantsList() {
                 <TableRow>
                   <TableHead className="w-10">
                     <Checkbox
-                      checked={selected.size > 0 && selected.size === applicantsData.length}
+                      checked={displayData.length > 0 && selected.size === displayData.length}
                       onCheckedChange={toggleSelectAll}
                     />
                   </TableHead>
-                  <TableHead>Applicant</TableHead>
-                  <TableHead>Contact</TableHead>
-                  <TableHead>Nationality</TableHead>
-                  <TableHead>Job Category</TableHead>
-                  <TableHead>Agency</TableHead>
-                  {!isAgencyUser && <TableHead>Tier</TableHead>}
-                  <TableHead>Applied</TableHead>
-                  <TableHead>Status</TableHead>
+                  <SortableHead label="Applicant"     field="firstName"   sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />
+                  <SortableHead label="Contact"       field="email"       sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />
+                  <SortableHead label="Nationality"   field="nationality" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />
+                  <SortableHead label="Job Category"  field="jobType"     sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />
+                  <SortableHead label="Agency"        field="agency"      sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />
+                  {!isAgencyUser && <SortableHead label="Tier" field="tier" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  <SortableHead label="Applied"       field="createdAt"   sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />
+                  <SortableHead label="Status"        field="status"      sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading && (
                   <TableRow>
-                    <TableCell colSpan={isAgencyUser ? 9 : 10} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={colCount} className="text-center py-8 text-muted-foreground">
                       Loading...
                     </TableCell>
                   </TableRow>
                 )}
-                {!loading && applicantsData.length === 0 && (
+                {!loading && displayData.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={isAgencyUser ? 9 : 10} className="text-center py-12 text-muted-foreground">
+                    <TableCell colSpan={colCount} className="text-center py-12 text-muted-foreground">
                       No applicants found matching your criteria.
                     </TableCell>
                   </TableRow>
                 )}
-                {!loading && applicantsData.map((applicant) => (
+                {!loading && displayData.map((applicant) => (
                   <TableRow key={applicant.id} className={selected.has(applicant.id) ? 'bg-blue-50' : undefined}>
                     <TableCell>
                       <Checkbox
@@ -477,7 +647,7 @@ export function ApplicantsList() {
 
           <div className="flex items-center justify-between mt-4">
             <p className="text-sm text-muted-foreground">
-              Showing {applicantsData.length} of {totalApplicants} applicants
+              Showing {displayData.length} of {totalApplicants} applicants
               {selected.size > 0 && ` · ${selected.size} selected`}
             </p>
           </div>

@@ -61,6 +61,7 @@ export interface WorkHistoryEntry {
   responsibilities: string;
   reasonForLeaving: string;
   referenceName: string;
+  referencePhoneCode: string;
   referencePhone: string;
   referenceEmail: string;
 }
@@ -1738,7 +1739,7 @@ function Step7WorkHistory({ d, u, uploadedFiles, onFilesChange }: { d: Applicant
   const addEntry = () => {
     u(prev => ({
       ...prev,
-      workHistory: [...prev.workHistory, { id: crypto.randomUUID(), company: '', jobTitle: '', companyStreet: '', companyCity: '', companyPostalCode: '', country: '', companyPhoneCode: '+1', companyPhone: '', startDate: '', endDate: '', current: false, responsibilities: '', reasonForLeaving: '', referenceName: '', referencePhone: '', referenceEmail: '' }],
+      workHistory: [...prev.workHistory, { id: crypto.randomUUID(), company: '', jobTitle: '', companyStreet: '', companyCity: '', companyPostalCode: '', country: '', companyPhoneCode: '+1', companyPhone: '', startDate: '', endDate: '', current: false, responsibilities: '', reasonForLeaving: '', referenceName: '', referencePhoneCode: '+1', referencePhone: '', referenceEmail: '' }],
     }));
   };
   const updateEntry = (id: string, field: keyof WorkHistoryEntry, value: any) => {
@@ -1841,7 +1842,29 @@ function Step7WorkHistory({ d, u, uploadedFiles, onFilesChange }: { d: Applicant
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Reference Phone</Label>
-              <Input placeholder="+44 7700 000000" value={entry.referencePhone} onChange={e => updateEntry(entry.id, 'referencePhone', e.target.value)} />
+              <div className="flex gap-2">
+                <Select value={entry.referencePhoneCode} onValueChange={v => updateEntry(entry.id, 'referencePhoneCode', v)}>
+                  <SelectTrigger className="w-36 shrink-0">
+                    {entry.referencePhoneCode
+                      ? <span className="text-sm flex items-center gap-1.5">
+                          <img src={`https://flagcdn.com/w20/${(PHONE_CODES.find(p => p.code === entry.referencePhoneCode)?.iso ?? 'un').toLowerCase()}.png`} width={20} height={15} alt="" className="inline-block rounded-sm" />
+                          {entry.referencePhoneCode}
+                        </span>
+                      : <span className="text-sm text-muted-foreground">Code</span>}
+                  </SelectTrigger>
+                  <SelectContent className="max-h-72">
+                    {PHONE_CODES.map(pc => (
+                      <SelectItem key={`${pc.label}-${pc.code}`} value={pc.code}>
+                        <span className="flex items-center gap-2">
+                          <img src={`https://flagcdn.com/w20/${pc.iso.toLowerCase()}.png`} width={20} height={15} alt={pc.iso} className="inline-block rounded-sm" />
+                          <span>{pc.label} ({pc.code})</span>
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input placeholder="Phone number" value={entry.referencePhone} onChange={e => updateEntry(entry.id, 'referencePhone', e.target.value)} className="flex-1" />
+              </div>
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Reference Email</Label>

@@ -123,6 +123,9 @@ export interface ApplicantFormData {
   sameAsHomeAddress: boolean;
   phoneCode: string;
   phone: string;
+  phoneIsWhatsApp: boolean;
+  whatsappCode: string;
+  whatsapp: string;
   email: string;
   emailConfirm: string;
   emergencyFirstName: string;
@@ -235,6 +238,9 @@ export const EMPTY_FORM: ApplicantFormData = {
   sameAsHomeAddress: false,
   phoneCode: '+44',
   phone: '',
+  phoneIsWhatsApp: false,
+  whatsappCode: '+44',
+  whatsapp: '',
   email: '',
   emailConfirm: '',
   emergencyFirstName: '',
@@ -934,6 +940,43 @@ function Step2Contact({ d, u, settings }: { d: ApplicantFormData; u: (fn: (p: Ap
               <Input placeholder="Phone" value={d.phone} onChange={e => set('phone')(e.target.value)} />
             </div>
           </div>
+          <div className="md:col-span-2">
+            <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+              <Checkbox
+                checked={d.phoneIsWhatsApp}
+                onCheckedChange={c => u(prev => ({ ...prev, phoneIsWhatsApp: !!c, whatsapp: !!c ? '' : prev.whatsapp }))}
+              />
+              <span>This phone number is also my WhatsApp number</span>
+            </label>
+          </div>
+          {!d.phoneIsWhatsApp && (
+            <div className="space-y-1">
+              <Label className="text-xs">WhatsApp Number *</Label>
+              <div className="flex gap-2">
+                <Select value={d.whatsappCode} onValueChange={set('whatsappCode')}>
+                  <SelectTrigger className="w-36 shrink-0">
+                    {d.whatsappCode
+                      ? <span className="text-sm flex items-center gap-1.5">
+                          <img src={`https://flagcdn.com/w20/${(PHONE_CODES.find(p => p.code === d.whatsappCode)?.iso ?? 'un').toLowerCase()}.png`} width={20} height={15} alt="" className="inline-block rounded-sm" />
+                          {d.whatsappCode}
+                        </span>
+                      : <span className="text-sm text-muted-foreground">Code</span>}
+                  </SelectTrigger>
+                  <SelectContent className="max-h-72">
+                    {PHONE_CODES.map(c => (
+                      <SelectItem key={`wa-${c.label}-${c.code}`} value={c.code}>
+                        <span className="flex items-center gap-2">
+                          <img src={`https://flagcdn.com/w20/${c.iso.toLowerCase()}.png`} width={20} height={15} alt={c.iso} className="inline-block rounded-sm" />
+                          <span>{c.label} ({c.code})</span>
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input placeholder="WhatsApp number" value={d.whatsapp} onChange={e => set('whatsapp')(e.target.value)} />
+              </div>
+            </div>
+          )}
           <div className="space-y-1">
             <Label className="text-xs">Email *</Label>
             <Input
@@ -2049,6 +2092,7 @@ ${section('Personal Information', `<div class="grid">
 </div>`)}
 ${section('Contact', `<div class="grid">
   ${field('Email', d.email)}${field('Phone', d.phone ? `${d.phoneCode} ${d.phone}` : '')}
+  ${field('WhatsApp', d.phoneIsWhatsApp ? `${d.phoneCode} ${d.phone} (same as phone)` : d.whatsapp ? `${d.whatsappCode} ${d.whatsapp}` : '')}
   ${field('Emergency Contact', d.emergencyContact)}${field('Emergency Phone', d.emergencyPhone)}
 </div>`)}
 </div>
@@ -2179,6 +2223,7 @@ function Step11Review({ d, u, settings, photoFile, existingPhotoUrl, uploadedFil
         <div className="grid md:grid-cols-2 gap-3">
           <ReviewField label="Email" value={d.email} />
           <ReviewField label="Phone" value={d.phone ? `${d.phoneCode} ${d.phone}` : undefined} />
+          <ReviewField label="WhatsApp" value={d.phoneIsWhatsApp ? `${d.phoneCode} ${d.phone} (same as phone)` : d.whatsapp ? `${d.whatsappCode} ${d.whatsapp}` : undefined} />
           <ReviewField label="Emergency Contact" value={d.emergencyContact} />
           <ReviewField label="Emergency Phone" value={d.emergencyPhone} />
         </div>

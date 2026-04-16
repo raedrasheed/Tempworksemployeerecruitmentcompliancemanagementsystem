@@ -1606,7 +1606,7 @@ function Step5DrivingExperience({ d, u, settings }: { d: ApplicantFormData; u: (
         <SubSection title="Work Preferences" />
         <div className="grid md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label className="text-xs">Traffic Accidents (last 3 years)?</Label>
+            <Label className="text-xs">Have you been involved in any traffic accidents within the past three years?</Label>
             <RadioYN name="trafficAccidents" value={d.trafficAccidents} onChange={set('trafficAccidents')} />
           </div>
           {d.trafficAccidents === 'yes' && (

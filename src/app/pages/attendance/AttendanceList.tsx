@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router';
 import {
   Search,
@@ -6,12 +6,14 @@ import {
   Eye,
   Users,
   Calendar,
-  Filter,
-  ChevronUp,
-  ChevronDown,
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
   RefreshCw,
   X,
   ClipboardList,
+  Columns2,
+  Check,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
@@ -73,41 +75,52 @@ const statusColors: Record<string, string> = {
   HOLIDAY: 'bg-gray-100 text-gray-600',
 };
 
+// ─── Column visibility ──────────────────────────────────────────────────────────
+
+type ColKey = 'employeeId' | 'license' | 'agency' | 'present' | 'absent' | 'late' | 'onLeave' | 'totalDays';
+
+const ALL_COLUMNS: { key: ColKey; label: string }[] = [
+  { key: 'employeeId', label: 'Employee ID' },
+  { key: 'license',    label: 'License' },
+  { key: 'agency',     label: 'Agency' },
+  { key: 'present',    label: 'Present' },
+  { key: 'absent',     label: 'Absent' },
+  { key: 'late',       label: 'Late' },
+  { key: 'onLeave',    label: 'On Leave' },
+  { key: 'totalDays',  label: 'Total Days' },
+];
+
+const DEFAULT_VISIBLE: Record<ColKey, boolean> = {
+  employeeId: true, license: true, agency: true,
+  present: true, absent: true, late: true, onLeave: true, totalDays: true,
+};
+
+function loadVisibleColumns(): Record<ColKey, boolean> {
+  try {
+    const saved = localStorage.getItem('attendance-table-columns');
+    return saved ? { ...DEFAULT_VISIBLE, ...JSON.parse(saved) } : DEFAULT_VISIBLE;
+  } catch {
+    return DEFAULT_VISIBLE;
+  }
+}
+
 // ─── Sort header helper ─────────────────────────────────────────────────────────
 
 function SortHead({
-  col,
-  label,
-  sortBy,
-  sortOrder,
-  onSort,
-  align = 'left',
+  col, label, sortBy, sortOrder, onSort, className = '',
 }: {
-  col: string;
-  label: string;
-  sortBy: string;
-  sortOrder: 'asc' | 'desc';
-  onSort: (col: string) => void;
-  align?: 'left' | 'right' | 'center';
+  col: string; label: string; sortBy: string; sortOrder: 'asc' | 'desc';
+  onSort: (col: string) => void; className?: string;
 }) {
   const active = sortBy === col;
   return (
-    <TableHead
-      className={`cursor-pointer select-none hover:text-foreground text-${align}`}
-      onClick={() => onSort(col)}
-    >
-      <span className="inline-flex items-center gap-1">
+    <TableHead className={className}>
+      <button onClick={() => onSort(col)} className="flex items-center gap-1 hover:text-foreground font-medium group">
         {label}
-        {active ? (
-          sortOrder === 'asc' ? (
-            <ChevronUp className="w-3 h-3" />
-          ) : (
-            <ChevronDown className="w-3 h-3" />
-          )
-        ) : (
-          <ChevronDown className="w-3 h-3 opacity-30" />
-        )}
-      </span>
+        {active
+          ? sortOrder === 'asc' ? <ArrowUp className="w-3 h-3 text-blue-600" /> : <ArrowDown className="w-3 h-3 text-blue-600" />
+          : <ArrowUpDown className="w-3 h-3 opacity-30 group-hover:opacity-60" />}
+      </button>
     </TableHead>
   );
 }
@@ -135,6 +148,32 @@ export function AttendanceList() {
   // Sort state
   const [sortBy, setSortBy] = useState('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
+  // Column visibility
+  const [visibleColumns, setVisibleColumns] = useState<Record<ColKey, boolean>>(loadVisibleColumns);
+  const [showColPicker, setShowColPicker] = useState(false);
+  const colPickerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showColPicker) return;
+    const handler = (e: MouseEvent) => {
+      if (colPickerRef.current && !colPickerRef.current.contains(e.target as Node)) {
+        setShowColPicker(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showColPicker]);
+
+  const toggleColumn = (key: ColKey) => {
+    setVisibleColumns(prev => {
+      const next = { ...prev, [key]: !prev[key] };
+      localStorage.setItem('attendance-table-columns', JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const col = (key: ColKey) => visibleColumns[key];
 
   // Export modal state
   const [showExportModal, setShowExportModal] = useState(false);
@@ -200,6 +239,18 @@ export function AttendanceList() {
         aVal = `${a.firstName} ${a.lastName}`.toLowerCase();
         bVal = `${b.firstName} ${b.lastName}`.toLowerCase();
         break;
+      case 'employeeId':
+        aVal = a.employeeNumber?.toLowerCase() ?? '';
+        bVal = b.employeeNumber?.toLowerCase() ?? '';
+        break;
+      case 'license':
+        aVal = (a.licenseCategory ?? a.licenseNumber ?? '').toLowerCase();
+        bVal = (b.licenseCategory ?? b.licenseNumber ?? '').toLowerCase();
+        break;
+      case 'agency':
+        aVal = (a.agency?.name ?? a.agencyName ?? '').toLowerCase();
+        bVal = (b.agency?.name ?? b.agencyName ?? '').toLowerCase();
+        break;
       case 'present':
         aVal = a.presentCount ?? 0;
         bVal = b.presentCount ?? 0;
@@ -211,6 +262,14 @@ export function AttendanceList() {
       case 'late':
         aVal = a.lateCount ?? 0;
         bVal = b.lateCount ?? 0;
+        break;
+      case 'onLeave':
+        aVal = a.onLeaveCount ?? 0;
+        bVal = b.onLeaveCount ?? 0;
+        break;
+      case 'totalDays':
+        aVal = (a.presentCount ?? 0) + (a.absentCount ?? 0) + (a.lateCount ?? 0) + (a.onLeaveCount ?? 0) + (a.halfDayCount ?? 0) + (a.holidayCount ?? 0);
+        bVal = (b.presentCount ?? 0) + (b.absentCount ?? 0) + (b.lateCount ?? 0) + (b.onLeaveCount ?? 0) + (b.halfDayCount ?? 0) + (b.holidayCount ?? 0);
         break;
       default:
         aVal = a[sortBy] ?? '';
@@ -279,11 +338,52 @@ export function AttendanceList() {
             Track and manage attendance for all employees
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
           <Button variant="outline" size="sm" onClick={() => fetchEmployees()} disabled={loading}>
             <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
+
+          {/* Column picker */}
+          <div className="relative" ref={colPickerRef}>
+            <Button
+              variant="outline" size="sm"
+              onClick={() => setShowColPicker(v => !v)}
+              className={showColPicker ? 'border-blue-500 text-blue-600' : ''}
+            >
+              <Columns2 className="w-4 h-4 mr-1.5" />Columns
+              {ALL_COLUMNS.filter(c => !visibleColumns[c.key]).length > 0 && (
+                <span className="ml-1.5 bg-blue-600 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
+                  {ALL_COLUMNS.filter(c => !visibleColumns[c.key]).length}
+                </span>
+              )}
+            </Button>
+            {showColPicker && (
+              <div className="absolute right-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[180px]">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">Toggle columns</p>
+                <div className="space-y-0.5">
+                  {ALL_COLUMNS.map(c => (
+                    <button
+                      key={c.key}
+                      onClick={() => toggleColumn(c.key)}
+                      className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-gray-50 text-sm text-left"
+                    >
+                      <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${visibleColumns[c.key] ? 'bg-blue-600 border-blue-600' : 'border-gray-300'}`}>
+                        {visibleColumns[c.key] && <Check className="w-2.5 h-2.5 text-white" />}
+                      </span>
+                      {c.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="border-t mt-2 pt-2 flex gap-1.5">
+                  <button onClick={() => { const all = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, true])) as Record<ColKey, boolean>; setVisibleColumns(all); localStorage.setItem('attendance-table-columns', JSON.stringify(all)); }} className="flex-1 text-xs text-center text-blue-600 hover:underline py-0.5">Show all</button>
+                  <span className="text-gray-300">|</span>
+                  <button onClick={() => { const none = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, false])) as Record<ColKey, boolean>; setVisibleColumns(none); localStorage.setItem('attendance-table-columns', JSON.stringify(none)); }} className="flex-1 text-xs text-center text-gray-500 hover:underline py-0.5">Hide all</button>
+                </div>
+              </div>
+            )}
+          </div>
+
           <Button size="sm" onClick={() => setShowExportModal(true)}>
             <Download className="w-4 h-4 mr-1" />
             Export Excel
@@ -483,42 +583,15 @@ export function AttendanceList() {
                 <TableHeader>
                   <TableRow className="bg-muted/40">
                     <TableHead className="w-10 text-center">#</TableHead>
-                    <SortHead
-                      col="name"
-                      label="Employee"
-                      sortBy={sortBy}
-                      sortOrder={sortOrder}
-                      onSort={handleSort}
-                    />
-                    <TableHead>Employee ID</TableHead>
-                    <TableHead>License</TableHead>
-                    <TableHead>Agency</TableHead>
-                    <SortHead
-                      col="present"
-                      label="Present"
-                      sortBy={sortBy}
-                      sortOrder={sortOrder}
-                      onSort={handleSort}
-                      align="center"
-                    />
-                    <SortHead
-                      col="absent"
-                      label="Absent"
-                      sortBy={sortBy}
-                      sortOrder={sortOrder}
-                      onSort={handleSort}
-                      align="center"
-                    />
-                    <SortHead
-                      col="late"
-                      label="Late"
-                      sortBy={sortBy}
-                      sortOrder={sortOrder}
-                      onSort={handleSort}
-                      align="center"
-                    />
-                    <TableHead className="text-center">On Leave</TableHead>
-                    <TableHead className="text-center">Total Days</TableHead>
+                    <SortHead col="name"       label="Employee"     sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />
+                    {col('employeeId') && <SortHead col="employeeId" label="Employee ID" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                    {col('license')    && <SortHead col="license"    label="License"     sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                    {col('agency')     && <SortHead col="agency"     label="Agency"      sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                    {col('present')    && <SortHead col="present"    label="Present"     sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} className="text-center" />}
+                    {col('absent')     && <SortHead col="absent"     label="Absent"      sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} className="text-center" />}
+                    {col('late')       && <SortHead col="late"       label="Late"        sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} className="text-center" />}
+                    {col('onLeave')    && <SortHead col="onLeave"    label="On Leave"    sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} className="text-center" />}
+                    {col('totalDays')  && <SortHead col="totalDays"  label="Total Days"  sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} className="text-center" />}
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -567,50 +640,65 @@ export function AttendanceList() {
                           </div>
                         </TableCell>
 
-                        <TableCell className="text-sm text-muted-foreground">
-                          {emp.employeeNumber ?? '—'}
-                        </TableCell>
+                        {col('employeeId') && (
+                          <TableCell className="text-sm text-muted-foreground">
+                            {emp.employeeNumber ?? '—'}
+                          </TableCell>
+                        )}
 
-                        <TableCell className="text-sm">
-                          {emp.licenseCategory ?? emp.licenseNumber ?? '—'}
-                        </TableCell>
+                        {col('license') && (
+                          <TableCell className="text-sm">
+                            {emp.licenseCategory ?? emp.licenseNumber ?? '—'}
+                          </TableCell>
+                        )}
 
-                        <TableCell className="text-sm">
-                          {emp.agency?.name ?? emp.agencyName ?? (
-                            <span className="text-muted-foreground">Direct</span>
-                          )}
-                        </TableCell>
+                        {col('agency') && (
+                          <TableCell className="text-sm">
+                            {emp.agency?.name ?? emp.agencyName ?? (
+                              <span className="text-muted-foreground">Direct</span>
+                            )}
+                          </TableCell>
+                        )}
 
-                        {/* Count badges */}
-                        <TableCell className="text-center">
-                          <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-medium ${statusColors.PRESENT}`}>
-                            {emp.presentCount ?? 0}
-                          </span>
-                        </TableCell>
+                        {col('present') && (
+                          <TableCell className="text-center">
+                            <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-medium ${statusColors.PRESENT}`}>
+                              {emp.presentCount ?? 0}
+                            </span>
+                          </TableCell>
+                        )}
 
-                        <TableCell className="text-center">
-                          <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-medium ${statusColors.ABSENT}`}>
-                            {emp.absentCount ?? 0}
-                          </span>
-                        </TableCell>
+                        {col('absent') && (
+                          <TableCell className="text-center">
+                            <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-medium ${statusColors.ABSENT}`}>
+                              {emp.absentCount ?? 0}
+                            </span>
+                          </TableCell>
+                        )}
 
-                        <TableCell className="text-center">
-                          <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-medium ${statusColors.LATE}`}>
-                            {emp.lateCount ?? 0}
-                          </span>
-                        </TableCell>
+                        {col('late') && (
+                          <TableCell className="text-center">
+                            <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-medium ${statusColors.LATE}`}>
+                              {emp.lateCount ?? 0}
+                            </span>
+                          </TableCell>
+                        )}
 
-                        <TableCell className="text-center">
-                          <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-medium ${statusColors.ON_LEAVE}`}>
-                            {emp.onLeaveCount ?? 0}
-                          </span>
-                        </TableCell>
+                        {col('onLeave') && (
+                          <TableCell className="text-center">
+                            <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-medium ${statusColors.ON_LEAVE}`}>
+                              {emp.onLeaveCount ?? 0}
+                            </span>
+                          </TableCell>
+                        )}
 
-                        <TableCell className="text-center">
-                          <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
-                            {totalDays}
-                          </span>
-                        </TableCell>
+                        {col('totalDays') && (
+                          <TableCell className="text-center">
+                            <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
+                              {totalDays}
+                            </span>
+                          </TableCell>
+                        )}
 
                         <TableCell className="text-right">
                           <Button

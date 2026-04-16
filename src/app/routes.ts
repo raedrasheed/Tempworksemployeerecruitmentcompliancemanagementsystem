@@ -10,9 +10,12 @@ import { EmployeeTrainingHistory } from './pages/employees/EmployeeTrainingHisto
 import { EmployeeComplianceTimeline } from './pages/employees/EmployeeComplianceTimeline';
 import { EmployeePerformanceReview } from './pages/employees/EmployeePerformanceReview';
 import { ApplicantsList } from './pages/applicants/ApplicantsList';
+import { CandidatesList } from './pages/applicants/CandidatesList';
 import { ApplicantProfile } from './pages/applicants/ApplicantProfile';
+import { CandidateProfile } from './pages/applicants/CandidateProfile';
 import { AddApplicant } from './pages/applicants/AddApplicant';
 import { EditApplicant } from './pages/applicants/EditApplicant';
+import { EditCandidate } from './pages/applicants/EditCandidate';
 
 import { DocumentsDashboard } from './pages/documents/DocumentsDashboard';
 import { DocumentUpload } from './pages/documents/DocumentUpload';
@@ -39,6 +42,7 @@ import { ComplianceAlerts } from './pages/compliance/ComplianceAlerts';
 import { EmployeeCompliance } from './pages/compliance/EmployeeCompliance';
 import { ReportsDashboard } from './pages/reports/ReportsDashboard';
 import { NotificationCenter } from './pages/notifications/NotificationCenter';
+import { NotificationSettings } from './pages/notifications/NotificationSettings';
 import { UsersList } from './pages/users/UsersList';
 import { AddUser } from './pages/users/AddUser';
 import { EditUser } from './pages/users/EditUser';
@@ -46,6 +50,7 @@ import { RolesList } from './pages/roles/RolesList';
 import { CreateRole } from './pages/roles/CreateRole';
 import { PermissionsMatrix } from './pages/roles/PermissionsMatrix';
 import { LogsDashboard } from './pages/logs/LogsDashboard';
+import { FinanceDashboard } from './pages/finance/FinanceDashboard';
 import { Settings } from './pages/settings/Settings';
 import { ColorScheme } from './pages/settings/ColorScheme';
 import { WorkflowSettings } from './pages/settings/WorkflowSettings';
@@ -61,19 +66,65 @@ import { JobTypes } from './pages/settings/JobTypes';
 // Profile pages
 import { Profile } from './pages/profile/Profile';
 import { ChangePassword } from './pages/profile/ChangePassword';
+import { UserPreferences } from './pages/profile/UserPreferences';
+
+// Applicant management pages
+import { CandidateDeleteRequests } from './pages/applicants/CandidateDeleteRequests';
+
+// Job Ads dashboard pages
+import { JobAdsList } from './pages/job-ads/JobAdsList';
+import { JobAdForm } from './pages/job-ads/JobAdForm';
+import { DeletedRecords } from './pages/recycle-bin/DeletedRecords';
+import { DatabaseCleanup }  from './pages/settings/DatabaseCleanup';
+import { DatabaseBackup }   from './pages/settings/DatabaseBackup';
+import { SystemInformation } from './pages/settings/SystemInformation';
+import { BrandingSettings } from './pages/settings/BrandingSettings';
+import { SkillsSettings } from './pages/settings/SkillsSettings';
+import { TransportTypesSettings } from './pages/settings/TransportTypesSettings';
+import { TruckBrandsSettings } from './pages/settings/TruckBrandsSettings';
+import { TrailerTypesSettings } from './pages/settings/TrailerTypesSettings';
+
+// Pipeline pages
+import { WorkflowsPage } from './pages/pipelines/WorkflowsPage';
+import { WorkflowBoardPage } from './pages/pipelines/WorkflowBoardPage';
+import { WorkflowSettingsPage } from './pages/pipelines/WorkflowSettingsPage';
+import { WorkflowStageDetailsPage } from './pages/pipelines/WorkflowStageDetailsPage';
 
 // Public pages
 import { LandingPage } from './pages/public/LandingPage';
 import { LoginPage } from './pages/public/LoginPage';
+import { ActivationPage } from './pages/public/ActivationPage';
+import { ForgotPasswordPage } from './pages/public/ForgotPasswordPage';
+import { ResetPasswordPage } from './pages/public/ResetPasswordPage';
 import { PublicEmployeeApplication } from './pages/public/PublicEmployeeApplication';
 import { ApplicationSuccess } from './pages/public/ApplicationSuccess';
+import { JobListings } from './pages/public/JobListings';
+import { JobDetail } from './pages/public/JobDetail';
+import { DataProcessingAgreement } from './pages/public/DataProcessingAgreement';
+
+// Attendance pages
+import { AttendanceList } from './pages/attendance/AttendanceList';
+import { AttendanceSheet } from './pages/attendance/AttendanceSheet';
+
+// Vehicle Management pages
+import { VehiclesList } from './pages/vehicles/VehiclesList';
+import { VehicleDetail } from './pages/vehicles/VehicleDetail';
+import { VehicleForm } from './pages/vehicles/VehicleForm';
+import { WorkshopsList } from './pages/vehicles/WorkshopsList';
+import { MaintenanceTypesList } from './pages/vehicles/MaintenanceTypesList';
 
 export const router = createBrowserRouter([
   // Public routes (no MainLayout)
   { path: '/', Component: LandingPage },
   { path: '/login', Component: LoginPage },
+  { path: '/activate', Component: ActivationPage },
+  { path: '/forgot-password', Component: ForgotPasswordPage },
+  { path: '/reset-password', Component: ResetPasswordPage },
   { path: '/apply', Component: PublicEmployeeApplication },
   { path: '/application-success', Component: ApplicationSuccess },
+  { path: '/jobs', Component: JobListings },
+  { path: '/jobs/:slug', Component: JobDetail },
+  { path: '/data-processing-agreement', Component: DataProcessingAgreement },
   
   // Protected routes (with MainLayout)
   {
@@ -95,8 +146,14 @@ export const router = createBrowserRouter([
       // Applicants routes
       { path: 'applicants', Component: ApplicantsList },
       { path: 'applicants/add', Component: AddApplicant },
+      { path: 'applicants/delete-requests', Component: CandidateDeleteRequests },
       { path: 'applicants/:id', Component: ApplicantProfile },
       { path: 'applicants/:id/edit', Component: EditApplicant },
+
+      // Candidates routes
+      { path: 'candidates', Component: CandidatesList },
+      { path: 'candidates/:id', Component: CandidateProfile },
+      { path: 'candidates/:id/edit', Component: EditCandidate },
       
       // Documents routes
       { path: 'documents', Component: DocumentsDashboard },
@@ -107,6 +164,12 @@ export const router = createBrowserRouter([
       { path: 'document-explorer', Component: EmployeeDocumentExplorer },
       { path: 'documents-compliance', Component: DocumentsCompliance },
       
+      // Workflow (recruitment pipeline) routes
+      { path: 'workflows', Component: WorkflowsPage },
+      { path: 'workflows/:id', Component: WorkflowBoardPage },
+      { path: 'workflows/stage/:stageId', Component: WorkflowStageDetailsPage },
+      { path: 'settings/workflows/:id', Component: WorkflowSettingsPage },
+
       // Workflow routes
       { path: 'workflow', Component: WorkflowOverview },
       { path: 'workflow/work-permits', Component: WorkPermitTracking },
@@ -133,6 +196,7 @@ export const router = createBrowserRouter([
       
       // Notifications routes
       { path: 'notifications', Component: NotificationCenter },
+      { path: 'notifications/settings', Component: NotificationSettings },
       
       // Users routes
       { path: 'users', Component: UsersList },
@@ -145,9 +209,32 @@ export const router = createBrowserRouter([
       { path: 'roles/:id/edit', Component: CreateRole },
       { path: 'roles/permissions-matrix', Component: PermissionsMatrix },
       
+      // Attendance routes
+      { path: 'attendance', Component: AttendanceList },
+      { path: 'attendance/:id', Component: AttendanceSheet },
+
+      // Vehicle Management routes
+      { path: 'vehicles', Component: VehiclesList },
+      { path: 'vehicles/new', Component: VehicleForm },
+      { path: 'vehicles/:id', Component: VehicleDetail },
+      { path: 'vehicles/:id/edit', Component: VehicleForm },
+      { path: 'vehicles/workshops', Component: WorkshopsList },
+      { path: 'vehicles/maintenance-types', Component: MaintenanceTypesList },
+
+      // Finance routes
+      { path: 'finance', Component: FinanceDashboard },
+
+      // Job Ads routes
+      { path: 'job-ads', Component: JobAdsList },
+      { path: 'job-ads/new', Component: JobAdForm },
+      { path: 'job-ads/:id/edit', Component: JobAdForm },
+
       // System Logs routes
       { path: 'logs', Component: LogsDashboard },
-      
+
+      // Recycle Bin
+      { path: 'recycle-bin', Component: DeletedRecords },
+
       // Settings routes
       { path: 'settings', Component: Settings },
       { path: 'settings/job-types', Component: JobTypes },
@@ -160,11 +247,20 @@ export const router = createBrowserRouter([
       { path: 'settings/notifications', Component: NotificationRules },
       { path: 'settings/security', Component: SecuritySettings },
       { path: 'settings/color-scheme', Component: ColorScheme },
-      
+      { path: 'settings/database-cleanup', Component: DatabaseCleanup },
+      { path: 'settings/database-backup',  Component: DatabaseBackup  },
+      { path: 'settings/system-information', Component: SystemInformation },
+      { path: 'settings/branding', Component: BrandingSettings },
+      { path: 'settings/skills', Component: SkillsSettings },
+      { path: 'settings/transport-types', Component: TransportTypesSettings },
+      { path: 'settings/truck-brands', Component: TruckBrandsSettings },
+      { path: 'settings/trailer-types', Component: TrailerTypesSettings },
+
       // Profile routes
       { path: 'profile', Component: Profile },
       { path: 'profile/change-password', Component: ChangePassword },
       { path: 'change-password', Component: ChangePassword },
+      { path: 'preferences', Component: UserPreferences },
     ],
   },
 ]);

@@ -5,7 +5,7 @@ import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Input } from '../../components/ui/input';
-import { workflowApi } from '../../services/api';
+import { employeeWorkflowApi } from '../../services/api';
 
 export function StageDetails() {
   const { stageId } = useParams<{ stageId: string }>();
@@ -18,8 +18,8 @@ export function StageDetails() {
   useEffect(() => {
     if (!stageId) return;
     Promise.all([
-      workflowApi.getStageDetails(stageId),
-      workflowApi.getStages(),
+      employeeWorkflowApi.getStageDetails(stageId),
+      employeeWorkflowApi.getStages(),
     ])
       .then(([details, stages]) => {
         setData(details);
@@ -48,7 +48,7 @@ export function StageDetails() {
           <AlertTriangle className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
           <h2 className="text-2xl font-semibold mb-2">Stage Not Found</h2>
           <p className="text-muted-foreground mb-4">The requested workflow stage could not be found.</p>
-          <Button asChild><Link to="/dashboard/workflow">Return to Workflow Pipeline</Link></Button>
+          <Button asChild><Link to="/dashboard/workflow">Return to Workflow</Link></Button>
         </div>
       </div>
     );

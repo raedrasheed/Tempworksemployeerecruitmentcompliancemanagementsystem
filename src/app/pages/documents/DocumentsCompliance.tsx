@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { useState, useEffect, useCallback } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 import {
   Search, AlertTriangle, CheckCircle, Clock, FileText,
   Download, Upload, RefreshCw, Edit, Trash2, CheckCircle2, XCircle,
+  ChevronLeft, ChevronRight, ArrowUpDown, Filter, X, ArrowLeft,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -11,72 +12,138 @@ import { Badge } from '../../components/ui/badge';
 import { Textarea } from '../../components/ui/textarea';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
-} from '../../components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
 import { toast } from 'sonner';
-import { documentsApi, employeesApi, applicantsApi } from '../../services/api';
+import { documentsApi, settingsApi } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
-import { FilterSystem, Column, FilterRule, FilterPreset } from '../../components/filters/FilterSystem';
 
 const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1').replace('/api/v1', '');
 const getFileUrl = (fileUrl: string) => `${API_BASE}${fileUrl}`;
 
-const documentColumns: Column[] = [
-  { id: 'name', label: 'Document Name', type: 'text' },
-  { id: 'status', label: 'Status', type: 'enum', options: ['PENDING', 'VERIFIED', 'REJECTED', 'EXPIRED', 'EXPIRING_SOON'] },
-  { id: 'expiryDate', label: 'Expiry Date', type: 'date' },
+const STATUS_OPTIONS = [
+  { value: 'PENDING',       label: 'Pending Verification' },
+  { value: 'VERIFIED',      label: 'Valid / Verified' },
+  { value: 'REJECTED',      label: 'Rejected' },
+  { value: 'EXPIRED',       label: 'Expired' },
+  { value: 'EXPIRING_SOON', label: 'Expiring Soon' },
+];
+
+const SORT_OPTIONS = [
+  { value: 'createdAt',     label: 'Upload Date' },
+  { value: 'name',          label: 'Document Name' },
+  { value: 'status',        label: 'Status' },
+  { value: 'issueDate',     label: 'Issue Date' },
+  { value: 'expiryDate',    label: 'Expiry Date' },
+  { value: 'documentNumber',label: 'Doc Number' },
+  { value: 'docId',         label: 'Doc ID' },
+  { value: 'verifiedAt',    label: 'Verified At' },
 ];
 
 export function DocumentsCompliance() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { canCreate, canEdit, canDelete, can } = usePermissions();
-  const [documents, setDocuments] = useState<any[]>([]);
-  const [employeeMap, setEmployeeMap] = useState<Record<string, string>>({});
-  const [applicantMap, setApplicantMap] = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [complianceFilter, setComplianceFilter] = useState('all');
-  const [activeFilters, setActiveFilters] = useState<FilterRule[]>([]);
-  const [filterLogic, setFilterLogic] = useState<'AND' | 'OR'>('AND');
-  const [savedPresets, setSavedPresets] = useState<FilterPreset[]>([
-    { id: '1', name: 'Expired Documents', rules: [{ id: '1', columnId: 'status', operator: 'equals', value: 'EXPIRED' }], logic: 'AND' },
-    { id: '2', name: 'Expiring Soon', rules: [{ id: '1', columnId: 'status', operator: 'equals', value: 'EXPIRING_SOON' }], logic: 'AND' },
-  ]);
 
-  // Inline verify state
-  const [verifying, setVerifying] = useState<string | null>(null);
-  const [rejectDialog, setRejectDialog] = useState<{
-    open: boolean; docId: string; docName: string;
-  }>({ open: false, docId: '', docName: '' });
-  const [rejectionReason, setRejectionReason] = useState('');
+  // ── Server-driven state ──────────────────────────────────────────────────
+  const [documents,  setDocuments]  = useState<any[]>([]);
+  const [meta,       setMeta]       = useState({ total: 0, page: 1, limit: 30, totalPages: 1 });
+  const [loading,    setLoading]    = useState(true);
+  const [docTypes,   setDocTypes]   = useState<{ id: string; name: string; code?: string }[]>([]);
 
+  // ── Filters (all server-side) ─────────────────────────────────────────────
+  const [search,         setSearch]         = useState(searchParams.get('search')         ?? '');
+  const [statusFilter,   setStatusFilter]   = useState(searchParams.get('status')         ?? '');
+  const [typeFilter,     setTypeFilter]     = useState(searchParams.get('documentTypeId') ?? '');
+  const [entityTypeF,    setEntityTypeF]    = useState(searchParams.get('entityType')     ?? '');
+  const [docIdFilter,    setDocIdFilter]    = useState(searchParams.get('docId')          ?? '');
+  const [docNumFilter,   setDocNumFilter]   = useState(searchParams.get('documentNumber') ?? '');
+  const [expFrom,        setExpFrom]        = useState(searchParams.get('expiryDateFrom') ?? '');
+  const [expTo,          setExpTo]          = useState(searchParams.get('expiryDateTo')   ?? '');
+  const [sortBy,         setSortBy]         = useState(searchParams.get('sortBy')         ?? 'createdAt');
+  const [sortOrder,      setSortOrder]      = useState<'asc' | 'desc'>((searchParams.get('sortOrder') as any) ?? 'desc');
+  const [page,           setPage]           = useState(1);
+  const limit = 30;
+
+  // ── Dialog state ──────────────────────────────────────────────────────────
+  const [verifying,       setVerifying]      = useState<string | null>(null);
+  const [rejectDialog,    setRejectDialog]   = useState<{ open: boolean; docId: string; docName: string }>({ open: false, docId: '', docName: '' });
+  const [rejectionReason, setRejectionReason]= useState('');
+  const [renewDialog,     setRenewDialog]    = useState<{ open: boolean; doc: any | null }>({ open: false, doc: null });
+  const [renewForm,       setRenewForm]      = useState({ name: '', issueDate: '', expiryDate: '', documentNumber: '', issueCountry: '', issuer: '', notes: '' });
+  const [renewing,        setRenewing]       = useState(false);
+
+  // ── Load document types ────────────────────────────────────────────────────
   useEffect(() => {
-    const loadDocuments = documentsApi.list({ limit: 200 })
-      .then((res: any) => setDocuments((res as any)?.data ?? []))
-      .catch(() => toast.error('Failed to load documents'));
-
-    const loadEmployees = employeesApi.list({ limit: 500 })
-      .then((res: any) => {
-        const emps: any[] = (res as any)?.data ?? [];
-        const map: Record<string, string> = {};
-        emps.forEach(e => { map[e.id] = `${e.firstName} ${e.lastName}`; });
-        setEmployeeMap(map);
-      })
-      .catch(() => {});
-
-    const loadApplicants = applicantsApi.list({ limit: 500 })
-      .then((res: any) => {
-        const apps: any[] = (res as any)?.data ?? [];
-        const map: Record<string, string> = {};
-        apps.forEach(a => { map[a.id] = `${a.firstName} ${a.lastName}`; });
-        setApplicantMap(map);
-      })
-      .catch(() => {});
-
-    Promise.all([loadDocuments, loadEmployees, loadApplicants]).finally(() => setLoading(false));
+    settingsApi.getDocumentTypes().then(setDocTypes).catch(() => {});
   }, []);
+
+  // ── Fetch documents (server-driven) ───────────────────────────────────────
+  const load = useCallback(async (p = 1) => {
+    setLoading(true);
+    try {
+      const params: Record<string, any> = {
+        page: p, limit, sortBy, sortOrder,
+        ...(search       ? { search }                         : {}),
+        ...(statusFilter ? { status: statusFilter }           : {}),
+        ...(typeFilter   ? { documentTypeId: typeFilter }     : {}),
+        ...(entityTypeF  ? { entityType: entityTypeF }        : {}),
+        ...(docIdFilter  ? { docId: docIdFilter }             : {}),
+        ...(docNumFilter ? { documentNumber: docNumFilter }   : {}),
+        ...(expFrom      ? { expiryDateFrom: expFrom }        : {}),
+        ...(expTo        ? { expiryDateTo:   expTo }          : {}),
+      };
+      const res = await documentsApi.list(params) as any;
+      setDocuments(res.data ?? []);
+      setMeta(res.meta ?? { total: 0, page: p, limit, totalPages: 1 });
+    } catch {
+      toast.error('Failed to load documents');
+    } finally {
+      setLoading(false);
+    }
+  }, [search, statusFilter, typeFilter, entityTypeF, docIdFilter, docNumFilter, expFrom, expTo, sortBy, sortOrder]);
+
+  useEffect(() => { setPage(1); load(1); }, [search, statusFilter, typeFilter, entityTypeF, docIdFilter, docNumFilter, expFrom, expTo, sortBy, sortOrder]);
+
+  const handlePage = (p: number) => { setPage(p); load(p); };
+
+  const toggleSort = (field: string) => {
+    if (sortBy === field) setSortOrder(o => o === 'asc' ? 'desc' : 'asc');
+    else { setSortBy(field); setSortOrder('desc'); }
+  };
+
+  const clearFilters = () => {
+    setSearch(''); setStatusFilter(''); setTypeFilter('');
+    setEntityTypeF(''); setDocIdFilter(''); setDocNumFilter('');
+    setExpFrom(''); setExpTo('');
+  };
+
+  const hasFilters = search || statusFilter || typeFilter || entityTypeF || docIdFilter || docNumFilter || expFrom || expTo;
+
+  // ── Actions ───────────────────────────────────────────────────────────────
+
+  const handleApprove = async (doc: any) => {
+    setVerifying(doc.id);
+    try {
+      const updated = await documentsApi.verify(doc.id, { action: 'VERIFY' });
+      setDocuments(prev => prev.map(d => d.id === doc.id ? updated : d));
+      toast.success(`"${doc.name}" approved`);
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to approve document');
+    } finally { setVerifying(null); }
+  };
+
+  const handleReject = async () => {
+    if (!rejectionReason.trim()) { toast.error('A rejection reason is required'); return; }
+    setVerifying(rejectDialog.docId);
+    try {
+      const updated = await documentsApi.verify(rejectDialog.docId, { action: 'REJECT', reason: rejectionReason.trim() });
+      setDocuments(prev => prev.map(d => d.id === rejectDialog.docId ? updated : d));
+      toast.success(`"${rejectDialog.docName}" rejected`);
+      setRejectDialog({ open: false, docId: '', docName: '' });
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to reject document');
+    } finally { setVerifying(null); }
+  };
 
   const handleDelete = async (doc: any) => {
     if (!confirm(`Delete document "${doc.name}"? This cannot be undone.`)) return;
@@ -89,384 +156,403 @@ export function DocumentsCompliance() {
     }
   };
 
-  const handleApprove = async (doc: any) => {
-    setVerifying(doc.id);
-    try {
-      const updated = await documentsApi.verify(doc.id, { action: 'VERIFY' });
-      setDocuments(prev => prev.map(d => d.id === doc.id ? updated : d));
-      toast.success(`"${doc.name}" approved`);
-    } catch (err: any) {
-      toast.error(err?.message || 'Failed to approve document');
-    } finally {
-      setVerifying(null);
-    }
+  const openRenewDialog = (doc: any) => {
+    setRenewForm({ name: `${doc.name} (Renewal)`, issueDate: '', expiryDate: '', documentNumber: doc.documentNumber ?? '', issueCountry: doc.issueCountry ?? '', issuer: doc.issuer ?? '', notes: '' });
+    setRenewDialog({ open: true, doc });
   };
 
-  const openRejectDialog = (doc: any) => {
-    setRejectDialog({ open: true, docId: doc.id, docName: doc.name });
-    setRejectionReason('');
-  };
-
-  const handleReject = async () => {
-    if (!rejectionReason.trim()) { toast.error('A rejection reason is required'); return; }
-    setVerifying(rejectDialog.docId);
+  const handleRenew = async () => {
+    setRenewing(true);
     try {
-      const updated = await documentsApi.verify(rejectDialog.docId, {
-        action: 'REJECT',
-        reason: rejectionReason.trim(),
+      const renewed = await documentsApi.renew(renewDialog.doc.id, {
+        name:           renewForm.name || undefined,
+        issueDate:      renewForm.issueDate      || undefined,
+        expiryDate:     renewForm.expiryDate     || undefined,
+        documentNumber: renewForm.documentNumber || undefined,
+        issueCountry:   renewForm.issueCountry   || undefined,
+        issuer:         renewForm.issuer         || undefined,
+        notes:          renewForm.notes          || undefined,
       });
-      setDocuments(prev => prev.map(d => d.id === rejectDialog.docId ? updated : d));
-      toast.success(`"${rejectDialog.docName}" rejected`);
-      setRejectDialog({ open: false, docId: '', docName: '' });
+      toast.success(`Renewal created: ${renewed.docId ?? renewed.id}`);
+      setRenewDialog({ open: false, doc: null });
+      load(page);
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to reject document');
-    } finally {
-      setVerifying(null);
-    }
+      toast.error(err?.message || 'Failed to create renewal');
+    } finally { setRenewing(false); }
   };
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'VERIFIED':   return <Badge className="bg-[#22C55E]">Valid</Badge>;
-      case 'EXPIRING_SOON': return <Badge className="bg-[#F59E0B]">Expiring Soon</Badge>;
-      case 'EXPIRED':    return <Badge className="bg-[#EF4444]">Expired</Badge>;
-      case 'REJECTED':   return <Badge className="bg-[#EF4444]">Rejected</Badge>;
-      case 'PENDING':    return <Badge className="bg-[#64748B]">Pending</Badge>;
-      default:           return <Badge variant="outline">{status}</Badge>;
-    }
+    const map: Record<string, string> = {
+      VERIFIED: 'bg-emerald-100 text-emerald-700',
+      EXPIRING_SOON: 'bg-amber-100 text-amber-700',
+      EXPIRED: 'bg-red-100 text-red-700',
+      REJECTED: 'bg-red-100 text-red-700',
+      PENDING: 'bg-gray-100 text-gray-700',
+    };
+    const labels: Record<string, string> = {
+      VERIFIED: 'Valid', EXPIRING_SOON: 'Expiring Soon',
+      EXPIRED: 'Expired', REJECTED: 'Rejected', PENDING: 'Pending',
+    };
+    return <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${map[status] ?? 'bg-gray-100 text-gray-700'}`}>{labels[status] ?? status}</span>;
   };
 
-  const applyFilters = (doc: any) => {
-    if (activeFilters.length === 0) return true;
-    const results = activeFilters.map(filter => {
-      const value = (doc as any)[filter.columnId] ?? '';
-      switch (filter.operator) {
-        case 'contains':   return String(value).toLowerCase().includes(filter.value.toLowerCase());
-        case 'equals':     return String(value).toLowerCase() === filter.value.toLowerCase();
-        case 'startsWith': return String(value).toLowerCase().startsWith(filter.value.toLowerCase());
-        case 'endsWith':   return String(value).toLowerCase().endsWith(filter.value.toLowerCase());
-        case 'before':     return value && new Date(value) < new Date(filter.value);
-        case 'after':      return value && new Date(value) > new Date(filter.value);
-        default:           return true;
-      }
-    });
-    return filterLogic === 'AND' ? results.every(r => r) : results.some(r => r);
+  const getComplianceBadge = (status: string) => {
+    if (status === 'VERIFIED')      return <span className="px-2 py-0.5 rounded-full text-xs border border-emerald-400 text-emerald-600 bg-emerald-50">Compliant</span>;
+    if (status === 'EXPIRING_SOON') return <span className="px-2 py-0.5 rounded-full text-xs border border-amber-400  text-amber-600  bg-amber-50">At Risk</span>;
+    if (status === 'PENDING')       return <span className="px-2 py-0.5 rounded-full text-xs border border-gray-300   text-gray-600   bg-gray-50">Pending</span>;
+    return <span className="px-2 py-0.5 rounded-full text-xs border border-red-400 text-red-600 bg-red-50">Non-Compliant</span>;
   };
 
-  const resolveEntityName = (doc: any) =>
-    employeeMap[doc.entityId] ?? applicantMap[doc.entityId] ?? doc.entityId;
+  const SortBtn = ({ field }: { field: string }) => (
+    <button onClick={() => toggleSort(field)} className="ml-1 opacity-50 hover:opacity-100">
+      <ArrowUpDown className={`w-3 h-3 inline ${sortBy === field ? 'opacity-100 text-primary' : ''}`} />
+    </button>
+  );
 
-  const filteredDocuments = documents.filter(doc => {
-    const entityName = resolveEntityName(doc);
-    const matchesSearch = doc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      entityName.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || doc.status === statusFilter;
-    let matchesCompliance = true;
-    if (complianceFilter === 'compliant') matchesCompliance = doc.status === 'VERIFIED';
-    else if (complianceFilter === 'at_risk') matchesCompliance = doc.status === 'EXPIRING_SOON';
-    else if (complianceFilter === 'non_compliant') matchesCompliance = doc.status === 'EXPIRED' || doc.status === 'REJECTED';
-    return matchesSearch && matchesStatus && matchesCompliance && applyFilters(doc);
-  });
-
-  const validDocs     = documents.filter(d => d.status === 'VERIFIED').length;
-  const expiringDocs  = documents.filter(d => d.status === 'EXPIRING_SOON').length;
-  const expiredDocs   = documents.filter(d => d.status === 'EXPIRED').length;
-  const pendingDocs   = documents.filter(d => d.status === 'PENDING').length;
-
-  const getComplianceLabel = (status: string) => {
-    if (status === 'VERIFIED') return 'Compliant';
-    if (status === 'EXPIRING_SOON') return 'At Risk';
-    if (status === 'EXPIRED' || status === 'REJECTED') return 'Non-Compliant';
-    return 'Pending';
-  };
-
-  const getComplianceBadgeClass = (status: string) => {
-    if (status === 'VERIFIED') return 'bg-[#F0FDF4] text-[#22C55E] border-[#22C55E]';
-    if (status === 'EXPIRING_SOON') return 'bg-[#FEF3C7] text-[#F59E0B] border-[#F59E0B]';
-    if (status === 'EXPIRED' || status === 'REJECTED') return 'bg-[#FEE2E2] text-[#EF4444] border-[#EF4444]';
-    return 'bg-[#F8FAFC] text-[#64748B] border-[#E2E8F0]';
-  };
-
-  if (loading) return <div className="p-8 text-muted-foreground">Loading...</div>;
+  // ── Stats ─────────────────────────────────────────────────────────────────
+  const validDocs    = documents.filter(d => d.status === 'VERIFIED').length;
+  const expiringDocs = documents.filter(d => d.status === 'EXPIRING_SOON').length;
+  const expiredDocs  = documents.filter(d => d.status === 'EXPIRED').length;
+  const pendingDocs  = documents.filter(d => d.status === 'PENDING').length;
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-semibold text-[#0F172A]">Documents & Compliance</h1>
+          <div className="flex items-center gap-3 mb-2">
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <h1 className="text-3xl font-semibold text-[#0F172A]">Documents & Compliance</h1>
+          </div>
           <p className="text-muted-foreground mt-1">Monitor driver documents and compliance status</p>
         </div>
         {canCreate('documents') && (
           <Button asChild>
             <Link to="/dashboard/documents/upload">
-              <Upload className="w-4 h-4 mr-2" />
-              Upload Document
+              <Upload className="w-4 h-4 mr-2" />Upload Document
             </Link>
           </Button>
         )}
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card><CardContent className="p-6">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-lg bg-[#F0FDF4] flex items-center justify-center">
-              <CheckCircle className="w-6 h-6 text-[#22C55E]" />
-            </div>
-            <div><p className="text-2xl font-semibold">{validDocs}</p><p className="text-sm text-muted-foreground">Valid Documents</p></div>
-          </div>
-        </CardContent></Card>
-
-        <Card><CardContent className="p-6">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-lg bg-[#FEF3C7] flex items-center justify-center">
-              <Clock className="w-6 h-6 text-[#F59E0B]" />
-            </div>
-            <div><p className="text-2xl font-semibold">{expiringDocs}</p><p className="text-sm text-muted-foreground">Expiring Soon</p></div>
-          </div>
-        </CardContent></Card>
-
-        <Card><CardContent className="p-6">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-lg bg-[#FEE2E2] flex items-center justify-center">
-              <AlertTriangle className="w-6 h-6 text-[#EF4444]" />
-            </div>
-            <div><p className="text-2xl font-semibold">{expiredDocs}</p><p className="text-sm text-muted-foreground">Expired</p></div>
-          </div>
-        </CardContent></Card>
-
-        <Card><CardContent className="p-6">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-lg bg-[#F8FAFC] flex items-center justify-center">
-              <FileText className="w-6 h-6 text-[#64748B]" />
-            </div>
-            <div><p className="text-2xl font-semibold">{pendingDocs}</p><p className="text-sm text-muted-foreground">Pending Verification</p></div>
-          </div>
-        </CardContent></Card>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[
+          { icon: <CheckCircle className="w-6 h-6 text-emerald-500" />, bg: 'bg-emerald-50', count: validDocs,    label: 'Valid Documents',      filter: 'VERIFIED' },
+          { icon: <Clock       className="w-6 h-6 text-amber-500"  />, bg: 'bg-amber-50',   count: expiringDocs, label: 'Expiring Soon',         filter: 'EXPIRING_SOON' },
+          { icon: <AlertTriangle className="w-6 h-6 text-red-500" />, bg: 'bg-red-50',      count: expiredDocs,  label: 'Expired',               filter: 'EXPIRED' },
+          { icon: <FileText    className="w-6 h-6 text-gray-500"  />, bg: 'bg-gray-50',     count: pendingDocs,  label: 'Pending Verification',  filter: 'PENDING' },
+        ].map(({ icon, bg, count, label, filter }) => (
+          <Card key={label} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setStatusFilter(f => f === filter ? '' : filter)}>
+            <CardContent className="p-5">
+              <div className="flex items-center gap-3">
+                <div className={`w-11 h-11 rounded-lg ${bg} flex items-center justify-center flex-shrink-0`}>{icon}</div>
+                <div><p className="text-2xl font-semibold">{count}</p><p className="text-xs text-muted-foreground leading-tight">{label}</p></div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
-      {/* Compliance Alert */}
+      {/* Compliance alert banner */}
       {(expiringDocs > 0 || expiredDocs > 0) && (
-        <Card className="border-[#F59E0B] bg-[#FEF3C7]">
-          <CardContent className="p-4">
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="w-5 h-5 text-[#F59E0B] mt-0.5" />
-              <div className="flex-1">
-                <p className="font-medium text-[#F59E0B]">Compliance Alerts</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {expiredDocs} document(s) have expired and {expiringDocs} document(s) are expiring soon. Immediate action required.
-                </p>
-              </div>
-              <Button size="sm" variant="outline" onClick={() => setStatusFilter('EXPIRING_SOON')}>
-                View Details
-              </Button>
+        <Card className="border-amber-400 bg-amber-50">
+          <CardContent className="p-4 flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
+            <div className="flex-1">
+              <p className="font-medium text-amber-700">Compliance Alerts</p>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                {expiredDocs} expired · {expiringDocs} expiring soon. Immediate action required.
+              </p>
             </div>
+            <Button size="sm" variant="outline" onClick={() => setStatusFilter('EXPIRING_SOON')}>View</Button>
           </CardContent>
         </Card>
       )}
 
       {/* Filters */}
       <Card>
-        <CardHeader><CardTitle>Filter Documents</CardTitle></CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="relative md:col-span-2">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search by document or driver name..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger><SelectValue placeholder="Document Status" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="VERIFIED">Valid</SelectItem>
-                  <SelectItem value="EXPIRING_SOON">Expiring Soon</SelectItem>
-                  <SelectItem value="EXPIRED">Expired</SelectItem>
-                  <SelectItem value="PENDING">Pending Verification</SelectItem>
-                  <SelectItem value="REJECTED">Rejected</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={complianceFilter} onValueChange={setComplianceFilter}>
-                <SelectTrigger><SelectValue placeholder="Compliance Status" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Compliance</SelectItem>
-                  <SelectItem value="compliant">Compliant</SelectItem>
-                  <SelectItem value="at_risk">At Risk</SelectItem>
-                  <SelectItem value="non_compliant">Non-Compliant</SelectItem>
-                </SelectContent>
-              </Select>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base flex items-center gap-2"><Filter className="w-4 h-4" /> Filter Documents</CardTitle>
+            {hasFilters && (
+              <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground">
+                <X className="w-3 h-3 mr-1" /> Clear filters
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {/* Row 1: search + status + type */}
+          <div className="flex flex-wrap gap-2">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Search name, doc number, business ID, issuer…"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="pl-9"
+              />
             </div>
-            <FilterSystem
-              columns={documentColumns}
-              activeFilters={activeFilters}
-              onFiltersChange={setActiveFilters}
-              filterLogic={filterLogic}
-              onLogicChange={setFilterLogic}
-              savedPresets={savedPresets}
-              onSavePreset={(name, rules, logic) => setSavedPresets(prev => [...prev, { id: Date.now().toString(), name, rules, logic }])}
-              onLoadPreset={preset => { setActiveFilters(preset.rules); setFilterLogic(preset.logic); }}
-              onDeletePreset={id => setSavedPresets(prev => prev.filter(p => p.id !== id))}
+            <Select value={statusFilter || '__all__'} onValueChange={v => setStatusFilter(v === '__all__' ? '' : v)}>
+              <SelectTrigger className="w-44"><SelectValue placeholder="All Statuses" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">All Statuses</SelectItem>
+                {STATUS_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={typeFilter || '__all__'} onValueChange={v => setTypeFilter(v === '__all__' ? '' : v)}>
+              <SelectTrigger className="w-48"><SelectValue placeholder="All Types" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">All Types</SelectItem>
+                {docTypes.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={entityTypeF || '__all__'} onValueChange={v => setEntityTypeF(v === '__all__' ? '' : v)}>
+              <SelectTrigger className="w-36"><SelectValue placeholder="All Entities" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">All Entities</SelectItem>
+                <SelectItem value="APPLICANT">Applicants</SelectItem>
+                <SelectItem value="EMPLOYEE">Employees</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {/* Row 2: docId + docNumber + expiry range */}
+          <div className="flex flex-wrap gap-2">
+            <Input
+              placeholder="Doc ID (e.g. DOCC2026…)"
+              value={docIdFilter}
+              onChange={e => setDocIdFilter(e.target.value)}
+              className="w-52"
             />
+            <Input
+              placeholder="Physical doc number"
+              value={docNumFilter}
+              onChange={e => setDocNumFilter(e.target.value)}
+              className="w-44"
+            />
+            <div className="flex items-center gap-1">
+              <span className="text-xs text-muted-foreground whitespace-nowrap">Expiry from</span>
+              <Input type="date" value={expFrom} onChange={e => setExpFrom(e.target.value)} className="w-36" />
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="text-xs text-muted-foreground">to</span>
+              <Input type="date" value={expTo} onChange={e => setExpTo(e.target.value)} className="w-36" />
+            </div>
+            {/* Sort */}
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {SORT_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Button variant="outline" size="sm" onClick={() => setSortOrder(o => o === 'asc' ? 'desc' : 'asc')}>
+              {sortOrder === 'asc' ? '↑ Asc' : '↓ Desc'}
+            </Button>
           </div>
         </CardContent>
       </Card>
 
-      {/* Rejection Reason Dialog */}
-      <Dialog
-        open={rejectDialog.open}
-        onOpenChange={open => !open && setRejectDialog(s => ({ ...s, open: false }))}
-      >
+      {/* Reject dialog */}
+      <Dialog open={rejectDialog.open} onOpenChange={open => !open && setRejectDialog(s => ({ ...s, open: false }))}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Reject Document</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>Reject Document</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
-            <p className="text-sm text-muted-foreground">
-              Rejecting:{' '}
-              <span className="font-medium text-[#0F172A]">{rejectDialog.docName}</span>
-            </p>
+            <p className="text-sm text-muted-foreground">Rejecting: <span className="font-medium text-foreground">{rejectDialog.docName}</span></p>
             <div className="space-y-2">
-              <Label htmlFor="reject-reason-compliance">
-                Rejection Reason <span className="text-[#EF4444]">*</span>
-              </Label>
-              <Textarea
-                id="reject-reason-compliance"
-                placeholder="Explain why this document is being rejected…"
-                value={rejectionReason}
-                onChange={e => setRejectionReason(e.target.value)}
-                rows={4}
-              />
+              <Label htmlFor="reject-reason">Rejection Reason <span className="text-destructive">*</span></Label>
+              <Textarea id="reject-reason" placeholder="Explain why this document is being rejected…" value={rejectionReason} onChange={e => setRejectionReason(e.target.value)} rows={4} />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setRejectDialog(s => ({ ...s, open: false }))}>
-              Cancel
-            </Button>
-            <Button
-              className="bg-[#EF4444] hover:bg-[#DC2626] text-white"
-              onClick={handleReject}
-              disabled={!!verifying || !rejectionReason.trim()}
-            >
-              <XCircle className="w-4 h-4 mr-2" />
-              {verifying ? 'Rejecting…' : 'Confirm Rejection'}
+            <Button variant="outline" onClick={() => setRejectDialog(s => ({ ...s, open: false }))}>Cancel</Button>
+            <Button className="bg-red-500 hover:bg-red-600 text-white" onClick={handleReject} disabled={!!verifying || !rejectionReason.trim()}>
+              <XCircle className="w-4 h-4 mr-2" />{verifying ? 'Rejecting…' : 'Confirm Rejection'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Documents Table */}
+      {/* Renew dialog */}
+      <Dialog open={renewDialog.open} onOpenChange={open => !open && setRenewDialog(s => ({ ...s, open: false }))}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Renew Document</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground -mt-2">
+            Creates a new PENDING document linked to <span className="font-medium text-foreground">{renewDialog.doc?.docId ?? renewDialog.doc?.name}</span>.
+            The original document record is preserved.
+          </p>
+          <div className="space-y-3">
+            <div><Label>Name</Label><Input value={renewForm.name} onChange={e => setRenewForm(p => ({ ...p, name: e.target.value }))} /></div>
+            <div className="grid grid-cols-2 gap-2">
+              <div><Label>Issue Date</Label><Input type="date" value={renewForm.issueDate} onChange={e => setRenewForm(p => ({ ...p, issueDate: e.target.value }))} /></div>
+              <div><Label>Expiry Date</Label><Input type="date" value={renewForm.expiryDate} onChange={e => setRenewForm(p => ({ ...p, expiryDate: e.target.value }))} /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div><Label>Document Number</Label><Input value={renewForm.documentNumber} onChange={e => setRenewForm(p => ({ ...p, documentNumber: e.target.value }))} /></div>
+              <div><Label>Issue Country</Label><Input value={renewForm.issueCountry} onChange={e => setRenewForm(p => ({ ...p, issueCountry: e.target.value }))} /></div>
+            </div>
+            <div><Label>Issuer</Label><Input value={renewForm.issuer} onChange={e => setRenewForm(p => ({ ...p, issuer: e.target.value }))} /></div>
+            <div><Label>Notes</Label><Input value={renewForm.notes} onChange={e => setRenewForm(p => ({ ...p, notes: e.target.value }))} /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRenewDialog(s => ({ ...s, open: false }))}>Cancel</Button>
+            <Button onClick={handleRenew} disabled={renewing}>
+              <RefreshCw className="w-4 h-4 mr-2" />{renewing ? 'Creating…' : 'Create Renewal'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Documents table */}
       <Card>
-        <CardHeader><CardTitle>Documents ({filteredDocuments.length})</CardTitle></CardHeader>
-        <CardContent>
-          <div className="border rounded-lg overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-[#F8FAFC] border-b">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base">Documents ({meta.total})</CardTitle>
+            {meta.totalPages > 1 && (
+              <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                <span>Page {meta.page} of {meta.totalPages}</span>
+                <Button variant="ghost" size="sm" disabled={page <= 1} onClick={() => handlePage(page - 1)}><ChevronLeft className="w-4 h-4" /></Button>
+                <Button variant="ghost" size="sm" disabled={page >= meta.totalPages} onClick={() => handlePage(page + 1)}><ChevronRight className="w-4 h-4" /></Button>
+              </div>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/40 border-b">
                 <tr>
-                  <th className="text-left p-4 font-semibold text-sm">Driver</th>
-                  <th className="text-left p-4 font-semibold text-sm">Document</th>
-                  <th className="text-left p-4 font-semibold text-sm">Type</th>
-                  <th className="text-left p-4 font-semibold text-sm">Status</th>
-                  <th className="text-left p-4 font-semibold text-sm">Expiry Date</th>
-                  <th className="text-left p-4 font-semibold text-sm">Compliance</th>
-                  <th className="text-left p-4 font-semibold text-sm">Actions</th>
+                  <th className="text-left p-3 font-medium text-muted-foreground whitespace-nowrap">
+                    Doc ID <SortBtn field="docId" />
+                  </th>
+                  <th className="text-left p-3 font-medium text-muted-foreground">Owner</th>
+                  <th className="text-left p-3 font-medium text-muted-foreground">
+                    Document <SortBtn field="name" />
+                  </th>
+                  <th className="text-left p-3 font-medium text-muted-foreground hidden md:table-cell">Type</th>
+                  <th className="text-left p-3 font-medium text-muted-foreground">
+                    Status <SortBtn field="status" />
+                  </th>
+                  <th className="text-left p-3 font-medium text-muted-foreground hidden lg:table-cell">
+                    Expiry <SortBtn field="expiryDate" />
+                  </th>
+                  <th className="text-left p-3 font-medium text-muted-foreground hidden xl:table-cell">Verified by</th>
+                  <th className="text-left p-3 font-medium text-muted-foreground">Compliance</th>
+                  <th className="text-right p-3 font-medium text-muted-foreground">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredDocuments.length === 0 ? (
-                  <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">No documents found</td></tr>
-                ) : filteredDocuments.map((doc) => {
-                  const daysUntilExpiry = doc.expiryDate
+                {loading ? (
+                  <tr><td colSpan={10} className="p-8 text-center text-muted-foreground">Loading…</td></tr>
+                ) : documents.length === 0 ? (
+                  <tr><td colSpan={10} className="p-8 text-center text-muted-foreground">No documents found</td></tr>
+                ) : documents.map(doc => {
+                  const daysLeft = doc.expiryDate
                     ? Math.ceil((new Date(doc.expiryDate).getTime() - Date.now()) / 86400000)
                     : null;
+                  const verifierName = doc.verifiedBy
+                    ? `${doc.verifiedBy.firstName} ${doc.verifiedBy.lastName}`
+                    : null;
                   return (
-                    <tr key={doc.id} className="border-b hover:bg-[#F8FAFC] transition-colors">
-                      <td className="p-4">
-                        <p className="font-medium">{resolveEntityName(doc)}</p>
-                        <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${applicantMap[doc.entityId] ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
-                          {applicantMap[doc.entityId] ? 'Applicant' : 'Employee'}
-                        </span>
+                    <tr key={doc.id} className="border-b hover:bg-muted/20 transition-colors">
+                      {/* Business ID */}
+                      <td className="p-3 whitespace-nowrap">
+                        {doc.docId
+                          ? <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono">{doc.docId}</code>
+                          : <span className="text-xs text-muted-foreground italic">—</span>}
+                        {doc.renewedFrom && (
+                          <div className="text-xs text-blue-500 mt-0.5">↩ renewal</div>
+                        )}
                       </td>
-                      <td className="p-4">
-                        <div>
-                          <p className="font-medium">{doc.name}</p>
-                          <p className="text-sm text-muted-foreground">{(doc.fileSize / 1024).toFixed(1)} KB</p>
+                      {/* Owner */}
+                      <td className="p-3">
+                        <div className="flex flex-col gap-0.5">
+                          <button
+                            className="text-left text-sm font-medium hover:text-primary truncate max-w-[160px]"
+                            onClick={() => setEntityTypeF(doc.entityType)}
+                          >
+                            {doc.ownerName ?? doc.entityId.slice(0, 8) + '…'}
+                          </button>
+                          {doc.ownerSystemId && (
+                            <span className="text-xs text-muted-foreground font-mono">{doc.ownerSystemId}</span>
+                          )}
+                          <span className={`text-xs px-1.5 py-0.5 rounded w-fit font-medium ${doc.entityType === 'APPLICANT' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                            {doc.entityType === 'APPLICANT' ? 'Applicant' : 'Employee'}
+                          </span>
                         </div>
                       </td>
-                      <td className="p-4">{doc.documentType?.name ?? '-'}</td>
-                      <td className="p-4">{getStatusBadge(doc.status)}</td>
-                      <td className="p-4">
-                        <div>
-                          <p>{doc.expiryDate ? new Date(doc.expiryDate).toLocaleDateString() : 'N/A'}</p>
-                          {daysUntilExpiry !== null && daysUntilExpiry > 0 && (
-                            <p className="text-xs text-muted-foreground">{daysUntilExpiry} days remaining</p>
-                          )}
-                          {daysUntilExpiry !== null && daysUntilExpiry <= 0 && (
-                            <p className="text-xs text-[#EF4444]">Expired {Math.abs(daysUntilExpiry)} days ago</p>
-                          )}
-                        </div>
+                      {/* Document name */}
+                      <td className="p-3">
+                        <p className="font-medium truncate max-w-[180px]">{doc.name}</p>
+                        <p className="text-xs text-muted-foreground">{(doc.fileSize / 1024).toFixed(1)} KB</p>
                       </td>
-                      <td className="p-4">
-                        <Badge variant="outline" className={getComplianceBadgeClass(doc.status)}>
-                          {getComplianceLabel(doc.status)}
-                        </Badge>
+                      {/* Type */}
+                      <td className="p-3 hidden md:table-cell text-muted-foreground">{doc.documentType?.name ?? '—'}</td>
+                      {/* Status + rejection reason */}
+                      <td className="p-3">
+                        {getStatusBadge(doc.status)}
+                        {doc.rejectionReason && (
+                          <p className="text-xs text-red-500 mt-0.5 max-w-[150px] truncate" title={doc.rejectionReason}>
+                            ✕ {doc.rejectionReason}
+                          </p>
+                        )}
                       </td>
-                      <td className="p-4">
-                        <div className="flex items-center gap-1 flex-wrap">
-                          {/* Inline approve/reject for PENDING documents */}
+                      {/* Expiry */}
+                      <td className="p-3 hidden lg:table-cell">
+                        {doc.expiryDate
+                          ? <>
+                              <p className="text-sm">{new Date(doc.expiryDate).toLocaleDateString()}</p>
+                              {daysLeft !== null && daysLeft > 0  && <p className="text-xs text-muted-foreground">{daysLeft}d left</p>}
+                              {daysLeft !== null && daysLeft <= 0 && <p className="text-xs text-red-500">{Math.abs(daysLeft)}d ago</p>}
+                            </>
+                          : <span className="text-muted-foreground text-xs">N/A</span>}
+                      </td>
+                      {/* Verified by */}
+                      <td className="p-3 hidden xl:table-cell text-xs text-muted-foreground">
+                        {verifierName && (
+                          <>
+                            <p>{verifierName}</p>
+                            {doc.verifiedAt && <p>{new Date(doc.verifiedAt).toLocaleDateString()}</p>}
+                          </>
+                        )}
+                      </td>
+                      {/* Compliance */}
+                      <td className="p-3">{getComplianceBadge(doc.status)}</td>
+                      {/* Actions */}
+                      <td className="p-3">
+                        <div className="flex items-center justify-end gap-1 flex-wrap">
                           {doc.status === 'PENDING' && can('documents', 'verify') && (
                             <>
-                              <Button
-                                size="sm"
-                                className="bg-[#22C55E] hover:bg-[#16A34A] text-white"
-                                onClick={() => handleApprove(doc)}
-                                disabled={verifying === doc.id}
-                              >
-                                <CheckCircle2 className="w-3 h-3 mr-1" />
-                                {verifying === doc.id ? '…' : 'Approve'}
+                              <Button size="sm" className="bg-emerald-500 hover:bg-emerald-600 text-white h-7 px-2" onClick={() => handleApprove(doc)} disabled={verifying === doc.id}>
+                                <CheckCircle2 className="w-3 h-3 mr-1" />{verifying === doc.id ? '…' : 'Approve'}
                               </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="text-[#EF4444] border-[#EF4444] hover:bg-[#FEF2F2]"
-                                onClick={() => openRejectDialog(doc)}
-                                disabled={verifying === doc.id}
-                              >
-                                <XCircle className="w-3 h-3 mr-1" />
-                                Reject
+                              <Button size="sm" variant="outline" className="text-red-500 border-red-300 hover:bg-red-50 h-7 px-2" onClick={() => { setRejectDialog({ open: true, docId: doc.id, docName: doc.name }); setRejectionReason(''); }} disabled={verifying === doc.id}>
+                                <XCircle className="w-3 h-3 mr-1" />Reject
                               </Button>
                             </>
                           )}
-                          {(doc.status === 'EXPIRED' || doc.status === 'EXPIRING_SOON') && canCreate('documents') && (
-                            <Button size="sm" variant="outline" asChild>
-                              <Link to="/dashboard/documents/upload">
-                                <RefreshCw className="w-4 h-4 mr-1" />Renew
-                              </Link>
+                          {(doc.status === 'EXPIRED' || doc.status === 'EXPIRING_SOON' || doc.status === 'VERIFIED') && canCreate('documents') && (
+                            <Button size="sm" variant="outline" className="h-7 px-2" onClick={() => openRenewDialog(doc)}>
+                              <RefreshCw className="w-3 h-3 mr-1" />Renew
                             </Button>
                           )}
-                          <Button size="sm" variant="ghost" asChild>
+                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0" asChild>
                             <a href={getFileUrl(doc.fileUrl)} target="_blank" rel="noopener noreferrer">
-                              <Download className="w-4 h-4" />
+                              <Download className="w-3.5 h-3.5" />
                             </a>
                           </Button>
                           {canEdit('documents') && (
-                            <Button size="sm" variant="ghost" asChild>
-                              <Link to={`/dashboard/documents/${doc.id}/edit`}>
-                                <Edit className="w-4 h-4" />
-                              </Link>
+                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0" asChild>
+                              <Link to={`/dashboard/documents/${doc.id}/edit`}><Edit className="w-3.5 h-3.5" /></Link>
                             </Button>
                           )}
                           {canDelete('documents') && (
-                            <Button
-                              size="sm" variant="ghost"
-                              onClick={() => handleDelete(doc)}
-                              className="text-[#EF4444] hover:text-[#EF4444] hover:bg-[#FEF2F2]"
-                            >
-                              <Trash2 className="w-4 h-4" />
+                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-red-400 hover:text-red-600 hover:bg-red-50" onClick={() => handleDelete(doc)}>
+                              <Trash2 className="w-3.5 h-3.5" />
                             </Button>
                           )}
                         </div>
@@ -477,6 +563,16 @@ export function DocumentsCompliance() {
               </tbody>
             </table>
           </div>
+          {/* Pagination footer */}
+          {meta.totalPages > 1 && (
+            <div className="px-4 py-3 border-t flex items-center justify-between text-sm text-muted-foreground">
+              <span>{meta.total} documents · Page {meta.page} of {meta.totalPages}</span>
+              <div className="flex gap-1">
+                <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => handlePage(page - 1)}><ChevronLeft className="w-4 h-4" /> Prev</Button>
+                <Button variant="outline" size="sm" disabled={page >= meta.totalPages} onClick={() => handlePage(page + 1)}>Next <ChevronRight className="w-4 h-4" /></Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

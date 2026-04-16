@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
-import { ArrowLeft, ShieldOff } from 'lucide-react';
+import { ArrowLeft, ShieldOff, Camera, User, X } from 'lucide-react';
 import { usePermissions } from '../../hooks/usePermissions';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -8,19 +8,37 @@ import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { toast } from 'sonner';
-import { employeesApi, agenciesApi } from '../../services/api';
+import { employeesApi, agenciesApi, settingsApi } from '../../services/api';
+
+const API_BASE = import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:3000';
+
+function resolvePhotoUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  if (url.startsWith('http')) return url;
+  return `${API_BASE}${url}`;
+}
 
 export function EditEmployee() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { canEdit } = usePermissions();
+  const photoInputRef = useRef<HTMLInputElement>(null);
+
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [agencies, setAgencies] = useState<any[]>([]);
+  const [jobTypes, setJobTypes] = useState<any[]>([]);
+
+  // Photo state
+  const [currentPhotoUrl, setCurrentPhotoUrl] = useState<string | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
   const [form, setForm] = useState({
     firstName: '', lastName: '', email: '', phone: '',
     nationality: '', dateOfBirth: '',
-    agencyId: '',
+    agencyId: '', jobTypeId: '',
     addressLine1: '', addressLine2: '', city: '', country: '', postalCode: '',
     licenseNumber: '', licenseCategory: '', yearsExperience: '',
     emergencyContact: '', emergencyPhone: '', notes: '',
@@ -31,8 +49,11 @@ export function EditEmployee() {
     Promise.all([
       employeesApi.get(id!),
       agenciesApi.list({ limit: 200 }),
-    ]).then(([emp, agencyResult]) => {
+      settingsApi.getJobTypes().catch(() => []),
+    ]).then(([emp, agencyResult, jt]) => {
       setAgencies((agencyResult as any)?.data ?? []);
+      setJobTypes(Array.isArray(jt) ? jt.filter((j: any) => j.isActive !== false) : []);
+      setCurrentPhotoUrl(emp.photoUrl ?? null);
       setForm({
         firstName: emp.firstName ?? '',
         lastName: emp.lastName ?? '',
@@ -40,7 +61,8 @@ export function EditEmployee() {
         phone: emp.phone ?? '',
         nationality: emp.nationality ?? '',
         dateOfBirth: emp.dateOfBirth ? emp.dateOfBirth.slice(0, 10) : '',
-        agencyId: emp.agencyId ?? '',
+        agencyId:  emp.agencyId  ?? '',
+        jobTypeId: emp.jobTypeId ?? '',
         addressLine1: emp.addressLine1 ?? '',
         addressLine2: emp.addressLine2 ?? '',
         city: emp.city ?? '',
@@ -61,6 +83,22 @@ export function EditEmployee() {
   const set = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm(prev => ({ ...prev, [field]: e.target.value }));
 
+  // Photo handlers
+  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPhotoFile(file);
+    const reader = new FileReader();
+    reader.onload = ev => setPhotoPreview(ev.target?.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const handlePhotoClear = () => {
+    setPhotoFile(null);
+    setPhotoPreview(null);
+    if (photoInputRef.current) photoInputRef.current.value = '';
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
@@ -77,7 +115,8 @@ export function EditEmployee() {
         country: form.country,
         postalCode: form.postalCode,
         status: form.status,
-        agencyId: form.agencyId || undefined,
+        agencyId:  form.agencyId  || undefined,
+        jobTypeId: form.jobTypeId || undefined,
         licenseNumber: form.licenseNumber || undefined,
         licenseCategory: form.licenseCategory || undefined,
         yearsExperience: form.yearsExperience ? parseInt(form.yearsExperience, 10) : undefined,
@@ -87,6 +126,23 @@ export function EditEmployee() {
         addressLine2: form.addressLine2 || undefined,
       };
       await employeesApi.update(id!, payload);
+
+      // Upload photo if a new one was selected
+      if (photoFile) {
+        setUploadingPhoto(true);
+        try {
+          const updated = await employeesApi.uploadPhoto(id!, photoFile);
+          setCurrentPhotoUrl(updated.photoUrl ?? null);
+        } catch (photoErr: any) {
+          toast.error(`Profile saved but photo upload failed: ${photoErr?.message ?? 'Unknown error'}`);
+          setSubmitting(false);
+          setUploadingPhoto(false);
+          return;
+        } finally {
+          setUploadingPhoto(false);
+        }
+      }
+
       toast.success('Employee updated successfully');
       navigate(`/dashboard/employees/${id}`);
     } catch (err: any) {
@@ -107,6 +163,8 @@ export function EditEmployee() {
       </div>
     );
   }
+
+  const displayPhoto = photoPreview ?? resolvePhotoUrl(currentPhotoUrl);
 
   return (
     <div className="space-y-6">
@@ -201,17 +259,31 @@ export function EditEmployee() {
             <Card>
               <CardHeader><CardTitle>Professional Information</CardTitle></CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="agencyId">Recruitment Agency</Label>
-                  <Select value={form.agencyId || '__none__'} onValueChange={val => setForm(prev => ({ ...prev, agencyId: val === '__none__' ? '' : val }))}>
-                    <SelectTrigger id="agencyId"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none__">Direct hire (no agency)</SelectItem>
-                      {agencies.map(a => (
-                        <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="agencyId">Recruitment Agency</Label>
+                    <Select value={form.agencyId || '__none__'} onValueChange={val => setForm(prev => ({ ...prev, agencyId: val === '__none__' ? '' : val }))}>
+                      <SelectTrigger id="agencyId"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">Direct hire (no agency)</SelectItem>
+                        {agencies.map(a => (
+                          <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="jobTypeId">Job Category</Label>
+                    <Select value={form.jobTypeId || '__none__'} onValueChange={val => setForm(prev => ({ ...prev, jobTypeId: val === '__none__' ? '' : val }))}>
+                      <SelectTrigger id="jobTypeId"><SelectValue placeholder="Select job category" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">Not specified</SelectItem>
+                        {jobTypes.map((jt: any) => (
+                          <SelectItem key={jt.id} value={jt.id}>{jt.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -237,6 +309,71 @@ export function EditEmployee() {
           </div>
 
           <div className="space-y-6">
+
+            {/* Photo Upload Card */}
+            <Card>
+              <CardHeader><CardTitle>Profile Photo</CardTitle></CardHeader>
+              <CardContent className="space-y-4">
+                {/* Avatar preview */}
+                <div className="flex justify-center">
+                  <div className="relative">
+                    {displayPhoto ? (
+                      <img
+                        src={displayPhoto}
+                        alt="Employee photo"
+                        className="w-28 h-28 rounded-full object-cover border-2 border-border"
+                      />
+                    ) : (
+                      <div className="w-28 h-28 rounded-full bg-muted flex items-center justify-center border-2 border-border">
+                        <User className="w-12 h-12 text-muted-foreground" />
+                      </div>
+                    )}
+                    {/* Camera overlay button */}
+                    <button
+                      type="button"
+                      onClick={() => photoInputRef.current?.click()}
+                      className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow hover:bg-primary/90 transition-colors"
+                      title="Change photo"
+                    >
+                      <Camera className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Pending new photo indicator */}
+                {photoPreview && (
+                  <div className="flex items-center justify-between p-2 bg-blue-50 rounded text-sm text-blue-800">
+                    <span>New photo selected</span>
+                    <button type="button" onClick={handlePhotoClear} className="text-blue-600 hover:text-blue-800">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+
+                <input
+                  ref={photoInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={handlePhotoSelect}
+                  className="hidden"
+                />
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => photoInputRef.current?.click()}
+                >
+                  <Camera className="w-4 h-4 mr-2" />
+                  {currentPhotoUrl ? 'Change Photo' : 'Upload Photo'}
+                </Button>
+                <p className="text-xs text-muted-foreground text-center">
+                  JPEG, PNG or WebP · max 5 MB
+                </p>
+              </CardContent>
+            </Card>
+
             <Card>
               <CardHeader><CardTitle>Status</CardTitle></CardHeader>
               <CardContent className="space-y-4">
@@ -258,8 +395,8 @@ export function EditEmployee() {
             </Card>
 
             <div className="flex flex-col gap-3">
-              <Button type="submit" className="w-full" disabled={submitting}>
-                {submitting ? 'Saving...' : 'Save Changes'}
+              <Button type="submit" className="w-full" disabled={submitting || uploadingPhoto}>
+                {submitting || uploadingPhoto ? 'Saving...' : 'Save Changes'}
               </Button>
               <Button type="button" variant="outline" className="w-full" asChild>
                 <Link to={`/dashboard/employees/${id}`}>Cancel</Link>

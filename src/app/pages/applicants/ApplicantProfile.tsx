@@ -3,10 +3,12 @@ import { Link, useParams, useNavigate } from 'react-router';
 import {
   ArrowLeft, Mail, Phone, Globe, Briefcase, Calendar, FileText,
   UserPlus, Edit, Trash2, Download, Upload, X,
-  Shield, Clock, Award, ChevronRight, MapPin, Loader2,
+  Shield, Clock, Award, ChevronRight, MapPin, Loader2, TrendingUp, History, DollarSign,
+  Layers, Plus,
 } from 'lucide-react';
 import { usePermissions } from '../../hooks/usePermissions';
-import { applicantsApi, documentsApi, settingsApi, workflowApi, agenciesApi } from '../../services/api';
+import { getCurrentUser, applicantsApi, documentsApi, settingsApi, employeeWorkflowApi, agenciesApi, workflowApi } from '../../services/api';
+import { FinancialRecordsTab } from '../../components/finance/FinancialRecordsTab';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
@@ -15,6 +17,7 @@ import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { toast } from 'sonner';
+import { ApplicantPdfExportButton } from '../../components/applicants/ApplicantPdfExport';
 
 const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1').replace('/api/v1', '');
 
@@ -40,7 +43,9 @@ const docStatusClass = (status: string) => {
 export function ApplicantProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { canEdit, canDelete } = usePermissions();
+  const { canEdit, canDelete, can } = usePermissions();
+  const currentUser = getCurrentUser();
+  const isFinanceOrAdmin = currentUser?.role === 'System Admin' || currentUser?.role === 'HR Manager' || currentUser?.role === 'Finance';
   const [applicantData, setApplicantData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [documents, setDocuments] = useState<any[]>([]);
@@ -48,6 +53,14 @@ export function ApplicantProfile() {
   const [docTypes, setDocTypes] = useState<any[]>([]);
   const [allStages, setAllStages] = useState<any[]>([]);
   const [changingStage, setChangingStage] = useState(false);
+  const [candidateAssignment, setCandidateAssignment] = useState<any>(null);
+  const [allWorkflows, setAllWorkflows] = useState<any[]>([]);
+  const [showAssignWorkflow, setShowAssignWorkflow] = useState(false);
+  const [assignWorkflowId, setAssignWorkflowId] = useState('');
+  const [assigningWorkflow, setAssigningWorkflow] = useState(false);
+  const [settingStage, setSettingStage] = useState(false);
+  const [expandedStageId, setExpandedStageId] = useState<string | null>(null);
+  const [approvingProgressId, setApprovingProgressId] = useState<string | null>(null);
   const [agencies, setAgencies] = useState<any[]>([]);
   const [changingAgency, setChangingAgency] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
@@ -61,6 +74,16 @@ export function ApplicantProfile() {
     licenseNumber: '', licenseCategory: '', yearsExperience: '', emergencyContact: '', emergencyPhone: '',
   });
 
+  // Tier / financial / history state
+  const [showConvertLeadDialog, setShowConvertLeadDialog] = useState(false);
+  const [convertingLead, setConvertingLead] = useState(false);
+  const [financialProfile, setFinancialProfile] = useState<any>(null);
+  const [financialLoading, setFinancialLoading] = useState(false);
+  const [savingFinancial, setSavingFinancial] = useState(false);
+  const [financialForm, setFinancialForm] = useState<any>({});
+  const [agencyHistory, setAgencyHistory] = useState<any[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+
   const loadDocs = () => {
     if (!id) return;
     setDocsLoading(true);
@@ -70,21 +93,102 @@ export function ApplicantProfile() {
       .finally(() => setDocsLoading(false));
   };
 
+  const loadCandidateWorkflow = () => {
+    if (!id) return;
+    workflowApi.getCandidateAssignments(id)
+      .then(assignments => setCandidateAssignment(assignments?.[0] ?? null))
+      .catch(() => {});
+  };
+
   useEffect(() => { loadDocs(); }, [id]);
 
   useEffect(() => {
     settingsApi.getDocumentTypes().then(setDocTypes).catch(() => {});
-    workflowApi.getStages().then((stages: any) => setAllStages(Array.isArray(stages) ? stages : [])).catch(() => {});
+    employeeWorkflowApi.getStages().then((stages: any) => setAllStages(Array.isArray(stages) ? stages : [])).catch(() => {});
     agenciesApi.list({ limit: 200 }).then((res: any) => setAgencies(res?.data ?? [])).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    loadCandidateWorkflow();
+    workflowApi.list().then(res => setAllWorkflows(Array.isArray(res) ? res : [])).catch(() => {});
+  }, [id]);
 
   useEffect(() => {
     if (!id) return;
     applicantsApi.get(id).then((applicant) => {
       let extra: Record<string, any> = {};
       try { extra = JSON.parse(applicant.notes || '{}'); } catch { /* ignore */ }
+
+      // Map fields from applicationData JSON (submitted form) to profile display names
+      const ad: Record<string, any> = (applicant as any).applicationData ?? {};
+      const quals: any[] = ad.qualifications ?? [];
+      const tachographQual = quals.find((q: any) => /tachograph/i.test(q.type ?? ''));
+      const code95Qual = quals.find((q: any) => /code.?95|cpc/i.test(q.type ?? ''));
+      const adrQual = quals.find((q: any) => /adr/i.test(q.type ?? ''));
+      const langs: any[] = ad.languages ?? [];
+      const findLang = (name: string) => langs.find((l: any) => l.language?.toLowerCase() === name.toLowerCase())?.proficiency ?? '';
+      const otherLangs = langs.filter((l: any) => !['english','german','russian'].includes(l.language?.toLowerCase())).map((l: any) => `${l.language} (${l.proficiency})`).join(', ');
+      const cats: string[] = ad.licenseCategories ?? [];
+
+      const appDataMapped: Record<string, any> = {
+        // Travel & Residence
+        passportNumber: ad.passportNumber,
+        passportValidUntil: ad.passportExpiryDate,
+        hasEUVisa: ad.hasEuVisa === 'yes',
+        hasWorkPermit: ad.hasWorkPermit === 'yes',
+        hasResidenceCard: ad.hasEuResidence === 'yes',
+        issuingCountry: ad.passportCountry,
+        // Driving
+        drivingLicenseNumber: ad.licenseNumber,
+        licenseIssuingCountry: ad.licenseCountry,
+        licenseValidUntil: ad.licenseExpiryDate,
+        categoryA: cats.includes('A') ? 'A' : '',
+        categoryB: cats.includes('B') ? 'B' : '',
+        categoryC: cats.some((c: string) => /^C/i.test(c)) ? 'C' : '',
+        categoryE: cats.some((c: string) => /E/i.test(c)) ? 'E' : '',
+        hasTachographCard: !!tachographQual,
+        tachographNumber: tachographQual?.number ?? '',
+        hasQualificationCard: !!code95Qual,
+        qualificationValidUntil: code95Qual?.expiryDate ?? '',
+        hasADR: !!adrQual,
+        adrClasses: adrQual?.type ?? '',
+        // International Experience
+        hasEUExperience: ['eu','both'].includes(ad.drivingExpType ?? '') || Number(ad.euExpYears) > 0,
+        yearsEUExperience: ad.euExpYears,
+        totalCEExperience: ad.euExpKm ? `${ad.euExpKm} km` : ad.domesticExpYears ? `${ad.domesticExpYears} yrs domestic` : '',
+        yearsActiveDriving: ad.domesticExpYears,
+        drivenOtherCountries: !!(ad.euExpCountries),
+        specifyCountries: ad.euExpCountries,
+        // Safety
+        trafficAccidents: ad.trafficAccidents === 'yes',
+        aetrViolations: false,
+        finesAbroad: false,
+        ecoDriving: false,
+        // Languages
+        englishLevel: findLang('english'),
+        germanLevel: findLang('german'),
+        russianLevel: findLang('russian'),
+        otherLanguages: otherLangs,
+        languageAtWork: langs.find((l: any) => l.proficiency === 'Native' || l.proficiency === 'Fluent')?.language ?? '',
+        // Work Flexibility
+        doubleCrewWillingness: (ad.workRegime ?? []).includes('Double Crew'),
+        maxTourWeeks: '',
+        weekendDriving: ad.weekendDriving,
+        nightDriving: ad.nightDriving,
+        preferredCountries: ad.preferredLocations,
+        undesiredCountries: '',
+        // Personal / Address
+        permanentAddress: ad.homeAddress
+          ? [ad.homeAddress.street, ad.homeAddress.city, ad.homeAddress.country].filter(Boolean).join(', ')
+          : '',
+        countryOfResidence: ad.homeAddress?.country ?? ad.currentAddress?.country ?? '',
+        currentCountryOfResidence: ad.currentAddress?.country ?? ad.homeAddress?.country ?? '',
+        howDidYouHear: ad.howDidYouHear,
+      };
+
       setApplicantData({
         ...applicant,
+        ...appDataMapped,
         fullName: `${applicant.firstName} ${applicant.lastName}`.trim(),
         applicationDate: applicant.createdAt ? applicant.createdAt.slice(0, 10) : '',
         status: applicant.status || 'NEW',
@@ -100,6 +204,15 @@ export function ApplicantProfile() {
         agency: applicant.agency ?? null,
         currentWorkflowStageId: applicant.currentWorkflowStageId ?? null,
         currentWorkflowStage: applicant.currentWorkflowStage ?? null,
+        // Lifecycle identifiers & conversion timestamps
+        leadNumber: (applicant as any).leadNumber ?? null,
+        candidateNumber: (applicant as any).candidateNumber ?? null,
+        candidateConvertedAt: (applicant as any).candidateConvertedAt
+          ? new Date((applicant as any).candidateConvertedAt).toLocaleDateString()
+          : null,
+        employeeConvertedAt: (applicant as any).employeeConvertedAt
+          ? new Date((applicant as any).employeeConvertedAt).toLocaleDateString()
+          : null,
       });
     }).catch(() => {
       toast.error('Failed to load applicant');
@@ -118,6 +231,60 @@ export function ApplicantProfile() {
       toast.error(err?.message || 'Failed to update stage');
     } finally {
       setChangingStage(false);
+    }
+  };
+
+  const handleAssignCandidateWorkflow = async () => {
+    if (!assignWorkflowId || !id) return;
+    setAssigningWorkflow(true);
+    try {
+      await workflowApi.assignCandidate({ candidateId: id, workflowId: assignWorkflowId });
+      toast.success('Workflow connected');
+      loadCandidateWorkflow();
+      setShowAssignWorkflow(false);
+      setAssignWorkflowId('');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to connect workflow');
+    } finally {
+      setAssigningWorkflow(false);
+    }
+  };
+
+  const handleDisconnectCandidateWorkflow = async () => {
+    if (!id || !candidateAssignment || !confirm('Disconnect this applicant from the workflow?')) return;
+    try {
+      await workflowApi.removeCandidateAssignment(id, candidateAssignment.id);
+      setCandidateAssignment(null);
+      toast.success('Workflow disconnected');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to disconnect');
+    }
+  };
+
+  const handleSetCandidateStage = async (stageId: string) => {
+    if (!candidateAssignment) return;
+    setSettingStage(true);
+    try {
+      await workflowApi.advanceToStage(candidateAssignment.id, stageId);
+      loadCandidateWorkflow();
+      toast.success('Current stage updated');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to update stage');
+    } finally {
+      setSettingStage(false);
+    }
+  };
+
+  const handleApproveCandidateStage = async (progressId: string) => {
+    setApprovingProgressId(progressId);
+    try {
+      await workflowApi.submitApproval(progressId, { decision: 'APPROVED' });
+      loadCandidateWorkflow();
+      toast.success('Stage approved');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to approve stage');
+    } finally {
+      setApprovingProgressId(null);
     }
   };
 
@@ -208,6 +375,57 @@ export function ApplicantProfile() {
     }
   };
 
+  // Load financial profile and agency history when tab is opened
+  const loadFinancialProfile = () => {
+    if (!id || !isFinanceOrAdmin) return;
+    setFinancialLoading(true);
+    applicantsApi.getFinancialProfile(id)
+      .then((data: any) => {
+        setFinancialProfile(data);
+        setFinancialForm(data ?? {});
+      })
+      .catch(() => {})
+      .finally(() => setFinancialLoading(false));
+  };
+
+  const loadAgencyHistory = () => {
+    if (!id) return;
+    setHistoryLoading(true);
+    applicantsApi.getAgencyHistory(id)
+      .then((data: any) => setAgencyHistory(Array.isArray(data) ? data : []))
+      .catch(() => {})
+      .finally(() => setHistoryLoading(false));
+  };
+
+  const handleConvertLeadToCandidate = async () => {
+    if (!id) return;
+    setConvertingLead(true);
+    try {
+      const updated = await applicantsApi.convertLeadToCandidate(id, {});
+      setApplicantData((prev: any) => ({ ...prev, tier: 'CANDIDATE', agencyId: updated.agencyId, agency: updated.agency }));
+      toast.success('Promoted to Candidate');
+      setShowConvertLeadDialog(false);
+    } catch (err: any) {
+      toast.error(err?.message || 'Promotion failed');
+    } finally {
+      setConvertingLead(false);
+    }
+  };
+
+  const handleSaveFinancial = async () => {
+    if (!id) return;
+    setSavingFinancial(true);
+    try {
+      const saved = await applicantsApi.upsertFinancialProfile(id, financialForm);
+      setFinancialProfile(saved);
+      toast.success('Financial profile saved');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to save financial profile');
+    } finally {
+      setSavingFinancial(false);
+    }
+  };
+
   const validDocs = documents.filter(d => d.status === 'VERIFIED' || d.status === 'Verified').length;
   const expiringSoon = documents.filter(d => d.status === 'EXPIRING_SOON').length;
 
@@ -226,21 +444,37 @@ export function ApplicantProfile() {
           <p className="text-muted-foreground mt-1">View and manage applicant information</p>
         </div>
         <div className="flex items-center gap-2">
+          {/* Tier badge */}
+          {applicantData && (
+            <Badge className={applicantData.tier === 'CANDIDATE'
+              ? 'bg-emerald-100 text-emerald-800 border border-emerald-200 text-sm px-3 py-1'
+              : 'bg-amber-100 text-amber-800 border border-amber-200 text-sm px-3 py-1'}>
+              {applicantData.tier ?? 'LEAD'}
+            </Badge>
+          )}
           {canEdit('applicants') && (
-            <Button asChild>
+            <Button asChild variant="outline">
               <Link to={`/dashboard/applicants/${id}/edit`}>
-                <Edit className="w-4 h-4 mr-2" />Edit Profile
+                <Edit className="w-4 h-4 mr-2" />Edit
               </Link>
             </Button>
           )}
+          {/* Promote Lead → Candidate */}
+          {canEdit('applicants') && applicantData?.tier === 'LEAD' && (
+            <Button variant="outline" className="text-emerald-700 border-emerald-300" onClick={() => setShowConvertLeadDialog(true)}>
+              <TrendingUp className="w-4 h-4 mr-2" />Promote to Candidate
+            </Button>
+          )}
+          {/* Convert Candidate → Employee */}
+          {canEdit('applicants') && applicantData?.tier === 'CANDIDATE' && (
+            <Button className="bg-[#22C55E] hover:bg-[#16a34a]" onClick={() => setShowConvertDialog(true)}>
+              <UserPlus className="w-4 h-4 mr-2" />Convert to Employee
+            </Button>
+          )}
+          <ApplicantPdfExportButton applicant={applicantData} documents={documents} />
           {canDelete('applicants') && (
             <Button variant="outline" className="text-[#EF4444] border-[#EF4444]" onClick={handleDelete}>
               <Trash2 className="w-4 h-4 mr-2" />Delete
-            </Button>
-          )}
-          {canEdit('applicants') && (
-            <Button className="bg-[#22C55E] hover:bg-[#16a34a]" onClick={() => setShowConvertDialog(true)}>
-              <UserPlus className="w-4 h-4 mr-2" />Convert to Employee
             </Button>
           )}
         </div>
@@ -250,14 +484,41 @@ export function ApplicantProfile() {
       <Card>
         <CardContent className="p-6">
           <div className="flex items-start gap-6">
-            <div className="w-24 h-24 rounded-full bg-[#EFF6FF] flex items-center justify-center text-[#2563EB] text-3xl font-semibold shrink-0">
-              {applicantData.firstName?.[0]}{applicantData.lastName?.[0]}
+            <div className="w-24 h-24 rounded-full shrink-0 overflow-hidden bg-[#EFF6FF] flex items-center justify-center">
+              {applicantData.photoUrl
+                ? <img
+                    src={applicantData.photoUrl.startsWith('http') ? applicantData.photoUrl : `${API_BASE}${applicantData.photoUrl}`}
+                    alt={applicantData.fullName}
+                    className="w-full h-full object-cover"
+                    onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                  />
+                : <span className="text-[#2563EB] text-3xl font-semibold">{applicantData.firstName?.[0]}{applicantData.lastName?.[0]}</span>
+              }
             </div>
             <div className="flex-1">
               <div className="flex items-start justify-between">
                 <div>
                   <h2 className="text-2xl font-semibold text-[#0F172A]">{applicantData.fullName}</h2>
-                  <p className="text-muted-foreground mt-1">Applicant ID: {applicantData.id}</p>
+                  {/* Lifecycle identifier — shows current active stage ID */}
+                  <div className="flex items-center gap-2 mt-1">
+                    {applicantData.tier === 'CANDIDATE' && applicantData.candidateNumber ? (
+                      <span className="font-mono text-sm font-semibold text-purple-700 bg-purple-50 border border-purple-200 rounded px-2 py-0.5">
+                        {applicantData.candidateNumber}
+                      </span>
+                    ) : applicantData.leadNumber ? (
+                      <span className="font-mono text-sm font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded px-2 py-0.5">
+                        {applicantData.leadNumber}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-muted-foreground italic">No identifier (legacy record)</span>
+                    )}
+                    {/* Also show lead number for candidates so traceability is visible */}
+                    {applicantData.tier === 'CANDIDATE' && applicantData.leadNumber && (
+                      <span className="text-xs text-muted-foreground">
+                        (was <span className="font-mono">{applicantData.leadNumber}</span>)
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <Badge className={statusBadgeClass(applicantData.status)}>
                   {applicantData.status?.replace(/_/g, ' ').toLowerCase()}
@@ -320,6 +581,17 @@ export function ApplicantProfile() {
           <TabsTrigger value="documents">Documents ({documents.length})</TabsTrigger>
           <TabsTrigger value="workflow">Workflow</TabsTrigger>
           <TabsTrigger value="compliance">Compliance</TabsTrigger>
+          {isFinanceOrAdmin && (
+            <TabsTrigger
+              value="financial"
+              onClick={() => { loadFinancialProfile(); }}
+            >
+              <DollarSign className="w-3 h-3 mr-1" />Financial
+            </TabsTrigger>
+          )}
+          <TabsTrigger value="history" onClick={loadAgencyHistory}>
+            <History className="w-3 h-3 mr-1" />Agency History
+          </TabsTrigger>
           <TabsTrigger value="notes">Notes</TabsTrigger>
         </TabsList>
 
@@ -341,7 +613,7 @@ export function ApplicantProfile() {
                     ['Permanent Address', applicantData.permanentAddress || '—'],
                     ['Country of Residence', applicantData.countryOfResidence || '—'],
                     ['Current Country', applicantData.currentCountryOfResidence || '—'],
-                    ['Job Type', applicantData.jobType?.name || '—'],
+                    ['Job Category', applicantData.jobType?.name || '—'],
                     ['Preferred Start Date', applicantData.preferredStartDate || '—'],
                     ['How They Heard', applicantData.howDidYouHear || '—'],
                   ].map(([label, value]: any) => (
@@ -375,6 +647,31 @@ export function ApplicantProfile() {
                       </div>
                     </div>
                   ))}
+                </CardContent>
+              </Card>
+
+              {/* Lifecycle Identifiers */}
+              <Card>
+                <CardHeader><CardTitle>Lifecycle Identifiers</CardTitle></CardHeader>
+                <CardContent className="space-y-3 text-sm">
+                  <div className="space-y-2">
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Lead ID</p>
+                      {applicantData.leadNumber
+                        ? <span className="font-mono font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded px-2 py-0.5">{applicantData.leadNumber}</span>
+                        : <span className="text-muted-foreground italic text-xs">Not assigned (legacy)</span>}
+                      <p className="text-xs text-muted-foreground mt-1">Created: {applicantData.applicationDate || '—'}</p>
+                    </div>
+                    <div className="border-t pt-2">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Candidate ID</p>
+                      {applicantData.candidateNumber
+                        ? <span className="font-mono font-semibold text-purple-700 bg-purple-50 border border-purple-200 rounded px-2 py-0.5">{applicantData.candidateNumber}</span>
+                        : <span className="text-muted-foreground italic text-xs">{applicantData.tier === 'LEAD' ? 'Not yet converted' : 'Not assigned (legacy)'}</span>}
+                      {applicantData.candidateConvertedAt && (
+                        <p className="text-xs text-muted-foreground mt-1">Converted: {applicantData.candidateConvertedAt}</p>
+                      )}
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
 
@@ -650,71 +947,258 @@ export function ApplicantProfile() {
 
         {/* Workflow */}
         <TabsContent value="workflow">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Recruitment Pipeline</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {allStages.length === 0 ? (
-                    <p className="text-muted-foreground">No workflow stages configured.</p>
-                  ) : (
-                    <div className="space-y-4">
-                      {allStages.map((s: any, index: number) => {
-                        const isCurrent = applicantData.currentWorkflowStageId === s.id;
-                        return (
-                          <div key={s.id} className="flex items-start gap-4">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-medium ${
-                              isCurrent ? 'bg-[#2563EB] text-white' : 'bg-[#F8FAFC] text-muted-foreground'
-                            }`}>
-                              {index + 1}
-                            </div>
-                            <div className="flex-1 pb-4 border-b last:border-0">
-                              <div className="flex items-center justify-between">
-                                <div>
-                                  <p className={`font-medium ${isCurrent ? 'text-[#2563EB]' : ''}`}>{s.name}</p>
-                                  {s.description && <p className="text-sm text-muted-foreground mt-0.5">{s.description}</p>}
-                                  {isCurrent && <p className="text-sm text-muted-foreground mt-1">Current stage</p>}
-                                </div>
-                                {isCurrent && <Badge className="bg-[#2563EB]">Current</Badge>}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-
-            {canEdit('applicants') && allStages.length > 0 && (
-              <div>
-                <Card>
-                  <CardHeader><CardTitle className="text-base">Change Current Stage</CardTitle></CardHeader>
-                  <CardContent className="space-y-3">
-                    <p className="text-sm text-muted-foreground">
-                      Assign this applicant to a pipeline stage.
-                    </p>
-                    <Select
-                      value={applicantData.currentWorkflowStageId ?? ''}
-                      onValueChange={handleStageChange}
-                      disabled={changingStage}
-                    >
-                      <SelectTrigger><SelectValue placeholder="No stage assigned" /></SelectTrigger>
+          {!candidateAssignment ? (
+            /* ── No workflow connected ─────────────────────────── */
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Layers className="w-5 h-5 text-primary" /> Connect to a Workflow
+                </CardTitle>
+                <p className="text-sm text-muted-foreground mt-1">
+                  This applicant is not connected to any workflow yet.
+                </p>
+              </CardHeader>
+              <CardContent>
+                {showAssignWorkflow ? (
+                  <div className="space-y-3 max-w-sm">
+                    <Select value={assignWorkflowId} onValueChange={setAssignWorkflowId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a workflow…" />
+                      </SelectTrigger>
                       <SelectContent>
-                        {allStages.map((s: any) => (
-                          <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                        {allWorkflows.map((w: any) => (
+                          <SelectItem key={w.id} value={w.id}>
+                            <div className="flex items-center gap-2">
+                              <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: w.color ?? '#6366F1' }} />
+                              {w.name}
+                            </div>
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                    {changingStage && <p className="text-xs text-muted-foreground">Updating stage…</p>}
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-          </div>
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={handleAssignCandidateWorkflow} disabled={assigningWorkflow || !assignWorkflowId}>
+                        {assigningWorkflow ? 'Connecting…' : 'Connect'}
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => { setShowAssignWorkflow(false); setAssignWorkflowId(''); }}>
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  canEdit('applicants') && (
+                    <Button onClick={() => setShowAssignWorkflow(true)}>
+                      <Plus className="w-4 h-4 mr-2" /> Connect to Workflow
+                    </Button>
+                  )
+                )}
+              </CardContent>
+            </Card>
+          ) : (
+            /* ── Workflow connected ─────────────────────────────── */
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-4 h-4 rounded-full" style={{ background: candidateAssignment.workflow?.color ?? '#6366F1' }} />
+                    <CardTitle>{candidateAssignment.workflow?.name}</CardTitle>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {canEdit('applicants') && (
+                      <Button size="sm" variant="ghost" onClick={() => setShowAssignWorkflow(true)}>
+                        Change
+                      </Button>
+                    )}
+                    {canEdit('applicants') && (
+                      <Button size="sm" variant="ghost" onClick={handleDisconnectCandidateWorkflow}>
+                        <X className="w-4 h-4 text-destructive" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                {candidateAssignment.assignedBy && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Connected {new Date(candidateAssignment.assignedAt).toLocaleDateString()} by {candidateAssignment.assignedBy.firstName} {candidateAssignment.assignedBy.lastName}
+                  </p>
+                )}
+              </CardHeader>
+              <CardContent>
+                {showAssignWorkflow && (
+                  <div className="mb-4 p-4 border rounded-lg bg-muted/30 space-y-3">
+                    <p className="text-sm font-medium">Change Workflow</p>
+                    <Select value={assignWorkflowId} onValueChange={setAssignWorkflowId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a workflow…" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {allWorkflows.map((w: any) => (
+                          <SelectItem key={w.id} value={w.id}>
+                            <div className="flex items-center gap-2">
+                              <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: w.color ?? '#6366F1' }} />
+                              {w.name}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={handleAssignCandidateWorkflow} disabled={assigningWorkflow || !assignWorkflowId}>
+                        {assigningWorkflow ? 'Saving…' : 'Confirm'}
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => { setShowAssignWorkflow(false); setAssignWorkflowId(''); }}>
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                {(!candidateAssignment.workflow?.stages || candidateAssignment.workflow.stages.length === 0) ? (
+                  <p className="text-sm text-muted-foreground">This workflow has no stages configured yet.</p>
+                ) : (
+                  <div className="space-y-1">
+                    {candidateAssignment.workflow.stages.map((stage: any, index: number) => {
+                      // Find the progress record for this stage
+                      const progress = candidateAssignment.stageProgress?.find((p: any) => p.stageId === stage.id);
+                      const isCurrent = progress?.status === 'ACTIVE';
+                      const isExpanded = expandedStageId === stage.id;
+                      const latestApproval = progress?.approvals?.[0];
+                      const isApproved = latestApproval?.decision === 'APPROVED';
+                      const currentUserIsApprover = stage.assignedUsers?.some((u: any) => u.userId === currentUser?.id);
+
+                      return (
+                        <div key={stage.id} className={`rounded-lg border transition-all ${isCurrent ? 'border-primary/40 bg-primary/5' : 'border-transparent hover:border-border hover:bg-muted/30'}`}>
+                          {/* Stage row */}
+                          <div
+                            className="flex items-center gap-3 px-3 py-3 cursor-pointer"
+                            onClick={() => setExpandedStageId(isExpanded ? null : stage.id)}
+                          >
+                            <div
+                              className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-semibold ${isCurrent ? 'text-white ring-2 ring-offset-1 ring-primary' : 'text-white opacity-60'}`}
+                              style={{ background: stage.color ?? '#6366F1' }}
+                            >
+                              {index + 1}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className={`text-sm font-medium ${isCurrent ? 'text-primary' : ''}`}>{stage.name}</span>
+                                {isCurrent && <Badge className="text-xs bg-primary">Current</Badge>}
+                                {isApproved && <Badge className="text-xs bg-green-500">Approved</Badge>}
+                                {stage.isFinal && <Badge variant="outline" className="text-xs">Final</Badge>}
+                                {stage.requiresApproval && !isApproved && <Badge variant="outline" className="text-xs border-amber-400 text-amber-600">Needs Approval</Badge>}
+                                {stage.slaHours && <span className="text-xs text-muted-foreground">SLA: {stage.slaHours}h</span>}
+                              </div>
+                              {stage.description && <p className="text-xs text-muted-foreground mt-0.5">{stage.description}</p>}
+                            </div>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              {canEdit('applicants') && !isCurrent && (
+                                <Button
+                                  size="sm" variant="ghost"
+                                  className="text-xs h-7"
+                                  onClick={(e) => { e.stopPropagation(); handleSetCandidateStage(stage.id); }}
+                                  disabled={settingStage}
+                                >
+                                  Set Current
+                                </Button>
+                              )}
+                              <ChevronRight className={`w-4 h-4 text-muted-foreground transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                            </div>
+                          </div>
+
+                          {/* Expanded panel */}
+                          {isExpanded && (
+                            <div className="px-3 pb-4 border-t pt-3 space-y-4">
+
+                              {/* Required Documents */}
+                              <div>
+                                <p className="text-xs font-semibold uppercase text-muted-foreground mb-2">Required Documents</p>
+                                {!stage.requiredDocs || stage.requiredDocs.length === 0 ? (
+                                  <p className="text-xs text-muted-foreground">No required documents for this stage.</p>
+                                ) : (
+                                  <div className="space-y-1.5">
+                                    {stage.requiredDocs.map((rd: any) => {
+                                      const uploaded = documents.find((d: any) => d.documentTypeId === rd.documentTypeId);
+                                      return (
+                                        <div key={rd.id} className="flex items-center justify-between p-2 rounded-md border bg-background">
+                                          <div className="flex items-center gap-2">
+                                            <FileText className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                                            <div>
+                                              <p className="text-xs font-medium">{rd.documentType?.name}</p>
+                                              {rd.documentType?.category && <p className="text-[11px] text-muted-foreground">{rd.documentType.category}</p>}
+                                            </div>
+                                          </div>
+                                          {uploaded ? (
+                                            <Badge className="text-xs bg-green-500">Uploaded</Badge>
+                                          ) : (
+                                            <Badge variant="outline" className="text-xs border-red-400 text-red-500">Missing</Badge>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Approval */}
+                              <div>
+                                <p className="text-xs font-semibold uppercase text-muted-foreground mb-2">Stage Approval</p>
+                                {isApproved ? (
+                                  <div className="flex items-center gap-2 p-2 rounded-md border bg-green-50 border-green-200">
+                                    <Badge className="bg-green-500 text-xs">Approved</Badge>
+                                    <span className="text-xs text-muted-foreground">
+                                      by {latestApproval.approvedBy?.firstName} {latestApproval.approvedBy?.lastName}
+                                      {' · '}{new Date(latestApproval.decidedAt ?? latestApproval.createdAt).toLocaleDateString()}
+                                    </span>
+                                    {latestApproval.notes && <span className="text-xs text-muted-foreground italic">— "{latestApproval.notes}"</span>}
+                                  </div>
+                                ) : stage.assignedUsers?.length > 0 ? (
+                                  <div className="space-y-2">
+                                    <div className="space-y-1">
+                                      {stage.assignedUsers.map((u: any) => (
+                                        <div key={u.userId} className="flex items-center gap-2 text-xs text-muted-foreground">
+                                          <div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center text-[10px] font-semibold">
+                                            {u.user?.firstName?.[0]}{u.user?.lastName?.[0]}
+                                          </div>
+                                          {u.user?.firstName} {u.user?.lastName}
+                                          <span className="text-[11px] px-1.5 py-0.5 bg-muted rounded">{u.role}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                    {(canEdit('applicants') || currentUserIsApprover) && progress && (
+                                      <Button
+                                        size="sm"
+                                        onClick={() => handleApproveCandidateStage(progress.id)}
+                                        disabled={approvingProgressId === progress.id}
+                                        className="h-7 text-xs"
+                                      >
+                                        {approvingProgressId === progress.id ? 'Approving…' : 'Approve Stage'}
+                                      </Button>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <div className="space-y-2">
+                                    <p className="text-xs text-muted-foreground">No approvers assigned to this stage.</p>
+                                    {canEdit('applicants') && progress && (
+                                      <Button
+                                        size="sm"
+                                        onClick={() => handleApproveCandidateStage(progress.id)}
+                                        disabled={approvingProgressId === progress.id}
+                                        className="h-7 text-xs"
+                                      >
+                                        {approvingProgressId === progress.id ? 'Approving…' : 'Approve Stage'}
+                                      </Button>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* Compliance */}
@@ -755,6 +1239,121 @@ export function ApplicantProfile() {
           </Card>
         </TabsContent>
 
+        {/* Financial — Transaction Ledger */}
+        {isFinanceOrAdmin && (
+          <TabsContent value="financial">
+            {applicantData?.tier !== 'CANDIDATE' ? (
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <DollarSign className="w-5 h-5 text-emerald-600" />Financial Transactions
+                  </CardTitle>
+                  <Badge className="bg-amber-100 text-amber-800">Candidates only</Badge>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground text-sm">
+                    Financial transactions are available for Candidates only. Promote this applicant to Candidate first.
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-6">
+                {/* Bank / Tax details card (retained for reference) */}
+                {financialProfile && (
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <DollarSign className="w-4 h-4 text-emerald-600" />Bank & Tax Details
+                      </CardTitle>
+                      <Button
+                        size="sm" variant="outline"
+                        onClick={() => {
+                          if (!id) return;
+                          setSavingFinancial(true);
+                          applicantsApi.upsertFinancialProfile(id, financialForm)
+                            .then((saved: any) => { setFinancialProfile(saved); toast.success('Saved'); })
+                            .catch((err: any) => toast.error(err?.message || 'Save failed'))
+                            .finally(() => setSavingFinancial(false));
+                        }}
+                        disabled={savingFinancial}
+                      >
+                        {savingFinancial ? 'Saving…' : 'Save'}
+                      </Button>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        {[
+                          ['bankName', 'Bank Name', 'text'],
+                          ['iban', 'IBAN', 'text'],
+                          ['taxCode', 'Tax Code', 'text'],
+                          ['niNumber', 'NI Number', 'text'],
+                          ['paymentMethod', 'Payment Method', 'text'],
+                        ].map(([field, label, type]) => (
+                          <div key={field} className="space-y-1">
+                            <Label className="text-xs">{label}</Label>
+                            <Input
+                              type={type as any}
+                              value={financialForm[field] ?? ''}
+                              onChange={e => setFinancialForm((f: any) => ({ ...f, [field]: e.target.value }))}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+                {/* Transaction ledger */}
+                <FinancialRecordsTab
+                  entityType="APPLICANT"
+                  entityId={id!}
+                  canWrite={canEdit('applicants')}
+                  canChangeStatus={currentUser?.role === 'System Admin' || currentUser?.role === 'Finance'}
+                />
+              </div>
+            )}
+          </TabsContent>
+        )}
+
+        {/* Agency History */}
+        <TabsContent value="history">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <History className="w-5 h-5" />Agency Assignment History
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {historyLoading ? (
+                <p className="text-muted-foreground">Loading…</p>
+              ) : agencyHistory.length === 0 ? (
+                <p className="text-muted-foreground text-sm">No agency assignment history recorded.</p>
+              ) : (
+                <div className="space-y-3">
+                  {agencyHistory.map((h: any) => (
+                    <div key={h.id} className="flex items-start gap-4 p-4 border rounded-lg">
+                      <div className="w-2 h-2 rounded-full bg-blue-500 mt-2 shrink-0" />
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <p className="font-medium">{h.agencyName}</p>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(h.assignedAt).toLocaleDateString()}
+                            {h.removedAt && ` → ${new Date(h.removedAt).toLocaleDateString()}`}
+                          </span>
+                        </div>
+                        {h.reason && <p className="text-sm text-muted-foreground mt-0.5">Reason: {h.reason}</p>}
+                        {h.notes && <p className="text-sm text-muted-foreground mt-0.5">{h.notes}</p>}
+                        {!h.removedAt && (
+                          <Badge className="bg-green-100 text-green-800 mt-1" variant="outline">Current</Badge>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         {/* Notes */}
         <TabsContent value="notes">
           <Card>
@@ -780,6 +1379,42 @@ export function ApplicantProfile() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Promote Lead → Candidate Dialog */}
+      {showConvertLeadDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <Card className="max-w-md w-full">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-emerald-600" />Promote to Candidate
+              </CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                <strong>{applicantData?.fullName}</strong> will be promoted from Lead to Candidate.
+                This grants agency users visibility. A holding agency will be assigned if configured.
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800">
+                This action is logged and can be reviewed in Agency History.
+              </div>
+              <div className="flex gap-3">
+                <Button
+                  className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+                  onClick={handleConvertLeadToCandidate}
+                  disabled={convertingLead}
+                >
+                  {convertingLead
+                    ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Promoting…</>
+                    : <><TrendingUp className="w-4 h-4 mr-2" />Confirm Promotion</>}
+                </Button>
+                <Button variant="outline" className="flex-1" onClick={() => setShowConvertLeadDialog(false)} disabled={convertingLead}>
+                  Cancel
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Convert to Employee Dialog */}
       {showConvertDialog && (

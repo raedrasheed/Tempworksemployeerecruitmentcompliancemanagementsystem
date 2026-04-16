@@ -74,4 +74,12 @@ export class AgenciesController {
   remove(@Param('id') id: string, @CurrentUser() user: any) {
     return this.agenciesService.remove(id, user?.id);
   }
+
+  @Patch(':id/manager')
+  @Roles('System Admin')
+  @ApiOperation({ summary: 'Set the manager for an agency' })
+  @ApiParam({ name: 'id', description: 'Agency UUID' })
+  setManager(@Param('id') id: string, @Body('userId') userId: string, @CurrentUser() user: any) {
+    return this.agenciesService.setManager(id, userId, user?.id);
+  }
 }

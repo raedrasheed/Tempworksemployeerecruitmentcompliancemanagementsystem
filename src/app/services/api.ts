@@ -1,6 +1,9 @@
 // Central API client for TempWorks backend
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
+export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
+// When API_URL is a relative path (Vite proxy mode) BACKEND_URL is empty so
+// image/file URLs resolve against the current origin (also proxied).
+export const BACKEND_URL = API_URL.startsWith('http') ? API_URL.replace('/api/v1', '') : '';
 
 // ─── Token Management ────────────────────────────────────────────────────────
 
@@ -39,6 +42,7 @@ export interface AuthUser {
   role: string;
   agencyId?: string;
   permissions?: string[];
+  photoUrl?: string;
 }
 
 export interface PaginationMeta {
@@ -108,8 +112,8 @@ export async function apiFetch<T = any>(
     headers,
   });
 
-  // Handle 401 with token refresh
-  if (response.status === 401 && !isRetry) {
+  // Handle 401 with token refresh (skip for auth endpoints to surface real errors)
+  if (response.status === 401 && !isRetry && !path.startsWith('/auth/')) {
     if (!isRefreshing) {
       isRefreshing = true;
       refreshPromise = refreshAccessToken().finally(() => {
@@ -123,8 +127,9 @@ export async function apiFetch<T = any>(
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({ message: response.statusText }));
+    const rawMessage = errorData.message || 'An error occurred';
     const error: ApiError = {
-      message: errorData.message || 'An error occurred',
+      message: Array.isArray(rawMessage) ? rawMessage.join(', ') : String(rawMessage),
       statusCode: response.status,
       error: errorData.error,
     };
@@ -134,16 +139,18 @@ export async function apiFetch<T = any>(
   // Handle no-content responses
   if (response.status === 204) return undefined as T;
 
-  return response.json();
+  const text = await response.text();
+  if (!text.trim()) return undefined as T;
+  return JSON.parse(text) as T;
 }
 
 // ─── Auth API ────────────────────────────────────────────────────────────────
 
 export const authApi = {
-  login: async (email: string, password: string) => {
-    const data = await apiFetch<{ accessToken: string; refreshToken: string; user: AuthUser }>(
+  login: async (email: string, password: string, agencyId?: string) => {
+    const data = await apiFetch<{ accessToken: string; refreshToken: string; user: AuthUser; passwordExpired?: boolean }>(
       '/auth/login',
-      { method: 'POST', body: JSON.stringify({ email, password }) },
+      { method: 'POST', body: JSON.stringify({ email, password, ...(agencyId && { agencyId }) }) },
     );
     setTokens(data.accessToken, data.refreshToken);
     // Fetch full profile including permissions
@@ -178,16 +185,22 @@ export const authApi = {
     }),
 
   forgotPassword: (email: string) =>
-    apiFetch('/auth/forgot-password', {
-      method: 'POST',
-      body: JSON.stringify({ email }),
-    }),
+    apiFetch<void>('/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) }),
 
   resetPassword: (token: string, newPassword: string) =>
-    apiFetch('/auth/reset-password', {
-      method: 'POST',
-      body: JSON.stringify({ token, newPassword }),
-    }),
+    apiFetch<void>('/auth/reset-password', { method: 'POST', body: JSON.stringify({ token, newPassword }) }),
+
+  activateAccount: (token: string, password: string) =>
+    apiFetch<{ accessToken: string; refreshToken: string; user: any }>(
+      '/auth/activate',
+      { method: 'POST', body: JSON.stringify({ token, password }) }
+    ),
+
+  adminResetPassword: (userId: string) =>
+    apiFetch<void>(`/auth/admin/reset-password/${userId}`, { method: 'POST' }),
+
+  resendActivation: (userId: string) =>
+    apiFetch<void>(`/auth/resend-activation/${userId}`, { method: 'POST' }),
 };
 
 // ─── Employees API ───────────────────────────────────────────────────────────
@@ -205,6 +218,23 @@ export const employeesApi = {
 
   update: (id: string, data: any) =>
     apiFetch<any>(`/employees/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  uploadPhoto: (id: string, file: File): Promise<any> => {
+    const token = getAccessToken();
+    const form = new FormData();
+    form.append('photo', file);
+    return fetch(`${API_URL}/employees/${id}/photo`, {
+      method: 'PATCH',
+      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: form,
+    }).then(async res => {
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error((err as any)?.message || 'Photo upload failed');
+      }
+      return res.json();
+    });
+  },
 
   delete: (id: string) =>
     apiFetch(`/employees/${id}`, { method: 'DELETE' }),
@@ -226,6 +256,9 @@ export const employeesApi = {
   getTraining: (id: string) => apiFetch<any[]>(`/employees/${id}/training`),
 
   getPerformance: (id: string) => apiFetch<any>(`/employees/${id}/performance`),
+
+  // Banking/salary profile inherited from candidate stage (ApplicantFinancialProfile)
+  getFinancialProfile: (id: string) => apiFetch<any>(`/employees/${id}/financial-profile`),
 };
 
 // ─── Applicants API (includes merged Application methods) ────────────────────
@@ -259,13 +292,82 @@ export const applicantsApi = {
       body: JSON.stringify({ stageId }),
     }),
 
+  convertLeadToCandidate: (id: string, data?: { agencyId?: string; notes?: string }) =>
+    apiFetch<any>(`/applicants/${id}/convert-to-candidate`, {
+      method: 'POST',
+      body: JSON.stringify(data ?? {}),
+    }),
+
+  reassignAgency: (id: string, data: { agencyId: string; reason?: string; notes?: string }) =>
+    apiFetch<any>(`/applicants/${id}/agency`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+
+  getFinancialProfile: (id: string) =>
+    apiFetch<any>(`/applicants/${id}/financial`),
+
+  upsertFinancialProfile: (id: string, data: any) =>
+    apiFetch<any>(`/applicants/${id}/financial`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+
+  getAgencyHistory: (id: string) =>
+    apiFetch<any[]>(`/applicants/${id}/agency-history`),
+
+  bulkAction: (data: { ids: string[]; action: string; value?: string }) =>
+    apiFetch<any>('/applicants/bulk-action', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  exportCsv: (params?: Record<string, any>) => {
+    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+    return `${(import.meta as any).env?.VITE_API_URL || 'http://localhost:3000/api/v1'}/applicants/export/csv${qs}`;
+  },
+
   convertToEmployee: (id: string, data: any) =>
     apiFetch<any>(`/applicants/${id}/convert`, { method: 'POST', body: JSON.stringify(data) }),
+
+  uploadPhoto: (id: string, file: File): Promise<any> => {
+    const token = getAccessToken();
+    const form = new FormData();
+    form.append('photo', file);
+    return fetch(`${API_URL}/applicants/${id}/photo`, {
+      method: 'PATCH',
+      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: form,
+    }).then(async res => {
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error((err as any)?.message || 'Photo upload failed');
+      }
+      return res.json();
+    });
+  },
+
+  requestDelete: (id: string, reason: string) =>
+    apiFetch<any>(`/applicants/${id}/delete-request`, { method: 'POST', body: JSON.stringify({ reason }) }),
+
+  getDeleteRequests: (params?: any) =>
+    apiFetch<any>(`/applicants/delete-requests?${new URLSearchParams(params || {})}`),
+
+  reviewDeleteRequest: (requestId: string, status: 'APPROVED' | 'REJECTED', reviewNotes?: string) =>
+    apiFetch<any>(`/applicants/delete-requests/${requestId}`, { method: 'PATCH', body: JSON.stringify({ status, reviewNotes }) }),
 };
 
 // ─── Public Application API ───────────────────────────────────────────────────
 // No auth required - used by the public-facing driver application form
 export const publicApplicationApi = {
+  getFormSettings: () => apiFetch<Record<string, any>>('/settings/public/form'),
+
+  /** Fetches active job categories without requiring auth (public endpoint). */
+  getJobCategories: () =>
+    fetch(`${API_URL}/settings/job-types`)
+      .then(res => res.ok ? res.json() : [])
+      .catch(() => []) as Promise<{ id: string; name: string }[]>,
+
   submit: (data: any) =>
     apiFetch<any>('/applicants/public/submit', {
       method: 'POST',
@@ -285,8 +387,18 @@ export const publicApplicationApi = {
 // ─── Documents API ───────────────────────────────────────────────────────────
 
 export const documentsApi = {
+  /**
+   * List documents with full filter/sort support.
+   * Supported params: page, limit, search, sortBy, sortOrder,
+   *   status, documentTypeId, entityType, entityId,
+   *   docId, documentNumber, issueDateFrom, issueDateTo,
+   *   expiryDateFrom, expiryDateTo, uploadedById, verifiedById
+   */
   list: (params?: Record<string, any>) => {
-    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+    const clean = params
+      ? Object.fromEntries(Object.entries(params).filter(([, v]) => v !== '' && v != null))
+      : {};
+    const qs = Object.keys(clean).length ? '?' + new URLSearchParams(clean).toString() : '';
     return apiFetch<PaginatedResponse<any>>(`/documents${qs}`);
   },
 
@@ -302,25 +414,43 @@ export const documentsApi = {
     apiFetch(`/documents/${id}`, { method: 'DELETE' }),
 
   verify: (id: string, data: any) =>
-    apiFetch<any>(`/documents/${id}/verify`, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
+    apiFetch<any>(`/documents/${id}/verify`, { method: 'POST', body: JSON.stringify(data) }),
 
-  getByEntity: (entityType: string, entityId: string) =>
-    apiFetch<any[]>(`/documents/entity/${entityType}/${entityId}?limit=500`),
+  /**
+   * Renew a document — creates a new PENDING document linked to the original.
+   * Pass a FormData if you want to upload a new file at the same time.
+   * Pass a plain object (will be JSON-encoded) if no new file.
+   */
+  renew: (id: string, data: FormData | Record<string, any>) => {
+    const isForm = data instanceof FormData;
+    return apiFetch<any>(`/documents/${id}/renew`, {
+      method: 'POST',
+      body: isForm ? data : JSON.stringify(data),
+      ...(isForm ? {} : {}),
+    });
+  },
+
+  getByEntity: (entityType: string, entityId: string, params?: Record<string, any>) => {
+    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+    return apiFetch<PaginatedResponse<any>>(`/documents/entity/${entityType}/${entityId}${qs}`);
+  },
 
   getDashboard: () => apiFetch<any>('/documents/dashboard'),
+
+  getDocTypePermissions: (documentTypeId: string) =>
+    apiFetch<any[]>(`/documents/type-permissions/${documentTypeId}`),
+
+  upsertDocTypePermission: (documentTypeId: string, roleId: string, perms: Record<string, boolean>) =>
+    apiFetch<any>(`/documents/type-permissions/${documentTypeId}/${roleId}`, {
+      method: 'POST', body: JSON.stringify(perms),
+    }),
 
   /** Download multiple documents as a structured ZIP file. Returns a Blob. */
   bulkDownload: async (ids: string[]): Promise<Blob> => {
     const token = getAccessToken();
     const res = await fetch(`${API_URL}/documents/bulk-download`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
+      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       body: JSON.stringify({ ids }),
     });
     if (!res.ok) {
@@ -331,9 +461,9 @@ export const documentsApi = {
   },
 };
 
-// ─── Workflow API ─────────────────────────────────────────────────────────────
+// ─── Employee Workflow API ────────────────────────────────────────────────────
 
-export const workflowApi = {
+export const employeeWorkflowApi = {
   getStages: () => apiFetch<any[]>('/workflow/stages'),
 
   getStageDetails: (stageId: string) => apiFetch<any>(`/workflow/stages/${stageId}/people`),
@@ -412,6 +542,8 @@ export const agenciesApi = {
   },
 
   getStats: (id: string) => apiFetch<any>(`/agencies/${id}/stats`),
+
+  listPublic: () => apiFetch<{ id: string; name: string }[]>('/agencies/public'),
 };
 
 // ─── Compliance API ───────────────────────────────────────────────────────────
@@ -456,6 +588,16 @@ export const notificationsApi = {
 
   delete: (id: string) =>
     apiFetch(`/notifications/${id}`, { method: 'DELETE' }),
+
+  getPreferences: () => apiFetch<any>('/notifications/preferences'),
+
+  updatePreferences: (preferences: Record<string, { in_app: boolean; email: boolean; sms: boolean }>) =>
+    apiFetch<any>('/notifications/preferences', {
+      method: 'PUT',
+      body: JSON.stringify({ preferences }),
+    }),
+
+  getEventTypes: () => apiFetch<any[]>('/notifications/event-types'),
 };
 
 // ─── Users API ────────────────────────────────────────────────────────────────
@@ -480,7 +622,58 @@ export const usersApi = {
     apiFetch(`/users/${id}`, { method: 'DELETE' }),
 
   updateProfile: (data: any) =>
-    apiFetch<any>('/users/me/profile', { method: 'PATCH', body: JSON.stringify(data) }),
+    apiFetch<any>('/users/profile', { method: 'PATCH', body: JSON.stringify(data) }),
+
+  updatePreferences: (data: any) =>
+    apiFetch<any>('/users/preferences', { method: 'PATCH', body: JSON.stringify(data) }),
+
+  uploadPhoto: (id: string, file: File) => {
+    const form = new FormData();
+    form.append('photo', file);
+    const token = localStorage.getItem('access_token');
+    return fetch(`${API_URL}/users/${id}/photo`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: form,
+    }).then(async r => {
+      const data = await r.json();
+      if (!r.ok) throw new Error(data?.message || 'Upload failed');
+      return data;
+    });
+  },
+
+  uploadOwnPhoto: (file: File) => {
+    const form = new FormData();
+    form.append('photo', file);
+    const token = localStorage.getItem('access_token');
+    return fetch(`${API_URL}/users/me/photo`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: form,
+    }).then(async r => {
+      const data = await r.json();
+      if (!r.ok) throw new Error(data?.message || 'Upload failed');
+      return data;
+    });
+  },
+
+  unlockUser: (id: string) =>
+    apiFetch<any>(`/users/${id}/unlock`, { method: 'POST' }),
+
+  setPermissionOverride: (id: string, permission: string, granted: boolean) =>
+    apiFetch<any>(`/users/${id}/permissions`, { method: 'POST', body: JSON.stringify({ permission, granted }) }),
+
+  getUserPermissions: (id: string) =>
+    apiFetch<any>(`/users/${id}/permissions`),
+
+  bulkImport: (records: any[]) =>
+    apiFetch<any>('/users/bulk-import', { method: 'POST', body: JSON.stringify({ records }) }),
+
+  bulkExport: (params?: any) =>
+    apiFetch<any[]>(`/users/bulk-export?${new URLSearchParams(params || {})}`),
+
+  getActivationLink: (id: string) =>
+    apiFetch<{ url: string }>(`/users/${id}/activation-link`),
 };
 
 // ─── Roles API ────────────────────────────────────────────────────────────────
@@ -542,6 +735,24 @@ export const settingsApi = {
   reorderWorkflowStages: (orders: { id: string; order: number }[]) =>
     apiFetch<any>('/settings/workflow-stages/reorder', { method: 'PATCH', body: JSON.stringify({ orders }) }),
 
+  // Branding
+  getBranding: () => apiFetch<{ companyName?: string; logoUrl?: string }>('/settings/branding'),
+  uploadLogo: async (file: File) => {
+    const formData = new FormData();
+    formData.append('logo', file);
+    const token = localStorage.getItem('access_token') ?? '';
+    const res = await fetch(`${API_URL}/settings/branding/logo`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error((err as any).message || 'Upload failed');
+    }
+    return res.json() as Promise<{ logoUrl: string }>;
+  },
+
   // Notification Rules
   getNotificationRules: () => apiFetch<any[]>('/settings/notification-rules'),
   createNotificationRule: (data: any) =>
@@ -576,6 +787,9 @@ export const logsApi = {
 // ─── Dashboard API ────────────────────────────────────────────────────────────
 
 export const dashboardApi = {
+  /** Returns fully-enriched dashboard payload (employees, applicants, documents, pipeline, recent lists) */
+  getOverview: () => apiFetch<any>('/reports/dashboard'),
+  // Legacy alias kept for backward compatibility
   getStats: () => apiFetch<any>('/reports/dashboard'),
 };
 
@@ -637,4 +851,535 @@ export const reportsApi = {
     }
     return res.blob();
   },
+};
+
+// ─── Finance API ──────────────────────────────────────────────────────────────
+
+export const financeApi = {
+  // Constants (transaction types, payment methods, currencies, statuses)
+  getConstants: () => apiFetch<any>('/finance/constants'),
+
+  // List / filter records (global or per-entity)
+  list: (params?: Record<string, any>) => {
+    const qs = params ? '?' + new URLSearchParams(
+      Object.fromEntries(Object.entries(params).filter(([, v]) => v != null && v !== '')),
+    ).toString() : '';
+    return apiFetch<PaginatedResponse<any>>(`/finance${qs}`);
+  },
+
+  // Totals for a specific entity (current stage only)
+  getTotals: (entityType: string, entityId: string) =>
+    apiFetch<any>(`/finance/totals/${entityType}/${entityId}`),
+
+  // All financial records + totals for a person across ALL lifecycle stages
+  // Uses stable applicantId — works whether person is Lead/Candidate or Employee
+  getPersonRecords: (applicantId: string) =>
+    apiFetch<any>(`/finance/person/${applicantId}`),
+
+  // Single record
+  get: (id: string) => apiFetch<any>(`/finance/${id}`),
+
+  // Create a new financial record
+  create: (data: Record<string, any>) =>
+    apiFetch<any>('/finance', { method: 'POST', body: JSON.stringify(data) }),
+
+  // Update a record
+  update: (id: string, data: Record<string, any>) =>
+    apiFetch<any>(`/finance/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  // Update status (mark as DEDUCTED + deduction details)
+  updateStatus: (id: string, data: { status: string; deductionAmount?: number; deductionDate?: string; payrollReference?: string }) =>
+    apiFetch<any>(`/finance/${id}/status`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  // Soft-delete a record
+  delete: (id: string) =>
+    apiFetch<any>(`/finance/${id}`, { method: 'DELETE' }),
+
+  // Upload attachment to a record
+  addAttachment: (recordId: string, formData: FormData) => {
+    const token = getAccessToken();
+    return fetch(`${API_URL}/finance/${recordId}/attachments`, {
+      method: 'POST',
+      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: formData,
+    }).then(async res => {
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error((err as any)?.message || 'Upload failed');
+      }
+      return res.json();
+    });
+  },
+
+  // Remove an attachment
+  removeAttachment: (recordId: string, attachmentId: string) =>
+    apiFetch<any>(`/finance/${recordId}/attachments/${attachmentId}`, { method: 'DELETE' }),
+
+  // Export to Excel — returns Blob
+  exportExcel: async (params?: Record<string, any>): Promise<Blob> => {
+    const token = getAccessToken();
+    const qs = params ? '?' + new URLSearchParams(
+      Object.fromEntries(Object.entries(params).filter(([, v]) => v != null && v !== '')),
+    ).toString() : '';
+    const res = await fetch(`${API_URL}/finance/export${qs}`, {
+      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error((err as any)?.message || 'Export failed');
+    }
+    return res.blob();
+  },
+};
+
+// ─── Job Ads API (Dashboard — authenticated) ──────────────────────────────────
+
+export const jobAdsApi = {
+  // Constants (statuses, categories, contract types, currencies)
+  getConstants: () => apiFetch<any>('/job-ads/constants'),
+
+  // List / filter (paginated)
+  list: (params?: Record<string, any>) => {
+    const qs = params ? '?' + new URLSearchParams(
+      Object.fromEntries(Object.entries(params).filter(([, v]) => v != null && v !== '')),
+    ).toString() : '';
+    return apiFetch<PaginatedResponse<any>>(`/job-ads${qs}`);
+  },
+
+  // Single by ID
+  get: (id: string) => apiFetch<any>(`/job-ads/${id}`),
+
+  // Create
+  create: (data: Record<string, any>) =>
+    apiFetch<any>('/job-ads', { method: 'POST', body: JSON.stringify(data) }),
+
+  // Update (partial)
+  update: (id: string, data: Record<string, any>) =>
+    apiFetch<any>(`/job-ads/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  // Soft-delete
+  delete: (id: string) =>
+    apiFetch<any>(`/job-ads/${id}`, { method: 'DELETE' }),
+};
+
+// ─── Public Job Ads API (no auth required) ────────────────────────────────────
+
+export const publicJobAdsApi = {
+  // List published listings
+  list: (params?: Record<string, any>) => {
+    const qs = params ? '?' + new URLSearchParams(
+      Object.fromEntries(Object.entries(params).filter(([, v]) => v != null && v !== '')),
+    ).toString() : '';
+    return fetch(`${API_URL}/public/jobs${qs}`).then(async res => {
+      if (!res.ok) throw new Error('Failed to load job listings');
+      return res.json() as Promise<PaginatedResponse<any>>;
+    });
+  },
+
+  // Single by slug
+  getBySlug: (slug: string) =>
+    fetch(`${API_URL}/public/jobs/${slug}`).then(async res => {
+      if (!res.ok) throw new Error('Job listing not found');
+      return res.json() as Promise<any>;
+    }),
+};
+
+// ─── Recycle Bin API ──────────────────────────────────────────────────────────
+
+export const recycleBinApi = {
+  // List deleted records (paginated, filterable)
+  list: (params?: Record<string, any>) => {
+    const qs = params ? '?' + new URLSearchParams(
+      Object.fromEntries(Object.entries(params).filter(([, v]) => v != null && v !== '')),
+    ).toString() : '';
+    return apiFetch<PaginatedResponse<any>>(`/recycle-bin${qs}`);
+  },
+
+  // Count per entity type
+  getCounts: () => apiFetch<Record<string, number>>('/recycle-bin/counts'),
+
+  // Related deleted records for a specific entity
+  getRelated: (entityType: string, id: string) =>
+    apiFetch<any>(`/recycle-bin/${entityType}/${id}/related`),
+
+  // Preview what hard-delete will remove
+  previewHardDelete: (entityType: string, id: string) =>
+    apiFetch<any>(`/recycle-bin/${entityType}/${id}/preview-hard-delete`),
+
+  // Restore a record (optionally with related)
+  restore: (entityType: string, id: string, data: { withRelated?: boolean; reason?: string }) =>
+    apiFetch<any>(`/recycle-bin/${entityType}/${id}/restore`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  // Permanently hard-delete a record
+  hardDelete: (entityType: string, id: string, data: { reason?: string }) =>
+    apiFetch<any>(`/recycle-bin/${entityType}/${id}`, {
+      method: 'DELETE',
+      body: JSON.stringify(data),
+    }),
+
+  // Database cleanup
+  cleanupPreview: () => apiFetch<any>('/recycle-bin/cleanup/preview'),
+
+  cleanupExecute: (data: { confirmPhrase: string; reason?: string; clearAuditLogs?: boolean }) =>
+    apiFetch<any>('/recycle-bin/cleanup/execute', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+};
+
+// ── Workflow API ──────────────────────────────────────────────────────────────
+
+export const workflowApi = {
+  // Workflows
+  list: (includeArchived = false) =>
+    apiFetch<any[]>(`/workflows${includeArchived ? '?includeArchived=true' : ''}`),
+
+  get: (id: string) => apiFetch<any>(`/workflows/${id}`),
+
+  board: (id: string) => apiFetch<any>(`/workflows/${id}/board`),
+
+  candidates: (id: string) => apiFetch<any[]>(`/workflows/${id}/candidates`),
+
+  stats: (id: string) => apiFetch<any>(`/workflows/${id}/stats`),
+
+  create: (data: { name: string; description?: string; isDefault?: boolean; isPublic?: boolean; color?: string }) =>
+    apiFetch<any>('/workflows', { method: 'POST', body: JSON.stringify(data) }),
+
+  update: (id: string, data: Partial<{ name: string; description: string; isDefault: boolean; isPublic: boolean; color: string }>) =>
+    apiFetch<any>(`/workflows/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  archive: (id: string) =>
+    apiFetch<any>(`/workflows/${id}/archive`, { method: 'PATCH' }),
+
+  delete: (id: string) =>
+    apiFetch<any>(`/workflows/${id}`, { method: 'DELETE' }),
+
+  // Stages
+  addStage: (workflowId: string, data: any) =>
+    apiFetch<any>(`/workflows/${workflowId}/stages`, { method: 'POST', body: JSON.stringify(data) }),
+
+  getWorkflowStageDetails: (stageId: string) =>
+    apiFetch<any>(`/workflows/stages/${stageId}/details`),
+
+  updateStage: (stageId: string, data: any) =>
+    apiFetch<any>(`/workflows/stages/${stageId}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  deleteStage: (stageId: string) =>
+    apiFetch<any>(`/workflows/stages/${stageId}`, { method: 'DELETE' }),
+
+  reorderStages: (workflowId: string, orderedIds: string[]) =>
+    apiFetch<any>(`/workflows/${workflowId}/stages/reorder`, { method: 'PATCH', body: JSON.stringify({ orderedIds }) }),
+
+  // Assignments
+  assignCandidate: (data: { candidateId: string; workflowId: string; notes?: string }) =>
+    apiFetch<any>('/workflows/assign', { method: 'POST', body: JSON.stringify(data) }),
+
+  getCandidateAssignments: (candidateId: string) =>
+    apiFetch<any[]>(`/workflows/candidate/${candidateId}/assignments`),
+
+  removeCandidateAssignment: (candidateId: string, assignmentId: string) =>
+    apiFetch<any>(`/workflows/candidate/${candidateId}/assignments/${assignmentId}`, { method: 'DELETE' }),
+
+  // Employee assignments
+  assignEmployee: (data: { employeeId: string; workflowId: string; notes?: string }) =>
+    apiFetch<any>('/workflows/assign-employee', { method: 'POST', body: JSON.stringify(data) }),
+
+  getEmployeeAssignment: (employeeId: string) =>
+    apiFetch<any>(`/workflows/employee/${employeeId}/assignments`),
+
+  setEmployeeCurrentStage: (employeeId: string, stageId: string) =>
+    apiFetch<any>(`/workflows/employee/${employeeId}/current-stage`, { method: 'PATCH', body: JSON.stringify({ stageId }) }),
+
+  approveEmployeeStage: (employeeId: string, stageId: string, notes?: string) =>
+    apiFetch<any>(`/workflows/employee/${employeeId}/stages/${stageId}/approve`, { method: 'POST', body: JSON.stringify({ notes }) }),
+
+  removeEmployeeAssignment: (employeeId: string, workflowId: string) =>
+    apiFetch<any>(`/workflows/employee/${employeeId}/assignments/${workflowId}`, { method: 'DELETE' }),
+
+  // Progress
+  advanceToStage: (assignmentId: string, stageId: string) =>
+    apiFetch<any>(`/workflows/assignments/${assignmentId}/advance`, { method: 'POST', body: JSON.stringify({ stageId }) }),
+
+  updateProgress: (progressId: string, data: { status: string; flagged?: boolean; flagReason?: string }) =>
+    apiFetch<any>(`/workflows/progress/${progressId}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  // Notes
+  addNote: (progressId: string, data: { content: string; isPrivate?: boolean }) =>
+    apiFetch<any>(`/workflows/progress/${progressId}/notes`, { method: 'POST', body: JSON.stringify(data) }),
+
+  deleteNote: (noteId: string) =>
+    apiFetch<any>(`/workflows/notes/${noteId}`, { method: 'DELETE' }),
+
+  // Approvals
+  submitApproval: (progressId: string, data: { decision: 'APPROVED' | 'REJECTED'; notes?: string }) =>
+    apiFetch<any>(`/workflows/progress/${progressId}/approve`, { method: 'POST', body: JSON.stringify(data) }),
+};
+
+// ── Attendance API ─────────────────────────────────────────────────────────────
+
+export const attendanceApi = {
+  /**
+   * List employees with their aggregated attendance stats for the given month/year.
+   * Returns paginated { data: [...], meta: { total, page, limit, totalPages } }
+   */
+  listEmployees: (params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    month?: number;
+    year?: number;
+    status?: string;
+    driversOnly?: boolean;
+  }) => {
+    const qs = new URLSearchParams();
+    if (params.page != null) qs.set('page', String(params.page));
+    if (params.limit != null) qs.set('limit', String(params.limit));
+    if (params.search) qs.set('search', params.search);
+    if (params.month != null) qs.set('month', String(params.month));
+    if (params.year != null) qs.set('year', String(params.year));
+    if (params.status) qs.set('status', params.status);
+    if (params.driversOnly != null) qs.set('driversOnly', String(params.driversOnly));
+    return apiFetch<any>(`/attendance/employees?${qs.toString()}`);
+  },
+
+  /**
+   * Get a single employee's attendance records + summary for the given month/year.
+   */
+  getEmployeeAttendance: (employeeId: string | undefined, params: { month: number; year: number }) => {
+    const qs = new URLSearchParams({
+      month: String(params.month),
+      year: String(params.year),
+    });
+    return apiFetch<any>(`/attendance/employees/${employeeId}?${qs.toString()}`);
+  },
+
+  /**
+   * Create a new attendance record (upsert by employeeId + date).
+   */
+  upsert: (data: {
+    employeeId: string | undefined;
+    date: string;
+    status: string;
+    checkIn?: string;
+    checkOut?: string;
+    workingHours?: number | string;
+    notes?: string;
+  }) => apiFetch<any>('/attendance', { method: 'POST', body: JSON.stringify(data) }),
+
+  /**
+   * Update an existing attendance record by id.
+   */
+  update: (recordId: string, data: {
+    status?: string;
+    checkIn?: string;
+    checkOut?: string;
+    workingHours?: number | string;
+    notes?: string;
+  }) => apiFetch<any>(`/attendance/${recordId}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  /**
+   * Delete an attendance record by id.
+   */
+  delete: (recordId: string) =>
+    apiFetch<any>(`/attendance/${recordId}`, { method: 'DELETE' }),
+
+  /**
+   * Export the attendance sheet as an Excel file.
+   * Returns a Blob suitable for createObjectURL.
+   */
+  exportExcel: async (params: { month: number; year: number; driversOnly?: boolean }): Promise<Blob> => {
+    const token = getAccessToken();
+    const qs = new URLSearchParams({
+      month: String(params.month),
+      year: String(params.year),
+      driversOnly: String(params.driversOnly ?? false),
+    });
+    const res = await fetch(`${API_URL}/attendance/export/excel?${qs.toString()}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) throw new Error('Export failed');
+    return res.blob();
+  },
+};
+
+// ─── Vehicles API ─────────────────────────────────────────────────────────────
+
+export const vehiclesApi = {
+  // Vehicles
+  list: (params: {
+    page?: number; limit?: number; search?: string; type?: string;
+    status?: string; agencyId?: string; expiringInDays?: number;
+  } = {}) => {
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => v != null && qs.set(k, String(v)));
+    return apiFetch<any>(`/vehicles?${qs.toString()}`);
+  },
+
+  getOne: (id: string) => apiFetch<any>(`/vehicles/${id}`),
+
+  create: (data: {
+    type: string; registrationNumber: string; make: string; model: string;
+    status?: string; year?: number; color?: string; vin?: string; fuelType?: string;
+    currentMileage?: number; notes?: string; motExpiryDate?: string; taxExpiryDate?: string;
+    insuranceExpiryDate?: string; grossWeight?: number; payloadCapacity?: number;
+    numberOfAxles?: number; tankerCapacity?: number; refrigerationUnit?: string;
+    trailerLength?: number; agencyId?: string;
+  }) => apiFetch<any>('/vehicles', { method: 'POST', body: JSON.stringify(data) }),
+
+  update: (id: string, data: Record<string, any>) =>
+    apiFetch<any>(`/vehicles/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  delete: (id: string) => apiFetch<any>(`/vehicles/${id}`, { method: 'DELETE' }),
+
+  getStats: () => apiFetch<any>('/vehicles/stats'),
+
+  // Driver assignments
+  getDriverHistory: (vehicleId: string) => apiFetch<any>(`/vehicles/${vehicleId}/drivers`),
+
+  assignDriver: (vehicleId: string, data: { employeeId: string; startDate: string; notes?: string }) =>
+    apiFetch<any>(`/vehicles/${vehicleId}/drivers`, { method: 'POST', body: JSON.stringify(data) }),
+
+  unassignDriver: (vehicleId: string, assignmentId: string) =>
+    apiFetch<any>(`/vehicles/${vehicleId}/drivers/${assignmentId}`, { method: 'DELETE' }),
+
+  // Documents
+  addDocument: (vehicleId: string, data: {
+    name: string; documentType: string; expiryDate?: string; issuedDate?: string; issuer?: string; notes?: string;
+  }, file?: File) => {
+    const form = new FormData();
+    form.append('name', data.name);
+    form.append('documentType', data.documentType);
+    if (data.expiryDate) form.append('expiryDate', data.expiryDate);
+    if (data.issuedDate) form.append('issuedDate', data.issuedDate);
+    if (data.issuer)     form.append('issuer', data.issuer);
+    if (data.notes)      form.append('notes', data.notes);
+    if (file)            form.append('file', file);
+    return apiFetch<any>(`/vehicles/${vehicleId}/documents`, { method: 'POST', body: form });
+  },
+
+  updateDocument: (vehicleId: string, docId: string, data: Record<string, any>) =>
+    apiFetch<any>(`/vehicles/${vehicleId}/documents/${docId}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  deleteDocument: (vehicleId: string, docId: string) =>
+    apiFetch<any>(`/vehicles/${vehicleId}/documents/${docId}`, { method: 'DELETE' }),
+
+  // Maintenance types
+  listMaintenanceTypes: () => apiFetch<any>('/vehicles/maintenance/types'),
+
+  createMaintenanceType: (data: { name: string; description?: string; defaultIntervalDays?: number; defaultIntervalKm?: number }) =>
+    apiFetch<any>('/vehicles/maintenance/types', { method: 'POST', body: JSON.stringify(data) }),
+
+  updateMaintenanceType: (id: string, data: Record<string, any>) =>
+    apiFetch<any>(`/vehicles/maintenance/types/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  deleteMaintenanceType: (id: string) =>
+    apiFetch<any>(`/vehicles/maintenance/types/${id}`, { method: 'DELETE' }),
+
+  // Workshops
+  listWorkshops: () => apiFetch<any>('/vehicles/workshops'),
+
+  getWorkshop: (id: string) => apiFetch<any>(`/vehicles/workshops/${id}`),
+
+  createWorkshop: (data: {
+    name: string; contactName?: string; phone?: string; email?: string;
+    address?: string; city?: string; country?: string; notes?: string;
+  }) => apiFetch<any>('/vehicles/workshops', { method: 'POST', body: JSON.stringify(data) }),
+
+  updateWorkshop: (id: string, data: Record<string, any>) =>
+    apiFetch<any>(`/vehicles/workshops/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  deleteWorkshop: (id: string) =>
+    apiFetch<any>(`/vehicles/workshops/${id}`, { method: 'DELETE' }),
+
+  // Maintenance records
+  listMaintenance: (params: {
+    page?: number; limit?: number; vehicleId?: string; status?: string; dateFrom?: string; dateTo?: string;
+  } = {}) => {
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => v != null && qs.set(k, String(v)));
+    return apiFetch<any>(`/vehicles/maintenance/records?${qs.toString()}`);
+  },
+
+  getMaintenance: (id: string) => apiFetch<any>(`/vehicles/maintenance/records/${id}`),
+
+  createMaintenance: (data: Record<string, any>) =>
+    apiFetch<any>('/vehicles/maintenance/records', { method: 'POST', body: JSON.stringify(data) }),
+
+  updateMaintenance: (id: string, data: Record<string, any>) =>
+    apiFetch<any>(`/vehicles/maintenance/records/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  deleteMaintenance: (id: string) =>
+    apiFetch<any>(`/vehicles/maintenance/records/${id}`, { method: 'DELETE' }),
+
+  // Export
+  exportExcel: async (params: { type?: string; status?: string } = {}): Promise<Blob> => {
+    const token = getAccessToken();
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => v != null && qs.set(k, String(v)));
+    const res = await fetch(`${API_URL}/vehicles/export/excel?${qs.toString()}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) throw new Error('Export failed');
+    return res.blob();
+  },
+};
+
+// ── Backup & Restore API ───────────────────────────────────────────────────────
+
+export const backupApi = {
+  /** List all backups (paginated) */
+  list: (params: { page?: number; limit?: number; search?: string; status?: string } = {}) => {
+    const qs = new URLSearchParams();
+    if (params.page   != null) qs.set('page',   String(params.page));
+    if (params.limit  != null) qs.set('limit',  String(params.limit));
+    if (params.search)         qs.set('search', params.search);
+    if (params.status)         qs.set('status', params.status);
+    return apiFetch<any>(`/backup?${qs.toString()}`);
+  },
+
+  /** Get single backup */
+  get: (id: string) => apiFetch<any>(`/backup/${id}`),
+
+  /** Check if a backup/restore operation is running */
+  status: () => apiFetch<{ locked: boolean }>('/backup/status'),
+
+  /** Preview/validate before restore */
+  preview: (id: string) => apiFetch<any>(`/backup/${id}/preview`),
+
+  /** Create a new backup */
+  create: (data: { notes?: string }) =>
+    apiFetch<any>('/backup', { method: 'POST', body: JSON.stringify(data) }),
+
+  /** Download backup file as Blob */
+  download: async (id: string, fileName: string): Promise<void> => {
+    const token = getAccessToken();
+    const res = await fetch(`${API_URL}/backup/${id}/download`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) throw new Error('Download failed');
+    const blob = await res.blob();
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = fileName;
+    a.click();
+    URL.revokeObjectURL(url);
+  },
+
+  /** Restore from a backup */
+  restore: (
+    id: string,
+    data: {
+      restoreMode: string;
+      confirmPhrase: string;
+      notes?: string;
+      skipSafetyBackup?: boolean;
+    },
+  ) => apiFetch<any>(`/backup/${id}/restore`, { method: 'POST', body: JSON.stringify(data) }),
+
+  /** Delete a backup */
+  delete: (id: string) => apiFetch<any>(`/backup/${id}`, { method: 'DELETE' }),
 };

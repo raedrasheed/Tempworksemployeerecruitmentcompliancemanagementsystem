@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router';
-import { Camera, Save, Shield, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { Camera, Save, Shield, CheckCircle, AlertCircle, Loader2, Settings } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -9,7 +9,8 @@ import { Badge } from '../../components/ui/badge';
 import { Progress } from '../../components/ui/progress';
 import { Switch } from '../../components/ui/switch';
 import { Separator } from '../../components/ui/separator';
-import { usersApi } from '../../services/api';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { usersApi, authApi, BACKEND_URL } from '../../services/api';
 import { toast } from 'sonner';
 
 export function Profile() {
@@ -17,17 +18,45 @@ export function Profile() {
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [userData, setUserData] = useState<any>(null);
-  const [editForm, setEditForm] = useState({ firstName: '', lastName: '', phone: '' });
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const [editForm, setEditForm] = useState({
+    phone: '',
+    dateOfBirth: '',
+    gender: '',
+    citizenship: '',
+    addressLine1: '',
+    addressLine2: '',
+    city: '',
+    country: '',
+    postalCode: '',
+  });
 
   useEffect(() => {
-    usersApi.me()
-      .then((user) => {
-        setUserData(user);
+    Promise.all([authApi.me(), usersApi.me().catch(() => null)])
+      .then(([authUser, fullUser]) => {
+        // authUser always has firstName/lastName/email; fullUser has extended profile fields
+        const merged = { ...fullUser, ...authUser, ...(fullUser ?? {}) };
+        // Keep authUser identity fields as the source of truth
+        merged.firstName = authUser.firstName;
+        merged.lastName = authUser.lastName;
+        merged.email = authUser.email;
+        if (!merged.role || typeof merged.role === 'string') {
+          merged.role = fullUser?.role ?? { name: authUser.role };
+        }
+        setUserData(merged);
         setEditForm({
-          firstName: user.firstName || '',
-          lastName: user.lastName || '',
-          phone: user.phone || '',
+          phone: merged.phone || '',
+          dateOfBirth: merged.dateOfBirth ? merged.dateOfBirth.slice(0, 10) : '',
+          gender: merged.gender || '',
+          citizenship: merged.citizenship || '',
+          addressLine1: merged.addressLine1 || '',
+          addressLine2: merged.addressLine2 || '',
+          city: merged.city || '',
+          country: merged.country || '',
+          postalCode: merged.postalCode || '',
         });
       })
       .catch(() => toast.error('Failed to load profile'))
@@ -35,7 +64,11 @@ export function Profile() {
   }, []);
 
   const profileCompletion = userData ? (() => {
-    const fields = [userData.firstName, userData.lastName, userData.email, userData.phone];
+    const fields = [
+      userData.firstName, userData.lastName, userData.email, userData.phone,
+      userData.dateOfBirth, userData.gender, userData.citizenship,
+      userData.city, userData.country,
+    ];
     return Math.round((fields.filter(Boolean).length / fields.length) * 100);
   })() : 0;
 
@@ -55,18 +88,45 @@ export function Profile() {
 
   const handleCancel = () => {
     setEditForm({
-      firstName: userData.firstName || '',
-      lastName: userData.lastName || '',
       phone: userData.phone || '',
+      dateOfBirth: userData.dateOfBirth ? userData.dateOfBirth.slice(0, 10) : '',
+      gender: userData.gender || '',
+      citizenship: userData.citizenship || '',
+      addressLine1: userData.addressLine1 || '',
+      addressLine2: userData.addressLine2 || '',
+      city: userData.city || '',
+      country: userData.country || '',
+      postalCode: userData.postalCode || '',
     });
     setIsEditing(false);
   };
 
-  const avatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${userData?.firstName || 'User'}`;
+  const handlePhotoChange = async (file: File) => {
+    setPhotoPreview(URL.createObjectURL(file));
+    setUploadingPhoto(true);
+    try {
+      const result = await usersApi.uploadOwnPhoto(file);
+      setUserData((prev: any) => ({ ...prev, photoUrl: result?.photoUrl ?? prev?.photoUrl }));
+      toast.success('Photo updated successfully');
+    } catch (err: any) {
+      toast.error(err?.message || 'Photo upload failed');
+      setPhotoPreview(null);
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const avatarSrc = photoPreview
+    ?? (userData?.photoUrl ? `${BACKEND_URL}${userData.photoUrl}` : null)
+    ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${userData?.firstName || 'User'}`;
   const displayName = userData ? `${userData.firstName} ${userData.lastName}` : '';
-  const roleName = userData?.role?.name || '';
+  const roleName = (typeof userData?.role === 'string' ? userData.role : userData?.role?.name) || '';
   const agencyName = userData?.agency ? `${userData.agency.name}${userData.agency.country ? ` — ${userData.agency.country}` : ''}` : 'N/A';
-  const permissions: string[] = (userData?.role?.permissions ?? []).map((p: any) => p.permission?.name || p.name).filter(Boolean);
+  const permissions: string[] = Array.isArray(userData?.role?.permissions)
+    ? userData.role.permissions.map((p: any) => p.permission?.name || p.name).filter(Boolean)
+    : Array.isArray(userData?.permissions)
+    ? userData.permissions
+    : [];
 
   const formatDate = (val: string | null | undefined) => {
     if (!val) return '—';
@@ -98,12 +158,27 @@ export function Profile() {
         <CardContent className="p-6">
           <div className="flex items-center justify-between mb-3">
             <div>
-              <h3 className="font-semibold text-[#0F172A]">Profile Completion</h3>
+              <div className="flex items-center gap-3">
+                <h3 className="font-semibold text-[#0F172A]">Profile Completion</h3>
+                {userData?.userNumber && (
+                  <Badge variant="outline" className="font-mono text-sm bg-[#EFF6FF] text-[#2563EB] border-[#2563EB]">
+                    {userData.userNumber}
+                  </Badge>
+                )}
+              </div>
               <p className="text-sm text-muted-foreground">Complete your profile to unlock all features</p>
             </div>
-            <Badge className={profileCompletion === 100 ? 'bg-[#22C55E]' : 'bg-[#F59E0B]'}>
-              {profileCompletion}%
-            </Badge>
+            <div className="flex items-center gap-3">
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/dashboard/preferences">
+                  <Settings className="w-4 h-4 mr-2" />
+                  Preferences
+                </Link>
+              </Button>
+              <Badge className={profileCompletion === 100 ? 'bg-[#22C55E]' : 'bg-[#F59E0B]'}>
+                {profileCompletion}%
+              </Badge>
+            </div>
           </div>
           <Progress value={profileCompletion} className="h-2" />
         </CardContent>
@@ -134,49 +209,49 @@ export function Profile() {
               {/* Avatar */}
               <div className="flex items-center gap-6">
                 <div className="relative">
-                  <img src={avatar} alt={displayName} className="w-24 h-24 rounded-full" />
-                  {isEditing && (
-                    <button className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-[#2563EB] flex items-center justify-center text-white hover:bg-[#1D4ED8] transition-colors">
-                      <Camera className="w-4 h-4" />
-                    </button>
-                  )}
+                  <img src={avatarSrc} alt={displayName} className="w-24 h-24 rounded-full object-cover border border-gray-200" />
+                  <button
+                    type="button"
+                    onClick={() => photoInputRef.current?.click()}
+                    disabled={uploadingPhoto}
+                    title="Change profile photo"
+                    className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-[#2563EB] flex items-center justify-center text-white hover:bg-[#1D4ED8] transition-colors disabled:opacity-50"
+                  >
+                    {uploadingPhoto ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
+                  </button>
+                  <input
+                    ref={photoInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={e => { const f = e.target.files?.[0]; if (f) handlePhotoChange(f); }}
+                  />
                 </div>
                 <div>
                   <h3 className="font-semibold">{displayName}</h3>
                   <p className="text-sm text-muted-foreground">{roleName}</p>
+                  <p className="text-xs text-muted-foreground mt-1">Click the camera icon to change your photo</p>
                 </div>
               </div>
 
               <Separator />
 
-              {/* Fields */}
+              {/* Read-only identity fields */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>First Name</Label>
-                  <Input
-                    value={isEditing ? editForm.firstName : (userData?.firstName || '')}
-                    onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })}
-                    disabled={!isEditing}
-                  />
+                  <Input value={userData?.firstName || ''} disabled className="bg-[#F8FAFC]" />
+                  <p className="text-xs text-muted-foreground">Contact admin to update</p>
                 </div>
 
                 <div className="space-y-2">
                   <Label>Last Name</Label>
-                  <Input
-                    value={isEditing ? editForm.lastName : (userData?.lastName || '')}
-                    onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })}
-                    disabled={!isEditing}
-                  />
+                  <Input value={userData?.lastName || ''} disabled className="bg-[#F8FAFC]" />
                 </div>
 
                 <div className="space-y-2">
                   <Label>Email Address</Label>
-                  <Input
-                    type="email"
-                    value={userData?.email || ''}
-                    disabled
-                    className="bg-[#F8FAFC]"
-                  />
+                  <Input type="email" value={userData?.email || ''} disabled className="bg-[#F8FAFC]" />
                   <p className="text-xs text-muted-foreground">Email cannot be changed</p>
                 </div>
 
@@ -190,6 +265,101 @@ export function Profile() {
                   />
                 </div>
 
+                <div className="space-y-2">
+                  <Label>Date of Birth</Label>
+                  <Input
+                    type={isEditing ? 'date' : 'text'}
+                    value={isEditing ? editForm.dateOfBirth : (userData?.dateOfBirth ? new Date(userData.dateOfBirth).toLocaleDateString() : '—')}
+                    onChange={(e) => setEditForm({ ...editForm, dateOfBirth: e.target.value })}
+                    disabled={!isEditing}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Gender</Label>
+                  {isEditing ? (
+                    <Select value={editForm.gender} onValueChange={val => setEditForm({ ...editForm, gender: val })}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select gender" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="MALE">Male</SelectItem>
+                        <SelectItem value="FEMALE">Female</SelectItem>
+                        <SelectItem value="OTHER">Other</SelectItem>
+                        <SelectItem value="PREFER_NOT_TO_SAY">Prefer not to say</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Input value={
+                      userData?.gender === 'MALE' ? 'Male' :
+                      userData?.gender === 'FEMALE' ? 'Female' :
+                      userData?.gender === 'OTHER' ? 'Other' :
+                      userData?.gender === 'PREFER_NOT_TO_SAY' ? 'Prefer not to say' :
+                      userData?.gender || '—'
+                    } disabled />
+                  )}
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <Label>Citizenship</Label>
+                  <Input
+                    value={isEditing ? editForm.citizenship : (userData?.citizenship || '—')}
+                    onChange={(e) => setEditForm({ ...editForm, citizenship: e.target.value })}
+                    disabled={!isEditing}
+                    placeholder={isEditing ? 'e.g. British' : ''}
+                  />
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Address fields */}
+              <div>
+                <h4 className="text-sm font-semibold text-[#0F172A] mb-3">Address</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2 md:col-span-2">
+                    <Label>Address Line 1</Label>
+                    <Input
+                      value={isEditing ? editForm.addressLine1 : (userData?.addressLine1 || '—')}
+                      onChange={(e) => setEditForm({ ...editForm, addressLine1: e.target.value })}
+                      disabled={!isEditing}
+                      placeholder={isEditing ? 'Street address' : ''}
+                    />
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label>Address Line 2</Label>
+                    <Input
+                      value={isEditing ? editForm.addressLine2 : (userData?.addressLine2 || '')}
+                      onChange={(e) => setEditForm({ ...editForm, addressLine2: e.target.value })}
+                      disabled={!isEditing}
+                      placeholder={isEditing ? 'Apartment, suite, etc.' : ''}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>City</Label>
+                    <Input
+                      value={isEditing ? editForm.city : (userData?.city || '—')}
+                      onChange={(e) => setEditForm({ ...editForm, city: e.target.value })}
+                      disabled={!isEditing}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Country</Label>
+                    <Input
+                      value={isEditing ? editForm.country : (userData?.country || '—')}
+                      onChange={(e) => setEditForm({ ...editForm, country: e.target.value })}
+                      disabled={!isEditing}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Postal Code</Label>
+                    <Input
+                      value={isEditing ? editForm.postalCode : (userData?.postalCode || '—')}
+                      onChange={(e) => setEditForm({ ...editForm, postalCode: e.target.value })}
+                      disabled={!isEditing}
+                    />
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -209,6 +379,32 @@ export function Profile() {
                 <div className="space-y-2">
                   <Label>Agency</Label>
                   <Input value={agencyName} disabled className="bg-[#F8FAFC]" />
+                </div>
+
+                {userData?.jobTitle && (
+                  <div className="space-y-2">
+                    <Label>Job Title</Label>
+                    <Input value={userData.jobTitle} disabled className="bg-[#F8FAFC]" />
+                  </div>
+                )}
+
+                {userData?.department && (
+                  <div className="space-y-2">
+                    <Label>Department</Label>
+                    <Input value={userData.department} disabled className="bg-[#F8FAFC]" />
+                  </div>
+                )}
+
+                {userData?.startDate && (
+                  <div className="space-y-2">
+                    <Label>Start Date</Label>
+                    <Input value={formatDate(userData.startDate)} disabled className="bg-[#F8FAFC]" />
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label>Status</Label>
+                  <Input value={userData?.status || '—'} disabled className="bg-[#F8FAFC]" />
                 </div>
               </div>
 
@@ -237,6 +433,18 @@ export function Profile() {
               <CardTitle>Account Information</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {userData?.userNumber && (
+                <>
+                  <div>
+                    <Label className="text-muted-foreground text-sm">User Number</Label>
+                    <p className="font-bold mt-1 text-lg text-[#2563EB] font-mono">
+                      {userData.userNumber}
+                    </p>
+                  </div>
+                  <Separator />
+                </>
+              )}
+
               <div>
                 <Label className="text-muted-foreground text-sm">Account Created</Label>
                 <p className="font-medium mt-1">{formatDate(userData?.createdAt)}</p>

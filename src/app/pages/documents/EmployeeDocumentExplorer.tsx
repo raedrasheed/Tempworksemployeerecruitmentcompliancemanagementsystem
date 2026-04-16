@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Download, Search, FileArchive, FileDown } from 'lucide-react';
+import { useNavigate } from 'react-router';
+import { Download, Search, FileArchive, FileDown, ArrowLeft } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -30,6 +31,7 @@ function triggerZipDownload(blob: Blob, filename: string) {
 }
 
 export function EmployeeDocumentExplorer() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'employees' | 'applicants'>('employees');
 
   // ── Employees state ──
@@ -254,7 +256,12 @@ export function EmployeeDocumentExplorer() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-semibold text-[#0F172A]">Document Explorer</h1>
+        <div className="flex items-center gap-3 mb-2">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <h1 className="text-3xl font-semibold text-[#0F172A]">Document Explorer</h1>
+        </div>
         <p className="text-muted-foreground mt-1">Search employees and applicants to view and download their documents</p>
       </div>
 
@@ -373,9 +380,17 @@ export function EmployeeDocumentExplorer() {
                       </td>
                       <td className="p-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-[#EFF6FF] flex items-center justify-center text-[#2563EB] text-sm font-semibold">
-                            {emp.firstName?.[0]}{emp.lastName?.[0]}
-                          </div>
+                          {emp.photoUrl ? (
+                            <img
+                              src={emp.photoUrl.startsWith('http') ? emp.photoUrl : `${API_BASE}${emp.photoUrl}`}
+                              alt={emp.firstName}
+                              className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                            />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-[#EFF6FF] flex items-center justify-center text-[#2563EB] text-sm font-semibold flex-shrink-0">
+                              {emp.firstName?.[0]}{emp.lastName?.[0]}
+                            </div>
+                          )}
                           <div>
                             <p className="font-medium">{emp.firstName} {emp.lastName}</p>
                             <p className="text-sm text-muted-foreground">{emp.email}</p>
@@ -599,9 +614,17 @@ export function EmployeeDocumentExplorer() {
                         </td>
                         <td className="p-4">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-[#F5F3FF] flex items-center justify-center text-[#7C3AED] text-sm font-semibold">
-                              {app.firstName?.[0]}{app.lastName?.[0]}
-                            </div>
+                            {app.photoUrl ? (
+                              <img
+                                src={app.photoUrl.startsWith('http') ? app.photoUrl : `${API_BASE}${app.photoUrl}`}
+                                alt={app.firstName}
+                                className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                              />
+                            ) : (
+                              <div className="w-8 h-8 rounded-full bg-[#F5F3FF] flex items-center justify-center text-[#7C3AED] text-sm font-semibold flex-shrink-0">
+                                {app.firstName?.[0]}{app.lastName?.[0]}
+                              </div>
+                            )}
                             <div>
                               <p className="font-medium">{app.firstName} {app.lastName}</p>
                               <p className="text-sm text-muted-foreground">{app.email}</p>

@@ -1,4 +1,6 @@
-import { Check, Palette, Moon, Sun, Monitor } from 'lucide-react';
+import { useNavigate } from 'react-router';
+import { Check, Palette, Moon, Sun, Monitor, ArrowLeft } from 'lucide-react';
+import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { useTheme, brandSchemes, darkSchemes, lightSchemes, type BrandScheme, type DarkScheme, type LightScheme } from '../../contexts/ThemeContext';
 import { cn } from '../../components/ui/utils';
@@ -206,11 +208,17 @@ function ThemePreview({ brand, isDark, dark, light }: {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export function ColorScheme() {
   const { isDark, toggleDark, brandScheme, setBrandScheme, darkScheme, setDarkScheme, lightScheme, setLightScheme } = useTheme();
+  const navigate = useNavigate();
 
   return (
     <div className="space-y-6 max-w-4xl">
       <div>
-        <h1 className="text-2xl font-semibold text-foreground">Appearance & Color Scheme</h1>
+        <div className="flex items-center gap-3 mb-2">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <h1 className="text-2xl font-semibold text-foreground">Appearance & Color Scheme</h1>
+        </div>
         <p className="text-muted-foreground mt-1">Customize the visual theme for the entire application</p>
       </div>
 

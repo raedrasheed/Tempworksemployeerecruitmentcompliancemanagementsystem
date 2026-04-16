@@ -6,15 +6,17 @@ import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { toast } from 'sonner';
-import { documentsApi } from '../../services/api';
+import { documentsApi, settingsApi } from '../../services/api';
 
 export function EditDocument() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [documentTypes, setDocumentTypes] = useState<{ id: string; name: string }[]>([]);
   const [form, setForm] = useState({
     name: '',
+    documentTypeId: '',
     expiryDate: '',
     issueDate: '',
     documentNumber: '',
@@ -23,9 +25,11 @@ export function EditDocument() {
   });
 
   useEffect(() => {
+    settingsApi.getDocumentTypes().then((types: any[]) => setDocumentTypes(types)).catch(() => {});
     documentsApi.get(id!).then((doc: any) => {
       setForm({
         name: doc.name ?? '',
+        documentTypeId: doc.documentTypeId ?? doc.documentType?.id ?? '',
         expiryDate: doc.expiryDate ? doc.expiryDate.slice(0, 10) : '',
         issueDate: doc.issueDate ? doc.issueDate.slice(0, 10) : '',
         documentNumber: doc.documentNumber ?? '',
@@ -42,6 +46,7 @@ export function EditDocument() {
     try {
       const payload: any = {
         name: form.name,
+        documentTypeId: form.documentTypeId || undefined,
         documentNumber: form.documentNumber || undefined,
         issuer: form.issuer || undefined,
         notes: form.notes || undefined,
@@ -86,6 +91,21 @@ export function EditDocument() {
                   onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))}
                   required
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="documentTypeId">Document Type</Label>
+                <select
+                  id="documentTypeId"
+                  value={form.documentTypeId}
+                  onChange={e => setForm(prev => ({ ...prev, documentTypeId: e.target.value }))}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <option value="">— Select type —</option>
+                  {documentTypes.map(t => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
               </div>
 
               <div className="grid grid-cols-2 gap-4">

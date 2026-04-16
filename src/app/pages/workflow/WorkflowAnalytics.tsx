@@ -1,7 +1,8 @@
+import { useNavigate } from 'react-router';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
-import { Download, TrendingUp, TrendingDown, AlertCircle, Clock } from 'lucide-react';
+import { Download, TrendingUp, TrendingDown, AlertCircle, Clock, ArrowLeft } from 'lucide-react';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { usePermissions } from '../../hooks/usePermissions';
 
@@ -44,11 +45,17 @@ const conversionFunnelData = [
 
 export function WorkflowAnalytics() {
   const { canEdit } = usePermissions();
+  const navigate = useNavigate();
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-semibold text-[#0F172A]">Workflow Analytics</h1>
+          <div className="flex items-center gap-3 mb-6">
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <h1 className="text-3xl font-semibold text-[#0F172A]">Workflow Analytics</h1>
+          </div>
           <p className="text-muted-foreground mt-1">Performance metrics, bottlenecks, and insights</p>
         </div>
         <div className="flex items-center gap-3">
@@ -122,7 +129,7 @@ export function WorkflowAnalytics() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Active in Pipeline</p>
+                <p className="text-sm text-muted-foreground">Active in Workflow</p>
                 <p className="text-3xl font-semibold text-[#0F172A] mt-1">101</p>
                 <div className="flex items-center gap-1 mt-2">
                   <TrendingUp className="w-4 h-4 text-[#2563EB]" />

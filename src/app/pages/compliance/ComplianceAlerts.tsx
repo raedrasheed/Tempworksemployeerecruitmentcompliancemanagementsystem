@@ -1,3 +1,5 @@
+import { useNavigate } from 'react-router';
+import { ArrowLeft } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
@@ -6,11 +8,17 @@ import { usePermissions } from '../../hooks/usePermissions';
 
 export function ComplianceAlerts() {
   const { canEdit } = usePermissions();
+  const navigate = useNavigate();
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-semibold text-[#0F172A]">Compliance Alerts</h1>
+        <div className="flex items-center gap-3 mb-2">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <h1 className="text-3xl font-semibold text-[#0F172A]">Compliance Alerts</h1>
+        </div>
         <p className="text-muted-foreground mt-1">Review and manage compliance notifications</p>
       </div>
 

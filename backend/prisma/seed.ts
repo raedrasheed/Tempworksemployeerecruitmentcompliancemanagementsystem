@@ -1,20 +1,28 @@
 import { PrismaClient } from '@prisma/client';
-import { Pool } from 'pg';
-import { PrismaPg } from '@prisma/adapter-pg';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 import * as dotenv from 'dotenv';
 
 dotenv.config();
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-const adapter = new PrismaPg(pool);
-const prisma = new PrismaClient({ adapter });
+// Use binary engine (not WASM) by disabling SSL at the URL level so Prisma's
+// native engine connects without needing pg-pool/adapter-pg (which loads WASM
+// and can OOM on memory-constrained servers).
+if (process.env.DATABASE_URL) {
+  try {
+    const u = new URL(process.env.DATABASE_URL);
+    u.searchParams.set('sslmode', 'disable');
+    process.env.DATABASE_URL = u.toString();
+  } catch {}
+}
+
+const prisma = new PrismaClient();
 
 async function main() {
   console.log('Starting database seed...');
 
   // ── Permissions ──────────────────────────────────────────────────────────
   const modules = [
+    'dashboard',
     'employees', 'applicants', 'applications', 'documents',
     'workflow', 'agencies', 'compliance', 'reports',
     'notifications', 'settings', 'users', 'roles', 'logs',
@@ -60,6 +68,7 @@ async function main() {
       description: 'Manages HR processes and employees',
       isSystem: true,
       perms: [
+        'dashboard:read',
         'employees:read','employees:create','employees:update',
         'applicants:read','applicants:create','applicants:update',
         'applications:read','applications:create','applications:update',
@@ -77,6 +86,7 @@ async function main() {
       description: 'Manages compliance and document verification',
       isSystem: true,
       perms: [
+        'dashboard:read',
         'employees:read','applicants:read','applications:read',
         'documents:read','documents:create','documents:update','documents:verify',
         'workflow:read','workflow:update',
@@ -91,6 +101,7 @@ async function main() {
       description: 'Handles recruitment and applications',
       isSystem: true,
       perms: [
+        'dashboard:read',
         'employees:read',
         'applicants:read','applicants:create','applicants:update',
         'applications:read','applications:create','applications:update',
@@ -107,6 +118,7 @@ async function main() {
       description: 'Manages agency-specific employees and data',
       isSystem: true,
       perms: [
+        'dashboard:read',
         'employees:read','employees:create','employees:update',
         'applicants:read','applicants:create','applicants:update',
         'applications:read',
@@ -124,6 +136,7 @@ async function main() {
       description: 'Basic agency-level read/create access',
       isSystem: true,
       perms: [
+        'dashboard:read',
         'employees:read','applicants:read','applications:read',
         'documents:read','documents:create',
         'workflow:read',
@@ -136,6 +149,7 @@ async function main() {
       description: 'Financial reporting and read access',
       isSystem: true,
       perms: [
+        'dashboard:read',
         'employees:read','applicants:read','applications:read',
         'reports:read','reports:export',
         'notifications:read',
@@ -530,15 +544,7 @@ async function main() {
   for (const app of sampleApplicants) {
     const existing = await prisma.applicant.findUnique({ where: { email: app.email } });
     if (!existing) {
-      const applicant = await prisma.applicant.create({ data: app });
-      await prisma.application.create({
-        data: {
-          applicantId: applicant.id,
-          status: 'SUBMITTED',
-          submittedAt: new Date(),
-          jobTypeId: app.jobTypeId,
-        },
-      });
+      await prisma.applicant.create({ data: app });
     }
   }
   console.log(`Created ${sampleApplicants.length} sample applicants`);

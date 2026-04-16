@@ -13,6 +13,20 @@ export class SettingsService {
     private auditLog: AuditLogService,
   ) {}
 
+  async getPublicFormSettings(): Promise<Record<string, any>> {
+    const settings = await this.prisma.systemSetting.findMany({
+      where: { category: 'form' },
+      orderBy: { key: 'asc' },
+    });
+    const result: Record<string, any> = {};
+    for (const s of settings) {
+      // Strip category prefix (e.g. "form.visaTypes" → "visaTypes")
+      const key = s.key.replace(/^form\./, '');
+      try { result[key] = JSON.parse(s.value); } catch { result[key] = s.value; }
+    }
+    return result;
+  }
+
   async findAll(includePrivate = false) {
     const where = includePrivate ? {} : { isPublic: true };
     const settings = await this.prisma.systemSetting.findMany({
@@ -32,7 +46,11 @@ export class SettingsService {
       const updated = await this.prisma.systemSetting.upsert({
         where: { key },
         update: { value, updatedById: userId },
-        create: { key, value, updatedById: userId, description: key, category: 'agency', isPublic: false },
+        create: {
+          key, value, updatedById: userId, description: key,
+          category: key.split('.')[0] || 'general',
+          isPublic: key.startsWith('branding.'),
+        },
       });
       results.push(updated);
     }
@@ -44,6 +62,30 @@ export class SettingsService {
       changes: dto.settings as any,
     });
     return results;
+  }
+
+  // ─── Branding ────────────────────────────────────────────────────────────────
+  async getBranding(): Promise<Record<string, string>> {
+    // Query by key prefix — batchUpdate may store with a different category
+    const settings = await this.prisma.systemSetting.findMany({
+      where: { key: { startsWith: 'branding.' } },
+    });
+    const result: Record<string, string> = {};
+    for (const s of settings) {
+      result[s.key.replace('branding.', '')] = s.value;
+    }
+    return result;
+  }
+
+  async uploadLogo(file: Express.Multer.File, userId: string) {
+    const logoUrl = `/uploads/${file.filename}`;
+    await this.prisma.systemSetting.upsert({
+      where: { key: 'branding.logoUrl' },
+      update: { value: logoUrl, updatedById: userId },
+      create: { key: 'branding.logoUrl', value: logoUrl, category: 'branding', description: 'Company logo URL', isPublic: true, updatedById: userId },
+    });
+    await this.auditLog.log({ userId, action: 'UPDATE', entity: 'Settings', entityId: 'branding.logoUrl', changes: { logoUrl } });
+    return { logoUrl };
   }
 
   // ─── Job Types ──────────────────────────────────────────────────────────────
@@ -154,13 +196,13 @@ export class SettingsService {
 
   // ─── Workflow Stages ─────────────────────────────────────────────────────────
   async findWorkflowStages() {
-    return this.prisma.workflowStage.findMany({ orderBy: { order: 'asc' } });
+    return this.prisma.stageTemplate.findMany({ orderBy: { order: 'asc' } });
   }
 
   async createWorkflowStage(dto: any, actorId?: string) {
-    const maxOrder = await this.prisma.workflowStage.aggregate({ _max: { order: true } });
+    const maxOrder = await this.prisma.stageTemplate.aggregate({ _max: { order: true } });
     const nextOrder = (maxOrder._max.order ?? 0) + 1;
-    const stage = await this.prisma.workflowStage.create({
+    const stage = await this.prisma.stageTemplate.create({
       data: {
         name: dto.name,
         description: dto.description,
@@ -175,7 +217,7 @@ export class SettingsService {
     await this.auditLog.log({
       userId: actorId,
       action: 'CREATE',
-      entity: 'WorkflowStage',
+      entity: 'StageTemplate',
       entityId: stage.id,
       changes: { name: stage.name },
     });
@@ -183,13 +225,13 @@ export class SettingsService {
   }
 
   async updateWorkflowStage(id: string, dto: any, actorId?: string) {
-    const stage = await this.prisma.workflowStage.findUnique({ where: { id } });
+    const stage = await this.prisma.stageTemplate.findUnique({ where: { id } });
     if (!stage) throw new NotFoundException('Workflow stage not found');
-    const updated = await this.prisma.workflowStage.update({ where: { id }, data: dto });
+    const updated = await this.prisma.stageTemplate.update({ where: { id }, data: dto });
     await this.auditLog.log({
       userId: actorId,
       action: 'UPDATE',
-      entity: 'WorkflowStage',
+      entity: 'StageTemplate',
       entityId: id,
       changes: dto,
     });
@@ -197,13 +239,13 @@ export class SettingsService {
   }
 
   async deleteWorkflowStage(id: string, actorId?: string) {
-    const stage = await this.prisma.workflowStage.findUnique({ where: { id } });
+    const stage = await this.prisma.stageTemplate.findUnique({ where: { id } });
     if (!stage) throw new NotFoundException('Workflow stage not found');
-    await this.prisma.workflowStage.update({ where: { id }, data: { isActive: false } });
+    await this.prisma.stageTemplate.update({ where: { id }, data: { isActive: false } });
     await this.auditLog.log({
       userId: actorId,
       action: 'DELETE',
-      entity: 'WorkflowStage',
+      entity: 'StageTemplate',
       entityId: id,
       changes: { name: stage.name },
     });
@@ -213,17 +255,76 @@ export class SettingsService {
   async reorderWorkflowStages(orders: { id: string; order: number }[], actorId?: string) {
     await Promise.all(
       orders.map(({ id, order }) =>
-        this.prisma.workflowStage.update({ where: { id }, data: { order } }),
+        this.prisma.stageTemplate.update({ where: { id }, data: { order } }),
       ),
     );
     await this.auditLog.log({
       userId: actorId,
       action: 'UPDATE',
-      entity: 'WorkflowStage',
+      entity: 'StageTemplate',
       entityId: 'bulk',
       changes: { reorder: orders },
     });
     return { message: 'Stages reordered' };
+  }
+
+  // ─── System Information ──────────────────────────────────────────────────────
+  private readonly SYSTEM_INFO_KEYS = [
+    'system.version',
+    'system.organizationName',
+    'system.contactEmail',
+    'system.supportPhone',
+    'system.address',
+    'system.website',
+    'system.lastUpdated',
+  ];
+
+  async getSystemInfo(): Promise<Record<string, string>> {
+    const settings = await this.prisma.systemSetting.findMany({
+      where: { category: 'system' },
+    });
+    const map: Record<string, string> = {};
+    for (const key of this.SYSTEM_INFO_KEYS) {
+      const found = settings.find((s) => s.key === key);
+      map[key.replace('system.', '')] = found?.value ?? '';
+    }
+    return map;
+  }
+
+  async updateSystemInfo(data: Record<string, string>, userId: string): Promise<Record<string, string>> {
+    for (const [field, value] of Object.entries(data)) {
+      const key = `system.${field}`;
+      if (!this.SYSTEM_INFO_KEYS.includes(key)) continue;
+      await this.prisma.systemSetting.upsert({
+        where: { key },
+        update: { value, updatedById: userId },
+        create: { key, value, updatedById: userId, description: field, category: 'system', isPublic: false },
+      });
+    }
+    await this.auditLog.log({
+      userId,
+      action: 'UPDATE',
+      entity: 'SystemInfo',
+      entityId: 'system',
+      changes: data as any,
+    });
+    return this.getSystemInfo();
+  }
+
+  async getSystemStats(): Promise<Record<string, any>> {
+    const [userCount, employeeCount, applicantCount, agencyCount] = await Promise.all([
+      this.prisma.user.count({ where: { deletedAt: null } }),
+      this.prisma.employee.count({ where: { deletedAt: null } }),
+      this.prisma.applicant.count({ where: { deletedAt: null } }),
+      this.prisma.agency.count({ where: { deletedAt: null } }),
+    ]);
+    return {
+      totalUsers: userCount,
+      totalEmployees: employeeCount,
+      totalApplicants: applicantCount,
+      totalAgencies: agencyCount,
+      databaseStatus: 'Connected',
+    };
   }
 
   // ─── Notification Rules ──────────────────────────────────────────────────────

@@ -5,14 +5,18 @@ import { Input } from '../../components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Briefcase, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
-import { authApi } from '../../services/api';
+import { authApi, setTokens, setCurrentUser, BACKEND_URL } from '../../services/api';
+import { useBranding } from '../../hooks/useBranding';
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const branding = useBranding();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [emailTouched, setEmailTouched] = useState(false);
+  const emailInvalid = emailTouched && !!email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,11 +24,20 @@ export function LoginPage() {
     setError('');
 
     try {
-      await authApi.login(email, password);
+      const result = await authApi.login(email, password);
       toast.success('Welcome back!');
+
+      if ((result as any)?.passwordExpired) {
+        navigate('/change-password', {
+          state: { message: 'Your password has expired. Please set a new one.' },
+        });
+        return;
+      }
+
       navigate('/dashboard');
     } catch (err: any) {
-      const message = err?.message || 'Login failed. Please check your credentials.';
+      const raw = err?.message || 'Login failed. Please check your credentials.';
+      const message = Array.isArray(raw) ? raw.join(', ') : String(raw);
       setError(message);
       toast.error(message);
     } finally {
@@ -47,11 +60,19 @@ export function LoginPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center pb-4">
           <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="w-12 h-12 rounded-lg bg-[#2563EB] flex items-center justify-center">
-              <Briefcase className="w-7 h-7 text-white" />
+            <div className="w-12 h-12 rounded-lg bg-[#2563EB] flex items-center justify-center overflow-hidden">
+              {branding.logoUrl ? (
+                <img
+                  src={branding.logoUrl.startsWith('http') ? branding.logoUrl : `${BACKEND_URL}${branding.logoUrl}`}
+                  alt="Logo"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <Briefcase className="w-7 h-7 text-white" />
+              )}
             </div>
             <div className="text-left">
-              <span className="text-xl font-bold text-[#0F172A] block">TempWorks Europe</span>
+              <span className="text-xl font-bold text-[#0F172A] block">{branding.companyName}</span>
               <span className="text-xs text-muted-foreground">Professional Recruitment</span>
             </div>
           </div>
@@ -63,31 +84,31 @@ export function LoginPage() {
 
         <CardContent className="space-y-6">
           <form onSubmit={handleLogin} className="space-y-4">
+
             {/* Email Field */}
             <div className="space-y-2">
-              <label htmlFor="email" className="text-sm font-medium">
-                Email Address
-              </label>
+              <label htmlFor="email" className="text-sm font-medium">Email Address</label>
               <Input
                 id="email"
                 type="email"
                 placeholder="your.email@company.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                onBlur={() => setEmailTouched(true)}
+                className={emailInvalid ? 'border-red-400 focus-visible:ring-red-400' : ''}
                 required
                 autoComplete="email"
               />
+              {emailInvalid && <p className="text-xs text-red-500">Please enter a valid email address</p>}
             </div>
 
             {/* Password Field */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label htmlFor="password" className="text-sm font-medium">
-                  Password
-                </label>
-                <a href="#" className="text-sm text-[#2563EB] hover:underline">
+                <label htmlFor="password" className="text-sm font-medium">Password</label>
+                <Link to="/forgot-password" className="text-sm text-[#2563EB] hover:underline">
                   Forgot password?
-                </a>
+                </Link>
               </div>
               <Input
                 id="password"
@@ -106,7 +127,6 @@ export function LoginPage() {
               </div>
             )}
 
-            {/* Login Button */}
             <Button
               type="submit"
               className="w-full bg-[#2563EB] hover:bg-[#1d4ed8]"
@@ -116,7 +136,6 @@ export function LoginPage() {
             </Button>
           </form>
 
-          {/* Divider */}
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t"></div>
@@ -126,23 +145,17 @@ export function LoginPage() {
             </div>
           </div>
 
-          {/* Additional Info */}
           <div className="text-center space-y-3">
-            <p className="text-sm text-muted-foreground">
-              Looking for a job opportunity?
-            </p>
+            <p className="text-sm text-muted-foreground">Looking for a job opportunity?</p>
             <Link to="/apply">
-              <Button variant="outline" className="w-full">
-                Submit Job Application
-              </Button>
+              <Button variant="outline" className="w-full">Submit Job Application</Button>
             </Link>
           </div>
         </CardContent>
       </Card>
 
-      {/* Footer */}
       <div className="absolute bottom-4 text-center text-sm text-muted-foreground">
-        <p>&copy; 2026 TempWorks Europe - Secure Access</p>
+        <p>&copy; 2026 {branding.companyName} - Secure Access</p>
       </div>
     </div>
   );

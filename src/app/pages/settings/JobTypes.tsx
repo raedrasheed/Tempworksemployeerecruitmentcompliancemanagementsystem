@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router';
 import { usePermissions } from '../../hooks/usePermissions';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -14,6 +15,7 @@ import {
   Briefcase,
   Save,
   X,
+  ArrowLeft,
 } from 'lucide-react';
 import {
   Dialog,
@@ -71,6 +73,7 @@ const DOCUMENT_OPTIONS = [
 
 export function JobTypes() {
   const { canCreate, canEdit, canDelete } = usePermissions();
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [jobTypes, setJobTypes] = useState<JobType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -100,7 +103,7 @@ export function JobTypes() {
       const data = await settingsApi.getJobTypes();
       setJobTypes(data);
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to load job types');
+      toast.error(err?.message || 'Failed to load job categories');
     } finally {
       setLoading(false);
     }
@@ -160,7 +163,7 @@ export function JobTypes() {
       }
       setIsDialogOpen(false);
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to save job type');
+      toast.error(err?.message || 'Failed to save job category');
     } finally {
       setSaving(false);
     }
@@ -174,7 +177,7 @@ export function JobTypes() {
         !jobType.isActive ? `"${jobType.name}" activated` : `"${jobType.name}" deactivated`,
       );
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to update job type');
+      toast.error(err?.message || 'Failed to update job category');
     }
   }
 
@@ -187,7 +190,7 @@ export function JobTypes() {
       toast.success(`"${deleteTarget.name}" deactivated successfully`);
       setDeleteTarget(null);
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to deactivate job type');
+      toast.error(err?.message || 'Failed to deactivate job category');
     } finally {
       setDeleting(false);
     }
@@ -201,9 +204,14 @@ export function JobTypes() {
     <div className="p-8 space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-[#0F172A] mb-2">Job Types Configuration</h1>
+        <div className="flex items-center gap-3 mb-2">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <h1 className="text-3xl font-bold text-[#0F172A]">Job Categories Configuration</h1>
+        </div>
         <p className="text-muted-foreground">
-          Manage job types and their document requirements for employee recruitment
+          Manage job categories and their document requirements for employee recruitment
         </p>
       </div>
 
@@ -213,7 +221,7 @@ export function JobTypes() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Total Job Types</p>
+                <p className="text-sm text-muted-foreground mb-1">Total Job Categories</p>
                 <p className="text-2xl font-bold">{loading ? '—' : jobTypes.length}</p>
               </div>
               <Briefcase className="w-8 h-8 text-[#2563EB]" />
@@ -263,7 +271,7 @@ export function JobTypes() {
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Search job types..."
+            placeholder="Search job categories..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
@@ -273,14 +281,14 @@ export function JobTypes() {
         {canCreate('settings') && (
           <Button className="bg-[#2563EB] hover:bg-[#1d4ed8]" onClick={openCreateDialog}>
             <Plus className="w-4 h-4 mr-2" />
-            Add Job Type
+            Add Job Category
           </Button>
         )}
       </div>
 
-      {/* Job Types List */}
+      {/* Job Categories List */}
       {loading ? (
-        <div className="py-12 text-center text-muted-foreground">Loading job types...</div>
+        <div className="py-12 text-center text-muted-foreground">Loading job categories...</div>
       ) : (
         <div className="space-y-4">
           {filteredJobTypes.map((jobType) => {
@@ -370,7 +378,7 @@ export function JobTypes() {
               <CardContent className="p-12 text-center">
                 <Briefcase className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                 <p className="text-muted-foreground">
-                  {searchQuery ? 'No job types found matching your search' : 'No job types yet. Add one to get started.'}
+                  {searchQuery ? 'No job categories found matching your search' : 'No job categories yet. Add one to get started.'}
                 </p>
               </CardContent>
             </Card>
@@ -382,13 +390,13 @@ export function JobTypes() {
       <Dialog open={isDialogOpen} onOpenChange={(open) => !saving && setIsDialogOpen(open)}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>{editingJobType ? 'Edit Job Type' : 'Create New Job Type'}</DialogTitle>
-            <DialogDescription>Configure job type settings and required documents</DialogDescription>
+            <DialogTitle>{editingJobType ? 'Edit Job Category' : 'Create New Job Category'}</DialogTitle>
+            <DialogDescription>Configure job category settings and required documents</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="jt-name">Job Type Name *</Label>
+              <Label htmlFor="jt-name">Job Category Name *</Label>
               <Input
                 id="jt-name"
                 placeholder="e.g., Truck Driver"
@@ -401,7 +409,7 @@ export function JobTypes() {
               <Label htmlFor="jt-description">Description</Label>
               <Input
                 id="jt-description"
-                placeholder="Brief description of the job type"
+                placeholder="Brief description of the job category"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               />
@@ -410,7 +418,7 @@ export function JobTypes() {
             <div className="flex items-center justify-between p-4 border rounded-lg">
               <div>
                 <Label htmlFor="jt-isActive">Active Status</Label>
-                <p className="text-sm text-muted-foreground">Allow new applications for this job type</p>
+                <p className="text-sm text-muted-foreground">Allow new applications for this job category</p>
               </div>
               <Switch
                 id="jt-isActive"
@@ -422,7 +430,7 @@ export function JobTypes() {
             <div className="space-y-2">
               <Label>Required Documents</Label>
               <p className="text-sm text-muted-foreground mb-2">
-                Documents that employees must provide for this job type
+                Documents that employees must provide for this job category
               </p>
               <div className="grid grid-cols-2 gap-2">
                 {DOCUMENT_OPTIONS.map((doc) => (
@@ -464,10 +472,10 @@ export function JobTypes() {
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Deactivate Job Type</AlertDialogTitle>
+            <AlertDialogTitle>Deactivate Job Category</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to deactivate <strong>{deleteTarget?.name}</strong>? It will no longer appear in
-              job type selectors. Existing applicants and applications will not be affected.
+              job category selectors. Existing applicants and applications will not be affected.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

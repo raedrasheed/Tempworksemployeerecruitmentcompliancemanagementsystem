@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router';
-import { ArrowLeft, Edit, Mail, Phone, MapPin, Calendar, FileText, Shield, Briefcase, Clock, Award, GraduationCap, TrendingUp, ChevronRight, Trash2, Download, Upload, X } from 'lucide-react';
+import { ArrowLeft, Edit, Mail, Phone, MapPin, Calendar, FileText, Shield, Briefcase, Clock, Award, GraduationCap, TrendingUp, ChevronRight, Trash2, Download, Upload, X, DollarSign, Plus, Layers } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
@@ -10,8 +10,9 @@ import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { toast } from 'sonner';
-import { employeesApi, documentsApi, settingsApi, workflowApi, agenciesApi } from '../../services/api';
+import { employeesApi, documentsApi, settingsApi, employeeWorkflowApi, agenciesApi, workflowApi, getCurrentUser } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
+import { FinancialRecordsTab } from '../../components/finance/FinancialRecordsTab';
 
 const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1').replace('/api/v1', '');
 
@@ -19,6 +20,8 @@ export function EmployeeProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { canEdit, canDelete } = usePermissions();
+  const currentUser = getCurrentUser();
+  const isFinanceOrAdmin = currentUser?.role === 'System Admin' || currentUser?.role === 'HR Manager' || currentUser?.role === 'Finance';
   const [employee, setEmployee] = useState<any>(null);
   const [documents, setDocuments] = useState<any[]>([]);
   const [workflow, setWorkflow] = useState<any[]>([]);
@@ -32,6 +35,21 @@ export function EmployeeProfile() {
   const [uploading, setUploading] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadForm, setUploadForm] = useState({ documentTypeId: '', name: '', issueDate: '', expiryDate: '', documentNumber: '', issuer: '' });
+  const [financialProfile, setFinancialProfile] = useState<any>(null);
+
+  // Recruitment workflow assignment (single)
+  const [assignment, setAssignment] = useState<any>(null);
+  const [allWorkflows, setAllWorkflows] = useState<any[]>([]);
+  const [showAssignWorkflow, setShowAssignWorkflow] = useState(false);
+  const [assignWorkflowId, setAssignWorkflowId] = useState('');
+  const [assigningWorkflow, setAssigningWorkflow] = useState(false);
+  const [settingStage, setSettingStage] = useState(false);
+  const [expandedStageId, setExpandedStageId] = useState<string | null>(null);
+  const [approvingStageId, setApprovingStageId] = useState<string | null>(null);
+
+  const loadRecruitmentWorkflow = () => {
+    workflowApi.getEmployeeAssignment(id!).then(res => setAssignment(res ?? null)).catch(() => {});
+  };
 
   const loadWorkflow = () => {
     employeesApi.getWorkflow(id!).then(wf => setWorkflow(Array.isArray(wf) ? wf : [])).catch(() => {});
@@ -46,7 +64,7 @@ export function EmployeeProfile() {
       employeesApi.get(id!),
       employeesApi.getDocuments(id!),
       employeesApi.getWorkflow(id!),
-      workflowApi.getStages(),
+      employeeWorkflowApi.getStages(),
     ]).then(([emp, docs, wf, stages]) => {
       setEmployee(emp);
       setDocuments(Array.isArray(docs) ? docs : []);
@@ -59,19 +77,84 @@ export function EmployeeProfile() {
   useEffect(() => {
     settingsApi.getDocumentTypes().then(setDocTypes).catch(() => {});
     agenciesApi.list({ limit: 200 }).then((res: any) => setAgencies(res?.data ?? [])).catch(() => {});
-  }, []);
+    if (id && isFinanceOrAdmin) {
+      employeesApi.getFinancialProfile(id).then(setFinancialProfile).catch(() => {});
+    }
+    if (id) {
+      loadRecruitmentWorkflow();
+      workflowApi.list().then(res => setAllWorkflows(Array.isArray(res) ? res : [])).catch(() => {});
+    }
+  }, [id]);
 
   const handleStageChange = async (stageId: string) => {
     if (!stageId || !id) return;
     setChangingStage(true);
     try {
-      await workflowApi.setEmployeeCurrentStage(id, stageId);
+      await employeeWorkflowApi.setEmployeeCurrentStage(id, stageId);
       toast.success('Workflow stage updated');
       loadWorkflow();
     } catch (err: any) {
       toast.error(err?.message || 'Failed to update stage');
     } finally {
       setChangingStage(false);
+    }
+  };
+
+  const handleAssignWorkflow = async () => {
+    if (!assignWorkflowId || !id) return;
+    setAssigningWorkflow(true);
+    try {
+      await workflowApi.assignEmployee({ employeeId: id, workflowId: assignWorkflowId });
+      toast.success('Workflow connected');
+      loadRecruitmentWorkflow();
+      setShowAssignWorkflow(false);
+      setAssignWorkflowId('');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to connect workflow');
+    } finally {
+      setAssigningWorkflow(false);
+    }
+  };
+
+  const handleSetStage = async (stageId: string) => {
+    if (!id) return;
+    setSettingStage(true);
+    try {
+      const updated = await workflowApi.setEmployeeCurrentStage(id, stageId);
+      setAssignment(updated);
+      toast.success('Current stage updated');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to update stage');
+    } finally {
+      setSettingStage(false);
+    }
+  };
+
+  const handleDisconnectWorkflow = async () => {
+    if (!id || !assignment || !confirm('Disconnect this employee from the workflow?')) return;
+    try {
+      await workflowApi.removeEmployeeAssignment(id, assignment.workflowId);
+      setAssignment(null);
+      toast.success('Workflow disconnected');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to disconnect');
+    }
+  };
+
+  const handleApproveStage = async (stageId: string) => {
+    if (!id) return;
+    setApprovingStageId(stageId);
+    try {
+      const approval = await workflowApi.approveEmployeeStage(id, stageId);
+      setAssignment((prev: any) => prev ? {
+        ...prev,
+        stageApprovals: [...(prev.stageApprovals ?? []).filter((a: any) => a.stageId !== stageId), approval],
+      } : prev);
+      toast.success('Stage approved');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to approve stage');
+    } finally {
+      setApprovingStageId(null);
     }
   };
 
@@ -184,8 +267,18 @@ export function EmployeeProfile() {
       <Card>
         <CardContent className="p-6">
           <div className="flex items-start gap-6">
-            <div className="w-24 h-24 rounded-full bg-[#EFF6FF] flex items-center justify-center text-[#2563EB] text-3xl font-semibold">
-              {employee.firstName?.[0]}{employee.lastName?.[0]}
+            <div className="w-24 h-24 rounded-full overflow-hidden flex-shrink-0">
+              {employee.photoUrl ? (
+                <img
+                  src={employee.photoUrl.startsWith('http') ? employee.photoUrl : `${(import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1').replace('/api/v1', '')}${employee.photoUrl}`}
+                  alt={`${employee.firstName} ${employee.lastName}`}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-[#EFF6FF] flex items-center justify-center text-[#2563EB] text-3xl font-semibold">
+                  {employee.firstName?.[0]}{employee.lastName?.[0]}
+                </div>
+              )}
             </div>
             <div className="flex-1">
               <div className="flex items-start justify-between">
@@ -193,7 +286,7 @@ export function EmployeeProfile() {
                   <h2 className="text-2xl font-semibold text-[#0F172A]">
                     {employee.firstName} {employee.lastName}
                   </h2>
-                  <p className="text-muted-foreground mt-1">Employee ID: {employee.id}</p>
+                  <p className="text-muted-foreground mt-1">Employee ID: {employee.employeeNumber ?? '—'}</p>
                 </div>
                 <Badge className={statusBadgeClass(employee.status)}>
                   {employee.status?.replace(/_/g, ' ').toLowerCase()}
@@ -258,6 +351,11 @@ export function EmployeeProfile() {
           <TabsTrigger value="documents">Documents ({documents.length})</TabsTrigger>
           <TabsTrigger value="workflow">Workflow</TabsTrigger>
           <TabsTrigger value="compliance">Compliance</TabsTrigger>
+          {isFinanceOrAdmin && (
+            <TabsTrigger value="financial">
+              <DollarSign className="w-3 h-3 mr-1" />Financial
+            </TabsTrigger>
+          )}
           <TabsTrigger value="notes">Notes</TabsTrigger>
         </TabsList>
 
@@ -272,6 +370,7 @@ export function EmployeeProfile() {
                     ['Full Name', `${employee.firstName} ${employee.lastName}`],
                     ['Date of Birth', employee.dateOfBirth ? new Date(employee.dateOfBirth).toLocaleDateString() : '—'],
                     ['Nationality', employee.nationality],
+                    ['Job Category', employee.jobType?.name ?? '—'],
                     ['License Number', employee.licenseNumber ?? '—'],
                     ['License Category', employee.licenseCategory ?? '—'],
                     ['Years Experience', `${employee.yearsExperience ?? 0} years`],
@@ -444,92 +543,258 @@ export function EmployeeProfile() {
 
         {/* Workflow */}
         <TabsContent value="workflow">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Recruitment Workflow Progress</CardTitle>
-                  <div className="flex items-center gap-4 mt-2">
-                    <Progress value={workflowProgress} className="flex-1" />
-                    <span className="text-sm font-medium">{Math.round(workflowProgress)}%</span>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {workflow.length === 0 ? (
-                    <p className="text-muted-foreground">No workflow stages configured.</p>
-                  ) : (
-                    <div className="space-y-4">
-                      {workflow.map((ws: any, index: number) => {
-                        const isCompleted = ws.status === 'COMPLETED';
-                        const isCurrent = ws.status === 'IN_PROGRESS';
-                        return (
-                          <div key={ws.id} className="flex items-start gap-4">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                              isCompleted ? 'bg-[#22C55E] text-white' :
-                              isCurrent   ? 'bg-[#2563EB] text-white' :
-                              'bg-[#F8FAFC] text-muted-foreground'
-                            }`}>
-                              {index + 1}
-                            </div>
-                            <div className="flex-1 pb-4 border-b last:border-0">
-                              <div className="flex items-center justify-between">
-                                <div>
-                                  <p className={`font-medium ${isCurrent ? 'text-[#2563EB]' : ''}`}>
-                                    {ws.stage?.name}
-                                  </p>
-                                  {ws.stage?.description && (
-                                    <p className="text-sm text-muted-foreground mt-0.5">{ws.stage.description}</p>
-                                  )}
-                                  {isCurrent && <p className="text-sm text-muted-foreground mt-1">Current stage</p>}
-                                </div>
-                                {isCompleted && <Badge className="bg-[#22C55E]">Completed</Badge>}
-                                {isCurrent && <Badge className="bg-[#2563EB]">In Progress</Badge>}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Change Current Stage */}
-            {canEdit && allStages.length > 0 && (
-              <div>
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">Change Current Stage</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <p className="text-sm text-muted-foreground">
-                      Select a stage to mark as the active (In Progress) stage. The previous active stage will be marked as completed.
-                    </p>
-                    <Select
-                      value={workflow.find(ws => ws.status === 'IN_PROGRESS')?.stageId ?? ''}
-                      onValueChange={handleStageChange}
-                      disabled={changingStage}
-                    >
+          {!assignment ? (
+            /* ── No workflow connected ─────────────────────────── */
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Layers className="w-5 h-5 text-primary" /> Connect to a Workflow
+                </CardTitle>
+                <p className="text-sm text-muted-foreground mt-1">
+                  This employee is not connected to any workflow yet.
+                </p>
+              </CardHeader>
+              <CardContent>
+                {showAssignWorkflow ? (
+                  <div className="space-y-3 max-w-sm">
+                    <Select value={assignWorkflowId} onValueChange={setAssignWorkflowId}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select a stage…" />
+                        <SelectValue placeholder="Select a workflow…" />
                       </SelectTrigger>
                       <SelectContent>
-                        {allStages.map((s: any) => (
-                          <SelectItem key={s.id} value={s.id}>
-                            {s.name}
+                        {allWorkflows.map(w => (
+                          <SelectItem key={w.id} value={w.id}>
+                            <div className="flex items-center gap-2">
+                              <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: w.color ?? '#6366F1' }} />
+                              {w.name}
+                            </div>
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                    {changingStage && (
-                      <p className="text-xs text-muted-foreground">Updating stage…</p>
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={handleAssignWorkflow} disabled={assigningWorkflow || !assignWorkflowId}>
+                        {assigningWorkflow ? 'Connecting…' : 'Connect'}
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => { setShowAssignWorkflow(false); setAssignWorkflowId(''); }}>
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  canEdit && (
+                    <Button onClick={() => setShowAssignWorkflow(true)}>
+                      <Plus className="w-4 h-4 mr-2" /> Connect to Workflow
+                    </Button>
+                  )
+                )}
+              </CardContent>
+            </Card>
+          ) : (
+            /* ── Workflow connected ─────────────────────────────── */
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-4 h-4 rounded-full" style={{ background: assignment.workflow?.color ?? '#6366F1' }} />
+                    <CardTitle>{assignment.workflow?.name}</CardTitle>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {canEdit && (
+                      <Button size="sm" variant="ghost" onClick={() => setShowAssignWorkflow(true)}>
+                        Change
+                      </Button>
                     )}
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-          </div>
+                    {canEdit && (
+                      <Button size="sm" variant="ghost" onClick={handleDisconnectWorkflow}>
+                        <X className="w-4 h-4 text-destructive" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                {assignment.assignedBy && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Connected {new Date(assignment.assignedAt).toLocaleDateString()} by {assignment.assignedBy.firstName} {assignment.assignedBy.lastName}
+                  </p>
+                )}
+              </CardHeader>
+              <CardContent>
+                {showAssignWorkflow && (
+                  <div className="mb-4 p-4 border rounded-lg bg-muted/30 space-y-3">
+                    <p className="text-sm font-medium">Change Workflow</p>
+                    <Select value={assignWorkflowId} onValueChange={setAssignWorkflowId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a workflow…" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {allWorkflows.map(w => (
+                          <SelectItem key={w.id} value={w.id}>
+                            <div className="flex items-center gap-2">
+                              <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: w.color ?? '#6366F1' }} />
+                              {w.name}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={handleAssignWorkflow} disabled={assigningWorkflow || !assignWorkflowId}>
+                        {assigningWorkflow ? 'Saving…' : 'Confirm'}
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => { setShowAssignWorkflow(false); setAssignWorkflowId(''); }}>
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                {(!assignment.workflow?.stages || assignment.workflow.stages.length === 0) ? (
+                  <p className="text-sm text-muted-foreground">This workflow has no stages configured yet.</p>
+                ) : (
+                  <div className="space-y-1">
+                    {assignment.workflow.stages.map((stage: any, index: number) => {
+                      const isCurrent = stage.id === assignment.currentStageId;
+                      const isExpanded = expandedStageId === stage.id;
+                      const stageApproval = assignment.stageApprovals?.find((a: any) => a.stageId === stage.id);
+                      const isApproved = !!stageApproval;
+                      const currentUserIsApprover = stage.assignedUsers?.some((u: any) => u.userId === currentUser?.id);
+
+                      return (
+                        <div key={stage.id} className={`rounded-lg border transition-all ${isCurrent ? 'border-primary/40 bg-primary/5' : 'border-transparent hover:border-border hover:bg-muted/30'}`}>
+                          {/* Stage row */}
+                          <div
+                            className="flex items-center gap-3 px-3 py-3 cursor-pointer"
+                            onClick={() => setExpandedStageId(isExpanded ? null : stage.id)}
+                          >
+                            <div
+                              className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-semibold ${isCurrent ? 'text-white ring-2 ring-offset-1 ring-primary' : 'text-white opacity-60'}`}
+                              style={{ background: stage.color ?? '#6366F1' }}
+                            >
+                              {index + 1}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className={`text-sm font-medium ${isCurrent ? 'text-primary' : ''}`}>{stage.name}</span>
+                                {isCurrent && <Badge className="text-xs bg-primary">Current</Badge>}
+                                {isApproved && <Badge className="text-xs bg-green-500">Approved</Badge>}
+                                {stage.isFinal && <Badge variant="outline" className="text-xs">Final</Badge>}
+                                {stage.requiresApproval && !isApproved && <Badge variant="outline" className="text-xs border-amber-400 text-amber-600">Needs Approval</Badge>}
+                                {stage.slaHours && <span className="text-xs text-muted-foreground">SLA: {stage.slaHours}h</span>}
+                              </div>
+                              {stage.description && <p className="text-xs text-muted-foreground mt-0.5">{stage.description}</p>}
+                            </div>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              {canEdit && !isCurrent && (
+                                <Button
+                                  size="sm" variant="ghost"
+                                  className="text-xs h-7"
+                                  onClick={(e) => { e.stopPropagation(); handleSetStage(stage.id); }}
+                                  disabled={settingStage}
+                                >
+                                  Set Current
+                                </Button>
+                              )}
+                              <ChevronRight className={`w-4 h-4 text-muted-foreground transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                            </div>
+                          </div>
+
+                          {/* Expanded panel */}
+                          {isExpanded && (
+                            <div className="px-3 pb-4 border-t pt-3 space-y-4">
+
+                              {/* Required Documents */}
+                              <div>
+                                <p className="text-xs font-semibold uppercase text-muted-foreground mb-2">Required Documents</p>
+                                {!stage.requiredDocs || stage.requiredDocs.length === 0 ? (
+                                  <p className="text-xs text-muted-foreground">No required documents for this stage.</p>
+                                ) : (
+                                  <div className="space-y-1.5">
+                                    {stage.requiredDocs.map((rd: any) => {
+                                      const uploaded = documents.find((d: any) =>
+                                        d.documentTypeId === rd.documentTypeId
+                                      );
+                                      return (
+                                        <div key={rd.id} className="flex items-center justify-between p-2 rounded-md border bg-background">
+                                          <div className="flex items-center gap-2">
+                                            <FileText className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                                            <div>
+                                              <p className="text-xs font-medium">{rd.documentType?.name}</p>
+                                              {rd.documentType?.category && <p className="text-[11px] text-muted-foreground">{rd.documentType.category}</p>}
+                                            </div>
+                                          </div>
+                                          {uploaded ? (
+                                            <Badge className="text-xs bg-green-500">Uploaded</Badge>
+                                          ) : (
+                                            <Badge variant="outline" className="text-xs border-red-400 text-red-500">Missing</Badge>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Approval */}
+                              <div>
+                                <p className="text-xs font-semibold uppercase text-muted-foreground mb-2">Stage Approval</p>
+                                {isApproved ? (
+                                  <div className="flex items-center gap-2 p-2 rounded-md border bg-green-50 border-green-200">
+                                    <Badge className="bg-green-500 text-xs">Approved</Badge>
+                                    <span className="text-xs text-muted-foreground">
+                                      by {stageApproval.approvedBy?.firstName} {stageApproval.approvedBy?.lastName}
+                                      {' · '}{new Date(stageApproval.approvedAt).toLocaleDateString()}
+                                    </span>
+                                    {stageApproval.notes && <span className="text-xs text-muted-foreground italic">— "{stageApproval.notes}"</span>}
+                                  </div>
+                                ) : stage.assignedUsers?.length > 0 ? (
+                                  <div className="space-y-2">
+                                    <div className="space-y-1">
+                                      {stage.assignedUsers.map((u: any) => (
+                                        <div key={u.userId} className="flex items-center gap-2 text-xs text-muted-foreground">
+                                          <div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center text-[10px] font-semibold">
+                                            {u.user?.firstName?.[0]}{u.user?.lastName?.[0]}
+                                          </div>
+                                          {u.user?.firstName} {u.user?.lastName}
+                                          <span className="text-[11px] px-1.5 py-0.5 bg-muted rounded">{u.role}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                    {(canEdit || currentUserIsApprover) && (
+                                      <Button
+                                        size="sm"
+                                        onClick={() => handleApproveStage(stage.id)}
+                                        disabled={approvingStageId === stage.id}
+                                        className="h-7 text-xs"
+                                      >
+                                        {approvingStageId === stage.id ? 'Approving…' : 'Approve Stage'}
+                                      </Button>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <div className="space-y-2">
+                                    <p className="text-xs text-muted-foreground">No approvers assigned to this stage.</p>
+                                    {canEdit && (
+                                      <Button
+                                        size="sm"
+                                        onClick={() => handleApproveStage(stage.id)}
+                                        disabled={approvingStageId === stage.id}
+                                        className="h-7 text-xs"
+                                      >
+                                        {approvingStageId === stage.id ? 'Approving…' : 'Approve Stage'}
+                                      </Button>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* Compliance */}
@@ -569,6 +834,64 @@ export function EmployeeProfile() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* Financial — Banking/Salary Profile + Transaction Ledger */}
+        {isFinanceOrAdmin && (
+          <TabsContent value="financial" className="space-y-6">
+            {/* Banking / Salary Details — inherited from Candidate stage */}
+            {financialProfile && (
+              <Card className="border-blue-100">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center gap-2">
+                    <CardTitle className="text-base">Banking &amp; Salary Profile</CardTitle>
+                    <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                      From Candidate Stage
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Banking and salary details captured during the candidate stage are retained after conversion.
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 text-sm">
+                    {[
+                      ['Bank Name', financialProfile.bankName],
+                      ['Account Holder', financialProfile.accountHolder],
+                      ['Account Number', financialProfile.accountNumber],
+                      ['Sort Code', financialProfile.sortCode],
+                      ['IBAN', financialProfile.iban],
+                      ['Tax Code', financialProfile.taxCode],
+                      ['NI Number', financialProfile.niNumber],
+                      ['Payment Method', financialProfile.paymentMethod],
+                      ['Salary Agreed', financialProfile.salaryAgreed != null
+                        ? `${financialProfile.currency ?? 'GBP'} ${Number(financialProfile.salaryAgreed).toLocaleString('en-GB', { minimumFractionDigits: 2 })}`
+                        : null],
+                    ].filter(([, v]) => v).map(([label, value]) => (
+                      <div key={label as string}>
+                        <p className="text-xs text-muted-foreground">{label}</p>
+                        <p className="font-medium">{value}</p>
+                      </div>
+                    ))}
+                    {financialProfile.notes && (
+                      <div className="col-span-full">
+                        <p className="text-xs text-muted-foreground">Notes</p>
+                        <p className="text-sm">{financialProfile.notes}</p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Transaction Ledger */}
+            <FinancialRecordsTab
+              entityType="EMPLOYEE"
+              entityId={id!}
+              canWrite={canEdit('employees')}
+              canChangeStatus={currentUser?.role === 'System Admin' || currentUser?.role === 'Finance'}
+            />
+          </TabsContent>
+        )}
 
         {/* Notes */}
         <TabsContent value="notes">

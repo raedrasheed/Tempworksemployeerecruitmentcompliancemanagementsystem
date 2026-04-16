@@ -1,59 +1,105 @@
-import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 import { Briefcase, ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { toast } from 'sonner';
-import { publicApplicationApi, settingsApi } from '../../services/api';
-import { ApplicantFormSteps, ApplicantFormData, StepIndicator, UploadedFileItem } from '../../components/applicants/ApplicantFormSteps';
+import { publicApplicationApi, publicJobAdsApi, BACKEND_URL } from '../../services/api';
+import { useBranding } from '../../hooks/useBranding';
+import { ApplicantFormSteps, EMPTY_FORM, getVisibleTabs, getStepErrors, StepIndicator, FormSettings, DEFAULT_FORM_SETTINGS, ApplicantFormData } from '../../components/applicants/ApplicantFormSteps';
+import { ReCaptchaV2 } from '../../components/ui/ReCaptchaV2';
 
-const EMPTY_FORM: ApplicantFormData = {
-  jobTypeId: '',
-  fullName: '', dateOfBirth: '', nationality: '', countryOfResidence: '',
-  currentCountryOfResidence: '', permanentAddress: '',
-  phone: '', email: '', earliestStartDate: '', howDidYouHear: '',
-  drivingLicenseNumber: '', licenseIssuingCountry: '', licenseIssueDate: '', licenseValidUntil: '',
-  categoryA: '', categoryB: '', categoryC: '', categoryD: '', categoryE: '',
-  hasTachographCard: '', tachographNumber: '', tachographValidUntil: '',
-  hasQualificationCard: '', qualificationValidUntil: '', hasADR: '', adrClasses: '', adrValidUntil: '',
-  hasEUExperience: '', yearsEUExperience: '', totalCEExperience: '',
-  yearsActiveDriving: '', mainlyHomeCountry: '', drivenOtherCountries: '', specifyCountries: '',
-  kilometersRange: '', transportTypes: [], operationalSkills: [],
-  truckBrands: [], otherBrand: '', gearboxType: '', trailerTypes: [],
-  mostUsedTrailer: '', yearsWithTrailer: '', confidentTrailers: '',
-  weekendDriving: false, nightDriving: false, workRegime: [],
-  trafficAccidents: '', accidentDescription: '', aetrViolations: '', finesAbroad: '', ecoDriving: '',
-  englishLevel: '', germanLevel: '', russianLevel: '', otherLanguages: '', languageAtWork: '',
-  doubleCrewWillingness: '', maxTourWeeks: '', preferredCountries: '', undesiredCountries: '',
-  passportNumber: '', passportValidUntil: '', hasEUVisa: '', visaType: '', visaValidUntil: '',
-  hasWorkPermit: '', hasResidenceCard: '', issuingCountry: '',
-};
-
-const TOTAL_STEPS = 7;
+const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY as string;
 
 export function PublicEmployeeApplication() {
+  const branding = useBranding();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const jobAdId = searchParams.get('jobAdId') || undefined;
+  const jobSlug = searchParams.get('jobSlug') || undefined;
+  const jobCategory = searchParams.get('jobCategory') || undefined;
+  const jobAdTitle = searchParams.get('jobTitle') || undefined;
+  const [requiredDocs, setRequiredDocs] = useState<string[]>(() => {
+    try { return JSON.parse(searchParams.get('requiredDocs') || '[]'); } catch { return []; }
+  });
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<ApplicantFormData>(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [jobTypes, setJobTypes] = useState<{ id: string; name: string }[]>([]);
-  const [uploadedFiles, setUploadedFiles] = useState<UploadedFileItem[]>([]);
+  const [settings, setSettings] = useState<FormSettings>(DEFAULT_FORM_SETTINGS);
+  const [uploadedFiles, setUploadedFiles] = useState<any[]>(() => {
+    try {
+      const docs: string[] = JSON.parse(searchParams.get('requiredDocs') || '[]');
+      return docs.map((name: string) => ({
+        id: crypto.randomUUID(),
+        type: name,
+        file: null,
+        sectionKey: `required:${name}`,
+      }));
+    } catch { return []; }
+  });
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+
+  const visibleTabs = useMemo(() => getVisibleTabs(formData), [formData.hasDrivingLicense]);
 
   useEffect(() => {
-    settingsApi.getJobTypes().then(setJobTypes).catch(() => {});
+    Promise.all([
+      publicApplicationApi.getJobCategories().then((types) => {
+        setJobTypes(types);
+        if (jobCategory) {
+          const match = types.find((t) => t.name === jobCategory);
+          if (match) setFormData(prev => ({ ...prev, jobTypeId: match.id }));
+        }
+      }),
+      publicApplicationApi.getFormSettings().then((raw: any) => {
+        if (!raw || typeof raw !== 'object') return;
+        const parsed: Record<string, any> = {};
+        for (const [k, v] of Object.entries(raw)) {
+          parsed[k.replace(/^form\./, '')] = v;
+        }
+        setSettings(prev => ({ ...prev, ...parsed }));
+      }).catch(() => {}),
+    ]);
   }, []);
 
-  const handleInputChange = (field: keyof ApplicantFormData, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
+  // Fetch authoritative required documents from the job ad API.
+  // The URL param is only an initial hint for instant rendering; the API response is
+  // the single source of truth and always overrides — including an empty list, so that
+  // removing a required document from the job ad is reflected immediately for the applicant.
+  useEffect(() => {
+    if (!jobSlug) return;
+    publicJobAdsApi.getBySlug(jobSlug)
+      .then((job: any) => {
+        if (Array.isArray(job.requiredDocuments)) {
+          setRequiredDocs(job.requiredDocuments);
+        }
+      })
+      .catch(() => {}); // On network failure keep the URL-param value as fallback
+  }, [jobSlug]);
 
-  const handleArrayToggle = (field: keyof ApplicantFormData, value: string) => {
-    setFormData(prev => {
-      const arr = (prev[field] as string[]) || [];
-      return { ...prev, [field]: arr.includes(value) ? arr.filter(i => i !== value) : [...arr, value] };
+  // Sync the required-document slots in uploadedFiles whenever requiredDocs changes
+  useEffect(() => {
+    setUploadedFiles(prev => {
+      const nonRequired = prev.filter((f: any) => !f.sectionKey?.startsWith('required:'));
+      const newRequired = requiredDocs.map((name: string) => {
+        const existing = prev.find((f: any) => f.sectionKey === `required:${name}`);
+        return existing ?? { id: crypto.randomUUID(), type: name, file: null, sectionKey: `required:${name}` };
+      });
+      return [...newRequired, ...nonRequired];
     });
+  }, [requiredDocs]);
+
+  const handleUpdate = (updater: (prev: ApplicantFormData) => ApplicantFormData) => {
+    setFormData(updater);
   };
 
   const handleNext = () => {
-    if (currentStep < TOTAL_STEPS) {
+    if (currentStep < visibleTabs.length) {
+      const actualTab = visibleTabs[currentStep - 1];
+      const errors = getStepErrors(actualTab, formData, uploadedFiles, photoFile, requiredDocs);
+      if (errors.length > 0) {
+        errors.forEach(msg => toast.error(msg));
+        return;
+      }
       setCurrentStep(s => s + 1);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -61,110 +107,81 @@ export function PublicEmployeeApplication() {
 
   const handleBack = () => {
     if (currentStep > 1) {
+      if (currentStep === visibleTabs.length) setCaptchaToken(null);
       setCurrentStep(s => s - 1);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
+    if (!photoFile) {
+      toast.error('A photo is required. Please go back to the Personal tab and upload your photo.');
+      return;
+    }
+    if (!formData.declarationAccepted || !formData.agreeDataProcessing || !formData.agreeBackground || !formData.agreeDataSharing) {
+      toast.error('You must agree to all statements in the Review tab before submitting.');
+      return;
+    }
+    if (!captchaToken) {
+      toast.error('Please complete the "I am not a robot" verification before submitting.');
+      return;
+    }
+
+    if (requiredDocs.length > 0) {
+      const missing = requiredDocs.filter((name: string) =>
+        !uploadedFiles.some((f: any) => f.sectionKey === `required:${name}` && f.file)
+      );
+      if (missing.length > 0) {
+        toast.error(`Required document(s) not uploaded: ${missing.join(', ')}. Please go to the Documents tab.`);
+        return;
+      }
+    }
+
     setSubmitting(true);
     try {
-      const nameParts = formData.fullName.trim().split(/\s+/);
-      const firstName = nameParts[0] || '';
-      const lastName = nameParts.slice(1).join(' ') || '-';
-
       const payload = {
-        firstName,
-        lastName,
+        firstName: formData.firstName,
+        middleName: formData.middleName,
+        lastName: formData.lastName,
         email: formData.email,
-        phone: formData.phone,
-        nationality: formData.nationality,
+        phone: `${formData.phoneCode} ${formData.phone}`,
+        citizenship: formData.citizenship,
+        gender: formData.gender,
         dateOfBirth: formData.dateOfBirth,
-        residencyStatus: formData.hasWorkPermit === 'yes' ? 'Work Permit' : formData.hasResidenceCard === 'yes' ? 'Residence Card' : 'Other',
-        availability: formData.earliestStartDate || 'Immediate',
-        preferredStartDate: formData.earliestStartDate || undefined,
-        willingToRelocate: true,
+        countryOfBirth: formData.countryOfBirth,
+        cityOfBirth: formData.cityOfBirth,
+        hasDrivingLicense: formData.hasDrivingLicense === 'yes',
+        preferredStartDate: formData.preferredStartDate || undefined,
+        availability: formData.availability || 'Immediate',
+        willingToRelocate: formData.willingToRelocate,
+        preferredLocations: formData.preferredLocations || undefined,
+        salaryExpectation: formData.salaryExpectation || undefined,
         jobTypeId: formData.jobTypeId || undefined,
-        notes: JSON.stringify({
-          passportNumber: formData.passportNumber,
-          passportValidUntil: formData.passportValidUntil,
-          hasEUVisa: formData.hasEUVisa,
-          visaType: formData.visaType,
-          visaValidUntil: formData.visaValidUntil,
-          hasWorkPermit: formData.hasWorkPermit,
-          hasResidenceCard: formData.hasResidenceCard,
-          issuingCountry: formData.issuingCountry,
-          drivingLicenseNumber: formData.drivingLicenseNumber,
-          licenseIssuingCountry: formData.licenseIssuingCountry,
-          licenseIssueDate: formData.licenseIssueDate,
-          licenseValidUntil: formData.licenseValidUntil,
-          categoryA: formData.categoryA,
-          categoryB: formData.categoryB,
-          categoryC: formData.categoryC,
-          categoryD: formData.categoryD,
-          categoryE: formData.categoryE,
-          hasTachographCard: formData.hasTachographCard,
-          tachographNumber: formData.tachographNumber,
-          tachographValidUntil: formData.tachographValidUntil,
-          hasQualificationCard: formData.hasQualificationCard,
-          qualificationValidUntil: formData.qualificationValidUntil,
-          hasADR: formData.hasADR,
-          adrClasses: formData.adrClasses,
-          adrValidUntil: formData.adrValidUntil,
-          hasEUExperience: formData.hasEUExperience,
-          yearsEUExperience: formData.yearsEUExperience,
-          totalCEExperience: formData.totalCEExperience,
-          yearsActiveDriving: formData.yearsActiveDriving,
-          mainlyHomeCountry: formData.mainlyHomeCountry,
-          drivenOtherCountries: formData.drivenOtherCountries,
-          specifyCountries: formData.specifyCountries,
-          kilometersRange: formData.kilometersRange,
-          transportTypes: formData.transportTypes,
-          operationalSkills: formData.operationalSkills,
-          truckBrands: formData.truckBrands,
-          otherBrand: formData.otherBrand,
-          gearboxType: formData.gearboxType,
-          trailerTypes: formData.trailerTypes,
-          mostUsedTrailer: formData.mostUsedTrailer,
-          yearsWithTrailer: formData.yearsWithTrailer,
-          confidentTrailers: formData.confidentTrailers,
-          workRegime: formData.workRegime,
-          weekendDriving: formData.weekendDriving,
-          nightDriving: formData.nightDriving,
-          trafficAccidents: formData.trafficAccidents,
-          accidentDescription: formData.accidentDescription,
-          aetrViolations: formData.aetrViolations,
-          finesAbroad: formData.finesAbroad,
-          ecoDriving: formData.ecoDriving,
-          englishLevel: formData.englishLevel,
-          germanLevel: formData.germanLevel,
-          russianLevel: formData.russianLevel,
-          otherLanguages: formData.otherLanguages,
-          languageAtWork: formData.languageAtWork,
-          doubleCrewWillingness: formData.doubleCrewWillingness,
-          maxTourWeeks: formData.maxTourWeeks,
-          preferredCountries: formData.preferredCountries,
-          undesiredCountries: formData.undesiredCountries,
-          countryOfResidence: formData.countryOfResidence,
-          currentCountryOfResidence: formData.currentCountryOfResidence,
-          permanentAddress: formData.permanentAddress,
-          howDidYouHear: formData.howDidYouHear,
-        }),
+        jobAdId: jobAdId || undefined,
+        applicationData: formData,
+        recaptchaToken: captchaToken,
       };
 
       const applicant = await publicApplicationApi.submit(payload);
 
-      // Upload any documents attached to the application
-      const fileItems = uploadedFiles.filter(f => f.file);
+      if (photoFile && applicant?.id) {
+        await publicApplicationApi.uploadDocument(applicant.id, photoFile, 'Profile Photo', 'Profile Photo').catch(() => {
+          toast.warning('Application submitted but photo upload failed. Please contact us to resubmit your photo.');
+        });
+      }
+
+      const fileItems = uploadedFiles.filter((f: any) => f.file);
       if (fileItems.length > 0 && applicant?.id) {
         const results = await Promise.allSettled(
-          fileItems.map(item =>
-            publicApplicationApi.uploadDocument(applicant.id, item.file!, item.type || item.file!.name, item.type || 'Other'),
-          ),
+          fileItems.map((item: any) => {
+            const rawType: string = item.type || item.file!.name;
+            const docTypeName = rawType.replace(/^Upload\s+/i, '').trim() || 'Other';
+            return publicApplicationApi.uploadDocument(applicant.id, item.file!, rawType, docTypeName);
+          }),
         );
         const failed = results.filter(r => r.status === 'rejected').length;
         if (failed > 0) {
-          toast.warning(`Application submitted, but ${failed} document(s) failed to upload. You can contact us to resubmit them.`);
+          toast.warning(`Application submitted, but ${failed} document(s) failed to upload.`);
         }
       }
 
@@ -174,50 +191,84 @@ export function PublicEmployeeApplication() {
     } finally {
       setSubmitting(false);
     }
-  };
+  }, [formData, photoFile, captchaToken, uploadedFiles, jobAdId, navigate, requiredDocs]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Top header — matches Figma */}
       <header className="bg-white border-b shadow-sm">
         <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-              <Briefcase className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center overflow-hidden">
+              {branding.logoUrl ? (
+                <img src={branding.logoUrl.startsWith('http') ? branding.logoUrl : `${BACKEND_URL}${branding.logoUrl}`} alt="Logo" className="w-full h-full object-cover" />
+              ) : (
+                <Briefcase className="w-5 h-5 text-white" />
+              )}
             </div>
             <div>
-              <p className="font-bold text-gray-900 leading-tight">TempWorks Europe</p>
+              <p className="font-bold text-gray-900 leading-tight">{branding.companyName}</p>
               <p className="text-xs text-gray-500">Driver Application Form</p>
             </div>
           </div>
-          <Link to="/" className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900 transition-colors">
+          <Link to="/" className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900">
             <ChevronLeft className="w-4 h-4" />
             Back to Home
           </Link>
         </div>
       </header>
 
-      {/* Step indicator bar */}
+      {jobAdId && (
+        <div className="bg-blue-50 border-b border-blue-100">
+          <div className="max-w-5xl mx-auto px-6 py-3 flex items-center gap-2 text-sm text-blue-700">
+            <Briefcase className="w-4 h-4 flex-shrink-0" />
+            <span>
+              Applying for a specific position.{' '}
+              <Link to="/jobs" className="underline hover:text-blue-900">Browse all jobs</Link>
+            </span>
+          </div>
+        </div>
+      )}
+
       <div className="bg-white border-b">
         <div className="max-w-5xl mx-auto px-6 py-5">
-          <StepIndicator currentStep={currentStep} />
+          <StepIndicator currentStep={currentStep} visibleTabs={visibleTabs} onStepClick={(step) => {
+            // Only allow navigating back to a completed step — never skip forward past validation
+            if (step >= currentStep) return;
+            if (step === visibleTabs.length) setCaptchaToken(null);
+            setCurrentStep(step);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }} />
         </div>
       </div>
 
-      {/* Form card */}
       <main className="flex-1 max-w-5xl mx-auto w-full px-6 py-8">
         <div className="bg-white rounded-xl shadow-sm border p-8">
           <ApplicantFormSteps
             currentStep={currentStep}
+            visibleTabs={visibleTabs}
             formData={formData}
-            onInputChange={handleInputChange}
-            onArrayToggle={handleArrayToggle}
+            onChange={handleUpdate}
             jobTypes={jobTypes}
             uploadedFiles={uploadedFiles}
             onFilesChange={setUploadedFiles}
+            settings={settings}
+            photoFile={photoFile}
+            onPhotoChange={setPhotoFile}
+            jobAdTitle={jobAdTitle}
+            requiredDocuments={requiredDocs}
           />
 
-          {/* Navigation */}
+          {/* reCAPTCHA v2 "I am not a robot" checkbox — last step only */}
+          {currentStep === visibleTabs.length && (
+            <div className="mt-8">
+              <ReCaptchaV2
+                siteKey={RECAPTCHA_SITE_KEY}
+                onVerify={(token) => setCaptchaToken(token)}
+                onExpired={() => setCaptchaToken(null)}
+              />
+            </div>
+          )}
+
           <div className="flex justify-between pt-8 border-t mt-8">
             {currentStep > 1 ? (
               <button
@@ -230,7 +281,7 @@ export function PublicEmployeeApplication() {
               </button>
             ) : <div />}
 
-            {currentStep < TOTAL_STEPS ? (
+            {currentStep < visibleTabs.length ? (
               <button
                 type="button"
                 onClick={handleNext}
@@ -243,8 +294,9 @@ export function PublicEmployeeApplication() {
               <button
                 type="button"
                 onClick={handleSubmit}
-                disabled={submitting}
-                className="ml-auto flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 transition-colors"
+                disabled={submitting || !captchaToken}
+                className="ml-auto flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                title={!captchaToken ? 'Please complete the reCAPTCHA' : undefined}
               >
                 <Check className="w-4 h-4" />
                 {submitting ? 'Submitting…' : 'Submit Application'}

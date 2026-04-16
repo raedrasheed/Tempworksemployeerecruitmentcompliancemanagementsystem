@@ -19,6 +19,7 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
     const refreshToken = req.body?.refreshToken;
     const user = await this.prisma.user.findFirst({
       where: { id: payload.sub, deletedAt: null },
+      select: { id: true, status: true, refreshToken: true },
     });
     if (!user || !user.refreshToken) {
       throw new UnauthorizedException('Access denied');

@@ -61,18 +61,19 @@ export function PublicEmployeeApplication() {
     ]);
   }, []);
 
-  // Fetch authoritative required documents directly from the job ad.
-  // Only override URL-param value when the API returns a non-empty list so that
-  // stale/empty DB data never silently clears validations already set via URL.
+  // Fetch authoritative required documents from the job ad API.
+  // The URL param is only an initial hint for instant rendering; the API response is
+  // the single source of truth and always overrides — including an empty list, so that
+  // removing a required document from the job ad is reflected immediately for the applicant.
   useEffect(() => {
     if (!jobSlug) return;
     publicJobAdsApi.getBySlug(jobSlug)
       .then((job: any) => {
-        if (Array.isArray(job.requiredDocuments) && job.requiredDocuments.length > 0) {
+        if (Array.isArray(job.requiredDocuments)) {
           setRequiredDocs(job.requiredDocuments);
         }
       })
-      .catch(() => {});
+      .catch(() => {}); // On network failure keep the URL-param value as fallback
   }, [jobSlug]);
 
   // Sync the required-document slots in uploadedFiles whenever requiredDocs changes

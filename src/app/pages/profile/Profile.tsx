@@ -263,18 +263,25 @@ export function Profile() {
               <Separator />
 
               {/* Read-only identity fields */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label>First Name</Label>
                   <Input value={userData?.firstName || ''} disabled className="bg-[#F8FAFC]" />
-                  <p className="text-xs text-muted-foreground">Contact admin to update</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Middle Name</Label>
+                  <Input value={userData?.middleName || '—'} disabled className="bg-[#F8FAFC]" />
                 </div>
 
                 <div className="space-y-2">
                   <Label>Last Name</Label>
                   <Input value={userData?.lastName || ''} disabled className="bg-[#F8FAFC]" />
                 </div>
+              </div>
+              <p className="text-xs text-muted-foreground -mt-2">Contact admin to update name fields</p>
 
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Email Address</Label>
                   <Input type="email" value={userData?.email || ''} disabled className="bg-[#F8FAFC]" />
@@ -415,30 +422,34 @@ export function Profile() {
                   <Input value={agencyName} disabled className="bg-[#F8FAFC]" />
                 </div>
 
-                {userData?.jobTitle && (
-                  <div className="space-y-2">
-                    <Label>Job Title</Label>
-                    <Input value={userData.jobTitle} disabled className="bg-[#F8FAFC]" />
-                  </div>
-                )}
+                <div className="space-y-2">
+                  <Label>Job Title</Label>
+                  <Input value={userData?.jobTitle || '—'} disabled className="bg-[#F8FAFC]" />
+                </div>
 
-                {userData?.department && (
-                  <div className="space-y-2">
-                    <Label>Department</Label>
-                    <Input value={userData.department} disabled className="bg-[#F8FAFC]" />
-                  </div>
-                )}
+                <div className="space-y-2">
+                  <Label>Department</Label>
+                  <Input value={userData?.department || '—'} disabled className="bg-[#F8FAFC]" />
+                </div>
 
-                {userData?.startDate && (
-                  <div className="space-y-2">
-                    <Label>Start Date</Label>
-                    <Input value={formatDate(userData.startDate)} disabled className="bg-[#F8FAFC]" />
-                  </div>
-                )}
+                <div className="space-y-2">
+                  <Label>Start Date</Label>
+                  <Input value={userData?.startDate ? formatDate(userData.startDate) : '—'} disabled className="bg-[#F8FAFC]" />
+                </div>
 
                 <div className="space-y-2">
                   <Label>Status</Label>
                   <Input value={userData?.status || '—'} disabled className="bg-[#F8FAFC]" />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Preferred Language</Label>
+                  <Input value={userData?.preferredLanguage || '—'} disabled className="bg-[#F8FAFC]" />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Time Zone</Label>
+                  <Input value={userData?.timeZone || '—'} disabled className="bg-[#F8FAFC]" />
                 </div>
               </div>
 

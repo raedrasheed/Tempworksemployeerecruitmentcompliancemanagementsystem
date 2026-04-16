@@ -748,6 +748,19 @@ function Step1Personal({ d, u, jobTypes, photoFile, onPhotoChange, existingPhoto
     <div className="space-y-8">
       <SectionTitle title="Personal Information" subtitle="Your personal details and address" />
 
+      {/* ── Job Category ── */}
+      <div className="space-y-2">
+        <SubSection title="Job Category" />
+        <Select value={d.jobTypeId} onValueChange={set('jobTypeId')} disabled={jobTypes.length === 0}>
+          <SelectTrigger>
+            <SelectValue placeholder={jobTypes.length === 0 ? 'Loading categories…' : 'Select job category'} />
+          </SelectTrigger>
+          <SelectContent>
+            {jobTypes.map(jt => <SelectItem key={jt.id} value={jt.id}>{jt.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+
       {/* ── Photo Upload ── */}
       <div className="space-y-3">
         <SubSection title="Applicant Photo" />
@@ -795,17 +808,6 @@ function Step1Personal({ d, u, jobTypes, photoFile, onPhotoChange, existingPhoto
           </div>
         </div>
       </div>
-      {jobTypes.length > 0 && (
-        <div className="space-y-2">
-          <Label>Job Category *</Label>
-          <Select value={d.jobTypeId} onValueChange={set('jobTypeId')}>
-            <SelectTrigger><SelectValue placeholder="Select job category" /></SelectTrigger>
-            <SelectContent>
-              {jobTypes.map(jt => <SelectItem key={jt.id} value={jt.id}>{jt.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
       <div className="space-y-4">
         <SubSection title="Full Name" />
         <div className="grid md:grid-cols-3 gap-4">

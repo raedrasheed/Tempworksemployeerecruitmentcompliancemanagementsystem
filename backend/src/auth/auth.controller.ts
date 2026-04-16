@@ -131,8 +131,9 @@ export class AuthController {
   @ApiOperation({ summary: 'Reset password using email token' })
   @ApiResponse({ status: 200, description: 'Password reset successfully' })
   @ApiResponse({ status: 400, description: 'Invalid or expired reset token' })
-  resetPassword(@Body() dto: { token: string; newPassword: string }) {
-    return this.authService.resetPassword(dto.token, dto.newPassword);
+  resetPassword(@Body() dto: { token: string; newPassword: string }, @Req() req: any) {
+    const ip = req.headers['x-forwarded-for'] || req.ip || 'unknown';
+    return this.authService.resetPassword(dto.token, dto.newPassword, ip);
   }
 
   // ---------------------------------------------------------------------------

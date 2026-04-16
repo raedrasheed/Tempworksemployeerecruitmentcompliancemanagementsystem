@@ -309,6 +309,14 @@ export class AuthService {
       ipAddress,
     });
 
+    this.emailService
+      .sendPasswordChangedConfirmation(
+        user.email,
+        `${user.firstName} ${user.lastName}`,
+        { changedAt: new Date(), ipAddress, initiator: 'self' },
+      )
+      .catch(() => undefined);
+
     return { message: 'Password changed successfully' };
   }
 
@@ -524,7 +532,7 @@ export class AuthService {
   // ---------------------------------------------------------------------------
   // Reset password (apply new password from token)
   // ---------------------------------------------------------------------------
-  async resetPassword(token: string, newPassword: string): Promise<void> {
+  async resetPassword(token: string, newPassword: string, ipAddress?: string): Promise<void> {
     const resetToken = await this.prisma.passwordResetToken.findFirst({
       where: {
         token,
@@ -566,7 +574,7 @@ export class AuthService {
 
     const user = await this.prisma.user.findUnique({
       where: { id: resetToken.userId },
-      select: { email: true },
+      select: { email: true, firstName: true, lastName: true },
     });
 
     await this.auditLog.log({
@@ -575,7 +583,22 @@ export class AuthService {
       action: 'PASSWORD_RESET',
       entity: 'User',
       entityId: resetToken.userId,
+      ipAddress,
     });
+
+    if (user?.email) {
+      this.emailService
+        .sendPasswordChangedConfirmation(
+          user.email,
+          `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() || user.email,
+          {
+            changedAt: now,
+            ipAddress,
+            initiator: resetToken.type === 'ADMIN_INITIATED' ? 'admin' : 'reset',
+          },
+        )
+        .catch(() => undefined);
+    }
   }
 
   // ---------------------------------------------------------------------------

@@ -42,6 +42,20 @@ export class EmailService {
     await this.sendMail(to, subject, this.buildPasswordResetTemplate(name, url, isAdminInitiated));
   }
 
+  async sendPasswordChangedConfirmation(
+    to: string,
+    name: string,
+    context: { changedAt?: Date; ipAddress?: string; initiator?: 'self' | 'reset' | 'admin' } = {},
+    frontendUrl?: string,
+  ): Promise<void> {
+    const loginUrl = `${frontendUrl ?? this.frontendUrl}/login`;
+    await this.sendMail(
+      to,
+      'Your TempWorks Password Was Changed',
+      this.buildPasswordChangedTemplate(name, loginUrl, context),
+    );
+  }
+
   async sendPasswordExpiredNotification(to: string, name: string, frontendUrl?: string): Promise<void> {
     const url = `${frontendUrl ?? this.frontendUrl}/login`;
     await this.sendMail(to, 'Your TempWorks Password Has Expired', this.buildPasswordExpiredTemplate(name, url));
@@ -181,6 +195,30 @@ export class EmailService {
       ${this.notice('This link expires in <strong>60 minutes</strong>.')}
       <p style="margin:16px 0 8px;">If you didn't request this, ignore this email or contact your admin.</p>
       <p style="word-break:break-all;font-size:13px;"><a href="${url}" style="color:#1a56db;">${url}</a></p>
+    `);
+  }
+
+  private buildPasswordChangedTemplate(
+    name: string,
+    loginUrl: string,
+    context: { changedAt?: Date; ipAddress?: string; initiator?: 'self' | 'reset' | 'admin' },
+  ): string {
+    const when = (context.changedAt ?? new Date()).toUTCString();
+    const ip = context.ipAddress ? this.escape(context.ipAddress) : 'Unknown';
+    const initiatorLabel =
+      context.initiator === 'reset' ? 'a password reset link'
+      : context.initiator === 'admin' ? 'an administrator'
+      : 'your account';
+    return this.baseTemplate('Password Changed', `
+      <p style="margin:0 0 16px;">Hello <strong>${this.escape(name)}</strong>,</p>
+      <p style="margin:0 0 16px;">Your TempWorks password was changed successfully via ${initiatorLabel}.</p>
+      <table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:13px;">
+        <tr><td style="padding:6px 12px;color:#6b7280;white-space:nowrap;">Changed at</td><td style="padding:6px 12px;color:#111827;">${when}</td></tr>
+        <tr><td style="padding:6px 12px;color:#6b7280;white-space:nowrap;">IP address</td><td style="padding:6px 12px;color:#111827;">${ip}</td></tr>
+      </table>
+      <p style="margin:16px 0;">For security, all other active sessions have been signed out. Please log in again with your new password.</p>
+      ${this.btn('Log In', loginUrl)}
+      ${this.notice('If you did <strong>not</strong> make this change, contact your administrator immediately — your account may be compromised.')}
     `);
   }
 

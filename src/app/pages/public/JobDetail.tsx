@@ -87,7 +87,7 @@ export function JobDetail() {
             <Link to="/jobs">
               <Button variant="outline" size="sm">All Jobs</Button>
             </Link>
-            <Link to={`/apply?jobAdId=${job.id}&jobCategory=${encodeURIComponent(job.category ?? '')}&jobTitle=${encodeURIComponent(job.title ?? '')}&requiredDocs=${encodeURIComponent(JSON.stringify(job.requiredDocuments ?? []))}`}>
+            <Link to={`/apply?jobAdId=${job.id}&jobSlug=${encodeURIComponent(job.slug ?? '')}&jobCategory=${encodeURIComponent(job.category ?? '')}&jobTitle=${encodeURIComponent(job.title ?? '')}&requiredDocs=${encodeURIComponent(JSON.stringify(job.requiredDocuments ?? []))}`}>
               <Button size="sm">Apply Now</Button>
             </Link>
           </div>
@@ -141,7 +141,7 @@ export function JobDetail() {
                   </div>
                 </div>
                 <div className="flex-shrink-0">
-                  <Link to={`/apply?jobAdId=${job.id}&jobCategory=${encodeURIComponent(job.category ?? '')}&jobTitle=${encodeURIComponent(job.title ?? '')}&requiredDocs=${encodeURIComponent(JSON.stringify(job.requiredDocuments ?? []))}`}>
+                  <Link to={`/apply?jobAdId=${job.id}&jobSlug=${encodeURIComponent(job.slug ?? '')}&jobCategory=${encodeURIComponent(job.category ?? '')}&jobTitle=${encodeURIComponent(job.title ?? '')}&requiredDocs=${encodeURIComponent(JSON.stringify(job.requiredDocuments ?? []))}`}>
                     <Button size="lg" className="w-full sm:w-auto">
                       Apply Now
                     </Button>
@@ -168,7 +168,7 @@ export function JobDetail() {
               <p className="text-blue-100 text-sm mb-5">
                 Submit your application today. Our team will review it and get back to you shortly.
               </p>
-              <Link to={`/apply?jobAdId=${job.id}&jobCategory=${encodeURIComponent(job.category ?? '')}&jobTitle=${encodeURIComponent(job.title ?? '')}&requiredDocs=${encodeURIComponent(JSON.stringify(job.requiredDocuments ?? []))}`}>
+              <Link to={`/apply?jobAdId=${job.id}&jobSlug=${encodeURIComponent(job.slug ?? '')}&jobCategory=${encodeURIComponent(job.category ?? '')}&jobTitle=${encodeURIComponent(job.title ?? '')}&requiredDocs=${encodeURIComponent(JSON.stringify(job.requiredDocuments ?? []))}`}>
                 <Button variant="secondary" size="lg">
                   Apply for this Position
                 </Button>

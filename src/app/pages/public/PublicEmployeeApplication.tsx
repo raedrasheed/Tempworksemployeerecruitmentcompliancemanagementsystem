@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { Briefcase, ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { toast } from 'sonner';
-import { publicApplicationApi, BACKEND_URL } from '../../services/api';
+import { publicApplicationApi, publicJobAdsApi, BACKEND_URL } from '../../services/api';
 import { useBranding } from '../../hooks/useBranding';
 import { ApplicantFormSteps, EMPTY_FORM, getVisibleTabs, getStepErrors, StepIndicator, FormSettings, DEFAULT_FORM_SETTINGS, ApplicantFormData } from '../../components/applicants/ApplicantFormSteps';
 import { ReCaptchaV2 } from '../../components/ui/ReCaptchaV2';
@@ -14,24 +14,28 @@ export function PublicEmployeeApplication() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const jobAdId = searchParams.get('jobAdId') || undefined;
+  const jobSlug = searchParams.get('jobSlug') || undefined;
   const jobCategory = searchParams.get('jobCategory') || undefined;
   const jobAdTitle = searchParams.get('jobTitle') || undefined;
-  const requiredDocs: string[] = useMemo(() => {
+  const [requiredDocs, setRequiredDocs] = useState<string[]>(() => {
     try { return JSON.parse(searchParams.get('requiredDocs') || '[]'); } catch { return []; }
-  }, []);
+  });
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<ApplicantFormData>(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [jobTypes, setJobTypes] = useState<{ id: string; name: string }[]>([]);
   const [settings, setSettings] = useState<FormSettings>(DEFAULT_FORM_SETTINGS);
-  const [uploadedFiles, setUploadedFiles] = useState<any[]>(() =>
-    requiredDocs.map((name: string) => ({
-      id: crypto.randomUUID(),
-      type: name,
-      file: null,
-      sectionKey: `required:${name}`,
-    }))
-  );
+  const [uploadedFiles, setUploadedFiles] = useState<any[]>(() => {
+    try {
+      const docs: string[] = JSON.parse(searchParams.get('requiredDocs') || '[]');
+      return docs.map((name: string) => ({
+        id: crypto.randomUUID(),
+        type: name,
+        file: null,
+        sectionKey: `required:${name}`,
+      }));
+    } catch { return []; }
+  });
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
@@ -56,6 +60,30 @@ export function PublicEmployeeApplication() {
       }).catch(() => {}),
     ]);
   }, []);
+
+  // Fetch authoritative required documents directly from the job ad (avoids stale URL params)
+  useEffect(() => {
+    if (!jobSlug) return;
+    publicJobAdsApi.getBySlug(jobSlug)
+      .then((job: any) => {
+        if (Array.isArray(job.requiredDocuments)) {
+          setRequiredDocs(job.requiredDocuments);
+        }
+      })
+      .catch(() => {});
+  }, [jobSlug]);
+
+  // Sync the required-document slots in uploadedFiles whenever requiredDocs changes
+  useEffect(() => {
+    setUploadedFiles(prev => {
+      const nonRequired = prev.filter((f: any) => !f.sectionKey?.startsWith('required:'));
+      const newRequired = requiredDocs.map((name: string) => {
+        const existing = prev.find((f: any) => f.sectionKey === `required:${name}`);
+        return existing ?? { id: crypto.randomUUID(), type: name, file: null, sectionKey: `required:${name}` };
+      });
+      return [...newRequired, ...nonRequired];
+    });
+  }, [requiredDocs]);
 
   const handleUpdate = (updater: (prev: ApplicantFormData) => ApplicantFormData) => {
     setFormData(updater);
@@ -160,7 +188,7 @@ export function PublicEmployeeApplication() {
     } finally {
       setSubmitting(false);
     }
-  }, [formData, photoFile, captchaToken, uploadedFiles, jobAdId, navigate]);
+  }, [formData, photoFile, captchaToken, uploadedFiles, jobAdId, navigate, requiredDocs]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">

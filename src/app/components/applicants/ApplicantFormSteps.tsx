@@ -153,9 +153,11 @@ export interface ApplicantFormData {
   hasEuResidence: string;
   euResidenceType: string;
   euResidenceNumber: string;
+  euResidenceIssueDate: string;
   euResidenceExpiryDate: string;
   euResidenceNoExpiry: boolean;
   euResidenceCountry: string;
+  euResidenceCity: string;
   hasWorkPermit: string;
   workPermitType: string;
   workPermitNumber: string;
@@ -268,9 +270,11 @@ export const EMPTY_FORM: ApplicantFormData = {
   hasEuResidence: '',
   euResidenceType: '',
   euResidenceNumber: '',
+  euResidenceIssueDate: '',
   euResidenceExpiryDate: '',
   euResidenceNoExpiry: false,
   euResidenceCountry: '',
+  euResidenceCity: '',
   hasWorkPermit: '',
   workPermitType: '',
   workPermitNumber: '',
@@ -1226,6 +1230,14 @@ function Step3Identification({ d, u, settings, uploadedFiles, onFilesChange }: {
             <div className="space-y-1">
               <Label className="text-xs">Country</Label>
               <CountrySelect value={d.euResidenceCountry} onChange={set('euResidenceCountry')} countries={EU_COUNTRIES} placeholder="Select EU country" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Issue Date</Label>
+              <Input type="date" value={d.euResidenceIssueDate} onChange={e => set('euResidenceIssueDate')(e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">City of Issue</Label>
+              <Input placeholder="City" value={d.euResidenceCity} onChange={e => set('euResidenceCity')(e.target.value)} />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Expiry Date</Label>

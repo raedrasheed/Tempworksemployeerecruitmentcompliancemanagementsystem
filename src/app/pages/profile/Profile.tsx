@@ -75,12 +75,36 @@ export function Profile() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const updated = await usersApi.updateProfile(editForm);
+      // Drop empty strings before submitting. The backend DTO uses
+      // @IsDateString / @IsEnum, which both reject "" — class-validator's
+      // @IsOptional only skips undefined/null. Without this, leaving DOB
+      // or Gender blank fails the entire request with a 400 and nothing
+      // gets persisted.
+      const payload: Record<string, any> = {};
+      for (const [k, v] of Object.entries(editForm)) {
+        if (v === '' || v === undefined || v === null) continue;
+        payload[k] = v;
+      }
+      const updated = await usersApi.updateProfile(payload);
+      // Re-sync from server response so the UI shows what was actually saved
       setUserData((prev: any) => ({ ...prev, ...updated }));
+      setEditForm({
+        phone: updated?.phone ?? '',
+        dateOfBirth: updated?.dateOfBirth ? updated.dateOfBirth.slice(0, 10) : '',
+        gender: updated?.gender ?? '',
+        citizenship: updated?.citizenship ?? '',
+        addressLine1: updated?.addressLine1 ?? '',
+        addressLine2: updated?.addressLine2 ?? '',
+        city: updated?.city ?? '',
+        country: updated?.country ?? '',
+        postalCode: updated?.postalCode ?? '',
+      });
       setIsEditing(false);
       toast.success('Profile updated successfully');
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to update profile');
+      // Surface validation messages instead of a generic toast
+      const detail = Array.isArray(err?.message) ? err.message.join('; ') : err?.message;
+      toast.error(detail || 'Failed to update profile');
     } finally {
       setSaving(false);
     }

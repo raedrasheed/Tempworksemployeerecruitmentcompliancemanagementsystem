@@ -368,6 +368,7 @@ export function getStepErrors(
   const hasFile = (key: string) => uploadedFiles.some(f => f.sectionKey === key && f.file);
 
   if (actualTab === 1) {
+    if (!d.jobTypeId) errors.push('Please select a Job Category before proceeding.');
     if (!photoFile) errors.push('A profile photo is required before proceeding.');
   }
 
@@ -796,9 +797,9 @@ function Step1Personal({ d, u, jobTypes, photoFile, onPhotoChange, existingPhoto
       </div>
       {jobTypes.length > 0 && (
         <div className="space-y-2">
-          <Label>Position / Job Type *</Label>
+          <Label>Job Category *</Label>
           <Select value={d.jobTypeId} onValueChange={set('jobTypeId')}>
-            <SelectTrigger><SelectValue placeholder="Select position" /></SelectTrigger>
+            <SelectTrigger><SelectValue placeholder="Select job category" /></SelectTrigger>
             <SelectContent>
               {jobTypes.map(jt => <SelectItem key={jt.id} value={jt.id}>{jt.name}</SelectItem>)}
             </SelectContent>

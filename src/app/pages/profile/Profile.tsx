@@ -330,12 +330,15 @@ export function Profile() {
 
                 <div className="space-y-2 md:col-span-2">
                   <Label>Citizenship</Label>
-                  <Input
-                    value={isEditing ? editForm.citizenship : (userData?.citizenship || '—')}
-                    onChange={(e) => setEditForm({ ...editForm, citizenship: e.target.value })}
-                    disabled={!isEditing}
-                    placeholder={isEditing ? 'e.g. British' : ''}
-                  />
+                  {isEditing ? (
+                    <CountrySelect
+                      value={editForm.citizenship}
+                      onChange={(v) => setEditForm({ ...editForm, citizenship: v })}
+                      placeholder="Select country of citizenship"
+                    />
+                  ) : (
+                    <Input value={userData?.citizenship || '—'} disabled />
+                  )}
                 </div>
               </div>
 

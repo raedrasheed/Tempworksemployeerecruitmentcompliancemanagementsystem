@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { ArrowLeft, Save, Eye } from 'lucide-react';
 import { toast } from 'sonner';
@@ -50,6 +50,8 @@ export function JobAdForm() {
   const [requiredDocuments, setRequiredDocuments] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(isEdit);
+  const [submitAttempted, setSubmitAttempted] = useState(false);
+  const cityInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     jobAdsApi.getConstants()
@@ -93,10 +95,15 @@ export function JobAdForm() {
     setForm(prev => ({ ...prev, [field]: e.target.value }));
 
   const handleSave = async (publishNow = false) => {
+    setSubmitAttempted(true);
     if (!form.title.trim())       return toast.error('Title is required');
     if (!form.category.trim())    return toast.error('Category is required');
     if (!form.description.trim()) return toast.error('Description is required');
-    if (!form.city.trim())        return toast.error('City is required');
+    if (!form.city.trim()) {
+      toast.error('City is required');
+      cityInputRef.current?.focus();
+      return;
+    }
     if (!form.country.trim())     return toast.error('Country is required');
 
     setSaving(true);
@@ -197,8 +204,21 @@ export function JobAdForm() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <Label>City <span className="text-destructive">*</span></Label>
-              <Input value={form.city} onChange={set('city')} placeholder="e.g. Warsaw" />
+              <Label htmlFor="city">City <span className="text-destructive">*</span></Label>
+              <Input
+                id="city"
+                ref={cityInputRef}
+                value={form.city}
+                onChange={set('city')}
+                placeholder="e.g. Warsaw"
+                required
+                aria-required="true"
+                aria-invalid={submitAttempted && !form.city.trim()}
+                className={submitAttempted && !form.city.trim() ? 'border-destructive focus-visible:ring-destructive' : ''}
+              />
+              {submitAttempted && !form.city.trim() && (
+                <p className="text-xs text-destructive mt-1">City is required</p>
+              )}
             </div>
             <div>
               <Label>Country <span className="text-destructive">*</span></Label>
@@ -208,6 +228,9 @@ export function JobAdForm() {
                 placeholder="Select country"
                 required
               />
+              {submitAttempted && !form.country.trim() && (
+                <p className="text-xs text-destructive mt-1">Country is required</p>
+              )}
             </div>
           </div>
         </CardContent>

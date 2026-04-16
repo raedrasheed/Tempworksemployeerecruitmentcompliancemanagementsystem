@@ -2016,7 +2016,7 @@ function Step9Additional({ d, u, settings }: { d: ApplicantFormData; u: (fn: (p:
         <div className="space-y-2 md:col-span-2">
           <label className="flex items-center gap-2 cursor-pointer">
             <Checkbox checked={d.willingToRelocate} onCheckedChange={c => set('willingToRelocate')(!!c)} />
-            <span className="text-sm font-medium">Willing to relocate</span>
+            <span className="text-sm">I am fully willing to relocate and remain flexible regarding location in alignment with the role and organizational requirements.</span>
           </label>
         </div>
         <div className="space-y-2 md:col-span-2">

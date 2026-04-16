@@ -1,7 +1,9 @@
 -- Email-based two-factor authentication.
+-- Note: the Prisma model User is mapped to the physical table "users"
+-- via @@map("users"), so all references below use the lowercase name.
 
 -- Flag on User to indicate whether 2FA is required on login.
-ALTER TABLE "User"
+ALTER TABLE "users"
   ADD COLUMN IF NOT EXISTS "twoFactorEnabled" BOOLEAN NOT NULL DEFAULT FALSE;
 
 -- Short-lived OTP challenges awaiting email verification.
@@ -16,7 +18,7 @@ CREATE TABLE IF NOT EXISTS "two_factor_challenges" (
   "ipAddress"  TEXT,
   "createdAt"  TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT "two_factor_challenges_userId_fkey"
-    FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE
+    FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS "two_factor_challenges_userId_idx"

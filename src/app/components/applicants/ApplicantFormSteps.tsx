@@ -420,17 +420,22 @@ export function getStepErrors(
   // ── Tab 3: Identification & Legal Status ──────────────────────────────────
   if (actualTab === 3) {
     if (!d.passportNumber?.trim()) errors.push('Passport Number is required.');
-    // If the job ad requires a Passport upload, validate it here (upload widget is on this tab)
+    // Job-ad required uploads handled on this tab (upload widgets are here)
     const passportDocName = requiredDocuments?.find(n => n.toLowerCase() === 'passport');
     if (passportDocName && !hasFile(`required:${passportDocName}`))
       errors.push('This position requires a Passport upload — please upload your passport before continuing.');
+    const nationalIdDocName = requiredDocuments?.find(n => n.toLowerCase().includes('national id'));
+    if (nationalIdDocName && !hasFile(`required:${nationalIdDocName}`))
+      errors.push('This position requires a National ID Card upload — please upload it before continuing.');
     if (!d.hasIdCard) errors.push('Please answer whether you have a National ID Card.');
     if (!d.hasEuVisa) errors.push('Please answer whether you have an EU Visa.');
     if (!d.hasEuResidence) errors.push('Please answer whether you have an EU Residence Permit.');
     if (!d.hasWorkPermit) errors.push('Please answer whether you have a Work Permit.');
     if (!d.hasHomeCriminalRecord) errors.push('Please answer whether you have a Home Country Criminal Record.');
     if (!d.hasEuCriminalRecord) errors.push('Please answer whether you have an EU Country Criminal Record.');
-    if (d.hasIdCard === 'yes' && !hasFile('idCard'))
+    // Only check regular 'idCard' slot when National ID Card is not a job-ad required doc
+    // (when required, the 'required:...' check above already covers it)
+    if (!nationalIdDocName && d.hasIdCard === 'yes' && !hasFile('idCard'))
       errors.push('You indicated you have a National ID Card — please upload it.');
     if (d.hasEuVisa === 'yes' && !hasFile('euVisa'))
       errors.push('You indicated you have an EU Visa — please upload it.');
@@ -447,10 +452,14 @@ export function getStepErrors(
   // ── Tab 4: Driving License ────────────────────────────────────────────────
   if (actualTab === 4) {
     if (!d.hasDrivingLicense) errors.push('Please answer whether you hold a driving license.');
+    const dlDocName = requiredDocuments?.find(n => n.toLowerCase().includes('driving'));
+    if (dlDocName && !hasFile(`required:${dlDocName}`))
+      errors.push('This position requires a Driving License upload — please upload it before continuing.');
     if (d.hasDrivingLicense === 'yes') {
       if (!d.licenseNumber?.trim()) errors.push('License Number is required.');
       if (!d.licenseCountry) errors.push('License Issuing Country is required.');
-      if (!hasFile('drivingLicense'))
+      // Only check regular 'drivingLicense' slot when not a job-ad required doc
+      if (!dlDocName && !hasFile('drivingLicense'))
         errors.push('You indicated you have a Driving License — please upload it.');
     }
   }
@@ -1232,9 +1241,12 @@ function Step2Contact({ d, u, settings }: { d: ApplicantFormData; u: (fn: (p: Ap
 
 function Step3Identification({ d, u, settings, uploadedFiles, onFilesChange, requiredDocuments = [] }: { d: ApplicantFormData; u: (fn: (p: ApplicantFormData) => ApplicantFormData) => void; settings: FormSettings; uploadedFiles: UploadedFileItem[]; onFilesChange: (files: UploadedFileItem[]) => void; requiredDocuments?: string[] }) {
   const set = (field: keyof ApplicantFormData) => (value: any) => u(prev => ({ ...prev, [field]: value }));
-  // If the job ad requires a passport, wire the upload widget directly to the required-doc slot
+  // Wire job-ad required docs to their required: sectionKeys so uploads on this tab
+  // satisfy the required-doc checks in both getStepErrors and the Documents (Tab 10) gate.
   const passportDocName = requiredDocuments.find(n => n.toLowerCase() === 'passport');
   const passportSectionKey = passportDocName ? `required:${passportDocName}` : 'passport';
+  const nationalIdDocName = requiredDocuments.find(n => n.toLowerCase().includes('national id'));
+  const nationalIdSectionKey = nationalIdDocName ? `required:${nationalIdDocName}` : 'idCard';
   return (
     <div className="space-y-8">
       <SectionTitle title="Identification & Legal Status" subtitle="Passport, ID and residency documents" />
@@ -1268,6 +1280,12 @@ function Step3Identification({ d, u, settings, uploadedFiles, onFilesChange, req
       </div>
       <div className="space-y-4">
         <SubSection title="National ID Card" />
+        {nationalIdDocName && (
+          <div className="flex items-center gap-2 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
+            National ID Card upload is required for this position
+          </div>
+        )}
         <div className="space-y-2">
           <Label className="text-xs">Do you have a National ID Card?</Label>
           <RadioYN name="hasIdCard" value={d.hasIdCard} onChange={set('hasIdCard')} />
@@ -1286,8 +1304,13 @@ function Step3Identification({ d, u, settings, uploadedFiles, onFilesChange, req
               <Label className="text-xs">Expiry Date</Label>
               <ExpiryFields expiryDate={d.idCardExpiryDate} noExpiry={d.idCardNoExpiry} onExpiry={set('idCardExpiryDate')} onNoExpiry={set('idCardNoExpiry')} />
             </div>
-            <InlineDocUpload label="Upload ID Card" sectionKey="idCard" uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />
+            {/* Only render optional upload inside the yes-block when NOT a required doc */}
+            {!nationalIdDocName && <InlineDocUpload label="Upload ID Card" sectionKey="idCard" uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />}
           </div>
+        )}
+        {/* Required upload shown unconditionally so user can upload regardless of yes/no answer */}
+        {nationalIdDocName && (
+          <InlineDocUpload label="Upload National ID Card (Required)" sectionKey={nationalIdSectionKey} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />
         )}
       </div>
       <div className="space-y-4">
@@ -1434,8 +1457,10 @@ function Step3Identification({ d, u, settings, uploadedFiles, onFilesChange, req
   );
 }
 
-function Step4DrivingLicense({ d, u, settings, uploadedFiles, onFilesChange }: { d: ApplicantFormData; u: (fn: (p: ApplicantFormData) => ApplicantFormData) => void; settings: FormSettings; uploadedFiles: UploadedFileItem[]; onFilesChange: (files: UploadedFileItem[]) => void }) {
+function Step4DrivingLicense({ d, u, settings, uploadedFiles, onFilesChange, requiredDocuments = [] }: { d: ApplicantFormData; u: (fn: (p: ApplicantFormData) => ApplicantFormData) => void; settings: FormSettings; uploadedFiles: UploadedFileItem[]; onFilesChange: (files: UploadedFileItem[]) => void; requiredDocuments?: string[] }) {
   const set = (field: keyof ApplicantFormData) => (value: any) => u(prev => ({ ...prev, [field]: value }));
+  const dlDocName = requiredDocuments.find(n => n.toLowerCase().includes('driving'));
+  const dlSectionKey = dlDocName ? `required:${dlDocName}` : 'drivingLicense';
   const toggleCat = (cat: string) => {
     u(prev => ({
       ...prev,
@@ -1458,6 +1483,12 @@ function Step4DrivingLicense({ d, u, settings, uploadedFiles, onFilesChange }: {
   return (
     <div className="space-y-8">
       <SectionTitle title="Driving License" subtitle="Your license details, categories and qualifications" />
+      {dlDocName && (
+        <div className="flex items-center gap-2 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+          <span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
+          Driving License upload is required for this position
+        </div>
+      )}
       <div className="space-y-3">
         <Label className="font-medium">Do you hold a driving license? *</Label>
         <div className="flex gap-6">
@@ -1469,6 +1500,10 @@ function Step4DrivingLicense({ d, u, settings, uploadedFiles, onFilesChange }: {
           ))}
         </div>
       </div>
+      {/* Required upload shown unconditionally when DL is a job-ad required document */}
+      {dlDocName && (
+        <InlineDocUpload label="Upload Driving License (Required)" sectionKey={dlSectionKey} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />
+      )}
       {d.hasDrivingLicense === 'yes' && (
         <>
           <div className="space-y-4">
@@ -1494,7 +1529,8 @@ function Step4DrivingLicense({ d, u, settings, uploadedFiles, onFilesChange }: {
                 <Label className="text-xs">Expiry Date</Label>
                 <ExpiryFields expiryDate={d.licenseExpiryDate} noExpiry={d.licenseNoExpiry} onExpiry={set('licenseExpiryDate')} onNoExpiry={set('licenseNoExpiry')} />
               </div>
-              <InlineDocUpload label="Upload Driving License" sectionKey="drivingLicense" uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />
+              {/* Only show the optional upload inside the yes-block when not a required doc */}
+              {!dlDocName && <InlineDocUpload label="Upload Driving License" sectionKey="drivingLicense" uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />}
             </div>
           </div>
           <div className="space-y-3">
@@ -2713,7 +2749,7 @@ export function ApplicantFormSteps({
       {actualTab === 1 && <Step1Personal d={d} u={u} jobTypes={jobTypes} photoFile={photoFile} onPhotoChange={onPhotoChange} existingPhotoUrl={existingPhotoUrl} jobAdTitle={jobAdTitle} />}
       {actualTab === 2 && <Step2Contact d={d} u={u} settings={settings} />}
       {actualTab === 3 && <Step3Identification d={d} u={u} settings={settings} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} requiredDocuments={requiredDocuments} />}
-      {actualTab === 4 && <Step4DrivingLicense d={d} u={u} settings={settings} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />}
+      {actualTab === 4 && <Step4DrivingLicense d={d} u={u} settings={settings} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} requiredDocuments={requiredDocuments} />}
       {actualTab === 5 && <Step5DrivingExperience d={d} u={u} settings={settings} />}
       {actualTab === 6 && <Step6Education d={d} u={u} settings={settings} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />}
       {actualTab === 7 && <Step7WorkHistory d={d} u={u} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />}

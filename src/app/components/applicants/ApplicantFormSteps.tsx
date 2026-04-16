@@ -1990,10 +1990,13 @@ function Step9Additional({ d, u, settings }: { d: ApplicantFormData; u: (fn: (p:
           <Select value={d.availability} onValueChange={set('availability')}>
             <SelectTrigger><SelectValue placeholder="When can you start?" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="Immediate">Immediately</SelectItem>
-              <SelectItem value="1 Week">Within 1 week</SelectItem>
-              <SelectItem value="2 Weeks">Within 2 weeks</SelectItem>
-              <SelectItem value="1 Month">Within 1 month</SelectItem>
+              <SelectItem value="1 Week">1 week</SelectItem>
+              <SelectItem value="2 Weeks">2 weeks</SelectItem>
+              <SelectItem value="3 Weeks">3 weeks</SelectItem>
+              <SelectItem value="1 Month">1 month</SelectItem>
+              <SelectItem value="2 Months">2 months</SelectItem>
+              <SelectItem value="3 Months">3 months</SelectItem>
+              <SelectItem value="6 Months">6 months</SelectItem>
             </SelectContent>
           </Select>
         </div>

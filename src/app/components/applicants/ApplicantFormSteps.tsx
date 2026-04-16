@@ -381,13 +381,51 @@ export function getStepErrors(
 ): string[] {
   const errors: string[] = [];
   const hasFile = (key: string) => uploadedFiles.some(f => f.sectionKey === key && f.file);
+  const validEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
+  // ── Tab 1: Personal ───────────────────────────────────────────────────────
   if (actualTab === 1) {
     if (!d.jobTypeId) errors.push('Please select a Job Category before proceeding.');
     if (!photoFile) errors.push('A profile photo is required before proceeding.');
+    if (!d.firstName?.trim()) errors.push('First Name is required.');
+    if (!d.lastName?.trim()) errors.push('Last Name is required.');
+    if (!d.dateOfBirth) errors.push('Date of Birth is required.');
+    if (!d.citizenship) errors.push('Citizenship is required.');
+    if (!d.homeAddress?.line1?.trim()) errors.push('Home Address: Street / Address Line 1 is required.');
+    if (!d.homeAddress?.city?.trim()) errors.push('Home Address: City is required.');
+    if (!d.homeAddress?.country?.trim()) errors.push('Home Address: Country is required.');
+    if (!d.livedAbroadRecently) errors.push('Please answer whether you have lived abroad in the past 12 months.');
+    if (d.livedAbroadRecently === 'yes') {
+      if (!d.abroadCountry) errors.push('Country of previous residence is required.');
+      if (!d.abroadDateFrom) errors.push('Date From (abroad period) is required.');
+      if (!d.abroadDateTo) errors.push('Date To (abroad period) is required.');
+    }
   }
 
+  // ── Tab 2: Contact ────────────────────────────────────────────────────────
+  if (actualTab === 2) {
+    if (!d.phone?.trim()) errors.push('Phone number is required.');
+    if (!d.email?.trim()) errors.push('Email address is required.');
+    else if (!validEmail(d.email)) errors.push('Please enter a valid email address.');
+    if (!d.emailConfirm?.trim()) errors.push('Please confirm your email address.');
+    else if (d.email !== d.emailConfirm) errors.push('Email addresses do not match.');
+    if (!d.phoneIsWhatsApp && !d.whatsapp?.trim())
+      errors.push('WhatsApp number is required (or tick "This phone number is also my WhatsApp number").');
+    if (!d.emergencyFirstName?.trim()) errors.push('Emergency contact First Name is required.');
+    if (!d.emergencyLastName?.trim()) errors.push('Emergency contact Last Name is required.');
+    if (!d.emergencyRelation) errors.push('Emergency contact Relationship is required.');
+    if (!d.emergencyPhone?.trim()) errors.push('Emergency contact Phone is required.');
+  }
+
+  // ── Tab 3: Identification & Legal Status ──────────────────────────────────
   if (actualTab === 3) {
+    if (!d.passportNumber?.trim()) errors.push('Passport Number is required.');
+    if (!d.hasIdCard) errors.push('Please answer whether you have a National ID Card.');
+    if (!d.hasEuVisa) errors.push('Please answer whether you have an EU Visa.');
+    if (!d.hasEuResidence) errors.push('Please answer whether you have an EU Residence Permit.');
+    if (!d.hasWorkPermit) errors.push('Please answer whether you have a Work Permit.');
+    if (!d.hasHomeCriminalRecord) errors.push('Please answer whether you have a Home Country Criminal Record.');
+    if (!d.hasEuCriminalRecord) errors.push('Please answer whether you have an EU Country Criminal Record.');
     if (d.hasIdCard === 'yes' && !hasFile('idCard'))
       errors.push('You indicated you have a National ID Card — please upload it.');
     if (d.hasEuVisa === 'yes' && !hasFile('euVisa'))
@@ -402,16 +440,49 @@ export function getStepErrors(
       errors.push('You indicated you have an EU Criminal Record — please upload it.');
   }
 
+  // ── Tab 4: Driving License ────────────────────────────────────────────────
   if (actualTab === 4) {
-    if (d.hasDrivingLicense === 'yes' && !hasFile('drivingLicense'))
-      errors.push('You indicated you have a Driving License — please upload it.');
+    if (!d.hasDrivingLicense) errors.push('Please answer whether you hold a driving license.');
+    if (d.hasDrivingLicense === 'yes') {
+      if (!d.licenseNumber?.trim()) errors.push('License Number is required.');
+      if (!d.licenseCountry) errors.push('License Issuing Country is required.');
+      if (!hasFile('drivingLicense'))
+        errors.push('You indicated you have a Driving License — please upload it.');
+    }
   }
 
-  if (actualTab === 9) {
+  // ── Tab 5: Driving Experience (only visible when hasDrivingLicense = yes) ─
+  if (actualTab === 5) {
+    if (!d.trafficAccidents)
+      errors.push('Please answer whether you have been involved in any traffic accidents in the past 3 years.');
+  }
+
+  // ── Tab 7: Work Experience ────────────────────────────────────────────────
+  if (actualTab === 7) {
+    d.workHistory.forEach((entry, i) => {
+      const n = i + 1;
+      if (!entry.companyStreet?.trim()) errors.push(`Work Experience #${n}: Company Street Address is required.`);
+      if (!entry.companyCity?.trim()) errors.push(`Work Experience #${n}: City is required.`);
+      if (!entry.companyPostalCode?.trim()) errors.push(`Work Experience #${n}: Postal Code is required.`);
+      if (!entry.country?.trim()) errors.push(`Work Experience #${n}: Country is required.`);
+      if (!entry.companyPhone?.trim()) errors.push(`Work Experience #${n}: Company Phone is required.`);
+    });
+  }
+
+  // ── Tab 8: Skills ─────────────────────────────────────────────────────────
+  if (actualTab === 8) {
+    if (!d.hasFirstAid) errors.push('Please answer whether you have a First Aid Certificate.');
     if (d.hasFirstAid === 'yes' && !hasFile('firstAid'))
       errors.push('You indicated you have a First Aid Certificate — please upload it.');
   }
 
+  // ── Tab 9: Additional ─────────────────────────────────────────────────────
+  if (actualTab === 9) {
+    if (!d.preferredStartDate) errors.push('Preferred Start Date is required.');
+    if (!d.howDidYouHear) errors.push('Please select how you heard about us.');
+  }
+
+  // ── Tab 10: Documents ─────────────────────────────────────────────────────
   if (actualTab === 10 && requiredDocuments && requiredDocuments.length > 0) {
     for (const docName of requiredDocuments) {
       if (!uploadedFiles.some(f => f.sectionKey === `required:${docName}` && f.file))

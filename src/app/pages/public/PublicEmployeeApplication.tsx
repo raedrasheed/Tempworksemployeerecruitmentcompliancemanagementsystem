@@ -16,12 +16,22 @@ export function PublicEmployeeApplication() {
   const jobAdId = searchParams.get('jobAdId') || undefined;
   const jobCategory = searchParams.get('jobCategory') || undefined;
   const jobAdTitle = searchParams.get('jobTitle') || undefined;
+  const requiredDocs: string[] = useMemo(() => {
+    try { return JSON.parse(searchParams.get('requiredDocs') || '[]'); } catch { return []; }
+  }, []);
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<ApplicantFormData>(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [jobTypes, setJobTypes] = useState<{ id: string; name: string }[]>([]);
   const [settings, setSettings] = useState<FormSettings>(DEFAULT_FORM_SETTINGS);
-  const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
+  const [uploadedFiles, setUploadedFiles] = useState<any[]>(() =>
+    requiredDocs.map((name: string) => ({
+      id: crypto.randomUUID(),
+      type: name,
+      file: null,
+      sectionKey: `required:${name}`,
+    }))
+  );
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
@@ -54,7 +64,7 @@ export function PublicEmployeeApplication() {
   const handleNext = () => {
     if (currentStep < visibleTabs.length) {
       const actualTab = visibleTabs[currentStep - 1];
-      const errors = getStepErrors(actualTab, formData, uploadedFiles, photoFile);
+      const errors = getStepErrors(actualTab, formData, uploadedFiles, photoFile, requiredDocs);
       if (errors.length > 0) {
         errors.forEach(msg => toast.error(msg));
         return;
@@ -84,6 +94,16 @@ export function PublicEmployeeApplication() {
     if (!captchaToken) {
       toast.error('Please complete the "I am not a robot" verification before submitting.');
       return;
+    }
+
+    if (requiredDocs.length > 0) {
+      const missing = requiredDocs.filter((name: string) =>
+        !uploadedFiles.some((f: any) => f.sectionKey === `required:${name}` && f.file)
+      );
+      if (missing.length > 0) {
+        toast.error(`Required document(s) not uploaded: ${missing.join(', ')}. Please go to the Documents tab.`);
+        return;
+      }
     }
 
     setSubmitting(true);
@@ -198,6 +218,7 @@ export function PublicEmployeeApplication() {
             photoFile={photoFile}
             onPhotoChange={setPhotoFile}
             jobAdTitle={jobAdTitle}
+            requiredDocuments={requiredDocs}
           />
 
           {/* reCAPTCHA v2 "I am not a robot" checkbox — last step only */}

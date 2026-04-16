@@ -32,7 +32,8 @@
     "db:migrate:backup": "ts-node prisma/run-backup-migration.ts",
     "db:migrate:user-profile": "ts-node prisma/run-user-profile-migration.ts",
     "db:migrate:backfill-nationality": "ts-node prisma/run-backfill-nationality.ts",
-    "db:migrate:drop-applicant-email-unique": "ts-node prisma/run-drop-applicant-email-unique.ts"
+    "db:migrate:drop-applicant-email-unique": "ts-node prisma/run-drop-applicant-email-unique.ts",
+    "db:migrate:job-ads-required-docs": "ts-node prisma/run-job-ads-required-documents-migration.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",

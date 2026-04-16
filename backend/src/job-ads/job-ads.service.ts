@@ -125,6 +125,13 @@ export class JobAdsService {
     return PaginatedResponse.create(items, total, Number(page), Number(limit));
   }
 
+  // ── Helper: parse requiredDocuments JSON string to string[] ──────────────────
+
+  private parseRequiredDocuments(raw: string | null | undefined): string[] {
+    if (!raw) return [];
+    try { return JSON.parse(raw) as string[]; } catch { return []; }
+  }
+
   // ── Public detail by slug ─────────────────────────────────────────────────────
 
   async findBySlug(slug: string) {
@@ -132,7 +139,7 @@ export class JobAdsService {
       where: { slug, deletedAt: null, status: 'PUBLISHED' },
     });
     if (!ad) throw new NotFoundException(`Job ad '${slug}' not found`);
-    return ad;
+    return { ...ad, requiredDocuments: this.parseRequiredDocuments(ad.requiredDocuments) };
   }
 
   // ── Dashboard detail by ID ────────────────────────────────────────────────────
@@ -146,7 +153,7 @@ export class JobAdsService {
       },
     });
     if (!ad) throw new NotFoundException(`Job ad ${id} not found`);
-    return ad;
+    return { ...ad, requiredDocuments: this.parseRequiredDocuments(ad.requiredDocuments) };
   }
 
   // ── Create ────────────────────────────────────────────────────────────────────
@@ -159,19 +166,20 @@ export class JobAdsService {
 
     return this.prisma.jobAd.create({
       data: {
-        title:        dto.title,
+        title:             dto.title,
         slug,
-        category:     dto.category,
-        description:  dto.description,
-        city:         dto.city,
-        country:      dto.country,
-        contractType: dto.contractType ?? 'Full-time',
-        salaryMin:    dto.salaryMin  ?? null,
-        salaryMax:    dto.salaryMax  ?? null,
-        currency:     dto.currency   ?? 'GBP',
-        status:       dto.status ?? 'DRAFT',
+        category:          dto.category,
+        description:       dto.description,
+        city:              dto.city,
+        country:           dto.country,
+        contractType:      dto.contractType ?? 'Full-time',
+        salaryMin:         dto.salaryMin  ?? null,
+        salaryMax:         dto.salaryMax  ?? null,
+        currency:          dto.currency   ?? 'GBP',
+        status:            dto.status ?? 'DRAFT',
         publishedAt,
-        createdById:  userId ?? null,
+        createdById:       userId ?? null,
+        requiredDocuments: dto.requiredDocuments ? JSON.stringify(dto.requiredDocuments) : null,
       },
     });
   }
@@ -206,8 +214,9 @@ export class JobAdsService {
         ...(dto.contractType !== undefined ? { contractType: dto.contractType } : {}),
         ...(dto.salaryMin    !== undefined ? { salaryMin:    dto.salaryMin }    : {}),
         ...(dto.salaryMax    !== undefined ? { salaryMax:    dto.salaryMax }    : {}),
-        ...(dto.currency     !== undefined ? { currency:     dto.currency }     : {}),
-        ...(dto.status       !== undefined ? { status:       dto.status } : {}),
+        ...(dto.currency          !== undefined ? { currency:          dto.currency }                                           : {}),
+        ...(dto.status            !== undefined ? { status:            dto.status }                                             : {}),
+        ...(dto.requiredDocuments !== undefined ? { requiredDocuments: dto.requiredDocuments ? JSON.stringify(dto.requiredDocuments) : null } : {}),
         slug,
         publishedAt,
       },

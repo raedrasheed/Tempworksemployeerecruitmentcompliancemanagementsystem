@@ -11,6 +11,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '../../components/ui/select';
 import { CountrySelect } from '../../components/ui/CountrySelect';
+import { Checkbox } from '../../components/ui/checkbox';
 
 interface Constants {
   statuses:      string[];
@@ -45,6 +46,8 @@ export function JobAdForm() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [constants, setConstants] = useState<Constants>(DEFAULT_CONSTANTS);
   const [categories, setCategories] = useState<string[]>([]);
+  const [docTypes, setDocTypes] = useState<string[]>([]);
+  const [requiredDocuments, setRequiredDocuments] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(isEdit);
 
@@ -55,6 +58,13 @@ export function JobAdForm() {
 
     settingsApi.getJobTypes()
       .then((types: any[]) => setCategories(types.filter((t: any) => t.isActive).map((t: any) => t.name)))
+      .catch(() => {});
+
+    settingsApi.getDocumentTypes()
+      .then((types: any[]) => {
+        const names = types.filter((t: any) => t.isActive !== false).map((t: any) => t.name).filter(Boolean);
+        if (names.length > 0) setDocTypes(names);
+      })
       .catch(() => {});
 
     if (isEdit && id) {
@@ -71,6 +81,7 @@ export function JobAdForm() {
           currency:     ad.currency     ?? 'GBP',
           status:       ad.status       ?? 'DRAFT',
         });
+        setRequiredDocuments(Array.isArray(ad.requiredDocuments) ? ad.requiredDocuments : []);
       }).catch(() => {
         toast.error('Failed to load job ad');
         navigate('/dashboard/job-ads');
@@ -91,14 +102,15 @@ export function JobAdForm() {
     setSaving(true);
     try {
       const payload: Record<string, any> = {
-        title:        form.title,
-        category:     form.category,
-        description:  form.description,
-        city:         form.city,
-        country:      form.country,
-        contractType: form.contractType,
-        currency:     form.currency,
-        status:       publishNow ? 'PUBLISHED' : form.status,
+        title:             form.title,
+        category:          form.category,
+        description:       form.description,
+        city:              form.city,
+        country:           form.country,
+        contractType:      form.contractType,
+        currency:          form.currency,
+        status:            publishNow ? 'PUBLISHED' : form.status,
+        requiredDocuments: requiredDocuments,
         ...(form.salaryMin !== '' ? { salaryMin: Number(form.salaryMin) } : {}),
         ...(form.salaryMax !== '' ? { salaryMax: Number(form.salaryMax) } : {}),
       };
@@ -270,6 +282,42 @@ export function JobAdForm() {
               </SelectContent>
             </Select>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Required Documents */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Required Documents</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Select the documents that applicants must upload when applying for this position.
+            They will not be able to submit without uploading all checked documents.
+          </p>
+          {docTypes.length === 0 && (
+            <p className="text-sm text-muted-foreground italic">Loading document types…</p>
+          )}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {docTypes.map(name => (
+              <label key={name} className="flex items-center gap-2.5 cursor-pointer select-none rounded-md px-3 py-2 hover:bg-muted transition-colors">
+                <Checkbox
+                  checked={requiredDocuments.includes(name)}
+                  onCheckedChange={checked => {
+                    setRequiredDocuments(prev =>
+                      checked ? [...prev, name] : prev.filter(d => d !== name)
+                    );
+                  }}
+                />
+                <span className="text-sm">{name}</span>
+              </label>
+            ))}
+          </div>
+          {requiredDocuments.length > 0 && (
+            <p className="text-xs text-blue-600 font-medium">
+              {requiredDocuments.length} document{requiredDocuments.length !== 1 ? 's' : ''} required: {requiredDocuments.join(', ')}
+            </p>
+          )}
         </CardContent>
       </Card>
 

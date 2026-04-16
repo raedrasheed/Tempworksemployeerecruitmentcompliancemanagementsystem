@@ -1,5 +1,5 @@
 import {
-  IsString, IsOptional, IsNumber, Min, IsIn, IsNotEmpty,
+  IsString, IsOptional, IsNumber, Min, IsIn, IsNotEmpty, IsArray,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
@@ -52,4 +52,8 @@ export class CreateJobAdDto {
   @ApiPropertyOptional({ enum: ['DRAFT', 'PUBLISHED', 'ARCHIVED'], default: 'DRAFT' })
   @IsOptional() @IsString() @IsIn(['DRAFT', 'PUBLISHED', 'ARCHIVED'])
   status?: string = 'DRAFT';
+
+  @ApiPropertyOptional({ type: [String], description: 'Document type names that applicants must upload' })
+  @IsOptional() @IsArray() @IsString({ each: true })
+  requiredDocuments?: string[];
 }

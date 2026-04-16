@@ -377,6 +377,7 @@ export function getStepErrors(
   d: ApplicantFormData,
   uploadedFiles: UploadedFileItem[],
   photoFile: File | null,
+  requiredDocuments?: string[],
 ): string[] {
   const errors: string[] = [];
   const hasFile = (key: string) => uploadedFiles.some(f => f.sectionKey === key && f.file);
@@ -409,6 +410,13 @@ export function getStepErrors(
   if (actualTab === 9) {
     if (d.hasFirstAid === 'yes' && !hasFile('firstAid'))
       errors.push('You indicated you have a First Aid Certificate — please upload it.');
+  }
+
+  if (actualTab === 10 && requiredDocuments && requiredDocuments.length > 0) {
+    for (const docName of requiredDocuments) {
+      if (!uploadedFiles.some(f => f.sectionKey === `required:${docName}` && f.file))
+        errors.push(`"${docName}" is required for this position — please upload it before continuing.`);
+    }
   }
 
   return errors;
@@ -2111,7 +2119,7 @@ function Step9Additional({ d, u, settings }: { d: ApplicantFormData; u: (fn: (p:
 
 const FALLBACK_DOC_TYPES = ['Passport', "Driver's License", 'Tachograph Card', 'C95 / CPC Card', 'ADR Certificate', 'Visa', 'Work Permit', 'Residence Card', 'Medical Certificate', 'First Aid Certificate', 'Other'];
 
-function Step10Documents({ uploadedFiles, onFilesChange }: { uploadedFiles: UploadedFileItem[]; onFilesChange: (files: UploadedFileItem[]) => void }) {
+function Step10Documents({ uploadedFiles, onFilesChange, requiredDocuments = [] }: { uploadedFiles: UploadedFileItem[]; onFilesChange: (files: UploadedFileItem[]) => void; requiredDocuments?: string[] }) {
   const [docTypes, setDocTypes] = useState<string[]>(FALLBACK_DOC_TYPES);
 
   useEffect(() => {
@@ -2133,18 +2141,60 @@ function Step10Documents({ uploadedFiles, onFilesChange }: { uploadedFiles: Uplo
     onFilesChange(uploadedFiles.filter(f => f.id !== id));
   };
 
+  // Separate required (locked) entries from optional ones
+  const optionalItems = uploadedFiles.filter(f => !f.sectionKey?.startsWith('required:'));
+
   return (
     <div className="space-y-6">
       <SectionTitle title="Document Uploads" subtitle="Upload supporting documents (PDF, JPG, PNG — max 5MB)" />
+
+      {/* Required documents section */}
+      {requiredDocuments.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold text-red-700">Required Documents</span>
+            <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium">Mandatory</span>
+          </div>
+          <p className="text-xs text-red-600">The following documents are required for this position. You cannot submit without uploading all of them.</p>
+          {requiredDocuments.map(docName => {
+            const item = uploadedFiles.find(f => f.sectionKey === `required:${docName}`);
+            if (!item) return null;
+            return (
+              <div key={docName} className={`p-4 border-2 rounded-lg space-y-3 ${item.file ? 'border-green-300 bg-green-50' : 'border-red-200 bg-red-50'}`}>
+                <div className="flex items-center gap-2">
+                  <FileText className={`w-4 h-4 shrink-0 ${item.file ? 'text-green-600' : 'text-red-500'}`} />
+                  <span className={`text-sm font-medium ${item.file ? 'text-green-800' : 'text-red-800'}`}>{docName}</span>
+                  {item.file
+                    ? <span className="ml-auto text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">Uploaded</span>
+                    : <span className="ml-auto text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium">Required *</span>
+                  }
+                </div>
+                <label className="block cursor-pointer">
+                  <div className={`flex items-center gap-2 px-3 py-2 rounded border text-sm transition-colors ${item.file ? 'bg-green-50 border-green-300 text-green-800' : 'bg-white border-red-300 text-red-500 hover:border-red-400'}`}>
+                    {item.file ? (
+                      <><Check className="w-4 h-4 text-green-600 shrink-0" /><span className="truncate">{item.file.name}</span><span className="ml-auto text-xs">{(item.file.size / 1024 / 1024).toFixed(1)} MB</span></>
+                    ) : (
+                      <><Upload className="w-4 h-4" /><span>Choose file (required)</span></>
+                    )}
+                  </div>
+                  <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="sr-only" onChange={e => updateItem(item.id, { file: e.target.files?.[0] ?? null })} />
+                </label>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Optional documents */}
       <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
         Upload clear scans of your passport, license, and qualifications.
       </div>
-      {uploadedFiles.map((item, i) => (
+      {optionalItems.map((item) => (
         <div key={item.id} className="p-4 border-2 border-dashed border-gray-300 rounded-lg space-y-3">
           <div className="flex items-start gap-3">
             <div className="flex-1 space-y-1">
               <Label className="text-xs">Document Type *</Label>
-              {item.sectionKey ? (
+              {item.sectionKey && !item.sectionKey.startsWith('required:') ? (
                 <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-md">
                   <FileText className="w-4 h-4 text-blue-500 shrink-0" />
                   <span className="text-sm text-blue-800 font-medium">{item.type.replace(/^Upload\s+/i, '')}</span>
@@ -2175,7 +2225,7 @@ function Step10Documents({ uploadedFiles, onFilesChange }: { uploadedFiles: Uplo
           </label>
         </div>
       ))}
-      {uploadedFiles.length === 0 && <p className="text-sm text-gray-400 text-center py-8 border-2 border-dashed border-gray-200 rounded-lg">No documents yet.</p>}
+      {optionalItems.length === 0 && requiredDocuments.length === 0 && <p className="text-sm text-gray-400 text-center py-8 border-2 border-dashed border-gray-200 rounded-lg">No documents yet.</p>}
       <button type="button" onClick={addDoc} className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-blue-300 rounded-lg text-blue-600 text-sm font-medium hover:border-blue-500 hover:bg-blue-50">
         <Plus className="w-4 h-4" /> Add Document
       </button>
@@ -2544,6 +2594,7 @@ export interface ApplicantFormStepsProps {
   onPhotoChange?: (file: File | null) => void;
   existingPhotoUrl?: string;
   jobAdTitle?: string;
+  requiredDocuments?: string[];
 }
 
 export function ApplicantFormSteps({
@@ -2559,6 +2610,7 @@ export function ApplicantFormSteps({
   onPhotoChange = () => {},
   existingPhotoUrl,
   jobAdTitle,
+  requiredDocuments = [],
 }: ApplicantFormStepsProps) {
   const actualTab = visibleTabs[currentStep - 1] ?? 1;
 
@@ -2573,7 +2625,7 @@ export function ApplicantFormSteps({
       {actualTab === 7 && <Step7WorkHistory d={d} u={u} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />}
       {actualTab === 8 && <Step8Skills d={d} u={u} settings={settings} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />}
       {actualTab === 9 && <Step9Additional d={d} u={u} settings={settings} />}
-      {actualTab === 10 && <Step10Documents uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />}
+      {actualTab === 10 && <Step10Documents uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} requiredDocuments={requiredDocuments} />}
       {actualTab === 11 && <Step11Review d={d} u={u} settings={settings} photoFile={photoFile} existingPhotoUrl={existingPhotoUrl} uploadedFiles={uploadedFiles} />}
     </>
   );

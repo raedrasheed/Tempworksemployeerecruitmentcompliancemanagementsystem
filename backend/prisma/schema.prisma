@@ -936,6 +936,8 @@ model JobAd {
   currency     String      @default("GBP")
   status       String      @default("DRAFT")  // DRAFT | PUBLISHED | ARCHIVED
   publishedAt  DateTime?
+  /// JSON-encoded string[]: names of document types applicants must upload (e.g. '["Passport","CV"]')
+  requiredDocuments String?
   createdById  String?
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt

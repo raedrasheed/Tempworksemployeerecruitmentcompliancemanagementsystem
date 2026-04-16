@@ -273,9 +273,9 @@ export function EditEmployee() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="jobTypeId">Job Type</Label>
+                    <Label htmlFor="jobTypeId">Job Category</Label>
                     <Select value={form.jobTypeId || '__none__'} onValueChange={val => setForm(prev => ({ ...prev, jobTypeId: val === '__none__' ? '' : val }))}>
-                      <SelectTrigger id="jobTypeId"><SelectValue placeholder="Select job type" /></SelectTrigger>
+                      <SelectTrigger id="jobTypeId"><SelectValue placeholder="Select job category" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="__none__">Not specified</SelectItem>
                         {jobTypes.map((jt: any) => (

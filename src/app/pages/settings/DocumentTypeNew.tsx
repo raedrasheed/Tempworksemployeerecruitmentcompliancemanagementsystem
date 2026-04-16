@@ -287,12 +287,12 @@ export function DocumentTypeNew() {
               </CardContent>
             </Card>
 
-            {/* Job Type Applicability */}
+            {/* Job Category Applicability */}
             <Card>
               <CardHeader>
-                <CardTitle>Job Type Applicability</CardTitle>
+                <CardTitle>Job Category Applicability</CardTitle>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Select which job types require this document (leave empty for all)
+                  Select which job categories require this document (leave empty for all)
                 </p>
               </CardHeader>
               <CardContent>
@@ -331,7 +331,7 @@ export function DocumentTypeNew() {
                     <div className="flex gap-2">
                       <Info className="w-4 h-4 text-[#2563EB] mt-0.5" />
                       <p className="text-sm text-[#2563EB]">
-                        No job types selected. This document will apply to all job types.
+                        No job categories selected. This document will apply to all job categories.
                       </p>
                     </div>
                   </div>
@@ -408,7 +408,7 @@ export function DocumentTypeNew() {
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Job Types:</span>
+                    <span className="text-muted-foreground">Job Categories:</span>
                     <span className="font-medium">
                       {selectedJobTypes.length || 'All'}
                     </span>

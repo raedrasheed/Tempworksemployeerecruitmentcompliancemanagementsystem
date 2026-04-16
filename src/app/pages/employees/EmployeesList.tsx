@@ -28,7 +28,7 @@ const employeeColumns: Column[] = [
   { id: 'experience', label: 'Experience (years)', type: 'number' },
   { id: 'agency', label: 'Agency', type: 'text' },
   { id: 'status', label: 'Status', type: 'enum', options: ['active', 'pending', 'inactive', 'suspended'] },
-  { id: 'jobType', label: 'Job Type', type: 'enum', options: ['Truck Driver', 'Warehouse Worker', 'Forklift Operator', 'Logistics Coordinator', 'Construction Worker', 'Technician', 'General Worker'] },
+  { id: 'jobType', label: 'Job Category', type: 'enum', options: ['Truck Driver', 'Warehouse Worker', 'Forklift Operator', 'Logistics Coordinator', 'Construction Worker', 'Technician', 'General Worker'] },
   { id: 'createdDate', label: 'Created Date', type: 'date' },
 ];
 

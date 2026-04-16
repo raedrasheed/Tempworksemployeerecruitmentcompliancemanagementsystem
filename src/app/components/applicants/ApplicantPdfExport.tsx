@@ -91,7 +91,7 @@ function ApplicantPDF({ applicant, photoDataUrl }: { applicant: any; photoDataUr
             <F label="Country of Birth" value={ad.countryOfBirth || applicant.countryOfBirth} />
             <F label="City of Birth" value={ad.cityOfBirth || applicant.cityOfBirth} />
             <F label="Citizenship" value={ad.citizenship || applicant.citizenship} />
-            <F label="Job Type" value={applicant.jobType?.name} />
+            <F label="Job Category" value={applicant.jobType?.name} />
             <F label="Preferred Start Date" value={applicant.preferredStartDate} />
             <F label="Availability" value={applicant.availability} />
             <F label="Willing to Relocate" value={yn(applicant.willingToRelocate)} />

@@ -42,8 +42,8 @@ export function Settings() {
   const settingsCategories = [
     {
       icon: Briefcase,
-      title: 'Job Types',
-      description: 'Configure job types and document requirements',
+      title: 'Job Categories',
+      description: 'Configure job categories and document requirements',
       path: '/dashboard/settings/job-types',
       badge: 'New',
     },

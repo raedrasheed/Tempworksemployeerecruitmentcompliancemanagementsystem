@@ -351,7 +351,7 @@ export function CandidatesList() {
                   <TableHead>Applicant</TableHead>
                   <TableHead>Contact</TableHead>
                   <TableHead>Nationality</TableHead>
-                  <TableHead>Job Type</TableHead>
+                  <TableHead>Job Category</TableHead>
                   <TableHead>Agency</TableHead>
                   {!isAgencyUser && <TableHead>Tier</TableHead>}
                   <TableHead>Applied</TableHead>

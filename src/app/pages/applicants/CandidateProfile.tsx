@@ -613,7 +613,7 @@ export function CandidateProfile() {
                     ['Permanent Address', applicantData.permanentAddress || '—'],
                     ['Country of Residence', applicantData.countryOfResidence || '—'],
                     ['Current Country', applicantData.currentCountryOfResidence || '—'],
-                    ['Job Type', applicantData.jobType?.name || '—'],
+                    ['Job Category', applicantData.jobType?.name || '—'],
                     ['Preferred Start Date', applicantData.preferredStartDate || '—'],
                     ['How They Heard', applicantData.howDidYouHear || '—'],
                   ].map(([label, value]: any) => (

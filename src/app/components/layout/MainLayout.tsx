@@ -4,11 +4,16 @@ import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
 import { authApi, getCurrentUser, clearTokens } from '../../services/api';
 import { useAuthContext } from '../../contexts/AuthContext';
+import { useIdleLogout } from '../../hooks/useIdleLogout';
 
 export function MainLayout() {
   const navigate = useNavigate();
-  const { updateUser } = useAuthContext();
+  const { user, updateUser } = useAuthContext();
   const [ready, setReady] = useState(false);
+
+  // Auto-logout after N minutes of inactivity — value comes from the
+  // SESSION_IDLE_TIMEOUT_MINUTES system setting, surfaced via /auth/me.
+  useIdleLogout((user as any)?.sessionIdleTimeoutMinutes);
 
   // Load collapsed state from localStorage or default to false
   const [isCollapsed, setIsCollapsed] = useState(() => {

@@ -520,6 +520,12 @@ export class AuthService {
       status: user.status,
       lastLoginAt: user.lastLoginAt,
       twoFactorEnabled: (user as any).twoFactorEnabled ?? false,
+      // Session policy — read here so every authenticated client gets the
+      // current value without needing admin permissions on /settings.
+      sessionIdleTimeoutMinutes: await this.getSystemSettingNumber(
+        'SESSION_IDLE_TIMEOUT_MINUTES',
+        30,
+      ),
     };
   }
 

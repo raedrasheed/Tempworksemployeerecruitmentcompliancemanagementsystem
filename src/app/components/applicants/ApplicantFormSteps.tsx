@@ -770,15 +770,18 @@ function SubSection({ title }: { title: string }) {
   return <div className="flex items-center gap-2 pb-2 border-b border-gray-200 mb-4"><h3 className="text-base font-semibold text-gray-800">{title}</h3></div>;
 }
 
-function RadioYN({ name, value, onChange }: { name: string; value: string; onChange: (v: string) => void }) {
+function RadioYN({ name, value, onChange, disabledValues = [] }: { name: string; value: string; onChange: (v: string) => void; disabledValues?: string[] }) {
   return (
     <div className="flex gap-4">
-      {['yes', 'no'].map(v => (
-        <label key={v} className="flex items-center gap-2 cursor-pointer">
-          <input type="radio" name={name} value={v} checked={value === v} onChange={() => onChange(v)} className="w-4 h-4 accent-blue-600" />
-          <span className="capitalize text-sm">{v}</span>
-        </label>
-      ))}
+      {['yes', 'no'].map(v => {
+        const disabled = disabledValues.includes(v);
+        return (
+          <label key={v} className={`flex items-center gap-2 ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}>
+            <input type="radio" name={name} value={v} checked={value === v} onChange={() => onChange(v)} disabled={disabled} className="w-4 h-4 accent-blue-600" />
+            <span className="capitalize text-sm">{v}</span>
+          </label>
+        );
+      })}
     </div>
   );
 }
@@ -1247,6 +1250,12 @@ function Step3Identification({ d, u, settings, uploadedFiles, onFilesChange, req
   const passportSectionKey = passportDocName ? `required:${passportDocName}` : 'passport';
   const nationalIdDocName = requiredDocuments.find(n => n.toLowerCase().includes('national id'));
   const nationalIdSectionKey = nationalIdDocName ? `required:${nationalIdDocName}` : 'idCard';
+  // Auto-select "yes" and lock out "no" when National ID is required by the job ad
+  useEffect(() => {
+    if (nationalIdDocName && d.hasIdCard !== 'yes') {
+      u(prev => ({ ...prev, hasIdCard: 'yes' }));
+    }
+  }, [nationalIdDocName]);
   return (
     <div className="space-y-8">
       <SectionTitle title="Identification & Legal Status" subtitle="Passport, ID and residency documents" />
@@ -1288,7 +1297,7 @@ function Step3Identification({ d, u, settings, uploadedFiles, onFilesChange, req
         )}
         <div className="space-y-2">
           <Label className="text-xs">Do you have a National ID Card?</Label>
-          <RadioYN name="hasIdCard" value={d.hasIdCard} onChange={set('hasIdCard')} />
+          <RadioYN name="hasIdCard" value={d.hasIdCard} onChange={set('hasIdCard')} disabledValues={nationalIdDocName ? ['no'] : []} />
         </div>
         {d.hasIdCard === 'yes' && (
           <div className="grid md:grid-cols-2 gap-4 mt-3">
@@ -1461,6 +1470,12 @@ function Step4DrivingLicense({ d, u, settings, uploadedFiles, onFilesChange, req
   const set = (field: keyof ApplicantFormData) => (value: any) => u(prev => ({ ...prev, [field]: value }));
   const dlDocName = requiredDocuments.find(n => n.toLowerCase().includes('driving'));
   const dlSectionKey = dlDocName ? `required:${dlDocName}` : 'drivingLicense';
+  // Auto-select "yes" and lock out "no" when Driving License is required by the job ad
+  useEffect(() => {
+    if (dlDocName && d.hasDrivingLicense !== 'yes') {
+      u(prev => ({ ...prev, hasDrivingLicense: 'yes' }));
+    }
+  }, [dlDocName]);
   const toggleCat = (cat: string) => {
     u(prev => ({
       ...prev,
@@ -1492,12 +1507,15 @@ function Step4DrivingLicense({ d, u, settings, uploadedFiles, onFilesChange, req
       <div className="space-y-3">
         <Label className="font-medium">Do you hold a driving license? *</Label>
         <div className="flex gap-6">
-          {['yes', 'no'].map(v => (
-            <label key={v} className={`flex-1 flex items-center justify-center gap-2 p-4 border-2 rounded-xl cursor-pointer text-sm font-medium transition-all ${d.hasDrivingLicense === v ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-200 hover:border-gray-300'}`}>
-              <input type="radio" name="hasDrivingLicense" value={v} checked={d.hasDrivingLicense === v} onChange={() => set('hasDrivingLicense')(v)} className="sr-only" />
-              {v === 'yes' ? '✅ Yes' : '❌ No'}
-            </label>
-          ))}
+          {['yes', 'no'].map(v => {
+            const disabled = dlDocName ? v === 'no' : false;
+            return (
+              <label key={v} className={`flex-1 flex items-center justify-center gap-2 p-4 border-2 rounded-xl text-sm font-medium transition-all ${disabled ? 'opacity-40 cursor-not-allowed border-gray-200' : 'cursor-pointer'} ${d.hasDrivingLicense === v ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-200 hover:border-gray-300'}`}>
+                <input type="radio" name="hasDrivingLicense" value={v} checked={d.hasDrivingLicense === v} onChange={() => !disabled && set('hasDrivingLicense')(v)} disabled={disabled} className="sr-only" />
+                {v === 'yes' ? '✅ Yes' : '❌ No'}
+              </label>
+            );
+          })}
         </div>
       </div>
       {/* Required upload shown unconditionally when DL is a job-ad required document */}

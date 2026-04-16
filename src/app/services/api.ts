@@ -1,7 +1,9 @@
 // Central API client for TempWorks backend
 
 export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
-export const BACKEND_URL = API_URL.replace('/api/v1', '');
+// When API_URL is a relative path (Vite proxy mode) BACKEND_URL is empty so
+// image/file URLs resolve against the current origin (also proxied).
+export const BACKEND_URL = API_URL.startsWith('http') ? API_URL.replace('/api/v1', '') : '';
 
 // ─── Token Management ────────────────────────────────────────────────────────
 

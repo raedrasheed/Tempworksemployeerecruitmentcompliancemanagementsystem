@@ -90,10 +90,12 @@ export function UsersList() {
   useEffect(() => { reload(); }, []);
 
   // ── Filters ────────────────────────────────────────────────────────────────
-  const [searchQuery, setSearchQuery]   = useState('');
-  const [roleFilter, setRoleFilter]     = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [agencyFilter, setAgencyFilter] = useState('');
+  const [searchQuery, setSearchQuery]         = useState('');
+  const [roleFilter, setRoleFilter]           = useState('');
+  const [statusFilter, setStatusFilter]       = useState('');
+  const [agencyFilter, setAgencyFilter]       = useState('');
+  const [departmentFilter, setDepartmentFilter] = useState('');
+  const [countryFilter, setCountryFilter]     = useState('');
 
   // ── Sorting ────────────────────────────────────────────────────────────────
   const [sortBy, setSortBy]       = useState<SortField>('name');
@@ -140,18 +142,42 @@ export function UsersList() {
     return [...new Set(names)].sort();
   }, [users]);
 
+  const departmentOptions = useMemo(() => {
+    const names = users.map(u => u.department).filter(Boolean) as string[];
+    return [...new Set(names)].sort();
+  }, [users]);
+
+  const countryOptions = useMemo(() => {
+    const names = users.map(u => u.country).filter(Boolean) as string[];
+    return [...new Set(names)].sort();
+  }, [users]);
+
   // ── Filtered + sorted data ─────────────────────────────────────────────────
   const displayUsers = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
     let data = users.filter(user => {
-      const fullName = `${user.firstName} ${user.lastName}`.toLowerCase();
-      if (searchQuery && !fullName.includes(searchQuery.toLowerCase()) &&
-          !user.email?.toLowerCase().includes(searchQuery.toLowerCase()) &&
-          !(user.role?.name ?? '').toLowerCase().includes(searchQuery.toLowerCase()) &&
-          !(user.userNumber ?? '').toLowerCase().includes(searchQuery.toLowerCase()))
-        return false;
-      if (roleFilter   && user.role?.name !== roleFilter) return false;
-      if (statusFilter && user.status !== statusFilter)   return false;
-      if (agencyFilter && user.agency?.name !== agencyFilter) return false;
+      // Full-text search across every visible & common field — the previous
+      // version only checked name/email/role/userNumber, which meant typing
+      // an agency (or phone, dept, city, etc.) returned nothing.
+      if (q) {
+        const haystack = [
+          user.firstName, user.middleName, user.lastName,
+          user.email, user.userNumber,
+          user.phone,
+          user.role?.name,
+          user.agency?.name,
+          user.jobTitle, user.department,
+          user.city, user.country, user.postalCode,
+          user.citizenship,
+          user.status,
+        ].filter(Boolean).join(' ').toLowerCase();
+        if (!haystack.includes(q)) return false;
+      }
+      if (roleFilter       && user.role?.name !== roleFilter)     return false;
+      if (statusFilter     && user.status      !== statusFilter)   return false;
+      if (agencyFilter     && user.agency?.name !== agencyFilter)  return false;
+      if (departmentFilter && user.department   !== departmentFilter) return false;
+      if (countryFilter    && user.country      !== countryFilter) return false;
       return true;
     });
 
@@ -170,10 +196,13 @@ export function UsersList() {
       const cmp = aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
       return sortOrder === 'asc' ? cmp : -cmp;
     });
-  }, [users, searchQuery, roleFilter, statusFilter, agencyFilter, sortBy, sortOrder]);
+  }, [users, searchQuery, roleFilter, statusFilter, agencyFilter, departmentFilter, countryFilter, sortBy, sortOrder]);
 
-  const hasActiveFilters = searchQuery || roleFilter || statusFilter || agencyFilter;
-  const clearFilters = () => { setSearchQuery(''); setRoleFilter(''); setStatusFilter(''); setAgencyFilter(''); };
+  const hasActiveFilters = !!(searchQuery || roleFilter || statusFilter || agencyFilter || departmentFilter || countryFilter);
+  const clearFilters = () => {
+    setSearchQuery(''); setRoleFilter(''); setStatusFilter('');
+    setAgencyFilter(''); setDepartmentFilter(''); setCountryFilter('');
+  };
 
   // ── Modals ─────────────────────────────────────────────────────────────────
   const [showImportModal, setShowImportModal]   = useState(false);
@@ -284,7 +313,7 @@ export function UsersList() {
             <div className="relative flex-1 min-w-48">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Search by name, email, or role..."
+                placeholder="Search name, email, role, agency, phone, dept…"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 className="pl-9"
@@ -315,6 +344,26 @@ export function UsersList() {
                 <SelectContent>
                   <SelectItem value="__all__">All Agencies</SelectItem>
                   {agencyOptions.map(a => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            )}
+
+            {departmentOptions.length > 0 && (
+              <Select value={departmentFilter || '__all__'} onValueChange={v => setDepartmentFilter(v === '__all__' ? '' : v)}>
+                <SelectTrigger className="w-44"><SelectValue placeholder="All Departments" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">All Departments</SelectItem>
+                  {departmentOptions.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            )}
+
+            {countryOptions.length > 0 && (
+              <Select value={countryFilter || '__all__'} onValueChange={v => setCountryFilter(v === '__all__' ? '' : v)}>
+                <SelectTrigger className="w-40"><SelectValue placeholder="All Countries" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">All Countries</SelectItem>
+                  {countryOptions.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                 </SelectContent>
               </Select>
             )}

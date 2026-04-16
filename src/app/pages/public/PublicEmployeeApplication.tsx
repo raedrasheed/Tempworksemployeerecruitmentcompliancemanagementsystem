@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { Briefcase, ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { toast } from 'sonner';
-import { publicApplicationApi, publicJobAdsApi, BACKEND_URL } from '../../services/api';
+import { publicApplicationApi, BACKEND_URL } from '../../services/api';
 import { useBranding } from '../../hooks/useBranding';
 import { ApplicantFormSteps, EMPTY_FORM, getVisibleTabs, getStepErrors, StepIndicator, FormSettings, DEFAULT_FORM_SETTINGS, ApplicantFormData } from '../../components/applicants/ApplicantFormSteps';
 import { ReCaptchaV2 } from '../../components/ui/ReCaptchaV2';
@@ -15,6 +15,7 @@ export function PublicEmployeeApplication() {
   const [searchParams] = useSearchParams();
   const jobAdId = searchParams.get('jobAdId') || undefined;
   const jobCategory = searchParams.get('jobCategory') || undefined;
+  const jobAdTitle = searchParams.get('jobTitle') || undefined;
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<ApplicantFormData>(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
@@ -23,17 +24,8 @@ export function PublicEmployeeApplication() {
   const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
-  const [jobAdTitle, setJobAdTitle] = useState<string | undefined>(undefined);
 
   const visibleTabs = useMemo(() => getVisibleTabs(formData), [formData.hasDrivingLicense]);
-
-  useEffect(() => {
-    if (jobAdId) {
-      publicJobAdsApi.getBySlug(jobAdId)
-        .then((ad: any) => { if (ad?.title) setJobAdTitle(ad.title); })
-        .catch(() => {});
-    }
-  }, [jobAdId]);
 
   useEffect(() => {
     Promise.all([

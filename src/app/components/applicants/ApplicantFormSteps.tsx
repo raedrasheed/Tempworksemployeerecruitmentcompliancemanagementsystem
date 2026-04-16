@@ -49,7 +49,12 @@ export interface WorkHistoryEntry {
   id: string;
   company: string;
   jobTitle: string;
+  companyStreet: string;
+  companyCity: string;
+  companyPostalCode: string;
   country: string;
+  companyPhoneCode: string;
+  companyPhone: string;
   startDate: string;
   endDate: string;
   current: boolean;
@@ -1733,7 +1738,7 @@ function Step7WorkHistory({ d, u, uploadedFiles, onFilesChange }: { d: Applicant
   const addEntry = () => {
     u(prev => ({
       ...prev,
-      workHistory: [...prev.workHistory, { id: crypto.randomUUID(), company: '', jobTitle: '', country: '', startDate: '', endDate: '', current: false, responsibilities: '', reasonForLeaving: '', referenceName: '', referencePhone: '', referenceEmail: '' }],
+      workHistory: [...prev.workHistory, { id: crypto.randomUUID(), company: '', jobTitle: '', companyStreet: '', companyCity: '', companyPostalCode: '', country: '', companyPhoneCode: '+1', companyPhone: '', startDate: '', endDate: '', current: false, responsibilities: '', reasonForLeaving: '', referenceName: '', referencePhone: '', referenceEmail: '' }],
     }));
   };
   const updateEntry = (id: string, field: keyof WorkHistoryEntry, value: any) => {
@@ -1763,9 +1768,40 @@ function Step7WorkHistory({ d, u, uploadedFiles, onFilesChange }: { d: Applicant
               <Label className="text-xs">Job Title</Label>
               <Input placeholder="Title" value={entry.jobTitle} onChange={e => updateEntry(entry.id, 'jobTitle', e.target.value)} />
             </div>
+            <div className="space-y-1 md:col-span-2">
+              <Label className="text-xs">Company Street Address *</Label>
+              <Input placeholder="Street address" value={entry.companyStreet} onChange={e => updateEntry(entry.id, 'companyStreet', e.target.value)} />
+            </div>
             <div className="space-y-1">
-              <Label className="text-xs">Country</Label>
+              <Label className="text-xs">City *</Label>
+              <Input placeholder="City" value={entry.companyCity} onChange={e => updateEntry(entry.id, 'companyCity', e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Postal Code *</Label>
+              <Input placeholder="Postal code" value={entry.companyPostalCode} onChange={e => updateEntry(entry.id, 'companyPostalCode', e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Country *</Label>
               <CountrySelect value={entry.country} onChange={v => updateEntry(entry.id, 'country', v)} />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Company Phone *</Label>
+              <div className="flex gap-2">
+                <Select value={entry.companyPhoneCode} onValueChange={v => updateEntry(entry.id, 'companyPhoneCode', v)}>
+                  <SelectTrigger className="w-[110px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PHONE_CODES.map(pc => (
+                      <SelectItem key={`${pc.iso}-${pc.code}`} value={pc.code}>
+                        <img src={`https://flagcdn.com/16x12/${pc.iso.toLowerCase()}.png`} alt={pc.iso} className="inline w-4 h-3 mr-1" />
+                        {pc.code}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input placeholder="Phone number" value={entry.companyPhone} onChange={e => updateEntry(entry.id, 'companyPhone', e.target.value)} className="flex-1" />
+              </div>
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Start Date</Label>

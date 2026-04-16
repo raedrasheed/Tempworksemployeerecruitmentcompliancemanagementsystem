@@ -4,7 +4,7 @@ import { Briefcase, ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { publicApplicationApi, settingsApi, publicJobAdsApi, BACKEND_URL } from '../../services/api';
 import { useBranding } from '../../hooks/useBranding';
-import { ApplicantFormSteps, EMPTY_FORM, getVisibleTabs, StepIndicator, FormSettings, DEFAULT_FORM_SETTINGS, ApplicantFormData } from '../../components/applicants/ApplicantFormSteps';
+import { ApplicantFormSteps, EMPTY_FORM, getVisibleTabs, getStepErrors, StepIndicator, FormSettings, DEFAULT_FORM_SETTINGS, ApplicantFormData } from '../../components/applicants/ApplicantFormSteps';
 import { ReCaptchaV2 } from '../../components/ui/ReCaptchaV2';
 
 const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY as string;
@@ -58,6 +58,12 @@ export function PublicEmployeeApplication() {
 
   const handleNext = () => {
     if (currentStep < visibleTabs.length) {
+      const actualTab = visibleTabs[currentStep - 1];
+      const errors = getStepErrors(actualTab, formData, uploadedFiles, photoFile);
+      if (errors.length > 0) {
+        errors.forEach(msg => toast.error(msg));
+        return;
+      }
       setCurrentStep(s => s + 1);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }

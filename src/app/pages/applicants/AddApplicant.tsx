@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { ArrowLeft, ChevronRight, ChevronLeft, UserPlus, ShieldOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePermissions } from '../../hooks/usePermissions';
-import { ApplicantFormSteps, EMPTY_FORM, getVisibleTabs, StepIndicator, FormSettings, DEFAULT_FORM_SETTINGS, ApplicantFormData } from '../../components/applicants/ApplicantFormSteps';
+import { ApplicantFormSteps, EMPTY_FORM, getVisibleTabs, getStepErrors, StepIndicator, FormSettings, DEFAULT_FORM_SETTINGS, ApplicantFormData } from '../../components/applicants/ApplicantFormSteps';
 
 export function AddApplicant() {
   const navigate = useNavigate();
@@ -49,6 +49,12 @@ export function AddApplicant() {
 
   const handleNext = () => {
     if (currentStep < visibleTabs.length) {
+      const actualTab = visibleTabs[currentStep - 1];
+      const errors = getStepErrors(actualTab, formData, uploadedFiles, photoFile);
+      if (errors.length > 0) {
+        errors.forEach(msg => toast.error(msg));
+        return;
+      }
       setCurrentStep(s => s + 1);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }

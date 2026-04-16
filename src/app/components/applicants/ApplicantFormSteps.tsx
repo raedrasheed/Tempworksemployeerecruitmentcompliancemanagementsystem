@@ -357,6 +357,48 @@ export function getVisibleTabs(formData: Pick<ApplicantFormData, 'hasDrivingLice
   return all;
 }
 
+/** Returns validation error messages for the current step before allowing navigation to the next step. */
+export function getStepErrors(
+  actualTab: number,
+  d: ApplicantFormData,
+  uploadedFiles: UploadedFileItem[],
+  photoFile: File | null,
+): string[] {
+  const errors: string[] = [];
+  const hasFile = (key: string) => uploadedFiles.some(f => f.sectionKey === key && f.file);
+
+  if (actualTab === 1) {
+    if (!photoFile) errors.push('A profile photo is required before proceeding.');
+  }
+
+  if (actualTab === 3) {
+    if (d.hasIdCard === 'yes' && !hasFile('idCard'))
+      errors.push('You indicated you have a National ID Card — please upload it.');
+    if (d.hasEuVisa === 'yes' && !hasFile('euVisa'))
+      errors.push('You indicated you have an EU Visa — please upload it.');
+    if (d.hasEuResidence === 'yes' && !hasFile('euResidence'))
+      errors.push('You indicated you have an EU Residence Permit — please upload it.');
+    if (d.hasWorkPermit === 'yes' && !hasFile('workPermit'))
+      errors.push('You indicated you have a Work Permit — please upload it.');
+    if (d.hasHomeCriminalRecord === 'yes' && !hasFile('homeCriminalRecord'))
+      errors.push('You indicated you have a Home Country Criminal Record — please upload it.');
+    if (d.hasEuCriminalRecord === 'yes' && !hasFile('euCriminalRecord'))
+      errors.push('You indicated you have an EU Criminal Record — please upload it.');
+  }
+
+  if (actualTab === 4) {
+    if (d.hasDrivingLicense === 'yes' && !hasFile('drivingLicense'))
+      errors.push('You indicated you have a Driving License — please upload it.');
+  }
+
+  if (actualTab === 9) {
+    if (d.hasFirstAid === 'yes' && !hasFile('firstAid'))
+      errors.push('You indicated you have a First Aid Certificate — please upload it.');
+  }
+
+  return errors;
+}
+
 const PHONE_CODES: { label: string; code: string; iso: string }[] = [
   { label: 'Afghanistan', code: '+93', iso: 'AF' },
   { label: 'Albania', code: '+355', iso: 'AL' },

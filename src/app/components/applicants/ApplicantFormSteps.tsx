@@ -2020,17 +2020,16 @@ function Step9Additional({ d, u, settings }: { d: ApplicantFormData; u: (fn: (p:
           </label>
         </div>
         <div className="space-y-2 md:col-span-2">
-          <Label className="text-xs">Work Regime</Label>
-          <div className="flex gap-4">
-            {(['Weekend Driving', 'Night Driving'] as const).map(r => (
-              <label key={r} className="flex items-center gap-2 cursor-pointer text-sm">
-                <Checkbox
-                  checked={r === 'Weekend Driving' ? d.weekendDriving : d.nightDriving}
-                  onCheckedChange={c => set(r === 'Weekend Driving' ? 'weekendDriving' : 'nightDriving')(!!c)}
-                />
-                {r}
-              </label>
-            ))}
+          <Label className="text-xs">Work Regime (if required)</Label>
+          <div className="flex flex-col gap-2">
+            <label className="flex items-center gap-2 cursor-pointer text-sm">
+              <Checkbox checked={d.weekendDriving} onCheckedChange={c => set('weekendDriving')(!!c)} />
+              Open to weekend work shifts
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer text-sm">
+              <Checkbox checked={d.nightDriving} onCheckedChange={c => set('nightDriving')(!!c)} />
+              Open to evening work shifts
+            </label>
           </div>
         </div>
         <div className="space-y-1 md:col-span-2">

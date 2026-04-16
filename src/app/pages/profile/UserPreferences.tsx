@@ -34,14 +34,26 @@ export function UserPreferences() {
     systemUpdates: false,
   });
 
+  // Map common DB-stored values (e.g. legacy "en" / "UTC") onto the
+  // human-readable values our SelectItems use. Without this, the Select
+  // value won't match any item and the dropdown appears empty.
+  const LANGUAGE_ALIASES: Record<string, string> = {
+    en: 'English', ar: 'Arabic', pl: 'Polish', de: 'German', fr: 'French',
+    es: 'Spanish', it: 'Italian', ro: 'Romanian', uk: 'Ukrainian',
+  };
+  const normalizeLanguage = (v: any) => (typeof v === 'string' && LANGUAGE_ALIASES[v]) || v;
+  const normalizeTimeZone = (v: any) => (v === 'UTC' || !v ? 'UTC' : v);
+
   useEffect(() => {
     usersApi.me()
       .then((user: any) => {
         setForm(prev => ({
           ...prev,
-          preferredLanguage: user.preferredLanguage ?? prev.preferredLanguage,
-          timeZone: user.timeZone ?? prev.timeZone,
-          ...(user.notificationPreferences ?? {}),
+          preferredLanguage: normalizeLanguage(user.preferredLanguage) || prev.preferredLanguage,
+          timeZone: normalizeTimeZone(user.timeZone) || prev.timeZone,
+          // The DB column is `notificationPrefs` — keep both names so old
+          // payloads still work.
+          ...((user.notificationPrefs ?? user.notificationPreferences) ?? {}),
         }));
       })
       .catch(() => toast.error('Failed to load preferences'))
@@ -52,8 +64,23 @@ export function UserPreferences() {
     e.preventDefault();
     setSaving(true);
     try {
-      const { preferredLanguage, timeZone, ...notificationPreferences } = form;
-      await usersApi.updatePreferences({ preferredLanguage, timeZone, notificationPreferences });
+      const { preferredLanguage, timeZone, ...notificationPrefs } = form;
+      // Send the field as `notificationPrefs` (matches the DTO + DB column).
+      const updated: any = await usersApi.updatePreferences({
+        preferredLanguage,
+        timeZone,
+        notificationPrefs,
+      });
+      // Re-sync the form from the server response so the UI reflects what
+      // was actually persisted (instead of trusting local state).
+      if (updated) {
+        setForm(prev => ({
+          ...prev,
+          preferredLanguage: normalizeLanguage(updated.preferredLanguage) || prev.preferredLanguage,
+          timeZone: normalizeTimeZone(updated.timeZone) || prev.timeZone,
+          ...((updated.notificationPrefs ?? updated.notificationPreferences) ?? {}),
+        }));
+      }
       toast.success('Preferences saved successfully');
     } catch (err: any) {
       toast.error(err?.message || 'Failed to save preferences');

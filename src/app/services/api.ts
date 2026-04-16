@@ -360,6 +360,12 @@ export const applicantsApi = {
 export const publicApplicationApi = {
   getFormSettings: () => apiFetch<Record<string, any>>('/settings/public/form'),
 
+  /** Fetches active job categories without requiring auth (public endpoint). */
+  getJobCategories: () =>
+    fetch(`${API_URL}/settings/job-types`)
+      .then(res => res.ok ? res.json() : [])
+      .catch(() => []) as Promise<{ id: string; name: string }[]>,
+
   submit: (data: any) =>
     apiFetch<any>('/applicants/public/submit', {
       method: 'POST',

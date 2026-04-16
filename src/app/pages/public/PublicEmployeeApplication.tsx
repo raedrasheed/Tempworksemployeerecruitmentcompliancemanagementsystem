@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { Briefcase, ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { toast } from 'sonner';
-import { publicApplicationApi, settingsApi, publicJobAdsApi, BACKEND_URL } from '../../services/api';
+import { publicApplicationApi, publicJobAdsApi, BACKEND_URL } from '../../services/api';
 import { useBranding } from '../../hooks/useBranding';
 import { ApplicantFormSteps, EMPTY_FORM, getVisibleTabs, getStepErrors, StepIndicator, FormSettings, DEFAULT_FORM_SETTINGS, ApplicantFormData } from '../../components/applicants/ApplicantFormSteps';
 import { ReCaptchaV2 } from '../../components/ui/ReCaptchaV2';
@@ -34,13 +34,13 @@ export function PublicEmployeeApplication() {
 
   useEffect(() => {
     Promise.all([
-      settingsApi.getJobTypes().then((types: any[]) => {
+      publicApplicationApi.getJobCategories().then((types) => {
         setJobTypes(types);
         if (jobCategory) {
-          const match = types.find((t: any) => t.name === jobCategory);
+          const match = types.find((t) => t.name === jobCategory);
           if (match) setFormData(prev => ({ ...prev, jobTypeId: match.id }));
         }
-      }).catch(() => {}),
+      }),
       publicApplicationApi.getFormSettings().then((raw: any) => {
         if (!raw || typeof raw !== 'object') return;
         const parsed: Record<string, any> = {};

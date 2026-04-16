@@ -61,12 +61,14 @@ export function PublicEmployeeApplication() {
     ]);
   }, []);
 
-  // Fetch authoritative required documents directly from the job ad (avoids stale URL params)
+  // Fetch authoritative required documents directly from the job ad.
+  // Only override URL-param value when the API returns a non-empty list so that
+  // stale/empty DB data never silently clears validations already set via URL.
   useEffect(() => {
     if (!jobSlug) return;
     publicJobAdsApi.getBySlug(jobSlug)
       .then((job: any) => {
-        if (Array.isArray(job.requiredDocuments)) {
+        if (Array.isArray(job.requiredDocuments) && job.requiredDocuments.length > 0) {
           setRequiredDocs(job.requiredDocuments);
         }
       })
@@ -228,7 +230,13 @@ export function PublicEmployeeApplication() {
 
       <div className="bg-white border-b">
         <div className="max-w-5xl mx-auto px-6 py-5">
-          <StepIndicator currentStep={currentStep} visibleTabs={visibleTabs} onStepClick={(step) => { if (step === visibleTabs.length) setCaptchaToken(null); setCurrentStep(step); window.scrollTo({ top: 0, behavior: 'smooth' }); }} />
+          <StepIndicator currentStep={currentStep} visibleTabs={visibleTabs} onStepClick={(step) => {
+            // Only allow navigating back to a completed step — never skip forward past validation
+            if (step >= currentStep) return;
+            if (step === visibleTabs.length) setCaptchaToken(null);
+            setCurrentStep(step);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }} />
         </div>
       </div>
 

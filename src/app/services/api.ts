@@ -184,8 +184,11 @@ export const authApi = {
       body: JSON.stringify({ currentPassword, newPassword }),
     }),
 
-  forgotPassword: (email: string) =>
-    apiFetch<void>('/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) }),
+  forgotPassword: (email: string, recaptchaToken?: string) =>
+    apiFetch<void>('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email, recaptchaToken }),
+    }),
 
   resetPassword: (token: string, newPassword: string) =>
     apiFetch<void>('/auth/reset-password', { method: 'POST', body: JSON.stringify({ token, newPassword }) }),

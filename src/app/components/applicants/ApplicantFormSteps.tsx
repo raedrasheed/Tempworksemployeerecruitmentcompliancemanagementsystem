@@ -1788,14 +1788,21 @@ function Step7WorkHistory({ d, u, uploadedFiles, onFilesChange }: { d: Applicant
               <Label className="text-xs">Company Phone *</Label>
               <div className="flex gap-2">
                 <Select value={entry.companyPhoneCode} onValueChange={v => updateEntry(entry.id, 'companyPhoneCode', v)}>
-                  <SelectTrigger className="w-[110px]">
-                    <SelectValue />
+                  <SelectTrigger className="w-36 shrink-0">
+                    {entry.companyPhoneCode
+                      ? <span className="text-sm flex items-center gap-1.5">
+                          <img src={`https://flagcdn.com/w20/${(PHONE_CODES.find(p => p.code === entry.companyPhoneCode)?.iso ?? 'un').toLowerCase()}.png`} width={20} height={15} alt="" className="inline-block rounded-sm" />
+                          {entry.companyPhoneCode}
+                        </span>
+                      : <span className="text-sm text-muted-foreground">Code</span>}
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="max-h-72">
                     {PHONE_CODES.map(pc => (
-                      <SelectItem key={`${pc.iso}-${pc.code}`} value={pc.code}>
-                        <img src={`https://flagcdn.com/16x12/${pc.iso.toLowerCase()}.png`} alt={pc.iso} className="inline w-4 h-3 mr-1" />
-                        {pc.code}
+                      <SelectItem key={`${pc.label}-${pc.code}`} value={pc.code}>
+                        <span className="flex items-center gap-2">
+                          <img src={`https://flagcdn.com/w20/${pc.iso.toLowerCase()}.png`} width={20} height={15} alt={pc.iso} className="inline-block rounded-sm" />
+                          <span>{pc.label} ({pc.code})</span>
+                        </span>
                       </SelectItem>
                     ))}
                   </SelectContent>

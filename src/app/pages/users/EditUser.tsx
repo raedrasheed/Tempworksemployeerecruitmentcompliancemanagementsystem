@@ -8,6 +8,8 @@ import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Badge } from '../../components/ui/badge';
+import { CountrySelect } from '../../components/ui/CountrySelect';
+import { PhoneInput } from '../../components/ui/PhoneInput';
 import { toast } from 'sonner';
 import { usersApi, rolesApi, agenciesApi, authApi, getCurrentUser, BACKEND_URL } from '../../services/api';
 
@@ -523,12 +525,20 @@ export function EditUser() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="citizenship">Citizenship</Label>
-                  <Input id="citizenship" placeholder="e.g. British" value={form.citizenship} onChange={handleChange} />
+                  <Label>Citizenship</Label>
+                  <CountrySelect
+                    value={form.citizenship}
+                    onChange={(v) => handleSelect('citizenship', v)}
+                    placeholder="Select country of citizenship"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="phone">Phone</Label>
-                  <Input id="phone" type="tel" value={form.phone} onChange={handleChange} />
+                  <PhoneInput
+                    id="phone"
+                    value={form.phone}
+                    onChange={(v) => handleSelect('phone', v)}
+                  />
                 </div>
               </div>
             </CardContent>
@@ -554,8 +564,11 @@ export function EditUser() {
                   <Input id="city" placeholder="City" value={form.city} onChange={handleChange} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="country">Country</Label>
-                  <Input id="country" placeholder="Country" value={form.country} onChange={handleChange} />
+                  <Label>Country</Label>
+                  <CountrySelect
+                    value={form.country}
+                    onChange={(v) => handleSelect('country', v)}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="postalCode">Postal Code</Label>

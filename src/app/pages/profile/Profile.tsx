@@ -10,6 +10,8 @@ import { Progress } from '../../components/ui/progress';
 import { Switch } from '../../components/ui/switch';
 import { Separator } from '../../components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { CountrySelect } from '../../components/ui/CountrySelect';
+import { PhoneInput } from '../../components/ui/PhoneInput';
 import { usersApi, authApi, BACKEND_URL } from '../../services/api';
 import { toast } from 'sonner';
 
@@ -281,12 +283,14 @@ export function Profile() {
 
                 <div className="space-y-2">
                   <Label>Phone Number</Label>
-                  <Input
-                    value={isEditing ? editForm.phone : (userData?.phone || '')}
-                    onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
-                    disabled={!isEditing}
-                    placeholder={isEditing ? 'e.g. +44 20 7123 4567' : '—'}
-                  />
+                  {isEditing ? (
+                    <PhoneInput
+                      value={editForm.phone}
+                      onChange={(v) => setEditForm({ ...editForm, phone: v })}
+                    />
+                  ) : (
+                    <Input value={userData?.phone || ''} disabled placeholder="—" />
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -369,11 +373,14 @@ export function Profile() {
                   </div>
                   <div className="space-y-2">
                     <Label>Country</Label>
-                    <Input
-                      value={isEditing ? editForm.country : (userData?.country || '—')}
-                      onChange={(e) => setEditForm({ ...editForm, country: e.target.value })}
-                      disabled={!isEditing}
-                    />
+                    {isEditing ? (
+                      <CountrySelect
+                        value={editForm.country}
+                        onChange={(v) => setEditForm({ ...editForm, country: v })}
+                      />
+                    ) : (
+                      <Input value={userData?.country || '—'} disabled />
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label>Postal Code</Label>

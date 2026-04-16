@@ -100,6 +100,7 @@ import { PublicEmployeeApplication } from './pages/public/PublicEmployeeApplicat
 import { ApplicationSuccess } from './pages/public/ApplicationSuccess';
 import { JobListings } from './pages/public/JobListings';
 import { JobDetail } from './pages/public/JobDetail';
+import { DataProcessingAgreement } from './pages/public/DataProcessingAgreement';
 
 // Attendance pages
 import { AttendanceList } from './pages/attendance/AttendanceList';
@@ -123,6 +124,7 @@ export const router = createBrowserRouter([
   { path: '/application-success', Component: ApplicationSuccess },
   { path: '/jobs', Component: JobListings },
   { path: '/jobs/:slug', Component: JobDetail },
+  { path: '/data-processing-agreement', Component: DataProcessingAgreement },
   
   // Protected routes (with MainLayout)
   {

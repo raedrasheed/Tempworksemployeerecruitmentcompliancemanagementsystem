@@ -77,7 +77,7 @@ export function PublicEmployeeApplication() {
       toast.error('A photo is required. Please go back to the Personal tab and upload your photo.');
       return;
     }
-    if (!formData.declarationAccepted || !formData.agreeDataProcessing || !formData.agreeBackground) {
+    if (!formData.declarationAccepted || !formData.agreeDataProcessing || !formData.agreeBackground || !formData.agreeDataSharing) {
       toast.error('You must agree to all statements in the Review tab before submitting.');
       return;
     }

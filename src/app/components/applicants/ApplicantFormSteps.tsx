@@ -224,6 +224,7 @@ export interface ApplicantFormData {
   declarationAccepted: boolean;
   agreeDataProcessing: boolean;
   agreeBackground: boolean;
+  agreeDataSharing: boolean;
   livedAbroadRecently: string;
   abroadCountry: string;
   abroadAddress: AddressData;
@@ -342,6 +343,7 @@ export const EMPTY_FORM: ApplicantFormData = {
   declarationAccepted: false,
   agreeDataProcessing: false,
   agreeBackground: false,
+  agreeDataSharing: false,
   livedAbroadRecently: '',
   abroadCountry: '',
   abroadAddress: { ...EMPTY_ADDRESS },
@@ -2306,10 +2308,21 @@ function Step11Review({ d, u, settings, photoFile, existingPhotoUrl, uploadedFil
   const set = (field: keyof ApplicantFormData) => (value: any) => u(prev => ({ ...prev, [field]: value }));
   const previewUrl = photoFile ? URL.createObjectURL(photoFile) : existingPhotoUrl ?? null;
 
-  const STATEMENTS: { field: 'declarationAccepted' | 'agreeDataProcessing' | 'agreeBackground'; text: string }[] = [
-    { field: 'declarationAccepted', text: 'I confirm that all information provided in this application is true, complete and accurate to the best of my knowledge.' },
-    { field: 'agreeDataProcessing', text: 'I consent to the collection and processing of my personal data for recruitment and employment compliance purposes in accordance with applicable data protection legislation.' },
-    { field: 'agreeBackground', text: 'I understand that providing false, misleading or incomplete information may result in my application being rejected or, if employed, in immediate dismissal.' },
+  const STATEMENTS: { field: 'declarationAccepted' | 'agreeDataProcessing' | 'agreeBackground' | 'agreeDataSharing'; label: ReactNode }[] = [
+    { field: 'declarationAccepted', label: 'I confirm that all information provided in this application is true, complete and accurate to the best of my knowledge.' },
+    {
+      field: 'agreeDataProcessing',
+      label: (
+        <span>
+          I consent to the collection and processing of my personal data for recruitment and employment compliance purposes in accordance with applicable data protection legislation.{' '}
+          <a href="/data-processing-agreement" target="_blank" rel="noopener noreferrer" className="underline text-blue-700 hover:text-blue-900" onClick={e => e.stopPropagation()}>
+            Read the full agreement
+          </a>
+        </span>
+      ),
+    },
+    { field: 'agreeBackground', label: 'I understand that providing false, misleading or incomplete information may result in my application being rejected or, if employed, in immediate dismissal.' },
+    { field: 'agreeDataSharing', label: 'I agree to provide my data and profile to other agencies, partners, or customers of the employer or the purposes of their selection process.' },
   ];
 
   return (
@@ -2504,10 +2517,10 @@ function Step11Review({ d, u, settings, photoFile, existingPhotoUrl, uploadedFil
           <p className="text-sm text-amber-800 leading-relaxed border-l-4 border-amber-300 pl-3">{settings.declarationText}</p>
         )}
         <div className="space-y-3">
-          {STATEMENTS.map(({ field, text }) => (
+          {STATEMENTS.map(({ field, label }) => (
             <label key={field} className={`flex items-start gap-3 cursor-pointer p-3 rounded-lg border transition-colors ${d[field] ? 'bg-green-50 border-green-300' : 'bg-white border-amber-200 hover:border-amber-400'}`}>
               <Checkbox checked={d[field] as boolean} onCheckedChange={c => set(field)(!!c)} className="mt-0.5 shrink-0" />
-              <span className="text-sm text-gray-800 leading-relaxed">{text}</span>
+              <span className="text-sm text-gray-800 leading-relaxed">{label}</span>
             </label>
           ))}
         </div>

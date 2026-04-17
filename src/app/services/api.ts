@@ -68,6 +68,39 @@ export interface ApiError {
 let isRefreshing = false;
 let refreshPromise: Promise<void> | null = null;
 
+/** Decode the JWT `exp` claim (seconds since epoch). Returns 0 if unknown. */
+function getTokenExpiryMs(token: string | null): number {
+  if (!token) return 0;
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return typeof payload?.exp === 'number' ? payload.exp * 1000 : 0;
+  } catch {
+    return 0;
+  }
+}
+
+/** Pre-emptively refresh if the access token expires within 30 seconds.
+ *  This stops every authenticated poll (e.g. /notifications/unread-count)
+ *  from first hitting the server with an expired token, getting logged as
+ *  a 401, refreshing, and retrying.
+ */
+async function ensureFreshAccessToken(): Promise<void> {
+  const token = getAccessToken();
+  if (!token) return;
+  const expMs = getTokenExpiryMs(token);
+  if (!expMs) return;                       // Opaque token; skip
+  if (expMs - Date.now() > 30_000) return;  // Still has > 30s of life
+
+  if (!localStorage.getItem('refresh_token')) return; // No refresh token available
+  if (!isRefreshing) {
+    isRefreshing = true;
+    refreshPromise = refreshAccessToken()
+      .catch(() => { /* 401-on-refresh already redirects to /login */ })
+      .finally(() => { isRefreshing = false; refreshPromise = null; });
+  }
+  await refreshPromise;
+}
+
 async function refreshAccessToken(): Promise<void> {
   const refreshToken = localStorage.getItem('refresh_token');
   if (!refreshToken) throw new Error('No refresh token');
@@ -93,6 +126,12 @@ export async function apiFetch<T = any>(
   options: RequestInit = {},
   isRetry = false,
 ): Promise<T> {
+  // Skip preemptive refresh for auth routes (login/refresh) so we don't
+  // spin on endpoints that don't need the access token.
+  if (!path.startsWith('/auth/refresh') && !path.startsWith('/auth/login')) {
+    await ensureFreshAccessToken();
+  }
+
   const token = getAccessToken();
 
   const headers: Record<string, string> = {

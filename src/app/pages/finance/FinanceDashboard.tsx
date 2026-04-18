@@ -4,21 +4,22 @@
  * Accessible to: System Admin, HR Manager, Finance roles.
  *
  * Shows all financial records across all Candidates and Employees with:
- *   - Filters: entity type, status, transaction type, currency, date range, search
- *   - Sortable columns
+ *   - Filters: entity type, status, transaction type, currency, date range, search, amount range, paid by
+ *   - Sortable columns (every column)
+ *   - Column visibility toggle (persisted to localStorage)
  *   - Running totals at the top
  *   - Excel export
  *   - Row click → navigate to the person's profile
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Link, useNavigate } from 'react-router';
 import {
   Download, Search, Filter, X, TrendingUp, TrendingDown,
   Wallet, DollarSign, ChevronUp, ChevronDown, RefreshCw,
-  CheckCircle, Clock, ExternalLink,
+  CheckCircle, Clock, ExternalLink, Columns2, Check,
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Input } from '../../components/ui/input';
@@ -43,6 +44,58 @@ function fmtDate(date: string) {
   return new Date(date).toLocaleDateString('en-IE', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
+// ─── Column visibility ────────────────────────────────────────────────────────
+
+type ColKey =
+  | 'date' | 'person' | 'paidBy' | 'type' | 'description'
+  | 'disbursed' | 'empAgency' | 'deducted' | 'currency' | 'status'
+  | 'payrollRef' | 'createdAt';
+
+const ALL_COLUMNS: { key: ColKey; label: string }[] = [
+  { key: 'date',        label: 'Date' },
+  { key: 'person',      label: 'Person' },
+  { key: 'paidBy',      label: 'Paid By' },
+  { key: 'type',        label: 'Type' },
+  { key: 'description', label: 'Description' },
+  { key: 'disbursed',   label: 'Credit (↑)' },
+  { key: 'empAgency',   label: 'Emp/Agency' },
+  { key: 'deducted',    label: 'Debit (↓)' },
+  { key: 'currency',    label: 'Currency' },
+  { key: 'status',      label: 'Status' },
+  { key: 'payrollRef',  label: 'Payroll Ref' },
+  { key: 'createdAt',   label: 'Created' },
+];
+
+const DEFAULT_VISIBLE: Record<ColKey, boolean> = {
+  date: true, person: true, paidBy: true, type: true, description: true,
+  disbursed: true, empAgency: true, deducted: true, status: true,
+  currency: false, payrollRef: false, createdAt: false,
+};
+
+const STORAGE_KEY = 'finance-dashboard-columns';
+
+function loadVisibleColumns(): Record<ColKey, boolean> {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return saved ? { ...DEFAULT_VISIBLE, ...JSON.parse(saved) } : DEFAULT_VISIBLE;
+  } catch {
+    return DEFAULT_VISIBLE;
+  }
+}
+
+// ─── Sorting ──────────────────────────────────────────────────────────────────
+
+type SortField =
+  | 'transactionDate' | 'person' | 'paidBy' | 'transactionType' | 'description'
+  | 'companyDisbursedAmount' | 'employeeOrAgencyPaidAmount' | 'deductionAmount'
+  | 'currency' | 'status' | 'payrollReference' | 'createdAt';
+
+// Fields the server supports directly (sent via sortBy param)
+const SERVER_SORT_FIELDS: SortField[] = [
+  'transactionDate', 'companyDisbursedAmount', 'deductionAmount',
+  'employeeOrAgencyPaidAmount', 'transactionType', 'status', 'createdAt',
+];
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 const DEFAULT_FILTERS = {
@@ -53,7 +106,10 @@ const DEFAULT_FILTERS = {
   dateFrom: '',
   dateTo: '',
   search: '',
-  sortBy: 'transactionDate',
+  paidByFilter: '',
+  minAmount: '',
+  maxAmount: '',
+  sortBy: 'transactionDate' as SortField,
   sortOrder: 'desc' as 'asc' | 'desc',
   page: 1,
   limit: 50,
@@ -63,9 +119,7 @@ export function FinanceDashboard() {
   const navigate = useNavigate();
   const currentUser = getCurrentUser();
 
-  // Access guard — matches backend FINANCE_READ_ROLES
   const allowed = ['System Admin', 'HR Manager', 'Finance', 'Recruiter'].includes(currentUser?.role ?? '');
-  // Export guard — matches backend FINANCE_EXPORT_ROLES (Recruiter cannot export)
   const canExport = ['System Admin', 'HR Manager', 'Finance'].includes(currentUser?.role ?? '');
 
   const [records, setRecords] = useState<any[]>([]);
@@ -76,8 +130,35 @@ export function FinanceDashboard() {
   const [showFilters, setShowFilters] = useState(false);
   const [exporting, setExporting] = useState(false);
 
-  // Aggregate totals across the current filtered set
   const [totals, setTotals] = useState({ disbursed: 0, deducted: 0, balance: 0, empAgency: 0 });
+
+  // Column visibility
+  const [visibleColumns, setVisibleColumns] = useState<Record<ColKey, boolean>>(loadVisibleColumns);
+  const [showColPicker,  setShowColPicker]  = useState(false);
+  const colPickerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showColPicker) return;
+    const handler = (e: MouseEvent) => {
+      if (colPickerRef.current && !colPickerRef.current.contains(e.target as Node)) {
+        setShowColPicker(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showColPicker]);
+
+  const toggleColumn = (key: ColKey) => {
+    setVisibleColumns(prev => {
+      const next = { ...prev, [key]: !prev[key] };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const col = (key: ColKey) => visibleColumns[key];
+  const hiddenCount  = ALL_COLUMNS.filter(c => !visibleColumns[c.key]).length;
+  const visibleCount = ALL_COLUMNS.filter(c =>  visibleColumns[c.key]).length;
 
   const load = useCallback(async () => {
     if (!allowed) return;
@@ -91,8 +172,13 @@ export function FinanceDashboard() {
       if (filters.dateFrom) params.dateFrom = filters.dateFrom;
       if (filters.dateTo) params.dateTo = filters.dateTo;
       if (filters.search) params.search = filters.search;
-      params.sortBy = filters.sortBy;
-      params.sortOrder = filters.sortOrder;
+      if (SERVER_SORT_FIELDS.includes(filters.sortBy)) {
+        params.sortBy = filters.sortBy;
+        params.sortOrder = filters.sortOrder;
+      } else {
+        params.sortBy = 'transactionDate';
+        params.sortOrder = 'desc';
+      }
       params.page = filters.page;
       params.limit = filters.limit;
 
@@ -101,7 +187,6 @@ export function FinanceDashboard() {
       setRecords(items);
       setMeta((res as any)?.meta ?? null);
 
-      // Compute totals from current page
       const d = items.reduce((a, r) => a + Number(r.companyDisbursedAmount ?? 0), 0);
       const ded = items.reduce((a, r) => a + Number(r.deductionAmount ?? 0), 0);
       const emp = items.reduce((a, r) => a + Number(r.employeeOrAgencyPaidAmount ?? 0), 0);
@@ -124,11 +209,11 @@ export function FinanceDashboard() {
 
   const resetFilters = () => setFilters({ ...DEFAULT_FILTERS });
 
-  const handleSort = (col: string) => {
+  const handleSort = (field: SortField) => {
     setFilters(f => ({
       ...f,
-      sortBy: col,
-      sortOrder: f.sortBy === col && f.sortOrder === 'asc' ? 'desc' : 'asc',
+      sortBy: field,
+      sortOrder: f.sortBy === field && f.sortOrder === 'asc' ? 'desc' : 'asc',
       page: 1,
     }));
   };
@@ -168,6 +253,63 @@ export function FinanceDashboard() {
     }
   };
 
+  // Client-side filter & sort of the current page
+  const displayRecords = useMemo(() => {
+    let data = records;
+
+    if (filters.paidByFilter) {
+      const q = filters.paidByFilter.toLowerCase();
+      data = data.filter(r => {
+        const name = r.paidByName ?? (r.paidByUser
+          ? `${r.paidByUser.firstName ?? ''} ${r.paidByUser.lastName ?? ''}`
+          : '');
+        return name.toLowerCase().includes(q);
+      });
+    }
+    if (filters.minAmount) {
+      const n = Number(filters.minAmount);
+      data = data.filter(r => Number(r.companyDisbursedAmount ?? 0) >= n);
+    }
+    if (filters.maxAmount) {
+      const n = Number(filters.maxAmount);
+      data = data.filter(r => Number(r.companyDisbursedAmount ?? 0) <= n);
+    }
+
+    if (!SERVER_SORT_FIELDS.includes(filters.sortBy)) {
+      data = [...data].sort((a, b) => {
+        let aVal: any = '', bVal: any = '';
+        switch (filters.sortBy) {
+          case 'person':
+            aVal = (a.entityName ?? '').toLowerCase();
+            bVal = (b.entityName ?? '').toLowerCase();
+            break;
+          case 'paidBy':
+            aVal = (a.paidByName ?? (a.paidByUser ? `${a.paidByUser.firstName ?? ''} ${a.paidByUser.lastName ?? ''}` : '')).toLowerCase();
+            bVal = (b.paidByName ?? (b.paidByUser ? `${b.paidByUser.firstName ?? ''} ${b.paidByUser.lastName ?? ''}` : '')).toLowerCase();
+            break;
+          case 'description':
+            aVal = (a.description ?? '').toLowerCase();
+            bVal = (b.description ?? '').toLowerCase();
+            break;
+          case 'currency':
+            aVal = (a.currency ?? '').toLowerCase();
+            bVal = (b.currency ?? '').toLowerCase();
+            break;
+          case 'payrollReference':
+            aVal = (a.payrollReference ?? '').toLowerCase();
+            bVal = (b.payrollReference ?? '').toLowerCase();
+            break;
+        }
+        const cmp = aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+        return filters.sortOrder === 'asc' ? cmp : -cmp;
+      });
+    }
+
+    return data;
+  }, [records, filters.paidByFilter, filters.minAmount, filters.maxAmount, filters.sortBy, filters.sortOrder]);
+
+  const hasExtraFilters = !!(filters.paidByFilter || filters.minAmount || filters.maxAmount);
+
   // ── Render ──────────────────────────────────────────────────────────────────
 
   if (!allowed) {
@@ -180,6 +322,31 @@ export function FinanceDashboard() {
       </div>
     );
   }
+
+  const SortHead = ({
+    label, field, align = 'left', className = '',
+  }: {
+    label: string; field: SortField; align?: 'left' | 'right' | 'center'; className?: string;
+  }) => {
+    const active = filters.sortBy === field;
+    return (
+      <th
+        className={`px-4 py-3 font-medium text-muted-foreground whitespace-nowrap cursor-pointer select-none hover:text-foreground ${className} text-${align}`}
+        onClick={() => handleSort(field)}
+      >
+        <span className={`inline-flex items-center gap-1 ${align === 'right' ? 'justify-end' : ''}`}>
+          {label}
+          {active ? (
+            filters.sortOrder === 'asc'
+              ? <ChevronUp className="w-3 h-3" />
+              : <ChevronDown className="w-3 h-3" />
+          ) : (
+            <ChevronDown className="w-3 h-3 opacity-30" />
+          )}
+        </span>
+      </th>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -200,6 +367,60 @@ export function FinanceDashboard() {
           <Button variant="outline" size="sm" onClick={() => setShowFilters(v => !v)}>
             <Filter className="w-4 h-4 mr-1" />{showFilters ? 'Hide Filters' : 'Filters'}
           </Button>
+
+          {/* Column picker */}
+          <div className="relative" ref={colPickerRef}>
+            <Button
+              variant="outline" size="sm"
+              onClick={() => setShowColPicker(v => !v)}
+              className={showColPicker ? 'border-primary text-primary' : ''}
+            >
+              <Columns2 className="w-4 h-4 mr-1" />Columns
+              {hiddenCount > 0 && (
+                <span className="ml-1.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
+                  {hiddenCount}
+                </span>
+              )}
+            </Button>
+            {showColPicker && (
+              <div className="absolute right-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[200px]">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">Toggle columns</p>
+                <div className="space-y-0.5 max-h-72 overflow-y-auto">
+                  {ALL_COLUMNS.map(c => (
+                    <button
+                      key={c.key}
+                      onClick={() => toggleColumn(c.key)}
+                      className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-gray-50 text-sm text-left"
+                    >
+                      <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${visibleColumns[c.key] ? 'bg-primary border-primary' : 'border-gray-300'}`}>
+                        {visibleColumns[c.key] && <Check className="w-2.5 h-2.5 text-primary-foreground" />}
+                      </span>
+                      {c.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="border-t mt-2 pt-2 flex gap-1.5">
+                  <button
+                    onClick={() => {
+                      const all = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, true])) as Record<ColKey, boolean>;
+                      setVisibleColumns(all);
+                      localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
+                    }}
+                    className="flex-1 text-xs text-center text-primary hover:underline py-0.5"
+                  >Show all</button>
+                  <span className="text-gray-300">|</span>
+                  <button
+                    onClick={() => {
+                      setVisibleColumns(DEFAULT_VISIBLE);
+                      localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_VISIBLE));
+                    }}
+                    className="flex-1 text-xs text-center text-gray-500 hover:underline py-0.5"
+                  >Reset</button>
+                </div>
+              </div>
+            )}
+          </div>
+
           {canExport && (
             <Button size="sm" onClick={handleExport} disabled={exporting}>
               <Download className="w-4 h-4 mr-1" />{exporting ? 'Exporting…' : 'Export Excel'}
@@ -271,9 +492,8 @@ export function FinanceDashboard() {
       {/* Filters panel */}
       {showFilters && (
         <Card>
-          <CardContent className="pt-4 pb-4">
+          <CardContent className="pt-4 pb-4 space-y-3">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-              {/* Search */}
               <div className="space-y-1 md:col-span-2">
                 <Label className="text-xs">Search</Label>
                 <div className="relative">
@@ -286,7 +506,6 @@ export function FinanceDashboard() {
                   />
                 </div>
               </div>
-              {/* Entity type */}
               <div className="space-y-1">
                 <Label className="text-xs">Person Type</Label>
                 <Select value={filters.entityType || '__all__'} onValueChange={v => setFilter('entityType', v === '__all__' ? '' : v)}>
@@ -298,7 +517,6 @@ export function FinanceDashboard() {
                   </SelectContent>
                 </Select>
               </div>
-              {/* Status */}
               <div className="space-y-1">
                 <Label className="text-xs">Status</Label>
                 <Select value={filters.status || '__all__'} onValueChange={v => setFilter('status', v === '__all__' ? '' : v)}>
@@ -310,7 +528,6 @@ export function FinanceDashboard() {
                   </SelectContent>
                 </Select>
               </div>
-              {/* Transaction type */}
               <div className="space-y-1">
                 <Label className="text-xs">Transaction Type</Label>
                 <Select value={filters.transactionType || '__all__'} onValueChange={v => setFilter('transactionType', v === '__all__' ? '' : v)}>
@@ -323,7 +540,6 @@ export function FinanceDashboard() {
                   </SelectContent>
                 </Select>
               </div>
-              {/* Currency */}
               <div className="space-y-1">
                 <Label className="text-xs">Currency</Label>
                 <Select value={filters.currency || '__all__'} onValueChange={v => setFilter('currency', v === '__all__' ? '' : v)}>
@@ -336,7 +552,6 @@ export function FinanceDashboard() {
                   </SelectContent>
                 </Select>
               </div>
-              {/* Date from */}
               <div className="space-y-1">
                 <Label className="text-xs">Date From</Label>
                 <Input
@@ -345,7 +560,6 @@ export function FinanceDashboard() {
                   onChange={e => setFilter('dateFrom', e.target.value)}
                 />
               </div>
-              {/* Date to */}
               <div className="space-y-1">
                 <Label className="text-xs">Date To</Label>
                 <Input
@@ -355,7 +569,39 @@ export function FinanceDashboard() {
                 />
               </div>
             </div>
-            <div className="flex justify-end mt-3">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Paid By</Label>
+                <Input
+                  placeholder="Name contains…"
+                  value={filters.paidByFilter}
+                  onChange={e => setFilter('paidByFilter', e.target.value)}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Min Disbursed</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  placeholder="0.00"
+                  value={filters.minAmount}
+                  onChange={e => setFilter('minAmount', e.target.value)}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Max Disbursed</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  placeholder="0.00"
+                  value={filters.maxAmount}
+                  onChange={e => setFilter('maxAmount', e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="flex justify-end">
               <Button size="sm" variant="ghost" onClick={resetFilters} className="text-muted-foreground">
                 <X className="w-4 h-4 mr-1" />Clear Filters
               </Button>
@@ -364,12 +610,23 @@ export function FinanceDashboard() {
         </Card>
       )}
 
+      {/* Inline extra-filters banner when filter panel is hidden */}
+      {!showFilters && hasExtraFilters && (
+        <div className="text-xs text-muted-foreground flex items-center gap-2">
+          <Filter className="w-3 h-3" />
+          <span>Extra client-side filters active</span>
+          <Button size="sm" variant="ghost" className="h-6 text-xs" onClick={() => setFilters(f => ({ ...f, paidByFilter: '', minAmount: '', maxAmount: '' }))}>
+            <X className="w-3 h-3 mr-1" />Clear
+          </Button>
+        </div>
+      )}
+
       {/* Records table */}
       <Card>
         <CardContent className="p-0">
           {loading ? (
             <div className="py-12 text-center text-muted-foreground">Loading…</div>
-          ) : records.length === 0 ? (
+          ) : displayRecords.length === 0 ? (
             <div className="py-12 text-center text-muted-foreground">
               <Wallet className="w-10 h-10 mx-auto mb-3 opacity-30" />
               <p>No financial records found matching the current filters.</p>
@@ -379,75 +636,107 @@ export function FinanceDashboard() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/40">
-                    <SortHead col="transactionDate" label="Date" sort={filters} onSort={handleSort} />
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Person</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden md:table-cell">Paid By</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Type</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden md:table-cell">Description</th>
-                    <SortHead col="companyDisbursedAmount" label="Credit (↑)" sort={filters} onSort={handleSort} align="right" className="text-blue-600" />
-                    <th className="text-right px-4 py-3 font-medium text-slate-500 whitespace-nowrap hidden lg:table-cell">Emp/Agency</th>
-                    <th className="text-right px-4 py-3 font-medium text-amber-600 whitespace-nowrap">Debit (↓)</th>
-                    <th className="text-center px-4 py-3 font-medium text-muted-foreground">Status</th>
+                    {col('date')        && <SortHead label="Date"        field="transactionDate" />}
+                    {col('person')      && <SortHead label="Person"      field="person" />}
+                    {col('paidBy')      && <SortHead label="Paid By"     field="paidBy" />}
+                    {col('type')        && <SortHead label="Type"        field="transactionType" />}
+                    {col('description') && <SortHead label="Description" field="description" />}
+                    {col('disbursed')   && <SortHead label="Credit (↑)"  field="companyDisbursedAmount" align="right" className="text-blue-600" />}
+                    {col('empAgency')   && <SortHead label="Emp/Agency"  field="employeeOrAgencyPaidAmount" align="right" className="text-slate-500" />}
+                    {col('deducted')    && <SortHead label="Debit (↓)"   field="deductionAmount" align="right" className="text-amber-600" />}
+                    {col('currency')    && <SortHead label="Currency"    field="currency" />}
+                    {col('status')      && <SortHead label="Status"      field="status" align="center" />}
+                    {col('payrollRef')  && <SortHead label="Payroll Ref" field="payrollReference" />}
+                    {col('createdAt')   && <SortHead label="Created"     field="createdAt" />}
                     <th className="text-right px-4 py-3 font-medium text-muted-foreground">Profile</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {records.map((rec: any) => (
+                  {displayRecords.map((rec: any) => (
                     <tr
                       key={rec.id}
                       className="border-b hover:bg-muted/20 transition-colors"
                     >
-                      <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{fmtDate(rec.transactionDate)}</td>
-                      <td className="px-4 py-3">
-                        <div className="font-medium text-sm">
-                          {rec.entityName
-                            ? rec.entityName
-                            : <span className="text-muted-foreground italic">—</span>}
-                        </div>
-                        <Badge
-                          variant="outline"
-                          className={`text-xs mt-0.5 ${rec.entityType === 'EMPLOYEE'
-                            ? 'bg-purple-50 text-purple-700 border-purple-200'
-                            : 'bg-blue-50 text-blue-700 border-blue-200'}`}
-                        >
-                          {rec.entityType === 'EMPLOYEE' ? 'Employee' : 'Candidate'}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap hidden md:table-cell">
-                        {rec.paidByName
-                          ? rec.paidByName
-                          : rec.paidByUser
-                          ? `${rec.paidByUser.firstName} ${rec.paidByUser.lastName}`
-                          : <span className="italic">—</span>}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap font-medium">{rec.transactionType}</td>
-                      <td className="px-4 py-3 max-w-[180px] truncate text-muted-foreground hidden md:table-cell">
-                        {rec.description || '—'}
-                      </td>
-                      <td className="px-4 py-3 text-right font-semibold text-blue-700 whitespace-nowrap">
-                        {fmt(rec.companyDisbursedAmount, rec.currency)}
-                      </td>
-                      <td className="px-4 py-3 text-right text-slate-500 text-xs whitespace-nowrap hidden lg:table-cell">
-                        {Number(rec.employeeOrAgencyPaidAmount) > 0
-                          ? fmt(rec.employeeOrAgencyPaidAmount, rec.currency)
-                          : '—'}
-                      </td>
-                      <td className="px-4 py-3 text-right font-semibold text-amber-700 whitespace-nowrap">
-                        {rec.deductionAmount != null && Number(rec.deductionAmount) > 0
-                          ? fmt(rec.deductionAmount, rec.currency)
-                          : <span className="text-muted-foreground font-normal">—</span>}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {rec.status === 'DEDUCTED' ? (
-                          <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-xs">
-                            <CheckCircle className="w-3 h-3 mr-1" />Deducted
+                      {col('date') && (
+                        <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{fmtDate(rec.transactionDate)}</td>
+                      )}
+                      {col('person') && (
+                        <td className="px-4 py-3">
+                          <div className="font-medium text-sm">
+                            {rec.entityName
+                              ? rec.entityName
+                              : <span className="text-muted-foreground italic">—</span>}
+                          </div>
+                          <Badge
+                            variant="outline"
+                            className={`text-xs mt-0.5 ${rec.entityType === 'EMPLOYEE'
+                              ? 'bg-purple-50 text-purple-700 border-purple-200'
+                              : 'bg-blue-50 text-blue-700 border-blue-200'}`}
+                          >
+                            {rec.entityType === 'EMPLOYEE' ? 'Employee' : 'Candidate'}
                           </Badge>
-                        ) : (
-                          <Badge className="bg-amber-50 text-amber-700 border-amber-200 text-xs">
-                            <Clock className="w-3 h-3 mr-1" />Pending
-                          </Badge>
-                        )}
-                      </td>
+                        </td>
+                      )}
+                      {col('paidBy') && (
+                        <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">
+                          {rec.paidByName
+                            ? rec.paidByName
+                            : rec.paidByUser
+                            ? `${rec.paidByUser.firstName} ${rec.paidByUser.lastName}`
+                            : <span className="italic">—</span>}
+                        </td>
+                      )}
+                      {col('type') && (
+                        <td className="px-4 py-3 whitespace-nowrap font-medium">{rec.transactionType}</td>
+                      )}
+                      {col('description') && (
+                        <td className="px-4 py-3 max-w-[180px] truncate text-muted-foreground" title={rec.description}>
+                          {rec.description || '—'}
+                        </td>
+                      )}
+                      {col('disbursed') && (
+                        <td className="px-4 py-3 text-right font-semibold text-blue-700 whitespace-nowrap">
+                          {fmt(rec.companyDisbursedAmount, rec.currency)}
+                        </td>
+                      )}
+                      {col('empAgency') && (
+                        <td className="px-4 py-3 text-right text-slate-500 text-xs whitespace-nowrap">
+                          {Number(rec.employeeOrAgencyPaidAmount) > 0
+                            ? fmt(rec.employeeOrAgencyPaidAmount, rec.currency)
+                            : '—'}
+                        </td>
+                      )}
+                      {col('deducted') && (
+                        <td className="px-4 py-3 text-right font-semibold text-amber-700 whitespace-nowrap">
+                          {rec.deductionAmount != null && Number(rec.deductionAmount) > 0
+                            ? fmt(rec.deductionAmount, rec.currency)
+                            : <span className="text-muted-foreground font-normal">—</span>}
+                        </td>
+                      )}
+                      {col('currency') && (
+                        <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">{rec.currency ?? '—'}</td>
+                      )}
+                      {col('status') && (
+                        <td className="px-4 py-3 text-center">
+                          {rec.status === 'DEDUCTED' ? (
+                            <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-xs">
+                              <CheckCircle className="w-3 h-3 mr-1" />Deducted
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-amber-50 text-amber-700 border-amber-200 text-xs">
+                              <Clock className="w-3 h-3 mr-1" />Pending
+                            </Badge>
+                          )}
+                        </td>
+                      )}
+                      {col('payrollRef') && (
+                        <td className="px-4 py-3 text-xs font-mono text-muted-foreground">{rec.payrollReference ?? '—'}</td>
+                      )}
+                      {col('createdAt') && (
+                        <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
+                          {rec.createdAt ? fmtDate(rec.createdAt) : '—'}
+                        </td>
+                      )}
                       <td className="px-4 py-3 text-right">
                         <Button
                           size="icon" variant="ghost"
@@ -461,24 +750,10 @@ export function FinanceDashboard() {
                     </tr>
                   ))}
                 </tbody>
-                {/* Page totals footer */}
+                {/* Footer note */}
                 <tfoot>
-                  <tr className="border-t-2 bg-muted/30 font-semibold">
-                    <td colSpan={4} className="px-4 py-3 text-sm">
-                      Page totals
-                      {meta && (
-                        <span className="text-muted-foreground font-normal ml-2 text-xs">
-                          (showing {records.length} of {meta.total})
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-right text-blue-700">{fmt(totals.disbursed)}</td>
-                    <td className="px-4 py-3 text-right text-slate-500 text-xs hidden lg:table-cell">{fmt(totals.empAgency)}</td>
-                    <td className="px-4 py-3 text-right text-amber-700">{fmt(totals.deducted)}</td>
-                    <td colSpan={2} />
-                  </tr>
                   <tr className="bg-muted/10">
-                    <td colSpan={10} className="px-4 py-2 text-xs text-muted-foreground">
+                    <td colSpan={visibleCount + 1} className="px-4 py-2 text-xs text-muted-foreground">
                       <span className="text-blue-600 font-medium">Credit (↑)</span> = company disbursed &nbsp;·&nbsp;
                       <span className="text-amber-600 font-medium">Debit (↓)</span> = payroll deduction &nbsp;·&nbsp;
                       <span className="text-slate-500">Emp/Agency</span> = paid by employee/agency (informational, excluded from balance)
@@ -516,37 +791,5 @@ export function FinanceDashboard() {
         </div>
       )}
     </div>
-  );
-}
-
-// ─── Sort header cell ─────────────────────────────────────────────────────────
-
-function SortHead({
-  col, label, sort, onSort, align = 'left', className = '',
-}: {
-  col: string;
-  label: string;
-  sort: { sortBy: string; sortOrder: 'asc' | 'desc' };
-  onSort: (col: string) => void;
-  align?: 'left' | 'right';
-  className?: string;
-}) {
-  const active = sort.sortBy === col;
-  return (
-    <th
-      className={`px-4 py-3 font-medium text-muted-foreground whitespace-nowrap cursor-pointer select-none hover:text-foreground ${className} text-${align}`}
-      onClick={() => onSort(col)}
-    >
-      <span className="inline-flex items-center gap-1">
-        {label}
-        {active ? (
-          sort.sortOrder === 'asc'
-            ? <ChevronUp className="w-3 h-3" />
-            : <ChevronDown className="w-3 h-3" />
-        ) : (
-          <ChevronDown className="w-3 h-3 opacity-30" />
-        )}
-      </span>
-    </th>
   );
 }

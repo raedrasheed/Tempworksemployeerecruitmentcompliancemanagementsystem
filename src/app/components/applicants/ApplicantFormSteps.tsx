@@ -9,6 +9,7 @@ import { Textarea } from '../ui/textarea';
 import { AddressForm, AddressData, EMPTY_ADDRESS } from '../ui/AddressForm';
 import { CountrySelect } from '../ui/CountrySelect';
 import { EU_COUNTRIES } from '../../data/countries';
+import { PHONE_CODES } from '../../data/phoneCodes';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -246,10 +247,12 @@ export const EMPTY_FORM: ApplicantFormData = {
   homeAddress: { ...EMPTY_ADDRESS },
   currentAddress: { ...EMPTY_ADDRESS },
   sameAsHomeAddress: false,
-  phoneCode: '+44',
+  // Phone country codes start empty so the dropdown shows a 'Code'
+  // prompt — same convention as every other phone field on the site.
+  phoneCode: '',
   phone: '',
   phoneIsWhatsApp: false,
-  whatsappCode: '+44',
+  whatsappCode: '',
   whatsapp: '',
   email: '',
   emailConfirm: '',
@@ -383,6 +386,19 @@ export function getStepErrors(
   const hasFile = (key: string) => uploadedFiles.some(f => f.sectionKey === key && f.file);
   const validEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
+  /** Push an error if both dates are set and issue >= expiry. Skips the
+   *  check when the matching 'noExpiry' flag is on or when either value
+   *  is missing (other validators cover those cases). */
+  const checkDateOrder = (label: string, issue?: string, expiry?: string, noExpiry?: boolean) => {
+    if (noExpiry) return;
+    if (!issue || !expiry) return;
+    const a = Date.parse(issue);
+    const b = Date.parse(expiry);
+    if (!isNaN(a) && !isNaN(b) && a >= b) {
+      errors.push(`${label}: Issue Date must be before Expiry Date.`);
+    }
+  };
+
   // ── Tab 1: Personal ───────────────────────────────────────────────────────
   if (actualTab === 1) {
     if (!d.jobTypeId) errors.push('Please select a Job Category before proceeding.');
@@ -447,6 +463,10 @@ export function getStepErrors(
       errors.push('You indicated you have a Home Country Criminal Record — please upload it.');
     if (d.hasEuCriminalRecord === 'yes' && !hasFile('euCriminalRecord'))
       errors.push('You indicated you have an EU Criminal Record — please upload it.');
+
+    checkDateOrder('Passport',       d.passportIssueDate,     d.passportExpiryDate,     d.passportNoExpiry);
+    checkDateOrder('EU Residence',   d.euResidenceIssueDate,  d.euResidenceExpiryDate,  d.euResidenceNoExpiry);
+    checkDateOrder('Work Permit',    d.workPermitIssueDate,   d.workPermitExpiryDate,   d.workPermitNoExpiry);
   }
 
   // ── Tab 4: Driving License ────────────────────────────────────────────────
@@ -458,9 +478,24 @@ export function getStepErrors(
     if (d.hasDrivingLicense === 'yes') {
       if (!d.licenseNumber?.trim()) errors.push('License Number is required.');
       if (!d.licenseCountry) errors.push('License Issuing Country is required.');
+      if (!d.licenseCategories || d.licenseCategories.length === 0)
+        errors.push('Please select at least one License Category.');
       // Only check regular 'drivingLicense' slot when not a job-ad required doc
       if (!dlDocName && !hasFile('drivingLicense'))
         errors.push('You indicated you have a Driving License — please upload it.');
+
+      // First Issue Date → Issue Date → Expiry Date
+      if (d.licenseFirstIssueDate && d.licenseIssueDate) {
+        const a = Date.parse(d.licenseFirstIssueDate);
+        const b = Date.parse(d.licenseIssueDate);
+        if (!isNaN(a) && !isNaN(b) && a > b) {
+          errors.push('Driving License: First Issue Date must be on or before the current Issue Date.');
+        }
+      }
+      checkDateOrder('Driving License', d.licenseIssueDate, d.licenseExpiryDate, d.licenseNoExpiry);
+      (d.qualifications ?? []).forEach((q, i) => {
+        checkDateOrder(`Qualification #${i + 1}${q.type ? ` (${q.type})` : ''}`, q.issueDate, q.expiryDate, q.noExpiry);
+      });
     }
   }
 
@@ -468,6 +503,41 @@ export function getStepErrors(
   if (actualTab === 5) {
     if (!d.trafficAccidents)
       errors.push('Please answer whether you have been involved in any traffic accidents in the past 3 years.');
+
+    if (!d.drivingExpType) {
+      errors.push('Please select your Experience Type (EU / Domestic / Both).');
+    } else {
+      if (d.drivingExpType === 'eu' || d.drivingExpType === 'both') {
+        if (!d.euExpYears?.toString().trim())   errors.push('EU Experience: Years is required.');
+        if (!d.euExpKm?.toString().trim())      errors.push('EU Experience: Total KM is required.');
+        if (!d.euExpCountries?.toString().trim()) errors.push('EU Experience: Country is required.');
+      }
+      if (d.drivingExpType === 'domestic' || d.drivingExpType === 'both') {
+        if (!d.domesticExpYears?.toString().trim())   errors.push('Domestic Experience: Years is required.');
+        if (!d.domesticExpKm?.toString().trim())      errors.push('Domestic Experience: Total KM is required.');
+        if (!d.domesticExpCountry?.toString().trim()) errors.push('Domestic Experience: Country is required.');
+      }
+    }
+  }
+
+  // ── Tab 6: Education ──────────────────────────────────────────────────────
+  if (actualTab === 6) {
+    d.education?.forEach((entry, i) => {
+      const n = i + 1;
+      if (!entry.level?.trim())         errors.push(`Education #${n}: Level is required.`);
+      if (!entry.institution?.trim())   errors.push(`Education #${n}: Institution is required.`);
+      if (!entry.fieldOfStudy?.trim())  errors.push(`Education #${n}: Field of Study is required.`);
+      if (!entry.country?.trim())       errors.push(`Education #${n}: Country is required.`);
+      if (!entry.startDate)             errors.push(`Education #${n}: Start Date is required.`);
+      if (!entry.ongoing && !entry.endDate) errors.push(`Education #${n}: End Date is required (or tick Ongoing).`);
+      if (entry.startDate && !entry.ongoing && entry.endDate) {
+        const a = Date.parse(entry.startDate);
+        const b = Date.parse(entry.endDate);
+        if (!isNaN(a) && !isNaN(b) && a > b) {
+          errors.push(`Education #${n}: Start Date must be on or before End Date.`);
+        }
+      }
+    });
   }
 
   // ── Tab 7: Work Experience ────────────────────────────────────────────────
@@ -487,6 +557,19 @@ export function getStepErrors(
     if (!d.hasFirstAid) errors.push('Please answer whether you have a First Aid Certificate.');
     if (d.hasFirstAid === 'yes' && !hasFile('firstAid'))
       errors.push('You indicated you have a First Aid Certificate — please upload it.');
+
+    d.languages?.forEach((lang, i) => {
+      const n = i + 1;
+      if (!lang.language?.trim()) errors.push(`Language #${n}: please select a language.`);
+      if (!lang.motherTongue) {
+        if (!lang.speakingLevel)  errors.push(`Language #${n}: Speaking level is required.`);
+        if (!lang.readingLevel)   errors.push(`Language #${n}: Reading level is required.`);
+        if (!lang.writingLevel)   errors.push(`Language #${n}: Writing level is required.`);
+        if (!lang.listeningLevel) errors.push(`Language #${n}: Listening level is required.`);
+      }
+      if (lang.hasCertificate && !lang.certificate?.trim())
+        errors.push(`Language #${n}: Certificate name is required (or untick 'Has Certificate').`);
+    });
   }
 
   // ── Tab 9: Additional ─────────────────────────────────────────────────────
@@ -506,202 +589,121 @@ export function getStepErrors(
   return errors;
 }
 
-const PHONE_CODES: { label: string; code: string; iso: string }[] = [
-  { label: 'Afghanistan', code: '+93', iso: 'AF' },
-  { label: 'Albania', code: '+355', iso: 'AL' },
-  { label: 'Algeria', code: '+213', iso: 'DZ' },
-  { label: 'Andorra', code: '+376', iso: 'AD' },
-  { label: 'Angola', code: '+244', iso: 'AO' },
-  { label: 'Antigua and Barbuda', code: '+1', iso: 'AG' },
-  { label: 'Argentina', code: '+54', iso: 'AR' },
-  { label: 'Armenia', code: '+374', iso: 'AM' },
-  { label: 'Australia', code: '+61', iso: 'AU' },
-  { label: 'Austria', code: '+43', iso: 'AT' },
-  { label: 'Azerbaijan', code: '+994', iso: 'AZ' },
-  { label: 'Bahamas', code: '+1', iso: 'BS' },
-  { label: 'Bahrain', code: '+973', iso: 'BH' },
-  { label: 'Bangladesh', code: '+880', iso: 'BD' },
-  { label: 'Barbados', code: '+1', iso: 'BB' },
-  { label: 'Belarus', code: '+375', iso: 'BY' },
-  { label: 'Belgium', code: '+32', iso: 'BE' },
-  { label: 'Belize', code: '+501', iso: 'BZ' },
-  { label: 'Benin', code: '+229', iso: 'BJ' },
-  { label: 'Bhutan', code: '+975', iso: 'BT' },
-  { label: 'Bolivia', code: '+591', iso: 'BO' },
-  { label: 'Bosnia and Herzegovina', code: '+387', iso: 'BA' },
-  { label: 'Botswana', code: '+267', iso: 'BW' },
-  { label: 'Brazil', code: '+55', iso: 'BR' },
-  { label: 'Brunei', code: '+673', iso: 'BN' },
-  { label: 'Bulgaria', code: '+359', iso: 'BG' },
-  { label: 'Burkina Faso', code: '+226', iso: 'BF' },
-  { label: 'Burundi', code: '+257', iso: 'BI' },
-  { label: 'Cambodia', code: '+855', iso: 'KH' },
-  { label: 'Cameroon', code: '+237', iso: 'CM' },
-  { label: 'Canada', code: '+1', iso: 'CA' },
-  { label: 'Cape Verde', code: '+238', iso: 'CV' },
-  { label: 'Central African Republic', code: '+236', iso: 'CF' },
-  { label: 'Chad', code: '+235', iso: 'TD' },
-  { label: 'Chile', code: '+56', iso: 'CL' },
-  { label: 'China', code: '+86', iso: 'CN' },
-  { label: 'Colombia', code: '+57', iso: 'CO' },
-  { label: 'Comoros', code: '+269', iso: 'KM' },
-  { label: 'Congo (DRC)', code: '+243', iso: 'CD' },
-  { label: 'Congo (Republic)', code: '+242', iso: 'CG' },
-  { label: 'Costa Rica', code: '+506', iso: 'CR' },
-  { label: 'Croatia', code: '+385', iso: 'HR' },
-  { label: 'Cuba', code: '+53', iso: 'CU' },
-  { label: 'Cyprus', code: '+357', iso: 'CY' },
-  { label: 'Czech Republic', code: '+420', iso: 'CZ' },
-  { label: 'Denmark', code: '+45', iso: 'DK' },
-  { label: 'Djibouti', code: '+253', iso: 'DJ' },
-  { label: 'Dominica', code: '+1', iso: 'DM' },
-  { label: 'Dominican Republic', code: '+1', iso: 'DO' },
-  { label: 'Ecuador', code: '+593', iso: 'EC' },
-  { label: 'Egypt', code: '+20', iso: 'EG' },
-  { label: 'El Salvador', code: '+503', iso: 'SV' },
-  { label: 'Equatorial Guinea', code: '+240', iso: 'GQ' },
-  { label: 'Eritrea', code: '+291', iso: 'ER' },
-  { label: 'Estonia', code: '+372', iso: 'EE' },
-  { label: 'Eswatini', code: '+268', iso: 'SZ' },
-  { label: 'Ethiopia', code: '+251', iso: 'ET' },
-  { label: 'Fiji', code: '+679', iso: 'FJ' },
-  { label: 'Finland', code: '+358', iso: 'FI' },
-  { label: 'France', code: '+33', iso: 'FR' },
-  { label: 'Gabon', code: '+241', iso: 'GA' },
-  { label: 'Gambia', code: '+220', iso: 'GM' },
-  { label: 'Georgia', code: '+995', iso: 'GE' },
-  { label: 'Germany', code: '+49', iso: 'DE' },
-  { label: 'Ghana', code: '+233', iso: 'GH' },
-  { label: 'Greece', code: '+30', iso: 'GR' },
-  { label: 'Grenada', code: '+1', iso: 'GD' },
-  { label: 'Guatemala', code: '+502', iso: 'GT' },
-  { label: 'Guinea', code: '+224', iso: 'GN' },
-  { label: 'Guinea-Bissau', code: '+245', iso: 'GW' },
-  { label: 'Guyana', code: '+592', iso: 'GY' },
-  { label: 'Haiti', code: '+509', iso: 'HT' },
-  { label: 'Honduras', code: '+504', iso: 'HN' },
-  { label: 'Hungary', code: '+36', iso: 'HU' },
-  { label: 'Iceland', code: '+354', iso: 'IS' },
-  { label: 'India', code: '+91', iso: 'IN' },
-  { label: 'Indonesia', code: '+62', iso: 'ID' },
-  { label: 'Iran', code: '+98', iso: 'IR' },
-  { label: 'Iraq', code: '+964', iso: 'IQ' },
-  { label: 'Ireland', code: '+353', iso: 'IE' },
-  { label: 'Israel', code: '+972', iso: 'IL' },
-  { label: 'Italy', code: '+39', iso: 'IT' },
-  { label: 'Jamaica', code: '+1', iso: 'JM' },
-  { label: 'Japan', code: '+81', iso: 'JP' },
-  { label: 'Jordan', code: '+962', iso: 'JO' },
-  { label: 'Kazakhstan', code: '+7', iso: 'KZ' },
-  { label: 'Kenya', code: '+254', iso: 'KE' },
-  { label: 'Kiribati', code: '+686', iso: 'KI' },
-  { label: 'Kosovo', code: '+383', iso: 'XK' },
-  { label: 'Kuwait', code: '+965', iso: 'KW' },
-  { label: 'Kyrgyzstan', code: '+996', iso: 'KG' },
-  { label: 'Laos', code: '+856', iso: 'LA' },
-  { label: 'Latvia', code: '+371', iso: 'LV' },
-  { label: 'Lebanon', code: '+961', iso: 'LB' },
-  { label: 'Lesotho', code: '+266', iso: 'LS' },
-  { label: 'Liberia', code: '+231', iso: 'LR' },
-  { label: 'Libya', code: '+218', iso: 'LY' },
-  { label: 'Liechtenstein', code: '+423', iso: 'LI' },
-  { label: 'Lithuania', code: '+370', iso: 'LT' },
-  { label: 'Luxembourg', code: '+352', iso: 'LU' },
-  { label: 'Madagascar', code: '+261', iso: 'MG' },
-  { label: 'Malawi', code: '+265', iso: 'MW' },
-  { label: 'Malaysia', code: '+60', iso: 'MY' },
-  { label: 'Maldives', code: '+960', iso: 'MV' },
-  { label: 'Mali', code: '+223', iso: 'ML' },
-  { label: 'Malta', code: '+356', iso: 'MT' },
-  { label: 'Marshall Islands', code: '+692', iso: 'MH' },
-  { label: 'Mauritania', code: '+222', iso: 'MR' },
-  { label: 'Mauritius', code: '+230', iso: 'MU' },
-  { label: 'Mexico', code: '+52', iso: 'MX' },
-  { label: 'Micronesia', code: '+691', iso: 'FM' },
-  { label: 'Moldova', code: '+373', iso: 'MD' },
-  { label: 'Monaco', code: '+377', iso: 'MC' },
-  { label: 'Mongolia', code: '+976', iso: 'MN' },
-  { label: 'Montenegro', code: '+382', iso: 'ME' },
-  { label: 'Morocco', code: '+212', iso: 'MA' },
-  { label: 'Mozambique', code: '+258', iso: 'MZ' },
-  { label: 'Myanmar', code: '+95', iso: 'MM' },
-  { label: 'Namibia', code: '+264', iso: 'NA' },
-  { label: 'Nauru', code: '+674', iso: 'NR' },
-  { label: 'Nepal', code: '+977', iso: 'NP' },
-  { label: 'Netherlands', code: '+31', iso: 'NL' },
-  { label: 'New Zealand', code: '+64', iso: 'NZ' },
-  { label: 'Nicaragua', code: '+505', iso: 'NI' },
-  { label: 'Niger', code: '+227', iso: 'NE' },
-  { label: 'Nigeria', code: '+234', iso: 'NG' },
-  { label: 'North Korea', code: '+850', iso: 'KP' },
-  { label: 'North Macedonia', code: '+389', iso: 'MK' },
-  { label: 'Norway', code: '+47', iso: 'NO' },
-  { label: 'Oman', code: '+968', iso: 'OM' },
-  { label: 'Pakistan', code: '+92', iso: 'PK' },
-  { label: 'Palau', code: '+680', iso: 'PW' },
-  { label: 'Palestine', code: '+970', iso: 'PS' },
-  { label: 'Panama', code: '+507', iso: 'PA' },
-  { label: 'Papua New Guinea', code: '+675', iso: 'PG' },
-  { label: 'Paraguay', code: '+595', iso: 'PY' },
-  { label: 'Peru', code: '+51', iso: 'PE' },
-  { label: 'Philippines', code: '+63', iso: 'PH' },
-  { label: 'Poland', code: '+48', iso: 'PL' },
-  { label: 'Portugal', code: '+351', iso: 'PT' },
-  { label: 'Qatar', code: '+974', iso: 'QA' },
-  { label: 'Romania', code: '+40', iso: 'RO' },
-  { label: 'Russia', code: '+7', iso: 'RU' },
-  { label: 'Rwanda', code: '+250', iso: 'RW' },
-  { label: 'Saint Kitts and Nevis', code: '+1', iso: 'KN' },
-  { label: 'Saint Lucia', code: '+1', iso: 'LC' },
-  { label: 'Saint Vincent', code: '+1', iso: 'VC' },
-  { label: 'Samoa', code: '+685', iso: 'WS' },
-  { label: 'San Marino', code: '+378', iso: 'SM' },
-  { label: 'Saudi Arabia', code: '+966', iso: 'SA' },
-  { label: 'Senegal', code: '+221', iso: 'SN' },
-  { label: 'Serbia', code: '+381', iso: 'RS' },
-  { label: 'Seychelles', code: '+248', iso: 'SC' },
-  { label: 'Sierra Leone', code: '+232', iso: 'SL' },
-  { label: 'Singapore', code: '+65', iso: 'SG' },
-  { label: 'Slovakia', code: '+421', iso: 'SK' },
-  { label: 'Slovenia', code: '+386', iso: 'SI' },
-  { label: 'Solomon Islands', code: '+677', iso: 'SB' },
-  { label: 'Somalia', code: '+252', iso: 'SO' },
-  { label: 'South Africa', code: '+27', iso: 'ZA' },
-  { label: 'South Korea', code: '+82', iso: 'KR' },
-  { label: 'South Sudan', code: '+211', iso: 'SS' },
-  { label: 'Spain', code: '+34', iso: 'ES' },
-  { label: 'Sri Lanka', code: '+94', iso: 'LK' },
-  { label: 'Sudan', code: '+249', iso: 'SD' },
-  { label: 'Suriname', code: '+597', iso: 'SR' },
-  { label: 'Sweden', code: '+46', iso: 'SE' },
-  { label: 'Switzerland', code: '+41', iso: 'CH' },
-  { label: 'Syria', code: '+963', iso: 'SY' },
-  { label: 'Taiwan', code: '+886', iso: 'TW' },
-  { label: 'Tajikistan', code: '+992', iso: 'TJ' },
-  { label: 'Tanzania', code: '+255', iso: 'TZ' },
-  { label: 'Thailand', code: '+66', iso: 'TH' },
-  { label: 'Timor-Leste', code: '+670', iso: 'TL' },
-  { label: 'Togo', code: '+228', iso: 'TG' },
-  { label: 'Tonga', code: '+676', iso: 'TO' },
-  { label: 'Trinidad and Tobago', code: '+1', iso: 'TT' },
-  { label: 'Tunisia', code: '+216', iso: 'TN' },
-  { label: 'Turkey', code: '+90', iso: 'TR' },
-  { label: 'Turkmenistan', code: '+993', iso: 'TM' },
-  { label: 'Tuvalu', code: '+688', iso: 'TV' },
-  { label: 'Uganda', code: '+256', iso: 'UG' },
-  { label: 'Ukraine', code: '+380', iso: 'UA' },
-  { label: 'United Arab Emirates', code: '+971', iso: 'AE' },
-  { label: 'United Kingdom', code: '+44', iso: 'GB' },
-  { label: 'United States', code: '+1', iso: 'US' },
-  { label: 'Uruguay', code: '+598', iso: 'UY' },
-  { label: 'Uzbekistan', code: '+998', iso: 'UZ' },
-  { label: 'Vanuatu', code: '+678', iso: 'VU' },
-  { label: 'Venezuela', code: '+58', iso: 'VE' },
-  { label: 'Vietnam', code: '+84', iso: 'VN' },
-  { label: 'Yemen', code: '+967', iso: 'YE' },
-  { label: 'Zambia', code: '+260', iso: 'ZM' },
-  { label: 'Zimbabwe', code: '+263', iso: 'ZW' },
-];
+/** Field-level errors keyed by form field name. Consumed by the Step
+ *  components to render the error message inline below the matching
+ *  input. Kept separate from getStepErrors (which returns flat strings
+ *  for toasts / summary banners) so we don't break existing callers.
+ *  For qualification rows the key is prefixed: `qualifications.<id>.<field>`.
+ */
+export function getStepFieldErrors(
+  actualTab: number,
+  d: ApplicantFormData,
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  const before = (issue?: string, expiry?: string, noExpiry?: boolean) => {
+    if (noExpiry) return false;
+    if (!issue || !expiry) return false;
+    const a = Date.parse(issue);
+    const b = Date.parse(expiry);
+    return !isNaN(a) && !isNaN(b) && a >= b;
+  };
+
+  // Tab 3 — Identification date pairs
+  if (actualTab === 3) {
+    if (before(d.passportIssueDate, d.passportExpiryDate, d.passportNoExpiry)) {
+      out['passportIssueDate'] = 'Issue Date must be before Expiry Date.';
+      out['passportExpiryDate'] = 'Expiry Date must be after Issue Date.';
+    }
+    if (before(d.euResidenceIssueDate, d.euResidenceExpiryDate, d.euResidenceNoExpiry)) {
+      out['euResidenceIssueDate'] = 'Issue Date must be before Expiry Date.';
+      out['euResidenceExpiryDate'] = 'Expiry Date must be after Issue Date.';
+    }
+    if (before(d.workPermitIssueDate, d.workPermitExpiryDate, d.workPermitNoExpiry)) {
+      out['workPermitIssueDate'] = 'Issue Date must be before Expiry Date.';
+      out['workPermitExpiryDate'] = 'Expiry Date must be after Issue Date.';
+    }
+  }
+
+  // Tab 4 — Driving License
+  if (actualTab === 4 && d.hasDrivingLicense === 'yes') {
+    if (!d.licenseNumber?.trim())   out['licenseNumber']   = 'License Number is required.';
+    if (!d.licenseCountry)          out['licenseCountry']  = 'Issuing Country is required.';
+    if (!d.licenseCategories || d.licenseCategories.length === 0)
+      out['licenseCategories'] = 'Select at least one license category.';
+    if (d.licenseFirstIssueDate && d.licenseIssueDate) {
+      const a = Date.parse(d.licenseFirstIssueDate);
+      const b = Date.parse(d.licenseIssueDate);
+      if (!isNaN(a) && !isNaN(b) && a > b) {
+        out['licenseFirstIssueDate'] = 'First Issue Date must be on or before the current Issue Date.';
+      }
+    }
+    if (before(d.licenseIssueDate, d.licenseExpiryDate, d.licenseNoExpiry)) {
+      out['licenseIssueDate']  = 'Issue Date must be before Expiry Date.';
+      out['licenseExpiryDate'] = 'Expiry Date must be after Issue Date.';
+    }
+    (d.qualifications ?? []).forEach((q) => {
+      if (before(q.issueDate, q.expiryDate, q.noExpiry)) {
+        out[`qualifications.${q.id}.issueDate`]  = 'Issue Date must be before Expiry Date.';
+        out[`qualifications.${q.id}.expiryDate`] = 'Expiry Date must be after Issue Date.';
+      }
+    });
+  }
+
+  // Tab 5 — Driving Experience
+  if (actualTab === 5) {
+    if (!d.drivingExpType) out['drivingExpType'] = 'Please pick an Experience Type.';
+    if (d.drivingExpType === 'eu' || d.drivingExpType === 'both') {
+      if (!d.euExpYears?.toString().trim())      out['euExpYears']      = 'Years is required.';
+      if (!d.euExpKm?.toString().trim())         out['euExpKm']         = 'Total KM is required.';
+      if (!d.euExpCountries?.toString().trim()) out['euExpCountries'] = 'Country is required.';
+    }
+    if (d.drivingExpType === 'domestic' || d.drivingExpType === 'both') {
+      if (!d.domesticExpYears?.toString().trim())   out['domesticExpYears']   = 'Years is required.';
+      if (!d.domesticExpKm?.toString().trim())      out['domesticExpKm']      = 'Total KM is required.';
+      if (!d.domesticExpCountry?.toString().trim()) out['domesticExpCountry'] = 'Country is required.';
+    }
+  }
+
+  // Tab 8 — Skills & Qualifications (per-row required fields when a
+  // language entry exists)
+  if (actualTab === 8) {
+    (d.languages ?? []).forEach((lang) => {
+      const k = (f: string) => `languages.${lang.id}.${f}`;
+      if (!lang.language?.trim()) out[k('language')] = 'Please select a language.';
+      if (!lang.motherTongue) {
+        if (!lang.speakingLevel)  out[k('speakingLevel')]  = 'Level is required.';
+        if (!lang.readingLevel)   out[k('readingLevel')]   = 'Level is required.';
+        if (!lang.writingLevel)   out[k('writingLevel')]   = 'Level is required.';
+        if (!lang.listeningLevel) out[k('listeningLevel')] = 'Level is required.';
+      }
+      if (lang.hasCertificate && !lang.certificate?.trim())
+        out[k('certificate')] = 'Certificate name is required.';
+    });
+  }
+
+  // Tab 6 — Education (per-row required fields when an entry exists)
+  if (actualTab === 6) {
+    (d.education ?? []).forEach((e) => {
+      const k = (f: string) => `education.${e.id}.${f}`;
+      if (!e.level?.trim())        out[k('level')]        = 'Level is required.';
+      if (!e.institution?.trim())  out[k('institution')]  = 'Institution is required.';
+      if (!e.fieldOfStudy?.trim()) out[k('fieldOfStudy')] = 'Field of Study is required.';
+      if (!e.country?.trim())      out[k('country')]      = 'Country is required.';
+      if (!e.startDate)            out[k('startDate')]    = 'Start Date is required.';
+      if (!e.ongoing && !e.endDate) out[k('endDate')]     = 'End Date is required (or tick Ongoing).';
+      if (e.startDate && !e.ongoing && e.endDate) {
+        const a = Date.parse(e.startDate);
+        const b = Date.parse(e.endDate);
+        if (!isNaN(a) && !isNaN(b) && a > b) {
+          out[k('startDate')] = 'Start Date must be on or before End Date.';
+          out[k('endDate')]   = 'End Date must be after Start Date.';
+        }
+      }
+    });
+  }
+
+  return out;
+}
 
 const LICENSE_CATEGORIES = ['AM', 'A1', 'A2', 'A', 'B1', 'B', 'BE', 'C1', 'C1E', 'C', 'CE', 'D1', 'D1E', 'D', 'DE', 'T'];
 
@@ -768,6 +770,14 @@ function SectionTitle({ title, subtitle }: { title: string; subtitle?: string })
 
 function SubSection({ title }: { title: string }) {
   return <div className="flex items-center gap-2 pb-2 border-b border-gray-200 mb-4"><h3 className="text-base font-semibold text-gray-800">{title}</h3></div>;
+}
+
+/** Inline red error message shown below a field. Renders nothing when
+ *  the key has no entry in the errors map. */
+function FieldError({ errors, name }: { errors?: Record<string, string>; name: string }) {
+  const msg = errors?.[name];
+  if (!msg) return null;
+  return <p className="text-xs text-red-600 mt-1">{msg}</p>;
 }
 
 function RadioYN({ name, value, onChange, disabledValues = [] }: { name: string; value: string; onChange: (v: string) => void; disabledValues?: string[] }) {
@@ -1242,7 +1252,7 @@ function Step2Contact({ d, u, settings }: { d: ApplicantFormData; u: (fn: (p: Ap
   );
 }
 
-function Step3Identification({ d, u, settings, uploadedFiles, onFilesChange, requiredDocuments = [] }: { d: ApplicantFormData; u: (fn: (p: ApplicantFormData) => ApplicantFormData) => void; settings: FormSettings; uploadedFiles: UploadedFileItem[]; onFilesChange: (files: UploadedFileItem[]) => void; requiredDocuments?: string[] }) {
+function Step3Identification({ d, u, settings, uploadedFiles, onFilesChange, requiredDocuments = [], fieldErrors }: { d: ApplicantFormData; u: (fn: (p: ApplicantFormData) => ApplicantFormData) => void; settings: FormSettings; uploadedFiles: UploadedFileItem[]; onFilesChange: (files: UploadedFileItem[]) => void; requiredDocuments?: string[]; fieldErrors?: Record<string, string> }) {
   const set = (field: keyof ApplicantFormData) => (value: any) => u(prev => ({ ...prev, [field]: value }));
   // Wire job-ad required docs to their required: sectionKeys so uploads on this tab
   // satisfy the required-doc checks in both getStepErrors and the Documents (Tab 10) gate.
@@ -1278,11 +1288,19 @@ function Step3Identification({ d, u, settings, uploadedFiles, onFilesChange, req
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Issue Date</Label>
-            <Input type="date" value={d.passportIssueDate} onChange={e => set('passportIssueDate')(e.target.value)} />
+            <Input
+              type="date"
+              value={d.passportIssueDate}
+              onChange={e => set('passportIssueDate')(e.target.value)}
+              aria-invalid={!!fieldErrors?.passportIssueDate}
+              className={fieldErrors?.passportIssueDate ? 'border-red-500 focus-visible:ring-red-500' : ''}
+            />
+            <FieldError errors={fieldErrors} name="passportIssueDate" />
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Expiry Date</Label>
             <ExpiryFields expiryDate={d.passportExpiryDate} noExpiry={d.passportNoExpiry} onExpiry={set('passportExpiryDate')} onNoExpiry={set('passportNoExpiry')} />
+            <FieldError errors={fieldErrors} name="passportExpiryDate" />
           </div>
         </div>
         <InlineDocUpload label={passportDocName ? 'Upload Passport (Required)' : 'Upload Passport'} sectionKey={passportSectionKey} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />
@@ -1377,7 +1395,14 @@ function Step3Identification({ d, u, settings, uploadedFiles, onFilesChange, req
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Issue Date</Label>
-              <Input type="date" value={d.euResidenceIssueDate} onChange={e => set('euResidenceIssueDate')(e.target.value)} />
+              <Input
+                type="date"
+                value={d.euResidenceIssueDate}
+                onChange={e => set('euResidenceIssueDate')(e.target.value)}
+                aria-invalid={!!fieldErrors?.euResidenceIssueDate}
+                className={fieldErrors?.euResidenceIssueDate ? 'border-red-500 focus-visible:ring-red-500' : ''}
+              />
+              <FieldError errors={fieldErrors} name="euResidenceIssueDate" />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">City of Issue</Label>
@@ -1386,6 +1411,7 @@ function Step3Identification({ d, u, settings, uploadedFiles, onFilesChange, req
             <div className="space-y-1">
               <Label className="text-xs">Expiry Date</Label>
               <ExpiryFields expiryDate={d.euResidenceExpiryDate} noExpiry={d.euResidenceNoExpiry} onExpiry={set('euResidenceExpiryDate')} onNoExpiry={set('euResidenceNoExpiry')} />
+              <FieldError errors={fieldErrors} name="euResidenceExpiryDate" />
             </div>
             <InlineDocUpload label="Upload Residence Permit" sectionKey="euResidence" uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />
           </div>
@@ -1413,11 +1439,19 @@ function Step3Identification({ d, u, settings, uploadedFiles, onFilesChange, req
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Issue Date</Label>
-              <Input type="date" value={d.workPermitIssueDate} onChange={e => set('workPermitIssueDate')(e.target.value)} />
+              <Input
+                type="date"
+                value={d.workPermitIssueDate}
+                onChange={e => set('workPermitIssueDate')(e.target.value)}
+                aria-invalid={!!fieldErrors?.workPermitIssueDate}
+                className={fieldErrors?.workPermitIssueDate ? 'border-red-500 focus-visible:ring-red-500' : ''}
+              />
+              <FieldError errors={fieldErrors} name="workPermitIssueDate" />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Expiry Date</Label>
               <ExpiryFields expiryDate={d.workPermitExpiryDate} noExpiry={d.workPermitNoExpiry} onExpiry={set('workPermitExpiryDate')} onNoExpiry={set('workPermitNoExpiry')} />
+              <FieldError errors={fieldErrors} name="workPermitExpiryDate" />
             </div>
             <InlineDocUpload label="Upload Work Permit" sectionKey="workPermit" uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />
           </div>
@@ -1466,7 +1500,7 @@ function Step3Identification({ d, u, settings, uploadedFiles, onFilesChange, req
   );
 }
 
-function Step4DrivingLicense({ d, u, settings, uploadedFiles, onFilesChange, requiredDocuments = [] }: { d: ApplicantFormData; u: (fn: (p: ApplicantFormData) => ApplicantFormData) => void; settings: FormSettings; uploadedFiles: UploadedFileItem[]; onFilesChange: (files: UploadedFileItem[]) => void; requiredDocuments?: string[] }) {
+function Step4DrivingLicense({ d, u, settings, uploadedFiles, onFilesChange, requiredDocuments = [], fieldErrors }: { d: ApplicantFormData; u: (fn: (p: ApplicantFormData) => ApplicantFormData) => void; settings: FormSettings; uploadedFiles: UploadedFileItem[]; onFilesChange: (files: UploadedFileItem[]) => void; requiredDocuments?: string[]; fieldErrors?: Record<string, string> }) {
   const set = (field: keyof ApplicantFormData) => (value: any) => u(prev => ({ ...prev, [field]: value }));
   const dlDocName = requiredDocuments.find(n => n.toLowerCase().includes('driving'));
   const dlSectionKey = dlDocName ? `required:${dlDocName}` : 'drivingLicense';
@@ -1529,30 +1563,54 @@ function Step4DrivingLicense({ d, u, settings, uploadedFiles, onFilesChange, req
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <Label className="text-xs">License Number *</Label>
-                <Input placeholder="Number" value={d.licenseNumber} onChange={e => set('licenseNumber')(e.target.value)} />
+                <Input
+                  placeholder="Number"
+                  value={d.licenseNumber}
+                  onChange={e => set('licenseNumber')(e.target.value)}
+                  aria-invalid={!!fieldErrors?.licenseNumber}
+                  className={fieldErrors?.licenseNumber ? 'border-red-500 focus-visible:ring-red-500' : ''}
+                />
+                <FieldError errors={fieldErrors} name="licenseNumber" />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Issuing Country *</Label>
                 <CountrySelect value={d.licenseCountry} onChange={set('licenseCountry')} />
+                <FieldError errors={fieldErrors} name="licenseCountry" />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">First Issue Date <span className="text-gray-400">(optional)</span></Label>
-                <Input type="date" value={d.licenseFirstIssueDate} onChange={e => set('licenseFirstIssueDate')(e.target.value)} />
+                <Input
+                  type="date"
+                  value={d.licenseFirstIssueDate}
+                  onChange={e => set('licenseFirstIssueDate')(e.target.value)}
+                  aria-invalid={!!fieldErrors?.licenseFirstIssueDate}
+                  className={fieldErrors?.licenseFirstIssueDate ? 'border-red-500 focus-visible:ring-red-500' : ''}
+                />
+                <FieldError errors={fieldErrors} name="licenseFirstIssueDate" />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Issue Date</Label>
-                <Input type="date" value={d.licenseIssueDate} onChange={e => set('licenseIssueDate')(e.target.value)} />
+                <Input
+                  type="date"
+                  value={d.licenseIssueDate}
+                  onChange={e => set('licenseIssueDate')(e.target.value)}
+                  aria-invalid={!!fieldErrors?.licenseIssueDate}
+                  className={fieldErrors?.licenseIssueDate ? 'border-red-500 focus-visible:ring-red-500' : ''}
+                />
+                <FieldError errors={fieldErrors} name="licenseIssueDate" />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Expiry Date</Label>
                 <ExpiryFields expiryDate={d.licenseExpiryDate} noExpiry={d.licenseNoExpiry} onExpiry={set('licenseExpiryDate')} onNoExpiry={set('licenseNoExpiry')} />
+                <FieldError errors={fieldErrors} name="licenseExpiryDate" />
               </div>
               {/* Only show the optional upload inside the yes-block when not a required doc */}
               {!dlDocName && <InlineDocUpload label="Upload Driving License" sectionKey="drivingLicense" uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />}
             </div>
           </div>
           <div className="space-y-3">
-            <SubSection title="License Categories" />
+            <SubSection title="License Categories *" />
+            <p className="text-xs text-muted-foreground -mt-3">Select at least one category.</p>
             <div className="flex flex-wrap gap-2">
               {LICENSE_CATEGORIES.map(cat => (
                 <label key={cat} className={`px-3 py-1.5 border-2 rounded-lg cursor-pointer text-sm font-medium transition-all ${d.licenseCategories.includes(cat) ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-200 hover:border-gray-300'}`}>
@@ -1561,6 +1619,7 @@ function Step4DrivingLicense({ d, u, settings, uploadedFiles, onFilesChange, req
                 </label>
               ))}
             </div>
+            <FieldError errors={fieldErrors} name="licenseCategories" />
           </div>
           <div className="space-y-4">
             <SubSection title="Professional Qualifications" />
@@ -1588,11 +1647,19 @@ function Step4DrivingLicense({ d, u, settings, uploadedFiles, onFilesChange, req
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs">Issue Date</Label>
-                    <Input type="date" value={q.issueDate} onChange={e => updateQual(q.id, 'issueDate', e.target.value)} />
+                    <Input
+                      type="date"
+                      value={q.issueDate}
+                      onChange={e => updateQual(q.id, 'issueDate', e.target.value)}
+                      aria-invalid={!!fieldErrors?.[`qualifications.${q.id}.issueDate`]}
+                      className={fieldErrors?.[`qualifications.${q.id}.issueDate`] ? 'border-red-500 focus-visible:ring-red-500' : ''}
+                    />
+                    <FieldError errors={fieldErrors} name={`qualifications.${q.id}.issueDate`} />
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs">Expiry Date</Label>
                     <ExpiryFields expiryDate={q.expiryDate} noExpiry={q.noExpiry} onExpiry={v => updateQual(q.id, 'expiryDate', v)} onNoExpiry={v => updateQual(q.id, 'noExpiry', v)} />
+                    <FieldError errors={fieldErrors} name={`qualifications.${q.id}.expiryDate`} />
                   </div>
                 </div>
               </div>
@@ -1607,7 +1674,7 @@ function Step4DrivingLicense({ d, u, settings, uploadedFiles, onFilesChange, req
   );
 }
 
-function Step5DrivingExperience({ d, u, settings }: { d: ApplicantFormData; u: (fn: (p: ApplicantFormData) => ApplicantFormData) => void; settings: FormSettings }) {
+function Step5DrivingExperience({ d, u, settings, fieldErrors }: { d: ApplicantFormData; u: (fn: (p: ApplicantFormData) => ApplicantFormData) => void; settings: FormSettings; fieldErrors?: Record<string, string> }) {
   const set = (field: keyof ApplicantFormData) => (value: any) => u(prev => ({ ...prev, [field]: value }));
   const toggle = (field: 'transportTypes' | 'truckBrands' | 'selectedGpsSystems' | 'trailerTypes' | 'workRegime', value: string) => {
     u(prev => {
@@ -1647,38 +1714,68 @@ function Step5DrivingExperience({ d, u, settings }: { d: ApplicantFormData; u: (
       </div>
       {(d.drivingExpType === 'eu' || d.drivingExpType === 'both') && (
         <div className="space-y-4">
-          <SubSection title="EU Experience" />
+          <SubSection title="EU Experience *" />
           <div className="grid md:grid-cols-3 gap-4">
             <div className="space-y-1">
-              <Label className="text-xs">Years</Label>
-              <Input type="number" min="0" placeholder="Years" value={d.euExpYears} onChange={e => set('euExpYears')(e.target.value)} />
+              <Label className="text-xs">Years *</Label>
+              <Input
+                type="number" min="0" placeholder="Years"
+                value={d.euExpYears}
+                onChange={e => set('euExpYears')(e.target.value)}
+                aria-invalid={!!fieldErrors?.euExpYears}
+                className={fieldErrors?.euExpYears ? 'border-red-500 focus-visible:ring-red-500' : ''}
+              />
+              <FieldError errors={fieldErrors} name="euExpYears" />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Total KM</Label>
-              <Input placeholder="e.g. 500000" value={d.euExpKm} onChange={e => set('euExpKm')(e.target.value)} />
+              <Label className="text-xs">Total KM *</Label>
+              <Input
+                placeholder="e.g. 500000"
+                value={d.euExpKm}
+                onChange={e => set('euExpKm')(e.target.value)}
+                aria-invalid={!!fieldErrors?.euExpKm}
+                className={fieldErrors?.euExpKm ? 'border-red-500 focus-visible:ring-red-500' : ''}
+              />
+              <FieldError errors={fieldErrors} name="euExpKm" />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Country</Label>
+              <Label className="text-xs">Country *</Label>
               <CountrySelect value={d.euExpCountries} onChange={set('euExpCountries')} />
+              <FieldError errors={fieldErrors} name="euExpCountries" />
             </div>
           </div>
         </div>
       )}
       {(d.drivingExpType === 'domestic' || d.drivingExpType === 'both') && (
         <div className="space-y-4">
-          <SubSection title="Domestic Experience" />
+          <SubSection title="Domestic Experience *" />
           <div className="grid md:grid-cols-3 gap-4">
             <div className="space-y-1">
-              <Label className="text-xs">Years</Label>
-              <Input type="number" min="0" placeholder="Years" value={d.domesticExpYears} onChange={e => set('domesticExpYears')(e.target.value)} />
+              <Label className="text-xs">Years *</Label>
+              <Input
+                type="number" min="0" placeholder="Years"
+                value={d.domesticExpYears}
+                onChange={e => set('domesticExpYears')(e.target.value)}
+                aria-invalid={!!fieldErrors?.domesticExpYears}
+                className={fieldErrors?.domesticExpYears ? 'border-red-500 focus-visible:ring-red-500' : ''}
+              />
+              <FieldError errors={fieldErrors} name="domesticExpYears" />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Total KM</Label>
-              <Input placeholder="e.g. 100000" value={d.domesticExpKm} onChange={e => set('domesticExpKm')(e.target.value)} />
+              <Label className="text-xs">Total KM *</Label>
+              <Input
+                placeholder="e.g. 100000"
+                value={d.domesticExpKm}
+                onChange={e => set('domesticExpKm')(e.target.value)}
+                aria-invalid={!!fieldErrors?.domesticExpKm}
+                className={fieldErrors?.domesticExpKm ? 'border-red-500 focus-visible:ring-red-500' : ''}
+              />
+              <FieldError errors={fieldErrors} name="domesticExpKm" />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Country</Label>
+              <Label className="text-xs">Country *</Label>
               <CountrySelect value={d.domesticExpCountry} onChange={set('domesticExpCountry')} />
+              <FieldError errors={fieldErrors} name="domesticExpCountry" />
             </div>
           </div>
         </div>
@@ -1816,7 +1913,7 @@ function Step5DrivingExperience({ d, u, settings }: { d: ApplicantFormData; u: (
   );
 }
 
-function Step6Education({ d, u, settings, uploadedFiles, onFilesChange }: { d: ApplicantFormData; u: (fn: (p: ApplicantFormData) => ApplicantFormData) => void; settings: FormSettings; uploadedFiles: UploadedFileItem[]; onFilesChange: (files: UploadedFileItem[]) => void }) {
+function Step6Education({ d, u, settings, uploadedFiles, onFilesChange, fieldErrors }: { d: ApplicantFormData; u: (fn: (p: ApplicantFormData) => ApplicantFormData) => void; settings: FormSettings; uploadedFiles: UploadedFileItem[]; onFilesChange: (files: UploadedFileItem[]) => void; fieldErrors?: Record<string, string> }) {
   const addEntry = () => {
     u(prev => ({
       ...prev,
@@ -1830,52 +1927,94 @@ function Step6Education({ d, u, settings, uploadedFiles, onFilesChange }: { d: A
     u(prev => ({ ...prev, education: prev.education.filter(e => e.id !== id) }));
   };
 
+  const errClass = (name: string) =>
+    fieldErrors?.[name] ? 'border-red-500 focus-visible:ring-red-500' : '';
+
   return (
     <div className="space-y-6">
       <SectionTitle title="Education" subtitle="Your educational background" />
-      {d.education.map((entry, i) => (
+      {d.education.map((entry, i) => {
+        const k = (f: string) => `education.${entry.id}.${f}`;
+        return (
         <div key={entry.id} className="p-5 border-2 border-gray-200 rounded-xl space-y-4">
           <div className="flex items-center justify-between">
             <span className="text-sm font-semibold">Entry {i + 1}</span>
-            <button type="button" onClick={() => removeEntry(entry.id)} className="p-1 text-gray-400 hover:text-red-500">
+            <button
+              type="button"
+              onClick={() => removeEntry(entry.id)}
+              title="Remove entry"
+              aria-label="Remove entry"
+              className="p-1.5 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50"
+            >
               <Trash2 className="w-4 h-4" />
             </button>
           </div>
           <div className="grid md:grid-cols-2 gap-3">
             <div className="space-y-1">
-              <Label className="text-xs">Level</Label>
+              <Label className="text-xs">Level *</Label>
               <Select value={entry.level} onValueChange={v => updateEntry(entry.id, 'level', v)}>
-                <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                <SelectTrigger className={errClass(k('level'))}><SelectValue placeholder="Select" /></SelectTrigger>
                 <SelectContent>
                   {(settings.educationLevels ?? []).map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
                 </SelectContent>
               </Select>
+              <FieldError errors={fieldErrors} name={k('level')} />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Institution</Label>
-              <Input placeholder="School / University" value={entry.institution} onChange={e => updateEntry(entry.id, 'institution', e.target.value)} />
+              <Label className="text-xs">Institution *</Label>
+              <Input
+                placeholder="School / University"
+                value={entry.institution}
+                onChange={e => updateEntry(entry.id, 'institution', e.target.value)}
+                aria-invalid={!!fieldErrors?.[k('institution')]}
+                className={errClass(k('institution'))}
+              />
+              <FieldError errors={fieldErrors} name={k('institution')} />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Field of Study</Label>
-              <Input placeholder="Field" value={entry.fieldOfStudy} onChange={e => updateEntry(entry.id, 'fieldOfStudy', e.target.value)} />
+              <Label className="text-xs">Field of Study *</Label>
+              <Input
+                placeholder="Field"
+                value={entry.fieldOfStudy}
+                onChange={e => updateEntry(entry.id, 'fieldOfStudy', e.target.value)}
+                aria-invalid={!!fieldErrors?.[k('fieldOfStudy')]}
+                className={errClass(k('fieldOfStudy'))}
+              />
+              <FieldError errors={fieldErrors} name={k('fieldOfStudy')} />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Country</Label>
+              <Label className="text-xs">Country *</Label>
               <CountrySelect value={entry.country} onChange={v => updateEntry(entry.id, 'country', v)} />
+              <FieldError errors={fieldErrors} name={k('country')} />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Start Date</Label>
-              <Input type="date" value={entry.startDate} onChange={e => updateEntry(entry.id, 'startDate', e.target.value)} />
+              <Label className="text-xs">Start Date *</Label>
+              <Input
+                type="date"
+                value={entry.startDate}
+                onChange={e => updateEntry(entry.id, 'startDate', e.target.value)}
+                aria-invalid={!!fieldErrors?.[k('startDate')]}
+                className={errClass(k('startDate'))}
+              />
+              <FieldError errors={fieldErrors} name={k('startDate')} />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">End Date</Label>
+              <Label className="text-xs">End Date *</Label>
               <div className="flex items-center gap-2">
-                <Input type="date" value={entry.ongoing ? '' : entry.endDate} onChange={e => updateEntry(entry.id, 'endDate', e.target.value)} disabled={entry.ongoing} className="flex-1" />
+                <Input
+                  type="date"
+                  value={entry.ongoing ? '' : entry.endDate}
+                  onChange={e => updateEntry(entry.id, 'endDate', e.target.value)}
+                  disabled={entry.ongoing}
+                  className={`flex-1 ${errClass(k('endDate'))}`}
+                  aria-invalid={!!fieldErrors?.[k('endDate')]}
+                />
                 <label className="flex items-center gap-1.5 text-xs whitespace-nowrap cursor-pointer">
                   <Checkbox checked={entry.ongoing} onCheckedChange={c => updateEntry(entry.id, 'ongoing', !!c)} />
                   Ongoing
                 </label>
               </div>
+              <FieldError errors={fieldErrors} name={k('endDate')} />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Degree / Certificate</Label>
@@ -1884,7 +2023,8 @@ function Step6Education({ d, u, settings, uploadedFiles, onFilesChange }: { d: A
             <InlineDocUpload label="Upload Certificate / Diploma" sectionKey={`education-${entry.id}`} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />
           </div>
         </div>
-      ))}
+        );
+      })}
       {d.education.length === 0 && <p className="text-sm text-gray-400 text-center py-6 border-2 border-dashed border-gray-200 rounded-xl">No entries yet.</p>}
       <button type="button" onClick={addEntry} className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-blue-300 rounded-lg text-blue-600 text-sm font-medium hover:border-blue-500 hover:bg-blue-50">
         <Plus className="w-4 h-4" /> Add Education
@@ -1897,7 +2037,7 @@ function Step7WorkHistory({ d, u, uploadedFiles, onFilesChange }: { d: Applicant
   const addEntry = () => {
     u(prev => ({
       ...prev,
-      workHistory: [...prev.workHistory, { id: crypto.randomUUID(), company: '', jobTitle: '', companyStreet: '', companyCity: '', companyPostalCode: '', country: '', companyPhoneCode: '+1', companyPhone: '', startDate: '', endDate: '', current: false, responsibilities: '', reasonForLeaving: '', referenceName: '', referencePhoneCode: '+1', referencePhone: '', referenceEmail: '' }],
+      workHistory: [...prev.workHistory, { id: crypto.randomUUID(), company: '', jobTitle: '', companyStreet: '', companyCity: '', companyPostalCode: '', country: '', companyPhoneCode: '', companyPhone: '', startDate: '', endDate: '', current: false, responsibilities: '', reasonForLeaving: '', referenceName: '', referencePhoneCode: '', referencePhone: '', referenceEmail: '' }],
     }));
   };
   const updateEntry = (id: string, field: keyof WorkHistoryEntry, value: any) => {
@@ -2054,7 +2194,7 @@ function Step7WorkHistory({ d, u, uploadedFiles, onFilesChange }: { d: Applicant
   );
 }
 
-function Step8Skills({ d, u, settings, uploadedFiles, onFilesChange }: { d: ApplicantFormData; u: (fn: (p: ApplicantFormData) => ApplicantFormData) => void; settings: FormSettings; uploadedFiles: UploadedFileItem[]; onFilesChange: (files: UploadedFileItem[]) => void }) {
+function Step8Skills({ d, u, settings, uploadedFiles, onFilesChange, fieldErrors }: { d: ApplicantFormData; u: (fn: (p: ApplicantFormData) => ApplicantFormData) => void; settings: FormSettings; uploadedFiles: UploadedFileItem[]; onFilesChange: (files: UploadedFileItem[]) => void; fieldErrors?: Record<string, string> }) {
   const set = (field: keyof ApplicantFormData) => (value: any) => u(prev => ({ ...prev, [field]: value }));
   const addPresetSkill = (skill: string) => {
     u(prev => ({ ...prev, skills: [...prev.skills, { id: crypto.randomUUID(), skill, level: '', isCustom: false }] }));
@@ -2086,52 +2226,75 @@ function Step8Skills({ d, u, settings, uploadedFiles, onFilesChange }: { d: Appl
       <SectionTitle title="Skills & Qualifications" subtitle="Languages, computer skills and certifications" />
       <div className="space-y-4">
         <SubSection title="Languages" />
-        {d.languages.map((lang, i) => (
+        {d.languages.map((lang, i) => {
+          const k = (f: string) => `languages.${lang.id}.${f}`;
+          const errClass = (name: string) =>
+            fieldErrors?.[name] ? 'border-red-500 focus-visible:ring-red-500' : '';
+          return (
           <div key={lang.id} className="p-4 border-2 border-gray-200 rounded-lg space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">Language {i + 1}</span>
-              <button type="button" onClick={() => removeLang(lang.id)} className="p-1 text-gray-400 hover:text-red-500">
+              <button
+                type="button"
+                onClick={() => removeLang(lang.id)}
+                title="Remove entry"
+                aria-label="Remove entry"
+                className="p-1.5 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50"
+              >
                 <Trash2 className="w-4 h-4" />
               </button>
             </div>
             <div className="grid md:grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label className="text-xs">Language</Label>
+                <Label className="text-xs">Language *</Label>
                 <Select value={lang.language} onValueChange={v => updateLang(lang.id, 'language', v)}>
-                  <SelectTrigger><SelectValue placeholder="Select language" /></SelectTrigger>
+                  <SelectTrigger className={errClass(k('language'))}><SelectValue placeholder="Select language" /></SelectTrigger>
                   <SelectContent>
                     {LANGUAGES.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
                   </SelectContent>
                 </Select>
+                <FieldError errors={fieldErrors} name={k('language')} />
               </div>
               <div className="flex items-center gap-2 mt-5">
                 <Checkbox checked={lang.motherTongue} onCheckedChange={c => updateLang(lang.id, 'motherTongue', !!c)} />
                 <Label className="text-xs cursor-pointer">Mother Tongue</Label>
               </div>
-              {(['Speaking', 'Reading', 'Writing', 'Listening'] as const).map(skill => (
-                <div key={skill} className="space-y-1">
-                  <Label className="text-xs">{skill}</Label>
-                  <Select value={(lang as any)[`${skill.toLowerCase()}Level`]} onValueChange={v => updateLang(lang.id, `${skill.toLowerCase()}Level` as keyof LanguageEntry, v)}>
-                    <SelectTrigger><SelectValue placeholder="Level" /></SelectTrigger>
-                    <SelectContent>
-                      {PROFICIENCY_LEVELS.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-              ))}
+              {(['Speaking', 'Reading', 'Writing', 'Listening'] as const).map(skill => {
+                const levelKey = `${skill.toLowerCase()}Level`;
+                return (
+                  <div key={skill} className="space-y-1">
+                    <Label className="text-xs">{skill}{!lang.motherTongue && ' *'}</Label>
+                    <Select value={(lang as any)[levelKey]} onValueChange={v => updateLang(lang.id, levelKey as keyof LanguageEntry, v)}>
+                      <SelectTrigger className={errClass(k(levelKey))}><SelectValue placeholder="Level" /></SelectTrigger>
+                      <SelectContent>
+                        {PROFICIENCY_LEVELS.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <FieldError errors={fieldErrors} name={k(levelKey)} />
+                  </div>
+                );
+              })}
               <div className="flex items-center gap-2 mt-1 md:col-span-2">
                 <Checkbox checked={lang.hasCertificate} onCheckedChange={c => updateLang(lang.id, 'hasCertificate', !!c)} />
                 <Label className="text-xs cursor-pointer">Has Certificate</Label>
               </div>
               {lang.hasCertificate && (
                 <div className="space-y-1 md:col-span-2">
-                  <Label className="text-xs">Certificate</Label>
-                  <Input placeholder="e.g. IELTS 7.5" value={lang.certificate} onChange={e => updateLang(lang.id, 'certificate', e.target.value)} />
+                  <Label className="text-xs">Certificate *</Label>
+                  <Input
+                    placeholder="e.g. IELTS 7.5"
+                    value={lang.certificate}
+                    onChange={e => updateLang(lang.id, 'certificate', e.target.value)}
+                    aria-invalid={!!fieldErrors?.[k('certificate')]}
+                    className={errClass(k('certificate'))}
+                  />
+                  <FieldError errors={fieldErrors} name={k('certificate')} />
                 </div>
               )}
             </div>
           </div>
-        ))}
+          );
+        })}
         <button type="button" onClick={addLang} className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-blue-300 rounded-lg text-blue-600 text-sm font-medium hover:border-blue-500 hover:bg-blue-50">
           <Plus className="w-4 h-4" /> Add Language
         </button>
@@ -2743,6 +2906,9 @@ export interface ApplicantFormStepsProps {
   existingPhotoUrl?: string;
   jobAdTitle?: string;
   requiredDocuments?: string[];
+  /** Field-level errors keyed by form field name. Build this from
+   *  getStepFieldErrors(currentStep, formData). */
+  fieldErrors?: Record<string, string>;
 }
 
 export function ApplicantFormSteps({
@@ -2759,6 +2925,7 @@ export function ApplicantFormSteps({
   existingPhotoUrl,
   jobAdTitle,
   requiredDocuments = [],
+  fieldErrors,
 }: ApplicantFormStepsProps) {
   const actualTab = visibleTabs[currentStep - 1] ?? 1;
 
@@ -2766,12 +2933,12 @@ export function ApplicantFormSteps({
     <>
       {actualTab === 1 && <Step1Personal d={d} u={u} jobTypes={jobTypes} photoFile={photoFile} onPhotoChange={onPhotoChange} existingPhotoUrl={existingPhotoUrl} jobAdTitle={jobAdTitle} />}
       {actualTab === 2 && <Step2Contact d={d} u={u} settings={settings} />}
-      {actualTab === 3 && <Step3Identification d={d} u={u} settings={settings} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} requiredDocuments={requiredDocuments} />}
-      {actualTab === 4 && <Step4DrivingLicense d={d} u={u} settings={settings} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} requiredDocuments={requiredDocuments} />}
-      {actualTab === 5 && <Step5DrivingExperience d={d} u={u} settings={settings} />}
-      {actualTab === 6 && <Step6Education d={d} u={u} settings={settings} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />}
+      {actualTab === 3 && <Step3Identification d={d} u={u} settings={settings} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} requiredDocuments={requiredDocuments} fieldErrors={fieldErrors} />}
+      {actualTab === 4 && <Step4DrivingLicense d={d} u={u} settings={settings} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} requiredDocuments={requiredDocuments} fieldErrors={fieldErrors} />}
+      {actualTab === 5 && <Step5DrivingExperience d={d} u={u} settings={settings} fieldErrors={fieldErrors} />}
+      {actualTab === 6 && <Step6Education d={d} u={u} settings={settings} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} fieldErrors={fieldErrors} />}
       {actualTab === 7 && <Step7WorkHistory d={d} u={u} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />}
-      {actualTab === 8 && <Step8Skills d={d} u={u} settings={settings} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />}
+      {actualTab === 8 && <Step8Skills d={d} u={u} settings={settings} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} fieldErrors={fieldErrors} />}
       {actualTab === 9 && <Step9Additional d={d} u={u} settings={settings} />}
       {actualTab === 10 && <Step10Documents uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} requiredDocuments={requiredDocuments} />}
       {actualTab === 11 && <Step11Review d={d} u={u} settings={settings} photoFile={photoFile} existingPhotoUrl={existingPhotoUrl} uploadedFiles={uploadedFiles} />}

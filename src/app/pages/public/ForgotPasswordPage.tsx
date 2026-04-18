@@ -6,23 +6,29 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/ca
 import { Briefcase, ArrowLeft, CheckCircle } from 'lucide-react';
 import { authApi, BACKEND_URL } from '../../services/api';
 import { useBranding } from '../../hooks/useBranding';
+import { ReCaptchaV2 } from '../../components/ui/ReCaptchaV2';
+
+const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY as string;
 
 export function ForgotPasswordPage() {
   const branding = useBranding();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!captchaToken) return;
     setLoading(true);
     try {
-      await authApi.forgotPassword(email);
+      await authApi.forgotPassword(email, captchaToken);
     } catch {
       // Intentionally swallow error to prevent enumeration
     } finally {
       setLoading(false);
       setSubmitted(true);
+      setCaptchaToken(null);
     }
   };
 
@@ -93,10 +99,19 @@ export function ForgotPasswordPage() {
                 />
               </div>
 
+              <div className="flex justify-center">
+                <ReCaptchaV2
+                  siteKey={RECAPTCHA_SITE_KEY}
+                  onVerify={(token) => setCaptchaToken(token)}
+                  onExpired={() => setCaptchaToken(null)}
+                />
+              </div>
+
               <Button
                 type="submit"
                 className="w-full bg-[#2563EB] hover:bg-[#1d4ed8]"
-                disabled={loading}
+                disabled={loading || !captchaToken}
+                title={!captchaToken ? 'Please complete the "I am not a robot" check first' : undefined}
               >
                 {loading ? 'Sending...' : 'Send Reset Link'}
               </Button>

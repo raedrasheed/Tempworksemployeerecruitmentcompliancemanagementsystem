@@ -42,7 +42,7 @@ export class AuthService {
       include: { role: true },
     });
     if (!user) return null;
-    if (user.status === 'INACTIVE' || user.status === 'SUSPENDED') return null;
+    if (user.status !== 'ACTIVE') return null;
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
     if (!isPasswordValid) return null;
     return user;
@@ -174,7 +174,158 @@ export class AuthService {
       passwordExpired = true;
     }
 
-    // Update lastLoginAt
+    // If the user has 2FA enabled, do NOT issue tokens yet — create a
+    // short-lived challenge, email the OTP, and return a challenge id.
+    if ((user as any).twoFactorEnabled) {
+      const { challenge, expiresAt } = await this.createTwoFactorChallenge(user.id, ipAddress);
+      this.emailService
+        .sendTwoFactorCode(
+          user.email,
+          `${user.firstName} ${user.lastName}`,
+          challenge.code,
+          10,
+          { ipAddress },
+        )
+        .catch(() => undefined);
+
+      await this.auditLog.log({
+        userId: user.id,
+        userEmail: user.email,
+        action: 'TWO_FACTOR_CHALLENGE_SENT',
+        entity: 'User',
+        entityId: user.id,
+        ipAddress,
+      });
+
+      return {
+        twoFactorRequired: true,
+        challengeId: challenge.id,
+        expiresAt,
+        // Hint for the UI — the full email is not exposed
+        emailHint: this.maskEmail(user.email),
+      } as any;
+    }
+
+    return this.finalizeLogin(user, passwordExpired, ipAddress);
+  }
+
+  // ---------------------------------------------------------------------------
+  // 2FA: create challenge, verify challenge
+  // ---------------------------------------------------------------------------
+  private maskEmail(email: string): string {
+    const [local, domain] = email.split('@');
+    if (!domain) return email;
+    const head = local.slice(0, Math.min(2, local.length));
+    return `${head}${'*'.repeat(Math.max(1, local.length - head.length))}@${domain}`;
+  }
+
+  private async createTwoFactorChallenge(userId: string, ipAddress?: string) {
+    // Invalidate any outstanding challenges for this user
+    await this.prisma.twoFactorChallenge.updateMany({
+      where: { userId, consumedAt: null, expiresAt: { gt: new Date() } },
+      data: { consumedAt: new Date() },
+    });
+
+    const code = String(Math.floor(100000 + Math.random() * 900000)); // 6-digit
+    const codeHash = await bcrypt.hash(code, 10);
+    const expiresAt = addMinutes(new Date(), 10);
+
+    const record = await this.prisma.twoFactorChallenge.create({
+      data: {
+        userId,
+        challenge: crypto.randomBytes(24).toString('hex'),
+        codeHash,
+        expiresAt,
+        ipAddress,
+      },
+    });
+
+    return { challenge: { id: record.challenge, code }, expiresAt };
+  }
+
+  async verifyTwoFactor(challengeId: string, code: string, ipAddress?: string) {
+    const record = await this.prisma.twoFactorChallenge.findUnique({
+      where: { challenge: challengeId },
+      include: { user: { include: { role: true, agency: true } } },
+    });
+    if (!record || record.consumedAt || record.expiresAt < new Date()) {
+      throw new UnauthorizedException('Verification code is invalid or has expired');
+    }
+    if (record.attempts >= 5) {
+      await this.prisma.twoFactorChallenge.update({
+        where: { id: record.id },
+        data: { consumedAt: new Date() },
+      });
+      throw new UnauthorizedException('Too many attempts. Please sign in again.');
+    }
+
+    const valid = await bcrypt.compare(code.trim(), record.codeHash);
+    if (!valid) {
+      await this.prisma.twoFactorChallenge.update({
+        where: { id: record.id },
+        data: { attempts: { increment: 1 } },
+      });
+      await this.auditLog.log({
+        userId: record.userId,
+        userEmail: record.user.email,
+        action: 'TWO_FACTOR_FAILED',
+        entity: 'User',
+        entityId: record.userId,
+        ipAddress,
+      });
+      throw new UnauthorizedException('Invalid verification code');
+    }
+
+    await this.prisma.twoFactorChallenge.update({
+      where: { id: record.id },
+      data: { consumedAt: new Date() },
+    });
+
+    const user = record.user;
+    if (!user || user.status !== 'ACTIVE') {
+      throw new UnauthorizedException('Account is not active');
+    }
+
+    const passwordExpired = !!user.passwordExpiresAt && user.passwordExpiresAt < new Date();
+
+    await this.auditLog.log({
+      userId: user.id,
+      userEmail: user.email,
+      action: 'TWO_FACTOR_VERIFIED',
+      entity: 'User',
+      entityId: user.id,
+      ipAddress,
+    });
+
+    return this.finalizeLogin(user as any, passwordExpired, ipAddress);
+  }
+
+  async resendTwoFactor(challengeId: string, ipAddress?: string) {
+    const record = await this.prisma.twoFactorChallenge.findUnique({
+      where: { challenge: challengeId },
+      include: { user: true },
+    });
+    if (!record || record.consumedAt || record.expiresAt < new Date()) {
+      throw new UnauthorizedException('Verification session expired. Please sign in again.');
+    }
+    const { challenge, expiresAt } = await this.createTwoFactorChallenge(record.userId, ipAddress);
+    this.emailService
+      .sendTwoFactorCode(
+        record.user.email,
+        `${record.user.firstName} ${record.user.lastName}`,
+        challenge.code,
+        10,
+        { ipAddress },
+      )
+      .catch(() => undefined);
+    return { challengeId: challenge.id, expiresAt };
+  }
+
+  private async finalizeLogin(
+    user: { id: string; email: string; firstName: string; lastName: string; agencyId: string; role: { name: string }; agency?: any },
+    passwordExpired: boolean,
+    ipAddress?: string,
+  ) {
     await this.prisma.user.update({
       where: { id: user.id },
       data: { lastLoginAt: new Date() },
@@ -210,6 +361,27 @@ export class AuthService {
         agency: user.agency ?? null,
       },
     };
+  }
+
+  // ---------------------------------------------------------------------------
+  // 2FA: enable / disable for self
+  // ---------------------------------------------------------------------------
+  async setTwoFactorEnabled(userId: string, enabled: boolean, ipAddress?: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new UnauthorizedException();
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { twoFactorEnabled: enabled },
+    });
+    await this.auditLog.log({
+      userId,
+      userEmail: user.email,
+      action: enabled ? 'TWO_FACTOR_ENABLED' : 'TWO_FACTOR_DISABLED',
+      entity: 'User',
+      entityId: userId,
+      ipAddress,
+    });
+    return { twoFactorEnabled: enabled };
   }
 
   // ---------------------------------------------------------------------------
@@ -309,6 +481,14 @@ export class AuthService {
       ipAddress,
     });
 
+    this.emailService
+      .sendPasswordChangedConfirmation(
+        user.email,
+        `${user.firstName} ${user.lastName}`,
+        { changedAt: new Date(), ipAddress, initiator: 'self' },
+      )
+      .catch(() => undefined);
+
     return { message: 'Password changed successfully' };
   }
 
@@ -339,6 +519,13 @@ export class AuthService {
       permissions: user.role.permissions.map((rp) => rp.permission.name),
       status: user.status,
       lastLoginAt: user.lastLoginAt,
+      twoFactorEnabled: (user as any).twoFactorEnabled ?? false,
+      // Session policy — read here so every authenticated client gets the
+      // current value without needing admin permissions on /settings.
+      sessionIdleTimeoutMinutes: await this.getSystemSettingNumber(
+        'SESSION_IDLE_TIMEOUT_MINUTES',
+        30,
+      ),
     };
   }
 
@@ -524,7 +711,7 @@ export class AuthService {
   // ---------------------------------------------------------------------------
   // Reset password (apply new password from token)
   // ---------------------------------------------------------------------------
-  async resetPassword(token: string, newPassword: string): Promise<void> {
+  async resetPassword(token: string, newPassword: string, ipAddress?: string): Promise<void> {
     const resetToken = await this.prisma.passwordResetToken.findFirst({
       where: {
         token,
@@ -566,7 +753,7 @@ export class AuthService {
 
     const user = await this.prisma.user.findUnique({
       where: { id: resetToken.userId },
-      select: { email: true },
+      select: { email: true, firstName: true, lastName: true },
     });
 
     await this.auditLog.log({
@@ -575,7 +762,22 @@ export class AuthService {
       action: 'PASSWORD_RESET',
       entity: 'User',
       entityId: resetToken.userId,
+      ipAddress,
     });
+
+    if (user?.email) {
+      this.emailService
+        .sendPasswordChangedConfirmation(
+          user.email,
+          `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() || user.email,
+          {
+            changedAt: now,
+            ipAddress,
+            initiator: resetToken.type === 'ADMIN_INITIATED' ? 'admin' : 'reset',
+          },
+        )
+        .catch(() => undefined);
+    }
   }
 
   // ---------------------------------------------------------------------------

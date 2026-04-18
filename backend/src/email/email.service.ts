@@ -42,6 +42,34 @@ export class EmailService {
     await this.sendMail(to, subject, this.buildPasswordResetTemplate(name, url, isAdminInitiated));
   }
 
+  async sendTwoFactorCode(
+    to: string,
+    name: string,
+    code: string,
+    expiresInMinutes = 10,
+    context: { ipAddress?: string } = {},
+  ): Promise<void> {
+    await this.sendMail(
+      to,
+      'Your TempWorks Verification Code',
+      this.buildTwoFactorTemplate(name, code, expiresInMinutes, context),
+    );
+  }
+
+  async sendPasswordChangedConfirmation(
+    to: string,
+    name: string,
+    context: { changedAt?: Date; ipAddress?: string; initiator?: 'self' | 'reset' | 'admin' } = {},
+    frontendUrl?: string,
+  ): Promise<void> {
+    const loginUrl = `${frontendUrl ?? this.frontendUrl}/login`;
+    await this.sendMail(
+      to,
+      'Your TempWorks Password Was Changed',
+      this.buildPasswordChangedTemplate(name, loginUrl, context),
+    );
+  }
+
   async sendPasswordExpiredNotification(to: string, name: string, frontendUrl?: string): Promise<void> {
     const url = `${frontendUrl ?? this.frontendUrl}/login`;
     await this.sendMail(to, 'Your TempWorks Password Has Expired', this.buildPasswordExpiredTemplate(name, url));
@@ -181,6 +209,48 @@ export class EmailService {
       ${this.notice('This link expires in <strong>60 minutes</strong>.')}
       <p style="margin:16px 0 8px;">If you didn't request this, ignore this email or contact your admin.</p>
       <p style="word-break:break-all;font-size:13px;"><a href="${url}" style="color:#1a56db;">${url}</a></p>
+    `);
+  }
+
+  private buildTwoFactorTemplate(
+    name: string,
+    code: string,
+    expiresInMinutes: number,
+    context: { ipAddress?: string },
+  ): string {
+    const ip = context.ipAddress ? this.escape(context.ipAddress) : 'Unknown';
+    return this.baseTemplate('Your Verification Code', `
+      <p style="margin:0 0 16px;">Hello <strong>${this.escape(name)}</strong>,</p>
+      <p style="margin:0 0 16px;">Use the verification code below to finish signing in. This code was requested from IP <strong>${ip}</strong>.</p>
+      <div style="margin:20px 0;padding:18px 24px;background:#f0f5ff;border:1px solid #c7d7ff;border-radius:8px;text-align:center;">
+        <div style="font-family:Consolas,Menlo,monospace;font-size:32px;letter-spacing:10px;color:#1a56db;font-weight:700;">${this.escape(code)}</div>
+      </div>
+      ${this.notice(`This code expires in <strong>${expiresInMinutes} minutes</strong>. Do not share it with anyone.`)}
+      <p style="margin:16px 0 0;">If you did not try to sign in, ignore this email and consider changing your password.</p>
+    `);
+  }
+
+  private buildPasswordChangedTemplate(
+    name: string,
+    loginUrl: string,
+    context: { changedAt?: Date; ipAddress?: string; initiator?: 'self' | 'reset' | 'admin' },
+  ): string {
+    const when = (context.changedAt ?? new Date()).toUTCString();
+    const ip = context.ipAddress ? this.escape(context.ipAddress) : 'Unknown';
+    const initiatorLabel =
+      context.initiator === 'reset' ? 'a password reset link'
+      : context.initiator === 'admin' ? 'an administrator'
+      : 'your account';
+    return this.baseTemplate('Password Changed', `
+      <p style="margin:0 0 16px;">Hello <strong>${this.escape(name)}</strong>,</p>
+      <p style="margin:0 0 16px;">Your TempWorks password was changed successfully via ${initiatorLabel}.</p>
+      <table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:13px;">
+        <tr><td style="padding:6px 12px;color:#6b7280;white-space:nowrap;">Changed at</td><td style="padding:6px 12px;color:#111827;">${when}</td></tr>
+        <tr><td style="padding:6px 12px;color:#6b7280;white-space:nowrap;">IP address</td><td style="padding:6px 12px;color:#111827;">${ip}</td></tr>
+      </table>
+      <p style="margin:16px 0;">For security, all other active sessions have been signed out. Please log in again with your new password.</p>
+      ${this.btn('Log In', loginUrl)}
+      ${this.notice('If you did <strong>not</strong> make this change, contact your administrator immediately — your account may be compromised.')}
     `);
   }
 

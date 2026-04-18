@@ -8,6 +8,8 @@ import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Badge } from '../../components/ui/badge';
+import { CountrySelect } from '../../components/ui/CountrySelect';
+import { PhoneInput } from '../../components/ui/PhoneInput';
 import { toast } from 'sonner';
 import { usersApi, rolesApi, agenciesApi, authApi, getCurrentUser, BACKEND_URL } from '../../services/api';
 
@@ -24,6 +26,64 @@ const TIMEZONES = [
   'America/New_York', 'America/Chicago', 'America/Los_Angeles',
   'Asia/Dubai', 'Asia/Riyadh',
 ];
+
+const STATUS_OPTIONS: { value: string; label: string }[] = [
+  { value: 'ACTIVE',     label: 'Active' },
+  { value: 'INACTIVE',   label: 'Inactive' },
+  { value: 'SUSPENDED',  label: 'Suspended' },
+  { value: 'PENDING',    label: 'Pending' },
+  { value: 'TERMINATED', label: 'Terminated' },
+];
+
+type StatusStyle = {
+  badge: string;
+  card:  string;
+  dot:   string;
+  label: string;
+  description: string;
+};
+
+const STATUS_STYLES: Record<string, StatusStyle> = {
+  ACTIVE: {
+    badge: 'bg-emerald-500 text-white border-emerald-500',
+    card:  'border-emerald-300 bg-emerald-50/60',
+    dot:   'bg-emerald-500',
+    label: 'Active',
+    description: 'User can sign in and access the system.',
+  },
+  PENDING: {
+    badge: 'bg-amber-500 text-white border-amber-500',
+    card:  'border-amber-300 bg-amber-50/60',
+    dot:   'bg-amber-500',
+    label: 'Pending Activation',
+    description: 'Awaiting email activation. Sign-in is blocked until activated.',
+  },
+  INACTIVE: {
+    badge: 'bg-slate-500 text-white border-slate-500',
+    card:  'border-slate-300 bg-slate-50',
+    dot:   'bg-slate-500',
+    label: 'Inactive',
+    description: 'Account disabled. Sign-in and active sessions are blocked.',
+  },
+  SUSPENDED: {
+    badge: 'bg-red-500 text-white border-red-500',
+    card:  'border-red-300 bg-red-50/60',
+    dot:   'bg-red-500',
+    label: 'Suspended',
+    description: 'Account suspended. Sign-in and active sessions are blocked.',
+  },
+  TERMINATED: {
+    badge: 'bg-rose-700 text-white border-rose-700',
+    card:  'border-rose-300 bg-rose-50/60',
+    dot:   'bg-rose-700',
+    label: 'Terminated',
+    description: 'Account terminated. Sign-in is permanently blocked.',
+  },
+};
+
+function getStatusStyle(status: string): StatusStyle {
+  return STATUS_STYLES[status] ?? STATUS_STYLES.INACTIVE;
+}
 
 export function EditUser() {
   const { canEdit } = usePermissions();
@@ -202,6 +262,46 @@ export function EditUser() {
         </div>
       </div>
 
+      {/* Account Status — moved to top, with colors */}
+      {(() => {
+        const style = getStatusStyle(form.status || userStatus);
+        return (
+          <div className={`max-w-2xl rounded-lg border ${style.card} p-4 flex flex-wrap items-center gap-4`}>
+            <div className="flex items-center gap-3 min-w-0">
+              <span className={`w-2.5 h-2.5 rounded-full ${style.dot}`} />
+              <div className="min-w-0">
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Account Status</p>
+                <Badge className={`${style.badge} mt-1`}>{style.label}</Badge>
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground flex-1 min-w-[200px]">{style.description}</p>
+            {isAdminOrHR && (
+              <div className="space-y-1">
+                <Label htmlFor="status-select" className="text-xs">Change status</Label>
+                <Select value={form.status} onValueChange={val => handleSelect('status', val)}>
+                  <SelectTrigger id="status-select" className={`w-44 font-medium ${style.badge} hover:opacity-90`}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {STATUS_OPTIONS.map(o => {
+                      const s = getStatusStyle(o.value);
+                      return (
+                        <SelectItem key={o.value} value={o.value}>
+                          <span className="inline-flex items-center gap-2">
+                            <span className={`w-2 h-2 rounded-full ${s.dot}`} />
+                            {o.label}
+                          </span>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
       {/* Account Actions */}
       <div className="max-w-2xl flex flex-wrap gap-3">
         {lockedAt && (
@@ -355,21 +455,6 @@ export function EditUser() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Status</Label>
-                    <Select value={form.status} onValueChange={val => handleSelect('status', val)}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ACTIVE">Active</SelectItem>
-                        <SelectItem value="INACTIVE">Inactive</SelectItem>
-                        <SelectItem value="SUSPENDED">Suspended</SelectItem>
-                        <SelectItem value="PENDING">Pending</SelectItem>
-                        <SelectItem value="TERMINATED">Terminated</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
                 </>
               )}
               {!isAdminOrHR && (
@@ -440,12 +525,20 @@ export function EditUser() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="citizenship">Citizenship</Label>
-                  <Input id="citizenship" placeholder="e.g. British" value={form.citizenship} onChange={handleChange} />
+                  <Label>Citizenship</Label>
+                  <CountrySelect
+                    value={form.citizenship}
+                    onChange={(v) => handleSelect('citizenship', v)}
+                    placeholder="Select country of citizenship"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="phone">Phone</Label>
-                  <Input id="phone" type="tel" value={form.phone} onChange={handleChange} />
+                  <PhoneInput
+                    id="phone"
+                    value={form.phone}
+                    onChange={(v) => handleSelect('phone', v)}
+                  />
                 </div>
               </div>
             </CardContent>
@@ -471,8 +564,11 @@ export function EditUser() {
                   <Input id="city" placeholder="City" value={form.city} onChange={handleChange} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="country">Country</Label>
-                  <Input id="country" placeholder="Country" value={form.country} onChange={handleChange} />
+                  <Label>Country</Label>
+                  <CountrySelect
+                    value={form.country}
+                    onChange={(v) => handleSelect('country', v)}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="postalCode">Postal Code</Label>

@@ -1,14 +1,14 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate, Link } from 'react-router';
 import {
-  Plus, Search, Filter, ExternalLink, Edit2, Trash2,
-  MapPin, Briefcase, Clock, Users, Eye, EyeOff, Archive,
+  Plus, Search, ExternalLink, Edit2, Trash2,
+  MapPin, Eye, Archive,
   ChevronLeft, ChevronRight,
+  ArrowUp, ArrowDown, ArrowUpDown, Columns2, Check, X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { jobAdsApi, settingsApi, getCurrentUser } from '../../services/api';
 import { Button } from '../../components/ui/button';
-import { Badge } from '../../components/ui/badge';
 import { Input } from '../../components/ui/input';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -23,6 +23,45 @@ const STATUS_COLORS: Record<string, string> = {
 
 const WRITE_ROLES = ['System Admin', 'HR Manager', 'Recruiter'];
 
+// ── Column visibility ──────────────────────────────────────────────────────
+type ColKey =
+  | 'title' | 'category' | 'city' | 'country' | 'contractType'
+  | 'status' | 'applicants' | 'createdAt' | 'updatedAt' | 'slug';
+
+const ALL_COLUMNS: { key: ColKey; label: string }[] = [
+  { key: 'title',        label: 'Title' },
+  { key: 'category',     label: 'Category' },
+  { key: 'city',         label: 'City' },
+  { key: 'country',      label: 'Country' },
+  { key: 'contractType', label: 'Contract' },
+  { key: 'status',       label: 'Status' },
+  { key: 'applicants',   label: 'Applicants' },
+  { key: 'createdAt',    label: 'Created' },
+  { key: 'updatedAt',    label: 'Updated' },
+  { key: 'slug',         label: 'Slug' },
+];
+
+const DEFAULT_VISIBLE: Record<ColKey, boolean> = {
+  title: true, category: true, city: true, country: true, contractType: true,
+  status: true, applicants: true, createdAt: true,
+  updatedAt: false, slug: false,
+};
+
+const STORAGE_KEY = 'job-ads-table-columns';
+
+function loadVisibleColumns(): Record<ColKey, boolean> {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return saved ? { ...DEFAULT_VISIBLE, ...JSON.parse(saved) } : DEFAULT_VISIBLE;
+  } catch {
+    return DEFAULT_VISIBLE;
+  }
+}
+
+// ── Sorting ─────────────────────────────────────────────────────────────────
+type SortField = ColKey;
+type SortOrder = 'asc' | 'desc';
+
 export function JobAdsList() {
   const navigate = useNavigate();
   const currentUser = getCurrentUser();
@@ -32,14 +71,56 @@ export function JobAdsList() {
   const [meta, setMeta] = useState({ total: 0, page: 1, limit: 20, totalPages: 1 });
   const [loading, setLoading] = useState(true);
 
-  const [search, setSearch]           = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  // Filters
+  const [search, setSearch]                 = useState('');
+  const [statusFilter, setStatusFilter]     = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [countryFilter, setCountryFilter]   = useState('');
+  const [cityFilter, setCityFilter]         = useState('');
+  const [contractFilter, setContractFilter] = useState('');
+  const [minApplicants, setMinApplicants]   = useState('');
+  const [dateFrom, setDateFrom]             = useState('');
+  const [dateTo, setDateTo]                 = useState('');
 
   const [categories, setCategories]     = useState<string[]>([]);
   const [page, setPage] = useState(1);
   const limit = 20;
+
+  // Sort state
+  const [sortBy, setSortBy]       = useState<SortField>('createdAt');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+  const handleSort = (f: SortField) => {
+    if (sortBy === f) setSortOrder(o => o === 'asc' ? 'desc' : 'asc');
+    else { setSortBy(f); setSortOrder('asc'); }
+  };
+
+  // Column visibility
+  const [visibleColumns, setVisibleColumns] = useState<Record<ColKey, boolean>>(loadVisibleColumns);
+  const [showColPicker,  setShowColPicker]  = useState(false);
+  const colPickerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showColPicker) return;
+    const handler = (e: MouseEvent) => {
+      if (colPickerRef.current && !colPickerRef.current.contains(e.target as Node)) {
+        setShowColPicker(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showColPicker]);
+
+  const toggleColumn = (key: ColKey) => {
+    setVisibleColumns(prev => {
+      const next = { ...prev, [key]: !prev[key] };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const col = (key: ColKey) => visibleColumns[key];
+  const hiddenCount  = ALL_COLUMNS.filter(c => !visibleColumns[c.key]).length;
+  const visibleCount = ALL_COLUMNS.filter(c =>  visibleColumns[c.key]).length;
 
   const load = useCallback(async (p = 1) => {
     setLoading(true);
@@ -97,6 +178,74 @@ export function JobAdsList() {
     }
   };
 
+  const countryOptions  = useMemo(() => Array.from(new Set(ads.map(a => a.country).filter(Boolean))).sort() as string[], [ads]);
+  const contractOptions = useMemo(() => Array.from(new Set(ads.map(a => a.contractType).filter(Boolean))).sort() as string[], [ads]);
+
+  const displayAds = useMemo(() => {
+    let data = ads;
+    if (cityFilter) {
+      const q = cityFilter.toLowerCase();
+      data = data.filter(a => (a.city ?? '').toLowerCase().includes(q));
+    }
+    if (contractFilter) data = data.filter(a => a.contractType === contractFilter);
+    if (minApplicants) {
+      const n = Number(minApplicants);
+      data = data.filter(a => (a._count?.applicants ?? 0) >= n);
+    }
+    if (dateFrom || dateTo) {
+      const from = dateFrom ? new Date(dateFrom).getTime() : -Infinity;
+      const to   = dateTo   ? new Date(dateTo + 'T23:59:59').getTime() : Infinity;
+      data = data.filter(a => {
+        const t = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        return t >= from && t <= to;
+      });
+    }
+    return [...data].sort((a, b) => {
+      let aVal: any, bVal: any;
+      switch (sortBy) {
+        case 'title':        aVal = (a.title ?? '').toLowerCase();        bVal = (b.title ?? '').toLowerCase(); break;
+        case 'category':     aVal = (a.category ?? '').toLowerCase();     bVal = (b.category ?? '').toLowerCase(); break;
+        case 'city':         aVal = (a.city ?? '').toLowerCase();         bVal = (b.city ?? '').toLowerCase(); break;
+        case 'country':      aVal = (a.country ?? '').toLowerCase();      bVal = (b.country ?? '').toLowerCase(); break;
+        case 'contractType': aVal = (a.contractType ?? '').toLowerCase(); bVal = (b.contractType ?? '').toLowerCase(); break;
+        case 'status':       aVal = a.status ?? '';                        bVal = b.status ?? ''; break;
+        case 'applicants':   aVal = a._count?.applicants ?? 0;             bVal = b._count?.applicants ?? 0; break;
+        case 'createdAt':    aVal = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+                             bVal = b.createdAt ? new Date(b.createdAt).getTime() : 0; break;
+        case 'updatedAt':    aVal = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+                             bVal = b.updatedAt ? new Date(b.updatedAt).getTime() : 0; break;
+        case 'slug':         aVal = (a.slug ?? '').toLowerCase();         bVal = (b.slug ?? '').toLowerCase(); break;
+        default:             aVal = ''; bVal = '';
+      }
+      const cmp = aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+      return sortOrder === 'asc' ? cmp : -cmp;
+    });
+  }, [ads, cityFilter, contractFilter, minApplicants, dateFrom, dateTo, sortBy, sortOrder]);
+
+  const hasServerFilters = !!(search || statusFilter || categoryFilter || countryFilter);
+  const hasExtraFilters  = !!(cityFilter || contractFilter || minApplicants || dateFrom || dateTo);
+  const hasAnyFilters    = hasServerFilters || hasExtraFilters;
+
+  const clearAllFilters = () => {
+    setSearch(''); setStatusFilter(''); setCategoryFilter(''); setCountryFilter('');
+    setCityFilter(''); setContractFilter(''); setMinApplicants('');
+    setDateFrom(''); setDateTo('');
+  };
+
+  const SortableHead = ({ label, field, className }: { label: string; field: SortField; className?: string }) => {
+    const active = sortBy === field;
+    return (
+      <th className={`px-4 py-3 text-left font-medium text-muted-foreground ${className ?? ''}`}>
+        <button onClick={() => handleSort(field)} className="flex items-center gap-1 hover:text-foreground group">
+          {label}
+          {active
+            ? sortOrder === 'asc' ? <ArrowUp className="w-3 h-3 text-primary" /> : <ArrowDown className="w-3 h-3 text-primary" />
+            : <ArrowUpDown className="w-3 h-3 opacity-30 group-hover:opacity-60" />}
+        </button>
+      </th>
+    );
+  };
+
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
@@ -123,8 +272,8 @@ export function JobAdsList() {
 
       {/* Filters */}
       <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-wrap gap-3">
+        <CardContent className="p-4 space-y-3">
+          <div className="flex flex-wrap gap-3 items-center">
             <div className="flex-1 min-w-[200px] relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
@@ -162,14 +311,114 @@ export function JobAdsList() {
                 ))}
               </SelectContent>
             </Select>
-            {(statusFilter || categoryFilter || countryFilter || search) && (
-              <Button variant="ghost" size="sm" onClick={() => {
-                setSearch(''); setStatusFilter('');
-                setCategoryFilter(''); setCountryFilter('');
-              }}>
-                Clear Filters
+            <Select
+              value={countryFilter || '__all__'}
+              onValueChange={v => setCountryFilter(v === '__all__' ? '' : v)}
+            >
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="All Countries" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">All Countries</SelectItem>
+                {countryOptions.map(c => (
+                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex flex-wrap gap-2 items-center">
+            <Input
+              placeholder="City contains…"
+              value={cityFilter}
+              onChange={e => setCityFilter(e.target.value)}
+              className="w-44"
+            />
+            <Select
+              value={contractFilter || '__all__'}
+              onValueChange={v => setContractFilter(v === '__all__' ? '' : v)}
+            >
+              <SelectTrigger className="w-44">
+                <SelectValue placeholder="All Contracts" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">All Contracts</SelectItem>
+                {contractOptions.map(c => (
+                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Input
+              type="number"
+              min={0}
+              placeholder="Min applicants"
+              value={minApplicants}
+              onChange={e => setMinApplicants(e.target.value)}
+              className="w-36"
+            />
+            <div className="flex items-center gap-1">
+              <span className="text-xs text-muted-foreground whitespace-nowrap">Created from</span>
+              <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="w-36" />
+              <span className="text-xs text-muted-foreground">to</span>
+              <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="w-36" />
+            </div>
+            {hasAnyFilters && (
+              <Button variant="ghost" size="sm" onClick={clearAllFilters}>
+                <X className="w-3 h-3 mr-1" />Clear filters
               </Button>
             )}
+
+            {/* Column picker */}
+            <div className="relative ml-auto" ref={colPickerRef}>
+              <Button
+                variant="outline" size="sm"
+                onClick={() => setShowColPicker(v => !v)}
+                className={showColPicker ? 'border-primary text-primary' : ''}
+              >
+                <Columns2 className="w-4 h-4 mr-1.5" />Columns
+                {hiddenCount > 0 && (
+                  <span className="ml-1.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
+                    {hiddenCount}
+                  </span>
+                )}
+              </Button>
+              {showColPicker && (
+                <div className="absolute right-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[200px]">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">Toggle columns</p>
+                  <div className="space-y-0.5 max-h-72 overflow-y-auto">
+                    {ALL_COLUMNS.map(c => (
+                      <button
+                        key={c.key}
+                        onClick={() => toggleColumn(c.key)}
+                        className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-gray-50 text-sm text-left"
+                      >
+                        <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${visibleColumns[c.key] ? 'bg-primary border-primary' : 'border-gray-300'}`}>
+                          {visibleColumns[c.key] && <Check className="w-2.5 h-2.5 text-primary-foreground" />}
+                        </span>
+                        {c.label}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="border-t mt-2 pt-2 flex gap-1.5">
+                    <button
+                      onClick={() => {
+                        const all = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, true])) as Record<ColKey, boolean>;
+                        setVisibleColumns(all);
+                        localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
+                      }}
+                      className="flex-1 text-xs text-center text-primary hover:underline py-0.5"
+                    >Show all</button>
+                    <span className="text-gray-300">|</span>
+                    <button
+                      onClick={() => {
+                        setVisibleColumns(DEFAULT_VISIBLE);
+                        localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_VISIBLE));
+                      }}
+                      className="flex-1 text-xs text-center text-gray-500 hover:underline py-0.5"
+                    >Reset</button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -179,26 +428,29 @@ export function JobAdsList() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b bg-muted/40">
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground">Title</th>
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground hidden md:table-cell">Category</th>
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground hidden lg:table-cell">Location</th>
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground hidden lg:table-cell">Contract</th>
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground hidden md:table-cell">Applicants</th>
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground hidden lg:table-cell">Created</th>
+              {col('title')        && <SortableHead label="Title"      field="title" />}
+              {col('category')     && <SortableHead label="Category"   field="category" />}
+              {col('city')         && <SortableHead label="City"       field="city" />}
+              {col('country')      && <SortableHead label="Country"    field="country" />}
+              {col('contractType') && <SortableHead label="Contract"   field="contractType" />}
+              {col('status')       && <SortableHead label="Status"     field="status" />}
+              {col('applicants')   && <SortableHead label="Applicants" field="applicants" />}
+              {col('createdAt')    && <SortableHead label="Created"    field="createdAt" />}
+              {col('updatedAt')    && <SortableHead label="Updated"    field="updatedAt" />}
+              {col('slug')         && <SortableHead label="Slug"       field="slug" />}
               <th className="px-4 py-3 text-right font-medium text-muted-foreground">Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">
+                <td colSpan={visibleCount + 1} className="px-4 py-8 text-center text-muted-foreground">
                   Loading…
                 </td>
               </tr>
-            ) : ads.length === 0 ? (
+            ) : displayAds.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">
+                <td colSpan={visibleCount + 1} className="px-4 py-8 text-center text-muted-foreground">
                   No job ads found.{' '}
                   {canWrite && (
                     <button
@@ -211,33 +463,34 @@ export function JobAdsList() {
                 </td>
               </tr>
             ) : (
-              ads.map(ad => (
+              displayAds.map(ad => (
                 <tr key={ad.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
-                  <td className="px-4 py-3">
-                    <div className="font-medium text-foreground line-clamp-1">{ad.title}</div>
-                    <div className="text-xs text-muted-foreground">/{ad.slug}</div>
-                  </td>
-                  <td className="px-4 py-3 hidden md:table-cell text-muted-foreground">{ad.category}</td>
-                  <td className="px-4 py-3 hidden lg:table-cell">
-                    <span className="flex items-center gap-1 text-muted-foreground text-xs">
+                  {col('title') && (
+                    <td className="px-4 py-3">
+                      <div className="font-medium text-foreground line-clamp-1">{ad.title}</div>
+                      <div className="text-xs text-muted-foreground">/{ad.slug}</div>
+                    </td>
+                  )}
+                  {col('category')     && <td className="px-4 py-3 text-muted-foreground">{ad.category ?? '—'}</td>}
+                  {col('city')         && <td className="px-4 py-3 text-muted-foreground text-xs">
+                    <span className="flex items-center gap-1">
                       <MapPin className="w-3 h-3" />
-                      {ad.city}, {ad.country}
+                      {ad.city ?? '—'}
                     </span>
-                  </td>
-                  <td className="px-4 py-3 hidden lg:table-cell text-muted-foreground text-xs">
-                    {ad.contractType}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[ad.status] ?? ''}`}>
-                      {ad.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 hidden md:table-cell text-muted-foreground text-center">
-                    {ad._count?.applicants ?? 0}
-                  </td>
-                  <td className="px-4 py-3 hidden lg:table-cell text-muted-foreground text-xs whitespace-nowrap">
-                    {new Date(ad.createdAt).toLocaleDateString()}
-                  </td>
+                  </td>}
+                  {col('country')      && <td className="px-4 py-3 text-muted-foreground text-xs">{ad.country ?? '—'}</td>}
+                  {col('contractType') && <td className="px-4 py-3 text-muted-foreground text-xs">{ad.contractType ?? '—'}</td>}
+                  {col('status') && (
+                    <td className="px-4 py-3">
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[ad.status] ?? ''}`}>
+                        {ad.status}
+                      </span>
+                    </td>
+                  )}
+                  {col('applicants')   && <td className="px-4 py-3 text-muted-foreground text-center">{ad._count?.applicants ?? 0}</td>}
+                  {col('createdAt')    && <td className="px-4 py-3 text-muted-foreground text-xs whitespace-nowrap">{ad.createdAt ? new Date(ad.createdAt).toLocaleDateString() : '—'}</td>}
+                  {col('updatedAt')    && <td className="px-4 py-3 text-muted-foreground text-xs whitespace-nowrap">{ad.updatedAt ? new Date(ad.updatedAt).toLocaleDateString() : '—'}</td>}
+                  {col('slug')         && <td className="px-4 py-3 text-muted-foreground text-xs font-mono">{ad.slug ?? '—'}</td>}
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1">
                       {canWrite && ad.status === 'DRAFT' && (
@@ -285,7 +538,7 @@ export function JobAdsList() {
           {meta.total > 0 && (
             <tfoot>
               <tr className="border-t bg-muted/20">
-                <td colSpan={8} className="px-4 py-3">
+                <td colSpan={visibleCount + 1} className="px-4 py-3">
                   <div className="flex items-center justify-between text-sm text-muted-foreground">
                     <span>
                       {meta.total} job ad{meta.total !== 1 ? 's' : ''}

@@ -68,6 +68,39 @@ export interface ApiError {
 let isRefreshing = false;
 let refreshPromise: Promise<void> | null = null;
 
+/** Decode the JWT `exp` claim (seconds since epoch). Returns 0 if unknown. */
+function getTokenExpiryMs(token: string | null): number {
+  if (!token) return 0;
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return typeof payload?.exp === 'number' ? payload.exp * 1000 : 0;
+  } catch {
+    return 0;
+  }
+}
+
+/** Pre-emptively refresh if the access token expires within 30 seconds.
+ *  This stops every authenticated poll (e.g. /notifications/unread-count)
+ *  from first hitting the server with an expired token, getting logged as
+ *  a 401, refreshing, and retrying.
+ */
+async function ensureFreshAccessToken(): Promise<void> {
+  const token = getAccessToken();
+  if (!token) return;
+  const expMs = getTokenExpiryMs(token);
+  if (!expMs) return;                       // Opaque token; skip
+  if (expMs - Date.now() > 30_000) return;  // Still has > 30s of life
+
+  if (!localStorage.getItem('refresh_token')) return; // No refresh token available
+  if (!isRefreshing) {
+    isRefreshing = true;
+    refreshPromise = refreshAccessToken()
+      .catch(() => { /* 401-on-refresh already redirects to /login */ })
+      .finally(() => { isRefreshing = false; refreshPromise = null; });
+  }
+  await refreshPromise;
+}
+
 async function refreshAccessToken(): Promise<void> {
   const refreshToken = localStorage.getItem('refresh_token');
   if (!refreshToken) throw new Error('No refresh token');
@@ -93,6 +126,12 @@ export async function apiFetch<T = any>(
   options: RequestInit = {},
   isRetry = false,
 ): Promise<T> {
+  // Skip preemptive refresh for auth routes (login/refresh) so we don't
+  // spin on endpoints that don't need the access token.
+  if (!path.startsWith('/auth/refresh') && !path.startsWith('/auth/login')) {
+    await ensureFreshAccessToken();
+  }
+
   const token = getAccessToken();
 
   const headers: Record<string, string> = {
@@ -146,14 +185,21 @@ export async function apiFetch<T = any>(
 
 // ─── Auth API ────────────────────────────────────────────────────────────────
 
+export type LoginResult =
+  | { twoFactorRequired: true; challengeId: string; expiresAt: string; emailHint?: string }
+  | { accessToken: string; refreshToken: string; user: AuthUser; passwordExpired?: boolean };
+
 export const authApi = {
-  login: async (email: string, password: string, agencyId?: string) => {
-    const data = await apiFetch<{ accessToken: string; refreshToken: string; user: AuthUser; passwordExpired?: boolean }>(
+  login: async (email: string, password: string, agencyId?: string): Promise<LoginResult> => {
+    const data = await apiFetch<any>(
       '/auth/login',
       { method: 'POST', body: JSON.stringify({ email, password, ...(agencyId && { agencyId }) }) },
     );
+    // 2FA-enabled account: server did not issue tokens yet.
+    if (data?.twoFactorRequired) {
+      return data as LoginResult;
+    }
     setTokens(data.accessToken, data.refreshToken);
-    // Fetch full profile including permissions
     try {
       const fullUser = await apiFetch<AuthUser>('/auth/me');
       setCurrentUser(fullUser);
@@ -163,6 +209,34 @@ export const authApi = {
       return data;
     }
   },
+
+  verifyTwoFactor: async (challengeId: string, code: string) => {
+    const data = await apiFetch<{ accessToken: string; refreshToken: string; user: AuthUser; passwordExpired?: boolean }>(
+      '/auth/2fa/verify',
+      { method: 'POST', body: JSON.stringify({ challengeId, code }) },
+    );
+    setTokens(data.accessToken, data.refreshToken);
+    try {
+      const fullUser = await apiFetch<AuthUser>('/auth/me');
+      setCurrentUser(fullUser);
+      return { ...data, user: fullUser };
+    } catch {
+      setCurrentUser(data.user);
+      return data;
+    }
+  },
+
+  resendTwoFactor: (challengeId: string) =>
+    apiFetch<{ challengeId: string; expiresAt: string }>(
+      '/auth/2fa/resend',
+      { method: 'POST', body: JSON.stringify({ challengeId }) },
+    ),
+
+  enableTwoFactor: () =>
+    apiFetch<{ twoFactorEnabled: boolean }>('/auth/2fa/enable', { method: 'POST' }),
+
+  disableTwoFactor: () =>
+    apiFetch<{ twoFactorEnabled: boolean }>('/auth/2fa/disable', { method: 'POST' }),
 
   logout: async () => {
     try {
@@ -184,8 +258,11 @@ export const authApi = {
       body: JSON.stringify({ currentPassword, newPassword }),
     }),
 
-  forgotPassword: (email: string) =>
-    apiFetch<void>('/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) }),
+  forgotPassword: (email: string, recaptchaToken?: string) =>
+    apiFetch<void>('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email, recaptchaToken }),
+    }),
 
   resetPassword: (token: string, newPassword: string) =>
     apiFetch<void>('/auth/reset-password', { method: 'POST', body: JSON.stringify({ token, newPassword }) }),

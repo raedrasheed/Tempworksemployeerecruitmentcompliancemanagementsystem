@@ -43,8 +43,11 @@ export class UsersController {
   @Get('me')
   @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Finance', 'Read Only')
   @ApiOperation({ summary: 'Get current user profile' })
-  getMe(@CurrentUser('id') userId: string) {
-    return this.usersService.findOne(userId);
+  getMe(@CurrentUser() caller: any) {
+    // Pass the caller's own role + agency so the agency-scoping and
+    // "hide System Admin from non-admins" checks in findOne don't reject
+    // a user looking at their own profile.
+    return this.usersService.findOne(caller.id, caller.role, caller.agencyId);
   }
 
   @Patch('profile')

@@ -10,12 +10,15 @@ import { Progress } from '../../components/ui/progress';
 import { Switch } from '../../components/ui/switch';
 import { Separator } from '../../components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { CountrySelect } from '../../components/ui/CountrySelect';
+import { PhoneInput } from '../../components/ui/PhoneInput';
 import { usersApi, authApi, BACKEND_URL } from '../../services/api';
 import { toast } from 'sonner';
 
 export function Profile() {
   const [isEditing, setIsEditing] = useState(false);
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+  const [twoFactorSaving, setTwoFactorSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -47,6 +50,7 @@ export function Profile() {
           merged.role = fullUser?.role ?? { name: authUser.role };
         }
         setUserData(merged);
+        setTwoFactorEnabled(Boolean(merged?.twoFactorEnabled));
         setEditForm({
           phone: merged.phone || '',
           dateOfBirth: merged.dateOfBirth ? merged.dateOfBirth.slice(0, 10) : '',
@@ -75,12 +79,36 @@ export function Profile() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const updated = await usersApi.updateProfile(editForm);
+      // Drop empty strings before submitting. The backend DTO uses
+      // @IsDateString / @IsEnum, which both reject "" — class-validator's
+      // @IsOptional only skips undefined/null. Without this, leaving DOB
+      // or Gender blank fails the entire request with a 400 and nothing
+      // gets persisted.
+      const payload: Record<string, any> = {};
+      for (const [k, v] of Object.entries(editForm)) {
+        if (v === '' || v === undefined || v === null) continue;
+        payload[k] = v;
+      }
+      const updated = await usersApi.updateProfile(payload);
+      // Re-sync from server response so the UI shows what was actually saved
       setUserData((prev: any) => ({ ...prev, ...updated }));
+      setEditForm({
+        phone: updated?.phone ?? '',
+        dateOfBirth: updated?.dateOfBirth ? updated.dateOfBirth.slice(0, 10) : '',
+        gender: updated?.gender ?? '',
+        citizenship: updated?.citizenship ?? '',
+        addressLine1: updated?.addressLine1 ?? '',
+        addressLine2: updated?.addressLine2 ?? '',
+        city: updated?.city ?? '',
+        country: updated?.country ?? '',
+        postalCode: updated?.postalCode ?? '',
+      });
       setIsEditing(false);
       toast.success('Profile updated successfully');
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to update profile');
+      // Surface validation messages instead of a generic toast
+      const detail = Array.isArray(err?.message) ? err.message.join('; ') : err?.message;
+      toast.error(detail || 'Failed to update profile');
     } finally {
       setSaving(false);
     }
@@ -237,18 +265,25 @@ export function Profile() {
               <Separator />
 
               {/* Read-only identity fields */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label>First Name</Label>
                   <Input value={userData?.firstName || ''} disabled className="bg-[#F8FAFC]" />
-                  <p className="text-xs text-muted-foreground">Contact admin to update</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Middle Name</Label>
+                  <Input value={userData?.middleName || '—'} disabled className="bg-[#F8FAFC]" />
                 </div>
 
                 <div className="space-y-2">
                   <Label>Last Name</Label>
                   <Input value={userData?.lastName || ''} disabled className="bg-[#F8FAFC]" />
                 </div>
+              </div>
+              <p className="text-xs text-muted-foreground -mt-2">Contact admin to update name fields</p>
 
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Email Address</Label>
                   <Input type="email" value={userData?.email || ''} disabled className="bg-[#F8FAFC]" />
@@ -257,12 +292,14 @@ export function Profile() {
 
                 <div className="space-y-2">
                   <Label>Phone Number</Label>
-                  <Input
-                    value={isEditing ? editForm.phone : (userData?.phone || '')}
-                    onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
-                    disabled={!isEditing}
-                    placeholder={isEditing ? 'e.g. +44 20 7123 4567' : '—'}
-                  />
+                  {isEditing ? (
+                    <PhoneInput
+                      value={editForm.phone}
+                      onChange={(v) => setEditForm({ ...editForm, phone: v })}
+                    />
+                  ) : (
+                    <Input value={userData?.phone || ''} disabled placeholder="—" />
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -302,12 +339,15 @@ export function Profile() {
 
                 <div className="space-y-2 md:col-span-2">
                   <Label>Citizenship</Label>
-                  <Input
-                    value={isEditing ? editForm.citizenship : (userData?.citizenship || '—')}
-                    onChange={(e) => setEditForm({ ...editForm, citizenship: e.target.value })}
-                    disabled={!isEditing}
-                    placeholder={isEditing ? 'e.g. British' : ''}
-                  />
+                  {isEditing ? (
+                    <CountrySelect
+                      value={editForm.citizenship}
+                      onChange={(v) => setEditForm({ ...editForm, citizenship: v })}
+                      placeholder="Select country of citizenship"
+                    />
+                  ) : (
+                    <Input value={userData?.citizenship || '—'} disabled />
+                  )}
                 </div>
               </div>
 
@@ -345,11 +385,14 @@ export function Profile() {
                   </div>
                   <div className="space-y-2">
                     <Label>Country</Label>
-                    <Input
-                      value={isEditing ? editForm.country : (userData?.country || '—')}
-                      onChange={(e) => setEditForm({ ...editForm, country: e.target.value })}
-                      disabled={!isEditing}
-                    />
+                    {isEditing ? (
+                      <CountrySelect
+                        value={editForm.country}
+                        onChange={(v) => setEditForm({ ...editForm, country: v })}
+                      />
+                    ) : (
+                      <Input value={userData?.country || '—'} disabled />
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label>Postal Code</Label>
@@ -381,30 +424,34 @@ export function Profile() {
                   <Input value={agencyName} disabled className="bg-[#F8FAFC]" />
                 </div>
 
-                {userData?.jobTitle && (
-                  <div className="space-y-2">
-                    <Label>Job Title</Label>
-                    <Input value={userData.jobTitle} disabled className="bg-[#F8FAFC]" />
-                  </div>
-                )}
+                <div className="space-y-2">
+                  <Label>Job Title</Label>
+                  <Input value={userData?.jobTitle || '—'} disabled className="bg-[#F8FAFC]" />
+                </div>
 
-                {userData?.department && (
-                  <div className="space-y-2">
-                    <Label>Department</Label>
-                    <Input value={userData.department} disabled className="bg-[#F8FAFC]" />
-                  </div>
-                )}
+                <div className="space-y-2">
+                  <Label>Department</Label>
+                  <Input value={userData?.department || '—'} disabled className="bg-[#F8FAFC]" />
+                </div>
 
-                {userData?.startDate && (
-                  <div className="space-y-2">
-                    <Label>Start Date</Label>
-                    <Input value={formatDate(userData.startDate)} disabled className="bg-[#F8FAFC]" />
-                  </div>
-                )}
+                <div className="space-y-2">
+                  <Label>Start Date</Label>
+                  <Input value={userData?.startDate ? formatDate(userData.startDate) : '—'} disabled className="bg-[#F8FAFC]" />
+                </div>
 
                 <div className="space-y-2">
                   <Label>Status</Label>
                   <Input value={userData?.status || '—'} disabled className="bg-[#F8FAFC]" />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Preferred Language</Label>
+                  <Input value={userData?.preferredLanguage || '—'} disabled className="bg-[#F8FAFC]" />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Time Zone</Label>
+                  <Input value={userData?.timeZone || '—'} disabled className="bg-[#F8FAFC]" />
                 </div>
               </div>
 
@@ -484,7 +531,31 @@ export function Profile() {
                     Add an extra layer of security to your account
                   </p>
                 </div>
-                <Switch checked={twoFactorEnabled} onCheckedChange={setTwoFactorEnabled} />
+                <Switch
+                  checked={twoFactorEnabled}
+                  disabled={twoFactorSaving}
+                  onCheckedChange={async (checked) => {
+                    setTwoFactorSaving(true);
+                    // Optimistic toggle so the UI feels instant
+                    setTwoFactorEnabled(checked);
+                    try {
+                      if (checked) {
+                        await authApi.enableTwoFactor();
+                        toast.success('Two-factor authentication enabled. A code will be emailed on every sign-in.');
+                      } else {
+                        await authApi.disableTwoFactor();
+                        toast.success('Two-factor authentication disabled');
+                      }
+                      setUserData((prev: any) => prev ? { ...prev, twoFactorEnabled: checked } : prev);
+                    } catch (err: any) {
+                      // Roll back on error
+                      setTwoFactorEnabled(!checked);
+                      toast.error(err?.message || 'Failed to update 2FA');
+                    } finally {
+                      setTwoFactorSaving(false);
+                    }
+                  }}
+                />
               </div>
 
               {twoFactorEnabled && (

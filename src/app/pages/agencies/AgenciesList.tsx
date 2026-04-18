@@ -1,6 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router';
-import { Plus, Eye, Edit, Trash2, Search } from 'lucide-react';
+import {
+  Plus, Eye, Edit, Trash2, Search,
+  ArrowUp, ArrowDown, ArrowUpDown, Columns2, Check, X,
+} from 'lucide-react';
 import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
@@ -20,6 +23,36 @@ const agencyColumns: Column[] = [
   { id: 'status', label: 'Status', type: 'enum', options: ['ACTIVE', 'INACTIVE', 'SUSPENDED'] },
 ];
 
+// ── Column visibility ───────────────────────────────────────────────────────
+type ColKey = 'name' | 'country' | 'contactPerson' | 'email' | 'phone' | 'status' | 'createdAt';
+const ALL_COLUMNS: { key: ColKey; label: string }[] = [
+  { key: 'name',          label: 'Agency Name' },
+  { key: 'country',       label: 'Country' },
+  { key: 'contactPerson', label: 'Contact Person' },
+  { key: 'email',         label: 'Email' },
+  { key: 'phone',         label: 'Phone' },
+  { key: 'status',        label: 'Status' },
+  { key: 'createdAt',     label: 'Created' },
+];
+const DEFAULT_VISIBLE: Record<ColKey, boolean> = {
+  name: true, country: true, contactPerson: true, email: true, phone: true, status: true,
+  createdAt: false,
+};
+const STORAGE_KEY = 'agencies-table-columns';
+
+function loadVisibleColumns(): Record<ColKey, boolean> {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return saved ? { ...DEFAULT_VISIBLE, ...JSON.parse(saved) } : DEFAULT_VISIBLE;
+  } catch {
+    return DEFAULT_VISIBLE;
+  }
+}
+
+// ── Sorting ─────────────────────────────────────────────────────────────────
+type SortField = ColKey;
+type SortOrder = 'asc' | 'desc';
+
 const getStatusBadge = (status: string) => {
   switch (status) {
     case 'ACTIVE': return <Badge className="bg-[#22C55E]">Active</Badge>;
@@ -35,9 +68,51 @@ export function AgenciesList() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [countryFilter, setCountryFilter] = useState('all');
+  const [contactFilter, setContactFilter] = useState('');
+  const [emailFilter, setEmailFilter] = useState('');
+  const [phoneFilter, setPhoneFilter] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [activeFilters, setActiveFilters] = useState<FilterRule[]>([]);
   const [filterLogic, setFilterLogic] = useState<'AND' | 'OR'>('AND');
   const [savedPresets, setSavedPresets] = useState<FilterPreset[]>([]);
+
+  // Sort state
+  const [sortBy, setSortBy] = useState<SortField>('name');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+  const handleSort = (f: SortField) => {
+    if (sortBy === f) setSortOrder(o => o === 'asc' ? 'desc' : 'asc');
+    else { setSortBy(f); setSortOrder('asc'); }
+  };
+
+  // Column visibility
+  const [visibleColumns, setVisibleColumns] = useState<Record<ColKey, boolean>>(loadVisibleColumns);
+  const [showColPicker, setShowColPicker] = useState(false);
+  const colPickerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showColPicker) return;
+    const handler = (e: MouseEvent) => {
+      if (colPickerRef.current && !colPickerRef.current.contains(e.target as Node)) {
+        setShowColPicker(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showColPicker]);
+
+  const toggleColumn = (key: ColKey) => {
+    setVisibleColumns(prev => {
+      const next = { ...prev, [key]: !prev[key] };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const col = (key: ColKey) => visibleColumns[key];
+  const hiddenCount  = ALL_COLUMNS.filter(c => !visibleColumns[c.key]).length;
+  const visibleCount = ALL_COLUMNS.filter(c =>  visibleColumns[c.key]).length;
 
   const handleDelete = async (agency: any) => {
     if (!confirm(`Are you sure you want to delete "${agency.name}"? This action cannot be undone.`)) return;
@@ -72,12 +147,72 @@ export function AgenciesList() {
     return filterLogic === 'AND' ? results.every(r => r) : results.some(r => r);
   };
 
-  const filteredAgencies = agencies.filter(agency => {
-    const matchesSearch = agency.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (agency.country ?? '').toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || agency.status === statusFilter;
-    return matchesSearch && matchesStatus && applyFilters(agency);
-  });
+  const countryOptions = useMemo(
+    () => Array.from(new Set(agencies.map(a => a.country).filter(Boolean))).sort() as string[],
+    [agencies]
+  );
+
+  const displayAgencies = useMemo(() => {
+    const q = searchQuery.toLowerCase();
+    const filtered = agencies.filter(agency => {
+      const matchesSearch = !q
+        || (agency.name ?? '').toLowerCase().includes(q)
+        || (agency.country ?? '').toLowerCase().includes(q);
+      const matchesStatus = statusFilter === 'all' || agency.status === statusFilter;
+      const matchesCountry = countryFilter === 'all' || agency.country === countryFilter;
+      const matchesContact = !contactFilter || (agency.contactPerson ?? '').toLowerCase().includes(contactFilter.toLowerCase());
+      const matchesEmail = !emailFilter || (agency.email ?? '').toLowerCase().includes(emailFilter.toLowerCase());
+      const matchesPhone = !phoneFilter || (agency.phone ?? '').toLowerCase().includes(phoneFilter.toLowerCase());
+      let matchesDate = true;
+      if (dateFrom || dateTo) {
+        const from = dateFrom ? new Date(dateFrom).getTime() : -Infinity;
+        const to   = dateTo   ? new Date(dateTo + 'T23:59:59').getTime() : Infinity;
+        const t = agency.createdAt ? new Date(agency.createdAt).getTime() : 0;
+        matchesDate = t >= from && t <= to;
+      }
+      return matchesSearch && matchesStatus && matchesCountry && matchesContact
+        && matchesEmail && matchesPhone && matchesDate && applyFilters(agency);
+    });
+
+    return [...filtered].sort((a, b) => {
+      let aVal: any, bVal: any;
+      switch (sortBy) {
+        case 'name':          aVal = (a.name ?? '').toLowerCase();          bVal = (b.name ?? '').toLowerCase(); break;
+        case 'country':       aVal = (a.country ?? '').toLowerCase();       bVal = (b.country ?? '').toLowerCase(); break;
+        case 'contactPerson': aVal = (a.contactPerson ?? '').toLowerCase(); bVal = (b.contactPerson ?? '').toLowerCase(); break;
+        case 'email':         aVal = (a.email ?? '').toLowerCase();         bVal = (b.email ?? '').toLowerCase(); break;
+        case 'phone':         aVal = (a.phone ?? '').toLowerCase();         bVal = (b.phone ?? '').toLowerCase(); break;
+        case 'status':        aVal = a.status ?? '';                         bVal = b.status ?? ''; break;
+        case 'createdAt':     aVal = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+                              bVal = b.createdAt ? new Date(b.createdAt).getTime() : 0; break;
+        default:              aVal = ''; bVal = '';
+      }
+      const cmp = aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+      return sortOrder === 'asc' ? cmp : -cmp;
+    });
+  }, [agencies, searchQuery, statusFilter, countryFilter, contactFilter,
+      emailFilter, phoneFilter, dateFrom, dateTo,
+      activeFilters, filterLogic, sortBy, sortOrder]);
+
+  const hasExtraFilters = countryFilter !== 'all' || contactFilter || emailFilter || phoneFilter || dateFrom || dateTo;
+  const clearExtraFilters = () => {
+    setCountryFilter('all'); setContactFilter(''); setEmailFilter('');
+    setPhoneFilter(''); setDateFrom(''); setDateTo('');
+  };
+
+  const SortableHead = ({ label, field }: { label: string; field: SortField }) => {
+    const active = sortBy === field;
+    return (
+      <TableHead>
+        <button onClick={() => handleSort(field)} className="flex items-center gap-1 hover:text-foreground font-medium group">
+          {label}
+          {active
+            ? sortOrder === 'asc' ? <ArrowUp className="w-3 h-3 text-primary" /> : <ArrowDown className="w-3 h-3 text-primary" />
+            : <ArrowUpDown className="w-3 h-3 opacity-30 group-hover:opacity-60" />}
+        </button>
+      </TableHead>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -97,9 +232,9 @@ export function AgenciesList() {
       </div>
 
       <Card>
-        <CardContent className="p-4">
-          <div className="flex gap-4">
-            <div className="relative flex-1">
+        <CardContent className="p-4 space-y-3">
+          <div className="flex flex-wrap gap-3 items-center">
+            <div className="relative flex-1 min-w-[220px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 placeholder="Search agencies..."
@@ -109,7 +244,7 @@ export function AgenciesList() {
               />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[200px]">
+              <SelectTrigger className="w-44">
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
               <SelectContent>
@@ -117,6 +252,17 @@ export function AgenciesList() {
                 <SelectItem value="ACTIVE">Active</SelectItem>
                 <SelectItem value="INACTIVE">Inactive</SelectItem>
                 <SelectItem value="SUSPENDED">Suspended</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={countryFilter} onValueChange={setCountryFilter}>
+              <SelectTrigger className="w-44">
+                <SelectValue placeholder="Filter by country" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Countries</SelectItem>
+                {countryOptions.map(c => (
+                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <FilterSystem
@@ -131,6 +277,88 @@ export function AgenciesList() {
               onDeletePreset={(id) => setSavedPresets(prev => prev.filter(p => p.id !== id))}
             />
           </div>
+          <div className="flex flex-wrap gap-2 items-center">
+            <Input
+              placeholder="Contact person contains…"
+              value={contactFilter}
+              onChange={e => setContactFilter(e.target.value)}
+              className="w-52"
+            />
+            <Input
+              placeholder="Email contains…"
+              value={emailFilter}
+              onChange={e => setEmailFilter(e.target.value)}
+              className="w-48"
+            />
+            <Input
+              placeholder="Phone contains…"
+              value={phoneFilter}
+              onChange={e => setPhoneFilter(e.target.value)}
+              className="w-44"
+            />
+            <div className="flex items-center gap-1">
+              <span className="text-xs text-muted-foreground whitespace-nowrap">Created from</span>
+              <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="w-36" />
+              <span className="text-xs text-muted-foreground">to</span>
+              <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="w-36" />
+            </div>
+            {hasExtraFilters && (
+              <Button variant="ghost" size="sm" onClick={clearExtraFilters}>
+                <X className="w-3 h-3 mr-1" />Clear
+              </Button>
+            )}
+            <div className="ml-auto relative" ref={colPickerRef}>
+              <Button
+                variant="outline" size="sm"
+                onClick={() => setShowColPicker(v => !v)}
+                className={showColPicker ? 'border-primary text-primary' : ''}
+              >
+                <Columns2 className="w-4 h-4 mr-1.5" />Columns
+                {hiddenCount > 0 && (
+                  <span className="ml-1.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
+                    {hiddenCount}
+                  </span>
+                )}
+              </Button>
+              {showColPicker && (
+                <div className="absolute right-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[200px]">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">Toggle columns</p>
+                  <div className="space-y-0.5 max-h-72 overflow-y-auto">
+                    {ALL_COLUMNS.map(c => (
+                      <button
+                        key={c.key}
+                        onClick={() => toggleColumn(c.key)}
+                        className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-gray-50 text-sm text-left"
+                      >
+                        <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${visibleColumns[c.key] ? 'bg-primary border-primary' : 'border-gray-300'}`}>
+                          {visibleColumns[c.key] && <Check className="w-2.5 h-2.5 text-primary-foreground" />}
+                        </span>
+                        {c.label}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="border-t mt-2 pt-2 flex gap-1.5">
+                    <button
+                      onClick={() => {
+                        const all = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, true])) as Record<ColKey, boolean>;
+                        setVisibleColumns(all);
+                        localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
+                      }}
+                      className="flex-1 text-xs text-center text-primary hover:underline py-0.5"
+                    >Show all</button>
+                    <span className="text-gray-300">|</span>
+                    <button
+                      onClick={() => {
+                        setVisibleColumns(DEFAULT_VISIBLE);
+                        localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_VISIBLE));
+                      }}
+                      className="flex-1 text-xs text-center text-gray-500 hover:underline py-0.5"
+                    >Reset</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </CardContent>
       </Card>
 
@@ -140,31 +368,30 @@ export function AgenciesList() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Agency Name</TableHead>
-                  <TableHead>Country</TableHead>
-                  <TableHead>Contact Person</TableHead>
-                  <TableHead>Contact Info</TableHead>
-                  <TableHead>Status</TableHead>
+                  {col('name')          && <SortableHead label="Agency Name"    field="name" />}
+                  {col('country')       && <SortableHead label="Country"        field="country" />}
+                  {col('contactPerson') && <SortableHead label="Contact Person" field="contactPerson" />}
+                  {col('email')         && <SortableHead label="Email"          field="email" />}
+                  {col('phone')         && <SortableHead label="Phone"          field="phone" />}
+                  {col('status')        && <SortableHead label="Status"         field="status" />}
+                  {col('createdAt')     && <SortableHead label="Created"        field="createdAt" />}
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
-                  <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
-                ) : filteredAgencies.length === 0 ? (
-                  <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No agencies found</TableCell></TableRow>
-                ) : filteredAgencies.map((agency) => (
+                  <TableRow><TableCell colSpan={visibleCount + 1} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
+                ) : displayAgencies.length === 0 ? (
+                  <TableRow><TableCell colSpan={visibleCount + 1} className="text-center py-8 text-muted-foreground">No agencies found</TableCell></TableRow>
+                ) : displayAgencies.map((agency) => (
                   <TableRow key={agency.id}>
-                    <TableCell className="font-medium">{agency.name}</TableCell>
-                    <TableCell>{agency.country}</TableCell>
-                    <TableCell>{agency.contactPerson}</TableCell>
-                    <TableCell>
-                      <div className="text-sm">
-                        <div>{agency.email}</div>
-                        <div className="text-muted-foreground">{agency.phone}</div>
-                      </div>
-                    </TableCell>
-                    <TableCell>{getStatusBadge(agency.status)}</TableCell>
+                    {col('name')          && <TableCell className="font-medium">{agency.name}</TableCell>}
+                    {col('country')       && <TableCell>{agency.country ?? '—'}</TableCell>}
+                    {col('contactPerson') && <TableCell>{agency.contactPerson ?? '—'}</TableCell>}
+                    {col('email')         && <TableCell className="text-sm">{agency.email ?? '—'}</TableCell>}
+                    {col('phone')         && <TableCell className="text-sm text-muted-foreground">{agency.phone ?? '—'}</TableCell>}
+                    {col('status')        && <TableCell>{getStatusBadge(agency.status)}</TableCell>}
+                    {col('createdAt')     && <TableCell className="text-sm text-muted-foreground">{agency.createdAt ? new Date(agency.createdAt).toLocaleDateString() : '—'}</TableCell>}
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
                         <Button variant="ghost" size="sm" asChild>

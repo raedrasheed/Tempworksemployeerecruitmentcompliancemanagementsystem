@@ -107,7 +107,7 @@ export class ApplicantsController {
   @ApiOperation({ summary: 'Update applicant status' })
   @ApiParam({ name: 'id', description: 'Applicant UUID' })
   updateStatus(@Param('id') id: string, @Body('status') status: string, @CurrentUser() user: any) {
-    return this.applicantsService.updateStatus(id, status, user?.id);
+    return this.applicantsService.updateStatus(id, status, user?.id, { role: user?.role, agencyId: user?.agencyId });
   }
 
   // ── Workflow Stage ────────────────────────────────────────────────────────────

@@ -169,6 +169,18 @@ export class ApplicantsService {
     if (dto.workAuthorizationExpiry) updateData.workAuthorizationExpiry = new Date(dto.workAuthorizationExpiry);
     if (dto.preferredStartDate) updateData.preferredStartDate = new Date(dto.preferredStartDate);
 
+    // Edits by agency users re-arm the Tempworks approval gate: the
+    // changes land immediately, but approvalStatus flips back to
+    // PENDING_APPROVAL so existing gates (setCurrentStage,
+    // convertToEmployee) block downstream actions until a Tempworks
+    // admin re-approves via approveApplicant / rejectApplicant.
+    if (actor && this.isAgencyUser(actor.role)) {
+      updateData.approvalStatus = 'PENDING_APPROVAL';
+      updateData.approvedById = null;
+      updateData.approvedAt = null;
+      updateData.rejectionReason = null;
+    }
+
     const applicant = await this.prisma.applicant.update({
       where: { id }, data: updateData, include: this.include,
     });
@@ -192,10 +204,18 @@ export class ApplicantsService {
 
   // ── Update Status ─────────────────────────────────────────────────────────────
 
-  async updateStatus(id: string, status: string, actorId?: string) {
+  async updateStatus(id: string, status: string, actorId?: string, actor?: { role: string; agencyId?: string }) {
     await this.findOne(id);
+    const data: any = { status: status as any };
+    // Status changes by agency users also re-arm the approval gate.
+    if (actor && this.isAgencyUser(actor.role)) {
+      data.approvalStatus = 'PENDING_APPROVAL';
+      data.approvedById = null;
+      data.approvedAt = null;
+      data.rejectionReason = null;
+    }
     const applicant = await this.prisma.applicant.update({
-      where: { id }, data: { status: status as any }, include: this.include,
+      where: { id }, data, include: this.include,
     });
     await this.auditLog(actorId, 'STATUS_CHANGE', id, { status });
     return applicant;

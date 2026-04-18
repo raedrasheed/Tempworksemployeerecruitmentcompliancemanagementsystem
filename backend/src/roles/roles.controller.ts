@@ -15,7 +15,7 @@ export class RolesController {
   constructor(private rolesService: RolesService) {}
 
   @Get()
-  @Roles('System Admin', 'HR Manager', 'Agency Manager', 'Read Only')
+  @Roles('System Admin', 'HR Manager', 'Read Only')
   @ApiOperation({ summary: 'List all roles' })
   findAll(@CurrentUser() user: any) { return this.rolesService.findAll(user?.role); }
 

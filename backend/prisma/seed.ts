@@ -157,42 +157,31 @@ async function main() {
         'attendance:read',
       ],
     },
+    // Agency-side roles are scoped to their own agency only — tenancy
+    // filters in each service enforce the "own agency only" rule.
+    // Permissions cover: candidates, agency profile, and agency user
+    // management (Manager only). Tempworks internals (workflow,
+    // reports, documents, employees, compliance, finance, logs,
+    // notifications, roles, settings, recycle-bin, etc.) are
+    // intentionally absent.
     {
       name: 'Agency Manager',
-      description: 'Manages agency-specific employees and data',
+      description: 'Manages own agency: candidates, profile, and agency users (Tempworks approval for new candidates)',
       isSystem: true,
       perms: [
-        'dashboard:read',
-        // Employees: read only (and only for employees granted access via
-        // EmployeeAgencyAccess; enforced in the service).
-        'employees:read',
         'applicants:read','applicants:create','applicants:update',
         'applicants:export','applicants:bulk-action',
-        'applications:read',
-        'documents:read','documents:create',
-        'workflow:read',
         'agencies:read','agencies:update',
-        'compliance:read',
-        'reports:read',
-        'notifications:read',
         'users:read','users:create','users:update','users:delete',
-        'logs:read',
       ],
     },
     {
       name: 'Agency User',
-      description: 'Basic agency-level read/create access',
+      description: 'Submits and edits own-agency candidates; views own agency profile',
       isSystem: true,
       perms: [
-        'dashboard:read',
-        'employees:read',
         'applicants:read','applicants:create','applicants:update',
-        'applications:read',
-        'documents:read','documents:create',
-        'workflow:read',
         'agencies:read',
-        'notifications:read',
-        'logs:read',
       ],
     },
     {

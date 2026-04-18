@@ -106,31 +106,22 @@ const rolePermissionSets: Record<string, string[]> = {
     'job-ads:read','job-ads:create','job-ads:update',
     'attendance:read',
   ],
+  // Agency-side roles are scoped to their own agency. Tenancy filters
+  // in each service enforce "own-agency only" — the permissions below
+  // cover the three allowed surfaces: candidates, agency profile, and
+  // agency user management (Manager only). Tempworks internals
+  // (workflow, reports, documents, employees, compliance, finance,
+  // logs, notifications, roles, settings, recycle bin, etc.) are
+  // intentionally absent and must be granted explicitly later.
   'Agency Manager': [
-    'dashboard:read',
-    'employees:read',
     'applicants:read','applicants:create','applicants:update',
     'applicants:export','applicants:bulk-action',
-    'applications:read',
-    'documents:read','documents:create',
-    'workflow:read',
     'agencies:read','agencies:update',
-    'compliance:read',
-    'reports:read',
-    'notifications:read',
     'users:read','users:create','users:update','users:delete',
-    'logs:read',
   ],
   'Agency User': [
-    'dashboard:read',
-    'employees:read',
     'applicants:read','applicants:create','applicants:update',
-    'applications:read',
-    'documents:read','documents:create',
-    'workflow:read',
     'agencies:read',
-    'notifications:read',
-    'logs:read',
   ],
   'Finance': [
     'dashboard:read',

@@ -767,13 +767,15 @@ export class ReportsService {
     const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const fwd60            = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000);
 
-    // Agency accounts are tenancy-scoped to their own agency. Whether
-    // they include Leads vs Candidates in dashboard aggregates is gated
-    // by permission, not by a hard-coded tier filter.
+    // Agency accounts are candidates-only: scope the applicant
+    // aggregates to CANDIDATE tier and their own agency so the
+    // dashboard can't reveal Lead counts or cross-agency data even
+    // if reports:read is granted later.
     const isAgencyActor = actor?.role === 'Agency User' || actor?.role === 'Agency Manager';
     const applicantScope: any = { deletedAt: null };
-    if (isAgencyActor && actor?.agencyId) {
-      applicantScope.agencyId = actor.agencyId;
+    if (isAgencyActor) {
+      applicantScope.tier = 'CANDIDATE';
+      if (actor?.agencyId) applicantScope.agencyId = actor.agencyId;
     }
 
     const [

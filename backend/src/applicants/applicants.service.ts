@@ -44,13 +44,16 @@ export class ApplicantsService {
 
     const where: any = { deletedAt: null };
 
-    // Agency users are scoped to applicants in their own agency; whether
-    // they see Leads, Candidates or both is gated by the applicants:read
-    // permission now, not by hard-coded role checks.
-    if (actor && this.isAgencyUser(actor.role) && actor.agencyId) {
-      where.agencyId = actor.agencyId;
+    // Agency users are scoped strictly to Candidate records in their
+    // own agency. Leads are Tempworks-internal and must never surface
+    // to external agency accounts, regardless of the `tier` parameter
+    // the client sends.
+    if (actor && this.isAgencyUser(actor.role)) {
+      where.tier = 'CANDIDATE';
+      if (actor.agencyId) where.agencyId = actor.agencyId;
+    } else if (tier) {
+      where.tier = tier;
     }
-    if (tier) where.tier = tier;
 
     if (search) {
       where.OR = [
@@ -91,9 +94,10 @@ export class ApplicantsService {
     });
     if (!applicant) throw new NotFoundException(`Applicant ${id} not found`);
 
-    // Agency users are tenancy-scoped to their own agency; lead vs candidate
-    // visibility is gated by permission.
+    // Agency users only ever see Candidate records in their own
+    // agency. Leads are hidden from all agency-side roles.
     if (actor && this.isAgencyUser(actor.role)) {
+      if (applicant.tier !== 'CANDIDATE') throw new ForbiddenException('Access denied');
       if (actor.agencyId && applicant.agencyId && applicant.agencyId !== actor.agencyId) {
         throw new ForbiddenException('Access denied');
       }
@@ -106,13 +110,13 @@ export class ApplicantsService {
 
   async create(dto: CreateApplicantDto & { tier?: string }, actorId?: string, actor?: { role: string; agencyId?: string }) {
     const isAgency = !!(actor && this.isAgencyUser(actor.role));
-    // Agency-submitted applicants are pinned to the caller's agency and
-    // enter the Tempworks approval queue. Tier defaults to LEAD (same as
-    // admin-created records) so the record appears in the Applicants list
-    // for both the submitting agency and Tempworks staff — it is promoted
-    // to CANDIDATE later via convertLeadToCandidate after approval.
-    if (isAgency && actor!.agencyId) {
-      (dto as any).agencyId = actor!.agencyId;
+    // Agency-submitted applicants are pinned to the caller's agency,
+    // created as CANDIDATE so they appear on the agency's Candidates
+    // page, and enter the Tempworks approval queue (PENDING_APPROVAL)
+    // until an admin approves via approveApplicant / rejectApplicant.
+    if (isAgency) {
+      if (actor!.agencyId) (dto as any).agencyId = actor!.agencyId;
+      dto.tier = 'CANDIDATE';
     }
 
     // Always generate a Lead identifier for new records created via the admin UI.
@@ -577,8 +581,9 @@ export class ApplicantsService {
     let items: any[];
     if (ids && ids.length > 0) {
       const where: any = { id: { in: ids }, deletedAt: null };
-      if (actor && this.isAgencyUser(actor.role) && actor.agencyId) {
-        where.agencyId = actor.agencyId;
+      if (actor && this.isAgencyUser(actor.role)) {
+        where.tier = 'CANDIDATE';
+        if (actor.agencyId) where.agencyId = actor.agencyId;
       }
       items = await this.prisma.applicant.findMany({
         where,

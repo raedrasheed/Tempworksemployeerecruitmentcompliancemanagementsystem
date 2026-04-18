@@ -76,7 +76,7 @@ export class UsersController {
 
   @Get()
   @Roles('System Admin', 'HR Manager', 'Read Only', 'Agency Manager')
-  @ApiOperation({ summary: 'List all users with pagination and filters' })
+  @ApiOperation({ summary: 'List users (Agency Manager sees only own-agency users)' })
   @ApiQuery({ name: 'roleId', required: false })
   @ApiQuery({ name: 'status', required: false })
   findAll(@Query() query: PaginationDto & { roleId?: string; status?: string }, @CurrentUser() caller: any) {
@@ -87,14 +87,14 @@ export class UsersController {
 
   @Get(':id')
   @Roles('System Admin', 'HR Manager', 'Agency Manager')
-  @ApiOperation({ summary: 'Get user by ID' })
+  @ApiOperation({ summary: 'Get user by ID (Agency Manager limited to own-agency users)' })
   findOne(@Param('id') id: string, @CurrentUser() caller: any) {
     return this.usersService.findOne(id, caller?.role, caller?.agencyId);
   }
 
   @Post()
   @Roles('System Admin', 'Agency Manager')
-  @ApiOperation({ summary: 'Create new user' })
+  @ApiOperation({ summary: 'Create new user (Agency Manager scoped to own agency with max-users limit)' })
   @ApiResponse({ status: 201, description: 'User created successfully' })
   create(@Body() dto: CreateUserDto, @CurrentUser() caller: any) {
     return this.usersService.create(dto, caller?.role, caller?.agencyId, caller?.id);

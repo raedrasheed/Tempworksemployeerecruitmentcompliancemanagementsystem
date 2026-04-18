@@ -29,14 +29,14 @@ export class AgenciesController {
   constructor(private readonly agenciesService: AgenciesService) {}
 
   @Get()
-  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Finance', 'Agency Manager', 'Agency User', 'Read Only')
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Finance', 'Read Only', 'Agency Manager', 'Agency User')
   @ApiOperation({ summary: 'Get all agencies (agency users see only their own)' })
   findAll(@Query() pagination: PaginationDto, @CurrentUser() user: any) {
     return this.agenciesService.findAll(pagination, { role: user?.role, agencyId: user?.agencyId });
   }
 
   @Get(':id')
-  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Finance', 'Agency Manager', 'Agency User', 'Read Only')
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Finance', 'Read Only', 'Agency Manager', 'Agency User')
   @ApiOperation({ summary: 'Get agency by ID (agency users can only fetch their own)' })
   @ApiParam({ name: 'id', description: 'Agency UUID' })
   findOne(@Param('id') id: string, @CurrentUser() user: any) {
@@ -44,7 +44,7 @@ export class AgenciesController {
   }
 
   @Get(':id/users')
-  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Finance', 'Agency Manager', 'Agency User', 'Read Only')
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Finance', 'Read Only', 'Agency Manager', 'Agency User')
   @ApiOperation({ summary: 'Get users belonging to an agency' })
   @ApiParam({ name: 'id', description: 'Agency UUID' })
   getUsers(@Param('id') id: string, @Query() pagination: PaginationDto, @CurrentUser() user: any) {
@@ -52,7 +52,7 @@ export class AgenciesController {
   }
 
   @Get(':id/employees')
-  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Finance', 'Agency Manager', 'Agency User', 'Read Only')
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Finance', 'Read Only', 'Agency Manager', 'Agency User')
   @ApiOperation({ summary: 'Get employees belonging to an agency' })
   @ApiParam({ name: 'id', description: 'Agency UUID' })
   getEmployees(@Param('id') id: string, @Query() pagination: PaginationDto, @CurrentUser() user: any) {
@@ -60,7 +60,7 @@ export class AgenciesController {
   }
 
   @Get(':id/stats')
-  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Finance', 'Agency Manager', 'Agency User', 'Read Only')
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Finance', 'Read Only', 'Agency Manager', 'Agency User')
   @ApiOperation({ summary: 'Get agency statistics' })
   @ApiParam({ name: 'id', description: 'Agency UUID' })
   getStats(@Param('id') id: string, @CurrentUser() user: any) {

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { applicantsApi, settingsApi, agenciesApi } from '../../services/api';
+import { applicantsApi, settingsApi, agenciesApi, getCurrentUser } from '../../services/api';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent } from '../../components/ui/card';
 import { Label } from '../../components/ui/label';
@@ -96,7 +96,12 @@ export function AddApplicant() {
 
       await applicantsApi.create(payload);
       toast.success('Applicant created successfully');
-      navigate('/dashboard/applicants');
+      // Agency submissions land on the Candidates queue (pending
+      // Tempworks approval). Tempworks-staff submissions stay on
+      // the Applicants (Leads) list.
+      const role = getCurrentUser()?.role;
+      const isAgency = role === 'Agency User' || role === 'Agency Manager';
+      navigate(isAgency ? '/dashboard/candidates' : '/dashboard/applicants');
     } catch (err: any) {
       toast.error(err?.message || 'Failed to create applicant');
     } finally {

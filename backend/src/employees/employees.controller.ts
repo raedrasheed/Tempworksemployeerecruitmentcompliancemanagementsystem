@@ -13,8 +13,8 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { RequirePermission } from '../auth/decorators/require-permission.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
-const ALL_ROLES = ['System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Finance', 'Read Only'];
-const WRITE_ROLES = ['System Admin', 'HR Manager', 'Agency Manager'];
+const ALL_ROLES = ['System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Finance', 'Read Only'];
+const WRITE_ROLES = ['System Admin', 'HR Manager'];
 const ADMIN_ROLES = ['System Admin', 'HR Manager'];
 
 const photoStorage = diskStorage({
@@ -102,7 +102,7 @@ export class EmployeesController {
   getTraining(@Param('id') id: string) { return this.employeesService.getTraining(id); }
 
   @Get(':id/performance')
-  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Agency Manager', 'Read Only')
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Read Only')
   @ApiOperation({ summary: 'Get employee performance metrics' })
   getPerformance(@Param('id') id: string) { return this.employeesService.getPerformance(id); }
 

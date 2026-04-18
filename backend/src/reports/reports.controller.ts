@@ -13,7 +13,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { CreateReportDto, UpdateReportDto, RunReportDto, ExportReportDto } from './dto/report.dto';
 
-const ALL_REPORT_ROLES = ['System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Finance', 'Read Only'];
+const ALL_REPORT_ROLES = ['System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Finance', 'Read Only'];
 const EDIT_ROLES       = ['System Admin', 'HR Manager', 'Finance'];
 
 @ApiTags('Reports')

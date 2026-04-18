@@ -14,8 +14,8 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 
-const ALL_ROLES = ['System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Finance', 'Read Only'];
-const WRITE_ROLES = ['System Admin', 'HR Manager', 'Recruiter', 'Agency Manager'];
+const ALL_ROLES = ['System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Finance', 'Read Only'];
+const WRITE_ROLES = ['System Admin', 'HR Manager', 'Recruiter'];
 const ADMIN_ROLES = ['System Admin', 'HR Manager'];
 
 @ApiTags('Workflows')

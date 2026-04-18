@@ -30,8 +30,8 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 
-const READ_ROLES   = ['System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Finance'];
-const WRITE_ROLES  = ['System Admin', 'HR Manager', 'Agency Manager'];
+const READ_ROLES   = ['System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Finance'];
+const WRITE_ROLES  = ['System Admin', 'HR Manager'];
 const EXPORT_ROLES = ['System Admin', 'HR Manager', 'Finance', 'Compliance Officer'];
 
 /**

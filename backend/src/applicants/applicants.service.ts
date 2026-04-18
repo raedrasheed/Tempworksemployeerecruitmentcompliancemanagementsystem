@@ -108,9 +108,11 @@ export class ApplicantsService {
   // ── Create ────────────────────────────────────────────────────────────────────
 
   async create(dto: CreateApplicantDto & { tier?: string }, actorId?: string, actor?: { role: string; agencyId?: string }) {
-    // Agency users can only create candidates in their own agency
-    if (actor && this.isAgencyUser(actor.role) && actor.agencyId) {
-      (dto as any).agencyId = actor.agencyId;
+    // Agency users can only create CANDIDATES in their own agency.
+    // Never let an external agency account produce a LEAD record.
+    if (actor && this.isAgencyUser(actor.role)) {
+      if (actor.agencyId) (dto as any).agencyId = actor.agencyId;
+      dto.tier = 'CANDIDATE';
     }
 
     // Always generate a Lead identifier for new records created via the admin UI.

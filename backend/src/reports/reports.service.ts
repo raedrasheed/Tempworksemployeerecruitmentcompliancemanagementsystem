@@ -762,10 +762,20 @@ export class ReportsService {
 
   // ── Dashboard ─────────────────────────────────────────────────────────────
 
-  async getDashboard() {
+  async getDashboard(actor?: { role?: string; agencyId?: string }) {
     const now              = new Date();
     const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const fwd60            = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000);
+
+    // Agency accounts must never see Lead counts. Scope applicant
+    // aggregates to CANDIDATE tier (and their own agency) when the
+    // caller is external.
+    const isAgencyActor = actor?.role === 'Agency User' || actor?.role === 'Agency Manager';
+    const applicantScope: any = { deletedAt: null };
+    if (isAgencyActor) {
+      applicantScope.tier = 'CANDIDATE';
+      if (actor?.agencyId) applicantScope.agencyId = actor.agencyId;
+    }
 
     const [
       totalEmp, activeEmp, empThisMonth,
@@ -785,9 +795,9 @@ export class ReportsService {
 
       // ── Applicants ──
       // "Pending" = status NEW (submitted but no action taken yet)
-      this.prisma.applicant.count({ where: { deletedAt: null, status: 'NEW' } }),
-      this.prisma.applicant.count({ where: { deletedAt: null } }),
-      this.prisma.applicant.groupBy({ by: ['status'], where: { deletedAt: null }, _count: { id: true } }),
+      this.prisma.applicant.count({ where: { ...applicantScope, status: 'NEW' } }),
+      this.prisma.applicant.count({ where: applicantScope }),
+      this.prisma.applicant.groupBy({ by: ['status'], where: applicantScope, _count: { id: true } }),
 
       // ── Documents ──
       // Expiring soon: expiryDate in (now, +60 days] (excludes already expired)

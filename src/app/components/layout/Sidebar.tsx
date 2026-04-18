@@ -43,14 +43,19 @@ interface NavItem {
   path: string;
   permission: string | null;
   roles?: string[];
+  /** Hide this item for users whose role is in this list, regardless of permissions. */
+  hideForRoles?: string[];
   children?: NavChild[];
 }
+
+// External agency roles — must not see the Leads nav.
+const AGENCY_ROLES = ['Agency User', 'Agency Manager'];
 
 // Each nav item declares which permission (module:read) is required to see it.
 // null means always visible to any authenticated user.
 const allNavigationItems: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard',             path: '/dashboard',                  permission: null },
-  { icon: UserCheck,       label: 'Applicants',            path: '/dashboard/applicants',       permission: 'applicants:read' },
+  { icon: UserCheck,       label: 'Applicants',            path: '/dashboard/applicants',       permission: 'applicants:read', hideForRoles: AGENCY_ROLES },
   { icon: UserCheck,       label: 'Candidates',            path: '/dashboard/candidates',       permission: 'applicants:read' },
   { icon: Users,           label: 'Employees',             path: '/dashboard/employees',        permission: 'employees:read' },
   { icon: ClipboardList,   label: 'Attendance Sheets',     path: '/dashboard/attendance',       permission: 'attendance:read' },
@@ -91,6 +96,9 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
   const isAdmin = userRole === 'System Admin';
 
   const navigationItems = allNavigationItems.filter((item) => {
+    // Role-based blocklist takes precedence — agency users must never see
+    // internal-only items (e.g. Leads) even if their permission set allows it.
+    if (item.hideForRoles && item.hideForRoles.includes(userRole)) return false;
     if (!item.permission) return true;
     if (isAdmin) return true;
     if (item.roles && item.roles.includes(userRole)) return true;

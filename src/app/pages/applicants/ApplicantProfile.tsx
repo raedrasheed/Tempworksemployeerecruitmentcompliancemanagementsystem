@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useParams, useNavigate } from 'react-router';
+import { Link, useParams, useNavigate, Navigate } from 'react-router';
 import {
   ArrowLeft, Mail, Phone, Globe, Briefcase, Calendar, FileText,
   UserPlus, Edit, Trash2, Download, Upload, X,
@@ -48,6 +48,7 @@ export function ApplicantProfile() {
   const { canEdit, canDelete, can } = usePermissions();
   const currentUser = getCurrentUser();
   const isFinanceOrAdmin = currentUser?.role === 'System Admin' || currentUser?.role === 'HR Manager' || currentUser?.role === 'Finance';
+  const isAgencyUser = currentUser?.role === 'Agency User' || currentUser?.role === 'Agency Manager';
   const [applicantData, setApplicantData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [documents, setDocuments] = useState<any[]>([]);
@@ -443,6 +444,10 @@ export function ApplicantProfile() {
 
   if (loading) return <div className="p-8 text-muted-foreground">Loading...</div>;
   if (!applicantData) return <div className="p-8">Applicant not found</div>;
+  // External agency accounts must never open a LEAD profile.
+  if (isAgencyUser && applicantData.tier === 'LEAD') {
+    return <Navigate to="/dashboard/candidates" replace />;
+  }
 
   return (
     <div className="space-y-6">

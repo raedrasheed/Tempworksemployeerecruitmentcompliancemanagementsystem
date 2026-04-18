@@ -82,6 +82,10 @@ function matchStageToCategory(stageName: string) {
 
 export function Dashboard() {
   const currentUser = getCurrentUser();
+  const isAgencyUser = currentUser?.role === 'Agency User' || currentUser?.role === 'Agency Manager';
+  // Leads are Tempworks-internal only. For agency accounts every
+  // applicant link targets the Candidates view instead.
+  const applicantsPath = isAgencyUser ? '/dashboard/candidates' : '/dashboard/applicants';
   const { canCreate, can } = usePermissions();
 
   const [data,       setData]       = useState<any>(null);
@@ -213,7 +217,7 @@ export function Dashboard() {
         </Link>
 
         {/* 3. Pending Applications */}
-        <Link to="/dashboard/applicants?status=NEW" className="group">
+        <Link to={`${applicantsPath}?status=NEW`} className="group">
           <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Pending Applications</CardTitle>
@@ -266,19 +270,19 @@ export function Dashboard() {
               <CardDescription>Job applicants by current status</CardDescription>
             </div>
             <Button asChild size="sm">
-              <Link to="/dashboard/applicants">View All Applicants</Link>
+              <Link to={applicantsPath}>{isAgencyUser ? 'View All Candidates' : 'View All Applicants'}</Link>
             </Button>
           </div>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
             {[
-              { label: 'Total',             value: totalApps,            color: 'text-[#0F172A]',  link: '/dashboard/applicants' },
-              { label: 'New / Unreviewed',  value: appStatus('NEW'),      color: 'text-blue-600',   link: '/dashboard/applicants?status=NEW' },
-              { label: 'Screening',         value: appStatus('SCREENING'),color: 'text-amber-600',  link: '/dashboard/applicants?status=SCREENING' },
-              { label: 'Interview',         value: appStatus('INTERVIEW'),color: 'text-purple-600', link: '/dashboard/applicants?status=INTERVIEW' },
-              { label: 'Offer Made',        value: appStatus('OFFER'),    color: 'text-indigo-600', link: '/dashboard/applicants?status=OFFER' },
-              { label: 'Accepted',          value: appStatus('ACCEPTED'), color: 'text-emerald-600',link: '/dashboard/applicants?status=ACCEPTED' },
+              { label: 'Total',             value: totalApps,            color: 'text-[#0F172A]',  link: applicantsPath },
+              { label: 'New / Unreviewed',  value: appStatus('NEW'),      color: 'text-blue-600',   link: `${applicantsPath}?status=NEW` },
+              { label: 'Screening',         value: appStatus('SCREENING'),color: 'text-amber-600',  link: `${applicantsPath}?status=SCREENING` },
+              { label: 'Interview',         value: appStatus('INTERVIEW'),color: 'text-purple-600', link: `${applicantsPath}?status=INTERVIEW` },
+              { label: 'Offer Made',        value: appStatus('OFFER'),    color: 'text-indigo-600', link: `${applicantsPath}?status=OFFER` },
+              { label: 'Accepted',          value: appStatus('ACCEPTED'), color: 'text-emerald-600',link: `${applicantsPath}?status=ACCEPTED` },
             ].map(({ label, value, color, link }) => (
               <Link key={label} to={link}>
                 <div className="text-center p-3 bg-white rounded-lg hover:shadow-sm transition-shadow cursor-pointer">

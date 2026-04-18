@@ -130,8 +130,14 @@ export class ApplicantsService {
       if (isAgencySideRole) dto.tier = 'CANDIDATE';
     }
 
-    // Always generate a Lead identifier for new records created via the admin UI.
+    // Always generate a Lead identifier. Records that are born as a
+    // Candidate (agency-side submissions) also get a Candidate
+    // identifier up-front so the Candidates list never has to fall
+    // back to showing the "A…" lead number.
     const leadNumber = await this.generateIdentifier('A');
+    const bornAsCandidate = (dto.tier as any) === 'CANDIDATE';
+    const candidateNumber = bornAsCandidate ? await this.generateIdentifier('C') : null;
+    const candidateConvertedAt = bornAsCandidate ? new Date() : null;
 
     // Ensure nationality is always populated — mirror publicSubmit fallback logic
     const citizenship = (dto as any).citizenship || (dto as any).nationality;
@@ -143,6 +149,8 @@ export class ApplicantsService {
         citizenship,
         nationality,
         leadNumber,
+        candidateNumber,
+        candidateConvertedAt,
         tier: (dto.tier as any) || 'LEAD',
         dateOfBirth: dto.dateOfBirth ? new Date(dto.dateOfBirth) : undefined,
         workAuthorizationExpiry: dto.workAuthorizationExpiry ? new Date(dto.workAuthorizationExpiry) : undefined,

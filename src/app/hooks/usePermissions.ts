@@ -9,7 +9,20 @@ import { useAuthContext } from '../contexts/AuthContext';
 export function usePermissions() {
   const { user } = useAuthContext();
   const permissions = user?.permissions ?? [];
-  const isAdmin = user?.role === 'System Admin';
+
+  // `role` is expected to be the string 'System Admin' coming from
+  // /auth/me, but in older stored sessions (and via a couple of other
+  // endpoints that include the full role relation) it can land on the
+  // client as `{ id, name }`. Normalise both shapes, trim whitespace
+  // and compare case-insensitively so a System Admin never gets
+  // Access Denied on an edit page just because their cached user
+  // object came in a slightly different shape.
+  const rawRole: any = (user as any)?.role;
+  const roleName: string = typeof rawRole === 'string'
+    ? rawRole
+    : (rawRole?.name ?? '');
+  const normalised = roleName.trim().toLowerCase();
+  const isAdmin = normalised === 'system admin' || normalised === 'systemadmin';
 
   const can = (module: string, action: string): boolean => {
     if (!user) return false;

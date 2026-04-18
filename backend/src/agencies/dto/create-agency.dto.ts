@@ -1,4 +1,4 @@
-import { IsString, IsEmail, IsOptional, IsEnum, IsInt, Min, IsUrl } from 'class-validator';
+import { IsString, IsEmail, IsOptional, IsEnum, IsInt, Min, IsUrl, IsBoolean } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 
@@ -35,4 +35,7 @@ export class CreateAgencyDto {
 
   @ApiPropertyOptional({ description: 'Maximum number of users allowed for this agency', default: 10 })
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) maxUsersPerAgency?: number;
+
+  @ApiPropertyOptional({ description: 'Mark this agency as the Tempworks root/owner. Users attached to an isSystem agency bypass tenancy scoping. Only System Admins can set this — the service silently drops the field for any other caller.' })
+  @IsOptional() @IsBoolean() isSystem?: boolean;
 }

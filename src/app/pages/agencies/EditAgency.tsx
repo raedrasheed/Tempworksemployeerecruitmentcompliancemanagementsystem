@@ -12,7 +12,7 @@ import { CountrySelect } from '../../components/ui/CountrySelect';
 import { PhoneInput } from '../../components/ui/PhoneInput';
 import { toast } from 'sonner';
 import { confirm } from '../../components/ui/ConfirmDialog';
-import { agenciesApi, documentsApi, BACKEND_URL, settingsApi } from '../../services/api';
+import { agenciesApi, documentsApi, BACKEND_URL, settingsApi, getCurrentUser } from '../../services/api';
 
 function looksLikeWebsite(v: string): boolean {
   if (!v) return true;
@@ -37,12 +37,14 @@ type FormShape = {
   stateRegion: string;
   postalCode: string;
   notes: string;
+  isSystem: boolean;
 };
 
 export function EditAgency() {
   const { canEdit } = usePermissions();
   const { id } = useParams();
   const navigate = useNavigate();
+  const isSystemAdmin = getCurrentUser()?.role === 'System Admin';
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -50,7 +52,7 @@ export function EditAgency() {
     name: '', country: '', contactFirstName: '', contactMiddleName: '', contactLastName: '',
     email: '', phone: '', whatsapp: '', status: 'ACTIVE', website: '',
     addressLine1: '', addressLine2: '', city: '', stateRegion: '', postalCode: '',
-    notes: '',
+    notes: '', isSystem: false,
   });
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
@@ -100,6 +102,7 @@ export function EditAgency() {
           stateRegion: agency.stateRegion ?? '',
           postalCode: agency.postalCode ?? '',
           notes: agency.notes ?? '',
+          isSystem: Boolean(agency.isSystem),
         });
         setLogoUrl(agency.logoUrl ?? null);
       })
@@ -202,6 +205,10 @@ export function EditAgency() {
         contactPerson: [form.contactFirstName, form.contactMiddleName, form.contactLastName]
           .map(s => s.trim()).filter(Boolean).join(' '),
       };
+      // isSystem is a System-Admin-only switch. The backend strips it
+      // from non-admin payloads defensively, but drop it from the wire
+      // payload here too so nothing drifts in the audit log.
+      if (!isSystemAdmin) delete payload.isSystem;
       await agenciesApi.update(id!, payload);
       toast.success('Agency updated successfully');
       navigate(`/dashboard/agencies/${id}`);
@@ -370,6 +377,32 @@ export function EditAgency() {
               />
             </CardContent>
           </Card>
+
+          {/* Tenancy — System Admin only. Flipping this on marks the
+              agency as the Tempworks root; its users then see global
+              data instead of being scoped to the agency. */}
+          {isSystemAdmin && (
+            <Card>
+              <CardHeader><CardTitle>Tenancy Scope</CardTitle></CardHeader>
+              <CardContent>
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    id="isSystem"
+                    type="checkbox"
+                    className="mt-1 h-4 w-4 rounded border-input text-primary focus-visible:ring-2 focus-visible:ring-ring"
+                    checked={form.isSystem}
+                    onChange={e => setField('isSystem', e.target.checked)}
+                  />
+                  <div className="space-y-1">
+                    <div className="font-medium text-[#0F172A]">Treat as Tempworks system agency (global scope)</div>
+                    <p className="text-sm text-muted-foreground">
+                      Users attached to this agency bypass tenancy scoping and see data across every tenant. Enable only for the Tempworks root / owner agency; leave off for every real tenant.
+                    </p>
+                  </div>
+                </label>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Attached documents */}
           <Card>

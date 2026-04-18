@@ -71,7 +71,7 @@ export class AgenciesController {
   @Roles('System Admin', 'HR Manager')
   @ApiOperation({ summary: 'Create a new agency' })
   create(@Body() dto: CreateAgencyDto, @CurrentUser() user: any) {
-    return this.agenciesService.create(dto, user?.id);
+    return this.agenciesService.create(dto, user?.id, user?.role);
   }
 
   @Patch(':id')

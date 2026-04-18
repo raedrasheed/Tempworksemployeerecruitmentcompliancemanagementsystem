@@ -87,9 +87,14 @@ export class AgenciesService {
     return pieces.length ? pieces.join(' ') : undefined;
   }
 
-  async create(dto: CreateAgencyDto, createdById?: string) {
+  async create(dto: CreateAgencyDto, createdById?: string, actorRole?: string) {
     const contactPerson = this.deriveContactPerson(dto);
     if (!contactPerson) throw new BadRequestException('Contact person name is required');
+    // isSystem can only be set by System Admin — strip it from any
+    // create payload originating from a lower-privileged caller.
+    if (actorRole !== 'System Admin' && 'isSystem' in (dto as any)) {
+      delete (dto as any).isSystem;
+    }
     const agency = await this.prisma.agency.create({
       data: {
         ...dto,
@@ -130,6 +135,13 @@ export class AgenciesService {
       for (const field of AgenciesService.PROTECTED_FIELDS_FOR_MANAGER) {
         delete (dto as any)[field];
       }
+    }
+
+    // isSystem is a tenancy-model switch (makes every user of this agency
+    // global-scope) and must only be flipped by System Admins, regardless
+    // of which caller reached PATCH /agencies/:id.
+    if (actor?.role !== 'System Admin' && 'isSystem' in (dto as any)) {
+      delete (dto as any).isSystem;
     }
 
     const data: any = { ...dto };

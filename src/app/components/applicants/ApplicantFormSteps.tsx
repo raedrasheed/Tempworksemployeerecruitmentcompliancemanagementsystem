@@ -484,6 +484,14 @@ export function getStepErrors(
       if (!dlDocName && !hasFile('drivingLicense'))
         errors.push('You indicated you have a Driving License — please upload it.');
 
+      // First Issue Date → Issue Date → Expiry Date
+      if (d.licenseFirstIssueDate && d.licenseIssueDate) {
+        const a = Date.parse(d.licenseFirstIssueDate);
+        const b = Date.parse(d.licenseIssueDate);
+        if (!isNaN(a) && !isNaN(b) && a > b) {
+          errors.push('Driving License: First Issue Date must be on or before the current Issue Date.');
+        }
+      }
       checkDateOrder('Driving License', d.licenseIssueDate, d.licenseExpiryDate, d.licenseNoExpiry);
       (d.qualifications ?? []).forEach((q, i) => {
         checkDateOrder(`Qualification #${i + 1}${q.type ? ` (${q.type})` : ''}`, q.issueDate, q.expiryDate, q.noExpiry);

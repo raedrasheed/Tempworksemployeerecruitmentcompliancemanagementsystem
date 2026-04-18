@@ -479,7 +479,7 @@ export function Topbar() {
               </Link>
             </DropdownMenuItem>
 
-            {liveUser?.agencyId && (
+            {liveUser?.role === 'Agency Manager' && liveUser?.agencyId && (
               <DropdownMenuItem asChild>
                 <Link to="/dashboard/my-agency" className="cursor-pointer">
                   <Building2 className="w-4 h-4" />

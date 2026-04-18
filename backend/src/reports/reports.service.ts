@@ -780,24 +780,18 @@ export class ReportsService {
     }
 
     // Employee counts in the dashboard cards must honour the same
-    // rules the employees list does: tenant non-agency-side roles see
-    // own-agency employees; Agency Manager / Agency User only see
-    // the subset granted via EmployeeAgencyAccess.
+    // rules the employees list does: every external tenant — any role
+    // inside a non-system agency — sees only the subset of employees
+    // explicitly granted via EmployeeAgencyAccess. Tempworks-root
+    // users keep the global view.
     const employeeScope: any = { deletedAt: null };
     if (isExternalActor) {
-      employeeScope.agencyId = actor!.agencyId;
-      if (isAgencySideRole) {
-        const grants = await this.prisma.employeeAgencyAccess.findMany({
-          where: { agencyId: actor!.agencyId! },
-          select: { employeeId: true },
-        });
-        const allowedIds = grants.map((g: { employeeId: string }) => g.employeeId);
-        if (allowedIds.length === 0) {
-          employeeScope.id = { in: [] };
-        } else {
-          employeeScope.id = { in: allowedIds };
-        }
-      }
+      const grants = await this.prisma.employeeAgencyAccess.findMany({
+        where: { agencyId: actor!.agencyId! },
+        select: { employeeId: true },
+      });
+      const allowedIds = grants.map((g: { employeeId: string }) => g.employeeId);
+      employeeScope.id = { in: allowedIds.length ? allowedIds : [''] };
     }
 
     const [

@@ -29,31 +29,23 @@ export class EmployeesService {
 
     const where: any = { deletedAt: null };
 
-    // External tenants:
-    // - Agency-side roles (Agency Manager / Agency User) must NOT see
-    //   employees just because the employee's origin agency matches.
-    //   Access is exclusively driven by EmployeeAgencyAccess grants
-    //   created by Tempworks admins — a candidate promoted to employee
-    //   silently disappears from the agency's view unless admin
-    //   explicitly re-grants access.
-    // - Tenant HR Manager / Recruiter / Compliance Officer see every
-    //   employee whose agencyId matches their own tenancy (no per-
-    //   employee grant needed).
+    // External tenants — every role inside a non-system agency — can
+    // only see employees explicitly granted via EmployeeAgencyAccess.
+    // Employee.agencyId (origin) is intentionally ignored so a
+    // candidate promoted to employee silently leaves the tenant's
+    // view until a Tempworks admin re-grants access for that
+    // specific employee. Tempworks-root users (isSystem=true) and
+    // System Admin keep the global view.
     if (this.isExternalActor(actor)) {
-      const isAgencySideRole = actor?.role === 'Agency User' || actor?.role === 'Agency Manager';
-      if (isAgencySideRole) {
-        const grants = await this.prisma.employeeAgencyAccess.findMany({
-          where: { agencyId: actor!.agencyId! },
-          select: { employeeId: true },
-        });
-        const allowedIds = grants.map(g => g.employeeId);
-        if (allowedIds.length === 0) {
-          return PaginatedResponse.create([], 0, page, limit);
-        }
-        where.id = { in: allowedIds };
-      } else {
-        where.agencyId = actor!.agencyId!;
+      const grants = await this.prisma.employeeAgencyAccess.findMany({
+        where: { agencyId: actor!.agencyId! },
+        select: { employeeId: true },
+      });
+      const allowedIds = grants.map(g => g.employeeId);
+      if (allowedIds.length === 0) {
+        return PaginatedResponse.create([], 0, page, limit);
       }
+      where.id = { in: allowedIds };
     }
     if (search) {
       where.OR = [
@@ -103,21 +95,15 @@ export class EmployeesService {
     });
     if (!employee) throw new NotFoundException('Employee not found');
 
+    // Access for any external tenant is driven exclusively by the
+    // per-employee grant — employee.agencyId (origin agency) is
+    // intentionally ignored so a converted candidate is invisible to
+    // the source agency until a Tempworks admin re-grants access.
     if (this.isExternalActor(actor)) {
-      const isAgencySideRole = actor?.role === 'Agency User' || actor?.role === 'Agency Manager';
-      if (isAgencySideRole) {
-        // Agency-side access is driven exclusively by the per-employee
-        // grant — employee.agencyId (origin agency) is intentionally
-        // ignored so a converted candidate is invisible to the source
-        // agency until a Tempworks admin re-grants access.
-        const grant = await this.prisma.employeeAgencyAccess.findUnique({
-          where: { employeeId_agencyId: { employeeId: id, agencyId: actor!.agencyId! } },
-        });
-        if (!grant) throw new ForbiddenException('Access to this employee has not been granted to your agency');
-      } else if (employee.agencyId !== actor!.agencyId) {
-        // Tenant non-agency-side roles are scoped to own-agency employees.
-        throw new ForbiddenException('Access denied');
-      }
+      const grant = await this.prisma.employeeAgencyAccess.findUnique({
+        where: { employeeId_agencyId: { employeeId: id, agencyId: actor!.agencyId! } },
+      });
+      if (!grant) throw new ForbiddenException('Access to this employee has not been granted to your agency');
     }
 
     return employee;

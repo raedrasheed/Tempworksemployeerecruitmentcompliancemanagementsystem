@@ -44,16 +44,13 @@ export class ApplicantsService {
 
     const where: any = { deletedAt: null };
 
-    // Agency users can only see CANDIDATES (not LEADs)
-    if (actor && this.isAgencyUser(actor.role)) {
-      where.tier = 'CANDIDATE';
-      // Agency users see only their own agency's applicants
-      if (actor.agencyId) {
-        where.agencyId = actor.agencyId;
-      }
-    } else {
-      if (tier) where.tier = tier;
+    // Agency users are scoped to applicants in their own agency; whether
+    // they see Leads, Candidates or both is gated by the applicants:read
+    // permission now, not by hard-coded role checks.
+    if (actor && this.isAgencyUser(actor.role) && actor.agencyId) {
+      where.agencyId = actor.agencyId;
     }
+    if (tier) where.tier = tier;
 
     if (search) {
       where.OR = [
@@ -94,9 +91,9 @@ export class ApplicantsService {
     });
     if (!applicant) throw new NotFoundException(`Applicant ${id} not found`);
 
-    // Agency users can only see CANDIDATEs in their own agency
+    // Agency users are tenancy-scoped to their own agency; lead vs candidate
+    // visibility is gated by permission.
     if (actor && this.isAgencyUser(actor.role)) {
-      if (applicant.tier === 'LEAD') throw new ForbiddenException('Access denied');
       if (actor.agencyId && applicant.agencyId && applicant.agencyId !== actor.agencyId) {
         throw new ForbiddenException('Access denied');
       }
@@ -559,9 +556,8 @@ export class ApplicantsService {
     let items: any[];
     if (ids && ids.length > 0) {
       const where: any = { id: { in: ids }, deletedAt: null };
-      if (actor && this.isAgencyUser(actor.role)) {
-        where.tier = 'CANDIDATE';
-        if (actor.agencyId) where.agencyId = actor.agencyId;
+      if (actor && this.isAgencyUser(actor.role) && actor.agencyId) {
+        where.agencyId = actor.agencyId;
       }
       items = await this.prisma.applicant.findMany({
         where,

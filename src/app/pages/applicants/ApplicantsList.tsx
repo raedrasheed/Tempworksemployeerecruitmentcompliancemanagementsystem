@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { applicantsApi, employeeWorkflowApi, agenciesApi, settingsApi } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
 import { getCurrentUser, getAccessToken } from '../../services/api';
-import { Link, Navigate } from 'react-router';
+import { Link } from 'react-router';
 import { Search, Plus, Eye, Edit, Download, Trash2, RefreshCw, ArrowUp, ArrowDown, ArrowUpDown, X, Columns2, Check, FileText, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { confirm } from '../../components/ui/ConfirmDialog';
@@ -388,11 +388,6 @@ export function ApplicantsList() {
         return visibleColumns[c.key];
       }).length
     + 1 /* actions */;
-
-  // Leads are Tempworks internal-only. External agency accounts bounce
-  // straight to the Candidates page — they never see, list, search or
-  // export LEAD records.
-  if (isAgencyUser) return <Navigate to="/dashboard/candidates" replace />;
 
   return (
     <div className="space-y-6">

@@ -215,7 +215,24 @@ export class AgenciesService {
     this.assertAgencyAccess(id, actor);
     await this.findOne(id, actor);
     const { page = 1, limit = 10 } = pagination;
-    const where = { agencyId: id, deletedAt: null };
+    const where: any = { agencyId: id, deletedAt: null };
+
+    // Agency-side roles don't get automatic access to every employee
+    // whose origin agency happens to match — after a candidate is
+    // converted to employee they must be re-granted explicitly via
+    // EmployeeAgencyAccess. Restrict this nested list the same way
+    // EmployeesService.findAll does.
+    const isAgencySideRole = actor?.role === 'Agency User' || actor?.role === 'Agency Manager';
+    if (isAgencySideRole && this.isExternalActor(actor)) {
+      const grants = await this.prisma.employeeAgencyAccess.findMany({
+        where: { agencyId: actor!.agencyId! },
+        select: { employeeId: true },
+      });
+      const allowedIds = grants.map(g => g.employeeId);
+      if (allowedIds.length === 0) return PaginatedResponse.create([], 0, page, limit);
+      where.id = { in: allowedIds };
+    }
+
     const [items, total] = await Promise.all([
       this.prisma.employee.findMany({
         where,
@@ -231,11 +248,28 @@ export class AgenciesService {
   async getStats(id: string, actor?: { role?: string; agencyId?: string; agencyIsSystem?: boolean }) {
     this.assertAgencyAccess(id, actor);
     await this.findOne(id, actor);
+
+    // Build the employee-scope the same way getEmployees does so stats
+    // don't leak a count larger than the agency-side caller can open.
+    const employeeWhere: any = { agencyId: id, deletedAt: null };
+    const isAgencySideRole = actor?.role === 'Agency User' || actor?.role === 'Agency Manager';
+    if (isAgencySideRole && this.isExternalActor(actor)) {
+      const grants = await this.prisma.employeeAgencyAccess.findMany({
+        where: { agencyId: actor!.agencyId! },
+        select: { employeeId: true },
+      });
+      const allowedIds = grants.map(g => g.employeeId);
+      if (allowedIds.length === 0) {
+        const users = await this.prisma.user.count({ where: { agencyId: id, deletedAt: null } });
+        return { users, employees: 0, activeEmployees: 0, pendingEmployees: 0 };
+      }
+      employeeWhere.id = { in: allowedIds };
+    }
     const [users, employees, activeEmployees, pendingEmployees] = await Promise.all([
       this.prisma.user.count({ where: { agencyId: id, deletedAt: null } }),
-      this.prisma.employee.count({ where: { agencyId: id, deletedAt: null } }),
-      this.prisma.employee.count({ where: { agencyId: id, deletedAt: null, status: 'ACTIVE' } }),
-      this.prisma.employee.count({ where: { agencyId: id, deletedAt: null, status: 'PENDING' } }),
+      this.prisma.employee.count({ where: employeeWhere }),
+      this.prisma.employee.count({ where: { ...employeeWhere, status: 'ACTIVE' } }),
+      this.prisma.employee.count({ where: { ...employeeWhere, status: 'PENDING' } }),
     ]);
     return { users, employees, activeEmployees, pendingEmployees };
   }

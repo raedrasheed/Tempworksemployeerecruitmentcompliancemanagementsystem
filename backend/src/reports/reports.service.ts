@@ -779,6 +779,27 @@ export class ReportsService {
       if (isAgencySideRole) applicantScope.tier = 'CANDIDATE';
     }
 
+    // Employee counts in the dashboard cards must honour the same
+    // rules the employees list does: tenant non-agency-side roles see
+    // own-agency employees; Agency Manager / Agency User only see
+    // the subset granted via EmployeeAgencyAccess.
+    const employeeScope: any = { deletedAt: null };
+    if (isExternalActor) {
+      employeeScope.agencyId = actor!.agencyId;
+      if (isAgencySideRole) {
+        const grants = await this.prisma.employeeAgencyAccess.findMany({
+          where: { agencyId: actor!.agencyId! },
+          select: { employeeId: true },
+        });
+        const allowedIds = grants.map((g: { employeeId: string }) => g.employeeId);
+        if (allowedIds.length === 0) {
+          employeeScope.id = { in: [] };
+        } else {
+          employeeScope.id = { in: allowedIds };
+        }
+      }
+    }
+
     const [
       totalEmp, activeEmp, empThisMonth,
       pendingApps, totalApp, appByStatus,
@@ -791,9 +812,9 @@ export class ReportsService {
       recentActivity,
     ] = await Promise.all([
       // ── Employees ──
-      this.prisma.employee.count({ where: { deletedAt: null } }),
-      this.prisma.employee.count({ where: { deletedAt: null, status: 'ACTIVE' } }),
-      this.prisma.employee.count({ where: { deletedAt: null, createdAt: { gte: startOfThisMonth } } }),
+      this.prisma.employee.count({ where: employeeScope }),
+      this.prisma.employee.count({ where: { ...employeeScope, status: 'ACTIVE' } }),
+      this.prisma.employee.count({ where: { ...employeeScope, createdAt: { gte: startOfThisMonth } } }),
 
       // ── Applicants ──
       // "Pending" = status NEW (submitted but no action taken yet)
@@ -834,7 +855,7 @@ export class ReportsService {
 
       // ── Recent employees: last 5 registrations ──
       this.prisma.employee.findMany({
-        where: { deletedAt: null },
+        where: employeeScope,
         orderBy: { createdAt: 'desc' },
         take: 5,
         select: {

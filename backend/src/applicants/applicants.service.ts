@@ -665,11 +665,17 @@ export class ApplicantsService {
   // ── Convert Applicant → Employee ──────────────────────────────────────────────
 
   async convertToEmployee(id: string, dto: ConvertToEmployeeDto, actorId?: string, actor?: { role: string; agencyId?: string; agencyIsSystem?: boolean }) {
-    if (actor && this.isExternalActor(actor)) {
+    // Only agency-side role names are blocked from converting. Tenant
+    // HR Manager / Recruiter / Compliance Officer inside an external
+    // agency can convert their own-agency candidates — findOne below
+    // already restricts them to own-agency records, so they can't
+    // reach a candidate belonging to another tenant.
+    const isAgencySideRole = actor?.role === 'Agency User' || actor?.role === 'Agency Manager';
+    if (isAgencySideRole) {
       throw new ForbiddenException('Agency users cannot convert candidates to employees.');
     }
 
-    const applicant = await this.findOne(id);
+    const applicant = await this.findOne(id, actor);
 
     if (applicant.tier !== 'CANDIDATE') {
       throw new ForbiddenException('Only Candidates can be converted to employees. Convert the Lead to a Candidate first.');

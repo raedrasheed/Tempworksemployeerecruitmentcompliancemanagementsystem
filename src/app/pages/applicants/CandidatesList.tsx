@@ -51,7 +51,7 @@ const ALL_COLUMNS: { key: ColKey; label: string }[] = [
 
 const DEFAULT_VISIBLE: Record<ColKey, boolean> = {
   contact: true, nationality: true, appliedPosition: true, agency: true,
-  tier: true, applied: true, status: true,
+  tier: false, applied: true, status: true,
 };
 
 function loadVisibleColumns(): Record<ColKey, boolean> {

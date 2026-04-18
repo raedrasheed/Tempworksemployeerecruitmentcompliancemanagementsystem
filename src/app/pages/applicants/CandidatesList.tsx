@@ -37,12 +37,17 @@ type SortField = 'firstName' | 'email' | 'nationality' | 'jobType' | 'agency' | 
 type SortOrder = 'asc' | 'desc';
 
 // ── Column visibility ────────────────────────────────────────────────────────
-type ColKey = 'contact' | 'nationality' | 'appliedPosition' | 'agency' | 'tier' | 'applied' | 'status';
+type ColKey =
+  | 'contact' | 'nationality' | 'appliedPosition' | 'passportNumber'
+  | 'age' | 'gender' | 'agency' | 'tier' | 'applied' | 'status';
 
 const ALL_COLUMNS: { key: ColKey; label: string }[] = [
   { key: 'contact',         label: 'Contact' },
   { key: 'nationality',     label: 'Nationality' },
   { key: 'appliedPosition', label: 'Applied Position' },
+  { key: 'passportNumber',  label: 'Passport Number' },
+  { key: 'age',             label: 'Age' },
+  { key: 'gender',          label: 'Gender' },
   { key: 'agency',          label: 'Agency' },
   { key: 'tier',            label: 'Tier' },
   { key: 'applied',         label: 'Applied' },
@@ -50,13 +55,44 @@ const ALL_COLUMNS: { key: ColKey; label: string }[] = [
 ];
 
 const DEFAULT_VISIBLE: Record<ColKey, boolean> = {
-  contact: true, nationality: true, appliedPosition: true, agency: true,
-  tier: false, applied: true, status: true,
+  contact: true, nationality: true, appliedPosition: true,
+  passportNumber: true, age: true, gender: true,
+  agency: true, tier: false, applied: true, status: true,
 };
+
+/** Age in whole years from a DOB string/Date. Returns null for missing /
+ *  unparseable dates so the cell can show a '—' rather than an NaN. */
+function calcAge(dob: string | Date | null | undefined): number | null {
+  if (!dob) return null;
+  const birth = typeof dob === 'string' ? new Date(dob) : dob;
+  if (isNaN(birth.getTime())) return null;
+  const now = new Date();
+  let age = now.getFullYear() - birth.getFullYear();
+  const m = now.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) age -= 1;
+  return age >= 0 && age < 150 ? age : null;
+}
+
+/** Passport number lives inside the applicationData JSON. */
+function readPassportNumber(a: any): string {
+  const raw = a?.applicationData?.passportNumber ?? a?.passportNumber ?? '';
+  return typeof raw === 'string' ? raw.trim() : '';
+}
+
+function formatGender(g: string | null | undefined): string {
+  if (!g) return '';
+  switch (g) {
+    case 'MALE': return 'Male';
+    case 'FEMALE': return 'Female';
+    case 'OTHER': return 'Other';
+    case 'PREFER_NOT_TO_SAY': return 'Prefer not to say';
+    default: return g;
+  }
+}
 
 function loadVisibleColumns(): Record<ColKey, boolean> {
   try {
-    const saved = localStorage.getItem('candidates-table-columns-v2');
+    const saved = localStorage.getItem('candidates-table-columns-v3');
     return saved ? { ...DEFAULT_VISIBLE, ...JSON.parse(saved) } : DEFAULT_VISIBLE;
   } catch {
     return DEFAULT_VISIBLE;
@@ -104,7 +140,7 @@ export function CandidatesList() {
   const toggleColumn = (key: ColKey) => {
     setVisibleColumns(prev => {
       const next = { ...prev, [key]: !prev[key] };
-      localStorage.setItem('candidates-table-columns-v2', JSON.stringify(next));
+      localStorage.setItem('candidates-table-columns-v3', JSON.stringify(next));
       return next;
     });
   };
@@ -405,9 +441,9 @@ export function CandidatesList() {
                       ))}
                     </div>
                     <div className="border-t mt-2 pt-2 flex gap-1.5">
-                      <button onClick={() => { const all = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, true])) as Record<ColKey, boolean>; setVisibleColumns(all); localStorage.setItem('candidates-table-columns-v2', JSON.stringify(all)); }} className="flex-1 text-xs text-center text-blue-600 hover:underline py-0.5">Show all</button>
+                      <button onClick={() => { const all = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, true])) as Record<ColKey, boolean>; setVisibleColumns(all); localStorage.setItem('candidates-table-columns-v3', JSON.stringify(all)); }} className="flex-1 text-xs text-center text-blue-600 hover:underline py-0.5">Show all</button>
                       <span className="text-gray-300">|</span>
-                      <button onClick={() => { const none = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, false])) as Record<ColKey, boolean>; setVisibleColumns(none); localStorage.setItem('candidates-table-columns-v2', JSON.stringify(none)); }} className="flex-1 text-xs text-center text-gray-500 hover:underline py-0.5">Hide all</button>
+                      <button onClick={() => { const none = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, false])) as Record<ColKey, boolean>; setVisibleColumns(none); localStorage.setItem('candidates-table-columns-v3', JSON.stringify(none)); }} className="flex-1 text-xs text-center text-gray-500 hover:underline py-0.5">Hide all</button>
                     </div>
                   </div>
                 )}
@@ -460,6 +496,9 @@ export function CandidatesList() {
                   {col('contact')     && <SortableHead label="Contact"      field="email"       sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
                   {col('nationality') && <SortableHead label="Nationality"  field="nationality" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
                   {col('appliedPosition') && <TableHead>Applied Position</TableHead>}
+                  {col('passportNumber')  && <TableHead>Passport Number</TableHead>}
+                  {col('age')             && <TableHead>Age</TableHead>}
+                  {col('gender')          && <TableHead>Gender</TableHead>}
                   {col('agency')      && <SortableHead label="Agency"       field="agency"      sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
                   {col('tier') && !isAgencyUser && <SortableHead label="Tier" field="tier" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
                   {col('applied')     && <SortableHead label="Applied"      field="createdAt"   sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
@@ -516,6 +555,21 @@ export function CandidatesList() {
                         {applicant.jobAd?.title
                           ? <span className="text-sm">{applicant.jobAd.title}</span>
                           : <Badge variant="outline" className="text-[10px] font-semibold tracking-wide">GENERAL</Badge>}
+                      </TableCell>
+                    )}
+                    {col('passportNumber') && (
+                      <TableCell className="text-sm font-mono whitespace-nowrap">
+                        {readPassportNumber(applicant) || <span className="text-muted-foreground">—</span>}
+                      </TableCell>
+                    )}
+                    {col('age') && (
+                      <TableCell className="text-sm tabular-nums">
+                        {calcAge(applicant.dateOfBirth) ?? <span className="text-muted-foreground">—</span>}
+                      </TableCell>
+                    )}
+                    {col('gender') && (
+                      <TableCell className="text-sm">
+                        {formatGender(applicant.gender) || <span className="text-muted-foreground">—</span>}
                       </TableCell>
                     )}
                     {col('agency') && (

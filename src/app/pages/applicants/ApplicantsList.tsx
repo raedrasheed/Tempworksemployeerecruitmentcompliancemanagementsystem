@@ -523,9 +523,9 @@ export function ApplicantsList() {
                     )}
                     {col('agency') && (
                       <TableCell>
-                        {applicant.agency
+                        {applicant.agency?.name
                           ? <span className="text-sm">{applicant.agency.name}</span>
-                          : <span className="text-sm text-muted-foreground">Direct</span>}
+                          : <span className="text-sm text-muted-foreground">—</span>}
                       </TableCell>
                     )}
                     {col('tier') && !isAgencyUser && (

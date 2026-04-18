@@ -144,7 +144,7 @@ export function WorkflowManagement() {
     setNewStageColor('#2563EB');
   };
 
-  const handleDeleteStage = (stageId: string) => {
+  const handleDeleteStage = async (stageId: string) => {
     if (await confirm({
       title: 'Delete stage?',
       description: 'This stage will be permanently removed.',

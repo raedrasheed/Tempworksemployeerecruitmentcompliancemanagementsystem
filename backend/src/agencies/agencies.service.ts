@@ -52,9 +52,27 @@ export class AgenciesService {
     return agency;
   }
 
+  /** Derive the legacy `contactPerson` column from the structured name pieces
+   *  when the client sends first/middle/last but omits the combined value.
+   *  Keeps backwards compatibility for listing/search code that still reads
+   *  the single column. */
+  private deriveContactPerson(dto: Partial<CreateAgencyDto>): string | undefined {
+    if (dto.contactPerson && dto.contactPerson.trim()) return dto.contactPerson.trim();
+    const pieces = [dto.contactFirstName, dto.contactMiddleName, dto.contactLastName]
+      .map(p => (p ?? '').trim())
+      .filter(Boolean);
+    return pieces.length ? pieces.join(' ') : undefined;
+  }
+
   async create(dto: CreateAgencyDto, createdById?: string) {
+    const contactPerson = this.deriveContactPerson(dto);
+    if (!contactPerson) throw new BadRequestException('Contact person name is required');
     const agency = await this.prisma.agency.create({
-      data: { ...dto, status: (dto.status as any) || 'ACTIVE' },
+      data: {
+        ...dto,
+        contactPerson,
+        status: (dto.status as any) || 'ACTIVE',
+      },
       include: this.include,
     });
     if (createdById) {
@@ -67,14 +85,36 @@ export class AgenciesService {
 
   async update(id: string, dto: UpdateAgencyDto, updatedById?: string) {
     await this.findOne(id);
+    const data: any = { ...dto };
+    const derived = this.deriveContactPerson(dto);
+    if (derived !== undefined) data.contactPerson = derived;
     const agency = await this.prisma.agency.update({
       where: { id },
-      data: dto as any,
+      data,
       include: this.include,
     });
     if (updatedById) {
       await this.prisma.auditLog.create({
         data: { userId: updatedById, action: 'UPDATE', entity: 'Agency', entityId: id },
+      });
+    }
+    return agency;
+  }
+
+  async uploadLogo(id: string, file: Express.Multer.File, actorId?: string) {
+    await this.findOne(id);
+    if (!file) throw new BadRequestException('No logo file provided');
+    // Files land under uploads/; the public URL follows the same `/uploads/<file>`
+    // convention used by employee/applicant photo uploads.
+    const logoUrl = `/uploads/${file.filename}`;
+    const agency = await this.prisma.agency.update({
+      where: { id },
+      data: { logoUrl },
+      include: this.include,
+    });
+    if (actorId) {
+      await this.prisma.auditLog.create({
+        data: { userId: actorId, action: 'UPDATE_LOGO', entity: 'Agency', entityId: id, changes: { logoUrl } as any },
       });
     }
     return agency;

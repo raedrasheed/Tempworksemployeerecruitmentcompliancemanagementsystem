@@ -1,8 +1,12 @@
 import {
   Controller, Get, Post, Body, Patch, Param, Delete,
-  Query, UseGuards, HttpCode, HttpStatus,
+  Query, UseGuards, HttpCode, HttpStatus, UseInterceptors, UploadedFile, BadRequestException,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiConsumes } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
+import { v4 as uuidv4 } from 'uuid';
 import { AgenciesService } from './agencies.service';
 import { CreateAgencyDto } from './dto/create-agency.dto';
 import { UpdateAgencyDto } from './dto/update-agency.dto';
@@ -11,6 +15,11 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+
+const logoStorage = diskStorage({
+  destination: process.env.UPLOAD_DEST || './uploads',
+  filename: (_req, file, cb) => cb(null, `${uuidv4()}${extname(file.originalname)}`),
+});
 
 @ApiTags('Agencies')
 @ApiBearerAuth('access-token')
@@ -65,6 +74,25 @@ export class AgenciesController {
   @ApiOperation({ summary: 'Update agency' })
   update(@Param('id') id: string, @Body() dto: UpdateAgencyDto, @CurrentUser() user: any) {
     return this.agenciesService.update(id, dto, user?.id);
+  }
+
+  @Patch(':id/logo')
+  @Roles('System Admin', 'HR Manager')
+  @ApiOperation({ summary: 'Upload or replace the agency logo' })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('logo', {
+    storage: logoStorage,
+    fileFilter: (_req, file, cb) => {
+      if (!['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/svg+xml'].includes(file.mimetype)) {
+        return cb(new BadRequestException('Only JPEG, PNG, WebP or SVG images are allowed'), false);
+      }
+      cb(null, true);
+    },
+    limits: { fileSize: 5 * 1024 * 1024 },
+  }))
+  uploadLogo(@Param('id') id: string, @UploadedFile() file: Express.Multer.File, @CurrentUser() user: any) {
+    if (!file) throw new BadRequestException('No logo file provided');
+    return this.agenciesService.uploadLogo(id, file, user?.id);
   }
 
   @Delete(':id')

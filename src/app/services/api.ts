@@ -632,6 +632,23 @@ export const agenciesApi = {
   getStats: (id: string) => apiFetch<any>(`/agencies/${id}/stats`),
 
   listPublic: () => apiFetch<{ id: string; name: string }[]>('/agencies/public'),
+
+  uploadLogo: (id: string, file: File): Promise<any> => {
+    const token = getAccessToken();
+    const form = new FormData();
+    form.append('logo', file);
+    return fetch(`${API_URL}/agencies/${id}/logo`, {
+      method: 'PATCH',
+      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: form,
+    }).then(async res => {
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error((err as any)?.message || 'Logo upload failed');
+      }
+      return res.json();
+    });
+  },
 };
 
 // ─── Compliance API ───────────────────────────────────────────────────────────

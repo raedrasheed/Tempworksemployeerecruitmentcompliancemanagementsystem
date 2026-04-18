@@ -280,8 +280,18 @@ model Agency {
   name               String
   country            String
   contactPerson      String
+  contactFirstName   String?
+  contactMiddleName  String?
+  contactLastName    String?
   email              String
   phone              String
+  whatsapp           String?
+  website            String?
+  addressLine1       String?
+  addressLine2       String?
+  city               String?
+  stateRegion        String?
+  postalCode         String?
   status             AgencyStatus @default(ACTIVE)
   logoUrl            String?
   notes              String?

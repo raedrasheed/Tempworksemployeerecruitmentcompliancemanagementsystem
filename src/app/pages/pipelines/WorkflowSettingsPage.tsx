@@ -9,6 +9,7 @@ import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../../components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { confirm } from '../../components/ui/ConfirmDialog';
 import {
   Plus, Edit, Trash2, GripVertical, Save, FileText, CheckCircle,
   AlertCircle, Shield, PowerOff, Power, Clock, ArrowLeft,
@@ -141,7 +142,11 @@ export function WorkflowSettingsPage() {
   // ─── Delete Stage ─────────────────────────────────────────────────────────
 
   const handleDeleteStage = async (stageId: string, stageName: string) => {
-    if (!confirm(`Delete the "${stageName}" stage? Candidates currently in this stage will lose their progress.`)) return;
+    if (!(await confirm({
+      title: 'Delete stage?',
+      description: `Delete the "${stageName}" stage? Candidates currently in this stage will lose their progress.`,
+      confirmText: 'Delete', tone: 'destructive',
+    }))) return;
     try {
       await workflowApi.deleteStage(stageId);
       setStages(prev => prev.filter(s => s.id !== stageId).map((s, i) => ({ ...s, order: i + 1 })));
@@ -155,7 +160,11 @@ export function WorkflowSettingsPage() {
   const handleToggleActive = async (stage: Stage) => {
     const next = !stage.isActive;
     const verb = next ? 'activate' : 'deactivate';
-    if (!confirm(`Are you sure you want to ${verb} the "${stage.name}" stage?`)) return;
+    if (!(await confirm({
+      title: `${verb[0].toUpperCase() + verb.slice(1)} stage?`,
+      description: `The "${stage.name}" stage will be ${verb}d.`,
+      confirmText: verb[0].toUpperCase() + verb.slice(1),
+    }))) return;
     try {
       await workflowApi.updateStage(stage.id, { isActive: next } as any);
       setStages(prev => prev.map(s => s.id === stage.id ? { ...s, isActive: next } : s));
@@ -291,7 +300,11 @@ export function WorkflowSettingsPage() {
   // ─── Archive ──────────────────────────────────────────────────────────────
 
   const handleArchive = async () => {
-    if (!confirm('Archive this workflow? No new candidates can be assigned but existing progress is preserved.')) return;
+    if (!(await confirm({
+      title: 'Archive workflow?',
+      description: 'No new candidates can be assigned but existing progress is preserved.',
+      confirmText: 'Archive',
+    }))) return;
     try {
       await workflowApi.archive(id!);
       navigate('/dashboard/workflows');

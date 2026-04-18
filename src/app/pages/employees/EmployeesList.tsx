@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Link } from 'react-router';
 import { Plus, Search, Download, Eye, Edit, Trash2, RefreshCw, ArrowUp, ArrowDown, ArrowUpDown, X, Columns2, Check } from 'lucide-react';
 import { toast } from 'sonner';
+import { confirm } from '../../components/ui/ConfirmDialog';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -197,7 +198,11 @@ export function EmployeesList() {
 
   // ── Delete ─────────────────────────────────────────────────────────────────
   const handleDelete = async (employee: any) => {
-    if (!confirm(`Delete "${employee.firstName} ${employee.lastName}"? This cannot be undone.`)) return;
+    if (!(await confirm({
+      title: 'Delete employee?',
+      description: `"${employee.firstName} ${employee.lastName}" will be permanently removed. This cannot be undone.`,
+      confirmText: 'Delete', tone: 'destructive',
+    }))) return;
     try {
       await employeesApi.delete(employee.id);
       setEmployees(prev => prev.filter(e => e.id !== employee.id));

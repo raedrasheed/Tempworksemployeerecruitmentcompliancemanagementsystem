@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/ca
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { toast } from 'sonner';
+import { confirm } from '../../components/ui/ConfirmDialog';
 import { applicantsApi } from '../../services/api';
 
 const STATUS_TABS = ['All', 'Pending', 'Approved', 'Rejected'] as const;
@@ -52,7 +53,12 @@ export function CandidateDeleteRequests() {
   }, [fetchRequests]);
 
   const handleApprove = async (id: string) => {
-    if (!confirm('Are you sure you want to approve this delete request? This action cannot be undone.')) return;
+    if (!(await confirm({
+      title: 'Approve delete request?',
+      description: 'The candidate will be permanently deleted. This action cannot be undone.',
+      confirmText: 'Approve & delete',
+      tone: 'destructive',
+    }))) return;
     setProcessing(true);
     try {
       await applicantsApi.reviewDeleteRequest(id, 'APPROVED');

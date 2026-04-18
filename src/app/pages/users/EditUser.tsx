@@ -11,6 +11,7 @@ import { Badge } from '../../components/ui/badge';
 import { CountrySelect } from '../../components/ui/CountrySelect';
 import { PhoneInput } from '../../components/ui/PhoneInput';
 import { toast } from 'sonner';
+import { confirm } from '../../components/ui/ConfirmDialog';
 import { usersApi, rolesApi, agenciesApi, authApi, getCurrentUser, BACKEND_URL } from '../../services/api';
 
 const GENDERS = [
@@ -232,7 +233,11 @@ export function EditUser() {
   };
 
   const handleResetPassword = async () => {
-    if (!confirm('Send a password reset email to this user?')) return;
+    if (!(await confirm({
+      title: 'Send password reset email?',
+      description: 'A password reset email will be sent to this user.',
+      confirmText: 'Send email',
+    }))) return;
     try {
       await authApi.adminResetPassword(id!);
       toast.success('Password reset email sent successfully');

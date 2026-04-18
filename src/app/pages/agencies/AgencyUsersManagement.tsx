@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/ca
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { toast } from 'sonner';
+import { confirm } from '../../components/ui/ConfirmDialog';
 import { agenciesApi, usersApi } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
 
@@ -31,7 +32,12 @@ export function AgencyUsersManagement() {
   }, [id]);
 
   const handleDeleteUser = async (user: any) => {
-    if (!confirm(`Are you sure you want to remove ${user.firstName} ${user.lastName} from this agency?`)) return;
+    if (!(await confirm({
+      title: 'Remove user from agency?',
+      description: `${user.firstName} ${user.lastName} will be removed from this agency.`,
+      confirmText: 'Remove',
+      tone: 'destructive',
+    }))) return;
     try {
       await usersApi.delete(user.id);
       setAgencyUsers(prev => prev.filter(u => u.id !== user.id));

@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Checkbox } from '../../components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { toast } from 'sonner';
+import { confirm } from '../../components/ui/ConfirmDialog';
 import { reportsApi } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
 
@@ -234,7 +235,11 @@ export function ReportsDashboard() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this report?')) return;
+    if (!(await confirm({
+      title: 'Delete report?',
+      description: 'This report will be permanently removed.',
+      confirmText: 'Delete', tone: 'destructive',
+    }))) return;
     try { await reportsApi.delete(id); setSavedReports(p => p.filter(r => r.id !== id)); if (editingId === id) resetBuilder(); toast.success('Deleted'); }
     catch (err: any) { toast.error(err?.message || 'Delete failed'); }
   };

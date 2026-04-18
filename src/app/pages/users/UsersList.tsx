@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { usersApi, getCurrentUser, BACKEND_URL } from '../../services/api';
 import { toast } from 'sonner';
+import { confirm } from '../../components/ui/ConfirmDialog';
 import { usePermissions } from '../../hooks/usePermissions';
 
 const STATUSES = ['ACTIVE', 'INACTIVE', 'SUSPENDED', 'PENDING'];
@@ -214,7 +215,11 @@ export function UsersList() {
   const [loadingLink, setLoadingLink]           = useState<string | null>(null);
 
   const handleDelete = async (user: any) => {
-    if (!confirm(`Are you sure you want to delete ${user.firstName} ${user.lastName}? This action cannot be undone.`)) return;
+    if (!(await confirm({
+      title: 'Delete user?',
+      description: `${user.firstName} ${user.lastName} will be permanently removed. This action cannot be undone.`,
+      confirmText: 'Delete', tone: 'destructive',
+    }))) return;
     try {
       await usersApi.delete(user.id);
       setUsers(prev => prev.filter(u => u.id !== user.id));

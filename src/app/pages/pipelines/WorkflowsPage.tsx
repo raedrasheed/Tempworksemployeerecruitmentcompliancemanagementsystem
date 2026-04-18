@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router';
 import { workflowApi } from '../../services/api';
+import { confirm } from '../../components/ui/ConfirmDialog';
 import {
   Layers,
   Plus,
@@ -272,7 +273,11 @@ export function WorkflowsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this workflow? This cannot be undone.')) return;
+    if (!(await confirm({
+      title: 'Delete workflow?',
+      description: 'This workflow will be permanently removed. This cannot be undone.',
+      confirmText: 'Delete', tone: 'destructive',
+    }))) return;
     try { await workflowApi.delete(id); load(); } catch {}
   };
 

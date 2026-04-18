@@ -5,6 +5,7 @@ import {
   Edit, Trash2, ArrowUp, ArrowDown, ArrowUpDown, Columns2, Check,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { confirm } from '../../components/ui/ConfirmDialog';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -206,7 +207,11 @@ export function VehiclesList() {
 
   // ── Delete / Export ────────────────────────────────────────────────────────
   const handleDelete = async (vehicleId: string) => {
-    if (!confirm('Delete this vehicle? This cannot be undone easily.')) return;
+    if (!(await confirm({
+      title: 'Delete vehicle?',
+      description: 'This vehicle will be permanently removed. This cannot be undone easily.',
+      confirmText: 'Delete', tone: 'destructive',
+    }))) return;
     try {
       await vehiclesApi.delete(vehicleId);
       toast.success('Vehicle deleted');

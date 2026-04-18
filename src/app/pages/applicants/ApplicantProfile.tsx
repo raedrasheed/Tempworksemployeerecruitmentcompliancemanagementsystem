@@ -17,6 +17,7 @@ import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { toast } from 'sonner';
+import { confirm } from '../../components/ui/ConfirmDialog';
 import { ApplicantPdfExportButton } from '../../components/applicants/ApplicantPdfExport';
 
 const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1').replace('/api/v1', '');
@@ -251,7 +252,12 @@ export function ApplicantProfile() {
   };
 
   const handleDisconnectCandidateWorkflow = async () => {
-    if (!id || !candidateAssignment || !confirm('Disconnect this applicant from the workflow?')) return;
+    if (!id || !candidateAssignment) return;
+    if (!(await confirm({
+      title: 'Disconnect from workflow?',
+      description: 'This applicant will be disconnected from the workflow. Existing progress is preserved.',
+      confirmText: 'Disconnect',
+    }))) return;
     try {
       await workflowApi.removeCandidateAssignment(id, candidateAssignment.id);
       setCandidateAssignment(null);
@@ -333,7 +339,12 @@ export function ApplicantProfile() {
   };
 
   const handleDelete = async () => {
-    if (!id || !confirm('Are you sure you want to delete this applicant?')) return;
+    if (!id) return;
+    if (!(await confirm({
+      title: 'Delete applicant?',
+      description: 'This applicant will be permanently removed.',
+      confirmText: 'Delete', tone: 'destructive',
+    }))) return;
     try {
       await applicantsApi.delete(id);
       toast.success('Applicant deleted successfully');

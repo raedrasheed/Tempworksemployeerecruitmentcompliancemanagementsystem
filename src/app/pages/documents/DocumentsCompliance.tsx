@@ -17,6 +17,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '../../components/ui/table';
 import { toast } from 'sonner';
+import { confirm } from '../../components/ui/ConfirmDialog';
 import { documentsApi, settingsApi } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
 
@@ -289,7 +290,11 @@ export function DocumentsCompliance() {
   };
 
   const handleDelete = async (doc: any) => {
-    if (!confirm(`Delete document "${doc.name}"? This cannot be undone.`)) return;
+    if (!(await confirm({
+      title: 'Delete document?',
+      description: `"${doc.name}" will be permanently removed. This cannot be undone.`,
+      confirmText: 'Delete', tone: 'destructive',
+    }))) return;
     try {
       await documentsApi.delete(doc.id);
       setDocuments(prev => prev.filter(d => d.id !== doc.id));

@@ -10,6 +10,7 @@ import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { toast } from 'sonner';
+import { confirm } from '../../components/ui/ConfirmDialog';
 import { employeesApi, documentsApi, settingsApi, employeeWorkflowApi, agenciesApi, workflowApi, getCurrentUser } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
 import { FinancialRecordsTab } from '../../components/finance/FinancialRecordsTab';
@@ -131,7 +132,12 @@ export function EmployeeProfile() {
   };
 
   const handleDisconnectWorkflow = async () => {
-    if (!id || !assignment || !confirm('Disconnect this employee from the workflow?')) return;
+    if (!id || !assignment) return;
+    if (!(await confirm({
+      title: 'Disconnect from workflow?',
+      description: 'This employee will be disconnected from the workflow. Existing progress is preserved.',
+      confirmText: 'Disconnect',
+    }))) return;
     try {
       await workflowApi.removeEmployeeAssignment(id, assignment.workflowId);
       setAssignment(null);
@@ -203,7 +209,11 @@ export function EmployeeProfile() {
   };
 
   const handleDelete = async () => {
-    if (!confirm(`Delete ${employee?.firstName} ${employee?.lastName}? This cannot be undone.`)) return;
+    if (!(await confirm({
+      title: 'Delete employee?',
+      description: `${employee?.firstName} ${employee?.lastName} will be permanently removed. This cannot be undone.`,
+      confirmText: 'Delete', tone: 'destructive',
+    }))) return;
     try {
       await employeesApi.delete(id!);
       toast.success('Employee deleted');

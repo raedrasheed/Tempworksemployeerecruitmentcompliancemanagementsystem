@@ -5,6 +5,7 @@ import {
   Trash2, AlertTriangle, Search, ChevronDown, Download,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { confirm } from '../../components/ui/ConfirmDialog';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
@@ -150,7 +151,11 @@ export function VehicleDetail() {
   }, []);
 
   const handleDelete = async () => {
-    if (!confirm('Delete this vehicle? This action cannot be undone easily.')) return;
+    if (!(await confirm({
+      title: 'Delete vehicle?',
+      description: 'This vehicle will be permanently removed. This action cannot be undone easily.',
+      confirmText: 'Delete', tone: 'destructive',
+    }))) return;
     try {
       await vehiclesApi.delete(id!);
       toast.success('Vehicle deleted');
@@ -176,7 +181,11 @@ export function VehicleDetail() {
   };
 
   const handleUnassign = async (assignmentId: string) => {
-    if (!confirm('End this driver assignment?')) return;
+    if (!(await confirm({
+      title: 'End driver assignment?',
+      description: 'The current driver assignment will be ended.',
+      confirmText: 'End assignment',
+    }))) return;
     try {
       await vehiclesApi.unassignDriver(id!, assignmentId);
       toast.success('Driver unassigned');
@@ -246,7 +255,11 @@ export function VehicleDetail() {
   };
 
   const handleDeleteDoc = async (docId: string) => {
-    if (!confirm('Delete this document?')) return;
+    if (!(await confirm({
+      title: 'Delete document?',
+      description: 'This document will be permanently removed.',
+      confirmText: 'Delete', tone: 'destructive',
+    }))) return;
     try {
       await vehiclesApi.deleteDocument(id!, docId);
       toast.success('Document deleted');
@@ -311,7 +324,11 @@ export function VehicleDetail() {
   };
 
   const handleDeleteMaintenance = async (recId: string) => {
-    if (!confirm('Delete this maintenance record?')) return;
+    if (!(await confirm({
+      title: 'Delete maintenance record?',
+      description: 'This maintenance record will be permanently removed.',
+      confirmText: 'Delete', tone: 'destructive',
+    }))) return;
     try {
       await vehiclesApi.deleteMaintenance(recId);
       toast.success('Record deleted');

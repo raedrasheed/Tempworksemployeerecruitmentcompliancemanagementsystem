@@ -5,6 +5,7 @@ import { getCurrentUser, getAccessToken } from '../../services/api';
 import { Link } from 'react-router';
 import { Search, Plus, Eye, Edit, Download, Trash2, RefreshCw, ArrowUp, ArrowDown, ArrowUpDown, X, Columns2, Check } from 'lucide-react';
 import { toast } from 'sonner';
+import { confirm } from '../../components/ui/ConfirmDialog';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -244,7 +245,11 @@ export function CandidatesList() {
 
   // ── Delete ─────────────────────────────────────────────────────────────────
   const handleDelete = async (applicant: any) => {
-    if (!confirm(`Delete "${applicant.firstName} ${applicant.lastName}"? This cannot be undone.`)) return;
+    if (!(await confirm({
+      title: 'Delete candidate?',
+      description: `"${applicant.firstName} ${applicant.lastName}" will be permanently removed.`,
+      confirmText: 'Delete', tone: 'destructive',
+    }))) return;
     try {
       await applicantsApi.delete(applicant.id);
       setCandidatesData(prev => prev.filter(a => a.id !== applicant.id));
@@ -380,7 +385,14 @@ export function CandidatesList() {
                 <Button variant="outline" size="sm" disabled={bulkActionInProgress} onClick={() => { const s = prompt('Enter new status (NEW / SCREENING / INTERVIEW / OFFER / ACCEPTED / REJECTED / WITHDRAWN / ONBOARDING)'); if (s) handleBulkAction('STATUS_CHANGE', s.toUpperCase()); }}>Change Status</Button>
               </>
             )}
-            <Button variant="outline" size="sm" className="text-red-600" disabled={bulkActionInProgress} onClick={() => { if (confirm(`Delete ${selected.size} candidate(s)?`)) handleBulkAction('DELETE'); }}>
+            <Button variant="outline" size="sm" className="text-red-600" disabled={bulkActionInProgress} onClick={async () => {
+              if (selected.size === 0) return;
+              if (await confirm({
+                title: 'Delete selected candidates?',
+                description: `${selected.size} candidate(s) will be permanently removed.`,
+                confirmText: 'Delete', tone: 'destructive',
+              })) handleBulkAction('DELETE');
+            }}>
               <Trash2 className="w-3 h-3 mr-1" />Delete Selected
             </Button>
             <Button variant="ghost" size="sm" onClick={() => setSelected(new Set())}>Clear</Button>

@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { usePermissions } from '../../hooks/usePermissions';
 
+import { confirm } from '../../components/ui/ConfirmDialog';
 interface WorkflowStage {
   id: string;
   name: string;
@@ -144,7 +145,11 @@ export function WorkflowManagement() {
   };
 
   const handleDeleteStage = (stageId: string) => {
-    if (confirm('Are you sure you want to delete this stage?')) {
+    if (await confirm({
+      title: 'Delete stage?',
+      description: 'This stage will be permanently removed.',
+      confirmText: 'Delete', tone: 'destructive',
+    })) {
       setStages(stages.filter(s => s.id !== stageId));
     }
   };

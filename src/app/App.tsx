@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { RouterProvider } from 'react-router';
 import { router } from './routes';
 import { Toaster } from './components/ui/sonner';
+import { ConfirmDialogHost } from './components/ui/ConfirmDialog';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { useBranding } from './hooks/useBranding';
@@ -28,6 +29,7 @@ export default function App() {
         <FaviconSync />
         <RouterProvider router={router} />
         <Toaster />
+        <ConfirmDialogHost />
       </AuthProvider>
     </ThemeProvider>
   );

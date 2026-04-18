@@ -207,7 +207,19 @@ export class UsersService {
 
     if (callerRole === 'Agency Manager') {
       if (!callerAgencyId) throw new ForbiddenException('Agency Manager has no agency assigned');
+      // Force the new user into the caller's agency — payload-supplied
+      // agencyId is ignored so a manager can't seed another tenant.
       dto.agencyId = callerAgencyId;
+
+      // Force the role to the seeded "Agency User" role regardless of
+      // what the client sent. Covers the case where the UI would have
+      // posted a different roleId either deliberately or due to a stale
+      // state.
+      const agencyUserRole = await this.prisma.role.findFirst({ where: { name: 'Agency User' } });
+      if (!agencyUserRole) {
+        throw new ForbiddenException('"Agency User" role is not configured. Contact a System Administrator.');
+      }
+      dto.roleId = agencyUserRole.id;
 
       // Enforce max users per agency limit using per-agency setting
       const agency = await this.prisma.agency.findUnique({ where: { id: callerAgencyId }, select: { maxUsersPerAgency: true } });

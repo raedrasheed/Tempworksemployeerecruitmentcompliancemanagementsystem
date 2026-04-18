@@ -90,8 +90,18 @@ export function AddUser() {
 
     Promise.all(fetches)
       .then(([roleList, agencyResult, usersResult, settingsResult]) => {
-        setRoles(roleList ?? []);
+        const all = Array.isArray(roleList) ? roleList : [];
+        // Agency Manager can only create "Agency User" under their
+        // own agency; Tempworks admins see every role as before.
+        const visibleRoles = isAgencyManager
+          ? all.filter((r: any) => r.name === 'Agency User')
+          : all;
+        setRoles(visibleRoles);
         if (isAgencyManager) {
+          const agencyUserRole = visibleRoles[0];
+          if (agencyUserRole) {
+            setForm(prev => prev.roleId ? prev : { ...prev, roleId: agencyUserRole.id });
+          }
           setMyAgency(agencyResult);
           if (usersResult != null) setAgencyUserCount((usersResult as any)?.total ?? 0);
           if (settingsResult != null) {
@@ -285,20 +295,30 @@ export function AddUser() {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label>Role *</Label>
-                <Select value={form.roleId} onValueChange={val => handleSelect('roleId', val)} required>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {roles.length > 0 ? (
-                      roles.map((role: any) => (
-                        <SelectItem key={role.id} value={role.id}>{role.name}</SelectItem>
-                      ))
-                    ) : (
-                      <SelectItem value="placeholder" disabled>Loading roles...</SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
+                {isAgencyManager ? (
+                  // Agency Manager can only create Agency User — render
+                  // the role read-only so they can't pick anything else.
+                  <Input
+                    value={roles[0]?.name ?? 'Loading...'}
+                    disabled
+                    className="bg-muted text-muted-foreground cursor-not-allowed"
+                  />
+                ) : (
+                  <Select value={form.roleId} onValueChange={val => handleSelect('roleId', val)} required>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {roles.length > 0 ? (
+                        roles.map((role: any) => (
+                          <SelectItem key={role.id} value={role.id}>{role.name}</SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="placeholder" disabled>Loading roles...</SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
               <div className="space-y-2">
                 <Label>Agency *</Label>

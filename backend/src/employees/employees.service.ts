@@ -29,11 +29,16 @@ export class EmployeesService {
 
     const where: any = { deletedAt: null };
 
-    // External tenants are scoped to their own agency. Agency-side
-    // roles additionally only see employees explicitly granted via
-    // EmployeeAgencyAccess rows; other external roles (HR Manager /
-    // Recruiter / Compliance Officer inside a tenant agency) see
-    // every own-agency employee directly.
+    // External tenants:
+    // - Agency-side roles (Agency Manager / Agency User) must NOT see
+    //   employees just because the employee's origin agency matches.
+    //   Access is exclusively driven by EmployeeAgencyAccess grants
+    //   created by Tempworks admins — a candidate promoted to employee
+    //   silently disappears from the agency's view unless admin
+    //   explicitly re-grants access.
+    // - Tenant HR Manager / Recruiter / Compliance Officer see every
+    //   employee whose agencyId matches their own tenancy (no per-
+    //   employee grant needed).
     if (this.isExternalActor(actor)) {
       const isAgencySideRole = actor?.role === 'Agency User' || actor?.role === 'Agency Manager';
       if (isAgencySideRole) {
@@ -46,8 +51,9 @@ export class EmployeesService {
           return PaginatedResponse.create([], 0, page, limit);
         }
         where.id = { in: allowedIds };
+      } else {
+        where.agencyId = actor!.agencyId!;
       }
-      where.agencyId = actor!.agencyId!;
     }
     if (search) {
       where.OR = [
@@ -98,14 +104,19 @@ export class EmployeesService {
     if (!employee) throw new NotFoundException('Employee not found');
 
     if (this.isExternalActor(actor)) {
-      if (employee.agencyId !== actor!.agencyId) throw new ForbiddenException('Access denied');
       const isAgencySideRole = actor?.role === 'Agency User' || actor?.role === 'Agency Manager';
       if (isAgencySideRole) {
-        // Agency-side roles additionally need a per-employee grant.
+        // Agency-side access is driven exclusively by the per-employee
+        // grant — employee.agencyId (origin agency) is intentionally
+        // ignored so a converted candidate is invisible to the source
+        // agency until a Tempworks admin re-grants access.
         const grant = await this.prisma.employeeAgencyAccess.findUnique({
           where: { employeeId_agencyId: { employeeId: id, agencyId: actor!.agencyId! } },
         });
         if (!grant) throw new ForbiddenException('Access to this employee has not been granted to your agency');
+      } else if (employee.agencyId !== actor!.agencyId) {
+        // Tenant non-agency-side roles are scoped to own-agency employees.
+        throw new ForbiddenException('Access denied');
       }
     }
 
@@ -196,8 +207,15 @@ export class EmployeesService {
     return `${prefix}${String(serial).padStart(5, '0')}`;
   }
 
-  async update(id: string, dto: Partial<CreateEmployeeDto>, _actorId?: string) {
-    await this.findOne(id);
+  async update(
+    id: string,
+    dto: Partial<CreateEmployeeDto>,
+    _actorId?: string,
+    actor?: { role?: string; agencyId?: string; agencyIsSystem?: boolean },
+  ) {
+    // findOne enforces the tenancy + grant rules; any caller who can't
+    // read the employee also can't update it.
+    await this.findOne(id, actor);
     const data: any = { ...dto };
     if (dto.dateOfBirth) data.dateOfBirth = new Date(dto.dateOfBirth);
     return this.prisma.employee.update({ where: { id }, data, include: { agency: { select: { id: true, name: true } } } });
@@ -232,14 +250,14 @@ export class EmployeesService {
     return profile ?? null;
   }
 
-  async remove(id: string, _actorId?: string) {
-    await this.findOne(id);
+  async remove(id: string, _actorId?: string, actor?: { role?: string; agencyId?: string; agencyIsSystem?: boolean }) {
+    await this.findOne(id, actor);
     await this.prisma.employee.update({ where: { id }, data: { deletedAt: new Date() } });
     return { message: 'Employee deleted successfully' };
   }
 
-  async updateStatus(id: string, status: string, _actorId?: string) {
-    await this.findOne(id);
+  async updateStatus(id: string, status: string, _actorId?: string, actor?: { role?: string; agencyId?: string; agencyIsSystem?: boolean }) {
+    await this.findOne(id, actor);
     return this.prisma.employee.update({ where: { id }, data: { status: status as any } });
   }
 

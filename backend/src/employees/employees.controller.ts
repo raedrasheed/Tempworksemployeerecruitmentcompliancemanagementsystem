@@ -121,8 +121,8 @@ export class EmployeesController {
   @Roles(...WRITE_ROLES)
   @RequirePermission('employees:update')
   @ApiOperation({ summary: 'Update employee' })
-  update(@Param('id') id: string, @Body() dto: Partial<CreateEmployeeDto>) {
-    return this.employeesService.update(id, dto);
+  update(@Param('id') id: string, @Body() dto: Partial<CreateEmployeeDto>, @CurrentUser() user: any) {
+    return this.employeesService.update(id, dto, user?.id, { role: user?.role, agencyId: user?.agencyId, agencyIsSystem: user?.agencyIsSystem });
   }
 
   @Patch(':id/photo')
@@ -147,13 +147,15 @@ export class EmployeesController {
   @Patch(':id/status')
   @Roles(...WRITE_ROLES)
   @ApiOperation({ summary: 'Update employee status' })
-  updateStatus(@Param('id') id: string, @Body('status') status: string) {
-    return this.employeesService.updateStatus(id, status);
+  updateStatus(@Param('id') id: string, @Body('status') status: string, @CurrentUser() user: any) {
+    return this.employeesService.updateStatus(id, status, user?.id, { role: user?.role, agencyId: user?.agencyId, agencyIsSystem: user?.agencyIsSystem });
   }
 
   @Delete(':id')
   @Roles('System Admin')
   @RequirePermission('employees:delete')
   @ApiOperation({ summary: 'Delete employee (soft delete)' })
-  remove(@Param('id') id: string) { return this.employeesService.remove(id); }
+  remove(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.employeesService.remove(id, user?.id, { role: user?.role, agencyId: user?.agencyId, agencyIsSystem: user?.agencyIsSystem });
+  }
 }

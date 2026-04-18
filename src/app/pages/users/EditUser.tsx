@@ -95,6 +95,9 @@ export function EditUser() {
     currentUser?.role === 'HR Manager' ||
     currentUser?.role?.toLowerCase().includes('admin') ||
     currentUser?.role?.toLowerCase().includes('hr');
+  // Flipping the per-user manager override flags is a tenancy-model
+  // control — System Admin only.
+  const isSystemAdmin = currentUser?.role === 'System Admin';
 
   const [roles, setRoles] = useState<any[]>([]);
   const [agencies, setAgencies] = useState<any[]>([]);
@@ -109,6 +112,14 @@ export function EditUser() {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
+
+  // Approval + per-user manager override state for the "Agency
+  // Manager Permissions" card rendered below the form for
+  // System Admin viewing an approved agency user.
+  const [approvalStatus, setApprovalStatus] = useState<string>('');
+  const [allowManagerEdit, setAllowManagerEdit] = useState(false);
+  const [allowManagerDelete, setAllowManagerDelete] = useState(false);
+  const [savingOverride, setSavingOverride] = useState(false);
 
   const [form, setForm] = useState({
     // Identity
@@ -174,9 +185,27 @@ export function EditUser() {
       });
       setRoles(roleList ?? []);
       setAgencies(agencyPage?.data ?? []);
+      setApprovalStatus(user.approvalStatus ?? '');
+      setAllowManagerEdit(Boolean(user.allowManagerEdit));
+      setAllowManagerDelete(Boolean(user.allowManagerDelete));
     }).catch(() => setNotFound(true))
       .finally(() => setLoading(false));
   }, [id]);
+
+  const handleManagerOverride = async (patch: { allowManagerEdit?: boolean; allowManagerDelete?: boolean }) => {
+    if (!id) return;
+    setSavingOverride(true);
+    try {
+      await usersApi.setManagerOverride(id, patch);
+      if (typeof patch.allowManagerEdit === 'boolean') setAllowManagerEdit(patch.allowManagerEdit);
+      if (typeof patch.allowManagerDelete === 'boolean') setAllowManagerDelete(patch.allowManagerDelete);
+      toast.success('Agency Manager permissions updated');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to update permissions');
+    } finally {
+      setSavingOverride(false);
+    }
+  };
 
   if (loading) return <div className="p-8 text-muted-foreground">Loading...</div>;
   if (notFound) return <div className="p-8">User not found</div>;
@@ -619,6 +648,49 @@ export function EditUser() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Agency Manager Permissions — System Admin only, only on
+              an approved agency user. Gives the admin explicit
+              toggles to grant or revoke edit / delete capability to
+              the owning Agency Manager for this specific user. */}
+          {isSystemAdmin && form.agencyId && approvalStatus === 'APPROVED' && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Agency Manager Permissions</CardTitle>
+                <p className="text-xs text-muted-foreground mt-1">
+                  This agency user is approved — the owning Agency Manager is locked out of Edit and Delete by default. Flip a switch to grant specific access to this user only.
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="mt-1 h-4 w-4 rounded border-input"
+                    checked={allowManagerEdit}
+                    disabled={savingOverride}
+                    onChange={e => handleManagerOverride({ allowManagerEdit: e.target.checked })}
+                  />
+                  <div>
+                    <div className="font-medium text-sm text-[#0F172A]">Allow Agency Manager to edit this user</div>
+                    <p className="text-xs text-muted-foreground">When on, the Agency Manager can update profile fields for this approved user.</p>
+                  </div>
+                </label>
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="mt-1 h-4 w-4 rounded border-input"
+                    checked={allowManagerDelete}
+                    disabled={savingOverride}
+                    onChange={e => handleManagerOverride({ allowManagerDelete: e.target.checked })}
+                  />
+                  <div>
+                    <div className="font-medium text-sm text-[#0F172A]">Allow Agency Manager to delete this user</div>
+                    <p className="text-xs text-muted-foreground">When on, the Agency Manager can soft-delete this approved user.</p>
+                  </div>
+                </label>
+              </CardContent>
+            </Card>
+          )}
 
           <div className="flex gap-3">
             <Button type="submit" className="flex-1" disabled={submitting}>

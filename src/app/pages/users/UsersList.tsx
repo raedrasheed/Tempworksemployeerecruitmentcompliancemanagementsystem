@@ -12,7 +12,6 @@ import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { usersApi, getCurrentUser, BACKEND_URL } from '../../services/api';
-import { cn } from '../../components/ui/utils';
 import { toast } from 'sonner';
 import { confirm } from '../../components/ui/ConfirmDialog';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -77,10 +76,6 @@ export function UsersList() {
   const { canCreate, canEdit, canDelete } = usePermissions();
   const currentUser = getCurrentUser();
   const isTempworksAdmin = currentUser?.role === 'System Admin' || currentUser?.role === 'HR Manager';
-  // Flipping the "Agency Manager may edit/delete this user" override
-  // is a System Admin only control — HR Managers can approve agency
-  // users but don't get to hand back edit/delete powers.
-  const isSystemAdmin = currentUser?.role === 'System Admin';
   const isAgencyManager = currentUser?.role === 'Agency Manager';
 
   // Agency Manager can touch an agency user only while they're
@@ -247,9 +242,11 @@ export function UsersList() {
     } catch (err: any) { toast.error(err?.message || 'Failed to delete user'); }
   };
 
-  // ── Tempworks-admin approval + per-user manager override ──────────────────
+  // ── Tempworks-admin approval ──────────────────────────────────────────────
+  // Per-user manager override (allowManagerEdit/Delete) lives on the
+  // Edit User page for a clearer UI; this list only surfaces the
+  // Approve action on pending rows.
   const [approveBusy, setApproveBusy] = useState<string | null>(null);
-  const [overrideBusy, setOverrideBusy] = useState<string | null>(null);
 
   const handleApprove = async (user: any) => {
     setApproveBusy(user.id);
@@ -261,24 +258,6 @@ export function UsersList() {
       toast.error(err?.message || 'Failed to approve user');
     } finally {
       setApproveBusy(null);
-    }
-  };
-
-  const handleSetOverride = async (
-    user: any,
-    patch: { allowManagerEdit?: boolean; allowManagerDelete?: boolean },
-  ) => {
-    setOverrideBusy(user.id);
-    try {
-      await usersApi.setManagerOverride(user.id, patch);
-      const label = 'allowManagerEdit' in patch ? 'edit' : 'delete';
-      const state = (patch.allowManagerEdit === true || patch.allowManagerDelete === true) ? 'enabled' : 'disabled';
-      toast.success(`Manager ${label} ${state}`);
-      reload();
-    } catch (err: any) {
-      toast.error(err?.message || 'Failed to update override');
-    } finally {
-      setOverrideBusy(null);
     }
   };
 
@@ -565,39 +544,7 @@ export function UsersList() {
                             {approveBusy === user.id ? '…' : 'Approve'}
                           </Button>
                         )}
-                        {/* Per-user manager override toggles — System Admin only, only on APPROVED agency users */}
-                        {isSystemAdmin && user.approvalStatus === 'APPROVED' && user.agencyId && (
-                          <>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleSetOverride(user, { allowManagerEdit: !user.allowManagerEdit })}
-                              disabled={overrideBusy === user.id}
-                              className={cn(
-                                'text-xs',
-                                user.allowManagerEdit ? 'text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50'
-                                                      : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
-                              )}
-                              title={user.allowManagerEdit ? 'Revoke Agency Manager edit permission' : 'Allow Agency Manager to edit this user'}
-                            >
-                              {user.allowManagerEdit ? 'Mgr ✎ on' : 'Mgr ✎ off'}
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleSetOverride(user, { allowManagerDelete: !user.allowManagerDelete })}
-                              disabled={overrideBusy === user.id}
-                              className={cn(
-                                'text-xs',
-                                user.allowManagerDelete ? 'text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50'
-                                                        : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
-                              )}
-                              title={user.allowManagerDelete ? 'Revoke Agency Manager delete permission' : 'Allow Agency Manager to delete this user'}
-                            >
-                              {user.allowManagerDelete ? 'Mgr ✖ on' : 'Mgr ✖ off'}
-                            </Button>
-                          </>
-                        )}
+                        {/* Per-user manager override toggles live on the Edit User page — System Admin only. */}
                         {mayEditRow(user) && (
                           <Button variant="ghost" size="sm" asChild>
                             <Link to={`/dashboard/users/${user.id}/edit`}><Edit className="w-4 h-4 mr-1" />Edit</Link>

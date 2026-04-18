@@ -1911,9 +1911,7 @@ function Step6Education({ d, u, settings, uploadedFiles, onFilesChange, fieldErr
             <span className="text-sm font-semibold">Entry {i + 1}</span>
             <button
               type="button"
-              onClick={() => {
-                if (confirm('Remove this education entry?')) removeEntry(entry.id);
-              }}
+              onClick={() => removeEntry(entry.id)}
               title="Remove entry"
               aria-label="Remove entry"
               className="p-1.5 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50"

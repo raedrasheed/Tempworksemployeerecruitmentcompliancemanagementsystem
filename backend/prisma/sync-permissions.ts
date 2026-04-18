@@ -7,23 +7,19 @@
  *
  * Run once after deploying changes that introduce new permissions:
  *   npm run db:sync-permissions
+ *
+ * Uses pg.Pool directly rather than Prisma Client so it works under Prisma
+ * 7's new "client" engine type (which requires a driver adapter or
+ * Accelerate URL). This script only needs straightforward INSERT ... ON
+ * CONFLICT statements on three tables, so raw SQL is the simplest fix.
  */
-import { PrismaClient } from '@prisma/client';
+import { Pool } from 'pg';
+import { randomUUID } from 'crypto';
+import { join } from 'path';
 import * as dotenv from 'dotenv';
+import { resolvePoolSsl } from './pg-ssl';
 
-dotenv.config();
-
-if (process.env.DATABASE_URL) {
-  try {
-    const u = new URL(process.env.DATABASE_URL);
-    u.searchParams.set('sslmode', 'disable');
-    process.env.DATABASE_URL = u.toString();
-  } catch {}
-}
-
-// Prisma 7.x requires a non-empty options object; pass a log level so
-// construction succeeds without forcing every caller to supply datasource overrides.
-const prisma = new PrismaClient({ log: ['warn', 'error'] });
+dotenv.config({ path: join(__dirname, '../.env') });
 
 const modules = [
   'dashboard',
@@ -150,59 +146,83 @@ const rolePermissionSets: Record<string, string[]> = {
 };
 
 async function main() {
-  const permissionData: { name: string; module: string; action: string }[] = [];
-  for (const mod of modules) {
-    for (const action of actions) {
-      permissionData.push({ name: `${mod}:${action}`, module: mod, action });
+  const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: resolvePoolSsl(process.env.DATABASE_URL),
+  });
+
+  try {
+    const permissionData: { name: string; module: string; action: string }[] = [];
+    for (const mod of modules) {
+      for (const action of actions) {
+        permissionData.push({ name: `${mod}:${action}`, module: mod, action });
+      }
     }
-  }
-  permissionData.push(...specialPermissions);
+    permissionData.push(...specialPermissions);
 
-  for (const p of permissionData) {
-    await prisma.permission.upsert({
-      where: { name: p.name },
-      update: { module: p.module, action: p.action },
-      create: p,
-    });
-  }
-  console.log(`Upserted ${permissionData.length} permissions`);
-
-  const allPermissions = await prisma.permission.findMany();
-  const pMap = new Map(allPermissions.map(p => [p.name, p.id]));
-
-  const resolve = (names: string[]) =>
-    names.filter(n => pMap.has(n)).map(n => pMap.get(n)!);
-
-  // System Admin — always all permissions.
-  const adminNames = allPermissions.map(p => p.name);
-
-  const rolesToSync: Record<string, string[]> = {
-    'System Admin': adminNames,
-    ...rolePermissionSets,
-    // Read Only picks up every `:read` permission, including new modules.
-    'Read Only': allPermissions.filter(p => p.action === 'read').map(p => p.name),
-  };
-
-  for (const [roleName, names] of Object.entries(rolesToSync)) {
-    const role = await prisma.role.findFirst({ where: { name: roleName } });
-    if (!role) {
-      console.warn(`  · Role "${roleName}" not found — skipping`);
-      continue;
+    // Upsert permission rows. Prisma-generated `permissions.id` is a text
+    // column populated by Prisma with a uuid; when inserting directly we
+    // supply our own uuid and only on a fresh insert — conflicts update the
+    // module/action but leave the id alone.
+    for (const p of permissionData) {
+      await pool.query(
+        `INSERT INTO permissions (id, name, module, action, "createdAt")
+         VALUES ($1, $2, $3, $4, NOW())
+         ON CONFLICT (name) DO UPDATE SET module = EXCLUDED.module, action = EXCLUDED.action`,
+        [randomUUID(), p.name, p.module, p.action],
+      );
     }
-    const permissionIds = resolve(names);
-    await prisma.rolePermission.deleteMany({ where: { roleId: role.id } });
-    if (permissionIds.length) {
-      await prisma.rolePermission.createMany({
-        data: permissionIds.map(permissionId => ({ roleId: role.id, permissionId })),
-        skipDuplicates: true,
-      });
-    }
-    console.log(`  · ${roleName}: ${permissionIds.length} permissions`);
-  }
+    console.log(`Upserted ${permissionData.length} permissions`);
 
-  console.log('Permissions sync complete.');
+    const { rows: allPermissions } = await pool.query<{ id: string; name: string; action: string }>(
+      `SELECT id, name, action FROM permissions`,
+    );
+    const pMap = new Map(allPermissions.map(p => [p.name, p.id]));
+    const resolve = (names: string[]) =>
+      names.filter(n => pMap.has(n)).map(n => pMap.get(n)!);
+
+    // System Admin — always all permissions.
+    const adminNames = allPermissions.map(p => p.name);
+
+    const rolesToSync: Record<string, string[]> = {
+      'System Admin': adminNames,
+      ...rolePermissionSets,
+      // Read Only picks up every `:read` permission, including new modules.
+      'Read Only': allPermissions.filter(p => p.action === 'read').map(p => p.name),
+    };
+
+    for (const [roleName, names] of Object.entries(rolesToSync)) {
+      const { rows: roleRows } = await pool.query<{ id: string }>(
+        `SELECT id FROM roles WHERE name = $1 LIMIT 1`,
+        [roleName],
+      );
+      if (roleRows.length === 0) {
+        console.warn(`  · Role "${roleName}" not found — skipping`);
+        continue;
+      }
+      const roleId = roleRows[0].id;
+      const permissionIds = resolve(names);
+
+      await pool.query(`DELETE FROM role_permissions WHERE "roleId" = $1`, [roleId]);
+      if (permissionIds.length) {
+        // Bulk insert via unnest so we can send all rows in one round-trip.
+        await pool.query(
+          `INSERT INTO role_permissions ("roleId", "permissionId")
+           SELECT $1, pid FROM UNNEST($2::text[]) AS pid
+           ON CONFLICT DO NOTHING`,
+          [roleId, permissionIds],
+        );
+      }
+      console.log(`  · ${roleName}: ${permissionIds.length} permissions`);
+    }
+
+    console.log('Permissions sync complete.');
+  } finally {
+    await pool.end();
+  }
 }
 
-main()
-  .catch(err => { console.error('Sync failed:', err); process.exit(1); })
-  .finally(async () => { await prisma.$disconnect(); });
+main().catch(err => {
+  console.error('Sync failed:', err);
+  process.exit(1);
+});

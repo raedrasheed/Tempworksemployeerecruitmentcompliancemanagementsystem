@@ -8,7 +8,15 @@ import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { toast } from 'sonner';
-import { agenciesApi } from '../../services/api';
+import { agenciesApi, getCurrentUser } from '../../services/api';
+import { FinancialRecordsTab } from '../../components/finance/FinancialRecordsTab';
+
+// Roles that can SEE the internal agency financial records. Agency users
+// (external) are intentionally excluded from every list so the tab does
+// not render at all for them.
+const FINANCE_VIEW_ROLES   = ['System Admin', 'HR Manager', 'Finance', 'Recruiter'];
+const FINANCE_WRITE_ROLES  = ['System Admin', 'HR Manager', 'Finance'];
+const FINANCE_STATUS_ROLES = ['System Admin', 'Finance'];
 
 export function AgencyProfile() {
   const { id } = useParams();
@@ -19,6 +27,15 @@ export function AgencyProfile() {
   const [notFound, setNotFound] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
   const [settings, setSettings] = useState({ maxUsers: '10' });
+
+  // Financial records are for Tempworks-internal staff only. Agency users
+  // never see the tab, and the backend enforces role checks independently
+  // so hiding is defence-in-depth not the primary gate.
+  const currentUser = getCurrentUser();
+  const userRole = currentUser?.role ?? '';
+  const canViewFinance   = FINANCE_VIEW_ROLES.includes(userRole);
+  const canWriteFinance  = FINANCE_WRITE_ROLES.includes(userRole);
+  const canStatusFinance = FINANCE_STATUS_ROLES.includes(userRole);
 
   useEffect(() => {
     Promise.all([
@@ -171,6 +188,7 @@ export function AgencyProfile() {
         <TabsList>
           <TabsTrigger value="employees">Employees</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
+          {canViewFinance && <TabsTrigger value="finance">Financial Records</TabsTrigger>}
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
 
@@ -243,6 +261,17 @@ export function AgencyProfile() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {canViewFinance && (
+          <TabsContent value="finance">
+            <FinancialRecordsTab
+              entityType="AGENCY"
+              entityId={id!}
+              canWrite={canWriteFinance}
+              canChangeStatus={canStatusFinance}
+            />
+          </TabsContent>
+        )}
 
         <TabsContent value="settings">
           <Card>

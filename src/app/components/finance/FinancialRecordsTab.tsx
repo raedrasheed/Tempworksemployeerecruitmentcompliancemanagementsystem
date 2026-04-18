@@ -122,7 +122,7 @@ function fmtDate(date: string) {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 interface Props {
-  entityType: 'APPLICANT' | 'EMPLOYEE';
+  entityType: 'APPLICANT' | 'EMPLOYEE' | 'AGENCY';
   entityId: string;
   canWrite: boolean;
   canChangeStatus: boolean;

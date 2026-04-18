@@ -7,8 +7,8 @@ import { Type } from 'class-transformer';
 import { TRANSACTION_TYPES, PAYMENT_METHODS } from '../constants';
 
 export class CreateFinancialRecordDto {
-  @ApiProperty({ description: "'APPLICANT' or 'EMPLOYEE'" })
-  @IsString() @IsIn(['APPLICANT', 'EMPLOYEE'])
+  @ApiProperty({ description: "'APPLICANT', 'EMPLOYEE' or 'AGENCY'" })
+  @IsString() @IsIn(['APPLICANT', 'EMPLOYEE', 'AGENCY'])
   entityType: string;
 
   @ApiProperty()

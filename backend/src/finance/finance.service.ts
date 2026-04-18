@@ -229,8 +229,8 @@ export class FinanceService {
   }
 
   async create(dto: CreateFinancialRecordDto, actorId?: string) {
-    if (!['APPLICANT', 'EMPLOYEE'].includes(dto.entityType)) {
-      throw new BadRequestException('entityType must be APPLICANT or EMPLOYEE');
+    if (!['APPLICANT', 'EMPLOYEE', 'AGENCY'].includes(dto.entityType)) {
+      throw new BadRequestException('entityType must be APPLICANT, EMPLOYEE or AGENCY');
     }
 
     // Verify entity exists and resolve stable applicantId + stageAtCreation
@@ -585,8 +585,11 @@ export class FinanceService {
     const employeeIds  = [...new Set(
       records.filter(r => r.entityType === 'EMPLOYEE').map(r => r.entityId),
     )];
+    const agencyIds    = [...new Set(
+      records.filter(r => r.entityType === 'AGENCY').map(r => r.entityId),
+    )];
 
-    const [applicants, employees] = await Promise.all([
+    const [applicants, employees, agencies] = await Promise.all([
       applicantIds.length
         // Include soft-deleted: after conversion the applicant is soft-deleted
         // but the name must still resolve for historical records
@@ -601,17 +604,25 @@ export class FinanceService {
             select: { id: true, firstName: true, lastName: true },
           })
         : [],
+      agencyIds.length
+        ? this.prisma.agency.findMany({
+            where: { id: { in: agencyIds } },
+            select: { id: true, name: true },
+          })
+        : [],
     ]);
 
     const applicantMap = new Map<string, string>(applicants.map((a: any) => [a.id, `${a.firstName} ${a.lastName}`] as [string, string]));
     const employeeMap  = new Map<string, string>(employees.map((e: any)  => [e.id, `${e.firstName} ${e.lastName}`] as [string, string]));
+    const agencyMap    = new Map<string, string>(agencies.map((g: any)   => [g.id, g.name] as [string, string]));
 
-    return records.map(r => ({
-      ...r,
-      entityName: r.entityType === 'APPLICANT'
-        ? (applicantMap.get(r.entityId) ?? 'Unknown Applicant')
-        : (employeeMap.get(r.entityId)  ?? 'Unknown Employee'),
-    }));
+    return records.map(r => {
+      let entityName = 'Unknown';
+      if (r.entityType === 'APPLICANT') entityName = applicantMap.get(r.entityId) ?? 'Unknown Applicant';
+      else if (r.entityType === 'EMPLOYEE') entityName = employeeMap.get(r.entityId) ?? 'Unknown Employee';
+      else if (r.entityType === 'AGENCY') entityName = agencyMap.get(r.entityId) ?? 'Unknown Agency';
+      return { ...r, entityName };
+    });
   }
 
   /**
@@ -658,6 +669,17 @@ export class FinanceService {
       };
     }
 
+    if (entityType === 'AGENCY') {
+      // Agencies are not persons — no applicantId, no lifecycle stage.
+      // Verify the agency exists so we don't orphan records on bad IDs.
+      const ag = await this.prisma.agency.findUnique({
+        where: { id: entityId },
+        select: { id: true, deletedAt: true },
+      });
+      if (!ag || ag.deletedAt !== null) throw new NotFoundException(`Agency ${entityId} not found`);
+      return { applicantId: null, stageAtCreation: 'AGENCY' };
+    }
+
     throw new BadRequestException('Invalid entityType');
   }
 
@@ -673,6 +695,10 @@ export class FinanceService {
       if (entityType === 'EMPLOYEE') {
         const e = await this.prisma.employee.findUnique({ where: { id: entityId }, select: { firstName: true, lastName: true } });
         return e ? `${e.firstName} ${e.lastName}` : 'Unknown';
+      }
+      if (entityType === 'AGENCY') {
+        const ag = await this.prisma.agency.findUnique({ where: { id: entityId }, select: { name: true } });
+        return ag?.name ?? 'Unknown Agency';
       }
     } catch { /* ignore */ }
     return 'Unknown';

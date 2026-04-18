@@ -37,20 +37,20 @@ type SortField = 'firstName' | 'email' | 'nationality' | 'jobType' | 'agency' | 
 type SortOrder = 'asc' | 'desc';
 
 // ── Column visibility ────────────────────────────────────────────────────────
-type ColKey = 'contact' | 'nationality' | 'jobType' | 'agency' | 'tier' | 'applied' | 'status';
+type ColKey = 'contact' | 'nationality' | 'appliedPosition' | 'agency' | 'tier' | 'applied' | 'status';
 
 const ALL_COLUMNS: { key: ColKey; label: string }[] = [
-  { key: 'contact',     label: 'Contact' },
-  { key: 'nationality', label: 'Nationality' },
-  { key: 'jobType',     label: 'Job Category' },
-  { key: 'agency',      label: 'Agency' },
-  { key: 'tier',        label: 'Tier' },
-  { key: 'applied',     label: 'Applied' },
-  { key: 'status',      label: 'Status' },
+  { key: 'contact',         label: 'Contact' },
+  { key: 'nationality',     label: 'Nationality' },
+  { key: 'appliedPosition', label: 'Applied Position' },
+  { key: 'agency',          label: 'Agency' },
+  { key: 'tier',            label: 'Tier' },
+  { key: 'applied',         label: 'Applied' },
+  { key: 'status',          label: 'Status' },
 ];
 
 const DEFAULT_VISIBLE: Record<ColKey, boolean> = {
-  contact: true, nationality: true, jobType: true, agency: true,
+  contact: true, nationality: true, appliedPosition: true, agency: true,
   tier: true, applied: true, status: true,
 };
 
@@ -462,7 +462,7 @@ export function ApplicantsList() {
                   <SortableHead label="Applicant"    field="firstName"   sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />
                   {col('contact')     && <SortableHead label="Contact"      field="email"       sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
                   {col('nationality') && <SortableHead label="Nationality"  field="nationality" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
-                  {col('jobType')     && <SortableHead label="Job Category" field="jobType"     sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  {col('appliedPosition') && <TableHead>Applied Position</TableHead>}
                   {col('agency')      && <SortableHead label="Agency"       field="agency"      sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
                   {col('tier') && !isAgencyUser && <SortableHead label="Tier" field="tier" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
                   {col('applied')     && <SortableHead label="Applied"      field="createdAt"   sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
@@ -514,11 +514,11 @@ export function ApplicantsList() {
                       </TableCell>
                     )}
                     {col('nationality') && <TableCell className="text-sm">{applicant.nationality}</TableCell>}
-                    {col('jobType') && (
+                    {col('appliedPosition') && (
                       <TableCell>
-                        <span className="text-sm">
-                          {typeof applicant.jobType === 'object' && applicant.jobType !== null ? applicant.jobType.name : applicant.jobType ?? '—'}
-                        </span>
+                        {applicant.jobAd?.title
+                          ? <span className="text-sm">{applicant.jobAd.title}</span>
+                          : <Badge variant="outline" className="text-[10px] font-semibold tracking-wide">GENERAL</Badge>}
                       </TableCell>
                     )}
                     {col('agency') && (

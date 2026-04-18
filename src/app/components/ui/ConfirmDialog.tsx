@@ -16,7 +16,7 @@
  *  The `confirm` name intentionally shadows the browser global so the
  *  only diff at each call site is adding `await` and passing an object.
  */
-import { useEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,31 +39,39 @@ export type ConfirmOptions = {
 
 type PendingState = ConfirmOptions & { resolve: (value: boolean) => void };
 
-let setPendingRef: ((p: PendingState | null) => void) | null = null;
-let currentPending: PendingState | null = null;
+type Store = {
+  setPending: ((p: PendingState | null) => void) | null;
+  current: PendingState | null;
+};
+
+// Share state across module instances (Vite HMR can produce duplicates).
+const store: Store = (() => {
+  const globalKey = '__confirmDialogStore_v1__';
+  const host: any =
+    typeof window !== 'undefined' ? window :
+    typeof globalThis !== 'undefined' ? globalThis : {};
+  if (!host[globalKey]) host[globalKey] = { setPending: null, current: null };
+  return host[globalKey] as Store;
+})();
 
 /** Imperative confirmation prompt. Returns true if the user confirms,
  *  false if they cancel, close the dialog, or press Escape. */
 export function confirm(options: ConfirmOptions = {}): Promise<boolean> {
-  if (!setPendingRef) {
-    // Host not mounted (yet). Fail closed — never silently delete.
-    // This also covers unit tests that render a single page without App.
+  if (!store.setPending) {
     if (typeof window !== 'undefined' && window.console) {
       window.console.warn('<ConfirmDialogHost/> is not mounted; confirm() resolved to false.');
     }
     return Promise.resolve(false);
   }
-  // If there's already a pending confirmation, auto-cancel it so the
-  // new one takes its place. Promise-leaking is the main failure mode
-  // to avoid here.
-  if (currentPending) {
-    currentPending.resolve(false);
-    currentPending = null;
+  // Auto-cancel any open prompt so the new one takes its place.
+  if (store.current) {
+    store.current.resolve(false);
+    store.current = null;
   }
   return new Promise<boolean>(resolve => {
     const pending: PendingState = { ...options, resolve };
-    currentPending = pending;
-    setPendingRef!(pending);
+    store.current = pending;
+    store.setPending!(pending);
   });
 }
 
@@ -72,12 +80,15 @@ export function ConfirmDialogHost() {
   const [pending, setPending] = useState<PendingState | null>(null);
   const resolvedRef = useRef(false);
 
-  useEffect(() => {
-    setPendingRef = setPending;
-    return () => { setPendingRef = null; };
+  // Register synchronously so a click that fires before effects run still works.
+  useLayoutEffect(() => {
+    store.setPending = setPending;
+    return () => {
+      if (store.setPending === setPending) store.setPending = null;
+    };
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     resolvedRef.current = false;
   }, [pending]);
 
@@ -85,7 +96,7 @@ export function ConfirmDialogHost() {
     if (!pending || resolvedRef.current) return;
     resolvedRef.current = true;
     pending.resolve(ok);
-    currentPending = null;
+    store.current = null;
     setPending(null);
   };
 
@@ -96,12 +107,12 @@ export function ConfirmDialogHost() {
       open={!!pending}
       onOpenChange={(open) => { if (!open) close(false); }}
     >
-      <AlertDialogContent>
+      <AlertDialogContent className="z-[100]">
         <AlertDialogHeader>
           <AlertDialogTitle>{pending?.title ?? 'Are you sure?'}</AlertDialogTitle>
-          {pending?.description !== undefined && pending?.description !== '' && (
-            <AlertDialogDescription>{pending.description}</AlertDialogDescription>
-          )}
+          <AlertDialogDescription>
+            {pending?.description ?? ''}
+          </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel onClick={() => close(false)}>

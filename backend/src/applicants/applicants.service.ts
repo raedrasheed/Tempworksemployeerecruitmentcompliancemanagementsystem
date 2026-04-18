@@ -44,13 +44,17 @@ export class ApplicantsService {
 
     const where: any = { deletedAt: null };
 
-    // Agency users are scoped strictly to Candidate records in their
-    // own agency. Leads are Tempworks-internal and must never surface
-    // to external agency accounts, regardless of the `tier` parameter
-    // the client sends.
+    // External tenants (anyone attached to a non-system agency) only
+    // see records for their own agency. Agency-side roles additionally
+    // never see Leads — they're clamped to tier=CANDIDATE. Other
+    // external roles (HR Manager / Recruiter / Compliance Officer
+    // inside a tenant agency) see both Leads and Candidates of their
+    // own agency.
     if (actor && this.isExternalActor(actor)) {
-      where.tier = 'CANDIDATE';
       if (actor.agencyId) where.agencyId = actor.agencyId;
+      const isAgencySideRole = actor.role === 'Agency User' || actor.role === 'Agency Manager';
+      if (isAgencySideRole) where.tier = 'CANDIDATE';
+      else if (tier) where.tier = tier;
     } else if (tier) {
       where.tier = tier;
     }
@@ -94,11 +98,15 @@ export class ApplicantsService {
     });
     if (!applicant) throw new NotFoundException(`Applicant ${id} not found`);
 
-    // Agency users only ever see Candidate records in their own
-    // agency. Leads are hidden from all agency-side roles.
+    // External tenants are scoped to their own agency. Agency-side
+    // roles additionally never see LEAD records; HR Manager / Recruiter
+    // / Compliance Officer inside a tenant agency see both tiers.
     if (actor && this.isExternalActor(actor)) {
-      if (applicant.tier !== 'CANDIDATE') throw new ForbiddenException('Access denied');
       if (actor.agencyId && applicant.agencyId && applicant.agencyId !== actor.agencyId) {
+        throw new ForbiddenException('Access denied');
+      }
+      const isAgencySideRole = actor.role === 'Agency User' || actor.role === 'Agency Manager';
+      if (isAgencySideRole && applicant.tier !== 'CANDIDATE') {
         throw new ForbiddenException('Access denied');
       }
     }
@@ -109,14 +117,17 @@ export class ApplicantsService {
   // ── Create ────────────────────────────────────────────────────────────────────
 
   async create(dto: CreateApplicantDto & { tier?: string }, actorId?: string, actor?: { role: string; agencyId?: string; agencyIsSystem?: boolean }) {
-    const isAgency = !!(actor && this.isExternalActor(actor));
-    // Agency-submitted applicants are pinned to the caller's agency,
-    // created as CANDIDATE so they appear on the agency's Candidates
-    // page, and enter the Tempworks approval queue (PENDING_APPROVAL)
-    // until an admin approves via approveApplicant / rejectApplicant.
-    if (isAgency) {
+    const isExternal = !!(actor && this.isExternalActor(actor));
+    const isAgencySideRole = actor?.role === 'Agency User' || actor?.role === 'Agency Manager';
+    // External tenants: the new record is always pinned to the caller's
+    // agency. Agency-side roles additionally force tier=CANDIDATE (so
+    // the record lands on their Candidates queue) and enter the
+    // Tempworks approval workflow (PENDING_APPROVAL). Other external
+    // roles (HR Manager / Recruiter in a tenant agency) create leads
+    // directly, same as admin submissions.
+    if (isExternal) {
       if (actor!.agencyId) (dto as any).agencyId = actor!.agencyId;
-      dto.tier = 'CANDIDATE';
+      if (isAgencySideRole) dto.tier = 'CANDIDATE';
     }
 
     // Always generate a Lead identifier for new records created via the admin UI.
@@ -137,8 +148,10 @@ export class ApplicantsService {
         workAuthorizationExpiry: dto.workAuthorizationExpiry ? new Date(dto.workAuthorizationExpiry) : undefined,
         preferredStartDate: dto.preferredStartDate ? new Date(dto.preferredStartDate) : undefined,
         status: dto.status || 'NEW',
-        // Approval gate: agency-submitted candidates default to PENDING.
-        approvalStatus: isAgency ? ('PENDING_APPROVAL' as any) : ('APPROVED' as any),
+        // Approval gate: only agency-side roles trigger the Tempworks
+        // approval queue. Tempworks-internal and non-Agency external
+        // roles (HR Manager / Recruiter) produce approved records.
+        approvalStatus: isAgencySideRole ? ('PENDING_APPROVAL' as any) : ('APPROVED' as any),
       },
       include: this.include,
     });
@@ -173,12 +186,15 @@ export class ApplicantsService {
     if (dto.workAuthorizationExpiry) updateData.workAuthorizationExpiry = new Date(dto.workAuthorizationExpiry);
     if (dto.preferredStartDate) updateData.preferredStartDate = new Date(dto.preferredStartDate);
 
-    // Edits by agency users re-arm the Tempworks approval gate: the
-    // changes land immediately, but approvalStatus flips back to
+    // Edits by agency-side users re-arm the Tempworks approval gate:
+    // the changes land immediately, but approvalStatus flips back to
     // PENDING_APPROVAL so existing gates (setCurrentStage,
     // convertToEmployee) block downstream actions until a Tempworks
-    // admin re-approves via approveApplicant / rejectApplicant.
-    if (actor && this.isExternalActor(actor)) {
+    // admin re-approves. Other external roles (HR Manager in a
+    // tenant agency) edit without re-arming, same as Tempworks-internal
+    // staff.
+    const isAgencySideRoleEdit = actor?.role === 'Agency User' || actor?.role === 'Agency Manager';
+    if (actor && this.isExternalActor(actor) && isAgencySideRoleEdit) {
       updateData.approvalStatus = 'PENDING_APPROVAL';
       updateData.approvedById = null;
       updateData.approvedAt = null;
@@ -211,8 +227,10 @@ export class ApplicantsService {
   async updateStatus(id: string, status: string, actorId?: string, actor?: { role: string; agencyId?: string; agencyIsSystem?: boolean }) {
     await this.findOne(id);
     const data: any = { status: status as any };
-    // Status changes by agency users also re-arm the approval gate.
-    if (actor && this.isExternalActor(actor)) {
+    // Status changes by agency-side users re-arm the approval gate;
+    // tenant HR Managers and Tempworks-internal staff don't trigger it.
+    const isAgencySideRole = actor?.role === 'Agency User' || actor?.role === 'Agency Manager';
+    if (actor && this.isExternalActor(actor) && isAgencySideRole) {
       data.approvalStatus = 'PENDING_APPROVAL';
       data.approvedById = null;
       data.approvedAt = null;
@@ -582,8 +600,9 @@ export class ApplicantsService {
     if (ids && ids.length > 0) {
       const where: any = { id: { in: ids }, deletedAt: null };
       if (actor && this.isExternalActor(actor)) {
-        where.tier = 'CANDIDATE';
         if (actor.agencyId) where.agencyId = actor.agencyId;
+        const isAgencySideRole = actor.role === 'Agency User' || actor.role === 'Agency Manager';
+        if (isAgencySideRole) where.tier = 'CANDIDATE';
       }
       items = await this.prisma.applicant.findMany({
         where,

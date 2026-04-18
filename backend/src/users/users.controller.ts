@@ -14,6 +14,7 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { RequirePermission } from '../auth/decorators/require-permission.decorator';
 
 @ApiTags('Users')
 @ApiBearerAuth()
@@ -102,14 +103,24 @@ export class UsersController {
 
   @Patch(':id')
   @Roles('System Admin', 'HR Manager')
-  @ApiOperation({ summary: 'Update user (admin-only fields enforced by role)' })
+  @RequirePermission('users:update')
+  @ApiOperation({
+    summary:
+      'Update user. Agency Manager / tenant roles reach this via users:update ' +
+      '— the service enforces the approval + allowManagerEdit override gate.',
+  })
   update(@Param('id') id: string, @Body() dto: UpdateUserDto, @CurrentUser() caller: any) {
     return this.usersService.update(id, dto, caller?.role, caller?.id, caller?.agencyIsSystem);
   }
 
   @Delete(':id')
   @Roles('System Admin')
-  @ApiOperation({ summary: 'Delete user (soft delete)' })
+  @RequirePermission('users:delete')
+  @ApiOperation({
+    summary:
+      'Delete user (soft delete). Tenant roles reach this via users:delete ' +
+      '— the service enforces the approval + allowManagerDelete override gate.',
+  })
   remove(@Param('id') id: string, @CurrentUser() caller: any) {
     return this.usersService.remove(id, caller?.role, caller?.id, caller?.agencyIsSystem);
   }

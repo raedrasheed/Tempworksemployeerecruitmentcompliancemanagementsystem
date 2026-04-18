@@ -21,10 +21,30 @@ export class AgenciesService {
     });
   }
 
-  async findAll(pagination: PaginationDto) {
+  /**
+   * Returns true when the caller is an external agency-side user whose view
+   * must be scoped to their own agency only (never another agency's data).
+   */
+  private isAgencyActor(actor?: { role?: string }) {
+    return actor?.role === 'Agency User' || actor?.role === 'Agency Manager';
+  }
+
+  /** Throws when an agency user tries to reach an agency other than their own. */
+  private assertAgencyAccess(agencyId: string, actor?: { role?: string; agencyId?: string }) {
+    if (this.isAgencyActor(actor) && actor?.agencyId !== agencyId) {
+      throw new ForbiddenException('You can only view your own agency');
+    }
+  }
+
+  async findAll(pagination: PaginationDto, actor?: { role?: string; agencyId?: string }) {
     const { page = 1, limit = 10, search, sortBy = 'name', sortOrder = 'asc' } = pagination;
     const skip = (Number(page) - 1) * Number(limit);
     const where: any = { deletedAt: null };
+    // Agency users can only see their own agency in the listing.
+    if (this.isAgencyActor(actor)) {
+      if (!actor?.agencyId) return PaginatedResponse.create([], 0, page, limit);
+      where.id = actor.agencyId;
+    }
     if (search) {
       where.OR = [
         { name: { contains: search, mode: 'insensitive' } },
@@ -40,7 +60,8 @@ export class AgenciesService {
     return PaginatedResponse.create(items, total, page, limit);
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, actor?: { role?: string; agencyId?: string }) {
+    this.assertAgencyAccess(id, actor);
     const agency = await this.prisma.agency.findUnique({
       where: { id, deletedAt: null },
       include: {
@@ -155,8 +176,9 @@ export class AgenciesService {
     return { message: 'Agency deleted' };
   }
 
-  async getUsers(id: string, pagination: PaginationDto) {
-    await this.findOne(id);
+  async getUsers(id: string, pagination: PaginationDto, actor?: { role?: string; agencyId?: string }) {
+    this.assertAgencyAccess(id, actor);
+    await this.findOne(id, actor);
     const { page = 1, limit = 10 } = pagination;
     const where = { agencyId: id, deletedAt: null };
     const [items, total] = await Promise.all([
@@ -171,8 +193,9 @@ export class AgenciesService {
     return PaginatedResponse.create(items, total, page, limit);
   }
 
-  async getEmployees(id: string, pagination: PaginationDto) {
-    await this.findOne(id);
+  async getEmployees(id: string, pagination: PaginationDto, actor?: { role?: string; agencyId?: string }) {
+    this.assertAgencyAccess(id, actor);
+    await this.findOne(id, actor);
     const { page = 1, limit = 10 } = pagination;
     const where = { agencyId: id, deletedAt: null };
     const [items, total] = await Promise.all([
@@ -187,8 +210,9 @@ export class AgenciesService {
     return PaginatedResponse.create(items, total, page, limit);
   }
 
-  async getStats(id: string) {
-    await this.findOne(id);
+  async getStats(id: string, actor?: { role?: string; agencyId?: string }) {
+    this.assertAgencyAccess(id, actor);
+    await this.findOne(id, actor);
     const [users, employees, activeEmployees, pendingEmployees] = await Promise.all([
       this.prisma.user.count({ where: { agencyId: id, deletedAt: null } }),
       this.prisma.employee.count({ where: { agencyId: id, deletedAt: null } }),

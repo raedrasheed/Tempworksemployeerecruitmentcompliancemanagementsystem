@@ -29,37 +29,42 @@ export class AgenciesController {
   constructor(private readonly agenciesService: AgenciesService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Get all agencies' })
-  findAll(@Query() pagination: PaginationDto) {
-    return this.agenciesService.findAll(pagination);
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Finance', 'Agency Manager', 'Agency User', 'Read Only')
+  @ApiOperation({ summary: 'Get all agencies (agency users see only their own)' })
+  findAll(@Query() pagination: PaginationDto, @CurrentUser() user: any) {
+    return this.agenciesService.findAll(pagination, { role: user?.role, agencyId: user?.agencyId });
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get agency by ID' })
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Finance', 'Agency Manager', 'Agency User', 'Read Only')
+  @ApiOperation({ summary: 'Get agency by ID (agency users can only fetch their own)' })
   @ApiParam({ name: 'id', description: 'Agency UUID' })
-  findOne(@Param('id') id: string) {
-    return this.agenciesService.findOne(id);
+  findOne(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.agenciesService.findOne(id, { role: user?.role, agencyId: user?.agencyId });
   }
 
   @Get(':id/users')
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Finance', 'Agency Manager', 'Agency User', 'Read Only')
   @ApiOperation({ summary: 'Get users belonging to an agency' })
   @ApiParam({ name: 'id', description: 'Agency UUID' })
-  getUsers(@Param('id') id: string, @Query() pagination: PaginationDto) {
-    return this.agenciesService.getUsers(id, pagination);
+  getUsers(@Param('id') id: string, @Query() pagination: PaginationDto, @CurrentUser() user: any) {
+    return this.agenciesService.getUsers(id, pagination, { role: user?.role, agencyId: user?.agencyId });
   }
 
   @Get(':id/employees')
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Finance', 'Agency Manager', 'Agency User', 'Read Only')
   @ApiOperation({ summary: 'Get employees belonging to an agency' })
   @ApiParam({ name: 'id', description: 'Agency UUID' })
-  getEmployees(@Param('id') id: string, @Query() pagination: PaginationDto) {
-    return this.agenciesService.getEmployees(id, pagination);
+  getEmployees(@Param('id') id: string, @Query() pagination: PaginationDto, @CurrentUser() user: any) {
+    return this.agenciesService.getEmployees(id, pagination, { role: user?.role, agencyId: user?.agencyId });
   }
 
   @Get(':id/stats')
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Finance', 'Agency Manager', 'Agency User', 'Read Only')
   @ApiOperation({ summary: 'Get agency statistics' })
   @ApiParam({ name: 'id', description: 'Agency UUID' })
-  getStats(@Param('id') id: string) {
-    return this.agenciesService.getStats(id);
+  getStats(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.agenciesService.getStats(id, { role: user?.role, agencyId: user?.agencyId });
   }
 
   @Post()

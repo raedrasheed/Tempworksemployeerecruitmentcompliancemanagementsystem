@@ -106,12 +106,13 @@ export class ApplicantsService {
 
   async create(dto: CreateApplicantDto & { tier?: string }, actorId?: string, actor?: { role: string; agencyId?: string }) {
     const isAgency = !!(actor && this.isAgencyUser(actor.role));
-    // Agency users can only create CANDIDATES in their own agency.
-    // Never let an external agency account produce a LEAD record, and
-    // gate every agency-created candidate behind Tempworks approval.
-    if (isAgency) {
-      if (actor!.agencyId) (dto as any).agencyId = actor!.agencyId;
-      dto.tier = 'CANDIDATE';
+    // Agency-submitted applicants are pinned to the caller's agency and
+    // enter the Tempworks approval queue. Tier defaults to LEAD (same as
+    // admin-created records) so the record appears in the Applicants list
+    // for both the submitting agency and Tempworks staff — it is promoted
+    // to CANDIDATE later via convertLeadToCandidate after approval.
+    if (isAgency && actor!.agencyId) {
+      (dto as any).agencyId = actor!.agencyId;
     }
 
     // Always generate a Lead identifier for new records created via the admin UI.

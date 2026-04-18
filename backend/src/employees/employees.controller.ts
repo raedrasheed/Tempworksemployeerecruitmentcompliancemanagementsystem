@@ -10,9 +10,11 @@ import { PaginationDto } from '../common/dto/pagination.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 const ALL_ROLES = ['System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Finance', 'Read Only'];
 const WRITE_ROLES = ['System Admin', 'HR Manager', 'Agency Manager'];
+const ADMIN_ROLES = ['System Admin', 'HR Manager'];
 
 const photoStorage = diskStorage({
   destination: process.env.UPLOAD_DEST || './uploads',
@@ -29,14 +31,49 @@ export class EmployeesController {
   @Get()
   @Roles(...ALL_ROLES)
   @ApiOperation({ summary: 'List employees with pagination and filters' })
-  findAll(@Query() query: PaginationDto & { agencyId?: string; status?: string; nationality?: string }) {
-    return this.employeesService.findAll(query);
+  findAll(
+    @Query() query: PaginationDto & { agencyId?: string; status?: string; nationality?: string },
+    @CurrentUser() user: any,
+  ) {
+    return this.employeesService.findAll(query, { role: user?.role, agencyId: user?.agencyId });
   }
 
   @Get(':id')
   @Roles(...ALL_ROLES)
   @ApiOperation({ summary: 'Get employee by ID' })
-  findOne(@Param('id') id: string) { return this.employeesService.findOne(id); }
+  findOne(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.employeesService.findOne(id, { role: user?.role, agencyId: user?.agencyId });
+  }
+
+  // ── Per-employee agency access grants (admin only) ──────────────────────────
+
+  @Get(':id/agency-access')
+  @Roles(...ADMIN_ROLES)
+  @ApiOperation({ summary: 'List agencies that have been granted access to this employee' })
+  listAgencyAccess(@Param('id') id: string) {
+    return this.employeesService.listAgencyAccess(id);
+  }
+
+  @Post(':id/agency-access')
+  @Roles(...ADMIN_ROLES)
+  @ApiOperation({ summary: 'Grant an agency access to this specific employee. Body: { agencyId, notes? }' })
+  grantAgencyAccess(
+    @Param('id') id: string,
+    @Body() dto: { agencyId: string; notes?: string },
+    @CurrentUser('id') actorId: string,
+  ) {
+    return this.employeesService.grantAgencyAccess(id, dto.agencyId, dto.notes, actorId);
+  }
+
+  @Delete(':id/agency-access/:agencyId')
+  @Roles(...ADMIN_ROLES)
+  @ApiOperation({ summary: 'Revoke a specific agency\'s access to this employee' })
+  revokeAgencyAccess(
+    @Param('id') id: string,
+    @Param('agencyId') agencyId: string,
+  ) {
+    return this.employeesService.revokeAgencyAccess(id, agencyId);
+  }
 
   @Get(':id/documents')
   @Roles(...ALL_ROLES)

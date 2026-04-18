@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
@@ -10,11 +10,34 @@ import { join, extname } from 'path';
 export class EmployeesService {
   constructor(private prisma: PrismaService) {}
 
-  async findAll(query: PaginationDto & { agencyId?: string; status?: string; nationality?: string; driversOnly?: boolean }) {
+  private isAgencyActor(role?: string): boolean {
+    return role === 'Agency User' || role === 'Agency Manager';
+  }
+
+  async findAll(
+    query: PaginationDto & { agencyId?: string; status?: string; nationality?: string; driversOnly?: boolean },
+    actor?: { role?: string; agencyId?: string },
+  ) {
     const { page = 1, limit = 20, search, sortBy = 'createdAt', sortOrder = 'desc', agencyId, status, nationality, driversOnly } = query;
     const skip = (Number(page) - 1) * Number(limit);
 
     const where: any = { deletedAt: null };
+
+    // Agency accounts never see employees wholesale — they only see the
+    // subset explicitly granted via EmployeeAgencyAccess rows.
+    if (this.isAgencyActor(actor?.role)) {
+      if (!actor?.agencyId) throw new ForbiddenException('Agency user has no agency assigned');
+      const grants = await this.prisma.employeeAgencyAccess.findMany({
+        where: { agencyId: actor.agencyId },
+        select: { employeeId: true },
+      });
+      const allowedIds = grants.map(g => g.employeeId);
+      if (allowedIds.length === 0) {
+        return PaginatedResponse.create([], 0, page, limit);
+      }
+      where.id = { in: allowedIds };
+      where.agencyId = actor.agencyId;
+    }
     if (search) {
       where.OR = [
         { firstName: { contains: search, mode: 'insensitive' } },
@@ -52,7 +75,7 @@ export class EmployeesService {
     return PaginatedResponse.create(data, total, page, limit);
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, actor?: { role?: string; agencyId?: string }) {
     const employee = await this.prisma.employee.findFirst({
       where: { id, deletedAt: null },
       include: {
@@ -62,7 +85,54 @@ export class EmployeesService {
       },
     });
     if (!employee) throw new NotFoundException('Employee not found');
+
+    // Per-employee agency access check. Even if employee.agencyId matches
+    // the caller's agency, the admin must have granted an explicit row.
+    if (this.isAgencyActor(actor?.role)) {
+      if (!actor?.agencyId) throw new ForbiddenException('Agency user has no agency assigned');
+      const grant = await this.prisma.employeeAgencyAccess.findUnique({
+        where: { employeeId_agencyId: { employeeId: id, agencyId: actor.agencyId } },
+      });
+      if (!grant) throw new ForbiddenException('Access to this employee has not been granted to your agency');
+    }
+
     return employee;
+  }
+
+  // ── Per-employee agency access grants (admin-only) ──────────────────────────
+
+  async listAgencyAccess(employeeId: string) {
+    const employee = await this.prisma.employee.findFirst({ where: { id: employeeId, deletedAt: null } });
+    if (!employee) throw new NotFoundException('Employee not found');
+    return this.prisma.employeeAgencyAccess.findMany({
+      where: { employeeId },
+      include: { agency: { select: { id: true, name: true } } },
+      orderBy: { grantedAt: 'desc' },
+    });
+  }
+
+  async grantAgencyAccess(employeeId: string, agencyId: string, notes: string | undefined, actorId?: string) {
+    const employee = await this.prisma.employee.findFirst({ where: { id: employeeId, deletedAt: null } });
+    if (!employee) throw new NotFoundException('Employee not found');
+    const agency = await this.prisma.agency.findFirst({ where: { id: agencyId, deletedAt: null } });
+    if (!agency) throw new NotFoundException('Agency not found');
+    const grant = await this.prisma.employeeAgencyAccess.upsert({
+      where:  { employeeId_agencyId: { employeeId, agencyId } },
+      create: { employeeId, agencyId, notes, grantedById: actorId },
+      update: { notes, grantedById: actorId, grantedAt: new Date() },
+    });
+    return grant;
+  }
+
+  async revokeAgencyAccess(employeeId: string, agencyId: string) {
+    try {
+      await this.prisma.employeeAgencyAccess.delete({
+        where: { employeeId_agencyId: { employeeId, agencyId } },
+      });
+    } catch {
+      throw new NotFoundException('No grant for that employee/agency pair');
+    }
+    return { message: 'Access revoked' };
   }
 
   async create(dto: CreateEmployeeDto, _actorId?: string) {

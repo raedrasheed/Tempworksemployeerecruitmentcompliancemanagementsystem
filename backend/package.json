@@ -35,7 +35,8 @@
     "db:migrate:drop-applicant-email-unique": "ts-node prisma/run-drop-applicant-email-unique.ts",
     "db:migrate:job-ads-required-docs": "ts-node prisma/run-job-ads-required-documents-migration.ts",
     "db:migrate:two-factor": "ts-node prisma/run-two-factor-migration.ts",
-    "db:migrate:agency-profile": "ts-node prisma/run-agency-profile-fields-migration.ts"
+    "db:migrate:agency-profile": "ts-node prisma/run-agency-profile-fields-migration.ts",
+    "db:migrate:agency-tenancy": "ts-node prisma/run-agency-tenancy-workflow-migration.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",

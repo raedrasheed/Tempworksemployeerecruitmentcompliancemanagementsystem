@@ -14,6 +14,12 @@ enum UserStatus {
   TERMINATED
 }
 
+enum AgencyApprovalStatus {
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+}
+
 enum AgencyStatus {
   ACTIVE
   INACTIVE
@@ -272,6 +278,17 @@ model User {
   reviewedDeleteRequests  CandidateDeleteRequest[] @relation("DeleteRequestReviewedBy")
   permissionOverrides     AgencyUserPermission[]
 
+  // Agency-tenancy approval workflow.
+  // APPROVED = operational; PENDING_APPROVAL = created by an agency
+  // manager and awaiting Tempworks sign-off; REJECTED = explicitly denied.
+  // allowManagerEdit/Delete let Tempworks admins re-open an already
+  // approved user so the owning agency manager can touch them again.
+  approvalStatus      AgencyApprovalStatus @default(APPROVED)
+  approvedById        String?
+  approvedAt          DateTime?
+  allowManagerEdit    Boolean  @default(false)
+  allowManagerDelete  Boolean  @default(false)
+
   @@map("users")
 }
 
@@ -308,6 +325,8 @@ model Agency {
   applicants Applicant[]
   vehicles   Vehicle[]
   manager    User?    @relation("AgencyManager", fields: [managerId], references: [id])
+  employeeAccessGrants EmployeeAgencyAccess[]
+  permissionOverrides  AgencyPermissionOverride[]
 
   @@map("agencies")
 }
@@ -358,6 +377,7 @@ model Employee {
   stageApprovals         EmployeeStageApproval[]
   attendanceRecords      AttendanceRecord[]      @relation("EmployeeAttendance")
   vehicleAssignments     VehicleDriverAssignment[]
+  agencyAccessGrants     EmployeeAgencyAccess[]
 
   @@map("employees")
 }
@@ -486,6 +506,13 @@ model Applicant {
   agencyHistory        ApplicantAgencyHistory[]
   workflowAssignments  CandidateWorkflowAssignment[]
   deleteRequests       CandidateDeleteRequest[]
+
+  // Tempworks-approval gate for agency-submitted candidates. Defaults to
+  // APPROVED for internal-created applicants so existing data stays live.
+  approvalStatus    AgencyApprovalStatus @default(APPROVED)
+  approvedById      String?
+  approvedAt        DateTime?
+  rejectionReason   String?
 
   @@map("applicants")
 }
@@ -1608,4 +1635,46 @@ model UserNumberSequence {
   current Int @default(0)
 
   @@map("user_number_sequences")
+}
+
+// ── Agency tenancy workflow ───────────────────────────────────────────────────
+
+/// Per-employee agency read access. Tempworks admins explicitly grant an
+/// agency the ability to see a specific employee profile. Without a row,
+/// agency users are blocked from reading the employee — even if the
+/// employee's own `agencyId` matches the agency the user belongs to.
+model EmployeeAgencyAccess {
+  id           String   @id @default(uuid())
+  employeeId   String
+  agencyId     String
+  grantedById  String?
+  grantedAt    DateTime @default(now())
+  notes        String?
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  agency   Agency   @relation(fields: [agencyId],   references: [id], onDelete: Cascade)
+
+  @@unique([employeeId, agencyId])
+  @@index([agencyId])
+  @@index([employeeId])
+  @@map("employee_agency_access")
+}
+
+/// Agency-wide permission overrides. Tempworks admins grant or revoke
+/// specific permissions (e.g. "applicants:create") across every user
+/// of an agency, without editing users one by one. Merged with the
+/// role's default permissions at login time.
+model AgencyPermissionOverride {
+  id         String   @id @default(uuid())
+  agencyId   String
+  permission String
+  allow      Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  agency Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+
+  @@unique([agencyId, permission])
+  @@index([agencyId])
+  @@map("agency_permission_overrides")
 }

@@ -537,10 +537,46 @@ export function ApplicantProfile() {
                     )}
                   </div>
                 </div>
-                <Badge className={statusBadgeClass(applicantData.status)}>
-                  {applicantData.status?.replace(/_/g, ' ').toLowerCase()}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  {applicantData.approvalStatus === 'PENDING_APPROVAL' && (
+                    <Badge className="bg-amber-100 text-amber-900 border border-amber-300">Pending Tempworks approval</Badge>
+                  )}
+                  {applicantData.approvalStatus === 'REJECTED' && (
+                    <Badge className="bg-red-100 text-red-900 border border-red-300">Rejected</Badge>
+                  )}
+                  <Badge className={statusBadgeClass(applicantData.status)}>
+                    {applicantData.status?.replace(/_/g, ' ').toLowerCase()}
+                  </Badge>
+                </div>
               </div>
+
+              {applicantData.approvalStatus === 'PENDING_APPROVAL' && (currentUser?.role === 'System Admin' || currentUser?.role === 'HR Manager') && (
+                <div className="mt-4 flex items-center gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3">
+                  <div className="flex-1 text-sm">
+                    <p className="font-medium text-amber-900">This candidate is pending Tempworks approval.</p>
+                    <p className="text-amber-800">They were submitted by the owning agency and cannot enter the workflow or be converted to an employee until approved.</p>
+                  </div>
+                  <Button size="sm" onClick={async () => {
+                    try {
+                      const updated = await applicantsApi.approve(applicantData.id);
+                      setApplicantData(updated);
+                      toast.success('Candidate approved');
+                    } catch (err: any) { toast.error(err?.message || 'Failed to approve'); }
+                  }}>Approve</Button>
+                  <Button size="sm" variant="outline" onClick={async () => {
+                    if (!(await confirm({
+                      title: 'Reject this candidate?',
+                      description: 'They will not enter the workflow. This can be reversed by approving them later.',
+                      confirmText: 'Reject', tone: 'destructive',
+                    }))) return;
+                    try {
+                      const updated = await applicantsApi.reject(applicantData.id);
+                      setApplicantData(updated);
+                      toast.success('Candidate rejected');
+                    } catch (err: any) { toast.error(err?.message || 'Failed to reject'); }
+                  }}>Reject</Button>
+                </div>
+              )}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
                 <div className="flex items-center gap-2">
                   <Mail className="w-4 h-4 text-muted-foreground" />

@@ -192,6 +192,30 @@ export class UsersController {
     return this.usersService.unlockUser(id, actorId);
   }
 
+  // ── Agency user approval + manager override (admin only) ────────────────────
+
+  @Post(':id/approve')
+  @Roles('System Admin', 'HR Manager')
+  @ApiOperation({ summary: 'Approve an agency-created user so they enter operational status' })
+  approveAgencyUser(@Param('id') id: string, @CurrentUser('id') actorId: string) {
+    return this.usersService.approveAgencyUser(id, actorId);
+  }
+
+  @Post(':id/manager-override')
+  @Roles('System Admin', 'HR Manager')
+  @ApiOperation({
+    summary:
+      'Grant or revoke the owning Agency Manager\'s ability to edit/delete an approved user. ' +
+      'Body: { allowManagerEdit?: boolean, allowManagerDelete?: boolean }',
+  })
+  setManagerOverride(
+    @Param('id') id: string,
+    @Body() dto: { allowManagerEdit?: boolean; allowManagerDelete?: boolean },
+    @CurrentUser('id') actorId: string,
+  ) {
+    return this.usersService.setManagerOverride(id, dto ?? {}, actorId);
+  }
+
   // ── Activation link (for PENDING users without SMTP) ─────────────────────────
 
   @Get(':id/activation-link')

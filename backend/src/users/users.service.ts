@@ -223,6 +223,13 @@ export class UsersService {
     }
 
     // Create user with all fields
+    // Agency Manager submissions land in PENDING_APPROVAL until a Tempworks
+    // admin approves. Admin/HR-created users are approved immediately.
+    const approvalStatus: 'PENDING_APPROVAL' | 'APPROVED' =
+      callerRole === 'Agency Manager' ? 'PENDING_APPROVAL' : 'APPROVED';
+    const approvedAt = approvalStatus === 'APPROVED' ? new Date() : null;
+    const approvedById = approvalStatus === 'APPROVED' ? actorId ?? null : null;
+
     const user = await this.prisma.user.create({
       data: {
         email: normalizedEmail,
@@ -236,6 +243,9 @@ export class UsersService {
         status: initialStatus as any,
         userNumber,
         createdById: actorId,
+        approvalStatus: approvalStatus as any,
+        approvedAt: approvedAt as any,
+        approvedById: approvedById as any,
         // Profile fields
         dateOfBirth: dto.dateOfBirth ? new Date(dto.dateOfBirth) : undefined,
         gender: dto.gender as any,
@@ -306,6 +316,17 @@ export class UsersService {
       const roleName = await this.getRoleName(dto.roleId);
       if (roleName === 'System Admin') {
         throw new ForbiddenException('Only System Admins can assign the System Admin role');
+      }
+    }
+
+    // Agency Managers may only edit users within their agency, and only
+    // while those users are either still PENDING_APPROVAL or have been
+    // explicitly unlocked by a Tempworks admin (allowManagerEdit = true).
+    if (callerRole === 'Agency Manager') {
+      const approval = (existing as any).approvalStatus;
+      const allow    = (existing as any).allowManagerEdit;
+      if (approval === 'APPROVED' && !allow) {
+        throw new ForbiddenException('This user has been approved by Tempworks. Ask an administrator to enable edits for this user.');
       }
     }
 
@@ -552,6 +573,14 @@ export class UsersService {
       throw new ForbiddenException('Only System Admins can delete System Admin users');
     }
 
+    if (callerRole === 'Agency Manager') {
+      const approval = (existing as any).approvalStatus;
+      const allow    = (existing as any).allowManagerDelete;
+      if (approval === 'APPROVED' && !allow) {
+        throw new ForbiddenException('This user has been approved by Tempworks. Ask an administrator to enable deletion for this user.');
+      }
+    }
+
     await this.prisma.user.update({ where: { id }, data: { deletedAt: new Date() } });
 
     await this.auditLog.log({
@@ -673,6 +702,51 @@ export class UsersService {
 
     // Ensure no sensitive fields leaked (already excluded via select)
     return users;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Agency user approval + manager override flags (Tempworks admin only)
+  // ---------------------------------------------------------------------------
+  async approveAgencyUser(id: string, actorId?: string) {
+    const existing = await this.prisma.user.findFirst({ where: { id, deletedAt: null } });
+    if (!existing) throw new NotFoundException('User not found');
+    const user = await this.prisma.user.update({
+      where: { id },
+      data: {
+        approvalStatus: 'APPROVED' as any,
+        approvedById: actorId ?? null,
+        approvedAt: new Date(),
+      },
+      include: { role: { select: { id: true, name: true } }, agency: { select: { id: true, name: true } } },
+    });
+    await this.auditLog.log({
+      userId: actorId, action: 'APPROVE_AGENCY_USER', entity: 'User', entityId: id,
+      changes: { previous: (existing as any).approvalStatus, next: 'APPROVED' },
+    });
+    const { passwordHash, refreshToken, ...result } = user as any;
+    return result;
+  }
+
+  async setManagerOverride(
+    id: string,
+    flags: { allowManagerEdit?: boolean; allowManagerDelete?: boolean },
+    actorId?: string,
+  ) {
+    const existing = await this.prisma.user.findFirst({ where: { id, deletedAt: null } });
+    if (!existing) throw new NotFoundException('User not found');
+    const data: any = {};
+    if (typeof flags.allowManagerEdit === 'boolean')   data.allowManagerEdit   = flags.allowManagerEdit;
+    if (typeof flags.allowManagerDelete === 'boolean') data.allowManagerDelete = flags.allowManagerDelete;
+    const user = await this.prisma.user.update({
+      where: { id }, data,
+      include: { role: { select: { id: true, name: true } }, agency: { select: { id: true, name: true } } },
+    });
+    await this.auditLog.log({
+      userId: actorId, action: 'SET_MANAGER_OVERRIDE', entity: 'User', entityId: id,
+      changes: data,
+    });
+    const { passwordHash, refreshToken, ...result } = user as any;
+    return result;
   }
 
   async getActivationLink(userId: string): Promise<{ url: string }> {

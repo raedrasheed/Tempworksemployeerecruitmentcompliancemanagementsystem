@@ -120,6 +120,24 @@ export class ApplicantsController {
     return this.applicantsService.setCurrentStage(id, stageId || null, user?.id);
   }
 
+  // ── Agency-submitted candidate approval ──────────────────────────────────────
+
+  @Post(':id/approve')
+  @Roles('System Admin', 'HR Manager')
+  @ApiOperation({ summary: 'Approve an agency-submitted candidate so they enter the internal workflow' })
+  @ApiParam({ name: 'id', description: 'Applicant UUID' })
+  approveApplicant(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.applicantsService.approveApplicant(id, user?.id);
+  }
+
+  @Post(':id/reject')
+  @Roles('System Admin', 'HR Manager')
+  @ApiOperation({ summary: 'Reject an agency-submitted candidate. Optionally supply a reason in the body.' })
+  @ApiParam({ name: 'id', description: 'Applicant UUID' })
+  rejectApplicant(@Param('id') id: string, @Body('reason') reason: string, @CurrentUser() user: any) {
+    return this.applicantsService.rejectApplicant(id, reason, user?.id);
+  }
+
   // ── Convert Lead → Candidate ──────────────────────────────────────────────────
 
   @Post(':id/convert-to-candidate')

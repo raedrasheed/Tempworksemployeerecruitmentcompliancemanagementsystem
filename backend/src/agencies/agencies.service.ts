@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateAgencyDto } from './dto/create-agency.dto';
 import { UpdateAgencyDto } from './dto/update-agency.dto';
@@ -83,8 +83,32 @@ export class AgenciesService {
     return agency;
   }
 
-  async update(id: string, dto: UpdateAgencyDto, updatedById?: string) {
-    await this.findOne(id);
+  /**
+   * Agency fields that an Agency Manager is NEVER allowed to touch. The
+   * list is the single source of truth — adding a future protected field
+   * is a one-line change here.
+   */
+  static readonly PROTECTED_FIELDS_FOR_MANAGER: string[] = [
+    'name', 'managerId', 'maxUsersPerAgency', 'status', 'deletedAt', 'deletedBy', 'deletionReason',
+  ];
+
+  async update(
+    id: string,
+    dto: UpdateAgencyDto,
+    updatedById?: string,
+    actor?: { role?: string; agencyId?: string },
+  ) {
+    const existing = await this.findOne(id);
+
+    // Agency Manager scoping: can only edit their own agency, and protected
+    // fields (name, managerId, status, maxUsersPerAgency, …) are stripped.
+    if (actor?.role === 'Agency Manager') {
+      if (actor.agencyId !== id) throw new ForbiddenException('You can only edit your own agency');
+      for (const field of AgenciesService.PROTECTED_FIELDS_FOR_MANAGER) {
+        delete (dto as any)[field];
+      }
+    }
+
     const data: any = { ...dto };
     const derived = this.deriveContactPerson(dto);
     if (derived !== undefined) data.contactPerson = derived;
@@ -172,6 +196,55 @@ export class AgenciesService {
       this.prisma.employee.count({ where: { agencyId: id, deletedAt: null, status: 'PENDING' } }),
     ]);
     return { users, employees, activeEmployees, pendingEmployees };
+  }
+
+  // ── Agency-wide permission overrides (admin only) ───────────────────────────
+
+  async listPermissionOverrides(agencyId: string) {
+    await this.findOne(agencyId);
+    return this.prisma.agencyPermissionOverride.findMany({
+      where: { agencyId },
+      orderBy: { permission: 'asc' },
+    });
+  }
+
+  async setPermissionOverride(
+    agencyId: string,
+    permission: string,
+    allow: boolean,
+    actorId?: string,
+  ) {
+    await this.findOne(agencyId);
+    const record = await this.prisma.agencyPermissionOverride.upsert({
+      where:  { agencyId_permission: { agencyId, permission } },
+      create: { agencyId, permission, allow },
+      update: { allow },
+    });
+    await this.prisma.auditLog.create({
+      data: {
+        userId: actorId, action: allow ? 'AGENCY_PERMISSION_GRANT' : 'AGENCY_PERMISSION_REVOKE',
+        entity: 'Agency', entityId: agencyId, changes: { permission, allow } as any,
+      },
+    });
+    return record;
+  }
+
+  async removePermissionOverride(agencyId: string, permission: string, actorId?: string) {
+    await this.findOne(agencyId);
+    try {
+      await this.prisma.agencyPermissionOverride.delete({
+        where: { agencyId_permission: { agencyId, permission } },
+      });
+    } catch {
+      throw new NotFoundException('Permission override not found');
+    }
+    await this.prisma.auditLog.create({
+      data: {
+        userId: actorId, action: 'AGENCY_PERMISSION_OVERRIDE_REMOVED',
+        entity: 'Agency', entityId: agencyId, changes: { permission } as any,
+      },
+    });
+    return { message: 'Permission override removed' };
   }
 
   async setManager(agencyId: string, userId: string, actorId?: string) {

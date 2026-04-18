@@ -108,10 +108,12 @@ export class ApplicantsService {
   // ── Create ────────────────────────────────────────────────────────────────────
 
   async create(dto: CreateApplicantDto & { tier?: string }, actorId?: string, actor?: { role: string; agencyId?: string }) {
+    const isAgency = !!(actor && this.isAgencyUser(actor.role));
     // Agency users can only create CANDIDATES in their own agency.
-    // Never let an external agency account produce a LEAD record.
-    if (actor && this.isAgencyUser(actor.role)) {
-      if (actor.agencyId) (dto as any).agencyId = actor.agencyId;
+    // Never let an external agency account produce a LEAD record, and
+    // gate every agency-created candidate behind Tempworks approval.
+    if (isAgency) {
+      if (actor!.agencyId) (dto as any).agencyId = actor!.agencyId;
       dto.tier = 'CANDIDATE';
     }
 
@@ -133,6 +135,8 @@ export class ApplicantsService {
         workAuthorizationExpiry: dto.workAuthorizationExpiry ? new Date(dto.workAuthorizationExpiry) : undefined,
         preferredStartDate: dto.preferredStartDate ? new Date(dto.preferredStartDate) : undefined,
         status: dto.status || 'NEW',
+        // Approval gate: agency-submitted candidates default to PENDING.
+        approvalStatus: isAgency ? ('PENDING_APPROVAL' as any) : ('APPROVED' as any),
       },
       include: this.include,
     });
@@ -283,18 +287,58 @@ export class ApplicantsService {
   // ── Set Workflow Stage ────────────────────────────────────────────────────────
 
   async setCurrentStage(id: string, stageId: string | null, actorId?: string) {
-    await this.findOne(id);
+    const applicant = await this.findOne(id);
+    // Cannot move an agency-submitted candidate into the workflow until
+    // Tempworks has approved them.
+    if ((applicant as any).approvalStatus === 'PENDING_APPROVAL' && stageId) {
+      throw new BadRequestException('This candidate is pending Tempworks approval and cannot enter the workflow yet');
+    }
     if (stageId) {
       const stage = await this.prisma.stageTemplate.findUnique({ where: { id: stageId } });
       if (!stage) throw new NotFoundException('Workflow stage not found');
     }
-    const applicant = await this.prisma.applicant.update({
+    const updated = await this.prisma.applicant.update({
       where: { id },
       data: { currentWorkflowStageId: stageId },
       include: this.include,
     });
     await this.auditLog(actorId, 'WORKFLOW_STAGE_UPDATE', id, { currentWorkflowStageId: stageId });
-    return applicant;
+    return updated;
+  }
+
+  // ── Agency-submitted candidate approval ──────────────────────────────────────
+
+  async approveApplicant(id: string, actorId?: string) {
+    const applicant = await this.findOne(id);
+    if ((applicant as any).approvalStatus === 'APPROVED') return applicant;
+    const updated = await this.prisma.applicant.update({
+      where: { id },
+      data: {
+        approvalStatus: 'APPROVED' as any,
+        approvedById: actorId ?? null,
+        approvedAt: new Date(),
+        rejectionReason: null,
+      },
+      include: this.include,
+    });
+    await this.auditLog(actorId, 'APPROVE_CANDIDATE', id);
+    return updated;
+  }
+
+  async rejectApplicant(id: string, reason: string | undefined, actorId?: string) {
+    const applicant = await this.findOne(id);
+    const updated = await this.prisma.applicant.update({
+      where: { id },
+      data: {
+        approvalStatus: 'REJECTED' as any,
+        approvedById: actorId ?? null,
+        approvedAt: new Date(),
+        rejectionReason: reason ?? null,
+      },
+      include: this.include,
+    });
+    await this.auditLog(actorId, 'REJECT_CANDIDATE', id, { reason });
+    return updated;
   }
 
   // ── Convert Lead → Candidate ──────────────────────────────────────────────────
@@ -580,6 +624,12 @@ export class ApplicantsService {
 
     if (applicant.tier !== 'CANDIDATE') {
       throw new ForbiddenException('Only Candidates can be converted to employees. Convert the Lead to a Candidate first.');
+    }
+    if ((applicant as any).approvalStatus === 'PENDING_APPROVAL') {
+      throw new ForbiddenException('This candidate is pending Tempworks approval and cannot be converted yet.');
+    }
+    if ((applicant as any).approvalStatus === 'REJECTED') {
+      throw new ForbiddenException('This candidate was rejected and cannot be converted.');
     }
 
     const existing = await this.prisma.employee.findFirst({

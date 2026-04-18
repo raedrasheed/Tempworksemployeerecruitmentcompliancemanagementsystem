@@ -505,6 +505,21 @@ export class AuthService {
     });
     if (!user) throw new UnauthorizedException();
 
+    // Merge role defaults with any agency-wide permission overrides applied
+    // by Tempworks admins. `allow=true` adds a permission; `allow=false`
+    // strips one. Run only for users tied to an agency.
+    const basePermissions = new Set<string>(user.role.permissions.map(rp => rp.permission.name));
+    if (user.agencyId) {
+      const overrides = await this.prisma.agencyPermissionOverride.findMany({
+        where: { agencyId: user.agencyId },
+      });
+      for (const o of overrides) {
+        if (o.allow) basePermissions.add(o.permission);
+        else         basePermissions.delete(o.permission);
+      }
+    }
+    const effectivePermissions = [...basePermissions];
+
     return {
       id: user.id,
       email: user.email,
@@ -516,7 +531,7 @@ export class AuthService {
       roleId: user.roleId,
       agencyId: user.agencyId,
       agency: user.agency ? { id: user.agency.id, name: user.agency.name } : null,
-      permissions: user.role.permissions.map((rp) => rp.permission.name),
+      permissions: effectivePermissions,
       status: user.status,
       lastLoginAt: user.lastLoginAt,
       twoFactorEnabled: (user as any).twoFactorEnabled ?? false,

@@ -336,6 +336,14 @@ export const employeesApi = {
 
   // Banking/salary profile inherited from candidate stage (ApplicantFinancialProfile)
   getFinancialProfile: (id: string) => apiFetch<any>(`/employees/${id}/financial-profile`),
+
+  // Per-employee agency-access grants (admin-only)
+  listAgencyAccess: (id: string) =>
+    apiFetch<any[]>(`/employees/${id}/agency-access`),
+  grantAgencyAccess: (id: string, agencyId: string, notes?: string) =>
+    apiFetch<any>(`/employees/${id}/agency-access`, { method: 'POST', body: JSON.stringify({ agencyId, notes }) }),
+  revokeAgencyAccess: (id: string, agencyId: string) =>
+    apiFetch<any>(`/employees/${id}/agency-access/${agencyId}`, { method: 'DELETE' }),
 };
 
 // ─── Applicants API (includes merged Application methods) ────────────────────
@@ -398,6 +406,12 @@ export const applicantsApi = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+
+  approve: (id: string) =>
+    apiFetch<any>(`/applicants/${id}/approve`, { method: 'POST' }),
+
+  reject: (id: string, reason?: string) =>
+    apiFetch<any>(`/applicants/${id}/reject`, { method: 'POST', body: JSON.stringify({ reason }) }),
 
   exportCsv: (params?: Record<string, any> & { ids?: string[] }) => {
     const search = new URLSearchParams();
@@ -633,6 +647,17 @@ export const agenciesApi = {
 
   listPublic: () => apiFetch<{ id: string; name: string }[]>('/agencies/public'),
 
+  // Agency-wide permission overrides (admin-only)
+  listPermissionOverrides: (id: string) =>
+    apiFetch<any[]>(`/agencies/${id}/permission-overrides`),
+  setPermissionOverride: (id: string, permission: string, allow: boolean) =>
+    apiFetch<any>(`/agencies/${id}/permission-overrides`, { method: 'POST', body: JSON.stringify({ permission, allow }) }),
+  removePermissionOverride: (id: string, permission: string) =>
+    apiFetch<any>(`/agencies/${id}/permission-overrides/${encodeURIComponent(permission)}`, { method: 'DELETE' }),
+
+  setManager: (agencyId: string, userId: string) =>
+    apiFetch<any>(`/agencies/${agencyId}/manager`, { method: 'PATCH', body: JSON.stringify({ userId }) }),
+
   uploadLogo: (id: string, file: File): Promise<any> => {
     const token = getAccessToken();
     const form = new FormData();
@@ -779,6 +804,12 @@ export const usersApi = {
 
   getActivationLink: (id: string) =>
     apiFetch<{ url: string }>(`/users/${id}/activation-link`),
+
+  approveAgencyUser: (id: string) =>
+    apiFetch<any>(`/users/${id}/approve`, { method: 'POST' }),
+
+  setManagerOverride: (id: string, flags: { allowManagerEdit?: boolean; allowManagerDelete?: boolean }) =>
+    apiFetch<any>(`/users/${id}/manager-override`, { method: 'POST', body: JSON.stringify(flags) }),
 };
 
 // ─── Roles API ────────────────────────────────────────────────────────────────

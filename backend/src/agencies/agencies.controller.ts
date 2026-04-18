@@ -70,10 +70,45 @@ export class AgenciesController {
   }
 
   @Patch(':id')
-  @Roles('System Admin', 'HR Manager')
-  @ApiOperation({ summary: 'Update agency' })
+  @Roles('System Admin', 'HR Manager', 'Agency Manager')
+  @ApiOperation({
+    summary:
+      'Update agency. Agency Managers can only edit their own agency, and the service strips ' +
+      'protected fields (name, managerId, status, maxUsersPerAgency) from their payload.',
+  })
   update(@Param('id') id: string, @Body() dto: UpdateAgencyDto, @CurrentUser() user: any) {
-    return this.agenciesService.update(id, dto, user?.id);
+    return this.agenciesService.update(id, dto, user?.id, { role: user?.role, agencyId: user?.agencyId });
+  }
+
+  // ── Agency-wide permission overrides (admin only) ────────────────────────────
+
+  @Get(':id/permission-overrides')
+  @Roles('System Admin', 'HR Manager')
+  @ApiOperation({ summary: 'List permission overrides applied to every user of this agency' })
+  listPermissionOverrides(@Param('id') id: string) {
+    return this.agenciesService.listPermissionOverrides(id);
+  }
+
+  @Post(':id/permission-overrides')
+  @Roles('System Admin')
+  @ApiOperation({ summary: 'Grant or revoke a permission for every user of this agency. Body: { permission, allow }' })
+  setPermissionOverride(
+    @Param('id') id: string,
+    @Body() dto: { permission: string; allow: boolean },
+    @CurrentUser() user: any,
+  ) {
+    return this.agenciesService.setPermissionOverride(id, dto.permission, dto.allow, user?.id);
+  }
+
+  @Delete(':id/permission-overrides/:permission')
+  @Roles('System Admin')
+  @ApiOperation({ summary: 'Remove an agency-wide permission override so the agency falls back to role defaults' })
+  removePermissionOverride(
+    @Param('id') id: string,
+    @Param('permission') permission: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.agenciesService.removePermissionOverride(id, permission, user?.id);
   }
 
   @Patch(':id/logo')

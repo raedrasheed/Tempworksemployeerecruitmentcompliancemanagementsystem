@@ -520,6 +520,26 @@ export function getStepErrors(
     }
   }
 
+  // ── Tab 6: Education ──────────────────────────────────────────────────────
+  if (actualTab === 6) {
+    d.education?.forEach((entry, i) => {
+      const n = i + 1;
+      if (!entry.level?.trim())         errors.push(`Education #${n}: Level is required.`);
+      if (!entry.institution?.trim())   errors.push(`Education #${n}: Institution is required.`);
+      if (!entry.fieldOfStudy?.trim())  errors.push(`Education #${n}: Field of Study is required.`);
+      if (!entry.country?.trim())       errors.push(`Education #${n}: Country is required.`);
+      if (!entry.startDate)             errors.push(`Education #${n}: Start Date is required.`);
+      if (!entry.ongoing && !entry.endDate) errors.push(`Education #${n}: End Date is required (or tick Ongoing).`);
+      if (entry.startDate && !entry.ongoing && entry.endDate) {
+        const a = Date.parse(entry.startDate);
+        const b = Date.parse(entry.endDate);
+        if (!isNaN(a) && !isNaN(b) && a > b) {
+          errors.push(`Education #${n}: Start Date must be on or before End Date.`);
+        }
+      }
+    });
+  }
+
   // ── Tab 7: Work Experience ────────────────────────────────────────────────
   if (actualTab === 7) {
     d.workHistory.forEach((entry, i) => {
@@ -629,6 +649,27 @@ export function getStepFieldErrors(
       if (!d.domesticExpKm?.toString().trim())      out['domesticExpKm']      = 'Total KM is required.';
       if (!d.domesticExpCountry?.toString().trim()) out['domesticExpCountry'] = 'Country is required.';
     }
+  }
+
+  // Tab 6 — Education (per-row required fields when an entry exists)
+  if (actualTab === 6) {
+    (d.education ?? []).forEach((e) => {
+      const k = (f: string) => `education.${e.id}.${f}`;
+      if (!e.level?.trim())        out[k('level')]        = 'Level is required.';
+      if (!e.institution?.trim())  out[k('institution')]  = 'Institution is required.';
+      if (!e.fieldOfStudy?.trim()) out[k('fieldOfStudy')] = 'Field of Study is required.';
+      if (!e.country?.trim())      out[k('country')]      = 'Country is required.';
+      if (!e.startDate)            out[k('startDate')]    = 'Start Date is required.';
+      if (!e.ongoing && !e.endDate) out[k('endDate')]     = 'End Date is required (or tick Ongoing).';
+      if (e.startDate && !e.ongoing && e.endDate) {
+        const a = Date.parse(e.startDate);
+        const b = Date.parse(e.endDate);
+        if (!isNaN(a) && !isNaN(b) && a > b) {
+          out[k('startDate')] = 'Start Date must be on or before End Date.';
+          out[k('endDate')]   = 'End Date must be after Start Date.';
+        }
+      }
+    });
   }
 
   return out;
@@ -1842,7 +1883,7 @@ function Step5DrivingExperience({ d, u, settings, fieldErrors }: { d: ApplicantF
   );
 }
 
-function Step6Education({ d, u, settings, uploadedFiles, onFilesChange }: { d: ApplicantFormData; u: (fn: (p: ApplicantFormData) => ApplicantFormData) => void; settings: FormSettings; uploadedFiles: UploadedFileItem[]; onFilesChange: (files: UploadedFileItem[]) => void }) {
+function Step6Education({ d, u, settings, uploadedFiles, onFilesChange, fieldErrors }: { d: ApplicantFormData; u: (fn: (p: ApplicantFormData) => ApplicantFormData) => void; settings: FormSettings; uploadedFiles: UploadedFileItem[]; onFilesChange: (files: UploadedFileItem[]) => void; fieldErrors?: Record<string, string> }) {
   const addEntry = () => {
     u(prev => ({
       ...prev,
@@ -1856,52 +1897,95 @@ function Step6Education({ d, u, settings, uploadedFiles, onFilesChange }: { d: A
     u(prev => ({ ...prev, education: prev.education.filter(e => e.id !== id) }));
   };
 
+  const errClass = (name: string) =>
+    fieldErrors?.[name] ? 'border-red-500 focus-visible:ring-red-500' : '';
+
   return (
     <div className="space-y-6">
       <SectionTitle title="Education" subtitle="Your educational background" />
-      {d.education.map((entry, i) => (
+      {d.education.map((entry, i) => {
+        const k = (f: string) => `education.${entry.id}.${f}`;
+        return (
         <div key={entry.id} className="p-5 border-2 border-gray-200 rounded-xl space-y-4">
           <div className="flex items-center justify-between">
             <span className="text-sm font-semibold">Entry {i + 1}</span>
-            <button type="button" onClick={() => removeEntry(entry.id)} className="p-1 text-gray-400 hover:text-red-500">
-              <Trash2 className="w-4 h-4" />
+            <button
+              type="button"
+              onClick={() => {
+                if (confirm('Remove this education entry?')) removeEntry(entry.id);
+              }}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-red-300 text-red-600 text-xs font-medium hover:bg-red-50"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              Remove
             </button>
           </div>
           <div className="grid md:grid-cols-2 gap-3">
             <div className="space-y-1">
-              <Label className="text-xs">Level</Label>
+              <Label className="text-xs">Level *</Label>
               <Select value={entry.level} onValueChange={v => updateEntry(entry.id, 'level', v)}>
-                <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                <SelectTrigger className={errClass(k('level'))}><SelectValue placeholder="Select" /></SelectTrigger>
                 <SelectContent>
                   {(settings.educationLevels ?? []).map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
                 </SelectContent>
               </Select>
+              <FieldError errors={fieldErrors} name={k('level')} />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Institution</Label>
-              <Input placeholder="School / University" value={entry.institution} onChange={e => updateEntry(entry.id, 'institution', e.target.value)} />
+              <Label className="text-xs">Institution *</Label>
+              <Input
+                placeholder="School / University"
+                value={entry.institution}
+                onChange={e => updateEntry(entry.id, 'institution', e.target.value)}
+                aria-invalid={!!fieldErrors?.[k('institution')]}
+                className={errClass(k('institution'))}
+              />
+              <FieldError errors={fieldErrors} name={k('institution')} />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Field of Study</Label>
-              <Input placeholder="Field" value={entry.fieldOfStudy} onChange={e => updateEntry(entry.id, 'fieldOfStudy', e.target.value)} />
+              <Label className="text-xs">Field of Study *</Label>
+              <Input
+                placeholder="Field"
+                value={entry.fieldOfStudy}
+                onChange={e => updateEntry(entry.id, 'fieldOfStudy', e.target.value)}
+                aria-invalid={!!fieldErrors?.[k('fieldOfStudy')]}
+                className={errClass(k('fieldOfStudy'))}
+              />
+              <FieldError errors={fieldErrors} name={k('fieldOfStudy')} />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Country</Label>
+              <Label className="text-xs">Country *</Label>
               <CountrySelect value={entry.country} onChange={v => updateEntry(entry.id, 'country', v)} />
+              <FieldError errors={fieldErrors} name={k('country')} />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Start Date</Label>
-              <Input type="date" value={entry.startDate} onChange={e => updateEntry(entry.id, 'startDate', e.target.value)} />
+              <Label className="text-xs">Start Date *</Label>
+              <Input
+                type="date"
+                value={entry.startDate}
+                onChange={e => updateEntry(entry.id, 'startDate', e.target.value)}
+                aria-invalid={!!fieldErrors?.[k('startDate')]}
+                className={errClass(k('startDate'))}
+              />
+              <FieldError errors={fieldErrors} name={k('startDate')} />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">End Date</Label>
+              <Label className="text-xs">End Date *</Label>
               <div className="flex items-center gap-2">
-                <Input type="date" value={entry.ongoing ? '' : entry.endDate} onChange={e => updateEntry(entry.id, 'endDate', e.target.value)} disabled={entry.ongoing} className="flex-1" />
+                <Input
+                  type="date"
+                  value={entry.ongoing ? '' : entry.endDate}
+                  onChange={e => updateEntry(entry.id, 'endDate', e.target.value)}
+                  disabled={entry.ongoing}
+                  className={`flex-1 ${errClass(k('endDate'))}`}
+                  aria-invalid={!!fieldErrors?.[k('endDate')]}
+                />
                 <label className="flex items-center gap-1.5 text-xs whitespace-nowrap cursor-pointer">
                   <Checkbox checked={entry.ongoing} onCheckedChange={c => updateEntry(entry.id, 'ongoing', !!c)} />
                   Ongoing
                 </label>
               </div>
+              <FieldError errors={fieldErrors} name={k('endDate')} />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Degree / Certificate</Label>
@@ -1910,7 +1994,8 @@ function Step6Education({ d, u, settings, uploadedFiles, onFilesChange }: { d: A
             <InlineDocUpload label="Upload Certificate / Diploma" sectionKey={`education-${entry.id}`} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />
           </div>
         </div>
-      ))}
+        );
+      })}
       {d.education.length === 0 && <p className="text-sm text-gray-400 text-center py-6 border-2 border-dashed border-gray-200 rounded-xl">No entries yet.</p>}
       <button type="button" onClick={addEntry} className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-blue-300 rounded-lg text-blue-600 text-sm font-medium hover:border-blue-500 hover:bg-blue-50">
         <Plus className="w-4 h-4" /> Add Education
@@ -2799,7 +2884,7 @@ export function ApplicantFormSteps({
       {actualTab === 3 && <Step3Identification d={d} u={u} settings={settings} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} requiredDocuments={requiredDocuments} fieldErrors={fieldErrors} />}
       {actualTab === 4 && <Step4DrivingLicense d={d} u={u} settings={settings} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} requiredDocuments={requiredDocuments} fieldErrors={fieldErrors} />}
       {actualTab === 5 && <Step5DrivingExperience d={d} u={u} settings={settings} fieldErrors={fieldErrors} />}
-      {actualTab === 6 && <Step6Education d={d} u={u} settings={settings} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />}
+      {actualTab === 6 && <Step6Education d={d} u={u} settings={settings} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} fieldErrors={fieldErrors} />}
       {actualTab === 7 && <Step7WorkHistory d={d} u={u} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />}
       {actualTab === 8 && <Step8Skills d={d} u={u} settings={settings} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />}
       {actualTab === 9 && <Step9Additional d={d} u={u} settings={settings} />}

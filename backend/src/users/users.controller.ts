@@ -90,7 +90,7 @@ export class UsersController {
   @Roles('System Admin', 'HR Manager', 'Agency Manager')
   @ApiOperation({ summary: 'Get user by ID (Agency Manager limited to own-agency users)' })
   findOne(@Param('id') id: string, @CurrentUser() caller: any) {
-    return this.usersService.findOne(id, caller?.role, caller?.agencyId);
+    return this.usersService.findOne(id, caller?.role, caller?.agencyId, caller?.agencyIsSystem);
   }
 
   @Post()
@@ -221,7 +221,7 @@ export class UsersController {
   })
   setManagerOverride(
     @Param('id') id: string,
-    @Body() dto: { allowManagerEdit?: boolean; allowManagerDelete?: boolean },
+    @Body() dto: { allowManagerView?: boolean; allowManagerEdit?: boolean; allowManagerDelete?: boolean },
     @CurrentUser('id') actorId: string,
   ) {
     return this.usersService.setManagerOverride(id, dto ?? {}, actorId);

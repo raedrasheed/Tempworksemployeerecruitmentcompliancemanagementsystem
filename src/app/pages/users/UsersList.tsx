@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router';
 import {
-  Plus, Edit, Search, Trash2, Upload, Download, Copy, Check,
+  Plus, Edit, Eye, Search, Trash2, Upload, Download, Copy, Check,
   ArrowUp, ArrowDown, ArrowUpDown, X, Columns2, RefreshCw,
 } from 'lucide-react';
 import { Card, CardContent } from '../../components/ui/card';
@@ -73,7 +73,7 @@ function SortableHead({ label, field, sortBy, sortOrder, onSort, className }: {
 }
 
 export function UsersList() {
-  const { canCreate, canEdit, canDelete } = usePermissions();
+  const { canCreate, canView, canEdit, canDelete } = usePermissions();
   const currentUser = getCurrentUser();
   const isTempworksAdmin = currentUser?.role === 'System Admin' || currentUser?.role === 'HR Manager';
   // Anyone inside a non-system agency is an external tenant and
@@ -83,14 +83,18 @@ export function UsersList() {
   const isExternalTenantCaller = !!currentUser?.agencyId && currentUser?.agencyIsSystem !== true;
 
   const isPending = (user: any) => user.approvalStatus === 'PENDING_APPROVAL';
-  // Use !! to accept truthy values coming back from the API (boolean
-  // true, 1, "true" string) rather than strict === true, so a value
-  // that was persisted correctly but serialized differently still
-  // unlocks the button.
+  // Per-user overrides: pending users always act as "open" to the
+  // tenant; once approved, only the flag that was flipped on unlocks
+  // that specific capability. Use !! to be forgiving about the API
+  // serialization (boolean, 1, "true" all pass).
+  const canTenantView = (user: any) =>
+    isPending(user) || user.allowManagerView !== false;
   const canTenantEdit = (user: any) =>
     isPending(user) || !!user.allowManagerEdit;
   const canTenantDelete = (user: any) =>
     isPending(user) || !!user.allowManagerDelete;
+  const mayViewRow = (user: any) =>
+    canView('users') && (!isExternalTenantCaller || canTenantView(user));
   const mayEditRow = (user: any) =>
     canEdit('users') && (!isExternalTenantCaller || canTenantEdit(user));
   const mayDeleteRow = (user: any) =>
@@ -550,6 +554,14 @@ export function UsersList() {
                           </Button>
                         )}
                         {/* Per-user manager override toggles live on the Edit User page — System Admin only. */}
+                        {/* View-only button — shown when the caller has view
+                            access but no edit override (otherwise Edit implies
+                            view and this row would be redundant). */}
+                        {mayViewRow(user) && !mayEditRow(user) && (
+                          <Button variant="ghost" size="sm" asChild>
+                            <Link to={`/dashboard/users/${user.id}/edit`}><Eye className="w-4 h-4 mr-1" />View</Link>
+                          </Button>
+                        )}
                         {mayEditRow(user) && (
                           <Button variant="ghost" size="sm" asChild>
                             <Link to={`/dashboard/users/${user.id}/edit`}><Edit className="w-4 h-4 mr-1" />Edit</Link>

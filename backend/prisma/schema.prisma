@@ -286,6 +286,7 @@ model User {
   approvalStatus      AgencyApprovalStatus @default(APPROVED)
   approvedById        String?
   approvedAt          DateTime?
+  allowManagerView    Boolean  @default(true)
   allowManagerEdit    Boolean  @default(false)
   allowManagerDelete  Boolean  @default(false)
 

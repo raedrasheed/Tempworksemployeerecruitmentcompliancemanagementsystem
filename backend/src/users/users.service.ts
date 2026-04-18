@@ -106,6 +106,7 @@ export class UsersService {
       approvalStatus: true,
       approvedAt: true,
       approvedById: true,
+      allowManagerView: true,
       allowManagerEdit: true,
       allowManagerDelete: true,
     };
@@ -132,6 +133,13 @@ export class UsersService {
     const isExternalTenant = !!callerAgencyId && callerAgencyIsSystem !== true;
     if (isExternalTenant) {
       where.agencyId = callerAgencyId;
+      // Hide approved users whose allowManagerView override was
+      // turned off by a Tempworks admin. Pending users and those
+      // with allowManagerView=true (the default) stay visible.
+      where.OR = [
+        { approvalStatus: { not: 'APPROVED' } as any },
+        { allowManagerView: true },
+      ];
     } else {
       if (callerRole !== 'System Admin') {
         where.AND = [{ role: { name: { not: 'System Admin' } } }];
@@ -171,7 +179,7 @@ export class UsersService {
   // ---------------------------------------------------------------------------
   // Find one
   // ---------------------------------------------------------------------------
-  async findOne(id: string, callerRole?: string, callerAgencyId?: string) {
+  async findOne(id: string, callerRole?: string, callerAgencyId?: string, callerAgencyIsSystem?: boolean) {
     const user = await this.prisma.user.findFirst({
       where: { id, deletedAt: null },
       include: {
@@ -188,6 +196,20 @@ export class UsersService {
 
     if (callerRole !== 'System Admin' && (user as any).role?.name === 'System Admin') {
       throw new NotFoundException('User not found');
+    }
+
+    // External-tenant caller viewing an APPROVED agency user needs the
+    // allowManagerView override on (or the row to still be pending).
+    // Tempworks-root users (agency.isSystem) bypass. Default of the
+    // column is true so existing data keeps current visibility.
+    const isExternalTenantCaller =
+      callerRole !== 'System Admin' && callerAgencyIsSystem !== true;
+    if (isExternalTenantCaller && user.agencyId) {
+      const approval = (user as any).approvalStatus;
+      const allowView = (user as any).allowManagerView;
+      if (approval === 'APPROVED' && allowView === false) {
+        throw new NotFoundException('User not found');
+      }
     }
 
     const { passwordHash, refreshToken, ...result } = user as any;
@@ -769,12 +791,13 @@ export class UsersService {
 
   async setManagerOverride(
     id: string,
-    flags: { allowManagerEdit?: boolean; allowManagerDelete?: boolean },
+    flags: { allowManagerView?: boolean; allowManagerEdit?: boolean; allowManagerDelete?: boolean },
     actorId?: string,
   ) {
     const existing = await this.prisma.user.findFirst({ where: { id, deletedAt: null } });
     if (!existing) throw new NotFoundException('User not found');
     const data: any = {};
+    if (typeof flags.allowManagerView === 'boolean')   data.allowManagerView   = flags.allowManagerView;
     if (typeof flags.allowManagerEdit === 'boolean')   data.allowManagerEdit   = flags.allowManagerEdit;
     if (typeof flags.allowManagerDelete === 'boolean') data.allowManagerDelete = flags.allowManagerDelete;
     const user = await this.prisma.user.update({

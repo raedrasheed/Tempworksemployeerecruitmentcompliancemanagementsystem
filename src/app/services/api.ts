@@ -828,7 +828,10 @@ export const usersApi = {
   approveAgencyUser: (id: string) =>
     apiFetch<any>(`/users/${id}/approve`, { method: 'POST' }),
 
-  setManagerOverride: (id: string, flags: { allowManagerEdit?: boolean; allowManagerDelete?: boolean }) =>
+  setManagerOverride: (
+    id: string,
+    flags: { allowManagerView?: boolean; allowManagerEdit?: boolean; allowManagerDelete?: boolean },
+  ) =>
     apiFetch<any>(`/users/${id}/manager-override`, { method: 'POST', body: JSON.stringify(flags) }),
 };
 

@@ -117,6 +117,7 @@ export function EditUser() {
   // Manager Permissions" card rendered below the form for
   // System Admin viewing an approved agency user.
   const [approvalStatus, setApprovalStatus] = useState<string>('');
+  const [allowManagerView, setAllowManagerView] = useState(true);
   const [allowManagerEdit, setAllowManagerEdit] = useState(false);
   const [allowManagerDelete, setAllowManagerDelete] = useState(false);
   const [savingOverride, setSavingOverride] = useState(false);
@@ -186,17 +187,19 @@ export function EditUser() {
       setRoles(roleList ?? []);
       setAgencies(agencyPage?.data ?? []);
       setApprovalStatus(user.approvalStatus ?? '');
+      setAllowManagerView(user.allowManagerView !== false);
       setAllowManagerEdit(Boolean(user.allowManagerEdit));
       setAllowManagerDelete(Boolean(user.allowManagerDelete));
     }).catch(() => setNotFound(true))
       .finally(() => setLoading(false));
   }, [id]);
 
-  const handleManagerOverride = async (patch: { allowManagerEdit?: boolean; allowManagerDelete?: boolean }) => {
+  const handleManagerOverride = async (patch: { allowManagerView?: boolean; allowManagerEdit?: boolean; allowManagerDelete?: boolean }) => {
     if (!id) return;
     setSavingOverride(true);
     try {
       await usersApi.setManagerOverride(id, patch);
+      if (typeof patch.allowManagerView === 'boolean') setAllowManagerView(patch.allowManagerView);
       if (typeof patch.allowManagerEdit === 'boolean') setAllowManagerEdit(patch.allowManagerEdit);
       if (typeof patch.allowManagerDelete === 'boolean') setAllowManagerDelete(patch.allowManagerDelete);
       toast.success('Agency Manager permissions updated');
@@ -662,6 +665,19 @@ export function EditUser() {
                 </p>
               </CardHeader>
               <CardContent className="space-y-3">
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="mt-1 h-4 w-4 rounded border-input"
+                    checked={allowManagerView}
+                    disabled={savingOverride}
+                    onChange={e => handleManagerOverride({ allowManagerView: e.target.checked })}
+                  />
+                  <div>
+                    <div className="font-medium text-sm text-[#0F172A]">Allow Agency Manager to view this user</div>
+                    <p className="text-xs text-muted-foreground">When on, the owning agency's users can open this approved user's profile; off hides them from the list entirely.</p>
+                  </div>
+                </label>
                 <label className="flex items-start gap-3 cursor-pointer">
                   <input
                     type="checkbox"

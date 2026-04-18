@@ -2544,7 +2544,7 @@ function Step10Documents({ uploadedFiles, onFilesChange, requiredDocuments = [] 
   );
 }
 
-async function printApplicationSummary(d: ApplicantFormData, uploadedFiles: UploadedFileItem[]) {
+async function downloadApplicationSummary(d: ApplicantFormData, uploadedFiles: UploadedFileItem[]) {
   const field = (label: string, value: string | undefined | null | boolean) => {
     const v = typeof value === 'boolean' ? (value ? 'Yes' : 'No') : value;
     if (!v) return '';
@@ -2630,12 +2630,22 @@ ${filesWithData.length > 0 ? section('Uploaded Documents', filesWithData.map(f =
 </div>`).join('')) : ''}
 </body></html>`;
 
-  const win = window.open('', '_blank');
-  if (win) {
-    win.document.write(html);
-    win.document.close();
-    setTimeout(() => win.print(), 300);
-  }
+  // Save the summary directly to the user's Downloads folder — no new
+  // window, no print dialog, no popup blocker. Opening window.print() here
+  // previously stole focus from the tab and, on some browsers, blocked the
+  // underlying form from finishing its submit.
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const stamp = new Date().toISOString().slice(0, 10);
+  const safeName = [d.firstName, d.lastName].filter(Boolean).join('_').replace(/[^\w-]+/g, '') || 'application';
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${safeName}_application_${stamp}.html`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  // Small delay before revoking so the browser has a chance to grab the blob
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 function ReviewField({ label, value }: { label: string; value?: string | null | boolean }) {
@@ -2692,7 +2702,7 @@ function Step11Review({ d, u, settings, photoFile, existingPhotoUrl, uploadedFil
         <SectionTitle title="Review Your Application" subtitle="Please review all details before submitting" />
         <button
           type="button"
-          onClick={() => printApplicationSummary(d, uploadedFiles)}
+          onClick={() => downloadApplicationSummary(d, uploadedFiles)}
           className="flex items-center gap-2 px-4 py-2 border-2 border-blue-300 rounded-lg text-blue-600 text-sm font-medium hover:border-blue-500 hover:bg-blue-50 transition-all flex-shrink-0"
         >
           <FileText className="w-4 h-4" />

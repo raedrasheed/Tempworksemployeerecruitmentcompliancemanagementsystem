@@ -557,6 +557,19 @@ export function getStepErrors(
     if (!d.hasFirstAid) errors.push('Please answer whether you have a First Aid Certificate.');
     if (d.hasFirstAid === 'yes' && !hasFile('firstAid'))
       errors.push('You indicated you have a First Aid Certificate — please upload it.');
+
+    d.languages?.forEach((lang, i) => {
+      const n = i + 1;
+      if (!lang.language?.trim()) errors.push(`Language #${n}: please select a language.`);
+      if (!lang.motherTongue) {
+        if (!lang.speakingLevel)  errors.push(`Language #${n}: Speaking level is required.`);
+        if (!lang.readingLevel)   errors.push(`Language #${n}: Reading level is required.`);
+        if (!lang.writingLevel)   errors.push(`Language #${n}: Writing level is required.`);
+        if (!lang.listeningLevel) errors.push(`Language #${n}: Listening level is required.`);
+      }
+      if (lang.hasCertificate && !lang.certificate?.trim())
+        errors.push(`Language #${n}: Certificate name is required (or untick 'Has Certificate').`);
+    });
   }
 
   // ── Tab 9: Additional ─────────────────────────────────────────────────────
@@ -649,6 +662,23 @@ export function getStepFieldErrors(
       if (!d.domesticExpKm?.toString().trim())      out['domesticExpKm']      = 'Total KM is required.';
       if (!d.domesticExpCountry?.toString().trim()) out['domesticExpCountry'] = 'Country is required.';
     }
+  }
+
+  // Tab 8 — Skills & Qualifications (per-row required fields when a
+  // language entry exists)
+  if (actualTab === 8) {
+    (d.languages ?? []).forEach((lang) => {
+      const k = (f: string) => `languages.${lang.id}.${f}`;
+      if (!lang.language?.trim()) out[k('language')] = 'Please select a language.';
+      if (!lang.motherTongue) {
+        if (!lang.speakingLevel)  out[k('speakingLevel')]  = 'Level is required.';
+        if (!lang.readingLevel)   out[k('readingLevel')]   = 'Level is required.';
+        if (!lang.writingLevel)   out[k('writingLevel')]   = 'Level is required.';
+        if (!lang.listeningLevel) out[k('listeningLevel')] = 'Level is required.';
+      }
+      if (lang.hasCertificate && !lang.certificate?.trim())
+        out[k('certificate')] = 'Certificate name is required.';
+    });
   }
 
   // Tab 6 — Education (per-row required fields when an entry exists)
@@ -2164,7 +2194,7 @@ function Step7WorkHistory({ d, u, uploadedFiles, onFilesChange }: { d: Applicant
   );
 }
 
-function Step8Skills({ d, u, settings, uploadedFiles, onFilesChange }: { d: ApplicantFormData; u: (fn: (p: ApplicantFormData) => ApplicantFormData) => void; settings: FormSettings; uploadedFiles: UploadedFileItem[]; onFilesChange: (files: UploadedFileItem[]) => void }) {
+function Step8Skills({ d, u, settings, uploadedFiles, onFilesChange, fieldErrors }: { d: ApplicantFormData; u: (fn: (p: ApplicantFormData) => ApplicantFormData) => void; settings: FormSettings; uploadedFiles: UploadedFileItem[]; onFilesChange: (files: UploadedFileItem[]) => void; fieldErrors?: Record<string, string> }) {
   const set = (field: keyof ApplicantFormData) => (value: any) => u(prev => ({ ...prev, [field]: value }));
   const addPresetSkill = (skill: string) => {
     u(prev => ({ ...prev, skills: [...prev.skills, { id: crypto.randomUUID(), skill, level: '', isCustom: false }] }));
@@ -2196,52 +2226,75 @@ function Step8Skills({ d, u, settings, uploadedFiles, onFilesChange }: { d: Appl
       <SectionTitle title="Skills & Qualifications" subtitle="Languages, computer skills and certifications" />
       <div className="space-y-4">
         <SubSection title="Languages" />
-        {d.languages.map((lang, i) => (
+        {d.languages.map((lang, i) => {
+          const k = (f: string) => `languages.${lang.id}.${f}`;
+          const errClass = (name: string) =>
+            fieldErrors?.[name] ? 'border-red-500 focus-visible:ring-red-500' : '';
+          return (
           <div key={lang.id} className="p-4 border-2 border-gray-200 rounded-lg space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">Language {i + 1}</span>
-              <button type="button" onClick={() => removeLang(lang.id)} className="p-1 text-gray-400 hover:text-red-500">
+              <button
+                type="button"
+                onClick={() => removeLang(lang.id)}
+                title="Remove entry"
+                aria-label="Remove entry"
+                className="p-1.5 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50"
+              >
                 <Trash2 className="w-4 h-4" />
               </button>
             </div>
             <div className="grid md:grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label className="text-xs">Language</Label>
+                <Label className="text-xs">Language *</Label>
                 <Select value={lang.language} onValueChange={v => updateLang(lang.id, 'language', v)}>
-                  <SelectTrigger><SelectValue placeholder="Select language" /></SelectTrigger>
+                  <SelectTrigger className={errClass(k('language'))}><SelectValue placeholder="Select language" /></SelectTrigger>
                   <SelectContent>
                     {LANGUAGES.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
                   </SelectContent>
                 </Select>
+                <FieldError errors={fieldErrors} name={k('language')} />
               </div>
               <div className="flex items-center gap-2 mt-5">
                 <Checkbox checked={lang.motherTongue} onCheckedChange={c => updateLang(lang.id, 'motherTongue', !!c)} />
                 <Label className="text-xs cursor-pointer">Mother Tongue</Label>
               </div>
-              {(['Speaking', 'Reading', 'Writing', 'Listening'] as const).map(skill => (
-                <div key={skill} className="space-y-1">
-                  <Label className="text-xs">{skill}</Label>
-                  <Select value={(lang as any)[`${skill.toLowerCase()}Level`]} onValueChange={v => updateLang(lang.id, `${skill.toLowerCase()}Level` as keyof LanguageEntry, v)}>
-                    <SelectTrigger><SelectValue placeholder="Level" /></SelectTrigger>
-                    <SelectContent>
-                      {PROFICIENCY_LEVELS.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-              ))}
+              {(['Speaking', 'Reading', 'Writing', 'Listening'] as const).map(skill => {
+                const levelKey = `${skill.toLowerCase()}Level`;
+                return (
+                  <div key={skill} className="space-y-1">
+                    <Label className="text-xs">{skill}{!lang.motherTongue && ' *'}</Label>
+                    <Select value={(lang as any)[levelKey]} onValueChange={v => updateLang(lang.id, levelKey as keyof LanguageEntry, v)}>
+                      <SelectTrigger className={errClass(k(levelKey))}><SelectValue placeholder="Level" /></SelectTrigger>
+                      <SelectContent>
+                        {PROFICIENCY_LEVELS.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <FieldError errors={fieldErrors} name={k(levelKey)} />
+                  </div>
+                );
+              })}
               <div className="flex items-center gap-2 mt-1 md:col-span-2">
                 <Checkbox checked={lang.hasCertificate} onCheckedChange={c => updateLang(lang.id, 'hasCertificate', !!c)} />
                 <Label className="text-xs cursor-pointer">Has Certificate</Label>
               </div>
               {lang.hasCertificate && (
                 <div className="space-y-1 md:col-span-2">
-                  <Label className="text-xs">Certificate</Label>
-                  <Input placeholder="e.g. IELTS 7.5" value={lang.certificate} onChange={e => updateLang(lang.id, 'certificate', e.target.value)} />
+                  <Label className="text-xs">Certificate *</Label>
+                  <Input
+                    placeholder="e.g. IELTS 7.5"
+                    value={lang.certificate}
+                    onChange={e => updateLang(lang.id, 'certificate', e.target.value)}
+                    aria-invalid={!!fieldErrors?.[k('certificate')]}
+                    className={errClass(k('certificate'))}
+                  />
+                  <FieldError errors={fieldErrors} name={k('certificate')} />
                 </div>
               )}
             </div>
           </div>
-        ))}
+          );
+        })}
         <button type="button" onClick={addLang} className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-blue-300 rounded-lg text-blue-600 text-sm font-medium hover:border-blue-500 hover:bg-blue-50">
           <Plus className="w-4 h-4" /> Add Language
         </button>
@@ -2885,7 +2938,7 @@ export function ApplicantFormSteps({
       {actualTab === 5 && <Step5DrivingExperience d={d} u={u} settings={settings} fieldErrors={fieldErrors} />}
       {actualTab === 6 && <Step6Education d={d} u={u} settings={settings} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} fieldErrors={fieldErrors} />}
       {actualTab === 7 && <Step7WorkHistory d={d} u={u} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />}
-      {actualTab === 8 && <Step8Skills d={d} u={u} settings={settings} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />}
+      {actualTab === 8 && <Step8Skills d={d} u={u} settings={settings} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} fieldErrors={fieldErrors} />}
       {actualTab === 9 && <Step9Additional d={d} u={u} settings={settings} />}
       {actualTab === 10 && <Step10Documents uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} requiredDocuments={requiredDocuments} />}
       {actualTab === 11 && <Step11Review d={d} u={u} settings={settings} photoFile={photoFile} existingPhotoUrl={existingPhotoUrl} uploadedFiles={uploadedFiles} />}

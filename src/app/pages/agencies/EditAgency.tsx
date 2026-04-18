@@ -44,7 +44,13 @@ export function EditAgency() {
   const { canEdit } = usePermissions();
   const { id } = useParams();
   const navigate = useNavigate();
-  const isSystemAdmin = getCurrentUser()?.role === 'System Admin';
+  const currentRole = getCurrentUser()?.role;
+  const isSystemAdmin = currentRole === 'System Admin';
+  // Agency Manager can edit profile fields of their own agency but
+  // not the business-identity fields (name, country, status). The
+  // backend strips these from the payload regardless; the UI locks
+  // them so nothing is silently ignored.
+  const isAgencyManager = currentRole === 'Agency Manager';
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -246,15 +252,15 @@ export function EditAgency() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2 col-span-2">
                   <Label htmlFor="name">Agency Name *</Label>
-                  <Input id="name" value={form.name} onChange={e => setField('name', e.target.value)} required />
+                  <Input id="name" value={form.name} onChange={e => setField('name', e.target.value)} required disabled={isAgencyManager} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="country">Country *</Label>
-                  <CountrySelect value={form.country} onChange={v => setField('country', v)} required />
+                  <CountrySelect value={form.country} onChange={v => setField('country', v)} required disabled={isAgencyManager} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="status">Status</Label>
-                  <Select value={form.status} onValueChange={v => setField('status', v)}>
+                  <Select value={form.status} onValueChange={v => setField('status', v)} disabled={isAgencyManager}>
                     <SelectTrigger id="status"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="ACTIVE">Active</SelectItem>

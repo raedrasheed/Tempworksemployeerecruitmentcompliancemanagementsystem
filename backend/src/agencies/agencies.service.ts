@@ -117,7 +117,11 @@ export class AgenciesService {
    * is a one-line change here.
    */
   static readonly PROTECTED_FIELDS_FOR_MANAGER: string[] = [
-    'name', 'managerId', 'maxUsersPerAgency', 'status', 'deletedAt', 'deletedBy', 'deletionReason',
+    // Business-identity fields Agency Manager must never change.
+    'name', 'country', 'status',
+    // Admin-only fields.
+    'managerId', 'maxUsersPerAgency', 'isSystem',
+    'deletedAt', 'deletedBy', 'deletionReason',
   ];
 
   async update(

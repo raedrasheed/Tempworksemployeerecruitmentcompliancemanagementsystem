@@ -77,6 +77,10 @@ export function UsersList() {
   const { canCreate, canEdit, canDelete } = usePermissions();
   const currentUser = getCurrentUser();
   const isTempworksAdmin = currentUser?.role === 'System Admin' || currentUser?.role === 'HR Manager';
+  // Flipping the "Agency Manager may edit/delete this user" override
+  // is a System Admin only control — HR Managers can approve agency
+  // users but don't get to hand back edit/delete powers.
+  const isSystemAdmin = currentUser?.role === 'System Admin';
   const isAgencyManager = currentUser?.role === 'Agency Manager';
 
   // Agency Manager can touch an agency user only while they're
@@ -561,8 +565,8 @@ export function UsersList() {
                             {approveBusy === user.id ? '…' : 'Approve'}
                           </Button>
                         )}
-                        {/* Per-user manager override toggles — admin-only, only on APPROVED agency users */}
-                        {isTempworksAdmin && user.approvalStatus === 'APPROVED' && user.agencyId && (
+                        {/* Per-user manager override toggles — System Admin only, only on APPROVED agency users */}
+                        {isSystemAdmin && user.approvalStatus === 'APPROVED' && user.agencyId && (
                           <>
                             <Button
                               variant="ghost"

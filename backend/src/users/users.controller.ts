@@ -202,11 +202,11 @@ export class UsersController {
   }
 
   @Post(':id/manager-override')
-  @Roles('System Admin', 'HR Manager')
+  @Roles('System Admin')
   @ApiOperation({
     summary:
       'Grant or revoke the owning Agency Manager\'s ability to edit/delete an approved user. ' +
-      'Body: { allowManagerEdit?: boolean, allowManagerDelete?: boolean }',
+      'System Admin only. Body: { allowManagerEdit?: boolean, allowManagerDelete?: boolean }',
   })
   setManagerOverride(
     @Param('id') id: string,

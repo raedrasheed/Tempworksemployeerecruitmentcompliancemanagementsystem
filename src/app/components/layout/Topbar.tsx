@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { Search, Bell, Settings, User, Lock, Globe, Moon, Sun, LogOut, ChevronDown, Eye, EyeOff, CheckCircle, X, Palette, CheckCheck, FileText, DollarSign, AlertTriangle, Info } from 'lucide-react';
+import { Search, Bell, Settings, User, Lock, Globe, Moon, Sun, LogOut, ChevronDown, Eye, EyeOff, CheckCircle, X, Palette, CheckCheck, FileText, DollarSign, AlertTriangle, Info, Building2 } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
@@ -478,6 +478,15 @@ export function Topbar() {
                 <span>Profile</span>
               </Link>
             </DropdownMenuItem>
+
+            {liveUser?.agencyId && (
+              <DropdownMenuItem asChild>
+                <Link to="/dashboard/my-agency" className="cursor-pointer">
+                  <Building2 className="w-4 h-4" />
+                  <span>Agency Profile</span>
+                </Link>
+              </DropdownMenuItem>
+            )}
 
             <DropdownMenuItem onClick={() => setShowChangePassword(true)} className="cursor-pointer">
               <Lock className="w-4 h-4" />

@@ -34,6 +34,7 @@ import { WorkflowManagement } from './pages/workflow/WorkflowManagement';
 import { StageDetails } from './pages/workflow/StageDetails';
 import { AgenciesList } from './pages/agencies/AgenciesList';
 import { AgencyProfile } from './pages/agencies/AgencyProfile';
+import { MyAgencyProfile } from './pages/agencies/MyAgencyProfile';
 import { AddAgency } from './pages/agencies/AddAgency';
 import { EditAgency } from './pages/agencies/EditAgency';
 import { AgencyUsersManagement } from './pages/agencies/AgencyUsersManagement';
@@ -180,6 +181,7 @@ export const router = createBrowserRouter([
       { path: 'workflow-management', Component: WorkflowManagement },
       
       // Agencies routes
+      { path: 'my-agency', Component: MyAgencyProfile },
       { path: 'agencies', Component: AgenciesList },
       { path: 'agencies/add', Component: AddAgency },
       { path: 'agencies/:id', Component: AgencyProfile },

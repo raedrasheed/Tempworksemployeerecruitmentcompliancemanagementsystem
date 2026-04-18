@@ -17,6 +17,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '../../components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 
 const getStatusColor = (status: string) => {
   switch (status?.toUpperCase()) {
@@ -179,6 +180,8 @@ export function ApplicantsList() {
   // ── Bulk actions ───────────────────────────────────────────────────────────
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkActionInProgress, setBulkActionInProgress] = useState(false);
+  const [statusModalOpen, setStatusModalOpen] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState<string>('');
 
   // ── Fetch ──────────────────────────────────────────────────────────────────
   const fetchApplicants = useCallback(async () => {
@@ -441,7 +444,19 @@ export function ApplicantsList() {
                     handleBulkAction('TIER_CHANGE', 'CANDIDATE');
                   }}
                 >Promote to Candidate</Button>
-                <Button variant="outline" size="sm" disabled={bulkActionInProgress} onClick={() => { const s = prompt('Enter new status (NEW / SCREENING / INTERVIEW / OFFER / ACCEPTED / REJECTED / WITHDRAWN / ONBOARDING)'); if (s) handleBulkAction('STATUS_CHANGE', s.toUpperCase()); }}>Change Status</Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={bulkActionInProgress}
+                  onClick={() => {
+                    if (selected.size === 0) {
+                      toast.error('Select at least one applicant');
+                      return;
+                    }
+                    setPendingStatus('');
+                    setStatusModalOpen(true);
+                  }}
+                >Change Status</Button>
               </>
             )}
             <Button variant="outline" size="sm" className="text-red-600" disabled={bulkActionInProgress} onClick={async () => {
@@ -734,6 +749,51 @@ export function ApplicantsList() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Bulk status change modal — predefined list, no free-text entry */}
+      <Dialog open={statusModalOpen} onOpenChange={(open) => {
+        setStatusModalOpen(open);
+        if (!open) setPendingStatus('');
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Change status</DialogTitle>
+            <DialogDescription>
+              Select a new status for {selected.size} selected applicant{selected.size === 1 ? '' : 's'}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-2">
+            <Select value={pendingStatus} onValueChange={setPendingStatus}>
+              <SelectTrigger><SelectValue placeholder="Choose a status..." /></SelectTrigger>
+              <SelectContent>
+                {STATUSES.map(s => (
+                  <SelectItem key={s} value={s}>{s.replace(/_/g, ' ')}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setStatusModalOpen(false)} disabled={bulkActionInProgress}>
+              Cancel
+            </Button>
+            <Button
+              disabled={bulkActionInProgress || !pendingStatus}
+              onClick={async () => {
+                if (!pendingStatus) {
+                  toast.error('Please select a status');
+                  return;
+                }
+                setStatusModalOpen(false);
+                const next = pendingStatus;
+                setPendingStatus('');
+                await handleBulkAction('STATUS_CHANGE', next);
+              }}
+            >
+              Apply
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

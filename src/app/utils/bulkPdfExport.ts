@@ -8,7 +8,18 @@
  */
 import type { ReactElement } from 'react';
 import { pdf } from '@react-pdf/renderer';
-import JSZip from 'jszip';
+
+/** Lazy-load JSZip so a missing install only downgrades to per-file fallback
+ *  instead of breaking Vite's module graph for the whole app. */
+async function loadJSZip(): Promise<any | null> {
+  try {
+    const mod = await import('jszip');
+    return (mod as any).default ?? mod;
+  } catch (err) {
+    console.warn('[bulkPdfExport] JSZip not available, falling back to per-file downloads.', err);
+    return null;
+  }
+}
 
 export type BulkRenderFn<T> = (record: T) => Promise<ReactElement> | ReactElement;
 export type BulkFilenameFn<T> = (record: T) => string;
@@ -92,36 +103,38 @@ export async function exportRecordsAsPdfZip<T>(opts: BulkPdfExportOptions<T>): P
 
   // 2. Try to zip. If JSZip is unavailable at runtime, fall back to
   //    sequential downloads so the user never ends up with nothing.
-  try {
-    const zip = new JSZip();
-    const used = new Set<string>();
-    for (const { name, blob } of parts) {
-      let safe = safeFilename(name);
-      if (!safe.toLowerCase().endsWith('.pdf')) safe += '.pdf';
-      // De-dup collisions by appending a counter.
-      let unique = safe;
-      let i = 2;
-      while (used.has(unique)) {
-        unique = safe.replace(/\.pdf$/i, `_${i}.pdf`);
-        i++;
+  const JSZip = await loadJSZip();
+  if (JSZip) {
+    try {
+      const zip = new JSZip();
+      const used = new Set<string>();
+      for (const { name, blob } of parts) {
+        let safe = safeFilename(name);
+        if (!safe.toLowerCase().endsWith('.pdf')) safe += '.pdf';
+        let unique = safe;
+        let i = 2;
+        while (used.has(unique)) {
+          unique = safe.replace(/\.pdf$/i, `_${i}.pdf`);
+          i++;
+        }
+        used.add(unique);
+        zip.file(unique, await blob.arrayBuffer());
       }
-      used.add(unique);
-      zip.file(unique, await blob.arrayBuffer());
+      const zipBlob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
+      const finalName = zipName.toLowerCase().endsWith('.zip') ? zipName : `${zipName}.zip`;
+      downloadBlob(zipBlob, safeFilename(finalName.replace(/\.zip$/i, '')) + '.zip');
+      return;
+    } catch (err) {
+      console.error('[bulkPdfExport] Zip packaging failed, falling back to per-file downloads', err);
     }
-    const zipBlob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
-    const finalName = zipName.toLowerCase().endsWith('.zip') ? zipName : `${zipName}.zip`;
-    downloadBlob(zipBlob, safeFilename(finalName.replace(/\.zip$/i, '')) + '.zip');
-    return;
-  } catch (err) {
-    // Fallback: download individually, spaced slightly so browsers accept each one.
-    console.error('Zip packaging failed, falling back to per-file downloads', err);
-    for (let i = 0; i < parts.length; i++) {
-      const { name, blob } = parts[i];
-      let safe = safeFilename(name);
-      if (!safe.toLowerCase().endsWith('.pdf')) safe += '.pdf';
-      downloadBlob(blob, safe);
-      // Give the browser a beat between downloads.
-      if (i < parts.length - 1) await new Promise(r => setTimeout(r, 300));
-    }
+  }
+
+  // Fallback: download individually, spaced slightly so browsers accept each one.
+  for (let i = 0; i < parts.length; i++) {
+    const { name, blob } = parts[i];
+    let safe = safeFilename(name);
+    if (!safe.toLowerCase().endsWith('.pdf')) safe += '.pdf';
+    downloadBlob(blob, safe);
+    if (i < parts.length - 1) await new Promise(r => setTimeout(r, 300));
   }
 }

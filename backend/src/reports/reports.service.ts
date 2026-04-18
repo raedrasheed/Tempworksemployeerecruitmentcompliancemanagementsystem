@@ -762,7 +762,7 @@ export class ReportsService {
 
   // ── Dashboard ─────────────────────────────────────────────────────────────
 
-  async getDashboard(actor?: { role?: string; agencyId?: string }) {
+  async getDashboard(actor?: { role?: string; agencyId?: string; agencyIsSystem?: boolean }) {
     const now              = new Date();
     const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const fwd60            = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000);

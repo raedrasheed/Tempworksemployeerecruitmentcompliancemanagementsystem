@@ -503,6 +503,21 @@ export function getStepErrors(
   if (actualTab === 5) {
     if (!d.trafficAccidents)
       errors.push('Please answer whether you have been involved in any traffic accidents in the past 3 years.');
+
+    if (!d.drivingExpType) {
+      errors.push('Please select your Experience Type (EU / Domestic / Both).');
+    } else {
+      if (d.drivingExpType === 'eu' || d.drivingExpType === 'both') {
+        if (!d.euExpYears?.toString().trim())   errors.push('EU Experience: Years is required.');
+        if (!d.euExpKm?.toString().trim())      errors.push('EU Experience: Total KM is required.');
+        if (!d.euExpCountries?.toString().trim()) errors.push('EU Experience: Country is required.');
+      }
+      if (d.drivingExpType === 'domestic' || d.drivingExpType === 'both') {
+        if (!d.domesticExpYears?.toString().trim())   errors.push('Domestic Experience: Years is required.');
+        if (!d.domesticExpKm?.toString().trim())      errors.push('Domestic Experience: Total KM is required.');
+        if (!d.domesticExpCountry?.toString().trim()) errors.push('Domestic Experience: Country is required.');
+      }
+    }
   }
 
   // ── Tab 7: Work Experience ────────────────────────────────────────────────
@@ -599,6 +614,21 @@ export function getStepFieldErrors(
         out[`qualifications.${q.id}.expiryDate`] = 'Expiry Date must be after Issue Date.';
       }
     });
+  }
+
+  // Tab 5 — Driving Experience
+  if (actualTab === 5) {
+    if (!d.drivingExpType) out['drivingExpType'] = 'Please pick an Experience Type.';
+    if (d.drivingExpType === 'eu' || d.drivingExpType === 'both') {
+      if (!d.euExpYears?.toString().trim())      out['euExpYears']      = 'Years is required.';
+      if (!d.euExpKm?.toString().trim())         out['euExpKm']         = 'Total KM is required.';
+      if (!d.euExpCountries?.toString().trim()) out['euExpCountries'] = 'Country is required.';
+    }
+    if (d.drivingExpType === 'domestic' || d.drivingExpType === 'both') {
+      if (!d.domesticExpYears?.toString().trim())   out['domesticExpYears']   = 'Years is required.';
+      if (!d.domesticExpKm?.toString().trim())      out['domesticExpKm']      = 'Total KM is required.';
+      if (!d.domesticExpCountry?.toString().trim()) out['domesticExpCountry'] = 'Country is required.';
+    }
   }
 
   return out;
@@ -1573,7 +1603,7 @@ function Step4DrivingLicense({ d, u, settings, uploadedFiles, onFilesChange, req
   );
 }
 
-function Step5DrivingExperience({ d, u, settings }: { d: ApplicantFormData; u: (fn: (p: ApplicantFormData) => ApplicantFormData) => void; settings: FormSettings }) {
+function Step5DrivingExperience({ d, u, settings, fieldErrors }: { d: ApplicantFormData; u: (fn: (p: ApplicantFormData) => ApplicantFormData) => void; settings: FormSettings; fieldErrors?: Record<string, string> }) {
   const set = (field: keyof ApplicantFormData) => (value: any) => u(prev => ({ ...prev, [field]: value }));
   const toggle = (field: 'transportTypes' | 'truckBrands' | 'selectedGpsSystems' | 'trailerTypes' | 'workRegime', value: string) => {
     u(prev => {
@@ -1613,38 +1643,68 @@ function Step5DrivingExperience({ d, u, settings }: { d: ApplicantFormData; u: (
       </div>
       {(d.drivingExpType === 'eu' || d.drivingExpType === 'both') && (
         <div className="space-y-4">
-          <SubSection title="EU Experience" />
+          <SubSection title="EU Experience *" />
           <div className="grid md:grid-cols-3 gap-4">
             <div className="space-y-1">
-              <Label className="text-xs">Years</Label>
-              <Input type="number" min="0" placeholder="Years" value={d.euExpYears} onChange={e => set('euExpYears')(e.target.value)} />
+              <Label className="text-xs">Years *</Label>
+              <Input
+                type="number" min="0" placeholder="Years"
+                value={d.euExpYears}
+                onChange={e => set('euExpYears')(e.target.value)}
+                aria-invalid={!!fieldErrors?.euExpYears}
+                className={fieldErrors?.euExpYears ? 'border-red-500 focus-visible:ring-red-500' : ''}
+              />
+              <FieldError errors={fieldErrors} name="euExpYears" />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Total KM</Label>
-              <Input placeholder="e.g. 500000" value={d.euExpKm} onChange={e => set('euExpKm')(e.target.value)} />
+              <Label className="text-xs">Total KM *</Label>
+              <Input
+                placeholder="e.g. 500000"
+                value={d.euExpKm}
+                onChange={e => set('euExpKm')(e.target.value)}
+                aria-invalid={!!fieldErrors?.euExpKm}
+                className={fieldErrors?.euExpKm ? 'border-red-500 focus-visible:ring-red-500' : ''}
+              />
+              <FieldError errors={fieldErrors} name="euExpKm" />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Country</Label>
+              <Label className="text-xs">Country *</Label>
               <CountrySelect value={d.euExpCountries} onChange={set('euExpCountries')} />
+              <FieldError errors={fieldErrors} name="euExpCountries" />
             </div>
           </div>
         </div>
       )}
       {(d.drivingExpType === 'domestic' || d.drivingExpType === 'both') && (
         <div className="space-y-4">
-          <SubSection title="Domestic Experience" />
+          <SubSection title="Domestic Experience *" />
           <div className="grid md:grid-cols-3 gap-4">
             <div className="space-y-1">
-              <Label className="text-xs">Years</Label>
-              <Input type="number" min="0" placeholder="Years" value={d.domesticExpYears} onChange={e => set('domesticExpYears')(e.target.value)} />
+              <Label className="text-xs">Years *</Label>
+              <Input
+                type="number" min="0" placeholder="Years"
+                value={d.domesticExpYears}
+                onChange={e => set('domesticExpYears')(e.target.value)}
+                aria-invalid={!!fieldErrors?.domesticExpYears}
+                className={fieldErrors?.domesticExpYears ? 'border-red-500 focus-visible:ring-red-500' : ''}
+              />
+              <FieldError errors={fieldErrors} name="domesticExpYears" />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Total KM</Label>
-              <Input placeholder="e.g. 100000" value={d.domesticExpKm} onChange={e => set('domesticExpKm')(e.target.value)} />
+              <Label className="text-xs">Total KM *</Label>
+              <Input
+                placeholder="e.g. 100000"
+                value={d.domesticExpKm}
+                onChange={e => set('domesticExpKm')(e.target.value)}
+                aria-invalid={!!fieldErrors?.domesticExpKm}
+                className={fieldErrors?.domesticExpKm ? 'border-red-500 focus-visible:ring-red-500' : ''}
+              />
+              <FieldError errors={fieldErrors} name="domesticExpKm" />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Country</Label>
+              <Label className="text-xs">Country *</Label>
               <CountrySelect value={d.domesticExpCountry} onChange={set('domesticExpCountry')} />
+              <FieldError errors={fieldErrors} name="domesticExpCountry" />
             </div>
           </div>
         </div>
@@ -2738,7 +2798,7 @@ export function ApplicantFormSteps({
       {actualTab === 2 && <Step2Contact d={d} u={u} settings={settings} />}
       {actualTab === 3 && <Step3Identification d={d} u={u} settings={settings} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} requiredDocuments={requiredDocuments} fieldErrors={fieldErrors} />}
       {actualTab === 4 && <Step4DrivingLicense d={d} u={u} settings={settings} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} requiredDocuments={requiredDocuments} fieldErrors={fieldErrors} />}
-      {actualTab === 5 && <Step5DrivingExperience d={d} u={u} settings={settings} />}
+      {actualTab === 5 && <Step5DrivingExperience d={d} u={u} settings={settings} fieldErrors={fieldErrors} />}
       {actualTab === 6 && <Step6Education d={d} u={u} settings={settings} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />}
       {actualTab === 7 && <Step7WorkHistory d={d} u={u} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />}
       {actualTab === 8 && <Step8Skills d={d} u={u} settings={settings} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />}

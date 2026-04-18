@@ -185,14 +185,28 @@ export class ApplicantsController {
 
   @Get('export/csv')
   @Roles('System Admin', 'HR Manager', 'Recruiter', 'Finance', 'Compliance Officer')
-  @ApiOperation({ summary: 'Export applicants as CSV file (honours same filters as list endpoint)' })
+  @ApiOperation({ summary: 'Export applicants as CSV file (honours same filters as list endpoint, or pass ids=a,b,c to export only those rows)' })
   async exportCsv(
-    @Query() filter: FilterApplicantsDto,
+    @Query() filter: FilterApplicantsDto & { ids?: string },
     @CurrentUser() user: any,
     @Res() res: Response,
   ) {
-    const csv = await this.applicantsService.exportCsv(filter, { role: user?.role, agencyId: user?.agencyId });
-    res.setHeader('Content-Type', 'text/csv');
+    // Accept `ids` either as 'a,b,c' or as repeated ?ids=a&ids=b. When
+    // present, the service scopes the export to just those rows.
+    const rawIds = (filter as any).ids;
+    const idList: string[] | undefined = Array.isArray(rawIds)
+      ? rawIds
+      : typeof rawIds === 'string' && rawIds.length > 0
+        ? rawIds.split(',').map(s => s.trim()).filter(Boolean)
+        : undefined;
+
+    const { ids: _omit, ...cleanFilter } = (filter ?? {}) as any;
+    const csv = await this.applicantsService.exportCsv(
+      cleanFilter,
+      { role: user?.role, agencyId: user?.agencyId },
+      idList,
+    );
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="applicants-${Date.now()}.csv"`);
     res.send(csv);
   }

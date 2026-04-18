@@ -502,23 +502,46 @@ export class ApplicantsService {
 
   // ── CSV Export ────────────────────────────────────────────────────────────────
 
-  async exportCsv(filter: FilterApplicantsDto, actor?: { role: string; agencyId?: string }): Promise<string> {
-    // Fetch all matching records (no pagination limit)
-    const bigFilter = { ...filter, limit: 10000, page: 1 };
-    const result = await this.findAll(bigFilter as FilterApplicantsDto, actor);
-    const items: any[] = result.data;
+  async exportCsv(
+    filter: FilterApplicantsDto,
+    actor?: { role: string; agencyId?: string },
+    ids?: string[],
+  ): Promise<string> {
+    // If specific ids were requested, scope the query to just those rows
+    // (filters are ignored — this is the 'Export Selected' path). The
+    // agency/tier guards in findOne still apply.
+    let items: any[];
+    if (ids && ids.length > 0) {
+      const where: any = { id: { in: ids }, deletedAt: null };
+      if (actor && this.isAgencyUser(actor.role)) {
+        where.tier = 'CANDIDATE';
+        if (actor.agencyId) where.agencyId = actor.agencyId;
+      }
+      items = await this.prisma.applicant.findMany({
+        where,
+        include: this.include,
+        orderBy: { createdAt: 'desc' },
+      });
+    } else {
+      // Fetch all matching records (no pagination limit)
+      const bigFilter = { ...filter, limit: 10000, page: 1 };
+      const result = await this.findAll(bigFilter as FilterApplicantsDto, actor);
+      items = result.data;
+    }
 
     const headers = [
       'ID', 'Lead Number', 'Candidate Number', 'Tier',
-      'First Name', 'Last Name', 'Email', 'Phone', 'Nationality',
+      'First Name', 'Last Name', 'Email', 'Phone', 'Citizenship',
       'Status', 'Job Type', 'Agency', 'Residency Status', 'Has NI', 'NI Number',
       'Has Work Auth', 'Work Auth Type', 'Availability', 'Salary Expectation',
       'Preferred Start Date', 'Created At',
     ];
 
+    // RFC 4180 quoting: always quote strings that contain a comma, quote,
+    // CR or LF; escape embedded quotes by doubling them.
     const escape = (v: any) => {
       const s = v == null ? '' : String(v);
-      if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+      if (/[",\r\n]/.test(s)) {
         return `"${s.replace(/"/g, '""')}"`;
       }
       return s;
@@ -535,7 +558,13 @@ export class ApplicantsService {
       new Date(a.createdAt).toISOString().split('T')[0],
     ].map(escape).join(','));
 
-    return [headers.join(','), ...rows].join('\n');
+    // Prepend:
+    //  - UTF-8 BOM so Excel opens the file as UTF-8 (otherwise accented
+    //    characters break and, on some locales, Excel dumps everything
+    //    into a single column).
+    //  - CRLF line endings (RFC 4180 and what Excel expects).
+    const BOM = '\uFEFF';
+    return BOM + [headers.join(','), ...rows].join('\r\n') + '\r\n';
   }
 
   // ── Convert Applicant → Employee ──────────────────────────────────────────────

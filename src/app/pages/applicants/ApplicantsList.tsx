@@ -381,7 +381,16 @@ export function ApplicantsList() {
           <div className="flex gap-2 ml-auto">
             {!isAgencyUser && (
               <>
-                <Button variant="outline" size="sm" disabled={bulkActionInProgress} onClick={() => handleBulkAction('TIER_CHANGE', 'CANDIDATE')}>Promote to Candidate</Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={bulkActionInProgress}
+                  onClick={() => {
+                    if (selected.size === 0) return;
+                    if (!confirm(`Promote ${selected.size} selected applicant(s) to Candidate?`)) return;
+                    handleBulkAction('TIER_CHANGE', 'CANDIDATE');
+                  }}
+                >Promote to Candidate</Button>
                 <Button variant="outline" size="sm" disabled={bulkActionInProgress} onClick={() => { const s = prompt('Enter new status (NEW / SCREENING / INTERVIEW / OFFER / ACCEPTED / REJECTED / WITHDRAWN / ONBOARDING)'); if (s) handleBulkAction('STATUS_CHANGE', s.toUpperCase()); }}>Change Status</Button>
               </>
             )}

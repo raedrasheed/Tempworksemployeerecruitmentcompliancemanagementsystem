@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { ArrowLeft, ChevronRight, ChevronLeft, UserPlus, ShieldOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePermissions } from '../../hooks/usePermissions';
-import { ApplicantFormSteps, EMPTY_FORM, getVisibleTabs, getStepErrors, StepIndicator, FormSettings, DEFAULT_FORM_SETTINGS, ApplicantFormData } from '../../components/applicants/ApplicantFormSteps';
+import { ApplicantFormSteps, EMPTY_FORM, getVisibleTabs, getStepErrors, getStepFieldErrors, StepIndicator, FormSettings, DEFAULT_FORM_SETTINGS, ApplicantFormData } from '../../components/applicants/ApplicantFormSteps';
 
 export function AddApplicant() {
   const navigate = useNavigate();
@@ -22,6 +22,7 @@ export function AddApplicant() {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [agencies, setAgencies] = useState<any[]>([]);
   const [agencyId, setAgencyId] = useState<string>('');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const visibleTabs = useMemo(() => getVisibleTabs(formData), [formData.hasDrivingLicense]);
 
@@ -51,10 +52,13 @@ export function AddApplicant() {
     if (currentStep < visibleTabs.length) {
       const actualTab = visibleTabs[currentStep - 1];
       const errors = getStepErrors(actualTab, formData, uploadedFiles, photoFile);
+      const fErrs  = getStepFieldErrors(actualTab, formData);
+      setFieldErrors(fErrs);
       if (errors.length > 0) {
         errors.forEach(msg => toast.error(msg));
         return;
       }
+      setFieldErrors({});
       setCurrentStep(s => s + 1);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -162,6 +166,7 @@ export function AddApplicant() {
             settings={settings}
             photoFile={photoFile}
             onPhotoChange={setPhotoFile}
+            fieldErrors={fieldErrors}
           />
 
           <div className="flex justify-between pt-8 border-t mt-8">

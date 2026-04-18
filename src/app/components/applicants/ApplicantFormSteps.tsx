@@ -541,6 +541,69 @@ export function getStepErrors(
   return errors;
 }
 
+/** Field-level errors keyed by form field name. Consumed by the Step
+ *  components to render the error message inline below the matching
+ *  input. Kept separate from getStepErrors (which returns flat strings
+ *  for toasts / summary banners) so we don't break existing callers.
+ *  For qualification rows the key is prefixed: `qualifications.<id>.<field>`.
+ */
+export function getStepFieldErrors(
+  actualTab: number,
+  d: ApplicantFormData,
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  const before = (issue?: string, expiry?: string, noExpiry?: boolean) => {
+    if (noExpiry) return false;
+    if (!issue || !expiry) return false;
+    const a = Date.parse(issue);
+    const b = Date.parse(expiry);
+    return !isNaN(a) && !isNaN(b) && a >= b;
+  };
+
+  // Tab 3 — Identification date pairs
+  if (actualTab === 3) {
+    if (before(d.passportIssueDate, d.passportExpiryDate, d.passportNoExpiry)) {
+      out['passportIssueDate'] = 'Issue Date must be before Expiry Date.';
+      out['passportExpiryDate'] = 'Expiry Date must be after Issue Date.';
+    }
+    if (before(d.euResidenceIssueDate, d.euResidenceExpiryDate, d.euResidenceNoExpiry)) {
+      out['euResidenceIssueDate'] = 'Issue Date must be before Expiry Date.';
+      out['euResidenceExpiryDate'] = 'Expiry Date must be after Issue Date.';
+    }
+    if (before(d.workPermitIssueDate, d.workPermitExpiryDate, d.workPermitNoExpiry)) {
+      out['workPermitIssueDate'] = 'Issue Date must be before Expiry Date.';
+      out['workPermitExpiryDate'] = 'Expiry Date must be after Issue Date.';
+    }
+  }
+
+  // Tab 4 — Driving License
+  if (actualTab === 4 && d.hasDrivingLicense === 'yes') {
+    if (!d.licenseNumber?.trim())   out['licenseNumber']   = 'License Number is required.';
+    if (!d.licenseCountry)          out['licenseCountry']  = 'Issuing Country is required.';
+    if (!d.licenseCategories || d.licenseCategories.length === 0)
+      out['licenseCategories'] = 'Select at least one license category.';
+    if (d.licenseFirstIssueDate && d.licenseIssueDate) {
+      const a = Date.parse(d.licenseFirstIssueDate);
+      const b = Date.parse(d.licenseIssueDate);
+      if (!isNaN(a) && !isNaN(b) && a > b) {
+        out['licenseFirstIssueDate'] = 'First Issue Date must be on or before the current Issue Date.';
+      }
+    }
+    if (before(d.licenseIssueDate, d.licenseExpiryDate, d.licenseNoExpiry)) {
+      out['licenseIssueDate']  = 'Issue Date must be before Expiry Date.';
+      out['licenseExpiryDate'] = 'Expiry Date must be after Issue Date.';
+    }
+    (d.qualifications ?? []).forEach((q) => {
+      if (before(q.issueDate, q.expiryDate, q.noExpiry)) {
+        out[`qualifications.${q.id}.issueDate`]  = 'Issue Date must be before Expiry Date.';
+        out[`qualifications.${q.id}.expiryDate`] = 'Expiry Date must be after Issue Date.';
+      }
+    });
+  }
+
+  return out;
+}
+
 const LICENSE_CATEGORIES = ['AM', 'A1', 'A2', 'A', 'B1', 'B', 'BE', 'C1', 'C1E', 'C', 'CE', 'D1', 'D1E', 'D', 'DE', 'T'];
 
 
@@ -606,6 +669,14 @@ function SectionTitle({ title, subtitle }: { title: string; subtitle?: string })
 
 function SubSection({ title }: { title: string }) {
   return <div className="flex items-center gap-2 pb-2 border-b border-gray-200 mb-4"><h3 className="text-base font-semibold text-gray-800">{title}</h3></div>;
+}
+
+/** Inline red error message shown below a field. Renders nothing when
+ *  the key has no entry in the errors map. */
+function FieldError({ errors, name }: { errors?: Record<string, string>; name: string }) {
+  const msg = errors?.[name];
+  if (!msg) return null;
+  return <p className="text-xs text-red-600 mt-1">{msg}</p>;
 }
 
 function RadioYN({ name, value, onChange, disabledValues = [] }: { name: string; value: string; onChange: (v: string) => void; disabledValues?: string[] }) {
@@ -1080,7 +1151,7 @@ function Step2Contact({ d, u, settings }: { d: ApplicantFormData; u: (fn: (p: Ap
   );
 }
 
-function Step3Identification({ d, u, settings, uploadedFiles, onFilesChange, requiredDocuments = [] }: { d: ApplicantFormData; u: (fn: (p: ApplicantFormData) => ApplicantFormData) => void; settings: FormSettings; uploadedFiles: UploadedFileItem[]; onFilesChange: (files: UploadedFileItem[]) => void; requiredDocuments?: string[] }) {
+function Step3Identification({ d, u, settings, uploadedFiles, onFilesChange, requiredDocuments = [], fieldErrors }: { d: ApplicantFormData; u: (fn: (p: ApplicantFormData) => ApplicantFormData) => void; settings: FormSettings; uploadedFiles: UploadedFileItem[]; onFilesChange: (files: UploadedFileItem[]) => void; requiredDocuments?: string[]; fieldErrors?: Record<string, string> }) {
   const set = (field: keyof ApplicantFormData) => (value: any) => u(prev => ({ ...prev, [field]: value }));
   // Wire job-ad required docs to their required: sectionKeys so uploads on this tab
   // satisfy the required-doc checks in both getStepErrors and the Documents (Tab 10) gate.
@@ -1116,11 +1187,19 @@ function Step3Identification({ d, u, settings, uploadedFiles, onFilesChange, req
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Issue Date</Label>
-            <Input type="date" value={d.passportIssueDate} onChange={e => set('passportIssueDate')(e.target.value)} />
+            <Input
+              type="date"
+              value={d.passportIssueDate}
+              onChange={e => set('passportIssueDate')(e.target.value)}
+              aria-invalid={!!fieldErrors?.passportIssueDate}
+              className={fieldErrors?.passportIssueDate ? 'border-red-500 focus-visible:ring-red-500' : ''}
+            />
+            <FieldError errors={fieldErrors} name="passportIssueDate" />
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Expiry Date</Label>
             <ExpiryFields expiryDate={d.passportExpiryDate} noExpiry={d.passportNoExpiry} onExpiry={set('passportExpiryDate')} onNoExpiry={set('passportNoExpiry')} />
+            <FieldError errors={fieldErrors} name="passportExpiryDate" />
           </div>
         </div>
         <InlineDocUpload label={passportDocName ? 'Upload Passport (Required)' : 'Upload Passport'} sectionKey={passportSectionKey} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />
@@ -1215,7 +1294,14 @@ function Step3Identification({ d, u, settings, uploadedFiles, onFilesChange, req
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Issue Date</Label>
-              <Input type="date" value={d.euResidenceIssueDate} onChange={e => set('euResidenceIssueDate')(e.target.value)} />
+              <Input
+                type="date"
+                value={d.euResidenceIssueDate}
+                onChange={e => set('euResidenceIssueDate')(e.target.value)}
+                aria-invalid={!!fieldErrors?.euResidenceIssueDate}
+                className={fieldErrors?.euResidenceIssueDate ? 'border-red-500 focus-visible:ring-red-500' : ''}
+              />
+              <FieldError errors={fieldErrors} name="euResidenceIssueDate" />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">City of Issue</Label>
@@ -1224,6 +1310,7 @@ function Step3Identification({ d, u, settings, uploadedFiles, onFilesChange, req
             <div className="space-y-1">
               <Label className="text-xs">Expiry Date</Label>
               <ExpiryFields expiryDate={d.euResidenceExpiryDate} noExpiry={d.euResidenceNoExpiry} onExpiry={set('euResidenceExpiryDate')} onNoExpiry={set('euResidenceNoExpiry')} />
+              <FieldError errors={fieldErrors} name="euResidenceExpiryDate" />
             </div>
             <InlineDocUpload label="Upload Residence Permit" sectionKey="euResidence" uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />
           </div>
@@ -1251,11 +1338,19 @@ function Step3Identification({ d, u, settings, uploadedFiles, onFilesChange, req
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Issue Date</Label>
-              <Input type="date" value={d.workPermitIssueDate} onChange={e => set('workPermitIssueDate')(e.target.value)} />
+              <Input
+                type="date"
+                value={d.workPermitIssueDate}
+                onChange={e => set('workPermitIssueDate')(e.target.value)}
+                aria-invalid={!!fieldErrors?.workPermitIssueDate}
+                className={fieldErrors?.workPermitIssueDate ? 'border-red-500 focus-visible:ring-red-500' : ''}
+              />
+              <FieldError errors={fieldErrors} name="workPermitIssueDate" />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Expiry Date</Label>
               <ExpiryFields expiryDate={d.workPermitExpiryDate} noExpiry={d.workPermitNoExpiry} onExpiry={set('workPermitExpiryDate')} onNoExpiry={set('workPermitNoExpiry')} />
+              <FieldError errors={fieldErrors} name="workPermitExpiryDate" />
             </div>
             <InlineDocUpload label="Upload Work Permit" sectionKey="workPermit" uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />
           </div>
@@ -1304,7 +1399,7 @@ function Step3Identification({ d, u, settings, uploadedFiles, onFilesChange, req
   );
 }
 
-function Step4DrivingLicense({ d, u, settings, uploadedFiles, onFilesChange, requiredDocuments = [] }: { d: ApplicantFormData; u: (fn: (p: ApplicantFormData) => ApplicantFormData) => void; settings: FormSettings; uploadedFiles: UploadedFileItem[]; onFilesChange: (files: UploadedFileItem[]) => void; requiredDocuments?: string[] }) {
+function Step4DrivingLicense({ d, u, settings, uploadedFiles, onFilesChange, requiredDocuments = [], fieldErrors }: { d: ApplicantFormData; u: (fn: (p: ApplicantFormData) => ApplicantFormData) => void; settings: FormSettings; uploadedFiles: UploadedFileItem[]; onFilesChange: (files: UploadedFileItem[]) => void; requiredDocuments?: string[]; fieldErrors?: Record<string, string> }) {
   const set = (field: keyof ApplicantFormData) => (value: any) => u(prev => ({ ...prev, [field]: value }));
   const dlDocName = requiredDocuments.find(n => n.toLowerCase().includes('driving'));
   const dlSectionKey = dlDocName ? `required:${dlDocName}` : 'drivingLicense';
@@ -1367,23 +1462,46 @@ function Step4DrivingLicense({ d, u, settings, uploadedFiles, onFilesChange, req
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <Label className="text-xs">License Number *</Label>
-                <Input placeholder="Number" value={d.licenseNumber} onChange={e => set('licenseNumber')(e.target.value)} />
+                <Input
+                  placeholder="Number"
+                  value={d.licenseNumber}
+                  onChange={e => set('licenseNumber')(e.target.value)}
+                  aria-invalid={!!fieldErrors?.licenseNumber}
+                  className={fieldErrors?.licenseNumber ? 'border-red-500 focus-visible:ring-red-500' : ''}
+                />
+                <FieldError errors={fieldErrors} name="licenseNumber" />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Issuing Country *</Label>
                 <CountrySelect value={d.licenseCountry} onChange={set('licenseCountry')} />
+                <FieldError errors={fieldErrors} name="licenseCountry" />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">First Issue Date <span className="text-gray-400">(optional)</span></Label>
-                <Input type="date" value={d.licenseFirstIssueDate} onChange={e => set('licenseFirstIssueDate')(e.target.value)} />
+                <Input
+                  type="date"
+                  value={d.licenseFirstIssueDate}
+                  onChange={e => set('licenseFirstIssueDate')(e.target.value)}
+                  aria-invalid={!!fieldErrors?.licenseFirstIssueDate}
+                  className={fieldErrors?.licenseFirstIssueDate ? 'border-red-500 focus-visible:ring-red-500' : ''}
+                />
+                <FieldError errors={fieldErrors} name="licenseFirstIssueDate" />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Issue Date</Label>
-                <Input type="date" value={d.licenseIssueDate} onChange={e => set('licenseIssueDate')(e.target.value)} />
+                <Input
+                  type="date"
+                  value={d.licenseIssueDate}
+                  onChange={e => set('licenseIssueDate')(e.target.value)}
+                  aria-invalid={!!fieldErrors?.licenseIssueDate}
+                  className={fieldErrors?.licenseIssueDate ? 'border-red-500 focus-visible:ring-red-500' : ''}
+                />
+                <FieldError errors={fieldErrors} name="licenseIssueDate" />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Expiry Date</Label>
                 <ExpiryFields expiryDate={d.licenseExpiryDate} noExpiry={d.licenseNoExpiry} onExpiry={set('licenseExpiryDate')} onNoExpiry={set('licenseNoExpiry')} />
+                <FieldError errors={fieldErrors} name="licenseExpiryDate" />
               </div>
               {/* Only show the optional upload inside the yes-block when not a required doc */}
               {!dlDocName && <InlineDocUpload label="Upload Driving License" sectionKey="drivingLicense" uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />}
@@ -1400,6 +1518,7 @@ function Step4DrivingLicense({ d, u, settings, uploadedFiles, onFilesChange, req
                 </label>
               ))}
             </div>
+            <FieldError errors={fieldErrors} name="licenseCategories" />
           </div>
           <div className="space-y-4">
             <SubSection title="Professional Qualifications" />
@@ -1427,11 +1546,19 @@ function Step4DrivingLicense({ d, u, settings, uploadedFiles, onFilesChange, req
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs">Issue Date</Label>
-                    <Input type="date" value={q.issueDate} onChange={e => updateQual(q.id, 'issueDate', e.target.value)} />
+                    <Input
+                      type="date"
+                      value={q.issueDate}
+                      onChange={e => updateQual(q.id, 'issueDate', e.target.value)}
+                      aria-invalid={!!fieldErrors?.[`qualifications.${q.id}.issueDate`]}
+                      className={fieldErrors?.[`qualifications.${q.id}.issueDate`] ? 'border-red-500 focus-visible:ring-red-500' : ''}
+                    />
+                    <FieldError errors={fieldErrors} name={`qualifications.${q.id}.issueDate`} />
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs">Expiry Date</Label>
                     <ExpiryFields expiryDate={q.expiryDate} noExpiry={q.noExpiry} onExpiry={v => updateQual(q.id, 'expiryDate', v)} onNoExpiry={v => updateQual(q.id, 'noExpiry', v)} />
+                    <FieldError errors={fieldErrors} name={`qualifications.${q.id}.expiryDate`} />
                   </div>
                 </div>
               </div>
@@ -2582,6 +2709,9 @@ export interface ApplicantFormStepsProps {
   existingPhotoUrl?: string;
   jobAdTitle?: string;
   requiredDocuments?: string[];
+  /** Field-level errors keyed by form field name. Build this from
+   *  getStepFieldErrors(currentStep, formData). */
+  fieldErrors?: Record<string, string>;
 }
 
 export function ApplicantFormSteps({
@@ -2598,6 +2728,7 @@ export function ApplicantFormSteps({
   existingPhotoUrl,
   jobAdTitle,
   requiredDocuments = [],
+  fieldErrors,
 }: ApplicantFormStepsProps) {
   const actualTab = visibleTabs[currentStep - 1] ?? 1;
 
@@ -2605,8 +2736,8 @@ export function ApplicantFormSteps({
     <>
       {actualTab === 1 && <Step1Personal d={d} u={u} jobTypes={jobTypes} photoFile={photoFile} onPhotoChange={onPhotoChange} existingPhotoUrl={existingPhotoUrl} jobAdTitle={jobAdTitle} />}
       {actualTab === 2 && <Step2Contact d={d} u={u} settings={settings} />}
-      {actualTab === 3 && <Step3Identification d={d} u={u} settings={settings} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} requiredDocuments={requiredDocuments} />}
-      {actualTab === 4 && <Step4DrivingLicense d={d} u={u} settings={settings} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} requiredDocuments={requiredDocuments} />}
+      {actualTab === 3 && <Step3Identification d={d} u={u} settings={settings} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} requiredDocuments={requiredDocuments} fieldErrors={fieldErrors} />}
+      {actualTab === 4 && <Step4DrivingLicense d={d} u={u} settings={settings} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} requiredDocuments={requiredDocuments} fieldErrors={fieldErrors} />}
       {actualTab === 5 && <Step5DrivingExperience d={d} u={u} settings={settings} />}
       {actualTab === 6 && <Step6Education d={d} u={u} settings={settings} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />}
       {actualTab === 7 && <Step7WorkHistory d={d} u={u} uploadedFiles={uploadedFiles} onFilesChange={onFilesChange} />}

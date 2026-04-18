@@ -20,7 +20,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '../../components/ui/table';
 import { backupApi } from '../../services/api';
-import { useAuthContext } from '../../contexts/AuthContext';
+import { usePermissions } from '../../hooks/usePermissions';
 import { toast } from 'sonner';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -84,8 +84,8 @@ function fmt(iso?: string | null): string {
 
 export function DatabaseBackup() {
   const navigate = useNavigate();
-  const { user } = useAuthContext();
-  const isAdmin  = user?.role === 'System Admin';
+  const { canEdit } = usePermissions();
+  const isAdmin  = canEdit('settings');
 
   // List state
   const [backups,      setBackups]      = useState<Backup[]>([]);

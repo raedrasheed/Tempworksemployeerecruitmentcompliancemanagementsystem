@@ -18,6 +18,7 @@ import { BulkActionDto, AssignAgencyDto, ConvertLeadDto } from './dto/bulk-actio
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { RequirePermission } from '../auth/decorators/require-permission.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Public } from '../auth/decorators/public.decorator';
 
@@ -124,6 +125,7 @@ export class ApplicantsController {
 
   @Post(':id/approve')
   @Roles('System Admin', 'HR Manager')
+  @RequirePermission('applicants:approve')
   @ApiOperation({ summary: 'Approve an agency-submitted candidate so they enter the internal workflow' })
   @ApiParam({ name: 'id', description: 'Applicant UUID' })
   approveApplicant(@Param('id') id: string, @CurrentUser() user: any) {
@@ -132,6 +134,7 @@ export class ApplicantsController {
 
   @Post(':id/reject')
   @Roles('System Admin', 'HR Manager')
+  @RequirePermission('applicants:approve')
   @ApiOperation({ summary: 'Reject an agency-submitted candidate. Optionally supply a reason in the body.' })
   @ApiParam({ name: 'id', description: 'Applicant UUID' })
   rejectApplicant(@Param('id') id: string, @Body('reason') reason: string, @CurrentUser() user: any) {

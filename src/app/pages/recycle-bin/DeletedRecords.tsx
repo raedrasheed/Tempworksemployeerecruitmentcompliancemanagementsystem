@@ -12,10 +12,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
 import { Label } from '../../components/ui/label';
 import { recycleBinApi } from '../../services/api';
-import { useAuthContext } from '../../contexts/AuthContext';
+import { usePermissions } from '../../hooks/usePermissions';
 import { toast } from 'sonner';
 
-const RECYCLE_BIN_ROLES = ['System Admin', 'HR Manager', 'Compliance Officer'];
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -79,9 +78,9 @@ function EntityBadge({ entityType }: { entityType: string }) {
 // ── Main Component ────────────────────────────────────────────────────────────
 
 export function DeletedRecords() {
-  const { user } = useAuthContext();
+  const { canView } = usePermissions();
 
-  if (!user || !RECYCLE_BIN_ROLES.includes(user.role ?? '')) {
+  if (!canView('recycle-bin')) {
     return (
       <div className="p-8 flex items-center justify-center min-h-64">
         <div className="text-center">

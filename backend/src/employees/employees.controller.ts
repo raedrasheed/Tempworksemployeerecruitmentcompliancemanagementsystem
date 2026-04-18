@@ -10,6 +10,7 @@ import { PaginationDto } from '../common/dto/pagination.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { RequirePermission } from '../auth/decorators/require-permission.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 const ALL_ROLES = ['System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Finance', 'Read Only'];
@@ -112,11 +113,13 @@ export class EmployeesController {
 
   @Post()
   @Roles(...WRITE_ROLES)
+  @RequirePermission('employees:create')
   @ApiOperation({ summary: 'Create new employee' })
   create(@Body() dto: CreateEmployeeDto) { return this.employeesService.create(dto); }
 
   @Patch(':id')
   @Roles(...WRITE_ROLES)
+  @RequirePermission('employees:update')
   @ApiOperation({ summary: 'Update employee' })
   update(@Param('id') id: string, @Body() dto: Partial<CreateEmployeeDto>) {
     return this.employeesService.update(id, dto);
@@ -150,6 +153,7 @@ export class EmployeesController {
 
   @Delete(':id')
   @Roles('System Admin')
+  @RequirePermission('employees:delete')
   @ApiOperation({ summary: 'Delete employee (soft delete)' })
   remove(@Param('id') id: string) { return this.employeesService.remove(id); }
 }

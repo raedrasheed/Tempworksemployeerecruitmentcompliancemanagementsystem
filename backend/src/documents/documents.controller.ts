@@ -21,6 +21,7 @@ import { PaginationDto } from '../common/dto/pagination.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { RequirePermission } from '../auth/decorators/require-permission.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Public } from '../auth/decorators/public.decorator';
 
@@ -198,6 +199,7 @@ export class DocumentsController {
 
   @Patch(':id')
   @Roles('System Admin', 'HR Manager', 'Compliance Officer')
+  @RequirePermission('documents:update')
   @ApiOperation({ summary: 'Update document metadata' })
   update(@Param('id') id: string, @Body() dto: Partial<CreateDocumentDto>, @CurrentUser() user: any) {
     return this.documentsService.update(id, dto, user?.id);

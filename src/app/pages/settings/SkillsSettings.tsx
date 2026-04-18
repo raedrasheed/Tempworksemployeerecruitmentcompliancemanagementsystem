@@ -6,11 +6,11 @@ import { Input } from '../../components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
 import { ArrowLeft, Plus, Trash2, Save } from 'lucide-react';
 import { toast } from 'sonner';
-import { useAuthContext } from '../../contexts/AuthContext';
+import { usePermissions } from '../../hooks/usePermissions';
 
 export function SkillsSettings() {
-  const { user } = useAuthContext();
-  const isAdmin = user?.role === 'System Admin';
+  const { canEdit } = usePermissions();
+  const isAdmin = canEdit('settings');
   const [skills, setSkills] = useState<string[]>([]);
   const [newSkill, setNewSkill] = useState('');
   const [saving, setSaving] = useState(false);

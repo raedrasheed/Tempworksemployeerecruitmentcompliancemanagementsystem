@@ -1,7 +1,7 @@
 import { Link } from 'react-router';
 import { FileType, Bell, Shield, Activity, Layers, Briefcase, Palette, Trash2, Database, Server, Building2, Star, Truck, Tag, GitBranch } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { useAuthContext } from '../../contexts/AuthContext';
+import { usePermissions } from '../../hooks/usePermissions';
 import { API_URL } from '../../services/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Label } from '../../components/ui/label';
@@ -21,8 +21,13 @@ interface SystemStats {
 }
 
 export function Settings() {
-  const { user } = useAuthContext();
-  const isAdmin = user?.role === 'System Admin';
+  // settings:update is the gate for admin-only configuration cards
+  // (branding, skills, truck brands, database backup/cleanup, …).
+  // System Admins pass via the usePermissions isAdmin bypass so the
+  // legacy behaviour is preserved, and any role explicitly granted
+  // `settings:update` via the Roles UI now also unlocks these cards.
+  const { canEdit } = usePermissions();
+  const canEditSettings = canEdit('settings');
 
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
   const [systemStats, setSystemStats] = useState<SystemStats | null>(null);
@@ -142,7 +147,7 @@ export function Settings() {
         })}
 
         {/* Company Branding — System Admin only */}
-        {isAdmin && (
+        {canEditSettings && (
           <Link to="/dashboard/settings/branding">
             <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full border-indigo-200 hover:border-indigo-400">
               <CardHeader>
@@ -164,7 +169,7 @@ export function Settings() {
         )}
 
         {/* Skills List */}
-        {isAdmin && (
+        {canEditSettings && (
           <Link to="/dashboard/settings/skills">
             <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full border-amber-200 hover:border-amber-400">
               <CardHeader>
@@ -186,7 +191,7 @@ export function Settings() {
         )}
 
         {/* Transport Types */}
-        {isAdmin && (
+        {canEditSettings && (
           <Link to="/dashboard/settings/transport-types">
             <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full border-blue-200 hover:border-blue-400">
               <CardHeader>
@@ -208,7 +213,7 @@ export function Settings() {
         )}
 
         {/* Truck Brands */}
-        {isAdmin && (
+        {canEditSettings && (
           <Link to="/dashboard/settings/truck-brands">
             <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full border-blue-200 hover:border-blue-400">
               <CardHeader>
@@ -230,7 +235,7 @@ export function Settings() {
         )}
 
         {/* Trailer Types */}
-        {isAdmin && (
+        {canEditSettings && (
           <Link to="/dashboard/settings/trailer-types">
             <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full border-blue-200 hover:border-blue-400">
               <CardHeader>
@@ -252,7 +257,7 @@ export function Settings() {
         )}
 
         {/* Database Backup & Restore — System Admin only */}
-        {isAdmin && (
+        {canEditSettings && (
           <Link to="/dashboard/settings/database-backup">
             <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full border-blue-200 hover:border-blue-400">
               <CardHeader>
@@ -274,7 +279,7 @@ export function Settings() {
         )}
 
         {/* System Information — System Admin only */}
-        {isAdmin && (
+        {canEditSettings && (
           <Link to="/dashboard/settings/system-information">
             <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full border-slate-200 hover:border-slate-400">
               <CardHeader>
@@ -296,7 +301,7 @@ export function Settings() {
         )}
 
         {/* Database Cleanup — System Admin only */}
-        {isAdmin && (
+        {canEditSettings && (
           <Link to="/dashboard/settings/database-cleanup">
             <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full border-red-200 hover:border-red-400">
               <CardHeader>
@@ -370,7 +375,7 @@ export function Settings() {
                 </CardDescription>
               </div>
             </div>
-            {isAdmin && (
+            {canEditSettings && (
               <Link to="/dashboard/settings/system-information">
                 <Button variant="outline" size="sm">Edit</Button>
               </Link>

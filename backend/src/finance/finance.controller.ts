@@ -20,6 +20,7 @@ import { FilterFinancialRecordsDto } from './dto/filter-financial-records.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { RequirePermission } from '../auth/decorators/require-permission.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import {
   FINANCE_READ_ROLES, FINANCE_WRITE_ROLES,
@@ -160,6 +161,7 @@ export class FinanceController {
 
   @Patch(':id/status')
   @Roles(...FINANCE_STATUS_ROLES)
+  @RequirePermission('finance:status')
   @ApiOperation({ summary: 'Update status and deduction details of a financial record' })
   @ApiParam({ name: 'id', description: 'Financial record UUID' })
   updateStatus(

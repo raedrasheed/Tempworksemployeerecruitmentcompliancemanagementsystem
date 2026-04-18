@@ -1914,10 +1914,11 @@ function Step6Education({ d, u, settings, uploadedFiles, onFilesChange, fieldErr
               onClick={() => {
                 if (confirm('Remove this education entry?')) removeEntry(entry.id);
               }}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-red-300 text-red-600 text-xs font-medium hover:bg-red-50"
+              title="Remove entry"
+              aria-label="Remove entry"
+              className="p-1.5 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50"
             >
-              <Trash2 className="w-3.5 h-3.5" />
-              Remove
+              <Trash2 className="w-4 h-4" />
             </button>
           </div>
           <div className="grid md:grid-cols-2 gap-3">

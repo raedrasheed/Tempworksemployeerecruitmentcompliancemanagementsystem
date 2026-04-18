@@ -1,41 +1,53 @@
 -- Agency tenancy workflow additions.
--- All changes are additive and backwards-compatible: existing rows default
--- to APPROVED so they remain visible after the upgrade.
+-- All changes are additive, backwards-compatible, and idempotent so a
+-- partially-applied run (e.g. an earlier failure before all tables were
+-- created) can be re-executed safely.
+--
+-- NOTE: Prisma stores `String @id` columns as `text`, not `uuid`. Every
+-- FK column below is therefore also `text` so the types line up.
 
--- ─── 1. Approval state on Applicants and Users ──────────────────────────
--- Used so agency-created candidates/users must be approved by Tempworks
--- staff before entering the internal workflow.
-
+-- ─── 1. Approval-state enum ─────────────────────────────────────────────
 DO $$ BEGIN
   CREATE TYPE "AgencyApprovalStatus" AS ENUM ('PENDING_APPROVAL', 'APPROVED', 'REJECTED');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
+-- ─── 2. Approval-state columns on applicants / users ────────────────────
 ALTER TABLE "applicants"
-  ADD COLUMN IF NOT EXISTS "approvalStatus" "AgencyApprovalStatus" NOT NULL DEFAULT 'APPROVED',
-  ADD COLUMN IF NOT EXISTS "approvedById"   uuid,
-  ADD COLUMN IF NOT EXISTS "approvedAt"     timestamp,
-  ADD COLUMN IF NOT EXISTS "rejectionReason" text;
+  ADD COLUMN IF NOT EXISTS "approvalStatus"   "AgencyApprovalStatus" NOT NULL DEFAULT 'APPROVED',
+  ADD COLUMN IF NOT EXISTS "approvedById"     text,
+  ADD COLUMN IF NOT EXISTS "approvedAt"       timestamp,
+  ADD COLUMN IF NOT EXISTS "rejectionReason"  text;
 
 ALTER TABLE "users"
   ADD COLUMN IF NOT EXISTS "approvalStatus"      "AgencyApprovalStatus" NOT NULL DEFAULT 'APPROVED',
-  ADD COLUMN IF NOT EXISTS "approvedById"        uuid,
+  ADD COLUMN IF NOT EXISTS "approvedById"        text,
   ADD COLUMN IF NOT EXISTS "approvedAt"          timestamp,
   ADD COLUMN IF NOT EXISTS "allowManagerEdit"    boolean NOT NULL DEFAULT false,
   ADD COLUMN IF NOT EXISTS "allowManagerDelete"  boolean NOT NULL DEFAULT false;
 
+-- If an earlier failed run left `approvedById` as uuid, convert it to
+-- text so Prisma (which treats `String` as text) lines up. No-op when
+-- the column is already text or the table is fresh.
+DO $$ BEGIN
+  ALTER TABLE "applicants" ALTER COLUMN "approvedById" TYPE text USING "approvedById"::text;
+EXCEPTION WHEN undefined_column THEN NULL;
+         WHEN cannot_coerce THEN NULL; END $$;
+
+DO $$ BEGIN
+  ALTER TABLE "users" ALTER COLUMN "approvedById" TYPE text USING "approvedById"::text;
+EXCEPTION WHEN undefined_column THEN NULL;
+         WHEN cannot_coerce THEN NULL; END $$;
+
 CREATE INDEX IF NOT EXISTS "idx_applicants_approval_status" ON "applicants" ("approvalStatus");
 CREATE INDEX IF NOT EXISTS "idx_users_approval_status"       ON "users" ("approvalStatus");
 
--- ─── 2. Employee-agency access grants ──────────────────────────────────
--- Admin-granted per-employee read access for agency users. No row = no
--- access, even when the employee's own agencyId matches the caller.
-
+-- ─── 3. Per-employee agency-access grants ──────────────────────────────
 CREATE TABLE IF NOT EXISTS "employee_agency_access" (
-  "id"           uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-  "employeeId"   uuid        NOT NULL REFERENCES "employees" ("id") ON DELETE CASCADE,
-  "agencyId"     uuid        NOT NULL REFERENCES "agencies"  ("id") ON DELETE CASCADE,
-  "grantedById"  uuid        REFERENCES "users" ("id") ON DELETE SET NULL,
-  "grantedAt"    timestamp   NOT NULL DEFAULT now(),
+  "id"           text       PRIMARY KEY,
+  "employeeId"   text       NOT NULL REFERENCES "employees" ("id") ON DELETE CASCADE,
+  "agencyId"     text       NOT NULL REFERENCES "agencies"  ("id") ON DELETE CASCADE,
+  "grantedById"  text       REFERENCES "users" ("id") ON DELETE SET NULL,
+  "grantedAt"    timestamp  NOT NULL DEFAULT now(),
   "notes"        text,
   UNIQUE ("employeeId", "agencyId")
 );
@@ -43,14 +55,10 @@ CREATE TABLE IF NOT EXISTS "employee_agency_access" (
 CREATE INDEX IF NOT EXISTS "idx_employee_agency_access_agency"   ON "employee_agency_access" ("agencyId");
 CREATE INDEX IF NOT EXISTS "idx_employee_agency_access_employee" ON "employee_agency_access" ("employeeId");
 
--- ─── 3. Agency-wide permission overrides ───────────────────────────────
--- Tempworks admin grants/denies specific permissions (e.g.
--- "applicants:create", "applicants:delete") for an entire agency.
--- Merged with the role's default permissions at login time.
-
+-- ─── 4. Agency-wide permission overrides ───────────────────────────────
 CREATE TABLE IF NOT EXISTS "agency_permission_overrides" (
-  "id"          uuid       PRIMARY KEY DEFAULT gen_random_uuid(),
-  "agencyId"    uuid       NOT NULL REFERENCES "agencies" ("id") ON DELETE CASCADE,
+  "id"          text       PRIMARY KEY,
+  "agencyId"    text       NOT NULL REFERENCES "agencies" ("id") ON DELETE CASCADE,
   "permission"  text       NOT NULL,
   "allow"       boolean    NOT NULL DEFAULT true,
   "createdAt"   timestamp  NOT NULL DEFAULT now(),

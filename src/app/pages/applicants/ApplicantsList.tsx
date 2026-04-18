@@ -56,7 +56,7 @@ const DEFAULT_VISIBLE: Record<ColKey, boolean> = {
 
 function loadVisibleColumns(): Record<ColKey, boolean> {
   try {
-    const saved = localStorage.getItem('applicants-table-columns');
+    const saved = localStorage.getItem('applicants-table-columns-v2');
     return saved ? { ...DEFAULT_VISIBLE, ...JSON.parse(saved) } : DEFAULT_VISIBLE;
   } catch {
     return DEFAULT_VISIBLE;
@@ -104,7 +104,7 @@ export function ApplicantsList() {
   const toggleColumn = (key: ColKey) => {
     setVisibleColumns(prev => {
       const next = { ...prev, [key]: !prev[key] };
-      localStorage.setItem('applicants-table-columns', JSON.stringify(next));
+      localStorage.setItem('applicants-table-columns-v2', JSON.stringify(next));
       return next;
     });
   };
@@ -408,9 +408,9 @@ export function ApplicantsList() {
                       ))}
                     </div>
                     <div className="border-t mt-2 pt-2 flex gap-1.5">
-                      <button onClick={() => { const all = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, true])) as Record<ColKey, boolean>; setVisibleColumns(all); localStorage.setItem('applicants-table-columns', JSON.stringify(all)); }} className="flex-1 text-xs text-center text-blue-600 hover:underline py-0.5">Show all</button>
+                      <button onClick={() => { const all = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, true])) as Record<ColKey, boolean>; setVisibleColumns(all); localStorage.setItem('applicants-table-columns-v2', JSON.stringify(all)); }} className="flex-1 text-xs text-center text-blue-600 hover:underline py-0.5">Show all</button>
                       <span className="text-gray-300">|</span>
-                      <button onClick={() => { const none = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, false])) as Record<ColKey, boolean>; setVisibleColumns(none); localStorage.setItem('applicants-table-columns', JSON.stringify(none)); }} className="flex-1 text-xs text-center text-gray-500 hover:underline py-0.5">Hide all</button>
+                      <button onClick={() => { const none = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, false])) as Record<ColKey, boolean>; setVisibleColumns(none); localStorage.setItem('applicants-table-columns-v2', JSON.stringify(none)); }} className="flex-1 text-xs text-center text-gray-500 hover:underline py-0.5">Hide all</button>
                     </div>
                   </div>
                 )}

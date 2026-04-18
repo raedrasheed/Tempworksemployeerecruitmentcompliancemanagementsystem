@@ -99,6 +99,15 @@ export class UsersService {
       createdById: true,
       createdAt: true,
       updatedAt: true,
+      // Agency-user approval state + per-user manager overrides. The
+      // frontend needs these to decide whether Agency Manager sees
+      // Edit / Delete buttons and whether Tempworks admin sees the
+      // Approve / Allow-manager-edit / Allow-manager-delete controls.
+      approvalStatus: true,
+      approvedAt: true,
+      approvedById: true,
+      allowManagerEdit: true,
+      allowManagerDelete: true,
     };
   }
 

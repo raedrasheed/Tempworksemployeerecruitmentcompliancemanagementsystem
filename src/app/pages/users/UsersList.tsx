@@ -12,6 +12,7 @@ import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { usersApi, getCurrentUser, BACKEND_URL } from '../../services/api';
+import { cn } from '../../components/ui/utils';
 import { toast } from 'sonner';
 import { confirm } from '../../components/ui/ConfirmDialog';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -75,6 +76,21 @@ function SortableHead({ label, field, sortBy, sortOrder, onSort, className }: {
 export function UsersList() {
   const { canCreate, canEdit, canDelete } = usePermissions();
   const currentUser = getCurrentUser();
+  const isTempworksAdmin = currentUser?.role === 'System Admin' || currentUser?.role === 'HR Manager';
+  const isAgencyManager = currentUser?.role === 'Agency Manager';
+
+  // Agency Manager can touch an agency user only while they're
+  // still PENDING_APPROVAL, or when a Tempworks admin has flipped
+  // the per-user override flag on. Tempworks-internal staff keep
+  // full control via canEdit / canDelete.
+  const canManagerEdit = (user: any) =>
+    user.approvalStatus === 'PENDING_APPROVAL' || user.allowManagerEdit === true;
+  const canManagerDelete = (user: any) =>
+    user.approvalStatus === 'PENDING_APPROVAL' || user.allowManagerDelete === true;
+  const mayEditRow = (user: any) =>
+    canEdit('users') && (!isAgencyManager || canManagerEdit(user));
+  const mayDeleteRow = (user: any) =>
+    canDelete('users') && user.id !== currentUser?.id && (!isAgencyManager || canManagerDelete(user));
 
   // ── Data ───────────────────────────────────────────────────────────────────
   const [users, setUsers]   = useState<any[]>([]);
@@ -225,6 +241,41 @@ export function UsersList() {
       setUsers(prev => prev.filter(u => u.id !== user.id));
       toast.success('User deleted successfully');
     } catch (err: any) { toast.error(err?.message || 'Failed to delete user'); }
+  };
+
+  // ── Tempworks-admin approval + per-user manager override ──────────────────
+  const [approveBusy, setApproveBusy] = useState<string | null>(null);
+  const [overrideBusy, setOverrideBusy] = useState<string | null>(null);
+
+  const handleApprove = async (user: any) => {
+    setApproveBusy(user.id);
+    try {
+      await usersApi.approveAgencyUser(user.id);
+      toast.success('User approved');
+      reload();
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to approve user');
+    } finally {
+      setApproveBusy(null);
+    }
+  };
+
+  const handleSetOverride = async (
+    user: any,
+    patch: { allowManagerEdit?: boolean; allowManagerDelete?: boolean },
+  ) => {
+    setOverrideBusy(user.id);
+    try {
+      await usersApi.setManagerOverride(user.id, patch);
+      const label = 'allowManagerEdit' in patch ? 'edit' : 'delete';
+      const state = (patch.allowManagerEdit === true || patch.allowManagerDelete === true) ? 'enabled' : 'disabled';
+      toast.success(`Manager ${label} ${state}`);
+      reload();
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to update override');
+    } finally {
+      setOverrideBusy(null);
+    }
   };
 
   const handleBulkImport = async () => {
@@ -494,12 +545,61 @@ export function UsersList() {
                             {loadingLink === user.id ? '...' : 'Activation Link'}
                           </Button>
                         )}
-                        {canEdit('users') && (
+                        {/* Pending-approval badge + Tempworks admin Approve button */}
+                        {user.approvalStatus === 'PENDING_APPROVAL' && (
+                          <Badge variant="outline" className="text-[10px] border-amber-300 text-amber-700 bg-amber-50">Pending approval</Badge>
+                        )}
+                        {isTempworksAdmin && user.approvalStatus === 'PENDING_APPROVAL' && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleApprove(user)}
+                            disabled={approveBusy === user.id}
+                            className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 text-xs"
+                            title="Approve this agency-created user"
+                          >
+                            {approveBusy === user.id ? '…' : 'Approve'}
+                          </Button>
+                        )}
+                        {/* Per-user manager override toggles — admin-only, only on APPROVED agency users */}
+                        {isTempworksAdmin && user.approvalStatus === 'APPROVED' && user.agencyId && (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleSetOverride(user, { allowManagerEdit: !user.allowManagerEdit })}
+                              disabled={overrideBusy === user.id}
+                              className={cn(
+                                'text-xs',
+                                user.allowManagerEdit ? 'text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50'
+                                                      : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+                              )}
+                              title={user.allowManagerEdit ? 'Revoke Agency Manager edit permission' : 'Allow Agency Manager to edit this user'}
+                            >
+                              {user.allowManagerEdit ? 'Mgr ✎ on' : 'Mgr ✎ off'}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleSetOverride(user, { allowManagerDelete: !user.allowManagerDelete })}
+                              disabled={overrideBusy === user.id}
+                              className={cn(
+                                'text-xs',
+                                user.allowManagerDelete ? 'text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50'
+                                                        : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+                              )}
+                              title={user.allowManagerDelete ? 'Revoke Agency Manager delete permission' : 'Allow Agency Manager to delete this user'}
+                            >
+                              {user.allowManagerDelete ? 'Mgr ✖ on' : 'Mgr ✖ off'}
+                            </Button>
+                          </>
+                        )}
+                        {mayEditRow(user) && (
                           <Button variant="ghost" size="sm" asChild>
                             <Link to={`/dashboard/users/${user.id}/edit`}><Edit className="w-4 h-4 mr-1" />Edit</Link>
                           </Button>
                         )}
-                        {canDelete('users') && user.id !== currentUser?.id && (
+                        {mayDeleteRow(user) && (
                           <Button variant="ghost" size="sm" onClick={() => handleDelete(user)} className="text-[#EF4444] hover:text-[#EF4444] hover:bg-[#FEF2F2]">
                             <Trash2 className="w-4 h-4" />
                           </Button>

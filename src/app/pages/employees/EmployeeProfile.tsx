@@ -67,23 +67,53 @@ export function EmployeeProfile() {
       .catch(() => setAgencyAccess([]));
   };
 
-  const handleGrantAccess = async () => {
-    if (!id || !grantAgencyId) return;
+  const handleGrantAccess = async (
+    agencyId: string,
+    flags: { canView: boolean; canEdit: boolean },
+    notes?: string,
+  ) => {
+    if (!id || !agencyId) return;
     setGrantBusy(true);
     try {
-      await employeesApi.grantAgencyAccess(id, grantAgencyId, grantNotes || undefined);
-      toast.success('Agency access granted');
-      setGrantAgencyId('');
-      setGrantNotes('');
+      await employeesApi.grantAgencyAccess(id, agencyId, {
+        canView: flags.canView,
+        canEdit: flags.canEdit,
+        notes,
+      });
       loadAgencyAccess();
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to grant access');
+      toast.error(err?.message || 'Failed to update access');
     } finally {
       setGrantBusy(false);
     }
   };
 
-  const handleRevokeAccess = async (agencyId: string, agencyName: string) => {
+  const handleToggleAccess = async (
+    agencyId: string,
+    next: { canView: boolean; canEdit: boolean },
+  ) => {
+    if (!id) return;
+    // If both flags are going off, confirm — it deletes the grant row.
+    if (!next.canView && !next.canEdit) {
+      const ok = await confirm({
+        title: 'Revoke all agency access',
+        description: 'Both View and Edit are being turned off, which removes this agency\'s access entirely. Continue?',
+        confirmText: 'Revoke',
+        tone: 'destructive',
+      });
+      if (!ok) return;
+    }
+    try {
+      // upsert — grant creates the row if missing, update flips flags.
+      await employeesApi.grantAgencyAccess(id, agencyId, next);
+      toast.success('Access updated');
+      loadAgencyAccess();
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to update access');
+    }
+  };
+
+  const handleRevokeAccess = async (agencyId: string, agencyName?: string) => {
     if (!id) return;
     const ok = await confirm({
       title: 'Revoke agency access',
@@ -511,64 +541,133 @@ export function EmployeeProfile() {
                   <CardHeader>
                     <CardTitle>Agency Access</CardTitle>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Agencies listed here can view and edit this specific employee. Conversion from Candidate doesn't auto-grant — list stays empty until you add an agency below.
+                      Grant or revoke this employee's view and edit access per agency. Conversion from Candidate doesn't auto-grant — you must turn the switches on explicitly.
                     </p>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {agencyAccess.length === 0 && (
-                      <p className="text-sm text-muted-foreground">No agency has access yet.</p>
-                    )}
-                    {agencyAccess.map((g: any) => (
-                      <div key={g.agencyId} className="flex items-start justify-between gap-3 p-3 rounded-lg border">
-                        <div className="min-w-0">
-                          <p className="font-medium text-sm truncate">{g.agency?.name ?? g.agencyId}</p>
-                          {g.notes && <p className="text-xs text-muted-foreground mt-0.5 truncate">{g.notes}</p>}
-                          {g.grantedAt && (
-                            <p className="text-[11px] text-muted-foreground mt-0.5">
-                              Granted {new Date(g.grantedAt).toLocaleDateString()}
+                    {/* The employee's own agency is always shown first so the
+                        admin can flip access for it without having to pick
+                        it from a dropdown. */}
+                    {employee.agencyId && (() => {
+                      const ownGrant = agencyAccess.find((g: any) => g.agencyId === employee.agencyId);
+                      const ownAgency = employee.agency ?? agencies.find((a: any) => a.id === employee.agencyId);
+                      const canView = !!ownGrant?.canView;
+                      const canEdit = !!ownGrant?.canEdit;
+                      return (
+                        <div className="p-3 rounded-lg border bg-[#F8FAFC] space-y-3">
+                          <div className="flex items-center gap-2">
+                            <Briefcase className="w-4 h-4 text-[#2563EB]" />
+                            <p className="font-medium text-sm">{ownAgency?.name ?? 'Employee\'s agency'}</p>
+                            <Badge variant="outline" className="ml-auto text-[10px]">Origin</Badge>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <label className="flex items-center gap-2 cursor-pointer text-sm">
+                              <input
+                                type="checkbox"
+                                className="h-4 w-4 rounded border-input"
+                                checked={canView}
+                                disabled={grantBusy}
+                                onChange={e => handleToggleAccess(employee.agencyId, { canView: e.target.checked, canEdit })}
+                              />
+                              <span>View</span>
+                            </label>
+                            <label className="flex items-center gap-2 cursor-pointer text-sm">
+                              <input
+                                type="checkbox"
+                                className="h-4 w-4 rounded border-input"
+                                checked={canEdit}
+                                disabled={grantBusy}
+                                onChange={e => handleToggleAccess(employee.agencyId, { canView, canEdit: e.target.checked })}
+                              />
+                              <span>Edit</span>
+                            </label>
+                          </div>
+                          {ownGrant?.grantedAt && (
+                            <p className="text-[11px] text-muted-foreground">
+                              Granted {new Date(ownGrant.grantedAt).toLocaleDateString()}
                             </p>
                           )}
                         </div>
+                      );
+                    })()}
+
+                    {/* Any additional agencies already granted access. */}
+                    {agencyAccess
+                      .filter((g: any) => g.agencyId !== employee.agencyId)
+                      .map((g: any) => (
+                        <div key={g.agencyId} className="p-3 rounded-lg border space-y-3">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-sm truncate flex-1">{g.agency?.name ?? g.agencyId}</p>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50 h-7 px-2"
+                              onClick={() => handleRevokeAccess(g.agencyId, g.agency?.name)}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <label className="flex items-center gap-2 cursor-pointer text-sm">
+                              <input
+                                type="checkbox"
+                                className="h-4 w-4 rounded border-input"
+                                checked={!!g.canView}
+                                onChange={e => handleToggleAccess(g.agencyId, { canView: e.target.checked, canEdit: !!g.canEdit })}
+                              />
+                              <span>View</span>
+                            </label>
+                            <label className="flex items-center gap-2 cursor-pointer text-sm">
+                              <input
+                                type="checkbox"
+                                className="h-4 w-4 rounded border-input"
+                                checked={!!g.canEdit}
+                                onChange={e => handleToggleAccess(g.agencyId, { canView: !!g.canView, canEdit: e.target.checked })}
+                              />
+                              <span>Edit</span>
+                            </label>
+                          </div>
+                          {g.notes && <p className="text-xs text-muted-foreground truncate">{g.notes}</p>}
+                        </div>
+                      ))}
+
+                    {/* Add another agency — hidden when the picker has no
+                        remaining options to avoid showing an empty Select. */}
+                    {agencies.some((a: any) => a.id !== employee.agencyId && !agencyAccess.some((g: any) => g.agencyId === a.id)) && (
+                      <div className="pt-3 border-t space-y-3">
+                        <Label className="text-xs">Grant access to another agency</Label>
+                        <Select value={grantAgencyId} onValueChange={setGrantAgencyId}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select agency" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {agencies
+                              .filter((a: any) => a.id !== employee.agencyId && !agencyAccess.some((g: any) => g.agencyId === a.id))
+                              .map((a: any) => (
+                                <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
+                        <Input
+                          placeholder="Notes (optional)"
+                          value={grantNotes}
+                          onChange={e => setGrantNotes(e.target.value)}
+                        />
                         <Button
-                          variant="ghost"
                           size="sm"
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                          onClick={() => handleRevokeAccess(g.agencyId, g.agency?.name)}
+                          className="w-full"
+                          onClick={async () => {
+                            await handleGrantAccess(grantAgencyId, { canView: true, canEdit: true }, grantNotes || undefined);
+                            setGrantAgencyId('');
+                            setGrantNotes('');
+                          }}
+                          disabled={!grantAgencyId || grantBusy}
                         >
-                          <Trash2 className="w-4 h-4 mr-1" />Revoke
+                          <Plus className="w-4 h-4 mr-1" />
+                          {grantBusy ? 'Granting…' : 'Grant view + edit'}
                         </Button>
                       </div>
-                    ))}
-
-                    <div className="pt-3 border-t space-y-3">
-                      <Label className="text-xs">Grant access to another agency</Label>
-                      <Select value={grantAgencyId} onValueChange={setGrantAgencyId}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select agency" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {agencies
-                            .filter((a: any) => !agencyAccess.some((g: any) => g.agencyId === a.id))
-                            .map((a: any) => (
-                              <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
-                            ))}
-                        </SelectContent>
-                      </Select>
-                      <Input
-                        placeholder="Notes (optional)"
-                        value={grantNotes}
-                        onChange={e => setGrantNotes(e.target.value)}
-                      />
-                      <Button
-                        size="sm"
-                        className="w-full"
-                        onClick={handleGrantAccess}
-                        disabled={!grantAgencyId || grantBusy}
-                      >
-                        <Plus className="w-4 h-4 mr-1" />
-                        {grantBusy ? 'Granting…' : 'Grant access'}
-                      </Button>
-                    </div>
+                    )}
                   </CardContent>
                 </Card>
               )}

@@ -787,7 +787,7 @@ export class ReportsService {
     const employeeScope: any = { deletedAt: null };
     if (isExternalActor) {
       const grants = await this.prisma.employeeAgencyAccess.findMany({
-        where: { agencyId: actor!.agencyId! },
+        where: { agencyId: actor!.agencyId!, canView: true },
         select: { employeeId: true },
       });
       const allowedIds = grants.map((g: { employeeId: string }) => g.employeeId);

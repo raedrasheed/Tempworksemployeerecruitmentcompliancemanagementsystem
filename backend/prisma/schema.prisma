@@ -1654,6 +1654,14 @@ model EmployeeAgencyAccess {
   grantedById  String?
   grantedAt    DateTime @default(now())
   notes        String?
+  /// Whether the agency's users can view this employee's profile and
+  /// find it in lists. Default true preserves behaviour of grants
+  /// created before the split from the presence-based model.
+  canView      Boolean  @default(true)
+  /// Whether the agency's users can edit the employee (profile,
+  /// status, uploads). Independent of canView — admins can give
+  /// read-only access by leaving canEdit off.
+  canEdit      Boolean  @default(true)
 
   employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   agency   Agency   @relation(fields: [agencyId],   references: [id], onDelete: Cascade)

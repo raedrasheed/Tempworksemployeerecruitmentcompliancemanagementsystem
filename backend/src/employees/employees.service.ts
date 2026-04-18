@@ -30,15 +30,13 @@ export class EmployeesService {
     const where: any = { deletedAt: null };
 
     // External tenants — every role inside a non-system agency — can
-    // only see employees explicitly granted via EmployeeAgencyAccess.
-    // Employee.agencyId (origin) is intentionally ignored so a
-    // candidate promoted to employee silently leaves the tenant's
-    // view until a Tempworks admin re-grants access for that
-    // specific employee. Tempworks-root users (isSystem=true) and
-    // System Admin keep the global view.
+    // only see employees granted via EmployeeAgencyAccess with
+    // canView=true. Employee.agencyId (origin) is intentionally
+    // ignored. Tempworks-root users (isSystem=true) and System Admin
+    // keep the global view.
     if (this.isExternalActor(actor)) {
       const grants = await this.prisma.employeeAgencyAccess.findMany({
-        where: { agencyId: actor!.agencyId! },
+        where: { agencyId: actor!.agencyId!, canView: true },
         select: { employeeId: true },
       });
       const allowedIds = grants.map(g => g.employeeId);
@@ -84,7 +82,11 @@ export class EmployeesService {
     return PaginatedResponse.create(data, total, page, limit);
   }
 
-  async findOne(id: string, actor?: { role?: string; agencyId?: string; agencyIsSystem?: boolean }) {
+  async findOne(
+    id: string,
+    actor?: { role?: string; agencyId?: string; agencyIsSystem?: boolean },
+    opts?: { require?: 'view' | 'edit' },
+  ) {
     const employee = await this.prisma.employee.findFirst({
       where: { id, deletedAt: null },
       include: {
@@ -95,15 +97,18 @@ export class EmployeesService {
     });
     if (!employee) throw new NotFoundException('Employee not found');
 
-    // Access for any external tenant is driven exclusively by the
-    // per-employee grant — employee.agencyId (origin agency) is
-    // intentionally ignored so a converted candidate is invisible to
-    // the source agency until a Tempworks admin re-grants access.
     if (this.isExternalActor(actor)) {
       const grant = await this.prisma.employeeAgencyAccess.findUnique({
         where: { employeeId_agencyId: { employeeId: id, agencyId: actor!.agencyId! } },
       });
       if (!grant) throw new ForbiddenException('Access to this employee has not been granted to your agency');
+      const need = opts?.require ?? 'view';
+      if (need === 'view' && !grant.canView) {
+        throw new ForbiddenException('View access to this employee has not been granted to your agency');
+      }
+      if (need === 'edit' && !grant.canEdit) {
+        throw new ForbiddenException('Edit access to this employee has not been granted to your agency');
+      }
     }
 
     return employee;
@@ -121,17 +126,61 @@ export class EmployeesService {
     });
   }
 
-  async grantAgencyAccess(employeeId: string, agencyId: string, notes: string | undefined, actorId?: string) {
+  async grantAgencyAccess(
+    employeeId: string,
+    agencyId: string,
+    dto: { notes?: string; canView?: boolean; canEdit?: boolean } = {},
+    actorId?: string,
+  ) {
     const employee = await this.prisma.employee.findFirst({ where: { id: employeeId, deletedAt: null } });
     if (!employee) throw new NotFoundException('Employee not found');
     const agency = await this.prisma.agency.findFirst({ where: { id: agencyId, deletedAt: null } });
     if (!agency) throw new NotFoundException('Agency not found');
+    const canView = dto.canView ?? true;
+    const canEdit = dto.canEdit ?? true;
+    // If the caller sets both flags to false we delete the row instead
+    // of persisting a useless "no access" grant — keeps the table tidy
+    // and makes revoke from the UI symmetric with delete.
+    if (!canView && !canEdit) {
+      await this.prisma.employeeAgencyAccess.deleteMany({
+        where: { employeeId, agencyId },
+      });
+      return { employeeId, agencyId, canView: false, canEdit: false, deleted: true };
+    }
     const grant = await this.prisma.employeeAgencyAccess.upsert({
       where:  { employeeId_agencyId: { employeeId, agencyId } },
-      create: { employeeId, agencyId, notes, grantedById: actorId },
-      update: { notes, grantedById: actorId, grantedAt: new Date() },
+      create: { employeeId, agencyId, notes: dto.notes, grantedById: actorId, canView, canEdit },
+      update: { notes: dto.notes, grantedById: actorId, grantedAt: new Date(), canView, canEdit },
     });
     return grant;
+  }
+
+  async updateAgencyAccess(
+    employeeId: string,
+    agencyId: string,
+    dto: { canView?: boolean; canEdit?: boolean; notes?: string },
+    actorId?: string,
+  ) {
+    const existing = await this.prisma.employeeAgencyAccess.findUnique({
+      where: { employeeId_agencyId: { employeeId, agencyId } },
+    });
+    if (!existing) throw new NotFoundException('No grant for that employee/agency pair');
+    const canView = dto.canView ?? existing.canView;
+    const canEdit = dto.canEdit ?? existing.canEdit;
+    if (!canView && !canEdit) {
+      await this.prisma.employeeAgencyAccess.delete({
+        where: { employeeId_agencyId: { employeeId, agencyId } },
+      });
+      return { employeeId, agencyId, canView: false, canEdit: false, deleted: true };
+    }
+    return this.prisma.employeeAgencyAccess.update({
+      where: { employeeId_agencyId: { employeeId, agencyId } },
+      data: {
+        canView, canEdit,
+        ...(dto.notes !== undefined ? { notes: dto.notes } : {}),
+        grantedById: actorId,
+      },
+    });
   }
 
   async revokeAgencyAccess(employeeId: string, agencyId: string) {
@@ -199,9 +248,8 @@ export class EmployeesService {
     _actorId?: string,
     actor?: { role?: string; agencyId?: string; agencyIsSystem?: boolean },
   ) {
-    // findOne enforces the tenancy + grant rules; any caller who can't
-    // read the employee also can't update it.
-    await this.findOne(id, actor);
+    // Edit path: external tenants need a grant with canEdit=true.
+    await this.findOne(id, actor, { require: 'edit' });
     const data: any = { ...dto };
     if (dto.dateOfBirth) data.dateOfBirth = new Date(dto.dateOfBirth);
     return this.prisma.employee.update({ where: { id }, data, include: { agency: { select: { id: true, name: true } } } });
@@ -237,13 +285,13 @@ export class EmployeesService {
   }
 
   async remove(id: string, _actorId?: string, actor?: { role?: string; agencyId?: string; agencyIsSystem?: boolean }) {
-    await this.findOne(id, actor);
+    await this.findOne(id, actor, { require: 'edit' });
     await this.prisma.employee.update({ where: { id }, data: { deletedAt: new Date() } });
     return { message: 'Employee deleted successfully' };
   }
 
   async updateStatus(id: string, status: string, _actorId?: string, actor?: { role?: string; agencyId?: string; agencyIsSystem?: boolean }) {
-    await this.findOne(id, actor);
+    await this.findOne(id, actor, { require: 'edit' });
     return this.prisma.employee.update({ where: { id }, data: { status: status as any } });
   }
 

@@ -218,10 +218,11 @@ export class AgenciesService {
     const where: any = { agencyId: id, deletedAt: null };
 
     // Any external tenant — regardless of role — must have an explicit
-    // per-employee grant; origin agency alone never grants access.
+    // per-employee grant with canView=true; origin agency alone never
+    // grants access, and a read-access-only-revoked grant still blocks.
     if (this.isExternalActor(actor)) {
       const grants = await this.prisma.employeeAgencyAccess.findMany({
-        where: { agencyId: actor!.agencyId! },
+        where: { agencyId: actor!.agencyId!, canView: true },
         select: { employeeId: true },
       });
       const allowedIds = grants.map(g => g.employeeId);
@@ -250,7 +251,7 @@ export class AgenciesService {
     const employeeWhere: any = { agencyId: id, deletedAt: null };
     if (this.isExternalActor(actor)) {
       const grants = await this.prisma.employeeAgencyAccess.findMany({
-        where: { agencyId: actor!.agencyId! },
+        where: { agencyId: actor!.agencyId!, canView: true },
         select: { employeeId: true },
       });
       const allowedIds = grants.map(g => g.employeeId);

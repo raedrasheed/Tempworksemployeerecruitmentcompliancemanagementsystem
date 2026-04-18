@@ -57,18 +57,35 @@ export class EmployeesController {
 
   @Post(':id/agency-access')
   @Roles(...ADMIN_ROLES)
-  @ApiOperation({ summary: 'Grant an agency access to this specific employee. Body: { agencyId, notes? }' })
+  @ApiOperation({ summary: 'Grant or update an agency\'s access to this employee. Body: { agencyId, notes?, canView?, canEdit? }. Defaults: canView=true, canEdit=true.' })
   grantAgencyAccess(
     @Param('id') id: string,
-    @Body() dto: { agencyId: string; notes?: string },
+    @Body() dto: { agencyId: string; notes?: string; canView?: boolean; canEdit?: boolean },
     @CurrentUser('id') actorId: string,
   ) {
-    return this.employeesService.grantAgencyAccess(id, dto.agencyId, dto.notes, actorId);
+    return this.employeesService.grantAgencyAccess(
+      id,
+      dto.agencyId,
+      { notes: dto.notes, canView: dto.canView, canEdit: dto.canEdit },
+      actorId,
+    );
+  }
+
+  @Patch(':id/agency-access/:agencyId')
+  @Roles(...ADMIN_ROLES)
+  @ApiOperation({ summary: 'Update an existing agency-access grant. Body: { canView?, canEdit?, notes? }. If both flags end up false the grant row is deleted.' })
+  updateAgencyAccess(
+    @Param('id') id: string,
+    @Param('agencyId') agencyId: string,
+    @Body() dto: { canView?: boolean; canEdit?: boolean; notes?: string },
+    @CurrentUser('id') actorId: string,
+  ) {
+    return this.employeesService.updateAgencyAccess(id, agencyId, dto, actorId);
   }
 
   @Delete(':id/agency-access/:agencyId')
   @Roles(...ADMIN_ROLES)
-  @ApiOperation({ summary: 'Revoke a specific agency\'s access to this employee' })
+  @ApiOperation({ summary: 'Revoke a specific agency\'s access to this employee (deletes the grant row).' })
   revokeAgencyAccess(
     @Param('id') id: string,
     @Param('agencyId') agencyId: string,

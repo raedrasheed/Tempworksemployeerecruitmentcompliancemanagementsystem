@@ -344,8 +344,24 @@ export const employeesApi = {
   // Per-employee agency-access grants (admin-only)
   listAgencyAccess: (id: string) =>
     apiFetch<any[]>(`/employees/${id}/agency-access`),
-  grantAgencyAccess: (id: string, agencyId: string, notes?: string) =>
-    apiFetch<any>(`/employees/${id}/agency-access`, { method: 'POST', body: JSON.stringify({ agencyId, notes }) }),
+  grantAgencyAccess: (
+    id: string,
+    agencyId: string,
+    opts: { notes?: string; canView?: boolean; canEdit?: boolean } = {},
+  ) =>
+    apiFetch<any>(`/employees/${id}/agency-access`, {
+      method: 'POST',
+      body: JSON.stringify({ agencyId, ...opts }),
+    }),
+  updateAgencyAccess: (
+    id: string,
+    agencyId: string,
+    patch: { canView?: boolean; canEdit?: boolean; notes?: string },
+  ) =>
+    apiFetch<any>(`/employees/${id}/agency-access/${agencyId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(patch),
+    }),
   revokeAgencyAccess: (id: string, agencyId: string) =>
     apiFetch<any>(`/employees/${id}/agency-access/${agencyId}`, { method: 'DELETE' }),
 };

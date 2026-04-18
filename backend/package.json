@@ -38,6 +38,7 @@
     "db:migrate:agency-profile": "ts-node prisma/run-agency-profile-fields-migration.ts",
     "db:migrate:agency-tenancy": "ts-node prisma/run-agency-tenancy-workflow-migration.ts",
     "db:migrate:agency-is-system": "ts-node prisma/run-agency-is-system-migration.ts",
+    "db:migrate:employee-agency-access-view-edit": "ts-node prisma/run-employee-agency-access-view-edit-migration.ts",
     "db:sync-permissions": "ts-node prisma/sync-permissions.ts"
   },
   "dependencies": {

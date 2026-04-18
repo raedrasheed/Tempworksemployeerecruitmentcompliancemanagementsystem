@@ -461,6 +461,8 @@ export function getStepErrors(
     if (d.hasDrivingLicense === 'yes') {
       if (!d.licenseNumber?.trim()) errors.push('License Number is required.');
       if (!d.licenseCountry) errors.push('License Issuing Country is required.');
+      if (!d.licenseCategories || d.licenseCategories.length === 0)
+        errors.push('Please select at least one License Category.');
       // Only check regular 'drivingLicense' slot when not a job-ad required doc
       if (!dlDocName && !hasFile('drivingLicense'))
         errors.push('You indicated you have a Driving License — please upload it.');
@@ -1358,7 +1360,8 @@ function Step4DrivingLicense({ d, u, settings, uploadedFiles, onFilesChange, req
             </div>
           </div>
           <div className="space-y-3">
-            <SubSection title="License Categories" />
+            <SubSection title="License Categories *" />
+            <p className="text-xs text-muted-foreground -mt-3">Select at least one category.</p>
             <div className="flex flex-wrap gap-2">
               {LICENSE_CATEGORIES.map(cat => (
                 <label key={cat} className={`px-3 py-1.5 border-2 rounded-lg cursor-pointer text-sm font-medium transition-all ${d.licenseCategories.includes(cat) ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-200 hover:border-gray-300'}`}>

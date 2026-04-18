@@ -48,6 +48,59 @@ export function EmployeeProfile() {
   const [expandedStageId, setExpandedStageId] = useState<string | null>(null);
   const [approvingStageId, setApprovingStageId] = useState<string | null>(null);
 
+  // ── Per-employee agency-access grants (System Admin / HR Manager only) ─
+  // Drives the "Agency Access" card on the Overview tab. Agency users of
+  // any granted agency can then view/edit this specific employee; the
+  // backend enforces the same rule so this is pure UX around the
+  // employeesApi.listAgencyAccess / grantAgencyAccess / revokeAgencyAccess
+  // endpoints.
+  const canManageAgencyAccess = currentUser?.role === 'System Admin' || currentUser?.role === 'HR Manager';
+  const [agencyAccess, setAgencyAccess] = useState<any[]>([]);
+  const [grantAgencyId, setGrantAgencyId] = useState<string>('');
+  const [grantNotes, setGrantNotes] = useState<string>('');
+  const [grantBusy, setGrantBusy] = useState(false);
+
+  const loadAgencyAccess = () => {
+    if (!id || !canManageAgencyAccess) return;
+    employeesApi.listAgencyAccess(id)
+      .then((res: any) => setAgencyAccess(Array.isArray(res) ? res : (res?.data ?? [])))
+      .catch(() => setAgencyAccess([]));
+  };
+
+  const handleGrantAccess = async () => {
+    if (!id || !grantAgencyId) return;
+    setGrantBusy(true);
+    try {
+      await employeesApi.grantAgencyAccess(id, grantAgencyId, grantNotes || undefined);
+      toast.success('Agency access granted');
+      setGrantAgencyId('');
+      setGrantNotes('');
+      loadAgencyAccess();
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to grant access');
+    } finally {
+      setGrantBusy(false);
+    }
+  };
+
+  const handleRevokeAccess = async (agencyId: string, agencyName: string) => {
+    if (!id) return;
+    const ok = await confirm({
+      title: 'Revoke agency access',
+      description: `Remove ${agencyName || 'this agency'}'s access to this employee? Their users will stop seeing the record immediately.`,
+      confirmText: 'Revoke',
+      tone: 'destructive',
+    });
+    if (!ok) return;
+    try {
+      await employeesApi.revokeAgencyAccess(id, agencyId);
+      toast.success('Agency access revoked');
+      loadAgencyAccess();
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to revoke access');
+    }
+  };
+
   const loadRecruitmentWorkflow = () => {
     workflowApi.getEmployeeAssignment(id!).then(res => setAssignment(res ?? null)).catch(() => {});
   };
@@ -84,6 +137,7 @@ export function EmployeeProfile() {
     if (id) {
       loadRecruitmentWorkflow();
       workflowApi.list().then(res => setAllWorkflows(Array.isArray(res) ? res : [])).catch(() => {});
+      loadAgencyAccess();
     }
   }, [id]);
 
@@ -448,6 +502,73 @@ export function EmployeeProfile() {
                         ))}
                       </SelectContent>
                     </Select>
+                  </CardContent>
+                </Card>
+              )}
+
+              {canManageAgencyAccess && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Agency Access</CardTitle>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Agencies listed here can view and edit this specific employee. Conversion from Candidate doesn't auto-grant — list stays empty until you add an agency below.
+                    </p>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {agencyAccess.length === 0 && (
+                      <p className="text-sm text-muted-foreground">No agency has access yet.</p>
+                    )}
+                    {agencyAccess.map((g: any) => (
+                      <div key={g.agencyId} className="flex items-start justify-between gap-3 p-3 rounded-lg border">
+                        <div className="min-w-0">
+                          <p className="font-medium text-sm truncate">{g.agency?.name ?? g.agencyId}</p>
+                          {g.notes && <p className="text-xs text-muted-foreground mt-0.5 truncate">{g.notes}</p>}
+                          {g.grantedAt && (
+                            <p className="text-[11px] text-muted-foreground mt-0.5">
+                              Granted {new Date(g.grantedAt).toLocaleDateString()}
+                            </p>
+                          )}
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          onClick={() => handleRevokeAccess(g.agencyId, g.agency?.name)}
+                        >
+                          <Trash2 className="w-4 h-4 mr-1" />Revoke
+                        </Button>
+                      </div>
+                    ))}
+
+                    <div className="pt-3 border-t space-y-3">
+                      <Label className="text-xs">Grant access to another agency</Label>
+                      <Select value={grantAgencyId} onValueChange={setGrantAgencyId}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select agency" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {agencies
+                            .filter((a: any) => !agencyAccess.some((g: any) => g.agencyId === a.id))
+                            .map((a: any) => (
+                              <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                      <Input
+                        placeholder="Notes (optional)"
+                        value={grantNotes}
+                        onChange={e => setGrantNotes(e.target.value)}
+                      />
+                      <Button
+                        size="sm"
+                        className="w-full"
+                        onClick={handleGrantAccess}
+                        disabled={!grantAgencyId || grantBusy}
+                      >
+                        <Plus className="w-4 h-4 mr-1" />
+                        {grantBusy ? 'Granting…' : 'Grant access'}
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               )}

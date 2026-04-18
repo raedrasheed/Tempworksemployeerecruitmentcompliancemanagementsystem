@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/ca
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Badge } from '../../components/ui/badge';
+import { Checkbox } from '../../components/ui/checkbox';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '../../components/ui/table';
@@ -123,6 +124,15 @@ export function EmployeesList() {
   const [loading, setLoading] = useState(true);
   const [agencies, setAgencies] = useState<any[]>([]);
 
+  // Row selection for 'Export Selected'
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const toggleSelect = (id: string) =>
+    setSelected(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+
   // ── Fetch ──────────────────────────────────────────────────────────────────
   const fetchEmployees = useCallback(async () => {
     setLoading(true);
@@ -199,28 +209,69 @@ export function EmployeesList() {
   };
 
   // ── CSV Export (client-side) ───────────────────────────────────────────────
-  const handleExport = () => {
-    const headers = ['Employee Number', 'First Name', 'Last Name', 'Email', 'Phone', 'Citizenship', 'License Number', 'Experience (yrs)', 'Agency', 'Status', 'Joined'];
-    const rows = displayData.map(e => [
-      e.employeeNumber ?? '',
-      e.firstName ?? '',
-      e.lastName ?? '',
-      e.email ?? '',
-      e.phone ?? '',
-      e.nationality ?? '',
-      e.licenseNumber ?? '',
-      e.yearsExperience ?? '',
-      e.agency?.name ?? e.agencyName ?? '',
-      e.status ?? '',
-      e.createdAt ? new Date(e.createdAt).toLocaleDateString() : '',
-    ]);
-    const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href = url; a.download = `employees-${Date.now()}.csv`;
+  // Column order matches the visible table (Employee identity → contact →
+  // profile attributes → employment → audit). Kept stable so users can
+  // diff exports across weeks.
+  const CSV_HEADERS = [
+    'Employee Number', 'First Name', 'Last Name', 'Email', 'Phone',
+    'Citizenship', 'License Number', 'Experience (yrs)', 'Agency',
+    'Status', 'Joined',
+  ];
+  const rowFor = (e: any): (string | number)[] => [
+    e.employeeNumber ?? '',
+    e.firstName ?? '',
+    e.lastName ?? '',
+    e.email ?? '',
+    e.phone ?? '',
+    e.nationality ?? '',
+    e.licenseNumber ?? '',
+    e.yearsExperience ?? '',
+    e.agency?.name ?? e.agencyName ?? '',
+    e.status ?? '',
+    e.createdAt ? new Date(e.createdAt).toLocaleDateString() : '',
+  ];
+  /** RFC 4180 escape: only quote cells that contain a separator, quote or
+   *  line break; double any embedded quotes. Keeps the file compact and
+   *  avoids the unnecessary 'quote everything' style that still parses
+   *  correctly but bloats output. */
+  const csvEscape = (v: any): string => {
+    const s = v == null ? '' : String(v);
+    return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const buildCsv = (rows: any[]): Blob => {
+    const body = [CSV_HEADERS, ...rows.map(rowFor)]
+      .map(r => r.map(csvEscape).join(','))
+      .join('\r\n');  // RFC 4180 + Excel
+    // UTF-8 BOM so Excel detects the encoding and doesn't dump every
+    // row into column A. text/csv; charset=utf-8 complements the BOM.
+    return new Blob(['\uFEFF', body, '\r\n'], { type: 'text/csv;charset=utf-8;' });
+  };
+  const triggerDownload = (blob: Blob, filename: string) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
     document.body.appendChild(a); a.click();
     document.body.removeChild(a); URL.revokeObjectURL(url);
+  };
+
+  /** Export only the rows ticked by the user. */
+  const handleExportSelected = () => {
+    if (selected.size === 0) return;
+    const rows = displayData.filter(e => selected.has(e.id));
+    if (rows.length === 0) {
+      toast.info('Selected rows are no longer visible — try Export All.');
+      return;
+    }
+    triggerDownload(buildCsv(rows), `employees-selected-${Date.now()}.csv`);
+  };
+
+  /** Export every row currently in the filtered/sorted view. */
+  const handleExportAll = () => {
+    if (displayData.length === 0) {
+      toast.info('Nothing to export');
+      return;
+    }
+    triggerDownload(buildCsv(displayData), `employees-${Date.now()}.csv`);
   };
 
   // ── Filters ────────────────────────────────────────────────────────────────
@@ -232,7 +283,24 @@ export function EmployeesList() {
   const onboardingCount = employees.filter(e => e.status === 'ONBOARDING').length;
   const pendingCount    = employees.filter(e => e.status === 'PENDING').length;
 
-  const colSpan = 2 + ALL_COLUMNS.filter(c => visibleColumns[c.key]).length;
+  // +1 for the select checkbox column we add at the far left.
+  const colSpan = 3 + ALL_COLUMNS.filter(c => visibleColumns[c.key]).length;
+
+  const visibleIds = displayData.map(e => e.id);
+  const allVisibleSelected = visibleIds.length > 0 && visibleIds.every(id => selected.has(id));
+  const someVisibleSelected = !allVisibleSelected && visibleIds.some(id => selected.has(id));
+  const toggleSelectAllVisible = () => {
+    setSelected(prev => {
+      if (allVisibleSelected) {
+        const next = new Set(prev);
+        visibleIds.forEach(id => next.delete(id));
+        return next;
+      }
+      const next = new Set(prev);
+      visibleIds.forEach(id => next.add(id));
+      return next;
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -303,8 +371,17 @@ export function EmployeesList() {
               <Button variant="outline" size="sm" onClick={fetchEmployees} disabled={loading}>
                 <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />Refresh
               </Button>
-              <Button variant="outline" size="sm" onClick={handleExport}>
-                <Download className="w-4 h-4 mr-2" />Export CSV
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportSelected}
+                disabled={selected.size === 0}
+                title={selected.size === 0 ? 'Select one or more rows to export' : undefined}
+              >
+                <Download className="w-4 h-4 mr-2" />Export Selected ({selected.size})
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleExportAll}>
+                <Download className="w-4 h-4 mr-2" />Export All
               </Button>
 
               {/* Column picker */}
@@ -378,6 +455,13 @@ export function EmployeesList() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-10">
+                    <Checkbox
+                      checked={allVisibleSelected ? true : someVisibleSelected ? 'indeterminate' : false}
+                      onCheckedChange={toggleSelectAllVisible}
+                      aria-label="Select all visible rows"
+                    />
+                  </TableHead>
                   <SortableHead label="Employee"    field="firstName"       sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />
                   {col('contact')     && <SortableHead label="Contact"      field="email"           sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
                   {col('nationality') && <SortableHead label="Citizenship"  field="nationality"     sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
@@ -400,7 +484,14 @@ export function EmployeesList() {
                   </TableRow>
                 )}
                 {!loading && displayData.map(driver => (
-                  <TableRow key={driver.id}>
+                  <TableRow key={driver.id} data-state={selected.has(driver.id) ? 'selected' : undefined}>
+                    <TableCell className="w-10">
+                      <Checkbox
+                        checked={selected.has(driver.id)}
+                        onCheckedChange={() => toggleSelect(driver.id)}
+                        aria-label={`Select ${driver.firstName ?? ''} ${driver.lastName ?? ''}`}
+                      />
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         {driver.photoUrl ? (

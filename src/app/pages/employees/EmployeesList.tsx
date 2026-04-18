@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Link } from 'react-router';
-import { Plus, Search, Download, Eye, Edit, Trash2, RefreshCw, ArrowUp, ArrowDown, ArrowUpDown, X, Columns2, Check } from 'lucide-react';
+import { Plus, Search, Download, Eye, Edit, Trash2, RefreshCw, ArrowUp, ArrowDown, ArrowUpDown, X, Columns2, Check, FileText, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { confirm } from '../../components/ui/ConfirmDialog';
+import { exportRecordsAsPdfZip, safeFilename } from '../../utils/bulkPdfExport';
+import { EmployeePDF } from '../../components/employees/EmployeePdfDocument';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -213,6 +215,45 @@ export function EmployeesList() {
     }
   };
 
+  // ── Bulk PDF Export ────────────────────────────────────────────────────────
+  const [pdfExporting, setPdfExporting] = useState(false);
+  const handleBulkPdfExport = async () => {
+    if (selected.size === 0) {
+      toast.error('Select at least one employee');
+      return;
+    }
+    setPdfExporting(true);
+    const tid = toast.loading(`Preparing ${selected.size} PDF${selected.size > 1 ? 's' : ''}...`);
+    try {
+      const ids = [...selected];
+      const full = await Promise.all(ids.map(id => employeesApi.get(id).catch(() => null)));
+      const records = full.filter(Boolean) as any[];
+      if (records.length === 0) {
+        toast.error('Failed to load selected employees', { id: tid });
+        return;
+      }
+      const today = new Date().toISOString().slice(0, 10);
+      await exportRecordsAsPdfZip({
+        records,
+        zipName: `Employees_Profiles_${today}`,
+        renderDoc: (rec) => <EmployeePDF employee={rec} />,
+        filename: (rec) => {
+          const name = safeFilename([rec.firstName, rec.lastName].filter(Boolean).join('_') || 'Employee');
+          const num = rec.employeeNumber || rec.id;
+          return `Employee_${name}_${num}.pdf`;
+        },
+        onProgress: (done, total) => {
+          toast.loading(`Generating PDFs... ${done}/${total}`, { id: tid });
+        },
+      });
+      toast.success(`Exported ${records.length} PDF${records.length > 1 ? 's' : ''}`, { id: tid });
+    } catch (err: any) {
+      toast.error(err?.message || 'PDF export failed', { id: tid });
+    } finally {
+      setPdfExporting(false);
+    }
+  };
+
   // ── CSV Export (client-side) ───────────────────────────────────────────────
   // Column order matches the visible table (Employee identity → contact →
   // profile attributes → employment → audit). Kept stable so users can
@@ -387,6 +428,18 @@ export function EmployeesList() {
               </Button>
               <Button variant="outline" size="sm" onClick={handleExportAll}>
                 <Download className="w-4 h-4 mr-2" />Export All
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleBulkPdfExport}
+                disabled={selected.size === 0 || pdfExporting}
+                title={selected.size === 0 ? 'Select one or more rows to export as PDFs' : undefined}
+              >
+                {pdfExporting
+                  ? <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  : <FileText className="w-4 h-4 mr-2" />}
+                Export PDFs ({selected.size})
               </Button>
 
               {/* Column picker */}

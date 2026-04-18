@@ -61,7 +61,7 @@ const yn = (v: string | boolean | undefined) =>
 
 // ── PDF Document ──────────────────────────────────────────────────────────────
 
-function ApplicantPDF({ applicant, photoDataUrl }: { applicant: any; photoDataUrl?: string }) {
+export function ApplicantPDF({ applicant, photoDataUrl }: { applicant: any; photoDataUrl?: string }) {
   const ad = applicant.applicationData ?? {};
   const now = new Date().toLocaleDateString('en-GB');
 

@@ -3,9 +3,11 @@ import { applicantsApi, agenciesApi, settingsApi } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
 import { getCurrentUser, getAccessToken } from '../../services/api';
 import { Link } from 'react-router';
-import { Search, Plus, Eye, Edit, Download, Trash2, RefreshCw, ArrowUp, ArrowDown, ArrowUpDown, X, Columns2, Check } from 'lucide-react';
+import { Search, Plus, Eye, Edit, Download, Trash2, RefreshCw, ArrowUp, ArrowDown, ArrowUpDown, X, Columns2, Check, FileText, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { confirm } from '../../components/ui/ConfirmDialog';
+import { exportRecordsAsPdfZip, safeFilename } from '../../utils/bulkPdfExport';
+import { ApplicantPDF } from '../../components/applicants/ApplicantPdfExport';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -286,6 +288,45 @@ export function CandidatesList() {
     }
   };
 
+  // ── Bulk PDF Export ────────────────────────────────────────────────────────
+  const [pdfExporting, setPdfExporting] = useState(false);
+  const handleBulkPdfExport = async () => {
+    if (selected.size === 0) {
+      toast.error('Select at least one candidate');
+      return;
+    }
+    setPdfExporting(true);
+    const tid = toast.loading(`Preparing ${selected.size} PDF${selected.size > 1 ? 's' : ''}...`);
+    try {
+      const ids = [...selected];
+      const full = await Promise.all(ids.map(id => applicantsApi.get(id).catch(() => null)));
+      const records = full.filter(Boolean) as any[];
+      if (records.length === 0) {
+        toast.error('Failed to load selected candidates', { id: tid });
+        return;
+      }
+      const today = new Date().toISOString().slice(0, 10);
+      await exportRecordsAsPdfZip({
+        records,
+        zipName: `Candidates_Profiles_${today}`,
+        renderDoc: (rec) => <ApplicantPDF applicant={rec} />,
+        filename: (rec) => {
+          const name = safeFilename([rec.firstName, rec.lastName].filter(Boolean).join('_') || 'Candidate');
+          const num = rec.candidateNumber || rec.leadNumber || rec.applicationNumber || rec.id;
+          return `Candidate_${name}_${num}.pdf`;
+        },
+        onProgress: (done, total) => {
+          toast.loading(`Generating PDFs... ${done}/${total}`, { id: tid });
+        },
+      });
+      toast.success(`Exported ${records.length} PDF${records.length > 1 ? 's' : ''}`, { id: tid });
+    } catch (err: any) {
+      toast.error(err?.message || 'PDF export failed', { id: tid });
+    } finally {
+      setPdfExporting(false);
+    }
+  };
+
   // ── CSV Export ─────────────────────────────────────────────────────────────
   const runCsvDownload = (params: Record<string, any>, filename: string) => {
     const token = getAccessToken();
@@ -444,6 +485,18 @@ export function CandidatesList() {
               </Button>
               <Button variant="outline" size="sm" onClick={handleExportAll}>
                 <Download className="w-4 h-4 mr-2" />Export All
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleBulkPdfExport}
+                disabled={selected.size === 0 || pdfExporting}
+                title={selected.size === 0 ? 'Select one or more rows to export as PDFs' : undefined}
+              >
+                {pdfExporting
+                  ? <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  : <FileText className="w-4 h-4 mr-2" />}
+                Export PDFs ({selected.size})
               </Button>
 
               {/* Column picker */}

@@ -83,10 +83,14 @@ export function UsersList() {
   const isExternalTenantCaller = !!currentUser?.agencyId && currentUser?.agencyIsSystem !== true;
 
   const isPending = (user: any) => user.approvalStatus === 'PENDING_APPROVAL';
+  // Use !! to accept truthy values coming back from the API (boolean
+  // true, 1, "true" string) rather than strict === true, so a value
+  // that was persisted correctly but serialized differently still
+  // unlocks the button.
   const canTenantEdit = (user: any) =>
-    isPending(user) || user.allowManagerEdit === true;
+    isPending(user) || !!user.allowManagerEdit;
   const canTenantDelete = (user: any) =>
-    isPending(user) || user.allowManagerDelete === true;
+    isPending(user) || !!user.allowManagerDelete;
   const mayEditRow = (user: any) =>
     canEdit('users') && (!isExternalTenantCaller || canTenantEdit(user));
   const mayDeleteRow = (user: any) =>

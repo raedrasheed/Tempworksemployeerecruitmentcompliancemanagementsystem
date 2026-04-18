@@ -1,21 +1,21 @@
 import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { Pool } from 'pg';
 import * as bcrypt from 'bcryptjs';
 import * as dotenv from 'dotenv';
+import { join } from 'path';
+import { resolvePoolSsl } from './pg-ssl';
 
-dotenv.config();
+dotenv.config({ path: join(__dirname, '../.env') });
 
-// Use binary engine (not WASM) by disabling SSL at the URL level so Prisma's
-// native engine connects without needing pg-pool/adapter-pg (which loads WASM
-// and can OOM on memory-constrained servers).
-if (process.env.DATABASE_URL) {
-  try {
-    const u = new URL(process.env.DATABASE_URL);
-    u.searchParams.set('sslmode', 'disable');
-    process.env.DATABASE_URL = u.toString();
-  } catch {}
-}
-
-const prisma = new PrismaClient();
+// Prisma 7's default "client" engine requires either a driver adapter or
+// Accelerate — matching how src/prisma/prisma.service.ts initialises the
+// runtime client.
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: resolvePoolSsl(process.env.DATABASE_URL),
+});
+const prisma = new PrismaClient({ adapter: new PrismaPg(pool as any) });
 
 async function main() {
   console.log('Starting database seed...');
@@ -322,32 +322,8 @@ async function main() {
   }
   console.log(`Upserted ${agenciesData.length + 1} agencies (including TempWorks Slovakia)`);
 
-  // ── Workflow Stages ───────────────────────────────────────────────────────
-  const workflowStages = [
-    { name: 'Application Received', order: 1, category: 'INITIAL', description: 'Initial application submitted and received' },
-    { name: 'Document Collection', order: 2, category: 'DOCUMENTATION', description: 'Collecting required identity and qualification documents' },
-    { name: 'Document Verification', order: 3, category: 'DOCUMENTATION', description: 'Verifying authenticity of submitted documents' },
-    { name: 'Background Check', order: 4, category: 'COMPLIANCE', description: 'Criminal record and employment history background check' },
-    { name: 'Medical Assessment', order: 5, category: 'COMPLIANCE', description: 'Medical fitness assessment for driving duties' },
-    { name: 'License Verification', order: 6, category: 'COMPLIANCE', description: 'Driving license verification and category validation' },
-    { name: 'Work Permit Application', order: 7, category: 'COMPLIANCE', description: 'Applying for work permit if required' },
-    { name: 'Visa Processing', order: 8, category: 'COMPLIANCE', description: 'Visa application and processing' },
-    { name: 'Induction Training', order: 9, category: 'TRAINING', description: 'Company induction and onboarding training' },
-    { name: 'Safety Training', order: 10, category: 'TRAINING', description: 'Health & safety and compliance training' },
-    { name: 'Vehicle Familiarization', order: 11, category: 'TRAINING', description: 'Training on specific vehicle types' },
-    { name: 'Contract Signing', order: 12, category: 'ADMINISTRATIVE', description: 'Employment contract signing and HR paperwork' },
-    { name: 'Payroll Setup', order: 13, category: 'ADMINISTRATIVE', description: 'Payroll and banking details setup' },
-    { name: 'Deployment Ready', order: 14, category: 'DEPLOYMENT', description: 'Employee cleared and ready for deployment' },
-  ];
-
-  for (const stage of workflowStages) {
-    await prisma.workflowStage.upsert({
-      where: { name: stage.name },
-      update: {},
-      create: { ...stage, category: stage.category as any, isActive: true },
-    });
-  }
-  console.log(`Upserted ${workflowStages.length} workflow stages`);
+  // Workflow stages are now created per-tenant via the UI (each Workflow
+  // owns its own stages). No global seed data.
 
   // ── Document Types ────────────────────────────────────────────────────────
   const documentTypes = [
@@ -478,7 +454,6 @@ async function main() {
   // ── Sample Employees ──────────────────────────────────────────────────────
   const firstAgencyId = agencyMap.get('TempWorks UK Ltd');
   const secondAgencyId = agencyMap.get('EuroDrivers GmbH');
-  const allWorkflowStages = await prisma.workflowStage.findMany({ orderBy: { order: 'asc' } });
 
   const sampleEmployees = [
     {
@@ -537,21 +512,7 @@ async function main() {
   for (const emp of sampleEmployees) {
     const existing = await prisma.employee.findUnique({ where: { email: emp.email } });
     if (!existing) {
-      const created = await prisma.employee.create({ data: emp });
-      // Create workflow stages for active/onboarding employees
-      if (emp.status !== 'PENDING') {
-        for (const stage of allWorkflowStages.slice(0, 5)) {
-          await prisma.employeeWorkflowStage.create({
-            data: {
-              employeeId: created.id,
-              stageId: stage.id,
-              status: stage.order <= 3 ? 'COMPLETED' : 'IN_PROGRESS',
-              startedAt: new Date(),
-              completedAt: stage.order <= 3 ? new Date() : null,
-            },
-          });
-        }
-      }
+      await prisma.employee.create({ data: emp });
     }
   }
   console.log(`Created ${sampleEmployees.length} sample employees`);
@@ -597,7 +558,7 @@ async function main() {
   ];
 
   for (const app of sampleApplicants) {
-    const existing = await prisma.applicant.findUnique({ where: { email: app.email } });
+    const existing = await prisma.applicant.findFirst({ where: { email: app.email } });
     if (!existing) {
       await prisma.applicant.create({ data: app });
     }
@@ -614,4 +575,5 @@ main()
   })
   .finally(async () => {
     await prisma.$disconnect();
+    await pool.end();
   });

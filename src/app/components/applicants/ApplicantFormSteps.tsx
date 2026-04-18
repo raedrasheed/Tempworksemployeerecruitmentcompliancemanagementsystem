@@ -247,10 +247,12 @@ export const EMPTY_FORM: ApplicantFormData = {
   homeAddress: { ...EMPTY_ADDRESS },
   currentAddress: { ...EMPTY_ADDRESS },
   sameAsHomeAddress: false,
-  phoneCode: '+44',
+  // Phone country codes start empty so the dropdown shows a 'Code'
+  // prompt — same convention as every other phone field on the site.
+  phoneCode: '',
   phone: '',
   phoneIsWhatsApp: false,
-  whatsappCode: '+44',
+  whatsappCode: '',
   whatsapp: '',
   email: '',
   emailConfirm: '',
@@ -1701,7 +1703,7 @@ function Step7WorkHistory({ d, u, uploadedFiles, onFilesChange }: { d: Applicant
   const addEntry = () => {
     u(prev => ({
       ...prev,
-      workHistory: [...prev.workHistory, { id: crypto.randomUUID(), company: '', jobTitle: '', companyStreet: '', companyCity: '', companyPostalCode: '', country: '', companyPhoneCode: '+1', companyPhone: '', startDate: '', endDate: '', current: false, responsibilities: '', reasonForLeaving: '', referenceName: '', referencePhoneCode: '+1', referencePhone: '', referenceEmail: '' }],
+      workHistory: [...prev.workHistory, { id: crypto.randomUUID(), company: '', jobTitle: '', companyStreet: '', companyCity: '', companyPostalCode: '', country: '', companyPhoneCode: '', companyPhone: '', startDate: '', endDate: '', current: false, responsibilities: '', reasonForLeaving: '', referenceName: '', referencePhoneCode: '', referencePhone: '', referenceEmail: '' }],
     }));
   };
   const updateEntry = (id: string, field: keyof WorkHistoryEntry, value: any) => {

@@ -15,7 +15,10 @@ interface Props {
   required?: boolean;
   id?: string;
   className?: string;
-  defaultCode?: string;  // Dial code to use when the value has none (e.g. '+44')
+  /** Dial code to use when the value has none. Default is empty so the
+   *  user is forced to pick one — same convention used everywhere else
+   *  on the site. Pass e.g. '+44' to keep a UK pre-selection. */
+  defaultCode?: string;
 }
 
 export function PhoneInput({
@@ -26,11 +29,12 @@ export function PhoneInput({
   required,
   id,
   className,
-  defaultCode = '+44',
+  defaultCode = '',
 }: Props) {
   const { code, number } = splitPhone(value);
   const activeCode = code || defaultCode;
-  const iso = PHONE_CODES.find(p => p.code === activeCode)?.iso ?? 'un';
+  const hasCode = !!activeCode;
+  const iso = PHONE_CODES.find(p => p.code === activeCode)?.iso ?? '';
 
   const commit = (nextCode: string, nextNumber: string) => {
     const n = nextNumber.trim();
@@ -45,18 +49,22 @@ export function PhoneInput({
         disabled={disabled}
       >
         <SelectTrigger className="w-32 shrink-0">
-          <SelectValue>
+          {hasCode ? (
             <span className="inline-flex items-center gap-2">
-              <img
-                src={`https://flagcdn.com/w20/${iso.toLowerCase()}.png`}
-                width={20}
-                height={15}
-                alt=""
-                className="inline-block rounded-sm"
-              />
+              {iso && (
+                <img
+                  src={`https://flagcdn.com/w20/${iso.toLowerCase()}.png`}
+                  width={20}
+                  height={15}
+                  alt=""
+                  className="inline-block rounded-sm"
+                />
+              )}
               {activeCode}
             </span>
-          </SelectValue>
+          ) : (
+            <span className="text-sm text-muted-foreground">Code</span>
+          )}
         </SelectTrigger>
         <SelectContent className="max-h-64 overflow-y-auto">
           {PHONE_CODES.map(c => (

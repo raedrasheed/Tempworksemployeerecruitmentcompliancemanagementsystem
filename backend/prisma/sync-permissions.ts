@@ -21,7 +21,9 @@ if (process.env.DATABASE_URL) {
   } catch {}
 }
 
-const prisma = new PrismaClient();
+// Prisma 7.x requires a non-empty options object; pass a log level so
+// construction succeeds without forcing every caller to supply datasource overrides.
+const prisma = new PrismaClient({ log: ['warn', 'error'] });
 
 const modules = [
   'dashboard',

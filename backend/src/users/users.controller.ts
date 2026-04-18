@@ -104,14 +104,14 @@ export class UsersController {
   @Roles('System Admin', 'HR Manager')
   @ApiOperation({ summary: 'Update user (admin-only fields enforced by role)' })
   update(@Param('id') id: string, @Body() dto: UpdateUserDto, @CurrentUser() caller: any) {
-    return this.usersService.update(id, dto, caller?.role, caller?.id);
+    return this.usersService.update(id, dto, caller?.role, caller?.id, caller?.agencyIsSystem);
   }
 
   @Delete(':id')
   @Roles('System Admin')
   @ApiOperation({ summary: 'Delete user (soft delete)' })
   remove(@Param('id') id: string, @CurrentUser() caller: any) {
-    return this.usersService.remove(id, caller?.role, caller?.id);
+    return this.usersService.remove(id, caller?.role, caller?.id, caller?.agencyIsSystem);
   }
 
   // ── Photo upload ──────────────────────────────────────────────────────────────

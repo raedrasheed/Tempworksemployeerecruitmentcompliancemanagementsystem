@@ -328,7 +328,13 @@ export class UsersService {
   // ---------------------------------------------------------------------------
   // Update
   // ---------------------------------------------------------------------------
-  async update(id: string, dto: UpdateUserDto, callerRole?: string, actorId?: string) {
+  async update(
+    id: string,
+    dto: UpdateUserDto,
+    callerRole?: string,
+    actorId?: string,
+    callerAgencyIsSystem?: boolean,
+  ) {
     const existing = await this.findOne(id, callerRole);
 
     if (callerRole !== 'System Admin' && existing.role?.name === 'System Admin') {
@@ -342,14 +348,19 @@ export class UsersService {
       }
     }
 
-    // Agency Managers may only edit users within their agency, and only
-    // while those users are either still PENDING_APPROVAL or have been
-    // explicitly unlocked by a Tempworks admin (allowManagerEdit = true).
-    if (callerRole === 'Agency Manager') {
+    // Any caller sitting in a non-system tenant agency is subject to
+    // the approval gate: once a user has been approved by Tempworks,
+    // the tenant can only edit them again if a Tempworks admin has
+    // explicitly flipped allowManagerEdit on. System Admin + HR
+    // Manager (and anyone else) inside the Tempworks root agency
+    // bypass this check.
+    const isExternalTenantCaller =
+      callerRole !== 'System Admin' && callerAgencyIsSystem !== true;
+    if (isExternalTenantCaller) {
       const approval = (existing as any).approvalStatus;
       const allow    = (existing as any).allowManagerEdit;
       if (approval === 'APPROVED' && !allow) {
-        throw new ForbiddenException('This user has been approved by Tempworks. Ask an administrator to enable edits for this user.');
+        throw new ForbiddenException('This user has been approved by Tempworks. Ask a System Administrator to enable edits for this user.');
       }
     }
 
@@ -589,18 +600,24 @@ export class UsersService {
   // ---------------------------------------------------------------------------
   // Remove (soft delete)
   // ---------------------------------------------------------------------------
-  async remove(id: string, callerRole?: string, actorId?: string) {
+  async remove(id: string, callerRole?: string, actorId?: string, callerAgencyIsSystem?: boolean) {
     const existing = await this.findOne(id, callerRole);
 
     if (callerRole !== 'System Admin' && existing.role?.name === 'System Admin') {
       throw new ForbiddenException('Only System Admins can delete System Admin users');
     }
 
-    if (callerRole === 'Agency Manager') {
+    // Any caller sitting in a non-system tenant agency is subject to
+    // the delete approval gate — Agency Manager, tenant HR Manager,
+    // tenant Recruiter, etc. all need an explicit allowManagerDelete
+    // override on an approved user.
+    const isExternalTenantCaller =
+      callerRole !== 'System Admin' && callerAgencyIsSystem !== true;
+    if (isExternalTenantCaller) {
       const approval = (existing as any).approvalStatus;
       const allow    = (existing as any).allowManagerDelete;
       if (approval === 'APPROVED' && !allow) {
-        throw new ForbiddenException('This user has been approved by Tempworks. Ask an administrator to enable deletion for this user.');
+        throw new ForbiddenException('This user has been approved by Tempworks. Ask a System Administrator to enable deletion for this user.');
       }
     }
 

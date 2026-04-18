@@ -76,21 +76,21 @@ export function UsersList() {
   const { canCreate, canEdit, canDelete } = usePermissions();
   const currentUser = getCurrentUser();
   const isTempworksAdmin = currentUser?.role === 'System Admin' || currentUser?.role === 'HR Manager';
-  const isAgencyManager = currentUser?.role === 'Agency Manager';
+  // Anyone inside a non-system agency is an external tenant and
+  // subject to the approval + per-user manager override gate —
+  // Agency Manager, HR Manager, Recruiter, etc. all behave the same.
+  // Tempworks root-agency users (agencyIsSystem=true) bypass it.
+  const isExternalTenantCaller = !!currentUser?.agencyId && currentUser?.agencyIsSystem !== true;
 
-  // Agency Manager can touch an agency user only while they're
-  // still PENDING_APPROVAL, or when a Tempworks admin has flipped
-  // the per-user override flag on. Tempworks-internal staff keep
-  // full control via canEdit / canDelete.
   const isPending = (user: any) => user.approvalStatus === 'PENDING_APPROVAL';
-  const canManagerEdit = (user: any) =>
+  const canTenantEdit = (user: any) =>
     isPending(user) || user.allowManagerEdit === true;
-  const canManagerDelete = (user: any) =>
+  const canTenantDelete = (user: any) =>
     isPending(user) || user.allowManagerDelete === true;
   const mayEditRow = (user: any) =>
-    canEdit('users') && (!isAgencyManager || canManagerEdit(user));
+    canEdit('users') && (!isExternalTenantCaller || canTenantEdit(user));
   const mayDeleteRow = (user: any) =>
-    canDelete('users') && user.id !== currentUser?.id && (!isAgencyManager || canManagerDelete(user));
+    canDelete('users') && user.id !== currentUser?.id && (!isExternalTenantCaller || canTenantDelete(user));
 
   // ── Data ───────────────────────────────────────────────────────────────────
   const [users, setUsers]   = useState<any[]>([]);

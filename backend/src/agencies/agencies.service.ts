@@ -204,7 +204,18 @@ export class AgenciesService {
         where,
         skip: (Number(page) - 1) * Number(limit),
         take: Number(limit),
-        select: { id: true, email: true, firstName: true, lastName: true, status: true, role: { select: { name: true } } },
+        select: {
+          id: true, email: true, firstName: true, lastName: true, status: true,
+          // Include the approval state + per-user manager override flags so
+          // the frontend can gate Edit/Delete/Approve buttons the same way
+          // the standalone Users list does.
+          agencyId: true,
+          approvalStatus: true,
+          approvedAt: true,
+          allowManagerEdit: true,
+          allowManagerDelete: true,
+          role: { select: { id: true, name: true } },
+        },
       }),
       this.prisma.user.count({ where }),
     ]);

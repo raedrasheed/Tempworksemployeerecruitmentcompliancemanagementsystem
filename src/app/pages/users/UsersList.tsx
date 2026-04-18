@@ -82,14 +82,24 @@ export function UsersList() {
   // still PENDING_APPROVAL, or when a Tempworks admin has flipped
   // the per-user override flag on. Tempworks-internal staff keep
   // full control via canEdit / canDelete.
+  const isPending = (user: any) => user.approvalStatus === 'PENDING_APPROVAL';
   const canManagerEdit = (user: any) =>
-    user.approvalStatus === 'PENDING_APPROVAL' || user.allowManagerEdit === true;
+    isPending(user) || user.allowManagerEdit === true;
   const canManagerDelete = (user: any) =>
-    user.approvalStatus === 'PENDING_APPROVAL' || user.allowManagerDelete === true;
+    isPending(user) || user.allowManagerDelete === true;
   const mayEditRow = (user: any) =>
     canEdit('users') && (!isAgencyManager || canManagerEdit(user));
   const mayDeleteRow = (user: any) =>
     canDelete('users') && user.id !== currentUser?.id && (!isAgencyManager || canManagerDelete(user));
+  // Row is "locked" from the Agency Manager perspective — the user is
+  // approved and no override is on. Used to surface a pill so the
+  // admin can see the state at a glance (and to confirm visually
+  // that the Edit button is correctly hidden).
+  const isAgencyLocked = (user: any) =>
+    !!user.agencyId
+    && user.approvalStatus === 'APPROVED'
+    && !user.allowManagerEdit
+    && !user.allowManagerDelete;
 
   // ── Data ───────────────────────────────────────────────────────────────────
   const [users, setUsers]   = useState<any[]>([]);
@@ -528,9 +538,18 @@ export function UsersList() {
                             {loadingLink === user.id ? '...' : 'Activation Link'}
                           </Button>
                         )}
-                        {/* Pending-approval badge + Tempworks admin Approve button */}
+                        {/* Approval + lock state pills */}
                         {user.approvalStatus === 'PENDING_APPROVAL' && (
                           <Badge variant="outline" className="text-[10px] border-amber-300 text-amber-700 bg-amber-50">Pending approval</Badge>
+                        )}
+                        {isAgencyLocked(user) && (
+                          <Badge variant="outline" className="text-[10px] border-slate-300 text-slate-600 bg-slate-50" title="Agency Manager has no edit/delete override for this approved user">Locked</Badge>
+                        )}
+                        {user.approvalStatus === 'APPROVED' && user.agencyId && user.allowManagerEdit && (
+                          <Badge variant="outline" className="text-[10px] border-emerald-300 text-emerald-700 bg-emerald-50">Mgr edit</Badge>
+                        )}
+                        {user.approvalStatus === 'APPROVED' && user.agencyId && user.allowManagerDelete && (
+                          <Badge variant="outline" className="text-[10px] border-emerald-300 text-emerald-700 bg-emerald-50">Mgr delete</Badge>
                         )}
                         {isTempworksAdmin && user.approvalStatus === 'PENDING_APPROVAL' && (
                           <Button

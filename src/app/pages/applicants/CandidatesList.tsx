@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { confirm } from '../../components/ui/ConfirmDialog';
 import { exportRecordsAsPdfZip, safeFilename } from '../../utils/bulkPdfExport';
 import { ApplicantPDF } from '../../components/applicants/ApplicantPdfExport';
+import { WhatsAppButton } from '../../components/WhatsAppButton';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -705,6 +706,7 @@ export function CandidatesList() {
                         <Button variant="ghost" size="sm" asChild>
                           <Link to={`/dashboard/candidates/${applicant.id}`}><Eye className="w-4 h-4 mr-1" />View</Link>
                         </Button>
+                        <WhatsAppButton phone={applicant.phone} size="icon" />
                         {canEdit('applicants') && (
                           <Button variant="ghost" size="sm" asChild>
                             <Link to={`/dashboard/candidates/${applicant.id}/edit`}><Edit className="w-4 h-4 mr-1" />Edit</Link>

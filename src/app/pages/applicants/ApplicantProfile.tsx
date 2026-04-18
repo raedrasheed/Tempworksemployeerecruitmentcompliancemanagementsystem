@@ -19,6 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { toast } from 'sonner';
 import { confirm } from '../../components/ui/ConfirmDialog';
 import { ApplicantPdfExportButton } from '../../components/applicants/ApplicantPdfExport';
+import { WhatsAppButton } from '../../components/WhatsAppButton';
 
 const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1').replace('/api/v1', '');
 
@@ -545,10 +546,11 @@ export function ApplicantProfile() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Phone className="w-4 h-4 text-muted-foreground" />
-                  <div>
+                  <div className="flex-1">
                     <p className="text-xs text-muted-foreground">Phone</p>
                     <p className="text-sm font-medium">{applicantData.phone}</p>
                   </div>
+                  <WhatsAppButton phone={applicantData.phone} size="icon" />
                 </div>
                 <div className="flex items-center gap-2">
                   <Globe className="w-4 h-4 text-muted-foreground" />

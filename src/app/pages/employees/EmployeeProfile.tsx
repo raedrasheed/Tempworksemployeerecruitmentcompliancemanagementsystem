@@ -310,7 +310,7 @@ export function EmployeeProfile() {
                 <div className="flex items-center gap-2">
                   <MapPin className="w-4 h-4 text-muted-foreground" />
                   <div>
-                    <p className="text-xs text-muted-foreground">Nationality</p>
+                    <p className="text-xs text-muted-foreground">Citizenship</p>
                     <p className="text-sm font-medium">{employee.nationality}</p>
                   </div>
                 </div>
@@ -369,7 +369,7 @@ export function EmployeeProfile() {
                   {[
                     ['Full Name', `${employee.firstName} ${employee.lastName}`],
                     ['Date of Birth', employee.dateOfBirth ? new Date(employee.dateOfBirth).toLocaleDateString() : '—'],
-                    ['Nationality', employee.nationality],
+                    ['Citizenship', employee.nationality],
                     ['Job Category', employee.jobType?.name ?? '—'],
                     ['License Number', employee.licenseNumber ?? '—'],
                     ['License Category', employee.licenseCategory ?? '—'],

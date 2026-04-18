@@ -33,7 +33,7 @@ type ColKey = 'contact' | 'nationality' | 'license' | 'experience' | 'agency' | 
 
 const ALL_COLUMNS: { key: ColKey; label: string }[] = [
   { key: 'contact',     label: 'Contact' },
-  { key: 'nationality', label: 'Nationality' },
+  { key: 'nationality', label: 'Citizenship' },
   { key: 'license',     label: 'ID / License' },
   { key: 'experience',  label: 'Experience' },
   { key: 'agency',      label: 'Agency' },
@@ -200,7 +200,7 @@ export function EmployeesList() {
 
   // ── CSV Export (client-side) ───────────────────────────────────────────────
   const handleExport = () => {
-    const headers = ['Employee Number', 'First Name', 'Last Name', 'Email', 'Phone', 'Nationality', 'License Number', 'Experience (yrs)', 'Agency', 'Status', 'Joined'];
+    const headers = ['Employee Number', 'First Name', 'Last Name', 'Email', 'Phone', 'Citizenship', 'License Number', 'Experience (yrs)', 'Agency', 'Status', 'Joined'];
     const rows = displayData.map(e => [
       e.employeeNumber ?? '',
       e.firstName ?? '',
@@ -279,7 +279,7 @@ export function EmployeesList() {
             <div className="flex flex-wrap items-center gap-3">
               <div className="flex-1 min-w-48 relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input placeholder="Search by name, email, nationality..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10" />
+                <Input placeholder="Search by name, email, citizenship..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10" />
               </div>
 
               <Select value={statusFilter || '__all__'} onValueChange={v => setStatusFilter(v === '__all__' ? '' : v)}>
@@ -352,9 +352,9 @@ export function EmployeesList() {
             {/* Row 2 */}
             <div className="flex flex-wrap items-center gap-3">
               <Select value={nationalityFilter || '__all__'} onValueChange={v => setNationalityFilter(v === '__all__' ? '' : v)}>
-                <SelectTrigger className="w-44"><SelectValue placeholder="All Nationalities" /></SelectTrigger>
+                <SelectTrigger className="w-44"><SelectValue placeholder="All Citizenships" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__all__">All Nationalities</SelectItem>
+                  <SelectItem value="__all__">All Citizenships</SelectItem>
                   {nationalityOptions.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
                 </SelectContent>
               </Select>
@@ -380,7 +380,7 @@ export function EmployeesList() {
                 <TableRow>
                   <SortableHead label="Employee"    field="firstName"       sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />
                   {col('contact')     && <SortableHead label="Contact"      field="email"           sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
-                  {col('nationality') && <SortableHead label="Nationality"  field="nationality"     sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  {col('nationality') && <SortableHead label="Citizenship"  field="nationality"     sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
                   {col('license')     && <SortableHead label="ID / License" field="licenseNumber"   sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
                   {col('experience')  && <SortableHead label="Experience"   field="yearsExperience" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
                   {col('agency')      && <SortableHead label="Agency"       field="agency"          sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}

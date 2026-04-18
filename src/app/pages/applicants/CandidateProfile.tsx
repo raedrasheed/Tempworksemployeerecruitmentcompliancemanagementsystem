@@ -542,7 +542,7 @@ export function CandidateProfile() {
                 <div className="flex items-center gap-2">
                   <Globe className="w-4 h-4 text-muted-foreground" />
                   <div>
-                    <p className="text-xs text-muted-foreground">Nationality</p>
+                    <p className="text-xs text-muted-foreground">Citizenship</p>
                     <p className="text-sm font-medium">{applicantData.nationality}</p>
                   </div>
                 </div>
@@ -606,7 +606,7 @@ export function CandidateProfile() {
                   {[
                     ['Full Name', applicantData.fullName],
                     ['Date of Birth', applicantData.dateOfBirth || '—'],
-                    ['Nationality', applicantData.nationality],
+                    ['Citizenship', applicantData.nationality],
                     ['License Number', applicantData.drivingLicenseNumber || '—'],
                     ['License Category', [applicantData.categoryC && 'C', applicantData.categoryE && 'E'].filter(Boolean).join('+') || '—'],
                     ['Years EU Experience', applicantData.yearsEUExperience || '—'],
@@ -1435,7 +1435,7 @@ export function CandidateProfile() {
                 <div><span className="text-muted-foreground">Name: </span><span className="font-medium">{applicantData.fullName}</span></div>
                 <div><span className="text-muted-foreground">Email: </span><span className="font-medium">{applicantData.email}</span></div>
                 <div><span className="text-muted-foreground">Phone: </span><span className="font-medium">{applicantData.phone}</span></div>
-                <div><span className="text-muted-foreground">Nationality: </span><span className="font-medium">{applicantData.nationality}</span></div>
+                <div><span className="text-muted-foreground">Citizenship: </span><span className="font-medium">{applicantData.nationality}</span></div>
               </div>
 
               {/* Address — required */}

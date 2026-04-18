@@ -20,7 +20,7 @@ type SortOrder = 'asc' | 'desc';
 type EmpColKey = 'name' | 'nationality' | 'agency' | 'status' | 'documents';
 const EMP_COLUMNS: { key: EmpColKey; label: string }[] = [
   { key: 'name',        label: 'Employee Name' },
-  { key: 'nationality', label: 'Nationality' },
+  { key: 'nationality', label: 'Citizenship' },
   { key: 'agency',      label: 'Agency' },
   { key: 'status',      label: 'Status' },
   { key: 'documents',   label: 'Documents' },
@@ -31,7 +31,7 @@ const EMP_STORAGE = 'docexplorer-employees-columns';
 type AppColKey = 'name' | 'nationality' | 'status' | 'documents';
 const APP_COLUMNS: { key: AppColKey; label: string }[] = [
   { key: 'name',        label: 'Applicant Name' },
-  { key: 'nationality', label: 'Nationality' },
+  { key: 'nationality', label: 'Citizenship' },
   { key: 'status',      label: 'Status' },
   { key: 'documents',   label: 'Documents' },
 ];
@@ -176,7 +176,7 @@ const getFileUrl = (fileUrl: string) => `${API_BASE}${fileUrl}`;
 const employeeColumns: Column[] = [
   { id: 'name', label: 'Employee Name', type: 'text' },
   { id: 'email', label: 'Email', type: 'text' },
-  { id: 'nationality', label: 'Nationality', type: 'text' },
+  { id: 'nationality', label: 'Citizenship', type: 'text' },
   { id: 'status', label: 'Status', type: 'enum', options: ['ACTIVE', 'PENDING', 'INACTIVE', 'SUSPENDED'] },
 ];
 
@@ -625,9 +625,9 @@ export function EmployeeDocumentExplorer() {
                 />
               </div>
               <Select value={nationalityFilter} onValueChange={setNationalityFilter}>
-                <SelectTrigger><SelectValue placeholder="Nationality" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Citizenship" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Nationalities</SelectItem>
+                  <SelectItem value="all">All Citizenships</SelectItem>
                   {nationalities.map(nat => (
                     <SelectItem key={nat} value={nat}>{nat}</SelectItem>
                   ))}
@@ -718,7 +718,7 @@ export function EmployeeDocumentExplorer() {
                     />
                   </th>
                   {empCols.name        && <SortableTh label="Employee Name" field="name"        sortBy={empSortBy} sortOrder={empSortOrder} onSort={handleEmpSort} />}
-                  {empCols.nationality && <SortableTh label="Nationality"   field="nationality" sortBy={empSortBy} sortOrder={empSortOrder} onSort={handleEmpSort} />}
+                  {empCols.nationality && <SortableTh label="Citizenship"   field="nationality" sortBy={empSortBy} sortOrder={empSortOrder} onSort={handleEmpSort} />}
                   {empCols.agency      && <SortableTh label="Agency"        field="agency"      sortBy={empSortBy} sortOrder={empSortOrder} onSort={handleEmpSort} />}
                   {empCols.status      && <SortableTh label="Status"        field="status"      sortBy={empSortBy} sortOrder={empSortOrder} onSort={handleEmpSort} />}
                   {empCols.documents   && <SortableTh label="Documents"     field="documents"   sortBy={empSortBy} sortOrder={empSortOrder} onSort={handleEmpSort} />}
@@ -998,9 +998,9 @@ export function EmployeeDocumentExplorer() {
                 </SelectContent>
               </Select>
               <Select value={appNationalityFilter} onValueChange={setAppNationalityFilter}>
-                <SelectTrigger><SelectValue placeholder="Nationality" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Citizenship" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Nationalities</SelectItem>
+                  <SelectItem value="all">All Citizenships</SelectItem>
                   {applicantNationalities.map(nat => (
                     <SelectItem key={nat} value={nat}>{nat}</SelectItem>
                   ))}
@@ -1062,7 +1062,7 @@ export function EmployeeDocumentExplorer() {
                       />
                     </th>
                     {appCols.name        && <SortableTh label="Applicant Name" field="name"        sortBy={appSortBy} sortOrder={appSortOrder} onSort={handleAppSort} />}
-                    {appCols.nationality && <SortableTh label="Nationality"    field="nationality" sortBy={appSortBy} sortOrder={appSortOrder} onSort={handleAppSort} />}
+                    {appCols.nationality && <SortableTh label="Citizenship"    field="nationality" sortBy={appSortBy} sortOrder={appSortOrder} onSort={handleAppSort} />}
                     {appCols.status      && <SortableTh label="Status"         field="status"      sortBy={appSortBy} sortOrder={appSortOrder} onSort={handleAppSort} />}
                     {appCols.documents   && <SortableTh label="Documents"      field="documents"   sortBy={appSortBy} sortOrder={appSortOrder} onSort={handleAppSort} />}
                   </tr>

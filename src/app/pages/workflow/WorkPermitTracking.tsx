@@ -34,7 +34,7 @@ export function WorkPermitTracking() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Driver</TableHead>
-                  <TableHead>Nationality</TableHead>
+                  <TableHead>Citizenship</TableHead>
                   <TableHead>Applied Date</TableHead>
                   <TableHead>Current Stage</TableHead>
                   <TableHead>Status</TableHead>

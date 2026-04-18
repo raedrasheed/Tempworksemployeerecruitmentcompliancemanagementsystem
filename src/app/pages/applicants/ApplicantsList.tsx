@@ -43,7 +43,7 @@ type ColKey =
 
 const ALL_COLUMNS: { key: ColKey; label: string }[] = [
   { key: 'contact',         label: 'Contact' },
-  { key: 'nationality',     label: 'Nationality' },
+  { key: 'nationality',     label: 'Citizenship' },
   { key: 'appliedPosition', label: 'Applied Position' },
   { key: 'passportNumber',  label: 'Passport Number' },
   { key: 'age',             label: 'Age' },
@@ -456,9 +456,9 @@ export function ApplicantsList() {
             {/* Row 2 */}
             <div className="flex flex-wrap items-center gap-3">
               <Select value={nationalityFilter || '__all__'} onValueChange={v => setNationalityFilter(v === '__all__' ? '' : v)}>
-                <SelectTrigger className="w-44"><SelectValue placeholder="All Nationalities" /></SelectTrigger>
+                <SelectTrigger className="w-44"><SelectValue placeholder="All Citizenships" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__all__">All Nationalities</SelectItem>
+                  <SelectItem value="__all__">All Citizenships</SelectItem>
                   {nationalityOptions.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
                 </SelectContent>
               </Select>
@@ -497,7 +497,7 @@ export function ApplicantsList() {
                   </TableHead>
                   <SortableHead label="Applicant"    field="firstName"   sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />
                   {col('contact')     && <SortableHead label="Contact"      field="email"       sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
-                  {col('nationality') && <SortableHead label="Nationality"  field="nationality" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  {col('nationality') && <SortableHead label="Citizenship"  field="nationality" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
                   {col('appliedPosition') && <TableHead>Applied Position</TableHead>}
                   {col('passportNumber')  && <TableHead>Passport Number</TableHead>}
                   {col('age')             && <TableHead>Age</TableHead>}

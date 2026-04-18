@@ -767,15 +767,16 @@ export class ReportsService {
     const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const fwd60            = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000);
 
-    // Agency accounts are candidates-only: scope the applicant
-    // aggregates to CANDIDATE tier and their own agency so the
-    // dashboard can't reveal Lead counts or cross-agency data even
-    // if reports:read is granted later.
-    const isAgencyActor = actor?.role === 'Agency User' || actor?.role === 'Agency Manager';
+    // External tenants (anyone whose agency is not the Tempworks
+    // root) are scoped to their own agency's candidates, regardless
+    // of role name. Agency-side roles further restrict to CANDIDATE
+    // tier so Lead counts never surface in their dashboard.
+    const isExternalActor = !!actor?.agencyId && (actor as any)?.agencyIsSystem !== true;
+    const isAgencySideRole = actor?.role === 'Agency User' || actor?.role === 'Agency Manager';
     const applicantScope: any = { deletedAt: null };
-    if (isAgencyActor) {
-      applicantScope.tier = 'CANDIDATE';
-      if (actor?.agencyId) applicantScope.agencyId = actor.agencyId;
+    if (isExternalActor) {
+      applicantScope.agencyId = actor!.agencyId;
+      if (isAgencySideRole) applicantScope.tier = 'CANDIDATE';
     }
 
     const [

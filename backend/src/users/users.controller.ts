@@ -80,7 +80,7 @@ export class UsersController {
   @ApiQuery({ name: 'roleId', required: false })
   @ApiQuery({ name: 'status', required: false })
   findAll(@Query() query: PaginationDto & { roleId?: string; status?: string }, @CurrentUser() caller: any) {
-    return this.usersService.findAll(query, caller?.role, caller?.agencyId);
+    return this.usersService.findAll(query, caller?.role, caller?.agencyId, caller?.agencyIsSystem);
   }
 
   // ── Single user ───────────────────────────────────────────────────────────────

@@ -41,6 +41,10 @@ export interface AuthUser {
   lastName: string;
   role: string;
   agencyId?: string;
+  /** True when the user's agency is the Tempworks root/owner and they
+   *  therefore see global (non-tenant-scoped) data. False/undefined
+   *  means every backend query is filtered to their own agency. */
+  agencyIsSystem?: boolean;
   permissions?: string[];
   photoUrl?: string;
 }

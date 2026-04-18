@@ -36,14 +36,14 @@ export class EmployeesController {
     @Query() query: PaginationDto & { agencyId?: string; status?: string; nationality?: string },
     @CurrentUser() user: any,
   ) {
-    return this.employeesService.findAll(query, { role: user?.role, agencyId: user?.agencyId });
+    return this.employeesService.findAll(query, { role: user?.role, agencyId: user?.agencyId, agencyIsSystem: user?.agencyIsSystem });
   }
 
   @Get(':id')
   @Roles(...ALL_ROLES)
   @ApiOperation({ summary: 'Get employee by ID' })
   findOne(@Param('id') id: string, @CurrentUser() user: any) {
-    return this.employeesService.findOne(id, { role: user?.role, agencyId: user?.agencyId });
+    return this.employeesService.findOne(id, { role: user?.role, agencyId: user?.agencyId, agencyIsSystem: user?.agencyIsSystem });
   }
 
   // ── Per-employee agency access grants (admin only) ──────────────────────────

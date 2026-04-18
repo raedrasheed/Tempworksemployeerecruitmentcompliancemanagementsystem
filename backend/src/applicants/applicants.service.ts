@@ -37,7 +37,7 @@ export class ApplicantsService {
 
   // ── List ──────────────────────────────────────────────────────────────────────
 
-  async findAll(filter: FilterApplicantsDto, actor?: { role: string; agencyId?: string }) {
+  async findAll(filter: FilterApplicantsDto, actor?: { role: string; agencyId?: string; agencyIsSystem?: boolean }) {
     const { page = 1, limit = 20, search, sortBy = 'createdAt', sortOrder = 'desc',
             tier, status, agencyId, nationality, jobTypeId } = filter;
     const skip = (Number(page) - 1) * Number(limit);
@@ -48,7 +48,7 @@ export class ApplicantsService {
     // own agency. Leads are Tempworks-internal and must never surface
     // to external agency accounts, regardless of the `tier` parameter
     // the client sends.
-    if (actor && this.isAgencyUser(actor.role)) {
+    if (actor && this.isExternalActor(actor)) {
       where.tier = 'CANDIDATE';
       if (actor.agencyId) where.agencyId = actor.agencyId;
     } else if (tier) {
@@ -66,7 +66,7 @@ export class ApplicantsService {
       ];
     }
     if (status) where.status = status;
-    if (agencyId && !this.isAgencyUser(actor?.role)) where.agencyId = agencyId;
+    if (agencyId && !this.isExternalActor(actor)) where.agencyId = agencyId;
     if (nationality) where.nationality = { contains: nationality, mode: 'insensitive' };
     if (jobTypeId) where.jobTypeId = jobTypeId;
 
@@ -87,7 +87,7 @@ export class ApplicantsService {
 
   // ── Find One ──────────────────────────────────────────────────────────────────
 
-  async findOne(id: string, actor?: { role: string; agencyId?: string }) {
+  async findOne(id: string, actor?: { role: string; agencyId?: string; agencyIsSystem?: boolean }) {
     const applicant = await this.prisma.applicant.findUnique({
       where: { id, deletedAt: null },
       include: this.includeWithRelations,
@@ -96,7 +96,7 @@ export class ApplicantsService {
 
     // Agency users only ever see Candidate records in their own
     // agency. Leads are hidden from all agency-side roles.
-    if (actor && this.isAgencyUser(actor.role)) {
+    if (actor && this.isExternalActor(actor)) {
       if (applicant.tier !== 'CANDIDATE') throw new ForbiddenException('Access denied');
       if (actor.agencyId && applicant.agencyId && applicant.agencyId !== actor.agencyId) {
         throw new ForbiddenException('Access denied');
@@ -108,8 +108,8 @@ export class ApplicantsService {
 
   // ── Create ────────────────────────────────────────────────────────────────────
 
-  async create(dto: CreateApplicantDto & { tier?: string }, actorId?: string, actor?: { role: string; agencyId?: string }) {
-    const isAgency = !!(actor && this.isAgencyUser(actor.role));
+  async create(dto: CreateApplicantDto & { tier?: string }, actorId?: string, actor?: { role: string; agencyId?: string; agencyIsSystem?: boolean }) {
+    const isAgency = !!(actor && this.isExternalActor(actor));
     // Agency-submitted applicants are pinned to the caller's agency,
     // created as CANDIDATE so they appear on the agency's Candidates
     // page, and enter the Tempworks approval queue (PENDING_APPROVAL)
@@ -154,11 +154,11 @@ export class ApplicantsService {
 
   // ── Update ────────────────────────────────────────────────────────────────────
 
-  async update(id: string, dto: UpdateApplicantDto, actorId?: string, actor?: { role: string; agencyId?: string }) {
+  async update(id: string, dto: UpdateApplicantDto, actorId?: string, actor?: { role: string; agencyId?: string; agencyIsSystem?: boolean }) {
     const existing = await this.findOne(id, actor);
 
     // Agency User/Manager can only edit candidates in their own agency
-    if (actor && this.isAgencyUser(actor.role)) {
+    if (actor && this.isExternalActor(actor)) {
       if (actor.agencyId && existing.agencyId !== actor.agencyId) {
         throw new ForbiddenException('You can only edit candidates in your own agency');
       }
@@ -178,7 +178,7 @@ export class ApplicantsService {
     // PENDING_APPROVAL so existing gates (setCurrentStage,
     // convertToEmployee) block downstream actions until a Tempworks
     // admin re-approves via approveApplicant / rejectApplicant.
-    if (actor && this.isAgencyUser(actor.role)) {
+    if (actor && this.isExternalActor(actor)) {
       updateData.approvalStatus = 'PENDING_APPROVAL';
       updateData.approvedById = null;
       updateData.approvedAt = null;
@@ -208,11 +208,11 @@ export class ApplicantsService {
 
   // ── Update Status ─────────────────────────────────────────────────────────────
 
-  async updateStatus(id: string, status: string, actorId?: string, actor?: { role: string; agencyId?: string }) {
+  async updateStatus(id: string, status: string, actorId?: string, actor?: { role: string; agencyId?: string; agencyIsSystem?: boolean }) {
     await this.findOne(id);
     const data: any = { status: status as any };
     // Status changes by agency users also re-arm the approval gate.
-    if (actor && this.isAgencyUser(actor.role)) {
+    if (actor && this.isExternalActor(actor)) {
       data.approvalStatus = 'PENDING_APPROVAL';
       data.approvedById = null;
       data.approvedAt = null;
@@ -227,7 +227,7 @@ export class ApplicantsService {
 
   // ── Remove ────────────────────────────────────────────────────────────────────
 
-  async remove(id: string, actorId?: string, actor?: { role: string; agencyId?: string }) {
+  async remove(id: string, actorId?: string, actor?: { role: string; agencyId?: string; agencyIsSystem?: boolean }) {
     if (actor && actor.role === 'Agency User') {
       throw new ForbiddenException('Agency users cannot directly delete candidates. Please submit a delete request.');
     }
@@ -442,8 +442,8 @@ export class ApplicantsService {
 
   // ── Reassign Agency ───────────────────────────────────────────────────────────
 
-  async reassignAgency(id: string, dto: AssignAgencyDto, actorId?: string, actor?: { role: string; agencyId?: string }) {
-    if (actor && this.isAgencyUser(actor.role)) {
+  async reassignAgency(id: string, dto: AssignAgencyDto, actorId?: string, actor?: { role: string; agencyId?: string; agencyIsSystem?: boolean }) {
+    if (actor && this.isExternalActor(actor)) {
       throw new ForbiddenException('Agency users cannot change a candidate\'s agency.');
     }
 
@@ -572,7 +572,7 @@ export class ApplicantsService {
 
   async exportCsv(
     filter: FilterApplicantsDto,
-    actor?: { role: string; agencyId?: string },
+    actor?: { role: string; agencyId?: string; agencyIsSystem?: boolean },
     ids?: string[],
   ): Promise<string> {
     // If specific ids were requested, scope the query to just those rows
@@ -581,7 +581,7 @@ export class ApplicantsService {
     let items: any[];
     if (ids && ids.length > 0) {
       const where: any = { id: { in: ids }, deletedAt: null };
-      if (actor && this.isAgencyUser(actor.role)) {
+      if (actor && this.isExternalActor(actor)) {
         where.tier = 'CANDIDATE';
         if (actor.agencyId) where.agencyId = actor.agencyId;
       }
@@ -637,8 +637,8 @@ export class ApplicantsService {
 
   // ── Convert Applicant → Employee ──────────────────────────────────────────────
 
-  async convertToEmployee(id: string, dto: ConvertToEmployeeDto, actorId?: string, actor?: { role: string; agencyId?: string }) {
-    if (actor && this.isAgencyUser(actor.role)) {
+  async convertToEmployee(id: string, dto: ConvertToEmployeeDto, actorId?: string, actor?: { role: string; agencyId?: string; agencyIsSystem?: boolean }) {
+    if (actor && this.isExternalActor(actor)) {
       throw new ForbiddenException('Agency users cannot convert candidates to employees.');
     }
 
@@ -839,9 +839,18 @@ export class ApplicantsService {
 
   // ── Private Helpers ───────────────────────────────────────────────────────────
 
-  private isAgencyUser(role?: string): boolean {
-    if (!role) return false;
-    return role === 'Agency User' || role === 'Agency Manager';
+  /**
+   * True when the caller is an external tenant — their view must be
+   * scoped to their own agency. The check is driven by the agency's
+   * `isSystem` flag (loaded into req.user.agencyIsSystem by the JWT
+   * strategy), not by role name, so an HR Manager attached to an
+   * external agency is scoped identically to an Agency Manager.
+   *
+   * Users attached to the Tempworks root agency (`isSystem=true`)
+   * retain their RBAC-defined global visibility.
+   */
+  private isExternalActor(actor?: { agencyId?: string; agencyIsSystem?: boolean }): boolean {
+    return !!actor && !!actor.agencyId && actor.agencyIsSystem !== true;
   }
 
   private uuid(): string {

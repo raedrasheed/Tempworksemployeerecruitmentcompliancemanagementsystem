@@ -10,33 +10,44 @@ import { join, extname } from 'path';
 export class EmployeesService {
   constructor(private prisma: PrismaService) {}
 
-  private isAgencyActor(role?: string): boolean {
-    return role === 'Agency User' || role === 'Agency Manager';
+  /**
+   * External tenant = user attached to any agency that is not the
+   * Tempworks root (`isSystem=true`). Such users are scoped to their
+   * own agency regardless of their role name, so an HR Manager in an
+   * external agency is treated the same as an Agency Manager.
+   */
+  private isExternalActor(actor?: { agencyId?: string; agencyIsSystem?: boolean }): boolean {
+    return !!actor && !!actor.agencyId && actor.agencyIsSystem !== true;
   }
 
   async findAll(
     query: PaginationDto & { agencyId?: string; status?: string; nationality?: string; driversOnly?: boolean },
-    actor?: { role?: string; agencyId?: string },
+    actor?: { role?: string; agencyId?: string; agencyIsSystem?: boolean },
   ) {
     const { page = 1, limit = 20, search, sortBy = 'createdAt', sortOrder = 'desc', agencyId, status, nationality, driversOnly } = query;
     const skip = (Number(page) - 1) * Number(limit);
 
     const where: any = { deletedAt: null };
 
-    // Agency accounts never see employees wholesale — they only see the
-    // subset explicitly granted via EmployeeAgencyAccess rows.
-    if (this.isAgencyActor(actor?.role)) {
-      if (!actor?.agencyId) throw new ForbiddenException('Agency user has no agency assigned');
-      const grants = await this.prisma.employeeAgencyAccess.findMany({
-        where: { agencyId: actor.agencyId },
-        select: { employeeId: true },
-      });
-      const allowedIds = grants.map(g => g.employeeId);
-      if (allowedIds.length === 0) {
-        return PaginatedResponse.create([], 0, page, limit);
+    // External tenants are scoped to their own agency. Agency-side
+    // roles additionally only see employees explicitly granted via
+    // EmployeeAgencyAccess rows; other external roles (HR Manager /
+    // Recruiter / Compliance Officer inside a tenant agency) see
+    // every own-agency employee directly.
+    if (this.isExternalActor(actor)) {
+      const isAgencySideRole = actor?.role === 'Agency User' || actor?.role === 'Agency Manager';
+      if (isAgencySideRole) {
+        const grants = await this.prisma.employeeAgencyAccess.findMany({
+          where: { agencyId: actor!.agencyId! },
+          select: { employeeId: true },
+        });
+        const allowedIds = grants.map(g => g.employeeId);
+        if (allowedIds.length === 0) {
+          return PaginatedResponse.create([], 0, page, limit);
+        }
+        where.id = { in: allowedIds };
       }
-      where.id = { in: allowedIds };
-      where.agencyId = actor.agencyId;
+      where.agencyId = actor!.agencyId!;
     }
     if (search) {
       where.OR = [
@@ -75,7 +86,7 @@ export class EmployeesService {
     return PaginatedResponse.create(data, total, page, limit);
   }
 
-  async findOne(id: string, actor?: { role?: string; agencyId?: string }) {
+  async findOne(id: string, actor?: { role?: string; agencyId?: string; agencyIsSystem?: boolean }) {
     const employee = await this.prisma.employee.findFirst({
       where: { id, deletedAt: null },
       include: {
@@ -86,14 +97,16 @@ export class EmployeesService {
     });
     if (!employee) throw new NotFoundException('Employee not found');
 
-    // Per-employee agency access check. Even if employee.agencyId matches
-    // the caller's agency, the admin must have granted an explicit row.
-    if (this.isAgencyActor(actor?.role)) {
-      if (!actor?.agencyId) throw new ForbiddenException('Agency user has no agency assigned');
-      const grant = await this.prisma.employeeAgencyAccess.findUnique({
-        where: { employeeId_agencyId: { employeeId: id, agencyId: actor.agencyId } },
-      });
-      if (!grant) throw new ForbiddenException('Access to this employee has not been granted to your agency');
+    if (this.isExternalActor(actor)) {
+      if (employee.agencyId !== actor!.agencyId) throw new ForbiddenException('Access denied');
+      const isAgencySideRole = actor?.role === 'Agency User' || actor?.role === 'Agency Manager';
+      if (isAgencySideRole) {
+        // Agency-side roles additionally need a per-employee grant.
+        const grant = await this.prisma.employeeAgencyAccess.findUnique({
+          where: { employeeId_agencyId: { employeeId: id, agencyId: actor!.agencyId! } },
+        });
+        if (!grant) throw new ForbiddenException('Access to this employee has not been granted to your agency');
+      }
     }
 
     return employee;

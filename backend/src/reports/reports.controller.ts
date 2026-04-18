@@ -29,7 +29,7 @@ export class ReportsController {
   @Roles(...ALL_REPORT_ROLES)
   @ApiOperation({ summary: 'Live dashboard KPIs (employee/applicant/compliance counts)' })
   getDashboard(@CurrentUser() user: any) {
-    return this.reportsService.getDashboard({ role: user?.role, agencyId: user?.agencyId });
+    return this.reportsService.getDashboard({ role: user?.role, agencyId: user?.agencyId, agencyIsSystem: user?.agencyIsSystem });
   }
 
   @Get('data-sources')

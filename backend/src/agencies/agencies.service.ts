@@ -22,26 +22,28 @@ export class AgenciesService {
   }
 
   /**
-   * Returns true when the caller is an external agency-side user whose view
-   * must be scoped to their own agency only (never another agency's data).
+   * External tenant = user attached to any agency that is not the
+   * Tempworks root (`isSystem=true`). All such users are scoped to
+   * their own agency regardless of role name, so HR Managers and
+   * Agency Managers in external agencies are treated identically.
    */
-  private isAgencyActor(actor?: { role?: string }) {
-    return actor?.role === 'Agency User' || actor?.role === 'Agency Manager';
+  private isExternalActor(actor?: { agencyId?: string; agencyIsSystem?: boolean }) {
+    return !!actor && !!actor.agencyId && actor.agencyIsSystem !== true;
   }
 
-  /** Throws when an agency user tries to reach an agency other than their own. */
-  private assertAgencyAccess(agencyId: string, actor?: { role?: string; agencyId?: string }) {
-    if (this.isAgencyActor(actor) && actor?.agencyId !== agencyId) {
+  /** Throws when an external tenant tries to reach an agency other than their own. */
+  private assertAgencyAccess(agencyId: string, actor?: { role?: string; agencyId?: string; agencyIsSystem?: boolean }) {
+    if (this.isExternalActor(actor) && actor?.agencyId !== agencyId) {
       throw new ForbiddenException('You can only view your own agency');
     }
   }
 
-  async findAll(pagination: PaginationDto, actor?: { role?: string; agencyId?: string }) {
+  async findAll(pagination: PaginationDto, actor?: { role?: string; agencyId?: string; agencyIsSystem?: boolean }) {
     const { page = 1, limit = 10, search, sortBy = 'name', sortOrder = 'asc' } = pagination;
     const skip = (Number(page) - 1) * Number(limit);
     const where: any = { deletedAt: null };
     // Agency users can only see their own agency in the listing.
-    if (this.isAgencyActor(actor)) {
+    if (this.isExternalActor(actor)) {
       if (!actor?.agencyId) return PaginatedResponse.create([], 0, page, limit);
       where.id = actor.agencyId;
     }
@@ -60,7 +62,7 @@ export class AgenciesService {
     return PaginatedResponse.create(items, total, page, limit);
   }
 
-  async findOne(id: string, actor?: { role?: string; agencyId?: string }) {
+  async findOne(id: string, actor?: { role?: string; agencyId?: string; agencyIsSystem?: boolean }) {
     this.assertAgencyAccess(id, actor);
     const agency = await this.prisma.agency.findUnique({
       where: { id, deletedAt: null },
@@ -117,7 +119,7 @@ export class AgenciesService {
     id: string,
     dto: UpdateAgencyDto,
     updatedById?: string,
-    actor?: { role?: string; agencyId?: string },
+    actor?: { role?: string; agencyId?: string; agencyIsSystem?: boolean },
   ) {
     const existing = await this.findOne(id);
 
@@ -176,7 +178,7 @@ export class AgenciesService {
     return { message: 'Agency deleted' };
   }
 
-  async getUsers(id: string, pagination: PaginationDto, actor?: { role?: string; agencyId?: string }) {
+  async getUsers(id: string, pagination: PaginationDto, actor?: { role?: string; agencyId?: string; agencyIsSystem?: boolean }) {
     this.assertAgencyAccess(id, actor);
     await this.findOne(id, actor);
     const { page = 1, limit = 10 } = pagination;
@@ -193,7 +195,7 @@ export class AgenciesService {
     return PaginatedResponse.create(items, total, page, limit);
   }
 
-  async getEmployees(id: string, pagination: PaginationDto, actor?: { role?: string; agencyId?: string }) {
+  async getEmployees(id: string, pagination: PaginationDto, actor?: { role?: string; agencyId?: string; agencyIsSystem?: boolean }) {
     this.assertAgencyAccess(id, actor);
     await this.findOne(id, actor);
     const { page = 1, limit = 10 } = pagination;
@@ -210,7 +212,7 @@ export class AgenciesService {
     return PaginatedResponse.create(items, total, page, limit);
   }
 
-  async getStats(id: string, actor?: { role?: string; agencyId?: string }) {
+  async getStats(id: string, actor?: { role?: string; agencyId?: string; agencyIsSystem?: boolean }) {
     this.assertAgencyAccess(id, actor);
     await this.findOne(id, actor);
     const [users, employees, activeEmployees, pendingEmployees] = await Promise.all([

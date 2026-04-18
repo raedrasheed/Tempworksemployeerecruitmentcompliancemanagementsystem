@@ -240,9 +240,15 @@ async function main() {
         email: 'admin@tempworks.sk',
         phone: '+421 2 0000 0000',
         status: 'ACTIVE',
+        isSystem: true,
         notes: 'System owner agency — headquartered in Slovakia',
       },
     });
+  } else if (!(ownerAgency as any).isSystem) {
+    // Belt-and-braces: if the seed has been run before the isSystem
+    // migration landed, flip the flag on the existing row so its
+    // users keep their global visibility.
+    await prisma.agency.update({ where: { id: ownerAgency.id }, data: { isSystem: true } });
   }
   const ownerAgencyId = ownerAgency.id;
   console.log(`Owner agency: TempWorks (Slovakia) — ${ownerAgencyId}`);

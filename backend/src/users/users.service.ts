@@ -109,22 +109,24 @@ export class UsersService {
     query: PaginationDto & { roleId?: string; agencyId?: string; status?: string },
     callerRole?: string,
     callerAgencyId?: string,
+    callerAgencyIsSystem?: boolean,
   ) {
     const { page = 1, limit = 20, search, sortBy = 'createdAt', sortOrder = 'desc', roleId, status } = query;
     const skip = (Number(page) - 1) * Number(limit);
 
     const where: any = { deletedAt: null };
 
-    // Agency Managers can only see users inside their own agency
-    if (callerRole === 'Agency Manager') {
-      if (!callerAgencyId) throw new ForbiddenException('Agency Manager has no agency assigned');
+    // External tenants (any user attached to an agency that isn't the
+    // Tempworks root) can only see users inside their own agency —
+    // regardless of role name. Tempworks-internal users retain the
+    // historical "hide System Admin from non-admins" rule.
+    const isExternalTenant = !!callerAgencyId && callerAgencyIsSystem !== true;
+    if (isExternalTenant) {
       where.agencyId = callerAgencyId;
     } else {
-      // Non-admins cannot see System Admin accounts
       if (callerRole !== 'System Admin') {
         where.AND = [{ role: { name: { not: 'System Admin' } } }];
       }
-      // Allow explicit agencyId filter for admins/HR
       if (query.agencyId) where.agencyId = query.agencyId;
     }
 

@@ -313,6 +313,10 @@ model Agency {
   logoUrl            String?
   notes              String?
   maxUsersPerAgency  Int          @default(10)
+  /// Marks the Tempworks root/owner agency. Users attached to an
+  /// isSystem=true agency bypass tenancy scoping and see global data;
+  /// users attached to any other agency are scoped to that agency.
+  isSystem           Boolean      @default(false)
   managerId          String?
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt

@@ -32,7 +32,7 @@ export class AgenciesController {
   @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Finance', 'Read Only', 'Agency Manager', 'Agency User')
   @ApiOperation({ summary: 'Get all agencies (agency users see only their own)' })
   findAll(@Query() pagination: PaginationDto, @CurrentUser() user: any) {
-    return this.agenciesService.findAll(pagination, { role: user?.role, agencyId: user?.agencyId });
+    return this.agenciesService.findAll(pagination, { role: user?.role, agencyId: user?.agencyId, agencyIsSystem: user?.agencyIsSystem });
   }
 
   @Get(':id')
@@ -40,7 +40,7 @@ export class AgenciesController {
   @ApiOperation({ summary: 'Get agency by ID (agency users can only fetch their own)' })
   @ApiParam({ name: 'id', description: 'Agency UUID' })
   findOne(@Param('id') id: string, @CurrentUser() user: any) {
-    return this.agenciesService.findOne(id, { role: user?.role, agencyId: user?.agencyId });
+    return this.agenciesService.findOne(id, { role: user?.role, agencyId: user?.agencyId, agencyIsSystem: user?.agencyIsSystem });
   }
 
   @Get(':id/users')
@@ -48,7 +48,7 @@ export class AgenciesController {
   @ApiOperation({ summary: 'Get users belonging to an agency' })
   @ApiParam({ name: 'id', description: 'Agency UUID' })
   getUsers(@Param('id') id: string, @Query() pagination: PaginationDto, @CurrentUser() user: any) {
-    return this.agenciesService.getUsers(id, pagination, { role: user?.role, agencyId: user?.agencyId });
+    return this.agenciesService.getUsers(id, pagination, { role: user?.role, agencyId: user?.agencyId, agencyIsSystem: user?.agencyIsSystem });
   }
 
   @Get(':id/employees')
@@ -56,7 +56,7 @@ export class AgenciesController {
   @ApiOperation({ summary: 'Get employees belonging to an agency' })
   @ApiParam({ name: 'id', description: 'Agency UUID' })
   getEmployees(@Param('id') id: string, @Query() pagination: PaginationDto, @CurrentUser() user: any) {
-    return this.agenciesService.getEmployees(id, pagination, { role: user?.role, agencyId: user?.agencyId });
+    return this.agenciesService.getEmployees(id, pagination, { role: user?.role, agencyId: user?.agencyId, agencyIsSystem: user?.agencyIsSystem });
   }
 
   @Get(':id/stats')
@@ -64,7 +64,7 @@ export class AgenciesController {
   @ApiOperation({ summary: 'Get agency statistics' })
   @ApiParam({ name: 'id', description: 'Agency UUID' })
   getStats(@Param('id') id: string, @CurrentUser() user: any) {
-    return this.agenciesService.getStats(id, { role: user?.role, agencyId: user?.agencyId });
+    return this.agenciesService.getStats(id, { role: user?.role, agencyId: user?.agencyId, agencyIsSystem: user?.agencyIsSystem });
   }
 
   @Post()
@@ -82,7 +82,7 @@ export class AgenciesController {
       'protected fields (name, managerId, status, maxUsersPerAgency) from their payload.',
   })
   update(@Param('id') id: string, @Body() dto: UpdateAgencyDto, @CurrentUser() user: any) {
-    return this.agenciesService.update(id, dto, user?.id, { role: user?.role, agencyId: user?.agencyId });
+    return this.agenciesService.update(id, dto, user?.id, { role: user?.role, agencyId: user?.agencyId, agencyIsSystem: user?.agencyIsSystem });
   }
 
   // ── Agency-wide permission overrides (admin only) ────────────────────────────

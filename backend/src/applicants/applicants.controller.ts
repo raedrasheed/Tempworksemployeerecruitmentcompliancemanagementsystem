@@ -40,7 +40,7 @@ export class ApplicantsController {
   @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Finance', 'Read Only')
   @ApiOperation({ summary: 'Get all applicants (tier/status/agency filters; agency users see only Candidates in their agency)' })
   findAll(@Query() filter: FilterApplicantsDto, @CurrentUser() user: any) {
-    return this.applicantsService.findAll(filter, { role: user?.role, agencyId: user?.agencyId });
+    return this.applicantsService.findAll(filter, { role: user?.role, agencyId: user?.agencyId, agencyIsSystem: user?.agencyIsSystem });
   }
 
   // ── Single ────────────────────────────────────────────────────────────────────
@@ -50,7 +50,7 @@ export class ApplicantsController {
   @ApiOperation({ summary: 'Get applicant by ID (includes financialProfile + agencyHistory)' })
   @ApiParam({ name: 'id', description: 'Applicant UUID' })
   findOne(@Param('id') id: string, @CurrentUser() user: any) {
-    return this.applicantsService.findOne(id, { role: user?.role, agencyId: user?.agencyId });
+    return this.applicantsService.findOne(id, { role: user?.role, agencyId: user?.agencyId, agencyIsSystem: user?.agencyIsSystem });
   }
 
   // ── Public Submit ─────────────────────────────────────────────────────────────
@@ -68,7 +68,7 @@ export class ApplicantsController {
   @Roles('System Admin', 'HR Manager', 'Recruiter', 'Agency Manager', 'Agency User')
   @ApiOperation({ summary: 'Create a new applicant (defaults tier=LEAD; agency users forced into own agency)' })
   create(@Body() dto: CreateApplicantDto & { tier?: string }, @CurrentUser() user: any) {
-    return this.applicantsService.create(dto, user?.id, { role: user?.role, agencyId: user?.agencyId });
+    return this.applicantsService.create(dto, user?.id, { role: user?.role, agencyId: user?.agencyId, agencyIsSystem: user?.agencyIsSystem });
   }
 
   // ── Update ────────────────────────────────────────────────────────────────────
@@ -77,7 +77,7 @@ export class ApplicantsController {
   @Roles('System Admin', 'HR Manager', 'Recruiter', 'Agency Manager', 'Agency User')
   @ApiOperation({ summary: 'Update applicant fields (agency users can only edit own-agency candidates)' })
   update(@Param('id') id: string, @Body() dto: UpdateApplicantDto, @CurrentUser() user: any) {
-    return this.applicantsService.update(id, dto, user?.id, { role: user?.role, agencyId: user?.agencyId });
+    return this.applicantsService.update(id, dto, user?.id, { role: user?.role, agencyId: user?.agencyId, agencyIsSystem: user?.agencyIsSystem });
   }
 
   // ── Photo Upload ──────────────────────────────────────────────────────────────
@@ -108,7 +108,7 @@ export class ApplicantsController {
   @ApiOperation({ summary: 'Update applicant status' })
   @ApiParam({ name: 'id', description: 'Applicant UUID' })
   updateStatus(@Param('id') id: string, @Body('status') status: string, @CurrentUser() user: any) {
-    return this.applicantsService.updateStatus(id, status, user?.id, { role: user?.role, agencyId: user?.agencyId });
+    return this.applicantsService.updateStatus(id, status, user?.id, { role: user?.role, agencyId: user?.agencyId, agencyIsSystem: user?.agencyIsSystem });
   }
 
   // ── Workflow Stage ────────────────────────────────────────────────────────────
@@ -158,7 +158,7 @@ export class ApplicantsController {
   @ApiOperation({ summary: 'Reassign applicant to a different agency (records history)' })
   @ApiParam({ name: 'id', description: 'Applicant UUID' })
   reassignAgency(@Param('id') id: string, @Body() dto: AssignAgencyDto, @CurrentUser() user: any) {
-    return this.applicantsService.reassignAgency(id, dto, user?.id, { role: user?.role, agencyId: user?.agencyId });
+    return this.applicantsService.reassignAgency(id, dto, user?.id, { role: user?.role, agencyId: user?.agencyId, agencyIsSystem: user?.agencyIsSystem });
   }
 
   // ── Financial Profile ─────────────────────────────────────────────────────────
@@ -224,7 +224,7 @@ export class ApplicantsController {
     const { ids: _omit, ...cleanFilter } = (filter ?? {}) as any;
     const csv = await this.applicantsService.exportCsv(
       cleanFilter,
-      { role: user?.role, agencyId: user?.agencyId },
+      { role: user?.role, agencyId: user?.agencyId, agencyIsSystem: user?.agencyIsSystem },
       idList,
     );
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
@@ -239,7 +239,7 @@ export class ApplicantsController {
   @ApiOperation({ summary: 'Convert Candidate to employee (CANDIDATE tier required)' })
   @ApiParam({ name: 'id', description: 'Applicant UUID' })
   convertToEmployee(@Param('id') id: string, @Body() dto: ConvertToEmployeeDto, @CurrentUser() user: any) {
-    return this.applicantsService.convertToEmployee(id, dto, user?.id, { role: user?.role, agencyId: user?.agencyId });
+    return this.applicantsService.convertToEmployee(id, dto, user?.id, { role: user?.role, agencyId: user?.agencyId, agencyIsSystem: user?.agencyIsSystem });
   }
 
   // ── Delete ────────────────────────────────────────────────────────────────────
@@ -249,7 +249,7 @@ export class ApplicantsController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Soft delete applicant' })
   remove(@Param('id') id: string, @CurrentUser() user: any) {
-    return this.applicantsService.remove(id, user?.id, { role: user?.role, agencyId: user?.agencyId });
+    return this.applicantsService.remove(id, user?.id, { role: user?.role, agencyId: user?.agencyId, agencyIsSystem: user?.agencyIsSystem });
   }
 
   // ── Candidate Delete Requests ─────────────────────────────────────────────────

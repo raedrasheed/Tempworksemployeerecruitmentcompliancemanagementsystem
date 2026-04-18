@@ -2630,22 +2630,16 @@ ${filesWithData.length > 0 ? section('Uploaded Documents', filesWithData.map(f =
 </div>`).join('')) : ''}
 </body></html>`;
 
-  // Save the summary directly to the user's Downloads folder — no new
-  // window, no print dialog, no popup blocker. Opening window.print() here
-  // previously stole focus from the tab and, on some browsers, blocked the
-  // underlying form from finishing its submit.
+  // Open the summary in a new browser tab. We render via a Blob URL
+  // rather than window.open('') + document.write so we don't steal
+  // focus by navigating an about:blank page, and we deliberately skip
+  // window.print() — auto-triggering the print dialog used to block
+  // the user from returning to the form tab to submit the application.
   const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
   const url = URL.createObjectURL(blob);
-  const stamp = new Date().toISOString().slice(0, 10);
-  const safeName = [d.firstName, d.lastName].filter(Boolean).join('_').replace(/[^\w-]+/g, '') || 'application';
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${safeName}_application_${stamp}.html`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  // Small delay before revoking so the browser has a chance to grab the blob
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  window.open(url, '_blank', 'noopener,noreferrer');
+  // Revoke after a delay so the new tab has time to load the blob
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
 function ReviewField({ label, value }: { label: string; value?: string | null | boolean }) {

@@ -386,6 +386,19 @@ export function getStepErrors(
   const hasFile = (key: string) => uploadedFiles.some(f => f.sectionKey === key && f.file);
   const validEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
+  /** Push an error if both dates are set and issue >= expiry. Skips the
+   *  check when the matching 'noExpiry' flag is on or when either value
+   *  is missing (other validators cover those cases). */
+  const checkDateOrder = (label: string, issue?: string, expiry?: string, noExpiry?: boolean) => {
+    if (noExpiry) return;
+    if (!issue || !expiry) return;
+    const a = Date.parse(issue);
+    const b = Date.parse(expiry);
+    if (!isNaN(a) && !isNaN(b) && a >= b) {
+      errors.push(`${label}: Issue Date must be before Expiry Date.`);
+    }
+  };
+
   // ── Tab 1: Personal ───────────────────────────────────────────────────────
   if (actualTab === 1) {
     if (!d.jobTypeId) errors.push('Please select a Job Category before proceeding.');
@@ -450,6 +463,10 @@ export function getStepErrors(
       errors.push('You indicated you have a Home Country Criminal Record — please upload it.');
     if (d.hasEuCriminalRecord === 'yes' && !hasFile('euCriminalRecord'))
       errors.push('You indicated you have an EU Criminal Record — please upload it.');
+
+    checkDateOrder('Passport',       d.passportIssueDate,     d.passportExpiryDate,     d.passportNoExpiry);
+    checkDateOrder('EU Residence',   d.euResidenceIssueDate,  d.euResidenceExpiryDate,  d.euResidenceNoExpiry);
+    checkDateOrder('Work Permit',    d.workPermitIssueDate,   d.workPermitExpiryDate,   d.workPermitNoExpiry);
   }
 
   // ── Tab 4: Driving License ────────────────────────────────────────────────
@@ -466,6 +483,11 @@ export function getStepErrors(
       // Only check regular 'drivingLicense' slot when not a job-ad required doc
       if (!dlDocName && !hasFile('drivingLicense'))
         errors.push('You indicated you have a Driving License — please upload it.');
+
+      checkDateOrder('Driving License', d.licenseIssueDate, d.licenseExpiryDate, d.licenseNoExpiry);
+      (d.qualifications ?? []).forEach((q, i) => {
+        checkDateOrder(`Qualification #${i + 1}${q.type ? ` (${q.type})` : ''}`, q.issueDate, q.expiryDate, q.noExpiry);
+      });
     }
   }
 

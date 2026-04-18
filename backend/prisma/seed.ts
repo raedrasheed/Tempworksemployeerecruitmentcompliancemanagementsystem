@@ -21,11 +21,15 @@ async function main() {
   console.log('Starting database seed...');
 
   // ── Permissions ──────────────────────────────────────────────────────────
+  // Core CRUD modules. Every permission row is `<module>:<action>`.
   const modules = [
     'dashboard',
     'employees', 'applicants', 'applications', 'documents',
     'workflow', 'agencies', 'compliance', 'reports',
     'notifications', 'settings', 'users', 'roles', 'logs',
+    // Modules added in later releases — enumerated so the Roles matrix
+    // shows them and @Roles guards can be replaced over time.
+    'vehicles', 'finance', 'attendance', 'job-ads', 'recycle-bin',
   ];
   const actions = ['read', 'create', 'update', 'delete'];
 
@@ -35,15 +39,41 @@ async function main() {
       permissionData.push({ name: `${mod}:${action}`, module: mod, action });
     }
   }
-  // extra special permissions
-  permissionData.push({ name: 'documents:verify', module: 'documents', action: 'verify' });
-  permissionData.push({ name: 'compliance:resolve', module: 'compliance', action: 'resolve' });
-  permissionData.push({ name: 'reports:export', module: 'reports', action: 'export' });
+  // Special (non-CRUD) permissions. Keep as a single authoritative list.
+  const specialPermissions: { name: string; module: string; action: string }[] = [
+    // Documents / compliance flows
+    { name: 'documents:verify',    module: 'documents',    action: 'verify' },
+    { name: 'compliance:resolve',  module: 'compliance',   action: 'resolve' },
+    // Reports + module-level exports
+    { name: 'reports:export',      module: 'reports',      action: 'export' },
+    { name: 'applicants:export',   module: 'applicants',   action: 'export' },
+    { name: 'employees:export',    module: 'employees',    action: 'export' },
+    { name: 'vehicles:export',     module: 'vehicles',     action: 'export' },
+    { name: 'finance:export',      module: 'finance',      action: 'export' },
+    { name: 'attendance:export',   module: 'attendance',   action: 'export' },
+    // Agency-submitted candidate approval gate
+    { name: 'applicants:approve',     module: 'applicants', action: 'approve' },
+    { name: 'applicants:convert',     module: 'applicants', action: 'convert' },
+    { name: 'applicants:bulk-action', module: 'applicants', action: 'bulk-action' },
+    // Agency user lifecycle + per-user manager-override grants
+    { name: 'users:approve',  module: 'users', action: 'approve' },
+    { name: 'users:override', module: 'users', action: 'override' },
+    // Agency tenancy admin controls
+    { name: 'agencies:manage-permissions', module: 'agencies', action: 'manage-permissions' },
+    { name: 'employees:manage-agency-access', module: 'employees', action: 'manage-agency-access' },
+    // Finance state transition (PENDING → DEDUCTED)
+    { name: 'finance:status',   module: 'finance',   action: 'status' },
+    // Recycle bin restore
+    { name: 'recycle-bin:restore', module: 'recycle-bin', action: 'restore' },
+    // Job ads publish
+    { name: 'job-ads:publish', module: 'job-ads', action: 'publish' },
+  ];
+  permissionData.push(...specialPermissions);
 
   for (const p of permissionData) {
     await prisma.permission.upsert({
       where: { name: p.name },
-      update: {},
+      update: { module: p.module, action: p.action },
       create: p,
     });
   }
@@ -69,16 +99,23 @@ async function main() {
       isSystem: true,
       perms: [
         'dashboard:read',
-        'employees:read','employees:create','employees:update',
-        'applicants:read','applicants:create','applicants:update',
+        'employees:read','employees:create','employees:update','employees:export',
+        'employees:manage-agency-access',
+        'applicants:read','applicants:create','applicants:update','applicants:export',
+        'applicants:approve','applicants:convert','applicants:bulk-action',
         'applications:read','applications:create','applications:update',
         'documents:read','documents:create','documents:update','documents:verify',
         'workflow:read','workflow:update',
+        'agencies:read','agencies:update',
         'compliance:read','compliance:resolve',
         'reports:read','reports:export',
         'notifications:read','notifications:create',
-        'users:read',
+        'users:read','users:create','users:update','users:approve','users:override',
         'logs:read',
+        'vehicles:read',
+        'attendance:read','attendance:export',
+        'job-ads:read','job-ads:create','job-ads:update','job-ads:publish',
+        'recycle-bin:read',
       ],
     },
     {
@@ -94,6 +131,9 @@ async function main() {
         'reports:read','reports:export',
         'notifications:read','notifications:create',
         'logs:read',
+        'vehicles:read',
+        'attendance:read',
+        'recycle-bin:read',
       ],
     },
     {
@@ -103,14 +143,18 @@ async function main() {
       perms: [
         'dashboard:read',
         'employees:read',
-        'applicants:read','applicants:create','applicants:update',
+        'applicants:read','applicants:create','applicants:update','applicants:export',
+        'applicants:convert','applicants:bulk-action',
         'applications:read','applications:create','applications:update',
         'documents:read','documents:create',
         'workflow:read',
+        'agencies:read',
         'compliance:read',
         'reports:read',
         'notifications:read',
         'logs:read',
+        'job-ads:read','job-ads:create','job-ads:update',
+        'attendance:read',
       ],
     },
     {
@@ -119,15 +163,19 @@ async function main() {
       isSystem: true,
       perms: [
         'dashboard:read',
-        'employees:read','employees:create','employees:update',
+        // Employees: read only (and only for employees granted access via
+        // EmployeeAgencyAccess; enforced in the service).
+        'employees:read',
         'applicants:read','applicants:create','applicants:update',
+        'applicants:export','applicants:bulk-action',
         'applications:read',
         'documents:read','documents:create',
         'workflow:read',
+        'agencies:read','agencies:update',
         'compliance:read',
         'reports:read',
         'notifications:read',
-        'users:read',
+        'users:read','users:create','users:update','users:delete',
         'logs:read',
       ],
     },
@@ -137,9 +185,12 @@ async function main() {
       isSystem: true,
       perms: [
         'dashboard:read',
-        'employees:read','applicants:read','applications:read',
+        'employees:read',
+        'applicants:read','applicants:create','applicants:update',
+        'applications:read',
         'documents:read','documents:create',
         'workflow:read',
+        'agencies:read',
         'notifications:read',
         'logs:read',
       ],
@@ -151,9 +202,13 @@ async function main() {
       perms: [
         'dashboard:read',
         'employees:read','applicants:read','applications:read',
+        'agencies:read',
         'reports:read','reports:export',
         'notifications:read',
         'logs:read',
+        'finance:read','finance:create','finance:update','finance:delete',
+        'finance:export','finance:status',
+        'attendance:read','attendance:export',
       ],
     },
     {

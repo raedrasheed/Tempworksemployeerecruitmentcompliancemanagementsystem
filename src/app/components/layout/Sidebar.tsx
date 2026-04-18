@@ -72,13 +72,13 @@ const allNavigationItems: NavItem[] = [
   { icon: Layers,          label: 'Workflows',             path: '/dashboard/workflows',        permission: 'workflow:read' },
   { icon: Building2,       label: 'Agencies',              path: '/dashboard/agencies',         permission: 'agencies:read' },
   { icon: BarChart3,       label: 'Reports',               path: '/dashboard/reports',          permission: 'reports:read' },
-  { icon: DollarSign,     label: 'Finance',               path: '/dashboard/finance',          permission: 'finance:read', roles: ['System Admin', 'HR Manager', 'Finance', 'Recruiter'] },
+  { icon: DollarSign,     label: 'Finance',               path: '/dashboard/finance',          permission: 'finance:read', roles: ['System Admin', 'HR Manager', 'Finance', 'Recruiter'], hideForRoles: AGENCY_ROLES },
   { icon: Megaphone,      label: 'Job Ads',               path: '/dashboard/job-ads',          permission: 'job-ads:read', roles: ['System Admin', 'HR Manager', 'Recruiter'] },
   { icon: Bell,            label: 'Notifications',         path: '/dashboard/notifications',    permission: 'notifications:read' },
   { icon: UserCog,         label: 'Users',                 path: '/dashboard/users',            permission: 'users:read' },
   { icon: Shield,          label: 'Roles & Permissions',   path: '/dashboard/roles',            permission: 'roles:read' },
   { icon: Activity,        label: 'System Logs',           path: '/dashboard/logs',             permission: 'logs:read' },
-  { icon: Trash2,          label: 'Deleted Records',       path: '/dashboard/recycle-bin',      permission: 'logs:read', roles: ['System Admin', 'HR Manager', 'Compliance Officer'] },
+  { icon: Trash2,          label: 'Deleted Records',       path: '/dashboard/recycle-bin',      permission: 'recycle-bin:read', roles: ['System Admin', 'HR Manager', 'Compliance Officer'], hideForRoles: AGENCY_ROLES },
   { icon: Settings,        label: 'Settings',              path: '/dashboard/settings',         permission: 'settings:read' },
 ];
 

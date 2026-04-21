@@ -44,20 +44,15 @@ export class ApplicantsService {
 
     const where: any = { deletedAt: null };
 
-    // External tenants (anyone attached to a non-system agency) only
-    // see records for their own agency. Agency-side roles additionally
-    // never see Leads — they're clamped to tier=CANDIDATE. Other
-    // external roles (HR Manager / Recruiter / Compliance Officer
-    // inside a tenant agency) see both Leads and Candidates of their
-    // own agency.
-    if (actor && this.isExternalActor(actor)) {
-      if (actor.agencyId) where.agencyId = actor.agencyId;
-      const isAgencySideRole = actor.role === 'Agency User' || actor.role === 'Agency Manager';
-      if (isAgencySideRole) where.tier = 'CANDIDATE';
-      else if (tier) where.tier = tier;
-    } else if (tier) {
-      where.tier = tier;
+    // External tenants are scoped to their own agency across every
+    // tier. The client-supplied tier filter flows through unchanged,
+    // so Applicants (LEAD) and Candidates (CANDIDATE) both work for
+    // tenant roles that hold applicants:read — Agency Manager and
+    // other external roles alike.
+    if (actor && this.isExternalActor(actor) && actor.agencyId) {
+      where.agencyId = actor.agencyId;
     }
+    if (tier) where.tier = tier;
 
     if (search) {
       where.OR = [
@@ -98,15 +93,11 @@ export class ApplicantsService {
     });
     if (!applicant) throw new NotFoundException(`Applicant ${id} not found`);
 
-    // External tenants are scoped to their own agency. Agency-side
-    // roles additionally never see LEAD records; HR Manager / Recruiter
-    // / Compliance Officer inside a tenant agency see both tiers.
+    // External tenants are scoped to their own agency — both tiers
+    // (Leads and Candidates) are accessible as long as the row
+    // belongs to the caller's agency.
     if (actor && this.isExternalActor(actor)) {
       if (actor.agencyId && applicant.agencyId && applicant.agencyId !== actor.agencyId) {
-        throw new ForbiddenException('Access denied');
-      }
-      const isAgencySideRole = actor.role === 'Agency User' || actor.role === 'Agency Manager';
-      if (isAgencySideRole && applicant.tier !== 'CANDIDATE') {
         throw new ForbiddenException('Access denied');
       }
     }
@@ -119,15 +110,15 @@ export class ApplicantsService {
   async create(dto: CreateApplicantDto & { tier?: string }, actorId?: string, actor?: { role: string; agencyId?: string; agencyIsSystem?: boolean }) {
     const isExternal = !!(actor && this.isExternalActor(actor));
     const isAgencySideRole = actor?.role === 'Agency User' || actor?.role === 'Agency Manager';
-    // External tenants: the new record is always pinned to the caller's
-    // agency. Agency-side roles additionally force tier=CANDIDATE (so
-    // the record lands on their Candidates queue) and enter the
-    // Tempworks approval workflow (PENDING_APPROVAL). Other external
-    // roles (HR Manager / Recruiter in a tenant agency) create leads
-    // directly, same as admin submissions.
-    if (isExternal) {
-      if (actor!.agencyId) (dto as any).agencyId = actor!.agencyId;
-      if (isAgencySideRole) dto.tier = 'CANDIDATE';
+    // External tenants: the new record is always pinned to the
+    // caller's agency. Tier defaults to LEAD (the same as admin
+    // submissions) so Agency Manager can use both the Applicants and
+    // Candidates surfaces; the client may explicitly send
+    // tier=CANDIDATE if they want the record to land on the
+    // Candidates queue directly. Agency-side submissions still enter
+    // the Tempworks approval workflow below.
+    if (isExternal && actor!.agencyId) {
+      (dto as any).agencyId = actor!.agencyId;
     }
 
     // Always generate a Lead identifier. Records that are born as a
@@ -607,10 +598,8 @@ export class ApplicantsService {
     let items: any[];
     if (ids && ids.length > 0) {
       const where: any = { id: { in: ids }, deletedAt: null };
-      if (actor && this.isExternalActor(actor)) {
-        if (actor.agencyId) where.agencyId = actor.agencyId;
-        const isAgencySideRole = actor.role === 'Agency User' || actor.role === 'Agency Manager';
-        if (isAgencySideRole) where.tier = 'CANDIDATE';
+      if (actor && this.isExternalActor(actor) && actor.agencyId) {
+        where.agencyId = actor.agencyId;
       }
       items = await this.prisma.applicant.findMany({
         where,

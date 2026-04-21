@@ -772,11 +772,9 @@ export class ReportsService {
     // of role name. Agency-side roles further restrict to CANDIDATE
     // tier so Lead counts never surface in their dashboard.
     const isExternalActor = !!actor?.agencyId && (actor as any)?.agencyIsSystem !== true;
-    const isAgencySideRole = actor?.role === 'Agency User' || actor?.role === 'Agency Manager';
     const applicantScope: any = { deletedAt: null };
     if (isExternalActor) {
       applicantScope.agencyId = actor!.agencyId;
-      if (isAgencySideRole) applicantScope.tier = 'CANDIDATE';
     }
 
     // Employee counts in the dashboard cards must honour the same

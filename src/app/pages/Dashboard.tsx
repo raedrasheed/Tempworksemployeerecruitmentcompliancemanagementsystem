@@ -1,4 +1,4 @@
-import { Link, Navigate } from 'react-router';
+import { Link } from 'react-router';
 import { useState, useEffect } from 'react';
 import {
   Users, FileCheck, Clock, AlertTriangle, TrendingUp,
@@ -83,9 +83,6 @@ function matchStageToCategory(stageName: string) {
 export function Dashboard() {
   const currentUser = getCurrentUser();
   const isAgencyUser = currentUser?.role === 'Agency User' || currentUser?.role === 'Agency Manager';
-  // Agency-side accounts don't get a Tempworks-internal dashboard —
-  // they land directly on their own Candidates list.
-  if (isAgencyUser) return <Navigate to="/dashboard/candidates" replace />;
   const applicantsPath = '/dashboard/applicants';
   const { canCreate, can } = usePermissions();
 

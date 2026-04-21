@@ -171,6 +171,7 @@ async function main() {
       perms: [
         'applicants:read','applicants:create','applicants:update',
         'applicants:export','applicants:bulk-action',
+        'employees:read','employees:update',
         'agencies:read','agencies:update',
         'users:read','users:create','users:update','users:delete',
       ],
@@ -181,6 +182,7 @@ async function main() {
       isSystem: true,
       perms: [
         'applicants:read','applicants:create','applicants:update',
+        'employees:read','employees:update',
         'agencies:read',
       ],
     },

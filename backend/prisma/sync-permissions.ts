@@ -116,11 +116,13 @@ const rolePermissionSets: Record<string, string[]> = {
   'Agency Manager': [
     'applicants:read','applicants:create','applicants:update',
     'applicants:export','applicants:bulk-action',
+    'employees:read','employees:update',
     'agencies:read','agencies:update',
     'users:read','users:create','users:update','users:delete',
   ],
   'Agency User': [
     'applicants:read','applicants:create','applicants:update',
+    'employees:read','employees:update',
     'agencies:read',
   ],
   'Finance': [

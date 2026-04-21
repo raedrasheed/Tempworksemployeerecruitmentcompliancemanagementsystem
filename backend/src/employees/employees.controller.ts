@@ -31,6 +31,7 @@ export class EmployeesController {
 
   @Get()
   @Roles(...ALL_ROLES)
+  @RequirePermission('employees:read')
   @ApiOperation({ summary: 'List employees with pagination and filters' })
   findAll(
     @Query() query: PaginationDto & { agencyId?: string; status?: string; nationality?: string },
@@ -41,6 +42,7 @@ export class EmployeesController {
 
   @Get(':id')
   @Roles(...ALL_ROLES)
+  @RequirePermission('employees:read')
   @ApiOperation({ summary: 'Get employee by ID' })
   findOne(@Param('id') id: string, @CurrentUser() user: any) {
     return this.employeesService.findOne(id, { role: user?.role, agencyId: user?.agencyId, agencyIsSystem: user?.agencyIsSystem });
@@ -95,26 +97,31 @@ export class EmployeesController {
 
   @Get(':id/documents')
   @Roles(...ALL_ROLES)
+  @RequirePermission('employees:read')
   @ApiOperation({ summary: 'Get employee documents' })
   getDocuments(@Param('id') id: string) { return this.employeesService.getDocuments(id); }
 
   @Get(':id/workflow')
   @Roles(...ALL_ROLES)
+  @RequirePermission('employees:read')
   @ApiOperation({ summary: 'Get employee workflow stages' })
   getWorkflow(@Param('id') id: string) { return this.employeesService.getWorkflow(id); }
 
   @Get(':id/compliance')
   @Roles(...ALL_ROLES)
+  @RequirePermission('employees:read')
   @ApiOperation({ summary: 'Get employee compliance status' })
   getCompliance(@Param('id') id: string) { return this.employeesService.getCompliance(id); }
 
   @Get(':id/certifications')
   @Roles(...ALL_ROLES)
+  @RequirePermission('employees:read')
   @ApiOperation({ summary: 'Get employee certifications' })
   getCertifications(@Param('id') id: string) { return this.employeesService.getCertifications(id); }
 
   @Get(':id/training')
   @Roles(...ALL_ROLES)
+  @RequirePermission('employees:read')
   @ApiOperation({ summary: 'Get employee training history' })
   getTraining(@Param('id') id: string) { return this.employeesService.getTraining(id); }
 
@@ -144,6 +151,7 @@ export class EmployeesController {
 
   @Patch(':id/photo')
   @Roles(...WRITE_ROLES)
+  @RequirePermission('employees:update')
   @ApiOperation({ summary: 'Upload or replace employee photo' })
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('photo', {
@@ -163,6 +171,7 @@ export class EmployeesController {
 
   @Patch(':id/status')
   @Roles(...WRITE_ROLES)
+  @RequirePermission('employees:update')
   @ApiOperation({ summary: 'Update employee status' })
   updateStatus(@Param('id') id: string, @Body('status') status: string, @CurrentUser() user: any) {
     return this.employeesService.updateStatus(id, status, user?.id, { role: user?.role, agencyId: user?.agencyId, agencyIsSystem: user?.agencyIsSystem });

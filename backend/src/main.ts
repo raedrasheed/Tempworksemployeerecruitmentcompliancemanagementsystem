@@ -102,6 +102,21 @@ async function runStartupMigrations() {
       END $$
     `);
     logger.log('applicants/employees — createdById + source columns ensured');
+
+    // 5. One-time cleanup of phantom "Profile Photo" document rows.
+    //    Before the fix, the public /apply photo upload mis-classified
+    //    the profile photo as the first-available DocumentType (usually
+    //    Passport) while also correctly stamping applicant.photoUrl.
+    //    Those Document rows serve no purpose — the photo is already on
+    //    the applicant record — and just clutter the Documents tab.
+    const deleted = await client.query(`
+      DELETE FROM "documents"
+      WHERE "entityType" = 'APPLICANT'
+        AND "name" ILIKE 'Profile Photo'
+    `);
+    if (deleted.rowCount && deleted.rowCount > 0) {
+      logger.log(`documents — removed ${deleted.rowCount} phantom "Profile Photo" row(s)`);
+    }
   } catch (err: any) {
     logger.error('Startup migration error: ' + (err?.message ?? err));
   } finally {

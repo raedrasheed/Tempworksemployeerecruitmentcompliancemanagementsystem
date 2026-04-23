@@ -277,6 +277,7 @@ export function AgencyProfile() {
             <FinancialRecordsTab
               entityType="AGENCY"
               entityId={id!}
+              entityName={agency?.name}
               canWrite={canWriteFinance}
               canChangeStatus={canStatusFinance}
             />

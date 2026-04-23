@@ -134,11 +134,14 @@ function fmtDate(date: string) {
 interface Props {
   entityType: 'APPLICANT' | 'EMPLOYEE' | 'AGENCY';
   entityId: string;
+  /** Display name used for the exported Excel filename. Falls back to
+   *  the entity id when omitted so older callers keep working. */
+  entityName?: string;
   canWrite: boolean;
   canChangeStatus: boolean;
 }
 
-export function FinancialRecordsTab({ entityType, entityId, canWrite, canChangeStatus }: Props) {
+export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite, canChangeStatus }: Props) {
   const [records, setRecords] = useState<FinancialRecord[]>([]);
   const [totals, setTotals] = useState<Totals | null>(null);
   const [constants, setConstants] = useState<Constants | null>(null);
@@ -423,7 +426,20 @@ export function FinancialRecordsTab({ entityType, entityId, canWrite, canChangeS
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `financial-records-${entityId.slice(0, 8)}.xlsx`;
+      // Name after the entity + compact timestamp so finance staff can
+      // stash multiple exports of the same person side-by-side without
+      // overwriting each other. Sanitise the display name down to
+      // filesystem-safe characters and fall back to the id slice.
+      const safeName = (entityName ?? '')
+        .trim()
+        .replace(/[^a-zA-Z0-9._-]+/g, '_')
+        .replace(/^_+|_+$/g, '')
+        .slice(0, 60)
+        || entityId.slice(0, 8);
+      const now = new Date();
+      const pad = (n: number) => String(n).padStart(2, '0');
+      const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}`;
+      a.download = `${safeName}_financial_records_${stamp}.xlsx`;
       a.click();
       URL.revokeObjectURL(url);
     } catch (err: any) {

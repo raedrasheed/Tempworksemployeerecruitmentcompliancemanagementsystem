@@ -1692,6 +1692,7 @@ export function ApplicantProfile() {
                 <FinancialRecordsTab
                   entityType="APPLICANT"
                   entityId={id!}
+                  entityName={applicantData?.fullName}
                   canWrite={canEdit('applicants')}
                   canChangeStatus={currentUser?.role === 'System Admin' || currentUser?.role === 'Finance'}
                 />

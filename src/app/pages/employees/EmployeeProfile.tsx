@@ -1171,6 +1171,7 @@ export function EmployeeProfile() {
             <FinancialRecordsTab
               entityType="EMPLOYEE"
               entityId={id!}
+              entityName={[employee?.firstName, employee?.lastName].filter(Boolean).join(' ')}
               canWrite={canEdit('employees')}
               canChangeStatus={currentUser?.role === 'System Admin' || currentUser?.role === 'Finance'}
             />

@@ -403,6 +403,11 @@ model Employee {
   emergencyContact String?
   emergencyPhone   String?
   notes            String?
+  // Full structured application data carried over from the applicant
+  // at conversion time (same JSON blob the applicant form produces).
+  // The Employee profile uses this to render every captured field
+  // without rehydrating the applicant — see ApplicationDataView.
+  applicationData  Json?
   // Creation attribution — carried over from the Applicant at
   // conversion time. See Applicant.createdById/source for semantics.
   createdById      String?

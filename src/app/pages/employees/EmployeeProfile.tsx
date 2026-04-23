@@ -15,6 +15,7 @@ import { confirm } from '../../components/ui/ConfirmDialog';
 import { employeesApi, documentsApi, settingsApi, employeeWorkflowApi, agenciesApi, workflowApi, getCurrentUser } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
 import { FinancialRecordsTab } from '../../components/finance/FinancialRecordsTab';
+import { ApplicationDataView } from '../../components/applicants/ApplicationDataView';
 
 const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1').replace('/api/v1', '');
 
@@ -484,6 +485,7 @@ export function EmployeeProfile() {
       <Tabs defaultValue="overview" className="space-y-6">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="application">Application</TabsTrigger>
           <TabsTrigger value="documents">Documents ({documents.length})</TabsTrigger>
           <TabsTrigger value="workflow">Workflow</TabsTrigger>
           <TabsTrigger value="compliance">Compliance</TabsTrigger>
@@ -715,6 +717,16 @@ export function EmployeeProfile() {
               )}
             </div>
           </div>
+        </TabsContent>
+
+        {/* Application — carried forward from the applicant at
+            conversion time (Employee.applicationData). Shows every
+            field the person originally submitted without a rehydrate. */}
+        <TabsContent value="application">
+          <ApplicationDataView
+            applicationData={employee.applicationData}
+            fullName={[employee.firstName, employee.lastName].filter(Boolean).join(' ')}
+          />
         </TabsContent>
 
         {/* Documents */}

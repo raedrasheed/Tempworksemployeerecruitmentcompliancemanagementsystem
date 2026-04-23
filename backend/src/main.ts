@@ -103,6 +103,15 @@ async function runStartupMigrations() {
     `);
     logger.log('applicants/employees — createdById + source columns ensured');
 
+    // 5b. Ensure employees.applicationData exists so the structured
+    //     form blob captured during application carries over onto
+    //     the employee record at conversion time.
+    await client.query(`
+      ALTER TABLE "employees"
+        ADD COLUMN IF NOT EXISTS "applicationData" jsonb
+    `);
+    logger.log('employees.applicationData column ensured');
+
     // 5. Cleanup of phantom profile-photo document rows.
     //    Before the fix, the public /apply photo upload mis-classified
     //    the profile photo as the first-available DocumentType (usually

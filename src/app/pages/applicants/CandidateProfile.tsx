@@ -22,6 +22,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { toast } from 'sonner';
 import { confirm } from '../../components/ui/ConfirmDialog';
 import { ApplicantPdfExportButton } from '../../components/applicants/ApplicantPdfExport';
+import { ApplicationDataView } from '../../components/applicants/ApplicationDataView';
 import { WhatsAppButton } from '../../components/WhatsAppButton';
 
 const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1').replace('/api/v1', '');
@@ -769,6 +770,7 @@ export function CandidateProfile() {
       <Tabs defaultValue="overview" className="space-y-6">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="application">Application</TabsTrigger>
           <TabsTrigger value="documents">Documents ({documents.length})</TabsTrigger>
           <TabsTrigger value="workflow">Workflow</TabsTrigger>
           <TabsTrigger value="compliance">Doc Compliance</TabsTrigger>
@@ -1065,6 +1067,13 @@ export function CandidateProfile() {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        {/* Application — complete render of every field the candidate
+            submitted, pulled straight from applicant.applicationData so
+            nothing the form captured is hidden behind the Edit page. */}
+        <TabsContent value="application">
+          <ApplicationDataView applicationData={applicantData.applicationData} fullName={applicantData.fullName} />
         </TabsContent>
 
         {/* Documents */}

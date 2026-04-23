@@ -844,6 +844,10 @@ export class ApplicantsService {
         // Employee profile still shows "Created by …" or "Self-applied".
         createdById: (applicant as any).createdById ?? null,
         source: (applicant as any).source ?? 'STAFF_CREATED',
+        // Preserve the structured application data so the Employee's
+        // Application tab can render every field the applicant entered
+        // without rehydrating the old applicant row.
+        applicationData: (applicant as any).applicationData ?? undefined,
         employeeStages: {
           create: stages.map((s: any) => ({ stageId: s.id, status: 'PENDING' })),
         },

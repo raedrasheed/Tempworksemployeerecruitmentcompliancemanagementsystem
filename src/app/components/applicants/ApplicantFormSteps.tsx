@@ -729,7 +729,10 @@ export function StepIndicator({ currentStep, visibleTabs, onStepClick }: { curre
       <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
         <div className="h-full bg-blue-600 rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
       </div>
-      <div className="hidden md:flex items-start justify-between overflow-x-auto gap-1">
+      {/* pt-2 + px-1 reserve space for the focus/hover ring that renders
+          outside the 36px circle, otherwise overflow-x-auto clips the
+          top of the ring on the currently-focused step. */}
+      <div className="hidden md:flex items-start justify-between overflow-x-auto gap-1 pt-2 px-1">
         {visibleTabs.map((tabId, index) => {
           const def = TAB_DEFS.find(t => t.id === tabId)!;
           const visIdx = index + 1;

@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/ta
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { Checkbox } from '../../components/ui/checkbox';
 import { toast } from 'sonner';
 import { confirm } from '../../components/ui/ConfirmDialog';
 import { ApplicantPdfExportButton } from '../../components/applicants/ApplicantPdfExport';
@@ -69,7 +70,7 @@ export function ApplicantProfile() {
   const [showUpload, setShowUpload] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
-  const [uploadForm, setUploadForm] = useState({ documentTypeId: '', name: '', issueDate: '', expiryDate: '', documentNumber: '', issuer: '' });
+  const [uploadForm, setUploadForm] = useState({ documentTypeId: '', name: '', issueDate: '', expiryDate: '', noExpiry: false, documentNumber: '', issuer: '' });
   const [showConvertDialog, setShowConvertDialog] = useState(false);
   const [converting, setConverting] = useState(false);
   const [convertForm, setConvertForm] = useState({
@@ -345,14 +346,18 @@ export function ApplicantProfile() {
       fd.append('entityType', 'APPLICANT');
       fd.append('entityId', id!);
       if (uploadForm.issueDate) fd.append('issueDate', uploadForm.issueDate);
-      if (uploadForm.expiryDate) fd.append('expiryDate', uploadForm.expiryDate);
+      // "No Expiry" wins over any stale date the user typed before
+      // ticking the box — send an empty expiryDate so the backend
+      // stores null and the UI treats it as perpetual.
+      if (!uploadForm.noExpiry && uploadForm.expiryDate) fd.append('expiryDate', uploadForm.expiryDate);
+      if (uploadForm.noExpiry) fd.append('noExpiry', 'true');
       if (uploadForm.documentNumber) fd.append('documentNumber', uploadForm.documentNumber);
       if (uploadForm.issuer) fd.append('issuer', uploadForm.issuer);
       await documentsApi.upload(fd);
       toast.success('Document uploaded successfully');
       setShowUpload(false);
       setUploadFile(null);
-      setUploadForm({ documentTypeId: '', name: '', issueDate: '', expiryDate: '', documentNumber: '', issuer: '' });
+      setUploadForm({ documentTypeId: '', name: '', issueDate: '', expiryDate: '', noExpiry: false, documentNumber: '', issuer: '' });
       loadDocs();
     } catch (err: any) {
       toast.error(err?.message || 'Failed to upload document');
@@ -1001,8 +1006,28 @@ export function ApplicantProfile() {
                       <Input type="date" value={uploadForm.issueDate} onChange={e => setUploadForm(f => ({ ...f, issueDate: e.target.value }))} />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs">Expiry Date</Label>
-                      <Input type="date" value={uploadForm.expiryDate} onChange={e => setUploadForm(f => ({ ...f, expiryDate: e.target.value }))} />
+                      <div className="flex items-center justify-between gap-2">
+                        <Label className="text-xs">Expiry Date</Label>
+                        <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
+                          <Checkbox
+                            checked={uploadForm.noExpiry}
+                            onCheckedChange={(c) => setUploadForm(f => ({
+                              ...f,
+                              noExpiry: !!c,
+                              // Clear any previously entered date so the
+                              // submitted payload matches what's visible.
+                              expiryDate: c ? '' : f.expiryDate,
+                            }))}
+                          />
+                          No Expiry
+                        </label>
+                      </div>
+                      <Input
+                        type="date"
+                        value={uploadForm.expiryDate}
+                        disabled={uploadForm.noExpiry}
+                        onChange={e => setUploadForm(f => ({ ...f, expiryDate: e.target.value }))}
+                      />
                     </div>
                     <div className="space-y-1">
                       <Label className="text-xs">Document Number</Label>

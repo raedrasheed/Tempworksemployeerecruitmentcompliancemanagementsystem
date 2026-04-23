@@ -72,6 +72,36 @@ async function runStartupMigrations() {
         ADD COLUMN IF NOT EXISTS "documents" jsonb NOT NULL DEFAULT '[]'::jsonb
     `);
     logger.log('application_drafts — photoUrl + documents columns ensured');
+
+    // 4. Profile creation attribution. Adds createdById + source to
+    //    applicants and employees so the UI can show who created a
+    //    record and flag self-applied (public /apply) submissions.
+    await client.query(`
+      ALTER TABLE "applicants"
+        ADD COLUMN IF NOT EXISTS "createdById" text,
+        ADD COLUMN IF NOT EXISTS "source"      text NOT NULL DEFAULT 'STAFF_CREATED'
+    `);
+    await client.query(`
+      ALTER TABLE "employees"
+        ADD COLUMN IF NOT EXISTS "createdById" text,
+        ADD COLUMN IF NOT EXISTS "source"      text NOT NULL DEFAULT 'STAFF_CREATED'
+    `);
+    // Add FKs if missing so Prisma can resolve the relation.
+    await client.query(`
+      DO $$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'applicants_createdById_fkey') THEN
+          ALTER TABLE "applicants"
+            ADD CONSTRAINT "applicants_createdById_fkey"
+            FOREIGN KEY ("createdById") REFERENCES "users"(id) ON DELETE SET NULL;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'employees_createdById_fkey') THEN
+          ALTER TABLE "employees"
+            ADD CONSTRAINT "employees_createdById_fkey"
+            FOREIGN KEY ("createdById") REFERENCES "users"(id) ON DELETE SET NULL;
+        END IF;
+      END $$
+    `);
+    logger.log('applicants/employees — createdById + source columns ensured');
   } catch (err: any) {
     logger.error('Startup migration error: ' + (err?.message ?? err));
   } finally {

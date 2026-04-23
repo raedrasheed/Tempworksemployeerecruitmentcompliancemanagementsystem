@@ -25,6 +25,8 @@ export class ApplicantsService {
       agency: { select: { id: true, name: true } },
       currentWorkflowStage: { select: { id: true, name: true, color: true, order: true } },
       jobAd: { select: { id: true, title: true, slug: true, city: true, country: true, status: true } },
+      // Creator of the record — null for public (self-applied) submissions.
+      createdBy: { select: { id: true, firstName: true, lastName: true, email: true } },
     };
   }
 
@@ -152,7 +154,12 @@ export class ApplicantsService {
         // approval queue. Tempworks-internal and non-Agency external
         // roles (HR Manager / Recruiter) produce approved records.
         approvalStatus: isAgencySideRole ? ('PENDING_APPROVAL' as any) : ('APPROVED' as any),
-      },
+        // Attribution — every dashboard-originated create records the
+        // acting user. The public /apply path goes through
+        // publicSubmit() instead and leaves createdById null.
+        createdById: actorId ?? null,
+        source: 'STAFF_CREATED',
+      } as any,
       include: this.include,
     });
 
@@ -313,7 +320,12 @@ export class ApplicantsService {
           : undefined,
         applicationData: appData,
         notes: coreData.notes || (applicationNotes ? `[Submitted] ${applicationNotes}` : undefined),
-      },
+        // Flag this record as filled out by the applicant themself via
+        // the public /apply form. createdById stays null (no staff
+        // user is responsible); the profile UI keys off `source` to
+        // show a "Self-applied" badge instead of a creator name.
+        source: 'SELF_APPLIED',
+      } as any,
       include: this.include,
     });
 
@@ -828,6 +840,10 @@ export class ApplicantsService {
         photoUrl: (applicant as any).photoUrl ?? null,
         status: 'ONBOARDING' as any,
         ...(applicant.agencyId ? { agencyId: applicant.agencyId } : {}),
+        // Carry forward the original applicant's attribution so the
+        // Employee profile still shows "Created by …" or "Self-applied".
+        createdById: (applicant as any).createdById ?? null,
+        source: (applicant as any).source ?? 'STAFF_CREATED',
         employeeStages: {
           create: stages.map((s: any) => ({ stageId: s.id, status: 'PENDING' })),
         },

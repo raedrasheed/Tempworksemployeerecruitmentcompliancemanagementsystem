@@ -172,7 +172,9 @@ export class EmployeesController {
   @Roles(...WRITE_ROLES)
   @RequirePermission('employees:create')
   @ApiOperation({ summary: 'Create new employee' })
-  create(@Body() dto: CreateEmployeeDto) { return this.employeesService.create(dto); }
+  create(@Body() dto: CreateEmployeeDto, @CurrentUser('id') actorId: string) {
+    return this.employeesService.create(dto, actorId);
+  }
 
   @Patch(':id')
   @Roles(...WRITE_ROLES)

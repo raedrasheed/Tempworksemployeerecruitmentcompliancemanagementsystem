@@ -215,6 +215,9 @@ export function CandidateProfile() {
         employeeConvertedAt: (applicant as any).employeeConvertedAt
           ? new Date((applicant as any).employeeConvertedAt).toLocaleDateString()
           : null,
+        // Creation attribution surfaced on the Lifecycle card.
+        source: (applicant as any).source ?? 'STAFF_CREATED',
+        createdBy: (applicant as any).createdBy ?? null,
       });
     }).catch(() => {
       toast.error('Failed to load applicant');
@@ -718,6 +721,25 @@ export function CandidateProfile() {
                         : <span className="text-muted-foreground italic text-xs">{applicantData.tier === 'LEAD' ? 'Not yet converted' : 'Not assigned (legacy)'}</span>}
                       {applicantData.candidateConvertedAt && (
                         <p className="text-xs text-muted-foreground mt-1">Converted: {applicantData.candidateConvertedAt}</p>
+                      )}
+                    </div>
+                    {/* Creation attribution — self-applied via public form vs
+                        dashboard-created by a staff user. */}
+                    <div className="border-t pt-2">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Created By</p>
+                      {applicantData.source === 'SELF_APPLIED' ? (
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-2 py-0.5">
+                          Self-applied via public form
+                        </span>
+                      ) : applicantData.createdBy ? (
+                        <p className="text-sm font-medium">
+                          {[applicantData.createdBy.firstName, applicantData.createdBy.lastName].filter(Boolean).join(' ')}
+                          {applicantData.createdBy.email && (
+                            <span className="text-xs text-muted-foreground font-normal ml-1">· {applicantData.createdBy.email}</span>
+                          )}
+                        </p>
+                      ) : (
+                        <span className="text-muted-foreground italic text-xs">Unknown (legacy record)</span>
                       )}
                     </div>
                   </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router';
-import { ArrowLeft, Edit, Mail, Phone, MapPin, Calendar, FileText, Shield, Briefcase, Clock, Award, GraduationCap, TrendingUp, ChevronRight, Trash2, Download, Upload, X, DollarSign, Plus, Layers } from 'lucide-react';
+import { ArrowLeft, Edit, Mail, Phone, MapPin, Calendar, FileText, Shield, Briefcase, Clock, Award, GraduationCap, TrendingUp, ChevronRight, Trash2, Download, Upload, X, DollarSign, Plus, Layers, UserCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
@@ -413,6 +413,26 @@ export function EmployeeProfile() {
                   <div>
                     <p className="text-xs text-muted-foreground">Joined</p>
                     <p className="text-sm font-medium">{new Date(employee.createdAt).toLocaleDateString()}</p>
+                  </div>
+                </div>
+                {/* Creation attribution — shows who created the profile,
+                    or a Self-applied pill for public /apply submissions
+                    carried forward through candidate → employee. */}
+                <div className="flex items-center gap-2">
+                  <UserCircle className="w-4 h-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Created by</p>
+                    {employee.source === 'SELF_APPLIED' ? (
+                      <span className="inline-flex items-center text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-2 py-0.5">
+                        Self-applied via public form
+                      </span>
+                    ) : employee.createdBy ? (
+                      <p className="text-sm font-medium">
+                        {[employee.createdBy.firstName, employee.createdBy.lastName].filter(Boolean).join(' ') || employee.createdBy.email}
+                      </p>
+                    ) : (
+                      <p className="text-sm text-muted-foreground italic">Unknown (legacy record)</p>
+                    )}
                   </div>
                 </div>
               </div>

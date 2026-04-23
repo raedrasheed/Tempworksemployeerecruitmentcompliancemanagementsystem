@@ -239,6 +239,12 @@ model User {
   verifiedDocuments Document[]     @relation("VerifiedDocuments")
   assignedStages    EmployeeStage[] @relation("AssignedStages")
 
+  // Profile-creation attribution — populated when this user created an
+  // applicant/employee from the dashboard. Public /apply submissions
+  // leave createdById null on the record itself (source=SELF_APPLIED).
+  createdApplicants Applicant[]     @relation("ApplicantCreatedBy")
+  createdEmployees  Employee[]      @relation("EmployeeCreatedBy")
+
   // ── Financial record relations ─────────────────────────────────────────
   financialRecordsPaidBy     FinancialRecord[]            @relation("FRPaidBy")
   financialRecordsCreated    FinancialRecord[]            @relation("FRCreatedBy")
@@ -397,14 +403,19 @@ model Employee {
   emergencyContact String?
   emergencyPhone   String?
   notes            String?
+  // Creation attribution — carried over from the Applicant at
+  // conversion time. See Applicant.createdById/source for semantics.
+  createdById      String?
+  source           String         @default("STAFF_CREATED")
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
   deletedAt        DateTime?
   deletedBy        String?
   deletionReason   String?
 
-  agency   Agency?   @relation(fields: [agencyId], references: [id])
-  jobType  JobType?  @relation(fields: [jobTypeId], references: [id])
+  agency    Agency?  @relation(fields: [agencyId], references: [id])
+  jobType   JobType? @relation(fields: [jobTypeId], references: [id])
+  createdBy User?    @relation("EmployeeCreatedBy", fields: [createdById], references: [id])
   employeeStages EmployeeStage[]
   workPermits    WorkPermit[]
   workflowAssignments    EmployeeWorkflowAssignment[]
@@ -521,6 +532,15 @@ model Applicant {
   // skills, emergency contact, additional info, declaration
   applicationData         Json?
   convertedToEmployeeId   String?
+  // ── Creation attribution ──────────────────────────────────────────────────
+  // createdById: null when the applicant filled the public /apply form
+  //              themselves; otherwise the System/HR/Recruiter/Agency user
+  //              who created the record from the dashboard.
+  // source:      "SELF_APPLIED" for public submissions, "STAFF_CREATED"
+  //              (default) for every dashboard-originated create. Carried
+  //              forward verbatim to the Employee row on conversion.
+  createdById             String?
+  source                  String          @default("STAFF_CREATED")
   createdAt               DateTime        @default(now())
   updatedAt               DateTime        @updatedAt
   deletedAt               DateTime?
@@ -536,6 +556,7 @@ model Applicant {
   jobType              JobType?       @relation(fields: [jobTypeId], references: [id])
   agency               Agency?        @relation(fields: [agencyId], references: [id])
   currentWorkflowStage StageTemplate? @relation("ApplicantCurrentStage", fields: [currentWorkflowStageId], references: [id])
+  createdBy            User?          @relation("ApplicantCreatedBy", fields: [createdById], references: [id])
   financialProfile     ApplicantFinancialProfile?
   agencyHistory        ApplicantAgencyHistory[]
   workflowAssignments  CandidateWorkflowAssignment[]

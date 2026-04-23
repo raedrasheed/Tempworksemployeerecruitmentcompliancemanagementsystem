@@ -93,6 +93,9 @@ export class EmployeesService {
       include: {
         agency:   true,
         jobType:  { select: { id: true, name: true } },
+        // Original creator of the record. Null if the applicant
+        // self-applied via the public form — read `source` in that case.
+        createdBy: { select: { id: true, firstName: true, lastName: true, email: true } },
         employeeStages: { include: { stage: true, assignedTo: { select: { id: true, firstName: true, lastName: true } } }, orderBy: { stage: { order: 'asc' } } },
       },
     });
@@ -195,7 +198,7 @@ export class EmployeesService {
     return { message: 'Access revoked' };
   }
 
-  async create(dto: CreateEmployeeDto, _actorId?: string) {
+  async create(dto: CreateEmployeeDto, actorId?: string) {
     const existing = await this.prisma.employee.findFirst({ where: { email: dto.email, deletedAt: null } });
     if (existing) throw new ConflictException('Employee with this email already exists');
 
@@ -211,6 +214,11 @@ export class EmployeesService {
         dateOfBirth: new Date(dto.dateOfBirth),
         status: (dto.status as any) || 'PENDING',
         ...(agencyId ? { agencyId } : {}),
+        // Employees created directly from the dashboard are always
+        // staff-initiated — the public /apply flow produces an
+        // applicant, not an employee.
+        createdById: actorId ?? null,
+        source: 'STAFF_CREATED',
         employeeStages: {
           create: stages.map((stage) => ({
             stageId: stage.id,

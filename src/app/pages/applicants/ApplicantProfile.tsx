@@ -194,11 +194,6 @@ export function ApplicantProfile() {
         yearsActiveDriving: ad.domesticExpYears,
         drivenOtherCountries: !!(ad.euExpCountries),
         specifyCountries: ad.euExpCountries,
-        // Safety
-        trafficAccidents: ad.trafficAccidents === 'yes',
-        aetrViolations: false,
-        finesAbroad: false,
-        ecoDriving: false,
         // Languages
         englishLevel: findLang('english'),
         germanLevel: findLang('german'),
@@ -714,12 +709,11 @@ export function ApplicantProfile() {
       </Card>
 
       {/* Quick Nav */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {[
           { label: 'Travel & Residence', icon: FileText },
           { label: 'Driving Licence', icon: Award },
           { label: 'Experience', icon: Globe },
-          { label: 'Safety Record', icon: Shield },
         ].map(({ label, icon: Icon }) => (
           <Button key={label} variant="outline" className="justify-between">
             <div className="flex items-center gap-2"><Icon className="w-4 h-4" /><span>{label}</span></div>
@@ -982,34 +976,6 @@ export function ApplicantProfile() {
                     <p className="font-medium">{applicantData.specifyCountries}</p>
                   </div>
                 )}
-              </CardContent>
-            </Card>
-
-            {/* Safety Record */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Shield className="w-5 h-5" />Safety & Discipline Record
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {[
-                  ['Traffic Accidents (Last 3 yrs)', applicantData.trafficAccidents],
-                  ['AETR Violations', applicantData.aetrViolations],
-                  ['Fines Abroad (Last 3 yrs)', applicantData.finesAbroad],
-                  ['Eco-Driving Trained', applicantData.ecoDriving],
-                ].map(([label, val]: any) => (
-                  <div key={label} className="flex items-center justify-between py-2 border-b last:border-0">
-                    <span className="text-sm">{label}</span>
-                    <Badge className={
-                      label === 'Eco-Driving Trained'
-                        ? (val ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800')
-                        : (val ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800')
-                    }>
-                      {val ? 'Yes' : 'No'}
-                    </Badge>
-                  </div>
-                ))}
               </CardContent>
             </Card>
 

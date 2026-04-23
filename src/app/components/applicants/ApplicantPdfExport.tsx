@@ -3,7 +3,7 @@
  * Generates a structured PDF of the applicant application data and
  * optionally merges selected uploaded documents into the same file.
  */
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Document, Page, Text, View, StyleSheet, pdf, Image } from '@react-pdf/renderer';
 import { PDFDocument } from 'pdf-lib';
 import { FileText, Download, Loader2, X, CheckSquare, Square } from 'lucide-react';
@@ -367,8 +367,18 @@ interface Props {
 
 export function ApplicantPdfExportButton({ applicant, documents }: Props) {
   const [open, setOpen] = useState(false);
-  const [selectedDocs, setSelectedDocs] = useState<Set<string>>(new Set());
+  // Pre-select every uploaded document by default so the "Download PDF"
+  // button produces a complete bundle on first click. The operator can
+  // still untick anything they don't want before generating.
+  const [selectedDocs, setSelectedDocs] = useState<Set<string>>(() => new Set(documents.map(d => d.id)));
   const [generating, setGenerating] = useState(false);
+
+  // Re-seed the selection whenever the documents array changes (late
+  // fetch, new upload from another tab) or the dialog reopens, so the
+  // dialog never shows with nothing ticked while there are docs.
+  useEffect(() => {
+    if (open) setSelectedDocs(new Set(documents.map(d => d.id)));
+  }, [open, documents]);
 
   const toggleDoc = (id: string) => {
     setSelectedDocs(prev => {

@@ -1168,7 +1168,34 @@ export function ApplicantProfile() {
 
         {/* Workflow */}
         <TabsContent value="workflow">
-          {!candidateAssignment ? (
+          {applicantData?.tier === 'LEAD' ? (
+            /* ── Lead guard ────────────────────────────────────────
+               Workflows are candidate-scoped on the backend (the
+               assignment table only accepts a Candidate). Show the
+               operator why the tab is empty and shortcut them to the
+               "Promote to Candidate" dialog. */
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Layers className="w-5 h-5 text-amber-600" /> Workflow Unavailable for Leads
+                </CardTitle>
+                <p className="text-sm text-muted-foreground mt-1">
+                  This profile is still a <span className="font-medium text-foreground">Lead</span>. Workflows run on Candidates — promote this lead to a candidate first to connect it to a workflow.
+                </p>
+              </CardHeader>
+              <CardContent>
+                {canEdit('applicants') ? (
+                  <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => setShowConvertLeadDialog(true)}>
+                    <TrendingUp className="w-4 h-4 mr-2" />Promote to Candidate
+                  </Button>
+                ) : (
+                  <p className="text-sm text-muted-foreground italic">
+                    Ask a Recruiter or HR Manager to promote this lead.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          ) : !candidateAssignment ? (
             /* ── No workflow connected ─────────────────────────── */
             <Card>
               <CardHeader>

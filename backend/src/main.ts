@@ -48,6 +48,30 @@ async function runStartupMigrations() {
     if (constraints.rows.length === 0 && indexes.rows.length === 0) {
       logger.log('applicants.email — no unique constraint or index found');
     }
+
+    // 3. Ensure the application_drafts table + upload columns exist.
+    //    Save-for-later relies on photoUrl and documents being persisted
+    //    on the draft row; without them the photo/document previews
+    //    silently disappear after a page refresh.
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS "application_drafts" (
+        "id"          text PRIMARY KEY,
+        "createdById" text NOT NULL UNIQUE,
+        "jobAdId"     text,
+        "formData"    jsonb NOT NULL DEFAULT '{}'::jsonb,
+        "createdAt"   timestamptz NOT NULL DEFAULT now(),
+        "updatedAt"   timestamptz NOT NULL DEFAULT now()
+      )
+    `);
+    await client.query(`
+      ALTER TABLE "application_drafts"
+        ADD COLUMN IF NOT EXISTS "photoUrl"  text
+    `);
+    await client.query(`
+      ALTER TABLE "application_drafts"
+        ADD COLUMN IF NOT EXISTS "documents" jsonb NOT NULL DEFAULT '[]'::jsonb
+    `);
+    logger.log('application_drafts — photoUrl + documents columns ensured');
   } catch (err: any) {
     logger.error('Startup migration error: ' + (err?.message ?? err));
   } finally {

@@ -83,8 +83,12 @@ export class ApplicationDraftsService {
   private async ensureDraft(userId: string) {
     const existing = await this.getMine(userId);
     if (existing) return existing;
+    // Only pass required columns — formData and documents have
+    // defaults in the schema, so omitting them keeps this resilient
+    // against a Prisma client that was generated before those fields
+    // were added (defaults still apply at the DB level).
     return (this.prisma as any).applicationDraft.create({
-      data: { createdById: userId, formData: {} as any, documents: [] as any },
+      data: { createdById: userId },
     });
   }
 

@@ -571,6 +571,32 @@ export const applicationDraftsApi = {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
+
+  /** Upload / replace the draft's profile photo. */
+  uploadPhoto: (file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    return apiFetch<any>('/application-drafts/mine/photo', { method: 'POST', body: form });
+  },
+
+  /** Remove the draft's profile photo. */
+  deletePhoto: () =>
+    apiFetch<any>('/application-drafts/mine/photo', { method: 'DELETE' }),
+
+  /** Upload a supporting document to the draft. `sectionKey` slots the
+   *  file into the same form row when the draft is resumed. */
+  uploadDocument: (file: File, name: string, documentTypeName: string, sectionKey?: string) => {
+    const form = new FormData();
+    form.append('file', file);
+    form.append('name', name);
+    form.append('documentTypeName', documentTypeName);
+    if (sectionKey) form.append('sectionKey', sectionKey);
+    return apiFetch<any>('/application-drafts/mine/documents', { method: 'POST', body: form });
+  },
+
+  /** Remove a previously-uploaded supporting document. */
+  deleteDocument: (docId: string) =>
+    apiFetch<any>(`/application-drafts/mine/documents/${docId}`, { method: 'DELETE' }),
 };
 
 // ─── Documents API ───────────────────────────────────────────────────────────

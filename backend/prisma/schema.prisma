@@ -306,6 +306,13 @@ model ApplicationDraft {
   jobAdId      String?
   /// Raw ApplicantFormData blob that drives the form on the client.
   formData     Json     @default("{}")
+  /// Profile-photo URL (same /uploads/<folder>/... convention the rest
+  /// of the app uses). Null until the user picks a photo.
+  photoUrl     String?
+  /// Supporting documents uploaded alongside the draft. Each entry:
+  /// { id, name, typeName, url, uploadedAt }. On final submit these
+  /// are materialised into Document rows linked to the new Applicant.
+  documents    Json     @default("[]")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

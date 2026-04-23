@@ -18,6 +18,15 @@ export interface UploadedFileItem {
   type: string;
   file: File | null;
   sectionKey?: string;
+  /** Public URL when the file has been persisted to an application
+   *  draft on the server — restored on resume so the UI can surface
+   *  previously-uploaded files without re-prompting. */
+  url?: string;
+  /** Display name for already-uploaded draft files (mirrors
+   *  `file.name`). */
+  savedName?: string;
+  /** Server-side id of the draft document; enables per-row delete. */
+  draftDocId?: string;
 }
 
 export interface JobType {
@@ -841,6 +850,11 @@ function InlineDocUpload({ label = 'Upload Document', sectionKey, uploadedFiles,
       onFilesChange(uploadedFiles.filter(f => f.sectionKey !== sectionKey));
     }
   };
+  // Saved-to-draft entries arrive from the server without a File
+  // object. We still show them as "uploaded" so the user can see the
+  // name and remove it — the removal hits the draft-delete endpoint.
+  const savedLabel = entry?.savedName ?? (entry?.url ? entry.url.split('/').pop() : undefined);
+  const hasSavedOnly = !entry?.file && !!savedLabel;
   return (
     <div className="space-y-1 md:col-span-2">
       <Label className="text-xs">{label}</Label>
@@ -848,6 +862,12 @@ function InlineDocUpload({ label = 'Upload Document', sectionKey, uploadedFiles,
         <div className="flex items-center gap-2 p-2 border rounded-lg bg-green-50 border-green-200">
           <FileText className="w-4 h-4 text-green-600 shrink-0" />
           <span className="text-sm text-green-700 truncate flex-1">{entry.file.name}</span>
+          <button type="button" onClick={handleRemove} className="p-0.5 text-gray-400 hover:text-red-500"><X className="w-4 h-4" /></button>
+        </div>
+      ) : hasSavedOnly ? (
+        <div className="flex items-center gap-2 p-2 border rounded-lg bg-blue-50 border-blue-200">
+          <FileText className="w-4 h-4 text-blue-600 shrink-0" />
+          <span className="text-sm text-blue-700 truncate flex-1">{savedLabel} <span className="text-[11px] text-blue-500">(saved)</span></span>
           <button type="button" onClick={handleRemove} className="p-0.5 text-gray-400 hover:text-red-500"><X className="w-4 h-4" /></button>
         </div>
       ) : (

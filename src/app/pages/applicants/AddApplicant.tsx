@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { applicationDraftsApi, settingsApi, agenciesApi, getCurrentUser } from '../../services/api';
+import { applicationDraftsApi, settingsApi, agenciesApi, getCurrentUser, BACKEND_URL } from '../../services/api';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent } from '../../components/ui/card';
 import { Label } from '../../components/ui/label';
@@ -29,6 +29,13 @@ export function AddApplicant() {
   // "Resumed draft" affordance + a Discard button. Null means either
   // no draft existed on load or it has been submitted/discarded.
   const [draftId, setDraftId] = useState<string | null>(null);
+  // Photo URL persisted on the draft (served from the backend). The
+  // preview falls back to this when `photoFile` is null.
+  const [draftPhotoUrl, setDraftPhotoUrl] = useState<string | null>(null);
+
+  // Tracks the previous uploadedFiles array so we can diff on each
+  // change and push new picks / deletes to the draft endpoints.
+  const prevFilesRef = useRef<any[]>([]);
 
   const visibleTabs = useMemo(() => getVisibleTabs(formData), [formData.hasDrivingLicense]);
 
@@ -56,6 +63,31 @@ export function AddApplicant() {
           setDraftId(draft.id);
           const saved = (draft.formData ?? {}) as Partial<ApplicantFormData>;
           setFormData(prev => ({ ...prev, ...saved }));
+
+          // Photo — preview served from the backend static-files route.
+          if (draft.photoUrl) {
+            setDraftPhotoUrl(draft.photoUrl.startsWith('http')
+              ? draft.photoUrl
+              : `${BACKEND_URL}${draft.photoUrl}`);
+          }
+
+          // Supporting documents — re-slot them into the form by their
+          // sectionKey so the upload row shows a "saved" state.
+          const docs: any[] = Array.isArray(draft.documents) ? draft.documents : [];
+          if (docs.length > 0) {
+            const restored = docs.map(d => ({
+              id: d.id,
+              type: d.typeName || d.name,
+              sectionKey: d.sectionKey,
+              file: null,
+              url: d.url?.startsWith('http') ? d.url : `${BACKEND_URL}${d.url ?? ''}`,
+              savedName: d.name,
+              draftDocId: d.id,
+            }));
+            setUploadedFiles(restored);
+            prevFilesRef.current = restored;
+          }
+
           toast.info('Resumed your saved draft — finish and submit to create the applicant.');
         })
         .catch(() => { /* no draft, quiet fall-through */ }),
@@ -64,6 +96,78 @@ export function AddApplicant() {
 
   const handleUpdate = (updater: (prev: ApplicantFormData) => ApplicantFormData) => {
     setFormData(updater);
+  };
+
+  // Photo picker — uploads immediately to the draft so the file
+  // survives a page refresh. Passing null removes the photo.
+  const handlePhotoChange = (file: File | null) => {
+    setPhotoFile(file);
+    if (file) {
+      applicationDraftsApi.uploadPhoto(file)
+        .then((d: any) => {
+          if (d?.id) setDraftId(d.id);
+          if (d?.photoUrl) {
+            setDraftPhotoUrl(d.photoUrl.startsWith('http') ? d.photoUrl : `${BACKEND_URL}${d.photoUrl}`);
+          }
+        })
+        .catch(() => toast.error('Photo upload failed — it won\'t be saved to your draft.'));
+    } else if (draftPhotoUrl) {
+      setDraftPhotoUrl(null);
+      applicationDraftsApi.deletePhoto().catch(() => {});
+    }
+  };
+
+  // Document list — diff against the previous state. Any entry that
+  // gained a `file` is a fresh pick → push to server. Any entry that
+  // lost its draft-persisted file (no file object, no url anymore) is
+  // a removal → delete from server. Updates are applied back into
+  // state so the row shows its `savedName` + `draftDocId`.
+  const handleFilesChange = (next: any[]) => {
+    setUploadedFiles(next);
+    const prev = prevFilesRef.current;
+    prevFilesRef.current = next;
+
+    // 1. Fresh file picks
+    for (const item of next) {
+      if (!item.file) continue;
+      const before = prev.find((p: any) => p.sectionKey === item.sectionKey);
+      if (before?.file === item.file) continue; // unchanged
+      // upload and update the list in place with server metadata
+      applicationDraftsApi.uploadDocument(item.file, item.type, item.type, item.sectionKey || '')
+        .then((draft: any) => {
+          if (draft?.id) setDraftId(draft.id);
+          const entry = (draft?.documents ?? []).find((d: any) => d.sectionKey === item.sectionKey);
+          if (!entry) return;
+          setUploadedFiles(cur => cur.map(f =>
+            f.sectionKey === item.sectionKey
+              ? {
+                  ...f,
+                  file: null,
+                  url: entry.url.startsWith('http') ? entry.url : `${BACKEND_URL}${entry.url}`,
+                  savedName: entry.name,
+                  draftDocId: entry.id,
+                }
+              : f,
+          ));
+          prevFilesRef.current = prevFilesRef.current.map((f: any) =>
+            f.sectionKey === item.sectionKey
+              ? { ...f, file: null, draftDocId: entry.id, url: entry.url, savedName: entry.name }
+              : f,
+          );
+        })
+        .catch(() => toast.error('Document upload failed — it won\'t be saved to your draft.'));
+    }
+
+    // 2. Removals — items that were in `prev` with a draftDocId but
+    //    are either gone from `next` or now have no file AND no url.
+    for (const before of prev) {
+      if (!before.draftDocId) continue;
+      const after = next.find((n: any) => n.sectionKey === before.sectionKey);
+      const stillSaved = !!after && (after.file || after.url || after.draftDocId);
+      if (!stillSaved) {
+        applicationDraftsApi.deleteDocument(before.draftDocId).catch(() => {});
+      }
+    }
   };
 
   const handleNext = () => {
@@ -243,10 +347,11 @@ export function AddApplicant() {
             onChange={handleUpdate}
             jobTypes={jobTypes}
             uploadedFiles={uploadedFiles}
-            onFilesChange={setUploadedFiles}
+            onFilesChange={handleFilesChange}
             settings={settings}
             photoFile={photoFile}
-            onPhotoChange={setPhotoFile}
+            onPhotoChange={handlePhotoChange}
+            existingPhotoUrl={draftPhotoUrl ?? undefined}
             fieldErrors={fieldErrors}
           />
 

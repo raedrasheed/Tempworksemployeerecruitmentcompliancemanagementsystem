@@ -78,6 +78,11 @@ export function CandidateProfile() {
   const [verifyingDocId, setVerifyingDocId] = useState<string | null>(null);
   const [rejectDocDialog, setRejectDocDialog] = useState<{ open: boolean; docId: string; docName: string }>({ open: false, docId: '', docName: '' });
   const [rejectDocReason, setRejectDocReason] = useState('');
+  // Inline Notes editor — lets operators add/update the candidate
+  // note without leaving view mode. Kept separate from the Edit page
+  // so the flow stays quick.
+  const [noteDraft, setNoteDraft] = useState('');
+  const [savingNote, setSavingNote] = useState(false);
   const [showConvertDialog, setShowConvertDialog] = useState(false);
   const [converting, setConverting] = useState(false);
   const [convertForm, setConvertForm] = useState({
@@ -246,6 +251,9 @@ export function CandidateProfile() {
         source: (applicant as any).source ?? 'STAFF_CREATED',
         createdBy: (applicant as any).createdBy ?? null,
       });
+      // Seed the inline Notes editor with the raw note text so the
+      // operator can append / tweak without retyping from scratch.
+      setNoteDraft(typeof applicant.notes === 'string' ? applicant.notes : '');
     }).catch(() => {
       toast.error('Failed to load applicant');
       navigate('/dashboard/applicants');
@@ -337,6 +345,21 @@ export function CandidateProfile() {
       toast.error(err?.message || 'Failed to update agency');
     } finally {
       setChangingAgency(false);
+    }
+  };
+
+  // ── Inline notes save ─────────────────────────────────────────────────
+  const handleSaveNote = async () => {
+    if (!id) return;
+    setSavingNote(true);
+    try {
+      const updated = await applicantsApi.update(id, { notes: noteDraft } as any);
+      setApplicantData((prev: any) => ({ ...prev, notes: updated.notes ?? noteDraft }));
+      toast.success('Note saved');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to save note');
+    } finally {
+      setSavingNote(false);
     }
   };
 
@@ -1578,22 +1601,55 @@ export function CandidateProfile() {
         <TabsContent value="notes">
           <Card>
             <CardHeader><CardTitle>Notes & Comments</CardTitle></CardHeader>
-            <CardContent>
-              {applicantData.notes ? (
-                (() => {
-                  try {
-                    const parsed = JSON.parse(applicantData.notes);
-                    const text = Object.entries(parsed)
-                      .filter(([, v]) => v && v !== '' && v !== 'false' && v !== false)
-                      .map(([k, v]) => `${k}: ${v}`)
-                      .join('\n');
-                    return text ? <p className="whitespace-pre-wrap text-sm">{text}</p> : <p className="text-muted-foreground">No notes for this applicant.</p>;
-                  } catch {
-                    return <p className="whitespace-pre-wrap">{applicantData.notes}</p>;
-                  }
-                })()
+            <CardContent className="space-y-4">
+              {/* Historical JSON-blob notes (legacy form submissions)
+                  stay rendered read-only above the editor so the
+                  operator can see what's there. Plain-text notes are
+                  shown directly in the editor below. */}
+              {applicantData.notes && (() => {
+                try {
+                  const parsed = JSON.parse(applicantData.notes);
+                  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
+                  const text = Object.entries(parsed)
+                    .filter(([, v]) => v && v !== '' && v !== 'false' && v !== false)
+                    .map(([k, v]) => `${k}: ${v}`)
+                    .join('\n');
+                  return text ? (
+                    <div className="p-3 border rounded-md bg-muted/40">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Submitted with application</p>
+                      <p className="whitespace-pre-wrap text-sm">{text}</p>
+                    </div>
+                  ) : null;
+                } catch {
+                  return null;
+                }
+              })()}
+
+              {canEdit('applicants') ? (
+                <div className="space-y-2">
+                  <Label htmlFor="candidate-note" className="text-sm">Add / update note</Label>
+                  <Textarea
+                    id="candidate-note"
+                    rows={6}
+                    placeholder="Write a note about this candidate…"
+                    value={noteDraft}
+                    onChange={e => setNoteDraft(e.target.value)}
+                  />
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" onClick={handleSaveNote} disabled={savingNote || noteDraft === (applicantData.notes ?? '')}>
+                      {savingNote ? 'Saving…' : 'Save note'}
+                    </Button>
+                    {noteDraft !== (applicantData.notes ?? '') && (
+                      <Button size="sm" variant="ghost" onClick={() => setNoteDraft(applicantData.notes ?? '')} disabled={savingNote}>
+                        Discard changes
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ) : applicantData.notes ? (
+                <p className="whitespace-pre-wrap text-sm">{applicantData.notes}</p>
               ) : (
-                <p className="text-muted-foreground">No notes for this applicant. You can add notes when editing the profile.</p>
+                <p className="text-muted-foreground">No notes for this candidate.</p>
               )}
             </CardContent>
           </Card>

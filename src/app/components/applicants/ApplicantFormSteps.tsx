@@ -377,10 +377,16 @@ const TAB_DEFS = [
   { id: 11, label: 'Review', Icon: CheckCircle2 },
 ];
 
-export function getVisibleTabs(formData: Pick<ApplicantFormData, 'hasDrivingLicense'>): number[] {
+export function getVisibleTabs(
+  formData: Pick<ApplicantFormData, 'hasDrivingLicense'>,
+  skipReview = false,
+): number[] {
   const all = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
-  if (formData.hasDrivingLicense !== 'yes') return all.filter(t => t !== 5);
-  return all;
+  // Internal (dashboard) users don't need the applicant-facing Review
+  // + Declaration page — they submit the form directly from Documents.
+  const base = skipReview ? all.filter(t => t !== 11) : all;
+  if (formData.hasDrivingLicense !== 'yes') return base.filter(t => t !== 5);
+  return base;
 }
 
 /** Returns validation error messages for the current step before allowing navigation to the next step. */

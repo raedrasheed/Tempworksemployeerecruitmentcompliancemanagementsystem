@@ -37,7 +37,10 @@ export function AddApplicant() {
   // change and push new picks / deletes to the draft endpoints.
   const prevFilesRef = useRef<any[]>([]);
 
-  const visibleTabs = useMemo(() => getVisibleTabs(formData), [formData.hasDrivingLicense]);
+  // System users creating an applicant from the dashboard skip the
+  // final Review + Declaration page — it exists for the self-service
+  // /apply flow where the applicant has to agree to data processing.
+  const visibleTabs = useMemo(() => getVisibleTabs(formData, true), [formData.hasDrivingLicense]);
 
   useEffect(() => {
     Promise.all([

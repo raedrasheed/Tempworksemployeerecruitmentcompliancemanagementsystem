@@ -84,6 +84,7 @@ import { SkillsSettings } from './pages/settings/SkillsSettings';
 import { TransportTypesSettings } from './pages/settings/TransportTypesSettings';
 import { TruckBrandsSettings } from './pages/settings/TruckBrandsSettings';
 import { TrailerTypesSettings } from './pages/settings/TrailerTypesSettings';
+import { TransactionTypesSettings } from './pages/settings/TransactionTypesSettings';
 
 // Pipeline pages
 import { WorkflowsPage } from './pages/pipelines/WorkflowsPage';
@@ -257,6 +258,7 @@ export const router = createBrowserRouter([
       { path: 'settings/transport-types', Component: TransportTypesSettings },
       { path: 'settings/truck-brands', Component: TruckBrandsSettings },
       { path: 'settings/trailer-types', Component: TrailerTypesSettings },
+      { path: 'settings/transaction-types', Component: TransactionTypesSettings },
 
       // Profile routes
       { path: 'profile', Component: Profile },

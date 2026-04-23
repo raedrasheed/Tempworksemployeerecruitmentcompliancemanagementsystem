@@ -488,6 +488,25 @@ model JobType {
   @@map("job_types")
 }
 
+// Configurable labels for the `transactionType` column on
+// FinancialRecord. Previously hardcoded in backend/src/finance/
+// constants.ts; now stored in the DB so System Admins can add /
+// rename / deactivate types without a code deploy. The values on
+// existing financial_records stay free-text strings, so deactivating a
+// type never breaks historical rows.
+model FinanceTransactionType {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  isActive  Boolean  @default(true)
+  // Preserve the order System Admins want rendered in the dropdown —
+  // lower = earlier. Ties fall back to alphabetical.
+  sortOrder Int      @default(100)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("finance_transaction_types")
+}
+
 model Applicant {
   id                      String          @id @default(uuid())
   tier                    ApplicantTier   @default(LEAD)

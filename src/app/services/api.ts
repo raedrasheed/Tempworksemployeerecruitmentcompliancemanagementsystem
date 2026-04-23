@@ -966,6 +966,18 @@ export const settingsApi = {
   deleteJobType: (id: string) =>
     apiFetch(`/settings/job-types/${id}`, { method: 'DELETE' }),
 
+  // ── Finance transaction types (configurable list) ────────────────────────
+  getTransactionTypes: (includeInactive = false) =>
+    apiFetch<Array<{ id: string; name: string; isActive: boolean; sortOrder: number }>>(
+      `/settings/transaction-types${includeInactive ? '?includeInactive=true' : ''}`,
+    ),
+  createTransactionType: (data: { name: string; sortOrder?: number; isActive?: boolean }) =>
+    apiFetch<any>('/settings/transaction-types', { method: 'POST', body: JSON.stringify(data) }),
+  updateTransactionType: (id: string, data: { name?: string; sortOrder?: number; isActive?: boolean }) =>
+    apiFetch<any>(`/settings/transaction-types/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteTransactionType: (id: string) =>
+    apiFetch(`/settings/transaction-types/${id}`, { method: 'DELETE' }),
+
   // Document Types
   getDocumentTypes: () => apiFetch<any[]>('/settings/document-types'),
   getDocumentType: (id: string) => apiFetch<any>(`/settings/document-types/${id}`),

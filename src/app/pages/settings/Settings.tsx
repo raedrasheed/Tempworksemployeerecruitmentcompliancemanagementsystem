@@ -1,5 +1,5 @@
 import { Link } from 'react-router';
-import { FileType, Bell, Shield, Activity, Layers, Briefcase, Palette, Trash2, Database, Server, Building2, Star, Truck, Tag, GitBranch } from 'lucide-react';
+import { FileType, Bell, Shield, Activity, Layers, Briefcase, Palette, Trash2, Database, Server, Building2, Star, Truck, Tag, GitBranch, DollarSign } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { usePermissions } from '../../hooks/usePermissions';
 import { API_URL } from '../../services/api';
@@ -57,6 +57,12 @@ export function Settings() {
       title: 'Document Types',
       description: 'Manage document types and requirements',
       path: '/dashboard/settings/document-types',
+    },
+    {
+      icon: DollarSign,
+      title: 'Transaction Types',
+      description: 'Configure the transaction type options shown in the finance ledger',
+      path: '/dashboard/settings/transaction-types',
     },
     {
       icon: Bell,

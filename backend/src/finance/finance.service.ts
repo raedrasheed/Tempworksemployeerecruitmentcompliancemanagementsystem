@@ -224,6 +224,24 @@ export class FinanceService {
 
   // ── CRUD ─────────────────────────────────────────────────────────────────────
 
+  /** Configurable transaction types surfaced by the constants endpoint.
+   *  The list lives in the DB (seeded once with the hardcoded defaults)
+   *  so System Admins can manage it from Settings without a deploy. */
+  async listTransactionTypes(): Promise<Array<{ id: string; name: string; sortOrder: number }>> {
+    try {
+      return await (this.prisma as any).financeTransactionType.findMany({
+        where: { isActive: true },
+        orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+        select: { id: true, name: true, sortOrder: true },
+      });
+    } catch {
+      // Prisma client may not have been regenerated yet on first boot
+      // of this feature — fall back to the hardcoded defaults rather
+      // than blowing up the whole finance UI.
+      return [];
+    }
+  }
+
   async findOne(id: string) {
     const record = await this.prisma.financialRecord.findUnique({
       where: { id, deletedAt: null },

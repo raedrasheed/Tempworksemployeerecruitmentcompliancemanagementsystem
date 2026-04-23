@@ -55,9 +55,13 @@ export class FinanceController {
   @Get('constants')
   @Roles(...FINANCE_READ_ROLES)
   @ApiOperation({ summary: 'Get finance module constants (transaction types, payment methods, etc.)' })
-  getConstants() {
+  async getConstants() {
+    // Transaction types are configurable in Settings → Finance →
+    // Transaction Types. Fall back to the hardcoded defaults if the
+    // table is empty (fresh install before the startup seed runs).
+    const configured = await this.financeService.listTransactionTypes();
     return {
-      transactionTypes: TRANSACTION_TYPES,
+      transactionTypes: configured.length > 0 ? configured.map(t => t.name) : TRANSACTION_TYPES,
       paymentMethods: PAYMENT_METHODS,
       statuses: FINANCIAL_RECORD_STATUSES,
       currencies: COMMON_CURRENCIES,

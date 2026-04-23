@@ -76,6 +76,47 @@ export class SettingsController {
     return this.settingsService.deleteJobType(id, user?.id);
   }
 
+  // ─── Finance Transaction Types ──────────────────────────────────────────────
+
+  @Get('transaction-types')
+  @ApiOperation({ summary: 'List configurable transaction types (active only by default)' })
+  findTransactionTypes(@Query('includeInactive') includeInactive?: string) {
+    return this.settingsService.findTransactionTypes({
+      includeInactive: includeInactive === 'true',
+    });
+  }
+
+  @Post('transaction-types')
+  @Roles('System Admin', 'HR Manager', 'Finance')
+  @ApiOperation({ summary: 'Create a transaction type' })
+  createTransactionType(
+    @Body() dto: { name: string; sortOrder?: number; isActive?: boolean },
+    @CurrentUser() user: any,
+  ) {
+    return this.settingsService.createTransactionType(dto, user?.id);
+  }
+
+  @Patch('transaction-types/:id')
+  @Roles('System Admin', 'HR Manager', 'Finance')
+  @ApiOperation({ summary: 'Update a transaction type' })
+  @ApiParam({ name: 'id' })
+  updateTransactionType(
+    @Param('id') id: string,
+    @Body() dto: { name?: string; sortOrder?: number; isActive?: boolean },
+    @CurrentUser() user: any,
+  ) {
+    return this.settingsService.updateTransactionType(id, dto, user?.id);
+  }
+
+  @Delete('transaction-types/:id')
+  @Roles('System Admin', 'Finance')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Deactivate a transaction type' })
+  @ApiParam({ name: 'id' })
+  deleteTransactionType(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.settingsService.deleteTransactionType(id, user?.id);
+  }
+
   // Document Types
   @Get('document-types')
   @ApiOperation({ summary: 'Get all active document types' })

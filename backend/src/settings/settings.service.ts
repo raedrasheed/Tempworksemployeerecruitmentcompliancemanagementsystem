@@ -136,6 +136,79 @@ export class SettingsService {
     return { message: 'Job type deactivated' };
   }
 
+  // ─── Finance Transaction Types ───────────────────────────────────────────────
+  // Configurable list that populates the "Transaction Type" dropdown
+  // on the financial record form. Historical financial_records rows
+  // keep their plain-string transactionType regardless of whether a
+  // type is deactivated later.
+
+  async findTransactionTypes(opts?: { includeInactive?: boolean }) {
+    return (this.prisma as any).financeTransactionType.findMany({
+      where: opts?.includeInactive ? {} : { isActive: true },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+    });
+  }
+
+  async createTransactionType(dto: { name: string; sortOrder?: number; isActive?: boolean }, actorId?: string) {
+    const trimmed = (dto.name ?? '').trim();
+    if (!trimmed) throw new NotFoundException('Name is required');
+    try {
+      const created = await (this.prisma as any).financeTransactionType.create({
+        data: {
+          name: trimmed,
+          sortOrder: dto.sortOrder ?? 100,
+          isActive: dto.isActive ?? true,
+        },
+      });
+      await this.auditLog.log({
+        userId: actorId, action: 'CREATE', entity: 'FinanceTransactionType',
+        entityId: created.id, changes: { name: created.name },
+      });
+      return created;
+    } catch (err: any) {
+      // Unique-constraint collision — friendly error.
+      if (err?.code === 'P2002') throw new NotFoundException(`Transaction type "${trimmed}" already exists`);
+      throw err;
+    }
+  }
+
+  async updateTransactionType(
+    id: string,
+    dto: { name?: string; sortOrder?: number; isActive?: boolean },
+    actorId?: string,
+  ) {
+    const existing = await (this.prisma as any).financeTransactionType.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Transaction type not found');
+    const data: any = {};
+    if (dto.name !== undefined) data.name = dto.name.trim();
+    if (dto.sortOrder !== undefined) data.sortOrder = dto.sortOrder;
+    if (dto.isActive !== undefined) data.isActive = dto.isActive;
+    try {
+      const updated = await (this.prisma as any).financeTransactionType.update({ where: { id }, data });
+      await this.auditLog.log({
+        userId: actorId, action: 'UPDATE', entity: 'FinanceTransactionType',
+        entityId: id, changes: dto as any,
+      });
+      return updated;
+    } catch (err: any) {
+      if (err?.code === 'P2002') throw new NotFoundException(`Transaction type "${data.name}" already exists`);
+      throw err;
+    }
+  }
+
+  async deleteTransactionType(id: string, actorId?: string) {
+    const existing = await (this.prisma as any).financeTransactionType.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Transaction type not found');
+    // Soft delete — deactivate so existing financial_records keep
+    // rendering the label without reintroducing it to the dropdown.
+    await (this.prisma as any).financeTransactionType.update({ where: { id }, data: { isActive: false } });
+    await this.auditLog.log({
+      userId: actorId, action: 'DELETE', entity: 'FinanceTransactionType',
+      entityId: id, changes: { name: existing.name },
+    });
+    return { message: 'Transaction type deactivated' };
+  }
+
   // ─── Document Types ──────────────────────────────────────────────────────────
   async findDocumentTypes() {
     return this.prisma.documentType.findMany({

@@ -156,6 +156,49 @@ async function runStartupMigrations() {
       logger.log('financial_record_deductions — table ensured (no backfill needed)');
     }
 
+    // 7. Configurable transaction types. Replaces the hardcoded list
+    //    in backend/src/finance/constants.ts. Created empty and seeded
+    //    once with the built-in defaults so existing installs keep
+    //    the same dropdown options on first boot.
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS "finance_transaction_types" (
+        "id"        text PRIMARY KEY,
+        "name"      text NOT NULL UNIQUE,
+        "isActive"  boolean NOT NULL DEFAULT true,
+        "sortOrder" integer NOT NULL DEFAULT 100,
+        "createdAt" timestamptz NOT NULL DEFAULT now(),
+        "updatedAt" timestamptz NOT NULL DEFAULT now()
+      )
+    `);
+    const existingTypeCount = await client.query(`SELECT COUNT(*)::int AS c FROM "finance_transaction_types"`);
+    if ((existingTypeCount.rows[0]?.c ?? 0) === 0) {
+      const defaults = [
+        'Cash Advance',
+        'Visa Fee',
+        'Work Permit Fee',
+        'Accommodation Cost',
+        'Translation Fees',
+        'Other Official Documents Fees',
+        'Insurance Fees',
+        'Medical Report Fees',
+        'Transport Cost',
+        'Fine/Penalty',
+        'Equipment',
+        'Other',
+      ];
+      for (let i = 0; i < defaults.length; i++) {
+        await client.query(
+          `INSERT INTO "finance_transaction_types" (id, name, "sortOrder")
+           VALUES (gen_random_uuid()::text, $1, $2)
+           ON CONFLICT (name) DO NOTHING`,
+          [defaults[i], i * 10],
+        );
+      }
+      logger.log(`finance_transaction_types — seeded ${defaults.length} default types`);
+    } else {
+      logger.log('finance_transaction_types — already seeded');
+    }
+
     // 5. Cleanup of phantom profile-photo document rows.
     //    Before the fix, the public /apply photo upload mis-classified
     //    the profile photo as the first-available DocumentType (usually

@@ -95,6 +95,10 @@ export function ApplicantProfile() {
   // Tier / financial / history state
   const [showConvertLeadDialog, setShowConvertLeadDialog] = useState(false);
   const [convertingLead, setConvertingLead] = useState(false);
+  // After a successful promotion we flip the same dialog into a
+  // confirmation panel instead of relying on a fleeting toast, so the
+  // operator sees an explicit "done" message.
+  const [promoteSuccess, setPromoteSuccess] = useState<{ newCandidateNumber?: string } | null>(null);
   const [financialProfile, setFinancialProfile] = useState<any>(null);
   const [financialLoading, setFinancialLoading] = useState(false);
   const [savingFinancial, setSavingFinancial] = useState(false);
@@ -521,14 +525,26 @@ export function ApplicantProfile() {
     setConvertingLead(true);
     try {
       const updated = await applicantsApi.convertLeadToCandidate(id, {});
-      setApplicantData((prev: any) => ({ ...prev, tier: 'CANDIDATE', agencyId: updated.agencyId, agency: updated.agency }));
-      toast.success('Promoted to Candidate');
-      setShowConvertLeadDialog(false);
+      setApplicantData((prev: any) => ({
+        ...prev,
+        tier: 'CANDIDATE',
+        agencyId: updated.agencyId,
+        agency: updated.agency,
+        candidateNumber: updated.candidateNumber ?? prev.candidateNumber,
+      }));
+      // Keep the dialog open but flip it into a confirmation panel so
+      // the operator has to explicitly acknowledge the promotion.
+      setPromoteSuccess({ newCandidateNumber: updated.candidateNumber });
     } catch (err: any) {
       toast.error(err?.message || 'Promotion failed');
     } finally {
       setConvertingLead(false);
     }
+  };
+
+  const closePromoteDialog = () => {
+    setShowConvertLeadDialog(false);
+    setPromoteSuccess(null);
   };
 
   const handleSaveFinancial = async () => {
@@ -1766,38 +1782,66 @@ export function ApplicantProfile() {
         </TabsContent>
       </Tabs>
 
-      {/* Promote Lead → Candidate Dialog */}
+      {/* Promote Lead → Candidate Dialog. After a successful promotion
+          the same modal flips into a confirmation panel that the user
+          has to explicitly close — a toast alone is too ephemeral. */}
       {showConvertLeadDialog && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <Card className="max-w-md w-full">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-emerald-600" />Promote to Candidate
-              </CardTitle>
-              <p className="text-sm text-muted-foreground mt-1">
-                <strong>{applicantData?.fullName}</strong> will be promoted from Lead to Candidate.
-                This grants agency users visibility. A holding agency will be assigned if configured.
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800">
-                This action is logged and can be reviewed in Agency History.
-              </div>
-              <div className="flex gap-3">
-                <Button
-                  className="flex-1 bg-emerald-600 hover:bg-emerald-700"
-                  onClick={handleConvertLeadToCandidate}
-                  disabled={convertingLead}
-                >
-                  {convertingLead
-                    ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Promoting…</>
-                    : <><TrendingUp className="w-4 h-4 mr-2" />Confirm Promotion</>}
-                </Button>
-                <Button variant="outline" className="flex-1" onClick={() => setShowConvertLeadDialog(false)} disabled={convertingLead}>
-                  Cancel
-                </Button>
-              </div>
-            </CardContent>
+            {promoteSuccess ? (
+              <>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-emerald-700">
+                    <CheckCircle2 className="w-5 h-5" />Promoted Successfully
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    <strong>{applicantData?.fullName}</strong> has been promoted from Lead to Candidate.
+                    {promoteSuccess.newCandidateNumber && (
+                      <> The new Candidate ID is <span className="font-mono font-semibold text-purple-700">{promoteSuccess.newCandidateNumber}</span>.</>
+                    )}
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3 text-sm text-emerald-800">
+                    The profile is now visible to agency users, and the tier change has been recorded in the audit log.
+                  </div>
+                  <Button className="w-full bg-emerald-600 hover:bg-emerald-700" onClick={closePromoteDialog}>
+                    Done
+                  </Button>
+                </CardContent>
+              </>
+            ) : (
+              <>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5 text-emerald-600" />Promote to Candidate
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    <strong>{applicantData?.fullName}</strong> will be promoted from Lead to Candidate.
+                    This grants agency users visibility. A holding agency will be assigned if configured.
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800">
+                    This action is logged and can be reviewed in Agency History.
+                  </div>
+                  <div className="flex gap-3">
+                    <Button
+                      className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+                      onClick={handleConvertLeadToCandidate}
+                      disabled={convertingLead}
+                    >
+                      {convertingLead
+                        ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Promoting…</>
+                        : <><TrendingUp className="w-4 h-4 mr-2" />Confirm Promotion</>}
+                    </Button>
+                    <Button variant="outline" className="flex-1" onClick={closePromoteDialog} disabled={convertingLead}>
+                      Cancel
+                    </Button>
+                  </div>
+                </CardContent>
+              </>
+            )}
           </Card>
         </div>
       )}

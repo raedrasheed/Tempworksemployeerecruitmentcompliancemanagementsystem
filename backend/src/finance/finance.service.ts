@@ -659,7 +659,7 @@ export class FinanceService {
       { header: 'Stage At Creation',        key: 'stageAtCreation',  width: 14 },
       { header: 'Entity Type',              key: 'entityType',       width: 12 },
       { header: 'Entity ID',               key: 'entityId',          width: 18 },
-      { header: 'Transaction Date',         key: 'transactionDate',  width: 16 },
+      { header: 'Transaction Date & Time',  key: 'transactionDate',  width: 22 },
       { header: 'Transaction Type',         key: 'transactionType',  width: 24 },
       { header: 'Description',             key: 'description',       width: 30 },
       { header: 'Currency',                key: 'currency',           width: 10 },
@@ -707,7 +707,9 @@ export class FinanceService {
         stageAtCreation: rec.stageAtCreation ?? '',
         entityType:      rec.entityType,
         entityId:        rec.entityId,
-        transactionDate: rec.transactionDate ? new Date(rec.transactionDate).toLocaleDateString() : '',
+        transactionDate: rec.transactionDate
+          ? `${new Date(rec.transactionDate).toLocaleDateString()} ${new Date(rec.transactionDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+          : '',
         transactionType: rec.transactionType,
         description:     rec.description ?? '',
         currency:        rec.currency,

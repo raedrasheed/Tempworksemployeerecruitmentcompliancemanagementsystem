@@ -92,8 +92,16 @@ interface Totals {
 
 // ─── Empty form defaults ──────────────────────────────────────────────────────
 
+// Helper — the datetime-local <input> needs a local-ish ISO string
+// cut at minutes (YYYY-MM-DDTHH:MM), not the UTC slice.
+function nowLocalDatetime() {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 const EMPTY_FORM = {
-  transactionDate: new Date().toISOString().slice(0, 10),
+  transactionDate: nowLocalDatetime(),
   currency: 'EUR',
   transactionType: '',
   description: '',
@@ -127,6 +135,20 @@ function fmt(amount: number | undefined | null, currency = 'EUR') {
 function fmtDate(date: string) {
   if (!date) return '—';
   return new Date(date).toLocaleDateString('en-IE', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+/** Date + HH:MM on a single line. Used where the clock time matters
+ *  (transaction rows, history timeline). Falls back to fmtDate alone
+ *  when the value is midnight UTC — the common case for older rows
+ *  captured via a date-only picker. */
+function fmtDateTime(date: string) {
+  if (!date) return '—';
+  const d = new Date(date);
+  const hasTime = d.getUTCHours() !== 0 || d.getUTCMinutes() !== 0;
+  const datePart = d.toLocaleDateString('en-IE', { day: '2-digit', month: 'short', year: 'numeric' });
+  if (!hasTime) return datePart;
+  const timePart = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  return `${datePart} ${timePart}`;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -254,7 +276,14 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
   const openEdit = (rec: FinancialRecord) => {
     setEditRecord(rec);
     setForm({
-      transactionDate: rec.transactionDate?.slice(0, 10) ?? '',
+      // datetime-local wants YYYY-MM-DDTHH:MM in local time, not UTC.
+      transactionDate: rec.transactionDate
+        ? (() => {
+            const d = new Date(rec.transactionDate);
+            const pad = (n: number) => String(n).padStart(2, '0');
+            return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+          })()
+        : '',
       currency: rec.currency ?? 'EUR',
       transactionType: rec.transactionType ?? '',
       description: rec.description ?? '',
@@ -619,7 +648,7 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
                         }}
                       >
                         <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
-                          {fmtDate(rec.transactionDate)}
+                          {fmtDateTime(rec.transactionDate)}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
                           <span className="font-medium">{rec.transactionType}</span>
@@ -923,9 +952,9 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Date */}
                 <div className="space-y-1">
-                  <Label className="text-xs">Transaction Date *</Label>
+                  <Label className="text-xs">Transaction Date & Time *</Label>
                   <Input
-                    type="date"
+                    type="datetime-local"
                     value={form.transactionDate}
                     onChange={e => setForm(f => ({ ...f, transactionDate: e.target.value }))}
                   />

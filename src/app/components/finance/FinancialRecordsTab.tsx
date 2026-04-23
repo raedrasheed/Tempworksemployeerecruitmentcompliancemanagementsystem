@@ -606,15 +606,20 @@ export function FinancialRecordsTab({ entityType, entityId, canWrite, canChangeS
                       {/* Expanded detail row */}
                       {expandedId === rec.id && (
                         <tr key={`${rec.id}-detail`} className="bg-muted/10 border-b">
-                          <td colSpan={9} className="px-6 py-4">
+                          <td colSpan={10} className="px-6 py-4">
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                               <div className="space-y-2">
                                 <p className="font-medium text-xs text-muted-foreground uppercase tracking-wide">Transaction Details</p>
+                                {/* Description = customer-facing line shown in the
+                                    row above (truncated there). We repeat it in full
+                                    here because long descriptions get clipped in the
+                                    narrow Description column. */}
+                                <InfoItem label="Description" value={rec.description || '—'} />
                                 {rec.paymentMethod && <InfoItem label="Payment Method" value={rec.paymentMethod} />}
                                 {rec.paidByName && <InfoItem label="Paid By" value={rec.paidByName} />}
                                 {rec.paidByUser && <InfoItem label="Recorded By" value={`${rec.paidByUser.firstName} ${rec.paidByUser.lastName}`} />}
                                 <InfoItem label="Currency" value={rec.currency} />
-                                {rec.notes && <InfoItem label="Notes" value={rec.notes} />}
+                                {rec.notes && <InfoItem label="Internal Notes" value={rec.notes} />}
                               </div>
                               {rec.status === 'DEDUCTED' && (
                                 <div className="space-y-2">
@@ -774,14 +779,17 @@ export function FinancialRecordsTab({ entityType, entityId, canWrite, canChangeS
                     </SelectContent>
                   </Select>
                 </div>
-                {/* Description */}
+                {/* Description — short summary shown on the table row. */}
                 <div className="space-y-1 md:col-span-2">
                   <Label className="text-xs">Description</Label>
                   <Input
-                    placeholder="Brief description of the disbursement"
+                    placeholder="Short summary shown on the ledger row (e.g. 'Q1 visa fee')"
                     value={form.description}
                     onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                   />
+                  <p className="text-[11px] text-muted-foreground">
+                    Brief line visible in the transaction table and expand panel.
+                  </p>
                 </div>
                 {/* Company disbursed (Credit) */}
                 <div className="space-y-1">
@@ -855,14 +863,18 @@ export function FinancialRecordsTab({ entityType, entityId, canWrite, canChangeS
                   />
                   <p className="text-xs text-muted-foreground">For reconciliation purposes</p>
                 </div>
-                {/* Notes */}
+                {/* Notes — private, long-form context visible only in
+                    the expanded panel (not the ledger row). */}
                 <div className="space-y-1">
-                  <Label className="text-xs">Notes</Label>
+                  <Label className="text-xs">Internal Notes</Label>
                   <Input
-                    placeholder="Internal notes"
+                    placeholder="Context / reasoning for the finance team"
                     value={form.notes}
                     onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
                   />
+                  <p className="text-[11px] text-muted-foreground">
+                    Longer internal-only context, shown only when the row is expanded.
+                  </p>
                 </div>
               </div>
 

@@ -594,7 +594,10 @@ export class FinanceService {
       views: [{ state: 'frozen', ySplit: 1 }],
     });
 
-    // Column definitions — tuned for payroll accountant use
+    // Column definitions — tuned for payroll accountant use. The
+    // "deduction" columns are now summaries over the deductions[]
+    // sidecar (total + count + last date/ref), with the full breakdown
+    // living on a second "Deductions" sheet built below.
     sheet.columns = [
       { header: 'Record ID',                key: 'id',               width: 18 },
       { header: 'Name',                     key: 'entityName',       width: 24 },
@@ -610,9 +613,11 @@ export class FinanceService {
       { header: 'Payment Method',          key: 'paymentMethod',     width: 16 },
       { header: 'Paid By',                 key: 'paidBy',            width: 20 },
       { header: 'Status',                  key: 'status',            width: 12 },
-      { header: 'Deduction Amount (€)',    key: 'deductionAmount',   width: 20 },
-      { header: 'Deduction Date',          key: 'deductionDate',     width: 16 },
-      { header: 'Payroll Reference',       key: 'payrollReference',  width: 20 },
+      { header: 'Total Deducted (€)',      key: 'deductionAmount',   width: 20 },
+      { header: 'Remaining (€)',           key: 'remaining',         width: 16 },
+      { header: 'Deductions #',            key: 'deductionCount',    width: 12 },
+      { header: 'Last Deduction Date',     key: 'deductionDate',     width: 18 },
+      { header: 'Last Payroll Ref',        key: 'payrollReference',  width: 20 },
       { header: 'Notes',                   key: 'notes',             width: 30 },
       { header: 'Created At',             key: 'createdAt',          width: 16 },
     ];
@@ -630,6 +635,17 @@ export class FinanceService {
 
     // Data rows
     for (const rec of records as any[]) {
+      const deductions: any[] = Array.isArray(rec.deductions) ? rec.deductions : [];
+      const totalDeducted = deductions.length > 0
+        ? deductions.reduce((s, d) => s + Number(d.amount ?? 0), 0)
+        : Number(rec.deductionAmount ?? 0);
+      const remaining = Math.max(0, Number(rec.companyDisbursedAmount ?? 0) - totalDeducted);
+      const lastDeduction = deductions.length > 0
+        ? deductions.slice().sort(
+            (a, b) => new Date(b.deductionDate).getTime() - new Date(a.deductionDate).getTime(),
+          )[0]
+        : null;
+
       const row = sheet.addRow({
         id:              rec.id,
         entityName:      rec.entityName ?? '',
@@ -645,25 +661,33 @@ export class FinanceService {
         paymentMethod:   rec.paymentMethod ?? '',
         paidBy:          rec.paidByName ?? (rec.paidByUser ? `${rec.paidByUser.firstName} ${rec.paidByUser.lastName}` : ''),
         status:          rec.status,
-        deductionAmount: rec.deductionAmount != null ? Number(rec.deductionAmount) : '',
-        deductionDate:   rec.deductionDate ? new Date(rec.deductionDate).toLocaleDateString() : '',
-        payrollReference: rec.payrollReference ?? '',
+        deductionAmount: totalDeducted > 0 ? totalDeducted : '',
+        remaining:       remaining,
+        deductionCount:  deductions.length,
+        deductionDate:   lastDeduction?.deductionDate
+          ? new Date(lastDeduction.deductionDate).toLocaleDateString()
+          : rec.deductionDate ? new Date(rec.deductionDate).toLocaleDateString() : '',
+        payrollReference: lastDeduction?.payrollReference ?? rec.payrollReference ?? '',
         notes:           rec.notes ?? '',
         createdAt:       new Date(rec.createdAt).toLocaleDateString(),
       });
 
-      // Color by status
+      // Color by status — Partial gets its own shade so the sheet
+      // visually matches the in-app status chips.
       const statusCell = row.getCell('status');
       if (rec.status === 'DEDUCTED') {
         statusCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD1FAE5' } };
         statusCell.font = { color: { argb: 'FF065F46' }, bold: true };
+      } else if (rec.status === 'PARTIAL') {
+        statusCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDBEAFE' } };
+        statusCell.font = { color: { argb: 'FF1E40AF' }, bold: true };
       } else {
         statusCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEF3C7' } };
         statusCell.font = { color: { argb: 'FF92400E' }, bold: true };
       }
 
       // Format currency columns
-      ['companyDisbursed', 'empAgency', 'deductionAmount'].forEach((col) => {
+      ['companyDisbursed', 'empAgency', 'deductionAmount', 'remaining'].forEach((col) => {
         const cell = row.getCell(col);
         if (typeof cell.value === 'number') {
           cell.numFmt = '#,##0.00';
@@ -672,7 +696,9 @@ export class FinanceService {
       });
     }
 
-    // Totals row (if there are records)
+    // Totals row (if there are records). Column letters map to the
+    // new layout — J=companyDisbursed, K=empAgency, O=totalDeducted,
+    // P=remaining. Keep them in sync if columns are reordered above.
     if (records.length > 0) {
       const dataStart = 2;
       const dataEnd   = records.length + 1;
@@ -682,12 +708,13 @@ export class FinanceService {
         companyDisbursed: { formula: `SUM(J${dataStart}:J${dataEnd})` },
         empAgency:        { formula: `SUM(K${dataStart}:K${dataEnd})` },
         deductionAmount:  { formula: `SUM(O${dataStart}:O${dataEnd})` },
+        remaining:        { formula: `SUM(P${dataStart}:P${dataEnd})` },
       });
       totalsRow.eachCell((cell) => {
         cell.font = { bold: true };
         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEFF6FF' } };
       });
-      ['J', 'K', 'O'].forEach((col) => {
+      ['J', 'K', 'O', 'P'].forEach((col) => {
         const cell = totalsRow.getCell(col);
         cell.numFmt = '#,##0.00';
       });
@@ -697,6 +724,80 @@ export class FinanceService {
     sheet.autoFilter = {
       from: { row: 1, column: 1 },
       to:   { row: 1, column: sheet.columnCount },
+    };
+
+    // ── Deductions sheet ─────────────────────────────────────────────────────
+    // One line per partial deduction so finance can pivot / filter /
+    // reconcile against payroll runs directly in Excel.
+    const dedSheet = workbook.addWorksheet('Deductions', {
+      views: [{ state: 'frozen', ySplit: 1 }],
+    });
+    dedSheet.columns = [
+      { header: 'Deduction ID',        key: 'id',                width: 38 },
+      { header: 'Record ID',           key: 'recordId',          width: 38 },
+      { header: 'Name',                key: 'entityName',        width: 24 },
+      { header: 'Transaction Type',    key: 'transactionType',   width: 24 },
+      { header: 'Transaction Desc',    key: 'description',       width: 30 },
+      { header: 'Currency',            key: 'currency',          width: 10 },
+      { header: 'Deduction Amount',    key: 'amount',            width: 18 },
+      { header: 'Deduction Date',      key: 'deductionDate',     width: 16 },
+      { header: 'Payroll Reference',   key: 'payrollReference',  width: 20 },
+      { header: 'Notes',               key: 'notes',             width: 30 },
+      { header: 'Logged By',           key: 'loggedBy',          width: 22 },
+      { header: 'Logged At',           key: 'loggedAt',          width: 18 },
+    ];
+    dedSheet.getRow(1).eachCell((cell) => {
+      cell.font      = { bold: true, color: { argb: 'FFFFFFFF' } };
+      cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF59E0B' } };
+      cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+      cell.border    = { bottom: { style: 'thin', color: { argb: 'FFB45309' } } };
+    });
+    dedSheet.getRow(1).height = 28;
+
+    let dedCount = 0;
+    for (const rec of records as any[]) {
+      for (const d of (rec.deductions ?? []) as any[]) {
+        const row = dedSheet.addRow({
+          id:               d.id,
+          recordId:         rec.id,
+          entityName:       rec.entityName ?? '',
+          transactionType:  rec.transactionType,
+          description:      rec.description ?? '',
+          currency:         rec.currency,
+          amount:           Number(d.amount ?? 0),
+          deductionDate:    d.deductionDate ? new Date(d.deductionDate).toLocaleDateString() : '',
+          payrollReference: d.payrollReference ?? '',
+          notes:            d.notes ?? '',
+          loggedBy:         d.createdBy ? `${d.createdBy.firstName ?? ''} ${d.createdBy.lastName ?? ''}`.trim() : '',
+          loggedAt:         d.createdAt ? new Date(d.createdAt).toLocaleDateString() : '',
+        });
+        const amt = row.getCell('amount');
+        amt.numFmt    = '#,##0.00';
+        amt.alignment = { horizontal: 'right' };
+        dedCount++;
+      }
+    }
+
+    if (dedCount > 0) {
+      const dataStart = 2;
+      const dataEnd   = dedCount + 1;
+      dedSheet.addRow({});
+      const totalsRow = dedSheet.addRow({
+        id:     'TOTAL',
+        amount: { formula: `SUM(G${dataStart}:G${dataEnd})` },
+      });
+      totalsRow.eachCell((cell) => {
+        cell.font = { bold: true };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEF3C7' } };
+      });
+      totalsRow.getCell('G').numFmt = '#,##0.00';
+    } else {
+      dedSheet.addRow({ id: 'No deductions recorded.' });
+    }
+
+    dedSheet.autoFilter = {
+      from: { row: 1, column: 1 },
+      to:   { row: 1, column: dedSheet.columnCount },
     };
 
     const buffer = await workbook.xlsx.writeBuffer();

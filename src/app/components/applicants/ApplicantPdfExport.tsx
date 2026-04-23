@@ -111,7 +111,7 @@ export function ApplicantPDF({ applicant, photoDataUrl }: { applicant: any; phot
             <>
               {ad.homeAddress?.addressLine1 && (
                 <>
-                  <Text style={S.subTitle}>Home Address</Text>
+                  <Text style={S.subTitle}>Permanent Address</Text>
                   <View style={S.grid2}>
                     <FF label="Address" value={[ad.homeAddress.addressLine1, ad.homeAddress.addressLine2].filter(Boolean).join(', ')} />
                     <F label="City" value={ad.homeAddress.city} />

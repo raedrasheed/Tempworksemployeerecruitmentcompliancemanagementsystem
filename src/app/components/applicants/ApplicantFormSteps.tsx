@@ -422,9 +422,9 @@ export function getStepErrors(
     if (!d.lastName?.trim()) errors.push('Last Name is required.');
     if (!d.dateOfBirth) errors.push('Date of Birth is required.');
     if (!d.citizenship) errors.push('Citizenship is required.');
-    if (!d.homeAddress?.line1?.trim()) errors.push('Home Address: Street / Address Line 1 is required.');
-    if (!d.homeAddress?.city?.trim()) errors.push('Home Address: City is required.');
-    if (!d.homeAddress?.country?.trim()) errors.push('Home Address: Country is required.');
+    if (!d.homeAddress?.line1?.trim()) errors.push('Permanent Address: Street / Address Line 1 is required.');
+    if (!d.homeAddress?.city?.trim()) errors.push('Permanent Address: City is required.');
+    if (!d.homeAddress?.country?.trim()) errors.push('Permanent Address: Country is required.');
     if (!d.livedAbroadRecently) errors.push('Please answer whether you have lived abroad in the past 12 months.');
     if (d.livedAbroadRecently === 'yes') {
       if (!d.abroadCountry) errors.push('Country of previous residence is required.');
@@ -1058,7 +1058,7 @@ function Step1Personal({ d, u, jobTypes, photoFile, onPhotoChange, existingPhoto
         </div>
       </div>
       <div className="space-y-4">
-        <SubSection title="Home Address" />
+        <SubSection title="Permanent Address" />
         <AddressForm label="" value={d.homeAddress} onChange={set('homeAddress')} required />
       </div>
       <div className="space-y-4">
@@ -1075,11 +1075,11 @@ function Step1Personal({ d, u, jobTypes, photoFile, onPhotoChange, existingPhoto
                 }));
               }}
             />
-            Same as home
+            Same as permanent
           </label>
         </div>
         {!d.sameAsHomeAddress && <AddressForm label="" value={d.currentAddress} onChange={set('currentAddress')} required />}
-        {d.sameAsHomeAddress && <div className="p-3 bg-gray-50 rounded border text-sm text-gray-600">Same as home address above.</div>}
+        {d.sameAsHomeAddress && <div className="p-3 bg-gray-50 rounded border text-sm text-gray-600">Same as permanent address above.</div>}
       </div>
       <div className="space-y-4">
         <SubSection title="Previous Country of Residence" />

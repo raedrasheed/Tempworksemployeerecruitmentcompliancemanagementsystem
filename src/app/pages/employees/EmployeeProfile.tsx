@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/ta
 import { Progress } from '../../components/ui/progress';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
+import { Textarea } from '../../components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { toast } from 'sonner';
 import { confirm } from '../../components/ui/ConfirmDialog';
@@ -28,6 +29,10 @@ export function EmployeeProfile() {
   const [workflow, setWorkflow] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [docTypes, setDocTypes] = useState<any[]>([]);
+  // Inline Notes editor — lets operators add/update the employee note
+  // from view mode without jumping to the Edit page.
+  const [noteDraft, setNoteDraft] = useState('');
+  const [savingNote, setSavingNote] = useState(false);
   const [allStages, setAllStages] = useState<any[]>([]);
   const [changingStage, setChangingStage] = useState(false);
   const [agencies, setAgencies] = useState<any[]>([]);
@@ -154,6 +159,9 @@ export function EmployeeProfile() {
       setDocuments(Array.isArray(docs) ? docs : []);
       setWorkflow(Array.isArray(wf) ? wf : []);
       setAllStages(Array.isArray(stages) ? stages : []);
+      // Seed the inline Notes editor with the raw note text so the
+      // operator can append / tweak without retyping from scratch.
+      setNoteDraft(typeof emp?.notes === 'string' ? emp.notes : '');
     }).catch(() => toast.error('Failed to load employee'))
       .finally(() => setLoading(false));
   }, [id]);
@@ -274,6 +282,20 @@ export function EmployeeProfile() {
       toast.error(err?.message || 'Failed to upload document');
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleSaveNote = async () => {
+    if (!id) return;
+    setSavingNote(true);
+    try {
+      const updated = await employeesApi.update(id, { notes: noteDraft } as any);
+      setEmployee((prev: any) => ({ ...prev, notes: updated?.notes ?? noteDraft }));
+      toast.success('Note saved');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to save note');
+    } finally {
+      setSavingNote(false);
     }
   };
 
@@ -1147,11 +1169,32 @@ export function EmployeeProfile() {
         <TabsContent value="notes">
           <Card>
             <CardHeader><CardTitle>Notes & Comments</CardTitle></CardHeader>
-            <CardContent>
-              {employee.notes ? (
-                <p className="whitespace-pre-wrap">{employee.notes}</p>
+            <CardContent className="space-y-4">
+              {canEdit('employees') ? (
+                <div className="space-y-2">
+                  <Label htmlFor="employee-note" className="text-sm">Add / update note</Label>
+                  <Textarea
+                    id="employee-note"
+                    rows={6}
+                    placeholder="Write a note about this employee…"
+                    value={noteDraft}
+                    onChange={e => setNoteDraft(e.target.value)}
+                  />
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" onClick={handleSaveNote} disabled={savingNote || noteDraft === (employee.notes ?? '')}>
+                      {savingNote ? 'Saving…' : 'Save note'}
+                    </Button>
+                    {noteDraft !== (employee.notes ?? '') && (
+                      <Button size="sm" variant="ghost" onClick={() => setNoteDraft(employee.notes ?? '')} disabled={savingNote}>
+                        Discard changes
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ) : employee.notes ? (
+                <p className="whitespace-pre-wrap text-sm">{employee.notes}</p>
               ) : (
-                <p className="text-muted-foreground">No notes for this employee. You can add notes when editing the profile.</p>
+                <p className="text-muted-foreground">No notes for this employee.</p>
               )}
             </CardContent>
           </Card>

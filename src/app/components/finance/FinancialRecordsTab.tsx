@@ -697,7 +697,9 @@ export function FinancialRecordsTab({ entityType, entityId, canWrite, canChangeS
                 {totals && records.length > 0 && (
                   <tfoot>
                     <tr className="bg-muted/30 border-t-2 font-semibold">
-                      <td colSpan={3} className="px-4 py-3 text-sm font-semibold">Totals</td>
+                      {/* Label spans Date, Type, Description, Stage so the
+                          first monetary cell lines up with Credit (↑). */}
+                      <td colSpan={4} className="px-4 py-3 text-sm font-semibold">Totals</td>
                       <td className="px-4 py-3 text-right text-blue-700">{fmt(totals.totalDisbursed, currency)}</td>
                       <td className="px-4 py-3 text-right text-slate-500 text-xs">{fmt(totals.totalEmpAgency, currency)}</td>
                       <td className="px-4 py-3 text-right text-amber-700">{fmt(totals.totalDeducted, currency)}</td>
@@ -706,10 +708,11 @@ export function FinancialRecordsTab({ entityType, entityId, canWrite, canChangeS
                           {fmt(totals.currentBalance, currency)}
                         </span>
                       </td>
+                      {/* Status + Actions are non-numeric — leave them blank. */}
                       <td colSpan={2} />
                     </tr>
                     <tr className="bg-muted/10">
-                      <td colSpan={9} className="px-4 py-2 text-xs text-muted-foreground">
+                      <td colSpan={10} className="px-4 py-2 text-xs text-muted-foreground">
                         <span className="text-blue-600 font-medium">Credit (↑)</span> = company disbursed amount &nbsp;·&nbsp;
                         <span className="text-amber-600 font-medium">Debit (↓)</span> = payroll deduction &nbsp;·&nbsp;
                         <span className="text-slate-500">Emp/Agency</span> = paid by employee/agency (informational, excluded from balance) &nbsp;·&nbsp;

@@ -213,6 +213,12 @@ export function CandidateProfile() {
         countryOfResidence: ad.homeAddress?.country ?? ad.currentAddress?.country ?? '',
         currentCountryOfResidence: ad.currentAddress?.country ?? ad.homeAddress?.country ?? '',
         howDidYouHear: ad.howDidYouHear,
+        // Family / emergency contact — shown in the header contact card
+        // so the user never has to dig into the applicationData blob.
+        emergencyFullName: [ad.emergencyFirstName, ad.emergencyLastName].filter(Boolean).join(' '),
+        emergencyRelation: ad.emergencyRelation,
+        emergencyPhoneFull: [ad.emergencyPhoneCode, ad.emergencyPhone].filter(Boolean).join(' ').trim(),
+        emergencyEmail: ad.emergencyEmail,
       };
 
       setApplicantData({
@@ -702,6 +708,45 @@ export function CandidateProfile() {
                   </div>
                 </div>
               </div>
+              {/* Family / Emergency Contact — only rendered when the
+                  candidate has filled in at least one field so we don't
+                  leave blank dashes cluttering the card. */}
+              {(applicantData.emergencyFullName || applicantData.emergencyPhoneFull || applicantData.emergencyEmail) && (
+                <div className="mt-6 pt-4 border-t">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">Family / Emergency Contact</p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="flex items-center gap-2">
+                      <UserPlus className="w-4 h-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Name</p>
+                        <p className="text-sm font-medium">{applicantData.emergencyFullName || '—'}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Briefcase className="w-4 h-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Relationship</p>
+                        <p className="text-sm font-medium">{applicantData.emergencyRelation || '—'}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Phone className="w-4 h-4 text-muted-foreground" />
+                      <div className="flex-1">
+                        <p className="text-xs text-muted-foreground">Phone</p>
+                        <p className="text-sm font-medium">{applicantData.emergencyPhoneFull || '—'}</p>
+                      </div>
+                      {applicantData.emergencyPhoneFull && <WhatsAppButton phone={applicantData.emergencyPhoneFull} size="icon" />}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Mail className="w-4 h-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Email</p>
+                        <p className="text-sm font-medium">{applicantData.emergencyEmail || '—'}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </CardContent>

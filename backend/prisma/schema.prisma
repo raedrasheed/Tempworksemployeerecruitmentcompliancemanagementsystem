@@ -290,7 +290,29 @@ model User {
   allowManagerEdit    Boolean  @default(false)
   allowManagerDelete  Boolean  @default(false)
 
+  applicationDraft    ApplicationDraft?
+
   @@map("users")
+}
+
+/// A save-for-later draft of an applicant creation form. Exactly one
+/// open draft per user — enforced by the unique constraint on
+/// `createdById`. No Lead/Applicant row is created until the draft
+/// is submitted via POST /application-drafts/mine/submit, which
+/// creates the applicant and deletes the draft atomically.
+model ApplicationDraft {
+  id           String   @id @default(uuid())
+  createdById  String   @unique
+  jobAdId      String?
+  /// Raw ApplicantFormData blob that drives the form on the client.
+  formData     Json     @default("{}")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  createdBy    User     @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([jobAdId])
+  @@map("application_drafts")
 }
 
 model Agency {

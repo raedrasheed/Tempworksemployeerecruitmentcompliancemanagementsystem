@@ -544,6 +544,35 @@ export const publicApplicationApi = {
   },
 };
 
+// ─── Application Drafts API ──────────────────────────────────────────────────
+// Authenticated save-for-later flow. Each caller has at most one open
+// draft; the Applicant (Lead) row is created only by the submit call,
+// which then deletes the draft.
+export const applicationDraftsApi = {
+  /** Returns the caller's open draft, or null. */
+  getMine: () => apiFetch<any | null>('/application-drafts/mine'),
+
+  /** Upsert the caller's open draft. */
+  saveMine: (payload: { formData: Record<string, any>; jobAdId?: string }) =>
+    apiFetch<any>('/application-drafts/mine', {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
+
+  /** Discard the caller's open draft (idempotent). */
+  deleteMine: () =>
+    apiFetch<{ message: string }>('/application-drafts/mine', { method: 'DELETE' }),
+
+  /** Final submit: creates the Applicant (via shared applicants service)
+   *  and deletes the draft on success. Body shape matches the existing
+   *  POST /applicants endpoint. */
+  submitMine: (payload: any) =>
+    apiFetch<any>('/application-drafts/mine/submit', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+};
+
 // ─── Documents API ───────────────────────────────────────────────────────────
 
 export const documentsApi = {

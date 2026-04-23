@@ -294,6 +294,25 @@ export const employeesApi = {
 
   get: (id: string) => apiFetch<any>(`/employees/${id}`),
 
+  /** Build the .xlsx download URL. Pass `ids: string[]` to export only
+   *  the selected rows; otherwise the caller's filters apply. Returns a
+   *  URL that the UI fetches with an `Authorization` header. */
+  exportExcel: (params?: Record<string, any> & { ids?: string[] }) => {
+    const search = new URLSearchParams();
+    if (params) {
+      for (const [k, v] of Object.entries(params)) {
+        if (v == null || v === '') continue;
+        if (k === 'ids' && Array.isArray(v)) {
+          if (v.length > 0) search.set('ids', v.join(','));
+          continue;
+        }
+        search.set(k, String(v));
+      }
+    }
+    const qs = search.toString();
+    return `${API_URL}/employees/export/xlsx${qs ? '?' + qs : ''}`;
+  },
+
   create: (data: any) =>
     apiFetch<any>('/employees', { method: 'POST', body: JSON.stringify(data) }),
 

@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, UseInterceptors, UploadedFile, BadRequestException, Res } from '@nestjs/common';
+import { Response } from 'express';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -38,6 +39,38 @@ export class EmployeesController {
     @CurrentUser() user: any,
   ) {
     return this.employeesService.findAll(query, { role: user?.role, agencyId: user?.agencyId, agencyIsSystem: user?.agencyIsSystem });
+  }
+
+  // ── XLSX Export ─────────────────────────────────────────────────────────────
+  // Declared above the `:id` route so Nest doesn't treat "export" as an id.
+  @Get('export/xlsx')
+  @Roles(...ALL_ROLES)
+  @RequirePermission('employees:read')
+  @ApiOperation({ summary: 'Export employees as an Excel (.xlsx) file. Pass ids=a,b,c to export the selected rows only; otherwise the filter set is used. External tenants are scoped to grants with canView=true.' })
+  async exportExcel(
+    @Query() query: PaginationDto & { agencyId?: string; status?: string; nationality?: string; ids?: string },
+    @CurrentUser() user: any,
+    @Res() res: Response,
+  ) {
+    const rawIds = (query as any).ids;
+    const idList: string[] | undefined = Array.isArray(rawIds)
+      ? rawIds
+      : typeof rawIds === 'string' && rawIds.length > 0
+        ? rawIds.split(',').map(s => s.trim()).filter(Boolean)
+        : undefined;
+
+    const { ids: _omit, ...cleanQuery } = (query ?? {}) as any;
+    const buffer = await this.employeesService.exportExcel(
+      cleanQuery,
+      { role: user?.role, agencyId: user?.agencyId, agencyIsSystem: user?.agencyIsSystem },
+      idList,
+    );
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    res.setHeader('Content-Disposition', `attachment; filename="employees-${Date.now()}.xlsx"`);
+    res.send(buffer);
   }
 
   @Get(':id')

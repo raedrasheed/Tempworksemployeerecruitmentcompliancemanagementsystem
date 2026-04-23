@@ -14,7 +14,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '../../components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
-import { employeesApi, agenciesApi } from '../../services/api';
+import { employeesApi, agenciesApi, getAccessToken } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
 
 const STATUSES = ['ACTIVE', 'PENDING', 'ONBOARDING', 'INACTIVE', 'SUSPENDED', 'ON_LEAVE'];
@@ -254,70 +254,32 @@ export function EmployeesList() {
     }
   };
 
-  // ── CSV Export (client-side) ───────────────────────────────────────────────
-  // Column order matches the visible table (Employee identity → contact →
-  // profile attributes → employment → audit). Kept stable so users can
-  // diff exports across weeks.
-  const CSV_HEADERS = [
-    'Employee Number', 'First Name', 'Last Name', 'Email', 'Phone',
-    'Citizenship', 'License Number', 'Experience (yrs)', 'Agency',
-    'Status', 'Joined',
-  ];
-  const rowFor = (e: any): (string | number)[] => [
-    e.employeeNumber ?? '',
-    e.firstName ?? '',
-    e.lastName ?? '',
-    e.email ?? '',
-    e.phone ?? '',
-    e.nationality ?? '',
-    e.licenseNumber ?? '',
-    e.yearsExperience ?? '',
-    e.agency?.name ?? e.agencyName ?? '',
-    e.status ?? '',
-    e.createdAt ? new Date(e.createdAt).toLocaleDateString() : '',
-  ];
-  /** RFC 4180 escape: only quote cells that contain a separator, quote or
-   *  line break; double any embedded quotes. Keeps the file compact and
-   *  avoids the unnecessary 'quote everything' style that still parses
-   *  correctly but bloats output. */
-  const csvEscape = (v: any): string => {
-    const s = v == null ? '' : String(v);
-    return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-  };
-  const buildCsv = (rows: any[]): Blob => {
-    const body = [CSV_HEADERS, ...rows.map(rowFor)]
-      .map(r => r.map(csvEscape).join(','))
-      .join('\r\n');  // RFC 4180 + Excel
-    // UTF-8 BOM so Excel detects the encoding and doesn't dump every
-    // row into column A. text/csv; charset=utf-8 complements the BOM.
-    return new Blob(['\uFEFF', body, '\r\n'], { type: 'text/csv;charset=utf-8;' });
-  };
-  const triggerDownload = (blob: Blob, filename: string) => {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = filename;
-    document.body.appendChild(a); a.click();
-    document.body.removeChild(a); URL.revokeObjectURL(url);
-  };
-
-  /** Export only the rows ticked by the user. */
-  const handleExportSelected = () => {
-    if (selected.size === 0) return;
-    const rows = displayData.filter(e => selected.has(e.id));
-    if (rows.length === 0) {
-      toast.info('Selected rows are no longer visible — try Export All.');
+  // ── Excel Export ───────────────────────────────────────────────────────────
+  // Backend streams the .xlsx (employees.service.exportExcel) so auth
+  // and per-employee agency-access grants are enforced server-side.
+  // Only the currently selected rows are exported; the toolbar button
+  // stays disabled until at least one row is ticked.
+  const handleExportExcel = () => {
+    if (selected.size === 0) {
+      toast.error('Select one or more rows to export');
       return;
     }
-    triggerDownload(buildCsv(rows), `employees-selected-${Date.now()}.csv`);
-  };
-
-  /** Export every row currently in the filtered/sorted view. */
-  const handleExportAll = () => {
-    if (displayData.length === 0) {
-      toast.info('Nothing to export');
-      return;
-    }
-    triggerDownload(buildCsv(displayData), `employees-${Date.now()}.csv`);
+    const token = getAccessToken();
+    const url = employeesApi.exportExcel({ ids: Array.from(selected) });
+    fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+      .then(async r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.blob();
+      })
+      .then(blob => {
+        const objectUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = objectUrl;
+        a.download = `employees-selected-${Date.now()}.xlsx`;
+        document.body.appendChild(a); a.click();
+        document.body.removeChild(a); URL.revokeObjectURL(objectUrl);
+      })
+      .catch(() => toast.error('Export failed'));
   };
 
   // ── Filters ────────────────────────────────────────────────────────────────
@@ -420,14 +382,11 @@ export function EmployeesList() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handleExportSelected}
+                onClick={handleExportExcel}
                 disabled={selected.size === 0}
                 title={selected.size === 0 ? 'Select one or more rows to export' : undefined}
               >
-                <Download className="w-4 h-4 mr-2" />Export Selected ({selected.size})
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleExportAll}>
-                <Download className="w-4 h-4 mr-2" />Export All
+                <Download className="w-4 h-4 mr-2" />Export to Excel ({selected.size})
               </Button>
               <Button
                 variant="outline"

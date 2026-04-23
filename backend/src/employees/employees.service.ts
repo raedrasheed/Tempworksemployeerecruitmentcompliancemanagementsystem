@@ -5,6 +5,7 @@ import { PaginationDto } from '../common/dto/pagination.dto';
 import { PaginatedResponse } from '../common/dto/pagination-response.dto';
 import { promises as fs } from 'fs';
 import { join, extname } from 'path';
+import * as ExcelJS from 'exceljs';
 
 @Injectable()
 export class EmployeesService {
@@ -358,5 +359,103 @@ export class EmployeesService {
       validDocuments: validDocs,
       totalDocuments: totalDocs,
     };
+  }
+
+  // ── XLSX Export ─────────────────────────────────────────────────────────────
+  //
+  // Same scoping rules as findAll — external tenants only see employees
+  // granted via EmployeeAgencyAccess.canView; passing `ids` restricts to
+  // those specific rows (for the "Export to Excel" button which always
+  // runs on the selected set). Returns a workbook Buffer ready to stream.
+  async exportExcel(
+    query: PaginationDto & { agencyId?: string; status?: string; nationality?: string },
+    actor?: { role?: string; agencyId?: string; agencyIsSystem?: boolean },
+    ids?: string[],
+  ): Promise<Buffer> {
+    let items: any[];
+
+    if (ids && ids.length > 0) {
+      const where: any = { id: { in: ids }, deletedAt: null };
+      if (this.isExternalActor(actor)) {
+        const grants = await this.prisma.employeeAgencyAccess.findMany({
+          where: { agencyId: actor!.agencyId!, canView: true },
+          select: { employeeId: true },
+        });
+        const allowedIds = new Set(grants.map(g => g.employeeId));
+        where.id = { in: ids.filter(i => allowedIds.has(i)) };
+      }
+      items = await this.prisma.employee.findMany({
+        where,
+        include: {
+          agency:  { select: { id: true, name: true } },
+          jobType: { select: { id: true, name: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+    } else {
+      const big = { ...query, limit: 10000, page: 1 } as any;
+      const result = await this.findAll(big, actor);
+      items = (result as any).data;
+    }
+
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'TempWorks';
+    workbook.created = new Date();
+
+    const sheet = workbook.addWorksheet('Employees', {
+      views: [{ state: 'frozen', ySplit: 1 }],
+    });
+
+    sheet.columns = [
+      { header: 'Employee Number',   key: 'employeeNumber',  width: 18 },
+      { header: 'First Name',        key: 'firstName',       width: 16 },
+      { header: 'Last Name',         key: 'lastName',        width: 16 },
+      { header: 'Email',             key: 'email',           width: 28 },
+      { header: 'Phone',             key: 'phone',           width: 18 },
+      { header: 'Citizenship',       key: 'nationality',     width: 16 },
+      { header: 'License Number',    key: 'licenseNumber',   width: 20 },
+      { header: 'License Category',  key: 'licenseCategory', width: 14 },
+      { header: 'Experience (yrs)',  key: 'yearsExperience', width: 14 },
+      { header: 'Job Type',          key: 'jobType',         width: 22 },
+      { header: 'Agency',            key: 'agency',          width: 22 },
+      { header: 'Address',           key: 'address',         width: 30 },
+      { header: 'City',              key: 'city',            width: 16 },
+      { header: 'Country',           key: 'country',         width: 16 },
+      { header: 'Postal Code',       key: 'postalCode',      width: 12 },
+      { header: 'Status',            key: 'status',          width: 14 },
+      { header: 'Joined',            key: 'createdAt',       width: 16, style: { numFmt: 'yyyy-mm-dd' } },
+    ];
+
+    sheet.getRow(1).eachCell((cell) => {
+      cell.font      = { bold: true, color: { argb: 'FFFFFFFF' } };
+      cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } };
+      cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+      cell.border    = { bottom: { style: 'thin', color: { argb: 'FF1D4ED8' } } };
+    });
+    sheet.getRow(1).height = 28;
+
+    for (const e of items) {
+      sheet.addRow({
+        employeeNumber:  e.employeeNumber ?? '',
+        firstName:       e.firstName ?? '',
+        lastName:        e.lastName ?? '',
+        email:           e.email ?? '',
+        phone:           e.phone ?? '',
+        nationality:     e.nationality ?? '',
+        licenseNumber:   e.licenseNumber ?? '',
+        licenseCategory: e.licenseCategory ?? '',
+        yearsExperience: e.yearsExperience ?? '',
+        jobType:         e.jobType?.name ?? '',
+        agency:          e.agency?.name ?? '',
+        address:         [e.addressLine1, e.addressLine2].filter(Boolean).join(', '),
+        city:            e.city ?? '',
+        country:         e.country ?? '',
+        postalCode:      e.postalCode ?? '',
+        status:          e.status ?? '',
+        createdAt:       e.createdAt ? new Date(e.createdAt) : null,
+      });
+    }
+
+    return Buffer.from(await workbook.xlsx.writeBuffer() as ArrayBuffer);
   }
 }

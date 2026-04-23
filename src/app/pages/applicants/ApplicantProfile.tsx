@@ -141,6 +141,24 @@ export function ApplicantProfile() {
         hasWorkPermit: ad.hasWorkPermit === 'yes',
         hasResidenceCard: ad.hasEuResidence === 'yes',
         issuingCountry: ad.passportCountry,
+        // EU Visa details (shown when hasEUVisa = true)
+        euVisaType: ad.euVisaType,
+        euVisaCountry: ad.euVisaCountry,
+        euVisaNumber: ad.euVisaNumber,
+        euVisaExpiryDate: ad.euVisaNoExpiry ? 'No Expiry' : ad.euVisaExpiryDate,
+        // EU Residence details (shown when hasResidenceCard = true)
+        euResidenceType: ad.euResidenceType,
+        euResidenceNumber: ad.euResidenceNumber,
+        euResidenceCountry: ad.euResidenceCountry,
+        euResidenceCity: ad.euResidenceCity,
+        euResidenceIssueDate: ad.euResidenceIssueDate,
+        euResidenceExpiryDate: ad.euResidenceNoExpiry ? 'No Expiry' : ad.euResidenceExpiryDate,
+        // Work Permit details (shown when hasWorkPermit = true)
+        workPermitType: ad.workPermitType,
+        workPermitNumber: ad.workPermitNumber,
+        workPermitCountry: ad.workPermitCountry,
+        workPermitIssueDate: ad.workPermitIssueDate,
+        workPermitExpiryDate: ad.workPermitNoExpiry ? 'No Expiry' : ad.workPermitExpiryDate,
         // Driving
         drivingLicenseNumber: ad.licenseNumber,
         licenseIssuingCountry: ad.licenseCountry,
@@ -793,10 +811,40 @@ export function ApplicantProfile() {
               <CardContent className="space-y-3">
                 <InfoRow label="Passport Number" value={applicantData.passportNumber} />
                 <InfoRow label="Passport Valid Until" value={applicantData.passportValidUntil} />
-                <InfoRow label="EU Visa" value={applicantData.hasEUVisa ? 'Yes' : 'No'} />
-                <InfoRow label="Work Permit in EU" value={applicantData.hasWorkPermit ? 'Yes' : 'No'} />
-                <InfoRow label="Residence Card in EU" value={applicantData.hasResidenceCard ? 'Yes' : 'No'} />
                 <InfoRow label="Issuing Country" value={applicantData.issuingCountry} />
+
+                <InfoRow label="EU Visa" value={applicantData.hasEUVisa ? 'Yes' : 'No'} />
+                {applicantData.hasEUVisa && (
+                  <div className="pl-4 border-l-2 border-blue-100 ml-1 space-y-2">
+                    <InfoRow label="Visa Type" value={applicantData.euVisaType} />
+                    <InfoRow label="Issuing Country" value={applicantData.euVisaCountry} />
+                    <InfoRow label="Visa Number" value={applicantData.euVisaNumber} />
+                    <InfoRow label="Valid Until" value={applicantData.euVisaExpiryDate} />
+                  </div>
+                )}
+
+                <InfoRow label="Work Permit in EU" value={applicantData.hasWorkPermit ? 'Yes' : 'No'} />
+                {applicantData.hasWorkPermit && (
+                  <div className="pl-4 border-l-2 border-blue-100 ml-1 space-y-2">
+                    <InfoRow label="Permit Type" value={applicantData.workPermitType} />
+                    <InfoRow label="Permit Number" value={applicantData.workPermitNumber} />
+                    <InfoRow label="Issuing Country" value={applicantData.workPermitCountry} />
+                    <InfoRow label="Issue Date" value={applicantData.workPermitIssueDate} />
+                    <InfoRow label="Valid Until" value={applicantData.workPermitExpiryDate} />
+                  </div>
+                )}
+
+                <InfoRow label="Residence Card in EU" value={applicantData.hasResidenceCard ? 'Yes' : 'No'} />
+                {applicantData.hasResidenceCard && (
+                  <div className="pl-4 border-l-2 border-blue-100 ml-1 space-y-2">
+                    <InfoRow label="Residence Type" value={applicantData.euResidenceType} />
+                    <InfoRow label="Residence Number" value={applicantData.euResidenceNumber} />
+                    <InfoRow label="Country" value={applicantData.euResidenceCountry} />
+                    <InfoRow label="City" value={applicantData.euResidenceCity} />
+                    <InfoRow label="Issue Date" value={applicantData.euResidenceIssueDate} />
+                    <InfoRow label="Valid Until" value={applicantData.euResidenceExpiryDate} />
+                  </div>
+                )}
               </CardContent>
             </Card>
 

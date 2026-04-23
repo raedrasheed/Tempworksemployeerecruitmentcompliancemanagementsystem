@@ -13,6 +13,7 @@ import { BulkActionDto, BulkActionType, AssignAgencyDto, ConvertLeadDto } from '
 import { PaginatedResponse } from '../common/dto/pagination-response.dto';
 import { promises as fs } from 'fs';
 import { join, extname } from 'path';
+import * as ExcelJS from 'exceljs';
 
 @Injectable()
 export class ApplicantsService {
@@ -649,6 +650,106 @@ export class ApplicantsService {
     //  - CRLF line endings (RFC 4180 and what Excel expects).
     const BOM = '\uFEFF';
     return BOM + [headers.join(','), ...rows].join('\r\n') + '\r\n';
+  }
+
+  // ── XLSX Export ───────────────────────────────────────────────────────────────
+  //
+  // Mirrors exportCsv's scoping rules (ids → selected-only; otherwise
+  // the filtered list) but writes a proper .xlsx using ExcelJS: real
+  // column widths, frozen header row, Date cells that Excel formats
+  // natively, and human-friendly Yes/No for boolean columns. Powers the
+  // "Export to Excel" button on the Applicants and Candidates pages.
+  async exportExcel(
+    filter: FilterApplicantsDto,
+    actor?: { role: string; agencyId?: string; agencyIsSystem?: boolean },
+    ids?: string[],
+  ): Promise<Buffer> {
+    let items: any[];
+    if (ids && ids.length > 0) {
+      const where: any = { id: { in: ids }, deletedAt: null };
+      if (actor && this.isExternalActor(actor) && actor.agencyId) {
+        where.agencyId = actor.agencyId;
+      }
+      items = await this.prisma.applicant.findMany({
+        where,
+        include: this.include,
+        orderBy: { createdAt: 'desc' },
+      });
+    } else {
+      const bigFilter = { ...filter, limit: 10000, page: 1 };
+      const result = await this.findAll(bigFilter as FilterApplicantsDto, actor);
+      items = result.data;
+    }
+
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'TempWorks';
+    workbook.created = new Date();
+
+    const sheet = workbook.addWorksheet('Applicants', {
+      views: [{ state: 'frozen', ySplit: 1 }],
+    });
+
+    sheet.columns = [
+      { header: 'ID',                   key: 'id',                  width: 36 },
+      { header: 'Lead Number',          key: 'leadNumber',          width: 18 },
+      { header: 'Candidate Number',     key: 'candidateNumber',     width: 18 },
+      { header: 'Tier',                 key: 'tier',                width: 12 },
+      { header: 'First Name',           key: 'firstName',           width: 16 },
+      { header: 'Last Name',            key: 'lastName',            width: 16 },
+      { header: 'Email',                key: 'email',               width: 28 },
+      { header: 'Phone',                key: 'phone',               width: 18 },
+      { header: 'Citizenship',          key: 'citizenship',         width: 16 },
+      { header: 'Status',               key: 'status',              width: 14 },
+      { header: 'Job Type',             key: 'jobType',             width: 22 },
+      { header: 'Agency',               key: 'agency',              width: 22 },
+      { header: 'Residency Status',     key: 'residencyStatus',     width: 18 },
+      { header: 'Has NI',               key: 'hasNi',               width: 10 },
+      { header: 'NI Number',            key: 'niNumber',            width: 16 },
+      { header: 'Has Work Auth',        key: 'hasWorkAuth',         width: 14 },
+      { header: 'Work Auth Type',       key: 'workAuthType',        width: 20 },
+      { header: 'Availability',         key: 'availability',        width: 16 },
+      { header: 'Salary Expectation',   key: 'salaryExpectation',   width: 18 },
+      { header: 'Preferred Start Date', key: 'preferredStartDate',  width: 18, style: { numFmt: 'yyyy-mm-dd' } },
+      { header: 'Created At',           key: 'createdAt',           width: 18, style: { numFmt: 'yyyy-mm-dd' } },
+    ];
+
+    sheet.getRow(1).eachCell((cell) => {
+      cell.font      = { bold: true, color: { argb: 'FFFFFFFF' } };
+      cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } };
+      cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+      cell.border    = { bottom: { style: 'thin', color: { argb: 'FF1D4ED8' } } };
+    });
+    sheet.getRow(1).height = 28;
+
+    const yesNo = (v: any) => (v === true ? 'Yes' : v === false ? 'No' : '');
+
+    for (const a of items) {
+      sheet.addRow({
+        id:                 a.id ?? '',
+        leadNumber:         a.leadNumber ?? '',
+        candidateNumber:    a.candidateNumber ?? '',
+        tier:               a.tier ?? '',
+        firstName:          a.firstName ?? '',
+        lastName:           a.lastName ?? '',
+        email:              a.email ?? '',
+        phone:              a.phone ?? '',
+        citizenship:        a.nationality ?? '',
+        status:             a.status ?? '',
+        jobType:            a.jobType?.name ?? '',
+        agency:             a.agency?.name ?? '',
+        residencyStatus:    a.residencyStatus ?? '',
+        hasNi:              yesNo(a.hasNationalInsurance),
+        niNumber:           a.nationalInsuranceNumber ?? '',
+        hasWorkAuth:        yesNo(a.hasWorkAuthorization),
+        workAuthType:       a.workAuthorizationType ?? '',
+        availability:       a.availability ?? '',
+        salaryExpectation:  a.salaryExpectation ?? '',
+        preferredStartDate: a.preferredStartDate ? new Date(a.preferredStartDate) : null,
+        createdAt:          a.createdAt ? new Date(a.createdAt) : null,
+      });
+    }
+
+    return Buffer.from(await workbook.xlsx.writeBuffer() as ArrayBuffer);
   }
 
   // ── Convert Applicant → Employee ──────────────────────────────────────────────

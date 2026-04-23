@@ -232,6 +232,38 @@ export class ApplicantsController {
     res.send(csv);
   }
 
+  // ── XLSX Export ───────────────────────────────────────────────────────────────
+
+  @Get('export/xlsx')
+  @Roles('System Admin', 'HR Manager', 'Recruiter', 'Finance', 'Compliance Officer')
+  @RequirePermission('applicants:export')
+  @ApiOperation({ summary: 'Export applicants as an Excel (.xlsx) file. Pass ids=a,b,c to export only the selected rows; otherwise honours the same filters as the list endpoint.' })
+  async exportExcel(
+    @Query() filter: FilterApplicantsDto & { ids?: string },
+    @CurrentUser() user: any,
+    @Res() res: Response,
+  ) {
+    const rawIds = (filter as any).ids;
+    const idList: string[] | undefined = Array.isArray(rawIds)
+      ? rawIds
+      : typeof rawIds === 'string' && rawIds.length > 0
+        ? rawIds.split(',').map(s => s.trim()).filter(Boolean)
+        : undefined;
+
+    const { ids: _omit, ...cleanFilter } = (filter ?? {}) as any;
+    const buffer = await this.applicantsService.exportExcel(
+      cleanFilter,
+      { role: user?.role, agencyId: user?.agencyId, agencyIsSystem: user?.agencyIsSystem },
+      idList,
+    );
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    res.setHeader('Content-Disposition', `attachment; filename="applicants-${Date.now()}.xlsx"`);
+    res.send(buffer);
+  }
+
   // ── Convert to Employee ───────────────────────────────────────────────────────
 
   @Post(':id/convert')

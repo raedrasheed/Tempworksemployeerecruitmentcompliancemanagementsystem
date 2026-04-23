@@ -449,6 +449,25 @@ export const applicantsApi = {
     return `${(import.meta as any).env?.VITE_API_URL || 'http://localhost:3000/api/v1'}/applicants/export/csv${qs ? '?' + qs : ''}`;
   },
 
+  /** Build the .xlsx download URL. Pass `ids: string[]` to export only
+   *  the selected rows; otherwise the caller's filters apply. Returns a
+   *  URL that the UI fetches with an `Authorization` header. */
+  exportExcel: (params?: Record<string, any> & { ids?: string[] }) => {
+    const search = new URLSearchParams();
+    if (params) {
+      for (const [k, v] of Object.entries(params)) {
+        if (v == null || v === '') continue;
+        if (k === 'ids' && Array.isArray(v)) {
+          if (v.length > 0) search.set('ids', v.join(','));
+          continue;
+        }
+        search.set(k, String(v));
+      }
+    }
+    const qs = search.toString();
+    return `${(import.meta as any).env?.VITE_API_URL || 'http://localhost:3000/api/v1'}/applicants/export/xlsx${qs ? '?' + qs : ''}`;
+  },
+
   convertToEmployee: (id: string, data: any) =>
     apiFetch<any>(`/applicants/${id}/convert`, { method: 'POST', body: JSON.stringify(data) }),
 

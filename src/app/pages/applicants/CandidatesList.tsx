@@ -331,44 +331,29 @@ export function CandidatesList() {
     }
   };
 
-  // ── CSV Export ─────────────────────────────────────────────────────────────
-  const runCsvDownload = (params: Record<string, any>, filename: string) => {
+  // ── Excel Export ───────────────────────────────────────────────────────────
+  // Streams the backend's .xlsx for the currently selected rows only.
+  const handleExportExcel = () => {
+    if (selected.size === 0) {
+      toast.error('Select one or more rows to export');
+      return;
+    }
     const token = getAccessToken();
-    const csvUrl = applicantsApi.exportCsv(params);
-    fetch(csvUrl, { headers: { Authorization: `Bearer ${token}` } })
+    const url = applicantsApi.exportExcel({ ids: Array.from(selected) });
+    fetch(url, { headers: { Authorization: `Bearer ${token}` } })
       .then(async r => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.blob();
       })
       .then(blob => {
-        const url = URL.createObjectURL(blob);
+        const objectUrl = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = url; a.download = filename;
+        a.href = objectUrl;
+        a.download = `candidates-selected-${Date.now()}.xlsx`;
         document.body.appendChild(a); a.click();
-        document.body.removeChild(a); URL.revokeObjectURL(url);
+        document.body.removeChild(a); URL.revokeObjectURL(objectUrl);
       })
       .catch(() => toast.error('Export failed'));
-  };
-
-  /** Export only the rows currently selected (by id). */
-  const handleExportSelected = () => {
-    if (selected.size === 0) return;
-    runCsvDownload(
-      { ids: Array.from(selected) },
-      `candidates-selected-${Date.now()}.csv`,
-    );
-  };
-
-  /** Export every row matching the active filters. */
-  const handleExportAll = () => {
-    const params: Record<string, any> = {};
-    if (searchTerm) params.search = searchTerm;
-    if (tierFilter) params.tier = tierFilter;
-    if (statusFilter) params.status = statusFilter;
-    if (agencyFilter) params.agencyId = agencyFilter;
-    if (nationalityFilter) params.nationality = nationalityFilter;
-    if (jobTypeFilter) params.jobTypeId = jobTypeFilter;
-    runCsvDownload(params, `candidates-${Date.now()}.csv`);
   };
 
   // ── Filters ────────────────────────────────────────────────────────────────
@@ -493,14 +478,11 @@ export function CandidatesList() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handleExportSelected}
+                onClick={handleExportExcel}
                 disabled={selected.size === 0}
                 title={selected.size === 0 ? 'Select one or more rows to export' : undefined}
               >
-                <Download className="w-4 h-4 mr-2" />Export Selected ({selected.size})
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleExportAll}>
-                <Download className="w-4 h-4 mr-2" />Export All
+                <Download className="w-4 h-4 mr-2" />Export to Excel ({selected.size})
               </Button>
               <Button
                 variant="outline"

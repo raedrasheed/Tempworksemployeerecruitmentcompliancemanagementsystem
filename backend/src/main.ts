@@ -112,6 +112,50 @@ async function runStartupMigrations() {
     `);
     logger.log('employees.applicationData column ensured');
 
+    // 6. Multi-deduction support for financial_records. Create the
+    //    child table and backfill a single row from every existing
+    //    DEDUCTED record so historical data survives the upgrade.
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS "financial_record_deductions" (
+        "id"                text PRIMARY KEY,
+        "financialRecordId" text NOT NULL,
+        "amount"            numeric(10,2) NOT NULL,
+        "deductionDate"     timestamptz NOT NULL,
+        "payrollReference"  text,
+        "notes"             text,
+        "createdById"       text,
+        "createdAt"         timestamptz NOT NULL DEFAULT now()
+      )
+    `);
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS "financial_record_deductions_financialRecordId_idx"
+        ON "financial_record_deductions"("financialRecordId")
+    `);
+    await client.query(`
+      DO $$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'financial_record_deductions_financialRecordId_fkey') THEN
+          ALTER TABLE "financial_record_deductions"
+            ADD CONSTRAINT "financial_record_deductions_financialRecordId_fkey"
+            FOREIGN KEY ("financialRecordId") REFERENCES "financial_records"(id) ON DELETE CASCADE;
+        END IF;
+      END $$
+    `);
+    const backfill = await client.query(`
+      INSERT INTO "financial_record_deductions" (id, "financialRecordId", amount, "deductionDate", "payrollReference")
+      SELECT gen_random_uuid()::text, id, "deductionAmount", COALESCE("deductionDate", "updatedAt"), "payrollReference"
+      FROM "financial_records" r
+      WHERE "deductionAmount" IS NOT NULL
+        AND "deductionAmount" > 0
+        AND NOT EXISTS (
+          SELECT 1 FROM "financial_record_deductions" d WHERE d."financialRecordId" = r.id
+        )
+    `);
+    if (backfill.rowCount && backfill.rowCount > 0) {
+      logger.log(`financial_record_deductions — backfilled ${backfill.rowCount} row(s) from legacy single-deduction fields`);
+    } else {
+      logger.log('financial_record_deductions — table ensured (no backfill needed)');
+    }
+
     // 5. Cleanup of phantom profile-photo document rows.
     //    Before the fix, the public /apply photo upload mis-classified
     //    the profile photo as the first-available DocumentType (usually

@@ -34,6 +34,11 @@ export class FinanceService {
       paidByUser: { select: { id: true, firstName: true, lastName: true, email: true } },
       createdBy:  { select: { id: true, firstName: true, lastName: true, email: true } },
       attachments: { where: { deletedAt: null }, orderBy: { createdAt: 'asc' as const } },
+      // Oldest-first so the expanded panel reads chronologically.
+      deductions: {
+        orderBy: { deductionDate: 'asc' as const },
+        include: { createdBy: { select: { id: true, firstName: true, lastName: true } } },
+      },
     };
   }
 
@@ -382,6 +387,133 @@ export class FinanceService {
         record.entityId,
       ).catch(e => this.logger.error('Notification error (deduct):', e));
     }
+
+    return updated;
+  }
+
+  // ── Deductions (partial + multi) ────────────────────────────────────────────
+  // Each call appends a row to financial_record_deductions and keeps
+  // the parent record's aggregate fields (deductionAmount / date /
+  // payrollReference / status) in sync so legacy consumers that still
+  // read them unchanged don't regress.
+
+  async addDeduction(
+    recordId: string,
+    dto: { amount: number; deductionDate: string; payrollReference?: string; notes?: string },
+    actorId?: string,
+  ) {
+    const record = await this.findOne(recordId);
+    if ((record as any).deletedAt) throw new BadRequestException('Record is deleted');
+
+    const amount = Number(dto.amount);
+    if (!amount || amount <= 0) {
+      throw new BadRequestException('Deduction amount must be a positive number');
+    }
+
+    const existingSum = (record as any).deductions?.reduce(
+      (s: number, d: any) => s + Number(d.amount ?? 0),
+      0,
+    ) ?? Number(record.deductionAmount ?? 0);
+    const disbursed = Number(record.companyDisbursedAmount);
+    const newSum = existingSum + amount;
+    if (newSum > disbursed) {
+      throw new BadRequestException(
+        `Deductions would exceed the disbursed amount (${disbursed.toFixed(2)}). Remaining: ${(disbursed - existingSum).toFixed(2)}.`,
+      );
+    }
+
+    const deductionDate = new Date(dto.deductionDate);
+    if (isNaN(deductionDate.getTime())) {
+      throw new BadRequestException('Invalid deductionDate');
+    }
+
+    await (this.prisma as any).financialRecordDeduction.create({
+      data: {
+        financialRecordId: recordId,
+        amount,
+        deductionDate,
+        payrollReference: dto.payrollReference ?? null,
+        notes: dto.notes ?? null,
+        createdById: actorId ?? null,
+      },
+    });
+
+    // Status flips to DEDUCTED when the sum reaches the disbursed
+    // amount (within rounding tolerance); otherwise PARTIAL so the
+    // expanded panel can still show "Add another deduction".
+    const nextStatus = Math.abs(newSum - disbursed) < 0.005 ? 'DEDUCTED' : 'PARTIAL';
+
+    const updated = await this.prisma.financialRecord.update({
+      where: { id: recordId },
+      data: {
+        deductionAmount: newSum,
+        deductionDate,
+        payrollReference: dto.payrollReference ?? record.payrollReference,
+        status: nextStatus,
+      },
+      include: this.recordInclude,
+    });
+
+    await this.auditLog(actorId, 'FINANCIAL_RECORD_DEDUCTION_ADDED', recordId, {
+      amount, deductionDate: dto.deductionDate, payrollReference: dto.payrollReference,
+      runningTotal: newSum, nextStatus,
+    });
+
+    if (nextStatus === 'DEDUCTED') {
+      const entityName = await this.resolveEntityNameForNotif(record.entityType, record.entityId);
+      this.notifications.notifyUsersByRoles(
+        FINANCE_ROLES,
+        NOTIF_EVENTS.FINANCIAL_RECORD_DEDUCTED,
+        'Record Fully Deducted',
+        `A financial record for ${entityName} has been fully deducted (${record.currency} ${newSum.toFixed(2)}).`,
+        record.entityType,
+        record.entityId,
+      ).catch(e => this.logger.error('Notification error (deduct):', e));
+    }
+
+    return updated;
+  }
+
+  async removeDeduction(deductionId: string, actorId?: string) {
+    const deduction = await (this.prisma as any).financialRecordDeduction.findUnique({
+      where: { id: deductionId },
+    });
+    if (!deduction) throw new NotFoundException('Deduction not found');
+
+    const recordId: string = deduction.financialRecordId;
+    await (this.prisma as any).financialRecordDeduction.delete({ where: { id: deductionId } });
+
+    // Recompute aggregates from whatever remains.
+    const remaining = await (this.prisma as any).financialRecordDeduction.findMany({
+      where: { financialRecordId: recordId },
+      orderBy: { deductionDate: 'desc' },
+    });
+    const newSum = remaining.reduce((s: number, d: any) => s + Number(d.amount ?? 0), 0);
+    const record = await this.prisma.financialRecord.findUnique({ where: { id: recordId } });
+    const disbursed = Number(record?.companyDisbursedAmount ?? 0);
+    const nextStatus = newSum === 0
+      ? 'PENDING'
+      : Math.abs(newSum - disbursed) < 0.005
+        ? 'DEDUCTED'
+        : 'PARTIAL';
+    const latest = remaining[0];
+
+    const updated = await this.prisma.financialRecord.update({
+      where: { id: recordId },
+      data: {
+        deductionAmount: newSum > 0 ? newSum : null,
+        deductionDate: latest?.deductionDate ?? null,
+        payrollReference: latest?.payrollReference ?? null,
+        status: nextStatus,
+      },
+      include: this.recordInclude,
+    });
+
+    await this.auditLog(actorId, 'FINANCIAL_RECORD_DEDUCTION_REMOVED', recordId, {
+      removedAmount: Number(deduction.amount),
+      runningTotal: newSum,
+      nextStatus,
+    });
 
     return updated;
   }

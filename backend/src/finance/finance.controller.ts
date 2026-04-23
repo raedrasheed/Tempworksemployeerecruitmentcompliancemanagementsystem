@@ -183,6 +183,30 @@ export class FinanceController {
     return this.financeService.remove(id, user?.id);
   }
 
+  // ── Deductions (multi-partial) ────────────────────────────────────────────────
+
+  @Post(':id/deductions')
+  @Roles(...FINANCE_STATUS_ROLES)
+  @RequirePermission('finance:status')
+  @ApiOperation({ summary: 'Append a partial deduction to a financial record' })
+  @ApiParam({ name: 'id', description: 'Financial record UUID' })
+  addDeduction(
+    @Param('id') id: string,
+    @Body() dto: { amount: number; deductionDate: string; payrollReference?: string; notes?: string },
+    @CurrentUser() user: any,
+  ) {
+    return this.financeService.addDeduction(id, dto, user?.id);
+  }
+
+  @Delete('deductions/:deductionId')
+  @Roles(...FINANCE_STATUS_ROLES)
+  @RequirePermission('finance:status')
+  @ApiOperation({ summary: 'Remove a single partial deduction from a financial record' })
+  @ApiParam({ name: 'deductionId', description: 'Deduction row UUID' })
+  removeDeduction(@Param('deductionId') deductionId: string, @CurrentUser() user: any) {
+    return this.financeService.removeDeduction(deductionId, user?.id);
+  }
+
   // ── Attachments ───────────────────────────────────────────────────────────────
 
   @Post(':id/attachments')

@@ -249,6 +249,7 @@ model User {
   financialRecordsPaidBy     FinancialRecord[]            @relation("FRPaidBy")
   financialRecordsCreated    FinancialRecord[]            @relation("FRCreatedBy")
   financialAttachments       FinancialRecordAttachment[]  @relation("FRAttachmentUploadedBy")
+  financialDeductionsCreated FinancialRecordDeduction[]   @relation("FRDeductionCreatedBy")
 
   resolvedAlerts    ComplianceAlert[] @relation("ResolvedAlerts")
   updatedSettings   SystemSetting[]
@@ -992,7 +993,10 @@ model FinancialRecord {
   companyDisbursedAmount     Decimal  @default(0) @db.Decimal(10, 2)
   employeeOrAgencyPaidAmount Decimal  @default(0) @db.Decimal(10, 2)
   // ── Deduction tracking ────────────────────────────────────────────────────
-  status                     String   @default("PENDING") // PENDING | DEDUCTED
+  // Multiple deductions per record are supported via the relation
+  // below — the aggregate fields here mirror SUM(deductions.amount)
+  // and the most-recent entry for quick lookups / legacy consumers.
+  status                     String   @default("PENDING") // PENDING | PARTIAL | DEDUCTED
   deductionAmount            Decimal? @db.Decimal(10, 2)
   deductionDate              DateTime?
   payrollReference           String?
@@ -1007,6 +1011,7 @@ model FinancialRecord {
   paidByUser  User?                       @relation("FRPaidBy",      fields: [paidById],     references: [id])
   createdBy   User?                       @relation("FRCreatedBy",   fields: [createdById],  references: [id])
   attachments FinancialRecordAttachment[]
+  deductions  FinancialRecordDeduction[]
 
   @@index([entityType, entityId])
   @@index([applicantId])
@@ -1073,6 +1078,29 @@ model FinancialRecordAttachment {
   uploadedBy      User?           @relation("FRAttachmentUploadedBy", fields: [uploadedById], references: [id])
 
   @@map("financial_record_attachments")
+}
+
+// Multiple partial deductions against a single FinancialRecord.
+// SUM(amount) must stay ≤ FinancialRecord.companyDisbursedAmount —
+// the service enforces that on insert. The parent record's
+// status / deductionAmount / deductionDate / payrollReference are
+// kept in lock-step with these rows as a denormalised summary for
+// fast list / export queries that don't want to re-sum on the fly.
+model FinancialRecordDeduction {
+  id                String   @id @default(uuid())
+  financialRecordId String
+  amount            Decimal  @db.Decimal(10, 2)
+  deductionDate     DateTime
+  payrollReference  String?
+  notes             String?
+  createdById       String?
+  createdAt         DateTime @default(now())
+
+  financialRecord FinancialRecord @relation(fields: [financialRecordId], references: [id], onDelete: Cascade)
+  createdBy       User?           @relation("FRDeductionCreatedBy", fields: [createdById], references: [id])
+
+  @@index([financialRecordId])
+  @@map("financial_record_deductions")
 }
 
 // ── Workflow Pipelines ─────────────────────────────────────────────────────────

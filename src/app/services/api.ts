@@ -1147,6 +1147,19 @@ export const financeApi = {
   delete: (id: string) =>
     apiFetch<any>(`/finance/${id}`, { method: 'DELETE' }),
 
+  // Append a partial deduction. Multiple calls allowed — the backend
+  // keeps SUM(amount) ≤ companyDisbursedAmount and flips status to
+  // PARTIAL / DEDUCTED automatically.
+  addDeduction: (recordId: string, data: { amount: number; deductionDate: string; payrollReference?: string; notes?: string }) =>
+    apiFetch<any>(`/finance/${recordId}/deductions`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  // Remove a single partial deduction; aggregates are recomputed.
+  removeDeduction: (deductionId: string) =>
+    apiFetch<any>(`/finance/deductions/${deductionId}`, { method: 'DELETE' }),
+
   // Upload attachment to a record
   addAttachment: (recordId: string, formData: FormData) => {
     const token = getAccessToken();

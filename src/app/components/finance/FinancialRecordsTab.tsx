@@ -48,10 +48,20 @@ interface FinancialRecord {
   paidByUser?: { id: string; firstName: string; lastName: string };
   companyDisbursedAmount: number;
   employeeOrAgencyPaidAmount: number;
-  status: 'PENDING' | 'DEDUCTED';
+  status: 'PENDING' | 'PARTIAL' | 'DEDUCTED';
   deductionAmount?: number;
   deductionDate?: string;
   payrollReference?: string;
+  /** Each partial payroll deduction against this record. Sum ≤ companyDisbursedAmount. */
+  deductions?: Array<{
+    id: string;
+    amount: number;
+    deductionDate: string;
+    payrollReference?: string;
+    notes?: string;
+    createdAt: string;
+    createdBy?: { id: string; firstName: string; lastName: string };
+  }>;
   notes?: string;
   attachments?: Attachment[];
   createdAt: string;
@@ -301,40 +311,62 @@ export function FinancialRecordsTab({ entityType, entityId, canWrite, canChangeS
 
   const openStatus = (rec: FinancialRecord) => {
     setStatusRecord(rec);
+    // Default the amount to the remaining balance so repeated
+    // deductions naturally drive the status to DEDUCTED when paid off.
+    const alreadyDeducted = (rec.deductions ?? []).reduce((s, d) => s + Number(d.amount ?? 0), 0)
+      || Number(rec.deductionAmount ?? 0);
+    const remaining = Math.max(0, Number(rec.companyDisbursedAmount ?? 0) - alreadyDeducted);
     setStatusForm({
       status: 'DEDUCTED',
-      deductionAmount: rec.companyDisbursedAmount ?? '',
+      deductionAmount: remaining || '',
       deductionDate: new Date().toISOString().slice(0, 10),
-      payrollReference: rec.payrollReference ?? '',
+      payrollReference: '',
     });
     setShowStatusModal(true);
   };
 
   const handleSaveStatus = async () => {
     if (!statusRecord) return;
-    if (!statusForm.deductionAmount || Number(statusForm.deductionAmount) <= 0) {
+    const amount = Number(statusForm.deductionAmount);
+    if (!amount || amount <= 0) {
       toast.error('Deduction amount must be greater than 0');
       return;
     }
-    if (Number(statusForm.deductionAmount) > Number(statusRecord.companyDisbursedAmount)) {
-      toast.error('Deduction cannot exceed the company disbursed amount');
+    const alreadyDeducted = (statusRecord.deductions ?? []).reduce((s, d) => s + Number(d.amount ?? 0), 0)
+      || Number(statusRecord.deductionAmount ?? 0);
+    const remaining = Number(statusRecord.companyDisbursedAmount) - alreadyDeducted;
+    if (amount > remaining + 0.005) {
+      toast.error(`Deduction cannot exceed the remaining balance (${remaining.toFixed(2)})`);
       return;
     }
     setSavingStatus(true);
     try {
-      await financeApi.updateStatus(statusRecord.id, {
-        status: statusForm.status,
-        deductionAmount: Number(statusForm.deductionAmount),
-        deductionDate: statusForm.deductionDate || undefined,
+      // Append a new partial deduction. The backend keeps the parent
+      // record's aggregate fields and status in sync.
+      await financeApi.addDeduction(statusRecord.id, {
+        amount,
+        deductionDate: statusForm.deductionDate || new Date().toISOString().slice(0, 10),
         payrollReference: statusForm.payrollReference || undefined,
       });
-      toast.success('Status updated');
+      toast.success(Math.abs(amount - remaining) < 0.005
+        ? 'Deduction added — transaction fully deducted'
+        : 'Partial deduction added');
       setShowStatusModal(false);
       loadRecords();
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to update status');
+      toast.error(err?.message || 'Failed to add deduction');
     } finally {
       setSavingStatus(false);
+    }
+  };
+
+  const handleRemoveDeduction = async (deductionId: string) => {
+    try {
+      await financeApi.removeDeduction(deductionId);
+      toast.success('Deduction removed');
+      loadRecords();
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to remove deduction');
     }
   };
 
@@ -578,11 +610,11 @@ export function FinancialRecordsTab({ entityType, entityId, canWrite, canChangeS
                                 >
                                   <Edit2 className="w-3.5 h-3.5" />
                                 </Button>
-                                {canChangeStatus && rec.status === 'PENDING' && (
+                                {canChangeStatus && rec.status !== 'DEDUCTED' && (
                                   <Button
                                     size="icon" variant="ghost"
                                     className="h-7 w-7 text-amber-600"
-                                    title="Mark as Deducted"
+                                    title={rec.status === 'PARTIAL' ? 'Add another deduction' : 'Add first deduction'}
                                     onClick={() => openStatus(rec)}
                                   >
                                     <CheckCircle className="w-3.5 h-3.5" />
@@ -621,14 +653,67 @@ export function FinancialRecordsTab({ entityType, entityId, canWrite, canChangeS
                                 <InfoItem label="Currency" value={rec.currency} />
                                 {rec.notes && <InfoItem label="Internal Notes" value={rec.notes} />}
                               </div>
-                              {rec.status === 'DEDUCTED' && (
-                                <div className="space-y-2">
-                                  <p className="font-medium text-xs text-muted-foreground uppercase tracking-wide">Deduction Info</p>
-                                  {rec.deductionAmount != null && <InfoItem label="Deduction Amount" value={fmt(rec.deductionAmount, rec.currency)} />}
-                                  {rec.deductionDate && <InfoItem label="Deduction Date" value={fmtDate(rec.deductionDate)} />}
-                                  {rec.payrollReference && <InfoItem label="Payroll Ref" value={rec.payrollReference} />}
+                              {/* Deductions — the record can carry any
+                                  number of partial payroll deductions.
+                                  Always shown; empty state explains how
+                                  to start deducting. */}
+                              <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                  <p className="font-medium text-xs text-muted-foreground uppercase tracking-wide">
+                                    Deductions ({rec.deductions?.length ?? 0})
+                                  </p>
+                                  {(() => {
+                                    const sum = (rec.deductions ?? []).reduce((s, d) => s + Number(d.amount ?? 0), 0)
+                                      || Number(rec.deductionAmount ?? 0);
+                                    const remaining = Math.max(0, Number(rec.companyDisbursedAmount) - sum);
+                                    return (
+                                      <span className="text-xs text-muted-foreground">
+                                        {fmt(sum, rec.currency)} / {fmt(rec.companyDisbursedAmount, rec.currency)}
+                                        {remaining > 0 && <> · remaining <span className="text-amber-700">{fmt(remaining, rec.currency)}</span></>}
+                                      </span>
+                                    );
+                                  })()}
                                 </div>
-                              )}
+                                {(rec.deductions?.length ?? 0) > 0 ? (
+                                  <div className="space-y-1">
+                                    {rec.deductions!.map(d => (
+                                      <div key={d.id} className="flex items-center justify-between gap-2 px-2 py-1.5 border rounded bg-white text-xs">
+                                        <div className="min-w-0 flex-1">
+                                          <p className="font-medium text-amber-700">{fmt(d.amount, rec.currency)}</p>
+                                          <p className="text-muted-foreground">
+                                            {fmtDate(d.deductionDate)}
+                                            {d.payrollReference && <> · {d.payrollReference}</>}
+                                          </p>
+                                        </div>
+                                        {canChangeStatus && (
+                                          <Button
+                                            size="icon" variant="ghost"
+                                            className="h-6 w-6 text-red-500 shrink-0"
+                                            title="Remove deduction"
+                                            onClick={() => handleRemoveDeduction(d.id)}
+                                          >
+                                            <Trash2 className="w-3 h-3" />
+                                          </Button>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <p className="text-xs text-muted-foreground italic">
+                                    No deductions yet — use the <CheckCircle className="inline w-3 h-3 mx-0.5 text-amber-600" /> action to record one.
+                                  </p>
+                                )}
+                                {canChangeStatus && rec.status !== 'DEDUCTED' && (
+                                  <Button
+                                    size="sm" variant="outline"
+                                    className="w-full text-xs mt-1"
+                                    onClick={() => openStatus(rec)}
+                                  >
+                                    <CheckCircle className="w-3 h-3 mr-1" />
+                                    {rec.status === 'PARTIAL' ? 'Add another deduction' : 'Add first deduction'}
+                                  </Button>
+                                )}
+                              </div>
                               <div className="space-y-2">
                                 <p className="font-medium text-xs text-muted-foreground uppercase tracking-wide">
                                   Attachments ({rec.attachments?.length ?? 0})
@@ -805,12 +890,14 @@ export function FinancialRecordsTab({ entityType, entityId, canWrite, canChangeS
                     // processed — changing them would silently re-balance
                     // the ledger without matching reality. Reset status
                     // to PENDING first if the amount truly needs fixing.
-                    disabled={editRecord?.status === 'DEDUCTED'}
+                    disabled={editRecord?.status === 'DEDUCTED' || editRecord?.status === 'PARTIAL'}
                   />
                   <p className="text-xs text-muted-foreground">
                     {editRecord?.status === 'DEDUCTED'
-                      ? 'Locked — this transaction has already been deducted through payroll.'
-                      : 'Amount paid BY the company TO/FOR the person'}
+                      ? 'Locked — this transaction has already been fully deducted through payroll.'
+                      : editRecord?.status === 'PARTIAL'
+                        ? 'Locked — at least one partial deduction is already recorded. Remove the deductions first to change the disbursed amount.'
+                        : 'Amount paid BY the company TO/FOR the person'}
                   </p>
                 </div>
                 {/* Employee/agency paid (informational) */}
@@ -823,10 +910,10 @@ export function FinancialRecordsTab({ entityType, entityId, canWrite, canChangeS
                     placeholder="0.00"
                     value={form.employeeOrAgencyPaidAmount}
                     onChange={e => setForm(f => ({ ...f, employeeOrAgencyPaidAmount: e.target.value }))}
-                    disabled={editRecord?.status === 'DEDUCTED'}
+                    disabled={editRecord?.status === 'DEDUCTED' || editRecord?.status === 'PARTIAL'}
                   />
                   <p className="text-xs text-muted-foreground">
-                    {editRecord?.status === 'DEDUCTED'
+                    {editRecord?.status === 'DEDUCTED' || editRecord?.status === 'PARTIAL'
                       ? 'Locked — part of a deducted transaction.'
                       : 'Not included in balance — reconciliation only'}
                   </p>
@@ -987,12 +1074,22 @@ export function FinancialRecordsTab({ entityType, entityId, canWrite, canChangeS
       )}
 
       {/* ── Status / Deduction Modal ──────────────────────────────────────── */}
-      {showStatusModal && statusRecord && (
+      {showStatusModal && statusRecord && (() => {
+        // Derive the remaining balance so the dialog can cap + label
+        // the input accurately whether this is the first, middle, or
+        // final deduction of a multi-tranche recovery.
+        const alreadyDeducted = (statusRecord.deductions ?? []).reduce((s, d) => s + Number(d.amount ?? 0), 0)
+          || Number(statusRecord.deductionAmount ?? 0);
+        const disbursed = Number(statusRecord.companyDisbursedAmount ?? 0);
+        const remaining = Math.max(0, disbursed - alreadyDeducted);
+        const isAdditional = (statusRecord.deductions?.length ?? 0) > 0 || alreadyDeducted > 0;
+        return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <Card className="max-w-md w-full">
             <CardHeader className="flex flex-row items-center justify-between pb-3">
               <CardTitle className="text-lg flex items-center gap-2">
-                <CheckCircle className="w-5 h-5 text-amber-600" />Mark as Deducted
+                <CheckCircle className="w-5 h-5 text-amber-600" />
+                {isAdditional ? 'Add Another Deduction' : 'Add Deduction'}
               </CardTitle>
               <Button size="icon" variant="ghost" onClick={() => setShowStatusModal(false)}>
                 <X className="w-4 h-4" />
@@ -1001,7 +1098,13 @@ export function FinancialRecordsTab({ entityType, entityId, canWrite, canChangeS
             <CardContent className="space-y-4">
               <div className="rounded-lg bg-muted/40 p-3 text-sm space-y-1">
                 <p><span className="text-muted-foreground">Transaction:</span> <span className="font-medium">{statusRecord.transactionType}</span></p>
-                <p><span className="text-muted-foreground">Original Amount:</span> <span className="font-medium text-blue-700">{fmt(statusRecord.companyDisbursedAmount, statusRecord.currency)}</span></p>
+                <p><span className="text-muted-foreground">Original Amount:</span> <span className="font-medium text-blue-700">{fmt(disbursed, statusRecord.currency)}</span></p>
+                {isAdditional && (
+                  <>
+                    <p><span className="text-muted-foreground">Already Deducted:</span> <span className="font-medium text-amber-700">{fmt(alreadyDeducted, statusRecord.currency)}</span></p>
+                    <p><span className="text-muted-foreground">Remaining:</span> <span className="font-medium text-emerald-700">{fmt(remaining, statusRecord.currency)}</span></p>
+                  </>
+                )}
                 {statusRecord.description && <p><span className="text-muted-foreground">Description:</span> {statusRecord.description}</p>}
               </div>
               <div className="space-y-3">
@@ -1011,11 +1114,11 @@ export function FinancialRecordsTab({ entityType, entityId, canWrite, canChangeS
                     type="number"
                     min="0.01"
                     step="0.01"
-                    max={Number(statusRecord.companyDisbursedAmount)}
+                    max={remaining}
                     value={statusForm.deductionAmount}
                     onChange={e => setStatusForm(f => ({ ...f, deductionAmount: e.target.value }))}
                   />
-                  <p className="text-xs text-muted-foreground">Must be ≤ {fmt(statusRecord.companyDisbursedAmount, statusRecord.currency)}</p>
+                  <p className="text-xs text-muted-foreground">Must be ≤ {fmt(remaining, statusRecord.currency)} (the remaining balance)</p>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs">Deduction Date</Label>
@@ -1049,7 +1152,8 @@ export function FinancialRecordsTab({ entityType, entityId, canWrite, canChangeS
             </CardContent>
           </Card>
         </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
@@ -1061,6 +1165,13 @@ function StatusBadge({ status }: { status: string }) {
     return (
       <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 font-medium text-xs">
         <CheckCircle className="w-3 h-3 mr-1" />Deducted
+      </Badge>
+    );
+  }
+  if (status === 'PARTIAL') {
+    return (
+      <Badge className="bg-blue-100 text-blue-800 border-blue-200 font-medium text-xs">
+        <Clock className="w-3 h-3 mr-1" />Partial
       </Badge>
     );
   }

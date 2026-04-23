@@ -709,11 +709,10 @@ export function ApplicantProfile() {
       </Card>
 
       {/* Quick Nav */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {[
           { label: 'Travel & Residence', icon: FileText },
-          { label: 'Driving Licence', icon: Award },
-          { label: 'Experience', icon: Globe },
+          { label: 'Driving Licence & Experience', icon: Award },
         ].map(({ label, icon: Icon }) => (
           <Button key={label} variant="outline" className="justify-between">
             <div className="flex items-center gap-2"><Icon className="w-4 h-4" /><span>{label}</span></div>
@@ -929,53 +928,59 @@ export function ApplicantProfile() {
               </CardContent>
             </Card>
 
-            {/* Driving Licence & Certifications */}
-            <Card>
+            {/* Driving Licence & Experience — merged drill-in page that
+                keeps licence details, certifications, and international
+                experience together instead of splitting them across two
+                separate cards. Spans the full grid row so the two
+                subsections sit side-by-side. */}
+            <Card className="lg:col-span-2">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Award className="w-5 h-5" />Driving Licence & Certifications
+                  <Award className="w-5 h-5" />Driving Licence & Experience
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <InfoRow label="License Number" value={applicantData.drivingLicenseNumber} />
-                <InfoRow label="Issuing Country" value={applicantData.licenseIssuingCountry} />
-                <InfoRow label="Valid Until" value={applicantData.licenseValidUntil} />
-                <div className="pt-2">
-                  <p className="text-sm text-muted-foreground mb-2">Categories:</p>
-                  <div className="flex flex-wrap gap-2">
-                    {applicantData.categoryA && applicantData.categoryA !== '-' && <Badge variant="outline">A</Badge>}
-                    {applicantData.categoryB && applicantData.categoryB !== '-' && <Badge variant="outline">B</Badge>}
-                    {applicantData.categoryC && applicantData.categoryC !== '-' && <Badge variant="outline" className="border-[#2563EB] text-[#2563EB]">C</Badge>}
-                    {applicantData.categoryE && applicantData.categoryE !== '-' && <Badge variant="outline" className="border-[#2563EB] text-[#2563EB]">E</Badge>}
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* ── Licence + Certifications ── */}
+                  <div className="space-y-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Licence & Certifications</p>
+                    <InfoRow label="License Number" value={applicantData.drivingLicenseNumber} />
+                    <InfoRow label="Issuing Country" value={applicantData.licenseIssuingCountry} />
+                    <InfoRow label="Valid Until" value={applicantData.licenseValidUntil} />
+                    <div className="pt-1">
+                      <p className="text-sm text-muted-foreground mb-2">Categories:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {applicantData.categoryA && applicantData.categoryA !== '-' && <Badge variant="outline">A</Badge>}
+                        {applicantData.categoryB && applicantData.categoryB !== '-' && <Badge variant="outline">B</Badge>}
+                        {applicantData.categoryC && applicantData.categoryC !== '-' && <Badge variant="outline" className="border-[#2563EB] text-[#2563EB]">C</Badge>}
+                        {applicantData.categoryE && applicantData.categoryE !== '-' && <Badge variant="outline" className="border-[#2563EB] text-[#2563EB]">E</Badge>}
+                      </div>
+                    </div>
+                    <div className="pt-2 border-t space-y-2">
+                      <InfoRow label="Tachograph Card" value={applicantData.hasTachographCard ? `Yes (${applicantData.tachographNumber || 'N/A'})` : 'No'} />
+                      <InfoRow label="Code 95 / CPC" value={applicantData.hasQualificationCard ? `Yes (until ${applicantData.qualificationValidUntil || '—'})` : 'No'} />
+                      <InfoRow label="ADR Certificate" value={applicantData.hasADR ? `Yes (${applicantData.adrClasses || '—'})` : 'No'} />
+                    </div>
                   </div>
-                </div>
-                <div className="pt-2 border-t space-y-2">
-                  <InfoRow label="Tachograph Card" value={applicantData.hasTachographCard ? `Yes (${applicantData.tachographNumber || 'N/A'})` : 'No'} />
-                  <InfoRow label="Code 95 / CPC" value={applicantData.hasQualificationCard ? `Yes (until ${applicantData.qualificationValidUntil || '—'})` : 'No'} />
-                  <InfoRow label="ADR Certificate" value={applicantData.hasADR ? `Yes (${applicantData.adrClasses || '—'})` : 'No'} />
-                </div>
-              </CardContent>
-            </Card>
 
-            {/* International Experience */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Globe className="w-5 h-5" />International Experience
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <InfoRow label="EU Experience" value={applicantData.hasEUExperience ? 'Yes' : 'No'} />
-                <InfoRow label="Years in EU" value={applicantData.yearsEUExperience} />
-                <InfoRow label="Total C+E Experience" value={applicantData.totalCEExperience} />
-                <InfoRow label="Years Active Driving" value={applicantData.yearsActiveDriving} />
-                <InfoRow label="Driven Other Countries" value={applicantData.drivenOtherCountries ? 'Yes' : 'No'} />
-                {applicantData.specifyCountries && (
-                  <div className="pt-2 border-t">
-                    <p className="text-sm text-muted-foreground mb-1">Countries:</p>
-                    <p className="font-medium">{applicantData.specifyCountries}</p>
+                  {/* ── International Experience ── */}
+                  <div className="space-y-3 md:pl-6 md:border-l">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
+                      <Globe className="w-3.5 h-3.5" /> Driving Experience
+                    </p>
+                    <InfoRow label="EU Experience" value={applicantData.hasEUExperience ? 'Yes' : 'No'} />
+                    <InfoRow label="Years in EU" value={applicantData.yearsEUExperience} />
+                    <InfoRow label="Total C+E Experience" value={applicantData.totalCEExperience} />
+                    <InfoRow label="Years Active Driving" value={applicantData.yearsActiveDriving} />
+                    <InfoRow label="Driven Other Countries" value={applicantData.drivenOtherCountries ? 'Yes' : 'No'} />
+                    {applicantData.specifyCountries && (
+                      <div className="pt-2 border-t">
+                        <p className="text-sm text-muted-foreground mb-1">Countries:</p>
+                        <p className="font-medium">{applicantData.specifyCountries}</p>
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
               </CardContent>
             </Card>
 

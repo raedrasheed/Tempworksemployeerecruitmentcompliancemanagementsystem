@@ -4,7 +4,7 @@ import {
   ArrowLeft, Mail, Phone, Globe, Briefcase, Calendar, FileText,
   UserPlus, Edit, Trash2, Download, Upload, X,
   Shield, Clock, Award, ChevronRight, MapPin, Loader2, TrendingUp, History, DollarSign,
-  Layers, Plus, CheckCircle2, XCircle,
+  Layers, Plus, CheckCircle2, XCircle, GraduationCap,
 } from 'lucide-react';
 import { usePermissions } from '../../hooks/usePermissions';
 import { getCurrentUser, applicantsApi, documentsApi, settingsApi, employeeWorkflowApi, agenciesApi, workflowApi } from '../../services/api';
@@ -754,10 +754,12 @@ export function CandidateProfile() {
       </Card>
 
       {/* Quick Nav */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
           { label: 'Travel & Residence', icon: FileText },
           { label: 'Driving Licence & Experience', icon: Award },
+          { label: 'Education', icon: GraduationCap },
+          { label: 'Work Experience', icon: Briefcase },
         ].map(({ label, icon: Icon }) => (
           <Button key={label} variant="outline" className="justify-between">
             <div className="flex items-center gap-2"><Icon className="w-4 h-4" /><span>{label}</span></div>
@@ -1066,6 +1068,84 @@ export function CandidateProfile() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Education — full array from applicationData rendered as
+                a list. Hidden when the candidate didn't supply any. */}
+            {Array.isArray(applicantData.applicationData?.education) && applicantData.applicationData.education.length > 0 && (
+              <Card className="lg:col-span-2">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <GraduationCap className="w-5 h-5" />Education
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {applicantData.applicationData.education.map((e: any, i: number) => (
+                    <div key={e.id ?? i} className="p-3 border rounded-md">
+                      <p className="text-sm font-semibold">
+                        {e.level || e.degree || 'Education'}{e.institution ? ` — ${e.institution}` : ''}
+                      </p>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-2 text-sm">
+                        {e.fieldOfStudy && <div><p className="text-xs text-muted-foreground">Field of Study</p><p className="font-medium">{e.fieldOfStudy}</p></div>}
+                        {e.country && <div><p className="text-xs text-muted-foreground">Country</p><p className="font-medium">{e.country}</p></div>}
+                        {e.startDate && <div><p className="text-xs text-muted-foreground">Start</p><p className="font-medium">{e.startDate}</p></div>}
+                        <div><p className="text-xs text-muted-foreground">End</p><p className="font-medium">{(e.current || e.ongoing) ? 'Ongoing' : (e.endDate || '—')}</p></div>
+                      </div>
+                      {e.degree && e.level !== e.degree && (
+                        <p className="text-xs text-muted-foreground mt-2">Degree / Certificate: <span className="text-foreground">{e.degree}</span></p>
+                      )}
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Work Experience — full array with references collapsed
+                into a sub-block per entry. */}
+            {Array.isArray(applicantData.applicationData?.workHistory) && applicantData.applicationData.workHistory.length > 0 && (
+              <Card className="lg:col-span-2">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Briefcase className="w-5 h-5" />Work Experience
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {applicantData.applicationData.workHistory.map((w: any, i: number) => (
+                    <div key={w.id ?? i} className="p-3 border rounded-md">
+                      <p className="text-sm font-semibold">
+                        {w.jobTitle || 'Position'}{w.company ? ` — ${w.company}` : ''}
+                      </p>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-2 text-sm">
+                        {w.country && <div><p className="text-xs text-muted-foreground">Country</p><p className="font-medium">{w.country}</p></div>}
+                        {w.startDate && <div><p className="text-xs text-muted-foreground">Start</p><p className="font-medium">{w.startDate}</p></div>}
+                        <div><p className="text-xs text-muted-foreground">End</p><p className="font-medium">{w.current ? 'Current' : (w.endDate || '—')}</p></div>
+                        {(w.companyPhone || w.companyPhoneCode) && (
+                          <div><p className="text-xs text-muted-foreground">Company Phone</p><p className="font-medium">{[w.companyPhoneCode, w.companyPhone].filter(Boolean).join(' ')}</p></div>
+                        )}
+                      </div>
+                      {w.responsibilities && (
+                        <div className="mt-2">
+                          <p className="text-xs text-muted-foreground">Responsibilities</p>
+                          <p className="text-sm whitespace-pre-wrap">{w.responsibilities}</p>
+                        </div>
+                      )}
+                      {w.reasonForLeaving && (
+                        <p className="text-xs text-muted-foreground mt-2">Reason for leaving: <span className="text-foreground">{w.reasonForLeaving}</span></p>
+                      )}
+                      {(w.referenceName || w.referencePhone || w.referenceEmail) && (
+                        <div className="mt-2 pt-2 border-t">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Reference</p>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                            {w.referenceName && <div><p className="text-xs text-muted-foreground">Name</p><p className="font-medium">{w.referenceName}</p></div>}
+                            {(w.referencePhone || w.referencePhoneCode) && <div><p className="text-xs text-muted-foreground">Phone</p><p className="font-medium">{[w.referencePhoneCode, w.referencePhone].filter(Boolean).join(' ')}</p></div>}
+                            {w.referenceEmail && <div><p className="text-xs text-muted-foreground">Email</p><p className="font-medium">{w.referenceEmail}</p></div>}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
           </div>
         </TabsContent>
 

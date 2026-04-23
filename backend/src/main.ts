@@ -103,19 +103,34 @@ async function runStartupMigrations() {
     `);
     logger.log('applicants/employees — createdById + source columns ensured');
 
-    // 5. One-time cleanup of phantom "Profile Photo" document rows.
+    // 5. Cleanup of phantom profile-photo document rows.
     //    Before the fix, the public /apply photo upload mis-classified
     //    the profile photo as the first-available DocumentType (usually
     //    Passport) while also correctly stamping applicant.photoUrl.
     //    Those Document rows serve no purpose — the photo is already on
     //    the applicant record — and just clutter the Documents tab.
+    //
+    //    Two-pronged match:
+    //      (a) fileUrl matches the applicant's photoUrl — unambiguous
+    //          evidence the document row IS the profile photo.
+    //      (b) name looks like "profile photo" — catches cases where
+    //          the applicant's photoUrl was updated later and no longer
+    //          points at the original doc's fileUrl.
+    //    Cast the enum to text so the comparison is driver-agnostic.
     const deleted = await client.query(`
-      DELETE FROM "documents"
-      WHERE "entityType" = 'APPLICANT'
-        AND "name" ILIKE 'Profile Photo'
+      DELETE FROM "documents" d
+      USING "applicants" a
+      WHERE d."entityType"::text = 'APPLICANT'
+        AND d."entityId" = a.id
+        AND (
+          d."fileUrl" = a."photoUrl"
+          OR d."name" ILIKE '%profile%photo%'
+        )
     `);
     if (deleted.rowCount && deleted.rowCount > 0) {
-      logger.log(`documents — removed ${deleted.rowCount} phantom "Profile Photo" row(s)`);
+      logger.log(`documents — removed ${deleted.rowCount} phantom profile-photo row(s)`);
+    } else {
+      logger.log('documents — no phantom profile-photo rows found');
     }
   } catch (err: any) {
     logger.error('Startup migration error: ' + (err?.message ?? err));

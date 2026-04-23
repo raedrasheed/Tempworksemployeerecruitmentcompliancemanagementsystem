@@ -853,16 +853,9 @@ export function FinancialRecordsTab({ entityType, entityId, canWrite, canChangeS
                     </SelectContent>
                   </Select>
                 </div>
-                {/* Payroll Reference */}
-                <div className="space-y-1">
-                  <Label className="text-xs">Payroll Reference</Label>
-                  <Input
-                    placeholder="e.g. PAY-2026-04"
-                    value={form.payrollReference}
-                    onChange={e => setForm(f => ({ ...f, payrollReference: e.target.value }))}
-                  />
-                  <p className="text-xs text-muted-foreground">For reconciliation purposes</p>
-                </div>
+                {/* Payroll Reference is collected later, when the row is
+                    marked DEDUCTED via the status dialog — at creation
+                    time there's nothing to reconcile against yet. */}
                 {/* Notes — private, long-form context visible only in
                     the expanded panel (not the ledger row). */}
                 <div className="space-y-1">

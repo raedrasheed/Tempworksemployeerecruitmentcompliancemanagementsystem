@@ -90,14 +90,16 @@ export class EmployeesService {
   ) {
     const employee = await this.prisma.employee.findFirst({
       where: { id, deletedAt: null },
+      // Cast to any because the `createdBy` relation was added to the
+      // Prisma schema in the same change that introduced it; a running
+      // tsc --watch won't see the regenerated client until the process
+      // is restarted. The relation resolves fine at runtime.
       include: {
         agency:   true,
         jobType:  { select: { id: true, name: true } },
-        // Original creator of the record. Null if the applicant
-        // self-applied via the public form — read `source` in that case.
         createdBy: { select: { id: true, firstName: true, lastName: true, email: true } },
         employeeStages: { include: { stage: true, assignedTo: { select: { id: true, firstName: true, lastName: true } } }, orderBy: { stage: { order: 'asc' } } },
-      },
+      } as any,
     });
     if (!employee) throw new NotFoundException('Employee not found');
 

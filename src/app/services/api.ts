@@ -1160,6 +1160,17 @@ export const financeApi = {
   removeDeduction: (deductionId: string) =>
     apiFetch<any>(`/finance/deductions/${deductionId}`, { method: 'DELETE' }),
 
+  // Audit trail for a single record — who did what and when.
+  getHistory: (recordId: string) =>
+    apiFetch<Array<{
+      id: string;
+      action: string;
+      createdAt: string;
+      changes: any;
+      user: { id: string; name: string; email: string } | null;
+      userEmail: string | null;
+    }>>(`/finance/${recordId}/history`),
+
   // Upload attachment to a record
   addAttachment: (recordId: string, formData: FormData) => {
     const token = getAccessToken();

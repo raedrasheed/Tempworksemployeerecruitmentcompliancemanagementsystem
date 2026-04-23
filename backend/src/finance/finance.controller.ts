@@ -130,6 +130,14 @@ export class FinanceController {
     return this.financeService.findOne(id);
   }
 
+  @Get(':id/history')
+  @Roles(...FINANCE_READ_ROLES)
+  @ApiOperation({ summary: 'Get the audit trail (who did what + when) for a financial record' })
+  @ApiParam({ name: 'id', description: 'Financial record UUID' })
+  getHistory(@Param('id') id: string) {
+    return this.financeService.getHistory(id);
+  }
+
   // ── Create ────────────────────────────────────────────────────────────────────
 
   @Post()

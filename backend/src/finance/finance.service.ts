@@ -233,6 +233,42 @@ export class FinanceService {
     return record;
   }
 
+  /** Returns the full audit trail for a financial record — who did what
+   *  (CREATE / UPDATE / STATUS / DEDUCTION_ADDED / DEDUCTION_REMOVED /
+   *  ATTACHMENT_ADDED / ATTACHMENT_REMOVED / DELETE) and when. Used by
+   *  the profile's ledger expand panel to show a change history. */
+  async getHistory(id: string) {
+    // Cheap existence check so we return 404 rather than an empty list
+    // when the id is wrong.
+    const record = await this.prisma.financialRecord.findUnique({
+      where: { id }, select: { id: true },
+    });
+    if (!record) throw new NotFoundException(`Financial record ${id} not found`);
+
+    const logs = await this.prisma.auditLog.findMany({
+      where: { entity: 'FinancialRecord', entityId: id, deletedAt: null },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        user: { select: { id: true, firstName: true, lastName: true, email: true } },
+      },
+    });
+
+    return logs.map(l => ({
+      id: l.id,
+      action: l.action,
+      createdAt: l.createdAt,
+      changes: l.changes,
+      user: l.user
+        ? {
+            id: l.user.id,
+            name: [l.user.firstName, l.user.lastName].filter(Boolean).join(' '),
+            email: l.user.email,
+          }
+        : null,
+      userEmail: l.userEmail,
+    }));
+  }
+
   async create(dto: CreateFinancialRecordDto, actorId?: string) {
     if (!['APPLICANT', 'EMPLOYEE', 'AGENCY'].includes(dto.entityType)) {
       throw new BadRequestException('entityType must be APPLICANT, EMPLOYEE or AGENCY');
@@ -300,7 +336,26 @@ export class FinanceService {
       where: { id }, data, include: this.recordInclude,
     });
 
-    await this.auditLog(actorId, 'FINANCIAL_RECORD_UPDATED', id, dto as any);
+    // Build a compact before/after diff so the history panel can show
+    // exactly which fields the operator touched rather than the whole
+    // submitted DTO (which may contain unchanged fields).
+    const TRACKED = [
+      'transactionDate', 'transactionType', 'description', 'currency',
+      'paymentMethod', 'paidByName', 'companyDisbursedAmount',
+      'employeeOrAgencyPaidAmount', 'notes',
+    ] as const;
+    const diff: Record<string, { from: any; to: any }> = {};
+    for (const k of TRACKED) {
+      const before = (existing as any)[k];
+      const after = (dto as any)[k];
+      if (after === undefined) continue;
+      const norm = (v: any) => v instanceof Date ? v.toISOString() : v == null ? null : typeof v === 'object' ? JSON.stringify(v) : v;
+      if (norm(before) !== norm(after)) diff[k] = { from: before ?? null, to: after ?? null };
+    }
+    await this.auditLog(actorId, 'FINANCIAL_RECORD_UPDATED', id, {
+      changed: Object.keys(diff),
+      diff,
+    });
 
     // ── Notification ─────────────────────────────────────────────────────────
     const entityName = await this.resolveEntityNameForNotif(existing.entityType, existing.entityId);

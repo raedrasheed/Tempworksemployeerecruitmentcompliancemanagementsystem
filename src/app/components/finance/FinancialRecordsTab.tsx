@@ -147,6 +147,27 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
   const [constants, setConstants] = useState<Constants | null>(null);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  // Lazy-loaded history per record — fetched the first time the
+  // operator expands a row. Keyed by record id.
+  const [history, setHistory] = useState<Record<string, any[]>>({});
+  const [historyLoading, setHistoryLoading] = useState<Record<string, boolean>>({});
+
+  const loadHistoryFor = async (recordId: string, force = false) => {
+    if (!force && (history[recordId] || historyLoading[recordId])) return;
+    setHistoryLoading(h => ({ ...h, [recordId]: true }));
+    try {
+      const logs = await financeApi.getHistory(recordId);
+      setHistory(h => ({ ...h, [recordId]: logs }));
+    } catch {
+      setHistory(h => ({ ...h, [recordId]: [] }));
+    } finally {
+      setHistoryLoading(h => ({ ...h, [recordId]: false }));
+    }
+  };
+
+  // Every mutation invalidates the whole history cache so timelines
+  // pick up new audit rows the next time a record is expanded.
+  const invalidateHistory = () => { setHistory({}); };
 
   // Add/Edit modal
   const [showModal, setShowModal] = useState(false);
@@ -302,7 +323,11 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
       }
 
       closeModal();
+      invalidateHistory();
       loadRecords();
+      // If the row is still expanded, eagerly refresh its timeline so
+      // the operator sees the new audit entry without collapsing first.
+      if (expandedId) loadHistoryFor(expandedId, true);
     } catch (err: any) {
       toast.error(err?.message || 'Save failed');
     } finally {
@@ -355,7 +380,11 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
         ? 'Deduction added — transaction fully deducted'
         : 'Partial deduction added');
       setShowStatusModal(false);
+      invalidateHistory();
       loadRecords();
+      // If the row is still expanded, eagerly refresh its timeline so
+      // the operator sees the new audit entry without collapsing first.
+      if (expandedId) loadHistoryFor(expandedId, true);
     } catch (err: any) {
       toast.error(err?.message || 'Failed to add deduction');
     } finally {
@@ -367,7 +396,11 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
     try {
       await financeApi.removeDeduction(deductionId);
       toast.success('Deduction removed');
+      invalidateHistory();
       loadRecords();
+      // If the row is still expanded, eagerly refresh its timeline so
+      // the operator sees the new audit entry without collapsing first.
+      if (expandedId) loadHistoryFor(expandedId, true);
     } catch (err: any) {
       toast.error(err?.message || 'Failed to remove deduction');
     }
@@ -380,7 +413,11 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
     try {
       await financeApi.delete(id);
       toast.success('Record deleted');
+      invalidateHistory();
       loadRecords();
+      // If the row is still expanded, eagerly refresh its timeline so
+      // the operator sees the new audit entry without collapsing first.
+      if (expandedId) loadHistoryFor(expandedId, true);
     } catch (err: any) {
       toast.error(err?.message || 'Delete failed');
     } finally {
@@ -400,7 +437,11 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
       toast.success('Attachment uploaded');
       setAttachingId(null);
       setAttachFile(null);
+      invalidateHistory();
       loadRecords();
+      // If the row is still expanded, eagerly refresh its timeline so
+      // the operator sees the new audit entry without collapsing first.
+      if (expandedId) loadHistoryFor(expandedId, true);
     } catch (err: any) {
       toast.error(err?.message || 'Upload failed');
     } finally {
@@ -412,7 +453,11 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
     try {
       await financeApi.removeAttachment(recordId, attachmentId);
       toast.success('Attachment removed');
+      invalidateHistory();
       loadRecords();
+      // If the row is still expanded, eagerly refresh its timeline so
+      // the operator sees the new audit entry without collapsing first.
+      if (expandedId) loadHistoryFor(expandedId, true);
     } catch (err: any) {
       toast.error(err?.message || 'Remove failed');
     }
@@ -564,7 +609,14 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
                       <tr
                         key={rec.id}
                         className="border-b hover:bg-muted/20 transition-colors cursor-pointer"
-                        onClick={() => setExpandedId(expandedId === rec.id ? null : rec.id)}
+                        onClick={() => {
+                          const next = expandedId === rec.id ? null : rec.id;
+                          setExpandedId(next);
+                          // Lazy-load the change history the first
+                          // time the row expands so closed rows don't
+                          // cost a request.
+                          if (next) loadHistoryFor(rec.id);
+                        }}
                       >
                         <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
                           {fmtDate(rec.transactionDate)}
@@ -791,6 +843,28 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
                                   </Button>
                                 ) : null}
                               </div>
+                            </div>
+
+                            {/* Change History — audit trail of everything
+                                that was done to this transaction (create,
+                                edits, deductions added/removed, status
+                                changes, attachments, delete). Lazy-loaded
+                                the first time the row is expanded. */}
+                            <div className="mt-6 pt-4 border-t">
+                              <p className="font-medium text-xs text-muted-foreground uppercase tracking-wide mb-2">
+                                Change History
+                              </p>
+                              {historyLoading[rec.id] ? (
+                                <p className="text-xs text-muted-foreground italic">Loading history…</p>
+                              ) : (history[rec.id]?.length ?? 0) === 0 ? (
+                                <p className="text-xs text-muted-foreground italic">No recorded changes yet.</p>
+                              ) : (
+                                <div className="space-y-1.5">
+                                  {history[rec.id]!.map((h: any) => (
+                                    <HistoryEntry key={h.id} entry={h} currency={rec.currency} />
+                                  ))}
+                                </div>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -1203,6 +1277,95 @@ function InfoItem({ label, value }: { label: string; value: string }) {
     <div className="flex gap-2 text-xs">
       <span className="text-muted-foreground shrink-0">{label}:</span>
       <span className="font-medium">{value}</span>
+    </div>
+  );
+}
+
+// Renders one audit-log entry as a compact two-line card. Accepts the
+// currency so monetary diffs can be rendered with the right formatting.
+function HistoryEntry({ entry, currency }: { entry: any; currency: string }) {
+  const when = new Date(entry.createdAt);
+  const stamp = `${when.toLocaleDateString()} ${when.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+  const who = entry.user?.name || entry.user?.email || entry.userEmail || 'System';
+
+  // Map backend action codes into friendly verbs + tone classes so the
+  // panel reads like a timeline rather than a raw log.
+  const META: Record<string, { label: string; tone: string }> = {
+    FINANCIAL_RECORD_CREATED:            { label: 'Created transaction',       tone: 'text-blue-700 bg-blue-50 border-blue-200' },
+    FINANCIAL_RECORD_UPDATED:            { label: 'Updated fields',            tone: 'text-slate-700 bg-slate-50 border-slate-200' },
+    FINANCIAL_RECORD_STATUS_CHANGED:     { label: 'Changed status',            tone: 'text-amber-700 bg-amber-50 border-amber-200' },
+    FINANCIAL_RECORD_DEDUCTION_ADDED:    { label: 'Added deduction',           tone: 'text-emerald-700 bg-emerald-50 border-emerald-200' },
+    FINANCIAL_RECORD_DEDUCTION_REMOVED:  { label: 'Removed deduction',         tone: 'text-red-700 bg-red-50 border-red-200' },
+    FINANCIAL_ATTACHMENT_ADDED:          { label: 'Attached file',             tone: 'text-indigo-700 bg-indigo-50 border-indigo-200' },
+    FINANCIAL_ATTACHMENT_REMOVED:        { label: 'Removed attachment',        tone: 'text-red-700 bg-red-50 border-red-200' },
+    FINANCIAL_RECORD_DELETED:            { label: 'Deleted transaction',       tone: 'text-red-700 bg-red-50 border-red-200' },
+  };
+  const meta = META[entry.action] ?? { label: entry.action, tone: 'text-slate-700 bg-slate-50 border-slate-200' };
+  const changes = entry.changes ?? {};
+
+  // Build a short human-readable summary of what changed per action.
+  const fmtCurrency = (v: any) => {
+    const n = Number(v);
+    if (Number.isFinite(n)) {
+      try { return `${currency} ${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`; }
+      catch { return `${currency} ${n.toFixed(2)}`; }
+    }
+    return String(v);
+  };
+  const parts: string[] = [];
+  switch (entry.action) {
+    case 'FINANCIAL_RECORD_CREATED':
+      if (changes.transactionType) parts.push(String(changes.transactionType));
+      if (changes.companyDisbursedAmount != null) parts.push(fmtCurrency(changes.companyDisbursedAmount));
+      break;
+    case 'FINANCIAL_RECORD_UPDATED': {
+      const diff = changes.diff ?? {};
+      Object.entries(diff).forEach(([field, v]: [string, any]) => {
+        const isMoney = field === 'companyDisbursedAmount' || field === 'employeeOrAgencyPaidAmount';
+        const from = isMoney ? fmtCurrency(v.from) : (v.from ?? '∅');
+        const to   = isMoney ? fmtCurrency(v.to)   : (v.to   ?? '∅');
+        parts.push(`${field}: ${from} → ${to}`);
+      });
+      if (parts.length === 0 && Array.isArray(changes.changed) && changes.changed.length > 0) {
+        parts.push(changes.changed.join(', '));
+      }
+      break;
+    }
+    case 'FINANCIAL_RECORD_STATUS_CHANGED':
+      if (changes.oldStatus || changes.newStatus) parts.push(`${changes.oldStatus ?? '?'} → ${changes.newStatus ?? '?'}`);
+      if (changes.deductionAmount != null) parts.push(`amount ${fmtCurrency(changes.deductionAmount)}`);
+      if (changes.payrollReference) parts.push(`ref ${changes.payrollReference}`);
+      break;
+    case 'FINANCIAL_RECORD_DEDUCTION_ADDED':
+      if (changes.amount != null) parts.push(fmtCurrency(changes.amount));
+      if (changes.deductionDate) parts.push(`on ${changes.deductionDate}`);
+      if (changes.payrollReference) parts.push(`ref ${changes.payrollReference}`);
+      if (changes.runningTotal != null) parts.push(`total ${fmtCurrency(changes.runningTotal)}`);
+      if (changes.nextStatus) parts.push(`→ ${changes.nextStatus}`);
+      break;
+    case 'FINANCIAL_RECORD_DEDUCTION_REMOVED':
+      if (changes.removedAmount != null) parts.push(`−${fmtCurrency(changes.removedAmount)}`);
+      if (changes.runningTotal != null) parts.push(`total ${fmtCurrency(changes.runningTotal)}`);
+      if (changes.nextStatus) parts.push(`→ ${changes.nextStatus}`);
+      break;
+    case 'FINANCIAL_ATTACHMENT_ADDED':
+    case 'FINANCIAL_ATTACHMENT_REMOVED':
+      if (changes.name) parts.push(changes.name);
+      break;
+  }
+
+  return (
+    <div className={`flex items-start justify-between gap-3 px-2.5 py-1.5 border rounded text-xs ${meta.tone}`}>
+      <div className="min-w-0 flex-1">
+        <p className="font-medium">{meta.label}</p>
+        {parts.length > 0 && (
+          <p className="text-[11px] text-muted-foreground break-words">{parts.join(' · ')}</p>
+        )}
+      </div>
+      <div className="text-right shrink-0">
+        <p className="font-medium">{who}</p>
+        <p className="text-[11px] text-muted-foreground">{stamp}</p>
+      </div>
     </div>
   );
 }

@@ -4,7 +4,7 @@ import {
   ArrowLeft, Mail, Phone, Globe, Briefcase, Calendar, FileText,
   UserPlus, Edit, Trash2, Download, Upload, X,
   Shield, Clock, Award, ChevronRight, MapPin, Loader2, TrendingUp, History, DollarSign,
-  Layers, Plus,
+  Layers, Plus, CheckCircle2, XCircle,
 } from 'lucide-react';
 import { usePermissions } from '../../hooks/usePermissions';
 import { getCurrentUser, applicantsApi, documentsApi, settingsApi, employeeWorkflowApi, agenciesApi, workflowApi } from '../../services/api';
@@ -17,6 +17,8 @@ import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Checkbox } from '../../components/ui/checkbox';
+import { Textarea } from '../../components/ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
 import { toast } from 'sonner';
 import { confirm } from '../../components/ui/ConfirmDialog';
 import { ApplicantPdfExportButton } from '../../components/applicants/ApplicantPdfExport';
@@ -70,6 +72,12 @@ export function CandidateProfile() {
   const [uploading, setUploading] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadForm, setUploadForm] = useState({ documentTypeId: '', name: '', issueDate: '', expiryDate: '', noExpiry: false, documentNumber: '', issuer: '' });
+  // Inline document actions — approve / reject / delete live directly
+  // on each row in the Documents tab, using the same documentsApi.verify
+  // contract as the Doc Compliance page.
+  const [verifyingDocId, setVerifyingDocId] = useState<string | null>(null);
+  const [rejectDocDialog, setRejectDocDialog] = useState<{ open: boolean; docId: string; docName: string }>({ open: false, docId: '', docName: '' });
+  const [rejectDocReason, setRejectDocReason] = useState('');
   const [showConvertDialog, setShowConvertDialog] = useState(false);
   const [converting, setConverting] = useState(false);
   const [convertForm, setConvertForm] = useState({
@@ -329,6 +337,53 @@ export function CandidateProfile() {
       toast.error(err?.message || 'Failed to update agency');
     } finally {
       setChangingAgency(false);
+    }
+  };
+
+  // ── Document row actions ───────────────────────────────────────────────
+  const handleApproveDoc = async (doc: any) => {
+    setVerifyingDocId(doc.id);
+    try {
+      const updated = await documentsApi.verify(doc.id, { action: 'VERIFY' });
+      setDocuments((prev: any[]) => prev.map(d => d.id === doc.id ? updated : d));
+      toast.success(`"${doc.name}" approved`);
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to approve document');
+    } finally {
+      setVerifyingDocId(null);
+    }
+  };
+
+  const handleRejectDocSubmit = async () => {
+    if (!rejectDocReason.trim()) { toast.error('A rejection reason is required'); return; }
+    setVerifyingDocId(rejectDocDialog.docId);
+    try {
+      const updated = await documentsApi.verify(rejectDocDialog.docId, { action: 'REJECT', reason: rejectDocReason.trim() });
+      setDocuments((prev: any[]) => prev.map(d => d.id === rejectDocDialog.docId ? updated : d));
+      toast.success(`"${rejectDocDialog.docName}" rejected`);
+      setRejectDocDialog({ open: false, docId: '', docName: '' });
+      setRejectDocReason('');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to reject document');
+    } finally {
+      setVerifyingDocId(null);
+    }
+  };
+
+  const handleDeleteDoc = async (doc: any) => {
+    const ok = await confirm({
+      title: 'Delete document?',
+      description: `"${doc.name}" will be permanently removed from this candidate's records.`,
+      confirmText: 'Delete',
+      tone: 'destructive',
+    });
+    if (!ok) return;
+    try {
+      await documentsApi.delete(doc.id);
+      setDocuments((prev: any[]) => prev.filter(d => d.id !== doc.id));
+      toast.success('Document deleted');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to delete document');
     }
   };
 
@@ -655,7 +710,7 @@ export function CandidateProfile() {
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="documents">Documents ({documents.length})</TabsTrigger>
           <TabsTrigger value="workflow">Workflow</TabsTrigger>
-          <TabsTrigger value="compliance">Compliance</TabsTrigger>
+          <TabsTrigger value="compliance">Doc Compliance</TabsTrigger>
           {isFinanceOrAdmin && (
             <TabsTrigger
               value="financial"
@@ -1069,17 +1124,38 @@ export function CandidateProfile() {
                           )}
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2 flex-wrap justify-end">
                         <Badge variant="outline" className={docStatusClass(doc.status)}>
                           {doc.status?.replace(/_/g, ' ').toLowerCase()}
                         </Badge>
                         <a
                           href={`${API_BASE}${doc.fileUrl}`}
                           target="_blank" rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-sm px-3 py-1.5 rounded hover:bg-muted transition-colors"
+                          className="inline-flex items-center gap-1 text-sm px-2 py-1 rounded hover:bg-muted transition-colors"
+                          title="Download"
                         >
-                          <Download className="w-4 h-4" />Download
+                          <Download className="w-4 h-4" />
                         </a>
+                        {doc.status === 'PENDING' && can('documents', 'verify') && (
+                          <>
+                            <Button size="sm" className="bg-emerald-500 hover:bg-emerald-600 text-white h-7 px-2" onClick={() => handleApproveDoc(doc)} disabled={verifyingDocId === doc.id}>
+                              <CheckCircle2 className="w-3.5 h-3.5 mr-1" />{verifyingDocId === doc.id ? '…' : 'Approve'}
+                            </Button>
+                            <Button size="sm" variant="outline" className="text-red-500 border-red-300 hover:bg-red-50 h-7 px-2" onClick={() => { setRejectDocDialog({ open: true, docId: doc.id, docName: doc.name }); setRejectDocReason(''); }} disabled={verifyingDocId === doc.id}>
+                              <XCircle className="w-3.5 h-3.5 mr-1" />Reject
+                            </Button>
+                          </>
+                        )}
+                        {canEdit('documents') && (
+                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0" asChild title="Edit">
+                            <Link to={`/dashboard/documents/${doc.id}/edit`}><Edit className="w-3.5 h-3.5" /></Link>
+                          </Button>
+                        )}
+                        {canDelete('documents') && (
+                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-red-400 hover:text-red-600 hover:bg-red-50" onClick={() => handleDeleteDoc(doc)} title="Delete">
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -1664,6 +1740,27 @@ export function CandidateProfile() {
           </Card>
         </div>
       )}
+
+      {/* Reject-document dialog — collects a required rejection reason
+          when the reviewer clicks Reject on a PENDING document row. */}
+      <Dialog open={rejectDocDialog.open} onOpenChange={open => !open && setRejectDocDialog(s => ({ ...s, open: false }))}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Reject Document</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-muted-foreground">Rejecting: <span className="font-medium text-foreground">{rejectDocDialog.docName}</span></p>
+            <div className="space-y-2">
+              <Label htmlFor="reject-doc-reason">Rejection Reason <span className="text-destructive">*</span></Label>
+              <Textarea id="reject-doc-reason" placeholder="Explain why this document is being rejected…" value={rejectDocReason} onChange={e => setRejectDocReason(e.target.value)} rows={4} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRejectDocDialog(s => ({ ...s, open: false }))}>Cancel</Button>
+            <Button className="bg-red-500 hover:bg-red-600 text-white" onClick={handleRejectDocSubmit} disabled={!!verifyingDocId || !rejectDocReason.trim()}>
+              <XCircle className="w-4 h-4 mr-2" />{verifyingDocId ? 'Rejecting…' : 'Confirm Rejection'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

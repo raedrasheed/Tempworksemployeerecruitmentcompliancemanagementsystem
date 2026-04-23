@@ -99,6 +99,11 @@ export function ApplicantProfile() {
   // confirmation panel instead of relying on a fleeting toast, so the
   // operator sees an explicit "done" message.
   const [promoteSuccess, setPromoteSuccess] = useState<{ newCandidateNumber?: string } | null>(null);
+  // Agency picker in the Promote dialog — defaults to the applicant's
+  // existing agency (if any) so the operator just confirms in the
+  // common case; the backend falls back to the System Default Holding
+  // Agency when neither is provided.
+  const [promoteAgencyId, setPromoteAgencyId] = useState<string>('');
   const [financialProfile, setFinancialProfile] = useState<any>(null);
   const [financialLoading, setFinancialLoading] = useState(false);
   const [savingFinancial, setSavingFinancial] = useState(false);
@@ -524,7 +529,10 @@ export function ApplicantProfile() {
     if (!id) return;
     setConvertingLead(true);
     try {
-      const updated = await applicantsApi.convertLeadToCandidate(id, {});
+      // Pass the chosen responsible agency straight through — the
+      // backend falls back to the default holding agency when blank.
+      const payload = promoteAgencyId ? { agencyId: promoteAgencyId } : {};
+      const updated = await applicantsApi.convertLeadToCandidate(id, payload);
       setApplicantData((prev: any) => ({
         ...prev,
         tier: 'CANDIDATE',
@@ -596,7 +604,16 @@ export function ApplicantProfile() {
           )}
           {/* Promote Lead → Candidate */}
           {canEdit('applicants') && applicantData?.tier === 'LEAD' && (
-            <Button variant="outline" className="text-emerald-700 border-emerald-300" onClick={() => setShowConvertLeadDialog(true)}>
+            <Button
+              variant="outline"
+              className="text-emerald-700 border-emerald-300"
+              onClick={() => {
+                // Pre-select the applicant's existing agency so the
+                // operator can just confirm in the common case.
+                setPromoteAgencyId(applicantData?.agencyId ?? '');
+                setShowConvertLeadDialog(true);
+              }}
+            >
               <TrendingUp className="w-4 h-4 mr-2" />Promote to Candidate
             </Button>
           )}
@@ -1822,6 +1839,29 @@ export function ApplicantProfile() {
                   </p>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {/* Responsible agency picker — the backend accepts an
+                      optional agencyId and falls back to the default
+                      holding agency when left blank, so the operator
+                      can promote in one click even without picking. */}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="promote-agency" className="text-sm">Responsible Agency</Label>
+                    <Select value={promoteAgencyId || '__default__'} onValueChange={(v) => setPromoteAgencyId(v === '__default__' ? '' : v)}>
+                      <SelectTrigger id="promote-agency">
+                        <SelectValue placeholder="Use system default" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__default__">
+                          <span className="text-muted-foreground">Use system default holding agency</span>
+                        </SelectItem>
+                        {agencies.map((a: any) => (
+                          <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      The selected agency becomes responsible for this candidate and is recorded in Agency History.
+                    </p>
+                  </div>
                   <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800">
                     This action is logged and can be reviewed in Agency History.
                   </div>

@@ -199,7 +199,11 @@ export class ApplicantsController {
   @Roles('System Admin', 'HR Manager', 'Recruiter')
   @ApiOperation({ summary: 'Perform a bulk action on multiple applicants' })
   bulkAction(@Body() dto: BulkActionDto, @CurrentUser() user: any) {
-    return this.applicantsService.bulkAction(dto, user?.id);
+    return this.applicantsService.bulkAction(
+      dto,
+      user?.id,
+      { role: user?.role, agencyId: user?.agencyId, agencyIsSystem: user?.agencyIsSystem },
+    );
   }
 
   // ── CSV Export ────────────────────────────────────────────────────────────────

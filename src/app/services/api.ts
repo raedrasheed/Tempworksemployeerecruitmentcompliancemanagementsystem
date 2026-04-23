@@ -440,7 +440,7 @@ export const applicantsApi = {
   getAgencyHistory: (id: string) =>
     apiFetch<any[]>(`/applicants/${id}/agency-history`),
 
-  bulkAction: (data: { ids: string[]; action: string; value?: string }) =>
+  bulkAction: (data: { ids: string[]; action: string; value?: string; agencyId?: string }) =>
     apiFetch<any>('/applicants/bulk-action', {
       method: 'POST',
       body: JSON.stringify(data),

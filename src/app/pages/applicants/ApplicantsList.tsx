@@ -275,14 +275,17 @@ export function ApplicantsList() {
   };
 
   // ── Bulk actions ───────────────────────────────────────────────────────────
-  const handleBulkAction = async (action: string, value?: string) => {
+  const handleBulkAction = async (action: string, value?: string, agencyId?: string) => {
     if (selected.size === 0) { toast.error('Select at least one applicant'); return; }
     setBulkActionInProgress(true);
     try {
-      const result = await applicantsApi.bulkAction({ ids: [...selected], action, value });
+      const result = await applicantsApi.bulkAction({ ids: [...selected], action, value, agencyId });
       const failed = result.results?.filter((r: any) => !r.success) ?? [];
       if (failed.length === 0) toast.success(`Bulk action applied to ${selected.size} applicant(s)`);
-      else toast.warning(`Applied to ${selected.size - failed.length}, failed for ${failed.length}`);
+      else toast.warning(
+        `Applied to ${selected.size - failed.length}, failed for ${failed.length}` +
+          (failed[0]?.error ? ` (first error: ${failed[0].error})` : ''),
+      );
       setSelected(new Set());
       await fetchApplicants();
     } catch (err: any) {
@@ -291,6 +294,12 @@ export function ApplicantsList() {
       setBulkActionInProgress(false);
     }
   };
+
+  // ── Bulk Promote dialog state ─────────────────────────────────────────────
+  // Opens a small picker so operators can pick the responsible agency
+  // for every selected lead in one shot instead of one-at-a-time.
+  const [showBulkPromoteDialog, setShowBulkPromoteDialog] = useState(false);
+  const [bulkPromoteAgencyId, setBulkPromoteAgencyId] = useState<string>('');
 
   // ── Bulk PDF Export ────────────────────────────────────────────────────────
   const [pdfExporting, setPdfExporting] = useState(false);
@@ -428,14 +437,10 @@ export function ApplicantsList() {
                   variant="outline"
                   size="sm"
                   disabled={bulkActionInProgress}
-                  onClick={async () => {
+                  onClick={() => {
                     if (selected.size === 0) return;
-                    if (!(await confirm({
-                      title: 'Promote to Candidate?',
-                      description: `${selected.size} selected applicant(s) will be promoted from Lead to Candidate.`,
-                      confirmText: 'Promote',
-                    }))) return;
-                    handleBulkAction('TIER_CHANGE', 'CANDIDATE');
+                    setBulkPromoteAgencyId('');
+                    setShowBulkPromoteDialog(true);
                   }}
                 >Promote to Candidate</Button>
                 <Button
@@ -782,6 +787,52 @@ export function ApplicantsList() {
               }}
             >
               Apply
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Promote to Candidate dialog — agency selection in the
+          same click-through as the confirmation, so one action both
+          promotes the records and pins the responsible agency. */}
+      <Dialog open={showBulkPromoteDialog} onOpenChange={(o) => !o && setShowBulkPromoteDialog(false)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Promote {selected.size} Lead{selected.size === 1 ? '' : 's'} to Candidate</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-muted-foreground">
+              Every selected lead is promoted to a candidate and pinned to the responsible agency you pick below.
+              Leave the picker blank to fall back to the system default holding agency.
+            </p>
+            <div className="space-y-1.5">
+              <Label htmlFor="bulk-promote-agency" className="text-sm">Responsible Agency</Label>
+              <Select value={bulkPromoteAgencyId || '__default__'} onValueChange={(v) => setBulkPromoteAgencyId(v === '__default__' ? '' : v)}>
+                <SelectTrigger id="bulk-promote-agency">
+                  <SelectValue placeholder="Use system default" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__default__">
+                    <span className="text-muted-foreground">Use system default holding agency</span>
+                  </SelectItem>
+                  {agencies.map((a: any) => (
+                    <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowBulkPromoteDialog(false)} disabled={bulkActionInProgress}>Cancel</Button>
+            <Button
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              disabled={bulkActionInProgress}
+              onClick={async () => {
+                setShowBulkPromoteDialog(false);
+                await handleBulkAction('TIER_CHANGE', 'CANDIDATE', bulkPromoteAgencyId || undefined);
+              }}
+            >
+              Promote
             </Button>
           </DialogFooter>
         </DialogContent>

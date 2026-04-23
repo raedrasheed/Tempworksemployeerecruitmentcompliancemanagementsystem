@@ -275,14 +275,17 @@ export function CandidatesList() {
   };
 
   // ── Bulk actions ───────────────────────────────────────────────────────────
-  const handleBulkAction = async (action: string, value?: string) => {
+  const handleBulkAction = async (action: string, value?: string, agencyId?: string) => {
     if (selected.size === 0) { toast.error('Select at least one candidate'); return; }
     setBulkActionInProgress(true);
     try {
-      const result = await applicantsApi.bulkAction({ ids: [...selected], action, value });
+      const result = await applicantsApi.bulkAction({ ids: [...selected], action, value, agencyId });
       const failed = result.results?.filter((r: any) => !r.success) ?? [];
       if (failed.length === 0) toast.success(`Bulk action applied to ${selected.size} candidate(s)`);
-      else toast.warning(`Applied to ${selected.size - failed.length}, failed for ${failed.length}`);
+      else toast.warning(
+        `Applied to ${selected.size - failed.length}, failed for ${failed.length}` +
+          (failed[0]?.error ? ` (first error: ${failed[0].error})` : ''),
+      );
       setSelected(new Set());
       await fetchCandidates();
     } catch (err: any) {
@@ -291,6 +294,13 @@ export function CandidatesList() {
       setBulkActionInProgress(false);
     }
   };
+
+  // ── Bulk Convert to Employee dialog state ─────────────────────────────────
+  // The backend derives address / licence / emergency contact from each
+  // candidate's applicationData; the operator just picks the optional
+  // responsible agency (or leaves it as-is) and confirms.
+  const [showBulkConvertDialog, setShowBulkConvertDialog] = useState(false);
+  const [bulkConvertAgencyId, setBulkConvertAgencyId] = useState<string>('');
 
   // ── Bulk PDF Export ────────────────────────────────────────────────────────
   const [pdfExporting, setPdfExporting] = useState(false);
@@ -433,6 +443,19 @@ export function CandidatesList() {
                     setStatusModalOpen(true);
                   }}
                 >Change Status</Button>
+                <Button
+                  size="sm"
+                  className="bg-[#22C55E] hover:bg-[#16a34a] text-white"
+                  disabled={bulkActionInProgress}
+                  onClick={() => {
+                    if (selected.size === 0) {
+                      toast.error('Select at least one candidate');
+                      return;
+                    }
+                    setBulkConvertAgencyId('');
+                    setShowBulkConvertDialog(true);
+                  }}
+                >Convert to Employees</Button>
               </>
             )}
             <Button variant="outline" size="sm" className="text-red-600" disabled={bulkActionInProgress} onClick={async () => {
@@ -764,6 +787,59 @@ export function CandidatesList() {
               }}
             >
               Apply
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Convert to Employees dialog — confirms, lets the operator
+          (optionally) override the responsible agency, then hands off
+          to the backend CONVERT_TO_EMPLOYEE bulk action which derives
+          per-candidate address / licence / emergency contact from the
+          applicationData blob. Candidates missing required address
+          fields are skipped and reported per-row. */}
+      <Dialog open={showBulkConvertDialog} onOpenChange={(o) => !o && setShowBulkConvertDialog(false)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Convert {selected.size} Candidate{selected.size === 1 ? '' : 's'} to Employee{selected.size === 1 ? '' : 's'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-muted-foreground">
+              Each selected candidate becomes an employee. Address, licence and emergency contact are
+              taken from the candidate's application — any row missing a mandatory address field is
+              skipped and reported back so you can convert it individually.
+            </p>
+            <div className="space-y-1.5">
+              <Label htmlFor="bulk-convert-agency" className="text-sm">Responsible Agency (optional)</Label>
+              <Select value={bulkConvertAgencyId || '__keep__'} onValueChange={(v) => setBulkConvertAgencyId(v === '__keep__' ? '' : v)}>
+                <SelectTrigger id="bulk-convert-agency">
+                  <SelectValue placeholder="Keep each candidate's current agency" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__keep__">
+                    <span className="text-muted-foreground">Keep each candidate's current agency</span>
+                  </SelectItem>
+                  {agencies.map((a: any) => (
+                    <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                When an agency is picked here, every selected candidate is reassigned to it before conversion.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowBulkConvertDialog(false)} disabled={bulkActionInProgress}>Cancel</Button>
+            <Button
+              className="bg-[#22C55E] hover:bg-[#16a34a] text-white"
+              disabled={bulkActionInProgress}
+              onClick={async () => {
+                setShowBulkConvertDialog(false);
+                await handleBulkAction('CONVERT_TO_EMPLOYEE', undefined, bulkConvertAgencyId || undefined);
+              }}
+            >
+              Convert
             </Button>
           </DialogFooter>
         </DialogContent>

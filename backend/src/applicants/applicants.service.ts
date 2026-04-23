@@ -559,9 +559,9 @@ export class ApplicantsService {
 
   // ── Bulk Actions ──────────────────────────────────────────────────────────────
 
-  async bulkAction(dto: BulkActionDto, actorId?: string) {
-    const { ids, action, value } = dto;
-    const results: { id: string; success: boolean; error?: string }[] = [];
+  async bulkAction(dto: BulkActionDto, actorId?: string, actor?: { role: string; agencyId?: string; agencyIsSystem?: boolean }) {
+    const { ids, action, value, agencyId } = dto;
+    const results: { id: string; success: boolean; error?: string; employeeId?: string; candidateNumber?: string; employeeNumber?: string }[] = [];
 
     for (const id of ids) {
       try {
@@ -570,26 +570,98 @@ export class ApplicantsService {
             if (!value) throw new Error('value is required for STATUS_CHANGE');
             await this.prisma.applicant.update({ where: { id }, data: { status: value as any } });
             await this.auditLog(actorId, 'BULK_STATUS_CHANGE', id, { status: value });
+            results.push({ id, success: true });
             break;
 
           case BulkActionType.TIER_CHANGE:
             if (value !== 'LEAD' && value !== 'CANDIDATE') throw new Error('Invalid tier');
-            await this.prisma.applicant.update({ where: { id }, data: { tier: value as any } });
-            await this.auditLog(actorId, 'BULK_TIER_CHANGE', id, { tier: value });
+            if (value === 'CANDIDATE') {
+              // Promotion — route through convertLeadToCandidate so the
+              // Candidate identifier, agency history, and full audit
+              // trail are produced exactly like the single-action path.
+              const updated = await this.convertLeadToCandidate(
+                id,
+                { agencyId: agencyId, notes: 'Bulk promotion' } as any,
+                actorId,
+              );
+              results.push({
+                id,
+                success: true,
+                candidateNumber: (updated as any).candidateNumber ?? undefined,
+              });
+            } else {
+              // Demotion back to LEAD — rare, just flips the flag.
+              await this.prisma.applicant.update({ where: { id }, data: { tier: 'LEAD' as any } });
+              await this.auditLog(actorId, 'BULK_TIER_CHANGE', id, { tier: 'LEAD' });
+              results.push({ id, success: true });
+            }
             break;
 
-          case BulkActionType.ASSIGN_AGENCY:
-            if (!value) throw new Error('value (agencyId) is required for ASSIGN_AGENCY');
-            await this.prisma.applicant.update({ where: { id }, data: { agencyId: value } });
-            await this.auditLog(actorId, 'BULK_ASSIGN_AGENCY', id, { agencyId: value });
+          case BulkActionType.ASSIGN_AGENCY: {
+            const targetAgencyId = agencyId ?? value;
+            if (!targetAgencyId) throw new Error('agencyId is required for ASSIGN_AGENCY');
+            await this.prisma.applicant.update({ where: { id }, data: { agencyId: targetAgencyId } });
+            await this.auditLog(actorId, 'BULK_ASSIGN_AGENCY', id, { agencyId: targetAgencyId });
+            results.push({ id, success: true });
             break;
+          }
+
+          case BulkActionType.CONVERT_TO_EMPLOYEE: {
+            // Candidate→Employee in bulk. convertToEmployee requires
+            // address + emergency fields; derive what we can from the
+            // applicant's applicationData blob so operators don't have
+            // to re-enter per row. If the mandatory fields still aren't
+            // available we report the row as failed and keep going.
+            const applicant = await this.prisma.applicant.findFirst({ where: { id, deletedAt: null } });
+            if (!applicant) throw new Error('Applicant not found');
+            if (applicant.tier !== 'CANDIDATE') {
+              throw new Error('Only Candidates can be converted to employees');
+            }
+            const ad: any = (applicant as any).applicationData ?? {};
+            const homeAddr: any = ad.homeAddress ?? {};
+            const curAddr: any = ad.currentAddress ?? {};
+            const addr = (homeAddr.line1 || homeAddr.city || homeAddr.country) ? homeAddr : curAddr;
+            const addressLine1 = addr.line1 ?? '';
+            const city = addr.city ?? '';
+            const country = addr.country ?? '';
+            const postalCode = addr.postalCode ?? '';
+            if (!addressLine1 || !city || !country || !postalCode) {
+              throw new Error('Missing address (line1/city/country/postalCode) — cannot convert in bulk; convert this one individually');
+            }
+            const emergencyContact = [ad.emergencyFirstName, ad.emergencyLastName].filter(Boolean).join(' ') || undefined;
+            const emergencyPhone = [ad.emergencyPhoneCode, ad.emergencyPhone].filter(Boolean).join(' ').trim() || undefined;
+
+            const dtoForConvert: any = {
+              addressLine1,
+              addressLine2: addr.line2 ?? undefined,
+              city,
+              country,
+              postalCode,
+              licenseNumber: ad.licenseNumber ?? undefined,
+              licenseCategory: Array.isArray(ad.licenseCategories) && ad.licenseCategories.length > 0
+                ? ad.licenseCategories.join(',')
+                : undefined,
+              yearsExperience: Number(ad.euExpYears ?? ad.domesticExpYears ?? 0) || 0,
+              emergencyContact,
+              emergencyPhone,
+            };
+            // If agencyId override supplied on the bulk DTO, pin the
+            // applicant to it before conversion so the employee row
+            // inherits the new agency.
+            if (agencyId && applicant.agencyId !== agencyId) {
+              await this.prisma.applicant.update({ where: { id }, data: { agencyId } });
+            }
+            const { employee, employeeNumber } = await this.convertToEmployee(id, dtoForConvert, actorId, actor);
+            results.push({ id, success: true, employeeId: (employee as any).id, employeeNumber });
+            break;
+          }
 
           case BulkActionType.DELETE:
             await this.prisma.applicant.update({ where: { id }, data: { deletedAt: new Date() } });
             await this.auditLog(actorId, 'BULK_DELETE', id);
+            results.push({ id, success: true });
             break;
         }
-        results.push({ id, success: true });
       } catch (err: any) {
         results.push({ id, success: false, error: err.message });
       }

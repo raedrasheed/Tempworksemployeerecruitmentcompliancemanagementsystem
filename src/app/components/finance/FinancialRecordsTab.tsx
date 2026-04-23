@@ -801,8 +801,17 @@ export function FinancialRecordsTab({ entityType, entityId, canWrite, canChangeS
                     placeholder="0.00"
                     value={form.companyDisbursedAmount}
                     onChange={e => setForm(f => ({ ...f, companyDisbursedAmount: e.target.value }))}
+                    // Lock the monetary amounts once payroll has been
+                    // processed — changing them would silently re-balance
+                    // the ledger without matching reality. Reset status
+                    // to PENDING first if the amount truly needs fixing.
+                    disabled={editRecord?.status === 'DEDUCTED'}
                   />
-                  <p className="text-xs text-muted-foreground">Amount paid BY the company TO/FOR the person</p>
+                  <p className="text-xs text-muted-foreground">
+                    {editRecord?.status === 'DEDUCTED'
+                      ? 'Locked — this transaction has already been deducted through payroll.'
+                      : 'Amount paid BY the company TO/FOR the person'}
+                  </p>
                 </div>
                 {/* Employee/agency paid (informational) */}
                 <div className="space-y-1">
@@ -814,9 +823,34 @@ export function FinancialRecordsTab({ entityType, entityId, canWrite, canChangeS
                     placeholder="0.00"
                     value={form.employeeOrAgencyPaidAmount}
                     onChange={e => setForm(f => ({ ...f, employeeOrAgencyPaidAmount: e.target.value }))}
+                    disabled={editRecord?.status === 'DEDUCTED'}
                   />
-                  <p className="text-xs text-muted-foreground">Not included in balance — reconciliation only</p>
+                  <p className="text-xs text-muted-foreground">
+                    {editRecord?.status === 'DEDUCTED'
+                      ? 'Locked — part of a deducted transaction.'
+                      : 'Not included in balance — reconciliation only'}
+                  </p>
                 </div>
+
+                {/* Show the already-applied deduction amount read-only so
+                    the operator can see what was deducted without having
+                    to reopen the status dialog. */}
+                {editRecord?.status === 'DEDUCTED' && (
+                  <div className="space-y-1 md:col-span-2">
+                    <Label className="text-xs text-amber-700">Deducted Amount (Debit) — locked</Label>
+                    <Input
+                      type="number"
+                      value={editRecord.deductionAmount ?? ''}
+                      readOnly
+                      disabled
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Recorded on {editRecord.deductionDate ? fmtDate(editRecord.deductionDate) : '—'}.
+                      {editRecord.payrollReference ? ` Payroll ref: ${editRecord.payrollReference}.` : ''}
+                      {' '}To correct a mistake, ask an admin to revert the status to Pending first.
+                    </p>
+                  </div>
+                )}
                 {/* Payment method */}
                 <div className="space-y-1">
                   <Label className="text-xs">Payment Method</Label>

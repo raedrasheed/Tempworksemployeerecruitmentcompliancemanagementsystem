@@ -4,7 +4,7 @@ import { Plus, Search, Download, Eye, Edit, Trash2, RefreshCw, ArrowUp, ArrowDow
 import { toast } from 'sonner';
 import { confirm } from '../../components/ui/ConfirmDialog';
 import { exportRecordsAsPdfZip, safeFilename } from '../../utils/bulkPdfExport';
-import { EmployeePDF } from '../../components/employees/EmployeePdfDocument';
+import { buildEmployeePdfBlob } from '../../components/employees/EmployeePdfDocument';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -14,7 +14,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '../../components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
-import { employeesApi, agenciesApi, getAccessToken } from '../../services/api';
+import { employeesApi, agenciesApi, getAccessToken, documentsApi } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
 
 const STATUSES = ['ACTIVE', 'PENDING', 'ONBOARDING', 'INACTIVE', 'SUSPENDED', 'ON_LEAVE'];
@@ -236,7 +236,13 @@ export function EmployeesList() {
       await exportRecordsAsPdfZip({
         records,
         zipName: `Employees_Profiles_${today}`,
-        renderDoc: (rec) => <EmployeePDF employee={rec} />,
+        // Merge each employee's uploaded documents into their PDF so
+        // the bulk ZIP includes the full dossier, not just the profile.
+        buildBlob: async (rec) => {
+          const docsRes: any = await documentsApi.getByEntity('EMPLOYEE', rec.id).catch(() => []);
+          const docs = Array.isArray(docsRes) ? docsRes : Array.isArray(docsRes?.data) ? docsRes.data : [];
+          return buildEmployeePdfBlob(rec, docs);
+        },
         filename: (rec) => {
           const name = safeFilename([rec.firstName, rec.lastName].filter(Boolean).join('_') || 'Employee');
           const num = rec.employeeNumber || rec.id;

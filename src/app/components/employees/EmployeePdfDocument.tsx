@@ -3,7 +3,10 @@
  * React-PDF document used for single-profile and bulk employee exports.
  * Mirrors the layout conventions of ApplicantPDF for visual consistency.
  */
-import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
+import { Document, Page, Text, View, StyleSheet, Image, pdf } from '@react-pdf/renderer';
+import { PDFDocument } from 'pdf-lib';
+
+const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1').replace('/api/v1', '');
 
 const S = StyleSheet.create({
   page: { fontFamily: 'Helvetica', fontSize: 9, padding: 36, color: '#1a1a2e', backgroundColor: '#fff' },
@@ -130,4 +133,57 @@ export function EmployeePDF({ employee, photoDataUrl }: { employee: any; photoDa
       </Page>
     </Document>
   );
+}
+
+// ── Shared blob builder ──────────────────────────────────────────────────────
+// Renders the employee's react-pdf profile, optionally embeds the
+// profile photo in the header, and appends every supplied supporting
+// document (PDFs verbatim, images on their own A4 page). Shared by the
+// bulk "Export PDFs" flow on the Employees list.
+export async function buildEmployeePdfBlob(employee: any, documents: any[] = []): Promise<Blob> {
+  let photoDataUrl: string | undefined;
+  if (employee?.photoUrl) {
+    try {
+      const res = await fetch(`${API_BASE}${employee.photoUrl}`);
+      const blob = await res.blob();
+      photoDataUrl = await new Promise<string>(resolve => {
+        const r = new FileReader();
+        r.onload = () => resolve(r.result as string);
+        r.readAsDataURL(blob);
+      });
+    } catch { /* photo optional */ }
+  }
+
+  const profileBlob = await pdf(<EmployeePDF employee={employee} photoDataUrl={photoDataUrl} />).toBlob();
+  if (!documents || documents.length === 0) return profileBlob;
+
+  const mergedPdf = await PDFDocument.create();
+  const profileBytes = await profileBlob.arrayBuffer();
+  const profilePdf = await PDFDocument.load(profileBytes);
+  const profilePages = await mergedPdf.copyPages(profilePdf, profilePdf.getPageIndices());
+  profilePages.forEach(p => mergedPdf.addPage(p));
+
+  for (const doc of documents) {
+    try {
+      const res = await fetch(`${API_BASE}${doc.fileUrl}`);
+      const bytes = await res.arrayBuffer();
+      const mime = doc.mimeType ?? '';
+      if (mime === 'application/pdf') {
+        const docPdf = await PDFDocument.load(bytes, { ignoreEncryption: true });
+        const pages = await mergedPdf.copyPages(docPdf, docPdf.getPageIndices());
+        pages.forEach(p => mergedPdf.addPage(p));
+      } else if (mime.startsWith('image/')) {
+        const page = mergedPdf.addPage([595, 842]);
+        const img = mime === 'image/png' ? await mergedPdf.embedPng(bytes) : await mergedPdf.embedJpg(bytes);
+        const { width, height } = img.scaleToFit(523, 770);
+        page.drawImage(img, { x: (595 - width) / 2, y: (842 - height) / 2, width, height });
+      }
+      // docx / unknown types silently skipped — pdf-lib can't embed them.
+    } catch {
+      // Keep going on a per-doc failure so one bad file doesn't ruin the bundle.
+    }
+  }
+
+  const mergedBytes = await mergedPdf.save();
+  return new Blob([mergedBytes], { type: 'application/pdf' });
 }

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { applicantsApi, agenciesApi, settingsApi } from '../../services/api';
+import { applicantsApi, agenciesApi, settingsApi, documentsApi } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
 import { getCurrentUser, getAccessToken } from '../../services/api';
 import { Link } from 'react-router';
@@ -7,7 +7,7 @@ import { Search, Plus, Eye, Edit, Download, Trash2, RefreshCw, ArrowUp, ArrowDow
 import { toast } from 'sonner';
 import { confirm } from '../../components/ui/ConfirmDialog';
 import { exportRecordsAsPdfZip, safeFilename } from '../../utils/bulkPdfExport';
-import { ApplicantPDF } from '../../components/applicants/ApplicantPdfExport';
+import { buildApplicantPdfBlob } from '../../components/applicants/ApplicantPdfExport';
 import { WhatsAppButton } from '../../components/WhatsAppButton';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -313,7 +313,15 @@ export function CandidatesList() {
       await exportRecordsAsPdfZip({
         records,
         zipName: `Candidates_Profiles_${today}`,
-        renderDoc: (rec) => <ApplicantPDF applicant={rec} />,
+        // Merge each candidate's uploaded documents into their PDF so
+        // the bulk ZIP matches the single-profile download.
+        buildBlob: async (rec) => {
+          // The endpoint returns either an array or a PaginatedResponse
+          // shape — handle both so the merge doesn't silently drop docs.
+          const docsRes: any = await documentsApi.getByEntity('APPLICANT', rec.id).catch(() => []);
+          const docs = Array.isArray(docsRes) ? docsRes : Array.isArray(docsRes?.data) ? docsRes.data : [];
+          return buildApplicantPdfBlob(rec, docs);
+        },
         filename: (rec) => {
           const name = safeFilename([rec.firstName, rec.lastName].filter(Boolean).join('_') || 'Candidate');
           const num = rec.candidateNumber || rec.leadNumber || rec.applicationNumber || rec.id;

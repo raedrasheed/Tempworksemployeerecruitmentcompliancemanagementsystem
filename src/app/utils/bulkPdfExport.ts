@@ -22,12 +22,19 @@ async function loadJSZip(): Promise<any | null> {
 }
 
 export type BulkRenderFn<T> = (record: T) => Promise<ReactElement> | ReactElement;
+export type BulkBlobFn<T> = (record: T) => Promise<Blob>;
 export type BulkFilenameFn<T> = (record: T) => string;
 
 export type BulkPdfExportOptions<T> = {
   records: T[];
   zipName: string;
-  renderDoc: BulkRenderFn<T>;
+  /** Render a react-pdf element for each record. Ignored when `buildBlob`
+   *  is supplied — pass `buildBlob` instead when the final PDF needs
+   *  post-processing (e.g. merging supporting documents via pdf-lib). */
+  renderDoc?: BulkRenderFn<T>;
+  /** Build the complete PDF blob for a record. Takes precedence over
+   *  `renderDoc`. */
+  buildBlob?: BulkBlobFn<T>;
   filename: BulkFilenameFn<T>;
   /** How many PDFs to render concurrently. Default 3. */
   concurrency?: number;
@@ -84,17 +91,23 @@ async function mapWithConcurrency<T, R>(
 
 /** Generate one PDF per record and download them as a single ZIP. */
 export async function exportRecordsAsPdfZip<T>(opts: BulkPdfExportOptions<T>): Promise<void> {
-  const { records, zipName, renderDoc, filename, concurrency = 3, onProgress } = opts;
+  const { records, zipName, renderDoc, buildBlob, filename, concurrency = 3, onProgress } = opts;
   if (!records.length) return;
+  if (!buildBlob && !renderDoc) {
+    throw new Error('exportRecordsAsPdfZip needs either buildBlob or renderDoc');
+  }
 
   const total = records.length;
   onProgress?.(0, total);
 
-  // 1. Render every record into { name, blob } in parallel (bounded).
+  // 1. Produce every record as { name, blob } in parallel (bounded).
+  //    buildBlob wins over renderDoc when both are provided.
   const parts = await mapWithConcurrency(
     records,
     async (rec) => {
-      const blob = await renderToBlob(rec, renderDoc);
+      const blob = buildBlob
+        ? await buildBlob(rec)
+        : await renderToBlob(rec, renderDoc!);
       return { name: filename(rec), blob };
     },
     concurrency,

@@ -249,6 +249,94 @@ async function runStartupMigrations() {
     `);
     logger.log('attendance — break columns + lock table ensured');
 
+    // 9. Employee Work History (Contracts tab — post-hire timeline).
+    //    Idempotent: creates the enum, the two tables, and the FKs.
+    await client.query(`
+      DO $$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'WorkHistoryEventType') THEN
+          CREATE TYPE "WorkHistoryEventType" AS ENUM (
+            'NEW_CONTRACT', 'PROBATION_START', 'PROBATION_END',
+            'END_OF_CONTRACT', 'UNPAID_LEAVE_START', 'UNPAID_LEAVE_END',
+            'TERMINATED'
+          );
+        END IF;
+      END $$
+    `);
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS "employee_work_history" (
+        "id"           text PRIMARY KEY,
+        "employeeId"   text NOT NULL,
+        "date"         date NOT NULL,
+        "eventType"    "WorkHistoryEventType" NOT NULL,
+        "description"  text,
+        "createdById"  text,
+        "approvedById" text,
+        "createdAt"    timestamptz NOT NULL DEFAULT now(),
+        "updatedAt"    timestamptz NOT NULL DEFAULT now(),
+        "deletedAt"    timestamptz,
+        "deletedBy"    text
+      )
+    `);
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS "employee_work_history_employeeId_date_idx"
+        ON "employee_work_history"("employeeId", "date")
+    `);
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS "employee_work_history_eventType_idx"
+        ON "employee_work_history"("eventType")
+    `);
+    await client.query(`
+      DO $$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'employee_work_history_employeeId_fkey') THEN
+          ALTER TABLE "employee_work_history"
+            ADD CONSTRAINT "employee_work_history_employeeId_fkey"
+            FOREIGN KEY ("employeeId") REFERENCES "employees"(id) ON DELETE CASCADE;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'employee_work_history_createdById_fkey') THEN
+          ALTER TABLE "employee_work_history"
+            ADD CONSTRAINT "employee_work_history_createdById_fkey"
+            FOREIGN KEY ("createdById") REFERENCES "users"(id) ON DELETE SET NULL;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'employee_work_history_approvedById_fkey') THEN
+          ALTER TABLE "employee_work_history"
+            ADD CONSTRAINT "employee_work_history_approvedById_fkey"
+            FOREIGN KEY ("approvedById") REFERENCES "users"(id) ON DELETE SET NULL;
+        END IF;
+      END $$
+    `);
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS "employee_work_history_attachments" (
+        "id"            text PRIMARY KEY,
+        "workHistoryId" text NOT NULL,
+        "name"          text NOT NULL,
+        "fileUrl"       text NOT NULL,
+        "mimeType"      text,
+        "fileSize"      integer,
+        "uploadedById"  text,
+        "createdAt"     timestamptz NOT NULL DEFAULT now(),
+        "deletedAt"     timestamptz
+      )
+    `);
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS "employee_work_history_attachments_workHistoryId_idx"
+        ON "employee_work_history_attachments"("workHistoryId")
+    `);
+    await client.query(`
+      DO $$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'employee_work_history_attachments_workHistoryId_fkey') THEN
+          ALTER TABLE "employee_work_history_attachments"
+            ADD CONSTRAINT "employee_work_history_attachments_workHistoryId_fkey"
+            FOREIGN KEY ("workHistoryId") REFERENCES "employee_work_history"(id) ON DELETE CASCADE;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'employee_work_history_attachments_uploadedById_fkey') THEN
+          ALTER TABLE "employee_work_history_attachments"
+            ADD CONSTRAINT "employee_work_history_attachments_uploadedById_fkey"
+            FOREIGN KEY ("uploadedById") REFERENCES "users"(id) ON DELETE SET NULL;
+        END IF;
+      END $$
+    `);
+    logger.log('employee_work_history — tables + enum + FKs ensured');
+
     // 5. Cleanup of phantom profile-photo document rows.
     //    Before the fix, the public /apply photo upload mis-classified
     //    the profile photo as the first-available DocumentType (usually

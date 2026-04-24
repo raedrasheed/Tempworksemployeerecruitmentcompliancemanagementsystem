@@ -1408,6 +1408,53 @@ export const workflowApi = {
 
 // ── Attendance API ─────────────────────────────────────────────────────────────
 
+// ─── Employee Work History API ──────────────────────────────────────────────
+// Post-hire business timeline on the Employee profile's Contracts tab.
+// Deliberately separate from workflow-history endpoints so pipeline and
+// contract events never mix.
+export const employeeWorkHistoryApi = {
+  list: (employeeId: string) =>
+    apiFetch<Array<{
+      id: string;
+      employeeId: string;
+      date: string;
+      eventType: string;
+      description?: string | null;
+      createdAt: string;
+      updatedAt: string;
+      createdBy?:  { id: string; firstName: string; lastName: string; email: string } | null;
+      approvedBy?: { id: string; firstName: string; lastName: string; email: string } | null;
+      attachments?: Array<{ id: string; name: string; fileUrl: string; mimeType?: string; fileSize?: number; createdAt: string }>;
+    }>>(`/employees/${employeeId}/work-history`),
+
+  create: (employeeId: string, data: { date: string; eventType: string; description?: string; approvedById?: string }) =>
+    apiFetch<any>(`/employees/${employeeId}/work-history`, { method: 'POST', body: JSON.stringify(data) }),
+
+  update: (employeeId: string, entryId: string, data: { date?: string; eventType?: string; description?: string; approvedById?: string }) =>
+    apiFetch<any>(`/employees/${employeeId}/work-history/${entryId}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  delete: (employeeId: string, entryId: string) =>
+    apiFetch<any>(`/employees/${employeeId}/work-history/${entryId}`, { method: 'DELETE' }),
+
+  addAttachment: (employeeId: string, entryId: string, formData: FormData) => {
+    const token = getAccessToken();
+    return fetch(`${API_URL}/employees/${employeeId}/work-history/${entryId}/attachments`, {
+      method: 'POST',
+      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: formData,
+    }).then(async res => {
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error((err as any)?.message || 'Upload failed');
+      }
+      return res.json();
+    });
+  },
+
+  removeAttachment: (employeeId: string, entryId: string, attachmentId: string) =>
+    apiFetch<any>(`/employees/${employeeId}/work-history/${entryId}/attachments/${attachmentId}`, { method: 'DELETE' }),
+};
+
 export const attendanceApi = {
   /**
    * List employees with their aggregated attendance stats for the given month/year.

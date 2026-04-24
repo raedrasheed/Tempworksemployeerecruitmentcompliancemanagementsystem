@@ -17,6 +17,7 @@ import { usePermissions } from '../../hooks/usePermissions';
 import { FinancialRecordsTab } from '../../components/finance/FinancialRecordsTab';
 import { ApplicationDataView } from '../../components/applicants/ApplicationDataView';
 import { AttendanceTab } from '../../components/attendance/AttendanceTab';
+import { WorkHistoryTimeline } from '../../components/employees/WorkHistoryTimeline';
 
 const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1').replace('/api/v1', '');
 
@@ -490,6 +491,7 @@ export function EmployeeProfile() {
           <TabsTrigger value="documents">Documents ({documents.length})</TabsTrigger>
           <TabsTrigger value="workflow">Workflow</TabsTrigger>
           <TabsTrigger value="attendance">Attendance &amp; Time Sheets</TabsTrigger>
+          <TabsTrigger value="contracts">Contracts</TabsTrigger>
           <TabsTrigger value="compliance">Compliance</TabsTrigger>
           {isFinanceOrAdmin && (
             <TabsTrigger value="financial">
@@ -1092,6 +1094,14 @@ export function EmployeeProfile() {
             canWrite={canEdit('employees')}
             canLock={currentUser?.role === 'System Admin' || currentUser?.role === 'HR Manager' || currentUser?.role === 'Finance'}
           />
+        </TabsContent>
+
+        {/* Contracts — post-hire business timeline. Deliberately
+            different from the Workflow tab above it: Workflow tracks
+            the recruitment pipeline, Contracts tracks everything
+            that happens once the person is an Employee. */}
+        <TabsContent value="contracts">
+          <WorkHistoryTimeline employeeId={id!} canWrite={canEdit('employees')} />
         </TabsContent>
 
         {/* Compliance */}

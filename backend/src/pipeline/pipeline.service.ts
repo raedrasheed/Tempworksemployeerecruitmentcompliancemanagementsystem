@@ -196,7 +196,7 @@ export class WorkflowService {
       Math.min(Number(minApprovals ?? 1) || 1, Math.max(effectiveApprovers.length, 1)),
     );
     // Whitelist the approval mode — more modes can be added later.
-    const normalizedMode = ['ANY'].includes(String(approvalMode ?? 'ANY').toUpperCase())
+    const normalizedMode = ['ANY', 'ALL'].includes(String(approvalMode ?? 'ANY').toUpperCase())
       ? String(approvalMode ?? 'ANY').toUpperCase()
       : 'ANY';
     const stageUsers = [
@@ -236,7 +236,7 @@ export class WorkflowService {
     const updatePayload: any = { ...stageData };
     if (approvalMode !== undefined) {
       const normalized = String(approvalMode).toUpperCase();
-      updatePayload.approvalMode = ['ANY'].includes(normalized) ? normalized : 'ANY';
+      updatePayload.approvalMode = ['ANY', 'ALL'].includes(normalized) ? normalized : 'ANY';
     }
 
     const anyUserListProvided =
@@ -744,10 +744,13 @@ export class WorkflowService {
       const srcApprovers   = (srcStage.assignedUsers ?? []).filter((u: any) => u.role === 'APPROVER' || u.role === 'REVIEWER');
       const srcResponsible = (srcStage.assignedUsers ?? []).filter((u: any) => u.role === 'RESPONSIBLE');
 
-      // Rule 1 — approval gate. Empty approver list = "None" →
-      // responsible users can advance freely. Otherwise at least
-      // `minApprovals` distinct listed approvers must have
-      // APPROVED (default 1).
+      // Rule 1 — approval gate.
+      //   Empty approver list = "None" → Responsible users advance
+      //     the candidate freely.
+      //   approvalMode = "ALL"  → every listed approver must
+      //     individually approve.
+      //   approvalMode = "ANY"  (default) → at least `minApprovals`
+      //     distinct listed approvers must approve.
       if (srcApprovers.length > 0) {
         const approverIds = new Set(srcApprovers.map((u: any) => u.userId));
         const approvedBy = new Set(
@@ -759,14 +762,15 @@ export class WorkflowService {
             )
             .map((a: any) => a.approvedById),
         );
-        const required = Math.max(1, Math.min(
-          Number(srcStage.minApprovals ?? 1) || 1,
-          srcApprovers.length,
-        ));
+        const mode = String(srcStage.approvalMode ?? 'ANY').toUpperCase();
+        const required = mode === 'ALL'
+          ? srcApprovers.length
+          : Math.max(1, Math.min(Number(srcStage.minApprovals ?? 1) || 1, srcApprovers.length));
         if (approvedBy.size < required) {
           throw new ForbiddenException(
             `Stage "${srcStage.name}" is awaiting approval. ` +
-            `${approvedBy.size} of ${required} required approver(s) have approved.`,
+            `${approvedBy.size} of ${required} required approver(s) have approved` +
+            (mode === 'ALL' ? ' (mode: All approvers).' : '.'),
           );
         }
       }

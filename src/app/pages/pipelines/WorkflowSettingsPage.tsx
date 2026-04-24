@@ -74,9 +74,10 @@ export function WorkflowSettingsPage() {
   // Minimum distinct approvers that must approve before advance.
   // Bounded to [1, approvers.length] on submit.
   const [minApprovals, setMinApprovals] = useState(1);
-  // Approval mode. Currently only "ANY" is supported; kept as a
-  // state + dropdown so future modes plug in without rework.
-  const [approvalMode, setApprovalMode] = useState<'ANY'>('ANY');
+  // Approval mode:
+  //   ANY — at least `minApprovals` of the listed approvers must approve
+  //   ALL — every listed approver must individually approve
+  const [approvalMode, setApprovalMode] = useState<'ANY' | 'ALL'>('ANY');
   const [newDocId, setNewDocId] = useState('');
   const [newUserId, setNewUserId] = useState('');
   const [savingReq, setSavingReq] = useState(false);
@@ -245,7 +246,7 @@ export function WorkflowSettingsPage() {
     setResponsibleUsers(responsibles.map((au: any) => ({ id: au.user.id, firstName: au.user.firstName, lastName: au.user.lastName })));
     setResponsibleAny((stage as any).responsibleAny ?? true);
     setMinApprovals(Math.max(1, Number((stage as any).minApprovals ?? 1)));
-    setApprovalMode(((stage as any).approvalMode ?? 'ANY') === 'ANY' ? 'ANY' : 'ANY');
+    setApprovalMode(((stage as any).approvalMode ?? 'ANY') === 'ALL' ? 'ALL' : 'ANY');
     setNewDocId('');
     setNewUserId('');
     setNewResponsibleId('');
@@ -272,9 +273,14 @@ export function WorkflowSettingsPage() {
       // Clamp minApprovals at the client too so the ceiling is
       // obvious in the UI; the backend clamps again defensively.
       const approverCount = reqUsers.length;
+      // "ALL" forces every listed approver regardless of the
+      // minApprovals slider value; the backend enforces the same
+      // defensively.
       const clampedMin = approverCount === 0
         ? 1
-        : Math.max(1, Math.min(minApprovals || 1, approverCount));
+        : approvalMode === 'ALL'
+          ? approverCount
+          : Math.max(1, Math.min(minApprovals || 1, approverCount));
       await workflowApi.updateStage(selectedStage.id, {
         requiredDocTypeIds: reqDocs.map(d => d.id),
         approverUserIds:    reqUsers.map(u => u.id),
@@ -752,7 +758,9 @@ export function WorkflowSettingsPage() {
                 <p className="text-xs text-muted-foreground mt-1">
                   {reqUsers.length === 0
                     ? 'None — candidate advances as soon as a Responsible user sends them to the next stage.'
-                    : `At least ${Math.max(1, Math.min(minApprovals || 1, reqUsers.length))} of ${reqUsers.length} approver${reqUsers.length === 1 ? '' : 's'} must approve before the candidate can advance.`}
+                    : approvalMode === 'ALL'
+                      ? `All ${reqUsers.length} approver${reqUsers.length === 1 ? '' : 's'} must individually approve before the candidate can advance.`
+                      : `At least ${Math.max(1, Math.min(minApprovals || 1, reqUsers.length))} of ${reqUsers.length} approver${reqUsers.length === 1 ? '' : 's'} must approve before the candidate can advance.`}
                 </p>
 
                 {/* Approval mode + minimum approvals — only
@@ -764,23 +772,29 @@ export function WorkflowSettingsPage() {
                   <div className="mt-2 flex items-center gap-3 flex-wrap">
                     <div className="flex items-center gap-2">
                       <Label htmlFor="wf-approval-mode" className="text-xs text-muted-foreground">Approval mode</Label>
-                      <Select value={approvalMode} onValueChange={(v) => setApprovalMode(v as 'ANY')}>
+                      <Select value={approvalMode} onValueChange={(v) => setApprovalMode(v as 'ANY' | 'ALL')}>
                         <SelectTrigger id="wf-approval-mode" className="w-28 h-8"><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="ANY">Any</SelectItem>
+                          <SelectItem value="ALL">All</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className={`flex items-center gap-2 ${approvalMode === 'ALL' ? 'opacity-50' : ''}`}>
                       <Label htmlFor="wf-min-approvals" className="text-xs text-muted-foreground">Minimum approvals required</Label>
                       <input
                         id="wf-min-approvals"
                         type="number"
                         min={1}
                         max={reqUsers.length}
-                        value={Math.max(1, Math.min(minApprovals || 1, reqUsers.length))}
+                        // In ALL mode every approver is required —
+                        // show the ceiling and lock the field.
+                        value={approvalMode === 'ALL'
+                          ? reqUsers.length
+                          : Math.max(1, Math.min(minApprovals || 1, reqUsers.length))}
+                        disabled={approvalMode === 'ALL'}
                         onChange={(e) => setMinApprovals(Math.max(1, Math.min(Number(e.target.value) || 1, reqUsers.length)))}
-                        className="w-16 px-2 py-1 border rounded text-sm text-center"
+                        className="w-16 px-2 py-1 border rounded text-sm text-center disabled:bg-muted"
                       />
                       <span className="text-xs text-muted-foreground">of {reqUsers.length}</span>
                     </div>

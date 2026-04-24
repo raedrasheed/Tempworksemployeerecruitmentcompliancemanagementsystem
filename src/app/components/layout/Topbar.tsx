@@ -20,6 +20,7 @@ import {
   DialogTitle,
 } from '../ui/dialog';
 import { authApi, getCurrentUser, setCurrentUser, notificationsApi, BACKEND_URL, type AuthUser } from '../../services/api';
+import { useAuthContext } from '../../contexts/AuthContext';
 import { toast } from 'sonner';
 
 // ── Notification bell dropdown ────────────────────────────────────────────────
@@ -388,15 +389,23 @@ function ChangePasswordDialog({ open, onClose }: { open: boolean; onClose: () =>
 export function Topbar() {
   const navigate = useNavigate();
   const { isDark, toggleDark } = useTheme();
+  const { user: ctxUser, updateUser } = useAuthContext();
   const [unreadCount, setUnreadCount] = useState(0);
-  const [liveUser, setLiveUser] = useState<AuthUser | null>(getCurrentUser());
+  const [liveUser, setLiveUser] = useState<AuthUser | null>(ctxUser ?? getCurrentUser());
   const [showChangePassword, setShowChangePassword] = useState(false);
+
+  // Keep local display state aligned with AuthContext so Sidebar and Topbar
+  // never drift apart (e.g. after permission edits from the admin UI).
+  useEffect(() => {
+    if (ctxUser) setLiveUser(ctxUser);
+  }, [ctxUser]);
 
   useEffect(() => {
     authApi.me()
       .then((user) => {
         setLiveUser(user);
         setCurrentUser(user);
+        updateUser(user);
       })
       .catch(() => {});
 
@@ -409,6 +418,7 @@ export function Topbar() {
     fetchUnread();
     const interval = setInterval(fetchUnread, 30_000);
     return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleLogout = async () => {

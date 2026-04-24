@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   LayoutDashboard,
   Users,
@@ -28,7 +28,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../ui/utils';
 import { useAuthContext } from '../../contexts/AuthContext';
-import { BACKEND_URL } from '../../services/api';
+import { BACKEND_URL, getCurrentUser, authApi, type AuthUser } from '../../services/api';
 import { useBranding } from '../../hooks/useBranding';
 
 interface NavChild {
@@ -89,8 +89,25 @@ interface SidebarProps {
 
 export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
   const location = useLocation();
-  const { user } = useAuthContext();
+  const { user: ctxUser } = useAuthContext();
   const branding = useBranding();
+
+  // Fallback to localStorage + live /auth/me when AuthContext hasn't populated
+  // yet. Keeps the sidebar's nav filter and user block in sync with the Topbar,
+  // which uses its own local state fetched via authApi.me().
+  const [localUser, setLocalUser] = useState<AuthUser | null>(() => getCurrentUser());
+  useEffect(() => {
+    authApi.me()
+      .then((fresh) => { if (fresh) setLocalUser(fresh); })
+      .catch(() => {});
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === 'current_user') setLocalUser(getCurrentUser());
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
+
+  const user = ctxUser ?? localUser;
   const userRole = user?.role ?? '';
   const permissions = user?.permissions ?? [];
   const isAdmin = userRole === 'System Admin';

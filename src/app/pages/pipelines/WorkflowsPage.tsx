@@ -16,6 +16,8 @@ import {
   MoreVertical,
   Trash2,
   Settings2,
+  Globe,
+  Lock,
 } from 'lucide-react';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -56,6 +58,18 @@ function WorkflowCard({
             {workflow.status === 'ARCHIVED' && (
               <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-500 border border-slate-200">
                 <Archive className="w-2.5 h-2.5" /> Archived
+              </span>
+            )}
+            {/* Visibility chip — Public workflows are available to any
+                tenant; Private workflows are restricted to the users
+                listed in accessUsers. */}
+            {workflow.isPublic ? (
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <Globe className="w-2.5 h-2.5" /> Public
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-50 text-slate-700 border border-slate-200">
+                <Lock className="w-2.5 h-2.5" /> Private
               </span>
             )}
           </div>

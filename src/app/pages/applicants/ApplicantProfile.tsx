@@ -1356,7 +1356,10 @@ export function ApplicantProfile() {
                           <SelectItem key={w.id} value={w.id}>
                             <div className="flex items-center gap-2">
                               <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: w.color ?? '#6366F1' }} />
-                              {w.name}
+                              <span>{w.name}</span>
+                              <span className={`ml-1 text-[10px] px-1.5 py-0.5 rounded border ${w.isPublic ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-slate-700 border-slate-200'}`}>
+                                {w.isPublic ? 'Public' : 'Private'}
+                              </span>
                             </div>
                           </SelectItem>
                         ))}
@@ -1388,6 +1391,11 @@ export function ApplicantProfile() {
                   <div className="flex items-center gap-3">
                     <div className="w-4 h-4 rounded-full" style={{ background: candidateAssignment.workflow?.color ?? '#6366F1' }} />
                     <CardTitle>{candidateAssignment.workflow?.name}</CardTitle>
+                    {candidateAssignment.workflow && (
+                      <span className={`text-[11px] px-1.5 py-0.5 rounded border ${candidateAssignment.workflow.isPublic ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-slate-700 border-slate-200'}`}>
+                        {candidateAssignment.workflow.isPublic ? 'Public' : 'Private'}
+                      </span>
+                    )}
                   </div>
                   <div className="flex items-center gap-2">
                     {canEdit('applicants') && (
@@ -1421,7 +1429,10 @@ export function ApplicantProfile() {
                           <SelectItem key={w.id} value={w.id}>
                             <div className="flex items-center gap-2">
                               <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: w.color ?? '#6366F1' }} />
-                              {w.name}
+                              <span>{w.name}</span>
+                              <span className={`ml-1 text-[10px] px-1.5 py-0.5 rounded border ${w.isPublic ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-slate-700 border-slate-200'}`}>
+                                {w.isPublic ? 'Public' : 'Private'}
+                              </span>
                             </div>
                           </SelectItem>
                         ))}

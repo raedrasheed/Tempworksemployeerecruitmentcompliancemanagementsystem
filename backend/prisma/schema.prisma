@@ -1146,6 +1146,10 @@ enum WorkflowStatus {
 
 enum CandidateProgressStatus {
   ACTIVE
+  // In Progress — stamped on the first stage when a candidate is
+  // assigned to a workflow, and stays until the stage is approved or
+  // the candidate is advanced.
+  IN_PROGRESS
   COMPLETED
   SKIPPED
   BLOCKED

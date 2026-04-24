@@ -1415,9 +1415,14 @@ export function CandidateProfile() {
                 ) : (
                   <div className="space-y-1">
                     {candidateAssignment.workflow.stages.map((stage: any, index: number) => {
-                      // Find the progress record for this stage
+                      // Find the progress record for this stage. The
+                      // stage is considered the "current" one while
+                      // it's ACTIVE or IN_PROGRESS — IN_PROGRESS is
+                      // stamped automatically on Stage 1 when the
+                      // candidate is first assigned.
                       const progress = candidateAssignment.stageProgress?.find((p: any) => p.stageId === stage.id);
-                      const isCurrent = progress?.status === 'ACTIVE';
+                      const isInProgress = progress?.status === 'IN_PROGRESS';
+                      const isCurrent = progress?.status === 'ACTIVE' || isInProgress;
                       const isExpanded = expandedStageId === stage.id;
                       const latestApproval = progress?.approvals?.[0];
                       const isApproved = latestApproval?.decision === 'APPROVED';
@@ -1439,7 +1444,9 @@ export function CandidateProfile() {
                             <div className="flex-1 min-w-0">
                               <div className="flex flex-wrap items-center gap-2">
                                 <span className={`text-sm font-medium ${isCurrent ? 'text-primary' : ''}`}>{stage.name}</span>
-                                {isCurrent && <Badge className="text-xs bg-primary">Current</Badge>}
+                                {isInProgress
+                                  ? <Badge className="text-xs bg-blue-600 hover:bg-blue-600">In Progress</Badge>
+                                  : isCurrent && <Badge className="text-xs bg-primary">Current</Badge>}
                                 {isApproved && <Badge className="text-xs bg-green-500">Approved</Badge>}
                                 {stage.isFinal && <Badge variant="outline" className="text-xs">Final</Badge>}
                                 {stage.requiresApproval && !isApproved && <Badge variant="outline" className="text-xs border-amber-400 text-amber-600">Needs Approval</Badge>}

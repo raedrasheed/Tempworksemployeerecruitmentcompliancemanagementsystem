@@ -337,6 +337,22 @@ async function runStartupMigrations() {
     `);
     logger.log('employee_work_history — tables + enum + FKs ensured');
 
+    // 9a. Add IN_PROGRESS to CandidateProgressStatus so freshly-
+    //     assigned candidates land on stage 1 with a "In Progress"
+    //     label instead of the generic ACTIVE.
+    await client.query(`
+      DO $$ BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_enum e
+          JOIN pg_type t ON e.enumtypid = t.oid
+          WHERE t.typname = 'CandidateProgressStatus' AND e.enumlabel = 'IN_PROGRESS'
+        ) THEN
+          EXECUTE 'ALTER TYPE "CandidateProgressStatus" ADD VALUE ''IN_PROGRESS'' ';
+        END IF;
+      END $$
+    `);
+    logger.log('CandidateProgressStatus — IN_PROGRESS value ensured');
+
     // 9b. Make the eventType column configurable. Switch it from the
     //     static WorkHistoryEventType enum to plain text, and back the
     //     dropdown with a new settings table seeded from the original

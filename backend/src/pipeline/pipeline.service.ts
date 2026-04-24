@@ -282,8 +282,15 @@ export class WorkflowService {
     });
     if (existing) throw new ConflictException('Candidate already has an active assignment in this workflow');
 
-    // Get first stage
-    const firstStage = (workflow as any).stages?.[0];
+    // Resolve Stage 1 — always the lowest-order active stage in the
+    // workflow, independent of how the `stages` relation happens to
+    // be ordered by Prisma's include. Per product spec: on assignment
+    // the candidate is placed at Stage 1 with status IN_PROGRESS.
+    const activeStages = ((workflow as any).stages ?? [])
+      .filter((s: any) => s.isActive !== false)
+      .slice()
+      .sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0));
+    const firstStage = activeStages[0];
 
     const assignment = await this.prisma.candidateWorkflowAssignment.create({
       data: {
@@ -295,7 +302,10 @@ export class WorkflowService {
           ? {
               create: {
                 stageId: firstStage.id,
-                status: 'ACTIVE',
+                // IN_PROGRESS — the candidate is now working through
+                // Stage 1. Flips to COMPLETED when the stage is
+                // approved / advanced.
+                status: 'IN_PROGRESS' as any,
                 slaDeadline: firstStage.slaHours
                   ? new Date(Date.now() + firstStage.slaHours * 3600 * 1000)
                   : undefined,

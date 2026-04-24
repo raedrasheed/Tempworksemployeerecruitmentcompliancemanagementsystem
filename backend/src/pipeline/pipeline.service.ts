@@ -187,17 +187,18 @@ export class WorkflowService {
 
     const {
       assignedUserIds, approverUserIds, responsibleUserIds,
-      requiredDocTypeIds, minApprovals, ...stageData
+      requiredDocTypeIds, minApprovals, approvalMode, ...stageData
     } = dto as any;
     const effectiveApprovers   = approverUserIds   ?? assignedUserIds ?? [];
     const effectiveResponsible = responsibleUserIds ?? [];
-    // minApprovals must be ≥1 and ≤ number of approvers. Clamp
-    // rather than throw so a "0 approvers" stage can still persist
-    // a sensible default value.
     const clampedMin = Math.max(
       1,
       Math.min(Number(minApprovals ?? 1) || 1, Math.max(effectiveApprovers.length, 1)),
     );
+    // Whitelist the approval mode — more modes can be added later.
+    const normalizedMode = ['ANY'].includes(String(approvalMode ?? 'ANY').toUpperCase())
+      ? String(approvalMode ?? 'ANY').toUpperCase()
+      : 'ANY';
     const stageUsers = [
       ...effectiveApprovers.map((userId: string) => ({ userId, role: 'APPROVER' })),
       ...effectiveResponsible
@@ -209,6 +210,7 @@ export class WorkflowService {
         ...stageData,
         workflowId,
         minApprovals: clampedMin,
+        approvalMode: normalizedMode,
         assignedUsers: stageUsers.length ? { create: stageUsers } : undefined,
         requiredDocs: requiredDocTypeIds?.length
           ? { create: requiredDocTypeIds.map((documentTypeId: string) => ({ documentTypeId })) }
@@ -228,10 +230,14 @@ export class WorkflowService {
 
     const {
       assignedUserIds, approverUserIds, responsibleUserIds,
-      requiredDocTypeIds, minApprovals, ...stageData
+      requiredDocTypeIds, minApprovals, approvalMode, ...stageData
     } = dto as any;
 
     const updatePayload: any = { ...stageData };
+    if (approvalMode !== undefined) {
+      const normalized = String(approvalMode).toUpperCase();
+      updatePayload.approvalMode = ['ANY'].includes(normalized) ? normalized : 'ANY';
+    }
 
     const anyUserListProvided =
       assignedUserIds !== undefined ||

@@ -74,6 +74,9 @@ export function WorkflowSettingsPage() {
   // Minimum distinct approvers that must approve before advance.
   // Bounded to [1, approvers.length] on submit.
   const [minApprovals, setMinApprovals] = useState(1);
+  // Approval mode. Currently only "ANY" is supported; kept as a
+  // state + dropdown so future modes plug in without rework.
+  const [approvalMode, setApprovalMode] = useState<'ANY'>('ANY');
   const [newDocId, setNewDocId] = useState('');
   const [newUserId, setNewUserId] = useState('');
   const [savingReq, setSavingReq] = useState(false);
@@ -242,6 +245,7 @@ export function WorkflowSettingsPage() {
     setResponsibleUsers(responsibles.map((au: any) => ({ id: au.user.id, firstName: au.user.firstName, lastName: au.user.lastName })));
     setResponsibleAny((stage as any).responsibleAny ?? true);
     setMinApprovals(Math.max(1, Number((stage as any).minApprovals ?? 1)));
+    setApprovalMode(((stage as any).approvalMode ?? 'ANY') === 'ANY' ? 'ANY' : 'ANY');
     setNewDocId('');
     setNewUserId('');
     setNewResponsibleId('');
@@ -277,6 +281,7 @@ export function WorkflowSettingsPage() {
         responsibleUserIds: responsibleUsers.map(u => u.id),
         responsibleAny,
         minApprovals: clampedMin,
+        approvalMode,
         // Keep assignedUserIds in sync for any legacy consumer that
         // still reads the flat list.
         assignedUserIds: reqUsers.map(u => u.id),
@@ -750,22 +755,35 @@ export function WorkflowSettingsPage() {
                     : `At least ${Math.max(1, Math.min(minApprovals || 1, reqUsers.length))} of ${reqUsers.length} approver${reqUsers.length === 1 ? '' : 's'} must approve before the candidate can advance.`}
                 </p>
 
-                {/* Minimum approvals — only meaningful once the
-                    approver list is non-empty. Clamped to the list
-                    size to prevent an un-satisfiable gate. */}
+                {/* Approval mode + minimum approvals — only
+                    meaningful once the approver list is non-empty.
+                    Mode is currently fixed at ANY; the dropdown is
+                    kept so additional modes plug in later without
+                    rework. */}
                 {reqUsers.length > 0 && (
-                  <div className="mt-2 flex items-center gap-2">
-                    <Label htmlFor="wf-min-approvals" className="text-xs text-muted-foreground">Minimum approvals required</Label>
-                    <input
-                      id="wf-min-approvals"
-                      type="number"
-                      min={1}
-                      max={reqUsers.length}
-                      value={Math.max(1, Math.min(minApprovals || 1, reqUsers.length))}
-                      onChange={(e) => setMinApprovals(Math.max(1, Math.min(Number(e.target.value) || 1, reqUsers.length)))}
-                      className="w-16 px-2 py-1 border rounded text-sm text-center"
-                    />
-                    <span className="text-xs text-muted-foreground">of {reqUsers.length}</span>
+                  <div className="mt-2 flex items-center gap-3 flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="wf-approval-mode" className="text-xs text-muted-foreground">Approval mode</Label>
+                      <Select value={approvalMode} onValueChange={(v) => setApprovalMode(v as 'ANY')}>
+                        <SelectTrigger id="wf-approval-mode" className="w-28 h-8"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="ANY">Any</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="wf-min-approvals" className="text-xs text-muted-foreground">Minimum approvals required</Label>
+                      <input
+                        id="wf-min-approvals"
+                        type="number"
+                        min={1}
+                        max={reqUsers.length}
+                        value={Math.max(1, Math.min(minApprovals || 1, reqUsers.length))}
+                        onChange={(e) => setMinApprovals(Math.max(1, Math.min(Number(e.target.value) || 1, reqUsers.length)))}
+                        className="w-16 px-2 py-1 border rounded text-sm text-center"
+                      />
+                      <span className="text-xs text-muted-foreground">of {reqUsers.length}</span>
+                    </div>
                   </div>
                 )}
                 <div className="space-y-2 mt-2">

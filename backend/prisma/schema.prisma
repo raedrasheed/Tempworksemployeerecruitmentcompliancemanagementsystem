@@ -1260,6 +1260,11 @@ model WorkflowStage {
   /// is assigned; otherwise no approvals are needed.
   /// Must not exceed the number of assigned approvers.
   minApprovals    Int       @default(1)
+  /// How approvals are counted toward the minimum threshold. "ANY"
+  /// means any distinct approver's APPROVED decision counts (the
+  /// only mode supported today). Stored as text so new modes can be
+  /// added later without a schema migration.
+  approvalMode    String    @default("ANY")
   isFinal         Boolean   @default(false)
   isActive        Boolean   @default(true)
   createdAt       DateTime  @default(now())

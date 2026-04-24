@@ -90,6 +90,29 @@ export class WorkflowController {
     return this.workflowService.deleteWorkflow(id, req.user?.id);
   }
 
+  // ─── Private access list ──────────────────────────────────────────────────
+
+  @Get(':id/access-users')
+  @Roles(...ALL_ROLES)
+  @ApiOperation({ summary: 'List users granted access to a (private) workflow' })
+  listAccessUsers(@Param('id') id: string) {
+    return this.workflowService.listAccessUsers(id);
+  }
+
+  @Post(':id/access-users/:userId')
+  @Roles(...ADMIN_ROLES)
+  @ApiOperation({ summary: 'Grant a user access to a private workflow' })
+  addAccessUser(@Param('id') id: string, @Param('userId') userId: string, @Request() req: any) {
+    return this.workflowService.addAccessUser(id, userId, req.user?.id);
+  }
+
+  @Delete(':id/access-users/:userId')
+  @Roles(...ADMIN_ROLES)
+  @ApiOperation({ summary: 'Revoke a user\'s access to a private workflow' })
+  removeAccessUser(@Param('id') id: string, @Param('userId') userId: string, @Request() req: any) {
+    return this.workflowService.removeAccessUser(id, userId, req.user?.id);
+  }
+
   // ─── Stages ───────────────────────────────────────────────────────────────
 
   @Post(':id/stages')

@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router';
-import { workflowApi } from '../../services/api';
+import { workflowApi, usersApi } from '../../services/api';
 import { confirm } from '../../components/ui/ConfirmDialog';
+import { toast } from 'sonner';
 import {
   Layers,
   Plus,
@@ -29,6 +30,7 @@ function WorkflowCard({
   onConfigure,
   onArchive,
   onDelete,
+  onManageAccess,
 }: {
   workflow: any;
   stats: any;
@@ -36,6 +38,7 @@ function WorkflowCard({
   onConfigure: () => void;
   onArchive: () => void;
   onDelete: () => void;
+  onManageAccess: () => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -106,6 +109,14 @@ function WorkflowCard({
                 >
                   <Settings2 className="w-3.5 h-3.5" /> Configure
                 </button>
+                {!workflow.isPublic && (
+                  <button
+                    onClick={() => { setMenuOpen(false); onManageAccess(); }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted"
+                  >
+                    <Lock className="w-3.5 h-3.5" /> Manage Access
+                  </button>
+                )}
                 <button
                   onClick={() => { setMenuOpen(false); onArchive(); }}
                   className="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted"
@@ -260,6 +271,9 @@ export function WorkflowsPage() {
   const [error, setError] = useState('');
   const [showArchived, setShowArchived] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
+  // Manage-access dialog — null when closed. Holds the workflow
+  // whose private-access list we're editing.
+  const [accessWorkflow, setAccessWorkflow] = useState<any | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -365,6 +379,7 @@ export function WorkflowsPage() {
               onConfigure={() => navigate(`/dashboard/settings/workflows/${p.id}`)}
               onArchive={() => handleArchive(p.id)}
               onDelete={() => handleDelete(p.id)}
+              onManageAccess={() => setAccessWorkflow(p)}
             />
           ))}
         </div>
@@ -376,6 +391,192 @@ export function WorkflowsPage() {
           onCreated={handleCreated}
         />
       )}
+
+      {accessWorkflow && (
+        <ManageAccessModal
+          workflow={accessWorkflow}
+          onClose={() => setAccessWorkflow(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+// ─── Manage Access Modal ─────────────────────────────────────────────────────
+// Shown for private workflows only. Admins add / remove users that
+// are allowed to use the workflow for candidate assignments. The
+// backend still persists the list even for public workflows, so
+// toggling public ↔ private later preserves the previously-configured
+// access without retyping.
+function ManageAccessModal({
+  workflow,
+  onClose,
+}: {
+  workflow: any;
+  onClose: () => void;
+}) {
+  const [access, setAccess] = useState<any[]>([]);
+  const [users, setUsers]   = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedUserId, setSelectedUserId] = useState('');
+  const [adding, setAdding] = useState(false);
+  const [search, setSearch] = useState('');
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const [list, allUsers] = await Promise.all([
+        workflowApi.listAccessUsers(workflow.id),
+        usersApi.list({ limit: 500 }).then((r: any) => r?.data ?? []).catch(() => []),
+      ]);
+      setAccess(Array.isArray(list) ? list : []);
+      setUsers(allUsers);
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to load access list');
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [workflow.id]);
+
+  const accessIds = new Set(access.map(a => a.userId));
+  const candidates = users.filter((u: any) =>
+    !accessIds.has(u.id) &&
+    !u.deletedAt &&
+    (!search.trim() ||
+      `${u.firstName ?? ''} ${u.lastName ?? ''} ${u.email ?? ''}`.toLowerCase().includes(search.trim().toLowerCase())),
+  );
+
+  const handleAdd = async () => {
+    if (!selectedUserId) return;
+    setAdding(true);
+    try {
+      await workflowApi.addAccessUser(workflow.id, selectedUserId);
+      toast.success('Access granted');
+      setSelectedUserId('');
+      load();
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to grant access');
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  const handleRemove = async (userId: string, name: string) => {
+    const ok = await confirm({
+      title: 'Revoke access?',
+      description: `${name} will no longer be able to use "${workflow.name}".`,
+      confirmText: 'Revoke',
+      tone: 'destructive',
+    });
+    if (!ok) return;
+    try {
+      await workflowApi.removeAccessUser(workflow.id, userId);
+      toast.success('Access revoked');
+      load();
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to revoke access');
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={onClose}>
+      <div className="bg-card border border-border rounded-xl w-full max-w-xl max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <div className="p-5 border-b flex items-center justify-between">
+          <div className="flex items-center gap-2 min-w-0">
+            <Lock className="w-5 h-5 text-slate-600 shrink-0" />
+            <div className="min-w-0">
+              <h3 className="font-semibold text-base truncate">Manage Access</h3>
+              <p className="text-xs text-muted-foreground truncate">
+                Users allowed to use <strong className="text-foreground">{workflow.name}</strong>
+              </p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-md hover:bg-muted text-muted-foreground">
+            <Trash2 className="hidden" />
+            <span aria-hidden>×</span>
+          </button>
+        </div>
+
+        {/* Add user row */}
+        <div className="p-5 border-b space-y-2">
+          <label className="text-xs font-medium text-muted-foreground">Add user</label>
+          <input
+            type="text"
+            placeholder="Search users by name or email…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full px-3 py-2 rounded-md border bg-background text-sm"
+          />
+          <div className="flex items-center gap-2">
+            <select
+              className="flex-1 px-3 py-2 rounded-md border bg-background text-sm"
+              value={selectedUserId}
+              onChange={(e) => setSelectedUserId(e.target.value)}
+            >
+              <option value="">
+                {candidates.length === 0 ? 'No matching users' : 'Select a user…'}
+              </option>
+              {candidates.slice(0, 100).map((u: any) => (
+                <option key={u.id} value={u.id}>
+                  {[u.firstName, u.lastName].filter(Boolean).join(' ') || u.email}
+                  {u.email && ` · ${u.email}`}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={handleAdd}
+              disabled={!selectedUserId || adding}
+              className="px-3 py-2 rounded-md bg-primary text-primary-foreground text-sm disabled:opacity-50"
+            >
+              <Plus className="w-4 h-4 inline mr-1" />{adding ? 'Adding…' : 'Add'}
+            </button>
+          </div>
+        </div>
+
+        {/* Current access list */}
+        <div className="p-5 flex-1 overflow-y-auto">
+          <p className="text-xs font-medium text-muted-foreground mb-2">
+            {loading ? 'Loading…' : `Current access (${access.length})`}
+          </p>
+          {!loading && access.length === 0 ? (
+            <div className="text-sm text-muted-foreground italic py-4 text-center">
+              No users have access yet. Add users above so they can assign candidates to this workflow.
+            </div>
+          ) : (
+            <ul className="divide-y">
+              {access.map((a: any) => {
+                const name = [a.user?.firstName, a.user?.lastName].filter(Boolean).join(' ') || a.user?.email || a.userId;
+                return (
+                  <li key={a.userId} className="flex items-center gap-3 py-2">
+                    <Users className="w-4 h-4 text-muted-foreground shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{name}</p>
+                      {a.user?.email && <p className="text-xs text-muted-foreground truncate">{a.user.email}</p>}
+                    </div>
+                    <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+                      Granted {new Date(a.grantedAt).toLocaleDateString()}
+                    </span>
+                    <button
+                      onClick={() => handleRemove(a.userId, name)}
+                      className="p-1.5 rounded-md text-red-400 hover:text-red-600 hover:bg-red-50"
+                      title="Revoke access"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+
+        <div className="p-4 border-t flex justify-end">
+          <button onClick={onClose} className="px-3 py-2 rounded-md border text-sm hover:bg-muted">
+            Close
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

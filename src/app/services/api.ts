@@ -1345,6 +1345,18 @@ export const workflowApi = {
 
   stats: (id: string) => apiFetch<any>(`/workflows/${id}/stats`),
 
+  // Private-access list. Only meaningful when isPublic=false, but the
+  // CRUD endpoints work regardless so toggling public ↔ private keeps
+  // the previously-configured list.
+  listAccessUsers: (workflowId: string) =>
+    apiFetch<Array<{ workflowId: string; userId: string; grantedAt: string; user: { id: string; firstName: string; lastName: string; email: string } }>>(
+      `/workflows/${workflowId}/access-users`,
+    ),
+  addAccessUser: (workflowId: string, userId: string) =>
+    apiFetch<any>(`/workflows/${workflowId}/access-users/${userId}`, { method: 'POST' }),
+  removeAccessUser: (workflowId: string, userId: string) =>
+    apiFetch<any>(`/workflows/${workflowId}/access-users/${userId}`, { method: 'DELETE' }),
+
   create: (data: { name: string; description?: string; isDefault?: boolean; isPublic?: boolean; color?: string }) =>
     apiFetch<any>('/workflows', { method: 'POST', body: JSON.stringify(data) }),
 

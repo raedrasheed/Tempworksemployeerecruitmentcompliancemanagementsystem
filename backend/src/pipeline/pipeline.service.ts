@@ -108,6 +108,62 @@ export class WorkflowService {
     return { message: 'Workflow deleted' };
   }
 
+  // ─── Private Access Users ─────────────────────────────────────────────────
+  // When a Workflow is marked isPublic=false, access is restricted to
+  // the users returned by listAccessUsers. The UI exposes add/remove
+  // endpoints on the Workflows page. Add/remove on a public workflow
+  // is allowed but has no functional effect until it's flipped to
+  // private — we still persist the list so flipping back later keeps
+  // the previously-configured access intact.
+
+  async listAccessUsers(workflowId: string) {
+    await this.getWorkflow(workflowId);
+    const rows = await (this.prisma as any).workflowAccessUser.findMany({
+      where: { workflowId },
+      include: { user: { select: { id: true, firstName: true, lastName: true, email: true } } },
+      orderBy: { grantedAt: 'asc' },
+    });
+    return rows;
+  }
+
+  async addAccessUser(workflowId: string, userId: string, actorId?: string) {
+    await this.getWorkflow(workflowId);
+    const user = await this.prisma.user.findFirst({ where: { id: userId, deletedAt: null } });
+    if (!user) throw new NotFoundException('User not found');
+    try {
+      const row = await (this.prisma as any).workflowAccessUser.create({
+        data: { workflowId, userId },
+        include: { user: { select: { id: true, firstName: true, lastName: true, email: true } } },
+      });
+      if (actorId) {
+        await this.prisma.auditLog.create({
+          data: { userId: actorId, action: 'WORKFLOW_ACCESS_GRANTED', entity: 'Workflow', entityId: workflowId, changes: { userId } },
+        });
+      }
+      return row;
+    } catch (err: any) {
+      if (err?.code === 'P2002') throw new ConflictException('User already has access to this workflow');
+      throw err;
+    }
+  }
+
+  async removeAccessUser(workflowId: string, userId: string, actorId?: string) {
+    await this.getWorkflow(workflowId);
+    const existing = await (this.prisma as any).workflowAccessUser.findUnique({
+      where: { workflowId_userId: { workflowId, userId } },
+    });
+    if (!existing) throw new NotFoundException('User does not have access to this workflow');
+    await (this.prisma as any).workflowAccessUser.delete({
+      where: { workflowId_userId: { workflowId, userId } },
+    });
+    if (actorId) {
+      await this.prisma.auditLog.create({
+        data: { userId: actorId, action: 'WORKFLOW_ACCESS_REVOKED', entity: 'Workflow', entityId: workflowId, changes: { userId } },
+      });
+    }
+    return { message: 'Access revoked' };
+  }
+
   // ─── Stages ───────────────────────────────────────────────────────────────
 
   async addStage(workflowId: string, dto: CreateWorkflowStageDto, actorId?: string) {

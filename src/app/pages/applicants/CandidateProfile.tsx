@@ -1360,8 +1360,13 @@ export function CandidateProfile() {
                     )}
                   </div>
                   <div className="flex items-center gap-2">
-                    {canEdit('applicants') && (
-                      <Button size="sm" variant="ghost" onClick={() => setShowAssignWorkflow(true)}>
+                    {/* Reassignment to a different workflow is
+                        admin-only by product rule — hide the button
+                        for non-admins so they don't hit a 403. The
+                        rest of the workflow view (advance, approve,
+                        etc.) stays available to regular edit roles. */}
+                    {canEdit('applicants') && currentUser?.role === 'System Admin' && (
+                      <Button size="sm" variant="ghost" onClick={() => setShowAssignWorkflow(true)} title="Reassign to a different workflow (admin only)">
                         Change
                       </Button>
                     )}

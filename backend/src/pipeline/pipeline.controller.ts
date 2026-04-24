@@ -154,9 +154,13 @@ export class WorkflowController {
 
   @Post('assign')
   @Roles(...WRITE_ROLES)
-  @ApiOperation({ summary: 'Assign a candidate to a workflow' })
+  @ApiOperation({ summary: 'Assign a candidate to a workflow (reassignment to a different workflow requires System Admin)' })
   assignCandidate(@Body() dto: AssignCandidateToWorkflowDto, @Request() req: any) {
-    return this.workflowService.assignCandidate(dto, req.user?.id);
+    return this.workflowService.assignCandidate(
+      dto,
+      req.user?.id,
+      { role: req.user?.role },
+    );
   }
 
   @Get('candidate/:candidateId/assignments')

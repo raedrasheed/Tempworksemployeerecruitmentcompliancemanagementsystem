@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   CreateWorkflowDto,
@@ -269,18 +269,60 @@ export class WorkflowService {
 
   // ─── Assignments ──────────────────────────────────────────────────────────
 
-  async assignCandidate(dto: AssignCandidateToWorkflowDto, actorId?: string) {
+  async assignCandidate(
+    dto: AssignCandidateToWorkflowDto,
+    actorId?: string,
+    actor?: { role?: string },
+  ) {
     const [candidate, workflow] = await Promise.all([
       this.prisma.applicant.findFirst({ where: { id: dto.candidateId, tier: 'CANDIDATE', deletedAt: null } }),
       this.getWorkflow(dto.workflowId),
     ]);
     if (!candidate) throw new NotFoundException('Candidate not found');
 
-    // Check for existing active assignment to same workflow
-    const existing = await this.prisma.candidateWorkflowAssignment.findFirst({
-      where: { candidateId: dto.candidateId, workflowId: dto.workflowId, status: 'ACTIVE' },
+    // Business rule: a candidate is on exactly ONE active workflow at
+    // any time. Reassignment to a different workflow is an
+    // admin-only privilege.
+    const activeAssignments = await this.prisma.candidateWorkflowAssignment.findMany({
+      where: { candidateId: dto.candidateId, status: 'ACTIVE' },
+      include: { workflow: { select: { id: true, name: true } } },
     });
-    if (existing) throw new ConflictException('Candidate already has an active assignment in this workflow');
+
+    const existingOnSame = activeAssignments.find(a => a.workflowId === dto.workflowId);
+    if (existingOnSame) {
+      throw new ConflictException('Candidate already has an active assignment in this workflow');
+    }
+
+    const existingOnOther = activeAssignments.find(a => a.workflowId !== dto.workflowId);
+    if (existingOnOther) {
+      const isAdmin = actor?.role === 'System Admin';
+      if (!isAdmin) {
+        throw new ForbiddenException(
+          `Candidate is already assigned to "${existingOnOther.workflow?.name ?? 'another workflow'}". ` +
+          'Only a System Admin can reassign a candidate to a different workflow.',
+        );
+      }
+      // Admin reassignment: withdraw the prior assignment (preserves
+      // its stage-progress history) before creating the new one.
+      await this.prisma.candidateWorkflowAssignment.update({
+        where: { id: existingOnOther.id },
+        data: { status: 'WITHDRAWN' as any, completedAt: new Date() },
+      });
+      await this.prisma.auditLog.create({
+        data: {
+          userId: actorId,
+          action: 'WORKFLOW_REASSIGNED',
+          entity: 'CandidateWorkflowAssignment',
+          entityId: existingOnOther.id,
+          changes: {
+            candidateId: dto.candidateId,
+            fromWorkflowId: existingOnOther.workflowId,
+            toWorkflowId: dto.workflowId,
+            reason: dto.notes ?? null,
+          } as any,
+        },
+      });
+    }
 
     // Resolve Stage 1 — always the lowest-order active stage in the
     // workflow, independent of how the `stages` relation happens to

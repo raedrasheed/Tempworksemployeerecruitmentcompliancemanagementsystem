@@ -729,13 +729,17 @@ export function WorkflowSettingsPage() {
                 </div>
               </div>
 
-              {/* Approvers — users who must approve the stage. When
-                  approvers are present, responsible users alone
-                  cannot advance the candidate. */}
+              {/* Approvers — users authorised to approve the stage.
+                  Leave empty to mean "None": the candidate advances
+                  as soon as a Responsible user sends them forward.
+                  With one or more approvers, at least one of them
+                  must approve before advancement. */}
               <div>
                 <Label>Approvers</Label>
                 <p className="text-xs text-muted-foreground mt-1">
-                  All listed approvers must approve before the candidate can leave this stage.
+                  {reqUsers.length === 0
+                    ? 'None — candidate advances as soon as a Responsible user sends them to the next stage.'
+                    : 'At least one approval from any listed approver is required before the candidate can advance.'}
                 </p>
                 <div className="space-y-2 mt-2">
                   {reqUsers.map((u, idx) => (

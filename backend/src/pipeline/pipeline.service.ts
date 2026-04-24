@@ -710,19 +710,22 @@ export class WorkflowService {
       const srcApprovers   = (srcStage.assignedUsers ?? []).filter((u: any) => u.role === 'APPROVER' || u.role === 'REVIEWER');
       const srcResponsible = (srcStage.assignedUsers ?? []).filter((u: any) => u.role === 'RESPONSIBLE');
 
-      // Rule 1 — approvers must have all approved before anyone can
-      // push the candidate past this stage.
-      if (srcStage.requiresApproval && srcApprovers.length > 0) {
-        const approvedUserIds = new Set(
-          (sourceProgress.approvals ?? [])
-            .filter((a: any) => a.decision === 'APPROVED')
-            .map((a: any) => a.approvedById),
-        );
-        const missing = srcApprovers.filter((u: any) => !approvedUserIds.has(u.userId));
-        if (missing.length > 0) {
+      // Rule 1 — approval gate. Empty approver list = "None" →
+      // responsible users can advance the candidate freely. With one
+      // or more approvers, AT LEAST ONE approval from any listed
+      // approver is enough to unlock the gate (per product spec).
+      if (srcApprovers.length > 0) {
+        const approverIds = new Set(srcApprovers.map((u: any) => u.userId));
+        const hasAtLeastOneApproval = (sourceProgress.approvals ?? [])
+          .some((a: any) =>
+            a.decision === 'APPROVED' &&
+            a.approvedById &&
+            approverIds.has(a.approvedById),
+          );
+        if (!hasAtLeastOneApproval) {
           throw new ForbiddenException(
-            `Stage "${srcStage.name}" is still awaiting approval from ${missing.length} approver(s). ` +
-            'Responsible users cannot advance the candidate until every approver has approved.',
+            `Stage "${srcStage.name}" is awaiting approval. ` +
+            'At least one approval from a listed approver is required before the candidate can advance.',
           );
         }
       }

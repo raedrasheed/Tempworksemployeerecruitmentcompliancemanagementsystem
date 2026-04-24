@@ -361,9 +361,10 @@ async function runStartupMigrations() {
     //     untouched and treated as APPROVER at the service layer.
     await client.query(`
       ALTER TABLE "workflow_stages"
-        ADD COLUMN IF NOT EXISTS "responsibleAny" boolean NOT NULL DEFAULT true
+        ADD COLUMN IF NOT EXISTS "responsibleAny" boolean NOT NULL DEFAULT true,
+        ADD COLUMN IF NOT EXISTS "minApprovals"   integer NOT NULL DEFAULT 1
     `);
-    logger.log('workflow_stages.responsibleAny ensured');
+    logger.log('workflow_stages.responsibleAny + minApprovals ensured');
 
     // 9b. Make the eventType column configurable. Switch it from the
     //     static WorkHistoryEventType enum to plain text, and back the

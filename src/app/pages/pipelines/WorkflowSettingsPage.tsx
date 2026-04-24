@@ -71,6 +71,9 @@ export function WorkflowSettingsPage() {
   const [responsibleUsers, setResponsibleUsers] = useState<{ id: string; firstName: string; lastName: string }[]>([]);
   const [responsibleAny, setResponsibleAny] = useState(true);
   const [newResponsibleId, setNewResponsibleId] = useState('');
+  // Minimum distinct approvers that must approve before advance.
+  // Bounded to [1, approvers.length] on submit.
+  const [minApprovals, setMinApprovals] = useState(1);
   const [newDocId, setNewDocId] = useState('');
   const [newUserId, setNewUserId] = useState('');
   const [savingReq, setSavingReq] = useState(false);
@@ -238,6 +241,7 @@ export function WorkflowSettingsPage() {
     setReqUsers(approvers.map(au => ({ id: au.user.id, firstName: au.user.firstName, lastName: au.user.lastName })));
     setResponsibleUsers(responsibles.map((au: any) => ({ id: au.user.id, firstName: au.user.firstName, lastName: au.user.lastName })));
     setResponsibleAny((stage as any).responsibleAny ?? true);
+    setMinApprovals(Math.max(1, Number((stage as any).minApprovals ?? 1)));
     setNewDocId('');
     setNewUserId('');
     setNewResponsibleId('');
@@ -261,14 +265,18 @@ export function WorkflowSettingsPage() {
     if (!selectedStage) return;
     setSavingReq(true);
     try {
+      // Clamp minApprovals at the client too so the ceiling is
+      // obvious in the UI; the backend clamps again defensively.
+      const approverCount = reqUsers.length;
+      const clampedMin = approverCount === 0
+        ? 1
+        : Math.max(1, Math.min(minApprovals || 1, approverCount));
       await workflowApi.updateStage(selectedStage.id, {
         requiredDocTypeIds: reqDocs.map(d => d.id),
-        // Send both lists + the "Any" toggle. The backend maps them
-        // onto workflow_stage_users role columns (APPROVER /
-        // RESPONSIBLE) and sets workflow_stages.responsibleAny.
         approverUserIds:    reqUsers.map(u => u.id),
         responsibleUserIds: responsibleUsers.map(u => u.id),
         responsibleAny,
+        minApprovals: clampedMin,
         // Keep assignedUserIds in sync for any legacy consumer that
         // still reads the flat list.
         assignedUserIds: reqUsers.map(u => u.id),
@@ -739,8 +747,27 @@ export function WorkflowSettingsPage() {
                 <p className="text-xs text-muted-foreground mt-1">
                   {reqUsers.length === 0
                     ? 'None — candidate advances as soon as a Responsible user sends them to the next stage.'
-                    : 'At least one approval from any listed approver is required before the candidate can advance.'}
+                    : `At least ${Math.max(1, Math.min(minApprovals || 1, reqUsers.length))} of ${reqUsers.length} approver${reqUsers.length === 1 ? '' : 's'} must approve before the candidate can advance.`}
                 </p>
+
+                {/* Minimum approvals — only meaningful once the
+                    approver list is non-empty. Clamped to the list
+                    size to prevent an un-satisfiable gate. */}
+                {reqUsers.length > 0 && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <Label htmlFor="wf-min-approvals" className="text-xs text-muted-foreground">Minimum approvals required</Label>
+                    <input
+                      id="wf-min-approvals"
+                      type="number"
+                      min={1}
+                      max={reqUsers.length}
+                      value={Math.max(1, Math.min(minApprovals || 1, reqUsers.length))}
+                      onChange={(e) => setMinApprovals(Math.max(1, Math.min(Number(e.target.value) || 1, reqUsers.length)))}
+                      className="w-16 px-2 py-1 border rounded text-sm text-center"
+                    />
+                    <span className="text-xs text-muted-foreground">of {reqUsers.length}</span>
+                  </div>
+                )}
                 <div className="space-y-2 mt-2">
                   {reqUsers.map((u, idx) => (
                     <div key={u.id} className="flex items-center gap-2">

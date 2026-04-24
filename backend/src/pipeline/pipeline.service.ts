@@ -187,12 +187,17 @@ export class WorkflowService {
 
     const {
       assignedUserIds, approverUserIds, responsibleUserIds,
-      requiredDocTypeIds, ...stageData
+      requiredDocTypeIds, minApprovals, ...stageData
     } = dto as any;
-    // Legacy assignedUserIds maps to approvers. New callers should
-    // send approverUserIds + responsibleUserIds explicitly.
     const effectiveApprovers   = approverUserIds   ?? assignedUserIds ?? [];
     const effectiveResponsible = responsibleUserIds ?? [];
+    // minApprovals must be ≥1 and ≤ number of approvers. Clamp
+    // rather than throw so a "0 approvers" stage can still persist
+    // a sensible default value.
+    const clampedMin = Math.max(
+      1,
+      Math.min(Number(minApprovals ?? 1) || 1, Math.max(effectiveApprovers.length, 1)),
+    );
     const stageUsers = [
       ...effectiveApprovers.map((userId: string) => ({ userId, role: 'APPROVER' })),
       ...effectiveResponsible
@@ -203,6 +208,7 @@ export class WorkflowService {
       data: {
         ...stageData,
         workflowId,
+        minApprovals: clampedMin,
         assignedUsers: stageUsers.length ? { create: stageUsers } : undefined,
         requiredDocs: requiredDocTypeIds?.length
           ? { create: requiredDocTypeIds.map((documentTypeId: string) => ({ documentTypeId })) }
@@ -222,20 +228,20 @@ export class WorkflowService {
 
     const {
       assignedUserIds, approverUserIds, responsibleUserIds,
-      requiredDocTypeIds, ...stageData
+      requiredDocTypeIds, minApprovals, ...stageData
     } = dto as any;
 
     const updatePayload: any = { ...stageData };
 
-    // Replace the stage user list if any of the three keys was
-    // supplied. Legacy assignedUserIds is treated as approvers.
     const anyUserListProvided =
       assignedUserIds !== undefined ||
       approverUserIds !== undefined ||
       responsibleUserIds !== undefined;
+    let effectiveApproversCount: number | null = null;
     if (anyUserListProvided) {
       const effectiveApprovers   = approverUserIds   ?? assignedUserIds ?? [];
       const effectiveResponsible = responsibleUserIds ?? [];
+      effectiveApproversCount = effectiveApprovers.length;
       await this.prisma.workflowStageUser.deleteMany({ where: { stageId } });
       const rows = [
         ...effectiveApprovers.map((userId: string) => ({ stageId, userId, role: 'APPROVER' })),
@@ -245,6 +251,28 @@ export class WorkflowService {
       ];
       if (rows.length) {
         await this.prisma.workflowStageUser.createMany({ data: rows, skipDuplicates: true });
+      }
+    }
+
+    // Clamp minApprovals to [1, approvers.length] so the UI can't
+    // ask for a value that can never be satisfied. If the caller
+    // didn't send an approver list, use the current live count.
+    if (minApprovals !== undefined) {
+      if (effectiveApproversCount == null) {
+        effectiveApproversCount = await this.prisma.workflowStageUser.count({
+          where: { stageId, role: { in: ['APPROVER', 'REVIEWER'] } },
+        });
+      }
+      const ceiling = Math.max(effectiveApproversCount, 1);
+      updatePayload.minApprovals = Math.max(1, Math.min(Number(minApprovals) || 1, ceiling));
+    } else if (anyUserListProvided && effectiveApproversCount != null) {
+      // No minApprovals provided but the approver list changed —
+      // make sure the existing value still fits.
+      const current = await this.prisma.workflowStage.findUnique({
+        where: { id: stageId }, select: { minApprovals: true },
+      });
+      if (current && current.minApprovals > Math.max(effectiveApproversCount, 1)) {
+        updatePayload.minApprovals = Math.max(effectiveApproversCount, 1);
       }
     }
 
@@ -711,21 +739,28 @@ export class WorkflowService {
       const srcResponsible = (srcStage.assignedUsers ?? []).filter((u: any) => u.role === 'RESPONSIBLE');
 
       // Rule 1 — approval gate. Empty approver list = "None" →
-      // responsible users can advance the candidate freely. With one
-      // or more approvers, AT LEAST ONE approval from any listed
-      // approver is enough to unlock the gate (per product spec).
+      // responsible users can advance freely. Otherwise at least
+      // `minApprovals` distinct listed approvers must have
+      // APPROVED (default 1).
       if (srcApprovers.length > 0) {
         const approverIds = new Set(srcApprovers.map((u: any) => u.userId));
-        const hasAtLeastOneApproval = (sourceProgress.approvals ?? [])
-          .some((a: any) =>
-            a.decision === 'APPROVED' &&
-            a.approvedById &&
-            approverIds.has(a.approvedById),
-          );
-        if (!hasAtLeastOneApproval) {
+        const approvedBy = new Set(
+          (sourceProgress.approvals ?? [])
+            .filter((a: any) =>
+              a.decision === 'APPROVED' &&
+              a.approvedById &&
+              approverIds.has(a.approvedById),
+            )
+            .map((a: any) => a.approvedById),
+        );
+        const required = Math.max(1, Math.min(
+          Number(srcStage.minApprovals ?? 1) || 1,
+          srcApprovers.length,
+        ));
+        if (approvedBy.size < required) {
           throw new ForbiddenException(
             `Stage "${srcStage.name}" is awaiting approval. ` +
-            'At least one approval from a listed approver is required before the candidate can advance.',
+            `${approvedBy.size} of ${required} required approver(s) have approved.`,
           );
         }
       }

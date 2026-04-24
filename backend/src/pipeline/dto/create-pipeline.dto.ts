@@ -18,6 +18,8 @@ export class CreateWorkflowStageDto {
   @ApiPropertyOptional() @IsOptional() @IsBoolean() requiresApproval?: boolean;
   @ApiPropertyOptional({ description: 'When true, any user can process the stage; when false, only users in responsibleUserIds can advance candidates.' })
   @IsOptional() @IsBoolean() responsibleAny?: boolean;
+  @ApiPropertyOptional({ description: 'Minimum distinct approvers that must APPROVED before advance. Defaults to 1. Must not exceed approverUserIds.length.' })
+  @IsOptional() minApprovals?: number;
   @ApiPropertyOptional() @IsOptional() @IsBoolean() isFinal?: boolean;
   @ApiPropertyOptional() @IsOptional() @IsBoolean() isActive?: boolean;
   /** Legacy: treated as approvers. New callers should use

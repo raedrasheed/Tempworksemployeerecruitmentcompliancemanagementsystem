@@ -1255,6 +1255,11 @@ model WorkflowStage {
   /// ignored. When false, only the users with role=RESPONSIBLE can
   /// advance a candidate. Orthogonal to requiresApproval.
   responsibleAny  Boolean   @default(true)
+  /// Minimum distinct approvers that must APPROVED before a candidate
+  /// can leave this stage. Only meaningful when at least one APPROVER
+  /// is assigned; otherwise no approvals are needed.
+  /// Must not exceed the number of assigned approvers.
+  minApprovals    Int       @default(1)
   isFinal         Boolean   @default(false)
   isActive        Boolean   @default(true)
   createdAt       DateTime  @default(now())

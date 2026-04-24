@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/ca
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Input } from '../../components/ui/input';
+import { Textarea } from '../../components/ui/textarea';
 import { Label } from '../../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../../components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
@@ -534,7 +535,14 @@ export function WorkflowSettingsPage() {
           </div>
           <div>
             <Label htmlFor="wfDesc">Description</Label>
-            <Input id="wfDesc" value={metaForm.description} onChange={e => setMetaForm({ ...metaForm, description: e.target.value })} className="mt-1.5" placeholder="Optional description…" />
+            <Textarea
+              id="wfDesc"
+              value={metaForm.description}
+              onChange={e => setMetaForm({ ...metaForm, description: e.target.value })}
+              className="mt-1.5 min-h-[96px]"
+              rows={4}
+              placeholder="Optional description…"
+            />
           </div>
           <div className="flex items-center gap-6">
             <label className="flex items-center gap-2 text-sm cursor-pointer">

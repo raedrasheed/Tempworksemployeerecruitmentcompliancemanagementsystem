@@ -374,7 +374,19 @@ export class WorkflowService {
 
   // ─── Employee Assignments ─────────────────────────────────────────────────
 
-  async assignEmployee(dto: AssignEmployeeToWorkflowDto, actorId?: string) {
+  async assignEmployee(_dto: AssignEmployeeToWorkflowDto, _actorId?: string) {
+    // Workflows are candidate-only per product spec — the recruitment
+    // pipeline ends when the candidate is converted to an employee.
+    // Return a 400 so any legacy caller / stale UI surfaces the
+    // reason plainly instead of silently 500-ing. Historical
+    // EmployeeWorkflowAssignment rows are still readable via the
+    // getEmployee* endpoints so operators can clean up.
+    throw new BadRequestException(
+      'Workflows can only be assigned to candidates. Assign this person while still on the Candidates list.',
+    );
+    // The body below is kept commented-out for clarity of the old
+    // behaviour — do not re-enable without a product decision.
+    /*
     const [employee] = await Promise.all([
       this.prisma.employee.findFirst({ where: { id: dto.employeeId, deletedAt: null } }),
       this.getWorkflow(dto.workflowId),
@@ -411,6 +423,7 @@ export class WorkflowService {
       });
     }
     return assignment;
+    */
   }
 
   async getEmployeeWorkflows(employeeId: string) {
@@ -463,7 +476,14 @@ export class WorkflowService {
     return approval;
   }
 
-  async setEmployeeCurrentStage(employeeId: string, stageId: string, actorId?: string) {
+  async setEmployeeCurrentStage(_employeeId: string, _stageId: string, _actorId?: string) {
+    // Workflows are candidate-only — advancing an employee through a
+    // pipeline stage no longer makes sense. Reads / deletes still
+    // work on legacy rows.
+    throw new BadRequestException(
+      'Workflows can only be modified on candidates. Employees no longer move through workflow stages.',
+    );
+    /* Legacy body preserved for reference:
     const assignment = await this.prisma.employeeWorkflowAssignment.findUnique({
       where: { employeeId },
     });
@@ -500,6 +520,7 @@ export class WorkflowService {
       }),
     ]);
     return { ...updated, stageApprovals: approvals };
+    */
   }
 
   async removeEmployeeWorkflow(employeeId: string, workflowId: string, actorId?: string) {

@@ -163,6 +163,20 @@ export class WorkflowController {
     );
   }
 
+  @Post('assign-bulk')
+  @Roles(...WRITE_ROLES)
+  @ApiOperation({ summary: 'Assign one workflow to many candidates in a single call (reassignment to a different workflow still requires System Admin per-candidate)' })
+  assignCandidatesBulk(
+    @Body() dto: { candidateIds: string[]; workflowId: string; notes?: string },
+    @Request() req: any,
+  ) {
+    return this.workflowService.assignCandidatesBulk(
+      dto,
+      req.user?.id,
+      { role: req.user?.role },
+    );
+  }
+
   @Get('candidate/:candidateId/assignments')
   @Roles(...ALL_ROLES)
   @ApiOperation({ summary: 'Get all workflow assignments for a candidate' })

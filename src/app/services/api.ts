@@ -1389,6 +1389,27 @@ export const workflowApi = {
   assignCandidate: (data: { candidateId: string; workflowId: string; notes?: string }) =>
     apiFetch<any>('/workflows/assign', { method: 'POST', body: JSON.stringify(data) }),
 
+  /** Assign one workflow to many candidates in a single round-trip.
+   *  Returns a summary + per-candidate outcome ('assigned' |
+   *  'reassigned' | 'skipped_same_workflow' | 'forbidden' | 'error'). */
+  assignCandidatesBulk: (data: { candidateIds: string[]; workflowId: string; notes?: string }) =>
+    apiFetch<{
+      summary: {
+        requested: number;
+        assigned: number;
+        reassigned: number;
+        skipped_same_workflow: number;
+        forbidden: number;
+        errors: number;
+      };
+      results: Array<{
+        candidateId: string;
+        outcome: 'assigned' | 'reassigned' | 'skipped_same_workflow' | 'forbidden' | 'error';
+        assignmentId?: string;
+        error?: string;
+      }>;
+    }>('/workflows/assign-bulk', { method: 'POST', body: JSON.stringify(data) }),
+
   getCandidateAssignments: (candidateId: string) =>
     apiFetch<any[]>(`/workflows/candidate/${candidateId}/assignments`),
 

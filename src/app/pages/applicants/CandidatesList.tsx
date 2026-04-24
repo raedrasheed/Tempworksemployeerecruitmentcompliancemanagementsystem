@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { applicantsApi, agenciesApi, settingsApi, documentsApi } from '../../services/api';
+import { applicantsApi, agenciesApi, settingsApi, documentsApi, workflowApi } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
 import { getCurrentUser, getAccessToken } from '../../services/api';
 import { Link } from 'react-router';
@@ -303,6 +303,48 @@ export function CandidatesList() {
   const [showBulkConvertDialog, setShowBulkConvertDialog] = useState(false);
   const [bulkConvertAgencyId, setBulkConvertAgencyId] = useState<string>('');
 
+  // Bulk "Connect to Workflow" — one shared dialog picks the
+  // workflow and applies it to every selected candidate. Respects
+  // the existing single-active-workflow and admin-only reassignment
+  // rules per-candidate on the backend.
+  const [showBulkWorkflowDialog, setShowBulkWorkflowDialog] = useState(false);
+  const [bulkWorkflowId, setBulkWorkflowId] = useState<string>('');
+  const [bulkWorkflowNotes, setBulkWorkflowNotes] = useState('');
+  const [allWorkflows, setAllWorkflows] = useState<any[]>([]);
+  const [bulkWorkflowInFlight, setBulkWorkflowInFlight] = useState(false);
+
+  const handleBulkAssignWorkflow = async () => {
+    if (!bulkWorkflowId) { toast.error('Pick a workflow'); return; }
+    if (selected.size === 0) { toast.error('Select at least one candidate'); return; }
+    setBulkWorkflowInFlight(true);
+    try {
+      const res = await workflowApi.assignCandidatesBulk({
+        candidateIds: [...selected],
+        workflowId: bulkWorkflowId,
+        notes: bulkWorkflowNotes.trim() || undefined,
+      });
+      const s = res?.summary ?? ({} as any);
+      const bits = [
+        `${s.assigned ?? 0} assigned`,
+        s.reassigned ? `${s.reassigned} reassigned` : null,
+        s.skipped_same_workflow ? `${s.skipped_same_workflow} already on this workflow` : null,
+        s.forbidden ? `${s.forbidden} blocked (admin only)` : null,
+        s.errors ? `${s.errors} errors` : null,
+      ].filter(Boolean).join(' · ');
+      if ((s.errors ?? 0) > 0 || (s.forbidden ?? 0) > 0) toast.warning(bits);
+      else toast.success(bits || 'Done');
+      setShowBulkWorkflowDialog(false);
+      setBulkWorkflowId('');
+      setBulkWorkflowNotes('');
+      setSelected(new Set());
+      await fetchCandidates();
+    } catch (err: any) {
+      toast.error(err?.message || 'Bulk assignment failed');
+    } finally {
+      setBulkWorkflowInFlight(false);
+    }
+  };
+
   // ── Bulk PDF Export ────────────────────────────────────────────────────────
   const [pdfExporting, setPdfExporting] = useState(false);
   const handleBulkPdfExport = async () => {
@@ -444,6 +486,29 @@ export function CandidatesList() {
                     setStatusModalOpen(true);
                   }}
                 >Change Status</Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={bulkActionInProgress}
+                  onClick={async () => {
+                    if (selected.size === 0) {
+                      toast.error('Select at least one candidate');
+                      return;
+                    }
+                    // Lazy-load the workflows list the first time
+                    // the dialog opens — the CandidatesList doesn't
+                    // otherwise need it.
+                    if (allWorkflows.length === 0) {
+                      try {
+                        const list = await workflowApi.list();
+                        setAllWorkflows(Array.isArray(list) ? list : []);
+                      } catch { /* toast handled below on save */ }
+                    }
+                    setBulkWorkflowId('');
+                    setBulkWorkflowNotes('');
+                    setShowBulkWorkflowDialog(true);
+                  }}
+                >Connect to Workflow</Button>
                 <Button
                   size="sm"
                   className="bg-[#22C55E] hover:bg-[#16a34a] text-white"
@@ -841,6 +906,66 @@ export function CandidatesList() {
               }}
             >
               Convert
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Connect to Workflow dialog — assigns one chosen
+          workflow to every selected candidate. Per-candidate rules
+          (single active workflow, admin-only reassignment) are
+          enforced on the backend; the summary toast spells out who
+          was assigned, reassigned, skipped, or blocked. */}
+      <Dialog open={showBulkWorkflowDialog} onOpenChange={(o) => !o && setShowBulkWorkflowDialog(false)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Connect {selected.size} Candidate{selected.size === 1 ? '' : 's'} to a Workflow</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-muted-foreground">
+              Every selected candidate will be placed on Stage 1 of the chosen workflow with status
+              <strong className="text-foreground"> In Progress</strong>. Candidates already on the same
+              workflow are skipped; reassignment to a different workflow is a System-Admin-only action
+              and will be blocked for others.
+            </p>
+            <div className="space-y-1.5">
+              <Label htmlFor="bulk-workflow" className="text-sm">Workflow *</Label>
+              <Select value={bulkWorkflowId} onValueChange={setBulkWorkflowId}>
+                <SelectTrigger id="bulk-workflow">
+                  <SelectValue placeholder={allWorkflows.length === 0 ? 'No workflows available' : 'Pick a workflow…'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {allWorkflows.map((w: any) => (
+                    <SelectItem key={w.id} value={w.id}>
+                      <span className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: w.color ?? '#6366F1' }} />
+                        <span>{w.name}</span>
+                        <span className={`ml-1 text-[10px] px-1.5 py-0.5 rounded border ${w.isPublic ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-slate-700 border-slate-200'}`}>
+                          {w.isPublic ? 'Public' : 'Private'}
+                        </span>
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="bulk-workflow-notes" className="text-sm">Notes <span className="text-muted-foreground text-xs">(optional)</span></Label>
+              <Input
+                id="bulk-workflow-notes"
+                placeholder="Context / reason — saved to the assignment audit trail"
+                value={bulkWorkflowNotes}
+                onChange={(e) => setBulkWorkflowNotes(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowBulkWorkflowDialog(false)} disabled={bulkWorkflowInFlight}>Cancel</Button>
+            <Button
+              disabled={bulkWorkflowInFlight || !bulkWorkflowId}
+              onClick={handleBulkAssignWorkflow}
+            >
+              {bulkWorkflowInFlight ? 'Assigning…' : 'Connect'}
             </Button>
           </DialogFooter>
         </DialogContent>

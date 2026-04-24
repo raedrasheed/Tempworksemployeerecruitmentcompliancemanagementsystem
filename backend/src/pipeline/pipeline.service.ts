@@ -428,6 +428,96 @@ export class WorkflowService {
     return assignment;
   }
 
+  /**
+   * Assign a workflow to many candidates in one call. Each candidate
+   * goes through the single-assignment path, so the one-active-
+   * workflow-per-candidate rule + the admin-only reassignment check
+   * are reused without duplication. Per-candidate outcomes are
+   * returned so the UI can show a meaningful summary.
+   */
+  async assignCandidatesBulk(
+    dto: { candidateIds: string[]; workflowId: string; notes?: string },
+    actorId?: string,
+    actor?: { role?: string },
+  ) {
+    if (!Array.isArray(dto.candidateIds) || dto.candidateIds.length === 0) {
+      throw new BadRequestException('candidateIds is required and must be non-empty');
+    }
+    if (dto.candidateIds.length > 500) {
+      throw new BadRequestException('Refusing to process more than 500 candidates in a single bulk assign');
+    }
+    // Pre-resolve the workflow once so every iteration doesn't re-
+    // query the same row. The per-candidate path revalidates too, so
+    // this is purely a perf short-circuit.
+    await this.getWorkflow(dto.workflowId);
+
+    const results: Array<{
+      candidateId: string;
+      outcome: 'assigned' | 'reassigned' | 'skipped_same_workflow' | 'forbidden' | 'error';
+      assignmentId?: string;
+      error?: string;
+    }> = [];
+
+    for (const candidateId of [...new Set(dto.candidateIds)]) {
+      try {
+        const assignment = await this.assignCandidate(
+          { candidateId, workflowId: dto.workflowId, notes: dto.notes } as any,
+          actorId,
+          actor,
+        );
+        // assignCandidate withdraws the prior row when an admin
+        // reassigns — detect that by checking whether a WITHDRAWN
+        // row on the same candidate exists with a recent timestamp.
+        const hadPrior = await this.prisma.candidateWorkflowAssignment.count({
+          where: {
+            candidateId,
+            status: 'WITHDRAWN' as any,
+            completedAt: { gte: new Date(Date.now() - 30 * 1000) },
+          },
+        });
+        results.push({
+          candidateId,
+          outcome: hadPrior > 0 ? 'reassigned' : 'assigned',
+          assignmentId: (assignment as any).id,
+        });
+      } catch (err: any) {
+        // Map the single-assign failure modes onto a stable outcome
+        // vocabulary the frontend can render.
+        const msg = err?.message ?? 'Unknown error';
+        if (err?.status === 409) {
+          results.push({ candidateId, outcome: 'skipped_same_workflow', error: msg });
+        } else if (err?.status === 403) {
+          results.push({ candidateId, outcome: 'forbidden', error: msg });
+        } else {
+          results.push({ candidateId, outcome: 'error', error: msg });
+        }
+      }
+    }
+
+    const summary = {
+      requested: dto.candidateIds.length,
+      assigned:              results.filter(r => r.outcome === 'assigned').length,
+      reassigned:            results.filter(r => r.outcome === 'reassigned').length,
+      skipped_same_workflow: results.filter(r => r.outcome === 'skipped_same_workflow').length,
+      forbidden:             results.filter(r => r.outcome === 'forbidden').length,
+      errors:                results.filter(r => r.outcome === 'error').length,
+    };
+
+    if (actorId) {
+      await this.prisma.auditLog.create({
+        data: {
+          userId: actorId,
+          action: 'WORKFLOW_BULK_ASSIGN',
+          entity: 'Workflow',
+          entityId: dto.workflowId,
+          changes: { ...summary, candidateIds: dto.candidateIds } as any,
+        },
+      });
+    }
+
+    return { summary, results };
+  }
+
   async getCandidateAssignments(candidateId: string) {
     return this.prisma.candidateWorkflowAssignment.findMany({
       where: { candidateId },

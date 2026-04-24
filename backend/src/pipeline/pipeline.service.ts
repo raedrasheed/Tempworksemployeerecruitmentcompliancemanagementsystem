@@ -960,6 +960,32 @@ export class WorkflowService {
     return { message: 'Note deleted' };
   }
 
+  // ─── Flag ─────────────────────────────────────────────────────────────────
+
+  async toggleProgressFlag(progressId: string, flagged: boolean, reason: string | null, actorId?: string) {
+    const progress = await this.prisma.candidateStageProgress.findUnique({ where: { id: progressId } });
+    if (!progress) throw new NotFoundException('Progress record not found');
+    const updated = await this.prisma.candidateStageProgress.update({
+      where: { id: progressId },
+      data: {
+        flagged,
+        flagReason: flagged ? (reason ?? progress.flagReason ?? null) : null,
+      },
+    });
+    try {
+      await this.prisma.auditLog.create({
+        data: {
+          userId: actorId,
+          action: flagged ? 'STAGE_PROGRESS_FLAG' : 'STAGE_PROGRESS_UNFLAG',
+          entityType: 'WORKFLOW_STAGE_PROGRESS',
+          entityId: progressId,
+          details: JSON.stringify({ flagged, reason: reason ?? null }),
+        } as any,
+      });
+    } catch { /* audit never blocks */ }
+    return updated;
+  }
+
   // ─── Approvals ────────────────────────────────────────────────────────────
 
   async submitApproval(progressId: string, dto: CreateStageApprovalDto, actorId?: string) {
@@ -1004,7 +1030,7 @@ export class WorkflowService {
       where: { id: stageId },
       include: {
         requiredDocs: { include: { documentType: { select: { id: true, name: true, category: true } } } },
-        assignedUsers: { include: { user: { select: { id: true, firstName: true, lastName: true } } } },
+        assignedUsers: { include: { user: { select: { id: true, firstName: true, lastName: true, email: true } } } },
         workflow: { select: { id: true, name: true } },
       },
     });
@@ -1027,12 +1053,20 @@ export class WorkflowService {
               candidate: {
                 select: {
                   id: true, firstName: true, lastName: true, email: true,
-                  candidateNumber: true, photoUrl: true, nationality: true,
+                  candidateNumber: true, leadNumber: true, photoUrl: true, nationality: true,
                 },
               },
             },
           },
-          approvals: { orderBy: { createdAt: 'desc' }, take: 1 },
+          approvals: {
+            orderBy: { createdAt: 'desc' },
+            include: { approvedBy: { select: { id: true, firstName: true, lastName: true } } },
+          },
+          notes: {
+            orderBy: { createdAt: 'desc' },
+            take: 5,
+            include: { author: { select: { id: true, firstName: true, lastName: true } } },
+          },
         },
         orderBy: { enteredAt: 'asc' },
       }),
@@ -1052,10 +1086,106 @@ export class WorkflowService {
       }),
     ]);
 
+    const requiredDocTypeIds = (stage.requiredDocs as any[])
+      .filter(rd => rd.isRequired)
+      .map(rd => rd.documentTypeId);
+    const requiredDocsTotal = requiredDocTypeIds.length;
+
+    // Batch load documents for all candidate entityIds at once
+    const candidateIds = progressItems
+      .map(p => (p.assignment as any)?.candidate?.id)
+      .filter(Boolean);
+    const employeeIds = employeeAssignments
+      .map(ea => (ea as any)?.employee?.id)
+      .filter(Boolean);
+
+    const [candidateDocs, employeeDocs] = await Promise.all([
+      candidateIds.length > 0 && requiredDocTypeIds.length > 0
+        ? this.prisma.document.findMany({
+            where: {
+              entityType: 'APPLICANT' as any,
+              entityId:   { in: candidateIds },
+              documentTypeId: { in: requiredDocTypeIds },
+              deletedAt: null,
+            },
+            select: { entityId: true, documentTypeId: true, status: true },
+          })
+        : Promise.resolve([] as any[]),
+      employeeIds.length > 0 && requiredDocTypeIds.length > 0
+        ? this.prisma.document.findMany({
+            where: {
+              entityType: 'EMPLOYEE' as any,
+              entityId:   { in: employeeIds },
+              documentTypeId: { in: requiredDocTypeIds },
+              deletedAt: null,
+            },
+            select: { entityId: true, documentTypeId: true, status: true },
+          })
+        : Promise.resolve([] as any[]),
+    ]);
+
+    const buildDocSummary = (docs: any[], entityId: string) => {
+      // Count unique required-doc-types that have at least one non-rejected doc
+      const uploadedTypeIds = new Set<string>();
+      const verifiedTypeIds = new Set<string>();
+      const rejectedTypeIds = new Set<string>();
+      for (const d of docs) {
+        if (d.entityId !== entityId) continue;
+        if (d.status === 'REJECTED') {
+          if (!uploadedTypeIds.has(d.documentTypeId)) rejectedTypeIds.add(d.documentTypeId);
+          continue;
+        }
+        uploadedTypeIds.add(d.documentTypeId);
+        if (d.status === 'VERIFIED') verifiedTypeIds.add(d.documentTypeId);
+      }
+      // Overall stage document status: derive from required types
+      let overallStatus: 'APPROVED' | 'PENDING_REVIEW' | 'REJECTED' | 'NOT_STARTED';
+      if (requiredDocsTotal === 0) {
+        overallStatus = 'NOT_STARTED';
+      } else if (rejectedTypeIds.size > 0 && uploadedTypeIds.size < requiredDocsTotal) {
+        overallStatus = 'REJECTED';
+      } else if (verifiedTypeIds.size >= requiredDocsTotal) {
+        overallStatus = 'APPROVED';
+      } else if (uploadedTypeIds.size === 0) {
+        overallStatus = 'NOT_STARTED';
+      } else {
+        overallStatus = 'PENDING_REVIEW';
+      }
+      return {
+        requiredDocsTotal,
+        requiredDocsUploaded: uploadedTypeIds.size,
+        requiredDocsVerified: verifiedTypeIds.size,
+        documentStatus: overallStatus,
+      };
+    };
+
+    const WARNING_WINDOW_MS = 3 * 86400000; // warn when <3 days remain
+    const computeDeadlineStatus = (slaDeadline: Date | null): 'ON_TIME' | 'WARNING' | 'OVERDUE' | 'NO_DEADLINE' => {
+      if (!slaDeadline) return 'NO_DEADLINE';
+      const diff = new Date(slaDeadline).getTime() - Date.now();
+      if (diff < 0) return 'OVERDUE';
+      if (diff <= WARNING_WINDOW_MS) return 'WARNING';
+      return 'ON_TIME';
+    };
+
+    // Responsible users for the stage (filter by role)
+    const responsibleUsers = (stage.assignedUsers as any[])
+      .filter(u => String(u.role).toUpperCase() === 'RESPONSIBLE')
+      .map(u => ({
+        id:        u.user?.id,
+        firstName: u.user?.firstName,
+        lastName:  u.user?.lastName,
+        email:     u.user?.email,
+      }))
+      .filter(u => u.id);
+
     // Map candidates
     const candidateEntries = progressItems.map((p) => {
       const daysInStage = Math.floor((Date.now() - new Date(p.enteredAt).getTime()) / 86400000);
       const candidate = (p.assignment as any).candidate;
+      const docSummary = buildDocSummary(candidateDocs as any[], candidate?.id ?? '');
+      const approvalsArr = (p.approvals as any[]) ?? [];
+      const notesArr = (p.notes as any[]) ?? [];
       return {
         progressId: p.id,
         assignmentId: p.assignmentId,
@@ -1065,13 +1195,21 @@ export class WorkflowService {
         lastName:   candidate?.lastName,
         email:      candidate?.email,
         systemId:   candidate?.candidateNumber,
+        applicationId: candidate?.candidateNumber ?? candidate?.leadNumber ?? null,
         photoUrl:   candidate?.photoUrl,
         nationality: candidate?.nationality,
         enteredAt:  p.enteredAt,
         slaDeadline: p.slaDeadline,
         flagged:    p.flagged,
+        flagReason: (p as any).flagReason ?? null,
         daysInStage,
-        latestApproval: (p.approvals as any[])[0] ?? null,
+        ...docSummary,
+        checklistCompleted: 0,
+        checklistTotal: 0,
+        deadlineStatus: computeDeadlineStatus(p.slaDeadline),
+        responsibleUsers,
+        latestApproval: approvalsArr[0] ?? null,
+        recentNotes: notesArr,
         profileLink: `/dashboard/applicants/${candidate?.id}`,
       };
     });
@@ -1080,6 +1218,7 @@ export class WorkflowService {
     const employeeEntries = employeeAssignments.filter(ea => ea.status === 'ACTIVE').map((ea) => {
       const emp = (ea as any).employee;
       const daysInStage = Math.floor((Date.now() - new Date(ea.assignedAt).getTime()) / 86400000);
+      const docSummary = buildDocSummary(employeeDocs as any[], emp?.id ?? '');
       return {
         progressId:  ea.id,
         assignmentId: ea.id,
@@ -1089,13 +1228,21 @@ export class WorkflowService {
         lastName:    emp?.lastName,
         email:       emp?.email,
         systemId:    emp?.employeeNumber,
+        applicationId: emp?.employeeNumber ?? null,
         photoUrl:    emp?.photoUrl,
         nationality: emp?.nationality,
         enteredAt:   ea.assignedAt,
         slaDeadline: null,
         flagged:     false,
+        flagReason:  null,
         daysInStage,
+        ...docSummary,
+        checklistCompleted: 0,
+        checklistTotal: 0,
+        deadlineStatus: 'NO_DEADLINE' as const,
+        responsibleUsers,
         latestApproval: null,
+        recentNotes: [] as any[],
         profileLink: `/dashboard/employees/${emp?.id}`,
       };
     });

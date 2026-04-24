@@ -1446,6 +1446,10 @@ export const workflowApi = {
   deleteNote: (noteId: string) =>
     apiFetch<any>(`/workflows/notes/${noteId}`, { method: 'DELETE' }),
 
+  // Flag
+  toggleFlag: (progressId: string, data: { flagged: boolean; reason?: string | null }) =>
+    apiFetch<any>(`/workflows/progress/${progressId}/flag`, { method: 'PATCH', body: JSON.stringify(data) }),
+
   // Approvals
   submitApproval: (progressId: string, data: { decision: 'APPROVED' | 'REJECTED'; notes?: string }) =>
     apiFetch<any>(`/workflows/progress/${progressId}/approve`, { method: 'POST', body: JSON.stringify(data) }),

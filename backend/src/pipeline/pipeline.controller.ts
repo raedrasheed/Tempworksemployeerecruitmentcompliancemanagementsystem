@@ -260,6 +260,19 @@ export class WorkflowController {
     return this.workflowService.deleteNote(noteId, req.user?.id);
   }
 
+  // ─── Flag ─────────────────────────────────────────────────────────────────
+
+  @Patch('progress/:progressId/flag')
+  @Roles(...WRITE_ROLES)
+  @ApiOperation({ summary: 'Toggle flagged state on a candidate stage progress' })
+  toggleFlag(
+    @Param('progressId') progressId: string,
+    @Body() body: { flagged: boolean; reason?: string | null },
+    @Request() req: any,
+  ) {
+    return this.workflowService.toggleProgressFlag(progressId, !!body.flagged, body.reason ?? null, req.user?.id);
+  }
+
   // ─── Approvals ────────────────────────────────────────────────────────────
 
   @Post('progress/:progressId/approve')

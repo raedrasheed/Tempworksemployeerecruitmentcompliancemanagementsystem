@@ -265,6 +265,7 @@ model User {
   employeeStageApprovals   EmployeeStageApproval[]       @relation("EmployeeStageApprovals")
   attendanceCreated        AttendanceRecord[]            @relation("AttendanceCreatedBy")
   attendanceUpdated        AttendanceRecord[]            @relation("AttendanceUpdatedBy")
+  attendanceLockedPeriods  AttendanceLockedPeriod[]      @relation("AttendanceLockedBy")
   stageNotes            CandidateStageNote[]           @relation("StageNoteAuthors")
 
   // ── Vehicle relations ──────────────────────────────────────────────────
@@ -1161,6 +1162,11 @@ enum ApprovalDecision {
 enum AttendanceStatus {
   PRESENT
   ABSENT
+  OFF
+  VACATION
+  SICK
+  // Legacy values kept so existing rows keep validating — map to
+  // the closest new status in the UI on read.
   LATE
   ON_LEAVE
   HALF_DAY
@@ -1421,6 +1427,10 @@ model AttendanceRecord {
   status       AttendanceStatus @default(PRESENT)
   checkIn      String?
   checkOut     String?
+  // Single mid-shift break. Total Hours on the row is
+  // (checkOut - checkIn) - (breakOut - breakIn) when both pairs are set.
+  breakIn      String?
+  breakOut     String?
   workingHours Float?
   notes        String?
   createdById  String?
@@ -1436,6 +1446,26 @@ model AttendanceRecord {
   @@index([employeeId])
   @@index([date])
   @@map("attendance_records")
+}
+
+/// A global payroll-period lock. Once inserted, no attendance record
+/// for that (year, month) can be created / updated / deleted — bulk
+/// entry is blocked too. Unlock by deleting the row. Intentionally
+/// global for MVP (not per-employee) so one payroll run seals the
+/// whole month at once.
+model AttendanceLockedPeriod {
+  id         String   @id @default(uuid())
+  year       Int
+  month      Int      // 1-12
+  lockedById String?
+  lockedAt   DateTime @default(now())
+  reason     String?
+
+  lockedBy User? @relation("AttendanceLockedBy", fields: [lockedById], references: [id])
+
+  @@unique([year, month])
+  @@index([year, month])
+  @@map("attendance_locked_periods")
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

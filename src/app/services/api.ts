@@ -1445,7 +1445,9 @@ export const attendanceApi = {
   },
 
   /**
-   * Create a new attendance record (upsert by employeeId + date).
+   * Create / update an attendance record (upsert by employeeId + date).
+   * Break fields are optional; the server computes workingHours as
+   * (checkOut - checkIn) - (breakOut - breakIn).
    */
   upsert: (data: {
     employeeId: string | undefined;
@@ -1453,6 +1455,8 @@ export const attendanceApi = {
     status: string;
     checkIn?: string;
     checkOut?: string;
+    breakIn?: string;
+    breakOut?: string;
     workingHours?: number | string;
     notes?: string;
   }) => apiFetch<any>('/attendance', { method: 'POST', body: JSON.stringify(data) }),
@@ -1464,9 +1468,39 @@ export const attendanceApi = {
     status?: string;
     checkIn?: string;
     checkOut?: string;
+    breakIn?: string;
+    breakOut?: string;
     workingHours?: number | string;
     notes?: string;
   }) => apiFetch<any>(`/attendance/${recordId}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  /**
+   * Apply one status + time template to a date range or list for a
+   * single employee. Skips locked dates; overwriteExisting=false
+   * leaves already-filled days alone.
+   */
+  bulkApply: (data: {
+    employeeId: string;
+    status: string;
+    dateFrom?: string;
+    dateTo?: string;
+    dates?: string[];
+    checkIn?: string;
+    checkOut?: string;
+    breakIn?: string;
+    breakOut?: string;
+    notes?: string;
+    overwriteExisting?: boolean;
+    skipWeekends?: boolean;
+  }) => apiFetch<any>('/attendance/bulk-apply', { method: 'POST', body: JSON.stringify(data) }),
+
+  /** Payroll lock management. */
+  listLockedPeriods: () =>
+    apiFetch<Array<{ id: string; year: number; month: number; lockedAt: string; reason?: string; lockedBy?: { firstName: string; lastName: string } | null }>>('/attendance/locked-periods'),
+  lockPeriod: (data: { year: number; month: number; reason?: string }) =>
+    apiFetch<any>('/attendance/locked-periods', { method: 'POST', body: JSON.stringify(data) }),
+  unlockPeriod: (id: string) =>
+    apiFetch<any>(`/attendance/locked-periods/${id}`, { method: 'DELETE' }),
 
   /**
    * Delete an attendance record by id.
@@ -1478,13 +1512,14 @@ export const attendanceApi = {
    * Export the attendance sheet as an Excel file.
    * Returns a Blob suitable for createObjectURL.
    */
-  exportExcel: async (params: { month: number; year: number; driversOnly?: boolean }): Promise<Blob> => {
+  exportExcel: async (params: { month: number; year: number; driversOnly?: boolean; employeeId?: string }): Promise<Blob> => {
     const token = getAccessToken();
     const qs = new URLSearchParams({
       month: String(params.month),
       year: String(params.year),
       driversOnly: String(params.driversOnly ?? false),
     });
+    if (params.employeeId) qs.set('employeeId', params.employeeId);
     const res = await fetch(`${API_URL}/attendance/export/excel?${qs.toString()}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });

@@ -11,6 +11,8 @@ import {
   UpsertAttendanceDto,
   UpdateAttendanceDto,
   BulkUpsertAttendanceDto,
+  BulkApplyAttendanceDto,
+  LockPeriodDto,
   ExportAttendanceDto,
 } from './dto/attendance.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -20,6 +22,10 @@ import { Roles } from '../auth/decorators/roles.decorator';
 const READ_ROLES   = ['System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter'];
 const WRITE_ROLES  = ['System Admin', 'HR Manager', 'Recruiter'];
 const EXPORT_ROLES = ['System Admin', 'HR Manager', 'Finance', 'Compliance Officer'];
+// Locking a payroll period is a finance/admin action — the data is
+// payroll-grade after this, so only Finance + System Admin can lock
+// or unlock.
+const LOCK_ROLES   = ['System Admin', 'Finance', 'HR Manager'];
 
 @ApiTags('Attendance')
 @ApiBearerAuth('access-token')
@@ -74,12 +80,45 @@ export class AttendanceController {
     return this.attendanceService.upsertRecord(dto, req.user?.id);
   }
 
-  // POST /attendance/bulk — bulk upsert
+  // POST /attendance/bulk — bulk upsert (raw list of rows)
   @Post('bulk')
   @Roles(...WRITE_ROLES)
   @ApiOperation({ summary: 'Bulk upsert attendance records' })
   bulkUpsert(@Body() dto: BulkUpsertAttendanceDto, @Request() req: any) {
     return this.attendanceService.bulkUpsert(dto, req.user?.id);
+  }
+
+  // POST /attendance/bulk-apply — apply one template (status +
+  // optional times) to a date range or explicit date list.
+  @Post('bulk-apply')
+  @Roles(...WRITE_ROLES)
+  @ApiOperation({ summary: 'Apply one status + time template to many dates for a single employee' })
+  bulkApply(@Body() dto: BulkApplyAttendanceDto, @Request() req: any) {
+    return this.attendanceService.bulkApply(dto, req.user?.id);
+  }
+
+  // ── Payroll lock management ────────────────────────────────────────────────
+
+  @Get('locked-periods')
+  @Roles(...READ_ROLES)
+  @ApiOperation({ summary: 'List all locked payroll periods (year/month)' })
+  listLockedPeriods() {
+    return this.attendanceService.listLockedPeriods();
+  }
+
+  @Post('locked-periods')
+  @Roles(...LOCK_ROLES)
+  @ApiOperation({ summary: 'Lock a (year, month) so attendance records in it cannot be edited' })
+  lockPeriod(@Body() dto: LockPeriodDto, @Request() req: any) {
+    return this.attendanceService.lockPeriod(dto, req.user?.id);
+  }
+
+  @Delete('locked-periods/:id')
+  @Roles(...LOCK_ROLES)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Unlock a previously-locked payroll period' })
+  unlockPeriod(@Param('id') id: string, @Request() req: any) {
+    return this.attendanceService.unlockPeriod(id, req.user?.id);
   }
 
   // PATCH /attendance/:id — update a record

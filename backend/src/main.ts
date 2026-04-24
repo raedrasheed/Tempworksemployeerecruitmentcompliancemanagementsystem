@@ -199,6 +199,56 @@ async function runStartupMigrations() {
       logger.log('finance_transaction_types — already seeded');
     }
 
+    // 8. Attendance: break times + OFF/VACATION/SICK enum values +
+    //    locked-periods table. Idempotent on every boot so the feature
+    //    works without a manual prisma migrate.
+    await client.query(`
+      ALTER TABLE "attendance_records"
+        ADD COLUMN IF NOT EXISTS "breakIn"  text,
+        ADD COLUMN IF NOT EXISTS "breakOut" text
+    `);
+    for (const value of ['OFF', 'VACATION', 'SICK']) {
+      await client.query(`
+        DO $$ BEGIN
+          IF NOT EXISTS (
+            SELECT 1 FROM pg_enum e
+            JOIN pg_type t ON e.enumtypid = t.oid
+            WHERE t.typname = 'AttendanceStatus' AND e.enumlabel = '${value}'
+          ) THEN
+            EXECUTE 'ALTER TYPE "AttendanceStatus" ADD VALUE ''${value}'' ';
+          END IF;
+        END $$
+      `);
+    }
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS "attendance_locked_periods" (
+        "id"         text PRIMARY KEY,
+        "year"       integer NOT NULL,
+        "month"      integer NOT NULL,
+        "lockedById" text,
+        "lockedAt"   timestamptz NOT NULL DEFAULT now(),
+        "reason"     text
+      )
+    `);
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS "attendance_locked_periods_year_month_key"
+        ON "attendance_locked_periods"("year", "month")
+    `);
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS "attendance_locked_periods_year_month_idx"
+        ON "attendance_locked_periods"("year", "month")
+    `);
+    await client.query(`
+      DO $$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'attendance_locked_periods_lockedById_fkey') THEN
+          ALTER TABLE "attendance_locked_periods"
+            ADD CONSTRAINT "attendance_locked_periods_lockedById_fkey"
+            FOREIGN KEY ("lockedById") REFERENCES "users"(id) ON DELETE SET NULL;
+        END IF;
+      END $$
+    `);
+    logger.log('attendance — break columns + lock table ensured');
+
     // 5. Cleanup of phantom profile-photo document rows.
     //    Before the fix, the public /apply photo upload mis-classified
     //    the profile photo as the first-available DocumentType (usually

@@ -55,12 +55,11 @@ const MONTH_NAMES = [
 ];
 
 const STATUS_OPTIONS = [
-  { value: 'PRESENT', label: 'Present' },
-  { value: 'ABSENT', label: 'Absent' },
-  { value: 'LATE', label: 'Late' },
-  { value: 'ON_LEAVE', label: 'On Leave' },
-  { value: 'HALF_DAY', label: 'Half Day' },
-  { value: 'HOLIDAY', label: 'Holiday' },
+  { value: 'PRESENT',  label: 'Present' },
+  { value: 'ABSENT',   label: 'Absent' },
+  { value: 'OFF',      label: 'Off' },
+  { value: 'VACATION', label: 'Vacation' },
+  { value: 'SICK',     label: 'Sick' },
 ];
 
 const statusColors: Record<string, string> = {

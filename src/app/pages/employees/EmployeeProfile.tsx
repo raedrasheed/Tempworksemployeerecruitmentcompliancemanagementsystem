@@ -16,6 +16,7 @@ import { employeesApi, documentsApi, settingsApi, employeeWorkflowApi, agenciesA
 import { usePermissions } from '../../hooks/usePermissions';
 import { FinancialRecordsTab } from '../../components/finance/FinancialRecordsTab';
 import { ApplicationDataView } from '../../components/applicants/ApplicationDataView';
+import { AttendanceTab } from '../../components/attendance/AttendanceTab';
 
 const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1').replace('/api/v1', '');
 
@@ -488,6 +489,7 @@ export function EmployeeProfile() {
           <TabsTrigger value="application">Application</TabsTrigger>
           <TabsTrigger value="documents">Documents ({documents.length})</TabsTrigger>
           <TabsTrigger value="workflow">Workflow</TabsTrigger>
+          <TabsTrigger value="attendance">Attendance &amp; Time Sheets</TabsTrigger>
           <TabsTrigger value="compliance">Compliance</TabsTrigger>
           {isFinanceOrAdmin && (
             <TabsTrigger value="financial">
@@ -1079,6 +1081,17 @@ export function EmployeeProfile() {
               </CardContent>
             </Card>
           )}
+        </TabsContent>
+
+        {/* Attendance & Time Sheets — daily timesheet, bulk entry,
+            Zeiterfassung export, and lock-aware editing. */}
+        <TabsContent value="attendance">
+          <AttendanceTab
+            employeeId={id!}
+            employeeName={[employee?.firstName, employee?.lastName].filter(Boolean).join(' ')}
+            canWrite={canEdit('employees')}
+            canLock={currentUser?.role === 'System Admin' || currentUser?.role === 'HR Manager' || currentUser?.role === 'Finance'}
+          />
         </TabsContent>
 
         {/* Compliance */}

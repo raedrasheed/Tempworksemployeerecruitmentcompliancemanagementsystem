@@ -57,22 +57,30 @@ const MONTH_NAMES = [
 const YEARS = Array.from({ length: 11 }, (_, i) => 2020 + i);
 
 const STATUS_OPTIONS = [
-  { value: '', label: 'All Statuses' },
-  { value: 'PRESENT', label: 'Present' },
-  { value: 'ABSENT', label: 'Absent' },
-  { value: 'LATE', label: 'Late' },
-  { value: 'ON_LEAVE', label: 'On Leave' },
-  { value: 'HALF_DAY', label: 'Half Day' },
-  { value: 'HOLIDAY', label: 'Holiday' },
+  { value: '',         label: 'All Statuses' },
+  { value: 'PRESENT',  label: 'Present' },
+  { value: 'ABSENT',   label: 'Absent' },
+  { value: 'OFF',      label: 'Off' },
+  { value: 'VACATION', label: 'Vacation' },
+  { value: 'SICK',     label: 'Sick' },
+  // Legacy values still surfaced so old rows remain filterable.
+  { value: 'LATE',     label: 'Late (legacy)' },
+  { value: 'ON_LEAVE', label: 'On Leave (legacy)' },
+  { value: 'HALF_DAY', label: 'Half Day (legacy)' },
+  { value: 'HOLIDAY',  label: 'Holiday (legacy)' },
 ];
 
 const statusColors: Record<string, string> = {
-  PRESENT: 'bg-green-100 text-green-700',
-  ABSENT: 'bg-red-100 text-red-700',
-  LATE: 'bg-amber-100 text-amber-700',
+  PRESENT:  'bg-green-100 text-green-700',
+  ABSENT:   'bg-red-100 text-red-700',
+  OFF:      'bg-slate-100 text-slate-700',
+  VACATION: 'bg-blue-100 text-blue-700',
+  SICK:     'bg-purple-100 text-purple-700',
+  // Legacy
+  LATE:     'bg-amber-100 text-amber-700',
   ON_LEAVE: 'bg-blue-100 text-blue-700',
   HALF_DAY: 'bg-purple-100 text-purple-700',
-  HOLIDAY: 'bg-gray-100 text-gray-600',
+  HOLIDAY:  'bg-gray-100 text-gray-600',
 };
 
 // ─── Column visibility ──────────────────────────────────────────────────────────

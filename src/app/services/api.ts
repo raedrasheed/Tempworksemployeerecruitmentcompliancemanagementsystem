@@ -978,6 +978,18 @@ export const settingsApi = {
   deleteTransactionType: (id: string) =>
     apiFetch(`/settings/transaction-types/${id}`, { method: 'DELETE' }),
 
+  // ── Work History event types (configurable list) ────────────────────────
+  getWorkHistoryEventTypes: (includeInactive = false) =>
+    apiFetch<Array<{ id: string; value: string; label: string; isActive: boolean; sortOrder: number }>>(
+      `/settings/work-history-event-types${includeInactive ? '?includeInactive=true' : ''}`,
+    ),
+  createWorkHistoryEventType: (data: { value: string; label: string; sortOrder?: number; isActive?: boolean }) =>
+    apiFetch<any>('/settings/work-history-event-types', { method: 'POST', body: JSON.stringify(data) }),
+  updateWorkHistoryEventType: (id: string, data: { value?: string; label?: string; sortOrder?: number; isActive?: boolean }) =>
+    apiFetch<any>(`/settings/work-history-event-types/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteWorkHistoryEventType: (id: string) =>
+    apiFetch(`/settings/work-history-event-types/${id}`, { method: 'DELETE' }),
+
   // Document Types
   getDocumentTypes: () => apiFetch<any[]>('/settings/document-types'),
   getDocumentType: (id: string) => apiFetch<any>(`/settings/document-types/${id}`),

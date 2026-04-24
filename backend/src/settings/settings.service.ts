@@ -196,6 +196,85 @@ export class SettingsService {
     }
   }
 
+  // ─── Work History Event Types ───────────────────────────────────────────────
+  // Populates the Event Type dropdown inside the Employee profile's
+  // Contracts tab. Deactivating a type hides it from the dropdown but
+  // keeps existing employee_work_history rows intact (value is a free
+  // string on that table).
+
+  async findWorkHistoryEventTypes(opts?: { includeInactive?: boolean }) {
+    return (this.prisma as any).workHistoryEventTypeSetting.findMany({
+      where: opts?.includeInactive ? {} : { isActive: true },
+      orderBy: [{ sortOrder: 'asc' }, { label: 'asc' }],
+    });
+  }
+
+  async createWorkHistoryEventType(
+    dto: { value: string; label: string; sortOrder?: number; isActive?: boolean },
+    actorId?: string,
+  ) {
+    const value = (dto.value ?? '').trim();
+    const label = (dto.label ?? '').trim();
+    if (!value) throw new NotFoundException('Value is required');
+    if (!label) throw new NotFoundException('Label is required');
+    try {
+      const created = await (this.prisma as any).workHistoryEventTypeSetting.create({
+        data: {
+          value,
+          label,
+          sortOrder: dto.sortOrder ?? 100,
+          isActive: dto.isActive ?? true,
+        },
+      });
+      await this.auditLog.log({
+        userId: actorId, action: 'CREATE', entity: 'WorkHistoryEventType',
+        entityId: created.id, changes: { value, label },
+      });
+      return created;
+    } catch (err: any) {
+      if (err?.code === 'P2002') throw new NotFoundException(`Event type "${value}" already exists`);
+      throw err;
+    }
+  }
+
+  async updateWorkHistoryEventType(
+    id: string,
+    dto: { value?: string; label?: string; sortOrder?: number; isActive?: boolean },
+    actorId?: string,
+  ) {
+    const existing = await (this.prisma as any).workHistoryEventTypeSetting.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Event type not found');
+    const data: any = {};
+    if (dto.value !== undefined)     data.value = dto.value.trim();
+    if (dto.label !== undefined)     data.label = dto.label.trim();
+    if (dto.sortOrder !== undefined) data.sortOrder = dto.sortOrder;
+    if (dto.isActive !== undefined)  data.isActive = dto.isActive;
+    try {
+      const updated = await (this.prisma as any).workHistoryEventTypeSetting.update({ where: { id }, data });
+      await this.auditLog.log({
+        userId: actorId, action: 'UPDATE', entity: 'WorkHistoryEventType',
+        entityId: id, changes: dto as any,
+      });
+      return updated;
+    } catch (err: any) {
+      if (err?.code === 'P2002') throw new NotFoundException(`Event type "${data.value}" already exists`);
+      throw err;
+    }
+  }
+
+  async deleteWorkHistoryEventType(id: string, actorId?: string) {
+    const existing = await (this.prisma as any).workHistoryEventTypeSetting.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Event type not found');
+    await (this.prisma as any).workHistoryEventTypeSetting.update({
+      where: { id }, data: { isActive: false },
+    });
+    await this.auditLog.log({
+      userId: actorId, action: 'DELETE', entity: 'WorkHistoryEventType',
+      entityId: id, changes: { value: existing.value, label: existing.label },
+    });
+    return { message: 'Event type deactivated' };
+  }
+
   async deleteTransactionType(id: string, actorId?: string) {
     const existing = await (this.prisma as any).financeTransactionType.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Transaction type not found');

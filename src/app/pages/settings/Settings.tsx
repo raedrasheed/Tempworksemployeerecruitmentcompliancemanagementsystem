@@ -65,6 +65,12 @@ export function Settings() {
       path: '/dashboard/settings/transaction-types',
     },
     {
+      icon: Briefcase,
+      title: 'Work History Event Types',
+      description: 'Configure the event types shown in the Employee profile Contracts tab',
+      path: '/dashboard/settings/work-history-event-types',
+    },
+    {
       icon: Bell,
       title: 'Notification Rules',
       description: 'Configure notification preferences and rules',

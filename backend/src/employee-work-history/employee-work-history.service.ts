@@ -46,8 +46,34 @@ export class EmployeeWorkHistoryService {
     });
   }
 
+  /** Configured event types — active only, in the operator-defined
+   *  order. Surfaced by the controller so the Add/Edit dropdown
+   *  reflects Settings without a second round-trip.  */
+  async listEventTypes() {
+    try {
+      return await (this.prisma as any).workHistoryEventTypeSetting.findMany({
+        where: { isActive: true },
+        orderBy: [{ sortOrder: 'asc' }, { label: 'asc' }],
+      });
+    } catch {
+      return [];
+    }
+  }
+
+  /** Throws BadRequest when the value isn't registered in Settings.
+   *  Soft-fails open when the settings table is empty so the first
+   *  install still accepts writes. */
+  private async assertEventTypeConfigured(value: string) {
+    const list = await this.listEventTypes();
+    if (list.length === 0) return;
+    if (!list.some((e: any) => e.value === value)) {
+      throw new BadRequestException(`Event type "${value}" is not configured in Settings`);
+    }
+  }
+
   async create(employeeId: string, dto: CreateWorkHistoryDto, actorId?: string) {
     await this.assertEmployeeExists(employeeId);
+    await this.assertEventTypeConfigured(dto.eventType);
     const entry = await (this.prisma as any).employeeWorkHistory.create({
       data: {
         employeeId,
@@ -70,6 +96,7 @@ export class EmployeeWorkHistoryService {
       where: { id: entryId, employeeId, deletedAt: null },
     });
     if (!existing) throw new NotFoundException('Work history entry not found');
+    if (dto.eventType !== undefined) await this.assertEventTypeConfigured(dto.eventType);
     const data: any = {};
     if (dto.date !== undefined)        data.date = new Date(dto.date);
     if (dto.eventType !== undefined)   data.eventType = dto.eventType;

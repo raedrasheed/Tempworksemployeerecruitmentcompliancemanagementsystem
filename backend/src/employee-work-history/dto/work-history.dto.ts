@@ -1,6 +1,9 @@
-import { IsOptional, IsString, IsIn, IsUUID, IsDateString } from 'class-validator';
+import { IsOptional, IsString, IsNotEmpty, IsUUID, IsDateString } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
+// Legacy built-in values — only kept as Swagger hints. The canonical
+// list lives in the work_history_event_types settings table and is
+// validated at the service layer against whatever rows are active.
 export const WORK_HISTORY_EVENT_TYPES = [
   'NEW_CONTRACT',
   'PROBATION_START',
@@ -10,18 +13,21 @@ export const WORK_HISTORY_EVENT_TYPES = [
   'UNPAID_LEAVE_END',
   'TERMINATED',
 ] as const;
-export type WorkHistoryEventTypeValue = typeof WORK_HISTORY_EVENT_TYPES[number];
+export type WorkHistoryEventTypeValue = string;
 
 export class CreateWorkHistoryDto {
   @ApiProperty({ description: 'Date of the event (YYYY-MM-DD)' })
   @IsDateString()
   date: string;
 
-  @ApiProperty({ enum: WORK_HISTORY_EVENT_TYPES })
-  @IsIn(WORK_HISTORY_EVENT_TYPES as unknown as string[])
+  @ApiProperty({
+    description: 'Event type value. Must match an active value from /settings/work-history-event-types.',
+    example: WORK_HISTORY_EVENT_TYPES[0],
+  })
+  @IsString() @IsNotEmpty()
   eventType: string;
 
-  @ApiPropertyOptional({ description: 'Free-text notes. Optional — the event type alone often tells the whole story (e.g. TERMINATED).' })
+  @ApiPropertyOptional({ description: 'Free-text notes. Optional — the event type alone often tells the whole story.' })
   @IsOptional() @IsString()
   description?: string;
 
@@ -32,9 +38,7 @@ export class CreateWorkHistoryDto {
 
 export class UpdateWorkHistoryDto {
   @ApiPropertyOptional() @IsOptional() @IsDateString() date?: string;
-  @ApiPropertyOptional({ enum: WORK_HISTORY_EVENT_TYPES })
-  @IsOptional() @IsIn(WORK_HISTORY_EVENT_TYPES as unknown as string[])
-  eventType?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() @IsNotEmpty() eventType?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() description?: string;
   @ApiPropertyOptional() @IsOptional() @IsUUID() approvedById?: string;
 }

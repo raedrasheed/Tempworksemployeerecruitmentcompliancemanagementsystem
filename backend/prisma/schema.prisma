@@ -1481,21 +1481,33 @@ model AttendanceLockedPeriod {
 // Only Employee rows can own entries here — nothing on the candidate /
 // lead path writes to this table.
 
-enum WorkHistoryEventType {
-  NEW_CONTRACT
-  PROBATION_START
-  PROBATION_END
-  END_OF_CONTRACT
-  UNPAID_LEAVE_START
-  UNPAID_LEAVE_END
-  TERMINATED
+// Configurable in Settings → Work History Event Types. Previously a
+// Postgres enum; now a plain string column so System Admins can add,
+// rename, reorder, or deactivate types from the dashboard without a
+// migration. The canonical seed list lives in the startup migration.
+model WorkHistoryEventTypeSetting {
+  id        String   @id @default(uuid())
+  /** Stable machine name written onto EmployeeWorkHistory.eventType. */
+  value     String   @unique
+  /** Human-readable label shown in the Add / Edit dialog. */
+  label     String
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(100)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("work_history_event_types")
 }
 
 model EmployeeWorkHistory {
-  id           String               @id @default(uuid())
+  id           String   @id @default(uuid())
   employeeId   String
-  date         DateTime             @db.Date
-  eventType    WorkHistoryEventType
+  date         DateTime @db.Date
+  /** Free-text now, constrained by the WorkHistoryEventTypeSetting
+   *  list at the service layer. Legacy rows with values like
+   *  'NEW_CONTRACT' keep rendering; new custom values are allowed
+   *  once they've been added in Settings. */
+  eventType    String
   description  String?
   createdById  String?
   approvedById String?

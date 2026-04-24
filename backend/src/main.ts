@@ -337,6 +337,61 @@ async function runStartupMigrations() {
     `);
     logger.log('employee_work_history — tables + enum + FKs ensured');
 
+    // 9b. Make the eventType column configurable. Switch it from the
+    //     static WorkHistoryEventType enum to plain text, and back the
+    //     dropdown with a new settings table seeded from the original
+    //     seven values. Idempotent on every boot.
+    await client.query(`
+      DO $$ BEGIN
+        IF EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name = 'employee_work_history'
+            AND column_name = 'eventType'
+            AND data_type = 'USER-DEFINED'
+        ) THEN
+          ALTER TABLE "employee_work_history"
+            ALTER COLUMN "eventType" TYPE text USING "eventType"::text;
+        END IF;
+      END $$
+    `);
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS "work_history_event_types" (
+        "id"        text PRIMARY KEY,
+        "value"     text NOT NULL UNIQUE,
+        "label"     text NOT NULL,
+        "isActive"  boolean NOT NULL DEFAULT true,
+        "sortOrder" integer NOT NULL DEFAULT 100,
+        "createdAt" timestamptz NOT NULL DEFAULT now(),
+        "updatedAt" timestamptz NOT NULL DEFAULT now()
+      )
+    `);
+    const whExistingCount = await client.query(
+      `SELECT COUNT(*)::int AS c FROM "work_history_event_types"`,
+    );
+    if ((whExistingCount.rows[0]?.c ?? 0) === 0) {
+      const defaults: Array<[string, string]> = [
+        ['NEW_CONTRACT',        'New Contract'],
+        ['PROBATION_START',     'Probation Period Start'],
+        ['PROBATION_END',       'Probation Period End'],
+        ['END_OF_CONTRACT',     'End of Contract'],
+        ['UNPAID_LEAVE_START',  'Unpaid Leave Start'],
+        ['UNPAID_LEAVE_END',    'Unpaid Leave End'],
+        ['TERMINATED',          'Terminated'],
+      ];
+      for (let i = 0; i < defaults.length; i++) {
+        const [value, label] = defaults[i];
+        await client.query(
+          `INSERT INTO "work_history_event_types" (id, value, label, "sortOrder")
+           VALUES (gen_random_uuid()::text, $1, $2, $3)
+           ON CONFLICT (value) DO NOTHING`,
+          [value, label, i * 10],
+        );
+      }
+      logger.log(`work_history_event_types — seeded ${defaults.length} default types`);
+    } else {
+      logger.log('work_history_event_types — already seeded');
+    }
+
     // 5. Cleanup of phantom profile-photo document rows.
     //    Before the fix, the public /apply photo upload mis-classified
     //    the profile photo as the first-available DocumentType (usually

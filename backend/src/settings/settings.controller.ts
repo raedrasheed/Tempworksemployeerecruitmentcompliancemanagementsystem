@@ -108,6 +108,47 @@ export class SettingsController {
     return this.settingsService.updateTransactionType(id, dto, user?.id);
   }
 
+  // ─── Work History Event Types ──────────────────────────────────────────────
+
+  @Get('work-history-event-types')
+  @ApiOperation({ summary: 'List configurable Work History event types (active only by default)' })
+  findWorkHistoryEventTypes(@Query('includeInactive') includeInactive?: string) {
+    return this.settingsService.findWorkHistoryEventTypes({
+      includeInactive: includeInactive === 'true',
+    });
+  }
+
+  @Post('work-history-event-types')
+  @Roles('System Admin', 'HR Manager')
+  @ApiOperation({ summary: 'Create a Work History event type' })
+  createWorkHistoryEventType(
+    @Body() dto: { value: string; label: string; sortOrder?: number; isActive?: boolean },
+    @CurrentUser() user: any,
+  ) {
+    return this.settingsService.createWorkHistoryEventType(dto, user?.id);
+  }
+
+  @Patch('work-history-event-types/:id')
+  @Roles('System Admin', 'HR Manager')
+  @ApiOperation({ summary: 'Update a Work History event type' })
+  @ApiParam({ name: 'id' })
+  updateWorkHistoryEventType(
+    @Param('id') id: string,
+    @Body() dto: { value?: string; label?: string; sortOrder?: number; isActive?: boolean },
+    @CurrentUser() user: any,
+  ) {
+    return this.settingsService.updateWorkHistoryEventType(id, dto, user?.id);
+  }
+
+  @Delete('work-history-event-types/:id')
+  @Roles('System Admin')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Deactivate a Work History event type' })
+  @ApiParam({ name: 'id' })
+  deleteWorkHistoryEventType(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.settingsService.deleteWorkHistoryEventType(id, user?.id);
+  }
+
   @Delete('transaction-types/:id')
   @Roles('System Admin', 'Finance')
   @HttpCode(HttpStatus.OK)

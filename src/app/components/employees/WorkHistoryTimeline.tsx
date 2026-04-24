@@ -9,7 +9,7 @@
  * see the latest contract event at the top of the list.
  */
 import { useEffect, useState, useMemo } from 'react';
-import { employeeWorkHistoryApi, usersApi } from '../../services/api';
+import { employeeWorkHistoryApi, usersApi, settingsApi } from '../../services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -28,20 +28,22 @@ import {
 
 const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1').replace('/api/v1', '');
 
-const EVENT_TYPES = [
-  { value: 'NEW_CONTRACT',       label: 'New Contract',        icon: BadgeCheck,   tone: 'emerald' },
-  { value: 'PROBATION_START',    label: 'Probation Period Start', icon: Clock,     tone: 'blue' },
-  { value: 'PROBATION_END',      label: 'Probation Period End',   icon: CheckCircle2, tone: 'blue' },
-  { value: 'END_OF_CONTRACT',    label: 'End of Contract',     icon: LogOut,       tone: 'amber' },
-  { value: 'UNPAID_LEAVE_START', label: 'Unpaid Leave Start',  icon: Coffee,       tone: 'slate' },
-  { value: 'UNPAID_LEAVE_END',   label: 'Unpaid Leave End',    icon: Coffee,       tone: 'slate' },
-  { value: 'TERMINATED',         label: 'Terminated',          icon: XOctagon,     tone: 'red' },
-] as const;
+// Fallback icons + tones for the seven built-in event types. When an
+// operator adds a new type via Settings, we pick a neutral icon/tone
+// so the timeline still renders consistently.
+const EVENT_TONE_HINTS: Record<string, { icon: any; tone: string }> = {
+  NEW_CONTRACT:       { icon: BadgeCheck,  tone: 'emerald' },
+  PROBATION_START:    { icon: Clock,       tone: 'blue' },
+  PROBATION_END:      { icon: CheckCircle2, tone: 'blue' },
+  END_OF_CONTRACT:    { icon: LogOut,      tone: 'amber' },
+  UNPAID_LEAVE_START: { icon: Coffee,      tone: 'slate' },
+  UNPAID_LEAVE_END:   { icon: Coffee,      tone: 'slate' },
+  TERMINATED:         { icon: XOctagon,    tone: 'red' },
+};
+const DEFAULT_EVENT_META = { icon: FileText, tone: 'slate' };
 
-type EventTypeValue = typeof EVENT_TYPES[number]['value'];
-
-const EVENT_META: Record<string, { label: string; icon: any; tone: string }> = {};
-EVENT_TYPES.forEach(e => { EVENT_META[e.value] = e; });
+type EventTypeValue = string;
+type EventTypeOption = { value: string; label: string; icon: any; tone: string };
 
 const TONE_CLASS: Record<string, string> = {
   emerald: 'bg-emerald-100 text-emerald-800 border-emerald-200',
@@ -78,6 +80,9 @@ export function WorkHistoryTimeline({ employeeId, canWrite }: Props) {
   const [entries, setEntries]  = useState<any[]>([]);
   const [loading, setLoading]  = useState(true);
   const [users,   setUsers]    = useState<any[]>([]);
+  // Event type options come from Settings → Work History Event Types.
+  // Falls back to the 7 built-in values if the endpoint returns empty.
+  const [eventTypes, setEventTypes] = useState<EventTypeOption[]>([]);
 
   // Dialog state — shared between "add new entry" and "edit existing".
   const [open, setOpen]        = useState(false);
@@ -110,14 +115,45 @@ export function WorkHistoryTimeline({ employeeId, canWrite }: Props) {
     if (canWrite) {
       usersApi.list({ limit: 200 }).then((res: any) => setUsers(res?.data ?? [])).catch(() => setUsers([]));
     }
+    // Always load the event types so the timeline can resolve labels
+    // for any value (including custom Settings-defined ones) when
+    // rendering historical rows.
+    settingsApi
+      .getWorkHistoryEventTypes(false)
+      .then((list: any[]) => {
+        const options = (Array.isArray(list) ? list : []).map((t: any) => ({
+          value: t.value,
+          label: t.label,
+          ...(EVENT_TONE_HINTS[t.value] ?? DEFAULT_EVENT_META),
+        }));
+        setEventTypes(options);
+      })
+      .catch(() => setEventTypes([]));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [employeeId, canWrite]);
 
+  // Resolve metadata for a given event type value, falling back to
+  // a humanised version of the value when nothing matches (e.g. a
+  // type that was later deleted from Settings).
+  const resolveMeta = (value: string) => {
+    const opt = eventTypes.find(o => o.value === value);
+    if (opt) return opt;
+    return {
+      value,
+      label: value.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
+      ...(EVENT_TONE_HINTS[value] ?? DEFAULT_EVENT_META),
+    };
+  };
+
   const openCreate = () => {
     setEditingId(null);
+    // Default to the first active event type from Settings; if the
+    // list is empty (pre-seed or all deactivated), fall back to the
+    // legacy NEW_CONTRACT value so the dialog still opens cleanly.
+    const defaultType = eventTypes[0]?.value ?? 'NEW_CONTRACT';
     setForm({
       date: new Date().toISOString().slice(0, 10),
-      eventType: 'NEW_CONTRACT',
+      eventType: defaultType,
       description: '',
       approvedById: '',
     });
@@ -165,7 +201,7 @@ export function WorkHistoryTimeline({ employeeId, canWrite }: Props) {
   const handleDelete = async (entry: any) => {
     const ok = await confirm({
       title: 'Delete work history entry?',
-      description: `"${EVENT_META[entry.eventType]?.label ?? entry.eventType}" on ${formatDate(entry.date)} will be removed.`,
+      description: `"${resolveMeta(entry.eventType).label}" on ${formatDate(entry.date)} will be removed.`,
       confirmText: 'Delete',
       tone: 'destructive',
     });
@@ -240,7 +276,7 @@ export function WorkHistoryTimeline({ employeeId, canWrite }: Props) {
         ) : (
           <ol className="relative border-l-2 border-muted/60 ml-2 space-y-5">
             {entries.map((entry: any) => {
-              const meta = EVENT_META[entry.eventType] ?? { label: entry.eventType, icon: FileText, tone: 'slate' };
+              const meta = resolveMeta(entry.eventType);
               const Icon = meta.icon;
               return (
                 <li key={entry.id} className="pl-5 relative">
@@ -346,7 +382,13 @@ export function WorkHistoryTimeline({ employeeId, canWrite }: Props) {
                 <Select value={form.eventType} onValueChange={(v) => setForm(f => ({ ...f, eventType: v as EventTypeValue }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {EVENT_TYPES.map(e => <SelectItem key={e.value} value={e.value}>{e.label}</SelectItem>)}
+                    {eventTypes.length === 0 ? (
+                      <SelectItem value="__empty__" disabled>
+                        <span className="text-muted-foreground italic">No event types configured — add some in Settings → Work History Event Types</span>
+                      </SelectItem>
+                    ) : (
+                      eventTypes.map(e => <SelectItem key={e.value} value={e.value}>{e.label}</SelectItem>)
+                    )}
                   </SelectContent>
                 </Select>
               </div>

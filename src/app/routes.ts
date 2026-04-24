@@ -85,6 +85,7 @@ import { TransportTypesSettings } from './pages/settings/TransportTypesSettings'
 import { TruckBrandsSettings } from './pages/settings/TruckBrandsSettings';
 import { TrailerTypesSettings } from './pages/settings/TrailerTypesSettings';
 import { TransactionTypesSettings } from './pages/settings/TransactionTypesSettings';
+import { WorkHistoryEventTypesSettings } from './pages/settings/WorkHistoryEventTypesSettings';
 
 // Pipeline pages
 import { WorkflowsPage } from './pages/pipelines/WorkflowsPage';
@@ -259,6 +260,7 @@ export const router = createBrowserRouter([
       { path: 'settings/truck-brands', Component: TruckBrandsSettings },
       { path: 'settings/trailer-types', Component: TrailerTypesSettings },
       { path: 'settings/transaction-types', Component: TransactionTypesSettings },
+      { path: 'settings/work-history-event-types', Component: WorkHistoryEventTypesSettings },
 
       // Profile routes
       { path: 'profile', Component: Profile },

@@ -353,6 +353,18 @@ async function runStartupMigrations() {
     `);
     logger.log('CandidateProgressStatus — IN_PROGRESS value ensured');
 
+    // 9c. Responsible / Approver split on workflow stages. Adds the
+    //     responsibleAny flag to workflow_stages (default true so
+    //     existing stages keep their current "any user may process"
+    //     behaviour) and introduces the two canonical role values on
+    //     workflow_stage_users — legacy REVIEWER rows are left
+    //     untouched and treated as APPROVER at the service layer.
+    await client.query(`
+      ALTER TABLE "workflow_stages"
+        ADD COLUMN IF NOT EXISTS "responsibleAny" boolean NOT NULL DEFAULT true
+    `);
+    logger.log('workflow_stages.responsibleAny ensured');
+
     // 9b. Make the eventType column configurable. Switch it from the
     //     static WorkHistoryEventType enum to plain text, and back the
     //     dropdown with a new settings table seeded from the original

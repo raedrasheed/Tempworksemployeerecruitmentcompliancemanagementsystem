@@ -1250,6 +1250,11 @@ model WorkflowStage {
   color           String    @default("#6366F1")
   slaHours        Int?
   requiresApproval Boolean  @default(false)
+  /// When true, any authenticated user may process candidates in this
+  /// stage — the explicit RESPONSIBLE user list on assignedUsers is
+  /// ignored. When false, only the users with role=RESPONSIBLE can
+  /// advance a candidate. Orthogonal to requiresApproval.
+  responsibleAny  Boolean   @default(true)
   isFinal         Boolean   @default(false)
   isActive        Boolean   @default(true)
   createdAt       DateTime  @default(now())

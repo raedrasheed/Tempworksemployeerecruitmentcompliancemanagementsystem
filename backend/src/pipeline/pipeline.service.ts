@@ -185,16 +185,27 @@ export class WorkflowService {
       `;
     }
 
-    const { assignedUserIds, requiredDocTypeIds, ...stageData } = dto;
+    const {
+      assignedUserIds, approverUserIds, responsibleUserIds,
+      requiredDocTypeIds, ...stageData
+    } = dto as any;
+    // Legacy assignedUserIds maps to approvers. New callers should
+    // send approverUserIds + responsibleUserIds explicitly.
+    const effectiveApprovers   = approverUserIds   ?? assignedUserIds ?? [];
+    const effectiveResponsible = responsibleUserIds ?? [];
+    const stageUsers = [
+      ...effectiveApprovers.map((userId: string) => ({ userId, role: 'APPROVER' })),
+      ...effectiveResponsible
+        .filter((userId: string) => !effectiveApprovers.includes(userId))
+        .map((userId: string) => ({ userId, role: 'RESPONSIBLE' })),
+    ];
     const stage = await this.prisma.workflowStage.create({
       data: {
         ...stageData,
         workflowId,
-        assignedUsers: assignedUserIds?.length
-          ? { create: assignedUserIds.map((userId) => ({ userId, role: 'REVIEWER' })) }
-          : undefined,
+        assignedUsers: stageUsers.length ? { create: stageUsers } : undefined,
         requiredDocs: requiredDocTypeIds?.length
-          ? { create: requiredDocTypeIds.map((documentTypeId) => ({ documentTypeId })) }
+          ? { create: requiredDocTypeIds.map((documentTypeId: string) => ({ documentTypeId })) }
           : undefined,
       } as any,
       include: WORKFLOW_STAGE_INCLUDE,
@@ -209,18 +220,31 @@ export class WorkflowService {
     const stage = await this.prisma.workflowStage.findUnique({ where: { id: stageId } });
     if (!stage) throw new NotFoundException('Stage not found');
 
-    const { assignedUserIds, requiredDocTypeIds, ...stageData } = dto;
+    const {
+      assignedUserIds, approverUserIds, responsibleUserIds,
+      requiredDocTypeIds, ...stageData
+    } = dto as any;
 
     const updatePayload: any = { ...stageData };
 
-    // Replace assigned users if provided
-    if (assignedUserIds !== undefined) {
+    // Replace the stage user list if any of the three keys was
+    // supplied. Legacy assignedUserIds is treated as approvers.
+    const anyUserListProvided =
+      assignedUserIds !== undefined ||
+      approverUserIds !== undefined ||
+      responsibleUserIds !== undefined;
+    if (anyUserListProvided) {
+      const effectiveApprovers   = approverUserIds   ?? assignedUserIds ?? [];
+      const effectiveResponsible = responsibleUserIds ?? [];
       await this.prisma.workflowStageUser.deleteMany({ where: { stageId } });
-      if (assignedUserIds.length) {
-        await this.prisma.workflowStageUser.createMany({
-          data: assignedUserIds.map((userId) => ({ stageId, userId, role: 'REVIEWER' })),
-          skipDuplicates: true,
-        });
+      const rows = [
+        ...effectiveApprovers.map((userId: string) => ({ stageId, userId, role: 'APPROVER' })),
+        ...effectiveResponsible
+          .filter((userId: string) => !effectiveApprovers.includes(userId))
+          .map((userId: string) => ({ stageId, userId, role: 'RESPONSIBLE' })),
+      ];
+      if (rows.length) {
+        await this.prisma.workflowStageUser.createMany({ data: rows, skipDuplicates: true });
       }
     }
 
@@ -657,15 +681,76 @@ export class WorkflowService {
   async advanceToStage(assignmentId: string, stageId: string, actorId?: string) {
     const assignment = await this.prisma.candidateWorkflowAssignment.findUnique({
       where: { id: assignmentId },
-      include: { workflow: { include: { stages: { orderBy: { order: 'asc' } } } } },
+      include: {
+        workflow: {
+          include: {
+            stages: {
+              orderBy: { order: 'asc' },
+              include: { assignedUsers: true },
+            },
+          },
+        },
+        stageProgress: { include: { stage: { include: { assignedUsers: true } }, approvals: true } },
+      },
     });
     if (!assignment) throw new NotFoundException('Assignment not found');
 
     const stage = (assignment.workflow as any).stages.find((s: any) => s.id === stageId);
     if (!stage) throw new BadRequestException('Stage does not belong to this workflow');
 
+    // Guard the CURRENT (source) stage's approval + responsibility
+    // rules before allowing advance. The candidate is advanced FROM
+    // the most recent IN_PROGRESS / ACTIVE stage TO the requested
+    // target stage.
+    const sourceProgress = (assignment as any).stageProgress.find(
+      (p: any) => p.status === 'IN_PROGRESS' || p.status === 'ACTIVE',
+    );
+    if (sourceProgress) {
+      const srcStage = sourceProgress.stage;
+      const srcApprovers   = (srcStage.assignedUsers ?? []).filter((u: any) => u.role === 'APPROVER' || u.role === 'REVIEWER');
+      const srcResponsible = (srcStage.assignedUsers ?? []).filter((u: any) => u.role === 'RESPONSIBLE');
+
+      // Rule 1 — approvers must have all approved before anyone can
+      // push the candidate past this stage.
+      if (srcStage.requiresApproval && srcApprovers.length > 0) {
+        const approvedUserIds = new Set(
+          (sourceProgress.approvals ?? [])
+            .filter((a: any) => a.decision === 'APPROVED')
+            .map((a: any) => a.approvedById),
+        );
+        const missing = srcApprovers.filter((u: any) => !approvedUserIds.has(u.userId));
+        if (missing.length > 0) {
+          throw new ForbiddenException(
+            `Stage "${srcStage.name}" is still awaiting approval from ${missing.length} approver(s). ` +
+            'Responsible users cannot advance the candidate until every approver has approved.',
+          );
+        }
+      }
+
+      // Rule 2 — responsibility gate. When the stage is not set to
+      // "Any" and no approvers are assigned, only the RESPONSIBLE
+      // users can advance. When approvers exist the responsibility
+      // gate is skipped (Rule 1 already covered it).
+      const hasApprovers = srcApprovers.length > 0 && srcStage.requiresApproval;
+      if (!hasApprovers && !srcStage.responsibleAny && srcResponsible.length > 0) {
+        const allowed = new Set(srcResponsible.map((u: any) => u.userId));
+        if (!actorId || !allowed.has(actorId)) {
+          throw new ForbiddenException(
+            `Only the responsible users assigned to "${srcStage.name}" may advance the candidate.`,
+          );
+        }
+      }
+
+      // Close out the source stage so the per-stage history reads
+      // cleanly: source → COMPLETED, then target → IN_PROGRESS below.
+      await this.prisma.candidateStageProgress.update({
+        where: { id: sourceProgress.id },
+        data: { status: 'COMPLETED' as any, completedAt: new Date() },
+      });
+    }
+
     const existing = await this.prisma.candidateStageProgress.findFirst({
-      where: { assignmentId, stageId, status: 'ACTIVE' },
+      where: { assignmentId, stageId, status: { in: ['ACTIVE', 'IN_PROGRESS'] as any } },
     });
     if (existing) throw new ConflictException('Candidate is already active in this stage');
 
@@ -675,7 +760,9 @@ export class WorkflowService {
       data: {
         assignmentId,
         stageId,
-        status: 'ACTIVE',
+        // IN_PROGRESS once the candidate enters the new stage —
+        // aligns with the initial-assignment semantics.
+        status: 'IN_PROGRESS' as any,
         slaDeadline: slaDeadline ?? undefined,
         ...(stage.requiresApproval ? { approvals: { create: { decision: 'PENDING' } } } : {}),
       },
@@ -738,9 +825,23 @@ export class WorkflowService {
   // ─── Approvals ────────────────────────────────────────────────────────────
 
   async submitApproval(progressId: string, dto: CreateStageApprovalDto, actorId?: string) {
-    const progress = await this.prisma.candidateStageProgress.findUnique({ where: { id: progressId }, include: { stage: true } });
+    const progress = await this.prisma.candidateStageProgress.findUnique({
+      where: { id: progressId },
+      include: { stage: { include: { assignedUsers: true } } },
+    });
     if (!progress) throw new NotFoundException('Progress record not found');
     if (!(progress.stage as any).requiresApproval) throw new BadRequestException('This stage does not require approval');
+
+    // Only users assigned with role APPROVER (or legacy REVIEWER)
+    // may submit approval decisions. Responsible-only users can
+    // process the candidate but cannot sign off on approvals.
+    const approvers = ((progress.stage as any).assignedUsers ?? [])
+      .filter((u: any) => u.role === 'APPROVER' || u.role === 'REVIEWER');
+    if (approvers.length > 0 && actorId && !approvers.some((u: any) => u.userId === actorId)) {
+      throw new ForbiddenException(
+        `You are not an approver for "${(progress.stage as any).name}". Only assigned approvers may approve this stage.`,
+      );
+    }
 
     // Upsert approval for this actor on this progress
     const existing = await this.prisma.candidateStageApproval.findFirst({ where: { progressId, approvedById: actorId } });

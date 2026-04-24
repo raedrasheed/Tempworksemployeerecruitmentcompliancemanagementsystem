@@ -66,6 +66,11 @@ export function WorkflowSettingsPage() {
   const [selectedStage, setSelectedStage] = useState<Stage | null>(null);
   const [reqDocs, setReqDocs] = useState<{ id: string; name: string }[]>([]);
   const [reqUsers, setReqUsers] = useState<{ id: string; firstName: string; lastName: string }[]>([]);
+  // Separate Responsible list + "any user" toggle. Ignored when
+  // responsibleAny is true; required reading otherwise.
+  const [responsibleUsers, setResponsibleUsers] = useState<{ id: string; firstName: string; lastName: string }[]>([]);
+  const [responsibleAny, setResponsibleAny] = useState(true);
+  const [newResponsibleId, setNewResponsibleId] = useState('');
   const [newDocId, setNewDocId] = useState('');
   const [newUserId, setNewUserId] = useState('');
   const [savingReq, setSavingReq] = useState(false);
@@ -225,9 +230,17 @@ export function WorkflowSettingsPage() {
   const openEditRequirements = async (stage: Stage) => {
     setSelectedStage(stage);
     setReqDocs(stage.requiredDocs.map(rd => ({ id: rd.documentType.id, name: rd.documentType.name })));
-    setReqUsers(stage.assignedUsers.map(au => ({ id: au.user.id, firstName: au.user.firstName, lastName: au.user.lastName })));
+    // Split the stage's assigned users by role — APPROVER (and legacy
+    // REVIEWER) go into the approvers list; RESPONSIBLE go into the
+    // new responsibles list.
+    const approvers = stage.assignedUsers.filter((au: any) => au.role !== 'RESPONSIBLE');
+    const responsibles = stage.assignedUsers.filter((au: any) => au.role === 'RESPONSIBLE');
+    setReqUsers(approvers.map(au => ({ id: au.user.id, firstName: au.user.firstName, lastName: au.user.lastName })));
+    setResponsibleUsers(responsibles.map((au: any) => ({ id: au.user.id, firstName: au.user.firstName, lastName: au.user.lastName })));
+    setResponsibleAny((stage as any).responsibleAny ?? true);
     setNewDocId('');
     setNewUserId('');
+    setNewResponsibleId('');
     setIsEditReqOpen(true);
 
     // Fetch dropdown options
@@ -250,6 +263,14 @@ export function WorkflowSettingsPage() {
     try {
       await workflowApi.updateStage(selectedStage.id, {
         requiredDocTypeIds: reqDocs.map(d => d.id),
+        // Send both lists + the "Any" toggle. The backend maps them
+        // onto workflow_stage_users role columns (APPROVER /
+        // RESPONSIBLE) and sets workflow_stages.responsibleAny.
+        approverUserIds:    reqUsers.map(u => u.id),
+        responsibleUserIds: responsibleUsers.map(u => u.id),
+        responsibleAny,
+        // Keep assignedUserIds in sync for any legacy consumer that
+        // still reads the flat list.
         assignedUserIds: reqUsers.map(u => u.id),
       });
       await load();
@@ -648,9 +669,74 @@ export function WorkflowSettingsPage() {
                 </div>
               </div>
 
-              {/* Required Approvals */}
+              {/* Responsible Users — who can process candidates in
+                  this stage. When "Any user" is on, the explicit
+                  list is ignored and anyone with permission may
+                  advance the candidate. */}
               <div>
-                <Label>Required Approvals</Label>
+                <div className="flex items-center justify-between">
+                  <Label>Responsible Users</Label>
+                  <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="rounded"
+                      checked={responsibleAny}
+                      onChange={(e) => setResponsibleAny(e.target.checked)}
+                    />
+                    Any user may process
+                  </label>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {responsibleAny
+                    ? 'Any authenticated user may advance candidates through this stage.'
+                    : 'Only the users listed here may advance candidates through this stage.'}
+                </p>
+                <div className={`space-y-2 mt-2 ${responsibleAny ? 'opacity-50 pointer-events-none' : ''}`}>
+                  {responsibleUsers.map((u, idx) => (
+                    <div key={u.id} className="flex items-center gap-2">
+                      <div className="flex-1 px-3 py-2 border rounded-md bg-muted/40 text-sm">{u.firstName} {u.lastName}</div>
+                      <Button size="sm" variant="ghost" onClick={() => setResponsibleUsers(prev => prev.filter((_, i) => i !== idx))}>
+                        <Trash2 className="w-4 h-4 text-[#EF4444]" />
+                      </Button>
+                    </div>
+                  ))}
+                  <div className="flex items-center gap-2">
+                    <Select value={newResponsibleId} onValueChange={setNewResponsibleId}>
+                      <SelectTrigger className="flex-1">
+                        <SelectValue placeholder="Select a user…" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {allUsers.length === 0 ? (
+                          <SelectItem value="__none__" disabled>No users available</SelectItem>
+                        ) : (
+                          allUsers
+                            .filter(u => !responsibleUsers.some(r => r.id === u.id))
+                            .map(u => <SelectItem key={u.id} value={u.id}>{u.firstName} {u.lastName}</SelectItem>)
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      size="sm" variant="outline"
+                      onClick={() => {
+                        const u = allUsers.find(x => x.id === newResponsibleId);
+                        if (u) { setResponsibleUsers(prev => [...prev, u]); setNewResponsibleId(''); }
+                      }}
+                      disabled={!newResponsibleId || newResponsibleId === '__none__' || responsibleAny}
+                    >
+                      <Plus className="w-4 h-4 mr-1" /> Add User
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Approvers — users who must approve the stage. When
+                  approvers are present, responsible users alone
+                  cannot advance the candidate. */}
+              <div>
+                <Label>Approvers</Label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  All listed approvers must approve before the candidate can leave this stage.
+                </p>
                 <div className="space-y-2 mt-2">
                   {reqUsers.map((u, idx) => (
                     <div key={u.id} className="flex items-center gap-2">

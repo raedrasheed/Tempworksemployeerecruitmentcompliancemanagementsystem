@@ -10,9 +10,10 @@ import { Label } from '../../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../../components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { confirm } from '../../components/ui/ConfirmDialog';
+import { toast } from 'sonner';
 import {
   Plus, Edit, Trash2, GripVertical, Save, FileText, CheckCircle,
-  AlertCircle, Shield, PowerOff, Power, Clock, ArrowLeft,
+  AlertCircle, Shield, PowerOff, Power, Clock, ArrowLeft, Copy,
 } from 'lucide-react';
 
 const COLORS: { label: string; value: string }[] = [
@@ -337,6 +338,24 @@ export function WorkflowSettingsPage() {
     }
   };
 
+  // ─── Duplicate ────────────────────────────────────────────────────────────
+
+  const handleCopy = async () => {
+    if (!workflow) return;
+    if (!(await confirm({
+      title: 'Duplicate workflow?',
+      description: `A copy of "${workflow.name}" will be created with all its stages, required documents, assigned users, and access list. It will not carry over any in-flight candidate or employee assignments.`,
+      confirmText: 'Duplicate',
+    }))) return;
+    try {
+      const copied = await workflowApi.copy(id!);
+      toast.success(`Created "${copied.name}"`);
+      navigate(`/dashboard/settings/workflows/${copied.id}`);
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to duplicate workflow');
+    }
+  };
+
   // ─── Archive ──────────────────────────────────────────────────────────────
 
   const handleArchive = async () => {
@@ -393,6 +412,12 @@ export function WorkflowSettingsPage() {
           </div>
         </div>
         <div className="flex items-center gap-3">
+          {canEdit('settings') && (
+            <Button variant="outline" onClick={handleCopy}>
+              <Copy className="w-4 h-4 mr-2" />
+              Duplicate
+            </Button>
+          )}
           {canEdit('settings') && (
             <Button variant="outline" onClick={handleSaveOrder} disabled={saving}>
               <Save className="w-4 h-4 mr-2" />

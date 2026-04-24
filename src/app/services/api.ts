@@ -1366,6 +1366,9 @@ export const workflowApi = {
   archive: (id: string) =>
     apiFetch<any>(`/workflows/${id}/archive`, { method: 'PATCH' }),
 
+  copy: (id: string, data: { name?: string } = {}) =>
+    apiFetch<any>(`/workflows/${id}/copy`, { method: 'POST', body: JSON.stringify(data) }),
+
   delete: (id: string) =>
     apiFetch<any>(`/workflows/${id}`, { method: 'DELETE' }),
 

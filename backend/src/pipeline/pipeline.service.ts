@@ -68,6 +68,130 @@ export class WorkflowService {
     });
   }
 
+  /**
+   * Duplicate an existing workflow — copies the workflow row plus every stage,
+   * each stage's required documents, the stage user assignments, and the
+   * private access list. Candidate / employee assignments and any in-flight
+   * progress are NOT copied: the new workflow starts empty.
+   *
+   * The new workflow is always created as non-default (isDefault=false) so
+   * copying does not dethrone the current default; the caller can promote it
+   * afterwards if desired.
+   */
+  async copyWorkflow(sourceId: string, overrides: { name?: string } | undefined, actorId?: string) {
+    const source = await this.prisma.workflow.findFirst({
+      where: { id: sourceId, deletedAt: null },
+      include: {
+        stages: {
+          orderBy: { order: 'asc' },
+          include: {
+            assignedUsers: true,
+            requiredDocs: true,
+          },
+        },
+        accessUsers: true,
+      },
+    });
+    if (!source) throw new NotFoundException('Workflow not found');
+
+    // Pick a unique name. If a name is passed use it verbatim; otherwise
+    // append " (Copy)", " (Copy 2)", … until we find an unused slot among
+    // non-deleted workflows.
+    let newName = overrides?.name?.trim();
+    if (!newName) {
+      const base = `${source.name} (Copy)`;
+      let candidate = base;
+      let suffix = 2;
+      while (await this.prisma.workflow.findFirst({ where: { name: candidate, deletedAt: null } })) {
+        candidate = `${source.name} (Copy ${suffix})`;
+        suffix += 1;
+      }
+      newName = candidate;
+    }
+
+    const created = await this.prisma.$transaction(async (tx) => {
+      const newWorkflow = await tx.workflow.create({
+        data: {
+          name: newName!,
+          description: source.description,
+          isDefault: false,
+          isPublic: source.isPublic,
+          color: source.color,
+          createdById: actorId,
+        },
+      });
+
+      // Re-create each stage with its required docs and assigned users.
+      for (const stage of source.stages as any[]) {
+        const newStage = await tx.workflowStage.create({
+          data: {
+            workflowId:      newWorkflow.id,
+            name:            stage.name,
+            description:     stage.description,
+            order:           stage.order,
+            color:           stage.color,
+            slaHours:        stage.slaHours,
+            requiresApproval: stage.requiresApproval,
+            responsibleAny:  stage.responsibleAny,
+            minApprovals:    stage.minApprovals,
+            approvalMode:    stage.approvalMode,
+            isFinal:         stage.isFinal,
+            isActive:        stage.isActive,
+          },
+        });
+
+        if ((stage.requiredDocs as any[]).length > 0) {
+          await tx.workflowStageRequiredDoc.createMany({
+            data: (stage.requiredDocs as any[]).map((rd) => ({
+              stageId:        newStage.id,
+              documentTypeId: rd.documentTypeId,
+              isRequired:     rd.isRequired,
+            })),
+          });
+        }
+
+        if ((stage.assignedUsers as any[]).length > 0) {
+          await tx.workflowStageUser.createMany({
+            data: (stage.assignedUsers as any[]).map((au) => ({
+              stageId: newStage.id,
+              userId:  au.userId,
+              role:    au.role,
+            })),
+            skipDuplicates: true,
+          });
+        }
+      }
+
+      // Private access users carry over so a cloned restricted workflow
+      // stays accessible to the same set of users.
+      if ((source.accessUsers as any[]).length > 0) {
+        await (tx as any).workflowAccessUser.createMany({
+          data: (source.accessUsers as any[]).map((au) => ({
+            workflowId: newWorkflow.id,
+            userId:     au.userId,
+          })),
+          skipDuplicates: true,
+        });
+      }
+
+      return newWorkflow;
+    });
+
+    try {
+      await this.prisma.auditLog.create({
+        data: {
+          userId: actorId,
+          action: 'WORKFLOW_COPY',
+          entity: 'Workflow',
+          entityId: created.id,
+          changes: { sourceWorkflowId: sourceId, name: created.name } as any,
+        },
+      });
+    } catch { /* audit never blocks */ }
+
+    return this.getWorkflow(created.id);
+  }
+
   async updateWorkflow(id: string, dto: Partial<CreateWorkflowDto>, updatedById?: string) {
     await this.getWorkflow(id);
     if (dto.isDefault) {

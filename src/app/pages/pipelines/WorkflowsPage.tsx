@@ -19,6 +19,7 @@ import {
   Settings2,
   Globe,
   Lock,
+  Copy,
 } from 'lucide-react';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -28,6 +29,7 @@ function WorkflowCard({
   stats,
   onSelect,
   onConfigure,
+  onCopy,
   onArchive,
   onDelete,
   onManageAccess,
@@ -36,6 +38,7 @@ function WorkflowCard({
   stats: any;
   onSelect: () => void;
   onConfigure: () => void;
+  onCopy: () => void;
   onArchive: () => void;
   onDelete: () => void;
   onManageAccess: () => void;
@@ -117,6 +120,12 @@ function WorkflowCard({
                     <Lock className="w-3.5 h-3.5" /> Manage Access
                   </button>
                 )}
+                <button
+                  onClick={() => { setMenuOpen(false); onCopy(); }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted"
+                >
+                  <Copy className="w-3.5 h-3.5" /> Duplicate
+                </button>
                 <button
                   onClick={() => { setMenuOpen(false); onArchive(); }}
                   className="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted"
@@ -300,6 +309,21 @@ export function WorkflowsPage() {
     try { await workflowApi.archive(id); load(); } catch {}
   };
 
+  const handleCopy = async (workflow: any) => {
+    if (!(await confirm({
+      title: 'Duplicate workflow?',
+      description: `A copy of "${workflow.name}" will be created with all its stages, required documents, assigned users, and access list. It will not carry over any in-flight candidate or employee assignments.`,
+      confirmText: 'Duplicate',
+    }))) return;
+    try {
+      const copied = await workflowApi.copy(workflow.id);
+      toast.success(`Created "${copied.name}"`);
+      load();
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to duplicate workflow');
+    }
+  };
+
   const handleDelete = async (id: string) => {
     if (!(await confirm({
       title: 'Delete workflow?',
@@ -377,6 +401,7 @@ export function WorkflowsPage() {
               stats={statsMap[p.id]}
               onSelect={() => navigate(`/dashboard/workflows/${p.id}`)}
               onConfigure={() => navigate(`/dashboard/settings/workflows/${p.id}`)}
+              onCopy={() => handleCopy(p)}
               onArchive={() => handleArchive(p.id)}
               onDelete={() => handleDelete(p.id)}
               onManageAccess={() => setAccessWorkflow(p)}

@@ -83,6 +83,13 @@ export class WorkflowController {
     return this.workflowService.archiveWorkflow(id, req.user?.id);
   }
 
+  @Post(':id/copy')
+  @Roles(...ADMIN_ROLES)
+  @ApiOperation({ summary: 'Duplicate a workflow (stages, required docs, assigned users, access list)' })
+  copyWorkflow(@Param('id') id: string, @Body() body: { name?: string } = {}, @Request() req: any) {
+    return this.workflowService.copyWorkflow(id, { name: body?.name }, req.user?.id);
+  }
+
   @Delete(':id')
   @Roles('System Admin')
   @ApiOperation({ summary: 'Delete a workflow (soft delete)' })

@@ -75,10 +75,14 @@ const ALL_COLUMNS: { key: ColKey; label: string }[] = [
   { key: 'pressureTest', label: 'Next Pressure Test' },
 ];
 
+// All compliance/expiry columns are visible by default so the Fleet
+// list surfaces every regulated date at a glance. Operators can hide
+// the type-specific ones (Tachograph / ATP / Pressure Test) via the
+// Columns picker if their fleet doesn't use them.
 const DEFAULT_VISIBLE: Record<ColKey, boolean> = {
   type: true, makeModel: true, year: true, status: true,
-  driver: true, mot: true, tax: false, registration: false,
-  insurance: true, tachograph: false, atp: false, pressureTest: false,
+  driver: true, mot: true, tax: true, registration: true,
+  insurance: true, tachograph: true, atp: true, pressureTest: true,
 };
 
 function loadVisibleColumns(): Record<ColKey, boolean> {

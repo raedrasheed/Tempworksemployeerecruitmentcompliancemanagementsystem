@@ -1,6 +1,6 @@
 import {
   IsOptional, IsString, IsIn, IsInt, Min, IsUUID, IsBoolean,
-  IsNumber, IsDateString,
+  IsNumber, IsDateString, IsArray,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type, Transform } from 'class-transformer';
@@ -306,5 +306,6 @@ export class FilterMaintenanceDto extends PaginationDto {
 export class ExportVehiclesDto {
   @ApiPropertyOptional() @IsOptional() @IsString() type?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() status?: string;
+  @ApiPropertyOptional({ isArray: true, description: 'Specific vehicle IDs to export' }) @IsOptional() @IsArray() @IsString({ each: true }) vehicleIds?: string[];
   @ApiPropertyOptional({ description: 'csv or excel' }) @IsOptional() @IsString() format?: string;
 }

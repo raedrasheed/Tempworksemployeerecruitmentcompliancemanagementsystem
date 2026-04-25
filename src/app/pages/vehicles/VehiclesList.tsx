@@ -169,6 +169,9 @@ export function VehiclesList() {
   const [showColPicker, setShowColPicker]   = useState(false);
   const colPickerRef = useRef<HTMLDivElement>(null);
 
+  // ── Selection ──────────────────────────────────────────────────────────────
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
   useEffect(() => {
     if (!showColPicker) return;
     const handler = (e: MouseEvent) => {
@@ -216,8 +219,8 @@ export function VehiclesList() {
   useEffect(() => { loadVehicles(); }, [loadVehicles]);
   useEffect(() => { loadStats(); }, [loadStats]);
 
-  // Reset page when filters change
-  useEffect(() => { setPage(1); }, [search, typeFilter, statusFilter]);
+  // Reset page and clear selection when filters change
+  useEffect(() => { setPage(1); setSelectedIds(new Set()); }, [search, typeFilter, statusFilter]);
 
   // ── Sorted vehicles ────────────────────────────────────────────────────────
   const displayVehicles = useMemo(() => {
@@ -263,14 +266,38 @@ export function VehiclesList() {
     } catch { toast.error('Failed to delete vehicle'); }
   };
 
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === displayVehicles.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(displayVehicles.map(v => v.id)));
+    }
+  };
+
   const handleExport = async () => {
     setExporting(true);
     try {
-      const blob = await vehiclesApi.exportExcel({ type: typeFilter || undefined, status: statusFilter || undefined });
+      // Export only selected vehicles if any are selected, otherwise use filters
+      const vehicleIds = selectedIds.size > 0 ? Array.from(selectedIds) : undefined;
+      const blob = await vehiclesApi.exportExcel({
+        type: typeFilter || undefined,
+        status: statusFilter || undefined,
+        vehicleIds,
+      });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url; a.download = `vehicles-${new Date().toISOString().split('T')[0]}.xlsx`;
       a.click(); URL.revokeObjectURL(url);
+      toast.success(`Exported ${selectedIds.size > 0 ? selectedIds.size : 'all'} vehicle${selectedIds.size === 1 ? '' : 's'}`);
     } catch { toast.error('Export failed'); }
     finally { setExporting(false); }
   };
@@ -280,7 +307,7 @@ export function VehiclesList() {
   const totalPages = Math.ceil(total / LIMIT);
 
   const hiddenCount = ALL_COLUMNS.filter(c => !visibleColumns[c.key]).length;
-  const colSpan = 2 + ALL_COLUMNS.filter(c => visibleColumns[c.key]).length; // registration + visible + actions
+  const colSpan = 3 + ALL_COLUMNS.filter(c => visibleColumns[c.key]).length; // checkbox + registration + visible + actions
 
   return (
     <div className="p-6 space-y-6">
@@ -335,9 +362,9 @@ export function VehiclesList() {
             )}
           </div>
 
-          <Button variant="outline" size="sm" onClick={handleExport} disabled={exporting}>
+          <Button variant="outline" size="sm" onClick={handleExport} disabled={exporting} className={selectedIds.size > 0 ? 'border-blue-500 text-blue-600' : ''}>
             <Download className="w-4 h-4 mr-2" />
-            {exporting ? 'Exporting…' : 'Export Excel'}
+            {exporting ? 'Exporting…' : selectedIds.size > 0 ? `Export ${selectedIds.size} selected` : 'Export Excel'}
           </Button>
           {canWrite && (
             <Button size="sm" onClick={() => navigate('/dashboard/vehicles/new')}>
@@ -414,6 +441,16 @@ export function VehiclesList() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-12">
+                    <input
+                      type="checkbox"
+                      checked={displayVehicles.length > 0 && selectedIds.size === displayVehicles.length}
+                      indeterminate={selectedIds.size > 0 && selectedIds.size < displayVehicles.length}
+                      onChange={toggleSelectAll}
+                      className="w-4 h-4 cursor-pointer"
+                      aria-label="Select all vehicles on this page"
+                    />
+                  </TableHead>
                   <SortableHead label="Registration" field="registration" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />
                   {col('type')      && <SortableHead label="Type"           field="type"       sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
                   {col('makeModel') && <SortableHead label="Make / Model"   field="makeModel"  sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
@@ -441,8 +478,18 @@ export function VehiclesList() {
                   <TableRow><TableCell colSpan={colSpan} className="text-center py-8 text-muted-foreground">No vehicles found</TableCell></TableRow>
                 ) : displayVehicles.map((v) => {
                   const driver = v.driverAssignments?.[0]?.employee;
+                  const isSelected = selectedIds.has(v.id);
                   return (
-                    <TableRow key={v.id} className="cursor-pointer hover:bg-accent/50" onClick={() => navigate(`/dashboard/vehicles/${v.id}`)}>
+                    <TableRow key={v.id} className={`cursor-pointer hover:bg-accent/50 ${isSelected ? 'bg-blue-50' : ''}`} onClick={() => navigate(`/dashboard/vehicles/${v.id}`)}>
+                      <TableCell className="w-12" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleSelect(v.id)}
+                          className="w-4 h-4 cursor-pointer"
+                          aria-label={`Select ${v.registrationNumber}`}
+                        />
+                      </TableCell>
                       <TableCell className="font-mono font-medium">{v.registrationNumber}</TableCell>
                       {col('type')      && <TableCell className="text-sm">{typeLabel(v.type)}</TableCell>}
                       {col('makeModel') && <TableCell>{v.make} {v.model}</TableCell>}

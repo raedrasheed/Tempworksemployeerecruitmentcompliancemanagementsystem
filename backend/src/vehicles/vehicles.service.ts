@@ -521,6 +521,7 @@ export class VehiclesService {
     const where: any = { deletedAt: null };
     if (dto.type)   where.type   = dto.type;
     if (dto.status) where.status = dto.status;
+    if (dto.vehicleIds?.length) where.id = { in: dto.vehicleIds };
 
     const vehicles = await this.prisma.vehicle.findMany({
       where,

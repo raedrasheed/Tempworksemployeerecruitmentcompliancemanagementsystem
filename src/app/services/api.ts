@@ -1748,10 +1748,17 @@ export const vehiclesApi = {
     apiFetch<any>(`/vehicles/maintenance/records/${id}`, { method: 'DELETE' }),
 
   // Export
-  exportExcel: async (params: { type?: string; status?: string } = {}): Promise<Blob> => {
+  exportExcel: async (params: { type?: string; status?: string; vehicleIds?: string[] } = {}): Promise<Blob> => {
     const token = getAccessToken();
     const qs = new URLSearchParams();
-    Object.entries(params).forEach(([k, v]) => v != null && qs.set(k, String(v)));
+    Object.entries(params).forEach(([k, v]) => {
+      if (v == null) return;
+      if (Array.isArray(v)) {
+        v.forEach(item => qs.append(k, String(item)));
+      } else {
+        qs.set(k, String(v));
+      }
+    });
     const res = await fetch(`${API_URL}/vehicles/export/excel?${qs.toString()}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });

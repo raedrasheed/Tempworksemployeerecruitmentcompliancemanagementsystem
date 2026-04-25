@@ -1747,6 +1747,16 @@ export const vehiclesApi = {
   deleteMaintenance: (id: string) =>
     apiFetch<any>(`/vehicles/maintenance/records/${id}`, { method: 'DELETE' }),
 
+  // Maintenance record attachments
+  addMaintenanceAttachment: (recordId: string, formData: FormData) =>
+    apiFetch<any>(`/vehicles/maintenance/records/${recordId}/attachments`, { method: 'POST', body: formData, skipContentType: true }),
+
+  getMaintenanceAttachments: (recordId: string) =>
+    apiFetch<any>(`/vehicles/maintenance/records/${recordId}/attachments`, { method: 'GET' }),
+
+  deleteMaintenanceAttachment: (attachmentId: string) =>
+    apiFetch<any>(`/vehicles/maintenance/attachments/${attachmentId}`, { method: 'DELETE' }),
+
   // Export
   exportExcel: async (params: { type?: string; status?: string; vehicleIds?: string[] } = {}): Promise<Blob> => {
     const token = getAccessToken();

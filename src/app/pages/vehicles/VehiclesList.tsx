@@ -54,7 +54,7 @@ function expiryBadge(date: string | null | undefined) {
 }
 
 // ── Column visibility ────────────────────────────────────────────────────────
-type ColKey = 'type' | 'makeModel' | 'year' | 'status' | 'driver' | 'mot' | 'insurance';
+type ColKey = 'type' | 'makeModel' | 'year' | 'status' | 'driver' | 'mot' | 'tax' | 'registration' | 'insurance' | 'tachograph' | 'atp' | 'pressureTest';
 
 const ALL_COLUMNS: { key: ColKey; label: string }[] = [
   { key: 'type',      label: 'Type' },
@@ -63,12 +63,18 @@ const ALL_COLUMNS: { key: ColKey; label: string }[] = [
   { key: 'status',    label: 'Status' },
   { key: 'driver',    label: 'Current Driver' },
   { key: 'mot',       label: 'MOT' },
+  { key: 'tax',       label: 'Tax Expiry' },
+  { key: 'registration', label: 'Registration Expiry' },
   { key: 'insurance', label: 'Insurance' },
+  { key: 'tachograph', label: 'Tachograph Calib.' },
+  { key: 'atp',       label: 'ATP Cert.' },
+  { key: 'pressureTest', label: 'Next Pressure Test' },
 ];
 
 const DEFAULT_VISIBLE: Record<ColKey, boolean> = {
   type: true, makeModel: true, year: true, status: true,
-  driver: true, mot: true, insurance: true,
+  driver: true, mot: true, tax: false, registration: false,
+  insurance: true, tachograph: false, atp: false, pressureTest: false,
 };
 
 function loadVisibleColumns(): Record<ColKey, boolean> {
@@ -81,7 +87,7 @@ function loadVisibleColumns(): Record<ColKey, boolean> {
 }
 
 // ── Sort header ──────────────────────────────────────────────────────────────
-type SortField = 'registration' | 'type' | 'makeModel' | 'year' | 'status' | 'driver' | 'mot' | 'insurance';
+type SortField = 'registration' | 'type' | 'makeModel' | 'year' | 'status' | 'driver' | 'mot' | 'tax' | 'registrationExp' | 'insurance' | 'tachograph' | 'atp' | 'pressureTest';
 
 function SortableHead({ label, field, sortBy, sortOrder, onSort, className }: {
   label: string; field: SortField; sortBy: SortField; sortOrder: 'asc' | 'desc';
@@ -197,8 +203,12 @@ export function VehiclesList() {
         case 'status':       aVal = a.status ?? ''; bVal = b.status ?? ''; break;
         case 'driver':       aVal = driverA ? `${driverA.firstName} ${driverA.lastName}`.toLowerCase() : ''; bVal = driverB ? `${driverB.firstName} ${driverB.lastName}`.toLowerCase() : ''; break;
         case 'mot':          aVal = a.motExpiryDate ?? ''; bVal = b.motExpiryDate ?? ''; break;
+        case 'tax':          aVal = a.taxExpiryDate ?? ''; bVal = b.taxExpiryDate ?? ''; break;
+        case 'registrationExp': aVal = a.registrationExpiryDate ?? ''; bVal = b.registrationExpiryDate ?? ''; break;
         case 'insurance':    aVal = a.insuranceExpiryDate ?? ''; bVal = b.insuranceExpiryDate ?? ''; break;
-        default:             aVal = ''; bVal = '';
+        case 'tachograph':   aVal = a.tachographCalibrationExpiry ?? ''; bVal = b.tachographCalibrationExpiry ?? ''; break;
+        case 'atp':          aVal = a.atpCertificateExpiry ?? ''; bVal = b.atpCertificateExpiry ?? ''; break;
+        case 'pressureTest': aVal = a.nextPressureTestDate ?? ''; bVal = b.nextPressureTestDate ?? ''; break;
       }
       const cmp = aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
       return sortOrder === 'asc' ? cmp : -cmp;
@@ -377,7 +387,12 @@ export function VehiclesList() {
                   {col('status')    && <SortableHead label="Status"         field="status"     sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
                   {col('driver')    && <SortableHead label="Current Driver" field="driver"     sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
                   {col('mot')       && <SortableHead label="MOT"            field="mot"        sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  {col('tax')       && <SortableHead label="Tax"            field="tax"        sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  {col('registration') && <SortableHead label="Registration" field="registrationExp" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
                   {col('insurance') && <SortableHead label="Insurance"      field="insurance"  sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  {col('tachograph') && <SortableHead label="Tachograph"    field="tachograph" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  {col('atp')       && <SortableHead label="ATP"            field="atp"        sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  {col('pressureTest') && <SortableHead label="Pressure Test" field="pressureTest" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -401,7 +416,12 @@ export function VehiclesList() {
                         </TableCell>
                       )}
                       {col('mot')       && <TableCell>{expiryBadge(v.motExpiryDate)}</TableCell>}
+                      {col('tax')       && <TableCell>{expiryBadge(v.taxExpiryDate)}</TableCell>}
+                      {col('registration') && <TableCell>{expiryBadge(v.registrationExpiryDate)}</TableCell>}
                       {col('insurance') && <TableCell>{expiryBadge(v.insuranceExpiryDate)}</TableCell>}
+                      {col('tachograph') && <TableCell>{expiryBadge(v.tachographCalibrationExpiry)}</TableCell>}
+                      {col('atp')       && <TableCell>{expiryBadge(v.atpCertificateExpiry)}</TableCell>}
+                      {col('pressureTest') && <TableCell>{expiryBadge(v.nextPressureTestDate)}</TableCell>}
                       <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-1">
                           <Button size="sm" variant="ghost" onClick={() => navigate(`/dashboard/vehicles/${v.id}`)}>

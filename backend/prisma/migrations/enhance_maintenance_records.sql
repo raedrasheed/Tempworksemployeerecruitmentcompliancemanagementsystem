@@ -68,9 +68,7 @@ CREATE TABLE IF NOT EXISTS maintenance_record_attachments (
   document_type VARCHAR(50),
   uploaded_by_id UUID REFERENCES users(id) ON DELETE SET NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  deleted_at TIMESTAMP,
-
-  CONSTRAINT maintenance_record_attachments_pkey PRIMARY KEY (id)
+  deleted_at TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS maintenance_record_attachments_record_id_idx ON maintenance_record_attachments(maintenance_record_id);

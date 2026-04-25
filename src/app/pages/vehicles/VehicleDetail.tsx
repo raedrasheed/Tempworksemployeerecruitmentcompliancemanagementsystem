@@ -808,156 +808,190 @@ export function VehicleDetail() {
 
       {/* Add / Edit Maintenance Dialog */}
       <Dialog open={mainDialog} onOpenChange={setMainDialog}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>{editingMain ? 'Edit Maintenance Record' : 'Add Maintenance Record'}</DialogTitle></DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label>Maintenance Type</Label>
-                <Select value={mainForm.maintenanceTypeId || 'none'} onValueChange={(v) => setMainForm((f: any) => ({ ...f, maintenanceTypeId: v === 'none' ? '' : v }))}>
-                  <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Not specified</SelectItem>
-                    {maintenanceTypes.map((mt: any) => <SelectItem key={mt.id} value={mt.id}>{mt.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <Label>Status</Label>
-                <Select value={mainForm.status} onValueChange={(v) => setMainForm((f: any) => ({ ...f, status: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {MAINTENANCE_STATUSES.map((s) => <SelectItem key={s} value={s}>{s.replace('_', ' ')}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <Label>Scheduled Date</Label>
-                <Input type="date" value={mainForm.scheduledDate} onChange={(e) => setMainForm((f: any) => ({ ...f, scheduledDate: e.target.value }))} />
-              </div>
-              <div className="space-y-1">
-                <Label>Completed Date</Label>
-                <Input type="date" value={mainForm.completedDate} onChange={(e) => setMainForm((f: any) => ({ ...f, completedDate: e.target.value }))} />
-              </div>
-              <div className="space-y-1">
-                <Label>Workshop</Label>
-                <Select value={mainForm.workshopId || 'none'} onValueChange={(v) => setMainForm((f: any) => ({ ...f, workshopId: v === 'none' ? '' : v }))}>
-                  <SelectTrigger><SelectValue placeholder="Select workshop" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Not specified</SelectItem>
-                    {workshops.map((w: any) => <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <Label>Mileage at Service</Label>
-                <Input type="number" value={mainForm.mileageAtService} onChange={(e) => setMainForm((f: any) => ({ ...f, mileageAtService: e.target.value }))} placeholder="km" />
-              </div>
-              <div className="space-y-1 col-span-2">
-                <Label>Total Cost (£)</Label>
-                <Input type="number" step="0.01" value={mainForm.cost} onChange={(e) => setMainForm((f: any) => ({ ...f, cost: e.target.value }))} placeholder="0.00" />
-              </div>
-            </div>
-            <div className="space-y-1">
-              <Label>Description</Label>
-              <Input value={mainForm.description} onChange={(e) => setMainForm((f: any) => ({ ...f, description: e.target.value }))} placeholder="Brief description" />
-            </div>
-            <div className="space-y-1">
-              <Label>Work Description</Label>
-              <textarea className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" value={mainForm.workDescription} onChange={(e) => setMainForm((f: any) => ({ ...f, workDescription: e.target.value }))} placeholder="Detailed work performed..." />
-            </div>
-            <div className="space-y-1">
-              <Label>Notes</Label>
-              <Input value={mainForm.notes} onChange={(e) => setMainForm((f: any) => ({ ...f, notes: e.target.value }))} placeholder="Additional notes" />
-            </div>
+        <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col p-0 gap-0">
+          <DialogHeader className="px-6 py-4 border-b">
+            <DialogTitle className="text-lg">{editingMain ? 'Edit Maintenance Record' : 'Add Maintenance Record'}</DialogTitle>
+          </DialogHeader>
 
-            <hr className="my-3" />
-            <h4 className="font-medium text-sm">Driver & Logistics</h4>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label>Service Driver</Label>
-                <Select value={mainForm.driverId || 'other'} onValueChange={(v) => setMainForm((f: any) => ({ ...f, driverId: v === 'other' ? '' : v, driverNameOverride: v === 'other' ? '' : f.driverNameOverride }))}>
-                  <SelectTrigger><SelectValue placeholder="Select driver" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="other">Other (external)</SelectItem>
-                    {drivers.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.firstName} {d.lastName}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+          <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
+            {/* Section: Service Details */}
+            <section className="space-y-3">
+              <div className="flex items-center gap-2 pb-1 border-b">
+                <Wrench className="w-4 h-4 text-muted-foreground" />
+                <h4 className="font-semibold text-sm">Service Details</h4>
               </div>
-              {!mainForm.driverId && (
-                <div className="space-y-1">
-                  <Label>External Driver Name</Label>
-                  <Input value={mainForm.driverNameOverride} onChange={(e) => setMainForm((f: any) => ({ ...f, driverNameOverride: e.target.value }))} placeholder="Driver name" />
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium">Maintenance Type</Label>
+                  <Select value={mainForm.maintenanceTypeId || 'none'} onValueChange={(v) => setMainForm((f: any) => ({ ...f, maintenanceTypeId: v === 'none' ? '' : v }))}>
+                    <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Not specified</SelectItem>
+                      {maintenanceTypes.map((mt: any) => <SelectItem key={mt.id} value={mt.id}>{mt.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
-              )}
-
-              <div className="space-y-1">
-                <Label>Drop-off Driver</Label>
-                <Select value={mainForm.dropOffDriverId || 'other'} onValueChange={(v) => setMainForm((f: any) => ({ ...f, dropOffDriverId: v === 'other' ? '' : v }))}>
-                  <SelectTrigger><SelectValue placeholder="Select driver" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="other">Other / None</SelectItem>
-                    {drivers.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.firstName} {d.lastName}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              {!mainForm.dropOffDriverId && (
-                <div className="space-y-1">
-                  <Label>Drop-off Driver Name</Label>
-                  <Input value={mainForm.dropOffDriverNameOverride} onChange={(e) => setMainForm((f: any) => ({ ...f, dropOffDriverNameOverride: e.target.value }))} placeholder="Name" />
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium">Status</Label>
+                  <Select value={mainForm.status} onValueChange={(v) => setMainForm((f: any) => ({ ...f, status: v }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {MAINTENANCE_STATUSES.map((s) => <SelectItem key={s} value={s}>{s.replace('_', ' ')}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
-              )}
-
-              <div className="space-y-1">
-                <Label>Drop-off Date/Time</Label>
-                <Input type="datetime-local" value={mainForm.dropOffDateTime} onChange={(e) => setMainForm((f: any) => ({ ...f, dropOffDateTime: e.target.value }))} />
-              </div>
-
-              <div className="space-y-1">
-                <Label>Pick-up Driver</Label>
-                <Select value={mainForm.pickUpDriverId || 'other'} onValueChange={(v) => setMainForm((f: any) => ({ ...f, pickUpDriverId: v === 'other' ? '' : v }))}>
-                  <SelectTrigger><SelectValue placeholder="Select driver" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="other">Other / None</SelectItem>
-                    {drivers.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.firstName} {d.lastName}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              {!mainForm.pickUpDriverId && (
-                <div className="space-y-1">
-                  <Label>Pick-up Driver Name</Label>
-                  <Input value={mainForm.pickUpDriverNameOverride} onChange={(e) => setMainForm((f: any) => ({ ...f, pickUpDriverNameOverride: e.target.value }))} placeholder="Name" />
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium">Workshop</Label>
+                  <Select value={mainForm.workshopId || 'none'} onValueChange={(v) => setMainForm((f: any) => ({ ...f, workshopId: v === 'none' ? '' : v }))}>
+                    <SelectTrigger><SelectValue placeholder="Select workshop" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Not specified</SelectItem>
+                      {workshops.map((w: any) => <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
-              )}
-
-              <div className="space-y-1">
-                <Label>Pick-up Date/Time</Label>
-                <Input type="datetime-local" value={mainForm.pickUpDateTime} onChange={(e) => setMainForm((f: any) => ({ ...f, pickUpDateTime: e.target.value }))} />
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium">Mileage at Service (km)</Label>
+                  <Input type="number" value={mainForm.mileageAtService} onChange={(e) => setMainForm((f: any) => ({ ...f, mileageAtService: e.target.value }))} placeholder="0" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium">Scheduled Date</Label>
+                  <Input type="date" value={mainForm.scheduledDate} onChange={(e) => setMainForm((f: any) => ({ ...f, scheduledDate: e.target.value }))} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium">Completed Date</Label>
+                  <Input type="date" value={mainForm.completedDate} onChange={(e) => setMainForm((f: any) => ({ ...f, completedDate: e.target.value }))} />
+                </div>
+                <div className="space-y-1.5 md:col-span-2">
+                  <Label className="text-xs font-medium">Total Cost (£)</Label>
+                  <Input type="number" step="0.01" value={mainForm.cost} onChange={(e) => setMainForm((f: any) => ({ ...f, cost: e.target.value }))} placeholder="0.00" />
+                </div>
+                <div className="space-y-1.5 md:col-span-2">
+                  <Label className="text-xs font-medium">Description</Label>
+                  <Input value={mainForm.description} onChange={(e) => setMainForm((f: any) => ({ ...f, description: e.target.value }))} placeholder="Brief description" />
+                </div>
+                <div className="space-y-1.5 md:col-span-2">
+                  <Label className="text-xs font-medium">Work Description</Label>
+                  <textarea
+                    className="flex min-h-[70px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    value={mainForm.workDescription}
+                    onChange={(e) => setMainForm((f: any) => ({ ...f, workDescription: e.target.value }))}
+                    placeholder="Detailed work performed..."
+                  />
+                </div>
+                <div className="space-y-1.5 md:col-span-2">
+                  <Label className="text-xs font-medium">Notes</Label>
+                  <Input value={mainForm.notes} onChange={(e) => setMainForm((f: any) => ({ ...f, notes: e.target.value }))} placeholder="Additional notes" />
+                </div>
               </div>
-            </div>
+            </section>
 
-            <hr className="my-3" />
-            <h4 className="font-medium text-sm">Approval</h4>
+            {/* Section: Driver & Logistics */}
+            <section className="space-y-3">
+              <div className="flex items-center gap-2 pb-1 border-b">
+                <User className="w-4 h-4 text-muted-foreground" />
+                <h4 className="font-semibold text-sm">Driver &amp; Logistics</h4>
+              </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label>Approved By</Label>
-                <Select value={mainForm.approvedById || 'none'} onValueChange={(v) => setMainForm((f: any) => ({ ...f, approvedById: v === 'none' ? '' : v }))}>
-                  <SelectTrigger><SelectValue placeholder="Not approved" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Pending Approval</SelectItem>
-                    {drivers.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.firstName} {d.lastName}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium">Service Driver</Label>
+                  <Select value={mainForm.driverId || 'other'} onValueChange={(v) => setMainForm((f: any) => ({ ...f, driverId: v === 'other' ? '' : v, driverNameOverride: v === 'other' ? f.driverNameOverride : '' }))}>
+                    <SelectTrigger><SelectValue placeholder="Select driver" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="other">Other (external)</SelectItem>
+                      {drivers.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.firstName} {d.lastName}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium">External Driver Name</Label>
+                  <Input
+                    value={mainForm.driverNameOverride}
+                    onChange={(e) => setMainForm((f: any) => ({ ...f, driverNameOverride: e.target.value }))}
+                    placeholder="Driver name"
+                    disabled={!!mainForm.driverId}
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium">Drop-off Driver</Label>
+                  <Select value={mainForm.dropOffDriverId || 'other'} onValueChange={(v) => setMainForm((f: any) => ({ ...f, dropOffDriverId: v === 'other' ? '' : v, dropOffDriverNameOverride: v === 'other' ? f.dropOffDriverNameOverride : '' }))}>
+                    <SelectTrigger><SelectValue placeholder="Select driver" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="other">Other / None</SelectItem>
+                      {drivers.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.firstName} {d.lastName}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium">Drop-off Driver Name</Label>
+                  <Input
+                    value={mainForm.dropOffDriverNameOverride}
+                    onChange={(e) => setMainForm((f: any) => ({ ...f, dropOffDriverNameOverride: e.target.value }))}
+                    placeholder="Name"
+                    disabled={!!mainForm.dropOffDriverId}
+                  />
+                </div>
+                <div className="space-y-1.5 md:col-span-2">
+                  <Label className="text-xs font-medium">Drop-off Date/Time</Label>
+                  <Input type="datetime-local" value={mainForm.dropOffDateTime} onChange={(e) => setMainForm((f: any) => ({ ...f, dropOffDateTime: e.target.value }))} />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium">Pick-up Driver</Label>
+                  <Select value={mainForm.pickUpDriverId || 'other'} onValueChange={(v) => setMainForm((f: any) => ({ ...f, pickUpDriverId: v === 'other' ? '' : v, pickUpDriverNameOverride: v === 'other' ? f.pickUpDriverNameOverride : '' }))}>
+                    <SelectTrigger><SelectValue placeholder="Select driver" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="other">Other / None</SelectItem>
+                      {drivers.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.firstName} {d.lastName}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium">Pick-up Driver Name</Label>
+                  <Input
+                    value={mainForm.pickUpDriverNameOverride}
+                    onChange={(e) => setMainForm((f: any) => ({ ...f, pickUpDriverNameOverride: e.target.value }))}
+                    placeholder="Name"
+                    disabled={!!mainForm.pickUpDriverId}
+                  />
+                </div>
+                <div className="space-y-1.5 md:col-span-2">
+                  <Label className="text-xs font-medium">Pick-up Date/Time</Label>
+                  <Input type="datetime-local" value={mainForm.pickUpDateTime} onChange={(e) => setMainForm((f: any) => ({ ...f, pickUpDateTime: e.target.value }))} />
+                </div>
               </div>
-              <div className="space-y-1">
-                <Label>Approval Date</Label>
-                <Input type="date" value={mainForm.approvedAt} onChange={(e) => setMainForm((f: any) => ({ ...f, approvedAt: e.target.value }))} />
+            </section>
+
+            {/* Section: Approval */}
+            <section className="space-y-3">
+              <div className="flex items-center gap-2 pb-1 border-b">
+                <FileText className="w-4 h-4 text-muted-foreground" />
+                <h4 className="font-semibold text-sm">Approval</h4>
               </div>
-            </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium">Approved By</Label>
+                  <Select value={mainForm.approvedById || 'none'} onValueChange={(v) => setMainForm((f: any) => ({ ...f, approvedById: v === 'none' ? '' : v }))}>
+                    <SelectTrigger><SelectValue placeholder="Pending Approval" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Pending Approval</SelectItem>
+                      {drivers.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.firstName} {d.lastName}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium">Approval Date</Label>
+                  <Input type="date" value={mainForm.approvedAt} onChange={(e) => setMainForm((f: any) => ({ ...f, approvedAt: e.target.value }))} />
+                </div>
+              </div>
+            </section>
           </div>
-          <DialogFooter>
+
+          <DialogFooter className="px-6 py-4 border-t bg-muted/30">
             <Button variant="outline" onClick={() => setMainDialog(false)}>Cancel</Button>
             <Button onClick={handleSaveMaintenance} disabled={mainSaving}>
               {mainSaving ? 'Saving…' : editingMain ? 'Save Changes' : 'Add Record'}

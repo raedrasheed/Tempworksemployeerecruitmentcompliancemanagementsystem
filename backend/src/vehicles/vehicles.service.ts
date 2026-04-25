@@ -381,11 +381,6 @@ export class VehiclesService {
           maintenanceType: true,
           workshop: true,
           spareParts: true,
-          driver: { select: { id: true, firstName: true, lastName: true } },
-          dropOffDriver: { select: { id: true, firstName: true, lastName: true } },
-          pickUpDriver: { select: { id: true, firstName: true, lastName: true } },
-          approvedBy: { select: { id: true, firstName: true, lastName: true } },
-          attachments: { where: { deletedAt: null } },
         },
         orderBy: { createdAt: 'desc' },
       }),
@@ -403,13 +398,8 @@ export class VehiclesService {
         maintenanceType: true,
         workshop: true,
         spareParts: true,
-        driver: { select: { id: true, firstName: true, lastName: true } },
-        dropOffDriver: { select: { id: true, firstName: true, lastName: true } },
-        pickUpDriver: { select: { id: true, firstName: true, lastName: true } },
-        approvedBy: { select: { id: true, firstName: true, lastName: true } },
         createdBy: { select: { id: true, firstName: true, lastName: true } },
         updatedBy: { select: { id: true, firstName: true, lastName: true } },
-        attachments: { where: { deletedAt: null } },
       },
     });
     if (!record) throw new NotFoundException('Maintenance record not found');
@@ -455,11 +445,6 @@ export class VehiclesService {
         maintenanceType: true,
         workshop: true,
         spareParts: true,
-        driver: { select: { id: true, firstName: true, lastName: true } },
-        dropOffDriver: { select: { id: true, firstName: true, lastName: true } },
-        pickUpDriver: { select: { id: true, firstName: true, lastName: true } },
-        approvedBy: { select: { id: true, firstName: true, lastName: true } },
-        attachments: true,
       },
     });
 
@@ -516,11 +501,6 @@ export class VehiclesService {
         maintenanceType: true,
         workshop: true,
         spareParts: true,
-        driver: { select: { id: true, firstName: true, lastName: true } },
-        dropOffDriver: { select: { id: true, firstName: true, lastName: true } },
-        pickUpDriver: { select: { id: true, firstName: true, lastName: true } },
-        approvedBy: { select: { id: true, firstName: true, lastName: true } },
-        attachments: true,
       },
     });
   }

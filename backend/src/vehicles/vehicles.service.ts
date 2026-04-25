@@ -263,7 +263,16 @@ export class VehiclesService {
   // ── Maintenance Types ────────────────────────────────────────────────────────
 
   async listMaintenanceTypes() {
-    return this.prisma.maintenanceType.findMany({ where: { isActive: true }, orderBy: { name: 'asc' } });
+    try {
+      return await this.prisma.maintenanceType.findMany({ where: { isActive: true }, orderBy: { name: 'asc' } });
+    } catch (error: any) {
+      // If the table doesn't exist yet, return empty array gracefully
+      if (error?.code === 'P2021' || error?.message?.includes('does not exist')) {
+        console.warn('maintenance_type table not yet migrated');
+        return [];
+      }
+      throw error;
+    }
   }
 
   async createMaintenanceType(dto: CreateMaintenanceTypeDto) {

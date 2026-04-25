@@ -446,13 +446,14 @@ export class VehiclesService {
 
   async createMaintenanceRecord(dto: CreateMaintenanceRecordDto, userId: string) {
     await this.findVehicleOrFail(dto.vehicleId);
+    // Strip out new fields (driver, drop-off, pick-up, approval, workDescription)
+    // - they require the enhance_maintenance_records migration to be applied first.
     const {
       spareParts, scheduledDate, completedDate, nextServiceDate,
-      // New fields - only persist if migration has been applied (handled below)
-      driverId, driverNameOverride,
-      dropOffDriverId, dropOffDriverNameOverride, dropOffDateTime,
-      pickUpDriverId, pickUpDriverNameOverride, pickUpDateTime,
-      approvedById, approvedAt, workDescription,
+      driverId: _driverId, driverNameOverride: _driverNameOverride,
+      dropOffDriverId: _dropOffDriverId, dropOffDriverNameOverride: _dropOffDriverNameOverride, dropOffDateTime: _dropOffDateTime,
+      pickUpDriverId: _pickUpDriverId, pickUpDriverNameOverride: _pickUpDriverNameOverride, pickUpDateTime: _pickUpDateTime,
+      approvedById: _approvedById, approvedAt: _approvedAt, workDescription: _workDescription,
       ...rest
     } = dto;
 
@@ -460,21 +461,6 @@ export class VehiclesService {
     if (scheduledDate)   data.scheduledDate   = new Date(scheduledDate);
     if (completedDate)   data.completedDate   = new Date(completedDate);
     if (nextServiceDate) data.nextServiceDate = new Date(nextServiceDate);
-
-    // Try to add new fields - if columns exist they'll be saved; if not, they'll be silently skipped
-    try {
-      if (driverId)                  data.driverId = driverId;
-      if (driverNameOverride)        data.driverNameOverride = driverNameOverride;
-      if (dropOffDriverId)           data.dropOffDriverId = dropOffDriverId;
-      if (dropOffDriverNameOverride) data.dropOffDriverNameOverride = dropOffDriverNameOverride;
-      if (dropOffDateTime)           data.dropOffDateTime = new Date(dropOffDateTime);
-      if (pickUpDriverId)            data.pickUpDriverId = pickUpDriverId;
-      if (pickUpDriverNameOverride)  data.pickUpDriverNameOverride = pickUpDriverNameOverride;
-      if (pickUpDateTime)            data.pickUpDateTime = new Date(pickUpDateTime);
-      if (approvedById)              data.approvedById = approvedById;
-      if (approvedAt)                data.approvedAt = new Date(approvedAt);
-      if (workDescription)           data.workDescription = workDescription;
-    } catch { /* ignore if new fields fail */ }
 
     if (spareParts?.length) {
       data.spareParts = {
@@ -538,31 +524,19 @@ export class VehiclesService {
     const existing = await this.prisma.maintenanceRecord.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Maintenance record not found');
 
+    // Strip out new fields - they require the enhance_maintenance_records migration first.
     const {
       spareParts, scheduledDate, completedDate, nextServiceDate,
-      driverId, driverNameOverride,
-      dropOffDriverId, dropOffDriverNameOverride, dropOffDateTime,
-      pickUpDriverId, pickUpDriverNameOverride, pickUpDateTime,
-      approvedById, approvedAt, workDescription,
+      driverId: _driverId, driverNameOverride: _driverNameOverride,
+      dropOffDriverId: _dropOffDriverId, dropOffDriverNameOverride: _dropOffDriverNameOverride, dropOffDateTime: _dropOffDateTime,
+      pickUpDriverId: _pickUpDriverId, pickUpDriverNameOverride: _pickUpDriverNameOverride, pickUpDateTime: _pickUpDateTime,
+      approvedById: _approvedById, approvedAt: _approvedAt, workDescription: _workDescription,
       ...rest
     } = dto;
     const data: any = { ...rest, updatedById: userId };
     if (scheduledDate !== undefined)   data.scheduledDate   = scheduledDate ? new Date(scheduledDate) : null;
     if (completedDate !== undefined)   data.completedDate   = completedDate ? new Date(completedDate) : null;
     if (nextServiceDate !== undefined) data.nextServiceDate = nextServiceDate ? new Date(nextServiceDate) : null;
-
-    // Try to add new fields - silently ignore if migration not yet applied
-    if (driverId !== undefined)                  data.driverId = driverId || null;
-    if (driverNameOverride !== undefined)        data.driverNameOverride = driverNameOverride || null;
-    if (dropOffDriverId !== undefined)           data.dropOffDriverId = dropOffDriverId || null;
-    if (dropOffDriverNameOverride !== undefined) data.dropOffDriverNameOverride = dropOffDriverNameOverride || null;
-    if (dropOffDateTime !== undefined)           data.dropOffDateTime = dropOffDateTime ? new Date(dropOffDateTime) : null;
-    if (pickUpDriverId !== undefined)            data.pickUpDriverId = pickUpDriverId || null;
-    if (pickUpDriverNameOverride !== undefined)  data.pickUpDriverNameOverride = pickUpDriverNameOverride || null;
-    if (pickUpDateTime !== undefined)            data.pickUpDateTime = pickUpDateTime ? new Date(pickUpDateTime) : null;
-    if (approvedById !== undefined)              data.approvedById = approvedById || null;
-    if (approvedAt !== undefined)                data.approvedAt = approvedAt ? new Date(approvedAt) : null;
-    if (workDescription !== undefined)           data.workDescription = workDescription || null;
 
     if (spareParts !== undefined) {
       // Replace spare parts
@@ -630,40 +604,18 @@ export class VehiclesService {
   }
 
   // ── Maintenance Record Attachments ───────────────────────────────────────────
+  // Note: attachments require running the enhance_maintenance_records migration first.
 
-  async addMaintenanceAttachment(recordId: string, fileName: string, fileUrl: string, fileSize?: number, mimeType?: string, documentType?: string, uploadedById?: string) {
-    const record = await this.prisma.maintenanceRecord.findUnique({ where: { id: recordId } });
-    if (!record) throw new NotFoundException('Maintenance record not found');
-
-    return this.prisma.maintenanceRecordAttachment.create({
-      data: {
-        maintenanceRecordId: recordId,
-        name: fileName,
-        fileName: fileName,
-        fileUrl: fileUrl,
-        fileSize: fileSize,
-        mimeType: mimeType,
-        documentType: documentType,
-        uploadedById: uploadedById,
-      },
-    });
+  async addMaintenanceAttachment(_recordId: string, _fileName: string, _fileUrl: string, _fileSize?: number, _mimeType?: string, _documentType?: string, _uploadedById?: string) {
+    throw new BadRequestException('Maintenance record attachments require migration. Run: npm run db:migrate:enhance-maintenance-records');
   }
 
-  async deleteMaintenanceAttachment(attachmentId: string) {
-    const attachment = await this.prisma.maintenanceRecordAttachment.findUnique({ where: { id: attachmentId } });
-    if (!attachment) throw new NotFoundException('Attachment not found');
-
-    return this.prisma.maintenanceRecordAttachment.update({
-      where: { id: attachmentId },
-      data: { deletedAt: new Date() },
-    });
+  async deleteMaintenanceAttachment(_attachmentId: string) {
+    throw new BadRequestException('Maintenance record attachments require migration. Run: npm run db:migrate:enhance-maintenance-records');
   }
 
-  async getMaintenanceAttachments(recordId: string) {
-    return this.prisma.maintenanceRecordAttachment.findMany({
-      where: { maintenanceRecordId: recordId, deletedAt: null },
-      orderBy: { createdAt: 'desc' },
-    });
+  async getMaintenanceAttachments(_recordId: string) {
+    return [];
   }
 
   // ── Dashboard Stats ──────────────────────────────────────────────────────────

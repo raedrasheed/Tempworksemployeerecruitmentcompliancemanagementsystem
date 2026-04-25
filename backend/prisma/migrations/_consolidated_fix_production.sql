@@ -59,6 +59,115 @@ ALTER TABLE applicants ADD COLUMN IF NOT EXISTS "approvedAt"              TIMEST
 ALTER TABLE applicants ADD COLUMN IF NOT EXISTS "rejectionReason"         TEXT;
 
 
+-- ── EMPLOYEES ────────────────────────────────────────────────────────────────
+ALTER TABLE employees ADD COLUMN IF NOT EXISTS "employeeNumber"        TEXT UNIQUE;
+ALTER TABLE employees ADD COLUMN IF NOT EXISTS "leadNumber"            TEXT;
+ALTER TABLE employees ADD COLUMN IF NOT EXISTS "candidateNumber"       TEXT;
+ALTER TABLE employees ADD COLUMN IF NOT EXISTS "candidateConvertedAt"  TIMESTAMP(3);
+ALTER TABLE employees ADD COLUMN IF NOT EXISTS "employeeConvertedAt"   TIMESTAMP(3);
+ALTER TABLE employees ADD COLUMN IF NOT EXISTS "licenseNumber"         TEXT;
+ALTER TABLE employees ADD COLUMN IF NOT EXISTS "licenseCategory"       TEXT;
+ALTER TABLE employees ADD COLUMN IF NOT EXISTS "yearsExperience"       INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE employees ADD COLUMN IF NOT EXISTS "jobTypeId"             TEXT;
+ALTER TABLE employees ADD COLUMN IF NOT EXISTS "agencyId"              TEXT;
+ALTER TABLE employees ADD COLUMN IF NOT EXISTS "photoUrl"              TEXT;
+ALTER TABLE employees ADD COLUMN IF NOT EXISTS "addressLine2"          TEXT;
+ALTER TABLE employees ADD COLUMN IF NOT EXISTS "emergencyContact"      TEXT;
+ALTER TABLE employees ADD COLUMN IF NOT EXISTS "emergencyPhone"        TEXT;
+ALTER TABLE employees ADD COLUMN IF NOT EXISTS "notes"                 TEXT;
+ALTER TABLE employees ADD COLUMN IF NOT EXISTS "applicationData"       JSONB;
+ALTER TABLE employees ADD COLUMN IF NOT EXISTS "createdById"           TEXT;
+ALTER TABLE employees ADD COLUMN IF NOT EXISTS "source"                TEXT NOT NULL DEFAULT 'STAFF_CREATED';
+ALTER TABLE employees ADD COLUMN IF NOT EXISTS "deletedAt"             TIMESTAMP(3);
+ALTER TABLE employees ADD COLUMN IF NOT EXISTS "deletedBy"             TEXT;
+ALTER TABLE employees ADD COLUMN IF NOT EXISTS "deletionReason"        TEXT;
+
+
+-- ── VEHICLES ─────────────────────────────────────────────────────────────────
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "type"                        TEXT NOT NULL DEFAULT 'Truck';
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "status"                      TEXT NOT NULL DEFAULT 'ACTIVE';
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "year"                        INTEGER;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "color"                       TEXT;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "licensePlate"                TEXT;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "vin"                         TEXT;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "fuelType"                    TEXT;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "fuelCapacity"                DOUBLE PRECISION;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "currentMileage"              INTEGER;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "notes"                       TEXT;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "motExpiryDate"               DATE;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "taxExpiryDate"               DATE;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "insuranceExpiryDate"         DATE;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "registrationExpiryDate"      DATE;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "purchaseOrder"               TEXT;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "purchaseDate"                DATE;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "purchaseCost"                DOUBLE PRECISION;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "purchaseContract"            TEXT;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "vendorName"                  TEXT;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "vendorAddress"               TEXT;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "insurancePolicyNumber"       TEXT;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "insuranceCompany"            TEXT;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "insuranceType"               TEXT;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "insuranceStartDate"          DATE;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "grossWeight"                 DOUBLE PRECISION;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "payloadCapacity"             DOUBLE PRECISION;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "numberOfAxles"               INTEGER;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "tareWeight"                  DOUBLE PRECISION;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "bodyType"                    TEXT;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "hitchType"                   TEXT;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "lengthM"                     DOUBLE PRECISION;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "widthM"                      DOUBLE PRECISION;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "heightM"                     DOUBLE PRECISION;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "euroEmissionClass"           TEXT;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "tachographSerial"            TEXT;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "tachographCalibrationExpiry" DATE;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "seatingCapacity"             INTEGER;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "loadVolume"                  DOUBLE PRECISION;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "partitionFitted"             BOOLEAN;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "vinSubType"                  TEXT;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "insuranceGroup"              TEXT;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "tankerCapacity"              DOUBLE PRECISION;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "tankMaterial"                TEXT;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "adrClass"                    TEXT;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "unNumbers"                   TEXT;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "lastPressureTestDate"        DATE;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "nextPressureTestDate"        DATE;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "trailerLength"               DOUBLE PRECISION;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "refrigerationUnit"           TEXT;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "refrigerationModel"          TEXT;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "tempMin"                     DOUBLE PRECISION;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "tempMax"                     DOUBLE PRECISION;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "atpCertificateNumber"        TEXT;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "atpCertificateExpiry"        DATE;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "equipmentDescription"        TEXT;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "customAttributes"            JSONB;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "agencyId"                    TEXT;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "createdById"                 TEXT;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "updatedById"                 TEXT;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "deletedAt"                   TIMESTAMP(3);
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS "deletedBy"                   TEXT;
+
+
+-- ── MAINTENANCE_RECORDS ──────────────────────────────────────────────────────
+ALTER TABLE maintenance_records ADD COLUMN IF NOT EXISTS "maintenanceTypeId"   TEXT;
+ALTER TABLE maintenance_records ADD COLUMN IF NOT EXISTS "workshopId"          TEXT;
+ALTER TABLE maintenance_records ADD COLUMN IF NOT EXISTS "scheduledDate"       DATE;
+ALTER TABLE maintenance_records ADD COLUMN IF NOT EXISTS "completedDate"       DATE;
+ALTER TABLE maintenance_records ADD COLUMN IF NOT EXISTS "mileageAtService"    INTEGER;
+ALTER TABLE maintenance_records ADD COLUMN IF NOT EXISTS "nextServiceDate"     DATE;
+ALTER TABLE maintenance_records ADD COLUMN IF NOT EXISTS "nextServiceMileage"  INTEGER;
+ALTER TABLE maintenance_records ADD COLUMN IF NOT EXISTS "cost"                DOUBLE PRECISION;
+ALTER TABLE maintenance_records ADD COLUMN IF NOT EXISTS "laborCost"           DOUBLE PRECISION;
+ALTER TABLE maintenance_records ADD COLUMN IF NOT EXISTS "partsCost"           DOUBLE PRECISION;
+ALTER TABLE maintenance_records ADD COLUMN IF NOT EXISTS "description"         TEXT;
+ALTER TABLE maintenance_records ADD COLUMN IF NOT EXISTS "technicianName"      TEXT;
+ALTER TABLE maintenance_records ADD COLUMN IF NOT EXISTS "invoiceNumber"       TEXT;
+ALTER TABLE maintenance_records ADD COLUMN IF NOT EXISTS "notes"               TEXT;
+ALTER TABLE maintenance_records ADD COLUMN IF NOT EXISTS "createdById"         TEXT;
+ALTER TABLE maintenance_records ADD COLUMN IF NOT EXISTS "updatedById"         TEXT;
+ALTER TABLE maintenance_records ADD COLUMN IF NOT EXISTS "deletedAt"           TIMESTAMP(3);
+ALTER TABLE maintenance_records ADD COLUMN IF NOT EXISTS "deletedBy"           TEXT;
+
+
 -- ── WORKSHOPS ────────────────────────────────────────────────────────────────
 ALTER TABLE workshops ADD COLUMN IF NOT EXISTS "companyName"                 TEXT;
 ALTER TABLE workshops ADD COLUMN IF NOT EXISTS "logo"                        TEXT;

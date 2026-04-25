@@ -64,7 +64,7 @@ const allNavigationItems: NavItem[] = [
     children: [
       { icon: Truck,   label: 'Fleet',              path: '/dashboard/vehicles' },
       { icon: Factory, label: 'Workshops',          path: '/dashboard/vehicles/workshops' },
-      { icon: Wrench,  label: 'Maintenance Types',  path: '/dashboard/vehicles/maintenance-types' },
+      { icon: Wrench,  label: 'Maintenance Records', path: '/dashboard/vehicles/maintenance-records' },
     ],
   },
   { icon: FolderOpen,      label: 'Documents & Compliance',path: '/dashboard/documents-compliance', permission: 'documents:read' },

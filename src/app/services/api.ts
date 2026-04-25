@@ -1729,7 +1729,7 @@ export const vehiclesApi = {
 
   // Maintenance records
   listMaintenance: (params: {
-    page?: number; limit?: number; vehicleId?: string; status?: string; dateFrom?: string; dateTo?: string;
+    page?: number; limit?: number; vehicleId?: string; workshopId?: string; status?: string; dateFrom?: string; dateTo?: string;
   } = {}) => {
     const qs = new URLSearchParams();
     Object.entries(params).forEach(([k, v]) => v != null && qs.set(k, String(v)));

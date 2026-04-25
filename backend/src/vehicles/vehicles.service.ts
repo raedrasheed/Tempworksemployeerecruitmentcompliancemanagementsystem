@@ -114,9 +114,9 @@ export class VehiclesService {
             partsCost: true,
             notes: true,
             maintenanceTypeId: true,
-            maintenanceType: true,
+            maintenanceType: { select: { id: true, name: true } },
             workshopId: true,
-            workshop: true,
+            workshop: { select: { id: true, name: true, address: true, city: true, country: true, phone: true, email: true } },
             spareParts: true,
             createdAt: true,
           },
@@ -324,24 +324,69 @@ export class VehiclesService {
 
   // ── Workshops ────────────────────────────────────────────────────────────────
 
+  // Limited select to baseline columns that exist before the
+  // enhance_workshop_fields migration is applied.
+  private static readonly WORKSHOP_SELECT = {
+    id: true,
+    name: true,
+    contactName: true,
+    phone: true,
+    email: true,
+    address: true,
+    city: true,
+    country: true,
+    notes: true,
+    isActive: true,
+    createdAt: true,
+    updatedAt: true,
+  } as const;
+
   async listWorkshops() {
-    return this.prisma.workshop.findMany({ where: { deletedAt: null } as any, orderBy: { name: 'asc' } });
+    return this.prisma.workshop.findMany({
+      where: { deletedAt: null } as any,
+      orderBy: { name: 'asc' },
+      select: VehiclesService.WORKSHOP_SELECT,
+    });
   }
 
   async getWorkshop(id: string) {
-    const w = await this.prisma.workshop.findUnique({ where: { id } });
+    const w = await this.prisma.workshop.findUnique({
+      where: { id },
+      select: VehiclesService.WORKSHOP_SELECT,
+    });
     if (!w) throw new NotFoundException('Workshop not found');
     return w;
   }
 
   async createWorkshop(dto: CreateWorkshopDto) {
-    return this.prisma.workshop.create({ data: dto });
+    // Strip out fields that may not exist before enhance_workshop_fields migration
+    const { name, contactName, phone, email, address, city, country, notes } = dto as any;
+    return this.prisma.workshop.create({
+      data: { name, contactName, phone, email, address, city, country, notes },
+      select: VehiclesService.WORKSHOP_SELECT,
+    });
   }
 
   async updateWorkshop(id: string, dto: UpdateWorkshopDto) {
     const w = await this.prisma.workshop.findUnique({ where: { id } });
     if (!w) throw new NotFoundException('Workshop not found');
-    return this.prisma.workshop.update({ where: { id }, data: dto });
+    // Strip out fields that may not exist before enhance_workshop_fields migration
+    const { name, contactName, phone, email, address, city, country, notes, isActive } = dto as any;
+    const data: any = {};
+    if (name !== undefined)        data.name = name;
+    if (contactName !== undefined) data.contactName = contactName;
+    if (phone !== undefined)       data.phone = phone;
+    if (email !== undefined)       data.email = email;
+    if (address !== undefined)     data.address = address;
+    if (city !== undefined)        data.city = city;
+    if (country !== undefined)     data.country = country;
+    if (notes !== undefined)       data.notes = notes;
+    if (isActive !== undefined)    data.isActive = isActive;
+    return this.prisma.workshop.update({
+      where: { id },
+      data,
+      select: VehiclesService.WORKSHOP_SELECT,
+    });
   }
 
   async deleteWorkshop(id: string, userId?: string) {
@@ -433,8 +478,8 @@ export class VehiclesService {
         createdAt: true,
         updatedAt: true,
         vehicle: { select: { id: true, registrationNumber: true, make: true, model: true } },
-        maintenanceType: true,
-        workshop: true,
+        maintenanceType: { select: { id: true, name: true } },
+        workshop: { select: { id: true, name: true, address: true, city: true, country: true, phone: true, email: true } },
         spareParts: true,
         createdBy: { select: { id: true, firstName: true, lastName: true } },
         updatedBy: { select: { id: true, firstName: true, lastName: true } },
@@ -505,8 +550,8 @@ export class VehiclesService {
         notes: true,
         createdAt: true,
         updatedAt: true,
-        maintenanceType: true,
-        workshop: true,
+        maintenanceType: { select: { id: true, name: true } },
+        workshop: { select: { id: true, name: true, address: true, city: true, country: true, phone: true, email: true } },
         spareParts: true,
       },
     });
@@ -585,8 +630,8 @@ export class VehiclesService {
         notes: true,
         createdAt: true,
         updatedAt: true,
-        maintenanceType: true,
-        workshop: true,
+        maintenanceType: { select: { id: true, name: true } },
+        workshop: { select: { id: true, name: true, address: true, city: true, country: true, phone: true, email: true } },
         spareParts: true,
       },
     });

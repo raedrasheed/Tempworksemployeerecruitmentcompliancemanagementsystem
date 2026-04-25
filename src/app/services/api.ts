@@ -978,6 +978,17 @@ export const settingsApi = {
   deleteTransactionType: (id: string) =>
     apiFetch(`/settings/transaction-types/${id}`, { method: 'DELETE' }),
 
+  // ── Vehicle settings (centralised lookup lists) ─────────────────────────
+  // One endpoint returns every vehicle dropdown list keyed by short
+  // name; updateVehicleSetting persists one list at a time.
+  getVehicleSettings: () =>
+    apiFetch<Record<string, string[]>>(`/settings/vehicle`),
+  updateVehicleSetting: (key: string, values: string[]) =>
+    apiFetch<{ key: string; values: string[]; updatedAt: string }>(
+      `/settings/vehicle/${encodeURIComponent(key)}`,
+      { method: 'PATCH', body: JSON.stringify({ values }) },
+    ),
+
   // ── Work History event types (configurable list) ────────────────────────
   getWorkHistoryEventTypes: (includeInactive = false) =>
     apiFetch<Array<{ id: string; value: string; label: string; isActive: boolean; sortOrder: number }>>(

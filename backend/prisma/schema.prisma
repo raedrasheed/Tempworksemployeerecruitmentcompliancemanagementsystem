@@ -1612,26 +1612,81 @@ model Vehicle {
   id                  String        @id @default(uuid())
   registrationNumber  String        @unique
   type                VehicleType
-  status              VehicleStatus @default(ACTIVE)
+  /// Stored as plain text (no longer the VehicleStatus enum) so the
+  /// list of statuses is fully configurable from System Settings.
+  /// Defaults to "ACTIVE" but admins can introduce new values such as
+  /// "Rented", "Awaiting Parts", etc.
+  status              String        @default("ACTIVE")
   make                String
   model               String
   year                Int?
   color               String?
+  /// Distinct from the registration number (kept for backward-compat
+  /// — most countries treat the two as identical, but a few jurisdictions
+  /// issue a separate plate identifier).
+  licensePlate        String?
   vin                 String?       @unique
-  fuelType            FuelType?
+  /// Like status, fuelType is now a free-text column driven by the
+  /// configurable Vehicle Fuel Types list under System Settings.
+  fuelType            String?
+  fuelCapacity        Float?
   currentMileage      Int?
   notes               String?
-  // Compliance expiry dates
-  motExpiryDate       DateTime?     @db.Date
-  taxExpiryDate       DateTime?     @db.Date
-  insuranceExpiryDate DateTime?     @db.Date
+  // Compliance / registration expiry dates
+  motExpiryDate          DateTime? @db.Date
+  taxExpiryDate          DateTime? @db.Date
+  insuranceExpiryDate    DateTime? @db.Date
+  registrationExpiryDate DateTime? @db.Date
+  // Purchase / acquisition info
+  purchaseOrder       String?
+  purchaseDate        DateTime? @db.Date
+  purchaseCost        Float?
+  purchaseContract    String?
+  vendorName          String?
+  vendorAddress       String?
+  // Insurance policy
+  insurancePolicyNumber String?
+  insuranceCompany      String?
+  insuranceType         String?
+  insuranceStartDate    DateTime? @db.Date
   // Type-specific fields
   grossWeight         Float?
   payloadCapacity     Float?
   numberOfAxles       Int?
+  tareWeight          Float?
+  bodyType            String?
+  hitchType           String?
+  lengthM             Float?
+  widthM              Float?
+  heightM             Float?
+  euroEmissionClass   String?
+  tachographSerial    String?
+  tachographCalibrationExpiry DateTime? @db.Date
+  // Vans
+  seatingCapacity     Int?
+  loadVolume          Float?
+  partitionFitted     Boolean?
+  // Cars
+  vinSubType          String?
+  insuranceGroup      String?
+  // Tanker
   tankerCapacity      Float?
-  refrigerationUnit   String?
+  tankMaterial        String?
+  adrClass            String?
+  unNumbers           String?
+  lastPressureTestDate DateTime? @db.Date
+  nextPressureTestDate DateTime? @db.Date
+  // Trailer / refrigerated trailer
   trailerLength       Float?
+  refrigerationUnit   String?
+  refrigerationModel  String?
+  tempMin             Float?
+  tempMax             Float?
+  atpCertificateNumber String?
+  atpCertificateExpiry DateTime? @db.Date
+  // Specialty vehicles
+  equipmentDescription String? @db.Text
+  customAttributes     Json?
   agencyId            String?
   createdById         String?
   updatedById         String?

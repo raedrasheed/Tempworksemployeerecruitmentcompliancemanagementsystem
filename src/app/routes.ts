@@ -84,6 +84,7 @@ import { SkillsSettings } from './pages/settings/SkillsSettings';
 import { TransportTypesSettings } from './pages/settings/TransportTypesSettings';
 import { TruckBrandsSettings } from './pages/settings/TruckBrandsSettings';
 import { TrailerTypesSettings } from './pages/settings/TrailerTypesSettings';
+import { VehicleSettings } from './pages/settings/VehicleSettings';
 import { TransactionTypesSettings } from './pages/settings/TransactionTypesSettings';
 import { WorkHistoryEventTypesSettings } from './pages/settings/WorkHistoryEventTypesSettings';
 
@@ -259,6 +260,7 @@ export const router = createBrowserRouter([
       { path: 'settings/transport-types', Component: TransportTypesSettings },
       { path: 'settings/truck-brands', Component: TruckBrandsSettings },
       { path: 'settings/trailer-types', Component: TrailerTypesSettings },
+      { path: 'settings/vehicles', Component: VehicleSettings },
       { path: 'settings/transaction-types', Component: TransactionTypesSettings },
       { path: 'settings/work-history-event-types', Component: WorkHistoryEventTypesSettings },
 

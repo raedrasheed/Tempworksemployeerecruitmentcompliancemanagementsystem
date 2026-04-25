@@ -422,6 +422,106 @@ async function runStartupMigrations() {
       logger.log('work_history_event_types — already seeded');
     }
 
+    // 10. Vehicle Management — relax status/fuelType to text and add the
+    //     new profile columns (purchase, insurance policy, body/hitch
+    //     types, ADR/tanker, refrigeration, specialty equipment, …).
+    //     The existing VehicleStatus and FuelType enums are dropped from
+    //     the column type so the lookup lists managed under
+    //     System Settings → Vehicle Settings can fully replace them.
+    await client.query(`
+      DO $$ BEGIN
+        IF EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name = 'vehicles' AND column_name = 'status' AND udt_name = 'VehicleStatus'
+        ) THEN
+          ALTER TABLE "vehicles" ALTER COLUMN "status" DROP DEFAULT;
+          ALTER TABLE "vehicles" ALTER COLUMN "status" TYPE text USING "status"::text;
+          ALTER TABLE "vehicles" ALTER COLUMN "status" SET DEFAULT 'ACTIVE';
+        END IF;
+        IF EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name = 'vehicles' AND column_name = 'fuelType' AND udt_name = 'FuelType'
+        ) THEN
+          ALTER TABLE "vehicles" ALTER COLUMN "fuelType" TYPE text USING "fuelType"::text;
+        END IF;
+      END $$
+    `);
+    await client.query(`
+      ALTER TABLE "vehicles"
+        ADD COLUMN IF NOT EXISTS "licensePlate"               text,
+        ADD COLUMN IF NOT EXISTS "fuelCapacity"               double precision,
+        ADD COLUMN IF NOT EXISTS "registrationExpiryDate"     date,
+        ADD COLUMN IF NOT EXISTS "purchaseOrder"              text,
+        ADD COLUMN IF NOT EXISTS "purchaseDate"               date,
+        ADD COLUMN IF NOT EXISTS "purchaseCost"               double precision,
+        ADD COLUMN IF NOT EXISTS "purchaseContract"           text,
+        ADD COLUMN IF NOT EXISTS "vendorName"                 text,
+        ADD COLUMN IF NOT EXISTS "vendorAddress"              text,
+        ADD COLUMN IF NOT EXISTS "insurancePolicyNumber"      text,
+        ADD COLUMN IF NOT EXISTS "insuranceCompany"           text,
+        ADD COLUMN IF NOT EXISTS "insuranceType"              text,
+        ADD COLUMN IF NOT EXISTS "insuranceStartDate"         date,
+        ADD COLUMN IF NOT EXISTS "tareWeight"                 double precision,
+        ADD COLUMN IF NOT EXISTS "bodyType"                   text,
+        ADD COLUMN IF NOT EXISTS "hitchType"                  text,
+        ADD COLUMN IF NOT EXISTS "lengthM"                    double precision,
+        ADD COLUMN IF NOT EXISTS "widthM"                     double precision,
+        ADD COLUMN IF NOT EXISTS "heightM"                    double precision,
+        ADD COLUMN IF NOT EXISTS "euroEmissionClass"          text,
+        ADD COLUMN IF NOT EXISTS "tachographSerial"           text,
+        ADD COLUMN IF NOT EXISTS "tachographCalibrationExpiry" date,
+        ADD COLUMN IF NOT EXISTS "seatingCapacity"            integer,
+        ADD COLUMN IF NOT EXISTS "loadVolume"                 double precision,
+        ADD COLUMN IF NOT EXISTS "partitionFitted"            boolean,
+        ADD COLUMN IF NOT EXISTS "vinSubType"                 text,
+        ADD COLUMN IF NOT EXISTS "insuranceGroup"             text,
+        ADD COLUMN IF NOT EXISTS "tankMaterial"               text,
+        ADD COLUMN IF NOT EXISTS "adrClass"                   text,
+        ADD COLUMN IF NOT EXISTS "unNumbers"                  text,
+        ADD COLUMN IF NOT EXISTS "lastPressureTestDate"       date,
+        ADD COLUMN IF NOT EXISTS "nextPressureTestDate"       date,
+        ADD COLUMN IF NOT EXISTS "refrigerationModel"         text,
+        ADD COLUMN IF NOT EXISTS "tempMin"                    double precision,
+        ADD COLUMN IF NOT EXISTS "tempMax"                    double precision,
+        ADD COLUMN IF NOT EXISTS "atpCertificateNumber"       text,
+        ADD COLUMN IF NOT EXISTS "atpCertificateExpiry"       date,
+        ADD COLUMN IF NOT EXISTS "equipmentDescription"       text,
+        ADD COLUMN IF NOT EXISTS "customAttributes"           jsonb
+    `);
+    logger.log('vehicles — extended profile columns + status/fuelType relaxed to text');
+
+    // 11. Seed default Vehicle Management lookup lists in system_settings
+    //     so freshly-installed instances ship with sensible dropdowns. The
+    //     value column stores a JSON-encoded array of strings — same
+    //     pattern as form.truckBrands / form.trailerTypes / etc.
+    const VEHICLE_LOOKUP_DEFAULTS: Record<string, string[]> = {
+      'vehicle.statuses':            ['Active', 'Inactive', 'In Maintenance', 'Rented', 'Reserved', 'Awaiting Parts', 'Scrapped'],
+      'vehicle.fuelTypes':           ['Diesel', 'Petrol', 'Electric', 'Hybrid', 'CNG', 'LPG', 'Hydrogen', 'Other'],
+      'vehicle.bodyTypes':           ['Flatbed', 'Curtainsider', 'Box', 'Tipper', 'Skeletal', 'Low-loader', 'Walking Floor'],
+      'vehicle.hitchTypes':          ['5th Wheel', 'Drawbar', 'Pintle', 'Ball', 'Goose Neck'],
+      'vehicle.tankMaterials':       ['Stainless Steel', 'Aluminium', 'Carbon Steel', 'Mild Steel', 'GRP / Composite'],
+      'vehicle.adrClasses':          ['1 Explosives', '2 Gases', '3 Flammable Liquids', '4 Flammable Solids', '5 Oxidising', '6 Toxic', '7 Radioactive', '8 Corrosive', '9 Misc'],
+      'vehicle.vinSubTypes':         ['Saloon', 'Hatchback', 'Estate', 'Coupe', 'Convertible', 'SUV', 'MPV'],
+      'vehicle.insuranceGroups':     ['1', '2', '3', '4', '5', '10', '20', '30', '40', '50'],
+      'vehicle.insuranceTypes':      ['Comprehensive', 'Third Party', 'Third Party Fire & Theft', 'Goods in Transit', 'Hazardous Goods', 'Fleet Policy'],
+      'vehicle.documentTypes':       ['Inspection', 'Emission Test', 'Permit', 'Registration', 'MOT Certificate', 'Insurance Certificate', 'Tachograph Calibration', 'ATP Certificate', 'ADR Certificate'],
+      'vehicle.euroEmissionClasses': ['Euro I', 'Euro II', 'Euro III', 'Euro IV', 'Euro V', 'Euro VI'],
+    };
+    for (const [key, values] of Object.entries(VEHICLE_LOOKUP_DEFAULTS)) {
+      const existing = await client.query(
+        `SELECT id FROM "system_settings" WHERE key = $1`,
+        [key],
+      );
+      if (existing.rows.length === 0) {
+        await client.query(
+          `INSERT INTO "system_settings" (id, key, value, category, description, "isPublic", "updatedAt")
+           VALUES (gen_random_uuid()::text, $1, $2, 'vehicle', $3, false, now())`,
+          [key, JSON.stringify(values), `Vehicle Management — ${key.replace('vehicle.', '')} lookup`],
+        );
+      }
+    }
+    logger.log('system_settings — vehicle lookup defaults seeded');
+
     // 5. Cleanup of phantom profile-photo document rows.
     //    Before the fix, the public /apply photo upload mis-classified
     //    the profile photo as the first-available DocumentType (usually

@@ -46,6 +46,27 @@ export class SettingsController {
   @ApiOperation({ summary: 'Get public form configuration (visa types, qualifications, etc.)' })
   getPublicFormSettings() { return this.settingsService.getPublicFormSettings(); }
 
+  // ─── Vehicle Settings (centralised lookups) ─────────────────────────────
+  // GET returns every vehicle lookup list keyed by short name (e.g.
+  // statuses, fuelTypes, bodyTypes, …). PATCH accepts the same shape.
+  @Get('vehicle')
+  @ApiOperation({ summary: 'Get all centralised vehicle lookup lists' })
+  getVehicleSettings() {
+    return this.settingsService.getVehicleSettings();
+  }
+
+  @Patch('vehicle/:key')
+  @Roles('System Admin')
+  @ApiOperation({ summary: 'Update one vehicle lookup list (e.g. statuses, fuelTypes, bodyTypes)' })
+  @ApiParam({ name: 'key' })
+  updateVehicleSetting(
+    @Param('key') key: string,
+    @Body() body: { values: string[] },
+    @CurrentUser() user: any,
+  ) {
+    return this.settingsService.updateVehicleSetting(key, body.values ?? [], user.id);
+  }
+
   // Job Types
   @Public()
   @Get('job-types')

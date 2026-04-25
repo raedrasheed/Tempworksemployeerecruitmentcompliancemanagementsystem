@@ -268,6 +268,30 @@ export function Settings() {
           </Link>
         )}
 
+        {/* Vehicle Settings — central hub for every vehicle-form lookup list */}
+        {canEditSettings && (
+          <Link to="/dashboard/settings/vehicles">
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full border-blue-200 hover:border-blue-400">
+              <CardHeader>
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
+                    <Truck className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="text-blue-800">Vehicle Settings</CardTitle>
+                      <Badge className="bg-[#EF4444]">Admin Only</Badge>
+                    </div>
+                    <CardDescription>
+                      Central hub for vehicle lookups: statuses, fuel types, body / hitch types, ADR classes, document types, and more
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+            </Card>
+          </Link>
+        )}
+
         {/* Database Backup & Restore — System Admin only */}
         {canEditSettings && (
           <Link to="/dashboard/settings/database-backup">

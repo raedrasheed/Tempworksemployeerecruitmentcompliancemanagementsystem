@@ -27,6 +27,78 @@ export class SettingsService {
     return result;
   }
 
+  // ─── Vehicle Settings (centralised lookup lists) ─────────────────────────────
+  // Every vehicle dropdown list (statuses, fuel types, body types, etc.)
+  // is stored in system_settings under the `vehicle` category as a
+  // JSON-encoded array of strings. The frontend Vehicle Settings page
+  // and Vehicle form both read from this single endpoint.
+  private readonly VEHICLE_LOOKUP_KEYS = [
+    'vehicle.statuses',
+    'vehicle.fuelTypes',
+    'vehicle.bodyTypes',
+    'vehicle.hitchTypes',
+    'vehicle.tankMaterials',
+    'vehicle.adrClasses',
+    'vehicle.vinSubTypes',
+    'vehicle.insuranceGroups',
+    'vehicle.insuranceTypes',
+    'vehicle.documentTypes',
+    'vehicle.euroEmissionClasses',
+  ];
+
+  async getVehicleSettings(): Promise<Record<string, string[]>> {
+    const settings = await this.prisma.systemSetting.findMany({
+      where: { category: 'vehicle' },
+    });
+    const result: Record<string, string[]> = {};
+    for (const key of this.VEHICLE_LOOKUP_KEYS) {
+      const found = settings.find((s) => s.key === key);
+      const short = key.replace(/^vehicle\./, '');
+      if (!found) { result[short] = []; continue; }
+      try {
+        const parsed = JSON.parse(found.value);
+        result[short] = Array.isArray(parsed) ? parsed.map((v) => String(v)) : [];
+      } catch {
+        result[short] = [];
+      }
+    }
+    return result;
+  }
+
+  async updateVehicleSetting(shortKey: string, values: string[], userId: string) {
+    const fullKey = `vehicle.${shortKey}`;
+    if (!this.VEHICLE_LOOKUP_KEYS.includes(fullKey)) {
+      throw new NotFoundException(`Unknown vehicle settings key: ${shortKey}`);
+    }
+    const cleaned = Array.from(
+      new Set(
+        (values ?? [])
+          .map((v) => (typeof v === 'string' ? v.trim() : ''))
+          .filter((v) => v.length > 0),
+      ),
+    );
+    const updated = await this.prisma.systemSetting.upsert({
+      where: { key: fullKey },
+      update: { value: JSON.stringify(cleaned), updatedById: userId },
+      create: {
+        key: fullKey,
+        value: JSON.stringify(cleaned),
+        category: 'vehicle',
+        description: `Vehicle Management — ${shortKey} lookup`,
+        isPublic: false,
+        updatedById: userId,
+      },
+    });
+    await this.auditLog.log({
+      userId,
+      action: 'UPDATE',
+      entity: 'VehicleSetting',
+      entityId: fullKey,
+      changes: { values: cleaned },
+    });
+    return { key: shortKey, values: cleaned, updatedAt: updated.updatedAt };
+  }
+
   async findAll(includePrivate = false) {
     const where = includePrivate ? {} : { isPublic: true };
     const settings = await this.prisma.systemSetting.findMany({

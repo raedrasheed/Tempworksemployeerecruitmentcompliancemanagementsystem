@@ -102,30 +102,50 @@ export class VehiclesService {
     return vehicle;
   }
 
+  // Centralised list of date-bearing string fields on the Vehicle DTO.
+  // Each one is stored as a DATE column on the vehicles table, so empty
+  // strings must be coerced to null and non-empty values parsed via Date.
+  private readonly VEHICLE_DATE_FIELDS = [
+    'motExpiryDate',
+    'taxExpiryDate',
+    'insuranceExpiryDate',
+    'registrationExpiryDate',
+    'purchaseDate',
+    'insuranceStartDate',
+    'tachographCalibrationExpiry',
+    'lastPressureTestDate',
+    'nextPressureTestDate',
+    'atpCertificateExpiry',
+  ] as const;
+
+  /** Strip date strings out of the DTO and rewrite them as Date objects. */
+  private normaliseVehicleDates(dto: any, isCreate: boolean): any {
+    const data: any = { ...dto };
+    for (const field of this.VEHICLE_DATE_FIELDS) {
+      const v = data[field];
+      if (isCreate) {
+        // On create we only forward the column when the caller actually
+        // supplied a value — undefined keeps the default null.
+        if (v) data[field] = new Date(v);
+        else delete data[field];
+      } else if (v !== undefined) {
+        data[field] = v ? new Date(v) : null;
+      }
+    }
+    return data;
+  }
+
   async createVehicle(dto: CreateVehicleDto, userId: string) {
-    const { motExpiryDate, taxExpiryDate, insuranceExpiryDate, ...rest } = dto;
-
-    const data: any = {
-      ...rest,
-      createdById: userId,
-      updatedById: userId,
-    };
-    if (motExpiryDate)       data.motExpiryDate       = new Date(motExpiryDate);
-    if (taxExpiryDate)       data.taxExpiryDate       = new Date(taxExpiryDate);
-    if (insuranceExpiryDate) data.insuranceExpiryDate = new Date(insuranceExpiryDate);
-
+    const data: any = this.normaliseVehicleDates(dto, true);
+    data.createdById = userId;
+    data.updatedById = userId;
     return this.prisma.vehicle.create({ data, include: VEHICLE_INCLUDE });
   }
 
   async updateVehicle(id: string, dto: UpdateVehicleDto, userId: string) {
     await this.findVehicleOrFail(id);
-    const { motExpiryDate, taxExpiryDate, insuranceExpiryDate, ...rest } = dto;
-
-    const data: any = { ...rest, updatedById: userId };
-    if (motExpiryDate !== undefined)       data.motExpiryDate       = motExpiryDate ? new Date(motExpiryDate) : null;
-    if (taxExpiryDate !== undefined)       data.taxExpiryDate       = taxExpiryDate ? new Date(taxExpiryDate) : null;
-    if (insuranceExpiryDate !== undefined) data.insuranceExpiryDate = insuranceExpiryDate ? new Date(insuranceExpiryDate) : null;
-
+    const data: any = this.normaliseVehicleDates(dto, false);
+    data.updatedById = userId;
     return this.prisma.vehicle.update({ where: { id }, data, include: VEHICLE_INCLUDE });
   }
 

@@ -692,15 +692,31 @@ export class RecycleBinService {
   }
 
   private async getDeletedMaintenanceRecords(f: ListDeletedDto, max: number) {
-    const where = this.buildMaintenanceRecordWhere(f);
-    const rs = await (this.prisma as any).maintenanceRecord.findMany({ where, orderBy: { deletedAt: 'desc' }, take: max });
-    return rs.map((r: any) => this.mapMaintenanceRecord(r));
+    try {
+      const where = this.buildMaintenanceRecordWhere(f);
+      const rs = await (this.prisma as any).maintenanceRecord.findMany({ where, orderBy: { deletedAt: 'desc' }, take: max });
+      return rs.map((r: any) => this.mapMaintenanceRecord(r));
+    } catch (error: any) {
+      // If the table doesn't exist yet, return empty array gracefully
+      if (error?.code === 'P2021' || error?.message?.includes('does not exist')) {
+        return [];
+      }
+      throw error;
+    }
   }
 
   private async getDeletedMaintenanceTypes(f: ListDeletedDto, max: number) {
-    const where = this.buildMaintenanceTypeWhere(f);
-    const rs = await (this.prisma as any).maintenanceType.findMany({ where, orderBy: { deletedAt: 'desc' }, take: max });
-    return rs.map((r: any) => this.mapMaintenanceType(r));
+    try {
+      const where = this.buildMaintenanceTypeWhere(f);
+      const rs = await (this.prisma as any).maintenanceType.findMany({ where, orderBy: { deletedAt: 'desc' }, take: max });
+      return rs.map((r: any) => this.mapMaintenanceType(r));
+    } catch (error: any) {
+      // If the table doesn't exist yet, return empty array gracefully
+      if (error?.code === 'P2021' || error?.message?.includes('does not exist')) {
+        return [];
+      }
+      throw error;
+    }
   }
 
   private async getDeletedWorkshops(f: ListDeletedDto, max: number) {

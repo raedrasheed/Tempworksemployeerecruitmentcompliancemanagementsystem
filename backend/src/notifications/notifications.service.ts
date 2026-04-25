@@ -90,17 +90,29 @@ export class NotificationsService {
       ] as const;
 
       for (const check of complianceChecks) {
+        // Build the where clause dynamically
+        const whereClause: any = {
+          agencyId: manager.agencyId,
+          deletedAt: null,
+        };
+        whereClause[check.field] = { lte: cutoffDate, gt: new Date() };
+
         const vehicles = await this.prisma.vehicle.findMany({
-          where: {
-            agencyId: manager.agencyId,
-            deletedAt: null,
-            [check.field]: { lte: cutoffDate, gt: new Date() },
-          },
-          select: { id: true, registrationNumber: true, [check.field]: true },
+          where: whereClause,
+          select: { id: true, registrationNumber: true, motExpiryDate: true, taxExpiryDate: true, insuranceExpiryDate: true, registrationExpiryDate: true, tachographCalibrationExpiry: true, atpCertificateExpiry: true },
         });
 
         for (const vehicle of vehicles) {
-          const expiryDate = new Date(vehicle[check.field as keyof typeof vehicle] as any);
+          let expiryDate: Date | null = null;
+          if (check.field === 'motExpiryDate') expiryDate = vehicle.motExpiryDate;
+          else if (check.field === 'taxExpiryDate') expiryDate = vehicle.taxExpiryDate;
+          else if (check.field === 'insuranceExpiryDate') expiryDate = vehicle.insuranceExpiryDate;
+          else if (check.field === 'registrationExpiryDate') expiryDate = vehicle.registrationExpiryDate;
+          else if (check.field === 'tachographCalibrationExpiry') expiryDate = vehicle.tachographCalibrationExpiry;
+          else if (check.field === 'atpCertificateExpiry') expiryDate = vehicle.atpCertificateExpiry;
+
+          if (!expiryDate) continue;
+
           const daysUntil = Math.ceil((expiryDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
           const severity = daysUntil <= 7 ? 'HIGH' : daysUntil <= 14 ? 'MEDIUM' : 'LOW';
 

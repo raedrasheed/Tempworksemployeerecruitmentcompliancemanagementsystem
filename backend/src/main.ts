@@ -444,6 +444,26 @@ async function runStartupMigrations() {
         ) THEN
           ALTER TABLE "vehicles" ALTER COLUMN "fuelType" TYPE text USING "fuelType"::text;
         END IF;
+        IF EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name = 'vehicles' AND column_name = 'type' AND udt_name = 'VehicleType'
+        ) THEN
+          ALTER TABLE "vehicles" ALTER COLUMN "type" TYPE text USING "type"::text;
+          ALTER TABLE "vehicles" ALTER COLUMN "type" SET DEFAULT 'Truck';
+          -- Convert legacy SCREAMING_SNAKE_CASE codes to the human-friendly
+          -- labels that match the seeded vehicle.vehicleTypes lookup, so
+          -- existing rows render correctly in the new dropdowns.
+          UPDATE "vehicles" SET "type" = CASE "type"
+            WHEN 'TRUCK'                THEN 'Truck'
+            WHEN 'CAR'                  THEN 'Car'
+            WHEN 'VAN'                  THEN 'Van'
+            WHEN 'TANKER'               THEN 'Tanker'
+            WHEN 'TRAILER'              THEN 'Trailer'
+            WHEN 'REFRIGERATED_TRAILER' THEN 'Refrigerated Trailer'
+            WHEN 'SPECIALTY'            THEN 'Specialty'
+            ELSE "type"
+          END;
+        END IF;
       END $$
     `);
     await client.query(`
@@ -495,6 +515,7 @@ async function runStartupMigrations() {
     //     value column stores a JSON-encoded array of strings — same
     //     pattern as form.truckBrands / form.trailerTypes / etc.
     const VEHICLE_LOOKUP_DEFAULTS: Record<string, string[]> = {
+      'vehicle.vehicleTypes':        ['Truck', 'Car', 'Van', 'Tanker', 'Trailer', 'Refrigerated Trailer', 'Specialty'],
       'vehicle.statuses':            ['Active', 'Inactive', 'In Maintenance', 'Rented', 'Reserved', 'Awaiting Parts', 'Scrapped'],
       'vehicle.fuelTypes':           ['Diesel', 'Petrol', 'Electric', 'Hybrid', 'CNG', 'LPG', 'Hydrogen', 'Other'],
       'vehicle.bodyTypes':           ['Flatbed', 'Curtainsider', 'Box', 'Tipper', 'Skeletal', 'Low-loader', 'Walking Floor'],

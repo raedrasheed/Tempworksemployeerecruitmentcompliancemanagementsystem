@@ -33,6 +33,7 @@ export class SettingsService {
   // JSON-encoded array of strings. The frontend Vehicle Settings page
   // and Vehicle form both read from this single endpoint.
   private readonly VEHICLE_LOOKUP_KEYS = [
+    'vehicle.vehicleTypes',
     'vehicle.statuses',
     'vehicle.fuelTypes',
     'vehicle.bodyTypes',

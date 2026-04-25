@@ -13,17 +13,18 @@ import {
 } from '../../components/ui/select';
 import { vehiclesApi, settingsApi } from '../../services/api';
 
-const VEHICLE_TYPES = [
-  { value: 'TRUCK', label: 'Truck' },
-  { value: 'CAR', label: 'Car' },
-  { value: 'VAN', label: 'Van' },
-  { value: 'TANKER', label: 'Tanker' },
-  { value: 'TRAILER', label: 'Trailer' },
-  { value: 'REFRIGERATED_TRAILER', label: 'Refrigerated Trailer' },
-  { value: 'SPECIALTY', label: 'Specialty' },
-];
-
 type VehicleLookups = Record<string, string[]>;
+
+// Type-specific sections key off the configured vehicle type by matching
+// well-known keywords in its name, so admins can rename a type ("Lorry"
+// for "Truck") or add new ones ("Refrigerated Van") without losing the
+// associated form sections.
+const isTruckLike = (t: string) => /truck|trailer|lorry/i.test(t);
+const isTankerLike = (t: string) => /tanker/i.test(t);
+const isVanLike = (t: string) => /\bvan\b/i.test(t);
+const isCarLike = (t: string) => /\bcar\b/i.test(t);
+const isRefrigeratedLike = (t: string) => /refrigerat/i.test(t);
+const isSpecialtyLike = (t: string) => /special/i.test(t);
 
 type FormData = {
   registrationNumber: string;
@@ -110,7 +111,7 @@ const EMPTY: FormData = {
 };
 
 function typeSpecificFields(type: string) {
-  return ['TRUCK', 'TANKER', 'TRAILER', 'REFRIGERATED_TRAILER', 'VAN', 'CAR'].includes(type);
+  return isTruckLike(type) || isTankerLike(type) || isVanLike(type) || isCarLike(type) || isRefrigeratedLike(type) || isSpecialtyLike(type);
 }
 
 export function VehicleForm() {
@@ -320,7 +321,7 @@ export function VehicleForm() {
               <Select value={form.type || 'none'} onValueChange={(v) => set('type', v === 'none' ? '' : v)}>
                 <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
                 <SelectContent>
-                  {VEHICLE_TYPES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                  {lookups?.vehicleTypes?.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -462,7 +463,7 @@ export function VehicleForm() {
         </Card>
 
         {/* Truck & Trailer Specifications */}
-        {['TRUCK', 'TRAILER', 'REFRIGERATED_TRAILER'].includes(form.type) && (
+        {(isTruckLike(form.type) || isRefrigeratedLike(form.type)) && (
           <Card>
             <CardHeader><CardTitle className="text-base">Truck & Trailer Specifications</CardTitle></CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -532,7 +533,7 @@ export function VehicleForm() {
                 <Label>Tachograph Calibration Expiry</Label>
                 <Input type="date" value={form.tachographCalibrationExpiry} onChange={(e) => set('tachographCalibrationExpiry', e.target.value)} />
               </div>
-              {['TRAILER', 'REFRIGERATED_TRAILER'].includes(form.type) && (
+              {(/trailer/i.test(form.type) || isRefrigeratedLike(form.type)) && (
                 <div className="space-y-1">
                   <Label>Trailer Length (m)</Label>
                   <Input type="number" step="0.1" value={form.trailerLength} onChange={(e) => set('trailerLength', e.target.value)} placeholder="e.g. 13.6" />
@@ -543,7 +544,7 @@ export function VehicleForm() {
         )}
 
         {/* Van Specifications */}
-        {form.type === 'VAN' && (
+        {isVanLike(form.type) && (
           <Card>
             <CardHeader><CardTitle className="text-base">Van Specifications</CardTitle></CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -564,7 +565,7 @@ export function VehicleForm() {
         )}
 
         {/* Car Specifications */}
-        {form.type === 'CAR' && (
+        {isCarLike(form.type) && (
           <Card>
             <CardHeader><CardTitle className="text-base">Car Specifications</CardTitle></CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -593,7 +594,7 @@ export function VehicleForm() {
         )}
 
         {/* Tanker Specifications */}
-        {form.type === 'TANKER' && (
+        {isTankerLike(form.type) && (
           <Card>
             <CardHeader><CardTitle className="text-base">Tanker Specifications</CardTitle></CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -638,7 +639,7 @@ export function VehicleForm() {
         )}
 
         {/* Refrigerated Trailer Specifications */}
-        {form.type === 'REFRIGERATED_TRAILER' && (
+        {isRefrigeratedLike(form.type) && (
           <Card>
             <CardHeader><CardTitle className="text-base">Refrigerated Trailer Specifications</CardTitle></CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -671,7 +672,7 @@ export function VehicleForm() {
         )}
 
         {/* Specialty Equipment */}
-        {form.type === 'SPECIALTY' && (
+        {isSpecialtyLike(form.type) && (
           <Card>
             <CardHeader><CardTitle className="text-base">Specialty Equipment</CardTitle></CardHeader>
             <CardContent className="space-y-4">

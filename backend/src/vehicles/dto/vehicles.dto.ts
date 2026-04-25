@@ -18,7 +18,9 @@ export const MAINTENANCE_STATUSES = ['SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'C
 
 export class FilterVehiclesDto extends PaginationDto {
   @ApiPropertyOptional() @IsOptional() @IsString() search?: string;
-  @ApiPropertyOptional({ enum: VEHICLE_TYPES }) @IsOptional() @IsString() type?: string;
+  // type is a configurable lookup now — accept any string the admin
+  // has added under System Settings → Vehicle Settings.
+  @ApiPropertyOptional() @IsOptional() @IsString() type?: string;
   // status / fuelType are configurable lookups now — accept any string.
   @ApiPropertyOptional() @IsOptional() @IsString() status?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() agencyId?: string;
@@ -34,7 +36,10 @@ export class FilterVehiclesDto extends PaginationDto {
 // values from the settings UI without a code change.
 
 export class CreateVehicleDto {
-  @ApiProperty({ enum: VEHICLE_TYPES }) @IsIn(VEHICLE_TYPES as unknown as string[]) type: string;
+  // type is driven by the configurable Vehicle Types lookup under
+  // System Settings → Vehicle Settings — accept any string the admin
+  // has configured (e.g. "Truck", "Forklift", "Crane").
+  @ApiProperty() @IsString() type: string;
   @ApiProperty() @IsString() registrationNumber: string;
   @ApiProperty() @IsString() make: string;
   @ApiProperty() @IsString() model: string;
@@ -105,7 +110,7 @@ export class CreateVehicleDto {
 }
 
 export class UpdateVehicleDto {
-  @ApiPropertyOptional({ enum: VEHICLE_TYPES }) @IsOptional() @IsIn(VEHICLE_TYPES as unknown as string[]) type?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() type?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() registrationNumber?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() make?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() model?: string;
@@ -299,7 +304,7 @@ export class FilterMaintenanceDto extends PaginationDto {
 // ─── Export ───────────────────────────────────────────────────────────────────
 
 export class ExportVehiclesDto {
-  @ApiPropertyOptional({ enum: VEHICLE_TYPES }) @IsOptional() @IsString() type?: string;
-  @ApiPropertyOptional({ enum: VEHICLE_STATUSES }) @IsOptional() @IsString() status?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() type?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() status?: string;
   @ApiPropertyOptional({ description: 'csv or excel' }) @IsOptional() @IsString() format?: string;
 }

@@ -15,6 +15,7 @@ import { usePermissions } from '../../hooks/usePermissions';
 // Sections group them by where they appear on the Vehicle form so the
 // admin UX matches the data-entry UX.
 type LookupKey =
+  | 'vehicleTypes'
   | 'statuses' | 'fuelTypes' | 'documentTypes' | 'insuranceTypes' | 'euroEmissionClasses'
   | 'bodyTypes' | 'hitchTypes'
   | 'tankMaterials' | 'adrClasses'
@@ -40,6 +41,7 @@ const SECTIONS: SectionDef[] = [
     label: 'Common',
     desc: 'Lookup lists that appear on every vehicle profile',
     items: [
+      { key: 'vehicleTypes',        label: 'Vehicle Types',        description: 'Categories shown in the Vehicle Type dropdown — drives type-specific form sections (Truck, Tanker, …)', placeholder: 'e.g. Forklift' },
       { key: 'statuses',            label: 'Vehicle Statuses',     description: 'Statuses available in the vehicle profile', placeholder: 'e.g. Rented' },
       { key: 'fuelTypes',           label: 'Fuel Types',           description: 'Fuel types selectable on the vehicle form',  placeholder: 'e.g. Hydrogen' },
       { key: 'insuranceTypes',      label: 'Insurance Types',      description: 'Insurance type values (Comprehensive, …)',   placeholder: 'e.g. Goods in Transit' },

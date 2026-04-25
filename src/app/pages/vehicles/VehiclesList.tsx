@@ -15,18 +15,22 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '../../components/ui/table';
-import { vehiclesApi } from '../../services/api';
+import { vehiclesApi, settingsApi } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
 
-const VEHICLE_TYPES = [
-  { value: 'TRUCK', label: 'Truck' },
-  { value: 'CAR', label: 'Car' },
-  { value: 'VAN', label: 'Van' },
-  { value: 'TANKER', label: 'Tanker' },
-  { value: 'TRAILER', label: 'Trailer' },
-  { value: 'REFRIGERATED_TRAILER', label: 'Refrigerated Trailer' },
-  { value: 'SPECIALTY', label: 'Specialty' },
-];
+// Legacy enum codes that may still appear on rows created before the
+// vehicle-types lookup was introduced. Render them as the human label
+// so the table doesn't show "REFRIGERATED_TRAILER" until the row is
+// re-saved through the new form.
+const LEGACY_TYPE_LABELS: Record<string, string> = {
+  TRUCK: 'Truck',
+  CAR: 'Car',
+  VAN: 'Van',
+  TANKER: 'Tanker',
+  TRAILER: 'Trailer',
+  REFRIGERATED_TRAILER: 'Refrigerated Trailer',
+  SPECIALTY: 'Specialty',
+};
 
 const VEHICLE_STATUSES = [
   { value: 'ACTIVE',          label: 'Active',          color: 'bg-green-100 text-green-800' },
@@ -41,7 +45,7 @@ function statusBadge(status: string) {
 }
 
 function typeLabel(type: string) {
-  return VEHICLE_TYPES.find((t) => t.value === type)?.label ?? type;
+  return LEGACY_TYPE_LABELS[type] ?? type;
 }
 
 function expiryBadge(date: string | null | undefined) {
@@ -118,7 +122,22 @@ export function VehiclesList() {
   const [total, setTotal]               = useState(0);
   const [page, setPage]                 = useState(1);
   const [exporting, setExporting]       = useState(false);
+  const [vehicleTypes, setVehicleTypes] = useState<string[]>([]);
   const LIMIT = 20;
+
+  // Centralised type list — the filter dropdown reads from System Settings →
+  // Vehicle Settings so admins can add/rename categories without a code
+  // change. Falls back to the seed defaults if the lookup ever fails.
+  useEffect(() => {
+    settingsApi.getVehicleSettings()
+      .then((data) => {
+        const list = data?.vehicleTypes;
+        setVehicleTypes(Array.isArray(list) && list.length
+          ? list
+          : ['Truck', 'Car', 'Van', 'Tanker', 'Trailer', 'Refrigerated Trailer', 'Specialty']);
+      })
+      .catch(() => setVehicleTypes(['Truck', 'Car', 'Van', 'Tanker', 'Trailer', 'Refrigerated Trailer', 'Specialty']));
+  }, []);
 
   // ── Filters ────────────────────────────────────────────────────────────────
   const [search, setSearch]             = useState('');
@@ -349,7 +368,7 @@ export function VehiclesList() {
               <SelectTrigger className="w-44"><SelectValue placeholder="All Types" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Types</SelectItem>
-                {VEHICLE_TYPES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                {vehicleTypes.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select value={statusFilter || 'all'} onValueChange={(v) => { setStatusFilter(v === 'all' ? '' : v); setPage(1); }}>

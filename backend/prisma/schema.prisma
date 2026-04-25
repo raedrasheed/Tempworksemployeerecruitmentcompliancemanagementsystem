@@ -1611,7 +1611,11 @@ model MaintenanceType {
 model Vehicle {
   id                  String        @id @default(uuid())
   registrationNumber  String        @unique
-  type                VehicleType
+  /// Stored as plain text (no longer the VehicleType enum) so the list
+  /// of vehicle categories is fully configurable from System Settings →
+  /// Vehicle Settings. Defaults to "Truck" but admins can introduce any
+  /// new category (e.g. "Forklift", "Crane", …) without a code change.
+  type                String        @default("Truck")
   /// Stored as plain text (no longer the VehicleStatus enum) so the
   /// list of statuses is fully configurable from System Settings.
   /// Defaults to "ACTIVE" but admins can introduce new values such as

@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import * as ExcelJS from 'exceljs';
+const PDFDocument = require('pdfkit') as typeof import('pdfkit');
 import {
   FilterVehiclesDto,
   CreateVehicleDto,
@@ -783,5 +784,206 @@ export class VehiclesService {
     sheet.autoFilter = { from: 'A1', to: `${String.fromCharCode(64 + headers.length)}1` };
 
     return workbook.xlsx.writeBuffer() as unknown as Promise<Buffer>;
+  }
+
+  // ── Maintenance Records Export ────────────────────────────────────────────────
+
+  /// Build the where clause used by both list and export operations.
+  private buildMaintenanceWhere(dto: FilterMaintenanceDto): any {
+    const where: any = { deletedAt: null };
+    if (dto.vehicleId)  where.vehicleId  = dto.vehicleId;
+    if (dto.workshopId) where.workshopId = dto.workshopId;
+    if (dto.status)     where.status     = dto.status;
+    if (dto.dateFrom || dto.dateTo) {
+      where.scheduledDate = {};
+      if (dto.dateFrom) where.scheduledDate.gte = new Date(dto.dateFrom);
+      if (dto.dateTo)   where.scheduledDate.lte = new Date(dto.dateTo);
+    }
+    return where;
+  }
+
+  private async fetchMaintenanceForExport(dto: FilterMaintenanceDto, recordIds?: string[]) {
+    const where = recordIds?.length ? { id: { in: recordIds } } : this.buildMaintenanceWhere(dto);
+    return this.prisma.maintenanceRecord.findMany({
+      where,
+      select: {
+        id: true,
+        status: true,
+        scheduledDate: true,
+        completedDate: true,
+        mileageAtService: true,
+        nextServiceDate: true,
+        nextServiceMileage: true,
+        cost: true,
+        laborCost: true,
+        partsCost: true,
+        description: true,
+        technicianName: true,
+        invoiceNumber: true,
+        notes: true,
+        createdAt: true,
+        vehicle: { select: { registrationNumber: true, make: true, model: true } },
+        maintenanceType: { select: { name: true } },
+        workshop: { select: { name: true, city: true, country: true } },
+      },
+      orderBy: [{ completedDate: 'desc' }, { scheduledDate: 'desc' }],
+    });
+  }
+
+  async exportMaintenanceRecordsExcel(dto: FilterMaintenanceDto, recordIds?: string[]): Promise<Buffer> {
+    const records = await this.fetchMaintenanceForExport(dto, recordIds);
+
+    const workbook = new ExcelJS.Workbook();
+    const sheet    = workbook.addWorksheet('Maintenance Records', { views: [{ state: 'frozen', ySplit: 1 }] });
+
+    const headerFill: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A5F' } };
+    const headers = [
+      'Vehicle', 'Make/Model', 'Type', 'Workshop', 'Status',
+      'Scheduled', 'Completed', 'Mileage (km)', 'Next Service Date',
+      'Next Service Mileage', 'Labor Cost', 'Parts Cost', 'Total Cost',
+      'Technician', 'Invoice #', 'Description', 'Notes',
+    ];
+
+    sheet.columns = headers.map((h, i) => ({
+      header: h,
+      width: i === 15 || i === 16 ? 30 : 16,
+    }));
+    sheet.getRow(1).eachCell((cell) => {
+      cell.fill      = headerFill;
+      cell.font      = { bold: true, color: { argb: 'FFFFFFFF' } };
+      cell.alignment = { vertical: 'middle', horizontal: 'center' };
+    });
+    sheet.getRow(1).height = 22;
+
+    const statusColors: Record<string, string> = {
+      SCHEDULED: 'FFDBEAFE', IN_PROGRESS: 'FFFEF3C7', COMPLETED: 'FFD1FAE5', CANCELLED: 'FFF3F4F6',
+    };
+
+    for (const r of records) {
+      const row = sheet.addRow([
+        r.vehicle?.registrationNumber ?? '',
+        r.vehicle ? `${r.vehicle.make} ${r.vehicle.model}` : '',
+        r.maintenanceType?.name ?? '',
+        r.workshop?.name ?? '',
+        r.status,
+        r.scheduledDate ? r.scheduledDate.toISOString().split('T')[0] : '',
+        r.completedDate ? r.completedDate.toISOString().split('T')[0] : '',
+        r.mileageAtService ?? '',
+        r.nextServiceDate ? r.nextServiceDate.toISOString().split('T')[0] : '',
+        r.nextServiceMileage ?? '',
+        r.laborCost ?? '',
+        r.partsCost ?? '',
+        r.cost ?? '',
+        r.technicianName ?? '',
+        r.invoiceNumber ?? '',
+        r.description ?? '',
+        r.notes ?? '',
+      ]);
+      const statusFill: ExcelJS.Fill = {
+        type: 'pattern', pattern: 'solid',
+        fgColor: { argb: statusColors[r.status] ?? 'FFFFFFFF' },
+      };
+      row.getCell(5).fill = statusFill;
+    }
+
+    sheet.autoFilter = { from: 'A1', to: `${String.fromCharCode(64 + headers.length)}1` };
+
+    return workbook.xlsx.writeBuffer() as unknown as Promise<Buffer>;
+  }
+
+  async exportMaintenanceRecordsPdf(dto: FilterMaintenanceDto, recordIds?: string[]): Promise<Buffer> {
+    const records = await this.fetchMaintenanceForExport(dto, recordIds);
+
+    return new Promise((resolve, reject) => {
+      const doc = new PDFDocument({ margin: 36, size: 'A4', layout: 'landscape' } as any);
+      const chunks: Buffer[] = [];
+      doc.on('data', (c: Buffer) => chunks.push(c));
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', reject);
+
+      // Title
+      doc.fontSize(16).font('Helvetica-Bold').fillColor('#0F172A')
+        .text('Maintenance Records', { align: 'center' });
+      doc.fontSize(9).font('Helvetica').fillColor('#64748B')
+        .text(`Generated: ${new Date().toLocaleString()}  |  ${records.length} records`, { align: 'center' });
+      doc.moveDown(0.6);
+
+      const columns = [
+        { label: 'Vehicle',    key: 'vehicle',     width: 70 },
+        { label: 'Type',       key: 'type',        width: 80 },
+        { label: 'Workshop',   key: 'workshop',    width: 90 },
+        { label: 'Status',     key: 'status',      width: 70 },
+        { label: 'Scheduled',  key: 'scheduled',   width: 65 },
+        { label: 'Completed',  key: 'completed',   width: 65 },
+        { label: 'Mileage',    key: 'mileage',     width: 60 },
+        { label: 'Cost',       key: 'cost',        width: 60 },
+        { label: 'Technician', key: 'technician',  width: 80 },
+        { label: 'Invoice',    key: 'invoice',     width: 70 },
+      ];
+
+      const tblW   = columns.reduce((s, c) => s + c.width, 0);
+      const startX = ((doc as any).page.width - tblW) / 2;
+      const rowH   = 16;
+      const hdrH   = 20;
+      let y = (doc as any).y;
+
+      // Header row
+      doc.rect(startX, y, tblW, hdrH).fill('#2563EB');
+      doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(8);
+      let x = startX;
+      for (const col of columns) {
+        doc.text(col.label, x + 3, y + 6, { width: col.width - 6, ellipsis: true });
+        x += col.width;
+      }
+      y += hdrH;
+
+      // Data rows
+      doc.font('Helvetica').fontSize(7.5);
+      const statusColor: Record<string, string> = {
+        SCHEDULED: '#DBEAFE', IN_PROGRESS: '#FEF3C7', COMPLETED: '#D1FAE5', CANCELLED: '#F3F4F6',
+      };
+
+      records.forEach((r, ri) => {
+        if (y + rowH > (doc as any).page.height - 50) {
+          doc.addPage();
+          y = 36;
+        }
+        if (ri % 2 === 0) doc.rect(startX, y, tblW, rowH).fill('#F8FAFC');
+
+        const values = [
+          r.vehicle?.registrationNumber ?? '—',
+          r.maintenanceType?.name ?? '—',
+          r.workshop?.name ?? '—',
+          r.status,
+          r.scheduledDate ? r.scheduledDate.toISOString().split('T')[0] : '—',
+          r.completedDate ? r.completedDate.toISOString().split('T')[0] : '—',
+          r.mileageAtService != null ? `${r.mileageAtService} km` : '—',
+          r.cost != null ? `£${r.cost.toFixed(2)}` : '—',
+          r.technicianName ?? '—',
+          r.invoiceNumber ?? '—',
+        ];
+
+        x = startX;
+        values.forEach((v, i) => {
+          if (i === 3) {
+            doc.rect(x + 1, y + 1, columns[i].width - 2, rowH - 2)
+              .fill(statusColor[r.status] ?? '#FFFFFF');
+            doc.fillColor('#0F172A');
+          } else {
+            doc.fillColor('#0F172A');
+          }
+          doc.text(String(v), x + 3, y + 4, { width: columns[i].width - 6, ellipsis: true });
+          x += columns[i].width;
+        });
+
+        doc.rect(startX, y, tblW, rowH).stroke('#E2E8F0');
+        y += rowH;
+      });
+
+      // Footer
+      doc.fillColor('#94A3B8').fontSize(8)
+        .text('TempWorks — Maintenance Records', 36, (doc as any).page.height - 24, { align: 'center' });
+      doc.end();
+    });
   }
 }

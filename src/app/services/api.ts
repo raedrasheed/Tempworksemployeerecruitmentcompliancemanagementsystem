@@ -1747,6 +1747,41 @@ export const vehiclesApi = {
   deleteMaintenance: (id: string) =>
     apiFetch<any>(`/vehicles/maintenance/records/${id}`, { method: 'DELETE' }),
 
+  // Maintenance records export
+  exportMaintenanceExcel: async (params: {
+    vehicleId?: string; workshopId?: string; status?: string; dateFrom?: string; dateTo?: string; recordIds?: string[];
+  } = {}): Promise<Blob> => {
+    const token = getAccessToken();
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => {
+      if (v == null) return;
+      if (Array.isArray(v)) qs.set(k, v.join(','));
+      else qs.set(k, String(v));
+    });
+    const res = await fetch(`${API_URL}/vehicles/maintenance/records/export/excel?${qs.toString()}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) throw new Error(`Export failed: ${res.status}`);
+    return res.blob();
+  },
+
+  exportMaintenancePdf: async (params: {
+    vehicleId?: string; workshopId?: string; status?: string; dateFrom?: string; dateTo?: string; recordIds?: string[];
+  } = {}): Promise<Blob> => {
+    const token = getAccessToken();
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => {
+      if (v == null) return;
+      if (Array.isArray(v)) qs.set(k, v.join(','));
+      else qs.set(k, String(v));
+    });
+    const res = await fetch(`${API_URL}/vehicles/maintenance/records/export/pdf?${qs.toString()}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) throw new Error(`Export failed: ${res.status}`);
+    return res.blob();
+  },
+
   // Maintenance record attachments
   addMaintenanceAttachment: (recordId: string, formData: FormData) =>
     apiFetch<any>(`/vehicles/maintenance/records/${recordId}/attachments`, { method: 'POST', body: formData, skipContentType: true }),

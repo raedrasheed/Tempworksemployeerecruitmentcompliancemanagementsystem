@@ -115,6 +115,42 @@ export class VehiclesController {
     return this.vehiclesService.listMaintenanceRecords(dto);
   }
 
+  @Get('maintenance/records/export/excel')
+  @Roles(...EXPORT_ROLES)
+  @ApiOperation({ summary: 'Export maintenance records as Excel' })
+  async exportMaintenanceExcel(
+    @Query() dto: FilterMaintenanceDto,
+    @Query('recordIds') recordIds: string | string[] | undefined,
+    @Res() res: Response,
+  ) {
+    const ids = !recordIds ? undefined : Array.isArray(recordIds) ? recordIds : recordIds.split(',').filter(Boolean);
+    const buffer = await this.vehiclesService.exportMaintenanceRecordsExcel(dto, ids);
+    res.set({
+      'Content-Type':        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': `attachment; filename="maintenance-records-${new Date().toISOString().split('T')[0]}.xlsx"`,
+      'Content-Length':      buffer.length,
+    });
+    res.end(buffer);
+  }
+
+  @Get('maintenance/records/export/pdf')
+  @Roles(...EXPORT_ROLES)
+  @ApiOperation({ summary: 'Export maintenance records as PDF' })
+  async exportMaintenancePdf(
+    @Query() dto: FilterMaintenanceDto,
+    @Query('recordIds') recordIds: string | string[] | undefined,
+    @Res() res: Response,
+  ) {
+    const ids = !recordIds ? undefined : Array.isArray(recordIds) ? recordIds : recordIds.split(',').filter(Boolean);
+    const buffer = await this.vehiclesService.exportMaintenanceRecordsPdf(dto, ids);
+    res.set({
+      'Content-Type':        'application/pdf',
+      'Content-Disposition': `attachment; filename="maintenance-records-${new Date().toISOString().split('T')[0]}.pdf"`,
+      'Content-Length':      buffer.length,
+    });
+    res.end(buffer);
+  }
+
   @Get('maintenance/records/:id')
   @Roles(...READ_ROLES)
   @ApiOperation({ summary: 'Get a single maintenance record' })

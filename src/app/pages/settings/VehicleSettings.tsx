@@ -1,14 +1,17 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router';
-import { ArrowLeft, Plus, Trash2, Save, Truck } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Save, Truck, Edit2, X, Wrench } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui/tabs';
 import { Badge } from '../../components/ui/badge';
-import { settingsApi } from '../../services/api';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { Textarea } from '../../components/ui/textarea';
+import { settingsApi, vehiclesApi } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
+import { confirm } from '../../components/ui/ConfirmDialog';
 
 // Centralised set of every vehicle lookup list shown on this page. The
 // short keys must match the backend (settings.service.ts → VEHICLE_LOOKUP_KEYS).
@@ -26,6 +29,24 @@ interface LookupDef {
   label:       string;
   description: string;
   placeholder: string;
+}
+
+interface MaintenanceType {
+  id: string;
+  name: string;
+  description?: string;
+  defaultIntervalDays?: number;
+  defaultIntervalKm?: number;
+  intervalMode?: 'DAYS' | 'KM' | 'BOTH';
+  isActive: boolean;
+}
+
+interface MaintenanceTypeForm {
+  name: string;
+  description: string;
+  defaultIntervalDays: string;
+  defaultIntervalKm: string;
+  intervalMode: 'DAYS' | 'KM' | 'BOTH';
 }
 
 interface SectionDef {
@@ -154,24 +175,262 @@ function LookupListEditor({
   );
 }
 
+const INITIAL_MT_FORM: MaintenanceTypeForm = {
+  name: '',
+  description: '',
+  defaultIntervalDays: '',
+  defaultIntervalKm: '',
+  intervalMode: 'KM',
+};
+
+/** Maintenance type manager — CRUD interface for service types. */
+function MaintenanceTypesEditor({
+  types,
+  onAdd,
+  onUpdate,
+  onDelete,
+  saving,
+  canEdit,
+}: {
+  types: MaintenanceType[];
+  onAdd: (data: Omit<MaintenanceType, 'id' | 'isActive'>) => Promise<void>;
+  onUpdate: (id: string, data: Omit<MaintenanceType, 'id' | 'isActive'>) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
+  saving: boolean;
+  canEdit: boolean;
+}) {
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useState<MaintenanceTypeForm>(INITIAL_MT_FORM);
+
+  const handleSave = async () => {
+    if (!form.name.trim()) {
+      toast.error('Name is required');
+      return;
+    }
+
+    const payload = {
+      name: form.name,
+      description: form.description || undefined,
+      defaultIntervalDays: form.defaultIntervalDays ? parseInt(form.defaultIntervalDays) : undefined,
+      defaultIntervalKm: form.defaultIntervalKm ? parseInt(form.defaultIntervalKm) : undefined,
+      intervalMode: form.intervalMode,
+      isActive: true,
+    };
+
+    try {
+      if (editingId) {
+        await onUpdate(editingId, payload);
+        toast.success('Maintenance type updated');
+      } else {
+        await onAdd(payload);
+        toast.success('Maintenance type created');
+      }
+      setForm(INITIAL_MT_FORM);
+      setEditingId(null);
+    } catch (err: any) {
+      toast.error(err?.message ?? 'Failed to save');
+    }
+  };
+
+  const handleEdit = (mt: MaintenanceType) => {
+    setEditingId(mt.id);
+    setForm({
+      name: mt.name,
+      description: mt.description || '',
+      defaultIntervalDays: mt.defaultIntervalDays?.toString() || '',
+      defaultIntervalKm: mt.defaultIntervalKm?.toString() || '',
+      intervalMode: mt.intervalMode || 'KM',
+    });
+  };
+
+  const handleCancel = () => {
+    setEditingId(null);
+    setForm(INITIAL_MT_FORM);
+  };
+
+  const handleDelete = async (id: string, name: string) => {
+    if (!(await confirm({
+      title: 'Delete maintenance type?',
+      description: `"${name}" will be deleted. Existing records using this type will not be affected.`,
+      confirmText: 'Delete',
+      tone: 'destructive',
+    }))) return;
+
+    try {
+      await onDelete(id);
+      toast.success('Maintenance type deleted');
+    } catch {
+      toast.error('Failed to delete maintenance type');
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Maintenance Service Types ({types.length})</CardTitle>
+        <CardDescription>Configure service types available for vehicle maintenance tracking (Oil Change, Brake Service, TÜV Inspection, etc.)</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Form Section */}
+        <div className="border-b pb-6">
+          <h3 className="text-sm font-semibold mb-4">{editingId ? 'Edit' : 'Add'} Maintenance Type</h3>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Name *</label>
+              <Input
+                placeholder="e.g. Oil Change, Brake Service, Annual Inspection"
+                value={form.name}
+                onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))}
+                className="mt-1"
+                disabled={!canEdit}
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">Description</label>
+              <Textarea
+                placeholder="e.g. Oil and filter change, check fluid levels"
+                value={form.description}
+                onChange={(e) => setForm(prev => ({ ...prev, description: e.target.value }))}
+                className="mt-1 h-20 resize-none"
+                disabled={!canEdit}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium">Default Interval (Days)</label>
+                <Input
+                  type="number"
+                  placeholder="e.g. 365"
+                  value={form.defaultIntervalDays}
+                  onChange={(e) => setForm(prev => ({ ...prev, defaultIntervalDays: e.target.value }))}
+                  className="mt-1"
+                  min="0"
+                  disabled={!canEdit}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Default Interval (km)</label>
+                <Input
+                  type="number"
+                  placeholder="e.g. 10000"
+                  value={form.defaultIntervalKm}
+                  onChange={(e) => setForm(prev => ({ ...prev, defaultIntervalKm: e.target.value }))}
+                  className="mt-1"
+                  min="0"
+                  disabled={!canEdit}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">Interval Mode</label>
+              <Select value={form.intervalMode} onValueChange={(v: any) => setForm(prev => ({ ...prev, intervalMode: v }))}>
+                <SelectTrigger className="mt-1" disabled={!canEdit}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="DAYS">Days only</SelectItem>
+                  <SelectItem value="KM">Kilometers only</SelectItem>
+                  <SelectItem value="BOTH">Whichever comes first (Days & KM)</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                Determines if service is due based on time, mileage, or whichever threshold is reached first.
+              </p>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <Button onClick={handleSave} disabled={saving || !canEdit} className="gap-2">
+                <Save className="w-4 h-4" />
+                {saving ? 'Saving…' : editingId ? 'Update' : 'Add'}
+              </Button>
+              {editingId && (
+                <Button variant="outline" onClick={handleCancel} className="gap-2" disabled={!canEdit}>
+                  <X className="w-4 h-4" /> Cancel
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* List Section */}
+        {types.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-8">No maintenance types defined yet. Create one above.</p>
+        ) : (
+          <div className="space-y-2">
+            {types.map((mt) => (
+              <div key={mt.id} className="p-4 border rounded-lg space-y-2 hover:bg-accent/50">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <p className="font-medium text-sm">{mt.name}</p>
+                    {mt.description && (
+                      <p className="text-xs text-muted-foreground">{mt.description}</p>
+                    )}
+                    <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
+                      {mt.intervalMode && (
+                        <span>Mode: <span className="font-medium text-foreground">{mt.intervalMode === 'BOTH' ? 'Whichever comes first' : mt.intervalMode}</span></span>
+                      )}
+                      {mt.defaultIntervalDays && (
+                        <span>Days: <span className="font-medium text-foreground">{mt.defaultIntervalDays}</span></span>
+                      )}
+                      {mt.defaultIntervalKm && (
+                        <span>Km: <span className="font-medium text-foreground">{mt.defaultIntervalKm}</span></span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleEdit(mt)}
+                      disabled={editingId === mt.id || !canEdit}
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleDelete(mt.id, mt.name)}
+                      disabled={!canEdit}
+                    >
+                      <Trash2 className="w-4 h-4 text-destructive" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export function VehicleSettings() {
   const { canEdit } = usePermissions();
   const isAdmin = canEdit('settings');
   const [data, setData] = useState<Record<LookupKey, string[]> | null>(null);
   const [original, setOriginal] = useState<Record<LookupKey, string[]> | null>(null);
+  const [maintenanceTypes, setMaintenanceTypes] = useState<MaintenanceType[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   const load = () => {
     setLoading(true);
-    settingsApi.getVehicleSettings()
-      .then((res) => {
+    Promise.all([
+      settingsApi.getVehicleSettings(),
+      vehiclesApi.listMaintenanceTypes(),
+    ])
+      .then(([res, mtypes]) => {
         const safe: any = {};
         SECTIONS.flatMap((s) => s.items).forEach((d) => {
           safe[d.key] = Array.isArray((res as any)[d.key]) ? (res as any)[d.key] : [];
         });
         setData(safe);
         setOriginal(JSON.parse(JSON.stringify(safe)));
+        setMaintenanceTypes(mtypes);
       })
       .catch(() => toast.error('Failed to load vehicle settings'))
       .finally(() => setLoading(false));
@@ -246,6 +505,7 @@ export function VehicleSettings() {
             {SECTIONS.map((s) => (
               <TabsTrigger key={s.id} value={s.id}>{s.label}</TabsTrigger>
             ))}
+            <TabsTrigger value="maintenance">Maintenance</TabsTrigger>
           </TabsList>
 
           {SECTIONS.map((s) => (
@@ -264,6 +524,29 @@ export function VehicleSettings() {
               </div>
             </TabsContent>
           ))}
+
+          <TabsContent value="maintenance" className="space-y-4 mt-4">
+            <p className="text-sm text-muted-foreground">
+              Manage service types for vehicle maintenance tracking. Includes time-based and mileage-based maintenance intervals.
+            </p>
+            <MaintenanceTypesEditor
+              types={maintenanceTypes}
+              onAdd={async (payload) => {
+                await vehiclesApi.createMaintenanceType(payload);
+                await load();
+              }}
+              onUpdate={async (id, payload) => {
+                await vehiclesApi.updateMaintenanceType(id, payload);
+                await load();
+              }}
+              onDelete={async (id) => {
+                await vehiclesApi.deleteMaintenanceType(id);
+                await load();
+              }}
+              saving={saving}
+              canEdit={isAdmin}
+            />
+          </TabsContent>
         </Tabs>
       )}
     </div>

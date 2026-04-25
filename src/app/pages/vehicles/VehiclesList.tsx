@@ -58,7 +58,7 @@ function expiryBadge(date: string | null | undefined) {
 }
 
 // ── Column visibility ────────────────────────────────────────────────────────
-type ColKey = 'type' | 'makeModel' | 'year' | 'status' | 'driver' | 'mot' | 'tax' | 'registration' | 'insurance' | 'tachograph' | 'atp' | 'pressureTest';
+type ColKey = 'type' | 'makeModel' | 'year' | 'status' | 'driver' | 'mot' | 'tax' | 'registration' | 'insurance' | 'tachograph' | 'atp' | 'pressureTest' | 'lastService' | 'serviceType' | 'workshop';
 
 const ALL_COLUMNS: { key: ColKey; label: string }[] = [
   { key: 'type',      label: 'Type' },
@@ -73,16 +73,21 @@ const ALL_COLUMNS: { key: ColKey; label: string }[] = [
   { key: 'tachograph', label: 'Tachograph Calib.' },
   { key: 'atp',       label: 'ATP Cert.' },
   { key: 'pressureTest', label: 'Next Pressure Test' },
+  { key: 'lastService', label: 'Last Service' },
+  { key: 'serviceType', label: 'Service Type' },
+  { key: 'workshop', label: 'Workshop' },
 ];
 
 // All compliance/expiry columns are visible by default so the Fleet
 // list surfaces every regulated date at a glance. Operators can hide
 // the type-specific ones (Tachograph / ATP / Pressure Test) via the
-// Columns picker if their fleet doesn't use them.
+// Columns picker if their fleet doesn't use them. Maintenance columns
+// (Last Service, Service Type) are visible; Workshop is hidden by default.
 const DEFAULT_VISIBLE: Record<ColKey, boolean> = {
   type: true, makeModel: true, year: true, status: true,
   driver: true, mot: true, tax: true, registration: true,
   insurance: true, tachograph: true, atp: true, pressureTest: true,
+  lastService: true, serviceType: true, workshop: false,
 };
 
 function loadVisibleColumns(): Record<ColKey, boolean> {
@@ -95,7 +100,7 @@ function loadVisibleColumns(): Record<ColKey, boolean> {
 }
 
 // ── Sort header ──────────────────────────────────────────────────────────────
-type SortField = 'registration' | 'type' | 'makeModel' | 'year' | 'status' | 'driver' | 'mot' | 'tax' | 'registrationExp' | 'insurance' | 'tachograph' | 'atp' | 'pressureTest';
+type SortField = 'registration' | 'type' | 'makeModel' | 'year' | 'status' | 'driver' | 'mot' | 'tax' | 'registrationExp' | 'insurance' | 'tachograph' | 'atp' | 'pressureTest' | 'lastService' | 'serviceType' | 'workshop';
 
 function SortableHead({ label, field, sortBy, sortOrder, onSort, className }: {
   label: string; field: SortField; sortBy: SortField; sortOrder: 'asc' | 'desc';
@@ -232,6 +237,9 @@ export function VehiclesList() {
         case 'tachograph':   aVal = a.tachographCalibrationExpiry ?? ''; bVal = b.tachographCalibrationExpiry ?? ''; break;
         case 'atp':          aVal = a.atpCertificateExpiry ?? ''; bVal = b.atpCertificateExpiry ?? ''; break;
         case 'pressureTest': aVal = a.nextPressureTestDate ?? ''; bVal = b.nextPressureTestDate ?? ''; break;
+        case 'lastService':  aVal = a.maintenanceRecords?.[0]?.completedDate ?? ''; bVal = b.maintenanceRecords?.[0]?.completedDate ?? ''; break;
+        case 'serviceType':  aVal = a.maintenanceRecords?.[0]?.maintenanceType?.name?.toLowerCase() ?? ''; bVal = b.maintenanceRecords?.[0]?.maintenanceType?.name?.toLowerCase() ?? ''; break;
+        case 'workshop':     aVal = a.maintenanceRecords?.[0]?.workshop?.name?.toLowerCase() ?? ''; bVal = b.maintenanceRecords?.[0]?.workshop?.name?.toLowerCase() ?? ''; break;
       }
       const cmp = aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
       return sortOrder === 'asc' ? cmp : -cmp;
@@ -416,6 +424,9 @@ export function VehiclesList() {
                   {col('tachograph') && <SortableHead label="Tachograph"    field="tachograph" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
                   {col('atp')       && <SortableHead label="ATP"            field="atp"        sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
                   {col('pressureTest') && <SortableHead label="Pressure Test" field="pressureTest" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  {col('lastService') && <SortableHead label="Last Service" field="lastService" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  {col('serviceType') && <SortableHead label="Service Type" field="serviceType" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  {col('workshop') && <SortableHead label="Workshop" field="workshop" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -445,6 +456,24 @@ export function VehiclesList() {
                       {col('tachograph') && <TableCell>{expiryBadge(v.tachographCalibrationExpiry)}</TableCell>}
                       {col('atp')       && <TableCell>{expiryBadge(v.atpCertificateExpiry)}</TableCell>}
                       {col('pressureTest') && <TableCell>{expiryBadge(v.nextPressureTestDate)}</TableCell>}
+                      {col('lastService') && (
+                        <TableCell className="text-sm">
+                          {v.maintenanceRecords?.[0]?.completedDate
+                            ? new Date(v.maintenanceRecords[0].completedDate).toLocaleDateString()
+                            : <span className="text-muted-foreground">—</span>
+                          }
+                        </TableCell>
+                      )}
+                      {col('serviceType') && (
+                        <TableCell className="text-sm">
+                          {v.maintenanceRecords?.[0]?.maintenanceType?.name ?? <span className="text-muted-foreground">—</span>}
+                        </TableCell>
+                      )}
+                      {col('workshop') && (
+                        <TableCell className="text-sm">
+                          {v.maintenanceRecords?.[0]?.workshop?.name ?? <span className="text-muted-foreground">—</span>}
+                        </TableCell>
+                      )}
                       <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-1">
                           <Button size="sm" variant="ghost" onClick={() => navigate(`/dashboard/vehicles/${v.id}`)}>

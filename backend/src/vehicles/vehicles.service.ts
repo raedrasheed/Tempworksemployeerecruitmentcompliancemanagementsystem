@@ -27,6 +27,15 @@ const VEHICLE_INCLUDE = {
     },
     take: 1,
   },
+  maintenanceRecords: {
+    where: { deletedAt: null, completedDate: { not: null } },
+    include: {
+      maintenanceType: { select: { id: true, name: true } },
+      workshop: { select: { id: true, name: true } },
+    },
+    orderBy: { completedDate: 'desc' },
+    take: 1,
+  },
   _count: { select: { documents: true, maintenanceRecords: true } },
 };
 

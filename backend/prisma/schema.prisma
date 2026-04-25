@@ -1181,22 +1181,6 @@ enum AttendanceStatus {
   HOLIDAY
 }
 
-enum VehicleType {
-  TRUCK
-  CAR
-  VAN
-  TANKER
-  TRAILER
-  REFRIGERATED_TRAILER
-  SPECIALTY
-}
-
-enum VehicleStatus {
-  ACTIVE
-  INACTIVE
-  IN_MAINTENANCE
-  SCRAPPED
-}
 
 enum FuelType {
   DIESEL

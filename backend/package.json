@@ -45,6 +45,7 @@
     "db:migrate:notification-preferences": "ts-node prisma/run-notification-preferences-migration.ts",
     "db:migrate:maintenance-types": "ts-node prisma/run-maintenance-types-migration.ts",
     "db:migrate:enhance-workshop": "ts-node prisma/run-enhance-workshop-migration.ts",
+    "db:migrate:enhance-maintenance-records": "ts-node prisma/run-enhance-maintenance-records-migration.ts",
     "db:sync-permissions": "ts-node prisma/sync-permissions.ts"
   },
   "dependencies": {

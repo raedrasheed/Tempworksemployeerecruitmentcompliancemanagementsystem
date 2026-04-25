@@ -144,6 +144,52 @@ export class VehiclesController {
     return this.vehiclesService.deleteMaintenanceRecord(id, req.user?.id);
   }
 
+  @Post('maintenance/records/:id/attachments')
+  @Roles(...WRITE_ROLES)
+  @UseInterceptors(FileInterceptor('file', {
+    storage: diskStorage({
+      destination: 'uploads/maintenance',
+      filename: (req, file, cb) => {
+        const randomName = `${uuidv4()}${extname(file.originalname)}`;
+        cb(null, randomName);
+      },
+    }),
+  }))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Upload an attachment (invoice, receipt, etc.) to a maintenance record' })
+  uploadMaintenanceAttachment(
+    @Param('id') recordId: string,
+    @UploadedFile() file: Express.Multer.File,
+    @Request() req: any,
+  ) {
+    if (!file) throw new BadRequestException('No file uploaded');
+    const fileUrl = `/uploads/maintenance/${file.filename}`;
+    return this.vehiclesService.addMaintenanceAttachment(
+      recordId,
+      file.originalname,
+      fileUrl,
+      file.size,
+      file.mimetype,
+      req.body.documentType,
+      req.user?.id,
+    );
+  }
+
+  @Get('maintenance/records/:id/attachments')
+  @Roles(...READ_ROLES)
+  @ApiOperation({ summary: 'List all attachments for a maintenance record' })
+  getMaintenanceAttachments(@Param('id') recordId: string) {
+    return this.vehiclesService.getMaintenanceAttachments(recordId);
+  }
+
+  @Delete('maintenance/attachments/:id')
+  @Roles(...WRITE_ROLES)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Delete an attachment' })
+  deleteMaintenanceAttachment(@Param('id') id: string) {
+    return this.vehiclesService.deleteMaintenanceAttachment(id);
+  }
+
   // ── 3. Static sub-resource routes — workshops (before :id) ──────────────────
 
   @Get('workshops')

@@ -362,6 +362,11 @@ export class VehiclesService {
           maintenanceType: true,
           workshop: true,
           spareParts: true,
+          driver: { select: { id: true, firstName: true, lastName: true } },
+          dropOffDriver: { select: { id: true, firstName: true, lastName: true } },
+          pickUpDriver: { select: { id: true, firstName: true, lastName: true } },
+          approvedBy: { select: { id: true, firstName: true, lastName: true } },
+          attachments: { where: { deletedAt: null } },
         },
         orderBy: { createdAt: 'desc' },
       }),
@@ -379,8 +384,13 @@ export class VehiclesService {
         maintenanceType: true,
         workshop: true,
         spareParts: true,
+        driver: { select: { id: true, firstName: true, lastName: true } },
+        dropOffDriver: { select: { id: true, firstName: true, lastName: true } },
+        pickUpDriver: { select: { id: true, firstName: true, lastName: true } },
+        approvedBy: { select: { id: true, firstName: true, lastName: true } },
         createdBy: { select: { id: true, firstName: true, lastName: true } },
         updatedBy: { select: { id: true, firstName: true, lastName: true } },
+        attachments: { where: { deletedAt: null } },
       },
     });
     if (!record) throw new NotFoundException('Maintenance record not found');
@@ -389,12 +399,15 @@ export class VehiclesService {
 
   async createMaintenanceRecord(dto: CreateMaintenanceRecordDto, userId: string) {
     await this.findVehicleOrFail(dto.vehicleId);
-    const { spareParts, scheduledDate, completedDate, nextServiceDate, ...rest } = dto;
+    const { spareParts, scheduledDate, completedDate, nextServiceDate, dropOffDateTime, pickUpDateTime, approvedAt, ...rest } = dto;
 
     const data: any = { ...rest, createdById: userId, updatedById: userId };
     if (scheduledDate)   data.scheduledDate   = new Date(scheduledDate);
     if (completedDate)   data.completedDate   = new Date(completedDate);
     if (nextServiceDate) data.nextServiceDate = new Date(nextServiceDate);
+    if (dropOffDateTime) data.dropOffDateTime = new Date(dropOffDateTime);
+    if (pickUpDateTime)  data.pickUpDateTime  = new Date(pickUpDateTime);
+    if (approvedAt)      data.approvedAt      = new Date(approvedAt);
 
     if (spareParts?.length) {
       data.spareParts = {
@@ -419,7 +432,16 @@ export class VehiclesService {
 
     const record = await this.prisma.maintenanceRecord.create({
       data,
-      include: { maintenanceType: true, workshop: true, spareParts: true },
+      include: {
+        maintenanceType: true,
+        workshop: true,
+        spareParts: true,
+        driver: { select: { id: true, firstName: true, lastName: true } },
+        dropOffDriver: { select: { id: true, firstName: true, lastName: true } },
+        pickUpDriver: { select: { id: true, firstName: true, lastName: true } },
+        approvedBy: { select: { id: true, firstName: true, lastName: true } },
+        attachments: true,
+      },
     });
 
     // Compute partsCost from spare parts if not provided
@@ -435,11 +457,14 @@ export class VehiclesService {
     const existing = await this.prisma.maintenanceRecord.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Maintenance record not found');
 
-    const { spareParts, scheduledDate, completedDate, nextServiceDate, ...rest } = dto;
+    const { spareParts, scheduledDate, completedDate, nextServiceDate, dropOffDateTime, pickUpDateTime, approvedAt, ...rest } = dto;
     const data: any = { ...rest, updatedById: userId };
     if (scheduledDate !== undefined)   data.scheduledDate   = scheduledDate ? new Date(scheduledDate) : null;
     if (completedDate !== undefined)   data.completedDate   = completedDate ? new Date(completedDate) : null;
     if (nextServiceDate !== undefined) data.nextServiceDate = nextServiceDate ? new Date(nextServiceDate) : null;
+    if (dropOffDateTime !== undefined) data.dropOffDateTime = dropOffDateTime ? new Date(dropOffDateTime) : null;
+    if (pickUpDateTime !== undefined)  data.pickUpDateTime  = pickUpDateTime ? new Date(pickUpDateTime) : null;
+    if (approvedAt !== undefined)      data.approvedAt      = approvedAt ? new Date(approvedAt) : null;
 
     if (spareParts !== undefined) {
       // Replace spare parts
@@ -468,7 +493,16 @@ export class VehiclesService {
     return this.prisma.maintenanceRecord.update({
       where: { id },
       data,
-      include: { maintenanceType: true, workshop: true, spareParts: true },
+      include: {
+        maintenanceType: true,
+        workshop: true,
+        spareParts: true,
+        driver: { select: { id: true, firstName: true, lastName: true } },
+        dropOffDriver: { select: { id: true, firstName: true, lastName: true } },
+        pickUpDriver: { select: { id: true, firstName: true, lastName: true } },
+        approvedBy: { select: { id: true, firstName: true, lastName: true } },
+        attachments: true,
+      },
     });
   }
 
@@ -481,6 +515,43 @@ export class VehiclesService {
       data: { deletedAt: new Date(), deletedBy: userId ?? null },
     });
     return { message: 'Maintenance record deleted successfully' };
+  }
+
+  // ── Maintenance Record Attachments ───────────────────────────────────────────
+
+  async addMaintenanceAttachment(recordId: string, fileName: string, fileUrl: string, fileSize?: number, mimeType?: string, documentType?: string, uploadedById?: string) {
+    const record = await this.prisma.maintenanceRecord.findUnique({ where: { id: recordId } });
+    if (!record) throw new NotFoundException('Maintenance record not found');
+
+    return this.prisma.maintenanceRecordAttachment.create({
+      data: {
+        maintenanceRecordId: recordId,
+        name: fileName,
+        fileName: fileName,
+        fileUrl: fileUrl,
+        fileSize: fileSize,
+        mimeType: mimeType,
+        documentType: documentType,
+        uploadedById: uploadedById,
+      },
+    });
+  }
+
+  async deleteMaintenanceAttachment(attachmentId: string) {
+    const attachment = await this.prisma.maintenanceRecordAttachment.findUnique({ where: { id: attachmentId } });
+    if (!attachment) throw new NotFoundException('Attachment not found');
+
+    return this.prisma.maintenanceRecordAttachment.update({
+      where: { id: attachmentId },
+      data: { deletedAt: new Date() },
+    });
+  }
+
+  async getMaintenanceAttachments(recordId: string) {
+    return this.prisma.maintenanceRecordAttachment.findMany({
+      where: { maintenanceRecordId: recordId, deletedAt: null },
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   // ── Dashboard Stats ──────────────────────────────────────────────────────────

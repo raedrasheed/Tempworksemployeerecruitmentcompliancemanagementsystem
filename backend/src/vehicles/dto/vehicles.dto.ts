@@ -331,9 +331,29 @@ export class CreateMaintenanceRecordDto {
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() laborCost?: number;
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() partsCost?: number;
   @ApiPropertyOptional() @IsOptional() @IsString() description?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() workDescription?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() technicianName?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() invoiceNumber?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() notes?: string;
+
+  // Driver at time of service (internal or external)
+  @ApiPropertyOptional() @IsOptional() @IsUUID() driverId?: string;
+  @ApiPropertyOptional({ description: 'Driver name for external drivers (when driverId is not set)' }) @IsOptional() @IsString() driverNameOverride?: string;
+
+  // Drop-off driver and timestamp
+  @ApiPropertyOptional() @IsOptional() @IsUUID() dropOffDriverId?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() dropOffDriverNameOverride?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() dropOffDateTime?: string;
+
+  // Pick-up driver and timestamp
+  @ApiPropertyOptional() @IsOptional() @IsUUID() pickUpDriverId?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() pickUpDriverNameOverride?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() pickUpDateTime?: string;
+
+  // Approval
+  @ApiPropertyOptional() @IsOptional() @IsUUID() approvedById?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() approvedAt?: string;
+
   @ApiPropertyOptional({ type: [SparePartDto] }) @IsOptional() spareParts?: SparePartDto[];
 }
 
@@ -350,9 +370,29 @@ export class UpdateMaintenanceRecordDto {
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() laborCost?: number;
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() partsCost?: number;
   @ApiPropertyOptional() @IsOptional() @IsString() description?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() workDescription?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() technicianName?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() invoiceNumber?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() notes?: string;
+
+  // Driver at time of service (internal or external)
+  @ApiPropertyOptional() @IsOptional() @IsUUID() driverId?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() driverNameOverride?: string;
+
+  // Drop-off driver and timestamp
+  @ApiPropertyOptional() @IsOptional() @IsUUID() dropOffDriverId?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() dropOffDriverNameOverride?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() dropOffDateTime?: string;
+
+  // Pick-up driver and timestamp
+  @ApiPropertyOptional() @IsOptional() @IsUUID() pickUpDriverId?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() pickUpDriverNameOverride?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() pickUpDateTime?: string;
+
+  // Approval
+  @ApiPropertyOptional() @IsOptional() @IsUUID() approvedById?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() approvedAt?: string;
+
   @ApiPropertyOptional({ type: [SparePartDto] }) @IsOptional() spareParts?: SparePartDto[];
 }
 

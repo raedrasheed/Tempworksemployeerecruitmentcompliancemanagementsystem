@@ -286,6 +286,11 @@ model User {
   vehicleDocsUploaded     VehicleDocument[]             @relation("VehicleDocUploadedBy")
   maintenanceCreated      MaintenanceRecord[]           @relation("MaintenanceCreatedBy")
   maintenanceUpdated      MaintenanceRecord[]           @relation("MaintenanceUpdatedBy")
+  maintenanceAsDriver     MaintenanceRecord[]           @relation("MaintenanceDriver")
+  maintenanceAsDropOffDriver MaintenanceRecord[]        @relation("MaintenanceDropOffDriver")
+  maintenanceAsPickUpDriver MaintenanceRecord[]         @relation("MaintenancePickUpDriver")
+  maintenanceAsApprover   MaintenanceRecord[]           @relation("MaintenanceApprovedBy")
+  maintenanceAttachments  MaintenanceRecordAttachment[] @relation("MaintenanceAttachmentUploadedBy")
   systemBackups           SystemBackup[]                @relation("BackupCreatedBy")
 
   // Agency manager back-relation
@@ -1811,9 +1816,29 @@ model MaintenanceRecord {
   laborCost          Float?
   partsCost          Float?
   description        String?
+  workDescription    String?           @db.Text
   technicianName     String?
   invoiceNumber      String?
   notes              String?
+
+  // Driver at time of service (internal or external)
+  driverId           String?
+  driverNameOverride String?           // For external drivers selected as "Other"
+
+  // Drop-off driver and timestamp
+  dropOffDriverId    String?
+  dropOffDriverNameOverride String?
+  dropOffDateTime    DateTime?
+
+  // Pick-up driver and timestamp
+  pickUpDriverId     String?
+  pickUpDriverNameOverride String?
+  pickUpDateTime     DateTime?
+
+  // Approval tracking
+  approvedById       String?
+  approvedAt         DateTime?
+
   createdById        String?
   updatedById        String?
   deletedAt          DateTime?
@@ -1824,13 +1849,19 @@ model MaintenanceRecord {
   vehicle         Vehicle          @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
   maintenanceType MaintenanceType? @relation(fields: [maintenanceTypeId], references: [id])
   workshop        Workshop?        @relation(fields: [workshopId], references: [id])
+  driver          User?            @relation("MaintenanceDriver", fields: [driverId], references: [id])
+  dropOffDriver   User?            @relation("MaintenanceDropOffDriver", fields: [dropOffDriverId], references: [id])
+  pickUpDriver    User?            @relation("MaintenancePickUpDriver", fields: [pickUpDriverId], references: [id])
+  approvedBy      User?            @relation("MaintenanceApprovedBy", fields: [approvedById], references: [id])
   createdBy       User?            @relation("MaintenanceCreatedBy", fields: [createdById], references: [id])
   updatedBy       User?            @relation("MaintenanceUpdatedBy", fields: [updatedById], references: [id])
   spareParts      MaintenanceRecordSparePart[]
+  attachments     MaintenanceRecordAttachment[]
 
   @@index([vehicleId])
   @@index([status])
   @@index([scheduledDate])
+  @@index([completedDate])
   @@map("maintenance_records")
 }
 
@@ -1850,6 +1881,27 @@ model MaintenanceRecordSparePart {
 
   @@index([maintenanceRecordId])
   @@map("maintenance_record_spare_parts")
+}
+
+/// Attachments (invoices, receipts, documents) for a maintenance record
+model MaintenanceRecordAttachment {
+  id                  String   @id @default(uuid())
+  maintenanceRecordId String
+  name                String
+  fileUrl             String?
+  fileName            String?
+  fileSize            Int?
+  mimeType            String?
+  documentType        String?  // e.g. INVOICE, RECEIPT, INVOICE, QUOTE
+  uploadedById        String?
+  createdAt           DateTime @default(now())
+  deletedAt           DateTime?
+
+  maintenanceRecord MaintenanceRecord @relation(fields: [maintenanceRecordId], references: [id], onDelete: Cascade)
+  uploadedBy        User?             @relation("MaintenanceAttachmentUploadedBy", fields: [uploadedById], references: [id])
+
+  @@index([maintenanceRecordId])
+  @@map("maintenance_record_attachments")
 }
 
 // ── Database Backup ────────────────────────────────────────────────────────────

@@ -1,5 +1,5 @@
 import { Link } from 'react-router';
-import { FileType, Bell, Shield, Activity, Layers, Briefcase, Palette, Trash2, Database, Server, Building2, Star, Truck, Tag, GitBranch, DollarSign } from 'lucide-react';
+import { FileType, Bell, Shield, Activity, Layers, Briefcase, Palette, Trash2, Database, Server, Building2, Star, Truck, Tag, GitBranch, DollarSign, Wrench } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { usePermissions } from '../../hooks/usePermissions';
 import { useAuthContext } from '../../contexts/AuthContext';
@@ -296,6 +296,30 @@ export function Settings() {
                     </div>
                     <CardDescription>
                       Central hub for vehicle lookups: statuses, fuel types, body / hitch types, ADR classes, document types, and more
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+            </Card>
+          </Link>
+        )}
+
+        {/* Maintenance Types Settings — Configure vehicle service types */}
+        {canEditSettings && (
+          <Link to="/dashboard/settings/maintenance-types">
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full border-orange-200 hover:border-orange-400">
+              <CardHeader>
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-lg bg-orange-100 flex items-center justify-center">
+                    <Wrench className="w-6 h-6 text-orange-600" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="text-orange-800">Maintenance Types</CardTitle>
+                      <Badge className="bg-[#EF4444]">Admin Only</Badge>
+                    </div>
+                    <CardDescription>
+                      Configure vehicle service types with name, description, and service intervals (time or mileage)
                     </CardDescription>
                   </div>
                 </div>

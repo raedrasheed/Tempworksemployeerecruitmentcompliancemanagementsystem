@@ -210,6 +210,7 @@ export class CreateMaintenanceTypeDto {
   @ApiPropertyOptional() @IsOptional() @IsString() description?: string;
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsInt() defaultIntervalDays?: number;
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsInt() defaultIntervalKm?: number;
+  @ApiPropertyOptional({ enum: ['DAYS', 'KM', 'BOTH'] }) @IsOptional() @IsString() intervalMode?: string;
 }
 
 export class UpdateMaintenanceTypeDto {
@@ -217,6 +218,7 @@ export class UpdateMaintenanceTypeDto {
   @ApiPropertyOptional() @IsOptional() @IsString() description?: string;
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsInt() defaultIntervalDays?: number;
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsInt() defaultIntervalKm?: number;
+  @ApiPropertyOptional({ enum: ['DAYS', 'KM', 'BOTH'] }) @IsOptional() @IsString() intervalMode?: string;
   @ApiPropertyOptional() @IsOptional() @Transform(({ value }) => value === 'true' || value === true) @IsBoolean() isActive?: boolean;
 }
 

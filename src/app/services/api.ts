@@ -1702,7 +1702,7 @@ export const vehiclesApi = {
   // Maintenance types
   listMaintenanceTypes: () => apiFetch<any>('/vehicles/maintenance/types'),
 
-  createMaintenanceType: (data: { name: string; description?: string; defaultIntervalDays?: number; defaultIntervalKm?: number }) =>
+  createMaintenanceType: (data: { name: string; description?: string; defaultIntervalDays?: number; defaultIntervalKm?: number; intervalMode?: string }) =>
     apiFetch<any>('/vehicles/maintenance/types', { method: 'POST', body: JSON.stringify(data) }),
 
   updateMaintenanceType: (id: string, data: Record<string, any>) =>

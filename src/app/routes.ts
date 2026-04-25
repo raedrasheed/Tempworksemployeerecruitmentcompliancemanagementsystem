@@ -85,6 +85,7 @@ import { TransportTypesSettings } from './pages/settings/TransportTypesSettings'
 import { TruckBrandsSettings } from './pages/settings/TruckBrandsSettings';
 import { TrailerTypesSettings } from './pages/settings/TrailerTypesSettings';
 import { VehicleSettings } from './pages/settings/VehicleSettings';
+import { MaintenanceTypesSettings } from './pages/settings/MaintenanceTypesSettings';
 import { TransactionTypesSettings } from './pages/settings/TransactionTypesSettings';
 import { WorkHistoryEventTypesSettings } from './pages/settings/WorkHistoryEventTypesSettings';
 
@@ -261,6 +262,7 @@ export const router = createBrowserRouter([
       { path: 'settings/truck-brands', Component: TruckBrandsSettings },
       { path: 'settings/trailer-types', Component: TrailerTypesSettings },
       { path: 'settings/vehicles', Component: VehicleSettings },
+      { path: 'settings/maintenance-types', Component: MaintenanceTypesSettings },
       { path: 'settings/transaction-types', Component: TransactionTypesSettings },
       { path: 'settings/work-history-event-types', Component: WorkHistoryEventTypesSettings },
 

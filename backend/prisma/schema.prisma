@@ -1589,17 +1589,25 @@ model Workshop {
 }
 
 /// Configurable maintenance/service type (e.g. "Oil Change", "Tyre Rotation")
+enum IntervalMode {
+  DAYS
+  KM
+  BOTH // Whichever comes first
+}
+
 model MaintenanceType {
-  id                  String    @id @default(uuid())
+  id                  String        @id @default(uuid())
   name                String
   description         String?
   defaultIntervalDays Int?
   defaultIntervalKm   Int?
-  isActive            Boolean   @default(true)
+  /// Interval mode: DAYS only, KM only, or BOTH (whichever comes first)
+  intervalMode        IntervalMode? @default(KM)
+  isActive            Boolean       @default(true)
   deletedAt           DateTime?
   deletedBy           String?
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
 
   maintenanceRecords MaintenanceRecord[]
 

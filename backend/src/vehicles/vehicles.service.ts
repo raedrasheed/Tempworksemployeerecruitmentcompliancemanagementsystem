@@ -268,7 +268,6 @@ export class VehiclesService {
     } catch (error: any) {
       // If the table doesn't exist yet, return empty array gracefully
       if (error?.code === 'P2021' || error?.message?.includes('does not exist')) {
-        console.warn('maintenance_type table not yet migrated');
         return [];
       }
       throw error;

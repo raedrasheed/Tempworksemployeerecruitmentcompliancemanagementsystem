@@ -149,7 +149,7 @@ export class NotificationsService {
     } catch (error: any) {
       // Gracefully handle missing notification_preferences table
       if (error?.code === 'P2021' || error?.message?.includes('does not exist')) {
-        console.warn('notification_preferences table not yet migrated');
+        // Silently skip - migration not yet applied
       } else {
         throw error;
       }
@@ -230,7 +230,7 @@ export class NotificationsService {
     } catch (error: any) {
       // Gracefully handle missing notification_preferences table
       if (error?.code === 'P2021' || error?.message?.includes('does not exist')) {
-        console.warn('notification_preferences table not yet migrated');
+        // Silently skip - migration not yet applied
       } else {
         throw error;
       }
@@ -292,7 +292,7 @@ export class NotificationsService {
     } catch (error: any) {
       // Gracefully handle missing notification_preferences table
       if (error?.code === 'P2021' || error?.message?.includes('does not exist')) {
-        console.warn('notification_preferences table not yet migrated');
+        // Silently skip - migration not yet applied
       } else {
         throw error;
       }

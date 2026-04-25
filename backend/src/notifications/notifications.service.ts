@@ -65,16 +65,17 @@ export class NotificationsService {
 
   /// Check for vehicles with expiring compliance dates
   async checkExpiringCompliance(): Promise<void> {
-    const fleetManagers = await this.prisma.user.findMany({
-      where: {
-        role: { name: { contains: 'Fleet Manager' } },
-        status: 'ACTIVE',
-        notificationPreference: { isNot: null },
-      },
-      include: { notificationPreference: true, agency: true },
-    });
+    try {
+      const fleetManagers = await this.prisma.user.findMany({
+        where: {
+          role: { name: { contains: 'Fleet Manager' } },
+          status: 'ACTIVE',
+          notificationPreference: { isNot: null },
+        },
+        include: { notificationPreference: true, agency: true },
+      });
 
-    for (const manager of fleetManagers) {
+      for (const manager of fleetManagers) {
       if (!manager.notificationPreference) continue;
 
       const daysBefore = manager.notificationPreference.complianceDaysBefore;
@@ -144,18 +145,27 @@ export class NotificationsService {
           }
         }
       }
+      }
+    } catch (error: any) {
+      // Gracefully handle missing notification_preferences table
+      if (error?.code === 'P2021' || error?.message?.includes('does not exist')) {
+        console.warn('notification_preferences table not yet migrated');
+      } else {
+        throw error;
+      }
     }
   }
 
   /// Check for vehicles needing service based on mileage
   async checkServiceDue(): Promise<void> {
-    const fleetManagers = await this.prisma.user.findMany({
-      where: {
-        role: { name: { contains: 'Fleet Manager' } },
-        status: 'ACTIVE',
-        notificationPreference: { isNot: null },
-      },
-      include: { notificationPreference: true, agency: true },
+    try {
+      const fleetManagers = await this.prisma.user.findMany({
+        where: {
+          role: { name: { contains: 'Fleet Manager' } },
+          status: 'ACTIVE',
+          notificationPreference: { isNot: null },
+        },
+        include: { notificationPreference: true, agency: true },
     });
 
     for (const manager of fleetManagers) {
@@ -216,17 +226,26 @@ export class NotificationsService {
           }
         }
       }
+      }
+    } catch (error: any) {
+      // Gracefully handle missing notification_preferences table
+      if (error?.code === 'P2021' || error?.message?.includes('does not exist')) {
+        console.warn('notification_preferences table not yet migrated');
+      } else {
+        throw error;
+      }
     }
   }
 
   /// Check for overdue compliance
   async checkOverdue(): Promise<void> {
-    const fleetManagers = await this.prisma.user.findMany({
-      where: {
-        role: { name: { contains: 'Fleet Manager' } },
-        status: 'ACTIVE',
-      },
-      include: { agency: true },
+    try {
+      const fleetManagers = await this.prisma.user.findMany({
+        where: {
+          role: { name: { contains: 'Fleet Manager' } },
+          status: 'ACTIVE',
+        },
+        include: { agency: true },
     });
 
     for (const manager of fleetManagers) {
@@ -268,6 +287,14 @@ export class NotificationsService {
             },
           });
         }
+      }
+      }
+    } catch (error: any) {
+      // Gracefully handle missing notification_preferences table
+      if (error?.code === 'P2021' || error?.message?.includes('does not exist')) {
+        console.warn('notification_preferences table not yet migrated');
+      } else {
+        throw error;
       }
     }
   }

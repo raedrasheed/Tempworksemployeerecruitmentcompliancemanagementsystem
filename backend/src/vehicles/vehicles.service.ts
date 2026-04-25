@@ -263,7 +263,7 @@ export class VehiclesService {
   // ── Maintenance Types ────────────────────────────────────────────────────────
 
   async listMaintenanceTypes() {
-    return this.prisma.maintenanceType.findMany({ where: { isActive: true, deletedAt: null } as any, orderBy: { name: 'asc' } });
+    return this.prisma.maintenanceType.findMany({ where: { isActive: true }, orderBy: { name: 'asc' } });
   }
 
   async createMaintenanceType(dto: CreateMaintenanceTypeDto) {

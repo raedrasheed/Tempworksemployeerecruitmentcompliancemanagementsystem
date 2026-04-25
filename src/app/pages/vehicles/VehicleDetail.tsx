@@ -66,6 +66,7 @@ export function VehicleDetail() {
   const [loading, setLoading]             = useState(true);
   const [workshops, setWorkshops]         = useState<any[]>([]);
   const [maintenanceTypes, setMtnTypes]   = useState<any[]>([]);
+  const [drivers, setDrivers]             = useState<any[]>([]);
 
   // Assign driver dialog
   const [assignDialog, setAssignDialog]     = useState(false);
@@ -93,21 +94,27 @@ export function VehicleDetail() {
   const [editingMain, setEditingMain]     = useState<any>(null);
   const [mainForm, setMainForm]           = useState<any>({
     maintenanceTypeId: '', workshopId: '', status: 'SCHEDULED',
-    scheduledDate: '', completedDate: '', description: '', mileageAtService: '', cost: '', notes: '',
+    scheduledDate: '', completedDate: '', description: '', workDescription: '', mileageAtService: '', cost: '', notes: '',
+    driverId: '', driverNameOverride: '',
+    dropOffDriverId: '', dropOffDriverNameOverride: '', dropOffDateTime: '',
+    pickUpDriverId: '', pickUpDriverNameOverride: '', pickUpDateTime: '',
+    approvedById: '', approvedAt: '',
   });
   const [mainSaving, setMainSaving]       = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [v, ws, mt] = await Promise.all([
+      const [v, ws, mt, drvs] = await Promise.all([
         vehiclesApi.getOne(id!),
         vehiclesApi.listWorkshops(),
         vehiclesApi.listMaintenanceTypes(),
+        employeesApi.list({ driversOnly: 'true', limit: 100 }).catch(() => ({ data: [] })),
       ]);
       setVehicle(v);
       setWorkshops(ws);
       setMtnTypes(mt);
+      setDrivers(drvs.data ?? []);
     } catch {
       toast.error('Failed to load vehicle');
     } finally {
@@ -269,7 +276,13 @@ export function VehicleDetail() {
     }
   };
 
-  const BLANK_MAIN = { maintenanceTypeId: '', workshopId: '', status: 'SCHEDULED', scheduledDate: '', completedDate: '', description: '', mileageAtService: '', cost: '', notes: '' };
+  const BLANK_MAIN = {
+    maintenanceTypeId: '', workshopId: '', status: 'SCHEDULED', scheduledDate: '', completedDate: '', description: '', workDescription: '', mileageAtService: '', cost: '', notes: '',
+    driverId: '', driverNameOverride: '',
+    dropOffDriverId: '', dropOffDriverNameOverride: '', dropOffDateTime: '',
+    pickUpDriverId: '', pickUpDriverNameOverride: '', pickUpDateTime: '',
+    approvedById: '', approvedAt: '',
+  };
 
   const openAddMaintenance = () => {
     setEditingMain(null);
@@ -286,9 +299,20 @@ export function VehicleDetail() {
       scheduledDate:     rec.scheduledDate ? rec.scheduledDate.split('T')[0] : '',
       completedDate:     rec.completedDate ? rec.completedDate.split('T')[0] : '',
       description:       rec.description ?? '',
+      workDescription:   rec.workDescription ?? '',
       mileageAtService:  rec.mileageAtService ?? '',
       cost:              rec.cost ?? '',
       notes:             rec.notes ?? '',
+      driverId:          rec.driverId ?? '',
+      driverNameOverride: rec.driverNameOverride ?? '',
+      dropOffDriverId:   rec.dropOffDriverId ?? '',
+      dropOffDriverNameOverride: rec.dropOffDriverNameOverride ?? '',
+      dropOffDateTime:   rec.dropOffDateTime ? rec.dropOffDateTime.replace('Z', '').slice(0, 16) : '',
+      pickUpDriverId:    rec.pickUpDriverId ?? '',
+      pickUpDriverNameOverride: rec.pickUpDriverNameOverride ?? '',
+      pickUpDateTime:    rec.pickUpDateTime ? rec.pickUpDateTime.replace('Z', '').slice(0, 16) : '',
+      approvedById:      rec.approvedById ?? '',
+      approvedAt:        rec.approvedAt ? rec.approvedAt.split('T')[0] : '',
     });
     setMainDialog(true);
   };
@@ -303,9 +327,20 @@ export function VehicleDetail() {
         scheduledDate:     mainForm.scheduledDate || undefined,
         completedDate:     mainForm.completedDate || undefined,
         description:       mainForm.description || undefined,
+        workDescription:   mainForm.workDescription || undefined,
         mileageAtService:  mainForm.mileageAtService ? parseInt(mainForm.mileageAtService) : undefined,
         cost:              mainForm.cost ? parseFloat(mainForm.cost) : undefined,
         notes:             mainForm.notes || undefined,
+        driverId:          mainForm.driverId || undefined,
+        driverNameOverride: mainForm.driverNameOverride || undefined,
+        dropOffDriverId:   mainForm.dropOffDriverId || undefined,
+        dropOffDriverNameOverride: mainForm.dropOffDriverNameOverride || undefined,
+        dropOffDateTime:   mainForm.dropOffDateTime || undefined,
+        pickUpDriverId:    mainForm.pickUpDriverId || undefined,
+        pickUpDriverNameOverride: mainForm.pickUpDriverNameOverride || undefined,
+        pickUpDateTime:    mainForm.pickUpDateTime || undefined,
+        approvedById:      mainForm.approvedById || undefined,
+        approvedAt:        mainForm.approvedAt || undefined,
       };
       if (editingMain) {
         await vehiclesApi.updateMaintenance(editingMain.id, payload);
@@ -825,11 +860,101 @@ export function VehicleDetail() {
             </div>
             <div className="space-y-1">
               <Label>Description</Label>
-              <Input value={mainForm.description} onChange={(e) => setMainForm((f: any) => ({ ...f, description: e.target.value }))} placeholder="Work description" />
+              <Input value={mainForm.description} onChange={(e) => setMainForm((f: any) => ({ ...f, description: e.target.value }))} placeholder="Brief description" />
+            </div>
+            <div className="space-y-1">
+              <Label>Work Description</Label>
+              <textarea className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" value={mainForm.workDescription} onChange={(e) => setMainForm((f: any) => ({ ...f, workDescription: e.target.value }))} placeholder="Detailed work performed..." />
             </div>
             <div className="space-y-1">
               <Label>Notes</Label>
               <Input value={mainForm.notes} onChange={(e) => setMainForm((f: any) => ({ ...f, notes: e.target.value }))} placeholder="Additional notes" />
+            </div>
+
+            <hr className="my-3" />
+            <h4 className="font-medium text-sm">Driver & Logistics</h4>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label>Service Driver</Label>
+                <Select value={mainForm.driverId || 'other'} onValueChange={(v) => setMainForm((f: any) => ({ ...f, driverId: v === 'other' ? '' : v, driverNameOverride: v === 'other' ? '' : f.driverNameOverride }))}>
+                  <SelectTrigger><SelectValue placeholder="Select driver" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="other">Other (external)</SelectItem>
+                    {drivers.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.firstName} {d.lastName}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              {!mainForm.driverId && (
+                <div className="space-y-1">
+                  <Label>External Driver Name</Label>
+                  <Input value={mainForm.driverNameOverride} onChange={(e) => setMainForm((f: any) => ({ ...f, driverNameOverride: e.target.value }))} placeholder="Driver name" />
+                </div>
+              )}
+
+              <div className="space-y-1">
+                <Label>Drop-off Driver</Label>
+                <Select value={mainForm.dropOffDriverId || 'other'} onValueChange={(v) => setMainForm((f: any) => ({ ...f, dropOffDriverId: v === 'other' ? '' : v }))}>
+                  <SelectTrigger><SelectValue placeholder="Select driver" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="other">Other / None</SelectItem>
+                    {drivers.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.firstName} {d.lastName}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              {!mainForm.dropOffDriverId && (
+                <div className="space-y-1">
+                  <Label>Drop-off Driver Name</Label>
+                  <Input value={mainForm.dropOffDriverNameOverride} onChange={(e) => setMainForm((f: any) => ({ ...f, dropOffDriverNameOverride: e.target.value }))} placeholder="Name" />
+                </div>
+              )}
+
+              <div className="space-y-1">
+                <Label>Drop-off Date/Time</Label>
+                <Input type="datetime-local" value={mainForm.dropOffDateTime} onChange={(e) => setMainForm((f: any) => ({ ...f, dropOffDateTime: e.target.value }))} />
+              </div>
+
+              <div className="space-y-1">
+                <Label>Pick-up Driver</Label>
+                <Select value={mainForm.pickUpDriverId || 'other'} onValueChange={(v) => setMainForm((f: any) => ({ ...f, pickUpDriverId: v === 'other' ? '' : v }))}>
+                  <SelectTrigger><SelectValue placeholder="Select driver" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="other">Other / None</SelectItem>
+                    {drivers.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.firstName} {d.lastName}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              {!mainForm.pickUpDriverId && (
+                <div className="space-y-1">
+                  <Label>Pick-up Driver Name</Label>
+                  <Input value={mainForm.pickUpDriverNameOverride} onChange={(e) => setMainForm((f: any) => ({ ...f, pickUpDriverNameOverride: e.target.value }))} placeholder="Name" />
+                </div>
+              )}
+
+              <div className="space-y-1">
+                <Label>Pick-up Date/Time</Label>
+                <Input type="datetime-local" value={mainForm.pickUpDateTime} onChange={(e) => setMainForm((f: any) => ({ ...f, pickUpDateTime: e.target.value }))} />
+              </div>
+            </div>
+
+            <hr className="my-3" />
+            <h4 className="font-medium text-sm">Approval</h4>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label>Approved By</Label>
+                <Select value={mainForm.approvedById || 'none'} onValueChange={(v) => setMainForm((f: any) => ({ ...f, approvedById: v === 'none' ? '' : v }))}>
+                  <SelectTrigger><SelectValue placeholder="Not approved" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Pending Approval</SelectItem>
+                    {drivers.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.firstName} {d.lastName}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label>Approval Date</Label>
+                <Input type="date" value={mainForm.approvedAt} onChange={(e) => setMainForm((f: any) => ({ ...f, approvedAt: e.target.value }))} />
+              </div>
             </div>
           </div>
           <DialogFooter>

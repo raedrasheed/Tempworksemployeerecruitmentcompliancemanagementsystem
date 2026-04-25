@@ -299,11 +299,81 @@ export class NotificationsService {
     }
   }
 
+  /// Check for scheduled maintenance records coming up
+  async checkScheduledMaintenance(): Promise<void> {
+    try {
+      const fleetManagers = await this.prisma.user.findMany({
+        where: {
+          role: { name: { contains: 'Fleet Manager' } },
+          status: 'ACTIVE',
+          notificationPreference: { isNot: null },
+        },
+        include: { notificationPreference: true, agency: true },
+      });
+
+      for (const manager of fleetManagers) {
+        if (!manager.notificationPreference) continue;
+        const maintenanceAlertDays = manager.notificationPreference.complianceDaysBefore ?? 7;
+
+        const upcomingDate = new Date();
+        upcomingDate.setDate(upcomingDate.getDate() + maintenanceAlertDays);
+
+        const scheduledRecords = await this.prisma.maintenanceRecord.findMany({
+          where: {
+            vehicle: { agencyId: manager.agencyId, deletedAt: null },
+            status: 'SCHEDULED',
+            scheduledDate: { lte: upcomingDate, gte: new Date() },
+            deletedAt: null,
+          },
+          include: { vehicle: true, maintenanceType: true, workshop: true },
+        });
+
+        for (const record of scheduledRecords) {
+          const existing = await this.prisma.notification.findFirst({
+            where: {
+              userId: manager.id,
+              relatedEntityId: record.id,
+              type: 'VEHICLE_SERVICE_DUE',
+              isRead: false,
+              createdAt: { gte: new Date(Date.now() - 86400000) },
+            },
+          });
+
+          if (!existing) {
+            const daysUntil = Math.ceil((record.scheduledDate!.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+            const severity = daysUntil <= 3 ? 'HIGH' : daysUntil <= 7 ? 'MEDIUM' : 'LOW';
+
+            await this.prisma.notification.create({
+              data: {
+                userId: manager.id,
+                title: `${record.vehicle.registrationNumber}: Scheduled Maintenance`,
+                message: `${record.maintenanceType?.name ?? 'Maintenance'} scheduled in ${daysUntil} days at ${record.workshop?.name ?? 'workshop'}`,
+                type: 'VEHICLE_SERVICE_DUE',
+                channel: 'in_app',
+                relatedEntity: 'MaintenanceRecord',
+                relatedEntityId: record.id,
+                daysUntilDue: daysUntil,
+                severity,
+              },
+            });
+          }
+        }
+      }
+    } catch (error: any) {
+      if (error?.code === 'P2021' || error?.message?.includes('does not exist')) {
+        // Silently skip - migration not yet applied
+      } else {
+        throw error;
+      }
+    }
+  }
+
   /// Run all checks
   async runAllChecks(): Promise<void> {
     try {
       await this.checkExpiringCompliance();
       await this.checkServiceDue();
+      await this.checkScheduledMaintenance();
       await this.checkOverdue();
     } catch (error) {
       console.error('Notification checks failed:', error);

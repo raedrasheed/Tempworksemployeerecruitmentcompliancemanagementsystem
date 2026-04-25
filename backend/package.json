@@ -42,6 +42,7 @@
     "db:migrate:user-allow-manager-view": "ts-node prisma/run-user-allow-manager-view-migration.ts",
     "db:migrate:application-drafts": "ts-node prisma/run-application-drafts-migration.ts",
     "db:migrate:application-draft-uploads": "ts-node prisma/run-application-draft-uploads-migration.ts",
+    "db:migrate:notification-preferences": "ts-node prisma/run-notification-preferences-migration.ts",
     "db:sync-permissions": "ts-node prisma/sync-permissions.ts"
   },
   "dependencies": {

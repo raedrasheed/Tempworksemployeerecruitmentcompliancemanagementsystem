@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationType } from '@prisma/client';
+import { EVENT_TO_TYPE, NotifEventKey } from './notification-events';
 
 @Injectable()
 export class NotificationsService {
@@ -280,5 +281,78 @@ export class NotificationsService {
     } catch (error) {
       console.error('Notification checks failed:', error);
     }
+  }
+
+  /// Notify uploader and users with specific roles
+  async notifyUploaderAndRoles(uploaderId: string, roles: string[], eventKey: NotifEventKey, title: string, message: string, relatedEntity?: string, relatedEntityId?: string): Promise<void> {
+    const userIds = new Set<string>();
+
+    if (uploaderId) userIds.add(uploaderId);
+
+    if (roles && roles.length > 0) {
+      const users = await this.prisma.user.findMany({
+        where: {
+          role: { name: { in: roles } },
+          status: 'ACTIVE',
+        },
+        select: { id: true },
+      });
+      users.forEach(u => userIds.add(u.id));
+    }
+
+    const type = (EVENT_TO_TYPE[eventKey] || 'INFO') as NotificationType;
+
+    for (const userId of userIds) {
+      await this.prisma.notification.create({
+        data: {
+          userId,
+          title,
+          message,
+          type,
+          channel: 'in_app',
+          relatedEntity: relatedEntity || 'Document',
+          relatedEntityId,
+        },
+      });
+    }
+  }
+
+  /// Notify users with specific roles
+  async notifyUsersByRoles(roles: string[], eventKey: NotifEventKey, title: string, message: string, relatedEntity?: string, relatedEntityId?: string): Promise<void> {
+    const users = await this.prisma.user.findMany({
+      where: {
+        role: { name: { in: roles } },
+        status: 'ACTIVE',
+      },
+      select: { id: true },
+    });
+
+    const type = (EVENT_TO_TYPE[eventKey] || 'INFO') as NotificationType;
+
+    for (const user of users) {
+      await this.prisma.notification.create({
+        data: {
+          userId: user.id,
+          title,
+          message,
+          type,
+          channel: 'in_app',
+          relatedEntity,
+          relatedEntityId,
+        },
+      });
+    }
+  }
+
+  /// Check if high balance alert was recently sent
+  async wasHighBalanceAlertRecentlySent(entityId: string): Promise<boolean> {
+    const recent = await this.prisma.notification.findFirst({
+      where: {
+        relatedEntityId: entityId,
+        type: 'WARNING',
+        createdAt: { gte: new Date(Date.now() - 86400000) },
+      },
+    });
+    return !!recent;
   }
 }

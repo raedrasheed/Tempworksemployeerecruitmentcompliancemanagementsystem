@@ -267,13 +267,21 @@ export class VehiclesService {
   }
 
   async createMaintenanceType(dto: CreateMaintenanceTypeDto) {
-    return this.prisma.maintenanceType.create({ data: dto });
+    const data: any = { ...dto };
+    if (data.intervalMode) {
+      data.intervalMode = data.intervalMode.toUpperCase();
+    }
+    return this.prisma.maintenanceType.create({ data });
   }
 
   async updateMaintenanceType(id: string, dto: UpdateMaintenanceTypeDto) {
     const mt = await this.prisma.maintenanceType.findUnique({ where: { id } });
     if (!mt) throw new NotFoundException('Maintenance type not found');
-    return this.prisma.maintenanceType.update({ where: { id }, data: dto });
+    const data: any = { ...dto };
+    if (data.intervalMode) {
+      data.intervalMode = data.intervalMode.toUpperCase();
+    }
+    return this.prisma.maintenanceType.update({ where: { id }, data });
   }
 
   async deleteMaintenanceType(id: string, userId?: string) {

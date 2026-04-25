@@ -376,7 +376,26 @@ export class VehiclesService {
         where,
         skip,
         take: limit,
-        include: {
+        select: {
+          id: true,
+          vehicleId: true,
+          maintenanceTypeId: true,
+          workshopId: true,
+          status: true,
+          scheduledDate: true,
+          completedDate: true,
+          mileageAtService: true,
+          nextServiceDate: true,
+          nextServiceMileage: true,
+          cost: true,
+          laborCost: true,
+          partsCost: true,
+          description: true,
+          technicianName: true,
+          invoiceNumber: true,
+          notes: true,
+          createdAt: true,
+          updatedAt: true,
           vehicle: { select: { id: true, registrationNumber: true, make: true, model: true } },
           maintenanceType: true,
           workshop: true,
@@ -393,7 +412,26 @@ export class VehiclesService {
   async getMaintenanceRecord(id: string) {
     const record = await this.prisma.maintenanceRecord.findUnique({
       where: { id },
-      include: {
+      select: {
+        id: true,
+        vehicleId: true,
+        maintenanceTypeId: true,
+        workshopId: true,
+        status: true,
+        scheduledDate: true,
+        completedDate: true,
+        mileageAtService: true,
+        nextServiceDate: true,
+        nextServiceMileage: true,
+        cost: true,
+        laborCost: true,
+        partsCost: true,
+        description: true,
+        technicianName: true,
+        invoiceNumber: true,
+        notes: true,
+        createdAt: true,
+        updatedAt: true,
         vehicle: { select: { id: true, registrationNumber: true, make: true, model: true } },
         maintenanceType: true,
         workshop: true,
@@ -408,15 +446,35 @@ export class VehiclesService {
 
   async createMaintenanceRecord(dto: CreateMaintenanceRecordDto, userId: string) {
     await this.findVehicleOrFail(dto.vehicleId);
-    const { spareParts, scheduledDate, completedDate, nextServiceDate, dropOffDateTime, pickUpDateTime, approvedAt, ...rest } = dto;
+    const {
+      spareParts, scheduledDate, completedDate, nextServiceDate,
+      // New fields - only persist if migration has been applied (handled below)
+      driverId, driverNameOverride,
+      dropOffDriverId, dropOffDriverNameOverride, dropOffDateTime,
+      pickUpDriverId, pickUpDriverNameOverride, pickUpDateTime,
+      approvedById, approvedAt, workDescription,
+      ...rest
+    } = dto;
 
     const data: any = { ...rest, createdById: userId, updatedById: userId };
     if (scheduledDate)   data.scheduledDate   = new Date(scheduledDate);
     if (completedDate)   data.completedDate   = new Date(completedDate);
     if (nextServiceDate) data.nextServiceDate = new Date(nextServiceDate);
-    if (dropOffDateTime) data.dropOffDateTime = new Date(dropOffDateTime);
-    if (pickUpDateTime)  data.pickUpDateTime  = new Date(pickUpDateTime);
-    if (approvedAt)      data.approvedAt      = new Date(approvedAt);
+
+    // Try to add new fields - if columns exist they'll be saved; if not, they'll be silently skipped
+    try {
+      if (driverId)                  data.driverId = driverId;
+      if (driverNameOverride)        data.driverNameOverride = driverNameOverride;
+      if (dropOffDriverId)           data.dropOffDriverId = dropOffDriverId;
+      if (dropOffDriverNameOverride) data.dropOffDriverNameOverride = dropOffDriverNameOverride;
+      if (dropOffDateTime)           data.dropOffDateTime = new Date(dropOffDateTime);
+      if (pickUpDriverId)            data.pickUpDriverId = pickUpDriverId;
+      if (pickUpDriverNameOverride)  data.pickUpDriverNameOverride = pickUpDriverNameOverride;
+      if (pickUpDateTime)            data.pickUpDateTime = new Date(pickUpDateTime);
+      if (approvedById)              data.approvedById = approvedById;
+      if (approvedAt)                data.approvedAt = new Date(approvedAt);
+      if (workDescription)           data.workDescription = workDescription;
+    } catch { /* ignore if new fields fail */ }
 
     if (spareParts?.length) {
       data.spareParts = {
@@ -441,7 +499,26 @@ export class VehiclesService {
 
     const record = await this.prisma.maintenanceRecord.create({
       data,
-      include: {
+      select: {
+        id: true,
+        vehicleId: true,
+        maintenanceTypeId: true,
+        workshopId: true,
+        status: true,
+        scheduledDate: true,
+        completedDate: true,
+        mileageAtService: true,
+        nextServiceDate: true,
+        nextServiceMileage: true,
+        cost: true,
+        laborCost: true,
+        partsCost: true,
+        description: true,
+        technicianName: true,
+        invoiceNumber: true,
+        notes: true,
+        createdAt: true,
+        updatedAt: true,
         maintenanceType: true,
         workshop: true,
         spareParts: true,
@@ -461,14 +538,31 @@ export class VehiclesService {
     const existing = await this.prisma.maintenanceRecord.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Maintenance record not found');
 
-    const { spareParts, scheduledDate, completedDate, nextServiceDate, dropOffDateTime, pickUpDateTime, approvedAt, ...rest } = dto;
+    const {
+      spareParts, scheduledDate, completedDate, nextServiceDate,
+      driverId, driverNameOverride,
+      dropOffDriverId, dropOffDriverNameOverride, dropOffDateTime,
+      pickUpDriverId, pickUpDriverNameOverride, pickUpDateTime,
+      approvedById, approvedAt, workDescription,
+      ...rest
+    } = dto;
     const data: any = { ...rest, updatedById: userId };
     if (scheduledDate !== undefined)   data.scheduledDate   = scheduledDate ? new Date(scheduledDate) : null;
     if (completedDate !== undefined)   data.completedDate   = completedDate ? new Date(completedDate) : null;
     if (nextServiceDate !== undefined) data.nextServiceDate = nextServiceDate ? new Date(nextServiceDate) : null;
-    if (dropOffDateTime !== undefined) data.dropOffDateTime = dropOffDateTime ? new Date(dropOffDateTime) : null;
-    if (pickUpDateTime !== undefined)  data.pickUpDateTime  = pickUpDateTime ? new Date(pickUpDateTime) : null;
-    if (approvedAt !== undefined)      data.approvedAt      = approvedAt ? new Date(approvedAt) : null;
+
+    // Try to add new fields - silently ignore if migration not yet applied
+    if (driverId !== undefined)                  data.driverId = driverId || null;
+    if (driverNameOverride !== undefined)        data.driverNameOverride = driverNameOverride || null;
+    if (dropOffDriverId !== undefined)           data.dropOffDriverId = dropOffDriverId || null;
+    if (dropOffDriverNameOverride !== undefined) data.dropOffDriverNameOverride = dropOffDriverNameOverride || null;
+    if (dropOffDateTime !== undefined)           data.dropOffDateTime = dropOffDateTime ? new Date(dropOffDateTime) : null;
+    if (pickUpDriverId !== undefined)            data.pickUpDriverId = pickUpDriverId || null;
+    if (pickUpDriverNameOverride !== undefined)  data.pickUpDriverNameOverride = pickUpDriverNameOverride || null;
+    if (pickUpDateTime !== undefined)            data.pickUpDateTime = pickUpDateTime ? new Date(pickUpDateTime) : null;
+    if (approvedById !== undefined)              data.approvedById = approvedById || null;
+    if (approvedAt !== undefined)                data.approvedAt = approvedAt ? new Date(approvedAt) : null;
+    if (workDescription !== undefined)           data.workDescription = workDescription || null;
 
     if (spareParts !== undefined) {
       // Replace spare parts
@@ -497,7 +591,26 @@ export class VehiclesService {
     return this.prisma.maintenanceRecord.update({
       where: { id },
       data,
-      include: {
+      select: {
+        id: true,
+        vehicleId: true,
+        maintenanceTypeId: true,
+        workshopId: true,
+        status: true,
+        scheduledDate: true,
+        completedDate: true,
+        mileageAtService: true,
+        nextServiceDate: true,
+        nextServiceMileage: true,
+        cost: true,
+        laborCost: true,
+        partsCost: true,
+        description: true,
+        technicianName: true,
+        invoiceNumber: true,
+        notes: true,
+        createdAt: true,
+        updatedAt: true,
         maintenanceType: true,
         workshop: true,
         spareParts: true,

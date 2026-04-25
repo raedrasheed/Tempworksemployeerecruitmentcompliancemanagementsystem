@@ -340,11 +340,12 @@ export class VehiclesService {
   // ── Maintenance Records ──────────────────────────────────────────────────────
 
   async listMaintenanceRecords(dto: FilterMaintenanceDto) {
-    const { page = 1, limit = 20, vehicleId, status, dateFrom, dateTo } = dto;
+    const { page = 1, limit = 20, vehicleId, workshopId, status, dateFrom, dateTo } = dto;
     const skip = (page - 1) * limit;
     const where: any = { deletedAt: null } as any;
 
     if (vehicleId) where.vehicleId = vehicleId;
+    if (workshopId) where.workshopId = workshopId;
     if (status)    where.status    = status;
     if (dateFrom || dateTo) {
       where.scheduledDate = {};

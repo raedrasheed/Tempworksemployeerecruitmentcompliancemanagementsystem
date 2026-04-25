@@ -226,23 +226,83 @@ export class UpdateMaintenanceTypeDto {
 
 export class CreateWorkshopDto {
   @ApiProperty() @IsString() name: string;
-  @ApiPropertyOptional() @IsOptional() @IsString() contactName?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() companyName?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() logo?: string;
+
+  // Contact details
+  @ApiPropertyOptional() @IsOptional() @IsString() telephone?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() mobile?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() telefax?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() phone?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() email?: string;
+
+  // Address
   @ApiPropertyOptional() @IsOptional() @IsString() address?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() city?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() country?: string;
+
+  // Tax/Registration
+  @ApiPropertyOptional() @IsOptional() @IsString() vatNumber?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() businessRegistrationNumber?: string;
+
+  // Contact person
+  @ApiPropertyOptional() @IsOptional() @IsString() contactName?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() contactPersonEmail?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() contactPersonPhone?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() contactPersonMobile?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() contactPersonAddress?: string;
+
+  // Banking
+  @ApiPropertyOptional() @IsOptional() @IsString() bankName?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() iban?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() swiftBicCode?: string;
+
+  // Business info
+  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsInt() establishmentYear?: number;
+  @ApiPropertyOptional() @IsOptional() @IsArray() @IsString({ each: true }) specializations?: string[];
+  @ApiPropertyOptional() @IsOptional() @IsString() status?: string;
+
   @ApiPropertyOptional() @IsOptional() @IsString() notes?: string;
 }
 
 export class UpdateWorkshopDto {
   @ApiPropertyOptional() @IsOptional() @IsString() name?: string;
-  @ApiPropertyOptional() @IsOptional() @IsString() contactName?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() companyName?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() logo?: string;
+
+  // Contact details
+  @ApiPropertyOptional() @IsOptional() @IsString() telephone?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() mobile?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() telefax?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() phone?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() email?: string;
+
+  // Address
   @ApiPropertyOptional() @IsOptional() @IsString() address?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() city?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() country?: string;
+
+  // Tax/Registration
+  @ApiPropertyOptional() @IsOptional() @IsString() vatNumber?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() businessRegistrationNumber?: string;
+
+  // Contact person
+  @ApiPropertyOptional() @IsOptional() @IsString() contactName?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() contactPersonEmail?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() contactPersonPhone?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() contactPersonMobile?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() contactPersonAddress?: string;
+
+  // Banking
+  @ApiPropertyOptional() @IsOptional() @IsString() bankName?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() iban?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() swiftBicCode?: string;
+
+  // Business info
+  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsInt() establishmentYear?: number;
+  @ApiPropertyOptional() @IsOptional() @IsArray() @IsString({ each: true }) specializations?: string[];
+  @ApiPropertyOptional() @IsOptional() @IsString() status?: string;
+
   @ApiPropertyOptional() @IsOptional() @IsString() notes?: string;
   @ApiPropertyOptional() @IsOptional() @Transform(({ value }) => value === 'true' || value === true) @IsBoolean() isActive?: boolean;
 }
@@ -298,6 +358,7 @@ export class UpdateMaintenanceRecordDto {
 
 export class FilterMaintenanceDto extends PaginationDto {
   @ApiPropertyOptional() @IsOptional() @IsString() vehicleId?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() workshopId?: string;
   @ApiPropertyOptional({ enum: MAINTENANCE_STATUSES }) @IsOptional() @IsString() status?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() dateFrom?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() dateTo?: string;

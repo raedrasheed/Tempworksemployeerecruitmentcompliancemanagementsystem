@@ -1568,20 +1568,51 @@ model EmployeeWorkHistoryAttachment {
 
 /// Workshop / garage used for vehicle maintenance
 model Workshop {
-  id          String    @id @default(uuid())
-  name        String
-  contactName String?
-  phone       String?
-  email       String?
-  address     String?
-  city        String?
-  country     String?
-  notes       String?
-  isActive    Boolean   @default(true)
-  deletedAt   DateTime?
-  deletedBy   String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id                          String    @id @default(uuid())
+  name                        String
+  companyName                 String?
+  logo                        String?
+
+  // Contact details
+  phone                       String?
+  telephone                   String?
+  mobile                      String?
+  telefax                     String?
+  email                       String?
+
+  // Address
+  address                     String?
+  city                        String?
+  country                     String?
+
+  // Tax/Registration identifiers
+  vatNumber                   String?   // IČ DPH (VAT ID)
+  businessRegistrationNumber  String?   // IČO (Business ID)
+
+  // Contact person
+  contactName                 String?
+  contactPersonEmail          String?
+  contactPersonPhone          String?
+  contactPersonMobile         String?
+  contactPersonAddress        String?
+
+  // Banking details
+  bankName                    String?
+  iban                        String?
+  swiftBicCode                String?
+
+  // Business information
+  establishmentYear           Int?
+  specializations             String[]  // Types of maintenance services provided
+  status                      String    @default("ACTIVE") // ACTIVE, INACTIVE, SUSPENDED
+
+  // Administrative
+  notes                       String?
+  isActive                    Boolean   @default(true)
+  deletedAt                   DateTime?
+  deletedBy                   String?
+  createdAt                   DateTime  @default(now())
+  updatedAt                   DateTime  @updatedAt
 
   maintenanceRecords MaintenanceRecord[]
 

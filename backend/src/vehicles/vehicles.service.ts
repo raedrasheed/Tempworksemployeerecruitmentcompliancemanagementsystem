@@ -33,7 +33,7 @@ const VEHICLE_INCLUDE = {
       maintenanceType: { select: { id: true, name: true } },
       workshop: { select: { id: true, name: true } },
     },
-    orderBy: { completedDate: 'desc' },
+    orderBy: { completedDate: 'desc' as const },
     take: 1,
   },
   _count: { select: { documents: true, maintenanceRecords: true } },

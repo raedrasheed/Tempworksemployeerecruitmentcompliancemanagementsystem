@@ -1,320 +1,272 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { EmailService } from '../email/email.service';
-import { CreateNotificationDto } from './dto/create-notification.dto';
-import { NotificationFilterDto } from './dto/notification-filter.dto';
-import { PaginatedResponse } from '../common/dto/pagination-response.dto';
-import {
-  NOTIF_EVENT_META,
-  NotifEventKey,
-  UserNotifPrefs,
-  mergeWithDefaults,
-  EVENT_TO_TYPE,
-} from './notification-events';
-
-// ── Internal creation params ─────────────────────────────────────────────────
-
-export interface SendNotificationParams {
-  /** Target user id */
-  userId:          string;
-  /** Specific event key (DOCUMENT_UPLOADED, FINANCIAL_RECORD_CREATED, …) */
-  eventType:       NotifEventKey;
-  /** Short headline */
-  title:           string;
-  /** Full message body */
-  message:         string;
-  /** Optional entity type for navigation (e.g. 'EMPLOYEE') */
-  relatedEntity?:  string;
-  /** Optional entity id for navigation */
-  relatedEntityId?: string;
-}
+import { NotificationType } from '@prisma/client';
 
 @Injectable()
 export class NotificationsService {
-  private readonly logger = new Logger(NotificationsService.name);
+  constructor(private readonly prisma: PrismaService) {}
 
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly email:  EmailService,
-  ) {}
-
-  // ── List / Inbox ─────────────────────────────────────────────────────────────
-
-  async findAll(userId: string, filter: NotificationFilterDto) {
-    const { page = 1, limit = 20 } = filter;
-    const skip = (Number(page) - 1) * Number(limit);
-
-    const where: any = { userId, deletedAt: null };
-
-    if (filter.isRead !== undefined) where.isRead = filter.isRead;
-    if (filter.type)      where.type      = filter.type;
-    if (filter.eventType) where.eventType = filter.eventType;
-
-    if (filter.dateFrom || filter.dateTo) {
-      where.createdAt = {};
-      if (filter.dateFrom) where.createdAt.gte = new Date(filter.dateFrom);
-      if (filter.dateTo)   where.createdAt.lte = new Date(filter.dateTo);
-    }
-
-    const [items, total] = await Promise.all([
+  /// Get notifications for a user with pagination
+  async getUserNotifications(userId: string, skip = 0, take = 20) {
+    const [notifications, total] = await Promise.all([
       this.prisma.notification.findMany({
-        where, skip, take: Number(limit), orderBy: { createdAt: 'desc' },
+        where: { userId, deletedAt: null },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
       }),
-      this.prisma.notification.count({ where }),
+      this.prisma.notification.count({
+        where: { userId, deletedAt: null },
+      }),
     ]);
-
-    return PaginatedResponse.create(items, total, page, limit);
+    return { data: notifications, total };
   }
 
-  // ── Unread count ─────────────────────────────────────────────────────────────
-
-  async getUnreadCount(userId: string) {
-    const count = await this.prisma.notification.count({
+  /// Get unread notification count for a user
+  async getUnreadCount(userId: string): Promise<number> {
+    return this.prisma.notification.count({
       where: { userId, isRead: false, deletedAt: null },
     });
-    return { count };
   }
 
-  // ── Mark as read ─────────────────────────────────────────────────────────────
-
-  async markAsRead(id: string, userId: string) {
-    const notification = await this.prisma.notification.findFirst({
-      where: { id, userId, deletedAt: null },
-    });
-    if (!notification) throw new NotFoundException('Notification not found');
+  /// Mark a notification as read
+  async markAsRead(notificationId: string) {
     return this.prisma.notification.update({
-      where: { id },
+      where: { id: notificationId },
       data: { isRead: true, readAt: new Date() },
     });
   }
 
-  /**
-   * Mark ALL of the user's unread notifications as read.
-   * Applies to all notifications regardless of active UI filters —
-   * this is the safest, most predictable behaviour.
-   */
+  /// Mark all notifications as read for a user
   async markAllAsRead(userId: string) {
-    const result = await this.prisma.notification.updateMany({
+    return this.prisma.notification.updateMany({
       where: { userId, isRead: false, deletedAt: null },
-      data:  { isRead: true, readAt: new Date() },
+      data: { isRead: true, readAt: new Date() },
     });
-    return { message: 'All notifications marked as read', updated: result.count };
   }
 
-  // ── Delete ───────────────────────────────────────────────────────────────────
-
-  async delete(id: string, userId: string) {
-    const notification = await this.prisma.notification.findFirst({
-      where: { id, userId, deletedAt: null },
+  /// Get or create notification preferences for a user
+  async getOrCreatePreferences(userId: string) {
+    return this.prisma.notificationPreference.upsert({
+      where: { userId },
+      update: {},
+      create: { userId },
     });
-    if (!notification) throw new NotFoundException('Notification not found');
-    await this.prisma.notification.update({
-      where: { id },
-      data: { deletedAt: new Date() },
-    });
-    return { message: 'Notification deleted' };
   }
 
-  // ── Admin create (raw) ───────────────────────────────────────────────────────
+  /// Update notification preferences
+  async updatePreferences(userId: string, data: any) {
+    return this.prisma.notificationPreference.update({
+      where: { userId },
+      data,
+    });
+  }
 
-  async create(dto: CreateNotificationDto) {
-    return this.prisma.notification.create({
-      data: {
-        userId:          dto.userId,
-        title:           dto.title,
-        message:         dto.message,
-        type:            (dto.type as any) || 'INFO',
-        relatedEntity:   dto.relatedEntity,
-        relatedEntityId: dto.relatedEntityId,
+  /// Check for vehicles with expiring compliance dates
+  async checkExpiringCompliance(): Promise<void> {
+    const fleetManagers = await this.prisma.user.findMany({
+      where: {
+        role: { name: { contains: 'Fleet Manager' } },
+        status: 'ACTIVE',
+        notificationPreference: { isNot: null },
       },
+      include: { notificationPreference: true, agency: true },
     });
-  }
 
-  // ── Preferences ──────────────────────────────────────────────────────────────
+    for (const manager of fleetManagers) {
+      if (!manager.notificationPreference) continue;
 
-  async getPreferences(userId: string): Promise<UserNotifPrefs & { meta: typeof NOTIF_EVENT_META }> {
-    const user = await this.prisma.user.findUnique({
-      where:  { id: userId },
-      select: { notificationPrefs: true },
-    });
-    const saved = (user?.notificationPrefs ?? null) as Partial<UserNotifPrefs> | null;
-    return { ...mergeWithDefaults(saved), meta: NOTIF_EVENT_META };
-  }
+      const daysBefore = manager.notificationPreference.complianceDaysBefore;
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() + daysBefore);
 
-  async updatePreferences(
-    userId: string,
-    prefs: Record<string, { in_app: boolean; email: boolean; sms: boolean }>,
-  ): Promise<UserNotifPrefs> {
-    // Force sms = false (not yet active)
-    const sanitized: Record<string, any> = {};
-    for (const [key, val] of Object.entries(prefs)) {
-      sanitized[key] = { in_app: !!val.in_app, email: !!val.email, sms: false };
+      const complianceChecks = [
+        { field: 'motExpiryDate', type: 'VEHICLE_MOT_EXPIRING', label: 'MOT' },
+        { field: 'taxExpiryDate', type: 'VEHICLE_TAX_EXPIRING', label: 'Tax' },
+        { field: 'insuranceExpiryDate', type: 'VEHICLE_INSURANCE_EXPIRING', label: 'Insurance' },
+        { field: 'registrationExpiryDate', type: 'VEHICLE_REGISTRATION_EXPIRING', label: 'Registration' },
+        { field: 'tachographCalibrationExpiry', type: 'VEHICLE_TACHOGRAPH_EXPIRING', label: 'Tachograph' },
+        { field: 'atpCertificateExpiry', type: 'VEHICLE_ATP_EXPIRING', label: 'ATP Certificate' },
+      ] as const;
+
+      for (const check of complianceChecks) {
+        const vehicles = await this.prisma.vehicle.findMany({
+          where: {
+            agencyId: manager.agencyId,
+            deletedAt: null,
+            [check.field]: { lte: cutoffDate, gt: new Date() },
+          },
+          select: { id: true, registrationNumber: true, [check.field]: true },
+        });
+
+        for (const vehicle of vehicles) {
+          const expiryDate = new Date(vehicle[check.field as keyof typeof vehicle] as any);
+          const daysUntil = Math.ceil((expiryDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+          const severity = daysUntil <= 7 ? 'HIGH' : daysUntil <= 14 ? 'MEDIUM' : 'LOW';
+
+          const existing = await this.prisma.notification.findFirst({
+            where: {
+              userId: manager.id,
+              relatedEntityId: vehicle.id,
+              type: check.type as NotificationType,
+              isRead: false,
+              createdAt: { gte: new Date(Date.now() - 86400000) },
+            },
+          });
+
+          if (!existing) {
+            await this.prisma.notification.create({
+              data: {
+                userId: manager.id,
+                title: `${vehicle.registrationNumber}: ${check.label} Expiring Soon`,
+                message: `${check.label} expires in ${daysUntil} days`,
+                type: check.type as NotificationType,
+                channel: 'in_app',
+                relatedEntity: 'Vehicle',
+                relatedEntityId: vehicle.id,
+                daysUntilDue: daysUntil,
+                severity,
+              },
+            });
+          }
+        }
+      }
     }
-
-    await this.prisma.user.update({
-      where: { id: userId },
-      data:  { notificationPrefs: sanitized },
-    });
-
-    return mergeWithDefaults(sanitized as Partial<UserNotifPrefs>);
   }
 
-  // ── Core delivery engine ─────────────────────────────────────────────────────
+  /// Check for vehicles needing service based on mileage
+  async checkServiceDue(): Promise<void> {
+    const fleetManagers = await this.prisma.user.findMany({
+      where: {
+        role: { name: { contains: 'Fleet Manager' } },
+        status: 'ACTIVE',
+        notificationPreference: { isNot: null },
+      },
+      include: { notificationPreference: true, agency: true },
+    });
 
-  /**
-   * Send a notification to one user, respecting their preferences.
-   *
-   * - If in_app is enabled: creates a Notification row (channel = 'in_app')
-   * - If email is enabled:  sends an email via EmailService
-   * - SMS: always skipped (future feature)
-   *
-   * Never throws — all errors are logged to avoid breaking the triggering flow.
-   */
-  async sendNotification(params: SendNotificationParams): Promise<void> {
-    try {
-      const user = await this.prisma.user.findUnique({
-        where:  { id: params.userId, deletedAt: null },
-        select: { id: true, email: true, firstName: true, lastName: true, notificationPrefs: true, status: true },
+    for (const manager of fleetManagers) {
+      if (!manager.notificationPreference) continue;
+      const kmBefore = manager.notificationPreference.serviceKmBefore;
+
+      const vehicles = await this.prisma.vehicle.findMany({
+        where: {
+          agencyId: manager.agencyId,
+          deletedAt: null,
+          maintenanceRecords: {
+            some: { nextServiceMileage: { not: null }, deletedAt: null },
+          },
+        },
+        include: {
+          maintenanceRecords: {
+            where: { deletedAt: null, nextServiceMileage: { not: null } },
+            orderBy: { createdAt: 'desc' },
+            take: 1,
+            include: { maintenanceType: true },
+          },
+        },
       });
-      if (!user || user.status !== 'ACTIVE') return;
 
-      const saved = (user.notificationPrefs ?? null) as Partial<UserNotifPrefs> | null;
-      const prefs = mergeWithDefaults(saved);
-      const channelPrefs = prefs[params.eventType];
+      for (const vehicle of vehicles) {
+        if (!vehicle.maintenanceRecords.length || !vehicle.currentMileage) continue;
 
-      const notifType = (EVENT_TO_TYPE[params.eventType] ?? 'INFO') as any;
+        const lastService = vehicle.maintenanceRecords[0];
+        const kmRemaining = lastService.nextServiceMileage! - vehicle.currentMileage;
 
-      // ── In-app ────────────────────────────────────────────────────────────
-      if (channelPrefs?.in_app !== false) {
-        await this.prisma.notification.create({
-          data: {
-            userId:          params.userId,
-            title:           params.title,
-            message:         params.message,
-            type:            notifType,
-            eventType:       params.eventType,
-            channel:         'in_app',
-            relatedEntity:   params.relatedEntity,
-            relatedEntityId: params.relatedEntityId,
+        if (kmRemaining > 0 && kmRemaining <= kmBefore) {
+          const severity = kmRemaining <= 100 ? 'HIGH' : kmRemaining <= 250 ? 'MEDIUM' : 'LOW';
+
+          const existing = await this.prisma.notification.findFirst({
+            where: {
+              userId: manager.id,
+              relatedEntityId: vehicle.id,
+              type: 'VEHICLE_SERVICE_DUE',
+              isRead: false,
+              createdAt: { gte: new Date(Date.now() - 86400000) },
+            },
+          });
+
+          if (!existing) {
+            await this.prisma.notification.create({
+              data: {
+                userId: manager.id,
+                title: `${vehicle.registrationNumber}: Service Due Soon`,
+                message: `Service due in ${kmRemaining} km`,
+                type: 'VEHICLE_SERVICE_DUE',
+                channel: 'in_app',
+                relatedEntity: 'Vehicle',
+                relatedEntityId: vehicle.id,
+                kmUntilDue: kmRemaining,
+                severity,
+              },
+            });
+          }
+        }
+      }
+    }
+  }
+
+  /// Check for overdue compliance
+  async checkOverdue(): Promise<void> {
+    const fleetManagers = await this.prisma.user.findMany({
+      where: {
+        role: { name: { contains: 'Fleet Manager' } },
+        status: 'ACTIVE',
+      },
+      include: { agency: true },
+    });
+
+    for (const manager of fleetManagers) {
+      const overduedVehicles = await this.prisma.vehicle.findMany({
+        where: {
+          agencyId: manager.agencyId,
+          deletedAt: null,
+          OR: [
+            { motExpiryDate: { lt: new Date() } },
+            { taxExpiryDate: { lt: new Date() } },
+            { insuranceExpiryDate: { lt: new Date() } },
+            { registrationExpiryDate: { lt: new Date() } },
+          ],
+        },
+        select: { id: true, registrationNumber: true },
+      });
+
+      for (const vehicle of overduedVehicles) {
+        const existing = await this.prisma.notification.findFirst({
+          where: {
+            userId: manager.id,
+            relatedEntityId: vehicle.id,
+            severity: 'HIGH',
+            isRead: false,
           },
         });
+
+        if (!existing) {
+          await this.prisma.notification.create({
+            data: {
+              userId: manager.id,
+              title: `🚨 ${vehicle.registrationNumber}: Compliance Overdue`,
+              message: 'Vehicle has expired compliance. Service immediately.',
+              type: 'VEHICLE_SERVICE_OVERDUE',
+              channel: 'in_app',
+              relatedEntity: 'Vehicle',
+              relatedEntityId: vehicle.id,
+              severity: 'HIGH',
+            },
+          });
+        }
       }
-
-      // ── Email ─────────────────────────────────────────────────────────────
-      if (channelPrefs?.email === true) {
-        const name = `${user.firstName} ${user.lastName}`;
-        await this.email.sendNotificationEmail(user.email, name, params.title, params.message, params.eventType);
-      }
-
-    } catch (err: any) {
-      this.logger.error(
-        `sendNotification failed for user ${params.userId} event ${params.eventType}: ${err?.message}`,
-        err?.stack,
-      );
     }
   }
 
-  /**
-   * Notify all ACTIVE users who hold a given role (or any of several roles).
-   * Each user's individual preferences are respected.
-   *
-   * Used for system-wide events (document expiry, financial events, etc.).
-   */
-  async notifyUsersByRoles(
-    roleNames:       string[],
-    eventType:       NotifEventKey,
-    title:           string,
-    message:         string,
-    relatedEntity?:  string,
-    relatedEntityId?: string,
-  ): Promise<void> {
+  /// Run all checks
+  async runAllChecks(): Promise<void> {
     try {
-      const users = await this.prisma.user.findMany({
-        where: {
-          role:      { name: { in: roleNames } },
-          deletedAt: null,
-          status:    'ACTIVE',
-        },
-        select: { id: true },
-      });
-
-      await Promise.all(
-        users.map(u =>
-          this.sendNotification({
-            userId: u.id, eventType, title, message, relatedEntity, relatedEntityId,
-          }),
-        ),
-      );
-    } catch (err: any) {
-      this.logger.error(`notifyUsersByRoles failed: ${err?.message}`, err?.stack);
+      await this.checkExpiringCompliance();
+      await this.checkServiceDue();
+      await this.checkOverdue();
+    } catch (error) {
+      console.error('Notification checks failed:', error);
     }
-  }
-
-  /**
-   * Notify a specific user + all users in specified roles.
-   * De-duplicates so the triggering user is not double-notified.
-   */
-  async notifyUploaderAndRoles(
-    uploaderId:      string,
-    roleNames:       string[],
-    eventType:       NotifEventKey,
-    title:           string,
-    message:         string,
-    relatedEntity?:  string,
-    relatedEntityId?: string,
-  ): Promise<void> {
-    try {
-      const roleUsers = await this.prisma.user.findMany({
-        where: {
-          role:      { name: { in: roleNames } },
-          deletedAt: null,
-          status:    'ACTIVE',
-        },
-        select: { id: true },
-      });
-
-      const allIds = [...new Set([uploaderId, ...roleUsers.map(u => u.id)])];
-
-      await Promise.all(
-        allIds.map(id =>
-          this.sendNotification({
-            userId: id, eventType, title, message, relatedEntity, relatedEntityId,
-          }),
-        ),
-      );
-    } catch (err: any) {
-      this.logger.error(`notifyUploaderAndRoles failed: ${err?.message}`, err?.stack);
-    }
-  }
-
-  /**
-   * Check whether a high-balance notification was already sent for this
-   * entity in the last 24 hours to prevent spam.
-   */
-  async wasHighBalanceAlertRecentlySent(entityId: string): Promise<boolean> {
-    const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const existing = await this.prisma.notification.findFirst({
-      where: {
-        eventType:  'FINANCIAL_HIGH_BALANCE',
-        relatedEntityId: entityId,
-        createdAt:  { gte: since },
-        deletedAt:  null,
-      },
-    });
-    return !!existing;
-  }
-
-  // ── Legacy broadcast ─────────────────────────────────────────────────────────
-
-  async broadcastToRole(roleName: string, title: string, message: string, type = 'INFO') {
-    const users = await this.prisma.user.findMany({
-      where: { role: { name: roleName }, deletedAt: null, status: 'ACTIVE' },
-      select: { id: true },
-    });
-    if (users.length === 0) return { sent: 0 };
-    await this.prisma.notification.createMany({
-      data: users.map(u => ({ userId: u.id, title, message, type: type as any })),
-    });
-    return { sent: users.length };
   }
 }

@@ -118,6 +118,15 @@ enum NotificationType {
   WORKFLOW
   SYSTEM
   FINANCIAL
+  VEHICLE_MOT_EXPIRING
+  VEHICLE_TAX_EXPIRING
+  VEHICLE_INSURANCE_EXPIRING
+  VEHICLE_REGISTRATION_EXPIRING
+  VEHICLE_TACHOGRAPH_EXPIRING
+  VEHICLE_ATP_EXPIRING
+  VEHICLE_PRESSURE_TEST_DUE
+  VEHICLE_SERVICE_DUE
+  VEHICLE_SERVICE_OVERDUE
 }
 
 enum EntityType {
@@ -301,7 +310,8 @@ model User {
   allowManagerEdit    Boolean  @default(false)
   allowManagerDelete  Boolean  @default(false)
 
-  applicationDraft    ApplicationDraft?
+  applicationDraft        ApplicationDraft?
+  notificationPreference  NotificationPreference? @relation("NotificationPreferences")
 
   @@map("users")
 }
@@ -788,6 +798,11 @@ model Notification {
   readAt          DateTime?
   relatedEntity   String?
   relatedEntityId String?
+  // For vehicle notifications: days/km until due
+  daysUntilDue    Int?
+  kmUntilDue      Int?
+  // For vehicle notifications: severity (LOW/MEDIUM/HIGH)
+  severity        String?
   createdAt       DateTime         @default(now())
   deletedAt       DateTime?
   deletedBy       String?
@@ -1960,4 +1975,25 @@ model AgencyPermissionOverride {
   @@unique([agencyId, permission])
   @@index([agencyId])
   @@map("agency_permission_overrides")
+}
+
+// ── Fleet notifications ───────────────────────────────────────────────────────
+
+/// Notification preferences and thresholds per user for vehicle alerts.
+model NotificationPreference {
+  id                String   @id @default(uuid())
+  userId            String   @unique
+  // Compliance date thresholds (days before expiry to notify)
+  complianceDaysBefore Int   @default(30)
+  // Mileage-based service threshold (km before next service mileage)
+  serviceKmBefore   Int      @default(500)
+  // Notification delivery preferences
+  enableEmailNotifications Boolean @default(true)
+  enableInAppNotifications Boolean @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user User @relation("NotificationPreferences", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_preferences")
 }

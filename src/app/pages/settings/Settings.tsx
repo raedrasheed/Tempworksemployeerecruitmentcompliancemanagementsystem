@@ -2,7 +2,8 @@ import { Link } from 'react-router';
 import { FileType, Bell, Shield, Activity, Layers, Briefcase, Palette, Trash2, Database, Server, Building2, Star, Truck, Tag, GitBranch, DollarSign } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { usePermissions } from '../../hooks/usePermissions';
-import { API_URL } from '../../services/api';
+import { useAuthContext } from '../../contexts/AuthContext';
+import { API_URL, getCurrentUser } from '../../services/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
@@ -26,8 +27,19 @@ export function Settings() {
   // System Admins pass via the usePermissions isAdmin bypass so the
   // legacy behaviour is preserved, and any role explicitly granted
   // `settings:update` via the Roles UI now also unlocks these cards.
+  //
+  // Fall back to the cached user from localStorage when AuthContext
+  // hasn't populated yet — the Sidebar uses the same pattern so the
+  // admin-only cards stay visible right after a hard reload instead of
+  // briefly disappearing while /auth/me is in-flight.
   const { canEdit } = usePermissions();
-  const canEditSettings = canEdit('settings');
+  const { user: ctxUser } = useAuthContext();
+  const cachedUser = ctxUser ?? getCurrentUser();
+  const cachedRole = typeof cachedUser?.role === 'string'
+    ? cachedUser.role
+    : ((cachedUser?.role as any)?.name ?? '');
+  const isCachedAdmin = cachedRole.trim().toLowerCase() === 'system admin';
+  const canEditSettings = canEdit('settings') || isCachedAdmin;
 
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
   const [systemStats, setSystemStats] = useState<SystemStats | null>(null);

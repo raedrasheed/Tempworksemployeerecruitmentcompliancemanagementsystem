@@ -623,6 +623,7 @@ async function bootstrap() {
     'http://localhost:5173',
     'http://localhost:4173',
     'https://whale-app-j7j64.ondigitalocean.app',
+    'https://monkfish-app-dtv2k.ondigitalocean.app',
   ].filter(Boolean);
 
   app.enableCors({

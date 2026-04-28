@@ -5,25 +5,20 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
-  // When VITE_API_TARGET is set, proxy /api and /uploads through localhost to
-  // avoid CORS issues when the frontend dev server hits a remote backend.
   const apiTarget = env.VITE_API_TARGET
 
   return {
     plugins: [
-      // The React and Tailwind plugins are both required for Make, even if
-      // Tailwind is not being actively used – do not remove them
       react(),
       tailwindcss(),
     ],
     resolve: {
       alias: {
-        // Alias @ to the src directory
         '@': path.resolve(__dirname, './src'),
       },
     },
-    // File types to support raw imports. Never add .css, .tsx, or .ts files to this.
     assetsInclude: ['**/*.svg', '**/*.csv'],
+
     server: {
       proxy: apiTarget
         ? {
@@ -31,6 +26,15 @@ export default defineConfig(({ mode }) => {
             '/uploads': { target: apiTarget, changeOrigin: true, secure: true },
           }
         : {},
+    },
+
+    preview: {
+      host: '0.0.0.0',
+      port: 8080,
+      allowedHosts: [
+        'monkfish-app-dtv2k.ondigitalocean.app',
+        'whale-app-j7j64.ondigitalocean.app',
+      ],
     },
   }
 })

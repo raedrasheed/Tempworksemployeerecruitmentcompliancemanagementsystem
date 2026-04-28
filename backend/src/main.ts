@@ -622,6 +622,7 @@ async function bootstrap() {
     process.env.FRONTEND_URL || 'http://localhost:5173',
     'http://localhost:5173',
     'http://localhost:4173',
+    'https://whale-app-j7j64.ondigitalocean.app',
   ].filter(Boolean);
 
   app.enableCors({

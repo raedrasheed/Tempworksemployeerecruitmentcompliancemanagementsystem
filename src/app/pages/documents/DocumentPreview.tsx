@@ -10,6 +10,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '../../components/ui/dialog';
 import { toast } from 'sonner';
+import { confirm } from '../../components/ui/ConfirmDialog';
 import { documentsApi } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
 
@@ -71,7 +72,11 @@ export function DocumentPreview() {
   };
 
   const handleDelete = async () => {
-    if (!confirm('Delete this document? This cannot be undone.')) return;
+    if (!(await confirm({
+      title: 'Delete document?',
+      description: 'This document will be permanently removed. This cannot be undone.',
+      confirmText: 'Delete', tone: 'destructive',
+    }))) return;
     try {
       await documentsApi.delete(id!);
       toast.success('Document deleted');

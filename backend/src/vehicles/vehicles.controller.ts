@@ -30,8 +30,8 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 
-const READ_ROLES   = ['System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Finance'];
-const WRITE_ROLES  = ['System Admin', 'HR Manager', 'Agency Manager'];
+const READ_ROLES   = ['System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Finance'];
+const WRITE_ROLES  = ['System Admin', 'HR Manager'];
 const EXPORT_ROLES = ['System Admin', 'HR Manager', 'Finance', 'Compliance Officer'];
 
 /**
@@ -115,6 +115,42 @@ export class VehiclesController {
     return this.vehiclesService.listMaintenanceRecords(dto);
   }
 
+  @Get('maintenance/records/export/excel')
+  @Roles(...EXPORT_ROLES)
+  @ApiOperation({ summary: 'Export maintenance records as Excel' })
+  async exportMaintenanceExcel(
+    @Query() dto: FilterMaintenanceDto,
+    @Query('recordIds') recordIds: string | string[] | undefined,
+    @Res() res: Response,
+  ) {
+    const ids = !recordIds ? undefined : Array.isArray(recordIds) ? recordIds : recordIds.split(',').filter(Boolean);
+    const buffer = await this.vehiclesService.exportMaintenanceRecordsExcel(dto, ids);
+    res.set({
+      'Content-Type':        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': `attachment; filename="maintenance-records-${new Date().toISOString().split('T')[0]}.xlsx"`,
+      'Content-Length':      buffer.length,
+    });
+    res.end(buffer);
+  }
+
+  @Get('maintenance/records/export/pdf')
+  @Roles(...EXPORT_ROLES)
+  @ApiOperation({ summary: 'Export maintenance records as PDF' })
+  async exportMaintenancePdf(
+    @Query() dto: FilterMaintenanceDto,
+    @Query('recordIds') recordIds: string | string[] | undefined,
+    @Res() res: Response,
+  ) {
+    const ids = !recordIds ? undefined : Array.isArray(recordIds) ? recordIds : recordIds.split(',').filter(Boolean);
+    const buffer = await this.vehiclesService.exportMaintenanceRecordsPdf(dto, ids);
+    res.set({
+      'Content-Type':        'application/pdf',
+      'Content-Disposition': `attachment; filename="maintenance-records-${new Date().toISOString().split('T')[0]}.pdf"`,
+      'Content-Length':      buffer.length,
+    });
+    res.end(buffer);
+  }
+
   @Get('maintenance/records/:id')
   @Roles(...READ_ROLES)
   @ApiOperation({ summary: 'Get a single maintenance record' })
@@ -142,6 +178,52 @@ export class VehiclesController {
   @ApiOperation({ summary: 'Soft-delete a maintenance record' })
   deleteMaintenance(@Param('id') id: string, @Request() req: any) {
     return this.vehiclesService.deleteMaintenanceRecord(id, req.user?.id);
+  }
+
+  @Post('maintenance/records/:id/attachments')
+  @Roles(...WRITE_ROLES)
+  @UseInterceptors(FileInterceptor('file', {
+    storage: diskStorage({
+      destination: 'uploads/maintenance',
+      filename: (req, file, cb) => {
+        const randomName = `${uuidv4()}${extname(file.originalname)}`;
+        cb(null, randomName);
+      },
+    }),
+  }))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Upload an attachment (invoice, receipt, etc.) to a maintenance record' })
+  uploadMaintenanceAttachment(
+    @Param('id') recordId: string,
+    @UploadedFile() file: Express.Multer.File,
+    @Request() req: any,
+  ) {
+    if (!file) throw new BadRequestException('No file uploaded');
+    const fileUrl = `/uploads/maintenance/${file.filename}`;
+    return this.vehiclesService.addMaintenanceAttachment(
+      recordId,
+      file.originalname,
+      fileUrl,
+      file.size,
+      file.mimetype,
+      req.body.documentType,
+      req.user?.id,
+    );
+  }
+
+  @Get('maintenance/records/:id/attachments')
+  @Roles(...READ_ROLES)
+  @ApiOperation({ summary: 'List all attachments for a maintenance record' })
+  getMaintenanceAttachments(@Param('id') recordId: string) {
+    return this.vehiclesService.getMaintenanceAttachments(recordId);
+  }
+
+  @Delete('maintenance/attachments/:id')
+  @Roles(...WRITE_ROLES)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Delete an attachment' })
+  deleteMaintenanceAttachment(@Param('id') id: string) {
+    return this.vehiclesService.deleteMaintenanceAttachment(id);
   }
 
   // ── 3. Static sub-resource routes — workshops (before :id) ──────────────────

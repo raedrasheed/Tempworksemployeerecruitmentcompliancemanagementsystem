@@ -6,12 +6,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/ca
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Input } from '../../components/ui/input';
+import { Textarea } from '../../components/ui/textarea';
 import { Label } from '../../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../../components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { confirm } from '../../components/ui/ConfirmDialog';
+import { toast } from 'sonner';
 import {
   Plus, Edit, Trash2, GripVertical, Save, FileText, CheckCircle,
-  AlertCircle, Shield, PowerOff, Power, Clock, ArrowLeft,
+  AlertCircle, Shield, PowerOff, Power, Clock, ArrowLeft, Copy,
 } from 'lucide-react';
 
 const COLORS: { label: string; value: string }[] = [
@@ -65,6 +68,18 @@ export function WorkflowSettingsPage() {
   const [selectedStage, setSelectedStage] = useState<Stage | null>(null);
   const [reqDocs, setReqDocs] = useState<{ id: string; name: string }[]>([]);
   const [reqUsers, setReqUsers] = useState<{ id: string; firstName: string; lastName: string }[]>([]);
+  // Separate Responsible list + "any user" toggle. Ignored when
+  // responsibleAny is true; required reading otherwise.
+  const [responsibleUsers, setResponsibleUsers] = useState<{ id: string; firstName: string; lastName: string }[]>([]);
+  const [responsibleAny, setResponsibleAny] = useState(true);
+  const [newResponsibleId, setNewResponsibleId] = useState('');
+  // Minimum distinct approvers that must approve before advance.
+  // Bounded to [1, approvers.length] on submit.
+  const [minApprovals, setMinApprovals] = useState(1);
+  // Approval mode:
+  //   ANY — at least `minApprovals` of the listed approvers must approve
+  //   ALL — every listed approver must individually approve
+  const [approvalMode, setApprovalMode] = useState<'ANY' | 'ALL'>('ANY');
   const [newDocId, setNewDocId] = useState('');
   const [newUserId, setNewUserId] = useState('');
   const [savingReq, setSavingReq] = useState(false);
@@ -141,7 +156,11 @@ export function WorkflowSettingsPage() {
   // ─── Delete Stage ─────────────────────────────────────────────────────────
 
   const handleDeleteStage = async (stageId: string, stageName: string) => {
-    if (!confirm(`Delete the "${stageName}" stage? Candidates currently in this stage will lose their progress.`)) return;
+    if (!(await confirm({
+      title: 'Delete stage?',
+      description: `Delete the "${stageName}" stage? Candidates currently in this stage will lose their progress.`,
+      confirmText: 'Delete', tone: 'destructive',
+    }))) return;
     try {
       await workflowApi.deleteStage(stageId);
       setStages(prev => prev.filter(s => s.id !== stageId).map((s, i) => ({ ...s, order: i + 1 })));
@@ -155,7 +174,11 @@ export function WorkflowSettingsPage() {
   const handleToggleActive = async (stage: Stage) => {
     const next = !stage.isActive;
     const verb = next ? 'activate' : 'deactivate';
-    if (!confirm(`Are you sure you want to ${verb} the "${stage.name}" stage?`)) return;
+    if (!(await confirm({
+      title: `${verb[0].toUpperCase() + verb.slice(1)} stage?`,
+      description: `The "${stage.name}" stage will be ${verb}d.`,
+      confirmText: verb[0].toUpperCase() + verb.slice(1),
+    }))) return;
     try {
       await workflowApi.updateStage(stage.id, { isActive: next } as any);
       setStages(prev => prev.map(s => s.id === stage.id ? { ...s, isActive: next } : s));
@@ -216,9 +239,19 @@ export function WorkflowSettingsPage() {
   const openEditRequirements = async (stage: Stage) => {
     setSelectedStage(stage);
     setReqDocs(stage.requiredDocs.map(rd => ({ id: rd.documentType.id, name: rd.documentType.name })));
-    setReqUsers(stage.assignedUsers.map(au => ({ id: au.user.id, firstName: au.user.firstName, lastName: au.user.lastName })));
+    // Split the stage's assigned users by role — APPROVER (and legacy
+    // REVIEWER) go into the approvers list; RESPONSIBLE go into the
+    // new responsibles list.
+    const approvers = stage.assignedUsers.filter((au: any) => au.role !== 'RESPONSIBLE');
+    const responsibles = stage.assignedUsers.filter((au: any) => au.role === 'RESPONSIBLE');
+    setReqUsers(approvers.map(au => ({ id: au.user.id, firstName: au.user.firstName, lastName: au.user.lastName })));
+    setResponsibleUsers(responsibles.map((au: any) => ({ id: au.user.id, firstName: au.user.firstName, lastName: au.user.lastName })));
+    setResponsibleAny((stage as any).responsibleAny ?? true);
+    setMinApprovals(Math.max(1, Number((stage as any).minApprovals ?? 1)));
+    setApprovalMode(((stage as any).approvalMode ?? 'ANY') === 'ALL' ? 'ALL' : 'ANY');
     setNewDocId('');
     setNewUserId('');
+    setNewResponsibleId('');
     setIsEditReqOpen(true);
 
     // Fetch dropdown options
@@ -239,8 +272,26 @@ export function WorkflowSettingsPage() {
     if (!selectedStage) return;
     setSavingReq(true);
     try {
+      // Clamp minApprovals at the client too so the ceiling is
+      // obvious in the UI; the backend clamps again defensively.
+      const approverCount = reqUsers.length;
+      // "ALL" forces every listed approver regardless of the
+      // minApprovals slider value; the backend enforces the same
+      // defensively.
+      const clampedMin = approverCount === 0
+        ? 1
+        : approvalMode === 'ALL'
+          ? approverCount
+          : Math.max(1, Math.min(minApprovals || 1, approverCount));
       await workflowApi.updateStage(selectedStage.id, {
         requiredDocTypeIds: reqDocs.map(d => d.id),
+        approverUserIds:    reqUsers.map(u => u.id),
+        responsibleUserIds: responsibleUsers.map(u => u.id),
+        responsibleAny,
+        minApprovals: clampedMin,
+        approvalMode,
+        // Keep assignedUserIds in sync for any legacy consumer that
+        // still reads the flat list.
         assignedUserIds: reqUsers.map(u => u.id),
       });
       await load();
@@ -288,10 +339,32 @@ export function WorkflowSettingsPage() {
     }
   };
 
+  // ─── Duplicate ────────────────────────────────────────────────────────────
+
+  const handleCopy = async () => {
+    if (!workflow) return;
+    if (!(await confirm({
+      title: 'Duplicate workflow?',
+      description: `A copy of "${workflow.name}" will be created with all its stages, required documents, assigned users, and access list. It will not carry over any in-flight candidate or employee assignments.`,
+      confirmText: 'Duplicate',
+    }))) return;
+    try {
+      const copied = await workflowApi.copy(id!);
+      toast.success(`Created "${copied.name}"`);
+      navigate(`/dashboard/settings/workflows/${copied.id}`);
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to duplicate workflow');
+    }
+  };
+
   // ─── Archive ──────────────────────────────────────────────────────────────
 
   const handleArchive = async () => {
-    if (!confirm('Archive this workflow? No new candidates can be assigned but existing progress is preserved.')) return;
+    if (!(await confirm({
+      title: 'Archive workflow?',
+      description: 'No new candidates can be assigned but existing progress is preserved.',
+      confirmText: 'Archive',
+    }))) return;
     try {
       await workflowApi.archive(id!);
       navigate('/dashboard/workflows');
@@ -340,6 +413,12 @@ export function WorkflowSettingsPage() {
           </div>
         </div>
         <div className="flex items-center gap-3">
+          {canEdit('settings') && (
+            <Button variant="outline" onClick={handleCopy}>
+              <Copy className="w-4 h-4 mr-2" />
+              Duplicate
+            </Button>
+          )}
           {canEdit('settings') && (
             <Button variant="outline" onClick={handleSaveOrder} disabled={saving}>
               <Save className="w-4 h-4 mr-2" />
@@ -456,7 +535,14 @@ export function WorkflowSettingsPage() {
           </div>
           <div>
             <Label htmlFor="wfDesc">Description</Label>
-            <Input id="wfDesc" value={metaForm.description} onChange={e => setMetaForm({ ...metaForm, description: e.target.value })} className="mt-1.5" placeholder="Optional description…" />
+            <Textarea
+              id="wfDesc"
+              value={metaForm.description}
+              onChange={e => setMetaForm({ ...metaForm, description: e.target.value })}
+              className="mt-1.5 min-h-[96px]"
+              rows={4}
+              placeholder="Optional description…"
+            />
           </div>
           <div className="flex items-center gap-6">
             <label className="flex items-center gap-2 text-sm cursor-pointer">
@@ -635,9 +721,118 @@ export function WorkflowSettingsPage() {
                 </div>
               </div>
 
-              {/* Required Approvals */}
+              {/* Responsible Users — who can process candidates in
+                  this stage. When "Any user" is on, the explicit
+                  list is ignored and anyone with permission may
+                  advance the candidate. */}
               <div>
-                <Label>Required Approvals</Label>
+                <div className="flex items-center justify-between">
+                  <Label>Responsible Users</Label>
+                  <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="rounded"
+                      checked={responsibleAny}
+                      onChange={(e) => setResponsibleAny(e.target.checked)}
+                    />
+                    Any user may process
+                  </label>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {responsibleAny
+                    ? 'Any authenticated user may advance candidates through this stage.'
+                    : 'Only the users listed here may advance candidates through this stage.'}
+                </p>
+                <div className={`space-y-2 mt-2 ${responsibleAny ? 'opacity-50 pointer-events-none' : ''}`}>
+                  {responsibleUsers.map((u, idx) => (
+                    <div key={u.id} className="flex items-center gap-2">
+                      <div className="flex-1 px-3 py-2 border rounded-md bg-muted/40 text-sm">{u.firstName} {u.lastName}</div>
+                      <Button size="sm" variant="ghost" onClick={() => setResponsibleUsers(prev => prev.filter((_, i) => i !== idx))}>
+                        <Trash2 className="w-4 h-4 text-[#EF4444]" />
+                      </Button>
+                    </div>
+                  ))}
+                  <div className="flex items-center gap-2">
+                    <Select value={newResponsibleId} onValueChange={setNewResponsibleId}>
+                      <SelectTrigger className="flex-1">
+                        <SelectValue placeholder="Select a user…" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {allUsers.length === 0 ? (
+                          <SelectItem value="__none__" disabled>No users available</SelectItem>
+                        ) : (
+                          allUsers
+                            .filter(u => !responsibleUsers.some(r => r.id === u.id))
+                            .map(u => <SelectItem key={u.id} value={u.id}>{u.firstName} {u.lastName}</SelectItem>)
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      size="sm" variant="outline"
+                      onClick={() => {
+                        const u = allUsers.find(x => x.id === newResponsibleId);
+                        if (u) { setResponsibleUsers(prev => [...prev, u]); setNewResponsibleId(''); }
+                      }}
+                      disabled={!newResponsibleId || newResponsibleId === '__none__' || responsibleAny}
+                    >
+                      <Plus className="w-4 h-4 mr-1" /> Add User
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Approvers — users authorised to approve the stage.
+                  Leave empty to mean "None": the candidate advances
+                  as soon as a Responsible user sends them forward.
+                  With one or more approvers, at least one of them
+                  must approve before advancement. */}
+              <div>
+                <Label>Approvers</Label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {reqUsers.length === 0
+                    ? 'None — candidate advances as soon as a Responsible user sends them to the next stage.'
+                    : approvalMode === 'ALL'
+                      ? `All ${reqUsers.length} approver${reqUsers.length === 1 ? '' : 's'} must individually approve before the candidate can advance.`
+                      : `At least ${Math.max(1, Math.min(minApprovals || 1, reqUsers.length))} of ${reqUsers.length} approver${reqUsers.length === 1 ? '' : 's'} must approve before the candidate can advance.`}
+                </p>
+
+                {/* Approval mode + minimum approvals — only
+                    meaningful once the approver list is non-empty.
+                    Mode is currently fixed at ANY; the dropdown is
+                    kept so additional modes plug in later without
+                    rework. */}
+                {reqUsers.length > 0 && (
+                  <div className="mt-2 flex items-center gap-3 flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="wf-approval-mode" className="text-xs text-muted-foreground">Approval mode</Label>
+                      <Select value={approvalMode} onValueChange={(v) => setApprovalMode(v as 'ANY' | 'ALL')}>
+                        <SelectTrigger id="wf-approval-mode" className="w-28 h-8"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="ANY">Any</SelectItem>
+                          <SelectItem value="ALL">All</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className={`flex items-center gap-2 ${approvalMode === 'ALL' ? 'opacity-50' : ''}`}>
+                      <Label htmlFor="wf-min-approvals" className="text-xs text-muted-foreground">Minimum approvals required</Label>
+                      <input
+                        id="wf-min-approvals"
+                        type="number"
+                        min={1}
+                        max={reqUsers.length}
+                        // In ALL mode every approver is required —
+                        // show the ceiling and lock the field.
+                        value={approvalMode === 'ALL'
+                          ? reqUsers.length
+                          : Math.max(1, Math.min(minApprovals || 1, reqUsers.length))}
+                        disabled={approvalMode === 'ALL'}
+                        onChange={(e) => setMinApprovals(Math.max(1, Math.min(Number(e.target.value) || 1, reqUsers.length)))}
+                        className="w-16 px-2 py-1 border rounded text-sm text-center disabled:bg-muted"
+                      />
+                      <span className="text-xs text-muted-foreground">of {reqUsers.length}</span>
+                    </div>
+                  </div>
+                )}
                 <div className="space-y-2 mt-2">
                   {reqUsers.map((u, idx) => (
                     <div key={u.id} className="flex items-center gap-2">

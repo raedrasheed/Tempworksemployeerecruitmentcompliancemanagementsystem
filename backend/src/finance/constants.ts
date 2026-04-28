@@ -36,7 +36,7 @@ export const PAYMENT_METHODS = [
 
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 
-export const FINANCIAL_RECORD_STATUSES = ['PENDING', 'DEDUCTED'] as const;
+export const FINANCIAL_RECORD_STATUSES = ['PENDING', 'PARTIAL', 'DEDUCTED'] as const;
 export type FinancialRecordStatus = (typeof FINANCIAL_RECORD_STATUSES)[number];
 
 export const COMMON_CURRENCIES = [

@@ -1,8 +1,9 @@
 import { Link } from 'react-router';
-import { FileType, Bell, Shield, Activity, Layers, Briefcase, Palette, Trash2, Database, Server, Building2, Star, Truck, Tag, GitBranch } from 'lucide-react';
+import { FileType, Bell, Shield, Activity, Layers, Briefcase, Palette, Trash2, Database, Server, Building2, Star, Truck, Tag, GitBranch, DollarSign } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { usePermissions } from '../../hooks/usePermissions';
 import { useAuthContext } from '../../contexts/AuthContext';
-import { API_URL } from '../../services/api';
+import { API_URL, getCurrentUser } from '../../services/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
@@ -21,8 +22,24 @@ interface SystemStats {
 }
 
 export function Settings() {
-  const { user } = useAuthContext();
-  const isAdmin = user?.role === 'System Admin';
+  // settings:update is the gate for admin-only configuration cards
+  // (branding, skills, truck brands, database backup/cleanup, …).
+  // System Admins pass via the usePermissions isAdmin bypass so the
+  // legacy behaviour is preserved, and any role explicitly granted
+  // `settings:update` via the Roles UI now also unlocks these cards.
+  //
+  // Fall back to the cached user from localStorage when AuthContext
+  // hasn't populated yet — the Sidebar uses the same pattern so the
+  // admin-only cards stay visible right after a hard reload instead of
+  // briefly disappearing while /auth/me is in-flight.
+  const { canEdit } = usePermissions();
+  const { user: ctxUser } = useAuthContext();
+  const cachedUser = ctxUser ?? getCurrentUser();
+  const cachedRole = typeof cachedUser?.role === 'string'
+    ? cachedUser.role
+    : ((cachedUser?.role as any)?.name ?? '');
+  const isCachedAdmin = cachedRole.trim().toLowerCase() === 'system admin';
+  const canEditSettings = canEdit('settings') || isCachedAdmin;
 
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
   const [systemStats, setSystemStats] = useState<SystemStats | null>(null);
@@ -52,6 +69,18 @@ export function Settings() {
       title: 'Document Types',
       description: 'Manage document types and requirements',
       path: '/dashboard/settings/document-types',
+    },
+    {
+      icon: DollarSign,
+      title: 'Transaction Types',
+      description: 'Configure the transaction type options shown in the finance ledger',
+      path: '/dashboard/settings/transaction-types',
+    },
+    {
+      icon: Briefcase,
+      title: 'Work History Event Types',
+      description: 'Configure the event types shown in the Employee profile Contracts tab',
+      path: '/dashboard/settings/work-history-event-types',
     },
     {
       icon: Bell,
@@ -142,7 +171,7 @@ export function Settings() {
         })}
 
         {/* Company Branding — System Admin only */}
-        {isAdmin && (
+        {canEditSettings && (
           <Link to="/dashboard/settings/branding">
             <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full border-indigo-200 hover:border-indigo-400">
               <CardHeader>
@@ -164,7 +193,7 @@ export function Settings() {
         )}
 
         {/* Skills List */}
-        {isAdmin && (
+        {canEditSettings && (
           <Link to="/dashboard/settings/skills">
             <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full border-amber-200 hover:border-amber-400">
               <CardHeader>
@@ -186,7 +215,7 @@ export function Settings() {
         )}
 
         {/* Transport Types */}
-        {isAdmin && (
+        {canEditSettings && (
           <Link to="/dashboard/settings/transport-types">
             <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full border-blue-200 hover:border-blue-400">
               <CardHeader>
@@ -208,7 +237,7 @@ export function Settings() {
         )}
 
         {/* Truck Brands */}
-        {isAdmin && (
+        {canEditSettings && (
           <Link to="/dashboard/settings/truck-brands">
             <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full border-blue-200 hover:border-blue-400">
               <CardHeader>
@@ -230,7 +259,7 @@ export function Settings() {
         )}
 
         {/* Trailer Types */}
-        {isAdmin && (
+        {canEditSettings && (
           <Link to="/dashboard/settings/trailer-types">
             <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full border-blue-200 hover:border-blue-400">
               <CardHeader>
@@ -251,8 +280,32 @@ export function Settings() {
           </Link>
         )}
 
+        {/* Vehicle Settings — central hub for every vehicle-form lookup list and maintenance types */}
+        {canEditSettings && (
+          <Link to="/dashboard/settings/vehicles">
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full border-blue-200 hover:border-blue-400">
+              <CardHeader>
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
+                    <Truck className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="text-blue-800">Vehicle Settings</CardTitle>
+                      <Badge className="bg-[#EF4444]">Admin Only</Badge>
+                    </div>
+                    <CardDescription>
+                      Central hub for vehicle lookups, maintenance types, service intervals, and vehicle form configuration
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+            </Card>
+          </Link>
+        )}
+
         {/* Database Backup & Restore — System Admin only */}
-        {isAdmin && (
+        {canEditSettings && (
           <Link to="/dashboard/settings/database-backup">
             <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full border-blue-200 hover:border-blue-400">
               <CardHeader>
@@ -274,7 +327,7 @@ export function Settings() {
         )}
 
         {/* System Information — System Admin only */}
-        {isAdmin && (
+        {canEditSettings && (
           <Link to="/dashboard/settings/system-information">
             <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full border-slate-200 hover:border-slate-400">
               <CardHeader>
@@ -296,7 +349,7 @@ export function Settings() {
         )}
 
         {/* Database Cleanup — System Admin only */}
-        {isAdmin && (
+        {canEditSettings && (
           <Link to="/dashboard/settings/database-cleanup">
             <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full border-red-200 hover:border-red-400">
               <CardHeader>
@@ -370,7 +423,7 @@ export function Settings() {
                 </CardDescription>
               </div>
             </div>
-            {isAdmin && (
+            {canEditSettings && (
               <Link to="/dashboard/settings/system-information">
                 <Button variant="outline" size="sm">Edit</Button>
               </Link>

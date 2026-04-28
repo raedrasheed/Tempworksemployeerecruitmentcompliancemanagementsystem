@@ -1,6 +1,6 @@
 import {
   IsOptional, IsString, IsIn, IsInt, Min, IsUUID, IsBoolean,
-  IsNumber, IsDateString,
+  IsNumber, IsDateString, IsArray,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type, Transform } from 'class-transformer';
@@ -18,61 +18,157 @@ export const MAINTENANCE_STATUSES = ['SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'C
 
 export class FilterVehiclesDto extends PaginationDto {
   @ApiPropertyOptional() @IsOptional() @IsString() search?: string;
-  @ApiPropertyOptional({ enum: VEHICLE_TYPES }) @IsOptional() @IsString() type?: string;
-  @ApiPropertyOptional({ enum: VEHICLE_STATUSES }) @IsOptional() @IsString() status?: string;
+  // type is a configurable lookup now — accept any string the admin
+  // has added under System Settings → Vehicle Settings.
+  @ApiPropertyOptional() @IsOptional() @IsString() type?: string;
+  // status / fuelType are configurable lookups now — accept any string.
+  @ApiPropertyOptional() @IsOptional() @IsString() status?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() agencyId?: string;
   @ApiPropertyOptional({ description: 'Only vehicles with expiring docs in next N days' })
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) expiringInDays?: number;
 }
 
 // ─── Vehicle CRUD ─────────────────────────────────────────────────────────────
+// Note: status, fuelType, bodyType, hitchType, tankMaterial, adrClass,
+// vinSubType, insuranceGroup and insuranceType are all driven by the
+// configurable lookup lists under System Settings → Vehicle Settings.
+// They are validated as plain strings here so admins can introduce new
+// values from the settings UI without a code change.
 
 export class CreateVehicleDto {
-  @ApiProperty({ enum: VEHICLE_TYPES }) @IsIn(VEHICLE_TYPES as unknown as string[]) type: string;
+  // type is driven by the configurable Vehicle Types lookup under
+  // System Settings → Vehicle Settings — accept any string the admin
+  // has configured (e.g. "Truck", "Forklift", "Crane").
+  @ApiProperty() @IsString() type: string;
   @ApiProperty() @IsString() registrationNumber: string;
   @ApiProperty() @IsString() make: string;
   @ApiProperty() @IsString() model: string;
-  @ApiPropertyOptional({ enum: VEHICLE_STATUSES }) @IsOptional() @IsIn(VEHICLE_STATUSES as unknown as string[]) status?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() status?: string;
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsInt() year?: number;
   @ApiPropertyOptional() @IsOptional() @IsString() color?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() licensePlate?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() vin?: string;
-  @ApiPropertyOptional({ enum: FUEL_TYPES }) @IsOptional() @IsIn(FUEL_TYPES as unknown as string[]) fuelType?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() fuelType?: string;
+  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() fuelCapacity?: number;
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsInt() currentMileage?: number;
   @ApiPropertyOptional() @IsOptional() @IsString() notes?: string;
   @ApiPropertyOptional({ description: 'YYYY-MM-DD' }) @IsOptional() @IsString() motExpiryDate?: string;
   @ApiPropertyOptional({ description: 'YYYY-MM-DD' }) @IsOptional() @IsString() taxExpiryDate?: string;
   @ApiPropertyOptional({ description: 'YYYY-MM-DD' }) @IsOptional() @IsString() insuranceExpiryDate?: string;
-  // Type-specific
+  @ApiPropertyOptional({ description: 'YYYY-MM-DD' }) @IsOptional() @IsString() registrationExpiryDate?: string;
+  // Purchase
+  @ApiPropertyOptional() @IsOptional() @IsString() purchaseOrder?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() purchaseDate?: string;
+  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() purchaseCost?: number;
+  @ApiPropertyOptional() @IsOptional() @IsString() purchaseContract?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() vendorName?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() vendorAddress?: string;
+  // Insurance
+  @ApiPropertyOptional() @IsOptional() @IsString() insurancePolicyNumber?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() insuranceCompany?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() insuranceType?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() insuranceStartDate?: string;
+  // Truck/trailer
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() grossWeight?: number;
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() payloadCapacity?: number;
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsInt() numberOfAxles?: number;
+  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() tareWeight?: number;
+  @ApiPropertyOptional() @IsOptional() @IsString() bodyType?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() hitchType?: string;
+  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() lengthM?: number;
+  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() widthM?: number;
+  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() heightM?: number;
+  @ApiPropertyOptional() @IsOptional() @IsString() euroEmissionClass?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() tachographSerial?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() tachographCalibrationExpiry?: string;
+  // Vans
+  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsInt() seatingCapacity?: number;
+  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() loadVolume?: number;
+  @ApiPropertyOptional() @IsOptional() @IsBoolean() partitionFitted?: boolean;
+  // Cars
+  @ApiPropertyOptional() @IsOptional() @IsString() vinSubType?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() insuranceGroup?: string;
+  // Tanker
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() tankerCapacity?: number;
-  @ApiPropertyOptional() @IsOptional() @IsString() refrigerationUnit?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() tankMaterial?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() adrClass?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() unNumbers?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() lastPressureTestDate?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() nextPressureTestDate?: string;
+  // Refrigerated trailer
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() trailerLength?: number;
+  @ApiPropertyOptional() @IsOptional() @IsString() refrigerationUnit?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() refrigerationModel?: string;
+  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() tempMin?: number;
+  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() tempMax?: number;
+  @ApiPropertyOptional() @IsOptional() @IsString() atpCertificateNumber?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() atpCertificateExpiry?: string;
+  // Specialty
+  @ApiPropertyOptional() @IsOptional() @IsString() equipmentDescription?: string;
+  @ApiPropertyOptional() @IsOptional() customAttributes?: Record<string, string>;
   @ApiPropertyOptional() @IsOptional() @IsString() agencyId?: string;
 }
 
 export class UpdateVehicleDto {
-  @ApiPropertyOptional({ enum: VEHICLE_TYPES }) @IsOptional() @IsIn(VEHICLE_TYPES as unknown as string[]) type?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() type?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() registrationNumber?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() make?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() model?: string;
-  @ApiPropertyOptional({ enum: VEHICLE_STATUSES }) @IsOptional() @IsIn(VEHICLE_STATUSES as unknown as string[]) status?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() status?: string;
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsInt() year?: number;
   @ApiPropertyOptional() @IsOptional() @IsString() color?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() licensePlate?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() vin?: string;
-  @ApiPropertyOptional({ enum: FUEL_TYPES }) @IsOptional() @IsIn(FUEL_TYPES as unknown as string[]) fuelType?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() fuelType?: string;
+  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() fuelCapacity?: number;
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsInt() currentMileage?: number;
   @ApiPropertyOptional() @IsOptional() @IsString() notes?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() motExpiryDate?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() taxExpiryDate?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() insuranceExpiryDate?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() registrationExpiryDate?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() purchaseOrder?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() purchaseDate?: string;
+  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() purchaseCost?: number;
+  @ApiPropertyOptional() @IsOptional() @IsString() purchaseContract?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() vendorName?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() vendorAddress?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() insurancePolicyNumber?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() insuranceCompany?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() insuranceType?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() insuranceStartDate?: string;
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() grossWeight?: number;
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() payloadCapacity?: number;
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsInt() numberOfAxles?: number;
+  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() tareWeight?: number;
+  @ApiPropertyOptional() @IsOptional() @IsString() bodyType?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() hitchType?: string;
+  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() lengthM?: number;
+  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() widthM?: number;
+  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() heightM?: number;
+  @ApiPropertyOptional() @IsOptional() @IsString() euroEmissionClass?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() tachographSerial?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() tachographCalibrationExpiry?: string;
+  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsInt() seatingCapacity?: number;
+  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() loadVolume?: number;
+  @ApiPropertyOptional() @IsOptional() @IsBoolean() partitionFitted?: boolean;
+  @ApiPropertyOptional() @IsOptional() @IsString() vinSubType?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() insuranceGroup?: string;
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() tankerCapacity?: number;
-  @ApiPropertyOptional() @IsOptional() @IsString() refrigerationUnit?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() tankMaterial?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() adrClass?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() unNumbers?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() lastPressureTestDate?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() nextPressureTestDate?: string;
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() trailerLength?: number;
+  @ApiPropertyOptional() @IsOptional() @IsString() refrigerationUnit?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() refrigerationModel?: string;
+  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() tempMin?: number;
+  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() tempMax?: number;
+  @ApiPropertyOptional() @IsOptional() @IsString() atpCertificateNumber?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() atpCertificateExpiry?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() equipmentDescription?: string;
+  @ApiPropertyOptional() @IsOptional() customAttributes?: Record<string, string>;
   @ApiPropertyOptional() @IsOptional() @IsString() agencyId?: string;
 }
 
@@ -114,6 +210,7 @@ export class CreateMaintenanceTypeDto {
   @ApiPropertyOptional() @IsOptional() @IsString() description?: string;
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsInt() defaultIntervalDays?: number;
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsInt() defaultIntervalKm?: number;
+  @ApiPropertyOptional({ enum: ['DAYS', 'KM', 'BOTH'] }) @IsOptional() @IsString() intervalMode?: string;
 }
 
 export class UpdateMaintenanceTypeDto {
@@ -121,6 +218,7 @@ export class UpdateMaintenanceTypeDto {
   @ApiPropertyOptional() @IsOptional() @IsString() description?: string;
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsInt() defaultIntervalDays?: number;
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsInt() defaultIntervalKm?: number;
+  @ApiPropertyOptional({ enum: ['DAYS', 'KM', 'BOTH'] }) @IsOptional() @IsString() intervalMode?: string;
   @ApiPropertyOptional() @IsOptional() @Transform(({ value }) => value === 'true' || value === true) @IsBoolean() isActive?: boolean;
 }
 
@@ -128,23 +226,83 @@ export class UpdateMaintenanceTypeDto {
 
 export class CreateWorkshopDto {
   @ApiProperty() @IsString() name: string;
-  @ApiPropertyOptional() @IsOptional() @IsString() contactName?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() companyName?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() logo?: string;
+
+  // Contact details
+  @ApiPropertyOptional() @IsOptional() @IsString() telephone?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() mobile?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() telefax?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() phone?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() email?: string;
+
+  // Address
   @ApiPropertyOptional() @IsOptional() @IsString() address?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() city?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() country?: string;
+
+  // Tax/Registration
+  @ApiPropertyOptional() @IsOptional() @IsString() vatNumber?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() businessRegistrationNumber?: string;
+
+  // Contact person
+  @ApiPropertyOptional() @IsOptional() @IsString() contactName?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() contactPersonEmail?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() contactPersonPhone?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() contactPersonMobile?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() contactPersonAddress?: string;
+
+  // Banking
+  @ApiPropertyOptional() @IsOptional() @IsString() bankName?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() iban?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() swiftBicCode?: string;
+
+  // Business info
+  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsInt() establishmentYear?: number;
+  @ApiPropertyOptional() @IsOptional() @IsArray() @IsString({ each: true }) specializations?: string[];
+  @ApiPropertyOptional() @IsOptional() @IsString() status?: string;
+
   @ApiPropertyOptional() @IsOptional() @IsString() notes?: string;
 }
 
 export class UpdateWorkshopDto {
   @ApiPropertyOptional() @IsOptional() @IsString() name?: string;
-  @ApiPropertyOptional() @IsOptional() @IsString() contactName?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() companyName?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() logo?: string;
+
+  // Contact details
+  @ApiPropertyOptional() @IsOptional() @IsString() telephone?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() mobile?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() telefax?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() phone?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() email?: string;
+
+  // Address
   @ApiPropertyOptional() @IsOptional() @IsString() address?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() city?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() country?: string;
+
+  // Tax/Registration
+  @ApiPropertyOptional() @IsOptional() @IsString() vatNumber?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() businessRegistrationNumber?: string;
+
+  // Contact person
+  @ApiPropertyOptional() @IsOptional() @IsString() contactName?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() contactPersonEmail?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() contactPersonPhone?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() contactPersonMobile?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() contactPersonAddress?: string;
+
+  // Banking
+  @ApiPropertyOptional() @IsOptional() @IsString() bankName?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() iban?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() swiftBicCode?: string;
+
+  // Business info
+  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsInt() establishmentYear?: number;
+  @ApiPropertyOptional() @IsOptional() @IsArray() @IsString({ each: true }) specializations?: string[];
+  @ApiPropertyOptional() @IsOptional() @IsString() status?: string;
+
   @ApiPropertyOptional() @IsOptional() @IsString() notes?: string;
   @ApiPropertyOptional() @IsOptional() @Transform(({ value }) => value === 'true' || value === true) @IsBoolean() isActive?: boolean;
 }
@@ -173,9 +331,29 @@ export class CreateMaintenanceRecordDto {
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() laborCost?: number;
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() partsCost?: number;
   @ApiPropertyOptional() @IsOptional() @IsString() description?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() workDescription?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() technicianName?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() invoiceNumber?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() notes?: string;
+
+  // Driver at time of service (internal or external)
+  @ApiPropertyOptional() @IsOptional() @IsUUID() driverId?: string;
+  @ApiPropertyOptional({ description: 'Driver name for external drivers (when driverId is not set)' }) @IsOptional() @IsString() driverNameOverride?: string;
+
+  // Drop-off driver and timestamp
+  @ApiPropertyOptional() @IsOptional() @IsUUID() dropOffDriverId?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() dropOffDriverNameOverride?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() dropOffDateTime?: string;
+
+  // Pick-up driver and timestamp
+  @ApiPropertyOptional() @IsOptional() @IsUUID() pickUpDriverId?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() pickUpDriverNameOverride?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() pickUpDateTime?: string;
+
+  // Approval
+  @ApiPropertyOptional() @IsOptional() @IsUUID() approvedById?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() approvedAt?: string;
+
   @ApiPropertyOptional({ type: [SparePartDto] }) @IsOptional() spareParts?: SparePartDto[];
 }
 
@@ -192,14 +370,35 @@ export class UpdateMaintenanceRecordDto {
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() laborCost?: number;
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() partsCost?: number;
   @ApiPropertyOptional() @IsOptional() @IsString() description?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() workDescription?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() technicianName?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() invoiceNumber?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() notes?: string;
+
+  // Driver at time of service (internal or external)
+  @ApiPropertyOptional() @IsOptional() @IsUUID() driverId?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() driverNameOverride?: string;
+
+  // Drop-off driver and timestamp
+  @ApiPropertyOptional() @IsOptional() @IsUUID() dropOffDriverId?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() dropOffDriverNameOverride?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() dropOffDateTime?: string;
+
+  // Pick-up driver and timestamp
+  @ApiPropertyOptional() @IsOptional() @IsUUID() pickUpDriverId?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() pickUpDriverNameOverride?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() pickUpDateTime?: string;
+
+  // Approval
+  @ApiPropertyOptional() @IsOptional() @IsUUID() approvedById?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() approvedAt?: string;
+
   @ApiPropertyOptional({ type: [SparePartDto] }) @IsOptional() spareParts?: SparePartDto[];
 }
 
 export class FilterMaintenanceDto extends PaginationDto {
   @ApiPropertyOptional() @IsOptional() @IsString() vehicleId?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() workshopId?: string;
   @ApiPropertyOptional({ enum: MAINTENANCE_STATUSES }) @IsOptional() @IsString() status?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() dateFrom?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() dateTo?: string;
@@ -208,7 +407,8 @@ export class FilterMaintenanceDto extends PaginationDto {
 // ─── Export ───────────────────────────────────────────────────────────────────
 
 export class ExportVehiclesDto {
-  @ApiPropertyOptional({ enum: VEHICLE_TYPES }) @IsOptional() @IsString() type?: string;
-  @ApiPropertyOptional({ enum: VEHICLE_STATUSES }) @IsOptional() @IsString() status?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() type?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() status?: string;
+  @ApiPropertyOptional({ isArray: true, description: 'Specific vehicle IDs to export' }) @IsOptional() @IsArray() @IsString({ each: true }) vehicleIds?: string[];
   @ApiPropertyOptional({ description: 'csv or excel' }) @IsOptional() @IsString() format?: string;
 }

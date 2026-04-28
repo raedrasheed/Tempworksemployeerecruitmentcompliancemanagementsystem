@@ -1,162 +1,157 @@
+/**
+ * Live Permissions Matrix.
+ * Reads the actual permission catalog + roles from the backend so it
+ * always mirrors the seeded permissions (no more hard-coded mock that
+ * drifts from reality). Rows are grouped by module, columns are roles,
+ * and each cell renders one tick per action the role actually holds.
+ */
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
-import { ArrowLeft, Download, Shield, Check, X } from 'lucide-react';
+import { ArrowLeft, Shield, Check, Minus } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
+import { rolesApi } from '../../services/api';
 
-const systemScreens = [
-  { id: 'dashboard', name: 'Dashboard', category: 'Overview' },
-  { id: 'drivers', name: 'Drivers Management', category: 'Drivers' },
-  { id: 'applications', name: 'Applications', category: 'Recruitment' },
-  { id: 'documents', name: 'Documents', category: 'Documents' },
-  { id: 'document_explorer', name: 'Driver Document Explorer', category: 'Documents' },
-  { id: 'workflow', name: 'Workflow Management', category: 'Workflow' },
-  { id: 'agencies', name: 'Agencies', category: 'Agencies' },
-  { id: 'compliance', name: 'Compliance', category: 'Compliance' },
-  { id: 'reports', name: 'Reports', category: 'Reports' },
-  { id: 'notifications', name: 'Notifications', category: 'System' },
-  { id: 'users', name: 'Users Management', category: 'System' },
-  { id: 'roles', name: 'Roles & Permissions', category: 'System' },
-  { id: 'settings', name: 'Settings', category: 'System' },
-];
+type Permission = { id: string; name: string; module: string; action: string };
+type Role       = { id: string; name: string; description?: string; permissions?: { name: string }[] };
 
-const roles = [
-  { id: 'R001', name: 'System Admin', color: '#2563EB' },
-  { id: 'R002', name: 'HR Manager', color: '#22C55E' },
-  { id: 'R003', name: 'Compliance', color: '#F59E0B' },
-  { id: 'R004', name: 'Recruiter', color: '#8B5CF6' },
-  { id: 'R005', name: 'Agency Mgr', color: '#EC4899' },
-  { id: 'R006', name: 'Agency User', color: '#06B6D4' },
-];
-
-// Mock permissions data
-const mockPermissions: Record<string, Record<string, { view: boolean; create: boolean; edit: boolean; delete: boolean }>> = {
-  'R001': Object.fromEntries(systemScreens.map(s => [s.id, { view: true, create: true, edit: true, delete: true }])),
-  'R002': {
-    dashboard: { view: true, create: false, edit: false, delete: false },
-    drivers: { view: true, create: true, edit: true, delete: true },
-    applications: { view: true, create: true, edit: true, delete: false },
-    documents: { view: true, create: true, edit: true, delete: false },
-    document_explorer: { view: true, create: false, edit: false, delete: false },
-    workflow: { view: true, create: true, edit: true, delete: false },
-    agencies: { view: true, create: false, edit: false, delete: false },
-    compliance: { view: true, create: false, edit: false, delete: false },
-    reports: { view: true, create: false, edit: false, delete: false },
-    notifications: { view: true, create: false, edit: false, delete: false },
-    users: { view: true, create: true, edit: true, delete: false },
-    roles: { view: false, create: false, edit: false, delete: false },
-    settings: { view: true, create: false, edit: true, delete: false },
-  },
-  'R003': {
-    dashboard: { view: true, create: false, edit: false, delete: false },
-    drivers: { view: true, create: false, edit: false, delete: false },
-    applications: { view: true, create: false, edit: false, delete: false },
-    documents: { view: true, create: false, edit: false, delete: false },
-    document_explorer: { view: true, create: false, edit: false, delete: false },
-    workflow: { view: true, create: false, edit: false, delete: false },
-    agencies: { view: true, create: false, edit: false, delete: false },
-    compliance: { view: true, create: true, edit: true, delete: false },
-    reports: { view: true, create: false, edit: false, delete: false },
-    notifications: { view: true, create: false, edit: false, delete: false },
-    users: { view: false, create: false, edit: false, delete: false },
-    roles: { view: false, create: false, edit: false, delete: false },
-    settings: { view: false, create: false, edit: false, delete: false },
-  },
-  'R004': {
-    dashboard: { view: true, create: false, edit: false, delete: false },
-    drivers: { view: true, create: true, edit: true, delete: false },
-    applications: { view: true, create: true, edit: true, delete: false },
-    documents: { view: true, create: true, edit: false, delete: false },
-    document_explorer: { view: false, create: false, edit: false, delete: false },
-    workflow: { view: true, create: false, edit: true, delete: false },
-    agencies: { view: true, create: false, edit: false, delete: false },
-    compliance: { view: true, create: false, edit: false, delete: false },
-    reports: { view: true, create: false, edit: false, delete: false },
-    notifications: { view: true, create: false, edit: false, delete: false },
-    users: { view: false, create: false, edit: false, delete: false },
-    roles: { view: false, create: false, edit: false, delete: false },
-    settings: { view: false, create: false, edit: false, delete: false },
-  },
-  'R005': {
-    dashboard: { view: true, create: false, edit: false, delete: false },
-    drivers: { view: true, create: true, edit: true, delete: true },
-    applications: { view: true, create: true, edit: true, delete: false },
-    documents: { view: true, create: true, edit: true, delete: false },
-    document_explorer: { view: false, create: false, edit: false, delete: false },
-    workflow: { view: true, create: false, edit: false, delete: false },
-    agencies: { view: true, create: false, edit: true, delete: false },
-    compliance: { view: true, create: false, edit: false, delete: false },
-    reports: { view: true, create: false, edit: false, delete: false },
-    notifications: { view: true, create: false, edit: false, delete: false },
-    users: { view: true, create: true, edit: true, delete: true },
-    roles: { view: false, create: false, edit: false, delete: false },
-    settings: { view: false, create: false, edit: false, delete: false },
-  },
-  'R006': {
-    dashboard: { view: true, create: false, edit: false, delete: false },
-    drivers: { view: true, create: true, edit: true, delete: false },
-    applications: { view: true, create: true, edit: false, delete: false },
-    documents: { view: true, create: true, edit: false, delete: false },
-    document_explorer: { view: false, create: false, edit: false, delete: false },
-    workflow: { view: true, create: false, edit: false, delete: false },
-    agencies: { view: false, create: false, edit: false, delete: false },
-    compliance: { view: true, create: false, edit: false, delete: false },
-    reports: { view: true, create: false, edit: false, delete: false },
-    notifications: { view: true, create: false, edit: false, delete: false },
-    users: { view: false, create: false, edit: false, delete: false },
-    roles: { view: false, create: false, edit: false, delete: false },
-    settings: { view: false, create: false, edit: false, delete: false },
-  },
+const MODULE_CATEGORIES: Record<string, string> = {
+  dashboard: 'Overview',
+  employees: 'People',
+  applicants: 'People',
+  applications: 'People',
+  'job-ads': 'People',
+  documents: 'Documents',
+  compliance: 'Compliance',
+  workflow: 'Workflow',
+  agencies: 'Agencies',
+  finance: 'Finance',
+  attendance: 'Operations',
+  vehicles: 'Operations',
+  reports: 'Reports',
+  notifications: 'System',
+  users: 'System',
+  roles: 'System',
+  settings: 'System',
+  logs: 'System',
+  'recycle-bin': 'System',
 };
 
-export function PermissionsMatrix() {
-  const groupedScreens = systemScreens.reduce((acc, screen) => {
-    if (!acc[screen.category]) {
-      acc[screen.category] = [];
-    }
-    acc[screen.category].push(screen);
-    return acc;
-  }, {} as Record<string, typeof systemScreens>);
+const ACTION_ORDER = ['read', 'create', 'update', 'delete', 'export', 'approve', 'verify', 'resolve', 'convert', 'bulk-action', 'override', 'status', 'restore', 'publish', 'manage-permissions', 'manage-agency-access'];
+const sortActions = (a: string, b: string) => {
+  const ai = ACTION_ORDER.indexOf(a); const bi = ACTION_ORDER.indexOf(b);
+  return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+};
 
-  const renderPermissionIcon = (hasPermission: boolean) => {
-    return hasPermission ? (
-      <Check className="w-5 h-5 text-[#22C55E]" />
-    ) : (
-      <X className="w-5 h-5 text-[#E2E8F0]" />
-    );
-  };
+const ROLE_COLOR: Record<string, string> = {
+  'System Admin':        '#2563EB',
+  'HR Manager':          '#22C55E',
+  'Compliance Officer':  '#F59E0B',
+  'Recruiter':           '#8B5CF6',
+  'Agency Manager':      '#EC4899',
+  'Agency User':         '#06B6D4',
+  'Finance':             '#0EA5E9',
+  'Read Only':           '#64748B',
+};
+
+const humanizeAction = (action: string) => action.replace(/-/g, ' ');
+const humanizeModule = (mod: string) =>
+  mod.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+
+export function PermissionsMatrix() {
+  const [permissions, setPermissions] = useState<Permission[]>([]);
+  const [roles, setRoles]             = useState<Role[]>([]);
+  const [loading, setLoading]         = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        // Roles come back with .permissions[] already. Fetch full permission
+        // catalog separately so we include rows no role currently holds.
+        const [rolesResp, permsResp] = await Promise.all([
+          rolesApi.list(),
+          rolesApi.getPermissions(),
+        ]);
+        setRoles(Array.isArray(rolesResp) ? rolesResp : []);
+        setPermissions(Array.isArray(permsResp) ? permsResp : []);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  // Group permissions by module → action set.
+  const byModule = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const p of permissions) {
+      const arr = map.get(p.module) ?? [];
+      if (!arr.includes(p.action)) arr.push(p.action);
+      map.set(p.module, arr);
+    }
+    for (const [, arr] of map) arr.sort(sortActions);
+    return map;
+  }, [permissions]);
+
+  // Group modules by UI category so the table has section rows.
+  const groupedModules = useMemo(() => {
+    const out: Record<string, string[]> = {};
+    for (const mod of byModule.keys()) {
+      const cat = MODULE_CATEGORIES[mod] ?? 'Other';
+      (out[cat] ??= []).push(mod);
+    }
+    for (const cat of Object.keys(out)) out[cat].sort();
+    return out;
+  }, [byModule]);
+
+  const rolePermNames = useMemo(() => {
+    const m = new Map<string, Set<string>>();
+    for (const r of roles) {
+      m.set(r.id, new Set((r.permissions ?? []).map(p => p.name)));
+    }
+    return m;
+  }, [roles]);
+
+  const orderedRoles = useMemo(() => {
+    const order = ['System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Finance', 'Read Only'];
+    return [...roles].sort((a, b) => {
+      const ai = order.indexOf(a.name); const bi = order.indexOf(b.name);
+      if (ai === -1 && bi === -1) return a.name.localeCompare(b.name);
+      if (ai === -1) return 1;
+      if (bi === -1) return -1;
+      return ai - bi;
+    });
+  }, [roles]);
+
+  if (loading) {
+    return <div className="p-8 text-muted-foreground">Loading permissions...</div>;
+  }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" asChild>
-          <Link to="/dashboard/roles">
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
+          <Link to="/dashboard/roles"><ArrowLeft className="w-5 h-5" /></Link>
         </Button>
         <div className="flex-1">
           <h1 className="text-3xl font-semibold text-[#0F172A]">Permissions Matrix</h1>
-          <p className="text-muted-foreground mt-1">Complete overview of all role permissions across the system</p>
+          <p className="text-muted-foreground mt-1">
+            Live view of every permission mapped to every role, grouped by module.
+          </p>
         </div>
-        <Button variant="outline">
-          <Download className="w-4 h-4 mr-2" />
-          Export Matrix
-        </Button>
       </div>
 
-      {/* Legend */}
+      {/* Role legend */}
       <Card>
-        <CardHeader>
-          <CardTitle>Role Legend</CardTitle>
-        </CardHeader>
+        <CardHeader><CardTitle>Roles</CardTitle></CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-3">
-            {roles.map(role => (
-              <Badge 
-                key={role.id} 
-                variant="outline" 
+            {orderedRoles.map(role => (
+              <Badge
+                key={role.id}
+                variant="outline"
                 className="px-3 py-1.5"
-                style={{ borderColor: role.color, color: role.color }}
+                style={{ borderColor: ROLE_COLOR[role.name] ?? '#64748B', color: ROLE_COLOR[role.name] ?? '#64748B' }}
               >
                 {role.name}
               </Badge>
@@ -165,76 +160,72 @@ export function PermissionsMatrix() {
         </CardContent>
       </Card>
 
-      {/* Permissions Matrix */}
+      {/* Matrix */}
       <Card>
         <CardHeader>
-          <CardTitle>Complete Permissions Matrix</CardTitle>
+          <CardTitle>Module × Role</CardTitle>
           <p className="text-sm text-muted-foreground mt-1">
-            <Check className="w-4 h-4 inline text-[#22C55E]" /> = Permission granted • 
-            <X className="w-4 h-4 inline text-[#E2E8F0] ml-2" /> = Permission denied
+            <Check className="w-4 h-4 inline text-[#22C55E]" /> granted &nbsp;•&nbsp;
+            <Minus className="w-4 h-4 inline text-[#CBD5E1]" /> denied
           </p>
         </CardHeader>
         <CardContent>
           <div className="border rounded-lg overflow-x-auto">
-            <table className="w-full min-w-[1200px]">
-              <thead className="bg-[#F8FAFC] border-b sticky top-0">
+            <table className="w-full min-w-[1200px] text-sm">
+              <thead className="bg-[#F8FAFC] border-b sticky top-0 z-10">
                 <tr>
-                  <th className="text-left p-4 font-semibold text-sm sticky left-0 bg-[#F8FAFC] z-10 min-w-[250px]">
-                    Screen / Module
-                  </th>
-                  {roles.map(role => (
-                    <th key={role.id} colSpan={4} className="text-center p-4 font-semibold text-sm border-l">
-                      <Badge variant="outline" style={{ borderColor: role.color, color: role.color }}>
+                  <th className="text-left p-4 font-semibold sticky left-0 bg-[#F8FAFC] z-20 min-w-[220px]">Module / Action</th>
+                  {orderedRoles.map(role => (
+                    <th key={role.id} className="p-2 text-center font-semibold">
+                      <Badge variant="outline" style={{ borderColor: ROLE_COLOR[role.name] ?? '#64748B', color: ROLE_COLOR[role.name] ?? '#64748B' }}>
                         {role.name}
                       </Badge>
-                      <div className="grid grid-cols-4 gap-2 mt-2 text-xs text-muted-foreground font-normal">
-                        <span>V</span>
-                        <span>C</span>
-                        <span>E</span>
-                        <span>D</span>
-                      </div>
                     </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {Object.entries(groupedScreens).map(([category, screens]) => (
+                {Object.entries(groupedModules).map(([category, mods]) => (
                   <>
-                    <tr key={category} className="bg-[#F8FAFC]">
-                      <td colSpan={roles.length * 4 + 1} className="p-3 font-semibold text-sm text-[#64748B]">
+                    <tr key={`cat-${category}`} className="bg-[#F1F5F9]">
+                      <td colSpan={orderedRoles.length + 1} className="p-2 font-semibold text-xs text-[#475569] uppercase tracking-wide">
                         {category}
                       </td>
                     </tr>
-                    {screens.map((screen) => (
-                      <tr key={screen.id} className="border-b hover:bg-[#F8FAFC] transition-colors">
-                        <td className="p-4 sticky left-0 bg-white">
-                          <div className="flex items-center gap-2">
-                            <Shield className="w-4 h-4 text-muted-foreground" />
-                            <span className="font-medium">{screen.name}</span>
-                          </div>
-                        </td>
-                        {roles.map(role => {
-                          const perms = mockPermissions[role.id]?.[screen.id] || { view: false, create: false, edit: false, delete: false };
+                    {mods.map(mod => (
+                      <>
+                        <tr key={`mod-${mod}`} className="bg-white">
+                          <td className="p-3 sticky left-0 bg-white border-t">
+                            <div className="flex items-center gap-2">
+                              <Shield className="w-4 h-4 text-muted-foreground" />
+                              <span className="font-semibold">{humanizeModule(mod)}</span>
+                              <span className="text-xs text-muted-foreground font-mono">{mod}</span>
+                            </div>
+                          </td>
+                          {orderedRoles.map(role => <td key={role.id} className="border-t" />)}
+                        </tr>
+                        {(byModule.get(mod) ?? []).map(action => {
+                          const permName = `${mod}:${action}`;
                           return (
-                            <td key={role.id} colSpan={4} className="border-l">
-                              <div className="grid grid-cols-4 gap-0">
-                                <div className="flex items-center justify-center p-2 border-r">
-                                  {renderPermissionIcon(perms.view)}
-                                </div>
-                                <div className="flex items-center justify-center p-2 border-r">
-                                  {renderPermissionIcon(perms.create)}
-                                </div>
-                                <div className="flex items-center justify-center p-2 border-r">
-                                  {renderPermissionIcon(perms.edit)}
-                                </div>
-                                <div className="flex items-center justify-center p-2">
-                                  {renderPermissionIcon(perms.delete)}
-                                </div>
-                              </div>
-                            </td>
+                            <tr key={permName} className="border-t hover:bg-[#F8FAFC]">
+                              <td className="p-2 pl-10 sticky left-0 bg-white">
+                                <span className="text-xs capitalize text-[#334155]">{humanizeAction(action)}</span>
+                                <span className="ml-2 text-[10px] text-muted-foreground font-mono">{permName}</span>
+                              </td>
+                              {orderedRoles.map(role => {
+                                const has = rolePermNames.get(role.id)?.has(permName);
+                                return (
+                                  <td key={role.id} className="text-center p-2">
+                                    {has
+                                      ? <Check className="w-4 h-4 text-[#22C55E] inline" />
+                                      : <Minus className="w-4 h-4 text-[#CBD5E1] inline" />}
+                                  </td>
+                                );
+                              })}
+                            </tr>
                           );
                         })}
-                      </tr>
+                      </>
                     ))}
                   </>
                 ))}

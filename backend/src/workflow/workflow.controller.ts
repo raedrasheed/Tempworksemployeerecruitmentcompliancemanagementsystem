@@ -20,21 +20,21 @@ export class WorkflowController {
   constructor(private readonly workflowService: WorkflowService) {}
 
   @Get('stages')
-  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Read Only')
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Read Only')
   @ApiOperation({ summary: 'Get all workflow stages' })
   getStages() {
     return this.workflowService.getStages();
   }
 
   @Get('overview')
-  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Read Only')
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Read Only')
   @ApiOperation({ summary: 'Get workflow overview with stage counts' })
   getOverview() {
     return this.workflowService.getOverview();
   }
 
   @Get('stages/:stageId/people')
-  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Read Only')
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Read Only')
   @ApiOperation({ summary: 'Get applicants and employees currently at a specific stage' })
   @ApiParam({ name: 'stageId', description: 'WorkflowStage UUID' })
   getStageDetails(@Param('stageId') stageId: string) {
@@ -42,14 +42,14 @@ export class WorkflowController {
   }
 
   @Get('analytics')
-  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Read Only')
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Read Only')
   @ApiOperation({ summary: 'Get workflow analytics and recent activity' })
   getAnalytics() {
     return this.workflowService.getAnalytics();
   }
 
   @Get('timeline/:employeeId')
-  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Read Only')
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Read Only')
   @ApiOperation({ summary: 'Get workflow timeline for an employee' })
   @ApiParam({ name: 'employeeId', description: 'Employee UUID' })
   getTimeline(@Param('employeeId') employeeId: string) {
@@ -85,7 +85,7 @@ export class WorkflowController {
 
   // Work Permits
   @Get('work-permits')
-  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Read Only')
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Read Only')
   @ApiOperation({ summary: 'Get all work permits' })
   @ApiQuery({ name: 'employeeId', required: false })
   getWorkPermits(@Query() pagination: PaginationDto, @Query('employeeId') employeeId?: string) {
@@ -113,7 +113,7 @@ export class WorkflowController {
 
   // Visas
   @Get('visas')
-  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Read Only')
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Read Only')
   @ApiOperation({ summary: 'Get all visas' })
   @ApiQuery({ name: 'entityId', required: false })
   getVisas(@Query() pagination: PaginationDto, @Query('entityId') entityId?: string) {

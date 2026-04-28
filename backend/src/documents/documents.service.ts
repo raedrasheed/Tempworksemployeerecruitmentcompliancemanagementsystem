@@ -208,6 +208,31 @@ export class DocumentsService {
     name: string,
     documentTypeName: string,
   ) {
+    // Profile photo short-circuit ─────────────────────────────────────────
+    // The public /apply form uploads the applicant's profile photo via
+    // the same endpoint as supporting documents. It isn't a compliance
+    // artefact, so we only persist it to applicant.photoUrl (which the
+    // profile header + Step 1 preview read) and skip the Document row.
+    // Otherwise, when no "Profile Photo" DocumentType exists, the
+    // first-available fallback below mis-classifies the photo as the
+    // oldest type (typically Passport), producing a ghost entry in the
+    // Documents tab like "Profile Photo · Passport".
+    if (documentTypeName?.toLowerCase().includes('photo')) {
+      const entityName  = await this.resolveEntityName('APPLICANT', entityId);
+      const ts          = Date.now();
+      const ext         = extname(file.originalname);
+      const safeEntity  = this.sanitize(entityName) || 'Applicant';
+      const shortId     = entityId.replace(/-/g, '');
+      const folderName  = `${safeEntity}_${shortId}`;
+      const newFilename = `${safeEntity}_Photo_${ts}${ext}`;
+      const newDir      = join(file.destination, folderName, 'photo');
+      await fs.mkdir(newDir, { recursive: true });
+      await fs.rename(file.path, join(newDir, newFilename));
+      const photoUrl = `/uploads/${folderName}/photo/${newFilename}`;
+      await this.prisma.applicant.updateMany({ where: { id: entityId }, data: { photoUrl } });
+      return { id: null, photoUrl, name, mimeType: file.mimetype, fileSize: file.size };
+    }
+
     // Resolve document type (exact → contains → substring → first-available)
     let docType = await this.prisma.documentType.findFirst({
       where: { name: { equals: documentTypeName, mode: 'insensitive' } },
@@ -266,9 +291,6 @@ export class DocumentsService {
       });
     });
 
-    if (documentTypeName?.toLowerCase().includes('photo')) {
-      await this.prisma.applicant.updateMany({ where: { id: entityId }, data: { photoUrl: fileUrl } });
-    }
     return document;
   }
 

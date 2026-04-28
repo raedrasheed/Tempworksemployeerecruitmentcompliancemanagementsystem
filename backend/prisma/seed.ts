@@ -1,31 +1,35 @@
 import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { Pool } from 'pg';
 import * as bcrypt from 'bcryptjs';
 import * as dotenv from 'dotenv';
+import { join } from 'path';
+import { resolvePoolSsl } from './pg-ssl';
 
-dotenv.config();
+dotenv.config({ path: join(__dirname, '../.env') });
 
-// Use binary engine (not WASM) by disabling SSL at the URL level so Prisma's
-// native engine connects without needing pg-pool/adapter-pg (which loads WASM
-// and can OOM on memory-constrained servers).
-if (process.env.DATABASE_URL) {
-  try {
-    const u = new URL(process.env.DATABASE_URL);
-    u.searchParams.set('sslmode', 'disable');
-    process.env.DATABASE_URL = u.toString();
-  } catch {}
-}
-
-const prisma = new PrismaClient();
+// Prisma 7's default "client" engine requires either a driver adapter or
+// Accelerate — matching how src/prisma/prisma.service.ts initialises the
+// runtime client.
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: resolvePoolSsl(process.env.DATABASE_URL),
+});
+const prisma = new PrismaClient({ adapter: new PrismaPg(pool as any) });
 
 async function main() {
   console.log('Starting database seed...');
 
   // ── Permissions ──────────────────────────────────────────────────────────
+  // Core CRUD modules. Every permission row is `<module>:<action>`.
   const modules = [
     'dashboard',
     'employees', 'applicants', 'applications', 'documents',
     'workflow', 'agencies', 'compliance', 'reports',
     'notifications', 'settings', 'users', 'roles', 'logs',
+    // Modules added in later releases — enumerated so the Roles matrix
+    // shows them and @Roles guards can be replaced over time.
+    'vehicles', 'finance', 'attendance', 'job-ads', 'recycle-bin',
   ];
   const actions = ['read', 'create', 'update', 'delete'];
 
@@ -35,15 +39,41 @@ async function main() {
       permissionData.push({ name: `${mod}:${action}`, module: mod, action });
     }
   }
-  // extra special permissions
-  permissionData.push({ name: 'documents:verify', module: 'documents', action: 'verify' });
-  permissionData.push({ name: 'compliance:resolve', module: 'compliance', action: 'resolve' });
-  permissionData.push({ name: 'reports:export', module: 'reports', action: 'export' });
+  // Special (non-CRUD) permissions. Keep as a single authoritative list.
+  const specialPermissions: { name: string; module: string; action: string }[] = [
+    // Documents / compliance flows
+    { name: 'documents:verify',    module: 'documents',    action: 'verify' },
+    { name: 'compliance:resolve',  module: 'compliance',   action: 'resolve' },
+    // Reports + module-level exports
+    { name: 'reports:export',      module: 'reports',      action: 'export' },
+    { name: 'applicants:export',   module: 'applicants',   action: 'export' },
+    { name: 'employees:export',    module: 'employees',    action: 'export' },
+    { name: 'vehicles:export',     module: 'vehicles',     action: 'export' },
+    { name: 'finance:export',      module: 'finance',      action: 'export' },
+    { name: 'attendance:export',   module: 'attendance',   action: 'export' },
+    // Agency-submitted candidate approval gate
+    { name: 'applicants:approve',     module: 'applicants', action: 'approve' },
+    { name: 'applicants:convert',     module: 'applicants', action: 'convert' },
+    { name: 'applicants:bulk-action', module: 'applicants', action: 'bulk-action' },
+    // Agency user lifecycle + per-user manager-override grants
+    { name: 'users:approve',  module: 'users', action: 'approve' },
+    { name: 'users:override', module: 'users', action: 'override' },
+    // Agency tenancy admin controls
+    { name: 'agencies:manage-permissions', module: 'agencies', action: 'manage-permissions' },
+    { name: 'employees:manage-agency-access', module: 'employees', action: 'manage-agency-access' },
+    // Finance state transition (PENDING → DEDUCTED)
+    { name: 'finance:status',   module: 'finance',   action: 'status' },
+    // Recycle bin restore
+    { name: 'recycle-bin:restore', module: 'recycle-bin', action: 'restore' },
+    // Job ads publish
+    { name: 'job-ads:publish', module: 'job-ads', action: 'publish' },
+  ];
+  permissionData.push(...specialPermissions);
 
   for (const p of permissionData) {
     await prisma.permission.upsert({
       where: { name: p.name },
-      update: {},
+      update: { module: p.module, action: p.action },
       create: p,
     });
   }
@@ -69,16 +99,23 @@ async function main() {
       isSystem: true,
       perms: [
         'dashboard:read',
-        'employees:read','employees:create','employees:update',
-        'applicants:read','applicants:create','applicants:update',
+        'employees:read','employees:create','employees:update','employees:export',
+        'employees:manage-agency-access',
+        'applicants:read','applicants:create','applicants:update','applicants:export',
+        'applicants:approve','applicants:convert','applicants:bulk-action',
         'applications:read','applications:create','applications:update',
         'documents:read','documents:create','documents:update','documents:verify',
         'workflow:read','workflow:update',
+        'agencies:read','agencies:update',
         'compliance:read','compliance:resolve',
         'reports:read','reports:export',
         'notifications:read','notifications:create',
-        'users:read',
+        'users:read','users:create','users:update','users:approve','users:override',
         'logs:read',
+        'vehicles:read',
+        'attendance:read','attendance:export',
+        'job-ads:read','job-ads:create','job-ads:update','job-ads:publish',
+        'recycle-bin:read',
       ],
     },
     {
@@ -94,6 +131,9 @@ async function main() {
         'reports:read','reports:export',
         'notifications:read','notifications:create',
         'logs:read',
+        'vehicles:read',
+        'attendance:read',
+        'recycle-bin:read',
       ],
     },
     {
@@ -103,45 +143,47 @@ async function main() {
       perms: [
         'dashboard:read',
         'employees:read',
-        'applicants:read','applicants:create','applicants:update',
+        'applicants:read','applicants:create','applicants:update','applicants:export',
+        'applicants:convert','applicants:bulk-action',
         'applications:read','applications:create','applications:update',
         'documents:read','documents:create',
         'workflow:read',
+        'agencies:read',
         'compliance:read',
         'reports:read',
         'notifications:read',
         'logs:read',
+        'job-ads:read','job-ads:create','job-ads:update',
+        'attendance:read',
       ],
     },
+    // Agency-side roles are scoped to their own agency only — tenancy
+    // filters in each service enforce the "own agency only" rule.
+    // Permissions cover: candidates, agency profile, and agency user
+    // management (Manager only). Tempworks internals (workflow,
+    // reports, documents, employees, compliance, finance, logs,
+    // notifications, roles, settings, recycle-bin, etc.) are
+    // intentionally absent.
     {
       name: 'Agency Manager',
-      description: 'Manages agency-specific employees and data',
+      description: 'Manages own agency: candidates, profile, and agency users (Tempworks approval for new candidates)',
       isSystem: true,
       perms: [
-        'dashboard:read',
-        'employees:read','employees:create','employees:update',
         'applicants:read','applicants:create','applicants:update',
-        'applications:read',
-        'documents:read','documents:create',
-        'workflow:read',
-        'compliance:read',
-        'reports:read',
-        'notifications:read',
-        'users:read',
-        'logs:read',
+        'applicants:export','applicants:bulk-action',
+        'employees:read','employees:update',
+        'agencies:read','agencies:update',
+        'users:read','users:create','users:update','users:delete',
       ],
     },
     {
       name: 'Agency User',
-      description: 'Basic agency-level read/create access',
+      description: 'Submits and edits own-agency candidates; views own agency profile',
       isSystem: true,
       perms: [
-        'dashboard:read',
-        'employees:read','applicants:read','applications:read',
-        'documents:read','documents:create',
-        'workflow:read',
-        'notifications:read',
-        'logs:read',
+        'applicants:read','applicants:create','applicants:update',
+        'employees:read','employees:update',
+        'agencies:read',
       ],
     },
     {
@@ -151,9 +193,13 @@ async function main() {
       perms: [
         'dashboard:read',
         'employees:read','applicants:read','applications:read',
+        'agencies:read',
         'reports:read','reports:export',
         'notifications:read',
         'logs:read',
+        'finance:read','finance:create','finance:update','finance:delete',
+        'finance:export','finance:status',
+        'attendance:read','attendance:export',
       ],
     },
     {
@@ -196,9 +242,15 @@ async function main() {
         email: 'admin@tempworks.sk',
         phone: '+421 2 0000 0000',
         status: 'ACTIVE',
+        isSystem: true,
         notes: 'System owner agency — headquartered in Slovakia',
       },
     });
+  } else if (!(ownerAgency as any).isSystem) {
+    // Belt-and-braces: if the seed has been run before the isSystem
+    // migration landed, flip the flag on the existing row so its
+    // users keep their global visibility.
+    await prisma.agency.update({ where: { id: ownerAgency.id }, data: { isSystem: true } });
   }
   const ownerAgencyId = ownerAgency.id;
   console.log(`Owner agency: TempWorks (Slovakia) — ${ownerAgencyId}`);
@@ -267,32 +319,8 @@ async function main() {
   }
   console.log(`Upserted ${agenciesData.length + 1} agencies (including TempWorks Slovakia)`);
 
-  // ── Workflow Stages ───────────────────────────────────────────────────────
-  const workflowStages = [
-    { name: 'Application Received', order: 1, category: 'INITIAL', description: 'Initial application submitted and received' },
-    { name: 'Document Collection', order: 2, category: 'DOCUMENTATION', description: 'Collecting required identity and qualification documents' },
-    { name: 'Document Verification', order: 3, category: 'DOCUMENTATION', description: 'Verifying authenticity of submitted documents' },
-    { name: 'Background Check', order: 4, category: 'COMPLIANCE', description: 'Criminal record and employment history background check' },
-    { name: 'Medical Assessment', order: 5, category: 'COMPLIANCE', description: 'Medical fitness assessment for driving duties' },
-    { name: 'License Verification', order: 6, category: 'COMPLIANCE', description: 'Driving license verification and category validation' },
-    { name: 'Work Permit Application', order: 7, category: 'COMPLIANCE', description: 'Applying for work permit if required' },
-    { name: 'Visa Processing', order: 8, category: 'COMPLIANCE', description: 'Visa application and processing' },
-    { name: 'Induction Training', order: 9, category: 'TRAINING', description: 'Company induction and onboarding training' },
-    { name: 'Safety Training', order: 10, category: 'TRAINING', description: 'Health & safety and compliance training' },
-    { name: 'Vehicle Familiarization', order: 11, category: 'TRAINING', description: 'Training on specific vehicle types' },
-    { name: 'Contract Signing', order: 12, category: 'ADMINISTRATIVE', description: 'Employment contract signing and HR paperwork' },
-    { name: 'Payroll Setup', order: 13, category: 'ADMINISTRATIVE', description: 'Payroll and banking details setup' },
-    { name: 'Deployment Ready', order: 14, category: 'DEPLOYMENT', description: 'Employee cleared and ready for deployment' },
-  ];
-
-  for (const stage of workflowStages) {
-    await prisma.workflowStage.upsert({
-      where: { name: stage.name },
-      update: {},
-      create: { ...stage, category: stage.category as any, isActive: true },
-    });
-  }
-  console.log(`Upserted ${workflowStages.length} workflow stages`);
+  // Workflow stages are now created per-tenant via the UI (each Workflow
+  // owns its own stages). No global seed data.
 
   // ── Document Types ────────────────────────────────────────────────────────
   const documentTypes = [
@@ -423,7 +451,6 @@ async function main() {
   // ── Sample Employees ──────────────────────────────────────────────────────
   const firstAgencyId = agencyMap.get('TempWorks UK Ltd');
   const secondAgencyId = agencyMap.get('EuroDrivers GmbH');
-  const allWorkflowStages = await prisma.workflowStage.findMany({ orderBy: { order: 'asc' } });
 
   const sampleEmployees = [
     {
@@ -482,21 +509,7 @@ async function main() {
   for (const emp of sampleEmployees) {
     const existing = await prisma.employee.findUnique({ where: { email: emp.email } });
     if (!existing) {
-      const created = await prisma.employee.create({ data: emp });
-      // Create workflow stages for active/onboarding employees
-      if (emp.status !== 'PENDING') {
-        for (const stage of allWorkflowStages.slice(0, 5)) {
-          await prisma.employeeWorkflowStage.create({
-            data: {
-              employeeId: created.id,
-              stageId: stage.id,
-              status: stage.order <= 3 ? 'COMPLETED' : 'IN_PROGRESS',
-              startedAt: new Date(),
-              completedAt: stage.order <= 3 ? new Date() : null,
-            },
-          });
-        }
-      }
+      await prisma.employee.create({ data: emp });
     }
   }
   console.log(`Created ${sampleEmployees.length} sample employees`);
@@ -542,7 +555,7 @@ async function main() {
   ];
 
   for (const app of sampleApplicants) {
-    const existing = await prisma.applicant.findUnique({ where: { email: app.email } });
+    const existing = await prisma.applicant.findFirst({ where: { email: app.email } });
     if (!existing) {
       await prisma.applicant.create({ data: app });
     }
@@ -559,4 +572,5 @@ main()
   })
   .finally(async () => {
     await prisma.$disconnect();
+    await pool.end();
   });

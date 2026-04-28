@@ -5,6 +5,7 @@ export enum BulkActionType {
   STATUS_CHANGE = 'STATUS_CHANGE',
   TIER_CHANGE = 'TIER_CHANGE',
   ASSIGN_AGENCY = 'ASSIGN_AGENCY',
+  CONVERT_TO_EMPLOYEE = 'CONVERT_TO_EMPLOYEE',
   DELETE = 'DELETE',
 }
 
@@ -18,10 +19,17 @@ export class BulkActionDto {
   @IsEnum(BulkActionType)
   action: BulkActionType;
 
-  @ApiPropertyOptional({ description: 'Payload for the action (e.g., status value, agencyId)' })
+  @ApiPropertyOptional({ description: 'Payload for the action (e.g., status value, tier)' })
   @IsOptional()
   @IsString()
   value?: string;
+
+  /** Target agency for TIER_CHANGE→CANDIDATE and CONVERT_TO_EMPLOYEE —
+   *  lets the operator assign the responsible agency in the same call. */
+  @ApiPropertyOptional({ description: 'Target agency ID for Candidate promotions / Employee conversions' })
+  @IsOptional()
+  @IsString()
+  agencyId?: string;
 }
 
 export class AssignAgencyDto {

@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   LayoutDashboard,
   Users,
@@ -28,7 +28,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../ui/utils';
 import { useAuthContext } from '../../contexts/AuthContext';
-import { BACKEND_URL } from '../../services/api';
+import { BACKEND_URL, getCurrentUser, authApi, type AuthUser } from '../../services/api';
 import { useBranding } from '../../hooks/useBranding';
 
 interface NavChild {
@@ -43,8 +43,13 @@ interface NavItem {
   path: string;
   permission: string | null;
   roles?: string[];
+  /** Hide this item for users whose role is in this list, regardless of permissions. */
+  hideForRoles?: string[];
   children?: NavChild[];
 }
+
+// External agency roles — must not see the Leads nav.
+const AGENCY_ROLES = ['Agency User', 'Agency Manager'];
 
 // Each nav item declares which permission (module:read) is required to see it.
 // null means always visible to any authenticated user.
@@ -59,7 +64,7 @@ const allNavigationItems: NavItem[] = [
     children: [
       { icon: Truck,   label: 'Fleet',              path: '/dashboard/vehicles' },
       { icon: Factory, label: 'Workshops',          path: '/dashboard/vehicles/workshops' },
-      { icon: Wrench,  label: 'Maintenance Types',  path: '/dashboard/vehicles/maintenance-types' },
+      { icon: Wrench,  label: 'Maintenance Records', path: '/dashboard/vehicles/maintenance-records' },
     ],
   },
   { icon: FolderOpen,      label: 'Documents & Compliance',path: '/dashboard/documents-compliance', permission: 'documents:read' },
@@ -67,13 +72,13 @@ const allNavigationItems: NavItem[] = [
   { icon: Layers,          label: 'Workflows',             path: '/dashboard/workflows',        permission: 'workflow:read' },
   { icon: Building2,       label: 'Agencies',              path: '/dashboard/agencies',         permission: 'agencies:read' },
   { icon: BarChart3,       label: 'Reports',               path: '/dashboard/reports',          permission: 'reports:read' },
-  { icon: DollarSign,     label: 'Finance',               path: '/dashboard/finance',          permission: 'finance:read', roles: ['System Admin', 'HR Manager', 'Finance', 'Recruiter'] },
+  { icon: DollarSign,     label: 'Finance',               path: '/dashboard/finance',          permission: 'finance:read', roles: ['System Admin', 'HR Manager', 'Finance', 'Recruiter'], hideForRoles: AGENCY_ROLES },
   { icon: Megaphone,      label: 'Job Ads',               path: '/dashboard/job-ads',          permission: 'job-ads:read', roles: ['System Admin', 'HR Manager', 'Recruiter'] },
   { icon: Bell,            label: 'Notifications',         path: '/dashboard/notifications',    permission: 'notifications:read' },
   { icon: UserCog,         label: 'Users',                 path: '/dashboard/users',            permission: 'users:read' },
   { icon: Shield,          label: 'Roles & Permissions',   path: '/dashboard/roles',            permission: 'roles:read' },
   { icon: Activity,        label: 'System Logs',           path: '/dashboard/logs',             permission: 'logs:read' },
-  { icon: Trash2,          label: 'Deleted Records',       path: '/dashboard/recycle-bin',      permission: 'logs:read', roles: ['System Admin', 'HR Manager', 'Compliance Officer'] },
+  { icon: Trash2,          label: 'Deleted Records',       path: '/dashboard/recycle-bin',      permission: 'recycle-bin:read', roles: ['System Admin', 'HR Manager', 'Compliance Officer'], hideForRoles: AGENCY_ROLES },
   { icon: Settings,        label: 'Settings',              path: '/dashboard/settings',         permission: 'settings:read' },
 ];
 
@@ -84,13 +89,33 @@ interface SidebarProps {
 
 export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
   const location = useLocation();
-  const { user } = useAuthContext();
+  const { user: ctxUser } = useAuthContext();
   const branding = useBranding();
+
+  // Fallback to localStorage + live /auth/me when AuthContext hasn't populated
+  // yet. Keeps the sidebar's nav filter and user block in sync with the Topbar,
+  // which uses its own local state fetched via authApi.me().
+  const [localUser, setLocalUser] = useState<AuthUser | null>(() => getCurrentUser());
+  useEffect(() => {
+    authApi.me()
+      .then((fresh) => { if (fresh) setLocalUser(fresh); })
+      .catch(() => {});
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === 'current_user') setLocalUser(getCurrentUser());
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
+
+  const user = ctxUser ?? localUser;
   const userRole = user?.role ?? '';
   const permissions = user?.permissions ?? [];
   const isAdmin = userRole === 'System Admin';
 
   const navigationItems = allNavigationItems.filter((item) => {
+    // Role-based blocklist takes precedence — agency users must never see
+    // internal-only items (e.g. Leads) even if their permission set allows it.
+    if (item.hideForRoles && item.hideForRoles.includes(userRole)) return false;
     if (!item.permission) return true;
     if (isAdmin) return true;
     if (item.roles && item.roles.includes(userRole)) return true;

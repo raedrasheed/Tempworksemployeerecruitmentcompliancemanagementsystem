@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router';
-import { ArrowLeft, Edit, Mail, Phone, MapPin, Calendar, FileText, Shield, Briefcase, Clock, Award, GraduationCap, TrendingUp, ChevronRight, Trash2, Download, Upload, X, DollarSign, Plus, Layers } from 'lucide-react';
+import { ArrowLeft, Edit, Mail, Phone, MapPin, Calendar, FileText, Shield, Briefcase, Clock, Award, GraduationCap, TrendingUp, ChevronRight, Trash2, Download, Upload, X, DollarSign, Plus, Layers, UserCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
@@ -8,11 +8,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/ta
 import { Progress } from '../../components/ui/progress';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
+import { Textarea } from '../../components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { toast } from 'sonner';
+import { confirm } from '../../components/ui/ConfirmDialog';
 import { employeesApi, documentsApi, settingsApi, employeeWorkflowApi, agenciesApi, workflowApi, getCurrentUser } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
 import { FinancialRecordsTab } from '../../components/finance/FinancialRecordsTab';
+import { ApplicationDataView } from '../../components/applicants/ApplicationDataView';
+import { AttendanceTab } from '../../components/attendance/AttendanceTab';
+import { WorkHistoryTimeline } from '../../components/employees/WorkHistoryTimeline';
 
 const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1').replace('/api/v1', '');
 
@@ -27,6 +32,10 @@ export function EmployeeProfile() {
   const [workflow, setWorkflow] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [docTypes, setDocTypes] = useState<any[]>([]);
+  // Inline Notes editor — lets operators add/update the employee note
+  // from view mode without jumping to the Edit page.
+  const [noteDraft, setNoteDraft] = useState('');
+  const [savingNote, setSavingNote] = useState(false);
   const [allStages, setAllStages] = useState<any[]>([]);
   const [changingStage, setChangingStage] = useState(false);
   const [agencies, setAgencies] = useState<any[]>([]);
@@ -46,6 +55,89 @@ export function EmployeeProfile() {
   const [settingStage, setSettingStage] = useState(false);
   const [expandedStageId, setExpandedStageId] = useState<string | null>(null);
   const [approvingStageId, setApprovingStageId] = useState<string | null>(null);
+
+  // ── Per-employee agency-access grants (System Admin / HR Manager only) ─
+  // Drives the "Agency Access" card on the Overview tab. Agency users of
+  // any granted agency can then view/edit this specific employee; the
+  // backend enforces the same rule so this is pure UX around the
+  // employeesApi.listAgencyAccess / grantAgencyAccess / revokeAgencyAccess
+  // endpoints.
+  const canManageAgencyAccess = currentUser?.role === 'System Admin' || currentUser?.role === 'HR Manager';
+  const [agencyAccess, setAgencyAccess] = useState<any[]>([]);
+  const [grantAgencyId, setGrantAgencyId] = useState<string>('');
+  const [grantNotes, setGrantNotes] = useState<string>('');
+  const [grantBusy, setGrantBusy] = useState(false);
+
+  const loadAgencyAccess = () => {
+    if (!id || !canManageAgencyAccess) return;
+    employeesApi.listAgencyAccess(id)
+      .then((res: any) => setAgencyAccess(Array.isArray(res) ? res : (res?.data ?? [])))
+      .catch(() => setAgencyAccess([]));
+  };
+
+  const handleGrantAccess = async (
+    agencyId: string,
+    flags: { canView: boolean; canEdit: boolean },
+    notes?: string,
+  ) => {
+    if (!id || !agencyId) return;
+    setGrantBusy(true);
+    try {
+      await employeesApi.grantAgencyAccess(id, agencyId, {
+        canView: flags.canView,
+        canEdit: flags.canEdit,
+        notes,
+      });
+      loadAgencyAccess();
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to update access');
+    } finally {
+      setGrantBusy(false);
+    }
+  };
+
+  const handleToggleAccess = async (
+    agencyId: string,
+    next: { canView: boolean; canEdit: boolean },
+  ) => {
+    if (!id) return;
+    // If both flags are going off, confirm — it deletes the grant row.
+    if (!next.canView && !next.canEdit) {
+      const ok = await confirm({
+        title: 'Revoke all agency access',
+        description: 'Both View and Edit are being turned off, which removes this agency\'s access entirely. Continue?',
+        confirmText: 'Revoke',
+        tone: 'destructive',
+      });
+      if (!ok) return;
+    }
+    try {
+      // upsert — grant creates the row if missing, update flips flags.
+      await employeesApi.grantAgencyAccess(id, agencyId, next);
+      toast.success('Access updated');
+      loadAgencyAccess();
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to update access');
+    }
+  };
+
+  const handleRevokeAccess = async (agencyId: string, agencyName?: string) => {
+    if (!id) return;
+    const ok = await confirm({
+      title: 'Revoke agency access',
+      description: `Remove ${agencyName || 'this agency'}'s access to this employee? Their users will stop seeing the record immediately.`,
+      confirmText: 'Revoke',
+      tone: 'destructive',
+    });
+    if (!ok) return;
+    try {
+      await employeesApi.revokeAgencyAccess(id, agencyId);
+      toast.success('Agency access revoked');
+      loadAgencyAccess();
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to revoke access');
+    }
+  };
 
   const loadRecruitmentWorkflow = () => {
     workflowApi.getEmployeeAssignment(id!).then(res => setAssignment(res ?? null)).catch(() => {});
@@ -70,6 +162,9 @@ export function EmployeeProfile() {
       setDocuments(Array.isArray(docs) ? docs : []);
       setWorkflow(Array.isArray(wf) ? wf : []);
       setAllStages(Array.isArray(stages) ? stages : []);
+      // Seed the inline Notes editor with the raw note text so the
+      // operator can append / tweak without retyping from scratch.
+      setNoteDraft(typeof emp?.notes === 'string' ? emp.notes : '');
     }).catch(() => toast.error('Failed to load employee'))
       .finally(() => setLoading(false));
   }, [id]);
@@ -83,6 +178,7 @@ export function EmployeeProfile() {
     if (id) {
       loadRecruitmentWorkflow();
       workflowApi.list().then(res => setAllWorkflows(Array.isArray(res) ? res : [])).catch(() => {});
+      loadAgencyAccess();
     }
   }, [id]);
 
@@ -131,7 +227,12 @@ export function EmployeeProfile() {
   };
 
   const handleDisconnectWorkflow = async () => {
-    if (!id || !assignment || !confirm('Disconnect this employee from the workflow?')) return;
+    if (!id || !assignment) return;
+    if (!(await confirm({
+      title: 'Disconnect from workflow?',
+      description: 'This employee will be disconnected from the workflow. Existing progress is preserved.',
+      confirmText: 'Disconnect',
+    }))) return;
     try {
       await workflowApi.removeEmployeeAssignment(id, assignment.workflowId);
       setAssignment(null);
@@ -187,6 +288,20 @@ export function EmployeeProfile() {
     }
   };
 
+  const handleSaveNote = async () => {
+    if (!id) return;
+    setSavingNote(true);
+    try {
+      const updated = await employeesApi.update(id, { notes: noteDraft } as any);
+      setEmployee((prev: any) => ({ ...prev, notes: updated?.notes ?? noteDraft }));
+      toast.success('Note saved');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to save note');
+    } finally {
+      setSavingNote(false);
+    }
+  };
+
   const handleAgencyChange = async (value: string) => {
     if (!id) return;
     const newAgencyId = value === '__none__' ? null : value;
@@ -203,7 +318,11 @@ export function EmployeeProfile() {
   };
 
   const handleDelete = async () => {
-    if (!confirm(`Delete ${employee?.firstName} ${employee?.lastName}? This cannot be undone.`)) return;
+    if (!(await confirm({
+      title: 'Delete employee?',
+      description: `${employee?.firstName} ${employee?.lastName} will be permanently removed. This cannot be undone.`,
+      confirmText: 'Delete', tone: 'destructive',
+    }))) return;
     try {
       await employeesApi.delete(id!);
       toast.success('Employee deleted');
@@ -310,7 +429,7 @@ export function EmployeeProfile() {
                 <div className="flex items-center gap-2">
                   <MapPin className="w-4 h-4 text-muted-foreground" />
                   <div>
-                    <p className="text-xs text-muted-foreground">Nationality</p>
+                    <p className="text-xs text-muted-foreground">Citizenship</p>
                     <p className="text-sm font-medium">{employee.nationality}</p>
                   </div>
                 </div>
@@ -319,6 +438,26 @@ export function EmployeeProfile() {
                   <div>
                     <p className="text-xs text-muted-foreground">Joined</p>
                     <p className="text-sm font-medium">{new Date(employee.createdAt).toLocaleDateString()}</p>
+                  </div>
+                </div>
+                {/* Creation attribution — shows who created the profile,
+                    or a Self-applied pill for public /apply submissions
+                    carried forward through candidate → employee. */}
+                <div className="flex items-center gap-2">
+                  <UserCircle className="w-4 h-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Created by</p>
+                    {employee.source === 'SELF_APPLIED' ? (
+                      <span className="inline-flex items-center text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-2 py-0.5">
+                        Self-applied via public form
+                      </span>
+                    ) : employee.createdBy ? (
+                      <p className="text-sm font-medium">
+                        {[employee.createdBy.firstName, employee.createdBy.lastName].filter(Boolean).join(' ') || employee.createdBy.email}
+                      </p>
+                    ) : (
+                      <p className="text-sm text-muted-foreground italic">Unknown (legacy record)</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -348,8 +487,10 @@ export function EmployeeProfile() {
       <Tabs defaultValue="overview" className="space-y-6">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="application">Application</TabsTrigger>
           <TabsTrigger value="documents">Documents ({documents.length})</TabsTrigger>
-          <TabsTrigger value="workflow">Workflow</TabsTrigger>
+          <TabsTrigger value="attendance">Attendance &amp; Time Sheets</TabsTrigger>
+          <TabsTrigger value="contracts">Contracts</TabsTrigger>
           <TabsTrigger value="compliance">Compliance</TabsTrigger>
           {isFinanceOrAdmin && (
             <TabsTrigger value="financial">
@@ -369,7 +510,7 @@ export function EmployeeProfile() {
                   {[
                     ['Full Name', `${employee.firstName} ${employee.lastName}`],
                     ['Date of Birth', employee.dateOfBirth ? new Date(employee.dateOfBirth).toLocaleDateString() : '—'],
-                    ['Nationality', employee.nationality],
+                    ['Citizenship', employee.nationality],
                     ['Job Category', employee.jobType?.name ?? '—'],
                     ['License Number', employee.licenseNumber ?? '—'],
                     ['License Category', employee.licenseCategory ?? '—'],
@@ -441,8 +582,154 @@ export function EmployeeProfile() {
                   </CardContent>
                 </Card>
               )}
+
+              {canManageAgencyAccess && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Agency Access</CardTitle>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Grant or revoke this employee's view and edit access per agency. Conversion from Candidate doesn't auto-grant — you must turn the switches on explicitly.
+                    </p>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* The employee's own agency is always shown first so the
+                        admin can flip access for it without having to pick
+                        it from a dropdown. */}
+                    {employee.agencyId && (() => {
+                      const ownGrant = agencyAccess.find((g: any) => g.agencyId === employee.agencyId);
+                      const ownAgency = employee.agency ?? agencies.find((a: any) => a.id === employee.agencyId);
+                      const canView = !!ownGrant?.canView;
+                      const canEdit = !!ownGrant?.canEdit;
+                      return (
+                        <div className="p-3 rounded-lg border bg-[#F8FAFC] space-y-3">
+                          <div className="flex items-center gap-2">
+                            <Briefcase className="w-4 h-4 text-[#2563EB]" />
+                            <p className="font-medium text-sm">{ownAgency?.name ?? 'Employee\'s agency'}</p>
+                            <Badge variant="outline" className="ml-auto text-[10px]">Origin</Badge>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <label className="flex items-center gap-2 cursor-pointer text-sm">
+                              <input
+                                type="checkbox"
+                                className="h-4 w-4 rounded border-input"
+                                checked={canView}
+                                disabled={grantBusy}
+                                onChange={e => handleToggleAccess(employee.agencyId, { canView: e.target.checked, canEdit })}
+                              />
+                              <span>View</span>
+                            </label>
+                            <label className="flex items-center gap-2 cursor-pointer text-sm">
+                              <input
+                                type="checkbox"
+                                className="h-4 w-4 rounded border-input"
+                                checked={canEdit}
+                                disabled={grantBusy}
+                                onChange={e => handleToggleAccess(employee.agencyId, { canView, canEdit: e.target.checked })}
+                              />
+                              <span>Edit</span>
+                            </label>
+                          </div>
+                          {ownGrant?.grantedAt && (
+                            <p className="text-[11px] text-muted-foreground">
+                              Granted {new Date(ownGrant.grantedAt).toLocaleDateString()}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })()}
+
+                    {/* Any additional agencies already granted access. */}
+                    {agencyAccess
+                      .filter((g: any) => g.agencyId !== employee.agencyId)
+                      .map((g: any) => (
+                        <div key={g.agencyId} className="p-3 rounded-lg border space-y-3">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-sm truncate flex-1">{g.agency?.name ?? g.agencyId}</p>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50 h-7 px-2"
+                              onClick={() => handleRevokeAccess(g.agencyId, g.agency?.name)}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <label className="flex items-center gap-2 cursor-pointer text-sm">
+                              <input
+                                type="checkbox"
+                                className="h-4 w-4 rounded border-input"
+                                checked={!!g.canView}
+                                onChange={e => handleToggleAccess(g.agencyId, { canView: e.target.checked, canEdit: !!g.canEdit })}
+                              />
+                              <span>View</span>
+                            </label>
+                            <label className="flex items-center gap-2 cursor-pointer text-sm">
+                              <input
+                                type="checkbox"
+                                className="h-4 w-4 rounded border-input"
+                                checked={!!g.canEdit}
+                                onChange={e => handleToggleAccess(g.agencyId, { canView: !!g.canView, canEdit: e.target.checked })}
+                              />
+                              <span>Edit</span>
+                            </label>
+                          </div>
+                          {g.notes && <p className="text-xs text-muted-foreground truncate">{g.notes}</p>}
+                        </div>
+                      ))}
+
+                    {/* Add another agency — hidden when the picker has no
+                        remaining options to avoid showing an empty Select. */}
+                    {agencies.some((a: any) => a.id !== employee.agencyId && !agencyAccess.some((g: any) => g.agencyId === a.id)) && (
+                      <div className="pt-3 border-t space-y-3">
+                        <Label className="text-xs">Grant access to another agency</Label>
+                        <Select value={grantAgencyId} onValueChange={setGrantAgencyId}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select agency" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {agencies
+                              .filter((a: any) => a.id !== employee.agencyId && !agencyAccess.some((g: any) => g.agencyId === a.id))
+                              .map((a: any) => (
+                                <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
+                        <Input
+                          placeholder="Notes (optional)"
+                          value={grantNotes}
+                          onChange={e => setGrantNotes(e.target.value)}
+                        />
+                        <Button
+                          size="sm"
+                          className="w-full"
+                          onClick={async () => {
+                            await handleGrantAccess(grantAgencyId, { canView: true, canEdit: true }, grantNotes || undefined);
+                            setGrantAgencyId('');
+                            setGrantNotes('');
+                          }}
+                          disabled={!grantAgencyId || grantBusy}
+                        >
+                          <Plus className="w-4 h-4 mr-1" />
+                          {grantBusy ? 'Granting…' : 'Grant view + edit'}
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </div>
+        </TabsContent>
+
+        {/* Application — carried forward from the applicant at
+            conversion time (Employee.applicationData). Shows every
+            field the person originally submitted without a rehydrate. */}
+        <TabsContent value="application">
+          <ApplicationDataView
+            applicationData={employee.applicationData}
+            fullName={[employee.firstName, employee.lastName].filter(Boolean).join(' ')}
+          />
         </TabsContent>
 
         {/* Documents */}
@@ -541,260 +828,23 @@ export function EmployeeProfile() {
           </Card>
         </TabsContent>
 
-        {/* Workflow */}
-        <TabsContent value="workflow">
-          {!assignment ? (
-            /* ── No workflow connected ─────────────────────────── */
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Layers className="w-5 h-5 text-primary" /> Connect to a Workflow
-                </CardTitle>
-                <p className="text-sm text-muted-foreground mt-1">
-                  This employee is not connected to any workflow yet.
-                </p>
-              </CardHeader>
-              <CardContent>
-                {showAssignWorkflow ? (
-                  <div className="space-y-3 max-w-sm">
-                    <Select value={assignWorkflowId} onValueChange={setAssignWorkflowId}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a workflow…" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {allWorkflows.map(w => (
-                          <SelectItem key={w.id} value={w.id}>
-                            <div className="flex items-center gap-2">
-                              <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: w.color ?? '#6366F1' }} />
-                              {w.name}
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <div className="flex gap-2">
-                      <Button size="sm" onClick={handleAssignWorkflow} disabled={assigningWorkflow || !assignWorkflowId}>
-                        {assigningWorkflow ? 'Connecting…' : 'Connect'}
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={() => { setShowAssignWorkflow(false); setAssignWorkflowId(''); }}>
-                        Cancel
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  canEdit && (
-                    <Button onClick={() => setShowAssignWorkflow(true)}>
-                      <Plus className="w-4 h-4 mr-2" /> Connect to Workflow
-                    </Button>
-                  )
-                )}
-              </CardContent>
-            </Card>
-          ) : (
-            /* ── Workflow connected ─────────────────────────────── */
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-4 h-4 rounded-full" style={{ background: assignment.workflow?.color ?? '#6366F1' }} />
-                    <CardTitle>{assignment.workflow?.name}</CardTitle>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {canEdit && (
-                      <Button size="sm" variant="ghost" onClick={() => setShowAssignWorkflow(true)}>
-                        Change
-                      </Button>
-                    )}
-                    {canEdit && (
-                      <Button size="sm" variant="ghost" onClick={handleDisconnectWorkflow}>
-                        <X className="w-4 h-4 text-destructive" />
-                      </Button>
-                    )}
-                  </div>
-                </div>
-                {assignment.assignedBy && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Connected {new Date(assignment.assignedAt).toLocaleDateString()} by {assignment.assignedBy.firstName} {assignment.assignedBy.lastName}
-                  </p>
-                )}
-              </CardHeader>
-              <CardContent>
-                {showAssignWorkflow && (
-                  <div className="mb-4 p-4 border rounded-lg bg-muted/30 space-y-3">
-                    <p className="text-sm font-medium">Change Workflow</p>
-                    <Select value={assignWorkflowId} onValueChange={setAssignWorkflowId}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a workflow…" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {allWorkflows.map(w => (
-                          <SelectItem key={w.id} value={w.id}>
-                            <div className="flex items-center gap-2">
-                              <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: w.color ?? '#6366F1' }} />
-                              {w.name}
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <div className="flex gap-2">
-                      <Button size="sm" onClick={handleAssignWorkflow} disabled={assigningWorkflow || !assignWorkflowId}>
-                        {assigningWorkflow ? 'Saving…' : 'Confirm'}
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={() => { setShowAssignWorkflow(false); setAssignWorkflowId(''); }}>
-                        Cancel
-                      </Button>
-                    </div>
-                  </div>
-                )}
-                {(!assignment.workflow?.stages || assignment.workflow.stages.length === 0) ? (
-                  <p className="text-sm text-muted-foreground">This workflow has no stages configured yet.</p>
-                ) : (
-                  <div className="space-y-1">
-                    {assignment.workflow.stages.map((stage: any, index: number) => {
-                      const isCurrent = stage.id === assignment.currentStageId;
-                      const isExpanded = expandedStageId === stage.id;
-                      const stageApproval = assignment.stageApprovals?.find((a: any) => a.stageId === stage.id);
-                      const isApproved = !!stageApproval;
-                      const currentUserIsApprover = stage.assignedUsers?.some((u: any) => u.userId === currentUser?.id);
+        {/* Attendance & Time Sheets — daily timesheet, bulk entry,
+            Zeiterfassung export, and lock-aware editing. */}
+        <TabsContent value="attendance">
+          <AttendanceTab
+            employeeId={id!}
+            employeeName={[employee?.firstName, employee?.lastName].filter(Boolean).join(' ')}
+            canWrite={canEdit('employees')}
+            canLock={currentUser?.role === 'System Admin' || currentUser?.role === 'HR Manager' || currentUser?.role === 'Finance'}
+          />
+        </TabsContent>
 
-                      return (
-                        <div key={stage.id} className={`rounded-lg border transition-all ${isCurrent ? 'border-primary/40 bg-primary/5' : 'border-transparent hover:border-border hover:bg-muted/30'}`}>
-                          {/* Stage row */}
-                          <div
-                            className="flex items-center gap-3 px-3 py-3 cursor-pointer"
-                            onClick={() => setExpandedStageId(isExpanded ? null : stage.id)}
-                          >
-                            <div
-                              className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-semibold ${isCurrent ? 'text-white ring-2 ring-offset-1 ring-primary' : 'text-white opacity-60'}`}
-                              style={{ background: stage.color ?? '#6366F1' }}
-                            >
-                              {index + 1}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <span className={`text-sm font-medium ${isCurrent ? 'text-primary' : ''}`}>{stage.name}</span>
-                                {isCurrent && <Badge className="text-xs bg-primary">Current</Badge>}
-                                {isApproved && <Badge className="text-xs bg-green-500">Approved</Badge>}
-                                {stage.isFinal && <Badge variant="outline" className="text-xs">Final</Badge>}
-                                {stage.requiresApproval && !isApproved && <Badge variant="outline" className="text-xs border-amber-400 text-amber-600">Needs Approval</Badge>}
-                                {stage.slaHours && <span className="text-xs text-muted-foreground">SLA: {stage.slaHours}h</span>}
-                              </div>
-                              {stage.description && <p className="text-xs text-muted-foreground mt-0.5">{stage.description}</p>}
-                            </div>
-                            <div className="flex items-center gap-2 flex-shrink-0">
-                              {canEdit && !isCurrent && (
-                                <Button
-                                  size="sm" variant="ghost"
-                                  className="text-xs h-7"
-                                  onClick={(e) => { e.stopPropagation(); handleSetStage(stage.id); }}
-                                  disabled={settingStage}
-                                >
-                                  Set Current
-                                </Button>
-                              )}
-                              <ChevronRight className={`w-4 h-4 text-muted-foreground transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
-                            </div>
-                          </div>
-
-                          {/* Expanded panel */}
-                          {isExpanded && (
-                            <div className="px-3 pb-4 border-t pt-3 space-y-4">
-
-                              {/* Required Documents */}
-                              <div>
-                                <p className="text-xs font-semibold uppercase text-muted-foreground mb-2">Required Documents</p>
-                                {!stage.requiredDocs || stage.requiredDocs.length === 0 ? (
-                                  <p className="text-xs text-muted-foreground">No required documents for this stage.</p>
-                                ) : (
-                                  <div className="space-y-1.5">
-                                    {stage.requiredDocs.map((rd: any) => {
-                                      const uploaded = documents.find((d: any) =>
-                                        d.documentTypeId === rd.documentTypeId
-                                      );
-                                      return (
-                                        <div key={rd.id} className="flex items-center justify-between p-2 rounded-md border bg-background">
-                                          <div className="flex items-center gap-2">
-                                            <FileText className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                                            <div>
-                                              <p className="text-xs font-medium">{rd.documentType?.name}</p>
-                                              {rd.documentType?.category && <p className="text-[11px] text-muted-foreground">{rd.documentType.category}</p>}
-                                            </div>
-                                          </div>
-                                          {uploaded ? (
-                                            <Badge className="text-xs bg-green-500">Uploaded</Badge>
-                                          ) : (
-                                            <Badge variant="outline" className="text-xs border-red-400 text-red-500">Missing</Badge>
-                                          )}
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                )}
-                              </div>
-
-                              {/* Approval */}
-                              <div>
-                                <p className="text-xs font-semibold uppercase text-muted-foreground mb-2">Stage Approval</p>
-                                {isApproved ? (
-                                  <div className="flex items-center gap-2 p-2 rounded-md border bg-green-50 border-green-200">
-                                    <Badge className="bg-green-500 text-xs">Approved</Badge>
-                                    <span className="text-xs text-muted-foreground">
-                                      by {stageApproval.approvedBy?.firstName} {stageApproval.approvedBy?.lastName}
-                                      {' · '}{new Date(stageApproval.approvedAt).toLocaleDateString()}
-                                    </span>
-                                    {stageApproval.notes && <span className="text-xs text-muted-foreground italic">— "{stageApproval.notes}"</span>}
-                                  </div>
-                                ) : stage.assignedUsers?.length > 0 ? (
-                                  <div className="space-y-2">
-                                    <div className="space-y-1">
-                                      {stage.assignedUsers.map((u: any) => (
-                                        <div key={u.userId} className="flex items-center gap-2 text-xs text-muted-foreground">
-                                          <div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center text-[10px] font-semibold">
-                                            {u.user?.firstName?.[0]}{u.user?.lastName?.[0]}
-                                          </div>
-                                          {u.user?.firstName} {u.user?.lastName}
-                                          <span className="text-[11px] px-1.5 py-0.5 bg-muted rounded">{u.role}</span>
-                                        </div>
-                                      ))}
-                                    </div>
-                                    {(canEdit || currentUserIsApprover) && (
-                                      <Button
-                                        size="sm"
-                                        onClick={() => handleApproveStage(stage.id)}
-                                        disabled={approvingStageId === stage.id}
-                                        className="h-7 text-xs"
-                                      >
-                                        {approvingStageId === stage.id ? 'Approving…' : 'Approve Stage'}
-                                      </Button>
-                                    )}
-                                  </div>
-                                ) : (
-                                  <div className="space-y-2">
-                                    <p className="text-xs text-muted-foreground">No approvers assigned to this stage.</p>
-                                    {canEdit && (
-                                      <Button
-                                        size="sm"
-                                        onClick={() => handleApproveStage(stage.id)}
-                                        disabled={approvingStageId === stage.id}
-                                        className="h-7 text-xs"
-                                      >
-                                        {approvingStageId === stage.id ? 'Approving…' : 'Approve Stage'}
-                                      </Button>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
+        {/* Contracts — post-hire business timeline. Deliberately
+            different from the Workflow tab above it: Workflow tracks
+            the recruitment pipeline, Contracts tracks everything
+            that happens once the person is an Employee. */}
+        <TabsContent value="contracts">
+          <WorkHistoryTimeline employeeId={id!} canWrite={canEdit('employees')} />
         </TabsContent>
 
         {/* Compliance */}
@@ -887,6 +937,7 @@ export function EmployeeProfile() {
             <FinancialRecordsTab
               entityType="EMPLOYEE"
               entityId={id!}
+              entityName={[employee?.firstName, employee?.lastName].filter(Boolean).join(' ')}
               canWrite={canEdit('employees')}
               canChangeStatus={currentUser?.role === 'System Admin' || currentUser?.role === 'Finance'}
             />
@@ -897,11 +948,32 @@ export function EmployeeProfile() {
         <TabsContent value="notes">
           <Card>
             <CardHeader><CardTitle>Notes & Comments</CardTitle></CardHeader>
-            <CardContent>
-              {employee.notes ? (
-                <p className="whitespace-pre-wrap">{employee.notes}</p>
+            <CardContent className="space-y-4">
+              {canEdit('employees') ? (
+                <div className="space-y-2">
+                  <Label htmlFor="employee-note" className="text-sm">Add / update note</Label>
+                  <Textarea
+                    id="employee-note"
+                    rows={6}
+                    placeholder="Write a note about this employee…"
+                    value={noteDraft}
+                    onChange={e => setNoteDraft(e.target.value)}
+                  />
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" onClick={handleSaveNote} disabled={savingNote || noteDraft === (employee.notes ?? '')}>
+                      {savingNote ? 'Saving…' : 'Save note'}
+                    </Button>
+                    {noteDraft !== (employee.notes ?? '') && (
+                      <Button size="sm" variant="ghost" onClick={() => setNoteDraft(employee.notes ?? '')} disabled={savingNote}>
+                        Discard changes
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ) : employee.notes ? (
+                <p className="whitespace-pre-wrap text-sm">{employee.notes}</p>
               ) : (
-                <p className="text-muted-foreground">No notes for this employee. You can add notes when editing the profile.</p>
+                <p className="text-muted-foreground">No notes for this employee.</p>
               )}
             </CardContent>
           </Card>

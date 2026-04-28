@@ -11,7 +11,7 @@ import { Badge } from '../../components/ui/badge';
 import { Label } from '../../components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
 import { recycleBinApi } from '../../services/api';
-import { useAuthContext } from '../../contexts/AuthContext';
+import { usePermissions } from '../../hooks/usePermissions';
 import { toast } from 'sonner';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -44,8 +44,8 @@ const CONFIRM_PHRASE = 'CLEAN DATABASE';
 
 export function DatabaseCleanup() {
   const navigate = useNavigate();
-  const { user } = useAuthContext();
-  const isAdmin = user?.role === 'System Admin';
+  const { canDelete } = usePermissions();
+  const isAdmin = canDelete('settings');
 
   const [preview, setPreview] = useState<CleanupPreview | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);

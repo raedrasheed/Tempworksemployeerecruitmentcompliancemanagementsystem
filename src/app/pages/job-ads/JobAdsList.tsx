@@ -7,6 +7,7 @@ import {
   ArrowUp, ArrowDown, ArrowUpDown, Columns2, Check, X,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { confirm } from '../../components/ui/ConfirmDialog';
 import { jobAdsApi, settingsApi, getCurrentUser } from '../../services/api';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -158,7 +159,11 @@ export function JobAdsList() {
   };
 
   const handleDelete = async (id: string, title: string) => {
-    if (!confirm(`Delete "${title}"? This cannot be undone.`)) return;
+    if (!(await confirm({
+      title: 'Delete job ad?',
+      description: `"${title}" will be permanently removed. This cannot be undone.`,
+      confirmText: 'Delete', tone: 'destructive',
+    }))) return;
     try {
       await jobAdsApi.delete(id);
       toast.success('Job ad deleted');

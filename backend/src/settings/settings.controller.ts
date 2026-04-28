@@ -46,6 +46,27 @@ export class SettingsController {
   @ApiOperation({ summary: 'Get public form configuration (visa types, qualifications, etc.)' })
   getPublicFormSettings() { return this.settingsService.getPublicFormSettings(); }
 
+  // ─── Vehicle Settings (centralised lookups) ─────────────────────────────
+  // GET returns every vehicle lookup list keyed by short name (e.g.
+  // statuses, fuelTypes, bodyTypes, …). PATCH accepts the same shape.
+  @Get('vehicle')
+  @ApiOperation({ summary: 'Get all centralised vehicle lookup lists' })
+  getVehicleSettings() {
+    return this.settingsService.getVehicleSettings();
+  }
+
+  @Patch('vehicle/:key')
+  @Roles('System Admin')
+  @ApiOperation({ summary: 'Update one vehicle lookup list (e.g. statuses, fuelTypes, bodyTypes)' })
+  @ApiParam({ name: 'key' })
+  updateVehicleSetting(
+    @Param('key') key: string,
+    @Body() body: { values: string[] },
+    @CurrentUser() user: any,
+  ) {
+    return this.settingsService.updateVehicleSetting(key, body.values ?? [], user.id);
+  }
+
   // Job Types
   @Public()
   @Get('job-types')
@@ -74,6 +95,88 @@ export class SettingsController {
   @ApiParam({ name: 'id' })
   deleteJobType(@Param('id') id: string, @CurrentUser() user: any) {
     return this.settingsService.deleteJobType(id, user?.id);
+  }
+
+  // ─── Finance Transaction Types ──────────────────────────────────────────────
+
+  @Get('transaction-types')
+  @ApiOperation({ summary: 'List configurable transaction types (active only by default)' })
+  findTransactionTypes(@Query('includeInactive') includeInactive?: string) {
+    return this.settingsService.findTransactionTypes({
+      includeInactive: includeInactive === 'true',
+    });
+  }
+
+  @Post('transaction-types')
+  @Roles('System Admin', 'HR Manager', 'Finance')
+  @ApiOperation({ summary: 'Create a transaction type' })
+  createTransactionType(
+    @Body() dto: { name: string; sortOrder?: number; isActive?: boolean },
+    @CurrentUser() user: any,
+  ) {
+    return this.settingsService.createTransactionType(dto, user?.id);
+  }
+
+  @Patch('transaction-types/:id')
+  @Roles('System Admin', 'HR Manager', 'Finance')
+  @ApiOperation({ summary: 'Update a transaction type' })
+  @ApiParam({ name: 'id' })
+  updateTransactionType(
+    @Param('id') id: string,
+    @Body() dto: { name?: string; sortOrder?: number; isActive?: boolean },
+    @CurrentUser() user: any,
+  ) {
+    return this.settingsService.updateTransactionType(id, dto, user?.id);
+  }
+
+  // ─── Work History Event Types ──────────────────────────────────────────────
+
+  @Get('work-history-event-types')
+  @ApiOperation({ summary: 'List configurable Work History event types (active only by default)' })
+  findWorkHistoryEventTypes(@Query('includeInactive') includeInactive?: string) {
+    return this.settingsService.findWorkHistoryEventTypes({
+      includeInactive: includeInactive === 'true',
+    });
+  }
+
+  @Post('work-history-event-types')
+  @Roles('System Admin', 'HR Manager')
+  @ApiOperation({ summary: 'Create a Work History event type' })
+  createWorkHistoryEventType(
+    @Body() dto: { value: string; label: string; sortOrder?: number; isActive?: boolean },
+    @CurrentUser() user: any,
+  ) {
+    return this.settingsService.createWorkHistoryEventType(dto, user?.id);
+  }
+
+  @Patch('work-history-event-types/:id')
+  @Roles('System Admin', 'HR Manager')
+  @ApiOperation({ summary: 'Update a Work History event type' })
+  @ApiParam({ name: 'id' })
+  updateWorkHistoryEventType(
+    @Param('id') id: string,
+    @Body() dto: { value?: string; label?: string; sortOrder?: number; isActive?: boolean },
+    @CurrentUser() user: any,
+  ) {
+    return this.settingsService.updateWorkHistoryEventType(id, dto, user?.id);
+  }
+
+  @Delete('work-history-event-types/:id')
+  @Roles('System Admin')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Deactivate a Work History event type' })
+  @ApiParam({ name: 'id' })
+  deleteWorkHistoryEventType(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.settingsService.deleteWorkHistoryEventType(id, user?.id);
+  }
+
+  @Delete('transaction-types/:id')
+  @Roles('System Admin', 'Finance')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Deactivate a transaction type' })
+  @ApiParam({ name: 'id' })
+  deleteTransactionType(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.settingsService.deleteTransactionType(id, user?.id);
   }
 
   // Document Types

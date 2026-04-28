@@ -3,7 +3,7 @@
  * Generates a structured PDF of the applicant application data and
  * optionally merges selected uploaded documents into the same file.
  */
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Document, Page, Text, View, StyleSheet, pdf, Image } from '@react-pdf/renderer';
 import { PDFDocument } from 'pdf-lib';
 import { FileText, Download, Loader2, X, CheckSquare, Square } from 'lucide-react';
@@ -61,7 +61,7 @@ const yn = (v: string | boolean | undefined) =>
 
 // ── PDF Document ──────────────────────────────────────────────────────────────
 
-function ApplicantPDF({ applicant, photoDataUrl }: { applicant: any; photoDataUrl?: string }) {
+export function ApplicantPDF({ applicant, photoDataUrl }: { applicant: any; photoDataUrl?: string }) {
   const ad = applicant.applicationData ?? {};
   const now = new Date().toLocaleDateString('en-GB');
 
@@ -111,7 +111,7 @@ function ApplicantPDF({ applicant, photoDataUrl }: { applicant: any; photoDataUr
             <>
               {ad.homeAddress?.addressLine1 && (
                 <>
-                  <Text style={S.subTitle}>Home Address</Text>
+                  <Text style={S.subTitle}>Permanent Address</Text>
                   <View style={S.grid2}>
                     <FF label="Address" value={[ad.homeAddress.addressLine1, ad.homeAddress.addressLine2].filter(Boolean).join(', ')} />
                     <F label="City" value={ad.homeAddress.city} />
@@ -358,6 +358,65 @@ function ApplicantPDF({ applicant, photoDataUrl }: { applicant: any; photoDataUr
   );
 }
 
+// ── Shared blob builder ──────────────────────────────────────────────────────
+// Produces the final PDF blob for an applicant: renders the react-pdf
+// document, optionally embeds the profile photo in the header, and
+// appends every uploaded supporting document (PDFs verbatim, images on
+// their own A4 page). Shared between the profile button and the bulk
+// "Export PDFs" flow on the Leads / Candidates list so both produce
+// identical output.
+export async function buildApplicantPdfBlob(applicant: any, documents: any[] = []): Promise<Blob> {
+  // 1. Profile photo for the header.
+  let photoDataUrl: string | undefined;
+  if (applicant.photoUrl) {
+    try {
+      const res = await fetch(`${API_BASE}${applicant.photoUrl}`);
+      const blob = await res.blob();
+      photoDataUrl = await new Promise<string>(resolve => {
+        const r = new FileReader();
+        r.onload = () => resolve(r.result as string);
+        r.readAsDataURL(blob);
+      });
+    } catch { /* photo optional */ }
+  }
+
+  // 2. Render the application pages.
+  const appPdfBlob = await pdf(<ApplicantPDF applicant={applicant} photoDataUrl={photoDataUrl} />).toBlob();
+  if (!documents || documents.length === 0) return appPdfBlob;
+
+  // 3. Merge with supporting documents via pdf-lib.
+  const mergedPdf = await PDFDocument.create();
+  const appBytes = await appPdfBlob.arrayBuffer();
+  const appPdfDoc = await PDFDocument.load(appBytes);
+  const appPages = await mergedPdf.copyPages(appPdfDoc, appPdfDoc.getPageIndices());
+  appPages.forEach(p => mergedPdf.addPage(p));
+
+  for (const doc of documents) {
+    try {
+      const res = await fetch(`${API_BASE}${doc.fileUrl}`);
+      const bytes = await res.arrayBuffer();
+      const mime = doc.mimeType ?? '';
+      if (mime === 'application/pdf') {
+        const docPdf = await PDFDocument.load(bytes, { ignoreEncryption: true });
+        const pages = await mergedPdf.copyPages(docPdf, docPdf.getPageIndices());
+        pages.forEach(p => mergedPdf.addPage(p));
+      } else if (mime.startsWith('image/')) {
+        const page = mergedPdf.addPage([595, 842]); // A4
+        const img = mime === 'image/png' ? await mergedPdf.embedPng(bytes) : await mergedPdf.embedJpg(bytes);
+        const { width, height } = img.scaleToFit(523, 770);
+        page.drawImage(img, { x: (595 - width) / 2, y: (842 - height) / 2, width, height });
+      }
+      // docx / unknown types are silently skipped — pdf-lib can't embed them.
+    } catch {
+      // Any single-doc failure should never abort the whole export —
+      // the operator still gets every other doc + the application.
+    }
+  }
+
+  const mergedBytes = await mergedPdf.save();
+  return new Blob([mergedBytes], { type: 'application/pdf' });
+}
+
 // ── Export Dialog ─────────────────────────────────────────────────────────────
 
 interface Props {
@@ -367,8 +426,18 @@ interface Props {
 
 export function ApplicantPdfExportButton({ applicant, documents }: Props) {
   const [open, setOpen] = useState(false);
-  const [selectedDocs, setSelectedDocs] = useState<Set<string>>(new Set());
+  // Pre-select every uploaded document by default so the "Download PDF"
+  // button produces a complete bundle on first click. The operator can
+  // still untick anything they don't want before generating.
+  const [selectedDocs, setSelectedDocs] = useState<Set<string>>(() => new Set(documents.map(d => d.id)));
   const [generating, setGenerating] = useState(false);
+
+  // Re-seed the selection whenever the documents array changes (late
+  // fetch, new upload from another tab) or the dialog reopens, so the
+  // dialog never shows with nothing ticked while there are docs.
+  useEffect(() => {
+    if (open) setSelectedDocs(new Set(documents.map(d => d.id)));
+  }, [open, documents]);
 
   const toggleDoc = (id: string) => {
     setSelectedDocs(prev => {
@@ -384,68 +453,9 @@ export function ApplicantPdfExportButton({ applicant, documents }: Props) {
   const handleExport = async () => {
     setGenerating(true);
     try {
-      // 1. Load photo if available
-      let photoDataUrl: string | undefined;
-      if (applicant.photoUrl) {
-        try {
-          const res = await fetch(`${API_BASE}${applicant.photoUrl}`);
-          const blob = await res.blob();
-          photoDataUrl = await new Promise<string>(resolve => {
-            const r = new FileReader();
-            r.onload = () => resolve(r.result as string);
-            r.readAsDataURL(blob);
-          });
-        } catch { /* photo optional */ }
-      }
-
-      // 2. Generate applicant PDF
-      const appPdfBlob = await pdf(<ApplicantPDF applicant={applicant} photoDataUrl={photoDataUrl} />).toBlob();
-
-      if (selectedDocs.size === 0) {
-        // No extra docs — download as-is
-        downloadBlob(appPdfBlob, `${applicant.fullName}_Application.pdf`);
-        setOpen(false);
-        return;
-      }
-
-      // 3. Merge with selected documents using pdf-lib
-      const mergedPdf = await PDFDocument.create();
-
-      // Add applicant PDF pages
-      const appPdfBytes = await appPdfBlob.arrayBuffer();
-      const appPdfDoc = await PDFDocument.load(appPdfBytes);
-      const appPages = await mergedPdf.copyPages(appPdfDoc, appPdfDoc.getPageIndices());
-      appPages.forEach(p => mergedPdf.addPage(p));
-
-      // Add each selected document
       const docsToMerge = documents.filter(d => selectedDocs.has(d.id));
-      for (const doc of docsToMerge) {
-        try {
-          const res = await fetch(`${API_BASE}${doc.fileUrl}`);
-          const bytes = await res.arrayBuffer();
-          const mime = doc.mimeType ?? '';
-
-          if (mime === 'application/pdf') {
-            const docPdf = await PDFDocument.load(bytes, { ignoreEncryption: true });
-            const pages = await mergedPdf.copyPages(docPdf, docPdf.getPageIndices());
-            pages.forEach(p => mergedPdf.addPage(p));
-          } else if (mime.startsWith('image/')) {
-            // Embed image as a new page
-            const page = mergedPdf.addPage([595, 842]); // A4
-            let img;
-            if (mime === 'image/png') {
-              img = await mergedPdf.embedPng(bytes);
-            } else {
-              img = await mergedPdf.embedJpg(bytes);
-            }
-            const { width, height } = img.scaleToFit(523, 770);
-            page.drawImage(img, { x: (595 - width) / 2, y: (842 - height) / 2, width, height });
-          }
-        } catch { /* skip unreadable docs */ }
-      }
-
-      const mergedBytes = await mergedPdf.save();
-      downloadBlob(new Blob([mergedBytes], { type: 'application/pdf' }), `${applicant.fullName}_Application.pdf`);
+      const blob = await buildApplicantPdfBlob(applicant, docsToMerge);
+      downloadBlob(blob, `${applicant.fullName}_Application.pdf`);
       setOpen(false);
     } catch (e) {
       console.error(e);

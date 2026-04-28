@@ -34,7 +34,7 @@ export function VisaTracking() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Driver</TableHead>
-                  <TableHead>Nationality</TableHead>
+                  <TableHead>Citizenship</TableHead>
                   <TableHead>Applied Date</TableHead>
                   <TableHead>Embassy</TableHead>
                   <TableHead>Status</TableHead>

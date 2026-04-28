@@ -6,13 +6,13 @@ import { Input } from '../../components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
 import { ArrowLeft, Plus, Trash2, Save } from 'lucide-react';
 import { toast } from 'sonner';
-import { useAuthContext } from '../../contexts/AuthContext';
+import { usePermissions } from '../../hooks/usePermissions';
 
 const DEFAULTS = ['Volvo', 'Scania', 'DAF', 'MAN', 'Mercedes-Benz', 'Iveco'];
 
 export function TruckBrandsSettings() {
-  const { user } = useAuthContext();
-  const isAdmin = user?.role === 'System Admin';
+  const { canEdit } = usePermissions();
+  const isAdmin = canEdit('settings');
   const [items, setItems] = useState<string[]>([]);
   const [newItem, setNewItem] = useState('');
   const [saving, setSaving] = useState(false);

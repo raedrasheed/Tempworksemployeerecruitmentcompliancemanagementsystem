@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router';
 import {
-  Plus, Edit, Search, Trash2, Upload, Download, Copy, Check,
+  Plus, Edit, Eye, Search, Trash2, Upload, Download, Copy, Check,
   ArrowUp, ArrowDown, ArrowUpDown, X, Columns2, RefreshCw,
 } from 'lucide-react';
 import { Card, CardContent } from '../../components/ui/card';
@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { usersApi, getCurrentUser, BACKEND_URL } from '../../services/api';
 import { toast } from 'sonner';
+import { confirm } from '../../components/ui/ConfirmDialog';
 import { usePermissions } from '../../hooks/usePermissions';
 
 const STATUSES = ['ACTIVE', 'INACTIVE', 'SUSPENDED', 'PENDING'];
@@ -72,8 +73,32 @@ function SortableHead({ label, field, sortBy, sortOrder, onSort, className }: {
 }
 
 export function UsersList() {
-  const { canCreate, canEdit, canDelete } = usePermissions();
+  const { canCreate, canView, canEdit, canDelete } = usePermissions();
   const currentUser = getCurrentUser();
+  const isTempworksAdmin = currentUser?.role === 'System Admin' || currentUser?.role === 'HR Manager';
+  // Anyone inside a non-system agency is an external tenant and
+  // subject to the approval + per-user manager override gate —
+  // Agency Manager, HR Manager, Recruiter, etc. all behave the same.
+  // Tempworks root-agency users (agencyIsSystem=true) bypass it.
+  const isExternalTenantCaller = !!currentUser?.agencyId && currentUser?.agencyIsSystem !== true;
+
+  const isPending = (user: any) => user.approvalStatus === 'PENDING_APPROVAL';
+  // Per-user overrides: pending users always act as "open" to the
+  // tenant; once approved, only the flag that was flipped on unlocks
+  // that specific capability. Use !! to be forgiving about the API
+  // serialization (boolean, 1, "true" all pass).
+  const canTenantView = (user: any) =>
+    isPending(user) || user.allowManagerView !== false;
+  const canTenantEdit = (user: any) =>
+    isPending(user) || !!user.allowManagerEdit;
+  const canTenantDelete = (user: any) =>
+    isPending(user) || !!user.allowManagerDelete;
+  const mayViewRow = (user: any) =>
+    canView('users') && (!isExternalTenantCaller || canTenantView(user));
+  const mayEditRow = (user: any) =>
+    canEdit('users') && (!isExternalTenantCaller || canTenantEdit(user));
+  const mayDeleteRow = (user: any) =>
+    canDelete('users') && user.id !== currentUser?.id && (!isExternalTenantCaller || canTenantDelete(user));
 
   // ── Data ───────────────────────────────────────────────────────────────────
   const [users, setUsers]   = useState<any[]>([]);
@@ -214,12 +239,35 @@ export function UsersList() {
   const [loadingLink, setLoadingLink]           = useState<string | null>(null);
 
   const handleDelete = async (user: any) => {
-    if (!confirm(`Are you sure you want to delete ${user.firstName} ${user.lastName}? This action cannot be undone.`)) return;
+    if (!(await confirm({
+      title: 'Delete user?',
+      description: `${user.firstName} ${user.lastName} will be permanently removed. This action cannot be undone.`,
+      confirmText: 'Delete', tone: 'destructive',
+    }))) return;
     try {
       await usersApi.delete(user.id);
       setUsers(prev => prev.filter(u => u.id !== user.id));
       toast.success('User deleted successfully');
     } catch (err: any) { toast.error(err?.message || 'Failed to delete user'); }
+  };
+
+  // ── Tempworks-admin approval ──────────────────────────────────────────────
+  // Per-user manager override (allowManagerEdit/Delete) lives on the
+  // Edit User page for a clearer UI; this list only surfaces the
+  // Approve action on pending rows.
+  const [approveBusy, setApproveBusy] = useState<string | null>(null);
+
+  const handleApprove = async (user: any) => {
+    setApproveBusy(user.id);
+    try {
+      await usersApi.approveAgencyUser(user.id);
+      toast.success('User approved');
+      reload();
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to approve user');
+    } finally {
+      setApproveBusy(null);
+    }
   };
 
   const handleBulkImport = async () => {
@@ -489,12 +537,37 @@ export function UsersList() {
                             {loadingLink === user.id ? '...' : 'Activation Link'}
                           </Button>
                         )}
-                        {canEdit('users') && (
+                        {/* Approval pill (pending only) */}
+                        {user.approvalStatus === 'PENDING_APPROVAL' && (
+                          <Badge variant="outline" className="text-[10px] border-amber-300 text-amber-700 bg-amber-50">Pending approval</Badge>
+                        )}
+                        {isTempworksAdmin && user.approvalStatus === 'PENDING_APPROVAL' && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleApprove(user)}
+                            disabled={approveBusy === user.id}
+                            className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 text-xs"
+                            title="Approve this agency-created user"
+                          >
+                            {approveBusy === user.id ? '…' : 'Approve'}
+                          </Button>
+                        )}
+                        {/* Per-user manager override toggles live on the Edit User page — System Admin only. */}
+                        {/* View-only button — shown when the caller has view
+                            access but no edit override (otherwise Edit implies
+                            view and this row would be redundant). */}
+                        {mayViewRow(user) && !mayEditRow(user) && (
+                          <Button variant="ghost" size="sm" asChild>
+                            <Link to={`/dashboard/users/${user.id}/edit`}><Eye className="w-4 h-4 mr-1" />View</Link>
+                          </Button>
+                        )}
+                        {mayEditRow(user) && (
                           <Button variant="ghost" size="sm" asChild>
                             <Link to={`/dashboard/users/${user.id}/edit`}><Edit className="w-4 h-4 mr-1" />Edit</Link>
                           </Button>
                         )}
-                        {canDelete('users') && user.id !== currentUser?.id && (
+                        {mayDeleteRow(user) && (
                           <Button variant="ghost" size="sm" onClick={() => handleDelete(user)} className="text-[#EF4444] hover:text-[#EF4444] hover:bg-[#FEF2F2]">
                             <Trash2 className="w-4 h-4" />
                           </Button>

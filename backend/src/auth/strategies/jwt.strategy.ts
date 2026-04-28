@@ -29,6 +29,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
         roleId: true,
         agencyId: true,
         role: { select: { name: true } },
+        agency: { select: { isSystem: true } },
       },
     });
     if (!user) {
@@ -47,6 +48,10 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       role: user.role.name,
       roleId: user.roleId,
       agencyId: user.agencyId,
+      // True when the user's agency is the Tempworks root/owner (seen
+      // globally); false — or missing — means the caller is an
+      // external tenant and every service must scope to their agency.
+      agencyIsSystem: (user as any).agency?.isSystem ?? false,
     };
   }
 }

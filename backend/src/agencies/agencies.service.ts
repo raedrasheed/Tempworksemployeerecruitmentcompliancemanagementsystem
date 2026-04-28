@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateAgencyDto } from './dto/create-agency.dto';
 import { UpdateAgencyDto } from './dto/update-agency.dto';
@@ -21,10 +21,32 @@ export class AgenciesService {
     });
   }
 
-  async findAll(pagination: PaginationDto) {
+  /**
+   * External tenant = user attached to any agency that is not the
+   * Tempworks root (`isSystem=true`). All such users are scoped to
+   * their own agency regardless of role name, so HR Managers and
+   * Agency Managers in external agencies are treated identically.
+   */
+  private isExternalActor(actor?: { agencyId?: string; agencyIsSystem?: boolean }) {
+    return !!actor && !!actor.agencyId && actor.agencyIsSystem !== true;
+  }
+
+  /** Throws when an external tenant tries to reach an agency other than their own. */
+  private assertAgencyAccess(agencyId: string, actor?: { role?: string; agencyId?: string; agencyIsSystem?: boolean }) {
+    if (this.isExternalActor(actor) && actor?.agencyId !== agencyId) {
+      throw new ForbiddenException('You can only view your own agency');
+    }
+  }
+
+  async findAll(pagination: PaginationDto, actor?: { role?: string; agencyId?: string; agencyIsSystem?: boolean }) {
     const { page = 1, limit = 10, search, sortBy = 'name', sortOrder = 'asc' } = pagination;
     const skip = (Number(page) - 1) * Number(limit);
     const where: any = { deletedAt: null };
+    // Agency users can only see their own agency in the listing.
+    if (this.isExternalActor(actor)) {
+      if (!actor?.agencyId) return PaginatedResponse.create([], 0, page, limit);
+      where.id = actor.agencyId;
+    }
     if (search) {
       where.OR = [
         { name: { contains: search, mode: 'insensitive' } },
@@ -40,7 +62,8 @@ export class AgenciesService {
     return PaginatedResponse.create(items, total, page, limit);
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, actor?: { role?: string; agencyId?: string; agencyIsSystem?: boolean }) {
+    this.assertAgencyAccess(id, actor);
     const agency = await this.prisma.agency.findUnique({
       where: { id, deletedAt: null },
       include: {
@@ -52,9 +75,32 @@ export class AgenciesService {
     return agency;
   }
 
-  async create(dto: CreateAgencyDto, createdById?: string) {
+  /** Derive the legacy `contactPerson` column from the structured name pieces
+   *  when the client sends first/middle/last but omits the combined value.
+   *  Keeps backwards compatibility for listing/search code that still reads
+   *  the single column. */
+  private deriveContactPerson(dto: Partial<CreateAgencyDto>): string | undefined {
+    if (dto.contactPerson && dto.contactPerson.trim()) return dto.contactPerson.trim();
+    const pieces = [dto.contactFirstName, dto.contactMiddleName, dto.contactLastName]
+      .map(p => (p ?? '').trim())
+      .filter(Boolean);
+    return pieces.length ? pieces.join(' ') : undefined;
+  }
+
+  async create(dto: CreateAgencyDto, createdById?: string, actorRole?: string) {
+    const contactPerson = this.deriveContactPerson(dto);
+    if (!contactPerson) throw new BadRequestException('Contact person name is required');
+    // isSystem can only be set by System Admin — strip it from any
+    // create payload originating from a lower-privileged caller.
+    if (actorRole !== 'System Admin' && 'isSystem' in (dto as any)) {
+      delete (dto as any).isSystem;
+    }
     const agency = await this.prisma.agency.create({
-      data: { ...dto, status: (dto.status as any) || 'ACTIVE' },
+      data: {
+        ...dto,
+        contactPerson,
+        status: (dto.status as any) || 'ACTIVE',
+      },
       include: this.include,
     });
     if (createdById) {
@@ -65,16 +111,73 @@ export class AgenciesService {
     return agency;
   }
 
-  async update(id: string, dto: UpdateAgencyDto, updatedById?: string) {
-    await this.findOne(id);
+  /**
+   * Agency fields that an Agency Manager is NEVER allowed to touch. The
+   * list is the single source of truth — adding a future protected field
+   * is a one-line change here.
+   */
+  static readonly PROTECTED_FIELDS_FOR_MANAGER: string[] = [
+    // Business-identity fields Agency Manager must never change.
+    'name', 'country', 'status',
+    // Admin-only fields.
+    'managerId', 'maxUsersPerAgency', 'isSystem',
+    'deletedAt', 'deletedBy', 'deletionReason',
+  ];
+
+  async update(
+    id: string,
+    dto: UpdateAgencyDto,
+    updatedById?: string,
+    actor?: { role?: string; agencyId?: string; agencyIsSystem?: boolean },
+  ) {
+    const existing = await this.findOne(id);
+
+    // Agency Manager scoping: can only edit their own agency, and protected
+    // fields (name, managerId, status, maxUsersPerAgency, …) are stripped.
+    if (actor?.role === 'Agency Manager') {
+      if (actor.agencyId !== id) throw new ForbiddenException('You can only edit your own agency');
+      for (const field of AgenciesService.PROTECTED_FIELDS_FOR_MANAGER) {
+        delete (dto as any)[field];
+      }
+    }
+
+    // isSystem is a tenancy-model switch (makes every user of this agency
+    // global-scope) and must only be flipped by System Admins, regardless
+    // of which caller reached PATCH /agencies/:id.
+    if (actor?.role !== 'System Admin' && 'isSystem' in (dto as any)) {
+      delete (dto as any).isSystem;
+    }
+
+    const data: any = { ...dto };
+    const derived = this.deriveContactPerson(dto);
+    if (derived !== undefined) data.contactPerson = derived;
     const agency = await this.prisma.agency.update({
       where: { id },
-      data: dto as any,
+      data,
       include: this.include,
     });
     if (updatedById) {
       await this.prisma.auditLog.create({
         data: { userId: updatedById, action: 'UPDATE', entity: 'Agency', entityId: id },
+      });
+    }
+    return agency;
+  }
+
+  async uploadLogo(id: string, file: Express.Multer.File, actorId?: string) {
+    await this.findOne(id);
+    if (!file) throw new BadRequestException('No logo file provided');
+    // Files land under uploads/; the public URL follows the same `/uploads/<file>`
+    // convention used by employee/applicant photo uploads.
+    const logoUrl = `/uploads/${file.filename}`;
+    const agency = await this.prisma.agency.update({
+      where: { id },
+      data: { logoUrl },
+      include: this.include,
+    });
+    if (actorId) {
+      await this.prisma.auditLog.create({
+        data: { userId: actorId, action: 'UPDATE_LOGO', entity: 'Agency', entityId: id, changes: { logoUrl } as any },
       });
     }
     return agency;
@@ -91,8 +194,9 @@ export class AgenciesService {
     return { message: 'Agency deleted' };
   }
 
-  async getUsers(id: string, pagination: PaginationDto) {
-    await this.findOne(id);
+  async getUsers(id: string, pagination: PaginationDto, actor?: { role?: string; agencyId?: string; agencyIsSystem?: boolean }) {
+    this.assertAgencyAccess(id, actor);
+    await this.findOne(id, actor);
     const { page = 1, limit = 10 } = pagination;
     const where = { agencyId: id, deletedAt: null };
     const [items, total] = await Promise.all([
@@ -100,17 +204,43 @@ export class AgenciesService {
         where,
         skip: (Number(page) - 1) * Number(limit),
         take: Number(limit),
-        select: { id: true, email: true, firstName: true, lastName: true, status: true, role: { select: { name: true } } },
+        select: {
+          id: true, email: true, firstName: true, lastName: true, status: true,
+          // Include the approval state + per-user manager override flags so
+          // the frontend can gate Edit/Delete/Approve buttons the same way
+          // the standalone Users list does.
+          agencyId: true,
+          approvalStatus: true,
+          approvedAt: true,
+          allowManagerEdit: true,
+          allowManagerDelete: true,
+          role: { select: { id: true, name: true } },
+        },
       }),
       this.prisma.user.count({ where }),
     ]);
     return PaginatedResponse.create(items, total, page, limit);
   }
 
-  async getEmployees(id: string, pagination: PaginationDto) {
-    await this.findOne(id);
+  async getEmployees(id: string, pagination: PaginationDto, actor?: { role?: string; agencyId?: string; agencyIsSystem?: boolean }) {
+    this.assertAgencyAccess(id, actor);
+    await this.findOne(id, actor);
     const { page = 1, limit = 10 } = pagination;
-    const where = { agencyId: id, deletedAt: null };
+    const where: any = { agencyId: id, deletedAt: null };
+
+    // Any external tenant — regardless of role — must have an explicit
+    // per-employee grant with canView=true; origin agency alone never
+    // grants access, and a read-access-only-revoked grant still blocks.
+    if (this.isExternalActor(actor)) {
+      const grants = await this.prisma.employeeAgencyAccess.findMany({
+        where: { agencyId: actor!.agencyId!, canView: true },
+        select: { employeeId: true },
+      });
+      const allowedIds = grants.map(g => g.employeeId);
+      if (allowedIds.length === 0) return PaginatedResponse.create([], 0, page, limit);
+      where.id = { in: allowedIds };
+    }
+
     const [items, total] = await Promise.all([
       this.prisma.employee.findMany({
         where,
@@ -123,15 +253,81 @@ export class AgenciesService {
     return PaginatedResponse.create(items, total, page, limit);
   }
 
-  async getStats(id: string) {
-    await this.findOne(id);
+  async getStats(id: string, actor?: { role?: string; agencyId?: string; agencyIsSystem?: boolean }) {
+    this.assertAgencyAccess(id, actor);
+    await this.findOne(id, actor);
+
+    // Build the employee-scope the same way getEmployees does so stats
+    // don't leak a count larger than the external tenant can open.
+    const employeeWhere: any = { agencyId: id, deletedAt: null };
+    if (this.isExternalActor(actor)) {
+      const grants = await this.prisma.employeeAgencyAccess.findMany({
+        where: { agencyId: actor!.agencyId!, canView: true },
+        select: { employeeId: true },
+      });
+      const allowedIds = grants.map(g => g.employeeId);
+      if (allowedIds.length === 0) {
+        const users = await this.prisma.user.count({ where: { agencyId: id, deletedAt: null } });
+        return { users, employees: 0, activeEmployees: 0, pendingEmployees: 0 };
+      }
+      employeeWhere.id = { in: allowedIds };
+    }
     const [users, employees, activeEmployees, pendingEmployees] = await Promise.all([
       this.prisma.user.count({ where: { agencyId: id, deletedAt: null } }),
-      this.prisma.employee.count({ where: { agencyId: id, deletedAt: null } }),
-      this.prisma.employee.count({ where: { agencyId: id, deletedAt: null, status: 'ACTIVE' } }),
-      this.prisma.employee.count({ where: { agencyId: id, deletedAt: null, status: 'PENDING' } }),
+      this.prisma.employee.count({ where: employeeWhere }),
+      this.prisma.employee.count({ where: { ...employeeWhere, status: 'ACTIVE' } }),
+      this.prisma.employee.count({ where: { ...employeeWhere, status: 'PENDING' } }),
     ]);
     return { users, employees, activeEmployees, pendingEmployees };
+  }
+
+  // ── Agency-wide permission overrides (admin only) ───────────────────────────
+
+  async listPermissionOverrides(agencyId: string) {
+    await this.findOne(agencyId);
+    return this.prisma.agencyPermissionOverride.findMany({
+      where: { agencyId },
+      orderBy: { permission: 'asc' },
+    });
+  }
+
+  async setPermissionOverride(
+    agencyId: string,
+    permission: string,
+    allow: boolean,
+    actorId?: string,
+  ) {
+    await this.findOne(agencyId);
+    const record = await this.prisma.agencyPermissionOverride.upsert({
+      where:  { agencyId_permission: { agencyId, permission } },
+      create: { agencyId, permission, allow },
+      update: { allow },
+    });
+    await this.prisma.auditLog.create({
+      data: {
+        userId: actorId, action: allow ? 'AGENCY_PERMISSION_GRANT' : 'AGENCY_PERMISSION_REVOKE',
+        entity: 'Agency', entityId: agencyId, changes: { permission, allow } as any,
+      },
+    });
+    return record;
+  }
+
+  async removePermissionOverride(agencyId: string, permission: string, actorId?: string) {
+    await this.findOne(agencyId);
+    try {
+      await this.prisma.agencyPermissionOverride.delete({
+        where: { agencyId_permission: { agencyId, permission } },
+      });
+    } catch {
+      throw new NotFoundException('Permission override not found');
+    }
+    await this.prisma.auditLog.create({
+      data: {
+        userId: actorId, action: 'AGENCY_PERMISSION_OVERRIDE_REMOVED',
+        entity: 'Agency', entityId: agencyId, changes: { permission } as any,
+      },
+    });
+    return { message: 'Permission override removed' };
   }
 
   async setManager(agencyId: string, userId: string, actorId?: string) {

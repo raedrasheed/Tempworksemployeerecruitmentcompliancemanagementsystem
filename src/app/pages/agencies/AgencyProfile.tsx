@@ -1,6 +1,6 @@
 import { Link, useParams } from 'react-router';
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Building2, Mail, Phone, MapPin, Users, Shield, ChevronRight, Settings } from 'lucide-react';
+import { ArrowLeft, Building2, Mail, Phone, MapPin, Users, Shield, ChevronRight, Settings, Pencil } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
@@ -8,10 +8,20 @@ import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { toast } from 'sonner';
-import { agenciesApi } from '../../services/api';
+import { agenciesApi, getCurrentUser } from '../../services/api';
+import { usePermissions } from '../../hooks/usePermissions';
+import { FinancialRecordsTab } from '../../components/finance/FinancialRecordsTab';
+
+// Roles that can SEE the internal agency financial records. Agency users
+// (external) are intentionally excluded from every list so the tab does
+// not render at all for them.
+const FINANCE_VIEW_ROLES   = ['System Admin', 'HR Manager', 'Finance', 'Recruiter'];
+const FINANCE_WRITE_ROLES  = ['System Admin', 'HR Manager', 'Finance'];
+const FINANCE_STATUS_ROLES = ['System Admin', 'Finance'];
 
 export function AgencyProfile() {
   const { id } = useParams();
+  const { canEdit } = usePermissions();
   const [agency, setAgency] = useState<any>(null);
   const [employees, setEmployees] = useState<any[]>([]);
   const [agencyUsers, setAgencyUsers] = useState<any[]>([]);
@@ -19,6 +29,15 @@ export function AgencyProfile() {
   const [notFound, setNotFound] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
   const [settings, setSettings] = useState({ maxUsers: '10' });
+
+  // Financial records are for Tempworks-internal staff only. Agency users
+  // never see the tab, and the backend enforces role checks independently
+  // so hiding is defence-in-depth not the primary gate.
+  const currentUser = getCurrentUser();
+  const userRole = currentUser?.role ?? '';
+  const canViewFinance   = FINANCE_VIEW_ROLES.includes(userRole);
+  const canWriteFinance  = FINANCE_WRITE_ROLES.includes(userRole);
+  const canStatusFinance = FINANCE_STATUS_ROLES.includes(userRole);
 
   useEffect(() => {
     Promise.all([
@@ -59,6 +78,14 @@ export function AgencyProfile() {
           <h1 className="text-3xl font-semibold text-[#0F172A]">{agency.name}</h1>
           <p className="text-muted-foreground mt-1">Agency Profile & Management</p>
         </div>
+        {canEdit('agencies') && (
+          <Button variant="outline" asChild>
+            <Link to={`/dashboard/agencies/${id}/edit`}>
+              <Pencil className="w-4 h-4 mr-2" />
+              Edit Profile
+            </Link>
+          </Button>
+        )}
         <Button variant="outline" asChild>
           <Link to={`/dashboard/agencies/${id}/users`}>
             <Users className="w-4 h-4 mr-2" />
@@ -171,6 +198,7 @@ export function AgencyProfile() {
         <TabsList>
           <TabsTrigger value="employees">Employees</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
+          {canViewFinance && <TabsTrigger value="finance">Financial Records</TabsTrigger>}
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
 
@@ -243,6 +271,18 @@ export function AgencyProfile() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {canViewFinance && (
+          <TabsContent value="finance">
+            <FinancialRecordsTab
+              entityType="AGENCY"
+              entityId={id!}
+              entityName={agency?.name}
+              canWrite={canWriteFinance}
+              canChangeStatus={canStatusFinance}
+            />
+          </TabsContent>
+        )}
 
         <TabsContent value="settings">
           <Card>

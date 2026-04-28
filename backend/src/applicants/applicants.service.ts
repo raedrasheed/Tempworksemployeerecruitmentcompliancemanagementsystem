@@ -13,6 +13,7 @@ import { BulkActionDto, BulkActionType, AssignAgencyDto, ConvertLeadDto } from '
 import { PaginatedResponse } from '../common/dto/pagination-response.dto';
 import { promises as fs } from 'fs';
 import { join, extname } from 'path';
+import * as ExcelJS from 'exceljs';
 
 @Injectable()
 export class ApplicantsService {
@@ -24,6 +25,8 @@ export class ApplicantsService {
       agency: { select: { id: true, name: true } },
       currentWorkflowStage: { select: { id: true, name: true, color: true, order: true } },
       jobAd: { select: { id: true, title: true, slug: true, city: true, country: true, status: true } },
+      // Creator of the record — null for public (self-applied) submissions.
+      createdBy: { select: { id: true, firstName: true, lastName: true, email: true } },
     };
   }
 
@@ -37,23 +40,22 @@ export class ApplicantsService {
 
   // ── List ──────────────────────────────────────────────────────────────────────
 
-  async findAll(filter: FilterApplicantsDto, actor?: { role: string; agencyId?: string }) {
+  async findAll(filter: FilterApplicantsDto, actor?: { role: string; agencyId?: string; agencyIsSystem?: boolean }) {
     const { page = 1, limit = 20, search, sortBy = 'createdAt', sortOrder = 'desc',
             tier, status, agencyId, nationality, jobTypeId } = filter;
     const skip = (Number(page) - 1) * Number(limit);
 
     const where: any = { deletedAt: null };
 
-    // Agency users can only see CANDIDATES (not LEADs)
-    if (actor && this.isAgencyUser(actor.role)) {
-      where.tier = 'CANDIDATE';
-      // Agency users see only their own agency's applicants
-      if (actor.agencyId) {
-        where.agencyId = actor.agencyId;
-      }
-    } else {
-      if (tier) where.tier = tier;
+    // External tenants are scoped to their own agency across every
+    // tier. The client-supplied tier filter flows through unchanged,
+    // so Applicants (LEAD) and Candidates (CANDIDATE) both work for
+    // tenant roles that hold applicants:read — Agency Manager and
+    // other external roles alike.
+    if (actor && this.isExternalActor(actor) && actor.agencyId) {
+      where.agencyId = actor.agencyId;
     }
+    if (tier) where.tier = tier;
 
     if (search) {
       where.OR = [
@@ -66,7 +68,7 @@ export class ApplicantsService {
       ];
     }
     if (status) where.status = status;
-    if (agencyId && !this.isAgencyUser(actor?.role)) where.agencyId = agencyId;
+    if (agencyId && !this.isExternalActor(actor)) where.agencyId = agencyId;
     if (nationality) where.nationality = { contains: nationality, mode: 'insensitive' };
     if (jobTypeId) where.jobTypeId = jobTypeId;
 
@@ -87,16 +89,17 @@ export class ApplicantsService {
 
   // ── Find One ──────────────────────────────────────────────────────────────────
 
-  async findOne(id: string, actor?: { role: string; agencyId?: string }) {
+  async findOne(id: string, actor?: { role: string; agencyId?: string; agencyIsSystem?: boolean }) {
     const applicant = await this.prisma.applicant.findUnique({
       where: { id, deletedAt: null },
       include: this.includeWithRelations,
     });
     if (!applicant) throw new NotFoundException(`Applicant ${id} not found`);
 
-    // Agency users can only see CANDIDATEs in their own agency
-    if (actor && this.isAgencyUser(actor.role)) {
-      if (applicant.tier === 'LEAD') throw new ForbiddenException('Access denied');
+    // External tenants are scoped to their own agency — both tiers
+    // (Leads and Candidates) are accessible as long as the row
+    // belongs to the caller's agency.
+    if (actor && this.isExternalActor(actor)) {
       if (actor.agencyId && applicant.agencyId && applicant.agencyId !== actor.agencyId) {
         throw new ForbiddenException('Access denied');
       }
@@ -107,14 +110,28 @@ export class ApplicantsService {
 
   // ── Create ────────────────────────────────────────────────────────────────────
 
-  async create(dto: CreateApplicantDto & { tier?: string }, actorId?: string, actor?: { role: string; agencyId?: string }) {
-    // Agency users can only create candidates in their own agency
-    if (actor && this.isAgencyUser(actor.role) && actor.agencyId) {
-      (dto as any).agencyId = actor.agencyId;
+  async create(dto: CreateApplicantDto & { tier?: string }, actorId?: string, actor?: { role: string; agencyId?: string; agencyIsSystem?: boolean }) {
+    const isExternal = !!(actor && this.isExternalActor(actor));
+    const isAgencySideRole = actor?.role === 'Agency User' || actor?.role === 'Agency Manager';
+    // External tenants: the new record is always pinned to the
+    // caller's agency. Tier defaults to LEAD (the same as admin
+    // submissions) so Agency Manager can use both the Applicants and
+    // Candidates surfaces; the client may explicitly send
+    // tier=CANDIDATE if they want the record to land on the
+    // Candidates queue directly. Agency-side submissions still enter
+    // the Tempworks approval workflow below.
+    if (isExternal && actor!.agencyId) {
+      (dto as any).agencyId = actor!.agencyId;
     }
 
-    // Always generate a Lead identifier for new records created via the admin UI.
+    // Always generate a Lead identifier. Records that are born as a
+    // Candidate (agency-side submissions) also get a Candidate
+    // identifier up-front so the Candidates list never has to fall
+    // back to showing the "A…" lead number.
     const leadNumber = await this.generateIdentifier('A');
+    const bornAsCandidate = (dto.tier as any) === 'CANDIDATE';
+    const candidateNumber = bornAsCandidate ? await this.generateIdentifier('C') : null;
+    const candidateConvertedAt = bornAsCandidate ? new Date() : null;
 
     // Ensure nationality is always populated — mirror publicSubmit fallback logic
     const citizenship = (dto as any).citizenship || (dto as any).nationality;
@@ -126,12 +143,23 @@ export class ApplicantsService {
         citizenship,
         nationality,
         leadNumber,
+        candidateNumber,
+        candidateConvertedAt,
         tier: (dto.tier as any) || 'LEAD',
         dateOfBirth: dto.dateOfBirth ? new Date(dto.dateOfBirth) : undefined,
         workAuthorizationExpiry: dto.workAuthorizationExpiry ? new Date(dto.workAuthorizationExpiry) : undefined,
         preferredStartDate: dto.preferredStartDate ? new Date(dto.preferredStartDate) : undefined,
         status: dto.status || 'NEW',
-      },
+        // Approval gate: only agency-side roles trigger the Tempworks
+        // approval queue. Tempworks-internal and non-Agency external
+        // roles (HR Manager / Recruiter) produce approved records.
+        approvalStatus: isAgencySideRole ? ('PENDING_APPROVAL' as any) : ('APPROVED' as any),
+        // Attribution — every dashboard-originated create records the
+        // acting user. The public /apply path goes through
+        // publicSubmit() instead and leaves createdById null.
+        createdById: actorId ?? null,
+        source: 'STAFF_CREATED',
+      } as any,
       include: this.include,
     });
 
@@ -146,11 +174,11 @@ export class ApplicantsService {
 
   // ── Update ────────────────────────────────────────────────────────────────────
 
-  async update(id: string, dto: UpdateApplicantDto, actorId?: string, actor?: { role: string; agencyId?: string }) {
+  async update(id: string, dto: UpdateApplicantDto, actorId?: string, actor?: { role: string; agencyId?: string; agencyIsSystem?: boolean }) {
     const existing = await this.findOne(id, actor);
 
     // Agency User/Manager can only edit candidates in their own agency
-    if (actor && this.isAgencyUser(actor.role)) {
+    if (actor && this.isExternalActor(actor)) {
       if (actor.agencyId && existing.agencyId !== actor.agencyId) {
         throw new ForbiddenException('You can only edit candidates in your own agency');
       }
@@ -164,6 +192,21 @@ export class ApplicantsService {
     if (dto.dateOfBirth) updateData.dateOfBirth = new Date(dto.dateOfBirth);
     if (dto.workAuthorizationExpiry) updateData.workAuthorizationExpiry = new Date(dto.workAuthorizationExpiry);
     if (dto.preferredStartDate) updateData.preferredStartDate = new Date(dto.preferredStartDate);
+
+    // Edits by agency-side users re-arm the Tempworks approval gate:
+    // the changes land immediately, but approvalStatus flips back to
+    // PENDING_APPROVAL so existing gates (setCurrentStage,
+    // convertToEmployee) block downstream actions until a Tempworks
+    // admin re-approves. Other external roles (HR Manager in a
+    // tenant agency) edit without re-arming, same as Tempworks-internal
+    // staff.
+    const isAgencySideRoleEdit = actor?.role === 'Agency User' || actor?.role === 'Agency Manager';
+    if (actor && this.isExternalActor(actor) && isAgencySideRoleEdit) {
+      updateData.approvalStatus = 'PENDING_APPROVAL';
+      updateData.approvedById = null;
+      updateData.approvedAt = null;
+      updateData.rejectionReason = null;
+    }
 
     const applicant = await this.prisma.applicant.update({
       where: { id }, data: updateData, include: this.include,
@@ -188,10 +231,20 @@ export class ApplicantsService {
 
   // ── Update Status ─────────────────────────────────────────────────────────────
 
-  async updateStatus(id: string, status: string, actorId?: string) {
+  async updateStatus(id: string, status: string, actorId?: string, actor?: { role: string; agencyId?: string; agencyIsSystem?: boolean }) {
     await this.findOne(id);
+    const data: any = { status: status as any };
+    // Status changes by agency-side users re-arm the approval gate;
+    // tenant HR Managers and Tempworks-internal staff don't trigger it.
+    const isAgencySideRole = actor?.role === 'Agency User' || actor?.role === 'Agency Manager';
+    if (actor && this.isExternalActor(actor) && isAgencySideRole) {
+      data.approvalStatus = 'PENDING_APPROVAL';
+      data.approvedById = null;
+      data.approvedAt = null;
+      data.rejectionReason = null;
+    }
     const applicant = await this.prisma.applicant.update({
-      where: { id }, data: { status: status as any }, include: this.include,
+      where: { id }, data, include: this.include,
     });
     await this.auditLog(actorId, 'STATUS_CHANGE', id, { status });
     return applicant;
@@ -199,7 +252,7 @@ export class ApplicantsService {
 
   // ── Remove ────────────────────────────────────────────────────────────────────
 
-  async remove(id: string, actorId?: string, actor?: { role: string; agencyId?: string }) {
+  async remove(id: string, actorId?: string, actor?: { role: string; agencyId?: string; agencyIsSystem?: boolean }) {
     if (actor && actor.role === 'Agency User') {
       throw new ForbiddenException('Agency users cannot directly delete candidates. Please submit a delete request.');
     }
@@ -267,7 +320,12 @@ export class ApplicantsService {
           : undefined,
         applicationData: appData,
         notes: coreData.notes || (applicationNotes ? `[Submitted] ${applicationNotes}` : undefined),
-      },
+        // Flag this record as filled out by the applicant themself via
+        // the public /apply form. createdById stays null (no staff
+        // user is responsible); the profile UI keys off `source` to
+        // show a "Self-applied" badge instead of a creator name.
+        source: 'SELF_APPLIED',
+      } as any,
       include: this.include,
     });
 
@@ -281,18 +339,58 @@ export class ApplicantsService {
   // ── Set Workflow Stage ────────────────────────────────────────────────────────
 
   async setCurrentStage(id: string, stageId: string | null, actorId?: string) {
-    await this.findOne(id);
+    const applicant = await this.findOne(id);
+    // Cannot move an agency-submitted candidate into the workflow until
+    // Tempworks has approved them.
+    if ((applicant as any).approvalStatus === 'PENDING_APPROVAL' && stageId) {
+      throw new BadRequestException('This candidate is pending Tempworks approval and cannot enter the workflow yet');
+    }
     if (stageId) {
       const stage = await this.prisma.stageTemplate.findUnique({ where: { id: stageId } });
       if (!stage) throw new NotFoundException('Workflow stage not found');
     }
-    const applicant = await this.prisma.applicant.update({
+    const updated = await this.prisma.applicant.update({
       where: { id },
       data: { currentWorkflowStageId: stageId },
       include: this.include,
     });
     await this.auditLog(actorId, 'WORKFLOW_STAGE_UPDATE', id, { currentWorkflowStageId: stageId });
-    return applicant;
+    return updated;
+  }
+
+  // ── Agency-submitted candidate approval ──────────────────────────────────────
+
+  async approveApplicant(id: string, actorId?: string) {
+    const applicant = await this.findOne(id);
+    if ((applicant as any).approvalStatus === 'APPROVED') return applicant;
+    const updated = await this.prisma.applicant.update({
+      where: { id },
+      data: {
+        approvalStatus: 'APPROVED' as any,
+        approvedById: actorId ?? null,
+        approvedAt: new Date(),
+        rejectionReason: null,
+      },
+      include: this.include,
+    });
+    await this.auditLog(actorId, 'APPROVE_CANDIDATE', id);
+    return updated;
+  }
+
+  async rejectApplicant(id: string, reason: string | undefined, actorId?: string) {
+    const applicant = await this.findOne(id);
+    const updated = await this.prisma.applicant.update({
+      where: { id },
+      data: {
+        approvalStatus: 'REJECTED' as any,
+        approvedById: actorId ?? null,
+        approvedAt: new Date(),
+        rejectionReason: reason ?? null,
+      },
+      include: this.include,
+    });
+    await this.auditLog(actorId, 'REJECT_CANDIDATE', id, { reason });
+    return updated;
   }
 
   // ── Convert Lead → Candidate ──────────────────────────────────────────────────
@@ -374,8 +472,8 @@ export class ApplicantsService {
 
   // ── Reassign Agency ───────────────────────────────────────────────────────────
 
-  async reassignAgency(id: string, dto: AssignAgencyDto, actorId?: string, actor?: { role: string; agencyId?: string }) {
-    if (actor && this.isAgencyUser(actor.role)) {
+  async reassignAgency(id: string, dto: AssignAgencyDto, actorId?: string, actor?: { role: string; agencyId?: string; agencyIsSystem?: boolean }) {
+    if (actor && this.isExternalActor(actor)) {
       throw new ForbiddenException('Agency users cannot change a candidate\'s agency.');
     }
 
@@ -461,9 +559,9 @@ export class ApplicantsService {
 
   // ── Bulk Actions ──────────────────────────────────────────────────────────────
 
-  async bulkAction(dto: BulkActionDto, actorId?: string) {
-    const { ids, action, value } = dto;
-    const results: { id: string; success: boolean; error?: string }[] = [];
+  async bulkAction(dto: BulkActionDto, actorId?: string, actor?: { role: string; agencyId?: string; agencyIsSystem?: boolean }) {
+    const { ids, action, value, agencyId } = dto;
+    const results: { id: string; success: boolean; error?: string; employeeId?: string; candidateNumber?: string; employeeNumber?: string }[] = [];
 
     for (const id of ids) {
       try {
@@ -472,26 +570,98 @@ export class ApplicantsService {
             if (!value) throw new Error('value is required for STATUS_CHANGE');
             await this.prisma.applicant.update({ where: { id }, data: { status: value as any } });
             await this.auditLog(actorId, 'BULK_STATUS_CHANGE', id, { status: value });
+            results.push({ id, success: true });
             break;
 
           case BulkActionType.TIER_CHANGE:
             if (value !== 'LEAD' && value !== 'CANDIDATE') throw new Error('Invalid tier');
-            await this.prisma.applicant.update({ where: { id }, data: { tier: value as any } });
-            await this.auditLog(actorId, 'BULK_TIER_CHANGE', id, { tier: value });
+            if (value === 'CANDIDATE') {
+              // Promotion — route through convertLeadToCandidate so the
+              // Candidate identifier, agency history, and full audit
+              // trail are produced exactly like the single-action path.
+              const updated = await this.convertLeadToCandidate(
+                id,
+                { agencyId: agencyId, notes: 'Bulk promotion' } as any,
+                actorId,
+              );
+              results.push({
+                id,
+                success: true,
+                candidateNumber: (updated as any).candidateNumber ?? undefined,
+              });
+            } else {
+              // Demotion back to LEAD — rare, just flips the flag.
+              await this.prisma.applicant.update({ where: { id }, data: { tier: 'LEAD' as any } });
+              await this.auditLog(actorId, 'BULK_TIER_CHANGE', id, { tier: 'LEAD' });
+              results.push({ id, success: true });
+            }
             break;
 
-          case BulkActionType.ASSIGN_AGENCY:
-            if (!value) throw new Error('value (agencyId) is required for ASSIGN_AGENCY');
-            await this.prisma.applicant.update({ where: { id }, data: { agencyId: value } });
-            await this.auditLog(actorId, 'BULK_ASSIGN_AGENCY', id, { agencyId: value });
+          case BulkActionType.ASSIGN_AGENCY: {
+            const targetAgencyId = agencyId ?? value;
+            if (!targetAgencyId) throw new Error('agencyId is required for ASSIGN_AGENCY');
+            await this.prisma.applicant.update({ where: { id }, data: { agencyId: targetAgencyId } });
+            await this.auditLog(actorId, 'BULK_ASSIGN_AGENCY', id, { agencyId: targetAgencyId });
+            results.push({ id, success: true });
             break;
+          }
+
+          case BulkActionType.CONVERT_TO_EMPLOYEE: {
+            // Candidate→Employee in bulk. convertToEmployee requires
+            // address + emergency fields; derive what we can from the
+            // applicant's applicationData blob so operators don't have
+            // to re-enter per row. If the mandatory fields still aren't
+            // available we report the row as failed and keep going.
+            const applicant = await this.prisma.applicant.findFirst({ where: { id, deletedAt: null } });
+            if (!applicant) throw new Error('Applicant not found');
+            if (applicant.tier !== 'CANDIDATE') {
+              throw new Error('Only Candidates can be converted to employees');
+            }
+            const ad: any = (applicant as any).applicationData ?? {};
+            const homeAddr: any = ad.homeAddress ?? {};
+            const curAddr: any = ad.currentAddress ?? {};
+            const addr = (homeAddr.line1 || homeAddr.city || homeAddr.country) ? homeAddr : curAddr;
+            const addressLine1 = addr.line1 ?? '';
+            const city = addr.city ?? '';
+            const country = addr.country ?? '';
+            const postalCode = addr.postalCode ?? '';
+            if (!addressLine1 || !city || !country || !postalCode) {
+              throw new Error('Missing address (line1/city/country/postalCode) — cannot convert in bulk; convert this one individually');
+            }
+            const emergencyContact = [ad.emergencyFirstName, ad.emergencyLastName].filter(Boolean).join(' ') || undefined;
+            const emergencyPhone = [ad.emergencyPhoneCode, ad.emergencyPhone].filter(Boolean).join(' ').trim() || undefined;
+
+            const dtoForConvert: any = {
+              addressLine1,
+              addressLine2: addr.line2 ?? undefined,
+              city,
+              country,
+              postalCode,
+              licenseNumber: ad.licenseNumber ?? undefined,
+              licenseCategory: Array.isArray(ad.licenseCategories) && ad.licenseCategories.length > 0
+                ? ad.licenseCategories.join(',')
+                : undefined,
+              yearsExperience: Number(ad.euExpYears ?? ad.domesticExpYears ?? 0) || 0,
+              emergencyContact,
+              emergencyPhone,
+            };
+            // If agencyId override supplied on the bulk DTO, pin the
+            // applicant to it before conversion so the employee row
+            // inherits the new agency.
+            if (agencyId && applicant.agencyId !== agencyId) {
+              await this.prisma.applicant.update({ where: { id }, data: { agencyId } });
+            }
+            const { employee, employeeNumber } = await this.convertToEmployee(id, dtoForConvert, actorId, actor);
+            results.push({ id, success: true, employeeId: (employee as any).id, employeeNumber });
+            break;
+          }
 
           case BulkActionType.DELETE:
             await this.prisma.applicant.update({ where: { id }, data: { deletedAt: new Date() } });
             await this.auditLog(actorId, 'BULK_DELETE', id);
+            results.push({ id, success: true });
             break;
         }
-        results.push({ id, success: true });
       } catch (err: any) {
         results.push({ id, success: false, error: err.message });
       }
@@ -502,23 +672,45 @@ export class ApplicantsService {
 
   // ── CSV Export ────────────────────────────────────────────────────────────────
 
-  async exportCsv(filter: FilterApplicantsDto, actor?: { role: string; agencyId?: string }): Promise<string> {
-    // Fetch all matching records (no pagination limit)
-    const bigFilter = { ...filter, limit: 10000, page: 1 };
-    const result = await this.findAll(bigFilter as FilterApplicantsDto, actor);
-    const items: any[] = result.data;
+  async exportCsv(
+    filter: FilterApplicantsDto,
+    actor?: { role: string; agencyId?: string; agencyIsSystem?: boolean },
+    ids?: string[],
+  ): Promise<string> {
+    // If specific ids were requested, scope the query to just those rows
+    // (filters are ignored — this is the 'Export Selected' path). The
+    // agency/tier guards in findOne still apply.
+    let items: any[];
+    if (ids && ids.length > 0) {
+      const where: any = { id: { in: ids }, deletedAt: null };
+      if (actor && this.isExternalActor(actor) && actor.agencyId) {
+        where.agencyId = actor.agencyId;
+      }
+      items = await this.prisma.applicant.findMany({
+        where,
+        include: this.include,
+        orderBy: { createdAt: 'desc' },
+      });
+    } else {
+      // Fetch all matching records (no pagination limit)
+      const bigFilter = { ...filter, limit: 10000, page: 1 };
+      const result = await this.findAll(bigFilter as FilterApplicantsDto, actor);
+      items = result.data;
+    }
 
     const headers = [
       'ID', 'Lead Number', 'Candidate Number', 'Tier',
-      'First Name', 'Last Name', 'Email', 'Phone', 'Nationality',
+      'First Name', 'Last Name', 'Email', 'Phone', 'Citizenship',
       'Status', 'Job Type', 'Agency', 'Residency Status', 'Has NI', 'NI Number',
       'Has Work Auth', 'Work Auth Type', 'Availability', 'Salary Expectation',
       'Preferred Start Date', 'Created At',
     ];
 
+    // RFC 4180 quoting: always quote strings that contain a comma, quote,
+    // CR or LF; escape embedded quotes by doubling them.
     const escape = (v: any) => {
       const s = v == null ? '' : String(v);
-      if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+      if (/[",\r\n]/.test(s)) {
         return `"${s.replace(/"/g, '""')}"`;
       }
       return s;
@@ -535,20 +727,138 @@ export class ApplicantsService {
       new Date(a.createdAt).toISOString().split('T')[0],
     ].map(escape).join(','));
 
-    return [headers.join(','), ...rows].join('\n');
+    // Prepend:
+    //  - UTF-8 BOM so Excel opens the file as UTF-8 (otherwise accented
+    //    characters break and, on some locales, Excel dumps everything
+    //    into a single column).
+    //  - CRLF line endings (RFC 4180 and what Excel expects).
+    const BOM = '\uFEFF';
+    return BOM + [headers.join(','), ...rows].join('\r\n') + '\r\n';
+  }
+
+  // ── XLSX Export ───────────────────────────────────────────────────────────────
+  //
+  // Mirrors exportCsv's scoping rules (ids → selected-only; otherwise
+  // the filtered list) but writes a proper .xlsx using ExcelJS: real
+  // column widths, frozen header row, Date cells that Excel formats
+  // natively, and human-friendly Yes/No for boolean columns. Powers the
+  // "Export to Excel" button on the Applicants and Candidates pages.
+  async exportExcel(
+    filter: FilterApplicantsDto,
+    actor?: { role: string; agencyId?: string; agencyIsSystem?: boolean },
+    ids?: string[],
+  ): Promise<Buffer> {
+    let items: any[];
+    if (ids && ids.length > 0) {
+      const where: any = { id: { in: ids }, deletedAt: null };
+      if (actor && this.isExternalActor(actor) && actor.agencyId) {
+        where.agencyId = actor.agencyId;
+      }
+      items = await this.prisma.applicant.findMany({
+        where,
+        include: this.include,
+        orderBy: { createdAt: 'desc' },
+      });
+    } else {
+      const bigFilter = { ...filter, limit: 10000, page: 1 };
+      const result = await this.findAll(bigFilter as FilterApplicantsDto, actor);
+      items = result.data;
+    }
+
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'TempWorks';
+    workbook.created = new Date();
+
+    const sheet = workbook.addWorksheet('Applicants', {
+      views: [{ state: 'frozen', ySplit: 1 }],
+    });
+
+    sheet.columns = [
+      { header: 'ID',                   key: 'id',                  width: 36 },
+      { header: 'Lead Number',          key: 'leadNumber',          width: 18 },
+      { header: 'Candidate Number',     key: 'candidateNumber',     width: 18 },
+      { header: 'Tier',                 key: 'tier',                width: 12 },
+      { header: 'First Name',           key: 'firstName',           width: 16 },
+      { header: 'Last Name',            key: 'lastName',            width: 16 },
+      { header: 'Email',                key: 'email',               width: 28 },
+      { header: 'Phone',                key: 'phone',               width: 18 },
+      { header: 'Citizenship',          key: 'citizenship',         width: 16 },
+      { header: 'Status',               key: 'status',              width: 14 },
+      { header: 'Job Type',             key: 'jobType',             width: 22 },
+      { header: 'Agency',               key: 'agency',              width: 22 },
+      { header: 'Residency Status',     key: 'residencyStatus',     width: 18 },
+      { header: 'Has NI',               key: 'hasNi',               width: 10 },
+      { header: 'NI Number',            key: 'niNumber',            width: 16 },
+      { header: 'Has Work Auth',        key: 'hasWorkAuth',         width: 14 },
+      { header: 'Work Auth Type',       key: 'workAuthType',        width: 20 },
+      { header: 'Availability',         key: 'availability',        width: 16 },
+      { header: 'Salary Expectation',   key: 'salaryExpectation',   width: 18 },
+      { header: 'Preferred Start Date', key: 'preferredStartDate',  width: 18, style: { numFmt: 'yyyy-mm-dd' } },
+      { header: 'Created At',           key: 'createdAt',           width: 18, style: { numFmt: 'yyyy-mm-dd' } },
+    ];
+
+    sheet.getRow(1).eachCell((cell) => {
+      cell.font      = { bold: true, color: { argb: 'FFFFFFFF' } };
+      cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } };
+      cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+      cell.border    = { bottom: { style: 'thin', color: { argb: 'FF1D4ED8' } } };
+    });
+    sheet.getRow(1).height = 28;
+
+    const yesNo = (v: any) => (v === true ? 'Yes' : v === false ? 'No' : '');
+
+    for (const a of items) {
+      sheet.addRow({
+        id:                 a.id ?? '',
+        leadNumber:         a.leadNumber ?? '',
+        candidateNumber:    a.candidateNumber ?? '',
+        tier:               a.tier ?? '',
+        firstName:          a.firstName ?? '',
+        lastName:           a.lastName ?? '',
+        email:              a.email ?? '',
+        phone:              a.phone ?? '',
+        citizenship:        a.nationality ?? '',
+        status:             a.status ?? '',
+        jobType:            a.jobType?.name ?? '',
+        agency:             a.agency?.name ?? '',
+        residencyStatus:    a.residencyStatus ?? '',
+        hasNi:              yesNo(a.hasNationalInsurance),
+        niNumber:           a.nationalInsuranceNumber ?? '',
+        hasWorkAuth:        yesNo(a.hasWorkAuthorization),
+        workAuthType:       a.workAuthorizationType ?? '',
+        availability:       a.availability ?? '',
+        salaryExpectation:  a.salaryExpectation ?? '',
+        preferredStartDate: a.preferredStartDate ? new Date(a.preferredStartDate) : null,
+        createdAt:          a.createdAt ? new Date(a.createdAt) : null,
+      });
+    }
+
+    return Buffer.from(await workbook.xlsx.writeBuffer() as ArrayBuffer);
   }
 
   // ── Convert Applicant → Employee ──────────────────────────────────────────────
 
-  async convertToEmployee(id: string, dto: ConvertToEmployeeDto, actorId?: string, actor?: { role: string; agencyId?: string }) {
-    if (actor && this.isAgencyUser(actor.role)) {
+  async convertToEmployee(id: string, dto: ConvertToEmployeeDto, actorId?: string, actor?: { role: string; agencyId?: string; agencyIsSystem?: boolean }) {
+    // Only agency-side role names are blocked from converting. Tenant
+    // HR Manager / Recruiter / Compliance Officer inside an external
+    // agency can convert their own-agency candidates — findOne below
+    // already restricts them to own-agency records, so they can't
+    // reach a candidate belonging to another tenant.
+    const isAgencySideRole = actor?.role === 'Agency User' || actor?.role === 'Agency Manager';
+    if (isAgencySideRole) {
       throw new ForbiddenException('Agency users cannot convert candidates to employees.');
     }
 
-    const applicant = await this.findOne(id);
+    const applicant = await this.findOne(id, actor);
 
     if (applicant.tier !== 'CANDIDATE') {
       throw new ForbiddenException('Only Candidates can be converted to employees. Convert the Lead to a Candidate first.');
+    }
+    if ((applicant as any).approvalStatus === 'PENDING_APPROVAL') {
+      throw new ForbiddenException('This candidate is pending Tempworks approval and cannot be converted yet.');
+    }
+    if ((applicant as any).approvalStatus === 'REJECTED') {
+      throw new ForbiddenException('This candidate was rejected and cannot be converted.');
     }
 
     const existing = await this.prisma.employee.findFirst({
@@ -602,6 +912,14 @@ export class ApplicantsService {
         photoUrl: (applicant as any).photoUrl ?? null,
         status: 'ONBOARDING' as any,
         ...(applicant.agencyId ? { agencyId: applicant.agencyId } : {}),
+        // Carry forward the original applicant's attribution so the
+        // Employee profile still shows "Created by …" or "Self-applied".
+        createdById: (applicant as any).createdById ?? null,
+        source: (applicant as any).source ?? 'STAFF_CREATED',
+        // Preserve the structured application data so the Employee's
+        // Application tab can render every field the applicant entered
+        // without rehydrating the old applicant row.
+        applicationData: (applicant as any).applicationData ?? undefined,
         employeeStages: {
           create: stages.map((s: any) => ({ stageId: s.id, status: 'PENDING' })),
         },
@@ -736,9 +1054,18 @@ export class ApplicantsService {
 
   // ── Private Helpers ───────────────────────────────────────────────────────────
 
-  private isAgencyUser(role?: string): boolean {
-    if (!role) return false;
-    return role === 'Agency User' || role === 'Agency Manager';
+  /**
+   * True when the caller is an external tenant — their view must be
+   * scoped to their own agency. The check is driven by the agency's
+   * `isSystem` flag (loaded into req.user.agencyIsSystem by the JWT
+   * strategy), not by role name, so an HR Manager attached to an
+   * external agency is scoped identically to an Agency Manager.
+   *
+   * Users attached to the Tempworks root agency (`isSystem=true`)
+   * retain their RBAC-defined global visibility.
+   */
+  private isExternalActor(actor?: { agencyId?: string; agencyIsSystem?: boolean }): boolean {
+    return !!actor && !!actor.agencyId && actor.agencyIsSystem !== true;
   }
 
   private uuid(): string {

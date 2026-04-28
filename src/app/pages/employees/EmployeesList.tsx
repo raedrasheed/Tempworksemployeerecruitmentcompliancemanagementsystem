@@ -1,16 +1,20 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Link } from 'react-router';
-import { Plus, Search, Download, Eye, Edit, Trash2, RefreshCw, ArrowUp, ArrowDown, ArrowUpDown, X, Columns2, Check } from 'lucide-react';
+import { Plus, Search, Download, Eye, Edit, Trash2, RefreshCw, ArrowUp, ArrowDown, ArrowUpDown, X, Columns2, Check, FileText, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { confirm } from '../../components/ui/ConfirmDialog';
+import { exportRecordsAsPdfZip, safeFilename } from '../../utils/bulkPdfExport';
+import { buildEmployeePdfBlob } from '../../components/employees/EmployeePdfDocument';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Badge } from '../../components/ui/badge';
+import { Checkbox } from '../../components/ui/checkbox';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '../../components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
-import { employeesApi, agenciesApi } from '../../services/api';
+import { employeesApi, agenciesApi, getAccessToken, documentsApi } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
 
 const STATUSES = ['ACTIVE', 'PENDING', 'ONBOARDING', 'INACTIVE', 'SUSPENDED', 'ON_LEAVE'];
@@ -33,7 +37,7 @@ type ColKey = 'contact' | 'nationality' | 'license' | 'experience' | 'agency' | 
 
 const ALL_COLUMNS: { key: ColKey; label: string }[] = [
   { key: 'contact',     label: 'Contact' },
-  { key: 'nationality', label: 'Nationality' },
+  { key: 'nationality', label: 'Citizenship' },
   { key: 'license',     label: 'ID / License' },
   { key: 'experience',  label: 'Experience' },
   { key: 'agency',      label: 'Agency' },
@@ -123,6 +127,15 @@ export function EmployeesList() {
   const [loading, setLoading] = useState(true);
   const [agencies, setAgencies] = useState<any[]>([]);
 
+  // Row selection for 'Export Selected'
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const toggleSelect = (id: string) =>
+    setSelected(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+
   // ── Fetch ──────────────────────────────────────────────────────────────────
   const fetchEmployees = useCallback(async () => {
     setLoading(true);
@@ -187,7 +200,11 @@ export function EmployeesList() {
 
   // ── Delete ─────────────────────────────────────────────────────────────────
   const handleDelete = async (employee: any) => {
-    if (!confirm(`Delete "${employee.firstName} ${employee.lastName}"? This cannot be undone.`)) return;
+    if (!(await confirm({
+      title: 'Delete employee?',
+      description: `"${employee.firstName} ${employee.lastName}" will be permanently removed. This cannot be undone.`,
+      confirmText: 'Delete', tone: 'destructive',
+    }))) return;
     try {
       await employeesApi.delete(employee.id);
       setEmployees(prev => prev.filter(e => e.id !== employee.id));
@@ -198,29 +215,77 @@ export function EmployeesList() {
     }
   };
 
-  // ── CSV Export (client-side) ───────────────────────────────────────────────
-  const handleExport = () => {
-    const headers = ['Employee Number', 'First Name', 'Last Name', 'Email', 'Phone', 'Nationality', 'License Number', 'Experience (yrs)', 'Agency', 'Status', 'Joined'];
-    const rows = displayData.map(e => [
-      e.employeeNumber ?? '',
-      e.firstName ?? '',
-      e.lastName ?? '',
-      e.email ?? '',
-      e.phone ?? '',
-      e.nationality ?? '',
-      e.licenseNumber ?? '',
-      e.yearsExperience ?? '',
-      e.agency?.name ?? e.agencyName ?? '',
-      e.status ?? '',
-      e.createdAt ? new Date(e.createdAt).toLocaleDateString() : '',
-    ]);
-    const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href = url; a.download = `employees-${Date.now()}.csv`;
-    document.body.appendChild(a); a.click();
-    document.body.removeChild(a); URL.revokeObjectURL(url);
+  // ── Bulk PDF Export ────────────────────────────────────────────────────────
+  const [pdfExporting, setPdfExporting] = useState(false);
+  const handleBulkPdfExport = async () => {
+    if (selected.size === 0) {
+      toast.error('Select at least one employee');
+      return;
+    }
+    setPdfExporting(true);
+    const tid = toast.loading(`Preparing ${selected.size} PDF${selected.size > 1 ? 's' : ''}...`);
+    try {
+      const ids = [...selected];
+      const full = await Promise.all(ids.map(id => employeesApi.get(id).catch(() => null)));
+      const records = full.filter(Boolean) as any[];
+      if (records.length === 0) {
+        toast.error('Failed to load selected employees', { id: tid });
+        return;
+      }
+      const today = new Date().toISOString().slice(0, 10);
+      await exportRecordsAsPdfZip({
+        records,
+        zipName: `Employees_Profiles_${today}`,
+        // Merge each employee's uploaded documents into their PDF so
+        // the bulk ZIP includes the full dossier, not just the profile.
+        buildBlob: async (rec) => {
+          const docsRes: any = await documentsApi.getByEntity('EMPLOYEE', rec.id).catch(() => []);
+          const docs = Array.isArray(docsRes) ? docsRes : Array.isArray(docsRes?.data) ? docsRes.data : [];
+          return buildEmployeePdfBlob(rec, docs);
+        },
+        filename: (rec) => {
+          const name = safeFilename([rec.firstName, rec.lastName].filter(Boolean).join('_') || 'Employee');
+          const num = rec.employeeNumber || rec.id;
+          return `Employee_${name}_${num}.pdf`;
+        },
+        onProgress: (done, total) => {
+          toast.loading(`Generating PDFs... ${done}/${total}`, { id: tid });
+        },
+      });
+      toast.success(`Exported ${records.length} PDF${records.length > 1 ? 's' : ''}`, { id: tid });
+    } catch (err: any) {
+      toast.error(err?.message || 'PDF export failed', { id: tid });
+    } finally {
+      setPdfExporting(false);
+    }
+  };
+
+  // ── Excel Export ───────────────────────────────────────────────────────────
+  // Backend streams the .xlsx (employees.service.exportExcel) so auth
+  // and per-employee agency-access grants are enforced server-side.
+  // Only the currently selected rows are exported; the toolbar button
+  // stays disabled until at least one row is ticked.
+  const handleExportExcel = () => {
+    if (selected.size === 0) {
+      toast.error('Select one or more rows to export');
+      return;
+    }
+    const token = getAccessToken();
+    const url = employeesApi.exportExcel({ ids: Array.from(selected) });
+    fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+      .then(async r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.blob();
+      })
+      .then(blob => {
+        const objectUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = objectUrl;
+        a.download = `employees-selected-${Date.now()}.xlsx`;
+        document.body.appendChild(a); a.click();
+        document.body.removeChild(a); URL.revokeObjectURL(objectUrl);
+      })
+      .catch(() => toast.error('Export failed'));
   };
 
   // ── Filters ────────────────────────────────────────────────────────────────
@@ -232,7 +297,24 @@ export function EmployeesList() {
   const onboardingCount = employees.filter(e => e.status === 'ONBOARDING').length;
   const pendingCount    = employees.filter(e => e.status === 'PENDING').length;
 
-  const colSpan = 2 + ALL_COLUMNS.filter(c => visibleColumns[c.key]).length;
+  // +1 for the select checkbox column we add at the far left.
+  const colSpan = 3 + ALL_COLUMNS.filter(c => visibleColumns[c.key]).length;
+
+  const visibleIds = displayData.map(e => e.id);
+  const allVisibleSelected = visibleIds.length > 0 && visibleIds.every(id => selected.has(id));
+  const someVisibleSelected = !allVisibleSelected && visibleIds.some(id => selected.has(id));
+  const toggleSelectAllVisible = () => {
+    setSelected(prev => {
+      if (allVisibleSelected) {
+        const next = new Set(prev);
+        visibleIds.forEach(id => next.delete(id));
+        return next;
+      }
+      const next = new Set(prev);
+      visibleIds.forEach(id => next.add(id));
+      return next;
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -279,7 +361,7 @@ export function EmployeesList() {
             <div className="flex flex-wrap items-center gap-3">
               <div className="flex-1 min-w-48 relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input placeholder="Search by name, email, nationality..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10" />
+                <Input placeholder="Search by name, email, citizenship..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10" />
               </div>
 
               <Select value={statusFilter || '__all__'} onValueChange={v => setStatusFilter(v === '__all__' ? '' : v)}>
@@ -303,8 +385,26 @@ export function EmployeesList() {
               <Button variant="outline" size="sm" onClick={fetchEmployees} disabled={loading}>
                 <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />Refresh
               </Button>
-              <Button variant="outline" size="sm" onClick={handleExport}>
-                <Download className="w-4 h-4 mr-2" />Export CSV
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportExcel}
+                disabled={selected.size === 0}
+                title={selected.size === 0 ? 'Select one or more rows to export' : undefined}
+              >
+                <Download className="w-4 h-4 mr-2" />Export to Excel ({selected.size})
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleBulkPdfExport}
+                disabled={selected.size === 0 || pdfExporting}
+                title={selected.size === 0 ? 'Select one or more rows to export as PDFs' : undefined}
+              >
+                {pdfExporting
+                  ? <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  : <FileText className="w-4 h-4 mr-2" />}
+                Export PDFs ({selected.size})
               </Button>
 
               {/* Column picker */}
@@ -352,9 +452,9 @@ export function EmployeesList() {
             {/* Row 2 */}
             <div className="flex flex-wrap items-center gap-3">
               <Select value={nationalityFilter || '__all__'} onValueChange={v => setNationalityFilter(v === '__all__' ? '' : v)}>
-                <SelectTrigger className="w-44"><SelectValue placeholder="All Nationalities" /></SelectTrigger>
+                <SelectTrigger className="w-44"><SelectValue placeholder="All Citizenships" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__all__">All Nationalities</SelectItem>
+                  <SelectItem value="__all__">All Citizenships</SelectItem>
                   {nationalityOptions.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
                 </SelectContent>
               </Select>
@@ -378,9 +478,16 @@ export function EmployeesList() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-10">
+                    <Checkbox
+                      checked={allVisibleSelected ? true : someVisibleSelected ? 'indeterminate' : false}
+                      onCheckedChange={toggleSelectAllVisible}
+                      aria-label="Select all visible rows"
+                    />
+                  </TableHead>
                   <SortableHead label="Employee"    field="firstName"       sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />
                   {col('contact')     && <SortableHead label="Contact"      field="email"           sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
-                  {col('nationality') && <SortableHead label="Nationality"  field="nationality"     sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  {col('nationality') && <SortableHead label="Citizenship"  field="nationality"     sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
                   {col('license')     && <SortableHead label="ID / License" field="licenseNumber"   sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
                   {col('experience')  && <SortableHead label="Experience"   field="yearsExperience" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
                   {col('agency')      && <SortableHead label="Agency"       field="agency"          sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
@@ -400,7 +507,14 @@ export function EmployeesList() {
                   </TableRow>
                 )}
                 {!loading && displayData.map(driver => (
-                  <TableRow key={driver.id}>
+                  <TableRow key={driver.id} data-state={selected.has(driver.id) ? 'selected' : undefined}>
+                    <TableCell className="w-10">
+                      <Checkbox
+                        checked={selected.has(driver.id)}
+                        onCheckedChange={() => toggleSelect(driver.id)}
+                        aria-label={`Select ${driver.firstName ?? ''} ${driver.lastName ?? ''}`}
+                      />
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         {driver.photoUrl ? (

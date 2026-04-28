@@ -1,12 +1,13 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { applicantsApi, settingsApi, agenciesApi } from '../../services/api';
+import { applicationDraftsApi, settingsApi, agenciesApi, getCurrentUser, BACKEND_URL } from '../../services/api';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent } from '../../components/ui/card';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
-import { ArrowLeft, ChevronRight, ChevronLeft, UserPlus, ShieldOff } from 'lucide-react';
+import { ArrowLeft, ChevronRight, ChevronLeft, UserPlus, ShieldOff, Save, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { confirm } from '../../components/ui/ConfirmDialog';
 import { usePermissions } from '../../hooks/usePermissions';
 import { ApplicantFormSteps, EMPTY_FORM, getVisibleTabs, getStepErrors, getStepFieldErrors, StepIndicator, FormSettings, DEFAULT_FORM_SETTINGS, ApplicantFormData } from '../../components/applicants/ApplicantFormSteps';
 
@@ -16,6 +17,7 @@ export function AddApplicant() {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<ApplicantFormData>(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
+  const [savingDraft, setSavingDraft] = useState(false);
   const [jobTypes, setJobTypes] = useState<any[]>([]);
   const [settings, setSettings] = useState<FormSettings>(DEFAULT_FORM_SETTINGS);
   const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
@@ -23,8 +25,22 @@ export function AddApplicant() {
   const [agencies, setAgencies] = useState<any[]>([]);
   const [agencyId, setAgencyId] = useState<string>('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  // Set once a saved draft has been hydrated so we can show the
+  // "Resumed draft" affordance + a Discard button. Null means either
+  // no draft existed on load or it has been submitted/discarded.
+  const [draftId, setDraftId] = useState<string | null>(null);
+  // Photo URL persisted on the draft (served from the backend). The
+  // preview falls back to this when `photoFile` is null.
+  const [draftPhotoUrl, setDraftPhotoUrl] = useState<string | null>(null);
 
-  const visibleTabs = useMemo(() => getVisibleTabs(formData), [formData.hasDrivingLicense]);
+  // Tracks the previous uploadedFiles array so we can diff on each
+  // change and push new picks / deletes to the draft endpoints.
+  const prevFilesRef = useRef<any[]>([]);
+
+  // System users creating an applicant from the dashboard skip the
+  // final Review + Declaration page — it exists for the self-service
+  // /apply flow where the applicant has to agree to data processing.
+  const visibleTabs = useMemo(() => getVisibleTabs(formData, true), [formData.hasDrivingLicense]);
 
   useEffect(() => {
     Promise.all([
@@ -41,11 +57,120 @@ export function AddApplicant() {
         }
       }).catch(() => {}),
       agenciesApi.list({ limit: 100 }).then((res: any) => setAgencies(res?.data ?? [])).catch(() => {}),
+      // Hydrate an existing draft if the caller has one open. No
+      // Applicant row has been created yet; this is the user's
+      // own saved progress from a previous session.
+      applicationDraftsApi.getMine()
+        .then((draft: any) => {
+          if (!draft) return;
+          setDraftId(draft.id);
+          const saved = (draft.formData ?? {}) as Partial<ApplicantFormData>;
+          setFormData(prev => ({ ...prev, ...saved }));
+
+          // Photo — preview served from the backend static-files route.
+          if (draft.photoUrl) {
+            setDraftPhotoUrl(draft.photoUrl.startsWith('http')
+              ? draft.photoUrl
+              : `${BACKEND_URL}${draft.photoUrl}`);
+          }
+
+          // Supporting documents — re-slot them into the form by their
+          // sectionKey so the upload row shows a "saved" state.
+          const docs: any[] = Array.isArray(draft.documents) ? draft.documents : [];
+          if (docs.length > 0) {
+            const restored = docs.map(d => ({
+              id: d.id,
+              type: d.typeName || d.name,
+              sectionKey: d.sectionKey,
+              file: null,
+              url: d.url?.startsWith('http') ? d.url : `${BACKEND_URL}${d.url ?? ''}`,
+              savedName: d.name,
+              draftDocId: d.id,
+            }));
+            setUploadedFiles(restored);
+            prevFilesRef.current = restored;
+          }
+
+          toast.info('Resumed your saved draft — finish and submit to create the applicant.');
+        })
+        .catch(() => { /* no draft, quiet fall-through */ }),
     ]);
   }, []);
 
   const handleUpdate = (updater: (prev: ApplicantFormData) => ApplicantFormData) => {
     setFormData(updater);
+  };
+
+  // Photo picker — uploads immediately to the draft so the file
+  // survives a page refresh. Passing null removes the photo.
+  const handlePhotoChange = (file: File | null) => {
+    setPhotoFile(file);
+    if (file) {
+      applicationDraftsApi.uploadPhoto(file)
+        .then((d: any) => {
+          if (d?.id) setDraftId(d.id);
+          if (d?.photoUrl) {
+            setDraftPhotoUrl(d.photoUrl.startsWith('http') ? d.photoUrl : `${BACKEND_URL}${d.photoUrl}`);
+          }
+        })
+        .catch(() => toast.error('Photo upload failed — it won\'t be saved to your draft.'));
+    } else if (draftPhotoUrl) {
+      setDraftPhotoUrl(null);
+      applicationDraftsApi.deletePhoto().catch(() => {});
+    }
+  };
+
+  // Document list — diff against the previous state. Any entry that
+  // gained a `file` is a fresh pick → push to server. Any entry that
+  // lost its draft-persisted file (no file object, no url anymore) is
+  // a removal → delete from server. Updates are applied back into
+  // state so the row shows its `savedName` + `draftDocId`.
+  const handleFilesChange = (next: any[]) => {
+    setUploadedFiles(next);
+    const prev = prevFilesRef.current;
+    prevFilesRef.current = next;
+
+    // 1. Fresh file picks
+    for (const item of next) {
+      if (!item.file) continue;
+      const before = prev.find((p: any) => p.sectionKey === item.sectionKey);
+      if (before?.file === item.file) continue; // unchanged
+      // upload and update the list in place with server metadata
+      applicationDraftsApi.uploadDocument(item.file, item.type, item.type, item.sectionKey || '')
+        .then((draft: any) => {
+          if (draft?.id) setDraftId(draft.id);
+          const entry = (draft?.documents ?? []).find((d: any) => d.sectionKey === item.sectionKey);
+          if (!entry) return;
+          setUploadedFiles(cur => cur.map(f =>
+            f.sectionKey === item.sectionKey
+              ? {
+                  ...f,
+                  file: null,
+                  url: entry.url.startsWith('http') ? entry.url : `${BACKEND_URL}${entry.url}`,
+                  savedName: entry.name,
+                  draftDocId: entry.id,
+                }
+              : f,
+          ));
+          prevFilesRef.current = prevFilesRef.current.map((f: any) =>
+            f.sectionKey === item.sectionKey
+              ? { ...f, file: null, draftDocId: entry.id, url: entry.url, savedName: entry.name }
+              : f,
+          );
+        })
+        .catch(() => toast.error('Document upload failed — it won\'t be saved to your draft.'));
+    }
+
+    // 2. Removals — items that were in `prev` with a draftDocId but
+    //    are either gone from `next` or now have no file AND no url.
+    for (const before of prev) {
+      if (!before.draftDocId) continue;
+      const after = next.find((n: any) => n.sectionKey === before.sectionKey);
+      const stillSaved = !!after && (after.file || after.url || after.draftDocId);
+      if (!stillSaved) {
+        applicationDraftsApi.deleteDocument(before.draftDocId).catch(() => {});
+      }
+    }
   };
 
   const handleNext = () => {
@@ -71,32 +196,85 @@ export function AddApplicant() {
     }
   };
 
+  // Build the Applicant create payload from the current form state.
+  // Shared between "Save for Later" (partial OK) and "Submit" (final).
+  const buildPayload = () => ({
+    firstName: formData.firstName,
+    middleName: formData.middleName,
+    lastName: formData.lastName,
+    email: formData.email,
+    phone: `${formData.phoneCode} ${formData.phone}`,
+    citizenship: formData.citizenship,
+    gender: formData.gender,
+    dateOfBirth: formData.dateOfBirth,
+    countryOfBirth: formData.countryOfBirth,
+    cityOfBirth: formData.cityOfBirth,
+    hasDrivingLicense: formData.hasDrivingLicense === 'yes',
+    preferredStartDate: formData.preferredStartDate || undefined,
+    availability: formData.availability || 'Immediate',
+    willingToRelocate: formData.willingToRelocate,
+    jobTypeId: formData.jobTypeId || undefined,
+    ...(agencyId && agencyId !== 'none' ? { agencyId } : {}),
+    applicationData: formData,
+  });
+
+  // Save for Later — persists the raw formData. No Applicant is
+  // created. Draft is user-scoped, at most one open per user.
+  const handleSaveDraft = async () => {
+    if (savingDraft) return;
+    setSavingDraft(true);
+    try {
+      const saved = await applicationDraftsApi.saveMine({ formData });
+      setDraftId(saved.id);
+      toast.success('Draft saved — you can come back to this page to continue.');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to save draft');
+    } finally {
+      setSavingDraft(false);
+    }
+  };
+
+  // Discard the saved draft and reset the form. Lets the user start a
+  // fresh application when they change their mind about the one in
+  // progress.
+  const handleDiscardDraft = async () => {
+    const ok = await confirm({
+      title: 'Discard saved draft?',
+      description: 'Your saved progress will be deleted and the form reset. This cannot be undone.',
+      confirmText: 'Discard',
+      tone: 'destructive',
+    });
+    if (!ok) return;
+    try {
+      await applicationDraftsApi.deleteMine();
+      setFormData(EMPTY_FORM);
+      setAgencyId('');
+      setUploadedFiles([]);
+      setPhotoFile(null);
+      setCurrentStep(1);
+      setDraftId(null);
+      toast.success('Draft discarded.');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to discard draft');
+    }
+  };
+
+  // Final submit — creates the Applicant and deletes the draft in
+  // one backend call (POST /application-drafts/mine/submit). The
+  // "submitting" gate guards against double-click.
   const handleSubmit = async () => {
+    if (submitting) return;
     setSubmitting(true);
     try {
-      const payload = {
-        firstName: formData.firstName,
-        middleName: formData.middleName,
-        lastName: formData.lastName,
-        email: formData.email,
-        phone: `${formData.phoneCode} ${formData.phone}`,
-        citizenship: formData.citizenship,
-        gender: formData.gender,
-        dateOfBirth: formData.dateOfBirth,
-        countryOfBirth: formData.countryOfBirth,
-        cityOfBirth: formData.cityOfBirth,
-        hasDrivingLicense: formData.hasDrivingLicense === 'yes',
-        preferredStartDate: formData.preferredStartDate || undefined,
-        availability: formData.availability || 'Immediate',
-        willingToRelocate: formData.willingToRelocate,
-        jobTypeId: formData.jobTypeId || undefined,
-        ...(agencyId && agencyId !== 'none' ? { agencyId } : {}),
-        applicationData: formData,
-      };
-
-      await applicantsApi.create(payload);
+      await applicationDraftsApi.submitMine(buildPayload());
+      setDraftId(null);
       toast.success('Applicant created successfully');
-      navigate('/dashboard/applicants');
+      // Agency submissions land on the Candidates queue (pending
+      // Tempworks approval). Tempworks-staff submissions stay on
+      // the Applicants (Leads) list.
+      const role = getCurrentUser()?.role;
+      const isAgency = role === 'Agency User' || role === 'Agency Manager';
+      navigate(isAgency ? '/dashboard/candidates' : '/dashboard/applicants');
     } catch (err: any) {
       toast.error(err?.message || 'Failed to create applicant');
     } finally {
@@ -122,10 +300,20 @@ export function AddApplicant() {
             <ArrowLeft className="w-5 h-5" />
           </Link>
         </Button>
-        <div>
+        <div className="flex-1">
           <h1 className="text-3xl font-semibold">New Applicant</h1>
-          <p className="text-muted-foreground mt-1">Driver Application Form</p>
+          <p className="text-muted-foreground mt-1">
+            {draftId
+              ? 'Continuing your saved draft — no applicant has been created yet.'
+              : 'Driver Application Form'}
+          </p>
         </div>
+        {draftId && (
+          <Button variant="outline" size="sm" onClick={handleDiscardDraft} className="gap-2 text-red-600 hover:text-red-700">
+            <Trash2 className="w-4 h-4" />
+            Discard draft
+          </Button>
+        )}
       </div>
 
       <Card>
@@ -162,31 +350,48 @@ export function AddApplicant() {
             onChange={handleUpdate}
             jobTypes={jobTypes}
             uploadedFiles={uploadedFiles}
-            onFilesChange={setUploadedFiles}
+            onFilesChange={handleFilesChange}
             settings={settings}
             photoFile={photoFile}
-            onPhotoChange={setPhotoFile}
+            onPhotoChange={handlePhotoChange}
+            existingPhotoUrl={draftPhotoUrl ?? undefined}
             fieldErrors={fieldErrors}
           />
 
-          <div className="flex justify-between pt-8 border-t mt-8">
-            {currentStep > 1 && (
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-8 border-t mt-8">
+            {currentStep > 1 ? (
               <Button variant="outline" onClick={handleBack} className="gap-2">
                 <ChevronLeft className="w-4 h-4" />
                 Back
               </Button>
-            )}
-            {currentStep < visibleTabs.length ? (
-              <Button onClick={handleNext} className="ml-auto gap-2 bg-blue-600 hover:bg-blue-700">
-                Next
-                <ChevronRight className="w-4 h-4" />
+            ) : <div />}
+
+            <div className="flex flex-wrap items-center gap-2 ml-auto">
+              {/* Save for Later — partial persistence, no Applicant
+                  row. Available at every step (including step 1). */}
+              <Button
+                variant="outline"
+                onClick={handleSaveDraft}
+                disabled={savingDraft || submitting}
+                className="gap-2"
+                title="Save your progress; no applicant is created until you submit."
+              >
+                <Save className="w-4 h-4" />
+                {savingDraft ? 'Saving…' : 'Save for Later'}
               </Button>
-            ) : (
-              <Button onClick={handleSubmit} disabled={submitting} className="ml-auto gap-2 bg-green-600 hover:bg-green-700">
-                <UserPlus className="w-4 h-4" />
-                {submitting ? 'Creating...' : 'Create Applicant'}
-              </Button>
-            )}
+
+              {currentStep < visibleTabs.length ? (
+                <Button onClick={handleNext} className="gap-2 bg-blue-600 hover:bg-blue-700">
+                  Next
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              ) : (
+                <Button onClick={handleSubmit} disabled={submitting || savingDraft} className="gap-2 bg-green-600 hover:bg-green-700">
+                  <UserPlus className="w-4 h-4" />
+                  {submitting ? 'Creating…' : 'Create Applicant'}
+                </Button>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>

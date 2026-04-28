@@ -5,6 +5,7 @@ import {
   ArrowUp, ArrowDown, ArrowUpDown, Columns2, Check, X,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { confirm } from '../../components/ui/ConfirmDialog';
 import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -155,7 +156,12 @@ export function MaintenanceTypesList() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Deactivate this maintenance type?')) return;
+    if (!(await confirm({
+      title: 'Deactivate maintenance type?',
+      description: 'This maintenance type will be marked inactive and hidden from future selections.',
+      confirmText: 'Deactivate',
+      tone: 'destructive',
+    }))) return;
     try { await vehiclesApi.deleteMaintenanceType(id); toast.success('Deactivated'); load(); }
     catch { toast.error('Failed'); }
   };

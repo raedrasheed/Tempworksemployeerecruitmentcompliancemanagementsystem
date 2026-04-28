@@ -27,6 +27,79 @@ export class SettingsService {
     return result;
   }
 
+  // ─── Vehicle Settings (centralised lookup lists) ─────────────────────────────
+  // Every vehicle dropdown list (statuses, fuel types, body types, etc.)
+  // is stored in system_settings under the `vehicle` category as a
+  // JSON-encoded array of strings. The frontend Vehicle Settings page
+  // and Vehicle form both read from this single endpoint.
+  private readonly VEHICLE_LOOKUP_KEYS = [
+    'vehicle.vehicleTypes',
+    'vehicle.statuses',
+    'vehicle.fuelTypes',
+    'vehicle.bodyTypes',
+    'vehicle.hitchTypes',
+    'vehicle.tankMaterials',
+    'vehicle.adrClasses',
+    'vehicle.vinSubTypes',
+    'vehicle.insuranceGroups',
+    'vehicle.insuranceTypes',
+    'vehicle.documentTypes',
+    'vehicle.euroEmissionClasses',
+  ];
+
+  async getVehicleSettings(): Promise<Record<string, string[]>> {
+    const settings = await this.prisma.systemSetting.findMany({
+      where: { category: 'vehicle' },
+    });
+    const result: Record<string, string[]> = {};
+    for (const key of this.VEHICLE_LOOKUP_KEYS) {
+      const found = settings.find((s) => s.key === key);
+      const short = key.replace(/^vehicle\./, '');
+      if (!found) { result[short] = []; continue; }
+      try {
+        const parsed = JSON.parse(found.value);
+        result[short] = Array.isArray(parsed) ? parsed.map((v) => String(v)) : [];
+      } catch {
+        result[short] = [];
+      }
+    }
+    return result;
+  }
+
+  async updateVehicleSetting(shortKey: string, values: string[], userId: string) {
+    const fullKey = `vehicle.${shortKey}`;
+    if (!this.VEHICLE_LOOKUP_KEYS.includes(fullKey)) {
+      throw new NotFoundException(`Unknown vehicle settings key: ${shortKey}`);
+    }
+    const cleaned = Array.from(
+      new Set(
+        (values ?? [])
+          .map((v) => (typeof v === 'string' ? v.trim() : ''))
+          .filter((v) => v.length > 0),
+      ),
+    );
+    const updated = await this.prisma.systemSetting.upsert({
+      where: { key: fullKey },
+      update: { value: JSON.stringify(cleaned), updatedById: userId },
+      create: {
+        key: fullKey,
+        value: JSON.stringify(cleaned),
+        category: 'vehicle',
+        description: `Vehicle Management — ${shortKey} lookup`,
+        isPublic: false,
+        updatedById: userId,
+      },
+    });
+    await this.auditLog.log({
+      userId,
+      action: 'UPDATE',
+      entity: 'VehicleSetting',
+      entityId: fullKey,
+      changes: { values: cleaned },
+    });
+    return { key: shortKey, values: cleaned, updatedAt: updated.updatedAt };
+  }
+
   async findAll(includePrivate = false) {
     const where = includePrivate ? {} : { isPublic: true };
     const settings = await this.prisma.systemSetting.findMany({
@@ -134,6 +207,158 @@ export class SettingsService {
       changes: { name: jt.name },
     });
     return { message: 'Job type deactivated' };
+  }
+
+  // ─── Finance Transaction Types ───────────────────────────────────────────────
+  // Configurable list that populates the "Transaction Type" dropdown
+  // on the financial record form. Historical financial_records rows
+  // keep their plain-string transactionType regardless of whether a
+  // type is deactivated later.
+
+  async findTransactionTypes(opts?: { includeInactive?: boolean }) {
+    return (this.prisma as any).financeTransactionType.findMany({
+      where: opts?.includeInactive ? {} : { isActive: true },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+    });
+  }
+
+  async createTransactionType(dto: { name: string; sortOrder?: number; isActive?: boolean }, actorId?: string) {
+    const trimmed = (dto.name ?? '').trim();
+    if (!trimmed) throw new NotFoundException('Name is required');
+    try {
+      const created = await (this.prisma as any).financeTransactionType.create({
+        data: {
+          name: trimmed,
+          sortOrder: dto.sortOrder ?? 100,
+          isActive: dto.isActive ?? true,
+        },
+      });
+      await this.auditLog.log({
+        userId: actorId, action: 'CREATE', entity: 'FinanceTransactionType',
+        entityId: created.id, changes: { name: created.name },
+      });
+      return created;
+    } catch (err: any) {
+      // Unique-constraint collision — friendly error.
+      if (err?.code === 'P2002') throw new NotFoundException(`Transaction type "${trimmed}" already exists`);
+      throw err;
+    }
+  }
+
+  async updateTransactionType(
+    id: string,
+    dto: { name?: string; sortOrder?: number; isActive?: boolean },
+    actorId?: string,
+  ) {
+    const existing = await (this.prisma as any).financeTransactionType.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Transaction type not found');
+    const data: any = {};
+    if (dto.name !== undefined) data.name = dto.name.trim();
+    if (dto.sortOrder !== undefined) data.sortOrder = dto.sortOrder;
+    if (dto.isActive !== undefined) data.isActive = dto.isActive;
+    try {
+      const updated = await (this.prisma as any).financeTransactionType.update({ where: { id }, data });
+      await this.auditLog.log({
+        userId: actorId, action: 'UPDATE', entity: 'FinanceTransactionType',
+        entityId: id, changes: dto as any,
+      });
+      return updated;
+    } catch (err: any) {
+      if (err?.code === 'P2002') throw new NotFoundException(`Transaction type "${data.name}" already exists`);
+      throw err;
+    }
+  }
+
+  // ─── Work History Event Types ───────────────────────────────────────────────
+  // Populates the Event Type dropdown inside the Employee profile's
+  // Contracts tab. Deactivating a type hides it from the dropdown but
+  // keeps existing employee_work_history rows intact (value is a free
+  // string on that table).
+
+  async findWorkHistoryEventTypes(opts?: { includeInactive?: boolean }) {
+    return (this.prisma as any).workHistoryEventTypeSetting.findMany({
+      where: opts?.includeInactive ? {} : { isActive: true },
+      orderBy: [{ sortOrder: 'asc' }, { label: 'asc' }],
+    });
+  }
+
+  async createWorkHistoryEventType(
+    dto: { value: string; label: string; sortOrder?: number; isActive?: boolean },
+    actorId?: string,
+  ) {
+    const value = (dto.value ?? '').trim();
+    const label = (dto.label ?? '').trim();
+    if (!value) throw new NotFoundException('Value is required');
+    if (!label) throw new NotFoundException('Label is required');
+    try {
+      const created = await (this.prisma as any).workHistoryEventTypeSetting.create({
+        data: {
+          value,
+          label,
+          sortOrder: dto.sortOrder ?? 100,
+          isActive: dto.isActive ?? true,
+        },
+      });
+      await this.auditLog.log({
+        userId: actorId, action: 'CREATE', entity: 'WorkHistoryEventType',
+        entityId: created.id, changes: { value, label },
+      });
+      return created;
+    } catch (err: any) {
+      if (err?.code === 'P2002') throw new NotFoundException(`Event type "${value}" already exists`);
+      throw err;
+    }
+  }
+
+  async updateWorkHistoryEventType(
+    id: string,
+    dto: { value?: string; label?: string; sortOrder?: number; isActive?: boolean },
+    actorId?: string,
+  ) {
+    const existing = await (this.prisma as any).workHistoryEventTypeSetting.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Event type not found');
+    const data: any = {};
+    if (dto.value !== undefined)     data.value = dto.value.trim();
+    if (dto.label !== undefined)     data.label = dto.label.trim();
+    if (dto.sortOrder !== undefined) data.sortOrder = dto.sortOrder;
+    if (dto.isActive !== undefined)  data.isActive = dto.isActive;
+    try {
+      const updated = await (this.prisma as any).workHistoryEventTypeSetting.update({ where: { id }, data });
+      await this.auditLog.log({
+        userId: actorId, action: 'UPDATE', entity: 'WorkHistoryEventType',
+        entityId: id, changes: dto as any,
+      });
+      return updated;
+    } catch (err: any) {
+      if (err?.code === 'P2002') throw new NotFoundException(`Event type "${data.value}" already exists`);
+      throw err;
+    }
+  }
+
+  async deleteWorkHistoryEventType(id: string, actorId?: string) {
+    const existing = await (this.prisma as any).workHistoryEventTypeSetting.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Event type not found');
+    await (this.prisma as any).workHistoryEventTypeSetting.update({
+      where: { id }, data: { isActive: false },
+    });
+    await this.auditLog.log({
+      userId: actorId, action: 'DELETE', entity: 'WorkHistoryEventType',
+      entityId: id, changes: { value: existing.value, label: existing.label },
+    });
+    return { message: 'Event type deactivated' };
+  }
+
+  async deleteTransactionType(id: string, actorId?: string) {
+    const existing = await (this.prisma as any).financeTransactionType.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Transaction type not found');
+    // Soft delete — deactivate so existing financial_records keep
+    // rendering the label without reintroducing it to the dropdown.
+    await (this.prisma as any).financeTransactionType.update({ where: { id }, data: { isActive: false } });
+    await this.auditLog.log({
+      userId: actorId, action: 'DELETE', entity: 'FinanceTransactionType',
+      entityId: id, changes: { name: existing.name },
+    });
+    return { message: 'Transaction type deactivated' };
   }
 
   // ─── Document Types ──────────────────────────────────────────────────────────

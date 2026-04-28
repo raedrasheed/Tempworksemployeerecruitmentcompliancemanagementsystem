@@ -11,6 +11,7 @@ import { Input } from '../../components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { toast } from 'sonner';
+import { confirm } from '../../components/ui/ConfirmDialog';
 import { agenciesApi } from '../../services/api';
 import { FilterSystem, Column, FilterRule, FilterPreset } from '../../components/filters/FilterSystem';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -115,7 +116,11 @@ export function AgenciesList() {
   const visibleCount = ALL_COLUMNS.filter(c =>  visibleColumns[c.key]).length;
 
   const handleDelete = async (agency: any) => {
-    if (!confirm(`Are you sure you want to delete "${agency.name}"? This action cannot be undone.`)) return;
+    if (!(await confirm({
+      title: 'Delete agency?',
+      description: `"${agency.name}" and its data will be permanently removed. This action cannot be undone.`,
+      confirmText: 'Delete', tone: 'destructive',
+    }))) return;
     try {
       await agenciesApi.delete(agency.id);
       setAgencies(prev => prev.filter(a => a.id !== agency.id));

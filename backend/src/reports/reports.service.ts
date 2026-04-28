@@ -762,10 +762,35 @@ export class ReportsService {
 
   // ── Dashboard ─────────────────────────────────────────────────────────────
 
-  async getDashboard() {
+  async getDashboard(actor?: { role?: string; agencyId?: string; agencyIsSystem?: boolean }) {
     const now              = new Date();
     const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const fwd60            = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000);
+
+    // External tenants (anyone whose agency is not the Tempworks
+    // root) are scoped to their own agency's candidates, regardless
+    // of role name. Agency-side roles further restrict to CANDIDATE
+    // tier so Lead counts never surface in their dashboard.
+    const isExternalActor = !!actor?.agencyId && (actor as any)?.agencyIsSystem !== true;
+    const applicantScope: any = { deletedAt: null };
+    if (isExternalActor) {
+      applicantScope.agencyId = actor!.agencyId;
+    }
+
+    // Employee counts in the dashboard cards must honour the same
+    // rules the employees list does: every external tenant — any role
+    // inside a non-system agency — sees only the subset of employees
+    // explicitly granted via EmployeeAgencyAccess. Tempworks-root
+    // users keep the global view.
+    const employeeScope: any = { deletedAt: null };
+    if (isExternalActor) {
+      const grants = await this.prisma.employeeAgencyAccess.findMany({
+        where: { agencyId: actor!.agencyId!, canView: true },
+        select: { employeeId: true },
+      });
+      const allowedIds = grants.map((g: { employeeId: string }) => g.employeeId);
+      employeeScope.id = { in: allowedIds.length ? allowedIds : [''] };
+    }
 
     const [
       totalEmp, activeEmp, empThisMonth,
@@ -779,15 +804,15 @@ export class ReportsService {
       recentActivity,
     ] = await Promise.all([
       // ── Employees ──
-      this.prisma.employee.count({ where: { deletedAt: null } }),
-      this.prisma.employee.count({ where: { deletedAt: null, status: 'ACTIVE' } }),
-      this.prisma.employee.count({ where: { deletedAt: null, createdAt: { gte: startOfThisMonth } } }),
+      this.prisma.employee.count({ where: employeeScope }),
+      this.prisma.employee.count({ where: { ...employeeScope, status: 'ACTIVE' } }),
+      this.prisma.employee.count({ where: { ...employeeScope, createdAt: { gte: startOfThisMonth } } }),
 
       // ── Applicants ──
       // "Pending" = status NEW (submitted but no action taken yet)
-      this.prisma.applicant.count({ where: { deletedAt: null, status: 'NEW' } }),
-      this.prisma.applicant.count({ where: { deletedAt: null } }),
-      this.prisma.applicant.groupBy({ by: ['status'], where: { deletedAt: null }, _count: { id: true } }),
+      this.prisma.applicant.count({ where: { ...applicantScope, status: 'NEW' } }),
+      this.prisma.applicant.count({ where: applicantScope }),
+      this.prisma.applicant.groupBy({ by: ['status'], where: applicantScope, _count: { id: true } }),
 
       // ── Documents ──
       // Expiring soon: expiryDate in (now, +60 days] (excludes already expired)
@@ -822,7 +847,7 @@ export class ReportsService {
 
       // ── Recent employees: last 5 registrations ──
       this.prisma.employee.findMany({
-        where: { deletedAt: null },
+        where: employeeScope,
         orderBy: { createdAt: 'desc' },
         take: 5,
         select: {

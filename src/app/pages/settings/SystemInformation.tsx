@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router';
 import { ArrowLeft, Save, RefreshCw, Server, Users, Briefcase, UserCheck, Building2 } from 'lucide-react';
-import { useAuthContext } from '../../contexts/AuthContext';
+import { usePermissions } from '../../hooks/usePermissions';
 import { API_URL } from '../../services/api';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -38,8 +38,8 @@ async function fetchJson(path: string, token: string, options?: RequestInit) {
 }
 
 export function SystemInformation() {
-  const { user } = useAuthContext();
-  const isAdmin = user?.role === 'System Admin';
+  const { canEdit } = usePermissions();
+  const isAdmin = canEdit('settings');
 
   const [form, setForm] = useState<SystemInfoForm>({
     version: '',

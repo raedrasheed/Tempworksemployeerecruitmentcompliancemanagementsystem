@@ -20,6 +20,7 @@ import { FilterFinancialRecordsDto } from './dto/filter-financial-records.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { RequirePermission } from '../auth/decorators/require-permission.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import {
   FINANCE_READ_ROLES, FINANCE_WRITE_ROLES,
@@ -54,9 +55,13 @@ export class FinanceController {
   @Get('constants')
   @Roles(...FINANCE_READ_ROLES)
   @ApiOperation({ summary: 'Get finance module constants (transaction types, payment methods, etc.)' })
-  getConstants() {
+  async getConstants() {
+    // Transaction types are configurable in Settings → Finance →
+    // Transaction Types. Fall back to the hardcoded defaults if the
+    // table is empty (fresh install before the startup seed runs).
+    const configured = await this.financeService.listTransactionTypes();
     return {
-      transactionTypes: TRANSACTION_TYPES,
+      transactionTypes: configured.length > 0 ? configured.map(t => t.name) : TRANSACTION_TYPES,
       paymentMethods: PAYMENT_METHODS,
       statuses: FINANCIAL_RECORD_STATUSES,
       currencies: COMMON_CURRENCIES,
@@ -129,6 +134,14 @@ export class FinanceController {
     return this.financeService.findOne(id);
   }
 
+  @Get(':id/history')
+  @Roles(...FINANCE_READ_ROLES)
+  @ApiOperation({ summary: 'Get the audit trail (who did what + when) for a financial record' })
+  @ApiParam({ name: 'id', description: 'Financial record UUID' })
+  getHistory(@Param('id') id: string) {
+    return this.financeService.getHistory(id);
+  }
+
   // ── Create ────────────────────────────────────────────────────────────────────
 
   @Post()
@@ -160,6 +173,7 @@ export class FinanceController {
 
   @Patch(':id/status')
   @Roles(...FINANCE_STATUS_ROLES)
+  @RequirePermission('finance:status')
   @ApiOperation({ summary: 'Update status and deduction details of a financial record' })
   @ApiParam({ name: 'id', description: 'Financial record UUID' })
   updateStatus(
@@ -179,6 +193,30 @@ export class FinanceController {
   @ApiParam({ name: 'id', description: 'Financial record UUID' })
   remove(@Param('id') id: string, @CurrentUser() user: any) {
     return this.financeService.remove(id, user?.id);
+  }
+
+  // ── Deductions (multi-partial) ────────────────────────────────────────────────
+
+  @Post(':id/deductions')
+  @Roles(...FINANCE_STATUS_ROLES)
+  @RequirePermission('finance:status')
+  @ApiOperation({ summary: 'Append a partial deduction to a financial record' })
+  @ApiParam({ name: 'id', description: 'Financial record UUID' })
+  addDeduction(
+    @Param('id') id: string,
+    @Body() dto: { amount: number; deductionDate: string; payrollReference?: string; notes?: string },
+    @CurrentUser() user: any,
+  ) {
+    return this.financeService.addDeduction(id, dto, user?.id);
+  }
+
+  @Delete('deductions/:deductionId')
+  @Roles(...FINANCE_STATUS_ROLES)
+  @RequirePermission('finance:status')
+  @ApiOperation({ summary: 'Remove a single partial deduction from a financial record' })
+  @ApiParam({ name: 'deductionId', description: 'Deduction row UUID' })
+  removeDeduction(@Param('deductionId') deductionId: string, @CurrentUser() user: any) {
+    return this.financeService.removeDeduction(deductionId, user?.id);
   }
 
   // ── Attachments ───────────────────────────────────────────────────────────────

@@ -14,6 +14,12 @@ enum UserStatus {
   TERMINATED
 }
 
+enum AgencyApprovalStatus {
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+}
+
 enum AgencyStatus {
   ACTIVE
   INACTIVE
@@ -112,6 +118,15 @@ enum NotificationType {
   WORKFLOW
   SYSTEM
   FINANCIAL
+  VEHICLE_MOT_EXPIRING
+  VEHICLE_TAX_EXPIRING
+  VEHICLE_INSURANCE_EXPIRING
+  VEHICLE_REGISTRATION_EXPIRING
+  VEHICLE_TACHOGRAPH_EXPIRING
+  VEHICLE_ATP_EXPIRING
+  VEHICLE_PRESSURE_TEST_DUE
+  VEHICLE_SERVICE_DUE
+  VEHICLE_SERVICE_OVERDUE
 }
 
 enum EntityType {
@@ -233,10 +248,17 @@ model User {
   verifiedDocuments Document[]     @relation("VerifiedDocuments")
   assignedStages    EmployeeStage[] @relation("AssignedStages")
 
+  // Profile-creation attribution — populated when this user created an
+  // applicant/employee from the dashboard. Public /apply submissions
+  // leave createdById null on the record itself (source=SELF_APPLIED).
+  createdApplicants Applicant[]     @relation("ApplicantCreatedBy")
+  createdEmployees  Employee[]      @relation("EmployeeCreatedBy")
+
   // ── Financial record relations ─────────────────────────────────────────
   financialRecordsPaidBy     FinancialRecord[]            @relation("FRPaidBy")
   financialRecordsCreated    FinancialRecord[]            @relation("FRCreatedBy")
   financialAttachments       FinancialRecordAttachment[]  @relation("FRAttachmentUploadedBy")
+  financialDeductionsCreated FinancialRecordDeduction[]   @relation("FRDeductionCreatedBy")
 
   resolvedAlerts    ComplianceAlert[] @relation("ResolvedAlerts")
   updatedSettings   SystemSetting[]
@@ -252,6 +274,10 @@ model User {
   employeeStageApprovals   EmployeeStageApproval[]       @relation("EmployeeStageApprovals")
   attendanceCreated        AttendanceRecord[]            @relation("AttendanceCreatedBy")
   attendanceUpdated        AttendanceRecord[]            @relation("AttendanceUpdatedBy")
+  attendanceLockedPeriods  AttendanceLockedPeriod[]      @relation("AttendanceLockedBy")
+  workHistoryCreated       EmployeeWorkHistory[]         @relation("WorkHistoryCreatedBy")
+  workHistoryApproved      EmployeeWorkHistory[]         @relation("WorkHistoryApprovedBy")
+  workHistoryAttachments   EmployeeWorkHistoryAttachment[] @relation("WorkHistoryAttachmentUploadedBy")
   stageNotes            CandidateStageNote[]           @relation("StageNoteAuthors")
 
   // ── Vehicle relations ──────────────────────────────────────────────────
@@ -272,7 +298,49 @@ model User {
   reviewedDeleteRequests  CandidateDeleteRequest[] @relation("DeleteRequestReviewedBy")
   permissionOverrides     AgencyUserPermission[]
 
+  // Agency-tenancy approval workflow.
+  // APPROVED = operational; PENDING_APPROVAL = created by an agency
+  // manager and awaiting Tempworks sign-off; REJECTED = explicitly denied.
+  // allowManagerEdit/Delete let Tempworks admins re-open an already
+  // approved user so the owning agency manager can touch them again.
+  approvalStatus      AgencyApprovalStatus @default(APPROVED)
+  approvedById        String?
+  approvedAt          DateTime?
+  allowManagerView    Boolean  @default(true)
+  allowManagerEdit    Boolean  @default(false)
+  allowManagerDelete  Boolean  @default(false)
+
+  applicationDraft        ApplicationDraft?
+  notificationPreference  NotificationPreference? @relation("NotificationPreferences")
+
   @@map("users")
+}
+
+/// A save-for-later draft of an applicant creation form. Exactly one
+/// open draft per user — enforced by the unique constraint on
+/// `createdById`. No Lead/Applicant row is created until the draft
+/// is submitted via POST /application-drafts/mine/submit, which
+/// creates the applicant and deletes the draft atomically.
+model ApplicationDraft {
+  id           String   @id @default(uuid())
+  createdById  String   @unique
+  jobAdId      String?
+  /// Raw ApplicantFormData blob that drives the form on the client.
+  formData     Json     @default("{}")
+  /// Profile-photo URL (same /uploads/<folder>/... convention the rest
+  /// of the app uses). Null until the user picks a photo.
+  photoUrl     String?
+  /// Supporting documents uploaded alongside the draft. Each entry:
+  /// { id, name, typeName, url, uploadedAt }. On final submit these
+  /// are materialised into Document rows linked to the new Applicant.
+  documents    Json     @default("[]")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  createdBy    User     @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([jobAdId])
+  @@map("application_drafts")
 }
 
 model Agency {
@@ -280,12 +348,26 @@ model Agency {
   name               String
   country            String
   contactPerson      String
+  contactFirstName   String?
+  contactMiddleName  String?
+  contactLastName    String?
   email              String
   phone              String
+  whatsapp           String?
+  website            String?
+  addressLine1       String?
+  addressLine2       String?
+  city               String?
+  stateRegion        String?
+  postalCode         String?
   status             AgencyStatus @default(ACTIVE)
   logoUrl            String?
   notes              String?
   maxUsersPerAgency  Int          @default(10)
+  /// Marks the Tempworks root/owner agency. Users attached to an
+  /// isSystem=true agency bypass tenancy scoping and see global data;
+  /// users attached to any other agency are scoped to that agency.
+  isSystem           Boolean      @default(false)
   managerId          String?
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
@@ -298,6 +380,8 @@ model Agency {
   applicants Applicant[]
   vehicles   Vehicle[]
   manager    User?    @relation("AgencyManager", fields: [managerId], references: [id])
+  employeeAccessGrants EmployeeAgencyAccess[]
+  permissionOverrides  AgencyPermissionOverride[]
 
   @@map("agencies")
 }
@@ -334,20 +418,32 @@ model Employee {
   emergencyContact String?
   emergencyPhone   String?
   notes            String?
+  // Full structured application data carried over from the applicant
+  // at conversion time (same JSON blob the applicant form produces).
+  // The Employee profile uses this to render every captured field
+  // without rehydrating the applicant — see ApplicationDataView.
+  applicationData  Json?
+  // Creation attribution — carried over from the Applicant at
+  // conversion time. See Applicant.createdById/source for semantics.
+  createdById      String?
+  source           String         @default("STAFF_CREATED")
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
   deletedAt        DateTime?
   deletedBy        String?
   deletionReason   String?
 
-  agency   Agency?   @relation(fields: [agencyId], references: [id])
-  jobType  JobType?  @relation(fields: [jobTypeId], references: [id])
+  agency    Agency?  @relation(fields: [agencyId], references: [id])
+  jobType   JobType? @relation(fields: [jobTypeId], references: [id])
+  createdBy User?    @relation("EmployeeCreatedBy", fields: [createdById], references: [id])
   employeeStages EmployeeStage[]
   workPermits    WorkPermit[]
   workflowAssignments    EmployeeWorkflowAssignment[]
   stageApprovals         EmployeeStageApproval[]
   attendanceRecords      AttendanceRecord[]      @relation("EmployeeAttendance")
   vehicleAssignments     VehicleDriverAssignment[]
+  agencyAccessGrants     EmployeeAgencyAccess[]
+  workHistory            EmployeeWorkHistory[]
 
   @@map("employees")
 }
@@ -407,6 +503,25 @@ model JobType {
   @@map("job_types")
 }
 
+// Configurable labels for the `transactionType` column on
+// FinancialRecord. Previously hardcoded in backend/src/finance/
+// constants.ts; now stored in the DB so System Admins can add /
+// rename / deactivate types without a code deploy. The values on
+// existing financial_records stay free-text strings, so deactivating a
+// type never breaks historical rows.
+model FinanceTransactionType {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  isActive  Boolean  @default(true)
+  // Preserve the order System Admins want rendered in the dropdown —
+  // lower = earlier. Ties fall back to alphabetical.
+  sortOrder Int      @default(100)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("finance_transaction_types")
+}
+
 model Applicant {
   id                      String          @id @default(uuid())
   tier                    ApplicantTier   @default(LEAD)
@@ -457,6 +572,15 @@ model Applicant {
   // skills, emergency contact, additional info, declaration
   applicationData         Json?
   convertedToEmployeeId   String?
+  // ── Creation attribution ──────────────────────────────────────────────────
+  // createdById: null when the applicant filled the public /apply form
+  //              themselves; otherwise the System/HR/Recruiter/Agency user
+  //              who created the record from the dashboard.
+  // source:      "SELF_APPLIED" for public submissions, "STAFF_CREATED"
+  //              (default) for every dashboard-originated create. Carried
+  //              forward verbatim to the Employee row on conversion.
+  createdById             String?
+  source                  String          @default("STAFF_CREATED")
   createdAt               DateTime        @default(now())
   updatedAt               DateTime        @updatedAt
   deletedAt               DateTime?
@@ -472,10 +596,18 @@ model Applicant {
   jobType              JobType?       @relation(fields: [jobTypeId], references: [id])
   agency               Agency?        @relation(fields: [agencyId], references: [id])
   currentWorkflowStage StageTemplate? @relation("ApplicantCurrentStage", fields: [currentWorkflowStageId], references: [id])
+  createdBy            User?          @relation("ApplicantCreatedBy", fields: [createdById], references: [id])
   financialProfile     ApplicantFinancialProfile?
   agencyHistory        ApplicantAgencyHistory[]
   workflowAssignments  CandidateWorkflowAssignment[]
   deleteRequests       CandidateDeleteRequest[]
+
+  // Tempworks-approval gate for agency-submitted candidates. Defaults to
+  // APPROVED for internal-created applicants so existing data stays live.
+  approvalStatus    AgencyApprovalStatus @default(APPROVED)
+  approvedById      String?
+  approvedAt        DateTime?
+  rejectionReason   String?
 
   @@map("applicants")
 }
@@ -666,6 +798,11 @@ model Notification {
   readAt          DateTime?
   relatedEntity   String?
   relatedEntityId String?
+  // For vehicle notifications: days/km until due
+  daysUntilDue    Int?
+  kmUntilDue      Int?
+  // For vehicle notifications: severity (LOW/MEDIUM/HIGH)
+  severity        String?
   createdAt       DateTime         @default(now())
   deletedAt       DateTime?
   deletedBy       String?
@@ -895,7 +1032,10 @@ model FinancialRecord {
   companyDisbursedAmount     Decimal  @default(0) @db.Decimal(10, 2)
   employeeOrAgencyPaidAmount Decimal  @default(0) @db.Decimal(10, 2)
   // ── Deduction tracking ────────────────────────────────────────────────────
-  status                     String   @default("PENDING") // PENDING | DEDUCTED
+  // Multiple deductions per record are supported via the relation
+  // below — the aggregate fields here mirror SUM(deductions.amount)
+  // and the most-recent entry for quick lookups / legacy consumers.
+  status                     String   @default("PENDING") // PENDING | PARTIAL | DEDUCTED
   deductionAmount            Decimal? @db.Decimal(10, 2)
   deductionDate              DateTime?
   payrollReference           String?
@@ -910,6 +1050,7 @@ model FinancialRecord {
   paidByUser  User?                       @relation("FRPaidBy",      fields: [paidById],     references: [id])
   createdBy   User?                       @relation("FRCreatedBy",   fields: [createdById],  references: [id])
   attachments FinancialRecordAttachment[]
+  deductions  FinancialRecordDeduction[]
 
   @@index([entityType, entityId])
   @@index([applicantId])
@@ -978,6 +1119,29 @@ model FinancialRecordAttachment {
   @@map("financial_record_attachments")
 }
 
+// Multiple partial deductions against a single FinancialRecord.
+// SUM(amount) must stay ≤ FinancialRecord.companyDisbursedAmount —
+// the service enforces that on insert. The parent record's
+// status / deductionAmount / deductionDate / payrollReference are
+// kept in lock-step with these rows as a denormalised summary for
+// fast list / export queries that don't want to re-sum on the fly.
+model FinancialRecordDeduction {
+  id                String   @id @default(uuid())
+  financialRecordId String
+  amount            Decimal  @db.Decimal(10, 2)
+  deductionDate     DateTime
+  payrollReference  String?
+  notes             String?
+  createdById       String?
+  createdAt         DateTime @default(now())
+
+  financialRecord FinancialRecord @relation(fields: [financialRecordId], references: [id], onDelete: Cascade)
+  createdBy       User?           @relation("FRDeductionCreatedBy", fields: [createdById], references: [id])
+
+  @@index([financialRecordId])
+  @@map("financial_record_deductions")
+}
+
 // ── Workflow Pipelines ─────────────────────────────────────────────────────────
 //
 // A Pipeline is a named, ordered recruitment workflow that candidates move through.
@@ -997,6 +1161,10 @@ enum WorkflowStatus {
 
 enum CandidateProgressStatus {
   ACTIVE
+  // In Progress — stamped on the first stage when a candidate is
+  // assigned to a workflow, and stays until the stage is approved or
+  // the candidate is advanced.
+  IN_PROGRESS
   COMPLETED
   SKIPPED
   BLOCKED
@@ -1017,28 +1185,17 @@ enum ApprovalDecision {
 enum AttendanceStatus {
   PRESENT
   ABSENT
+  OFF
+  VACATION
+  SICK
+  // Legacy values kept so existing rows keep validating — map to
+  // the closest new status in the UI on read.
   LATE
   ON_LEAVE
   HALF_DAY
   HOLIDAY
 }
 
-enum VehicleType {
-  TRUCK
-  CAR
-  VAN
-  TANKER
-  TRAILER
-  REFRIGERATED_TRAILER
-  SPECIALTY
-}
-
-enum VehicleStatus {
-  ACTIVE
-  INACTIVE
-  IN_MAINTENANCE
-  SCRAPPED
-}
 
 enum FuelType {
   DIESEL
@@ -1092,6 +1249,21 @@ model WorkflowStage {
   color           String    @default("#6366F1")
   slaHours        Int?
   requiresApproval Boolean  @default(false)
+  /// When true, any authenticated user may process candidates in this
+  /// stage — the explicit RESPONSIBLE user list on assignedUsers is
+  /// ignored. When false, only the users with role=RESPONSIBLE can
+  /// advance a candidate. Orthogonal to requiresApproval.
+  responsibleAny  Boolean   @default(true)
+  /// Minimum distinct approvers that must APPROVED before a candidate
+  /// can leave this stage. Only meaningful when at least one APPROVER
+  /// is assigned; otherwise no approvals are needed.
+  /// Must not exceed the number of assigned approvers.
+  minApprovals    Int       @default(1)
+  /// How approvals are counted toward the minimum threshold. "ANY"
+  /// means any distinct approver's APPROVED decision counts (the
+  /// only mode supported today). Stored as text so new modes can be
+  /// added later without a schema migration.
+  approvalMode    String    @default("ANY")
   isFinal         Boolean   @default(false)
   isActive        Boolean   @default(true)
   createdAt       DateTime  @default(now())
@@ -1277,6 +1449,10 @@ model AttendanceRecord {
   status       AttendanceStatus @default(PRESENT)
   checkIn      String?
   checkOut     String?
+  // Single mid-shift break. Total Hours on the row is
+  // (checkOut - checkIn) - (breakOut - breakIn) when both pairs are set.
+  breakIn      String?
+  breakOut     String?
   workingHours Float?
   notes        String?
   createdById  String?
@@ -1294,26 +1470,149 @@ model AttendanceRecord {
   @@map("attendance_records")
 }
 
+/// A global payroll-period lock. Once inserted, no attendance record
+/// for that (year, month) can be created / updated / deleted — bulk
+/// entry is blocked too. Unlock by deleting the row. Intentionally
+/// global for MVP (not per-employee) so one payroll run seals the
+/// whole month at once.
+model AttendanceLockedPeriod {
+  id         String   @id @default(uuid())
+  year       Int
+  month      Int      // 1-12
+  lockedById String?
+  lockedAt   DateTime @default(now())
+  reason     String?
+
+  lockedBy User? @relation("AttendanceLockedBy", fields: [lockedById], references: [id])
+
+  @@unique([year, month])
+  @@index([year, month])
+  @@map("attendance_locked_periods")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// EMPLOYEE WORK HISTORY (Contracts tab — post-hire business timeline)
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// Deliberately separate from the workflow/pipeline history so pre-hire
+// stage events (recruitment) and post-hire contract events stay distinct.
+// Only Employee rows can own entries here — nothing on the candidate /
+// lead path writes to this table.
+
+// Configurable in Settings → Work History Event Types. Previously a
+// Postgres enum; now a plain string column so System Admins can add,
+// rename, reorder, or deactivate types from the dashboard without a
+// migration. The canonical seed list lives in the startup migration.
+model WorkHistoryEventTypeSetting {
+  id        String   @id @default(uuid())
+  /** Stable machine name written onto EmployeeWorkHistory.eventType. */
+  value     String   @unique
+  /** Human-readable label shown in the Add / Edit dialog. */
+  label     String
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(100)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("work_history_event_types")
+}
+
+model EmployeeWorkHistory {
+  id           String   @id @default(uuid())
+  employeeId   String
+  date         DateTime @db.Date
+  /** Free-text now, constrained by the WorkHistoryEventTypeSetting
+   *  list at the service layer. Legacy rows with values like
+   *  'NEW_CONTRACT' keep rendering; new custom values are allowed
+   *  once they've been added in Settings. */
+  eventType    String
+  description  String?
+  createdById  String?
+  approvedById String?
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  deletedAt    DateTime?
+  deletedBy    String?
+
+  employee    Employee                        @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  createdBy   User?                           @relation("WorkHistoryCreatedBy",  fields: [createdById],  references: [id])
+  approvedBy  User?                           @relation("WorkHistoryApprovedBy", fields: [approvedById], references: [id])
+  attachments EmployeeWorkHistoryAttachment[]
+
+  @@index([employeeId, date])
+  @@index([eventType])
+  @@map("employee_work_history")
+}
+
+model EmployeeWorkHistoryAttachment {
+  id            String   @id @default(uuid())
+  workHistoryId String
+  name          String
+  fileUrl       String
+  mimeType      String?
+  fileSize      Int?
+  uploadedById  String?
+  createdAt     DateTime @default(now())
+  deletedAt     DateTime?
+
+  workHistory EmployeeWorkHistory @relation(fields: [workHistoryId], references: [id], onDelete: Cascade)
+  uploadedBy  User?               @relation("WorkHistoryAttachmentUploadedBy", fields: [uploadedById], references: [id])
+
+  @@index([workHistoryId])
+  @@map("employee_work_history_attachments")
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // VEHICLE MANAGEMENT MODULE
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /// Workshop / garage used for vehicle maintenance
 model Workshop {
-  id          String    @id @default(uuid())
-  name        String
-  contactName String?
-  phone       String?
-  email       String?
-  address     String?
-  city        String?
-  country     String?
-  notes       String?
-  isActive    Boolean   @default(true)
-  deletedAt   DateTime?
-  deletedBy   String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id                          String    @id @default(uuid())
+  name                        String
+  companyName                 String?
+  logo                        String?
+
+  // Contact details
+  phone                       String?
+  telephone                   String?
+  mobile                      String?
+  telefax                     String?
+  email                       String?
+
+  // Address
+  address                     String?
+  city                        String?
+  country                     String?
+
+  // Tax/Registration identifiers
+  vatNumber                   String?   // IČ DPH (VAT ID)
+  businessRegistrationNumber  String?   // IČO (Business ID)
+
+  // Contact person
+  contactName                 String?
+  contactPersonEmail          String?
+  contactPersonPhone          String?
+  contactPersonMobile         String?
+  contactPersonAddress        String?
+
+  // Banking details
+  bankName                    String?
+  iban                        String?
+  swiftBicCode                String?
+
+  // Business information
+  establishmentYear           Int?
+  specializations             String[]  // Types of maintenance services provided
+  status                      String    @default("ACTIVE") // ACTIVE, INACTIVE, SUSPENDED
+
+  // Administrative
+  notes                       String?
+  isActive                    Boolean   @default(true)
+  deletedAt                   DateTime?
+  deletedBy                   String?
+  createdAt                   DateTime  @default(now())
+  updatedAt                   DateTime  @updatedAt
 
   maintenanceRecords MaintenanceRecord[]
 
@@ -1321,17 +1620,25 @@ model Workshop {
 }
 
 /// Configurable maintenance/service type (e.g. "Oil Change", "Tyre Rotation")
+enum IntervalMode {
+  DAYS
+  KM
+  BOTH // Whichever comes first
+}
+
 model MaintenanceType {
-  id                  String    @id @default(uuid())
+  id                  String        @id @default(uuid())
   name                String
   description         String?
   defaultIntervalDays Int?
   defaultIntervalKm   Int?
-  isActive            Boolean   @default(true)
+  /// Interval mode: DAYS only, KM only, or BOTH (whichever comes first)
+  intervalMode        IntervalMode? @default(KM)
+  isActive            Boolean       @default(true)
   deletedAt           DateTime?
   deletedBy           String?
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
 
   maintenanceRecords MaintenanceRecord[]
 
@@ -1342,27 +1649,86 @@ model MaintenanceType {
 model Vehicle {
   id                  String        @id @default(uuid())
   registrationNumber  String        @unique
-  type                VehicleType
-  status              VehicleStatus @default(ACTIVE)
+  /// Stored as plain text (no longer the VehicleType enum) so the list
+  /// of vehicle categories is fully configurable from System Settings →
+  /// Vehicle Settings. Defaults to "Truck" but admins can introduce any
+  /// new category (e.g. "Forklift", "Crane", …) without a code change.
+  type                String        @default("Truck")
+  /// Stored as plain text (no longer the VehicleStatus enum) so the
+  /// list of statuses is fully configurable from System Settings.
+  /// Defaults to "ACTIVE" but admins can introduce new values such as
+  /// "Rented", "Awaiting Parts", etc.
+  status              String        @default("ACTIVE")
   make                String
   model               String
   year                Int?
   color               String?
+  /// Distinct from the registration number (kept for backward-compat
+  /// — most countries treat the two as identical, but a few jurisdictions
+  /// issue a separate plate identifier).
+  licensePlate        String?
   vin                 String?       @unique
-  fuelType            FuelType?
+  /// Like status, fuelType is now a free-text column driven by the
+  /// configurable Vehicle Fuel Types list under System Settings.
+  fuelType            String?
+  fuelCapacity        Float?
   currentMileage      Int?
   notes               String?
-  // Compliance expiry dates
-  motExpiryDate       DateTime?     @db.Date
-  taxExpiryDate       DateTime?     @db.Date
-  insuranceExpiryDate DateTime?     @db.Date
+  // Compliance / registration expiry dates
+  motExpiryDate          DateTime? @db.Date
+  taxExpiryDate          DateTime? @db.Date
+  insuranceExpiryDate    DateTime? @db.Date
+  registrationExpiryDate DateTime? @db.Date
+  // Purchase / acquisition info
+  purchaseOrder       String?
+  purchaseDate        DateTime? @db.Date
+  purchaseCost        Float?
+  purchaseContract    String?
+  vendorName          String?
+  vendorAddress       String?
+  // Insurance policy
+  insurancePolicyNumber String?
+  insuranceCompany      String?
+  insuranceType         String?
+  insuranceStartDate    DateTime? @db.Date
   // Type-specific fields
   grossWeight         Float?
   payloadCapacity     Float?
   numberOfAxles       Int?
+  tareWeight          Float?
+  bodyType            String?
+  hitchType           String?
+  lengthM             Float?
+  widthM              Float?
+  heightM             Float?
+  euroEmissionClass   String?
+  tachographSerial    String?
+  tachographCalibrationExpiry DateTime? @db.Date
+  // Vans
+  seatingCapacity     Int?
+  loadVolume          Float?
+  partitionFitted     Boolean?
+  // Cars
+  vinSubType          String?
+  insuranceGroup      String?
+  // Tanker
   tankerCapacity      Float?
-  refrigerationUnit   String?
+  tankMaterial        String?
+  adrClass            String?
+  unNumbers           String?
+  lastPressureTestDate DateTime? @db.Date
+  nextPressureTestDate DateTime? @db.Date
+  // Trailer / refrigerated trailer
   trailerLength       Float?
+  refrigerationUnit   String?
+  refrigerationModel  String?
+  tempMin             Float?
+  tempMax             Float?
+  atpCertificateNumber String?
+  atpCertificateExpiry DateTime? @db.Date
+  // Specialty vehicles
+  equipmentDescription String? @db.Text
+  customAttributes     Json?
   agencyId            String?
   createdById         String?
   updatedById         String?
@@ -1486,6 +1852,7 @@ model MaintenanceRecordSparePart {
   @@map("maintenance_record_spare_parts")
 }
 
+
 // ── Database Backup ────────────────────────────────────────────────────────────
 
 model SystemBackup {
@@ -1598,4 +1965,75 @@ model UserNumberSequence {
   current Int @default(0)
 
   @@map("user_number_sequences")
+}
+
+// ── Agency tenancy workflow ───────────────────────────────────────────────────
+
+/// Per-employee agency read access. Tempworks admins explicitly grant an
+/// agency the ability to see a specific employee profile. Without a row,
+/// agency users are blocked from reading the employee — even if the
+/// employee's own `agencyId` matches the agency the user belongs to.
+model EmployeeAgencyAccess {
+  id           String   @id @default(uuid())
+  employeeId   String
+  agencyId     String
+  grantedById  String?
+  grantedAt    DateTime @default(now())
+  notes        String?
+  /// Whether the agency's users can view this employee's profile and
+  /// find it in lists. Default true preserves behaviour of grants
+  /// created before the split from the presence-based model.
+  canView      Boolean  @default(true)
+  /// Whether the agency's users can edit the employee (profile,
+  /// status, uploads). Independent of canView — admins can give
+  /// read-only access by leaving canEdit off.
+  canEdit      Boolean  @default(true)
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  agency   Agency   @relation(fields: [agencyId],   references: [id], onDelete: Cascade)
+
+  @@unique([employeeId, agencyId])
+  @@index([agencyId])
+  @@index([employeeId])
+  @@map("employee_agency_access")
+}
+
+/// Agency-wide permission overrides. Tempworks admins grant or revoke
+/// specific permissions (e.g. "applicants:create") across every user
+/// of an agency, without editing users one by one. Merged with the
+/// role's default permissions at login time.
+model AgencyPermissionOverride {
+  id         String   @id @default(uuid())
+  agencyId   String
+  permission String
+  allow      Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  agency Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+
+  @@unique([agencyId, permission])
+  @@index([agencyId])
+  @@map("agency_permission_overrides")
+}
+
+// ── Fleet notifications ───────────────────────────────────────────────────────
+
+/// Notification preferences and thresholds per user for vehicle alerts.
+model NotificationPreference {
+  id                String   @id @default(uuid())
+  userId            String   @unique
+  // Compliance date thresholds (days before expiry to notify)
+  complianceDaysBefore Int   @default(30)
+  // Mileage-based service threshold (km before next service mileage)
+  serviceKmBefore   Int      @default(500)
+  // Notification delivery preferences
+  enableEmailNotifications Boolean @default(true)
+  enableInAppNotifications Boolean @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user User @relation("NotificationPreferences", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_preferences")
 }

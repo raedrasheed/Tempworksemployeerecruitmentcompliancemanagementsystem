@@ -5,6 +5,7 @@ import {
   ArrowUp, ArrowDown, ArrowUpDown, Columns2, Check,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { confirm } from '../../components/ui/ConfirmDialog';
 import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -221,7 +222,11 @@ export function WorkshopsList() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this workshop?')) return;
+    if (!(await confirm({
+      title: 'Delete workshop?',
+      description: 'This workshop will be permanently removed.',
+      confirmText: 'Delete', tone: 'destructive',
+    }))) return;
     try {
       await vehiclesApi.deleteWorkshop(id);
       toast.success('Workshop deleted');

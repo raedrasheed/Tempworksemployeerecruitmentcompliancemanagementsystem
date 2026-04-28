@@ -1,19 +1,25 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { applicantsApi, agenciesApi, settingsApi } from '../../services/api';
+import { applicantsApi, agenciesApi, settingsApi, documentsApi, workflowApi } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
 import { getCurrentUser, getAccessToken } from '../../services/api';
 import { Link } from 'react-router';
-import { Search, Plus, Eye, Edit, Download, Trash2, RefreshCw, ArrowUp, ArrowDown, ArrowUpDown, X, Columns2, Check } from 'lucide-react';
+import { Search, Plus, Eye, Edit, Download, Trash2, RefreshCw, ArrowUp, ArrowDown, ArrowUpDown, X, Columns2, Check, FileText, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { confirm } from '../../components/ui/ConfirmDialog';
+import { exportRecordsAsPdfZip, safeFilename } from '../../utils/bulkPdfExport';
+import { buildApplicantPdfBlob } from '../../components/applicants/ApplicantPdfExport';
+import { WhatsAppButton } from '../../components/WhatsAppButton';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
 import { Badge } from '../../components/ui/badge';
 import { Checkbox } from '../../components/ui/checkbox';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '../../components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 
 const getStatusColor = (status: string) => {
   switch (status?.toUpperCase()) {
@@ -37,26 +43,62 @@ type SortField = 'firstName' | 'email' | 'nationality' | 'jobType' | 'agency' | 
 type SortOrder = 'asc' | 'desc';
 
 // ── Column visibility ────────────────────────────────────────────────────────
-type ColKey = 'contact' | 'nationality' | 'jobType' | 'agency' | 'tier' | 'applied' | 'status';
+type ColKey =
+  | 'contact' | 'nationality' | 'appliedPosition' | 'passportNumber'
+  | 'age' | 'gender' | 'agency' | 'tier' | 'applied' | 'status';
 
 const ALL_COLUMNS: { key: ColKey; label: string }[] = [
-  { key: 'contact',     label: 'Contact' },
-  { key: 'nationality', label: 'Nationality' },
-  { key: 'jobType',     label: 'Job Category' },
-  { key: 'agency',      label: 'Agency' },
-  { key: 'tier',        label: 'Tier' },
-  { key: 'applied',     label: 'Applied' },
-  { key: 'status',      label: 'Status' },
+  { key: 'contact',         label: 'Contact' },
+  { key: 'nationality',     label: 'Citizenship' },
+  { key: 'appliedPosition', label: 'Applied Position' },
+  { key: 'passportNumber',  label: 'Passport Number' },
+  { key: 'age',             label: 'Age' },
+  { key: 'gender',          label: 'Gender' },
+  { key: 'agency',          label: 'Agency' },
+  { key: 'tier',            label: 'Tier' },
+  { key: 'applied',         label: 'Applied' },
+  { key: 'status',          label: 'Status' },
 ];
 
 const DEFAULT_VISIBLE: Record<ColKey, boolean> = {
-  contact: true, nationality: true, jobType: true, agency: true,
-  tier: true, applied: true, status: true,
+  contact: true, nationality: true, appliedPosition: true,
+  passportNumber: true, age: true, gender: true,
+  agency: true, tier: false, applied: true, status: true,
 };
+
+/** Age in whole years from a DOB string/Date. Returns null for missing /
+ *  unparseable dates so the cell can show a '—' rather than an NaN. */
+function calcAge(dob: string | Date | null | undefined): number | null {
+  if (!dob) return null;
+  const birth = typeof dob === 'string' ? new Date(dob) : dob;
+  if (isNaN(birth.getTime())) return null;
+  const now = new Date();
+  let age = now.getFullYear() - birth.getFullYear();
+  const m = now.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) age -= 1;
+  return age >= 0 && age < 150 ? age : null;
+}
+
+/** Passport number lives inside the applicationData JSON. */
+function readPassportNumber(a: any): string {
+  const raw = a?.applicationData?.passportNumber ?? a?.passportNumber ?? '';
+  return typeof raw === 'string' ? raw.trim() : '';
+}
+
+function formatGender(g: string | null | undefined): string {
+  if (!g) return '';
+  switch (g) {
+    case 'MALE': return 'Male';
+    case 'FEMALE': return 'Female';
+    case 'OTHER': return 'Other';
+    case 'PREFER_NOT_TO_SAY': return 'Prefer not to say';
+    default: return g;
+  }
+}
 
 function loadVisibleColumns(): Record<ColKey, boolean> {
   try {
-    const saved = localStorage.getItem('candidates-table-columns');
+    const saved = localStorage.getItem('candidates-table-columns-v3');
     return saved ? { ...DEFAULT_VISIBLE, ...JSON.parse(saved) } : DEFAULT_VISIBLE;
   } catch {
     return DEFAULT_VISIBLE;
@@ -104,7 +146,7 @@ export function CandidatesList() {
   const toggleColumn = (key: ColKey) => {
     setVisibleColumns(prev => {
       const next = { ...prev, [key]: !prev[key] };
-      localStorage.setItem('candidates-table-columns', JSON.stringify(next));
+      localStorage.setItem('candidates-table-columns-v3', JSON.stringify(next));
       return next;
     });
   };
@@ -140,6 +182,8 @@ export function CandidatesList() {
   // ── Bulk actions ───────────────────────────────────────────────────────────
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkActionInProgress, setBulkActionInProgress] = useState(false);
+  const [statusModalOpen, setStatusModalOpen] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState<string>('');
 
   // ── Fetch ──────────────────────────────────────────────────────────────────
   const fetchCandidates = useCallback(async () => {
@@ -208,7 +252,11 @@ export function CandidatesList() {
 
   // ── Delete ─────────────────────────────────────────────────────────────────
   const handleDelete = async (applicant: any) => {
-    if (!confirm(`Delete "${applicant.firstName} ${applicant.lastName}"? This cannot be undone.`)) return;
+    if (!(await confirm({
+      title: 'Delete candidate?',
+      description: `"${applicant.firstName} ${applicant.lastName}" will be permanently removed.`,
+      confirmText: 'Delete', tone: 'destructive',
+    }))) return;
     try {
       await applicantsApi.delete(applicant.id);
       setCandidatesData(prev => prev.filter(a => a.id !== applicant.id));
@@ -228,14 +276,17 @@ export function CandidatesList() {
   };
 
   // ── Bulk actions ───────────────────────────────────────────────────────────
-  const handleBulkAction = async (action: string, value?: string) => {
+  const handleBulkAction = async (action: string, value?: string, agencyId?: string) => {
     if (selected.size === 0) { toast.error('Select at least one candidate'); return; }
     setBulkActionInProgress(true);
     try {
-      const result = await applicantsApi.bulkAction({ ids: [...selected], action, value });
+      const result = await applicantsApi.bulkAction({ ids: [...selected], action, value, agencyId });
       const failed = result.results?.filter((r: any) => !r.success) ?? [];
       if (failed.length === 0) toast.success(`Bulk action applied to ${selected.size} candidate(s)`);
-      else toast.warning(`Applied to ${selected.size - failed.length}, failed for ${failed.length}`);
+      else toast.warning(
+        `Applied to ${selected.size - failed.length}, failed for ${failed.length}` +
+          (failed[0]?.error ? ` (first error: ${failed[0].error})` : ''),
+      );
       setSelected(new Set());
       await fetchCandidates();
     } catch (err: any) {
@@ -245,25 +296,123 @@ export function CandidatesList() {
     }
   };
 
-  // ── CSV Export ─────────────────────────────────────────────────────────────
-  const handleExportCsv = () => {
-    const params: Record<string, any> = {};
-    if (searchTerm) params.search = searchTerm;
-    if (tierFilter) params.tier = tierFilter;
-    if (statusFilter) params.status = statusFilter;
-    if (agencyFilter) params.agencyId = agencyFilter;
-    if (nationalityFilter) params.nationality = nationalityFilter;
-    if (jobTypeFilter) params.jobTypeId = jobTypeFilter;
+  // ── Bulk Convert to Employee dialog state ─────────────────────────────────
+  // The backend derives address / licence / emergency contact from each
+  // candidate's applicationData; the operator just picks the optional
+  // responsible agency (or leaves it as-is) and confirms.
+  const [showBulkConvertDialog, setShowBulkConvertDialog] = useState(false);
+  const [bulkConvertAgencyId, setBulkConvertAgencyId] = useState<string>('');
+
+  // Bulk "Connect to Workflow" — one shared dialog picks the
+  // workflow and applies it to every selected candidate. Respects
+  // the existing single-active-workflow and admin-only reassignment
+  // rules per-candidate on the backend.
+  const [showBulkWorkflowDialog, setShowBulkWorkflowDialog] = useState(false);
+  const [bulkWorkflowId, setBulkWorkflowId] = useState<string>('');
+  const [bulkWorkflowNotes, setBulkWorkflowNotes] = useState('');
+  const [allWorkflows, setAllWorkflows] = useState<any[]>([]);
+  const [bulkWorkflowInFlight, setBulkWorkflowInFlight] = useState(false);
+
+  const handleBulkAssignWorkflow = async () => {
+    if (!bulkWorkflowId) { toast.error('Pick a workflow'); return; }
+    if (selected.size === 0) { toast.error('Select at least one candidate'); return; }
+    setBulkWorkflowInFlight(true);
+    try {
+      const res = await workflowApi.assignCandidatesBulk({
+        candidateIds: [...selected],
+        workflowId: bulkWorkflowId,
+        notes: bulkWorkflowNotes.trim() || undefined,
+      });
+      const s = res?.summary ?? ({} as any);
+      const bits = [
+        `${s.assigned ?? 0} assigned`,
+        s.reassigned ? `${s.reassigned} reassigned` : null,
+        s.skipped_same_workflow ? `${s.skipped_same_workflow} already on this workflow` : null,
+        s.forbidden ? `${s.forbidden} blocked (admin only)` : null,
+        s.errors ? `${s.errors} errors` : null,
+      ].filter(Boolean).join(' · ');
+      if ((s.errors ?? 0) > 0 || (s.forbidden ?? 0) > 0) toast.warning(bits);
+      else toast.success(bits || 'Done');
+      setShowBulkWorkflowDialog(false);
+      setBulkWorkflowId('');
+      setBulkWorkflowNotes('');
+      setSelected(new Set());
+      await fetchCandidates();
+    } catch (err: any) {
+      toast.error(err?.message || 'Bulk assignment failed');
+    } finally {
+      setBulkWorkflowInFlight(false);
+    }
+  };
+
+  // ── Bulk PDF Export ────────────────────────────────────────────────────────
+  const [pdfExporting, setPdfExporting] = useState(false);
+  const handleBulkPdfExport = async () => {
+    if (selected.size === 0) {
+      toast.error('Select at least one candidate');
+      return;
+    }
+    setPdfExporting(true);
+    const tid = toast.loading(`Preparing ${selected.size} PDF${selected.size > 1 ? 's' : ''}...`);
+    try {
+      const ids = [...selected];
+      const full = await Promise.all(ids.map(id => applicantsApi.get(id).catch(() => null)));
+      const records = full.filter(Boolean) as any[];
+      if (records.length === 0) {
+        toast.error('Failed to load selected candidates', { id: tid });
+        return;
+      }
+      const today = new Date().toISOString().slice(0, 10);
+      await exportRecordsAsPdfZip({
+        records,
+        zipName: `Candidates_Profiles_${today}`,
+        // Merge each candidate's uploaded documents into their PDF so
+        // the bulk ZIP matches the single-profile download.
+        buildBlob: async (rec) => {
+          // The endpoint returns either an array or a PaginatedResponse
+          // shape — handle both so the merge doesn't silently drop docs.
+          const docsRes: any = await documentsApi.getByEntity('APPLICANT', rec.id).catch(() => []);
+          const docs = Array.isArray(docsRes) ? docsRes : Array.isArray(docsRes?.data) ? docsRes.data : [];
+          return buildApplicantPdfBlob(rec, docs);
+        },
+        filename: (rec) => {
+          const name = safeFilename([rec.firstName, rec.lastName].filter(Boolean).join('_') || 'Candidate');
+          const num = rec.candidateNumber || rec.leadNumber || rec.applicationNumber || rec.id;
+          return `Candidate_${name}_${num}.pdf`;
+        },
+        onProgress: (done, total) => {
+          toast.loading(`Generating PDFs... ${done}/${total}`, { id: tid });
+        },
+      });
+      toast.success(`Exported ${records.length} PDF${records.length > 1 ? 's' : ''}`, { id: tid });
+    } catch (err: any) {
+      toast.error(err?.message || 'PDF export failed', { id: tid });
+    } finally {
+      setPdfExporting(false);
+    }
+  };
+
+  // ── Excel Export ───────────────────────────────────────────────────────────
+  // Streams the backend's .xlsx for the currently selected rows only.
+  const handleExportExcel = () => {
+    if (selected.size === 0) {
+      toast.error('Select one or more rows to export');
+      return;
+    }
     const token = getAccessToken();
-    const csvUrl = applicantsApi.exportCsv(params);
-    fetch(csvUrl, { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.blob())
+    const url = applicantsApi.exportExcel({ ids: Array.from(selected) });
+    fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+      .then(async r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.blob();
+      })
       .then(blob => {
-        const url = URL.createObjectURL(blob);
+        const objectUrl = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = url; a.download = `candidates-${Date.now()}.csv`;
+        a.href = objectUrl;
+        a.download = `candidates-selected-${Date.now()}.xlsx`;
         document.body.appendChild(a); a.click();
-        document.body.removeChild(a); URL.revokeObjectURL(url);
+        document.body.removeChild(a); URL.revokeObjectURL(objectUrl);
       })
       .catch(() => toast.error('Export failed'));
   };
@@ -324,10 +473,65 @@ export function CandidatesList() {
             {!isAgencyUser && (
               <>
                 <Button variant="outline" size="sm" disabled={bulkActionInProgress} onClick={() => handleBulkAction('STATUS_CHANGE', 'ACCEPTED')}>Mark Accepted</Button>
-                <Button variant="outline" size="sm" disabled={bulkActionInProgress} onClick={() => { const s = prompt('Enter new status (NEW / SCREENING / INTERVIEW / OFFER / ACCEPTED / REJECTED / WITHDRAWN / ONBOARDING)'); if (s) handleBulkAction('STATUS_CHANGE', s.toUpperCase()); }}>Change Status</Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={bulkActionInProgress}
+                  onClick={() => {
+                    if (selected.size === 0) {
+                      toast.error('Select at least one candidate');
+                      return;
+                    }
+                    setPendingStatus('');
+                    setStatusModalOpen(true);
+                  }}
+                >Change Status</Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={bulkActionInProgress}
+                  onClick={async () => {
+                    if (selected.size === 0) {
+                      toast.error('Select at least one candidate');
+                      return;
+                    }
+                    // Lazy-load the workflows list the first time
+                    // the dialog opens — the CandidatesList doesn't
+                    // otherwise need it.
+                    if (allWorkflows.length === 0) {
+                      try {
+                        const list = await workflowApi.list();
+                        setAllWorkflows(Array.isArray(list) ? list : []);
+                      } catch { /* toast handled below on save */ }
+                    }
+                    setBulkWorkflowId('');
+                    setBulkWorkflowNotes('');
+                    setShowBulkWorkflowDialog(true);
+                  }}
+                >Connect to Workflow</Button>
+                <Button
+                  size="sm"
+                  className="bg-[#22C55E] hover:bg-[#16a34a] text-white"
+                  disabled={bulkActionInProgress}
+                  onClick={() => {
+                    if (selected.size === 0) {
+                      toast.error('Select at least one candidate');
+                      return;
+                    }
+                    setBulkConvertAgencyId('');
+                    setShowBulkConvertDialog(true);
+                  }}
+                >Convert to Employees</Button>
               </>
             )}
-            <Button variant="outline" size="sm" className="text-red-600" disabled={bulkActionInProgress} onClick={() => { if (confirm(`Delete ${selected.size} candidate(s)?`)) handleBulkAction('DELETE'); }}>
+            <Button variant="outline" size="sm" className="text-red-600" disabled={bulkActionInProgress} onClick={async () => {
+              if (selected.size === 0) return;
+              if (await confirm({
+                title: 'Delete selected candidates?',
+                description: `${selected.size} candidate(s) will be permanently removed.`,
+                confirmText: 'Delete', tone: 'destructive',
+              })) handleBulkAction('DELETE');
+            }}>
               <Trash2 className="w-3 h-3 mr-1" />Delete Selected
             </Button>
             <Button variant="ghost" size="sm" onClick={() => setSelected(new Set())}>Clear</Button>
@@ -368,8 +572,26 @@ export function CandidatesList() {
               <Button variant="outline" size="sm" onClick={fetchCandidates} disabled={loading}>
                 <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />Refresh
               </Button>
-              <Button variant="outline" size="sm" onClick={handleExportCsv}>
-                <Download className="w-4 h-4 mr-2" />Export CSV
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportExcel}
+                disabled={selected.size === 0}
+                title={selected.size === 0 ? 'Select one or more rows to export' : undefined}
+              >
+                <Download className="w-4 h-4 mr-2" />Export to Excel ({selected.size})
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleBulkPdfExport}
+                disabled={selected.size === 0 || pdfExporting}
+                title={selected.size === 0 ? 'Select one or more rows to export as PDFs' : undefined}
+              >
+                {pdfExporting
+                  ? <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  : <FileText className="w-4 h-4 mr-2" />}
+                Export PDFs ({selected.size})
               </Button>
 
               {/* Column picker */}
@@ -405,9 +627,9 @@ export function CandidatesList() {
                       ))}
                     </div>
                     <div className="border-t mt-2 pt-2 flex gap-1.5">
-                      <button onClick={() => { const all = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, true])) as Record<ColKey, boolean>; setVisibleColumns(all); localStorage.setItem('candidates-table-columns', JSON.stringify(all)); }} className="flex-1 text-xs text-center text-blue-600 hover:underline py-0.5">Show all</button>
+                      <button onClick={() => { const all = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, true])) as Record<ColKey, boolean>; setVisibleColumns(all); localStorage.setItem('candidates-table-columns-v3', JSON.stringify(all)); }} className="flex-1 text-xs text-center text-blue-600 hover:underline py-0.5">Show all</button>
                       <span className="text-gray-300">|</span>
-                      <button onClick={() => { const none = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, false])) as Record<ColKey, boolean>; setVisibleColumns(none); localStorage.setItem('candidates-table-columns', JSON.stringify(none)); }} className="flex-1 text-xs text-center text-gray-500 hover:underline py-0.5">Hide all</button>
+                      <button onClick={() => { const none = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, false])) as Record<ColKey, boolean>; setVisibleColumns(none); localStorage.setItem('candidates-table-columns-v3', JSON.stringify(none)); }} className="flex-1 text-xs text-center text-gray-500 hover:underline py-0.5">Hide all</button>
                     </div>
                   </div>
                 )}
@@ -417,9 +639,9 @@ export function CandidatesList() {
             {/* Row 2 */}
             <div className="flex flex-wrap items-center gap-3">
               <Select value={nationalityFilter || '__all__'} onValueChange={v => setNationalityFilter(v === '__all__' ? '' : v)}>
-                <SelectTrigger className="w-44"><SelectValue placeholder="All Nationalities" /></SelectTrigger>
+                <SelectTrigger className="w-44"><SelectValue placeholder="All Citizenships" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__all__">All Nationalities</SelectItem>
+                  <SelectItem value="__all__">All Citizenships</SelectItem>
                   {nationalityOptions.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
                 </SelectContent>
               </Select>
@@ -458,8 +680,11 @@ export function CandidatesList() {
                   </TableHead>
                   <SortableHead label="Candidate"    field="firstName"   sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />
                   {col('contact')     && <SortableHead label="Contact"      field="email"       sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
-                  {col('nationality') && <SortableHead label="Nationality"  field="nationality" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
-                  {col('jobType')     && <SortableHead label="Job Category" field="jobType"     sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  {col('nationality') && <SortableHead label="Citizenship"  field="nationality" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  {col('appliedPosition') && <TableHead>Applied Position</TableHead>}
+                  {col('passportNumber')  && <TableHead>Passport Number</TableHead>}
+                  {col('age')             && <TableHead>Age</TableHead>}
+                  {col('gender')          && <TableHead>Gender</TableHead>}
                   {col('agency')      && <SortableHead label="Agency"       field="agency"      sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
                   {col('tier') && !isAgencyUser && <SortableHead label="Tier" field="tier" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
                   {col('applied')     && <SortableHead label="Applied"      field="createdAt"   sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
@@ -511,18 +736,33 @@ export function CandidatesList() {
                       </TableCell>
                     )}
                     {col('nationality') && <TableCell className="text-sm">{applicant.nationality}</TableCell>}
-                    {col('jobType') && (
+                    {col('appliedPosition') && (
                       <TableCell>
-                        <span className="text-sm">
-                          {typeof applicant.jobType === 'object' && applicant.jobType !== null ? applicant.jobType.name : applicant.jobType ?? '—'}
-                        </span>
+                        {applicant.jobAd?.title
+                          ? <span className="text-sm">{applicant.jobAd.title}</span>
+                          : <Badge variant="outline" className="text-[10px] font-semibold tracking-wide">GENERAL</Badge>}
+                      </TableCell>
+                    )}
+                    {col('passportNumber') && (
+                      <TableCell className="text-sm font-mono whitespace-nowrap">
+                        {readPassportNumber(applicant) || <span className="text-muted-foreground">—</span>}
+                      </TableCell>
+                    )}
+                    {col('age') && (
+                      <TableCell className="text-sm tabular-nums">
+                        {calcAge(applicant.dateOfBirth) ?? <span className="text-muted-foreground">—</span>}
+                      </TableCell>
+                    )}
+                    {col('gender') && (
+                      <TableCell className="text-sm">
+                        {formatGender(applicant.gender) || <span className="text-muted-foreground">—</span>}
                       </TableCell>
                     )}
                     {col('agency') && (
                       <TableCell>
-                        {applicant.agency
+                        {applicant.agency?.name
                           ? <span className="text-sm">{applicant.agency.name}</span>
-                          : <span className="text-sm text-muted-foreground">Direct</span>}
+                          : <span className="text-sm text-muted-foreground">—</span>}
                       </TableCell>
                     )}
                     {col('tier') && !isAgencyUser && (
@@ -545,6 +785,7 @@ export function CandidatesList() {
                         <Button variant="ghost" size="sm" asChild>
                           <Link to={`/dashboard/candidates/${applicant.id}`}><Eye className="w-4 h-4 mr-1" />View</Link>
                         </Button>
+                        <WhatsAppButton phone={applicant.phone} size="icon" />
                         {canEdit('applicants') && (
                           <Button variant="ghost" size="sm" asChild>
                             <Link to={`/dashboard/candidates/${applicant.id}/edit`}><Edit className="w-4 h-4 mr-1" />Edit</Link>
@@ -571,6 +812,164 @@ export function CandidatesList() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Bulk status change modal — predefined list, no free-text entry */}
+      <Dialog open={statusModalOpen} onOpenChange={(open) => {
+        setStatusModalOpen(open);
+        if (!open) setPendingStatus('');
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Change status</DialogTitle>
+            <DialogDescription>
+              Select a new status for {selected.size} selected candidate{selected.size === 1 ? '' : 's'}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-2">
+            <Select value={pendingStatus} onValueChange={setPendingStatus}>
+              <SelectTrigger><SelectValue placeholder="Choose a status..." /></SelectTrigger>
+              <SelectContent>
+                {STATUSES.map(s => (
+                  <SelectItem key={s} value={s}>{s.replace(/_/g, ' ')}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setStatusModalOpen(false)} disabled={bulkActionInProgress}>
+              Cancel
+            </Button>
+            <Button
+              disabled={bulkActionInProgress || !pendingStatus}
+              onClick={async () => {
+                if (!pendingStatus) {
+                  toast.error('Please select a status');
+                  return;
+                }
+                setStatusModalOpen(false);
+                const next = pendingStatus;
+                setPendingStatus('');
+                await handleBulkAction('STATUS_CHANGE', next);
+              }}
+            >
+              Apply
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Convert to Employees dialog — confirms, lets the operator
+          (optionally) override the responsible agency, then hands off
+          to the backend CONVERT_TO_EMPLOYEE bulk action which derives
+          per-candidate address / licence / emergency contact from the
+          applicationData blob. Candidates missing required address
+          fields are skipped and reported per-row. */}
+      <Dialog open={showBulkConvertDialog} onOpenChange={(o) => !o && setShowBulkConvertDialog(false)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Convert {selected.size} Candidate{selected.size === 1 ? '' : 's'} to Employee{selected.size === 1 ? '' : 's'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-muted-foreground">
+              Each selected candidate becomes an employee. Address, licence and emergency contact are
+              taken from the candidate's application — any row missing a mandatory address field is
+              skipped and reported back so you can convert it individually.
+            </p>
+            <div className="space-y-1.5">
+              <Label htmlFor="bulk-convert-agency" className="text-sm">Responsible Agency (optional)</Label>
+              <Select value={bulkConvertAgencyId || '__keep__'} onValueChange={(v) => setBulkConvertAgencyId(v === '__keep__' ? '' : v)}>
+                <SelectTrigger id="bulk-convert-agency">
+                  <SelectValue placeholder="Keep each candidate's current agency" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__keep__">
+                    <span className="text-muted-foreground">Keep each candidate's current agency</span>
+                  </SelectItem>
+                  {agencies.map((a: any) => (
+                    <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                When an agency is picked here, every selected candidate is reassigned to it before conversion.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowBulkConvertDialog(false)} disabled={bulkActionInProgress}>Cancel</Button>
+            <Button
+              className="bg-[#22C55E] hover:bg-[#16a34a] text-white"
+              disabled={bulkActionInProgress}
+              onClick={async () => {
+                setShowBulkConvertDialog(false);
+                await handleBulkAction('CONVERT_TO_EMPLOYEE', undefined, bulkConvertAgencyId || undefined);
+              }}
+            >
+              Convert
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Connect to Workflow dialog — assigns one chosen
+          workflow to every selected candidate. Per-candidate rules
+          (single active workflow, admin-only reassignment) are
+          enforced on the backend; the summary toast spells out who
+          was assigned, reassigned, skipped, or blocked. */}
+      <Dialog open={showBulkWorkflowDialog} onOpenChange={(o) => !o && setShowBulkWorkflowDialog(false)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Connect {selected.size} Candidate{selected.size === 1 ? '' : 's'} to a Workflow</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-muted-foreground">
+              Every selected candidate will be placed on Stage 1 of the chosen workflow with status
+              <strong className="text-foreground"> In Progress</strong>. Candidates already on the same
+              workflow are skipped; reassignment to a different workflow is a System-Admin-only action
+              and will be blocked for others.
+            </p>
+            <div className="space-y-1.5">
+              <Label htmlFor="bulk-workflow" className="text-sm">Workflow *</Label>
+              <Select value={bulkWorkflowId} onValueChange={setBulkWorkflowId}>
+                <SelectTrigger id="bulk-workflow">
+                  <SelectValue placeholder={allWorkflows.length === 0 ? 'No workflows available' : 'Pick a workflow…'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {allWorkflows.map((w: any) => (
+                    <SelectItem key={w.id} value={w.id}>
+                      <span className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: w.color ?? '#6366F1' }} />
+                        <span>{w.name}</span>
+                        <span className={`ml-1 text-[10px] px-1.5 py-0.5 rounded border ${w.isPublic ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-slate-700 border-slate-200'}`}>
+                          {w.isPublic ? 'Public' : 'Private'}
+                        </span>
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="bulk-workflow-notes" className="text-sm">Notes <span className="text-muted-foreground text-xs">(optional)</span></Label>
+              <Input
+                id="bulk-workflow-notes"
+                placeholder="Context / reason — saved to the assignment audit trail"
+                value={bulkWorkflowNotes}
+                onChange={(e) => setBulkWorkflowNotes(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowBulkWorkflowDialog(false)} disabled={bulkWorkflowInFlight}>Cancel</Button>
+            <Button
+              disabled={bulkWorkflowInFlight || !bulkWorkflowId}
+              onClick={handleBulkAssignWorkflow}
+            >
+              {bulkWorkflowInFlight ? 'Assigning…' : 'Connect'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

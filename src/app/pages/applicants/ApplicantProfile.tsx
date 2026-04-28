@@ -4,7 +4,7 @@ import {
   ArrowLeft, Mail, Phone, Globe, Briefcase, Calendar, FileText,
   UserPlus, Edit, Trash2, Download, Upload, X,
   Shield, Clock, Award, ChevronRight, MapPin, Loader2, TrendingUp, History, DollarSign,
-  Layers, Plus,
+  Layers, Plus, CheckCircle2, XCircle, GraduationCap,
 } from 'lucide-react';
 import { usePermissions } from '../../hooks/usePermissions';
 import { getCurrentUser, applicantsApi, documentsApi, settingsApi, employeeWorkflowApi, agenciesApi, workflowApi } from '../../services/api';
@@ -16,8 +16,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/ta
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { Checkbox } from '../../components/ui/checkbox';
+import { Textarea } from '../../components/ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
 import { toast } from 'sonner';
+import { confirm } from '../../components/ui/ConfirmDialog';
 import { ApplicantPdfExportButton } from '../../components/applicants/ApplicantPdfExport';
+import { ApplicationDataView } from '../../components/applicants/ApplicationDataView';
+import { WhatsAppButton } from '../../components/WhatsAppButton';
 
 const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1').replace('/api/v1', '');
 
@@ -46,6 +52,7 @@ export function ApplicantProfile() {
   const { canEdit, canDelete, can } = usePermissions();
   const currentUser = getCurrentUser();
   const isFinanceOrAdmin = currentUser?.role === 'System Admin' || currentUser?.role === 'HR Manager' || currentUser?.role === 'Finance';
+  const isAgencyUser = currentUser?.role === 'Agency User' || currentUser?.role === 'Agency Manager';
   const [applicantData, setApplicantData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [documents, setDocuments] = useState<any[]>([]);
@@ -66,7 +73,18 @@ export function ApplicantProfile() {
   const [showUpload, setShowUpload] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
-  const [uploadForm, setUploadForm] = useState({ documentTypeId: '', name: '', issueDate: '', expiryDate: '', documentNumber: '', issuer: '' });
+  const [uploadForm, setUploadForm] = useState({ documentTypeId: '', name: '', issueDate: '', expiryDate: '', noExpiry: false, documentNumber: '', issuer: '' });
+  // Inline document actions — approve / reject / delete live directly
+  // on each row in the Documents tab, using the same documentsApi.verify
+  // contract as the Doc Compliance page.
+  const [verifyingDocId, setVerifyingDocId] = useState<string | null>(null);
+  const [rejectDocDialog, setRejectDocDialog] = useState<{ open: boolean; docId: string; docName: string }>({ open: false, docId: '', docName: '' });
+  const [rejectDocReason, setRejectDocReason] = useState('');
+  // Inline Notes editor — lets operators add/update the applicant
+  // note without leaving view mode. Kept separate from the Edit page
+  // so the flow stays quick.
+  const [noteDraft, setNoteDraft] = useState('');
+  const [savingNote, setSavingNote] = useState(false);
   const [showConvertDialog, setShowConvertDialog] = useState(false);
   const [converting, setConverting] = useState(false);
   const [convertForm, setConvertForm] = useState({
@@ -77,6 +95,15 @@ export function ApplicantProfile() {
   // Tier / financial / history state
   const [showConvertLeadDialog, setShowConvertLeadDialog] = useState(false);
   const [convertingLead, setConvertingLead] = useState(false);
+  // After a successful promotion we flip the same dialog into a
+  // confirmation panel instead of relying on a fleeting toast, so the
+  // operator sees an explicit "done" message.
+  const [promoteSuccess, setPromoteSuccess] = useState<{ newCandidateNumber?: string } | null>(null);
+  // Agency picker in the Promote dialog — defaults to the applicant's
+  // existing agency (if any) so the operator just confirms in the
+  // common case; the backend falls back to the System Default Holding
+  // Agency when neither is provided.
+  const [promoteAgencyId, setPromoteAgencyId] = useState<string>('');
   const [financialProfile, setFinancialProfile] = useState<any>(null);
   const [financialLoading, setFinancialLoading] = useState(false);
   const [savingFinancial, setSavingFinancial] = useState(false);
@@ -138,6 +165,24 @@ export function ApplicantProfile() {
         hasWorkPermit: ad.hasWorkPermit === 'yes',
         hasResidenceCard: ad.hasEuResidence === 'yes',
         issuingCountry: ad.passportCountry,
+        // EU Visa details (shown when hasEUVisa = true)
+        euVisaType: ad.euVisaType,
+        euVisaCountry: ad.euVisaCountry,
+        euVisaNumber: ad.euVisaNumber,
+        euVisaExpiryDate: ad.euVisaNoExpiry ? 'No Expiry' : ad.euVisaExpiryDate,
+        // EU Residence details (shown when hasResidenceCard = true)
+        euResidenceType: ad.euResidenceType,
+        euResidenceNumber: ad.euResidenceNumber,
+        euResidenceCountry: ad.euResidenceCountry,
+        euResidenceCity: ad.euResidenceCity,
+        euResidenceIssueDate: ad.euResidenceIssueDate,
+        euResidenceExpiryDate: ad.euResidenceNoExpiry ? 'No Expiry' : ad.euResidenceExpiryDate,
+        // Work Permit details (shown when hasWorkPermit = true)
+        workPermitType: ad.workPermitType,
+        workPermitNumber: ad.workPermitNumber,
+        workPermitCountry: ad.workPermitCountry,
+        workPermitIssueDate: ad.workPermitIssueDate,
+        workPermitExpiryDate: ad.workPermitNoExpiry ? 'No Expiry' : ad.workPermitExpiryDate,
         // Driving
         drivingLicenseNumber: ad.licenseNumber,
         licenseIssuingCountry: ad.licenseCountry,
@@ -159,11 +204,6 @@ export function ApplicantProfile() {
         yearsActiveDriving: ad.domesticExpYears,
         drivenOtherCountries: !!(ad.euExpCountries),
         specifyCountries: ad.euExpCountries,
-        // Safety
-        trafficAccidents: ad.trafficAccidents === 'yes',
-        aetrViolations: false,
-        finesAbroad: false,
-        ecoDriving: false,
         // Languages
         englishLevel: findLang('english'),
         germanLevel: findLang('german'),
@@ -184,6 +224,12 @@ export function ApplicantProfile() {
         countryOfResidence: ad.homeAddress?.country ?? ad.currentAddress?.country ?? '',
         currentCountryOfResidence: ad.currentAddress?.country ?? ad.homeAddress?.country ?? '',
         howDidYouHear: ad.howDidYouHear,
+        // Family / emergency contact — shown in the header contact card
+        // so the user never has to dig into the applicationData blob.
+        emergencyFullName: [ad.emergencyFirstName, ad.emergencyLastName].filter(Boolean).join(' '),
+        emergencyRelation: ad.emergencyRelation,
+        emergencyPhoneFull: [ad.emergencyPhoneCode, ad.emergencyPhone].filter(Boolean).join(' ').trim(),
+        emergencyEmail: ad.emergencyEmail,
       };
 
       setApplicantData({
@@ -213,7 +259,13 @@ export function ApplicantProfile() {
         employeeConvertedAt: (applicant as any).employeeConvertedAt
           ? new Date((applicant as any).employeeConvertedAt).toLocaleDateString()
           : null,
+        // Creation attribution surfaced on the Lifecycle card.
+        source: (applicant as any).source ?? 'STAFF_CREATED',
+        createdBy: (applicant as any).createdBy ?? null,
       });
+      // Seed the inline Notes editor with the raw note text so the
+      // operator can append / tweak without retyping from scratch.
+      setNoteDraft(typeof applicant.notes === 'string' ? applicant.notes : '');
     }).catch(() => {
       toast.error('Failed to load applicant');
       navigate('/dashboard/applicants');
@@ -251,7 +303,12 @@ export function ApplicantProfile() {
   };
 
   const handleDisconnectCandidateWorkflow = async () => {
-    if (!id || !candidateAssignment || !confirm('Disconnect this applicant from the workflow?')) return;
+    if (!id || !candidateAssignment) return;
+    if (!(await confirm({
+      title: 'Disconnect from workflow?',
+      description: 'This applicant will be disconnected from the workflow. Existing progress is preserved.',
+      confirmText: 'Disconnect',
+    }))) return;
     try {
       await workflowApi.removeCandidateAssignment(id, candidateAssignment.id);
       setCandidateAssignment(null);
@@ -303,6 +360,68 @@ export function ApplicantProfile() {
     }
   };
 
+  // ── Inline notes save ─────────────────────────────────────────────────
+  const handleSaveNote = async () => {
+    if (!id) return;
+    setSavingNote(true);
+    try {
+      const updated = await applicantsApi.update(id, { notes: noteDraft } as any);
+      setApplicantData((prev: any) => ({ ...prev, notes: updated.notes ?? noteDraft }));
+      toast.success('Note saved');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to save note');
+    } finally {
+      setSavingNote(false);
+    }
+  };
+
+  // ── Document row actions ───────────────────────────────────────────────
+  const handleApproveDoc = async (doc: any) => {
+    setVerifyingDocId(doc.id);
+    try {
+      const updated = await documentsApi.verify(doc.id, { action: 'VERIFY' });
+      setDocuments((prev: any[]) => prev.map(d => d.id === doc.id ? updated : d));
+      toast.success(`"${doc.name}" approved`);
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to approve document');
+    } finally {
+      setVerifyingDocId(null);
+    }
+  };
+
+  const handleRejectDocSubmit = async () => {
+    if (!rejectDocReason.trim()) { toast.error('A rejection reason is required'); return; }
+    setVerifyingDocId(rejectDocDialog.docId);
+    try {
+      const updated = await documentsApi.verify(rejectDocDialog.docId, { action: 'REJECT', reason: rejectDocReason.trim() });
+      setDocuments((prev: any[]) => prev.map(d => d.id === rejectDocDialog.docId ? updated : d));
+      toast.success(`"${rejectDocDialog.docName}" rejected`);
+      setRejectDocDialog({ open: false, docId: '', docName: '' });
+      setRejectDocReason('');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to reject document');
+    } finally {
+      setVerifyingDocId(null);
+    }
+  };
+
+  const handleDeleteDoc = async (doc: any) => {
+    const ok = await confirm({
+      title: 'Delete document?',
+      description: `"${doc.name}" will be permanently removed from this applicant's records.`,
+      confirmText: 'Delete',
+      tone: 'destructive',
+    });
+    if (!ok) return;
+    try {
+      await documentsApi.delete(doc.id);
+      setDocuments((prev: any[]) => prev.filter(d => d.id !== doc.id));
+      toast.success('Document deleted');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to delete document');
+    }
+  };
+
   const handleUpload = async () => {
     if (!uploadFile) { toast.error('Please select a file'); return; }
     if (!uploadForm.documentTypeId) { toast.error('Please select a document type'); return; }
@@ -316,14 +435,18 @@ export function ApplicantProfile() {
       fd.append('entityType', 'APPLICANT');
       fd.append('entityId', id!);
       if (uploadForm.issueDate) fd.append('issueDate', uploadForm.issueDate);
-      if (uploadForm.expiryDate) fd.append('expiryDate', uploadForm.expiryDate);
+      // "No Expiry" wins over any stale date the user typed before
+      // ticking the box — send an empty expiryDate so the backend
+      // stores null and the UI treats it as perpetual.
+      if (!uploadForm.noExpiry && uploadForm.expiryDate) fd.append('expiryDate', uploadForm.expiryDate);
+      if (uploadForm.noExpiry) fd.append('noExpiry', 'true');
       if (uploadForm.documentNumber) fd.append('documentNumber', uploadForm.documentNumber);
       if (uploadForm.issuer) fd.append('issuer', uploadForm.issuer);
       await documentsApi.upload(fd);
       toast.success('Document uploaded successfully');
       setShowUpload(false);
       setUploadFile(null);
-      setUploadForm({ documentTypeId: '', name: '', issueDate: '', expiryDate: '', documentNumber: '', issuer: '' });
+      setUploadForm({ documentTypeId: '', name: '', issueDate: '', expiryDate: '', noExpiry: false, documentNumber: '', issuer: '' });
       loadDocs();
     } catch (err: any) {
       toast.error(err?.message || 'Failed to upload document');
@@ -333,7 +456,12 @@ export function ApplicantProfile() {
   };
 
   const handleDelete = async () => {
-    if (!id || !confirm('Are you sure you want to delete this applicant?')) return;
+    if (!id) return;
+    if (!(await confirm({
+      title: 'Delete applicant?',
+      description: 'This applicant will be permanently removed.',
+      confirmText: 'Delete', tone: 'destructive',
+    }))) return;
     try {
       await applicantsApi.delete(id);
       toast.success('Applicant deleted successfully');
@@ -401,15 +529,30 @@ export function ApplicantProfile() {
     if (!id) return;
     setConvertingLead(true);
     try {
-      const updated = await applicantsApi.convertLeadToCandidate(id, {});
-      setApplicantData((prev: any) => ({ ...prev, tier: 'CANDIDATE', agencyId: updated.agencyId, agency: updated.agency }));
-      toast.success('Promoted to Candidate');
-      setShowConvertLeadDialog(false);
+      // Pass the chosen responsible agency straight through — the
+      // backend falls back to the default holding agency when blank.
+      const payload = promoteAgencyId ? { agencyId: promoteAgencyId } : {};
+      const updated = await applicantsApi.convertLeadToCandidate(id, payload);
+      setApplicantData((prev: any) => ({
+        ...prev,
+        tier: 'CANDIDATE',
+        agencyId: updated.agencyId,
+        agency: updated.agency,
+        candidateNumber: updated.candidateNumber ?? prev.candidateNumber,
+      }));
+      // Keep the dialog open but flip it into a confirmation panel so
+      // the operator has to explicitly acknowledge the promotion.
+      setPromoteSuccess({ newCandidateNumber: updated.candidateNumber });
     } catch (err: any) {
       toast.error(err?.message || 'Promotion failed');
     } finally {
       setConvertingLead(false);
     }
+  };
+
+  const closePromoteDialog = () => {
+    setShowConvertLeadDialog(false);
+    setPromoteSuccess(null);
   };
 
   const handleSaveFinancial = async () => {
@@ -461,7 +604,16 @@ export function ApplicantProfile() {
           )}
           {/* Promote Lead → Candidate */}
           {canEdit('applicants') && applicantData?.tier === 'LEAD' && (
-            <Button variant="outline" className="text-emerald-700 border-emerald-300" onClick={() => setShowConvertLeadDialog(true)}>
+            <Button
+              variant="outline"
+              className="text-emerald-700 border-emerald-300"
+              onClick={() => {
+                // Pre-select the applicant's existing agency so the
+                // operator can just confirm in the common case.
+                setPromoteAgencyId(applicantData?.agencyId ?? '');
+                setShowConvertLeadDialog(true);
+              }}
+            >
               <TrendingUp className="w-4 h-4 mr-2" />Promote to Candidate
             </Button>
           )}
@@ -520,10 +672,46 @@ export function ApplicantProfile() {
                     )}
                   </div>
                 </div>
-                <Badge className={statusBadgeClass(applicantData.status)}>
-                  {applicantData.status?.replace(/_/g, ' ').toLowerCase()}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  {applicantData.approvalStatus === 'PENDING_APPROVAL' && (
+                    <Badge className="bg-amber-100 text-amber-900 border border-amber-300">Pending Tempworks approval</Badge>
+                  )}
+                  {applicantData.approvalStatus === 'REJECTED' && (
+                    <Badge className="bg-red-100 text-red-900 border border-red-300">Rejected</Badge>
+                  )}
+                  <Badge className={statusBadgeClass(applicantData.status)}>
+                    {applicantData.status?.replace(/_/g, ' ').toLowerCase()}
+                  </Badge>
+                </div>
               </div>
+
+              {applicantData.approvalStatus === 'PENDING_APPROVAL' && (currentUser?.role === 'System Admin' || currentUser?.role === 'HR Manager') && (
+                <div className="mt-4 flex items-center gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3">
+                  <div className="flex-1 text-sm">
+                    <p className="font-medium text-amber-900">This candidate is pending Tempworks approval.</p>
+                    <p className="text-amber-800">They were submitted by the owning agency and cannot enter the workflow or be converted to an employee until approved.</p>
+                  </div>
+                  <Button size="sm" onClick={async () => {
+                    try {
+                      const updated = await applicantsApi.approve(applicantData.id);
+                      setApplicantData(updated);
+                      toast.success('Candidate approved');
+                    } catch (err: any) { toast.error(err?.message || 'Failed to approve'); }
+                  }}>Approve</Button>
+                  <Button size="sm" variant="outline" onClick={async () => {
+                    if (!(await confirm({
+                      title: 'Reject this candidate?',
+                      description: 'They will not enter the workflow. This can be reversed by approving them later.',
+                      confirmText: 'Reject', tone: 'destructive',
+                    }))) return;
+                    try {
+                      const updated = await applicantsApi.reject(applicantData.id);
+                      setApplicantData(updated);
+                      toast.success('Candidate rejected');
+                    } catch (err: any) { toast.error(err?.message || 'Failed to reject'); }
+                  }}>Reject</Button>
+                </div>
+              )}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
                 <div className="flex items-center gap-2">
                   <Mail className="w-4 h-4 text-muted-foreground" />
@@ -534,15 +722,16 @@ export function ApplicantProfile() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Phone className="w-4 h-4 text-muted-foreground" />
-                  <div>
+                  <div className="flex-1">
                     <p className="text-xs text-muted-foreground">Phone</p>
                     <p className="text-sm font-medium">{applicantData.phone}</p>
                   </div>
+                  <WhatsAppButton phone={applicantData.phone} size="icon" />
                 </div>
                 <div className="flex items-center gap-2">
                   <Globe className="w-4 h-4 text-muted-foreground" />
                   <div>
-                    <p className="text-xs text-muted-foreground">Nationality</p>
+                    <p className="text-xs text-muted-foreground">Citizenship</p>
                     <p className="text-sm font-medium">{applicantData.nationality}</p>
                   </div>
                 </div>
@@ -554,18 +743,57 @@ export function ApplicantProfile() {
                   </div>
                 </div>
               </div>
+              {/* Family / Emergency Contact — only rendered when the
+                  applicant has filled in at least one field so we don't
+                  leave blank dashes cluttering the card. */}
+              {(applicantData.emergencyFullName || applicantData.emergencyPhoneFull || applicantData.emergencyEmail) && (
+                <div className="mt-6 pt-4 border-t">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">Family / Emergency Contact</p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="flex items-center gap-2">
+                      <UserPlus className="w-4 h-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Name</p>
+                        <p className="text-sm font-medium">{applicantData.emergencyFullName || '—'}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Briefcase className="w-4 h-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Relationship</p>
+                        <p className="text-sm font-medium">{applicantData.emergencyRelation || '—'}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Phone className="w-4 h-4 text-muted-foreground" />
+                      <div className="flex-1">
+                        <p className="text-xs text-muted-foreground">Phone</p>
+                        <p className="text-sm font-medium">{applicantData.emergencyPhoneFull || '—'}</p>
+                      </div>
+                      {applicantData.emergencyPhoneFull && <WhatsAppButton phone={applicantData.emergencyPhoneFull} size="icon" />}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Mail className="w-4 h-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Email</p>
+                        <p className="text-sm font-medium">{applicantData.emergencyEmail || '—'}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </CardContent>
       </Card>
 
       {/* Quick Nav */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
           { label: 'Travel & Residence', icon: FileText },
-          { label: 'Driving Licence', icon: Award },
-          { label: 'Experience', icon: Globe },
-          { label: 'Safety Record', icon: Shield },
+          { label: 'Driving Licence & Experience', icon: Award },
+          { label: 'Education', icon: GraduationCap },
+          { label: 'Work Experience', icon: Briefcase },
         ].map(({ label, icon: Icon }) => (
           <Button key={label} variant="outline" className="justify-between">
             <div className="flex items-center gap-2"><Icon className="w-4 h-4" /><span>{label}</span></div>
@@ -578,9 +806,14 @@ export function ApplicantProfile() {
       <Tabs defaultValue="overview" className="space-y-6">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="application">Application</TabsTrigger>
           <TabsTrigger value="documents">Documents ({documents.length})</TabsTrigger>
-          <TabsTrigger value="workflow">Workflow</TabsTrigger>
-          <TabsTrigger value="compliance">Compliance</TabsTrigger>
+          {/* Workflows bind to Candidates on the backend — hide the
+              tab entirely while the profile is still a LEAD. */}
+          {applicantData?.tier !== 'LEAD' && (
+            <TabsTrigger value="workflow">Workflow</TabsTrigger>
+          )}
+          <TabsTrigger value="compliance">Doc Compliance</TabsTrigger>
           {isFinanceOrAdmin && (
             <TabsTrigger
               value="financial"
@@ -606,14 +839,14 @@ export function ApplicantProfile() {
                   {[
                     ['Full Name', applicantData.fullName],
                     ['Date of Birth', applicantData.dateOfBirth || '—'],
-                    ['Nationality', applicantData.nationality],
+                    ['Citizenship', applicantData.nationality],
                     ['License Number', applicantData.drivingLicenseNumber || '—'],
                     ['License Category', [applicantData.categoryC && 'C', applicantData.categoryE && 'E'].filter(Boolean).join('+') || '—'],
                     ['Years EU Experience', applicantData.yearsEUExperience || '—'],
                     ['Permanent Address', applicantData.permanentAddress || '—'],
                     ['Country of Residence', applicantData.countryOfResidence || '—'],
                     ['Current Country', applicantData.currentCountryOfResidence || '—'],
-                    ['Job Category', applicantData.jobType?.name || '—'],
+                    ['Applied Position', applicantData.jobAd?.title || 'GENERAL'],
                     ['Preferred Start Date', applicantData.preferredStartDate || '—'],
                     ['How They Heard', applicantData.howDidYouHear || '—'],
                   ].map(([label, value]: any) => (
@@ -671,6 +904,25 @@ export function ApplicantProfile() {
                         <p className="text-xs text-muted-foreground mt-1">Converted: {applicantData.candidateConvertedAt}</p>
                       )}
                     </div>
+                    {/* Creation attribution — self-applied via public form vs
+                        dashboard-created by a staff user. */}
+                    <div className="border-t pt-2">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Created By</p>
+                      {applicantData.source === 'SELF_APPLIED' ? (
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-2 py-0.5">
+                          Self-applied via public form
+                        </span>
+                      ) : applicantData.createdBy ? (
+                        <p className="text-sm font-medium">
+                          {[applicantData.createdBy.firstName, applicantData.createdBy.lastName].filter(Boolean).join(' ')}
+                          {applicantData.createdBy.email && (
+                            <span className="text-xs text-muted-foreground font-normal ml-1">· {applicantData.createdBy.email}</span>
+                          )}
+                        </p>
+                      ) : (
+                        <span className="text-muted-foreground italic text-xs">Unknown (legacy record)</span>
+                      )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -721,88 +973,96 @@ export function ApplicantProfile() {
               <CardContent className="space-y-3">
                 <InfoRow label="Passport Number" value={applicantData.passportNumber} />
                 <InfoRow label="Passport Valid Until" value={applicantData.passportValidUntil} />
-                <InfoRow label="EU Visa" value={applicantData.hasEUVisa ? 'Yes' : 'No'} />
-                <InfoRow label="Work Permit in EU" value={applicantData.hasWorkPermit ? 'Yes' : 'No'} />
-                <InfoRow label="Residence Card in EU" value={applicantData.hasResidenceCard ? 'Yes' : 'No'} />
                 <InfoRow label="Issuing Country" value={applicantData.issuingCountry} />
-              </CardContent>
-            </Card>
 
-            {/* Driving Licence & Certifications */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Award className="w-5 h-5" />Driving Licence & Certifications
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <InfoRow label="License Number" value={applicantData.drivingLicenseNumber} />
-                <InfoRow label="Issuing Country" value={applicantData.licenseIssuingCountry} />
-                <InfoRow label="Valid Until" value={applicantData.licenseValidUntil} />
-                <div className="pt-2">
-                  <p className="text-sm text-muted-foreground mb-2">Categories:</p>
-                  <div className="flex flex-wrap gap-2">
-                    {applicantData.categoryA && applicantData.categoryA !== '-' && <Badge variant="outline">A</Badge>}
-                    {applicantData.categoryB && applicantData.categoryB !== '-' && <Badge variant="outline">B</Badge>}
-                    {applicantData.categoryC && applicantData.categoryC !== '-' && <Badge variant="outline" className="border-[#2563EB] text-[#2563EB]">C</Badge>}
-                    {applicantData.categoryE && applicantData.categoryE !== '-' && <Badge variant="outline" className="border-[#2563EB] text-[#2563EB]">E</Badge>}
+                <InfoRow label="EU Visa" value={applicantData.hasEUVisa ? 'Yes' : 'No'} />
+                {applicantData.hasEUVisa && (
+                  <div className="pl-4 border-l-2 border-blue-100 ml-1 space-y-2">
+                    <InfoRow label="Visa Type" value={applicantData.euVisaType} />
+                    <InfoRow label="Issuing Country" value={applicantData.euVisaCountry} />
+                    <InfoRow label="Visa Number" value={applicantData.euVisaNumber} />
+                    <InfoRow label="Valid Until" value={applicantData.euVisaExpiryDate} />
                   </div>
-                </div>
-                <div className="pt-2 border-t space-y-2">
-                  <InfoRow label="Tachograph Card" value={applicantData.hasTachographCard ? `Yes (${applicantData.tachographNumber || 'N/A'})` : 'No'} />
-                  <InfoRow label="Code 95 / CPC" value={applicantData.hasQualificationCard ? `Yes (until ${applicantData.qualificationValidUntil || '—'})` : 'No'} />
-                  <InfoRow label="ADR Certificate" value={applicantData.hasADR ? `Yes (${applicantData.adrClasses || '—'})` : 'No'} />
-                </div>
-              </CardContent>
-            </Card>
+                )}
 
-            {/* International Experience */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Globe className="w-5 h-5" />International Experience
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <InfoRow label="EU Experience" value={applicantData.hasEUExperience ? 'Yes' : 'No'} />
-                <InfoRow label="Years in EU" value={applicantData.yearsEUExperience} />
-                <InfoRow label="Total C+E Experience" value={applicantData.totalCEExperience} />
-                <InfoRow label="Years Active Driving" value={applicantData.yearsActiveDriving} />
-                <InfoRow label="Driven Other Countries" value={applicantData.drivenOtherCountries ? 'Yes' : 'No'} />
-                {applicantData.specifyCountries && (
-                  <div className="pt-2 border-t">
-                    <p className="text-sm text-muted-foreground mb-1">Countries:</p>
-                    <p className="font-medium">{applicantData.specifyCountries}</p>
+                <InfoRow label="Work Permit in EU" value={applicantData.hasWorkPermit ? 'Yes' : 'No'} />
+                {applicantData.hasWorkPermit && (
+                  <div className="pl-4 border-l-2 border-blue-100 ml-1 space-y-2">
+                    <InfoRow label="Permit Type" value={applicantData.workPermitType} />
+                    <InfoRow label="Permit Number" value={applicantData.workPermitNumber} />
+                    <InfoRow label="Issuing Country" value={applicantData.workPermitCountry} />
+                    <InfoRow label="Issue Date" value={applicantData.workPermitIssueDate} />
+                    <InfoRow label="Valid Until" value={applicantData.workPermitExpiryDate} />
+                  </div>
+                )}
+
+                <InfoRow label="Residence Card in EU" value={applicantData.hasResidenceCard ? 'Yes' : 'No'} />
+                {applicantData.hasResidenceCard && (
+                  <div className="pl-4 border-l-2 border-blue-100 ml-1 space-y-2">
+                    <InfoRow label="Residence Type" value={applicantData.euResidenceType} />
+                    <InfoRow label="Residence Number" value={applicantData.euResidenceNumber} />
+                    <InfoRow label="Country" value={applicantData.euResidenceCountry} />
+                    <InfoRow label="City" value={applicantData.euResidenceCity} />
+                    <InfoRow label="Issue Date" value={applicantData.euResidenceIssueDate} />
+                    <InfoRow label="Valid Until" value={applicantData.euResidenceExpiryDate} />
                   </div>
                 )}
               </CardContent>
             </Card>
 
-            {/* Safety Record */}
-            <Card>
+            {/* Driving Licence & Experience — merged drill-in page that
+                keeps licence details, certifications, and international
+                experience together instead of splitting them across two
+                separate cards. Spans the full grid row so the two
+                subsections sit side-by-side. */}
+            <Card className="lg:col-span-2">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Shield className="w-5 h-5" />Safety & Discipline Record
+                  <Award className="w-5 h-5" />Driving Licence & Experience
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
-                {[
-                  ['Traffic Accidents (Last 3 yrs)', applicantData.trafficAccidents],
-                  ['AETR Violations', applicantData.aetrViolations],
-                  ['Fines Abroad (Last 3 yrs)', applicantData.finesAbroad],
-                  ['Eco-Driving Trained', applicantData.ecoDriving],
-                ].map(([label, val]: any) => (
-                  <div key={label} className="flex items-center justify-between py-2 border-b last:border-0">
-                    <span className="text-sm">{label}</span>
-                    <Badge className={
-                      label === 'Eco-Driving Trained'
-                        ? (val ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800')
-                        : (val ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800')
-                    }>
-                      {val ? 'Yes' : 'No'}
-                    </Badge>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* ── Licence + Certifications ── */}
+                  <div className="space-y-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Licence & Certifications</p>
+                    <InfoRow label="License Number" value={applicantData.drivingLicenseNumber} />
+                    <InfoRow label="Issuing Country" value={applicantData.licenseIssuingCountry} />
+                    <InfoRow label="Valid Until" value={applicantData.licenseValidUntil} />
+                    <div className="pt-1">
+                      <p className="text-sm text-muted-foreground mb-2">Categories:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {applicantData.categoryA && applicantData.categoryA !== '-' && <Badge variant="outline">A</Badge>}
+                        {applicantData.categoryB && applicantData.categoryB !== '-' && <Badge variant="outline">B</Badge>}
+                        {applicantData.categoryC && applicantData.categoryC !== '-' && <Badge variant="outline" className="border-[#2563EB] text-[#2563EB]">C</Badge>}
+                        {applicantData.categoryE && applicantData.categoryE !== '-' && <Badge variant="outline" className="border-[#2563EB] text-[#2563EB]">E</Badge>}
+                      </div>
+                    </div>
+                    <div className="pt-2 border-t space-y-2">
+                      <InfoRow label="Tachograph Card" value={applicantData.hasTachographCard ? `Yes (${applicantData.tachographNumber || 'N/A'})` : 'No'} />
+                      <InfoRow label="Code 95 / CPC" value={applicantData.hasQualificationCard ? `Yes (until ${applicantData.qualificationValidUntil || '—'})` : 'No'} />
+                      <InfoRow label="ADR Certificate" value={applicantData.hasADR ? `Yes (${applicantData.adrClasses || '—'})` : 'No'} />
+                    </div>
                   </div>
-                ))}
+
+                  {/* ── International Experience ── */}
+                  <div className="space-y-3 md:pl-6 md:border-l">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
+                      <Globe className="w-3.5 h-3.5" /> Driving Experience
+                    </p>
+                    <InfoRow label="EU Experience" value={applicantData.hasEUExperience ? 'Yes' : 'No'} />
+                    <InfoRow label="Years in EU" value={applicantData.yearsEUExperience} />
+                    <InfoRow label="Total C+E Experience" value={applicantData.totalCEExperience} />
+                    <InfoRow label="Years Active Driving" value={applicantData.yearsActiveDriving} />
+                    <InfoRow label="Driven Other Countries" value={applicantData.drivenOtherCountries ? 'Yes' : 'No'} />
+                    {applicantData.specifyCountries && (
+                      <div className="pt-2 border-t">
+                        <p className="text-sm text-muted-foreground mb-1">Countries:</p>
+                        <p className="font-medium">{applicantData.specifyCountries}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
@@ -846,7 +1106,92 @@ export function ApplicantProfile() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Education — full array from applicationData rendered as
+                a list. Hidden when the applicant didn't supply any. */}
+            {Array.isArray(applicantData.applicationData?.education) && applicantData.applicationData.education.length > 0 && (
+              <Card className="lg:col-span-2">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <GraduationCap className="w-5 h-5" />Education
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {applicantData.applicationData.education.map((e: any, i: number) => (
+                    <div key={e.id ?? i} className="p-3 border rounded-md">
+                      <p className="text-sm font-semibold">
+                        {e.level || e.degree || 'Education'}{e.institution ? ` — ${e.institution}` : ''}
+                      </p>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-2 text-sm">
+                        {e.fieldOfStudy && <div><p className="text-xs text-muted-foreground">Field of Study</p><p className="font-medium">{e.fieldOfStudy}</p></div>}
+                        {e.country && <div><p className="text-xs text-muted-foreground">Country</p><p className="font-medium">{e.country}</p></div>}
+                        {e.startDate && <div><p className="text-xs text-muted-foreground">Start</p><p className="font-medium">{e.startDate}</p></div>}
+                        <div><p className="text-xs text-muted-foreground">End</p><p className="font-medium">{(e.current || e.ongoing) ? 'Ongoing' : (e.endDate || '—')}</p></div>
+                      </div>
+                      {e.degree && e.level !== e.degree && (
+                        <p className="text-xs text-muted-foreground mt-2">Degree / Certificate: <span className="text-foreground">{e.degree}</span></p>
+                      )}
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Work Experience — full array with references collapsed
+                into a sub-block per entry. */}
+            {Array.isArray(applicantData.applicationData?.workHistory) && applicantData.applicationData.workHistory.length > 0 && (
+              <Card className="lg:col-span-2">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Briefcase className="w-5 h-5" />Work Experience
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {applicantData.applicationData.workHistory.map((w: any, i: number) => (
+                    <div key={w.id ?? i} className="p-3 border rounded-md">
+                      <p className="text-sm font-semibold">
+                        {w.jobTitle || 'Position'}{w.company ? ` — ${w.company}` : ''}
+                      </p>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-2 text-sm">
+                        {w.country && <div><p className="text-xs text-muted-foreground">Country</p><p className="font-medium">{w.country}</p></div>}
+                        {w.startDate && <div><p className="text-xs text-muted-foreground">Start</p><p className="font-medium">{w.startDate}</p></div>}
+                        <div><p className="text-xs text-muted-foreground">End</p><p className="font-medium">{w.current ? 'Current' : (w.endDate || '—')}</p></div>
+                        {(w.companyPhone || w.companyPhoneCode) && (
+                          <div><p className="text-xs text-muted-foreground">Company Phone</p><p className="font-medium">{[w.companyPhoneCode, w.companyPhone].filter(Boolean).join(' ')}</p></div>
+                        )}
+                      </div>
+                      {w.responsibilities && (
+                        <div className="mt-2">
+                          <p className="text-xs text-muted-foreground">Responsibilities</p>
+                          <p className="text-sm whitespace-pre-wrap">{w.responsibilities}</p>
+                        </div>
+                      )}
+                      {w.reasonForLeaving && (
+                        <p className="text-xs text-muted-foreground mt-2">Reason for leaving: <span className="text-foreground">{w.reasonForLeaving}</span></p>
+                      )}
+                      {(w.referenceName || w.referencePhone || w.referenceEmail) && (
+                        <div className="mt-2 pt-2 border-t">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Reference</p>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                            {w.referenceName && <div><p className="text-xs text-muted-foreground">Name</p><p className="font-medium">{w.referenceName}</p></div>}
+                            {(w.referencePhone || w.referencePhoneCode) && <div><p className="text-xs text-muted-foreground">Phone</p><p className="font-medium">{[w.referencePhoneCode, w.referencePhone].filter(Boolean).join(' ')}</p></div>}
+                            {w.referenceEmail && <div><p className="text-xs text-muted-foreground">Email</p><p className="font-medium">{w.referenceEmail}</p></div>}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
           </div>
+        </TabsContent>
+
+        {/* Application — complete render of every field the applicant
+            submitted, pulled straight from applicant.applicationData so
+            nothing the form captured is hidden behind the Edit page. */}
+        <TabsContent value="application">
+          <ApplicationDataView applicationData={applicantData.applicationData} fullName={applicantData.fullName} />
         </TabsContent>
 
         {/* Documents */}
@@ -881,8 +1226,28 @@ export function ApplicantProfile() {
                       <Input type="date" value={uploadForm.issueDate} onChange={e => setUploadForm(f => ({ ...f, issueDate: e.target.value }))} />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs">Expiry Date</Label>
-                      <Input type="date" value={uploadForm.expiryDate} onChange={e => setUploadForm(f => ({ ...f, expiryDate: e.target.value }))} />
+                      <div className="flex items-center justify-between gap-2">
+                        <Label className="text-xs">Expiry Date</Label>
+                        <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
+                          <Checkbox
+                            checked={uploadForm.noExpiry}
+                            onCheckedChange={(c) => setUploadForm(f => ({
+                              ...f,
+                              noExpiry: !!c,
+                              // Clear any previously entered date so the
+                              // submitted payload matches what's visible.
+                              expiryDate: c ? '' : f.expiryDate,
+                            }))}
+                          />
+                          No Expiry
+                        </label>
+                      </div>
+                      <Input
+                        type="date"
+                        value={uploadForm.expiryDate}
+                        disabled={uploadForm.noExpiry}
+                        onChange={e => setUploadForm(f => ({ ...f, expiryDate: e.target.value }))}
+                      />
                     </div>
                     <div className="space-y-1">
                       <Label className="text-xs">Document Number</Label>
@@ -925,17 +1290,38 @@ export function ApplicantProfile() {
                           )}
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2 flex-wrap justify-end">
                         <Badge variant="outline" className={docStatusClass(doc.status)}>
                           {doc.status?.replace(/_/g, ' ').toLowerCase()}
                         </Badge>
                         <a
                           href={`${API_BASE}${doc.fileUrl}`}
                           target="_blank" rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-sm px-3 py-1.5 rounded hover:bg-muted transition-colors"
+                          className="inline-flex items-center gap-1 text-sm px-2 py-1 rounded hover:bg-muted transition-colors"
+                          title="Download"
                         >
-                          <Download className="w-4 h-4" />Download
+                          <Download className="w-4 h-4" />
                         </a>
+                        {doc.status === 'PENDING' && can('documents', 'verify') && (
+                          <>
+                            <Button size="sm" className="bg-emerald-500 hover:bg-emerald-600 text-white h-7 px-2" onClick={() => handleApproveDoc(doc)} disabled={verifyingDocId === doc.id}>
+                              <CheckCircle2 className="w-3.5 h-3.5 mr-1" />{verifyingDocId === doc.id ? '…' : 'Approve'}
+                            </Button>
+                            <Button size="sm" variant="outline" className="text-red-500 border-red-300 hover:bg-red-50 h-7 px-2" onClick={() => { setRejectDocDialog({ open: true, docId: doc.id, docName: doc.name }); setRejectDocReason(''); }} disabled={verifyingDocId === doc.id}>
+                              <XCircle className="w-3.5 h-3.5 mr-1" />Reject
+                            </Button>
+                          </>
+                        )}
+                        {canEdit('documents') && (
+                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0" asChild title="Edit">
+                            <Link to={`/dashboard/documents/${doc.id}/edit`}><Edit className="w-3.5 h-3.5" /></Link>
+                          </Button>
+                        )}
+                        {canDelete('documents') && (
+                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-red-400 hover:text-red-600 hover:bg-red-50" onClick={() => handleDeleteDoc(doc)} title="Delete">
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -945,7 +1331,7 @@ export function ApplicantProfile() {
           </Card>
         </TabsContent>
 
-        {/* Workflow */}
+        {/* Workflow — only rendered once the applicant is a Candidate. */}
         <TabsContent value="workflow">
           {!candidateAssignment ? (
             /* ── No workflow connected ─────────────────────────── */
@@ -970,7 +1356,10 @@ export function ApplicantProfile() {
                           <SelectItem key={w.id} value={w.id}>
                             <div className="flex items-center gap-2">
                               <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: w.color ?? '#6366F1' }} />
-                              {w.name}
+                              <span>{w.name}</span>
+                              <span className={`ml-1 text-[10px] px-1.5 py-0.5 rounded border ${w.isPublic ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-slate-700 border-slate-200'}`}>
+                                {w.isPublic ? 'Public' : 'Private'}
+                              </span>
                             </div>
                           </SelectItem>
                         ))}
@@ -1002,10 +1391,17 @@ export function ApplicantProfile() {
                   <div className="flex items-center gap-3">
                     <div className="w-4 h-4 rounded-full" style={{ background: candidateAssignment.workflow?.color ?? '#6366F1' }} />
                     <CardTitle>{candidateAssignment.workflow?.name}</CardTitle>
+                    {candidateAssignment.workflow && (
+                      <span className={`text-[11px] px-1.5 py-0.5 rounded border ${candidateAssignment.workflow.isPublic ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-slate-700 border-slate-200'}`}>
+                        {candidateAssignment.workflow.isPublic ? 'Public' : 'Private'}
+                      </span>
+                    )}
                   </div>
                   <div className="flex items-center gap-2">
-                    {canEdit('applicants') && (
-                      <Button size="sm" variant="ghost" onClick={() => setShowAssignWorkflow(true)}>
+                    {/* Reassignment to a different workflow is
+                        admin-only by product rule. */}
+                    {canEdit('applicants') && currentUser?.role === 'System Admin' && (
+                      <Button size="sm" variant="ghost" onClick={() => setShowAssignWorkflow(true)} title="Reassign to a different workflow (admin only)">
                         Change
                       </Button>
                     )}
@@ -1035,7 +1431,10 @@ export function ApplicantProfile() {
                           <SelectItem key={w.id} value={w.id}>
                             <div className="flex items-center gap-2">
                               <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: w.color ?? '#6366F1' }} />
-                              {w.name}
+                              <span>{w.name}</span>
+                              <span className={`ml-1 text-[10px] px-1.5 py-0.5 rounded border ${w.isPublic ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-slate-700 border-slate-200'}`}>
+                                {w.isPublic ? 'Public' : 'Private'}
+                              </span>
                             </div>
                           </SelectItem>
                         ))}
@@ -1058,7 +1457,8 @@ export function ApplicantProfile() {
                     {candidateAssignment.workflow.stages.map((stage: any, index: number) => {
                       // Find the progress record for this stage
                       const progress = candidateAssignment.stageProgress?.find((p: any) => p.stageId === stage.id);
-                      const isCurrent = progress?.status === 'ACTIVE';
+                      const isInProgress = progress?.status === 'IN_PROGRESS';
+                      const isCurrent = progress?.status === 'ACTIVE' || isInProgress;
                       const isExpanded = expandedStageId === stage.id;
                       const latestApproval = progress?.approvals?.[0];
                       const isApproved = latestApproval?.decision === 'APPROVED';
@@ -1080,7 +1480,9 @@ export function ApplicantProfile() {
                             <div className="flex-1 min-w-0">
                               <div className="flex flex-wrap items-center gap-2">
                                 <span className={`text-sm font-medium ${isCurrent ? 'text-primary' : ''}`}>{stage.name}</span>
-                                {isCurrent && <Badge className="text-xs bg-primary">Current</Badge>}
+                                {isInProgress
+                                  ? <Badge className="text-xs bg-blue-600 hover:bg-blue-600">In Progress</Badge>
+                                  : isCurrent && <Badge className="text-xs bg-primary">Current</Badge>}
                                 {isApproved && <Badge className="text-xs bg-green-500">Approved</Badge>}
                                 {stage.isFinal && <Badge variant="outline" className="text-xs">Final</Badge>}
                                 {stage.requiresApproval && !isApproved && <Badge variant="outline" className="text-xs border-amber-400 text-amber-600">Needs Approval</Badge>}
@@ -1306,6 +1708,7 @@ export function ApplicantProfile() {
                 <FinancialRecordsTab
                   entityType="APPLICANT"
                   entityId={id!}
+                  entityName={applicantData?.fullName}
                   canWrite={canEdit('applicants')}
                   canChangeStatus={currentUser?.role === 'System Admin' || currentUser?.role === 'Finance'}
                 />
@@ -1358,60 +1761,144 @@ export function ApplicantProfile() {
         <TabsContent value="notes">
           <Card>
             <CardHeader><CardTitle>Notes & Comments</CardTitle></CardHeader>
-            <CardContent>
-              {applicantData.notes ? (
-                (() => {
-                  try {
-                    const parsed = JSON.parse(applicantData.notes);
-                    const text = Object.entries(parsed)
-                      .filter(([, v]) => v && v !== '' && v !== 'false' && v !== false)
-                      .map(([k, v]) => `${k}: ${v}`)
-                      .join('\n');
-                    return text ? <p className="whitespace-pre-wrap text-sm">{text}</p> : <p className="text-muted-foreground">No notes for this applicant.</p>;
-                  } catch {
-                    return <p className="whitespace-pre-wrap">{applicantData.notes}</p>;
-                  }
-                })()
+            <CardContent className="space-y-4">
+              {/* Historical JSON-blob notes (legacy form submissions)
+                  stay rendered read-only above the editor so the
+                  operator can see what's there. Plain-text notes are
+                  shown directly in the editor below. */}
+              {applicantData.notes && (() => {
+                try {
+                  const parsed = JSON.parse(applicantData.notes);
+                  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
+                  const text = Object.entries(parsed)
+                    .filter(([, v]) => v && v !== '' && v !== 'false' && v !== false)
+                    .map(([k, v]) => `${k}: ${v}`)
+                    .join('\n');
+                  return text ? (
+                    <div className="p-3 border rounded-md bg-muted/40">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Submitted with application</p>
+                      <p className="whitespace-pre-wrap text-sm">{text}</p>
+                    </div>
+                  ) : null;
+                } catch {
+                  return null;
+                }
+              })()}
+
+              {canEdit('applicants') ? (
+                <div className="space-y-2">
+                  <Label htmlFor="applicant-note" className="text-sm">Add / update note</Label>
+                  <Textarea
+                    id="applicant-note"
+                    rows={6}
+                    placeholder="Write a note about this applicant…"
+                    value={noteDraft}
+                    onChange={e => setNoteDraft(e.target.value)}
+                  />
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" onClick={handleSaveNote} disabled={savingNote || noteDraft === (applicantData.notes ?? '')}>
+                      {savingNote ? 'Saving…' : 'Save note'}
+                    </Button>
+                    {noteDraft !== (applicantData.notes ?? '') && (
+                      <Button size="sm" variant="ghost" onClick={() => setNoteDraft(applicantData.notes ?? '')} disabled={savingNote}>
+                        Discard changes
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ) : applicantData.notes ? (
+                <p className="whitespace-pre-wrap text-sm">{applicantData.notes}</p>
               ) : (
-                <p className="text-muted-foreground">No notes for this applicant. You can add notes when editing the profile.</p>
+                <p className="text-muted-foreground">No notes for this applicant.</p>
               )}
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
 
-      {/* Promote Lead → Candidate Dialog */}
+      {/* Promote Lead → Candidate Dialog. After a successful promotion
+          the same modal flips into a confirmation panel that the user
+          has to explicitly close — a toast alone is too ephemeral. */}
       {showConvertLeadDialog && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <Card className="max-w-md w-full">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-emerald-600" />Promote to Candidate
-              </CardTitle>
-              <p className="text-sm text-muted-foreground mt-1">
-                <strong>{applicantData?.fullName}</strong> will be promoted from Lead to Candidate.
-                This grants agency users visibility. A holding agency will be assigned if configured.
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800">
-                This action is logged and can be reviewed in Agency History.
-              </div>
-              <div className="flex gap-3">
-                <Button
-                  className="flex-1 bg-emerald-600 hover:bg-emerald-700"
-                  onClick={handleConvertLeadToCandidate}
-                  disabled={convertingLead}
-                >
-                  {convertingLead
-                    ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Promoting…</>
-                    : <><TrendingUp className="w-4 h-4 mr-2" />Confirm Promotion</>}
-                </Button>
-                <Button variant="outline" className="flex-1" onClick={() => setShowConvertLeadDialog(false)} disabled={convertingLead}>
-                  Cancel
-                </Button>
-              </div>
-            </CardContent>
+            {promoteSuccess ? (
+              <>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-emerald-700">
+                    <CheckCircle2 className="w-5 h-5" />Promoted Successfully
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    <strong>{applicantData?.fullName}</strong> has been promoted from Lead to Candidate.
+                    {promoteSuccess.newCandidateNumber && (
+                      <> The new Candidate ID is <span className="font-mono font-semibold text-purple-700">{promoteSuccess.newCandidateNumber}</span>.</>
+                    )}
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3 text-sm text-emerald-800">
+                    The profile is now visible to agency users, and the tier change has been recorded in the audit log.
+                  </div>
+                  <Button className="w-full bg-emerald-600 hover:bg-emerald-700" onClick={closePromoteDialog}>
+                    Done
+                  </Button>
+                </CardContent>
+              </>
+            ) : (
+              <>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5 text-emerald-600" />Promote to Candidate
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    <strong>{applicantData?.fullName}</strong> will be promoted from Lead to Candidate.
+                    This grants agency users visibility. A holding agency will be assigned if configured.
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Responsible agency picker — the backend accepts an
+                      optional agencyId and falls back to the default
+                      holding agency when left blank, so the operator
+                      can promote in one click even without picking. */}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="promote-agency" className="text-sm">Responsible Agency</Label>
+                    <Select value={promoteAgencyId || '__default__'} onValueChange={(v) => setPromoteAgencyId(v === '__default__' ? '' : v)}>
+                      <SelectTrigger id="promote-agency">
+                        <SelectValue placeholder="Use system default" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__default__">
+                          <span className="text-muted-foreground">Use system default holding agency</span>
+                        </SelectItem>
+                        {agencies.map((a: any) => (
+                          <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      The selected agency becomes responsible for this candidate and is recorded in Agency History.
+                    </p>
+                  </div>
+                  <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800">
+                    This action is logged and can be reviewed in Agency History.
+                  </div>
+                  <div className="flex gap-3">
+                    <Button
+                      className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+                      onClick={handleConvertLeadToCandidate}
+                      disabled={convertingLead}
+                    >
+                      {convertingLead
+                        ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Promoting…</>
+                        : <><TrendingUp className="w-4 h-4 mr-2" />Confirm Promotion</>}
+                    </Button>
+                    <Button variant="outline" className="flex-1" onClick={closePromoteDialog} disabled={convertingLead}>
+                      Cancel
+                    </Button>
+                  </div>
+                </CardContent>
+              </>
+            )}
           </Card>
         </div>
       )}
@@ -1435,7 +1922,7 @@ export function ApplicantProfile() {
                 <div><span className="text-muted-foreground">Name: </span><span className="font-medium">{applicantData.fullName}</span></div>
                 <div><span className="text-muted-foreground">Email: </span><span className="font-medium">{applicantData.email}</span></div>
                 <div><span className="text-muted-foreground">Phone: </span><span className="font-medium">{applicantData.phone}</span></div>
-                <div><span className="text-muted-foreground">Nationality: </span><span className="font-medium">{applicantData.nationality}</span></div>
+                <div><span className="text-muted-foreground">Citizenship: </span><span className="font-medium">{applicantData.nationality}</span></div>
               </div>
 
               {/* Address — required */}
@@ -1520,6 +2007,27 @@ export function ApplicantProfile() {
           </Card>
         </div>
       )}
+
+      {/* Reject-document dialog — collects a required rejection reason
+          when the reviewer clicks Reject on a PENDING document row. */}
+      <Dialog open={rejectDocDialog.open} onOpenChange={open => !open && setRejectDocDialog(s => ({ ...s, open: false }))}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Reject Document</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-muted-foreground">Rejecting: <span className="font-medium text-foreground">{rejectDocDialog.docName}</span></p>
+            <div className="space-y-2">
+              <Label htmlFor="reject-doc-reason">Rejection Reason <span className="text-destructive">*</span></Label>
+              <Textarea id="reject-doc-reason" placeholder="Explain why this document is being rejected…" value={rejectDocReason} onChange={e => setRejectDocReason(e.target.value)} rows={4} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRejectDocDialog(s => ({ ...s, open: false }))}>Cancel</Button>
+            <Button className="bg-red-500 hover:bg-red-600 text-white" onClick={handleRejectDocSubmit} disabled={!!verifyingDocId || !rejectDocReason.trim()}>
+              <XCircle className="w-4 h-4 mr-2" />{verifyingDocId ? 'Rejecting…' : 'Confirm Rejection'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

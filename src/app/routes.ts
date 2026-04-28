@@ -34,6 +34,7 @@ import { WorkflowManagement } from './pages/workflow/WorkflowManagement';
 import { StageDetails } from './pages/workflow/StageDetails';
 import { AgenciesList } from './pages/agencies/AgenciesList';
 import { AgencyProfile } from './pages/agencies/AgencyProfile';
+import { MyAgencyProfile } from './pages/agencies/MyAgencyProfile';
 import { AddAgency } from './pages/agencies/AddAgency';
 import { EditAgency } from './pages/agencies/EditAgency';
 import { AgencyUsersManagement } from './pages/agencies/AgencyUsersManagement';
@@ -83,6 +84,9 @@ import { SkillsSettings } from './pages/settings/SkillsSettings';
 import { TransportTypesSettings } from './pages/settings/TransportTypesSettings';
 import { TruckBrandsSettings } from './pages/settings/TruckBrandsSettings';
 import { TrailerTypesSettings } from './pages/settings/TrailerTypesSettings';
+import { VehicleSettings } from './pages/settings/VehicleSettings';
+import { TransactionTypesSettings } from './pages/settings/TransactionTypesSettings';
+import { WorkHistoryEventTypesSettings } from './pages/settings/WorkHistoryEventTypesSettings';
 
 // Pipeline pages
 import { WorkflowsPage } from './pages/pipelines/WorkflowsPage';
@@ -112,6 +116,7 @@ import { VehicleDetail } from './pages/vehicles/VehicleDetail';
 import { VehicleForm } from './pages/vehicles/VehicleForm';
 import { WorkshopsList } from './pages/vehicles/WorkshopsList';
 import { MaintenanceTypesList } from './pages/vehicles/MaintenanceTypesList';
+import { MaintenanceRecordsList } from './pages/vehicles/MaintenanceRecordsList';
 
 export const router = createBrowserRouter([
   // Public routes (no MainLayout)
@@ -180,6 +185,7 @@ export const router = createBrowserRouter([
       { path: 'workflow-management', Component: WorkflowManagement },
       
       // Agencies routes
+      { path: 'my-agency', Component: MyAgencyProfile },
       { path: 'agencies', Component: AgenciesList },
       { path: 'agencies/add', Component: AddAgency },
       { path: 'agencies/:id', Component: AgencyProfile },
@@ -220,6 +226,7 @@ export const router = createBrowserRouter([
       { path: 'vehicles/:id/edit', Component: VehicleForm },
       { path: 'vehicles/workshops', Component: WorkshopsList },
       { path: 'vehicles/maintenance-types', Component: MaintenanceTypesList },
+      { path: 'vehicles/maintenance-records', Component: MaintenanceRecordsList },
 
       // Finance routes
       { path: 'finance', Component: FinanceDashboard },
@@ -255,6 +262,9 @@ export const router = createBrowserRouter([
       { path: 'settings/transport-types', Component: TransportTypesSettings },
       { path: 'settings/truck-brands', Component: TruckBrandsSettings },
       { path: 'settings/trailer-types', Component: TrailerTypesSettings },
+      { path: 'settings/vehicles', Component: VehicleSettings },
+      { path: 'settings/transaction-types', Component: TransactionTypesSettings },
+      { path: 'settings/work-history-event-types', Component: WorkHistoryEventTypesSettings },
 
       // Profile routes
       { path: 'profile', Component: Profile },

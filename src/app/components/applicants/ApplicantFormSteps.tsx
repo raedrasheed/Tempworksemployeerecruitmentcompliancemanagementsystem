@@ -18,6 +18,15 @@ export interface UploadedFileItem {
   type: string;
   file: File | null;
   sectionKey?: string;
+  /** Public URL when the file has been persisted to an application
+   *  draft on the server — restored on resume so the UI can surface
+   *  previously-uploaded files without re-prompting. */
+  url?: string;
+  /** Display name for already-uploaded draft files (mirrors
+   *  `file.name`). */
+  savedName?: string;
+  /** Server-side id of the draft document; enables per-row delete. */
+  draftDocId?: string;
 }
 
 export interface JobType {
@@ -368,10 +377,16 @@ const TAB_DEFS = [
   { id: 11, label: 'Review', Icon: CheckCircle2 },
 ];
 
-export function getVisibleTabs(formData: Pick<ApplicantFormData, 'hasDrivingLicense'>): number[] {
+export function getVisibleTabs(
+  formData: Pick<ApplicantFormData, 'hasDrivingLicense'>,
+  skipReview = false,
+): number[] {
   const all = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
-  if (formData.hasDrivingLicense !== 'yes') return all.filter(t => t !== 5);
-  return all;
+  // Internal (dashboard) users don't need the applicant-facing Review
+  // + Declaration page — they submit the form directly from Documents.
+  const base = skipReview ? all.filter(t => t !== 11) : all;
+  if (formData.hasDrivingLicense !== 'yes') return base.filter(t => t !== 5);
+  return base;
 }
 
 /** Returns validation error messages for the current step before allowing navigation to the next step. */
@@ -407,9 +422,9 @@ export function getStepErrors(
     if (!d.lastName?.trim()) errors.push('Last Name is required.');
     if (!d.dateOfBirth) errors.push('Date of Birth is required.');
     if (!d.citizenship) errors.push('Citizenship is required.');
-    if (!d.homeAddress?.line1?.trim()) errors.push('Home Address: Street / Address Line 1 is required.');
-    if (!d.homeAddress?.city?.trim()) errors.push('Home Address: City is required.');
-    if (!d.homeAddress?.country?.trim()) errors.push('Home Address: Country is required.');
+    if (!d.homeAddress?.line1?.trim()) errors.push('Permanent Address: Street / Address Line 1 is required.');
+    if (!d.homeAddress?.city?.trim()) errors.push('Permanent Address: City is required.');
+    if (!d.homeAddress?.country?.trim()) errors.push('Permanent Address: Country is required.');
     if (!d.livedAbroadRecently) errors.push('Please answer whether you have lived abroad in the past 12 months.');
     if (d.livedAbroadRecently === 'yes') {
       if (!d.abroadCountry) errors.push('Country of previous residence is required.');
@@ -729,7 +744,10 @@ export function StepIndicator({ currentStep, visibleTabs, onStepClick }: { curre
       <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
         <div className="h-full bg-blue-600 rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
       </div>
-      <div className="hidden md:flex items-start justify-between overflow-x-auto gap-1">
+      {/* pt-2 + px-1 reserve space for the focus/hover ring that renders
+          outside the 36px circle, otherwise overflow-x-auto clips the
+          top of the ring on the currently-focused step. */}
+      <div className="hidden md:flex items-start justify-between overflow-x-auto gap-1 pt-2 px-1">
         {visibleTabs.map((tabId, index) => {
           const def = TAB_DEFS.find(t => t.id === tabId)!;
           const visIdx = index + 1;
@@ -838,6 +856,11 @@ function InlineDocUpload({ label = 'Upload Document', sectionKey, uploadedFiles,
       onFilesChange(uploadedFiles.filter(f => f.sectionKey !== sectionKey));
     }
   };
+  // Saved-to-draft entries arrive from the server without a File
+  // object. We still show them as "uploaded" so the user can see the
+  // name and remove it — the removal hits the draft-delete endpoint.
+  const savedLabel = entry?.savedName ?? (entry?.url ? entry.url.split('/').pop() : undefined);
+  const hasSavedOnly = !entry?.file && !!savedLabel;
   return (
     <div className="space-y-1 md:col-span-2">
       <Label className="text-xs">{label}</Label>
@@ -845,6 +868,12 @@ function InlineDocUpload({ label = 'Upload Document', sectionKey, uploadedFiles,
         <div className="flex items-center gap-2 p-2 border rounded-lg bg-green-50 border-green-200">
           <FileText className="w-4 h-4 text-green-600 shrink-0" />
           <span className="text-sm text-green-700 truncate flex-1">{entry.file.name}</span>
+          <button type="button" onClick={handleRemove} className="p-0.5 text-gray-400 hover:text-red-500"><X className="w-4 h-4" /></button>
+        </div>
+      ) : hasSavedOnly ? (
+        <div className="flex items-center gap-2 p-2 border rounded-lg bg-blue-50 border-blue-200">
+          <FileText className="w-4 h-4 text-blue-600 shrink-0" />
+          <span className="text-sm text-blue-700 truncate flex-1">{savedLabel} <span className="text-[11px] text-blue-500">(saved)</span></span>
           <button type="button" onClick={handleRemove} className="p-0.5 text-gray-400 hover:text-red-500"><X className="w-4 h-4" /></button>
         </div>
       ) : (
@@ -1029,7 +1058,7 @@ function Step1Personal({ d, u, jobTypes, photoFile, onPhotoChange, existingPhoto
         </div>
       </div>
       <div className="space-y-4">
-        <SubSection title="Home Address" />
+        <SubSection title="Permanent Address" />
         <AddressForm label="" value={d.homeAddress} onChange={set('homeAddress')} required />
       </div>
       <div className="space-y-4">
@@ -1046,11 +1075,11 @@ function Step1Personal({ d, u, jobTypes, photoFile, onPhotoChange, existingPhoto
                 }));
               }}
             />
-            Same as home
+            Same as permanent
           </label>
         </div>
         {!d.sameAsHomeAddress && <AddressForm label="" value={d.currentAddress} onChange={set('currentAddress')} required />}
-        {d.sameAsHomeAddress && <div className="p-3 bg-gray-50 rounded border text-sm text-gray-600">Same as home address above.</div>}
+        {d.sameAsHomeAddress && <div className="p-3 bg-gray-50 rounded border text-sm text-gray-600">Same as permanent address above.</div>}
       </div>
       <div className="space-y-4">
         <SubSection title="Previous Country of Residence" />
@@ -2544,7 +2573,7 @@ function Step10Documents({ uploadedFiles, onFilesChange, requiredDocuments = [] 
   );
 }
 
-async function printApplicationSummary(d: ApplicantFormData, uploadedFiles: UploadedFileItem[]) {
+async function downloadApplicationSummary(d: ApplicantFormData, uploadedFiles: UploadedFileItem[]) {
   const field = (label: string, value: string | undefined | null | boolean) => {
     const v = typeof value === 'boolean' ? (value ? 'Yes' : 'No') : value;
     if (!v) return '';
@@ -2630,12 +2659,16 @@ ${filesWithData.length > 0 ? section('Uploaded Documents', filesWithData.map(f =
 </div>`).join('')) : ''}
 </body></html>`;
 
-  const win = window.open('', '_blank');
-  if (win) {
-    win.document.write(html);
-    win.document.close();
-    setTimeout(() => win.print(), 300);
-  }
+  // Open the summary in a new browser tab. We render via a Blob URL
+  // rather than window.open('') + document.write so we don't steal
+  // focus by navigating an about:blank page, and we deliberately skip
+  // window.print() — auto-triggering the print dialog used to block
+  // the user from returning to the form tab to submit the application.
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  window.open(url, '_blank', 'noopener,noreferrer');
+  // Revoke after a delay so the new tab has time to load the blob
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
 function ReviewField({ label, value }: { label: string; value?: string | null | boolean }) {
@@ -2692,7 +2725,7 @@ function Step11Review({ d, u, settings, photoFile, existingPhotoUrl, uploadedFil
         <SectionTitle title="Review Your Application" subtitle="Please review all details before submitting" />
         <button
           type="button"
-          onClick={() => printApplicationSummary(d, uploadedFiles)}
+          onClick={() => downloadApplicationSummary(d, uploadedFiles)}
           className="flex items-center gap-2 px-4 py-2 border-2 border-blue-300 rounded-lg text-blue-600 text-sm font-medium hover:border-blue-500 hover:bg-blue-50 transition-all flex-shrink-0"
         >
           <FileText className="w-4 h-4" />

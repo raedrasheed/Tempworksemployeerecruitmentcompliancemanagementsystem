@@ -1,20 +1,51 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { PaginatedResponse } from '../common/dto/pagination-response.dto';
 import { promises as fs } from 'fs';
 import { join, extname } from 'path';
+import * as ExcelJS from 'exceljs';
 
 @Injectable()
 export class EmployeesService {
   constructor(private prisma: PrismaService) {}
 
-  async findAll(query: PaginationDto & { agencyId?: string; status?: string; nationality?: string; driversOnly?: boolean }) {
+  /**
+   * External tenant = user attached to any agency that is not the
+   * Tempworks root (`isSystem=true`). Such users are scoped to their
+   * own agency regardless of their role name, so an HR Manager in an
+   * external agency is treated the same as an Agency Manager.
+   */
+  private isExternalActor(actor?: { agencyId?: string; agencyIsSystem?: boolean }): boolean {
+    return !!actor && !!actor.agencyId && actor.agencyIsSystem !== true;
+  }
+
+  async findAll(
+    query: PaginationDto & { agencyId?: string; status?: string; nationality?: string; driversOnly?: boolean },
+    actor?: { role?: string; agencyId?: string; agencyIsSystem?: boolean },
+  ) {
     const { page = 1, limit = 20, search, sortBy = 'createdAt', sortOrder = 'desc', agencyId, status, nationality, driversOnly } = query;
     const skip = (Number(page) - 1) * Number(limit);
 
     const where: any = { deletedAt: null };
+
+    // External tenants — every role inside a non-system agency — can
+    // only see employees granted via EmployeeAgencyAccess with
+    // canView=true. Employee.agencyId (origin) is intentionally
+    // ignored. Tempworks-root users (isSystem=true) and System Admin
+    // keep the global view.
+    if (this.isExternalActor(actor)) {
+      const grants = await this.prisma.employeeAgencyAccess.findMany({
+        where: { agencyId: actor!.agencyId!, canView: true },
+        select: { employeeId: true },
+      });
+      const allowedIds = grants.map(g => g.employeeId);
+      if (allowedIds.length === 0) {
+        return PaginatedResponse.create([], 0, page, limit);
+      }
+      where.id = { in: allowedIds };
+    }
     if (search) {
       where.OR = [
         { firstName: { contains: search, mode: 'insensitive' } },
@@ -52,20 +83,124 @@ export class EmployeesService {
     return PaginatedResponse.create(data, total, page, limit);
   }
 
-  async findOne(id: string) {
+  async findOne(
+    id: string,
+    actor?: { role?: string; agencyId?: string; agencyIsSystem?: boolean },
+    opts?: { require?: 'view' | 'edit' },
+  ) {
     const employee = await this.prisma.employee.findFirst({
       where: { id, deletedAt: null },
+      // Cast to any because the `createdBy` relation was added to the
+      // Prisma schema in the same change that introduced it; a running
+      // tsc --watch won't see the regenerated client until the process
+      // is restarted. The relation resolves fine at runtime.
       include: {
         agency:   true,
         jobType:  { select: { id: true, name: true } },
+        createdBy: { select: { id: true, firstName: true, lastName: true, email: true } },
         employeeStages: { include: { stage: true, assignedTo: { select: { id: true, firstName: true, lastName: true } } }, orderBy: { stage: { order: 'asc' } } },
-      },
+      } as any,
     });
     if (!employee) throw new NotFoundException('Employee not found');
+
+    if (this.isExternalActor(actor)) {
+      const grant = await this.prisma.employeeAgencyAccess.findUnique({
+        where: { employeeId_agencyId: { employeeId: id, agencyId: actor!.agencyId! } },
+      });
+      if (!grant) throw new ForbiddenException('Access to this employee has not been granted to your agency');
+      const need = opts?.require ?? 'view';
+      if (need === 'view' && !grant.canView) {
+        throw new ForbiddenException('View access to this employee has not been granted to your agency');
+      }
+      if (need === 'edit' && !grant.canEdit) {
+        throw new ForbiddenException('Edit access to this employee has not been granted to your agency');
+      }
+    }
+
     return employee;
   }
 
-  async create(dto: CreateEmployeeDto, _actorId?: string) {
+  // ── Per-employee agency access grants (admin-only) ──────────────────────────
+
+  async listAgencyAccess(employeeId: string) {
+    const employee = await this.prisma.employee.findFirst({ where: { id: employeeId, deletedAt: null } });
+    if (!employee) throw new NotFoundException('Employee not found');
+    return this.prisma.employeeAgencyAccess.findMany({
+      where: { employeeId },
+      include: { agency: { select: { id: true, name: true } } },
+      orderBy: { grantedAt: 'desc' },
+    });
+  }
+
+  async grantAgencyAccess(
+    employeeId: string,
+    agencyId: string,
+    dto: { notes?: string; canView?: boolean; canEdit?: boolean } = {},
+    actorId?: string,
+  ) {
+    const employee = await this.prisma.employee.findFirst({ where: { id: employeeId, deletedAt: null } });
+    if (!employee) throw new NotFoundException('Employee not found');
+    const agency = await this.prisma.agency.findFirst({ where: { id: agencyId, deletedAt: null } });
+    if (!agency) throw new NotFoundException('Agency not found');
+    const canView = dto.canView ?? true;
+    const canEdit = dto.canEdit ?? true;
+    // If the caller sets both flags to false we delete the row instead
+    // of persisting a useless "no access" grant — keeps the table tidy
+    // and makes revoke from the UI symmetric with delete.
+    if (!canView && !canEdit) {
+      await this.prisma.employeeAgencyAccess.deleteMany({
+        where: { employeeId, agencyId },
+      });
+      return { employeeId, agencyId, canView: false, canEdit: false, deleted: true };
+    }
+    const grant = await this.prisma.employeeAgencyAccess.upsert({
+      where:  { employeeId_agencyId: { employeeId, agencyId } },
+      create: { employeeId, agencyId, notes: dto.notes, grantedById: actorId, canView, canEdit },
+      update: { notes: dto.notes, grantedById: actorId, grantedAt: new Date(), canView, canEdit },
+    });
+    return grant;
+  }
+
+  async updateAgencyAccess(
+    employeeId: string,
+    agencyId: string,
+    dto: { canView?: boolean; canEdit?: boolean; notes?: string },
+    actorId?: string,
+  ) {
+    const existing = await this.prisma.employeeAgencyAccess.findUnique({
+      where: { employeeId_agencyId: { employeeId, agencyId } },
+    });
+    if (!existing) throw new NotFoundException('No grant for that employee/agency pair');
+    const canView = dto.canView ?? existing.canView;
+    const canEdit = dto.canEdit ?? existing.canEdit;
+    if (!canView && !canEdit) {
+      await this.prisma.employeeAgencyAccess.delete({
+        where: { employeeId_agencyId: { employeeId, agencyId } },
+      });
+      return { employeeId, agencyId, canView: false, canEdit: false, deleted: true };
+    }
+    return this.prisma.employeeAgencyAccess.update({
+      where: { employeeId_agencyId: { employeeId, agencyId } },
+      data: {
+        canView, canEdit,
+        ...(dto.notes !== undefined ? { notes: dto.notes } : {}),
+        grantedById: actorId,
+      },
+    });
+  }
+
+  async revokeAgencyAccess(employeeId: string, agencyId: string) {
+    try {
+      await this.prisma.employeeAgencyAccess.delete({
+        where: { employeeId_agencyId: { employeeId, agencyId } },
+      });
+    } catch {
+      throw new NotFoundException('No grant for that employee/agency pair');
+    }
+    return { message: 'Access revoked' };
+  }
+
+  async create(dto: CreateEmployeeDto, actorId?: string) {
     const existing = await this.prisma.employee.findFirst({ where: { email: dto.email, deletedAt: null } });
     if (existing) throw new ConflictException('Employee with this email already exists');
 
@@ -81,6 +216,11 @@ export class EmployeesService {
         dateOfBirth: new Date(dto.dateOfBirth),
         status: (dto.status as any) || 'PENDING',
         ...(agencyId ? { agencyId } : {}),
+        // Employees created directly from the dashboard are always
+        // staff-initiated — the public /apply flow produces an
+        // applicant, not an employee.
+        createdById: actorId ?? null,
+        source: 'STAFF_CREATED',
         employeeStages: {
           create: stages.map((stage) => ({
             stageId: stage.id,
@@ -113,8 +253,14 @@ export class EmployeesService {
     return `${prefix}${String(serial).padStart(5, '0')}`;
   }
 
-  async update(id: string, dto: Partial<CreateEmployeeDto>, _actorId?: string) {
-    await this.findOne(id);
+  async update(
+    id: string,
+    dto: Partial<CreateEmployeeDto>,
+    _actorId?: string,
+    actor?: { role?: string; agencyId?: string; agencyIsSystem?: boolean },
+  ) {
+    // Edit path: external tenants need a grant with canEdit=true.
+    await this.findOne(id, actor, { require: 'edit' });
     const data: any = { ...dto };
     if (dto.dateOfBirth) data.dateOfBirth = new Date(dto.dateOfBirth);
     return this.prisma.employee.update({ where: { id }, data, include: { agency: { select: { id: true, name: true } } } });
@@ -149,14 +295,14 @@ export class EmployeesService {
     return profile ?? null;
   }
 
-  async remove(id: string, _actorId?: string) {
-    await this.findOne(id);
+  async remove(id: string, _actorId?: string, actor?: { role?: string; agencyId?: string; agencyIsSystem?: boolean }) {
+    await this.findOne(id, actor, { require: 'edit' });
     await this.prisma.employee.update({ where: { id }, data: { deletedAt: new Date() } });
     return { message: 'Employee deleted successfully' };
   }
 
-  async updateStatus(id: string, status: string, _actorId?: string) {
-    await this.findOne(id);
+  async updateStatus(id: string, status: string, _actorId?: string, actor?: { role?: string; agencyId?: string; agencyIsSystem?: boolean }) {
+    await this.findOne(id, actor, { require: 'edit' });
     return this.prisma.employee.update({ where: { id }, data: { status: status as any } });
   }
 
@@ -223,5 +369,103 @@ export class EmployeesService {
       validDocuments: validDocs,
       totalDocuments: totalDocs,
     };
+  }
+
+  // ── XLSX Export ─────────────────────────────────────────────────────────────
+  //
+  // Same scoping rules as findAll — external tenants only see employees
+  // granted via EmployeeAgencyAccess.canView; passing `ids` restricts to
+  // those specific rows (for the "Export to Excel" button which always
+  // runs on the selected set). Returns a workbook Buffer ready to stream.
+  async exportExcel(
+    query: PaginationDto & { agencyId?: string; status?: string; nationality?: string },
+    actor?: { role?: string; agencyId?: string; agencyIsSystem?: boolean },
+    ids?: string[],
+  ): Promise<Buffer> {
+    let items: any[];
+
+    if (ids && ids.length > 0) {
+      const where: any = { id: { in: ids }, deletedAt: null };
+      if (this.isExternalActor(actor)) {
+        const grants = await this.prisma.employeeAgencyAccess.findMany({
+          where: { agencyId: actor!.agencyId!, canView: true },
+          select: { employeeId: true },
+        });
+        const allowedIds = new Set(grants.map(g => g.employeeId));
+        where.id = { in: ids.filter(i => allowedIds.has(i)) };
+      }
+      items = await this.prisma.employee.findMany({
+        where,
+        include: {
+          agency:  { select: { id: true, name: true } },
+          jobType: { select: { id: true, name: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+    } else {
+      const big = { ...query, limit: 10000, page: 1 } as any;
+      const result = await this.findAll(big, actor);
+      items = (result as any).data;
+    }
+
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'TempWorks';
+    workbook.created = new Date();
+
+    const sheet = workbook.addWorksheet('Employees', {
+      views: [{ state: 'frozen', ySplit: 1 }],
+    });
+
+    sheet.columns = [
+      { header: 'Employee Number',   key: 'employeeNumber',  width: 18 },
+      { header: 'First Name',        key: 'firstName',       width: 16 },
+      { header: 'Last Name',         key: 'lastName',        width: 16 },
+      { header: 'Email',             key: 'email',           width: 28 },
+      { header: 'Phone',             key: 'phone',           width: 18 },
+      { header: 'Citizenship',       key: 'nationality',     width: 16 },
+      { header: 'License Number',    key: 'licenseNumber',   width: 20 },
+      { header: 'License Category',  key: 'licenseCategory', width: 14 },
+      { header: 'Experience (yrs)',  key: 'yearsExperience', width: 14 },
+      { header: 'Job Type',          key: 'jobType',         width: 22 },
+      { header: 'Agency',            key: 'agency',          width: 22 },
+      { header: 'Address',           key: 'address',         width: 30 },
+      { header: 'City',              key: 'city',            width: 16 },
+      { header: 'Country',           key: 'country',         width: 16 },
+      { header: 'Postal Code',       key: 'postalCode',      width: 12 },
+      { header: 'Status',            key: 'status',          width: 14 },
+      { header: 'Joined',            key: 'createdAt',       width: 16, style: { numFmt: 'yyyy-mm-dd' } },
+    ];
+
+    sheet.getRow(1).eachCell((cell) => {
+      cell.font      = { bold: true, color: { argb: 'FFFFFFFF' } };
+      cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } };
+      cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+      cell.border    = { bottom: { style: 'thin', color: { argb: 'FF1D4ED8' } } };
+    });
+    sheet.getRow(1).height = 28;
+
+    for (const e of items) {
+      sheet.addRow({
+        employeeNumber:  e.employeeNumber ?? '',
+        firstName:       e.firstName ?? '',
+        lastName:        e.lastName ?? '',
+        email:           e.email ?? '',
+        phone:           e.phone ?? '',
+        nationality:     e.nationality ?? '',
+        licenseNumber:   e.licenseNumber ?? '',
+        licenseCategory: e.licenseCategory ?? '',
+        yearsExperience: e.yearsExperience ?? '',
+        jobType:         e.jobType?.name ?? '',
+        agency:          e.agency?.name ?? '',
+        address:         [e.addressLine1, e.addressLine2].filter(Boolean).join(', '),
+        city:            e.city ?? '',
+        country:         e.country ?? '',
+        postalCode:      e.postalCode ?? '',
+        status:          e.status ?? '',
+        createdAt:       e.createdAt ? new Date(e.createdAt) : null,
+      });
+    }
+
+    return Buffer.from(await workbook.xlsx.writeBuffer() as ArrayBuffer);
   }
 }

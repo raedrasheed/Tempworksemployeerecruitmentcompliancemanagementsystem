@@ -18,6 +18,7 @@ import { BulkActionDto, AssignAgencyDto, ConvertLeadDto } from './dto/bulk-actio
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { RequirePermission } from '../auth/decorators/require-permission.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Public } from '../auth/decorators/public.decorator';
 
@@ -39,7 +40,7 @@ export class ApplicantsController {
   @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Finance', 'Read Only')
   @ApiOperation({ summary: 'Get all applicants (tier/status/agency filters; agency users see only Candidates in their agency)' })
   findAll(@Query() filter: FilterApplicantsDto, @CurrentUser() user: any) {
-    return this.applicantsService.findAll(filter, { role: user?.role, agencyId: user?.agencyId });
+    return this.applicantsService.findAll(filter, { role: user?.role, agencyId: user?.agencyId, agencyIsSystem: user?.agencyIsSystem });
   }
 
   // ── Single ────────────────────────────────────────────────────────────────────
@@ -49,7 +50,7 @@ export class ApplicantsController {
   @ApiOperation({ summary: 'Get applicant by ID (includes financialProfile + agencyHistory)' })
   @ApiParam({ name: 'id', description: 'Applicant UUID' })
   findOne(@Param('id') id: string, @CurrentUser() user: any) {
-    return this.applicantsService.findOne(id, { role: user?.role, agencyId: user?.agencyId });
+    return this.applicantsService.findOne(id, { role: user?.role, agencyId: user?.agencyId, agencyIsSystem: user?.agencyIsSystem });
   }
 
   // ── Public Submit ─────────────────────────────────────────────────────────────
@@ -67,7 +68,7 @@ export class ApplicantsController {
   @Roles('System Admin', 'HR Manager', 'Recruiter', 'Agency Manager', 'Agency User')
   @ApiOperation({ summary: 'Create a new applicant (defaults tier=LEAD; agency users forced into own agency)' })
   create(@Body() dto: CreateApplicantDto & { tier?: string }, @CurrentUser() user: any) {
-    return this.applicantsService.create(dto, user?.id, { role: user?.role, agencyId: user?.agencyId });
+    return this.applicantsService.create(dto, user?.id, { role: user?.role, agencyId: user?.agencyId, agencyIsSystem: user?.agencyIsSystem });
   }
 
   // ── Update ────────────────────────────────────────────────────────────────────
@@ -76,7 +77,7 @@ export class ApplicantsController {
   @Roles('System Admin', 'HR Manager', 'Recruiter', 'Agency Manager', 'Agency User')
   @ApiOperation({ summary: 'Update applicant fields (agency users can only edit own-agency candidates)' })
   update(@Param('id') id: string, @Body() dto: UpdateApplicantDto, @CurrentUser() user: any) {
-    return this.applicantsService.update(id, dto, user?.id, { role: user?.role, agencyId: user?.agencyId });
+    return this.applicantsService.update(id, dto, user?.id, { role: user?.role, agencyId: user?.agencyId, agencyIsSystem: user?.agencyIsSystem });
   }
 
   // ── Photo Upload ──────────────────────────────────────────────────────────────
@@ -107,7 +108,7 @@ export class ApplicantsController {
   @ApiOperation({ summary: 'Update applicant status' })
   @ApiParam({ name: 'id', description: 'Applicant UUID' })
   updateStatus(@Param('id') id: string, @Body('status') status: string, @CurrentUser() user: any) {
-    return this.applicantsService.updateStatus(id, status, user?.id);
+    return this.applicantsService.updateStatus(id, status, user?.id, { role: user?.role, agencyId: user?.agencyId, agencyIsSystem: user?.agencyIsSystem });
   }
 
   // ── Workflow Stage ────────────────────────────────────────────────────────────
@@ -118,6 +119,26 @@ export class ApplicantsController {
   @ApiParam({ name: 'id', description: 'Applicant UUID' })
   setCurrentStage(@Param('id') id: string, @Body('stageId') stageId: string, @CurrentUser() user: any) {
     return this.applicantsService.setCurrentStage(id, stageId || null, user?.id);
+  }
+
+  // ── Agency-submitted candidate approval ──────────────────────────────────────
+
+  @Post(':id/approve')
+  @Roles('System Admin', 'HR Manager')
+  @RequirePermission('applicants:approve')
+  @ApiOperation({ summary: 'Approve an agency-submitted candidate so they enter the internal workflow' })
+  @ApiParam({ name: 'id', description: 'Applicant UUID' })
+  approveApplicant(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.applicantsService.approveApplicant(id, user?.id);
+  }
+
+  @Post(':id/reject')
+  @Roles('System Admin', 'HR Manager')
+  @RequirePermission('applicants:approve')
+  @ApiOperation({ summary: 'Reject an agency-submitted candidate. Optionally supply a reason in the body.' })
+  @ApiParam({ name: 'id', description: 'Applicant UUID' })
+  rejectApplicant(@Param('id') id: string, @Body('reason') reason: string, @CurrentUser() user: any) {
+    return this.applicantsService.rejectApplicant(id, reason, user?.id);
   }
 
   // ── Convert Lead → Candidate ──────────────────────────────────────────────────
@@ -137,7 +158,7 @@ export class ApplicantsController {
   @ApiOperation({ summary: 'Reassign applicant to a different agency (records history)' })
   @ApiParam({ name: 'id', description: 'Applicant UUID' })
   reassignAgency(@Param('id') id: string, @Body() dto: AssignAgencyDto, @CurrentUser() user: any) {
-    return this.applicantsService.reassignAgency(id, dto, user?.id, { role: user?.role, agencyId: user?.agencyId });
+    return this.applicantsService.reassignAgency(id, dto, user?.id, { role: user?.role, agencyId: user?.agencyId, agencyIsSystem: user?.agencyIsSystem });
   }
 
   // ── Financial Profile ─────────────────────────────────────────────────────────
@@ -178,23 +199,73 @@ export class ApplicantsController {
   @Roles('System Admin', 'HR Manager', 'Recruiter')
   @ApiOperation({ summary: 'Perform a bulk action on multiple applicants' })
   bulkAction(@Body() dto: BulkActionDto, @CurrentUser() user: any) {
-    return this.applicantsService.bulkAction(dto, user?.id);
+    return this.applicantsService.bulkAction(
+      dto,
+      user?.id,
+      { role: user?.role, agencyId: user?.agencyId, agencyIsSystem: user?.agencyIsSystem },
+    );
   }
 
   // ── CSV Export ────────────────────────────────────────────────────────────────
 
   @Get('export/csv')
   @Roles('System Admin', 'HR Manager', 'Recruiter', 'Finance', 'Compliance Officer')
-  @ApiOperation({ summary: 'Export applicants as CSV file (honours same filters as list endpoint)' })
+  @ApiOperation({ summary: 'Export applicants as CSV file (honours same filters as list endpoint, or pass ids=a,b,c to export only those rows)' })
   async exportCsv(
-    @Query() filter: FilterApplicantsDto,
+    @Query() filter: FilterApplicantsDto & { ids?: string },
     @CurrentUser() user: any,
     @Res() res: Response,
   ) {
-    const csv = await this.applicantsService.exportCsv(filter, { role: user?.role, agencyId: user?.agencyId });
-    res.setHeader('Content-Type', 'text/csv');
+    // Accept `ids` either as 'a,b,c' or as repeated ?ids=a&ids=b. When
+    // present, the service scopes the export to just those rows.
+    const rawIds = (filter as any).ids;
+    const idList: string[] | undefined = Array.isArray(rawIds)
+      ? rawIds
+      : typeof rawIds === 'string' && rawIds.length > 0
+        ? rawIds.split(',').map(s => s.trim()).filter(Boolean)
+        : undefined;
+
+    const { ids: _omit, ...cleanFilter } = (filter ?? {}) as any;
+    const csv = await this.applicantsService.exportCsv(
+      cleanFilter,
+      { role: user?.role, agencyId: user?.agencyId, agencyIsSystem: user?.agencyIsSystem },
+      idList,
+    );
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="applicants-${Date.now()}.csv"`);
     res.send(csv);
+  }
+
+  // ── XLSX Export ───────────────────────────────────────────────────────────────
+
+  @Get('export/xlsx')
+  @Roles('System Admin', 'HR Manager', 'Recruiter', 'Finance', 'Compliance Officer')
+  @RequirePermission('applicants:export')
+  @ApiOperation({ summary: 'Export applicants as an Excel (.xlsx) file. Pass ids=a,b,c to export only the selected rows; otherwise honours the same filters as the list endpoint.' })
+  async exportExcel(
+    @Query() filter: FilterApplicantsDto & { ids?: string },
+    @CurrentUser() user: any,
+    @Res() res: Response,
+  ) {
+    const rawIds = (filter as any).ids;
+    const idList: string[] | undefined = Array.isArray(rawIds)
+      ? rawIds
+      : typeof rawIds === 'string' && rawIds.length > 0
+        ? rawIds.split(',').map(s => s.trim()).filter(Boolean)
+        : undefined;
+
+    const { ids: _omit, ...cleanFilter } = (filter ?? {}) as any;
+    const buffer = await this.applicantsService.exportExcel(
+      cleanFilter,
+      { role: user?.role, agencyId: user?.agencyId, agencyIsSystem: user?.agencyIsSystem },
+      idList,
+    );
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    res.setHeader('Content-Disposition', `attachment; filename="applicants-${Date.now()}.xlsx"`);
+    res.send(buffer);
   }
 
   // ── Convert to Employee ───────────────────────────────────────────────────────
@@ -204,7 +275,7 @@ export class ApplicantsController {
   @ApiOperation({ summary: 'Convert Candidate to employee (CANDIDATE tier required)' })
   @ApiParam({ name: 'id', description: 'Applicant UUID' })
   convertToEmployee(@Param('id') id: string, @Body() dto: ConvertToEmployeeDto, @CurrentUser() user: any) {
-    return this.applicantsService.convertToEmployee(id, dto, user?.id, { role: user?.role, agencyId: user?.agencyId });
+    return this.applicantsService.convertToEmployee(id, dto, user?.id, { role: user?.role, agencyId: user?.agencyId, agencyIsSystem: user?.agencyIsSystem });
   }
 
   // ── Delete ────────────────────────────────────────────────────────────────────
@@ -214,7 +285,7 @@ export class ApplicantsController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Soft delete applicant' })
   remove(@Param('id') id: string, @CurrentUser() user: any) {
-    return this.applicantsService.remove(id, user?.id, { role: user?.role, agencyId: user?.agencyId });
+    return this.applicantsService.remove(id, user?.id, { role: user?.role, agencyId: user?.agencyId, agencyIsSystem: user?.agencyIsSystem });
   }
 
   // ── Candidate Delete Requests ─────────────────────────────────────────────────

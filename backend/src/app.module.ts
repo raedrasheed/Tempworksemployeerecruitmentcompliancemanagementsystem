@@ -8,6 +8,7 @@ import { UsersModule } from './users/users.module';
 import { RolesModule } from './roles/roles.module';
 import { EmployeesModule } from './employees/employees.module';
 import { ApplicantsModule } from './applicants/applicants.module';
+import { ApplicationDraftsModule } from './application-drafts/application-drafts.module';
 import { DocumentsModule } from './documents/documents.module';
 import { WorkflowModule } from './workflow/workflow.module';
 import { AgenciesModule } from './agencies/agencies.module';
@@ -21,6 +22,7 @@ import { JobAdsModule } from './job-ads/job-ads.module';
 import { RecycleBinModule } from './recycle-bin/recycle-bin.module';
 import { WorkflowPipelineModule } from './pipeline/pipeline.module';
 import { AttendanceModule } from './attendance/attendance.module';
+import { EmployeeWorkHistoryModule } from './employee-work-history/employee-work-history.module';
 import { VehiclesModule } from './vehicles/vehicles.module';
 import { BackupModule }   from './backup/backup.module';
 import { EmailModule } from './email/email.module';
@@ -36,6 +38,7 @@ import { EmailModule } from './email/email.module';
     RolesModule,
     EmployeesModule,
     ApplicantsModule,
+    ApplicationDraftsModule,
     DocumentsModule,
     WorkflowModule,
     AgenciesModule,
@@ -49,6 +52,7 @@ import { EmailModule } from './email/email.module';
     RecycleBinModule,
     WorkflowPipelineModule,
     AttendanceModule,
+    EmployeeWorkHistoryModule,
     VehiclesModule,
     BackupModule,
   ],

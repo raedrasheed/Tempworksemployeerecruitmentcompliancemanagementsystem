@@ -211,7 +211,7 @@ export function EditEmployee() {
                     <Input id="dateOfBirth" type="date" value={form.dateOfBirth} onChange={set('dateOfBirth')} required />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="nationality">Nationality *</Label>
+                    <Label htmlFor="nationality">Citizenship *</Label>
                     <Input id="nationality" value={form.nationality} onChange={set('nationality')} required />
                   </div>
                 </div>

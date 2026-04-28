@@ -7,8 +7,8 @@ import { Type } from 'class-transformer';
 import { TRANSACTION_TYPES, PAYMENT_METHODS } from '../constants';
 
 export class CreateFinancialRecordDto {
-  @ApiProperty({ description: "'APPLICANT' or 'EMPLOYEE'" })
-  @IsString() @IsIn(['APPLICANT', 'EMPLOYEE'])
+  @ApiProperty({ description: "'APPLICANT', 'EMPLOYEE' or 'AGENCY'" })
+  @IsString() @IsIn(['APPLICANT', 'EMPLOYEE', 'AGENCY'])
   entityType: string;
 
   @ApiProperty()
@@ -23,8 +23,11 @@ export class CreateFinancialRecordDto {
   @IsOptional() @IsString()
   currency?: string = 'EUR';
 
-  @ApiProperty({ enum: TRANSACTION_TYPES })
-  @IsString() @IsIn(TRANSACTION_TYPES as unknown as string[])
+  @ApiProperty({
+    description: 'Transaction type label. Must match an active name from /settings/transaction-types (configurable by System Admins). The old hardcoded enum is kept as an example for Swagger only.',
+    example: TRANSACTION_TYPES[0],
+  })
+  @IsString() @IsNotEmpty()
   transactionType: string;
 
   @ApiPropertyOptional()

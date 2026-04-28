@@ -48,10 +48,20 @@ interface FinancialRecord {
   paidByUser?: { id: string; firstName: string; lastName: string };
   companyDisbursedAmount: number;
   employeeOrAgencyPaidAmount: number;
-  status: 'PENDING' | 'DEDUCTED';
+  status: 'PENDING' | 'PARTIAL' | 'DEDUCTED';
   deductionAmount?: number;
   deductionDate?: string;
   payrollReference?: string;
+  /** Each partial payroll deduction against this record. Sum ≤ companyDisbursedAmount. */
+  deductions?: Array<{
+    id: string;
+    amount: number;
+    deductionDate: string;
+    payrollReference?: string;
+    notes?: string;
+    createdAt: string;
+    createdBy?: { id: string; firstName: string; lastName: string };
+  }>;
   notes?: string;
   attachments?: Attachment[];
   createdAt: string;
@@ -82,8 +92,16 @@ interface Totals {
 
 // ─── Empty form defaults ──────────────────────────────────────────────────────
 
+// Helper — the datetime-local <input> needs a local-ish ISO string
+// cut at minutes (YYYY-MM-DDTHH:MM), not the UTC slice.
+function nowLocalDatetime() {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 const EMPTY_FORM = {
-  transactionDate: new Date().toISOString().slice(0, 10),
+  transactionDate: nowLocalDatetime(),
   currency: 'EUR',
   transactionType: '',
   description: '',
@@ -119,21 +137,59 @@ function fmtDate(date: string) {
   return new Date(date).toLocaleDateString('en-IE', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
+/** Date + HH:MM on a single line. Used where the clock time matters
+ *  (transaction rows, history timeline). Falls back to fmtDate alone
+ *  when the value is midnight UTC — the common case for older rows
+ *  captured via a date-only picker. */
+function fmtDateTime(date: string) {
+  if (!date) return '—';
+  const d = new Date(date);
+  const hasTime = d.getUTCHours() !== 0 || d.getUTCMinutes() !== 0;
+  const datePart = d.toLocaleDateString('en-IE', { day: '2-digit', month: 'short', year: 'numeric' });
+  if (!hasTime) return datePart;
+  const timePart = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  return `${datePart} ${timePart}`;
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 interface Props {
-  entityType: 'APPLICANT' | 'EMPLOYEE';
+  entityType: 'APPLICANT' | 'EMPLOYEE' | 'AGENCY';
   entityId: string;
+  /** Display name used for the exported Excel filename. Falls back to
+   *  the entity id when omitted so older callers keep working. */
+  entityName?: string;
   canWrite: boolean;
   canChangeStatus: boolean;
 }
 
-export function FinancialRecordsTab({ entityType, entityId, canWrite, canChangeStatus }: Props) {
+export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite, canChangeStatus }: Props) {
   const [records, setRecords] = useState<FinancialRecord[]>([]);
   const [totals, setTotals] = useState<Totals | null>(null);
   const [constants, setConstants] = useState<Constants | null>(null);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  // Lazy-loaded history per record — fetched the first time the
+  // operator expands a row. Keyed by record id.
+  const [history, setHistory] = useState<Record<string, any[]>>({});
+  const [historyLoading, setHistoryLoading] = useState<Record<string, boolean>>({});
+
+  const loadHistoryFor = async (recordId: string, force = false) => {
+    if (!force && (history[recordId] || historyLoading[recordId])) return;
+    setHistoryLoading(h => ({ ...h, [recordId]: true }));
+    try {
+      const logs = await financeApi.getHistory(recordId);
+      setHistory(h => ({ ...h, [recordId]: logs }));
+    } catch {
+      setHistory(h => ({ ...h, [recordId]: [] }));
+    } finally {
+      setHistoryLoading(h => ({ ...h, [recordId]: false }));
+    }
+  };
+
+  // Every mutation invalidates the whole history cache so timelines
+  // pick up new audit rows the next time a record is expanded.
+  const invalidateHistory = () => { setHistory({}); };
 
   // Add/Edit modal
   const [showModal, setShowModal] = useState(false);
@@ -220,7 +276,14 @@ export function FinancialRecordsTab({ entityType, entityId, canWrite, canChangeS
   const openEdit = (rec: FinancialRecord) => {
     setEditRecord(rec);
     setForm({
-      transactionDate: rec.transactionDate?.slice(0, 10) ?? '',
+      // datetime-local wants YYYY-MM-DDTHH:MM in local time, not UTC.
+      transactionDate: rec.transactionDate
+        ? (() => {
+            const d = new Date(rec.transactionDate);
+            const pad = (n: number) => String(n).padStart(2, '0');
+            return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+          })()
+        : '',
       currency: rec.currency ?? 'EUR',
       transactionType: rec.transactionType ?? '',
       description: rec.description ?? '',
@@ -289,7 +352,11 @@ export function FinancialRecordsTab({ entityType, entityId, canWrite, canChangeS
       }
 
       closeModal();
+      invalidateHistory();
       loadRecords();
+      // If the row is still expanded, eagerly refresh its timeline so
+      // the operator sees the new audit entry without collapsing first.
+      if (expandedId) loadHistoryFor(expandedId, true);
     } catch (err: any) {
       toast.error(err?.message || 'Save failed');
     } finally {
@@ -301,40 +368,70 @@ export function FinancialRecordsTab({ entityType, entityId, canWrite, canChangeS
 
   const openStatus = (rec: FinancialRecord) => {
     setStatusRecord(rec);
+    // Default the amount to the remaining balance so repeated
+    // deductions naturally drive the status to DEDUCTED when paid off.
+    const alreadyDeducted = (rec.deductions ?? []).reduce((s, d) => s + Number(d.amount ?? 0), 0)
+      || Number(rec.deductionAmount ?? 0);
+    const remaining = Math.max(0, Number(rec.companyDisbursedAmount ?? 0) - alreadyDeducted);
     setStatusForm({
       status: 'DEDUCTED',
-      deductionAmount: rec.companyDisbursedAmount ?? '',
+      deductionAmount: remaining || '',
       deductionDate: new Date().toISOString().slice(0, 10),
-      payrollReference: rec.payrollReference ?? '',
+      payrollReference: '',
     });
     setShowStatusModal(true);
   };
 
   const handleSaveStatus = async () => {
     if (!statusRecord) return;
-    if (!statusForm.deductionAmount || Number(statusForm.deductionAmount) <= 0) {
+    const amount = Number(statusForm.deductionAmount);
+    if (!amount || amount <= 0) {
       toast.error('Deduction amount must be greater than 0');
       return;
     }
-    if (Number(statusForm.deductionAmount) > Number(statusRecord.companyDisbursedAmount)) {
-      toast.error('Deduction cannot exceed the company disbursed amount');
+    const alreadyDeducted = (statusRecord.deductions ?? []).reduce((s, d) => s + Number(d.amount ?? 0), 0)
+      || Number(statusRecord.deductionAmount ?? 0);
+    const remaining = Number(statusRecord.companyDisbursedAmount) - alreadyDeducted;
+    if (amount > remaining + 0.005) {
+      toast.error(`Deduction cannot exceed the remaining balance (${remaining.toFixed(2)})`);
       return;
     }
     setSavingStatus(true);
     try {
-      await financeApi.updateStatus(statusRecord.id, {
-        status: statusForm.status,
-        deductionAmount: Number(statusForm.deductionAmount),
-        deductionDate: statusForm.deductionDate || undefined,
+      // Append a new partial deduction. The backend keeps the parent
+      // record's aggregate fields and status in sync.
+      await financeApi.addDeduction(statusRecord.id, {
+        amount,
+        deductionDate: statusForm.deductionDate || new Date().toISOString().slice(0, 10),
         payrollReference: statusForm.payrollReference || undefined,
       });
-      toast.success('Status updated');
+      toast.success(Math.abs(amount - remaining) < 0.005
+        ? 'Deduction added — transaction fully deducted'
+        : 'Partial deduction added');
       setShowStatusModal(false);
+      invalidateHistory();
       loadRecords();
+      // If the row is still expanded, eagerly refresh its timeline so
+      // the operator sees the new audit entry without collapsing first.
+      if (expandedId) loadHistoryFor(expandedId, true);
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to update status');
+      toast.error(err?.message || 'Failed to add deduction');
     } finally {
       setSavingStatus(false);
+    }
+  };
+
+  const handleRemoveDeduction = async (deductionId: string) => {
+    try {
+      await financeApi.removeDeduction(deductionId);
+      toast.success('Deduction removed');
+      invalidateHistory();
+      loadRecords();
+      // If the row is still expanded, eagerly refresh its timeline so
+      // the operator sees the new audit entry without collapsing first.
+      if (expandedId) loadHistoryFor(expandedId, true);
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to remove deduction');
     }
   };
 
@@ -345,7 +442,11 @@ export function FinancialRecordsTab({ entityType, entityId, canWrite, canChangeS
     try {
       await financeApi.delete(id);
       toast.success('Record deleted');
+      invalidateHistory();
       loadRecords();
+      // If the row is still expanded, eagerly refresh its timeline so
+      // the operator sees the new audit entry without collapsing first.
+      if (expandedId) loadHistoryFor(expandedId, true);
     } catch (err: any) {
       toast.error(err?.message || 'Delete failed');
     } finally {
@@ -365,7 +466,11 @@ export function FinancialRecordsTab({ entityType, entityId, canWrite, canChangeS
       toast.success('Attachment uploaded');
       setAttachingId(null);
       setAttachFile(null);
+      invalidateHistory();
       loadRecords();
+      // If the row is still expanded, eagerly refresh its timeline so
+      // the operator sees the new audit entry without collapsing first.
+      if (expandedId) loadHistoryFor(expandedId, true);
     } catch (err: any) {
       toast.error(err?.message || 'Upload failed');
     } finally {
@@ -377,7 +482,11 @@ export function FinancialRecordsTab({ entityType, entityId, canWrite, canChangeS
     try {
       await financeApi.removeAttachment(recordId, attachmentId);
       toast.success('Attachment removed');
+      invalidateHistory();
       loadRecords();
+      // If the row is still expanded, eagerly refresh its timeline so
+      // the operator sees the new audit entry without collapsing first.
+      if (expandedId) loadHistoryFor(expandedId, true);
     } catch (err: any) {
       toast.error(err?.message || 'Remove failed');
     }
@@ -391,7 +500,20 @@ export function FinancialRecordsTab({ entityType, entityId, canWrite, canChangeS
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `financial-records-${entityId.slice(0, 8)}.xlsx`;
+      // Name after the entity + compact timestamp so finance staff can
+      // stash multiple exports of the same person side-by-side without
+      // overwriting each other. Sanitise the display name down to
+      // filesystem-safe characters and fall back to the id slice.
+      const safeName = (entityName ?? '')
+        .trim()
+        .replace(/[^a-zA-Z0-9._-]+/g, '_')
+        .replace(/^_+|_+$/g, '')
+        .slice(0, 60)
+        || entityId.slice(0, 8);
+      const now = new Date();
+      const pad = (n: number) => String(n).padStart(2, '0');
+      const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}`;
+      a.download = `${safeName}_financial_records_${stamp}.xlsx`;
       a.click();
       URL.revokeObjectURL(url);
     } catch (err: any) {
@@ -516,10 +638,17 @@ export function FinancialRecordsTab({ entityType, entityId, canWrite, canChangeS
                       <tr
                         key={rec.id}
                         className="border-b hover:bg-muted/20 transition-colors cursor-pointer"
-                        onClick={() => setExpandedId(expandedId === rec.id ? null : rec.id)}
+                        onClick={() => {
+                          const next = expandedId === rec.id ? null : rec.id;
+                          setExpandedId(next);
+                          // Lazy-load the change history the first
+                          // time the row expands so closed rows don't
+                          // cost a request.
+                          if (next) loadHistoryFor(rec.id);
+                        }}
                       >
                         <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
-                          {fmtDate(rec.transactionDate)}
+                          {fmtDateTime(rec.transactionDate)}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
                           <span className="font-medium">{rec.transactionType}</span>
@@ -578,11 +707,11 @@ export function FinancialRecordsTab({ entityType, entityId, canWrite, canChangeS
                                 >
                                   <Edit2 className="w-3.5 h-3.5" />
                                 </Button>
-                                {canChangeStatus && rec.status === 'PENDING' && (
+                                {canChangeStatus && rec.status !== 'DEDUCTED' && (
                                   <Button
                                     size="icon" variant="ghost"
                                     className="h-7 w-7 text-amber-600"
-                                    title="Mark as Deducted"
+                                    title={rec.status === 'PARTIAL' ? 'Add another deduction' : 'Add first deduction'}
                                     onClick={() => openStatus(rec)}
                                   >
                                     <CheckCircle className="w-3.5 h-3.5" />
@@ -606,24 +735,82 @@ export function FinancialRecordsTab({ entityType, entityId, canWrite, canChangeS
                       {/* Expanded detail row */}
                       {expandedId === rec.id && (
                         <tr key={`${rec.id}-detail`} className="bg-muted/10 border-b">
-                          <td colSpan={9} className="px-6 py-4">
+                          <td colSpan={10} className="px-6 py-4">
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                               <div className="space-y-2">
                                 <p className="font-medium text-xs text-muted-foreground uppercase tracking-wide">Transaction Details</p>
+                                {/* Description = customer-facing line shown in the
+                                    row above (truncated there). We repeat it in full
+                                    here because long descriptions get clipped in the
+                                    narrow Description column. */}
+                                <InfoItem label="Description" value={rec.description || '—'} />
                                 {rec.paymentMethod && <InfoItem label="Payment Method" value={rec.paymentMethod} />}
                                 {rec.paidByName && <InfoItem label="Paid By" value={rec.paidByName} />}
                                 {rec.paidByUser && <InfoItem label="Recorded By" value={`${rec.paidByUser.firstName} ${rec.paidByUser.lastName}`} />}
                                 <InfoItem label="Currency" value={rec.currency} />
-                                {rec.notes && <InfoItem label="Notes" value={rec.notes} />}
+                                {rec.notes && <InfoItem label="Internal Notes" value={rec.notes} />}
                               </div>
-                              {rec.status === 'DEDUCTED' && (
-                                <div className="space-y-2">
-                                  <p className="font-medium text-xs text-muted-foreground uppercase tracking-wide">Deduction Info</p>
-                                  {rec.deductionAmount != null && <InfoItem label="Deduction Amount" value={fmt(rec.deductionAmount, rec.currency)} />}
-                                  {rec.deductionDate && <InfoItem label="Deduction Date" value={fmtDate(rec.deductionDate)} />}
-                                  {rec.payrollReference && <InfoItem label="Payroll Ref" value={rec.payrollReference} />}
+                              {/* Deductions — the record can carry any
+                                  number of partial payroll deductions.
+                                  Always shown; empty state explains how
+                                  to start deducting. */}
+                              <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                  <p className="font-medium text-xs text-muted-foreground uppercase tracking-wide">
+                                    Deductions ({rec.deductions?.length ?? 0})
+                                  </p>
+                                  {(() => {
+                                    const sum = (rec.deductions ?? []).reduce((s, d) => s + Number(d.amount ?? 0), 0)
+                                      || Number(rec.deductionAmount ?? 0);
+                                    const remaining = Math.max(0, Number(rec.companyDisbursedAmount) - sum);
+                                    return (
+                                      <span className="text-xs text-muted-foreground">
+                                        {fmt(sum, rec.currency)} / {fmt(rec.companyDisbursedAmount, rec.currency)}
+                                        {remaining > 0 && <> · remaining <span className="text-amber-700">{fmt(remaining, rec.currency)}</span></>}
+                                      </span>
+                                    );
+                                  })()}
                                 </div>
-                              )}
+                                {(rec.deductions?.length ?? 0) > 0 ? (
+                                  <div className="space-y-1">
+                                    {rec.deductions!.map(d => (
+                                      <div key={d.id} className="flex items-center justify-between gap-2 px-2 py-1.5 border rounded bg-white text-xs">
+                                        <div className="min-w-0 flex-1">
+                                          <p className="font-medium text-amber-700">{fmt(d.amount, rec.currency)}</p>
+                                          <p className="text-muted-foreground">
+                                            {fmtDate(d.deductionDate)}
+                                            {d.payrollReference && <> · {d.payrollReference}</>}
+                                          </p>
+                                        </div>
+                                        {canChangeStatus && (
+                                          <Button
+                                            size="icon" variant="ghost"
+                                            className="h-6 w-6 text-red-500 shrink-0"
+                                            title="Remove deduction"
+                                            onClick={() => handleRemoveDeduction(d.id)}
+                                          >
+                                            <Trash2 className="w-3 h-3" />
+                                          </Button>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <p className="text-xs text-muted-foreground italic">
+                                    No deductions yet — use the <CheckCircle className="inline w-3 h-3 mx-0.5 text-amber-600" /> action to record one.
+                                  </p>
+                                )}
+                                {canChangeStatus && rec.status !== 'DEDUCTED' && (
+                                  <Button
+                                    size="sm" variant="outline"
+                                    className="w-full text-xs mt-1"
+                                    onClick={() => openStatus(rec)}
+                                  >
+                                    <CheckCircle className="w-3 h-3 mr-1" />
+                                    {rec.status === 'PARTIAL' ? 'Add another deduction' : 'Add first deduction'}
+                                  </Button>
+                                )}
+                              </div>
                               <div className="space-y-2">
                                 <p className="font-medium text-xs text-muted-foreground uppercase tracking-wide">
                                   Attachments ({rec.attachments?.length ?? 0})
@@ -686,6 +873,28 @@ export function FinancialRecordsTab({ entityType, entityId, canWrite, canChangeS
                                 ) : null}
                               </div>
                             </div>
+
+                            {/* Change History — audit trail of everything
+                                that was done to this transaction (create,
+                                edits, deductions added/removed, status
+                                changes, attachments, delete). Lazy-loaded
+                                the first time the row is expanded. */}
+                            <div className="mt-6 pt-4 border-t">
+                              <p className="font-medium text-xs text-muted-foreground uppercase tracking-wide mb-2">
+                                Change History
+                              </p>
+                              {historyLoading[rec.id] ? (
+                                <p className="text-xs text-muted-foreground italic">Loading history…</p>
+                              ) : (history[rec.id]?.length ?? 0) === 0 ? (
+                                <p className="text-xs text-muted-foreground italic">No recorded changes yet.</p>
+                              ) : (
+                                <div className="space-y-1.5">
+                                  {history[rec.id]!.map((h: any) => (
+                                    <HistoryEntry key={h.id} entry={h} currency={rec.currency} />
+                                  ))}
+                                </div>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       )}
@@ -697,7 +906,9 @@ export function FinancialRecordsTab({ entityType, entityId, canWrite, canChangeS
                 {totals && records.length > 0 && (
                   <tfoot>
                     <tr className="bg-muted/30 border-t-2 font-semibold">
-                      <td colSpan={3} className="px-4 py-3 text-sm font-semibold">Totals</td>
+                      {/* Label spans Date, Type, Description, Stage so the
+                          first monetary cell lines up with Credit (↑). */}
+                      <td colSpan={4} className="px-4 py-3 text-sm font-semibold">Totals</td>
                       <td className="px-4 py-3 text-right text-blue-700">{fmt(totals.totalDisbursed, currency)}</td>
                       <td className="px-4 py-3 text-right text-slate-500 text-xs">{fmt(totals.totalEmpAgency, currency)}</td>
                       <td className="px-4 py-3 text-right text-amber-700">{fmt(totals.totalDeducted, currency)}</td>
@@ -706,10 +917,11 @@ export function FinancialRecordsTab({ entityType, entityId, canWrite, canChangeS
                           {fmt(totals.currentBalance, currency)}
                         </span>
                       </td>
+                      {/* Status + Actions are non-numeric — leave them blank. */}
                       <td colSpan={2} />
                     </tr>
                     <tr className="bg-muted/10">
-                      <td colSpan={9} className="px-4 py-2 text-xs text-muted-foreground">
+                      <td colSpan={10} className="px-4 py-2 text-xs text-muted-foreground">
                         <span className="text-blue-600 font-medium">Credit (↑)</span> = company disbursed amount &nbsp;·&nbsp;
                         <span className="text-amber-600 font-medium">Debit (↓)</span> = payroll deduction &nbsp;·&nbsp;
                         <span className="text-slate-500">Emp/Agency</span> = paid by employee/agency (informational, excluded from balance) &nbsp;·&nbsp;
@@ -740,9 +952,9 @@ export function FinancialRecordsTab({ entityType, entityId, canWrite, canChangeS
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Date */}
                 <div className="space-y-1">
-                  <Label className="text-xs">Transaction Date *</Label>
+                  <Label className="text-xs">Transaction Date & Time *</Label>
                   <Input
-                    type="date"
+                    type="datetime-local"
                     value={form.transactionDate}
                     onChange={e => setForm(f => ({ ...f, transactionDate: e.target.value }))}
                   />
@@ -771,14 +983,17 @@ export function FinancialRecordsTab({ entityType, entityId, canWrite, canChangeS
                     </SelectContent>
                   </Select>
                 </div>
-                {/* Description */}
+                {/* Description — short summary shown on the table row. */}
                 <div className="space-y-1 md:col-span-2">
                   <Label className="text-xs">Description</Label>
                   <Input
-                    placeholder="Brief description of the disbursement"
+                    placeholder="Short summary shown on the ledger row (e.g. 'Q1 visa fee')"
                     value={form.description}
                     onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                   />
+                  <p className="text-[11px] text-muted-foreground">
+                    Brief line visible in the transaction table and expand panel.
+                  </p>
                 </div>
                 {/* Company disbursed (Credit) */}
                 <div className="space-y-1">
@@ -790,8 +1005,19 @@ export function FinancialRecordsTab({ entityType, entityId, canWrite, canChangeS
                     placeholder="0.00"
                     value={form.companyDisbursedAmount}
                     onChange={e => setForm(f => ({ ...f, companyDisbursedAmount: e.target.value }))}
+                    // Lock the monetary amounts once payroll has been
+                    // processed — changing them would silently re-balance
+                    // the ledger without matching reality. Reset status
+                    // to PENDING first if the amount truly needs fixing.
+                    disabled={editRecord?.status === 'DEDUCTED' || editRecord?.status === 'PARTIAL'}
                   />
-                  <p className="text-xs text-muted-foreground">Amount paid BY the company TO/FOR the person</p>
+                  <p className="text-xs text-muted-foreground">
+                    {editRecord?.status === 'DEDUCTED'
+                      ? 'Locked — this transaction has already been fully deducted through payroll.'
+                      : editRecord?.status === 'PARTIAL'
+                        ? 'Locked — at least one partial deduction is already recorded. Remove the deductions first to change the disbursed amount.'
+                        : 'Amount paid BY the company TO/FOR the person'}
+                  </p>
                 </div>
                 {/* Employee/agency paid (informational) */}
                 <div className="space-y-1">
@@ -803,9 +1029,34 @@ export function FinancialRecordsTab({ entityType, entityId, canWrite, canChangeS
                     placeholder="0.00"
                     value={form.employeeOrAgencyPaidAmount}
                     onChange={e => setForm(f => ({ ...f, employeeOrAgencyPaidAmount: e.target.value }))}
+                    disabled={editRecord?.status === 'DEDUCTED' || editRecord?.status === 'PARTIAL'}
                   />
-                  <p className="text-xs text-muted-foreground">Not included in balance — reconciliation only</p>
+                  <p className="text-xs text-muted-foreground">
+                    {editRecord?.status === 'DEDUCTED' || editRecord?.status === 'PARTIAL'
+                      ? 'Locked — part of a deducted transaction.'
+                      : 'Not included in balance — reconciliation only'}
+                  </p>
                 </div>
+
+                {/* Show the already-applied deduction amount read-only so
+                    the operator can see what was deducted without having
+                    to reopen the status dialog. */}
+                {editRecord?.status === 'DEDUCTED' && (
+                  <div className="space-y-1 md:col-span-2">
+                    <Label className="text-xs text-amber-700">Deducted Amount (Debit) — locked</Label>
+                    <Input
+                      type="number"
+                      value={editRecord.deductionAmount ?? ''}
+                      readOnly
+                      disabled
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Recorded on {editRecord.deductionDate ? fmtDate(editRecord.deductionDate) : '—'}.
+                      {editRecord.payrollReference ? ` Payroll ref: ${editRecord.payrollReference}.` : ''}
+                      {' '}To correct a mistake, ask an admin to revert the status to Pending first.
+                    </p>
+                  </div>
+                )}
                 {/* Payment method */}
                 <div className="space-y-1">
                   <Label className="text-xs">Payment Method</Label>
@@ -842,24 +1093,21 @@ export function FinancialRecordsTab({ entityType, entityId, canWrite, canChangeS
                     </SelectContent>
                   </Select>
                 </div>
-                {/* Payroll Reference */}
+                {/* Payroll Reference is collected later, when the row is
+                    marked DEDUCTED via the status dialog — at creation
+                    time there's nothing to reconcile against yet. */}
+                {/* Notes — private, long-form context visible only in
+                    the expanded panel (not the ledger row). */}
                 <div className="space-y-1">
-                  <Label className="text-xs">Payroll Reference</Label>
+                  <Label className="text-xs">Internal Notes</Label>
                   <Input
-                    placeholder="e.g. PAY-2026-04"
-                    value={form.payrollReference}
-                    onChange={e => setForm(f => ({ ...f, payrollReference: e.target.value }))}
-                  />
-                  <p className="text-xs text-muted-foreground">For reconciliation purposes</p>
-                </div>
-                {/* Notes */}
-                <div className="space-y-1">
-                  <Label className="text-xs">Notes</Label>
-                  <Input
-                    placeholder="Internal notes"
+                    placeholder="Context / reasoning for the finance team"
                     value={form.notes}
                     onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
                   />
+                  <p className="text-[11px] text-muted-foreground">
+                    Longer internal-only context, shown only when the row is expanded.
+                  </p>
                 </div>
               </div>
 
@@ -945,12 +1193,22 @@ export function FinancialRecordsTab({ entityType, entityId, canWrite, canChangeS
       )}
 
       {/* ── Status / Deduction Modal ──────────────────────────────────────── */}
-      {showStatusModal && statusRecord && (
+      {showStatusModal && statusRecord && (() => {
+        // Derive the remaining balance so the dialog can cap + label
+        // the input accurately whether this is the first, middle, or
+        // final deduction of a multi-tranche recovery.
+        const alreadyDeducted = (statusRecord.deductions ?? []).reduce((s, d) => s + Number(d.amount ?? 0), 0)
+          || Number(statusRecord.deductionAmount ?? 0);
+        const disbursed = Number(statusRecord.companyDisbursedAmount ?? 0);
+        const remaining = Math.max(0, disbursed - alreadyDeducted);
+        const isAdditional = (statusRecord.deductions?.length ?? 0) > 0 || alreadyDeducted > 0;
+        return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <Card className="max-w-md w-full">
             <CardHeader className="flex flex-row items-center justify-between pb-3">
               <CardTitle className="text-lg flex items-center gap-2">
-                <CheckCircle className="w-5 h-5 text-amber-600" />Mark as Deducted
+                <CheckCircle className="w-5 h-5 text-amber-600" />
+                {isAdditional ? 'Add Another Deduction' : 'Add Deduction'}
               </CardTitle>
               <Button size="icon" variant="ghost" onClick={() => setShowStatusModal(false)}>
                 <X className="w-4 h-4" />
@@ -959,7 +1217,13 @@ export function FinancialRecordsTab({ entityType, entityId, canWrite, canChangeS
             <CardContent className="space-y-4">
               <div className="rounded-lg bg-muted/40 p-3 text-sm space-y-1">
                 <p><span className="text-muted-foreground">Transaction:</span> <span className="font-medium">{statusRecord.transactionType}</span></p>
-                <p><span className="text-muted-foreground">Original Amount:</span> <span className="font-medium text-blue-700">{fmt(statusRecord.companyDisbursedAmount, statusRecord.currency)}</span></p>
+                <p><span className="text-muted-foreground">Original Amount:</span> <span className="font-medium text-blue-700">{fmt(disbursed, statusRecord.currency)}</span></p>
+                {isAdditional && (
+                  <>
+                    <p><span className="text-muted-foreground">Already Deducted:</span> <span className="font-medium text-amber-700">{fmt(alreadyDeducted, statusRecord.currency)}</span></p>
+                    <p><span className="text-muted-foreground">Remaining:</span> <span className="font-medium text-emerald-700">{fmt(remaining, statusRecord.currency)}</span></p>
+                  </>
+                )}
                 {statusRecord.description && <p><span className="text-muted-foreground">Description:</span> {statusRecord.description}</p>}
               </div>
               <div className="space-y-3">
@@ -969,11 +1233,11 @@ export function FinancialRecordsTab({ entityType, entityId, canWrite, canChangeS
                     type="number"
                     min="0.01"
                     step="0.01"
-                    max={Number(statusRecord.companyDisbursedAmount)}
+                    max={remaining}
                     value={statusForm.deductionAmount}
                     onChange={e => setStatusForm(f => ({ ...f, deductionAmount: e.target.value }))}
                   />
-                  <p className="text-xs text-muted-foreground">Must be ≤ {fmt(statusRecord.companyDisbursedAmount, statusRecord.currency)}</p>
+                  <p className="text-xs text-muted-foreground">Must be ≤ {fmt(remaining, statusRecord.currency)} (the remaining balance)</p>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs">Deduction Date</Label>
@@ -1007,7 +1271,8 @@ export function FinancialRecordsTab({ entityType, entityId, canWrite, canChangeS
             </CardContent>
           </Card>
         </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
@@ -1019,6 +1284,13 @@ function StatusBadge({ status }: { status: string }) {
     return (
       <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 font-medium text-xs">
         <CheckCircle className="w-3 h-3 mr-1" />Deducted
+      </Badge>
+    );
+  }
+  if (status === 'PARTIAL') {
+    return (
+      <Badge className="bg-blue-100 text-blue-800 border-blue-200 font-medium text-xs">
+        <Clock className="w-3 h-3 mr-1" />Partial
       </Badge>
     );
   }
@@ -1034,6 +1306,95 @@ function InfoItem({ label, value }: { label: string; value: string }) {
     <div className="flex gap-2 text-xs">
       <span className="text-muted-foreground shrink-0">{label}:</span>
       <span className="font-medium">{value}</span>
+    </div>
+  );
+}
+
+// Renders one audit-log entry as a compact two-line card. Accepts the
+// currency so monetary diffs can be rendered with the right formatting.
+function HistoryEntry({ entry, currency }: { entry: any; currency: string }) {
+  const when = new Date(entry.createdAt);
+  const stamp = `${when.toLocaleDateString()} ${when.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+  const who = entry.user?.name || entry.user?.email || entry.userEmail || 'System';
+
+  // Map backend action codes into friendly verbs + tone classes so the
+  // panel reads like a timeline rather than a raw log.
+  const META: Record<string, { label: string; tone: string }> = {
+    FINANCIAL_RECORD_CREATED:            { label: 'Created transaction',       tone: 'text-blue-700 bg-blue-50 border-blue-200' },
+    FINANCIAL_RECORD_UPDATED:            { label: 'Updated fields',            tone: 'text-slate-700 bg-slate-50 border-slate-200' },
+    FINANCIAL_RECORD_STATUS_CHANGED:     { label: 'Changed status',            tone: 'text-amber-700 bg-amber-50 border-amber-200' },
+    FINANCIAL_RECORD_DEDUCTION_ADDED:    { label: 'Added deduction',           tone: 'text-emerald-700 bg-emerald-50 border-emerald-200' },
+    FINANCIAL_RECORD_DEDUCTION_REMOVED:  { label: 'Removed deduction',         tone: 'text-red-700 bg-red-50 border-red-200' },
+    FINANCIAL_ATTACHMENT_ADDED:          { label: 'Attached file',             tone: 'text-indigo-700 bg-indigo-50 border-indigo-200' },
+    FINANCIAL_ATTACHMENT_REMOVED:        { label: 'Removed attachment',        tone: 'text-red-700 bg-red-50 border-red-200' },
+    FINANCIAL_RECORD_DELETED:            { label: 'Deleted transaction',       tone: 'text-red-700 bg-red-50 border-red-200' },
+  };
+  const meta = META[entry.action] ?? { label: entry.action, tone: 'text-slate-700 bg-slate-50 border-slate-200' };
+  const changes = entry.changes ?? {};
+
+  // Build a short human-readable summary of what changed per action.
+  const fmtCurrency = (v: any) => {
+    const n = Number(v);
+    if (Number.isFinite(n)) {
+      try { return `${currency} ${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`; }
+      catch { return `${currency} ${n.toFixed(2)}`; }
+    }
+    return String(v);
+  };
+  const parts: string[] = [];
+  switch (entry.action) {
+    case 'FINANCIAL_RECORD_CREATED':
+      if (changes.transactionType) parts.push(String(changes.transactionType));
+      if (changes.companyDisbursedAmount != null) parts.push(fmtCurrency(changes.companyDisbursedAmount));
+      break;
+    case 'FINANCIAL_RECORD_UPDATED': {
+      const diff = changes.diff ?? {};
+      Object.entries(diff).forEach(([field, v]: [string, any]) => {
+        const isMoney = field === 'companyDisbursedAmount' || field === 'employeeOrAgencyPaidAmount';
+        const from = isMoney ? fmtCurrency(v.from) : (v.from ?? '∅');
+        const to   = isMoney ? fmtCurrency(v.to)   : (v.to   ?? '∅');
+        parts.push(`${field}: ${from} → ${to}`);
+      });
+      if (parts.length === 0 && Array.isArray(changes.changed) && changes.changed.length > 0) {
+        parts.push(changes.changed.join(', '));
+      }
+      break;
+    }
+    case 'FINANCIAL_RECORD_STATUS_CHANGED':
+      if (changes.oldStatus || changes.newStatus) parts.push(`${changes.oldStatus ?? '?'} → ${changes.newStatus ?? '?'}`);
+      if (changes.deductionAmount != null) parts.push(`amount ${fmtCurrency(changes.deductionAmount)}`);
+      if (changes.payrollReference) parts.push(`ref ${changes.payrollReference}`);
+      break;
+    case 'FINANCIAL_RECORD_DEDUCTION_ADDED':
+      if (changes.amount != null) parts.push(fmtCurrency(changes.amount));
+      if (changes.deductionDate) parts.push(`on ${changes.deductionDate}`);
+      if (changes.payrollReference) parts.push(`ref ${changes.payrollReference}`);
+      if (changes.runningTotal != null) parts.push(`total ${fmtCurrency(changes.runningTotal)}`);
+      if (changes.nextStatus) parts.push(`→ ${changes.nextStatus}`);
+      break;
+    case 'FINANCIAL_RECORD_DEDUCTION_REMOVED':
+      if (changes.removedAmount != null) parts.push(`−${fmtCurrency(changes.removedAmount)}`);
+      if (changes.runningTotal != null) parts.push(`total ${fmtCurrency(changes.runningTotal)}`);
+      if (changes.nextStatus) parts.push(`→ ${changes.nextStatus}`);
+      break;
+    case 'FINANCIAL_ATTACHMENT_ADDED':
+    case 'FINANCIAL_ATTACHMENT_REMOVED':
+      if (changes.name) parts.push(changes.name);
+      break;
+  }
+
+  return (
+    <div className={`flex items-start justify-between gap-3 px-2.5 py-1.5 border rounded text-xs ${meta.tone}`}>
+      <div className="min-w-0 flex-1">
+        <p className="font-medium">{meta.label}</p>
+        {parts.length > 0 && (
+          <p className="text-[11px] text-muted-foreground break-words">{parts.join(' · ')}</p>
+        )}
+      </div>
+      <div className="text-right shrink-0">
+        <p className="font-medium">{who}</p>
+        <p className="text-[11px] text-muted-foreground">{stamp}</p>
+      </div>
     </div>
   );
 }

@@ -5,13 +5,18 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/ca
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { toast } from 'sonner';
-import { agenciesApi, usersApi } from '../../services/api';
+import { confirm } from '../../components/ui/ConfirmDialog';
+import { agenciesApi, usersApi, getCurrentUser } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
+
+const ADMIN_ROLES = ['System Admin', 'HR Manager'];
 
 export function AgencyUsersManagement() {
   const { id } = useParams();
   const { canCreate, canDelete, can } = usePermissions();
   const canManageUsers = canCreate('users') || can('agencies', 'update');
+  const currentUser = getCurrentUser();
+  const isAdmin = ADMIN_ROLES.includes(currentUser?.role ?? '');
 
   const [agency, setAgency] = useState<any>(null);
   const [agencyUsers, setAgencyUsers] = useState<any[]>([]);
@@ -30,8 +35,33 @@ export function AgencyUsersManagement() {
       .finally(() => setLoading(false));
   }, [id]);
 
+  const handleApprove = async (user: any) => {
+    try {
+      const updated = await usersApi.approveAgencyUser(user.id);
+      setAgencyUsers(prev => prev.map(u => u.id === user.id ? { ...u, ...updated } : u));
+      toast.success('User approved');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to approve user');
+    }
+  };
+
+  const handleManagerOverride = async (user: any, flags: { allowManagerEdit?: boolean; allowManagerDelete?: boolean }) => {
+    try {
+      const updated = await usersApi.setManagerOverride(user.id, flags);
+      setAgencyUsers(prev => prev.map(u => u.id === user.id ? { ...u, ...updated } : u));
+      toast.success('Manager override updated');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to update override');
+    }
+  };
+
   const handleDeleteUser = async (user: any) => {
-    if (!confirm(`Are you sure you want to remove ${user.firstName} ${user.lastName} from this agency?`)) return;
+    if (!(await confirm({
+      title: 'Remove user from agency?',
+      description: `${user.firstName} ${user.lastName} will be removed from this agency.`,
+      confirmText: 'Remove',
+      tone: 'destructive',
+    }))) return;
     try {
       await usersApi.delete(user.id);
       setAgencyUsers(prev => prev.filter(u => u.id !== user.id));
@@ -140,6 +170,7 @@ export function AgencyUsersManagement() {
                   <tr>
                     <th className="text-left p-4 font-semibold text-sm">User</th>
                     <th className="text-left p-4 font-semibold text-sm">Role</th>
+                    <th className="text-left p-4 font-semibold text-sm">Approval</th>
                     <th className="text-left p-4 font-semibold text-sm">Status</th>
                     <th className="text-left p-4 font-semibold text-sm">Last Login</th>
                     <th className="text-left p-4 font-semibold text-sm">Actions</th>
@@ -164,6 +195,21 @@ export function AgencyUsersManagement() {
                         </Badge>
                       </td>
                       <td className="p-4">
+                        {user.approvalStatus === 'PENDING_APPROVAL' ? (
+                          <Badge className="bg-amber-100 text-amber-900 border border-amber-300">Pending</Badge>
+                        ) : user.approvalStatus === 'REJECTED' ? (
+                          <Badge className="bg-red-100 text-red-900 border border-red-300">Rejected</Badge>
+                        ) : (
+                          <Badge className="bg-emerald-100 text-emerald-900 border border-emerald-300">Approved</Badge>
+                        )}
+                        {user.approvalStatus === 'APPROVED' && (user.allowManagerEdit || user.allowManagerDelete) && (
+                          <div className="text-[10px] text-muted-foreground mt-1">
+                            Manager override:{' '}
+                            {[user.allowManagerEdit && 'edit', user.allowManagerDelete && 'delete'].filter(Boolean).join(' + ')}
+                          </div>
+                        )}
+                      </td>
+                      <td className="p-4">
                         <Badge className={user.status === 'ACTIVE' ? 'bg-[#22C55E]' : 'bg-gray-500'}>
                           {user.status}
                         </Badge>
@@ -172,16 +218,31 @@ export function AgencyUsersManagement() {
                         {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString() : '—'}
                       </td>
                       <td className="p-4">
-                        {(canDelete('users') || can('agencies', 'delete')) && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleDeleteUser(user)}
-                            className="text-[#EF4444] hover:text-[#EF4444] hover:bg-[#FEF2F2]"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        )}
+                        <div className="flex items-center gap-2">
+                          {isAdmin && user.approvalStatus === 'PENDING_APPROVAL' && (
+                            <Button size="sm" onClick={() => handleApprove(user)}>Approve</Button>
+                          )}
+                          {isAdmin && user.approvalStatus === 'APPROVED' && (
+                            <>
+                              <Button size="sm" variant="outline" onClick={() => handleManagerOverride(user, { allowManagerEdit: !user.allowManagerEdit })}>
+                                {user.allowManagerEdit ? 'Lock edits' : 'Allow edits'}
+                              </Button>
+                              <Button size="sm" variant="outline" onClick={() => handleManagerOverride(user, { allowManagerDelete: !user.allowManagerDelete })}>
+                                {user.allowManagerDelete ? 'Lock delete' : 'Allow delete'}
+                              </Button>
+                            </>
+                          )}
+                          {(canDelete('users') || can('agencies', 'delete')) && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleDeleteUser(user)}
+                              className="text-[#EF4444] hover:text-[#EF4444] hover:bg-[#FEF2F2]"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}

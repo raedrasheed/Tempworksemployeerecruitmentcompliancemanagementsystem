@@ -14,6 +14,7 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { RequirePermission } from '../auth/decorators/require-permission.decorator';
 
 @ApiTags('Users')
 @ApiBearerAuth()
@@ -76,25 +77,25 @@ export class UsersController {
 
   @Get()
   @Roles('System Admin', 'HR Manager', 'Read Only', 'Agency Manager')
-  @ApiOperation({ summary: 'List all users with pagination and filters' })
+  @ApiOperation({ summary: 'List users (Agency Manager sees only own-agency users)' })
   @ApiQuery({ name: 'roleId', required: false })
   @ApiQuery({ name: 'status', required: false })
   findAll(@Query() query: PaginationDto & { roleId?: string; status?: string }, @CurrentUser() caller: any) {
-    return this.usersService.findAll(query, caller?.role, caller?.agencyId);
+    return this.usersService.findAll(query, caller?.role, caller?.agencyId, caller?.agencyIsSystem);
   }
 
   // ── Single user ───────────────────────────────────────────────────────────────
 
   @Get(':id')
   @Roles('System Admin', 'HR Manager', 'Agency Manager')
-  @ApiOperation({ summary: 'Get user by ID' })
+  @ApiOperation({ summary: 'Get user by ID (Agency Manager limited to own-agency users)' })
   findOne(@Param('id') id: string, @CurrentUser() caller: any) {
-    return this.usersService.findOne(id, caller?.role, caller?.agencyId);
+    return this.usersService.findOne(id, caller?.role, caller?.agencyId, caller?.agencyIsSystem);
   }
 
   @Post()
   @Roles('System Admin', 'Agency Manager')
-  @ApiOperation({ summary: 'Create new user' })
+  @ApiOperation({ summary: 'Create new user (Agency Manager scoped to own agency with max-users limit)' })
   @ApiResponse({ status: 201, description: 'User created successfully' })
   create(@Body() dto: CreateUserDto, @CurrentUser() caller: any) {
     return this.usersService.create(dto, caller?.role, caller?.agencyId, caller?.id);
@@ -102,16 +103,26 @@ export class UsersController {
 
   @Patch(':id')
   @Roles('System Admin', 'HR Manager')
-  @ApiOperation({ summary: 'Update user (admin-only fields enforced by role)' })
+  @RequirePermission('users:update')
+  @ApiOperation({
+    summary:
+      'Update user. Agency Manager / tenant roles reach this via users:update ' +
+      '— the service enforces the approval + allowManagerEdit override gate.',
+  })
   update(@Param('id') id: string, @Body() dto: UpdateUserDto, @CurrentUser() caller: any) {
-    return this.usersService.update(id, dto, caller?.role, caller?.id);
+    return this.usersService.update(id, dto, caller?.role, caller?.id, caller?.agencyIsSystem);
   }
 
   @Delete(':id')
   @Roles('System Admin')
-  @ApiOperation({ summary: 'Delete user (soft delete)' })
+  @RequirePermission('users:delete')
+  @ApiOperation({
+    summary:
+      'Delete user (soft delete). Tenant roles reach this via users:delete ' +
+      '— the service enforces the approval + allowManagerDelete override gate.',
+  })
   remove(@Param('id') id: string, @CurrentUser() caller: any) {
-    return this.usersService.remove(id, caller?.role, caller?.id);
+    return this.usersService.remove(id, caller?.role, caller?.id, caller?.agencyIsSystem);
   }
 
   // ── Photo upload ──────────────────────────────────────────────────────────────
@@ -190,6 +201,30 @@ export class UsersController {
   @ApiOperation({ summary: 'Unlock a locked user account' })
   unlockUser(@Param('id') id: string, @CurrentUser('id') actorId: string) {
     return this.usersService.unlockUser(id, actorId);
+  }
+
+  // ── Agency user approval + manager override (admin only) ────────────────────
+
+  @Post(':id/approve')
+  @Roles('System Admin', 'HR Manager')
+  @ApiOperation({ summary: 'Approve an agency-created user so they enter operational status' })
+  approveAgencyUser(@Param('id') id: string, @CurrentUser('id') actorId: string) {
+    return this.usersService.approveAgencyUser(id, actorId);
+  }
+
+  @Post(':id/manager-override')
+  @Roles('System Admin')
+  @ApiOperation({
+    summary:
+      'Grant or revoke the owning Agency Manager\'s ability to edit/delete an approved user. ' +
+      'System Admin only. Body: { allowManagerEdit?: boolean, allowManagerDelete?: boolean }',
+  })
+  setManagerOverride(
+    @Param('id') id: string,
+    @Body() dto: { allowManagerView?: boolean; allowManagerEdit?: boolean; allowManagerDelete?: boolean },
+    @CurrentUser('id') actorId: string,
+  ) {
+    return this.usersService.setManagerOverride(id, dto ?? {}, actorId);
   }
 
   // ── Activation link (for PENDING users without SMTP) ─────────────────────────

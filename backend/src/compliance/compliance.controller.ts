@@ -18,14 +18,14 @@ export class ComplianceController {
   constructor(private readonly complianceService: ComplianceService) {}
 
   @Get('dashboard')
-  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Finance', 'Read Only')
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Finance', 'Read Only')
   @ApiOperation({ summary: 'Get compliance dashboard summary' })
   getDashboard() {
     return this.complianceService.getDashboard();
   }
 
   @Get('alerts')
-  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Read Only')
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Read Only')
   @ApiOperation({ summary: 'Get compliance alerts with filtering' })
   @ApiQuery({ name: 'status', required: false })
   @ApiQuery({ name: 'severity', required: false })
@@ -38,7 +38,7 @@ export class ComplianceController {
   }
 
   @Get('expiring-documents')
-  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Read Only')
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Read Only')
   @ApiOperation({ summary: 'Get documents expiring within N days' })
   @ApiQuery({ name: 'days', required: false, description: 'Days threshold (default 30)' })
   getExpiringDocuments(@Query('days') days?: number) {
@@ -46,7 +46,7 @@ export class ComplianceController {
   }
 
   @Get('employees/:id')
-  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Read Only')
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Read Only')
   @ApiOperation({ summary: 'Get compliance status for a specific employee' })
   @ApiParam({ name: 'id', description: 'Employee UUID' })
   getEmployeeCompliance(@Param('id') id: string) {

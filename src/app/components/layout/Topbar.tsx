@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { Search, Bell, Settings, User, Lock, Globe, Moon, Sun, LogOut, ChevronDown, Eye, EyeOff, CheckCircle, X, Palette, CheckCheck, FileText, DollarSign, AlertTriangle, Info } from 'lucide-react';
+import { Search, Bell, Settings, User, Lock, Globe, Moon, Sun, LogOut, ChevronDown, Eye, EyeOff, CheckCircle, X, Palette, CheckCheck, FileText, DollarSign, AlertTriangle, Info, Building2 } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
@@ -20,6 +20,7 @@ import {
   DialogTitle,
 } from '../ui/dialog';
 import { authApi, getCurrentUser, setCurrentUser, notificationsApi, BACKEND_URL, type AuthUser } from '../../services/api';
+import { useAuthContext } from '../../contexts/AuthContext';
 import { toast } from 'sonner';
 
 // ── Notification bell dropdown ────────────────────────────────────────────────
@@ -388,15 +389,23 @@ function ChangePasswordDialog({ open, onClose }: { open: boolean; onClose: () =>
 export function Topbar() {
   const navigate = useNavigate();
   const { isDark, toggleDark } = useTheme();
+  const { user: ctxUser, updateUser } = useAuthContext();
   const [unreadCount, setUnreadCount] = useState(0);
-  const [liveUser, setLiveUser] = useState<AuthUser | null>(getCurrentUser());
+  const [liveUser, setLiveUser] = useState<AuthUser | null>(ctxUser ?? getCurrentUser());
   const [showChangePassword, setShowChangePassword] = useState(false);
+
+  // Keep local display state aligned with AuthContext so Sidebar and Topbar
+  // never drift apart (e.g. after permission edits from the admin UI).
+  useEffect(() => {
+    if (ctxUser) setLiveUser(ctxUser);
+  }, [ctxUser]);
 
   useEffect(() => {
     authApi.me()
       .then((user) => {
         setLiveUser(user);
         setCurrentUser(user);
+        updateUser(user);
       })
       .catch(() => {});
 
@@ -409,6 +418,7 @@ export function Topbar() {
     fetchUnread();
     const interval = setInterval(fetchUnread, 30_000);
     return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleLogout = async () => {
@@ -478,6 +488,15 @@ export function Topbar() {
                 <span>Profile</span>
               </Link>
             </DropdownMenuItem>
+
+            {liveUser?.role === 'Agency Manager' && liveUser?.agencyId && (
+              <DropdownMenuItem asChild>
+                <Link to="/dashboard/my-agency" className="cursor-pointer">
+                  <Building2 className="w-4 h-4" />
+                  <span>Agency Profile</span>
+                </Link>
+              </DropdownMenuItem>
+            )}
 
             <DropdownMenuItem onClick={() => setShowChangePassword(true)} className="cursor-pointer">
               <Lock className="w-4 h-4" />

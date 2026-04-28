@@ -14,8 +14,8 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 
-const ALL_ROLES = ['System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Finance', 'Read Only'];
-const WRITE_ROLES = ['System Admin', 'HR Manager', 'Recruiter', 'Agency Manager'];
+const ALL_ROLES = ['System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Finance', 'Read Only'];
+const WRITE_ROLES = ['System Admin', 'HR Manager', 'Recruiter'];
 const ADMIN_ROLES = ['System Admin', 'HR Manager'];
 
 @ApiTags('Workflows')
@@ -83,11 +83,41 @@ export class WorkflowController {
     return this.workflowService.archiveWorkflow(id, req.user?.id);
   }
 
+  @Post(':id/copy')
+  @Roles(...ADMIN_ROLES)
+  @ApiOperation({ summary: 'Duplicate a workflow (stages, required docs, assigned users, access list)' })
+  copyWorkflow(@Param('id') id: string, @Body() body: { name?: string } = {}, @Request() req: any) {
+    return this.workflowService.copyWorkflow(id, { name: body?.name }, req.user?.id);
+  }
+
   @Delete(':id')
   @Roles('System Admin')
   @ApiOperation({ summary: 'Delete a workflow (soft delete)' })
   deleteWorkflow(@Param('id') id: string, @Request() req: any) {
     return this.workflowService.deleteWorkflow(id, req.user?.id);
+  }
+
+  // ─── Private access list ──────────────────────────────────────────────────
+
+  @Get(':id/access-users')
+  @Roles(...ALL_ROLES)
+  @ApiOperation({ summary: 'List users granted access to a (private) workflow' })
+  listAccessUsers(@Param('id') id: string) {
+    return this.workflowService.listAccessUsers(id);
+  }
+
+  @Post(':id/access-users/:userId')
+  @Roles(...ADMIN_ROLES)
+  @ApiOperation({ summary: 'Grant a user access to a private workflow' })
+  addAccessUser(@Param('id') id: string, @Param('userId') userId: string, @Request() req: any) {
+    return this.workflowService.addAccessUser(id, userId, req.user?.id);
+  }
+
+  @Delete(':id/access-users/:userId')
+  @Roles(...ADMIN_ROLES)
+  @ApiOperation({ summary: 'Revoke a user\'s access to a private workflow' })
+  removeAccessUser(@Param('id') id: string, @Param('userId') userId: string, @Request() req: any) {
+    return this.workflowService.removeAccessUser(id, userId, req.user?.id);
   }
 
   // ─── Stages ───────────────────────────────────────────────────────────────
@@ -131,9 +161,27 @@ export class WorkflowController {
 
   @Post('assign')
   @Roles(...WRITE_ROLES)
-  @ApiOperation({ summary: 'Assign a candidate to a workflow' })
+  @ApiOperation({ summary: 'Assign a candidate to a workflow (reassignment to a different workflow requires System Admin)' })
   assignCandidate(@Body() dto: AssignCandidateToWorkflowDto, @Request() req: any) {
-    return this.workflowService.assignCandidate(dto, req.user?.id);
+    return this.workflowService.assignCandidate(
+      dto,
+      req.user?.id,
+      { role: req.user?.role },
+    );
+  }
+
+  @Post('assign-bulk')
+  @Roles(...WRITE_ROLES)
+  @ApiOperation({ summary: 'Assign one workflow to many candidates in a single call (reassignment to a different workflow still requires System Admin per-candidate)' })
+  assignCandidatesBulk(
+    @Body() dto: { candidateIds: string[]; workflowId: string; notes?: string },
+    @Request() req: any,
+  ) {
+    return this.workflowService.assignCandidatesBulk(
+      dto,
+      req.user?.id,
+      { role: req.user?.role },
+    );
   }
 
   @Get('candidate/:candidateId/assignments')
@@ -217,6 +265,19 @@ export class WorkflowController {
   @ApiOperation({ summary: 'Delete a stage note' })
   deleteNote(@Param('noteId') noteId: string, @Request() req: any) {
     return this.workflowService.deleteNote(noteId, req.user?.id);
+  }
+
+  // ─── Flag ─────────────────────────────────────────────────────────────────
+
+  @Patch('progress/:progressId/flag')
+  @Roles(...WRITE_ROLES)
+  @ApiOperation({ summary: 'Toggle flagged state on a candidate stage progress' })
+  toggleFlag(
+    @Param('progressId') progressId: string,
+    @Body() body: { flagged: boolean; reason?: string | null },
+    @Request() req: any,
+  ) {
+    return this.workflowService.toggleProgressFlag(progressId, !!body.flagged, body.reason ?? null, req.user?.id);
   }
 
   // ─── Approvals ────────────────────────────────────────────────────────────

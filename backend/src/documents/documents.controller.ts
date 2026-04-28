@@ -21,6 +21,7 @@ import { PaginationDto } from '../common/dto/pagination.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { RequirePermission } from '../auth/decorators/require-permission.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Public } from '../auth/decorators/public.decorator';
 
@@ -55,21 +56,21 @@ export class DocumentsController {
   // ── List ───────────────────────────────────────────────────────────────────
 
   @Get()
-  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Finance', 'Read Only')
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Finance', 'Read Only')
   @ApiOperation({ summary: 'Get all documents (filterable, sortable, paginated)' })
   findAll(@Query() filter: FilterDocumentsDto) {
     return this.documentsService.findAll(filter);
   }
 
   @Get('expiring')
-  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Read Only')
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Read Only')
   @ApiOperation({ summary: 'Get documents expiring within N days' })
   getExpiring(@Query('days') days?: number) {
     return this.documentsService.getExpiringDocuments(days || 30);
   }
 
   @Get('entity/:entityType/:entityId')
-  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Finance', 'Read Only')
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Finance', 'Read Only')
   @ApiOperation({ summary: 'Get all documents for a specific entity (Candidate / Employee)' })
   @ApiParam({ name: 'entityType', description: 'EMPLOYEE | APPLICANT | AGENCY | USER' })
   @ApiParam({ name: 'entityId', description: 'Entity UUID' })
@@ -82,7 +83,7 @@ export class DocumentsController {
   }
 
   @Get(':id')
-  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Finance', 'Read Only')
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Finance', 'Read Only')
   @ApiOperation({ summary: 'Get document by internal UUID' })
   findOne(@Param('id') id: string) {
     return this.documentsService.findOne(id);
@@ -91,7 +92,7 @@ export class DocumentsController {
   // ── Bulk download ──────────────────────────────────────────────────────────
 
   @Post('bulk-download')
-  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Finance', 'Read Only')
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Finance', 'Read Only')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Download multiple documents as a structured ZIP archive' })
   async bulkDownload(@Body() dto: { ids: string[] }, @Res() res: Response) {
@@ -135,7 +136,7 @@ export class DocumentsController {
   // ── Authenticated upload ───────────────────────────────────────────────────
 
   @Post('upload')
-  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User')
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter')
   @UseInterceptors(fileInterceptor())
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Upload a document with file (authenticated)' })
@@ -169,7 +170,7 @@ export class DocumentsController {
   // ── Renew ──────────────────────────────────────────────────────────────────
 
   @Post(':id/renew')
-  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager')
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter')
   @UseInterceptors(fileInterceptor(true))
   @ApiConsumes('multipart/form-data')
   @ApiOperation({
@@ -198,6 +199,7 @@ export class DocumentsController {
 
   @Patch(':id')
   @Roles('System Admin', 'HR Manager', 'Compliance Officer')
+  @RequirePermission('documents:update')
   @ApiOperation({ summary: 'Update document metadata' })
   update(@Param('id') id: string, @Body() dto: Partial<CreateDocumentDto>, @CurrentUser() user: any) {
     return this.documentsService.update(id, dto, user?.id);

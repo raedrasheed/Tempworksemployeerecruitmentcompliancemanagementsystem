@@ -41,6 +41,10 @@ export interface AuthUser {
   lastName: string;
   role: string;
   agencyId?: string;
+  /** True when the user's agency is the Tempworks root/owner and they
+   *  therefore see global (non-tenant-scoped) data. False/undefined
+   *  means every backend query is filtered to their own agency. */
+  agencyIsSystem?: boolean;
   permissions?: string[];
   photoUrl?: string;
 }
@@ -290,6 +294,25 @@ export const employeesApi = {
 
   get: (id: string) => apiFetch<any>(`/employees/${id}`),
 
+  /** Build the .xlsx download URL. Pass `ids: string[]` to export only
+   *  the selected rows; otherwise the caller's filters apply. Returns a
+   *  URL that the UI fetches with an `Authorization` header. */
+  exportExcel: (params?: Record<string, any> & { ids?: string[] }) => {
+    const search = new URLSearchParams();
+    if (params) {
+      for (const [k, v] of Object.entries(params)) {
+        if (v == null || v === '') continue;
+        if (k === 'ids' && Array.isArray(v)) {
+          if (v.length > 0) search.set('ids', v.join(','));
+          continue;
+        }
+        search.set(k, String(v));
+      }
+    }
+    const qs = search.toString();
+    return `${API_URL}/employees/export/xlsx${qs ? '?' + qs : ''}`;
+  },
+
   create: (data: any) =>
     apiFetch<any>('/employees', { method: 'POST', body: JSON.stringify(data) }),
 
@@ -336,6 +359,30 @@ export const employeesApi = {
 
   // Banking/salary profile inherited from candidate stage (ApplicantFinancialProfile)
   getFinancialProfile: (id: string) => apiFetch<any>(`/employees/${id}/financial-profile`),
+
+  // Per-employee agency-access grants (admin-only)
+  listAgencyAccess: (id: string) =>
+    apiFetch<any[]>(`/employees/${id}/agency-access`),
+  grantAgencyAccess: (
+    id: string,
+    agencyId: string,
+    opts: { notes?: string; canView?: boolean; canEdit?: boolean } = {},
+  ) =>
+    apiFetch<any>(`/employees/${id}/agency-access`, {
+      method: 'POST',
+      body: JSON.stringify({ agencyId, ...opts }),
+    }),
+  updateAgencyAccess: (
+    id: string,
+    agencyId: string,
+    patch: { canView?: boolean; canEdit?: boolean; notes?: string },
+  ) =>
+    apiFetch<any>(`/employees/${id}/agency-access/${agencyId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(patch),
+    }),
+  revokeAgencyAccess: (id: string, agencyId: string) =>
+    apiFetch<any>(`/employees/${id}/agency-access/${agencyId}`, { method: 'DELETE' }),
 };
 
 // ─── Applicants API (includes merged Application methods) ────────────────────
@@ -393,15 +440,51 @@ export const applicantsApi = {
   getAgencyHistory: (id: string) =>
     apiFetch<any[]>(`/applicants/${id}/agency-history`),
 
-  bulkAction: (data: { ids: string[]; action: string; value?: string }) =>
+  bulkAction: (data: { ids: string[]; action: string; value?: string; agencyId?: string }) =>
     apiFetch<any>('/applicants/bulk-action', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
 
-  exportCsv: (params?: Record<string, any>) => {
-    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
-    return `${(import.meta as any).env?.VITE_API_URL || 'http://localhost:3000/api/v1'}/applicants/export/csv${qs}`;
+  approve: (id: string) =>
+    apiFetch<any>(`/applicants/${id}/approve`, { method: 'POST' }),
+
+  reject: (id: string, reason?: string) =>
+    apiFetch<any>(`/applicants/${id}/reject`, { method: 'POST', body: JSON.stringify({ reason }) }),
+
+  exportCsv: (params?: Record<string, any> & { ids?: string[] }) => {
+    const search = new URLSearchParams();
+    if (params) {
+      for (const [k, v] of Object.entries(params)) {
+        if (v == null || v === '') continue;
+        if (k === 'ids' && Array.isArray(v)) {
+          if (v.length > 0) search.set('ids', v.join(','));
+          continue;
+        }
+        search.set(k, String(v));
+      }
+    }
+    const qs = search.toString();
+    return `${(import.meta as any).env?.VITE_API_URL || 'http://localhost:3000/api/v1'}/applicants/export/csv${qs ? '?' + qs : ''}`;
+  },
+
+  /** Build the .xlsx download URL. Pass `ids: string[]` to export only
+   *  the selected rows; otherwise the caller's filters apply. Returns a
+   *  URL that the UI fetches with an `Authorization` header. */
+  exportExcel: (params?: Record<string, any> & { ids?: string[] }) => {
+    const search = new URLSearchParams();
+    if (params) {
+      for (const [k, v] of Object.entries(params)) {
+        if (v == null || v === '') continue;
+        if (k === 'ids' && Array.isArray(v)) {
+          if (v.length > 0) search.set('ids', v.join(','));
+          continue;
+        }
+        search.set(k, String(v));
+      }
+    }
+    const qs = search.toString();
+    return `${(import.meta as any).env?.VITE_API_URL || 'http://localhost:3000/api/v1'}/applicants/export/xlsx${qs ? '?' + qs : ''}`;
   },
 
   convertToEmployee: (id: string, data: any) =>
@@ -459,6 +542,61 @@ export const publicApplicationApi = {
     form.append('documentTypeName', documentTypeName);
     return apiFetch<any>('/documents/public/upload', { method: 'POST', body: form });
   },
+};
+
+// ─── Application Drafts API ──────────────────────────────────────────────────
+// Authenticated save-for-later flow. Each caller has at most one open
+// draft; the Applicant (Lead) row is created only by the submit call,
+// which then deletes the draft.
+export const applicationDraftsApi = {
+  /** Returns the caller's open draft, or null. */
+  getMine: () => apiFetch<any | null>('/application-drafts/mine'),
+
+  /** Upsert the caller's open draft. */
+  saveMine: (payload: { formData: Record<string, any>; jobAdId?: string }) =>
+    apiFetch<any>('/application-drafts/mine', {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
+
+  /** Discard the caller's open draft (idempotent). */
+  deleteMine: () =>
+    apiFetch<{ message: string }>('/application-drafts/mine', { method: 'DELETE' }),
+
+  /** Final submit: creates the Applicant (via shared applicants service)
+   *  and deletes the draft on success. Body shape matches the existing
+   *  POST /applicants endpoint. */
+  submitMine: (payload: any) =>
+    apiFetch<any>('/application-drafts/mine/submit', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  /** Upload / replace the draft's profile photo. */
+  uploadPhoto: (file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    return apiFetch<any>('/application-drafts/mine/photo', { method: 'POST', body: form });
+  },
+
+  /** Remove the draft's profile photo. */
+  deletePhoto: () =>
+    apiFetch<any>('/application-drafts/mine/photo', { method: 'DELETE' }),
+
+  /** Upload a supporting document to the draft. `sectionKey` slots the
+   *  file into the same form row when the draft is resumed. */
+  uploadDocument: (file: File, name: string, documentTypeName: string, sectionKey?: string) => {
+    const form = new FormData();
+    form.append('file', file);
+    form.append('name', name);
+    form.append('documentTypeName', documentTypeName);
+    if (sectionKey) form.append('sectionKey', sectionKey);
+    return apiFetch<any>('/application-drafts/mine/documents', { method: 'POST', body: form });
+  },
+
+  /** Remove a previously-uploaded supporting document. */
+  deleteDocument: (docId: string) =>
+    apiFetch<any>(`/application-drafts/mine/documents/${docId}`, { method: 'DELETE' }),
 };
 
 // ─── Documents API ───────────────────────────────────────────────────────────
@@ -621,6 +759,34 @@ export const agenciesApi = {
   getStats: (id: string) => apiFetch<any>(`/agencies/${id}/stats`),
 
   listPublic: () => apiFetch<{ id: string; name: string }[]>('/agencies/public'),
+
+  // Agency-wide permission overrides (admin-only)
+  listPermissionOverrides: (id: string) =>
+    apiFetch<any[]>(`/agencies/${id}/permission-overrides`),
+  setPermissionOverride: (id: string, permission: string, allow: boolean) =>
+    apiFetch<any>(`/agencies/${id}/permission-overrides`, { method: 'POST', body: JSON.stringify({ permission, allow }) }),
+  removePermissionOverride: (id: string, permission: string) =>
+    apiFetch<any>(`/agencies/${id}/permission-overrides/${encodeURIComponent(permission)}`, { method: 'DELETE' }),
+
+  setManager: (agencyId: string, userId: string) =>
+    apiFetch<any>(`/agencies/${agencyId}/manager`, { method: 'PATCH', body: JSON.stringify({ userId }) }),
+
+  uploadLogo: (id: string, file: File): Promise<any> => {
+    const token = getAccessToken();
+    const form = new FormData();
+    form.append('logo', file);
+    return fetch(`${API_URL}/agencies/${id}/logo`, {
+      method: 'PATCH',
+      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: form,
+    }).then(async res => {
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error((err as any)?.message || 'Logo upload failed');
+      }
+      return res.json();
+    });
+  },
 };
 
 // ─── Compliance API ───────────────────────────────────────────────────────────
@@ -751,6 +917,15 @@ export const usersApi = {
 
   getActivationLink: (id: string) =>
     apiFetch<{ url: string }>(`/users/${id}/activation-link`),
+
+  approveAgencyUser: (id: string) =>
+    apiFetch<any>(`/users/${id}/approve`, { method: 'POST' }),
+
+  setManagerOverride: (
+    id: string,
+    flags: { allowManagerView?: boolean; allowManagerEdit?: boolean; allowManagerDelete?: boolean },
+  ) =>
+    apiFetch<any>(`/users/${id}/manager-override`, { method: 'POST', body: JSON.stringify(flags) }),
 };
 
 // ─── Roles API ────────────────────────────────────────────────────────────────
@@ -790,6 +965,41 @@ export const settingsApi = {
     apiFetch<any>(`/settings/job-types/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   deleteJobType: (id: string) =>
     apiFetch(`/settings/job-types/${id}`, { method: 'DELETE' }),
+
+  // ── Finance transaction types (configurable list) ────────────────────────
+  getTransactionTypes: (includeInactive = false) =>
+    apiFetch<Array<{ id: string; name: string; isActive: boolean; sortOrder: number }>>(
+      `/settings/transaction-types${includeInactive ? '?includeInactive=true' : ''}`,
+    ),
+  createTransactionType: (data: { name: string; sortOrder?: number; isActive?: boolean }) =>
+    apiFetch<any>('/settings/transaction-types', { method: 'POST', body: JSON.stringify(data) }),
+  updateTransactionType: (id: string, data: { name?: string; sortOrder?: number; isActive?: boolean }) =>
+    apiFetch<any>(`/settings/transaction-types/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteTransactionType: (id: string) =>
+    apiFetch(`/settings/transaction-types/${id}`, { method: 'DELETE' }),
+
+  // ── Vehicle settings (centralised lookup lists) ─────────────────────────
+  // One endpoint returns every vehicle dropdown list keyed by short
+  // name; updateVehicleSetting persists one list at a time.
+  getVehicleSettings: () =>
+    apiFetch<Record<string, string[]>>(`/settings/vehicle`),
+  updateVehicleSetting: (key: string, values: string[]) =>
+    apiFetch<{ key: string; values: string[]; updatedAt: string }>(
+      `/settings/vehicle/${encodeURIComponent(key)}`,
+      { method: 'PATCH', body: JSON.stringify({ values }) },
+    ),
+
+  // ── Work History event types (configurable list) ────────────────────────
+  getWorkHistoryEventTypes: (includeInactive = false) =>
+    apiFetch<Array<{ id: string; value: string; label: string; isActive: boolean; sortOrder: number }>>(
+      `/settings/work-history-event-types${includeInactive ? '?includeInactive=true' : ''}`,
+    ),
+  createWorkHistoryEventType: (data: { value: string; label: string; sortOrder?: number; isActive?: boolean }) =>
+    apiFetch<any>('/settings/work-history-event-types', { method: 'POST', body: JSON.stringify(data) }),
+  updateWorkHistoryEventType: (id: string, data: { value?: string; label?: string; sortOrder?: number; isActive?: boolean }) =>
+    apiFetch<any>(`/settings/work-history-event-types/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteWorkHistoryEventType: (id: string) =>
+    apiFetch(`/settings/work-history-event-types/${id}`, { method: 'DELETE' }),
 
   // Document Types
   getDocumentTypes: () => apiFetch<any[]>('/settings/document-types'),
@@ -972,6 +1182,30 @@ export const financeApi = {
   delete: (id: string) =>
     apiFetch<any>(`/finance/${id}`, { method: 'DELETE' }),
 
+  // Append a partial deduction. Multiple calls allowed — the backend
+  // keeps SUM(amount) ≤ companyDisbursedAmount and flips status to
+  // PARTIAL / DEDUCTED automatically.
+  addDeduction: (recordId: string, data: { amount: number; deductionDate: string; payrollReference?: string; notes?: string }) =>
+    apiFetch<any>(`/finance/${recordId}/deductions`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  // Remove a single partial deduction; aggregates are recomputed.
+  removeDeduction: (deductionId: string) =>
+    apiFetch<any>(`/finance/deductions/${deductionId}`, { method: 'DELETE' }),
+
+  // Audit trail for a single record — who did what and when.
+  getHistory: (recordId: string) =>
+    apiFetch<Array<{
+      id: string;
+      action: string;
+      createdAt: string;
+      changes: any;
+      user: { id: string; name: string; email: string } | null;
+      userEmail: string | null;
+    }>>(`/finance/${recordId}/history`),
+
   // Upload attachment to a record
   addAttachment: (recordId: string, formData: FormData) => {
     const token = getAccessToken();
@@ -1122,6 +1356,18 @@ export const workflowApi = {
 
   stats: (id: string) => apiFetch<any>(`/workflows/${id}/stats`),
 
+  // Private-access list. Only meaningful when isPublic=false, but the
+  // CRUD endpoints work regardless so toggling public ↔ private keeps
+  // the previously-configured list.
+  listAccessUsers: (workflowId: string) =>
+    apiFetch<Array<{ workflowId: string; userId: string; grantedAt: string; user: { id: string; firstName: string; lastName: string; email: string } }>>(
+      `/workflows/${workflowId}/access-users`,
+    ),
+  addAccessUser: (workflowId: string, userId: string) =>
+    apiFetch<any>(`/workflows/${workflowId}/access-users/${userId}`, { method: 'POST' }),
+  removeAccessUser: (workflowId: string, userId: string) =>
+    apiFetch<any>(`/workflows/${workflowId}/access-users/${userId}`, { method: 'DELETE' }),
+
   create: (data: { name: string; description?: string; isDefault?: boolean; isPublic?: boolean; color?: string }) =>
     apiFetch<any>('/workflows', { method: 'POST', body: JSON.stringify(data) }),
 
@@ -1130,6 +1376,9 @@ export const workflowApi = {
 
   archive: (id: string) =>
     apiFetch<any>(`/workflows/${id}/archive`, { method: 'PATCH' }),
+
+  copy: (id: string, data: { name?: string } = {}) =>
+    apiFetch<any>(`/workflows/${id}/copy`, { method: 'POST', body: JSON.stringify(data) }),
 
   delete: (id: string) =>
     apiFetch<any>(`/workflows/${id}`, { method: 'DELETE' }),
@@ -1153,6 +1402,27 @@ export const workflowApi = {
   // Assignments
   assignCandidate: (data: { candidateId: string; workflowId: string; notes?: string }) =>
     apiFetch<any>('/workflows/assign', { method: 'POST', body: JSON.stringify(data) }),
+
+  /** Assign one workflow to many candidates in a single round-trip.
+   *  Returns a summary + per-candidate outcome ('assigned' |
+   *  'reassigned' | 'skipped_same_workflow' | 'forbidden' | 'error'). */
+  assignCandidatesBulk: (data: { candidateIds: string[]; workflowId: string; notes?: string }) =>
+    apiFetch<{
+      summary: {
+        requested: number;
+        assigned: number;
+        reassigned: number;
+        skipped_same_workflow: number;
+        forbidden: number;
+        errors: number;
+      };
+      results: Array<{
+        candidateId: string;
+        outcome: 'assigned' | 'reassigned' | 'skipped_same_workflow' | 'forbidden' | 'error';
+        assignmentId?: string;
+        error?: string;
+      }>;
+    }>('/workflows/assign-bulk', { method: 'POST', body: JSON.stringify(data) }),
 
   getCandidateAssignments: (candidateId: string) =>
     apiFetch<any[]>(`/workflows/candidate/${candidateId}/assignments`),
@@ -1190,12 +1460,63 @@ export const workflowApi = {
   deleteNote: (noteId: string) =>
     apiFetch<any>(`/workflows/notes/${noteId}`, { method: 'DELETE' }),
 
+  // Flag
+  toggleFlag: (progressId: string, data: { flagged: boolean; reason?: string | null }) =>
+    apiFetch<any>(`/workflows/progress/${progressId}/flag`, { method: 'PATCH', body: JSON.stringify(data) }),
+
   // Approvals
   submitApproval: (progressId: string, data: { decision: 'APPROVED' | 'REJECTED'; notes?: string }) =>
     apiFetch<any>(`/workflows/progress/${progressId}/approve`, { method: 'POST', body: JSON.stringify(data) }),
 };
 
 // ── Attendance API ─────────────────────────────────────────────────────────────
+
+// ─── Employee Work History API ──────────────────────────────────────────────
+// Post-hire business timeline on the Employee profile's Contracts tab.
+// Deliberately separate from workflow-history endpoints so pipeline and
+// contract events never mix.
+export const employeeWorkHistoryApi = {
+  list: (employeeId: string) =>
+    apiFetch<Array<{
+      id: string;
+      employeeId: string;
+      date: string;
+      eventType: string;
+      description?: string | null;
+      createdAt: string;
+      updatedAt: string;
+      createdBy?:  { id: string; firstName: string; lastName: string; email: string } | null;
+      approvedBy?: { id: string; firstName: string; lastName: string; email: string } | null;
+      attachments?: Array<{ id: string; name: string; fileUrl: string; mimeType?: string; fileSize?: number; createdAt: string }>;
+    }>>(`/employees/${employeeId}/work-history`),
+
+  create: (employeeId: string, data: { date: string; eventType: string; description?: string; approvedById?: string }) =>
+    apiFetch<any>(`/employees/${employeeId}/work-history`, { method: 'POST', body: JSON.stringify(data) }),
+
+  update: (employeeId: string, entryId: string, data: { date?: string; eventType?: string; description?: string; approvedById?: string }) =>
+    apiFetch<any>(`/employees/${employeeId}/work-history/${entryId}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  delete: (employeeId: string, entryId: string) =>
+    apiFetch<any>(`/employees/${employeeId}/work-history/${entryId}`, { method: 'DELETE' }),
+
+  addAttachment: (employeeId: string, entryId: string, formData: FormData) => {
+    const token = getAccessToken();
+    return fetch(`${API_URL}/employees/${employeeId}/work-history/${entryId}/attachments`, {
+      method: 'POST',
+      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: formData,
+    }).then(async res => {
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error((err as any)?.message || 'Upload failed');
+      }
+      return res.json();
+    });
+  },
+
+  removeAttachment: (employeeId: string, entryId: string, attachmentId: string) =>
+    apiFetch<any>(`/employees/${employeeId}/work-history/${entryId}/attachments/${attachmentId}`, { method: 'DELETE' }),
+};
 
 export const attendanceApi = {
   /**
@@ -1234,7 +1555,9 @@ export const attendanceApi = {
   },
 
   /**
-   * Create a new attendance record (upsert by employeeId + date).
+   * Create / update an attendance record (upsert by employeeId + date).
+   * Break fields are optional; the server computes workingHours as
+   * (checkOut - checkIn) - (breakOut - breakIn).
    */
   upsert: (data: {
     employeeId: string | undefined;
@@ -1242,6 +1565,8 @@ export const attendanceApi = {
     status: string;
     checkIn?: string;
     checkOut?: string;
+    breakIn?: string;
+    breakOut?: string;
     workingHours?: number | string;
     notes?: string;
   }) => apiFetch<any>('/attendance', { method: 'POST', body: JSON.stringify(data) }),
@@ -1253,9 +1578,39 @@ export const attendanceApi = {
     status?: string;
     checkIn?: string;
     checkOut?: string;
+    breakIn?: string;
+    breakOut?: string;
     workingHours?: number | string;
     notes?: string;
   }) => apiFetch<any>(`/attendance/${recordId}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  /**
+   * Apply one status + time template to a date range or list for a
+   * single employee. Skips locked dates; overwriteExisting=false
+   * leaves already-filled days alone.
+   */
+  bulkApply: (data: {
+    employeeId: string;
+    status: string;
+    dateFrom?: string;
+    dateTo?: string;
+    dates?: string[];
+    checkIn?: string;
+    checkOut?: string;
+    breakIn?: string;
+    breakOut?: string;
+    notes?: string;
+    overwriteExisting?: boolean;
+    skipWeekends?: boolean;
+  }) => apiFetch<any>('/attendance/bulk-apply', { method: 'POST', body: JSON.stringify(data) }),
+
+  /** Payroll lock management. */
+  listLockedPeriods: () =>
+    apiFetch<Array<{ id: string; year: number; month: number; lockedAt: string; reason?: string; lockedBy?: { firstName: string; lastName: string } | null }>>('/attendance/locked-periods'),
+  lockPeriod: (data: { year: number; month: number; reason?: string }) =>
+    apiFetch<any>('/attendance/locked-periods', { method: 'POST', body: JSON.stringify(data) }),
+  unlockPeriod: (id: string) =>
+    apiFetch<any>(`/attendance/locked-periods/${id}`, { method: 'DELETE' }),
 
   /**
    * Delete an attendance record by id.
@@ -1267,13 +1622,14 @@ export const attendanceApi = {
    * Export the attendance sheet as an Excel file.
    * Returns a Blob suitable for createObjectURL.
    */
-  exportExcel: async (params: { month: number; year: number; driversOnly?: boolean }): Promise<Blob> => {
+  exportExcel: async (params: { month: number; year: number; driversOnly?: boolean; employeeId?: string }): Promise<Blob> => {
     const token = getAccessToken();
     const qs = new URLSearchParams({
       month: String(params.month),
       year: String(params.year),
       driversOnly: String(params.driversOnly ?? false),
     });
+    if (params.employeeId) qs.set('employeeId', params.employeeId);
     const res = await fetch(`${API_URL}/attendance/export/excel?${qs.toString()}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
@@ -1346,7 +1702,7 @@ export const vehiclesApi = {
   // Maintenance types
   listMaintenanceTypes: () => apiFetch<any>('/vehicles/maintenance/types'),
 
-  createMaintenanceType: (data: { name: string; description?: string; defaultIntervalDays?: number; defaultIntervalKm?: number }) =>
+  createMaintenanceType: (data: { name: string; description?: string; defaultIntervalDays?: number; defaultIntervalKm?: number; intervalMode?: string }) =>
     apiFetch<any>('/vehicles/maintenance/types', { method: 'POST', body: JSON.stringify(data) }),
 
   updateMaintenanceType: (id: string, data: Record<string, any>) =>
@@ -1373,7 +1729,7 @@ export const vehiclesApi = {
 
   // Maintenance records
   listMaintenance: (params: {
-    page?: number; limit?: number; vehicleId?: string; status?: string; dateFrom?: string; dateTo?: string;
+    page?: number; limit?: number; vehicleId?: string; workshopId?: string; status?: string; dateFrom?: string; dateTo?: string;
   } = {}) => {
     const qs = new URLSearchParams();
     Object.entries(params).forEach(([k, v]) => v != null && qs.set(k, String(v)));
@@ -1391,11 +1747,63 @@ export const vehiclesApi = {
   deleteMaintenance: (id: string) =>
     apiFetch<any>(`/vehicles/maintenance/records/${id}`, { method: 'DELETE' }),
 
-  // Export
-  exportExcel: async (params: { type?: string; status?: string } = {}): Promise<Blob> => {
+  // Maintenance records export
+  exportMaintenanceExcel: async (params: {
+    vehicleId?: string; workshopId?: string; status?: string; dateFrom?: string; dateTo?: string; recordIds?: string[];
+  } = {}): Promise<Blob> => {
     const token = getAccessToken();
     const qs = new URLSearchParams();
-    Object.entries(params).forEach(([k, v]) => v != null && qs.set(k, String(v)));
+    Object.entries(params).forEach(([k, v]) => {
+      if (v == null) return;
+      if (Array.isArray(v)) qs.set(k, v.join(','));
+      else qs.set(k, String(v));
+    });
+    const res = await fetch(`${API_URL}/vehicles/maintenance/records/export/excel?${qs.toString()}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) throw new Error(`Export failed: ${res.status}`);
+    return res.blob();
+  },
+
+  exportMaintenancePdf: async (params: {
+    vehicleId?: string; workshopId?: string; status?: string; dateFrom?: string; dateTo?: string; recordIds?: string[];
+  } = {}): Promise<Blob> => {
+    const token = getAccessToken();
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => {
+      if (v == null) return;
+      if (Array.isArray(v)) qs.set(k, v.join(','));
+      else qs.set(k, String(v));
+    });
+    const res = await fetch(`${API_URL}/vehicles/maintenance/records/export/pdf?${qs.toString()}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) throw new Error(`Export failed: ${res.status}`);
+    return res.blob();
+  },
+
+  // Maintenance record attachments
+  addMaintenanceAttachment: (recordId: string, formData: FormData) =>
+    apiFetch<any>(`/vehicles/maintenance/records/${recordId}/attachments`, { method: 'POST', body: formData, skipContentType: true }),
+
+  getMaintenanceAttachments: (recordId: string) =>
+    apiFetch<any>(`/vehicles/maintenance/records/${recordId}/attachments`, { method: 'GET' }),
+
+  deleteMaintenanceAttachment: (attachmentId: string) =>
+    apiFetch<any>(`/vehicles/maintenance/attachments/${attachmentId}`, { method: 'DELETE' }),
+
+  // Export
+  exportExcel: async (params: { type?: string; status?: string; vehicleIds?: string[] } = {}): Promise<Blob> => {
+    const token = getAccessToken();
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => {
+      if (v == null) return;
+      if (Array.isArray(v)) {
+        v.forEach(item => qs.append(k, String(item)));
+      } else {
+        qs.set(k, String(v));
+      }
+    });
     const res = await fetch(`${API_URL}/vehicles/export/excel?${qs.toString()}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });

@@ -76,32 +76,33 @@ export function AddUser() {
   });
 
   useEffect(() => {
-    const agencyFetch = isAgencyManager && currentUser?.agencyId
-      ? agenciesApi.get(currentUser.agencyId)
-      : agenciesApi.list({ limit: 100 });
-
-    const fetches: Promise<any>[] = [rolesApi.list(), agencyFetch];
     if (isAgencyManager && currentUser?.agencyId) {
-      fetches.push(
-        usersApi.list({ agencyId: currentUser.agencyId, limit: 1 }),
-        settingsApi.getAll(true),
-      );
+      // Agency Manager can't call GET /roles (403) and always creates
+      // "Agency User" anyway — the backend force-overrides roleId.
+      // Skip the roles fetch entirely, show "Agency User" as the
+      // locked label, and pull only the own-agency + limit info.
+      setRoles([{ id: '__agency_user__', name: 'Agency User' }]);
+      setForm(prev => prev.roleId ? prev : { ...prev, roleId: '__agency_user__' });
+      Promise.all([
+        agenciesApi.get(currentUser.agencyId).catch(() => null),
+        usersApi.list({ agencyId: currentUser.agencyId, limit: 1 }).catch(() => null),
+        settingsApi.getAll(true).catch(() => null),
+      ]).then(([agency, usersResult, settingsResult]) => {
+        if (agency) setMyAgency(agency);
+        if (usersResult) setAgencyUserCount((usersResult as any)?.total ?? 0);
+        if (settingsResult) {
+          const agencySettings: any[] = (settingsResult as any)?.agency ?? [];
+          const s = agencySettings.find((x: any) => x.key === 'agency.maxUsersPerAgency');
+          if (s) setMaxUsersLimit(parseInt(s.value, 10));
+        }
+      });
+      return;
     }
 
-    Promise.all(fetches)
-      .then(([roleList, agencyResult, usersResult, settingsResult]) => {
-        setRoles(roleList ?? []);
-        if (isAgencyManager) {
-          setMyAgency(agencyResult);
-          if (usersResult != null) setAgencyUserCount((usersResult as any)?.total ?? 0);
-          if (settingsResult != null) {
-            const agencySettings: any[] = (settingsResult as any)?.agency ?? [];
-            const s = agencySettings.find((x: any) => x.key === 'agency.maxUsersPerAgency');
-            if (s) setMaxUsersLimit(parseInt(s.value, 10));
-          }
-        } else {
-          setAgencies((agencyResult as any)?.data ?? []);
-        }
+    Promise.all([rolesApi.list(), agenciesApi.list({ limit: 100 })])
+      .then(([roleList, agencyResult]) => {
+        setRoles(Array.isArray(roleList) ? roleList : []);
+        setAgencies((agencyResult as any)?.data ?? []);
       }).catch(() => {
         toast.error('Failed to load roles or agencies');
       });
@@ -285,20 +286,30 @@ export function AddUser() {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label>Role *</Label>
-                <Select value={form.roleId} onValueChange={val => handleSelect('roleId', val)} required>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {roles.length > 0 ? (
-                      roles.map((role: any) => (
-                        <SelectItem key={role.id} value={role.id}>{role.name}</SelectItem>
-                      ))
-                    ) : (
-                      <SelectItem value="placeholder" disabled>Loading roles...</SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
+                {isAgencyManager ? (
+                  // Agency Manager can only create Agency User — render
+                  // the role read-only so they can't pick anything else.
+                  <Input
+                    value={roles[0]?.name ?? 'Loading...'}
+                    disabled
+                    className="bg-muted text-muted-foreground cursor-not-allowed"
+                  />
+                ) : (
+                  <Select value={form.roleId} onValueChange={val => handleSelect('roleId', val)} required>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {roles.length > 0 ? (
+                        roles.map((role: any) => (
+                          <SelectItem key={role.id} value={role.id}>{role.name}</SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="placeholder" disabled>Loading roles...</SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
               <div className="space-y-2">
                 <Label>Agency *</Label>

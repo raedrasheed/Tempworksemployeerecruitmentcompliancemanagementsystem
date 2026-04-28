@@ -5,6 +5,7 @@ import {
   Edit, Trash2, ArrowUp, ArrowDown, ArrowUpDown, Columns2, Check,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { confirm } from '../../components/ui/ConfirmDialog';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -14,18 +15,22 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '../../components/ui/table';
-import { vehiclesApi } from '../../services/api';
+import { vehiclesApi, settingsApi } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
 
-const VEHICLE_TYPES = [
-  { value: 'TRUCK', label: 'Truck' },
-  { value: 'CAR', label: 'Car' },
-  { value: 'VAN', label: 'Van' },
-  { value: 'TANKER', label: 'Tanker' },
-  { value: 'TRAILER', label: 'Trailer' },
-  { value: 'REFRIGERATED_TRAILER', label: 'Refrigerated Trailer' },
-  { value: 'SPECIALTY', label: 'Specialty' },
-];
+// Legacy enum codes that may still appear on rows created before the
+// vehicle-types lookup was introduced. Render them as the human label
+// so the table doesn't show "REFRIGERATED_TRAILER" until the row is
+// re-saved through the new form.
+const LEGACY_TYPE_LABELS: Record<string, string> = {
+  TRUCK: 'Truck',
+  CAR: 'Car',
+  VAN: 'Van',
+  TANKER: 'Tanker',
+  TRAILER: 'Trailer',
+  REFRIGERATED_TRAILER: 'Refrigerated Trailer',
+  SPECIALTY: 'Specialty',
+};
 
 const VEHICLE_STATUSES = [
   { value: 'ACTIVE',          label: 'Active',          color: 'bg-green-100 text-green-800' },
@@ -40,7 +45,7 @@ function statusBadge(status: string) {
 }
 
 function typeLabel(type: string) {
-  return VEHICLE_TYPES.find((t) => t.value === type)?.label ?? type;
+  return LEGACY_TYPE_LABELS[type] ?? type;
 }
 
 function expiryBadge(date: string | null | undefined) {
@@ -53,7 +58,7 @@ function expiryBadge(date: string | null | undefined) {
 }
 
 // ── Column visibility ────────────────────────────────────────────────────────
-type ColKey = 'type' | 'makeModel' | 'year' | 'status' | 'driver' | 'mot' | 'insurance';
+type ColKey = 'type' | 'makeModel' | 'year' | 'status' | 'driver' | 'mot' | 'tax' | 'registration' | 'insurance' | 'tachograph' | 'atp' | 'pressureTest' | 'lastService' | 'serviceType' | 'workshop' | 'odometer';
 
 const ALL_COLUMNS: { key: ColKey; label: string }[] = [
   { key: 'type',      label: 'Type' },
@@ -62,12 +67,29 @@ const ALL_COLUMNS: { key: ColKey; label: string }[] = [
   { key: 'status',    label: 'Status' },
   { key: 'driver',    label: 'Current Driver' },
   { key: 'mot',       label: 'MOT' },
+  { key: 'tax',       label: 'Tax Expiry' },
+  { key: 'registration', label: 'Registration Expiry' },
   { key: 'insurance', label: 'Insurance' },
+  { key: 'tachograph', label: 'Tachograph Calib.' },
+  { key: 'atp',       label: 'ATP Cert.' },
+  { key: 'pressureTest', label: 'Next Pressure Test' },
+  { key: 'lastService', label: 'Last Service' },
+  { key: 'serviceType', label: 'Service Type' },
+  { key: 'workshop', label: 'Workshop' },
+  { key: 'odometer', label: 'Odometer (km)' },
 ];
 
+// All compliance/expiry columns are visible by default so the Fleet
+// list surfaces every regulated date at a glance. Operators can hide
+// the type-specific ones (Tachograph / ATP / Pressure Test) via the
+// Columns picker if their fleet doesn't use them. Maintenance columns
+// (Last Service, Service Type) are visible; Workshop and Odometer
+// are hidden by default.
 const DEFAULT_VISIBLE: Record<ColKey, boolean> = {
   type: true, makeModel: true, year: true, status: true,
-  driver: true, mot: true, insurance: true,
+  driver: true, mot: true, tax: true, registration: true,
+  insurance: true, tachograph: true, atp: true, pressureTest: true,
+  lastService: true, serviceType: true, workshop: false, odometer: false,
 };
 
 function loadVisibleColumns(): Record<ColKey, boolean> {
@@ -80,7 +102,7 @@ function loadVisibleColumns(): Record<ColKey, boolean> {
 }
 
 // ── Sort header ──────────────────────────────────────────────────────────────
-type SortField = 'registration' | 'type' | 'makeModel' | 'year' | 'status' | 'driver' | 'mot' | 'insurance';
+type SortField = 'registration' | 'type' | 'makeModel' | 'year' | 'status' | 'driver' | 'mot' | 'tax' | 'registrationExp' | 'insurance' | 'tachograph' | 'atp' | 'pressureTest' | 'lastService' | 'serviceType' | 'workshop' | 'odometer';
 
 function SortableHead({ label, field, sortBy, sortOrder, onSort, className }: {
   label: string; field: SortField; sortBy: SortField; sortOrder: 'asc' | 'desc';
@@ -111,7 +133,22 @@ export function VehiclesList() {
   const [total, setTotal]               = useState(0);
   const [page, setPage]                 = useState(1);
   const [exporting, setExporting]       = useState(false);
+  const [vehicleTypes, setVehicleTypes] = useState<string[]>([]);
   const LIMIT = 20;
+
+  // Centralised type list — the filter dropdown reads from System Settings →
+  // Vehicle Settings so admins can add/rename categories without a code
+  // change. Falls back to the seed defaults if the lookup ever fails.
+  useEffect(() => {
+    settingsApi.getVehicleSettings()
+      .then((data) => {
+        const list = data?.vehicleTypes;
+        setVehicleTypes(Array.isArray(list) && list.length
+          ? list
+          : ['Truck', 'Car', 'Van', 'Tanker', 'Trailer', 'Refrigerated Trailer', 'Specialty']);
+      })
+      .catch(() => setVehicleTypes(['Truck', 'Car', 'Van', 'Tanker', 'Trailer', 'Refrigerated Trailer', 'Specialty']));
+  }, []);
 
   // ── Filters ────────────────────────────────────────────────────────────────
   const [search, setSearch]             = useState('');
@@ -131,6 +168,9 @@ export function VehiclesList() {
   const [visibleColumns, setVisibleColumns] = useState<Record<ColKey, boolean>>(loadVisibleColumns);
   const [showColPicker, setShowColPicker]   = useState(false);
   const colPickerRef = useRef<HTMLDivElement>(null);
+
+  // ── Selection ──────────────────────────────────────────────────────────────
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!showColPicker) return;
@@ -179,8 +219,8 @@ export function VehiclesList() {
   useEffect(() => { loadVehicles(); }, [loadVehicles]);
   useEffect(() => { loadStats(); }, [loadStats]);
 
-  // Reset page when filters change
-  useEffect(() => { setPage(1); }, [search, typeFilter, statusFilter]);
+  // Reset page and clear selection when filters change
+  useEffect(() => { setPage(1); setSelectedIds(new Set()); }, [search, typeFilter, statusFilter]);
 
   // ── Sorted vehicles ────────────────────────────────────────────────────────
   const displayVehicles = useMemo(() => {
@@ -196,8 +236,16 @@ export function VehiclesList() {
         case 'status':       aVal = a.status ?? ''; bVal = b.status ?? ''; break;
         case 'driver':       aVal = driverA ? `${driverA.firstName} ${driverA.lastName}`.toLowerCase() : ''; bVal = driverB ? `${driverB.firstName} ${driverB.lastName}`.toLowerCase() : ''; break;
         case 'mot':          aVal = a.motExpiryDate ?? ''; bVal = b.motExpiryDate ?? ''; break;
+        case 'tax':          aVal = a.taxExpiryDate ?? ''; bVal = b.taxExpiryDate ?? ''; break;
+        case 'registrationExp': aVal = a.registrationExpiryDate ?? ''; bVal = b.registrationExpiryDate ?? ''; break;
         case 'insurance':    aVal = a.insuranceExpiryDate ?? ''; bVal = b.insuranceExpiryDate ?? ''; break;
-        default:             aVal = ''; bVal = '';
+        case 'tachograph':   aVal = a.tachographCalibrationExpiry ?? ''; bVal = b.tachographCalibrationExpiry ?? ''; break;
+        case 'atp':          aVal = a.atpCertificateExpiry ?? ''; bVal = b.atpCertificateExpiry ?? ''; break;
+        case 'pressureTest': aVal = a.nextPressureTestDate ?? ''; bVal = b.nextPressureTestDate ?? ''; break;
+        case 'lastService':  aVal = a.maintenanceRecords?.[0]?.completedDate ?? ''; bVal = b.maintenanceRecords?.[0]?.completedDate ?? ''; break;
+        case 'serviceType':  aVal = a.maintenanceRecords?.[0]?.maintenanceType?.name?.toLowerCase() ?? ''; bVal = b.maintenanceRecords?.[0]?.maintenanceType?.name?.toLowerCase() ?? ''; break;
+        case 'workshop':     aVal = a.maintenanceRecords?.[0]?.workshop?.name?.toLowerCase() ?? ''; bVal = b.maintenanceRecords?.[0]?.workshop?.name?.toLowerCase() ?? ''; break;
+        case 'odometer':     aVal = Number(a.currentMileage ?? 0); bVal = Number(b.currentMileage ?? 0); break;
       }
       const cmp = aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
       return sortOrder === 'asc' ? cmp : -cmp;
@@ -206,7 +254,11 @@ export function VehiclesList() {
 
   // ── Delete / Export ────────────────────────────────────────────────────────
   const handleDelete = async (vehicleId: string) => {
-    if (!confirm('Delete this vehicle? This cannot be undone easily.')) return;
+    if (!(await confirm({
+      title: 'Delete vehicle?',
+      description: 'This vehicle will be permanently removed. This cannot be undone easily.',
+      confirmText: 'Delete', tone: 'destructive',
+    }))) return;
     try {
       await vehiclesApi.delete(vehicleId);
       toast.success('Vehicle deleted');
@@ -214,14 +266,38 @@ export function VehiclesList() {
     } catch { toast.error('Failed to delete vehicle'); }
   };
 
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === displayVehicles.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(displayVehicles.map(v => v.id)));
+    }
+  };
+
   const handleExport = async () => {
     setExporting(true);
     try {
-      const blob = await vehiclesApi.exportExcel({ type: typeFilter || undefined, status: statusFilter || undefined });
+      // Export only selected vehicles if any are selected, otherwise use filters
+      const vehicleIds = selectedIds.size > 0 ? Array.from(selectedIds) : undefined;
+      const blob = await vehiclesApi.exportExcel({
+        type: typeFilter || undefined,
+        status: statusFilter || undefined,
+        vehicleIds,
+      });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url; a.download = `vehicles-${new Date().toISOString().split('T')[0]}.xlsx`;
       a.click(); URL.revokeObjectURL(url);
+      toast.success(`Exported ${selectedIds.size > 0 ? selectedIds.size : 'all'} vehicle${selectedIds.size === 1 ? '' : 's'}`);
     } catch { toast.error('Export failed'); }
     finally { setExporting(false); }
   };
@@ -231,7 +307,7 @@ export function VehiclesList() {
   const totalPages = Math.ceil(total / LIMIT);
 
   const hiddenCount = ALL_COLUMNS.filter(c => !visibleColumns[c.key]).length;
-  const colSpan = 2 + ALL_COLUMNS.filter(c => visibleColumns[c.key]).length; // registration + visible + actions
+  const colSpan = 3 + ALL_COLUMNS.filter(c => visibleColumns[c.key]).length; // checkbox + registration + visible + actions
 
   return (
     <div className="p-6 space-y-6">
@@ -286,9 +362,9 @@ export function VehiclesList() {
             )}
           </div>
 
-          <Button variant="outline" size="sm" onClick={handleExport} disabled={exporting}>
+          <Button variant="outline" size="sm" onClick={handleExport} disabled={exporting} className={selectedIds.size > 0 ? 'border-blue-500 text-blue-600' : ''}>
             <Download className="w-4 h-4 mr-2" />
-            {exporting ? 'Exporting…' : 'Export Excel'}
+            {exporting ? 'Exporting…' : selectedIds.size > 0 ? `Export ${selectedIds.size} selected` : 'Export Excel'}
           </Button>
           {canWrite && (
             <Button size="sm" onClick={() => navigate('/dashboard/vehicles/new')}>
@@ -334,7 +410,7 @@ export function VehiclesList() {
               <SelectTrigger className="w-44"><SelectValue placeholder="All Types" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Types</SelectItem>
-                {VEHICLE_TYPES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                {vehicleTypes.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select value={statusFilter || 'all'} onValueChange={(v) => { setStatusFilter(v === 'all' ? '' : v); setPage(1); }}>
@@ -365,6 +441,16 @@ export function VehiclesList() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-12">
+                    <input
+                      type="checkbox"
+                      checked={displayVehicles.length > 0 && selectedIds.size === displayVehicles.length}
+                      indeterminate={selectedIds.size > 0 && selectedIds.size < displayVehicles.length}
+                      onChange={toggleSelectAll}
+                      className="w-4 h-4 cursor-pointer"
+                      aria-label="Select all vehicles on this page"
+                    />
+                  </TableHead>
                   <SortableHead label="Registration" field="registration" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />
                   {col('type')      && <SortableHead label="Type"           field="type"       sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
                   {col('makeModel') && <SortableHead label="Make / Model"   field="makeModel"  sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
@@ -372,7 +458,16 @@ export function VehiclesList() {
                   {col('status')    && <SortableHead label="Status"         field="status"     sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
                   {col('driver')    && <SortableHead label="Current Driver" field="driver"     sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
                   {col('mot')       && <SortableHead label="MOT"            field="mot"        sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  {col('tax')       && <SortableHead label="Tax"            field="tax"        sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  {col('registration') && <SortableHead label="Registration" field="registrationExp" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
                   {col('insurance') && <SortableHead label="Insurance"      field="insurance"  sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  {col('tachograph') && <SortableHead label="Tachograph"    field="tachograph" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  {col('atp')       && <SortableHead label="ATP"            field="atp"        sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  {col('pressureTest') && <SortableHead label="Pressure Test" field="pressureTest" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  {col('lastService') && <SortableHead label="Last Service" field="lastService" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  {col('serviceType') && <SortableHead label="Service Type" field="serviceType" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  {col('workshop') && <SortableHead label="Workshop" field="workshop" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  {col('odometer') && <SortableHead label="Odometer" field="odometer" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -383,8 +478,18 @@ export function VehiclesList() {
                   <TableRow><TableCell colSpan={colSpan} className="text-center py-8 text-muted-foreground">No vehicles found</TableCell></TableRow>
                 ) : displayVehicles.map((v) => {
                   const driver = v.driverAssignments?.[0]?.employee;
+                  const isSelected = selectedIds.has(v.id);
                   return (
-                    <TableRow key={v.id} className="cursor-pointer hover:bg-accent/50" onClick={() => navigate(`/dashboard/vehicles/${v.id}`)}>
+                    <TableRow key={v.id} className={`cursor-pointer hover:bg-accent/50 ${isSelected ? 'bg-blue-50' : ''}`} onClick={() => navigate(`/dashboard/vehicles/${v.id}`)}>
+                      <TableCell className="w-12" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleSelect(v.id)}
+                          className="w-4 h-4 cursor-pointer"
+                          aria-label={`Select ${v.registrationNumber}`}
+                        />
+                      </TableCell>
                       <TableCell className="font-mono font-medium">{v.registrationNumber}</TableCell>
                       {col('type')      && <TableCell className="text-sm">{typeLabel(v.type)}</TableCell>}
                       {col('makeModel') && <TableCell>{v.make} {v.model}</TableCell>}
@@ -396,7 +501,35 @@ export function VehiclesList() {
                         </TableCell>
                       )}
                       {col('mot')       && <TableCell>{expiryBadge(v.motExpiryDate)}</TableCell>}
+                      {col('tax')       && <TableCell>{expiryBadge(v.taxExpiryDate)}</TableCell>}
+                      {col('registration') && <TableCell>{expiryBadge(v.registrationExpiryDate)}</TableCell>}
                       {col('insurance') && <TableCell>{expiryBadge(v.insuranceExpiryDate)}</TableCell>}
+                      {col('tachograph') && <TableCell>{expiryBadge(v.tachographCalibrationExpiry)}</TableCell>}
+                      {col('atp')       && <TableCell>{expiryBadge(v.atpCertificateExpiry)}</TableCell>}
+                      {col('pressureTest') && <TableCell>{expiryBadge(v.nextPressureTestDate)}</TableCell>}
+                      {col('lastService') && (
+                        <TableCell className="text-sm">
+                          {v.maintenanceRecords?.[0]?.completedDate
+                            ? new Date(v.maintenanceRecords[0].completedDate).toLocaleDateString()
+                            : <span className="text-muted-foreground">—</span>
+                          }
+                        </TableCell>
+                      )}
+                      {col('serviceType') && (
+                        <TableCell className="text-sm">
+                          {v.maintenanceRecords?.[0]?.maintenanceType?.name ?? <span className="text-muted-foreground">—</span>}
+                        </TableCell>
+                      )}
+                      {col('workshop') && (
+                        <TableCell className="text-sm">
+                          {v.maintenanceRecords?.[0]?.workshop?.name ?? <span className="text-muted-foreground">—</span>}
+                        </TableCell>
+                      )}
+                      {col('odometer') && (
+                        <TableCell className="text-sm">
+                          {v.currentMileage ? `${Number(v.currentMileage).toLocaleString()} km` : <span className="text-muted-foreground">—</span>}
+                        </TableCell>
+                      )}
                       <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-1">
                           <Button size="sm" variant="ghost" onClick={() => navigate(`/dashboard/vehicles/${v.id}`)}>

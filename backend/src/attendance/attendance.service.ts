@@ -9,6 +9,8 @@ import {
   UpdateAttendanceDto,
   ExportAttendanceDto,
   BulkUpsertAttendanceDto,
+  BulkApplyAttendanceDto,
+  LockPeriodDto,
   ATTENDANCE_STATUSES,
 } from './dto/attendance.dto';
 import { v4 as uuidv4 } from 'uuid';
@@ -18,6 +20,11 @@ import { v4 as uuidv4 } from 'uuid';
 const STATUS_ABBR: Record<string, string> = {
   PRESENT:  'P',
   ABSENT:   'A',
+  OFF:      'O',
+  VACATION: 'V',
+  SICK:     'S',
+  // Legacy values — rendered compactly so existing rows still display
+  // until they're edited/replaced.
   LATE:     'L',
   ON_LEAVE: 'OL',
   HALF_DAY: 'HD',
@@ -28,6 +35,9 @@ const STATUS_ABBR: Record<string, string> = {
 const STATUS_COLORS: Record<string, { bg: string; fg: string }> = {
   PRESENT:  { bg: 'FFD1FAE5', fg: 'FF065F46' },
   ABSENT:   { bg: 'FFFEE2E2', fg: 'FF991B1B' },
+  OFF:      { bg: 'FFF3F4F6', fg: 'FF374151' },
+  VACATION: { bg: 'FFDBEAFE', fg: 'FF1E40AF' },
+  SICK:     { bg: 'FFEDE9FE', fg: 'FF5B21B6' },
   LATE:     { bg: 'FFFEF3C7', fg: 'FF92400E' },
   ON_LEAVE: { bg: 'FFDBEAFE', fg: 'FF1E40AF' },
   HALF_DAY: { bg: 'FFEDE9FE', fg: 'FF5B21B6' },
@@ -261,10 +271,38 @@ export class AttendanceService {
       throw new BadRequestException(`Invalid date: ${dto.date}`);
     }
 
-    // Auto-calculate working hours if not provided but both times are
+    // Refuse writes into a locked month.
+    await this.assertPeriodUnlocked(dto.date);
+
+    // Ordering guards — so UI-side errors never slip past.
+    if (dto.checkIn && dto.checkOut) {
+      const ci = this.toMin(dto.checkIn);
+      const co = this.toMin(dto.checkOut);
+      // Overnight shifts are legal — only fail if both are same-day
+      // and out < in AND the delta is small (< 4h) which almost
+      // certainly means operator error rather than overnight.
+      if (ci != null && co != null && co < ci && (ci - co) < 4 * 60) {
+        throw new BadRequestException('Check-out is earlier than Check-in');
+      }
+    }
+    if (dto.breakIn && dto.breakOut) {
+      const bi = this.toMin(dto.breakIn);
+      const bo = this.toMin(dto.breakOut);
+      if (bi != null && bo != null && bo < bi) {
+        throw new BadRequestException('Break-out is earlier than Break-in');
+      }
+    }
+
+    // Auto-calc total hours from the four time fields unless the
+    // caller explicitly passed workingHours.
     let workingHours = dto.workingHours ?? null;
-    if (workingHours == null && dto.checkIn && dto.checkOut) {
-      workingHours = this.calcWorkingHours(dto.checkIn, dto.checkOut);
+    if (workingHours == null) {
+      workingHours = this.calcWorkingHours(dto.checkIn, dto.checkOut, dto.breakIn, dto.breakOut);
+    }
+    // Statuses with no expected work hours force the total to 0 so
+    // monthly totals don't accidentally count vacation/sick as worked.
+    if (['OFF', 'VACATION', 'SICK', 'ABSENT', 'HOLIDAY', 'ON_LEAVE'].includes(dto.status)) {
+      workingHours = 0;
     }
 
     const id = uuidv4();
@@ -280,6 +318,8 @@ export class AttendanceService {
         status:       dto.status,
         checkIn:      dto.checkIn      ?? null,
         checkOut:     dto.checkOut     ?? null,
+        breakIn:      (dto as any).breakIn  ?? null,
+        breakOut:     (dto as any).breakOut ?? null,
         workingHours: workingHours     ?? null,
         notes:        dto.notes        ?? null,
         createdById:  actorId          ?? null,
@@ -289,6 +329,8 @@ export class AttendanceService {
         status:       dto.status,
         checkIn:      dto.checkIn      ?? null,
         checkOut:     dto.checkOut     ?? null,
+        breakIn:      (dto as any).breakIn  ?? null,
+        breakOut:     (dto as any).breakOut ?? null,
         workingHours: workingHours     ?? null,
         notes:        dto.notes        ?? null,
         updatedById:  actorId          ?? null,
@@ -356,19 +398,48 @@ export class AttendanceService {
     });
     if (!existing) throw new NotFoundException(`Attendance record ${id} not found`);
 
-    // Auto-calculate working hours if both times given and hours not explicitly set
-    let workingHours = dto.workingHours;
+    // Refuse writes into a locked month (based on the existing row's date).
+    const existingDate = new Date(existing.date);
+    const y = existingDate.getUTCFullYear();
+    const m = existingDate.getUTCMonth() + 1;
+    if (await this.isPeriodLocked(y, m)) {
+      throw new BadRequestException(`Payroll period ${y}-${String(m).padStart(2, '0')} is locked`);
+    }
+
     const newCheckIn  = dto.checkIn  !== undefined ? dto.checkIn  : existing.checkIn;
     const newCheckOut = dto.checkOut !== undefined ? dto.checkOut : existing.checkOut;
+    const newBreakIn  = (dto as any).breakIn  !== undefined ? (dto as any).breakIn  : existing.breakIn;
+    const newBreakOut = (dto as any).breakOut !== undefined ? (dto as any).breakOut : existing.breakOut;
+    const newStatus   = dto.status   !== undefined ? dto.status   : existing.status;
 
-    if (workingHours === undefined && newCheckIn && newCheckOut) {
-      workingHours = this.calcWorkingHours(newCheckIn, newCheckOut) ?? undefined;
+    // Re-validate ordering with the merged values.
+    if (newCheckIn && newCheckOut) {
+      const ci = this.toMin(newCheckIn), co = this.toMin(newCheckOut);
+      if (ci != null && co != null && co < ci && (ci - co) < 4 * 60) {
+        throw new BadRequestException('Check-out is earlier than Check-in');
+      }
+    }
+    if (newBreakIn && newBreakOut) {
+      const bi = this.toMin(newBreakIn), bo = this.toMin(newBreakOut);
+      if (bi != null && bo != null && bo < bi) {
+        throw new BadRequestException('Break-out is earlier than Break-in');
+      }
+    }
+
+    let workingHours = dto.workingHours;
+    if (workingHours === undefined) {
+      workingHours = this.calcWorkingHours(newCheckIn, newCheckOut, newBreakIn, newBreakOut) ?? undefined;
+    }
+    if (['OFF', 'VACATION', 'SICK', 'ABSENT', 'HOLIDAY', 'ON_LEAVE'].includes(newStatus)) {
+      workingHours = 0;
     }
 
     const data: any = { updatedAt: new Date(), updatedById: actorId ?? null };
     if (dto.status       !== undefined) data.status       = dto.status;
     if (dto.checkIn      !== undefined) data.checkIn      = dto.checkIn;
     if (dto.checkOut     !== undefined) data.checkOut     = dto.checkOut;
+    if ((dto as any).breakIn  !== undefined) data.breakIn  = (dto as any).breakIn;
+    if ((dto as any).breakOut !== undefined) data.breakOut = (dto as any).breakOut;
     if (workingHours     !== undefined) data.workingHours = workingHours;
     if (dto.notes        !== undefined) data.notes        = dto.notes;
 
@@ -389,6 +460,13 @@ export class AttendanceService {
     });
     if (!existing) throw new NotFoundException(`Attendance record ${id} not found`);
 
+    const existingDate = new Date(existing.date);
+    const y = existingDate.getUTCFullYear();
+    const m = existingDate.getUTCMonth() + 1;
+    if (await this.isPeriodLocked(y, m)) {
+      throw new BadRequestException(`Payroll period ${y}-${String(m).padStart(2, '0')} is locked`);
+    }
+
     await (this.prisma as any).attendanceRecord.delete({ where: { id } });
 
     await this.auditLog(actorId, 'ATTENDANCE_DELETED', id, {
@@ -400,7 +478,223 @@ export class AttendanceService {
     return { message: 'Attendance record deleted' };
   }
 
-  // ── Excel Export ─────────────────────────────────────────────────────────────
+  // ── Excel Export (Zeiterfassung template) ──────────────────────────────────
+
+  /** Builds one Zeiterfassung sheet per employee in the workbook,
+   *  matching the structure of the supplied template:
+   *    row 1       : title "Zeiterfassung" (merged)
+   *    row 2       : Zamestnanec / employee name
+   *    row 3       : Mitarbeiter, Monat/Jahr — month + year label
+   *    rows 4-5    : bilingual column headers
+   *    rows 6..    : one row per day of the month (check-in, out,
+   *                  break-in, out, 2nd-session in/out reserved,
+   *                  total)
+   *    totals rows : Odpracované (working), sviatok (holiday),
+   *                  Spolu Odpracovan (working + holiday),
+   *                  dovolenka (vacation), absencia (absence),
+   *                  choroba (sick), Spolu (grand total all hours)
+   */
+  private buildZeiterfassungSheet(
+    workbook: ExcelJS.Workbook,
+    employee: { firstName: string; lastName: string; employeeNumber?: string | null },
+    month: number, year: number,
+    dayMap: Map<number, any>,
+  ) {
+    const MONTH_SK = ['Jan', 'Feb', 'Mar', 'Apr', 'Maj', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dec'];
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const fullName = [employee.firstName, employee.lastName].filter(Boolean).join(' ');
+    const monthLabel = `${MONTH_SK[month - 1]} ${year}`;
+    const sheetName = `${MONTH_SK[month - 1]} ${year}`.slice(0, 31);
+
+    const sheet = workbook.addWorksheet(sheetName, {
+      pageSetup: { paperSize: 9, orientation: 'portrait', fitToPage: true, fitToWidth: 1 },
+    });
+
+    // Column widths tuned to the reference template.
+    sheet.columns = [
+      { width: 5 }, { width: 9 }, { width: 9 },
+      { width: 11 }, { width: 11 },
+      { width: 11 }, { width: 11 },
+      { width: 10 },
+    ];
+
+    // Row 1 — title.
+    sheet.mergeCells('A1:H1');
+    const title = sheet.getCell('A1');
+    title.value     = 'Zeiterfassung';
+    title.alignment = { horizontal: 'center', vertical: 'middle' };
+    title.font      = { bold: true, size: 20, color: { argb: 'FF1E3A8A' } };
+    sheet.getRow(1).height = 28;
+
+    // Row 2 — employee.
+    sheet.getCell('A2').value = 'Zamestnanec';
+    sheet.getCell('A2').font  = { bold: true, size: 9 };
+    sheet.mergeCells('B2:D2');
+    sheet.getCell('B2').value = fullName || '';
+
+    // Row 3 — month/year label.
+    sheet.getCell('A3').value = 'Mitarbeiter, Monat/Jahr';
+    sheet.getCell('A3').font  = { bold: true, size: 9 };
+    sheet.mergeCells('B3:D3');
+    sheet.getCell('B3').value = monthLabel;
+
+    // Rows 4-5 — bilingual headers (Slovak / German stacked).
+    const headerRow1 = ['den', 'zac', 'kon', 'zac pres', 'kon pres', 'zac prer', 'kon prer', 'total'];
+    const headerRow2 = ['tag', 'beginn', 'ende', 'beginn pause', 'ende pause', 'beginn untrbr', 'ende untrbr', 'total'];
+    headerRow1.forEach((t, i) => {
+      const cell = sheet.getCell(4, i + 1);
+      cell.value = t;
+      cell.font  = { bold: true, size: 9, color: { argb: 'FF1E40AF' } };
+      cell.alignment = { horizontal: 'center', vertical: 'middle' };
+    });
+    headerRow2.forEach((t, i) => {
+      const cell = sheet.getCell(5, i + 1);
+      cell.value = t;
+      cell.font  = { italic: true, size: 8, color: { argb: 'FF64748B' } };
+      cell.alignment = { horizontal: 'center', vertical: 'middle' };
+    });
+    sheet.getRow(4).height = 18;
+    sheet.getRow(5).height = 14;
+
+    // Rows 6..(5 + daysInMonth) — daily data.
+    const dailyStart = 6;
+    const dailyEnd   = dailyStart + daysInMonth - 1;
+    let totalWorked  = 0;   // PRESENT hours
+    let totalHoliday = 0;   // HOLIDAY legacy hours (sviatok)
+    let totalVacation = 0;  // VACATION days × 8h
+    let totalAbsent   = 0;  // ABSENT days × 8h
+    let totalSick     = 0;  // SICK days × 8h
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const rec = dayMap.get(d);
+      const r   = dailyStart + d - 1;
+      sheet.getCell(r, 1).value = d;
+      sheet.getCell(r, 1).alignment = { horizontal: 'center' };
+      sheet.getCell(r, 1).font = { size: 9 };
+
+      if (rec && rec.status === 'PRESENT') {
+        sheet.getCell(r, 2).value = rec.checkIn  ?? '';
+        sheet.getCell(r, 3).value = rec.checkOut ?? '';
+        sheet.getCell(r, 4).value = rec.breakIn  ?? '';
+        sheet.getCell(r, 5).value = rec.breakOut ?? '';
+        const hours = Number(rec.workingHours ?? 0);
+        if (hours > 0) {
+          sheet.getCell(r, 8).value = this.hoursAsClock(hours);
+          totalWorked += hours;
+        } else {
+          sheet.getCell(r, 8).value = '0:00';
+        }
+      } else if (rec && rec.status === 'HOLIDAY') {
+        sheet.getCell(r, 8).value = '8:00';
+        totalHoliday += 8;
+      } else if (rec && rec.status === 'VACATION') {
+        sheet.getCell(r, 8).value = '8:00';
+        totalVacation += 8;
+      } else if (rec && rec.status === 'ABSENT') {
+        sheet.getCell(r, 8).value = '8:00';
+        totalAbsent += 8;
+      } else if (rec && rec.status === 'SICK') {
+        sheet.getCell(r, 8).value = '8:00';
+        totalSick += 8;
+      } else {
+        // Off / no record — show zero times so the grid matches the
+        // reference template where weekends render as 0:00 rather
+        // than blank.
+        sheet.getCell(r, 2).value = '0:00';
+        sheet.getCell(r, 3).value = '0:00';
+        sheet.getCell(r, 4).value = '0:00';
+        sheet.getCell(r, 5).value = '0:00';
+        sheet.getCell(r, 8).value = '0:00';
+      }
+
+      // Formatting — small monospaced font, light row separators.
+      for (let c = 2; c <= 8; c++) {
+        const cell = sheet.getCell(r, c);
+        cell.font      = { size: 9 };
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      }
+      sheet.getRow(r).height = 15;
+    }
+
+    // Totals block — two rows below the daily grid.
+    const totalsStart = dailyEnd + 4;
+    const setTotal = (row: number, label: string, value: string, tone?: 'blue' | 'red') => {
+      const labelCell = sheet.getCell(row, 2);
+      labelCell.value = label;
+      labelCell.font  = { bold: true, size: 9 };
+      const valueCell = sheet.getCell(row, 6);
+      valueCell.value = 'Odpracované';
+      valueCell.font  = { bold: true, size: 9 };
+      const totalCell = sheet.getCell(row, 8);
+      totalCell.value = value;
+      totalCell.alignment = { horizontal: 'right' };
+      totalCell.font      = {
+        bold: true, size: 10,
+        color: tone === 'blue' ? { argb: 'FF1E40AF' } : tone === 'red' ? { argb: 'FFB91C1C' } : undefined,
+      };
+    };
+    // Row: Odpracované (worked)
+    sheet.getCell(totalsStart, 2).value = 'Odpracované';
+    sheet.getCell(totalsStart, 2).font = { bold: true, size: 9 };
+    sheet.getCell(totalsStart, 8).value = this.hoursAsClock(totalWorked);
+    sheet.getCell(totalsStart, 8).font = { bold: true };
+    sheet.getCell(totalsStart, 8).alignment = { horizontal: 'right' };
+    // Row: sviatok (holiday)
+    sheet.getCell(totalsStart + 1, 6).value = 'sviatok';
+    sheet.getCell(totalsStart + 1, 6).font = { size: 9 };
+    sheet.getCell(totalsStart + 1, 8).value = this.hoursAsClock(totalHoliday);
+    sheet.getCell(totalsStart + 1, 8).font = { color: { argb: 'FF7C3AED' } };
+    sheet.getCell(totalsStart + 1, 8).alignment = { horizontal: 'right' };
+    // Row: Spolu Odpracovan (working + holiday)
+    sheet.getCell(totalsStart + 2, 6).value = 'Spolu Odpracovan';
+    sheet.getCell(totalsStart + 2, 6).font = { bold: true, size: 9 };
+    sheet.getCell(totalsStart + 2, 8).value = this.hoursAsClock(totalWorked + totalHoliday);
+    sheet.getCell(totalsStart + 2, 8).font = { bold: true };
+    sheet.getCell(totalsStart + 2, 8).alignment = { horizontal: 'right' };
+    // Row: dovolenka (vacation)
+    sheet.getCell(totalsStart + 3, 6).value = 'dovolenka';
+    sheet.getCell(totalsStart + 3, 6).font = { size: 9 };
+    sheet.getCell(totalsStart + 3, 8).value = this.hoursAsClock(totalVacation);
+    sheet.getCell(totalsStart + 3, 8).font = { color: { argb: 'FFB91C1C' } };
+    sheet.getCell(totalsStart + 3, 8).alignment = { horizontal: 'right' };
+    // Row: absencia (absence)
+    sheet.getCell(totalsStart + 4, 6).value = 'absencia';
+    sheet.getCell(totalsStart + 4, 6).font = { size: 9 };
+    sheet.getCell(totalsStart + 4, 8).value = this.hoursAsClock(totalAbsent);
+    sheet.getCell(totalsStart + 4, 8).font = { color: { argb: 'FFB91C1C' } };
+    sheet.getCell(totalsStart + 4, 8).alignment = { horizontal: 'right' };
+    // Row: choroba (sick)
+    sheet.getCell(totalsStart + 5, 6).value = 'choroba';
+    sheet.getCell(totalsStart + 5, 6).font = { size: 9 };
+    sheet.getCell(totalsStart + 5, 8).value = this.hoursAsClock(totalSick);
+    sheet.getCell(totalsStart + 5, 8).font = { color: { argb: 'FFB91C1C' } };
+    sheet.getCell(totalsStart + 5, 8).alignment = { horizontal: 'right' };
+    // Row: Spolu (grand total — working + holiday + vacation + absence + sick)
+    sheet.getCell(totalsStart + 6, 6).value = 'Spolu';
+    sheet.getCell(totalsStart + 6, 6).font = { bold: true, size: 10 };
+    sheet.getCell(totalsStart + 6, 8).value = this.hoursAsClock(
+      totalWorked + totalHoliday + totalVacation + totalAbsent + totalSick,
+    );
+    sheet.getCell(totalsStart + 6, 8).font = { bold: true, size: 10 };
+    sheet.getCell(totalsStart + 6, 8).alignment = { horizontal: 'right' };
+
+    // Signature label at the bottom so the printed sheet looks like
+    // the reference template's "podpis / Unterschrift" section.
+    const sigRow = totalsStart + 9;
+    sheet.getCell(sigRow, 2).value = 'podpis';
+    sheet.getCell(sigRow, 2).font  = { size: 9, color: { argb: 'FF1E40AF' } };
+    sheet.getCell(sigRow + 1, 2).value = 'Unterschrift';
+    sheet.getCell(sigRow + 1, 2).font  = { italic: true, size: 8, color: { argb: 'FF64748B' } };
+  }
+
+  /** Formats a decimal hours value as "H:MM" (e.g. 8.5 → "8:30"). */
+  private hoursAsClock(hours: number): string {
+    if (!Number.isFinite(hours) || hours <= 0) return '0:00';
+    const totalMin = Math.round(hours * 60);
+    const h = Math.floor(totalMin / 60);
+    const m = totalMin % 60;
+    return `${h}:${String(m).padStart(2, '0')}`;
+  }
 
   async exportExcel(dto: ExportAttendanceDto): Promise<Buffer> {
     const month = Number(dto.month);
@@ -462,7 +756,22 @@ export class AttendanceService {
     workbook.creator = 'TempWorks Attendance Module';
     workbook.created = new Date();
 
-    // ── Sheet 1: Attendance Summary ───────────────────────────────────────────
+    // ── Primary output: one Zeiterfassung sheet per employee,
+    //    matching the reference payroll template. For multi-employee
+    //    exports we still include the summary sheet below so HR can
+    //    see every driver at a glance.
+    for (const emp of employees) {
+      const dayMap = recordMap.get(emp.id) ?? new Map<number, any>();
+      this.buildZeiterfassungSheet(workbook, emp, month, year, dayMap);
+    }
+
+    // ── Secondary summary sheet — only when the caller asked for
+    //    a whole-org export. Skipped for single-employee so the
+    //    generated file stays clean (it matches the template exactly).
+    if (dto.employeeId) {
+      const buffer = await workbook.xlsx.writeBuffer();
+      return Buffer.from(buffer);
+    }
 
     const summarySheet = workbook.addWorksheet('Attendance Summary', {
       views: [{ state: 'frozen', xSplit: 3, ySplit: 1 }],
@@ -747,31 +1056,197 @@ export class AttendanceService {
     return { from, to };
   }
 
-  private calcWorkingHours(checkIn: string, checkOut: string): number | null {
-    try {
-      const [inH, inM]   = checkIn.split(':').map(Number);
-      const [outH, outM] = checkOut.split(':').map(Number);
+  /**
+   * Total Hours = (checkOut - checkIn) - (breakOut - breakIn)
+   *
+   * Invariants enforced here:
+   *  • checkIn / checkOut are both required for any positive total;
+   *    missing either returns null (status-only rows like Off / Sick).
+   *  • Overnight shifts are supported (checkOut < checkIn wraps
+   *    through midnight).
+   *  • Partial or invalid break times are silently ignored rather than
+   *    throwing — UI validators enforce ordering at entry time.
+   *  • Result clamped at 0 so a too-large break never produces
+   *    negative hours in reports.
+   */
+  private toMin(t?: string | null): number | null {
+    if (!t) return null;
+    const [hStr, mStr] = t.split(':');
+    const h = Number(hStr), m = Number(mStr);
+    if (!Number.isFinite(h) || !Number.isFinite(m)) return null;
+    if (h < 0 || h > 23 || m < 0 || m > 59) return null;
+    return h * 60 + m;
+  }
 
-      if (
-        isNaN(inH) || isNaN(inM) || isNaN(outH) || isNaN(outM) ||
-        inH < 0 || inH > 23 || inM < 0 || inM > 59 ||
-        outH < 0 || outH > 23 || outM < 0 || outM > 59
-      ) {
-        return null;
-      }
+  private calcWorkingHours(
+    checkIn?: string | null,
+    checkOut?: string | null,
+    breakIn?: string | null,
+    breakOut?: string | null,
+  ): number | null {
+    const toMin = (t?: string | null) => this.toMin(t);
+    const ci = toMin(checkIn);
+    const co = toMin(checkOut);
+    if (ci == null || co == null) return null;
 
-      const inMinutes  = inH  * 60 + inM;
-      const outMinutes = outH * 60 + outM;
+    // Overnight shift — wrap through midnight.
+    let shiftMin = co >= ci ? co - ci : (24 * 60 - ci) + co;
 
-      // Handle overnight shifts
-      const diff = outMinutes >= inMinutes
-        ? outMinutes - inMinutes
-        : (24 * 60 - inMinutes) + outMinutes;
-
-      return Math.round((diff / 60) * 100) / 100;
-    } catch {
-      return null;
+    const bi = toMin(breakIn);
+    const bo = toMin(breakOut);
+    if (bi != null && bo != null && bo > bi) {
+      shiftMin -= (bo - bi);
     }
+
+    if (shiftMin < 0) shiftMin = 0;
+    return Math.round((shiftMin / 60) * 100) / 100;
+  }
+
+  // ── Lock periods ─────────────────────────────────────────────────────────────
+
+  /** True if the (year, month) is locked and therefore read-only. */
+  async isPeriodLocked(year: number, month: number): Promise<boolean> {
+    try {
+      const row = await (this.prisma as any).attendanceLockedPeriod.findUnique({
+        where: { year_month: { year, month } },
+        select: { id: true },
+      });
+      return !!row;
+    } catch {
+      // Prisma client may not know about the new model on first boot
+      // — fail-open rather than blocking writes.
+      return false;
+    }
+  }
+
+  /** Throws if the given YYYY-MM-DD falls in a locked month. */
+  private async assertPeriodUnlocked(dateStr: string): Promise<void> {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return;
+    const y = Number(dateStr.slice(0, 4));
+    const m = Number(dateStr.slice(5, 7));
+    if (await this.isPeriodLocked(y, m)) {
+      throw new BadRequestException(`Payroll period ${y}-${String(m).padStart(2, '0')} is locked`);
+    }
+  }
+
+  async listLockedPeriods() {
+    try {
+      return await (this.prisma as any).attendanceLockedPeriod.findMany({
+        orderBy: [{ year: 'desc' }, { month: 'desc' }],
+        include: { lockedBy: { select: { id: true, firstName: true, lastName: true, email: true } } },
+      });
+    } catch {
+      return [];
+    }
+  }
+
+  async lockPeriod(dto: LockPeriodDto, actorId?: string) {
+    const existing = await (this.prisma as any).attendanceLockedPeriod.findUnique({
+      where: { year_month: { year: dto.year, month: dto.month } },
+    });
+    if (existing) throw new BadRequestException('Period is already locked');
+    const row = await (this.prisma as any).attendanceLockedPeriod.create({
+      data: { year: dto.year, month: dto.month, reason: dto.reason, lockedById: actorId ?? null },
+      include: { lockedBy: { select: { id: true, firstName: true, lastName: true, email: true } } },
+    });
+    await this.auditLog(actorId, 'ATTENDANCE_PERIOD_LOCKED', row.id, { year: dto.year, month: dto.month });
+    return row;
+  }
+
+  async unlockPeriod(id: string, actorId?: string) {
+    const existing = await (this.prisma as any).attendanceLockedPeriod.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Locked period not found');
+    await (this.prisma as any).attendanceLockedPeriod.delete({ where: { id } });
+    await this.auditLog(actorId, 'ATTENDANCE_PERIOD_UNLOCKED', id, {
+      year: existing.year, month: existing.month,
+    });
+    return { message: 'Period unlocked' };
+  }
+
+  // ── Bulk apply ──────────────────────────────────────────────────────────────
+
+  /**
+   * Applies one status + time template to a date range or explicit
+   * date list. Respects the lock table (skips locked dates) and the
+   * overwriteExisting flag (skips dates with existing records when
+   * false). Returns per-date outcomes so the UI can render a summary.
+   */
+  async bulkApply(dto: BulkApplyAttendanceDto, actorId?: string) {
+    const employee = await this.prisma.employee.findFirst({
+      where: { id: dto.employeeId, deletedAt: null },
+      select: { id: true },
+    });
+    if (!employee) throw new NotFoundException(`Employee ${dto.employeeId} not found`);
+
+    // Expand the target date set.
+    let dates: string[] = [];
+    if (Array.isArray(dto.dates) && dto.dates.length > 0) {
+      dates = [...new Set(dto.dates)].filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d));
+    } else if (dto.dateFrom && dto.dateTo) {
+      const from = new Date(dto.dateFrom + 'T00:00:00.000Z');
+      const to   = new Date(dto.dateTo   + 'T00:00:00.000Z');
+      if (isNaN(from.getTime()) || isNaN(to.getTime()) || from > to) {
+        throw new BadRequestException('Invalid dateFrom / dateTo range');
+      }
+      for (let d = new Date(from); d <= to; d.setUTCDate(d.getUTCDate() + 1)) {
+        if (dto.skipWeekends) {
+          const dow = d.getUTCDay();
+          if (dow === 0 || dow === 6) continue;
+        }
+        dates.push(d.toISOString().slice(0, 10));
+      }
+    } else {
+      throw new BadRequestException('Provide either `dates` or both `dateFrom` and `dateTo`');
+    }
+    if (dates.length === 0) throw new BadRequestException('No dates to process');
+    if (dates.length > 366) throw new BadRequestException('Refusing to process more than 366 dates in one call');
+
+    const overwrite = dto.overwriteExisting !== false;
+    const results: Array<{ date: string; outcome: 'created' | 'updated' | 'skipped_existing' | 'skipped_locked' | 'error'; error?: string }> = [];
+
+    for (const dateStr of dates) {
+      try {
+        const y = Number(dateStr.slice(0, 4));
+        const m = Number(dateStr.slice(5, 7));
+        if (await this.isPeriodLocked(y, m)) {
+          results.push({ date: dateStr, outcome: 'skipped_locked' });
+          continue;
+        }
+        const dateObj = new Date(dateStr + 'T00:00:00.000Z');
+        const existing = await (this.prisma as any).attendanceRecord.findUnique({
+          where: { employeeId_date: { employeeId: dto.employeeId, date: dateObj } },
+          select: { id: true },
+        });
+        if (existing && !overwrite) {
+          results.push({ date: dateStr, outcome: 'skipped_existing' });
+          continue;
+        }
+        await this.upsertRecord({
+          employeeId: dto.employeeId,
+          date: dateStr,
+          status: dto.status,
+          checkIn:  dto.checkIn,
+          checkOut: dto.checkOut,
+          breakIn:  dto.breakIn,
+          breakOut: dto.breakOut,
+          notes:    dto.notes,
+        } as any, actorId);
+        results.push({ date: dateStr, outcome: existing ? 'updated' : 'created' });
+      } catch (err: any) {
+        results.push({ date: dateStr, outcome: 'error', error: err?.message ?? 'Unknown error' });
+      }
+    }
+
+    const summary = {
+      requested: dates.length,
+      created:          results.filter(r => r.outcome === 'created').length,
+      updated:          results.filter(r => r.outcome === 'updated').length,
+      skipped_existing: results.filter(r => r.outcome === 'skipped_existing').length,
+      skipped_locked:   results.filter(r => r.outcome === 'skipped_locked').length,
+      errors:           results.filter(r => r.outcome === 'error').length,
+    };
+    await this.auditLog(actorId, 'ATTENDANCE_BULK_APPLY', dto.employeeId, { ...summary, status: dto.status });
+    return { summary, results };
   }
 
   private async auditLog(

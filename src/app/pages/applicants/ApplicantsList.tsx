@@ -1,19 +1,25 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { applicantsApi, employeeWorkflowApi, agenciesApi, settingsApi } from '../../services/api';
+import { applicantsApi, employeeWorkflowApi, agenciesApi, settingsApi, documentsApi } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
 import { getCurrentUser, getAccessToken } from '../../services/api';
 import { Link } from 'react-router';
-import { Search, Plus, Eye, Edit, Download, Trash2, RefreshCw, ArrowUp, ArrowDown, ArrowUpDown, X, Columns2, Check } from 'lucide-react';
+import { Search, Plus, Eye, Edit, Download, Trash2, RefreshCw, ArrowUp, ArrowDown, ArrowUpDown, X, Columns2, Check, FileText, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { confirm } from '../../components/ui/ConfirmDialog';
+import { exportRecordsAsPdfZip, safeFilename } from '../../utils/bulkPdfExport';
+import { buildApplicantPdfBlob } from '../../components/applicants/ApplicantPdfExport';
+import { WhatsAppButton } from '../../components/WhatsAppButton';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
 import { Badge } from '../../components/ui/badge';
 import { Checkbox } from '../../components/ui/checkbox';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '../../components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 
 const getStatusColor = (status: string) => {
   switch (status?.toUpperCase()) {
@@ -37,26 +43,62 @@ type SortField = 'firstName' | 'email' | 'nationality' | 'jobType' | 'agency' | 
 type SortOrder = 'asc' | 'desc';
 
 // ── Column visibility ────────────────────────────────────────────────────────
-type ColKey = 'contact' | 'nationality' | 'jobType' | 'agency' | 'tier' | 'applied' | 'status';
+type ColKey =
+  | 'contact' | 'nationality' | 'appliedPosition' | 'passportNumber'
+  | 'age' | 'gender' | 'agency' | 'tier' | 'applied' | 'status';
 
 const ALL_COLUMNS: { key: ColKey; label: string }[] = [
-  { key: 'contact',     label: 'Contact' },
-  { key: 'nationality', label: 'Nationality' },
-  { key: 'jobType',     label: 'Job Category' },
-  { key: 'agency',      label: 'Agency' },
-  { key: 'tier',        label: 'Tier' },
-  { key: 'applied',     label: 'Applied' },
-  { key: 'status',      label: 'Status' },
+  { key: 'contact',         label: 'Contact' },
+  { key: 'nationality',     label: 'Citizenship' },
+  { key: 'appliedPosition', label: 'Applied Position' },
+  { key: 'passportNumber',  label: 'Passport Number' },
+  { key: 'age',             label: 'Age' },
+  { key: 'gender',          label: 'Gender' },
+  { key: 'agency',          label: 'Agency' },
+  { key: 'tier',            label: 'Tier' },
+  { key: 'applied',         label: 'Applied' },
+  { key: 'status',          label: 'Status' },
 ];
 
 const DEFAULT_VISIBLE: Record<ColKey, boolean> = {
-  contact: true, nationality: true, jobType: true, agency: true,
-  tier: true, applied: true, status: true,
+  contact: true, nationality: true, appliedPosition: true,
+  passportNumber: true, age: true, gender: true,
+  agency: true, tier: false, applied: true, status: true,
 };
+
+/** Age in whole years from a DOB string/Date. Returns null for missing /
+ *  unparseable dates so the cell can show a '—' rather than an NaN. */
+function calcAge(dob: string | Date | null | undefined): number | null {
+  if (!dob) return null;
+  const birth = typeof dob === 'string' ? new Date(dob) : dob;
+  if (isNaN(birth.getTime())) return null;
+  const now = new Date();
+  let age = now.getFullYear() - birth.getFullYear();
+  const m = now.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) age -= 1;
+  return age >= 0 && age < 150 ? age : null;
+}
+
+/** Passport number lives inside the applicationData JSON. */
+function readPassportNumber(a: any): string {
+  const raw = a?.applicationData?.passportNumber ?? a?.passportNumber ?? '';
+  return typeof raw === 'string' ? raw.trim() : '';
+}
+
+function formatGender(g: string | null | undefined): string {
+  if (!g) return '';
+  switch (g) {
+    case 'MALE': return 'Male';
+    case 'FEMALE': return 'Female';
+    case 'OTHER': return 'Other';
+    case 'PREFER_NOT_TO_SAY': return 'Prefer not to say';
+    default: return g;
+  }
+}
 
 function loadVisibleColumns(): Record<ColKey, boolean> {
   try {
-    const saved = localStorage.getItem('applicants-table-columns');
+    const saved = localStorage.getItem('applicants-table-columns-v3');
     return saved ? { ...DEFAULT_VISIBLE, ...JSON.parse(saved) } : DEFAULT_VISIBLE;
   } catch {
     return DEFAULT_VISIBLE;
@@ -104,7 +146,7 @@ export function ApplicantsList() {
   const toggleColumn = (key: ColKey) => {
     setVisibleColumns(prev => {
       const next = { ...prev, [key]: !prev[key] };
-      localStorage.setItem('applicants-table-columns', JSON.stringify(next));
+      localStorage.setItem('applicants-table-columns-v3', JSON.stringify(next));
       return next;
     });
   };
@@ -140,6 +182,8 @@ export function ApplicantsList() {
   // ── Bulk actions ───────────────────────────────────────────────────────────
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkActionInProgress, setBulkActionInProgress] = useState(false);
+  const [statusModalOpen, setStatusModalOpen] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState<string>('');
 
   // ── Fetch ──────────────────────────────────────────────────────────────────
   const fetchApplicants = useCallback(async () => {
@@ -208,7 +252,11 @@ export function ApplicantsList() {
 
   // ── Delete ─────────────────────────────────────────────────────────────────
   const handleDelete = async (applicant: any) => {
-    if (!confirm(`Delete "${applicant.firstName} ${applicant.lastName}"? This cannot be undone.`)) return;
+    if (!(await confirm({
+      title: 'Delete applicant?',
+      description: `"${applicant.firstName} ${applicant.lastName}" will be permanently removed.`,
+      confirmText: 'Delete', tone: 'destructive',
+    }))) return;
     try {
       await applicantsApi.delete(applicant.id);
       setApplicantsData(prev => prev.filter(a => a.id !== applicant.id));
@@ -228,14 +276,17 @@ export function ApplicantsList() {
   };
 
   // ── Bulk actions ───────────────────────────────────────────────────────────
-  const handleBulkAction = async (action: string, value?: string) => {
+  const handleBulkAction = async (action: string, value?: string, agencyId?: string) => {
     if (selected.size === 0) { toast.error('Select at least one applicant'); return; }
     setBulkActionInProgress(true);
     try {
-      const result = await applicantsApi.bulkAction({ ids: [...selected], action, value });
+      const result = await applicantsApi.bulkAction({ ids: [...selected], action, value, agencyId });
       const failed = result.results?.filter((r: any) => !r.success) ?? [];
       if (failed.length === 0) toast.success(`Bulk action applied to ${selected.size} applicant(s)`);
-      else toast.warning(`Applied to ${selected.size - failed.length}, failed for ${failed.length}`);
+      else toast.warning(
+        `Applied to ${selected.size - failed.length}, failed for ${failed.length}` +
+          (failed[0]?.error ? ` (first error: ${failed[0].error})` : ''),
+      );
       setSelected(new Set());
       await fetchApplicants();
     } catch (err: any) {
@@ -245,25 +296,82 @@ export function ApplicantsList() {
     }
   };
 
-  // ── CSV Export ─────────────────────────────────────────────────────────────
-  const handleExportCsv = () => {
-    const params: Record<string, any> = {};
-    if (searchTerm) params.search = searchTerm;
-    if (tierFilter) params.tier = tierFilter;
-    if (statusFilter) params.status = statusFilter;
-    if (agencyFilter) params.agencyId = agencyFilter;
-    if (nationalityFilter) params.nationality = nationalityFilter;
-    if (jobTypeFilter) params.jobTypeId = jobTypeFilter;
+  // ── Bulk Promote dialog state ─────────────────────────────────────────────
+  // Opens a small picker so operators can pick the responsible agency
+  // for every selected lead in one shot instead of one-at-a-time.
+  const [showBulkPromoteDialog, setShowBulkPromoteDialog] = useState(false);
+  const [bulkPromoteAgencyId, setBulkPromoteAgencyId] = useState<string>('');
+
+  // ── Bulk PDF Export ────────────────────────────────────────────────────────
+  const [pdfExporting, setPdfExporting] = useState(false);
+  const handleBulkPdfExport = async () => {
+    if (selected.size === 0) {
+      toast.error('Select at least one applicant');
+      return;
+    }
+    setPdfExporting(true);
+    const tid = toast.loading(`Preparing ${selected.size} PDF${selected.size > 1 ? 's' : ''}...`);
+    try {
+      const ids = [...selected];
+      const full = await Promise.all(ids.map(id => applicantsApi.get(id).catch(() => null)));
+      const records = full.filter(Boolean) as any[];
+      if (records.length === 0) {
+        toast.error('Failed to load selected applicants', { id: tid });
+        return;
+      }
+      const today = new Date().toISOString().slice(0, 10);
+      await exportRecordsAsPdfZip({
+        records,
+        zipName: `Leads_Profiles_${today}`,
+        // Merge each applicant's uploaded documents into their PDF so
+        // the bulk ZIP matches the single-profile download.
+        buildBlob: async (rec) => {
+          // The endpoint returns either an array or a PaginatedResponse
+          // shape — handle both so the merge doesn't silently drop docs.
+          const docsRes: any = await documentsApi.getByEntity('APPLICANT', rec.id).catch(() => []);
+          const docs = Array.isArray(docsRes) ? docsRes : Array.isArray(docsRes?.data) ? docsRes.data : [];
+          return buildApplicantPdfBlob(rec, docs);
+        },
+        filename: (rec) => {
+          const name = safeFilename([rec.firstName, rec.lastName].filter(Boolean).join('_') || 'Lead');
+          const num = rec.leadNumber || rec.candidateNumber || rec.applicationNumber || rec.id;
+          return `Lead_${name}_${num}.pdf`;
+        },
+        onProgress: (done, total) => {
+          toast.loading(`Generating PDFs... ${done}/${total}`, { id: tid });
+        },
+      });
+      toast.success(`Exported ${records.length} PDF${records.length > 1 ? 's' : ''}`, { id: tid });
+    } catch (err: any) {
+      toast.error(err?.message || 'PDF export failed', { id: tid });
+    } finally {
+      setPdfExporting(false);
+    }
+  };
+
+  // ── Excel Export ───────────────────────────────────────────────────────────
+  // Streams the backend's .xlsx for the currently selected rows. The
+  // button in the toolbar is disabled when the selection is empty, so
+  // the handler only runs with at least one id.
+  const handleExportExcel = () => {
+    if (selected.size === 0) {
+      toast.error('Select one or more rows to export');
+      return;
+    }
     const token = getAccessToken();
-    const csvUrl = applicantsApi.exportCsv(params);
-    fetch(csvUrl, { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.blob())
+    const url = applicantsApi.exportExcel({ ids: Array.from(selected) });
+    fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+      .then(async r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.blob();
+      })
       .then(blob => {
-        const url = URL.createObjectURL(blob);
+        const objectUrl = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = url; a.download = `applicants-${Date.now()}.csv`;
+        a.href = objectUrl;
+        a.download = `applicants-selected-${Date.now()}.xlsx`;
         document.body.appendChild(a); a.click();
-        document.body.removeChild(a); URL.revokeObjectURL(url);
+        document.body.removeChild(a); URL.revokeObjectURL(objectUrl);
       })
       .catch(() => toast.error('Export failed'));
   };
@@ -326,11 +434,39 @@ export function ApplicantsList() {
           <div className="flex gap-2 ml-auto">
             {!isAgencyUser && (
               <>
-                <Button variant="outline" size="sm" disabled={bulkActionInProgress} onClick={() => handleBulkAction('TIER_CHANGE', 'CANDIDATE')}>Promote to Candidate</Button>
-                <Button variant="outline" size="sm" disabled={bulkActionInProgress} onClick={() => { const s = prompt('Enter new status (NEW / SCREENING / INTERVIEW / OFFER / ACCEPTED / REJECTED / WITHDRAWN / ONBOARDING)'); if (s) handleBulkAction('STATUS_CHANGE', s.toUpperCase()); }}>Change Status</Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={bulkActionInProgress}
+                  onClick={() => {
+                    if (selected.size === 0) return;
+                    setBulkPromoteAgencyId('');
+                    setShowBulkPromoteDialog(true);
+                  }}
+                >Promote to Candidate</Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={bulkActionInProgress}
+                  onClick={() => {
+                    if (selected.size === 0) {
+                      toast.error('Select at least one applicant');
+                      return;
+                    }
+                    setPendingStatus('');
+                    setStatusModalOpen(true);
+                  }}
+                >Change Status</Button>
               </>
             )}
-            <Button variant="outline" size="sm" className="text-red-600" disabled={bulkActionInProgress} onClick={() => { if (confirm(`Delete ${selected.size} applicant(s)?`)) handleBulkAction('DELETE'); }}>
+            <Button variant="outline" size="sm" className="text-red-600" disabled={bulkActionInProgress} onClick={async () => {
+              if (selected.size === 0) return;
+              if (await confirm({
+                title: 'Delete selected applicants?',
+                description: `${selected.size} applicant(s) will be permanently removed.`,
+                confirmText: 'Delete', tone: 'destructive',
+              })) handleBulkAction('DELETE');
+            }}>
               <Trash2 className="w-3 h-3 mr-1" />Delete Selected
             </Button>
             <Button variant="ghost" size="sm" onClick={() => setSelected(new Set())}>Clear</Button>
@@ -371,8 +507,26 @@ export function ApplicantsList() {
               <Button variant="outline" size="sm" onClick={fetchApplicants} disabled={loading}>
                 <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />Refresh
               </Button>
-              <Button variant="outline" size="sm" onClick={handleExportCsv}>
-                <Download className="w-4 h-4 mr-2" />Export CSV
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportExcel}
+                disabled={selected.size === 0}
+                title={selected.size === 0 ? 'Select one or more rows to export' : undefined}
+              >
+                <Download className="w-4 h-4 mr-2" />Export to Excel ({selected.size})
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleBulkPdfExport}
+                disabled={selected.size === 0 || pdfExporting}
+                title={selected.size === 0 ? 'Select one or more rows to export as PDFs' : undefined}
+              >
+                {pdfExporting
+                  ? <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  : <FileText className="w-4 h-4 mr-2" />}
+                Export PDFs ({selected.size})
               </Button>
 
               {/* Column picker */}
@@ -408,9 +562,9 @@ export function ApplicantsList() {
                       ))}
                     </div>
                     <div className="border-t mt-2 pt-2 flex gap-1.5">
-                      <button onClick={() => { const all = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, true])) as Record<ColKey, boolean>; setVisibleColumns(all); localStorage.setItem('applicants-table-columns', JSON.stringify(all)); }} className="flex-1 text-xs text-center text-blue-600 hover:underline py-0.5">Show all</button>
+                      <button onClick={() => { const all = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, true])) as Record<ColKey, boolean>; setVisibleColumns(all); localStorage.setItem('applicants-table-columns-v3', JSON.stringify(all)); }} className="flex-1 text-xs text-center text-blue-600 hover:underline py-0.5">Show all</button>
                       <span className="text-gray-300">|</span>
-                      <button onClick={() => { const none = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, false])) as Record<ColKey, boolean>; setVisibleColumns(none); localStorage.setItem('applicants-table-columns', JSON.stringify(none)); }} className="flex-1 text-xs text-center text-gray-500 hover:underline py-0.5">Hide all</button>
+                      <button onClick={() => { const none = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, false])) as Record<ColKey, boolean>; setVisibleColumns(none); localStorage.setItem('applicants-table-columns-v3', JSON.stringify(none)); }} className="flex-1 text-xs text-center text-gray-500 hover:underline py-0.5">Hide all</button>
                     </div>
                   </div>
                 )}
@@ -420,9 +574,9 @@ export function ApplicantsList() {
             {/* Row 2 */}
             <div className="flex flex-wrap items-center gap-3">
               <Select value={nationalityFilter || '__all__'} onValueChange={v => setNationalityFilter(v === '__all__' ? '' : v)}>
-                <SelectTrigger className="w-44"><SelectValue placeholder="All Nationalities" /></SelectTrigger>
+                <SelectTrigger className="w-44"><SelectValue placeholder="All Citizenships" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__all__">All Nationalities</SelectItem>
+                  <SelectItem value="__all__">All Citizenships</SelectItem>
                   {nationalityOptions.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
                 </SelectContent>
               </Select>
@@ -461,8 +615,11 @@ export function ApplicantsList() {
                   </TableHead>
                   <SortableHead label="Applicant"    field="firstName"   sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />
                   {col('contact')     && <SortableHead label="Contact"      field="email"       sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
-                  {col('nationality') && <SortableHead label="Nationality"  field="nationality" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
-                  {col('jobType')     && <SortableHead label="Job Category" field="jobType"     sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  {col('nationality') && <SortableHead label="Citizenship"  field="nationality" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  {col('appliedPosition') && <TableHead>Applied Position</TableHead>}
+                  {col('passportNumber')  && <TableHead>Passport Number</TableHead>}
+                  {col('age')             && <TableHead>Age</TableHead>}
+                  {col('gender')          && <TableHead>Gender</TableHead>}
                   {col('agency')      && <SortableHead label="Agency"       field="agency"      sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
                   {col('tier') && !isAgencyUser && <SortableHead label="Tier" field="tier" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
                   {col('applied')     && <SortableHead label="Applied"      field="createdAt"   sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
@@ -514,18 +671,33 @@ export function ApplicantsList() {
                       </TableCell>
                     )}
                     {col('nationality') && <TableCell className="text-sm">{applicant.nationality}</TableCell>}
-                    {col('jobType') && (
+                    {col('appliedPosition') && (
                       <TableCell>
-                        <span className="text-sm">
-                          {typeof applicant.jobType === 'object' && applicant.jobType !== null ? applicant.jobType.name : applicant.jobType ?? '—'}
-                        </span>
+                        {applicant.jobAd?.title
+                          ? <span className="text-sm">{applicant.jobAd.title}</span>
+                          : <Badge variant="outline" className="text-[10px] font-semibold tracking-wide">GENERAL</Badge>}
+                      </TableCell>
+                    )}
+                    {col('passportNumber') && (
+                      <TableCell className="text-sm font-mono whitespace-nowrap">
+                        {readPassportNumber(applicant) || <span className="text-muted-foreground">—</span>}
+                      </TableCell>
+                    )}
+                    {col('age') && (
+                      <TableCell className="text-sm tabular-nums">
+                        {calcAge(applicant.dateOfBirth) ?? <span className="text-muted-foreground">—</span>}
+                      </TableCell>
+                    )}
+                    {col('gender') && (
+                      <TableCell className="text-sm">
+                        {formatGender(applicant.gender) || <span className="text-muted-foreground">—</span>}
                       </TableCell>
                     )}
                     {col('agency') && (
                       <TableCell>
-                        {applicant.agency
+                        {applicant.agency?.name
                           ? <span className="text-sm">{applicant.agency.name}</span>
-                          : <span className="text-sm text-muted-foreground">Direct</span>}
+                          : <span className="text-sm text-muted-foreground">—</span>}
                       </TableCell>
                     )}
                     {col('tier') && !isAgencyUser && (
@@ -548,6 +720,7 @@ export function ApplicantsList() {
                         <Button variant="ghost" size="sm" asChild>
                           <Link to={`/dashboard/applicants/${applicant.id}`}><Eye className="w-4 h-4 mr-1" />View</Link>
                         </Button>
+                        <WhatsAppButton phone={applicant.phone} size="icon" />
                         {canEdit('applicants') && (
                           <Button variant="ghost" size="sm" asChild>
                             <Link to={`/dashboard/applicants/${applicant.id}/edit`}><Edit className="w-4 h-4 mr-1" />Edit</Link>
@@ -574,6 +747,97 @@ export function ApplicantsList() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Bulk status change modal — predefined list, no free-text entry */}
+      <Dialog open={statusModalOpen} onOpenChange={(open) => {
+        setStatusModalOpen(open);
+        if (!open) setPendingStatus('');
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Change status</DialogTitle>
+            <DialogDescription>
+              Select a new status for {selected.size} selected applicant{selected.size === 1 ? '' : 's'}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-2">
+            <Select value={pendingStatus} onValueChange={setPendingStatus}>
+              <SelectTrigger><SelectValue placeholder="Choose a status..." /></SelectTrigger>
+              <SelectContent>
+                {STATUSES.map(s => (
+                  <SelectItem key={s} value={s}>{s.replace(/_/g, ' ')}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setStatusModalOpen(false)} disabled={bulkActionInProgress}>
+              Cancel
+            </Button>
+            <Button
+              disabled={bulkActionInProgress || !pendingStatus}
+              onClick={async () => {
+                if (!pendingStatus) {
+                  toast.error('Please select a status');
+                  return;
+                }
+                setStatusModalOpen(false);
+                const next = pendingStatus;
+                setPendingStatus('');
+                await handleBulkAction('STATUS_CHANGE', next);
+              }}
+            >
+              Apply
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Promote to Candidate dialog — agency selection in the
+          same click-through as the confirmation, so one action both
+          promotes the records and pins the responsible agency. */}
+      <Dialog open={showBulkPromoteDialog} onOpenChange={(o) => !o && setShowBulkPromoteDialog(false)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Promote {selected.size} Lead{selected.size === 1 ? '' : 's'} to Candidate</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-muted-foreground">
+              Every selected lead is promoted to a candidate and pinned to the responsible agency you pick below.
+              Leave the picker blank to fall back to the system default holding agency.
+            </p>
+            <div className="space-y-1.5">
+              <Label htmlFor="bulk-promote-agency" className="text-sm">Responsible Agency</Label>
+              <Select value={bulkPromoteAgencyId || '__default__'} onValueChange={(v) => setBulkPromoteAgencyId(v === '__default__' ? '' : v)}>
+                <SelectTrigger id="bulk-promote-agency">
+                  <SelectValue placeholder="Use system default" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__default__">
+                    <span className="text-muted-foreground">Use system default holding agency</span>
+                  </SelectItem>
+                  {agencies.map((a: any) => (
+                    <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowBulkPromoteDialog(false)} disabled={bulkActionInProgress}>Cancel</Button>
+            <Button
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              disabled={bulkActionInProgress}
+              onClick={async () => {
+                setShowBulkPromoteDialog(false);
+                await handleBulkAction('TIER_CHANGE', 'CANDIDATE', bulkPromoteAgencyId || undefined);
+              }}
+            >
+              Promote
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -1,8 +1,6 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, UploadedFile, UseInterceptors, BadRequestException } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname, join } from 'path';
-import { mkdirSync } from 'fs';
+import { memoryUpload, IMAGE_MIME } from '../common/storage/multer.config';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery, ApiConsumes } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -132,31 +130,16 @@ export class UsersController {
   @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Agency Manager', 'Agency User', 'Finance', 'Read Only')
   @ApiOperation({ summary: 'Upload own profile photo' })
   @ApiConsumes('multipart/form-data')
-  @UseInterceptors(FileInterceptor('photo', {
-    storage: diskStorage({
-      destination: (req, file, cb) => {
-        const dir = join(process.cwd(), 'uploads', 'avatars');
-        mkdirSync(dir, { recursive: true });
-        cb(null, dir);
-      },
-      filename: (_req, file, cb) => {
-        const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
-        cb(null, `avatar-${unique}${extname(file.originalname)}`);
-      },
-    }),
-    limits: { fileSize: 5 * 1024 * 1024 },
-    fileFilter: (_req, file, cb) => {
-      if (!file.mimetype.startsWith('image/')) return cb(new BadRequestException('Only image files are allowed'), false);
-      cb(null, true);
-    },
-  }))
+  @UseInterceptors(FileInterceptor('photo', memoryUpload({
+    mimeTypes: IMAGE_MIME,
+    maxBytes: 5 * 1024 * 1024,
+  })))
   async uploadOwnPhoto(
     @UploadedFile() file: Express.Multer.File,
     @CurrentUser('id') actorId: string,
   ) {
     if (!file) throw new BadRequestException('No file uploaded');
-    const photoUrl = `/uploads/avatars/${file.filename}`;
-    return this.usersService.uploadPhoto(actorId, photoUrl, actorId);
+    return this.usersService.uploadPhoto(actorId, file, actorId);
   }
 
   // Admin/HR can upload photo for any user
@@ -164,34 +147,17 @@ export class UsersController {
   @Roles('System Admin', 'HR Manager')
   @ApiOperation({ summary: 'Upload user profile photo' })
   @ApiConsumes('multipart/form-data')
-  @UseInterceptors(FileInterceptor('photo', {
-    storage: diskStorage({
-      destination: (_req, _file, cb) => {
-        const dir = join(process.cwd(), 'uploads', 'avatars');
-        mkdirSync(dir, { recursive: true });
-        cb(null, dir);
-      },
-      filename: (_req, file, cb) => {
-        const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
-        cb(null, `avatar-${unique}${extname(file.originalname)}`);
-      },
-    }),
-    limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
-    fileFilter: (_req, file, cb) => {
-      if (!file.mimetype.startsWith('image/')) {
-        return cb(new BadRequestException('Only image files are allowed'), false);
-      }
-      cb(null, true);
-    },
-  }))
+  @UseInterceptors(FileInterceptor('photo', memoryUpload({
+    mimeTypes: IMAGE_MIME,
+    maxBytes: 5 * 1024 * 1024,
+  })))
   async uploadPhoto(
     @Param('id') id: string,
     @UploadedFile() file: Express.Multer.File,
     @CurrentUser('id') actorId: string,
   ) {
     if (!file) throw new BadRequestException('No file uploaded');
-    const photoUrl = `/uploads/avatars/${file.filename}`;
-    return this.usersService.uploadPhoto(id, photoUrl, actorId);
+    return this.usersService.uploadPhoto(id, file, actorId);
   }
 
   // ── Unlock user ───────────────────────────────────────────────────────────────

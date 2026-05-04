@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, ConflictException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
+import { StorageService } from '../common/storage/storage.service';
 import { AuditLogService } from '../logs/audit-log.service';
 import { EmailService } from '../email/email.service';
 import { AuthService } from '../auth/auth.service';
@@ -21,6 +22,7 @@ const ADMIN_ONLY_FIELDS: (keyof UpdateUserDto)[] = [
 export class UsersService {
   constructor(
     private prisma: PrismaService,
+    private storage: StorageService,
     private auditLog: AuditLogService,
     private emailService: EmailService,
     private authService: AuthService,
@@ -503,19 +505,36 @@ export class UsersService {
   // ---------------------------------------------------------------------------
   // Upload photo
   // ---------------------------------------------------------------------------
-  async uploadPhoto(userId: string, photoUrl: string, actorId?: string) {
+  async uploadPhoto(userId: string, file: Express.Multer.File, actorId?: string) {
+    const existing = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { photoUrl: true },
+    });
+    if (!existing) throw new NotFoundException('User not found');
+
+    const upload = await this.storage.uploadFile(file.buffer, {
+      keyPrefix: `users/${userId}/avatars`,
+      contentType: file.mimetype,
+      originalName: file.originalname,
+      inline: true,
+    });
+
     const user = await this.prisma.user.update({
       where: { id: userId },
-      data: { photoUrl },
+      data: { photoUrl: upload.url },
       include: { role: { select: { id: true, name: true } } },
     });
+
+    if (existing.photoUrl && existing.photoUrl !== upload.url) {
+      await this.storage.deleteFileByUrlOrKey(existing.photoUrl);
+    }
 
     await this.auditLog.log({
       userId: actorId,
       action: 'UPLOAD_PHOTO',
       entity: 'User',
       entityId: userId,
-      changes: { photoUrl },
+      changes: { photoUrl: upload.url },
     });
 
     const { passwordHash, refreshToken, ...result } = user as any;

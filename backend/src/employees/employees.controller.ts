@@ -2,9 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, Us
 import { Response } from 'express';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
-import { v4 as uuidv4 } from 'uuid';
+import { memoryUpload, IMAGE_MIME } from '../common/storage/multer.config';
 import { EmployeesService } from './employees.service';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
@@ -17,11 +15,6 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 const ALL_ROLES = ['System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Finance', 'Read Only'];
 const WRITE_ROLES = ['System Admin', 'HR Manager'];
 const ADMIN_ROLES = ['System Admin', 'HR Manager'];
-
-const photoStorage = diskStorage({
-  destination: process.env.UPLOAD_DEST || './uploads',
-  filename: (_req, file, cb) => cb(null, `${uuidv4()}${extname(file.originalname)}`),
-});
 
 @ApiTags('Employees')
 @ApiBearerAuth()
@@ -189,16 +182,10 @@ export class EmployeesController {
   @RequirePermission('employees:update')
   @ApiOperation({ summary: 'Upload or replace employee photo' })
   @ApiConsumes('multipart/form-data')
-  @UseInterceptors(FileInterceptor('photo', {
-    storage: photoStorage,
-    fileFilter: (_req, file, cb) => {
-      if (!['image/jpeg', 'image/jpg', 'image/png', 'image/webp'].includes(file.mimetype)) {
-        return cb(new BadRequestException('Only JPEG, PNG, and WebP images are allowed'), false);
-      }
-      cb(null, true);
-    },
-    limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
-  }))
+  @UseInterceptors(FileInterceptor('photo', memoryUpload({
+    mimeTypes: IMAGE_MIME,
+    maxBytes: 5 * 1024 * 1024,
+  })))
   uploadPhoto(@Param('id') id: string, @UploadedFile() file: Express.Multer.File) {
     if (!file) throw new BadRequestException('No photo file provided');
     return this.employeesService.uploadPhoto(id, file);

@@ -11,13 +11,16 @@ import { FilterApplicantsDto } from './dto/filter-applicants.dto';
 import { UpsertFinancialProfileDto } from './dto/financial-profile.dto';
 import { BulkActionDto, BulkActionType, AssignAgencyDto, ConvertLeadDto } from './dto/bulk-action.dto';
 import { PaginatedResponse } from '../common/dto/pagination-response.dto';
-import { promises as fs } from 'fs';
-import { join, extname } from 'path';
+import { StorageService } from '../common/storage/storage.service';
 import * as ExcelJS from 'exceljs';
 
 @Injectable()
 export class ApplicantsService {
-  constructor(private prisma: PrismaService, private email: EmailService) {}
+  constructor(
+    private prisma: PrismaService,
+    private email: EmailService,
+    private storage: StorageService,
+  ) {}
 
   private get include() {
     return {
@@ -216,17 +219,30 @@ export class ApplicantsService {
   }
 
   async uploadPhoto(id: string, file: Express.Multer.File) {
-    const applicant = await this.prisma.applicant.findUnique({ where: { id }, select: { firstName: true, lastName: true } });
+    const applicant = await this.prisma.applicant.findUnique({
+      where: { id },
+      select: { firstName: true, lastName: true, photoUrl: true },
+    });
     if (!applicant) throw new NotFoundException('Applicant not found');
-    const safeName   = `${applicant.firstName}_${applicant.lastName}`.replace(/[^a-zA-Z0-9\-]/g, '_').replace(/_+/g, '_');
-    const shortId    = id.replace(/-/g, '');
-    const folderName = `${safeName}_${shortId}`;
-    const photoDir   = join(file.destination, folderName, 'photo');
-    await fs.mkdir(photoDir, { recursive: true });
-    const newFilename = `photo_${Date.now()}${extname(file.originalname)}`;
-    await fs.rename(file.path, join(photoDir, newFilename));
-    const photoUrl = `/uploads/${folderName}/photo/${newFilename}`;
-    return this.prisma.applicant.update({ where: { id }, data: { photoUrl }, include: this.include });
+
+    const upload = await this.storage.uploadFile(file.buffer, {
+      keyPrefix: `applicants/${id}/photos`,
+      contentType: file.mimetype,
+      originalName: file.originalname,
+      inline: true,
+    });
+
+    const updated = await this.prisma.applicant.update({
+      where: { id },
+      data: { photoUrl: upload.url },
+      include: this.include,
+    });
+
+    if (applicant.photoUrl && applicant.photoUrl !== upload.url) {
+      await this.storage.deleteFileByUrlOrKey(applicant.photoUrl);
+    }
+
+    return updated;
   }
 
   // ── Update Status ─────────────────────────────────────────────────────────────

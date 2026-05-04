@@ -1,8 +1,7 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { promises as fs } from 'fs';
-import { extname, join } from 'path';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
+import { StorageService } from '../common/storage/storage.service';
 import { ApplicantsService } from '../applicants/applicants.service';
 import { SaveDraftDto } from './dto/save-draft.dto';
 import { SubmitDraftDto } from './dto/submit-draft.dto';
@@ -31,7 +30,7 @@ interface DraftDoc {
  *    created only by submitMine(), which then deletes the draft.
  *  • Uploaded photo + supporting documents are persisted against the
  *    draft row so they survive across sessions. They're copied onto
- *    the Applicant when the draft is submitted, and wiped (files +
+ *    the Applicant when the draft is submitted, and wiped (storage +
  *    row) when the draft is discarded.
  */
 @Injectable()
@@ -39,6 +38,7 @@ export class ApplicationDraftsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly applicants: ApplicantsService,
+    private readonly storage: StorageService,
   ) {}
 
   async getMine(userId: string) {
@@ -66,9 +66,7 @@ export class ApplicationDraftsService {
   async deleteMine(userId: string) {
     const draft = await this.getMine(userId);
     if (!draft) return { message: 'No draft to discard' };
-    // Best-effort cleanup of files under the draft folder — failures
-    // should never break the DELETE, so we swallow filesystem errors.
-    await this.purgeDraftFiles(draft.id).catch(() => {});
+    await this.purgeDraftFiles(draft);
     await (this.prisma as any).applicationDraft.deleteMany({
       where: { id: draft.id },
     });
@@ -83,28 +81,30 @@ export class ApplicationDraftsService {
   private async ensureDraft(userId: string) {
     const existing = await this.getMine(userId);
     if (existing) return existing;
-    // Only pass required columns — formData and documents have
-    // defaults in the schema, so omitting them keeps this resilient
-    // against a Prisma client that was generated before those fields
-    // were added (defaults still apply at the DB level).
     return (this.prisma as any).applicationDraft.create({
       data: { createdById: userId },
     });
   }
 
-  /** Write an uploaded photo to /uploads/drafts/<draftId>/photo/<file>
-   *  and persist its URL on the draft. Overwrites any previous photo. */
+  /** Upload the draft profile photo to Spaces and persist its URL.
+   *  Replaces any previous photo (best-effort delete). */
   async uploadPhoto(userId: string, file: Express.Multer.File) {
     const draft = await this.ensureDraft(userId);
-    const folder = `drafts/${draft.id}/photo`;
-    const absDir = join(file.destination, 'drafts', draft.id, 'photo');
-    await fs.mkdir(absDir, { recursive: true });
-    const filename = `photo_${Date.now()}${extname(file.originalname)}`;
-    await fs.rename(file.path, join(absDir, filename));
-    const photoUrl = `/uploads/${folder}/${filename}`;
+
+    const upload = await this.storage.uploadFile(file.buffer, {
+      keyPrefix: `application-drafts/${draft.id}/photo`,
+      contentType: file.mimetype,
+      originalName: file.originalname,
+      inline: true,
+    });
+
+    if (draft.photoUrl && draft.photoUrl !== upload.url) {
+      await this.storage.deleteFileByUrlOrKey(draft.photoUrl);
+    }
+
     return (this.prisma as any).applicationDraft.update({
       where: { id: draft.id },
-      data: { photoUrl },
+      data: { photoUrl: upload.url },
     });
   }
 
@@ -112,16 +112,14 @@ export class ApplicationDraftsService {
     const draft = await this.getMine(userId);
     if (!draft) throw new NotFoundException('No open draft');
     if (!draft.photoUrl) return draft;
-    // Silent filesystem cleanup; DB state is the source of truth.
-    await this.unlinkByPublicUrl(draft.photoUrl).catch(() => {});
+    await this.storage.deleteFileByUrlOrKey(draft.photoUrl);
     return (this.prisma as any).applicationDraft.update({
       where: { id: draft.id },
       data: { photoUrl: null },
     });
   }
 
-  /** Upload a supporting document under /uploads/drafts/<draftId>/docs.
-   *  Appends an entry to draft.documents. Returns the updated draft. */
+  /** Upload a supporting document and append an entry to draft.documents. */
   async uploadDocument(
     userId: string,
     file: Express.Multer.File,
@@ -130,22 +128,26 @@ export class ApplicationDraftsService {
     sectionKey?: string,
   ) {
     const draft = await this.ensureDraft(userId);
-    const absDir = join(file.destination, 'drafts', draft.id, 'docs');
-    await fs.mkdir(absDir, { recursive: true });
+
+    const upload = await this.storage.uploadFile(file.buffer, {
+      keyPrefix: `application-drafts/${draft.id}/docs`,
+      contentType: file.mimetype,
+      originalName: file.originalname,
+      inline: file.mimetype === 'application/pdf' || file.mimetype.startsWith('image/'),
+    });
+
     const id = randomUUID();
-    const filename = `${id}${extname(file.originalname)}`;
-    await fs.rename(file.path, join(absDir, filename));
-    const url = `/uploads/drafts/${draft.id}/docs/${filename}`;
     const entry: DraftDoc = {
       id,
       name: name || file.originalname,
       typeName: typeName || 'Other',
       sectionKey,
-      url,
+      url: upload.url,
       mimeType: file.mimetype,
       fileSize: file.size,
       uploadedAt: new Date().toISOString(),
     };
+
     // If the caller uploads into a slot they already used, replace
     // the previous entry rather than stacking duplicates.
     const current: DraftDoc[] = Array.isArray(draft.documents) ? draft.documents : [];
@@ -154,8 +156,9 @@ export class ApplicationDraftsService {
       : current;
     if (sectionKey) {
       const replaced = current.find(d => d.sectionKey === sectionKey);
-      if (replaced) await this.unlinkByPublicUrl(replaced.url).catch(() => {});
+      if (replaced) await this.storage.deleteFileByUrlOrKey(replaced.url);
     }
+
     return (this.prisma as any).applicationDraft.update({
       where: { id: draft.id },
       data: { documents: [...kept, entry] as any },
@@ -168,7 +171,7 @@ export class ApplicationDraftsService {
     const current: DraftDoc[] = Array.isArray(draft.documents) ? draft.documents : [];
     const target = current.find(d => d.id === docId);
     if (!target) throw new NotFoundException('Document not found on draft');
-    await this.unlinkByPublicUrl(target.url).catch(() => {});
+    await this.storage.deleteFileByUrlOrKey(target.url);
     return (this.prisma as any).applicationDraft.update({
       where: { id: draft.id },
       data: { documents: current.filter(d => d.id !== docId) as any },
@@ -178,7 +181,8 @@ export class ApplicationDraftsService {
   /**
    * Final submit. Persists the latest snapshot, creates the Applicant
    * via the shared service, transfers photo + documents onto the new
-   * record, then deletes the draft row and its upload folder.
+   * record, then deletes the draft row. Files stay in storage and are
+   * now referenced by the Applicant + Documents records.
    */
   async submitMine(
     user: { id: string; role: string; agencyId?: string; agencyIsSystem?: boolean },
@@ -203,15 +207,12 @@ export class ApplicationDraftsService {
             data: { photoUrl: draft.photoUrl },
           });
           (applicant as any).photoUrl = draft.photoUrl;
-        } catch { /* leave on draft folder — best effort */ }
+        } catch { /* best effort */ }
       }
 
       // Materialise each draft-uploaded file as a Document row pointing
-      // at the draft's file URL. The Document model is the same one the
-      // rest of the system uses, so the applicant's profile surfaces
-      // these immediately without a re-upload step. Resolve a
-      // DocumentType by name — falling back to an "Other" type so the
-      // insert never fails on a typo.
+      // at the same storage URL. Resolve a DocumentType by name, falling
+      // back to "Other" so the insert never fails on a typo.
       const docs: DraftDoc[] = Array.isArray(draft.documents) ? draft.documents : [];
       if (docs.length > 0) {
         const fallback = await (this.prisma as any).documentType.findFirst({
@@ -223,7 +224,7 @@ export class ApplicationDraftsService {
               where: { name: { equals: d.typeName, mode: 'insensitive' } },
             });
             if (!docType) docType = fallback;
-            if (!docType) continue; // no type at all — skip rather than fail
+            if (!docType) continue;
             await (this.prisma as any).document.create({
               data: {
                 name: d.name,
@@ -241,9 +242,6 @@ export class ApplicationDraftsService {
         }
       }
 
-      // Drop the draft row. The files stay on disk (now referenced by
-      // the Applicant / Documents). An orphan draft row can't exist
-      // with the Applicant created, so we don't worry about retry here.
       await (this.prisma as any).applicationDraft.deleteMany({
         where: { createdById: user.id },
       });
@@ -259,20 +257,18 @@ export class ApplicationDraftsService {
     return draft;
   }
 
-  // ── Filesystem helpers ────────────────────────────────────────────
-  private uploadsRoot() {
-    return process.env.UPLOAD_DEST || './uploads';
-  }
-
-  private async purgeDraftFiles(draftId: string) {
-    const root = this.uploadsRoot();
-    await fs.rm(join(root, 'drafts', draftId), { recursive: true, force: true });
-  }
-
-  private async unlinkByPublicUrl(publicUrl: string) {
-    // Public URL format is `/uploads/<rest>` — map it back to disk.
-    if (!publicUrl.startsWith('/uploads/')) return;
-    const rel = publicUrl.slice('/uploads/'.length);
-    await fs.unlink(join(this.uploadsRoot(), rel)).catch(() => {});
+  /**
+   * Wipe every file uploaded for a discarded draft. Tries a single
+   * prefix-delete first (fast on Spaces, recursive on local). If the
+   * driver doesn't support prefix deletes, falls back to per-URL
+   * deletes harvested from the draft row.
+   */
+  private async purgeDraftFiles(draft: { id: string; photoUrl?: string | null; documents?: any }) {
+    await this.storage.deleteByPrefix(`application-drafts/${draft.id}`);
+    // Defensive cleanup of legacy URLs that may have been written before
+    // the Spaces migration (e.g. /uploads/drafts/<id>/...).
+    if (draft.photoUrl) await this.storage.deleteFileByUrlOrKey(draft.photoUrl);
+    const docs: DraftDoc[] = Array.isArray(draft.documents) ? draft.documents : [];
+    for (const d of docs) await this.storage.deleteFileByUrlOrKey(d.url);
   }
 }

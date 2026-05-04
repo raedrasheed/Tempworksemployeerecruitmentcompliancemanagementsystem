@@ -5,9 +5,7 @@ import {
 } from '@nestjs/common';
 import { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
-import { v4 as uuidv4 } from 'uuid';
+import { memoryUpload, DOCUMENT_MIME } from '../common/storage/multer.config';
 import {
   ApiTags, ApiOperation, ApiResponse, ApiBearerAuth,
   ApiParam, ApiConsumes, ApiBody,
@@ -25,26 +23,11 @@ import { RequirePermission } from '../auth/decorators/require-permission.decorat
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Public } from '../auth/decorators/public.decorator';
 
-const multerStorage = diskStorage({
-  destination: process.env.UPLOAD_DEST || './uploads',
-  filename: (_req, file, cb) => cb(null, `${uuidv4()}${extname(file.originalname)}`),
-});
-
-const allowedMimetypes = [
-  'application/pdf', 'image/jpeg', 'image/jpg', 'image/png',
-  'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-];
-
-const fileInterceptor = (optional = false) =>
-  FileInterceptor('file', {
-    storage: multerStorage,
-    limits: { fileSize: parseInt(process.env.MAX_FILE_SIZE || '10485760') },
-    fileFilter: (_req, file, cb) => {
-      if (allowedMimetypes.includes(file.mimetype)) cb(null, true);
-      else cb(new BadRequestException(`File type ${file.mimetype} not allowed`), false);
-    },
-  });
+const fileInterceptor = (_optional = false) =>
+  FileInterceptor('file', memoryUpload({
+    mimeTypes: DOCUMENT_MIME,
+    maxBytes: parseInt(process.env.MAX_FILE_SIZE || '10485760'),
+  }));
 
 @ApiTags('Documents')
 @ApiBearerAuth('access-token')
@@ -105,6 +88,11 @@ export class DocumentsController {
   }
 
   // ── Public upload (no auth) ────────────────────────────────────────────────
+  // SECURITY: This endpoint is unauthenticated by design — it backs the public
+  // /apply form. The shared `fileInterceptor` enforces the document MIME
+  // allow-list and the MAX_FILE_SIZE cap, but the route is still abusable as
+  // a free file host. TODO(security): rate-limit per IP, add a short-lived
+  // upload token issued by /apply form load, or front it behind a CAPTCHA.
 
   @Public()
   @Post('public/upload')

@@ -1,7 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { promises as fs } from 'fs';
-import { join, extname } from 'path';
+import { StorageService } from '../common/storage/storage.service';
 import { CreateWorkHistoryDto, UpdateWorkHistoryDto } from './dto/work-history.dto';
 
 /**
@@ -13,7 +12,10 @@ import { CreateWorkHistoryDto, UpdateWorkHistoryDto } from './dto/work-history.d
  */
 @Injectable()
 export class EmployeeWorkHistoryService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private storage: StorageService,
+  ) {}
 
   private get include() {
     return {
@@ -139,19 +141,18 @@ export class EmployeeWorkHistoryService {
     if (!entry) throw new NotFoundException('Work history entry not found');
     if (!file) throw new BadRequestException('No file uploaded');
 
-    const ts = Date.now();
-    const safeName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
-    const folder   = join(file.destination, 'work-history', entryId);
-    await fs.mkdir(folder, { recursive: true });
-    const filename = `${ts}_${safeName}`;
-    await fs.rename(file.path, join(folder, filename));
-    const fileUrl = `/uploads/work-history/${entryId}/${filename}`;
+    const upload = await this.storage.uploadFile(file.buffer, {
+      keyPrefix: `employees/${employeeId}/work-history/${entryId}/attachments`,
+      contentType: file.mimetype,
+      originalName: file.originalname,
+      inline: file.mimetype === 'application/pdf' || file.mimetype.startsWith('image/'),
+    });
 
     const attachment = await (this.prisma as any).employeeWorkHistoryAttachment.create({
       data: {
         workHistoryId: entryId,
         name:     file.originalname,
-        fileUrl,
+        fileUrl:  upload.url,
         mimeType: file.mimetype,
         fileSize: file.size,
         uploadedById: uploadedById ?? null,
@@ -176,6 +177,9 @@ export class EmployeeWorkHistoryService {
     await (this.prisma as any).employeeWorkHistoryAttachment.update({
       where: { id: attachmentId }, data: { deletedAt: new Date() },
     });
+    if (att.fileUrl) {
+      await this.storage.deleteFileByUrlOrKey(att.fileUrl);
+    }
     await this.auditLog(actorId, 'EMPLOYEE_WORK_HISTORY_ATTACHMENT_REMOVED', entryId, {
       attachmentId, employeeId,
     });

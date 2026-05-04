@@ -1,15 +1,17 @@
 import { Injectable, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { StorageService } from '../common/storage/storage.service';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { PaginatedResponse } from '../common/dto/pagination-response.dto';
-import { promises as fs } from 'fs';
-import { join, extname } from 'path';
 import * as ExcelJS from 'exceljs';
 
 @Injectable()
 export class EmployeesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private storage: StorageService,
+  ) {}
 
   /**
    * External tenant = user attached to any agency that is not the
@@ -267,17 +269,30 @@ export class EmployeesService {
   }
 
   async uploadPhoto(id: string, file: Express.Multer.File) {
-    const employee = await this.prisma.employee.findUnique({ where: { id }, select: { firstName: true, lastName: true } });
+    const employee = await this.prisma.employee.findUnique({
+      where: { id },
+      select: { firstName: true, lastName: true, photoUrl: true },
+    });
     if (!employee) throw new NotFoundException('Employee not found');
-    const safeName  = `${employee.firstName}_${employee.lastName}`.replace(/[^a-zA-Z0-9\-]/g, '_').replace(/_+/g, '_');
-    const shortId   = id.replace(/-/g, '');
-    const folderName = `${safeName}_${shortId}`;
-    const photoDir  = join(file.destination, folderName, 'photo');
-    await fs.mkdir(photoDir, { recursive: true });
-    const newFilename = `photo_${Date.now()}${extname(file.originalname)}`;
-    await fs.rename(file.path, join(photoDir, newFilename));
-    const photoUrl = `/uploads/${folderName}/photo/${newFilename}`;
-    return this.prisma.employee.update({ where: { id }, data: { photoUrl }, include: { agency: { select: { id: true, name: true } } } });
+
+    const upload = await this.storage.uploadFile(file.buffer, {
+      keyPrefix: `employees/${id}/photos`,
+      contentType: file.mimetype,
+      originalName: file.originalname,
+      inline: true,
+    });
+
+    const updated = await this.prisma.employee.update({
+      where: { id },
+      data: { photoUrl: upload.url },
+      include: { agency: { select: { id: true, name: true } } },
+    });
+
+    if (employee.photoUrl && employee.photoUrl !== upload.url) {
+      await this.storage.deleteFileByUrlOrKey(employee.photoUrl);
+    }
+
+    return updated;
   }
 
   /**

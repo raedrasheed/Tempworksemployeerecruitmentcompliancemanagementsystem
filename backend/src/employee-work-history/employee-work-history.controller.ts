@@ -3,9 +3,7 @@ import {
   UseInterceptors, UploadedFile, BadRequestException, HttpCode, HttpStatus, Request,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
-import { v4 as uuidv4 } from 'uuid';
+import { memoryUpload, DOCUMENT_MIME } from '../common/storage/multer.config';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiParam, ApiBody, ApiConsumes } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -15,17 +13,6 @@ import { CreateWorkHistoryDto, UpdateWorkHistoryDto } from './dto/work-history.d
 
 const READ_ROLES  = ['System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Finance'];
 const WRITE_ROLES = ['System Admin', 'HR Manager', 'Recruiter'];
-
-const multerStorage = diskStorage({
-  destination: process.env.UPLOAD_DEST || './uploads',
-  filename: (_req, file, cb) => cb(null, `${uuidv4()}${extname(file.originalname)}`),
-});
-
-const allowedMimetypes = [
-  'application/pdf', 'image/jpeg', 'image/jpg', 'image/png',
-  'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-];
 
 @ApiTags('Employee Work History')
 @ApiBearerAuth('access-token')
@@ -79,18 +66,10 @@ export class EmployeeWorkHistoryController {
   @ApiOperation({ summary: 'Upload an attachment for a work history entry' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({ schema: { type: 'object', properties: { file: { type: 'string', format: 'binary' } } } })
-  @UseInterceptors(
-    FileInterceptor('file', {
-      storage: multerStorage,
-      fileFilter: (_req, file, cb) => {
-        if (!allowedMimetypes.includes(file.mimetype)) {
-          return cb(new BadRequestException(`File type ${file.mimetype} not allowed`), false);
-        }
-        cb(null, true);
-      },
-      limits: { fileSize: 10 * 1024 * 1024 },
-    }),
-  )
+  @UseInterceptors(FileInterceptor('file', memoryUpload({
+    mimeTypes: DOCUMENT_MIME,
+    maxBytes: 10 * 1024 * 1024,
+  })))
   addAttachment(
     @Param('employeeId') employeeId: string,
     @Param('entryId') entryId: string,

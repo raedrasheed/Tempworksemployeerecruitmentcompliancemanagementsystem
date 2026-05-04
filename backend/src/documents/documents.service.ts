@@ -1,10 +1,11 @@
 import {
   Injectable, NotFoundException, BadRequestException, ForbiddenException, Logger,
 } from '@nestjs/common';
-import { extname, join } from 'path';
+import { join } from 'path';
 import { promises as fs } from 'fs';
 import AdmZip = require('adm-zip');
 import { PrismaService } from '../prisma/prisma.service';
+import { StorageService } from '../common/storage/storage.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { NOTIF_EVENTS } from '../notifications/notification-events';
 import { DocumentIdService } from './document-id.service';
@@ -26,9 +27,29 @@ export class DocumentsService {
     private readonly prisma: PrismaService,
     private readonly documentIdService: DocumentIdService,
     private readonly notifications: NotificationsService,
+    private readonly storage: StorageService,
   ) {}
 
   // ── Helpers ────────────────────────────────────────────────────────────────
+
+  /**
+   * Read a stored document's bytes for the bulk-download ZIP. Handles
+   * both Spaces public URLs (HTTP fetch) and legacy `/uploads/...`
+   * paths (local fs read), so the archive keeps working during the
+   * gradual migration window.
+   */
+  private async fetchDocumentBuffer(fileUrl: string): Promise<Buffer> {
+    if (/^https?:\/\//i.test(fileUrl)) {
+      const res = await fetch(fileUrl);
+      if (!res.ok) throw new Error(`HTTP ${res.status} fetching ${fileUrl}`);
+      return Buffer.from(await res.arrayBuffer());
+    }
+    const root = process.env.UPLOAD_DEST || './uploads';
+    const rel = fileUrl.startsWith('/uploads/') ? fileUrl.slice('/uploads/'.length) : fileUrl.replace(/^\/+/, '');
+    const diskPath = join(process.cwd(), root.replace(/^\.\/?/, ''), rel);
+    await fs.access(diskPath);
+    return fs.readFile(diskPath);
+  }
 
   private sanitize(raw: string): string {
     return raw
@@ -218,19 +239,14 @@ export class DocumentsService {
     // oldest type (typically Passport), producing a ghost entry in the
     // Documents tab like "Profile Photo · Passport".
     if (documentTypeName?.toLowerCase().includes('photo')) {
-      const entityName  = await this.resolveEntityName('APPLICANT', entityId);
-      const ts          = Date.now();
-      const ext         = extname(file.originalname);
-      const safeEntity  = this.sanitize(entityName) || 'Applicant';
-      const shortId     = entityId.replace(/-/g, '');
-      const folderName  = `${safeEntity}_${shortId}`;
-      const newFilename = `${safeEntity}_Photo_${ts}${ext}`;
-      const newDir      = join(file.destination, folderName, 'photo');
-      await fs.mkdir(newDir, { recursive: true });
-      await fs.rename(file.path, join(newDir, newFilename));
-      const photoUrl = `/uploads/${folderName}/photo/${newFilename}`;
-      await this.prisma.applicant.updateMany({ where: { id: entityId }, data: { photoUrl } });
-      return { id: null, photoUrl, name, mimeType: file.mimetype, fileSize: file.size };
+      const upload = await this.storage.uploadFile(file.buffer, {
+        keyPrefix: `applicants/${entityId}/photos`,
+        contentType: file.mimetype,
+        originalName: file.originalname,
+        inline: true,
+      });
+      await this.prisma.applicant.updateMany({ where: { id: entityId }, data: { photoUrl: upload.url } });
+      return { id: null, photoUrl: upload.url, name, mimeType: file.mimetype, fileSize: file.size };
     }
 
     // Resolve document type (exact → contains → substring → first-available)
@@ -257,19 +273,14 @@ export class DocumentsService {
     if (!systemUser) systemUser = await this.prisma.user.findFirst({ where: { deletedAt: null }, orderBy: { createdAt: 'asc' } });
     if (!systemUser) throw new BadRequestException('No users found to attribute upload to');
 
-    const entityName  = await this.resolveEntityName('APPLICANT', entityId);
-    const ts          = Date.now();
-    const ext         = extname(file.originalname);
-    const safeEntity  = this.sanitize(entityName) || 'Applicant';
     const safeDocType = this.sanitize(docType.name) || 'Others';
-    const shortId     = entityId.replace(/-/g, '');
-    const folderName  = `${safeEntity}_${shortId}`;
-    const newFilename = `${safeEntity}_${safeDocType}_${ts}${ext}`;
-    const newDir      = join(file.destination, folderName, safeDocType);
-
-    await fs.mkdir(newDir, { recursive: true });
-    await fs.rename(file.path, join(newDir, newFilename));
-    const fileUrl = `/uploads/${folderName}/${safeDocType}/${newFilename}`;
+    const upload = await this.storage.uploadFile(file.buffer, {
+      keyPrefix: `documents/APPLICANT/${entityId}/${safeDocType}`,
+      contentType: file.mimetype,
+      originalName: file.originalname,
+      inline: file.mimetype === 'application/pdf' || file.mimetype.startsWith('image/'),
+    });
+    const fileUrl = upload.url;
 
     // Generate doc ID inside a transaction
     const document = await this.prisma.$transaction(async (tx) => {
@@ -301,18 +312,14 @@ export class DocumentsService {
     if (!docType) throw new NotFoundException('Document type not found');
 
     const entityName  = await this.resolveEntityName(dto.entityType, dto.entityId);
-    const ts          = Date.now();
-    const ext         = extname(file.originalname);
-    const safeEntity  = this.sanitize(entityName) || 'Others';
     const safeDocType = this.sanitize(docType.name) || 'Others';
-    const shortId     = dto.entityId.replace(/-/g, '');
-    const folderName  = `${safeEntity}_${shortId}`;
-    const newFilename = `${safeEntity}_${safeDocType}_${ts}${ext}`;
-    const newDir      = join(file.destination, folderName, safeDocType);
-
-    await fs.mkdir(newDir, { recursive: true });
-    await fs.rename(file.path, join(newDir, newFilename));
-    const fileUrl = `/uploads/${folderName}/${safeDocType}/${newFilename}`;
+    const upload = await this.storage.uploadFile(file.buffer, {
+      keyPrefix: `documents/${dto.entityType}/${dto.entityId}/${safeDocType}`,
+      contentType: file.mimetype,
+      originalName: file.originalname,
+      inline: file.mimetype === 'application/pdf' || file.mimetype.startsWith('image/'),
+    });
+    const fileUrl = upload.url;
 
     const doc = await this.prisma.$transaction(async (tx) => {
       const docId = await this.documentIdService.generate(dto.entityId, dto.entityType, dto.documentTypeId, tx);
@@ -478,18 +485,14 @@ export class DocumentsService {
     let fileSize = (original as any).fileSize;
 
     if (file) {
-      const entityName  = await this.resolveEntityName(original.entityType as string, original.entityId);
-      const ts          = Date.now();
-      const ext         = extname(file.originalname);
-      const safeEntity  = this.sanitize(entityName) || 'Others';
       const safeDocType = this.sanitize((original as any).documentType?.name) || 'Others';
-      const shortId     = original.entityId.replace(/-/g, '');
-      const folderName  = `${safeEntity}_${shortId}`;
-      const newFilename = `${safeEntity}_${safeDocType}_renewal_${ts}${ext}`;
-      const newDir      = join(file.destination, folderName, safeDocType);
-      await fs.mkdir(newDir, { recursive: true });
-      await fs.rename(file.path, join(newDir, newFilename));
-      fileUrl  = `/uploads/${folderName}/${safeDocType}/${newFilename}`;
+      const upload = await this.storage.uploadFile(file.buffer, {
+        keyPrefix: `documents/${original.entityType}/${original.entityId}/${safeDocType}`,
+        contentType: file.mimetype,
+        originalName: file.originalname,
+        inline: file.mimetype === 'application/pdf' || file.mimetype.startsWith('image/'),
+      });
+      fileUrl  = upload.url;
       mimeType = file.mimetype;
       fileSize = file.size;
     }
@@ -568,9 +571,12 @@ export class DocumentsService {
     const zip = new AdmZip();
     const usedPaths = new Set<string>();
     for (const doc of docs) {
-      const diskPath = join(process.cwd(), doc.fileUrl.startsWith('/') ? doc.fileUrl.slice(1) : doc.fileUrl);
       let content: Buffer;
-      try { await fs.access(diskPath); content = await fs.readFile(diskPath); } catch { continue; }
+      try {
+        content = await this.fetchDocumentBuffer(doc.fileUrl);
+      } catch {
+        continue;
+      }
       const entityFolder = nameMap[doc.entityId] || 'Unknown';
       const typeFolder   = this.sanitize((doc as any).documentType?.name || 'Documents');
       const ext          = doc.fileUrl.includes('.') ? '.' + doc.fileUrl.split('.').pop()! : '';

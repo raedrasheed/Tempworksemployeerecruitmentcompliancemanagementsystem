@@ -19,7 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../ui/dialog';
-import { authApi, getCurrentUser, setCurrentUser, notificationsApi, BACKEND_URL, type AuthUser } from '../../services/api';
+import { authApi, getCurrentUser, setCurrentUser, notificationsApi, resolveAssetUrl, type AuthUser } from '../../services/api';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { toast } from 'sonner';
 
@@ -430,7 +430,7 @@ export function Topbar() {
   const displayRole = liveUser?.role || 'Staff';
   const displayEmail = liveUser?.email || '';
   const avatar = liveUser?.photoUrl
-    ? `${BACKEND_URL}${liveUser.photoUrl}`
+    ? resolveAssetUrl(liveUser.photoUrl)
     : `https://api.dicebear.com/7.x/avataaars/svg?seed=${liveUser?.firstName || 'User'}`;
 
   return (

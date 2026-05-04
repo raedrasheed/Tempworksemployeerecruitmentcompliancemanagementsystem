@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { StorageService } from '../common/storage/storage.service';
 import * as ExcelJS from 'exceljs';
 const PDFDocument = require('pdfkit') as typeof import('pdfkit');
 import {
@@ -48,7 +49,10 @@ const VEHICLE_INCLUDE = {
 
 @Injectable()
 export class VehiclesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly storage: StorageService,
+  ) {}
 
   // ── Vehicles ────────────────────────────────────────────────────────────────
 
@@ -250,7 +254,13 @@ export class VehiclesService {
     if (expiryDate)  data.expiryDate  = new Date(expiryDate);
     if (issuedDate)  data.issuedDate  = new Date(issuedDate);
     if (file) {
-      data.fileUrl  = `/uploads/${file.filename}`;
+      const upload = await this.storage.uploadFile(file.buffer, {
+        keyPrefix: `vehicles/${vehicleId}/documents`,
+        contentType: file.mimetype,
+        originalName: file.originalname,
+        inline: file.mimetype === 'application/pdf' || file.mimetype.startsWith('image/'),
+      });
+      data.fileUrl  = upload.url;
       data.fileName = file.originalname;
       data.fileSize = file.size;
     }
@@ -652,7 +662,17 @@ export class VehiclesService {
   // ── Maintenance Record Attachments ───────────────────────────────────────────
   // Note: attachments require running the enhance_maintenance_records migration first.
 
-  async addMaintenanceAttachment(_recordId: string, _fileName: string, _fileUrl: string, _fileSize?: number, _mimeType?: string, _documentType?: string, _uploadedById?: string) {
+  async addMaintenanceAttachment(
+    _recordId: string,
+    _file: Express.Multer.File,
+    _documentType?: string,
+    _uploadedById?: string,
+  ) {
+    // Storage upload is intentionally not performed here — the
+    // maintenance_attachments table is created by the optional
+    // enhance-maintenance-records migration. Once that migration is
+    // run, swap this stub for a real implementation that calls
+    // storage.uploadFile({ keyPrefix: `vehicles/maintenance/${recordId}/attachments`, ... }).
     throw new BadRequestException('Maintenance record attachments require migration. Run: npm run db:migrate:enhance-maintenance-records');
   }
 

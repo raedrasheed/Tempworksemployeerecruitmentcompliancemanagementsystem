@@ -5,7 +5,7 @@ import { Input } from '../../components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Briefcase, ArrowLeft, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
-import { authApi, BACKEND_URL } from '../../services/api';
+import { authApi, resolveAssetUrl } from '../../services/api';
 import { useBranding } from '../../hooks/useBranding';
 
 export function LoginPage() {
@@ -117,7 +117,7 @@ export function LoginPage() {
             <div className="w-12 h-12 rounded-lg bg-[#2563EB] flex items-center justify-center overflow-hidden">
               {branding.logoUrl ? (
                 <img
-                  src={branding.logoUrl.startsWith('http') ? branding.logoUrl : `${BACKEND_URL}${branding.logoUrl}`}
+                  src={resolveAssetUrl(branding.logoUrl)}
                   alt="Logo"
                   className="w-full h-full object-cover"
                 />

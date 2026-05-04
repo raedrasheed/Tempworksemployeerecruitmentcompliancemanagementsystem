@@ -4,7 +4,7 @@ import {
   ArrowLeft, MapPin, Briefcase, Clock, Calendar, ChevronRight,
   AlertTriangle,
 } from 'lucide-react';
-import { publicJobAdsApi, BACKEND_URL } from '../../services/api';
+import { publicJobAdsApi, resolveAssetUrl } from '../../services/api';
 import { useBranding } from '../../hooks/useBranding';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
@@ -76,7 +76,7 @@ export function JobDetail() {
           <Link to="/" className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-[#2563EB] flex items-center justify-center overflow-hidden">
               {branding.logoUrl ? (
-                <img src={branding.logoUrl.startsWith('http') ? branding.logoUrl : `${BACKEND_URL}${branding.logoUrl}`} alt="Logo" className="w-full h-full object-cover" />
+                <img src={resolveAssetUrl(branding.logoUrl)} alt="Logo" className="w-full h-full object-cover" />
               ) : (
                 <Briefcase className="w-6 h-6 text-white" />
               )}

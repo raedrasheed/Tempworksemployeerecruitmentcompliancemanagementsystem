@@ -28,7 +28,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../ui/utils';
 import { useAuthContext } from '../../contexts/AuthContext';
-import { BACKEND_URL, getCurrentUser, authApi, type AuthUser } from '../../services/api';
+import { resolveAssetUrl, getCurrentUser, authApi, type AuthUser } from '../../services/api';
 import { useBranding } from '../../hooks/useBranding';
 
 interface NavChild {
@@ -152,7 +152,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
           <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center flex-shrink-0 overflow-hidden">
             {branding.logoUrl ? (
               <img
-                src={branding.logoUrl.startsWith('http') ? branding.logoUrl : `${BACKEND_URL}${branding.logoUrl}`}
+                src={resolveAssetUrl(branding.logoUrl)}
                 alt="Logo"
                 className="w-full h-full object-cover"
               />
@@ -281,7 +281,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
         )}>
           <img
             src={user?.photoUrl
-              ? `${BACKEND_URL}${user.photoUrl}`
+              ? resolveAssetUrl(user.photoUrl)
               : `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.firstName ?? 'User'}`}
             alt="User"
             className="w-8 h-8 rounded-full flex-shrink-0 object-cover"

@@ -4,9 +4,7 @@ import {
   UseInterceptors, UploadedFile, BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
-import { v4 as uuidv4 } from 'uuid';
+import { memoryUpload, DOCUMENT_MIME } from '../common/storage/multer.config';
 import { Response } from 'express';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
 import { VehiclesService } from './vehicles.service';
@@ -182,15 +180,11 @@ export class VehiclesController {
 
   @Post('maintenance/records/:id/attachments')
   @Roles(...WRITE_ROLES)
-  @UseInterceptors(FileInterceptor('file', {
-    storage: diskStorage({
-      destination: 'uploads/maintenance',
-      filename: (req, file, cb) => {
-        const randomName = `${uuidv4()}${extname(file.originalname)}`;
-        cb(null, randomName);
-      },
-    }),
-  }))
+  // SECURITY-FIX: previously had no fileFilter and no limits.
+  @UseInterceptors(FileInterceptor('file', memoryUpload({
+    mimeTypes: DOCUMENT_MIME,
+    maxBytes: 10 * 1024 * 1024,
+  })))
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Upload an attachment (invoice, receipt, etc.) to a maintenance record' })
   uploadMaintenanceAttachment(
@@ -199,13 +193,9 @@ export class VehiclesController {
     @Request() req: any,
   ) {
     if (!file) throw new BadRequestException('No file uploaded');
-    const fileUrl = `/uploads/maintenance/${file.filename}`;
     return this.vehiclesService.addMaintenanceAttachment(
       recordId,
-      file.originalname,
-      fileUrl,
-      file.size,
-      file.mimetype,
+      file,
       req.body.documentType,
       req.user?.id,
     );
@@ -323,15 +313,10 @@ export class VehiclesController {
   @Roles(...WRITE_ROLES)
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Add a document (with optional file upload) to a vehicle' })
-  @UseInterceptors(
-    FileInterceptor('file', {
-      storage: diskStorage({
-        destination: process.env.UPLOAD_DEST || './uploads',
-        filename: (_req, file, cb) => cb(null, `${uuidv4()}${extname(file.originalname)}`),
-      }),
-      limits: { fileSize: 20 * 1024 * 1024 }, // 20 MB
-    }),
-  )
+  @UseInterceptors(FileInterceptor('file', memoryUpload({
+    mimeTypes: DOCUMENT_MIME,
+    maxBytes: 20 * 1024 * 1024,
+  })))
   addDocument(
     @Param('vehicleId') vehicleId: string,
     @Body() dto: CreateVehicleDocumentDto,

@@ -1,13 +1,11 @@
 import { Link } from 'react-router';
 import { Briefcase, ChevronLeft, Linkedin, Facebook, Mail } from 'lucide-react';
 import { useBranding } from '../../hooks/useBranding';
-import { BACKEND_URL } from '../../services/api';
+import { resolveAssetUrl } from '../../services/api';
 
 export function DataProcessingAgreement() {
   const branding = useBranding();
-  const logoSrc = branding.logoUrl
-    ? (branding.logoUrl.startsWith('http') ? branding.logoUrl : `${BACKEND_URL}${branding.logoUrl}`)
-    : null;
+  const logoSrc = branding.logoUrl ? resolveAssetUrl(branding.logoUrl) : null;
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">

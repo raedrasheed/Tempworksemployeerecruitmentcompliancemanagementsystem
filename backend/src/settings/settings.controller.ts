@@ -5,8 +5,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiQuery, ApiConsumes } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
+import { memoryUpload, LOGO_IMAGE_MIME } from '../common/storage/multer.config';
 import { SettingsService } from './settings.service';
 import { BatchUpdateSettingsDto } from './dto/update-settings.dto';
 import { CreateJobTypeDto } from './dto/create-job-type.dto';
@@ -261,13 +260,11 @@ export class SettingsController {
   @Roles('System Admin')
   @ApiOperation({ summary: 'Upload company logo' })
   @ApiConsumes('multipart/form-data')
-  @UseInterceptors(FileInterceptor('logo', {
-    storage: diskStorage({
-      destination: process.env.UPLOAD_DEST || './uploads',
-      filename: (_req, file, cb) => cb(null, `logo-${Date.now()}${extname(file.originalname)}`),
-    }),
-    limits: { fileSize: 2 * 1024 * 1024 },
-  }))
+  // SVG is excluded — see common/storage/multer.config.ts.
+  @UseInterceptors(FileInterceptor('logo', memoryUpload({
+    mimeTypes: LOGO_IMAGE_MIME,
+    maxBytes: 2 * 1024 * 1024,
+  })))
   uploadLogo(@UploadedFile() file: Express.Multer.File, @CurrentUser() user: any) {
     if (!file) throw new BadRequestException('No logo file provided');
     return this.settingsService.uploadLogo(file, user.id);

@@ -4,7 +4,7 @@ import {
   Search, MapPin, Briefcase, Clock, ChevronLeft, ChevronRight,
   ArrowRight, Filter, X, LayoutGrid, List,
 } from 'lucide-react';
-import { publicJobAdsApi, settingsApi, BACKEND_URL } from '../../services/api';
+import { publicJobAdsApi, settingsApi, resolveAssetUrl } from '../../services/api';
 import { useBranding } from '../../hooks/useBranding';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -92,7 +92,7 @@ export function JobListings() {
           <Link to="/" className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-[#2563EB] flex items-center justify-center overflow-hidden">
               {branding.logoUrl ? (
-                <img src={branding.logoUrl.startsWith('http') ? branding.logoUrl : `${BACKEND_URL}${branding.logoUrl}`} alt="Logo" className="w-full h-full object-cover" />
+                <img src={resolveAssetUrl(branding.logoUrl)} alt="Logo" className="w-full h-full object-cover" />
               ) : (
                 <Briefcase className="w-6 h-6 text-white" />
               )}

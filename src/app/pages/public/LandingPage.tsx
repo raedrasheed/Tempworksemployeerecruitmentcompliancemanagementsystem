@@ -30,13 +30,11 @@ import {
   Languages
 } from 'lucide-react';
 import { useBranding } from '../../hooks/useBranding';
-import { BACKEND_URL } from '../../services/api';
+import { resolveAssetUrl } from '../../services/api';
 
 export function LandingPage() {
   const branding = useBranding();
-  const logoSrc = branding.logoUrl
-    ? (branding.logoUrl.startsWith('http') ? branding.logoUrl : `${BACKEND_URL}${branding.logoUrl}`)
-    : undefined;
+  const logoSrc = branding.logoUrl ? resolveAssetUrl(branding.logoUrl) : undefined;
 
   return (
     <div className="min-h-screen bg-white">

@@ -9,9 +9,8 @@ import { UpdateFinancialRecordDto } from './dto/update-financial-record.dto';
 import { UpdateStatusDto } from './dto/update-status.dto';
 import { FilterFinancialRecordsDto } from './dto/filter-financial-records.dto';
 import { PaginatedResponse } from '../common/dto/pagination-response.dto';
+import { StorageService } from '../common/storage/storage.service';
 import * as ExcelJS from 'exceljs';
-import { join, extname } from 'path';
-import { promises as fs } from 'fs';
 
 // Roles that receive financial notifications
 const FINANCE_ROLES = ['System Admin', 'Finance', 'HR Manager'];
@@ -25,6 +24,7 @@ export class FinanceService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
+    private readonly storage: StorageService,
   ) {}
 
   // ── Prisma include helpers ───────────────────────────────────────────────────
@@ -600,22 +600,18 @@ export class FinanceService {
   ) {
     await this.findOne(recordId);
 
-    const ts = Date.now();
-    const ext = extname(file.originalname);
-    const safeName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
-    const folder = join(file.destination, 'financial', recordId);
-    const filename = `${ts}_${safeName}${ext === safeName.slice(-ext.length) ? '' : ext}`;
-
-    await fs.mkdir(folder, { recursive: true });
-    await fs.rename(file.path, join(folder, filename));
-
-    const fileUrl = `/uploads/financial/${recordId}/${filename}`;
+    const upload = await this.storage.uploadFile(file.buffer, {
+      keyPrefix: `finance/${recordId}/attachments`,
+      contentType: file.mimetype,
+      originalName: file.originalname,
+      inline: file.mimetype === 'application/pdf' || file.mimetype.startsWith('image/'),
+    });
 
     const attachment = await this.prisma.financialRecordAttachment.create({
       data: {
         financialRecordId: recordId,
         name: file.originalname,
-        fileUrl,
+        fileUrl: upload.url,
         mimeType: file.mimetype,
         fileSize: file.size,
         uploadedById,
@@ -643,6 +639,10 @@ export class FinanceService {
     await this.prisma.financialRecordAttachment.update({
       where: { id: attachmentId }, data: { deletedAt: new Date() },
     });
+
+    if ((att as any).fileUrl) {
+      await this.storage.deleteFileByUrlOrKey((att as any).fileUrl);
+    }
 
     await this.auditLog(actorId, 'FINANCIAL_ATTACHMENT_REMOVED', recordId, {
       attachmentId, name: att.name,

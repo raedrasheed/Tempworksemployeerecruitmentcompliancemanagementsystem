@@ -656,9 +656,15 @@ async function bootstrap() {
     }),
   );
 
-  // Serve uploaded files
-  // Ensure upload directories exist (safe on all OSes)
-  mkdirSync(join(process.cwd(), 'uploads', 'avatars'), { recursive: true });
+  // Serve uploaded files (BACKWARD COMPAT)
+  // New uploads go to DigitalOcean Spaces (see common/storage/storage.service.ts).
+  // The local `/uploads` route is kept so historical DB rows that still
+  // reference `/uploads/<file>` continue to render. Once those rows are
+  // migrated to Spaces, this block can be removed alongside the local
+  // driver. Avatars subfolder is preserved for the same legacy reason.
+  if ((process.env.UPLOAD_STORAGE_DRIVER || 'local') !== 'spaces') {
+    mkdirSync(join(process.cwd(), 'uploads', 'avatars'), { recursive: true });
+  }
   app.use('/uploads', express.static(join(process.cwd(), 'uploads')));
 
   // Swagger

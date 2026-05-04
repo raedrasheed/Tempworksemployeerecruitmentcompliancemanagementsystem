@@ -149,11 +149,13 @@ export class StorageService implements OnModuleInit {
     if (!key) return;
 
     // Legacy local /uploads URLs — best-effort filesystem unlink.
+    // Files were served by express.static from `<cwd>/uploads`, so map
+    // the URL back to that exact path regardless of UPLOAD_DEST (which
+    // historically also defaulted to ./uploads).
     if (this.isLegacyLocalUrl(urlOrKey)) {
       try {
-        const root = process.env.UPLOAD_DEST || './uploads';
         const rel = urlOrKey.replace(/^\/+uploads\/+/, '');
-        await fs.unlink(join(root, rel));
+        await fs.unlink(join(process.cwd(), 'uploads', rel));
       } catch (err: any) {
         if (err?.code !== 'ENOENT') {
           this.logger.warn(`Local unlink failed for ${urlOrKey}: ${err?.message ?? err}`);

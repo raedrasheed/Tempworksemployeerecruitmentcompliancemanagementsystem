@@ -44,9 +44,13 @@ export class DocumentsService {
       if (!res.ok) throw new Error(`HTTP ${res.status} fetching ${fileUrl}`);
       return Buffer.from(await res.arrayBuffer());
     }
-    const root = process.env.UPLOAD_DEST || './uploads';
-    const rel = fileUrl.startsWith('/uploads/') ? fileUrl.slice('/uploads/'.length) : fileUrl.replace(/^\/+/, '');
-    const diskPath = join(process.cwd(), root.replace(/^\.\/?/, ''), rel);
+    // Legacy `/uploads/<rest>` URLs are served by express.static from
+    // `<cwd>/uploads`. Mirror that exact mapping here so the bulk-download
+    // ZIP keeps working for historical rows during the Spaces migration.
+    const rel = fileUrl.startsWith('/uploads/')
+      ? fileUrl.slice('/uploads/'.length)
+      : fileUrl.replace(/^\/+/, '');
+    const diskPath = join(process.cwd(), 'uploads', rel);
     await fs.access(diskPath);
     return fs.readFile(diskPath);
   }

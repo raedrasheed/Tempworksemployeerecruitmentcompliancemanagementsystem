@@ -12,7 +12,7 @@ import { Separator } from '../../components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { CountrySelect } from '../../components/ui/CountrySelect';
 import { PhoneInput } from '../../components/ui/PhoneInput';
-import { usersApi, authApi, BACKEND_URL } from '../../services/api';
+import { usersApi, authApi, resolveAssetUrl } from '../../services/api';
 import { toast } from 'sonner';
 
 export function Profile() {
@@ -145,7 +145,7 @@ export function Profile() {
   };
 
   const avatarSrc = photoPreview
-    ?? (userData?.photoUrl ? `${BACKEND_URL}${userData.photoUrl}` : null)
+    ?? (userData?.photoUrl ? resolveAssetUrl(userData.photoUrl) : null)
     ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${userData?.firstName || 'User'}`;
   const displayName = userData ? `${userData.firstName} ${userData.lastName}` : '';
   const roleName = (typeof userData?.role === 'string' ? userData.role : userData?.role?.name) || '';

@@ -12,7 +12,7 @@ import { CountrySelect } from '../../components/ui/CountrySelect';
 import { PhoneInput } from '../../components/ui/PhoneInput';
 import { toast } from 'sonner';
 import { confirm } from '../../components/ui/ConfirmDialog';
-import { agenciesApi, documentsApi, BACKEND_URL, settingsApi, getCurrentUser } from '../../services/api';
+import { agenciesApi, documentsApi, resolveAssetUrl, settingsApi, getCurrentUser } from '../../services/api';
 
 function looksLikeWebsite(v: string): boolean {
   if (!v) return true;
@@ -227,9 +227,7 @@ export function EditAgency() {
 
   if (loading) return <div className="p-8 text-muted-foreground">Loading...</div>;
 
-  const logoSrc = logoUrl
-    ? (logoUrl.startsWith('http') ? logoUrl : `${BACKEND_URL}${logoUrl}`)
-    : null;
+  const logoSrc = logoUrl ? resolveAssetUrl(logoUrl) : null;
 
   return (
     <div className="space-y-6">
@@ -431,7 +429,7 @@ export function EditAgency() {
                       </div>
                       {doc.fileUrl && (
                         <Button type="button" variant="ghost" size="sm" asChild>
-                          <a href={doc.fileUrl.startsWith('http') ? doc.fileUrl : `${BACKEND_URL}${doc.fileUrl}`} target="_blank" rel="noopener noreferrer">
+                          <a href={resolveAssetUrl(doc.fileUrl)} target="_blank" rel="noopener noreferrer">
                             <Download className="w-4 h-4" />
                           </a>
                         </Button>

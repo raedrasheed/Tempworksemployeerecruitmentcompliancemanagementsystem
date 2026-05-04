@@ -7,7 +7,7 @@ import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Textarea } from '../../components/ui/textarea';
-import { settingsApi, BACKEND_URL } from '../../services/api';
+import { settingsApi, resolveAssetUrl } from '../../services/api';
 import { invalidateBrandingCache, BRANDING_DEFAULTS } from '../../hooks/useBranding';
 
 interface BrandingForm {
@@ -123,7 +123,7 @@ export function BrandingSettings() {
   const resolvedLogoUrl = previewUrl
     ? previewUrl
     : logoUrl
-      ? (logoUrl.startsWith('http') ? logoUrl : `${BACKEND_URL}${logoUrl}`)
+      ? resolveAssetUrl(logoUrl)
       : undefined;
 
   return (

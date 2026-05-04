@@ -12,7 +12,7 @@ import { CountrySelect } from '../../components/ui/CountrySelect';
 import { PhoneInput } from '../../components/ui/PhoneInput';
 import { toast } from 'sonner';
 import { confirm } from '../../components/ui/ConfirmDialog';
-import { usersApi, rolesApi, agenciesApi, authApi, getCurrentUser, BACKEND_URL } from '../../services/api';
+import { usersApi, rolesApi, agenciesApi, authApi, getCurrentUser, resolveAssetUrl } from '../../services/api';
 
 const GENDERS = [
   { value: 'MALE', label: 'Male' },
@@ -395,7 +395,7 @@ export function EditUser() {
                   {photoPreview ? (
                     <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
                   ) : existingPhotoUrl ? (
-                    <img src={`${BACKEND_URL}${existingPhotoUrl}`} alt="Photo" className="w-full h-full object-cover" />
+                    <img src={resolveAssetUrl(existingPhotoUrl)} alt="Photo" className="w-full h-full object-cover" />
                   ) : (
                     <Camera className="w-7 h-7 text-gray-400" />
                   )}

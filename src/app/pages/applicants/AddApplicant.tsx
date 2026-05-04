@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { applicationDraftsApi, settingsApi, agenciesApi, getCurrentUser, BACKEND_URL } from '../../services/api';
+import { applicationDraftsApi, settingsApi, agenciesApi, getCurrentUser, resolveAssetUrl } from '../../services/api';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent } from '../../components/ui/card';
 import { Label } from '../../components/ui/label';
@@ -69,9 +69,7 @@ export function AddApplicant() {
 
           // Photo — preview served from the backend static-files route.
           if (draft.photoUrl) {
-            setDraftPhotoUrl(draft.photoUrl.startsWith('http')
-              ? draft.photoUrl
-              : `${BACKEND_URL}${draft.photoUrl}`);
+            setDraftPhotoUrl(resolveAssetUrl(draft.photoUrl));
           }
 
           // Supporting documents — re-slot them into the form by their
@@ -83,7 +81,7 @@ export function AddApplicant() {
               type: d.typeName || d.name,
               sectionKey: d.sectionKey,
               file: null,
-              url: d.url?.startsWith('http') ? d.url : `${BACKEND_URL}${d.url ?? ''}`,
+              url: resolveAssetUrl(d.url ?? ''),
               savedName: d.name,
               draftDocId: d.id,
             }));
@@ -110,7 +108,7 @@ export function AddApplicant() {
         .then((d: any) => {
           if (d?.id) setDraftId(d.id);
           if (d?.photoUrl) {
-            setDraftPhotoUrl(d.photoUrl.startsWith('http') ? d.photoUrl : `${BACKEND_URL}${d.photoUrl}`);
+            setDraftPhotoUrl(resolveAssetUrl(d.photoUrl));
           }
         })
         .catch(() => toast.error('Photo upload failed — it won\'t be saved to your draft.'));
@@ -146,7 +144,7 @@ export function AddApplicant() {
               ? {
                   ...f,
                   file: null,
-                  url: entry.url.startsWith('http') ? entry.url : `${BACKEND_URL}${entry.url}`,
+                  url: resolveAssetUrl(entry.url),
                   savedName: entry.name,
                   draftDocId: entry.id,
                 }

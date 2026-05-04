@@ -5,6 +5,25 @@ export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/ap
 // image/file URLs resolve against the current origin (also proxied).
 export const BACKEND_URL = API_URL.startsWith('http') ? API_URL.replace('/api/v1', '') : '';
 
+/**
+ * Resolve a stored asset URL for use in <img src>, <a href>, etc.
+ *
+ * Handles three input shapes:
+ *  - Absolute URL ("https://tempworks-uploads.fra1.digitaloceanspaces.com/…")
+ *    → returned unchanged. Prevents the legacy "http://localhost:3000https://…"
+ *    bug that happened when the backend started returning Spaces URLs.
+ *  - Legacy backend-relative path ("/uploads/foo.jpg")
+ *    → BACKEND_URL is prepended so the browser hits the API host.
+ *  - Empty/null → returns an empty string so callers can fall back.
+ */
+export function resolveAssetUrl(url: string | null | undefined): string {
+  if (!url) return '';
+  if (/^https?:\/\//i.test(url) || url.startsWith('data:') || url.startsWith('blob:')) {
+    return url;
+  }
+  return `${BACKEND_URL}${url}`;
+}
+
 // ─── Token Management ────────────────────────────────────────────────────────
 
 export function getAccessToken(): string | null {

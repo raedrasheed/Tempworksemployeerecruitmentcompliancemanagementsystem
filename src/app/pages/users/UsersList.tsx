@@ -11,7 +11,7 @@ import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
-import { usersApi, getCurrentUser, BACKEND_URL } from '../../services/api';
+import { usersApi, getCurrentUser, resolveAssetUrl } from '../../services/api';
 import { toast } from 'sonner';
 import { confirm } from '../../components/ui/ConfirmDialog';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -494,7 +494,7 @@ export function UsersList() {
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <img
-                          src={user.photoUrl ? `${BACKEND_URL}${user.photoUrl}` : `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.firstName}`}
+                          src={user.photoUrl ? resolveAssetUrl(user.photoUrl) : `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.firstName}`}
                           alt={`${user.firstName} ${user.lastName}`}
                           className="w-8 h-8 rounded-full object-cover flex-shrink-0"
                         />

@@ -5,7 +5,7 @@ import { Input } from '../../components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Briefcase, ArrowLeft, CheckCircle, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { authApi, setTokens, setCurrentUser, BACKEND_URL } from '../../services/api';
+import { authApi, setTokens, setCurrentUser, resolveAssetUrl } from '../../services/api';
 import { useBranding } from '../../hooks/useBranding';
 
 function getPasswordStrength(password: string): { score: number; label: string; color: string } {
@@ -101,7 +101,7 @@ export function ActivationPage() {
           <div className="flex items-center justify-center gap-3 mb-4">
             <div className="w-12 h-12 rounded-lg bg-[#2563EB] flex items-center justify-center overflow-hidden">
               {branding.logoUrl ? (
-                <img src={branding.logoUrl.startsWith('http') ? branding.logoUrl : `${BACKEND_URL}${branding.logoUrl}`} alt="Logo" className="w-full h-full object-cover" />
+                <img src={resolveAssetUrl(branding.logoUrl)} alt="Logo" className="w-full h-full object-cover" />
               ) : (
                 <Briefcase className="w-7 h-7 text-white" />
               )}

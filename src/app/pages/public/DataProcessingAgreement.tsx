@@ -1,10 +1,13 @@
 import { Link } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { Briefcase, ChevronLeft, Linkedin, Facebook, Mail } from 'lucide-react';
 import { useBranding } from '../../hooks/useBranding';
 import { resolveAssetUrl } from '../../services/api';
+import { LanguageSwitcher } from '../../../i18n/LanguageSwitcher';
 
 export function DataProcessingAgreement() {
   const branding = useBranding();
+  const { t } = useTranslation('public');
   const logoSrc = branding.logoUrl ? resolveAssetUrl(branding.logoUrl) : null;
 
   return (
@@ -22,13 +25,16 @@ export function DataProcessingAgreement() {
             </div>
             <div>
               <p className="font-bold text-gray-900 leading-tight">{branding.companyName}</p>
-              <p className="text-xs text-gray-500">Data Processing Agreement</p>
+              <p className="text-xs text-gray-500">{t('dpa.headerTitle')}</p>
             </div>
           </Link>
-          <Link to="/" className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900">
-            <ChevronLeft className="w-4 h-4" />
-            Back to Home
-          </Link>
+          <div className="flex items-center gap-3">
+            <LanguageSwitcher />
+            <Link to="/" className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900">
+              <ChevronLeft className="w-4 h-4 rtl:rotate-180" />
+              {t('dpa.backToHome')}
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -153,16 +159,16 @@ export function DataProcessingAgreement() {
             </div>
 
             <div>
-              <h4 className="font-bold mb-4">Company</h4>
+              <h4 className="font-bold mb-4">{t('dpa.footerCompany')}</h4>
               <ul className="space-y-2 text-sm text-gray-400">
-                <li><Link to="/" className="hover:text-white transition-colors">Home</Link></li>
-                <li><Link to="/jobs" className="hover:text-white transition-colors">Job Opportunities</Link></li>
-                <li><Link to="/apply" className="hover:text-white transition-colors">Apply Now</Link></li>
+                <li><Link to="/" className="hover:text-white transition-colors">{t('dpa.footerHome')}</Link></li>
+                <li><Link to="/jobs" className="hover:text-white transition-colors">{t('dpa.footerJobs')}</Link></li>
+                <li><Link to="/apply" className="hover:text-white transition-colors">{t('dpa.footerApply')}</Link></li>
               </ul>
             </div>
 
             <div>
-              <h4 className="font-bold mb-4">Contact</h4>
+              <h4 className="font-bold mb-4">{t('dpa.footerContact')}</h4>
               <ul className="space-y-2 text-sm text-gray-400">
                 <li>{branding.address}</li>
                 <li>{branding.phone1}</li>
@@ -175,18 +181,18 @@ export function DataProcessingAgreement() {
             </div>
 
             <div>
-              <h4 className="font-bold mb-4">Legal</h4>
+              <h4 className="font-bold mb-4">{t('dpa.footerLegal')}</h4>
               <ul className="space-y-2 text-sm text-gray-400">
-                <li><Link to="/data-processing-agreement" className="hover:text-white transition-colors">Data Processing Agreement</Link></li>
-                <li><Link to="/login" className="hover:text-white transition-colors">Staff Login</Link></li>
+                <li><Link to="/data-processing-agreement" className="hover:text-white transition-colors">{t('dpa.footerDpaLink')}</Link></li>
+                <li><Link to="/login" className="hover:text-white transition-colors">{t('dpa.footerStaffLogin')}</Link></li>
               </ul>
             </div>
           </div>
 
           <div className="border-t border-gray-800 pt-8">
             <div className="grid md:grid-cols-2 gap-4 text-sm text-gray-400">
-              <p>&copy; {new Date().getFullYear()} {branding.companyName}. All rights reserved.</p>
-              <p className="md:text-right">{branding.vatInfo}</p>
+              <p>&copy; {new Date().getFullYear()} {branding.companyName}. {t('dpa.rightsReserved')}</p>
+              <p className="md:text-end">{branding.vatInfo}</p>
             </div>
           </div>
         </div>

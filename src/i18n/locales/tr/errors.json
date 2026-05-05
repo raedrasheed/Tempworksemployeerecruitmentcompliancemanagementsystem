@@ -1,0 +1,24 @@
+{
+  "generic": {
+    "unexpected": "Bir şeyler yanlış gitti. Lütfen tekrar deneyin.",
+    "network": "Ağ hatası. Bağlantınızı kontrol edin ve tekrar deneyin.",
+    "notFound": "İstenen kaynak bulunamadı.",
+    "forbidden": "Bu işlemi gerçekleştirme izniniz yok.",
+    "unauthorized": "Devam etmek için lütfen oturum açın."
+  },
+  "auth": {
+    "INVALID_CREDENTIALS": "Geçersiz e-posta veya şifre.",
+    "ACCOUNT_LOCKED": "Hesabınız geçici olarak kilitlendi. Lütfen daha sonra tekrar deneyin.",
+    "ACCOUNT_INACTIVE": "Hesabınız aktif değil.",
+    "PASSWORD_EXPIRED": "Şifrenizin süresi doldu. Lütfen yeni bir şifre belirleyin.",
+    "TWO_FACTOR_REQUIRED": "Lütfen size gönderdiğimiz doğrulama kodunu girin.",
+    "TWO_FACTOR_INVALID": "Doğrulama kodu geçersiz veya süresi dolmuş."
+  },
+  "validation": {
+    "required": "Bu alan zorunludur.",
+    "email": "Lütfen geçerli bir e-posta adresi girin.",
+    "minLength": "En az {{min}} karakter olmalıdır.",
+    "maxLength": "En fazla {{max}} karakter olmalıdır.",
+    "passwordsDoNotMatch": "Şifreler eşleşmiyor."
+  }
+}

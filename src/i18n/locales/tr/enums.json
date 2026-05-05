@@ -1,0 +1,160 @@
+{
+  "userStatus": {
+    "ACTIVE": "Aktif",
+    "INACTIVE": "Pasif",
+    "SUSPENDED": "Askıda",
+    "PENDING": "Beklemede",
+    "TERMINATED": "Sonlandırıldı"
+  },
+  "agencyStatus": {
+    "ACTIVE": "Aktif",
+    "INACTIVE": "Pasif",
+    "SUSPENDED": "Askıda"
+  },
+  "agencyApprovalStatus": {
+    "PENDING_APPROVAL": "Onay Bekliyor",
+    "APPROVED": "Onaylandı",
+    "REJECTED": "Reddedildi"
+  },
+  "employeeStatus": {
+    "ACTIVE": "Aktif",
+    "INACTIVE": "Pasif",
+    "PENDING": "Beklemede",
+    "ONBOARDING": "İşe Alma",
+    "TERMINATED": "Sonlandırıldı",
+    "ON_LEAVE": "İzinli"
+  },
+  "applicantStatus": {
+    "NEW": "Yeni",
+    "SCREENING": "Tarama",
+    "INTERVIEW": "Mülakat",
+    "OFFER": "Teklif",
+    "ACCEPTED": "Kabul Edildi",
+    "REJECTED": "Reddedildi",
+    "WITHDRAWN": "Geri Çekildi",
+    "ONBOARDING": "İşe Alma"
+  },
+  "applicantTier": {
+    "LEAD": "Aday Adayı",
+    "CANDIDATE": "Aday"
+  },
+  "documentStatus": {
+    "PENDING": "İnceleme Bekliyor",
+    "VERIFIED": "Geçerli",
+    "REJECTED": "Reddedildi",
+    "EXPIRED": "Süresi Doldu",
+    "EXPIRING_SOON": "Yakında Sona Erecek"
+  },
+  "workflowStageStatus": {
+    "PENDING": "Beklemede",
+    "IN_PROGRESS": "Devam Ediyor",
+    "COMPLETED": "Tamamlandı",
+    "SKIPPED": "Atlandı",
+    "BLOCKED": "Engellendi"
+  },
+  "workPermitStatus": {
+    "PENDING": "Beklemede",
+    "APPLIED": "Başvuruldu",
+    "APPROVED": "Onaylandı",
+    "REJECTED": "Reddedildi",
+    "EXPIRED": "Süresi Doldu",
+    "CANCELLED": "İptal Edildi"
+  },
+  "visaStatus": {
+    "PENDING": "Beklemede",
+    "APPLIED": "Başvuruldu",
+    "APPOINTMENT_SCHEDULED": "Randevu Alındı",
+    "APPROVED": "Onaylandı",
+    "REJECTED": "Reddedildi",
+    "EXPIRED": "Süresi Doldu",
+    "CANCELLED": "İptal Edildi"
+  },
+  "gender": {
+    "MALE": "Erkek",
+    "FEMALE": "Kadın",
+    "OTHER": "Diğer",
+    "PREFER_NOT_TO_SAY": "Belirtmek İstemiyorum"
+  },
+  "alertSeverity": {
+    "LOW": "Düşük",
+    "MEDIUM": "Orta",
+    "HIGH": "Yüksek",
+    "CRITICAL": "Kritik"
+  },
+  "alertStatus": {
+    "OPEN": "Açık",
+    "ACKNOWLEDGED": "Kabul Edildi",
+    "RESOLVED": "Çözüldü",
+    "DISMISSED": "Reddedildi"
+  },
+  "notificationType": {
+    "INFO": "Bilgi",
+    "WARNING": "Uyarı",
+    "ERROR": "Hata",
+    "SUCCESS": "Başarılı",
+    "COMPLIANCE": "Uyumluluk",
+    "DOCUMENT_EXPIRY": "Belge Süresi",
+    "WORKFLOW": "İş Akışı",
+    "SYSTEM": "Sistem",
+    "FINANCIAL": "Finansal",
+    "VEHICLE_MOT_EXPIRING": "MOT Sona Eriyor",
+    "VEHICLE_TAX_EXPIRING": "Araç Vergisi Sona Eriyor",
+    "VEHICLE_INSURANCE_EXPIRING": "Sigorta Sona Eriyor",
+    "VEHICLE_REGISTRATION_EXPIRING": "Tescil Sona Eriyor",
+    "VEHICLE_TACHOGRAPH_EXPIRING": "Takograf Sona Eriyor",
+    "VEHICLE_ATP_EXPIRING": "ATP Sona Eriyor",
+    "VEHICLE_PRESSURE_TEST_DUE": "Basınç Testi Gerekli",
+    "VEHICLE_SERVICE_DUE": "Servis Gerekli",
+    "VEHICLE_SERVICE_OVERDUE": "Servis Gecikti"
+  },
+  "workflowCategory": {
+    "INITIAL": "Başlangıç",
+    "DOCUMENTATION": "Dokümantasyon",
+    "COMPLIANCE": "Uyumluluk",
+    "TRAINING": "Eğitim",
+    "DEPLOYMENT": "Dağıtım",
+    "ADMINISTRATIVE": "İdari"
+  },
+  "candidateProgressStatus": {
+    "PENDING": "Beklemede",
+    "IN_PROGRESS": "Devam Ediyor",
+    "COMPLETED": "Tamamlandı",
+    "REJECTED": "Reddedildi"
+  },
+  "approvalDecision": {
+    "APPROVED": "Onaylandı",
+    "REJECTED": "Reddedildi",
+    "PENDING": "Beklemede"
+  },
+  "attendanceStatus": {
+    "PRESENT": "Mevcut",
+    "ABSENT": "Yok",
+    "LATE": "Geç",
+    "ON_LEAVE": "İzinli",
+    "HOLIDAY": "Tatil",
+    "REMOTE": "Uzaktan"
+  },
+  "fuelType": {
+    "DIESEL": "Dizel",
+    "PETROL": "Benzin",
+    "HYBRID": "Hibrit",
+    "ELECTRIC": "Elektrikli",
+    "LPG": "LPG",
+    "CNG": "CNG"
+  },
+  "maintenanceStatus": {
+    "SCHEDULED": "Planlandı",
+    "IN_PROGRESS": "Devam Ediyor",
+    "COMPLETED": "Tamamlandı",
+    "CANCELLED": "İptal Edildi",
+    "OVERDUE": "Gecikti"
+  },
+  "contractType": {
+    "Full-time": "Tam Zamanlı",
+    "Part-time": "Yarı Zamanlı",
+    "Contract": "Sözleşmeli",
+    "Temporary": "Geçici",
+    "Internship": "Staj",
+    "Seasonal": "Mevsimlik"
+  }
+}

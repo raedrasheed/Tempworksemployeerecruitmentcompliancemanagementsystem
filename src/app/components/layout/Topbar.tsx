@@ -22,6 +22,7 @@ import {
 import { authApi, getCurrentUser, setCurrentUser, notificationsApi, resolveAssetUrl, type AuthUser } from '../../services/api';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { toast } from 'sonner';
+import { LanguageSwitcher } from '../../../i18n/LanguageSwitcher';
 
 // ── Notification bell dropdown ────────────────────────────────────────────────
 
@@ -452,6 +453,8 @@ export function Topbar() {
           <Settings className="w-5 h-5" />
         </Button>
 
+        <LanguageSwitcher />
+
         <div className="w-px h-8 bg-border" />
 
         {/* User Dropdown Menu */}
@@ -515,11 +518,6 @@ export function Topbar() {
                 <Palette className="w-4 h-4" />
                 <span>Color Scheme</span>
               </Link>
-            </DropdownMenuItem>
-
-            <DropdownMenuItem>
-              <Globe className="w-4 h-4" />
-              <span>Language: English</span>
             </DropdownMenuItem>
 
             <DropdownMenuSeparator />

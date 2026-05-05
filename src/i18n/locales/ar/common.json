@@ -1,0 +1,38 @@
+{
+  "actions": {
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "edit": "تعديل",
+    "delete": "حذف",
+    "add": "إضافة",
+    "search": "بحث",
+    "filter": "تصفية",
+    "export": "تصدير",
+    "back": "رجوع",
+    "next": "التالي",
+    "previous": "السابق",
+    "confirm": "تأكيد",
+    "submit": "إرسال",
+    "close": "إغلاق",
+    "apply": "تطبيق",
+    "clearAll": "مسح الكل",
+    "viewAll": "عرض الكل"
+  },
+  "states": {
+    "loading": "جارٍ التحميل…",
+    "saving": "جارٍ الحفظ…",
+    "submitting": "جارٍ الإرسال…",
+    "empty": "لا توجد نتائج",
+    "error": "حدث خطأ ما",
+    "tryAgain": "يرجى المحاولة مرة أخرى"
+  },
+  "language": {
+    "label": "اللغة",
+    "switcherLabel": "تغيير اللغة"
+  },
+  "branding": {
+    "tagline": "توظيف احترافي",
+    "secureAccess": "وصول آمن",
+    "copyright": "© {{year}} {{company}}"
+  }
+}

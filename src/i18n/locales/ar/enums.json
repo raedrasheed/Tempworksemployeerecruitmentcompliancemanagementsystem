@@ -1,0 +1,160 @@
+{
+  "userStatus": {
+    "ACTIVE": "نشط",
+    "INACTIVE": "غير نشط",
+    "SUSPENDED": "موقوف",
+    "PENDING": "قيد الانتظار",
+    "TERMINATED": "منتهي"
+  },
+  "agencyStatus": {
+    "ACTIVE": "نشطة",
+    "INACTIVE": "غير نشطة",
+    "SUSPENDED": "موقوفة"
+  },
+  "agencyApprovalStatus": {
+    "PENDING_APPROVAL": "بانتظار الموافقة",
+    "APPROVED": "موافق عليها",
+    "REJECTED": "مرفوضة"
+  },
+  "employeeStatus": {
+    "ACTIVE": "نشط",
+    "INACTIVE": "غير نشط",
+    "PENDING": "قيد الانتظار",
+    "ONBOARDING": "إجراءات التعيين",
+    "TERMINATED": "منتهي",
+    "ON_LEAVE": "في إجازة"
+  },
+  "applicantStatus": {
+    "NEW": "جديد",
+    "SCREENING": "فرز",
+    "INTERVIEW": "مقابلة",
+    "OFFER": "عرض",
+    "ACCEPTED": "مقبول",
+    "REJECTED": "مرفوض",
+    "WITHDRAWN": "منسحب",
+    "ONBOARDING": "إجراءات التعيين"
+  },
+  "applicantTier": {
+    "LEAD": "عميل محتمل",
+    "CANDIDATE": "مرشح"
+  },
+  "documentStatus": {
+    "PENDING": "بانتظار المراجعة",
+    "VERIFIED": "صالح",
+    "REJECTED": "مرفوض",
+    "EXPIRED": "منتهي",
+    "EXPIRING_SOON": "ينتهي قريبًا"
+  },
+  "workflowStageStatus": {
+    "PENDING": "قيد الانتظار",
+    "IN_PROGRESS": "قيد التنفيذ",
+    "COMPLETED": "مكتمل",
+    "SKIPPED": "تم تخطيه",
+    "BLOCKED": "محظور"
+  },
+  "workPermitStatus": {
+    "PENDING": "قيد الانتظار",
+    "APPLIED": "قُدّم",
+    "APPROVED": "موافق عليه",
+    "REJECTED": "مرفوض",
+    "EXPIRED": "منتهي",
+    "CANCELLED": "ملغى"
+  },
+  "visaStatus": {
+    "PENDING": "قيد الانتظار",
+    "APPLIED": "قُدّم",
+    "APPOINTMENT_SCHEDULED": "تم تحديد الموعد",
+    "APPROVED": "موافق عليه",
+    "REJECTED": "مرفوض",
+    "EXPIRED": "منتهي",
+    "CANCELLED": "ملغى"
+  },
+  "gender": {
+    "MALE": "ذكر",
+    "FEMALE": "أنثى",
+    "OTHER": "آخر",
+    "PREFER_NOT_TO_SAY": "أفضل عدم القول"
+  },
+  "alertSeverity": {
+    "LOW": "منخفضة",
+    "MEDIUM": "متوسطة",
+    "HIGH": "عالية",
+    "CRITICAL": "حرجة"
+  },
+  "alertStatus": {
+    "OPEN": "مفتوح",
+    "ACKNOWLEDGED": "مقر به",
+    "RESOLVED": "تم حله",
+    "DISMISSED": "تم رفضه"
+  },
+  "notificationType": {
+    "INFO": "معلومة",
+    "WARNING": "تحذير",
+    "ERROR": "خطأ",
+    "SUCCESS": "نجاح",
+    "COMPLIANCE": "امتثال",
+    "DOCUMENT_EXPIRY": "انتهاء صلاحية وثيقة",
+    "WORKFLOW": "سير العمل",
+    "SYSTEM": "النظام",
+    "FINANCIAL": "مالي",
+    "VEHICLE_MOT_EXPIRING": "انتهاء فحص MOT",
+    "VEHICLE_TAX_EXPIRING": "انتهاء ضريبة المركبة",
+    "VEHICLE_INSURANCE_EXPIRING": "انتهاء التأمين",
+    "VEHICLE_REGISTRATION_EXPIRING": "انتهاء التسجيل",
+    "VEHICLE_TACHOGRAPH_EXPIRING": "انتهاء التاكوغراف",
+    "VEHICLE_ATP_EXPIRING": "انتهاء ATP",
+    "VEHICLE_PRESSURE_TEST_DUE": "اختبار الضغط مستحق",
+    "VEHICLE_SERVICE_DUE": "الصيانة مستحقة",
+    "VEHICLE_SERVICE_OVERDUE": "الصيانة متأخرة"
+  },
+  "workflowCategory": {
+    "INITIAL": "أولي",
+    "DOCUMENTATION": "توثيق",
+    "COMPLIANCE": "امتثال",
+    "TRAINING": "تدريب",
+    "DEPLOYMENT": "نشر",
+    "ADMINISTRATIVE": "إداري"
+  },
+  "candidateProgressStatus": {
+    "PENDING": "قيد الانتظار",
+    "IN_PROGRESS": "قيد التنفيذ",
+    "COMPLETED": "مكتمل",
+    "REJECTED": "مرفوض"
+  },
+  "approvalDecision": {
+    "APPROVED": "موافق عليه",
+    "REJECTED": "مرفوض",
+    "PENDING": "قيد الانتظار"
+  },
+  "attendanceStatus": {
+    "PRESENT": "حاضر",
+    "ABSENT": "غائب",
+    "LATE": "متأخر",
+    "ON_LEAVE": "في إجازة",
+    "HOLIDAY": "عطلة",
+    "REMOTE": "عن بُعد"
+  },
+  "fuelType": {
+    "DIESEL": "ديزل",
+    "PETROL": "بنزين",
+    "HYBRID": "هجين",
+    "ELECTRIC": "كهربائي",
+    "LPG": "غاز مسال",
+    "CNG": "غاز طبيعي مضغوط"
+  },
+  "maintenanceStatus": {
+    "SCHEDULED": "مجدول",
+    "IN_PROGRESS": "قيد التنفيذ",
+    "COMPLETED": "مكتمل",
+    "CANCELLED": "ملغى",
+    "OVERDUE": "متأخر"
+  },
+  "contractType": {
+    "Full-time": "دوام كامل",
+    "Part-time": "دوام جزئي",
+    "Contract": "عقد",
+    "Temporary": "مؤقت",
+    "Internship": "تدريب",
+    "Seasonal": "موسمي"
+  }
+}

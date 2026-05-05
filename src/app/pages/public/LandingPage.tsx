@@ -1,4 +1,5 @@
 import { Link } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent } from '../../components/ui/card';
 import {
@@ -27,13 +28,14 @@ import {
   Phone,
   Linkedin,
   Facebook,
-  Languages
 } from 'lucide-react';
 import { useBranding } from '../../hooks/useBranding';
 import { resolveAssetUrl } from '../../services/api';
+import { LanguageSwitcher } from '../../../i18n/LanguageSwitcher';
 
 export function LandingPage() {
   const branding = useBranding();
+  const { t } = useTranslation('public');
   const logoSrc = branding.logoUrl ? resolveAssetUrl(branding.logoUrl) : undefined;
 
   return (
@@ -53,31 +55,23 @@ export function LandingPage() {
             </div>
             <nav className="hidden md:flex items-center gap-8">
               <a href="#home" className="text-sm font-medium text-[#0F172A] hover:text-[#2563EB] transition-colors">
-                Home
+                {t('landing.nav.home')}
               </a>
               <a href="#about" className="text-sm font-medium text-[#0F172A] hover:text-[#2563EB] transition-colors">
-                About
+                {t('landing.nav.about')}
               </a>
               <a href="#services" className="text-sm font-medium text-[#0F172A] hover:text-[#2563EB] transition-colors">
-                Services
+                {t('landing.nav.services')}
               </a>
               <a href="#jobs" className="text-sm font-medium text-[#0F172A] hover:text-[#2563EB] transition-colors">
-                Jobs
+                {t('landing.nav.jobs')}
               </a>
               <a href="#contact" className="text-sm font-medium text-[#0F172A] hover:text-[#2563EB] transition-colors">
-                Contact
+                {t('landing.nav.contact')}
               </a>
-              <div className="flex items-center gap-2">
-                <Languages className="w-4 h-4 text-muted-foreground" />
-                <select className="text-sm border-0 bg-transparent cursor-pointer">
-                  <option>EN</option>
-                  <option>DE</option>
-                  <option>SK</option>
-                  <option>AR</option>
-                </select>
-              </div>
+              <LanguageSwitcher />
               <Link to="/login">
-                <Button variant="outline" size="sm">Login</Button>
+                <Button variant="outline" size="sm">{t('landing.nav.login')}</Button>
               </Link>
             </nav>
           </div>
@@ -102,18 +96,18 @@ export function LandingPage() {
                 <div className="flex flex-col sm:flex-row items-start gap-4">
                   <Link to="/apply">
                     <Button size="lg" className="bg-[#2563EB] hover:bg-[#1d4ed8] text-white px-8 py-6 text-lg">
-                      Apply Now
-                      <ArrowRight className="w-5 h-5 ml-2" />
+                      {t('landing.hero.applyNow')}
+                      <ArrowRight className="w-5 h-5 ms-2 rtl:rotate-180" />
                     </Button>
                   </Link>
                   <Link to="/jobs">
                     <Button size="lg" variant="outline" className="px-8 py-6 text-lg">
-                      Explore Jobs
+                      {t('landing.hero.exploreJobs')}
                     </Button>
                   </Link>
                   <Link to="/login">
                     <Button size="lg" variant="ghost" className="px-8 py-6 text-lg">
-                      Login
+                      {t('landing.hero.login')}
                     </Button>
                   </Link>
                 </div>
@@ -123,23 +117,23 @@ export function LandingPage() {
                   <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 mb-4">
                     <div className="flex items-center gap-3 mb-2">
                       <CheckCircle className="w-6 h-6 text-white" />
-                      <span className="text-white font-semibold">Legal Work Permits</span>
+                      <span className="text-white font-semibold">{t('landing.hero.card1Title')}</span>
                     </div>
-                    <p className="text-white/80 text-sm">100% legal immigration process</p>
+                    <p className="text-white/80 text-sm">{t('landing.hero.card1Body')}</p>
                   </div>
                   <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 mb-4">
                     <div className="flex items-center gap-3 mb-2">
                       <Globe className="w-6 h-6 text-white" />
-                      <span className="text-white font-semibold">European Opportunities</span>
+                      <span className="text-white font-semibold">{t('landing.hero.card2Title')}</span>
                     </div>
-                    <p className="text-white/80 text-sm">Jobs across Germany & EU</p>
+                    <p className="text-white/80 text-sm">{t('landing.hero.card2Body')}</p>
                   </div>
                   <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
                     <div className="flex items-center gap-3 mb-2">
                       <Users className="w-6 h-6 text-white" />
-                      <span className="text-white font-semibold">Full Support</span>
+                      <span className="text-white font-semibold">{t('landing.hero.card3Title')}</span>
                     </div>
-                    <p className="text-white/80 text-sm">From application to employment</p>
+                    <p className="text-white/80 text-sm">{t('landing.hero.card3Body')}</p>
                   </div>
                 </div>
               </div>
@@ -153,11 +147,10 @@ export function LandingPage() {
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">
             <div className="text-center mb-12">
-              <h2 className="text-4xl font-bold text-[#0F172A] mb-4">About Our Company</h2>
+              <h2 className="text-4xl font-bold text-[#0F172A] mb-4">{t('landing.about.title')}</h2>
               <div className="w-20 h-1 bg-[#2563EB] mx-auto mb-6"></div>
               <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-                We specialize in recruiting professional drivers and skilled workers for leading logistics companies in Germany. 
-                Our team supports candidates throughout the entire process from application to employment.
+                {t('landing.about.body')}
               </p>
             </div>
 
@@ -167,21 +160,21 @@ export function LandingPage() {
                   <Target className="w-10 h-10 text-[#2563EB]" />
                 </div>
                 <h3 className="text-2xl font-bold text-[#0F172A] mb-2">{branding.statPlacements}</h3>
-                <p className="text-muted-foreground">Successful Placements</p>
+                <p className="text-muted-foreground">{t('landing.about.successfulPlacements')}</p>
               </div>
               <div className="text-center">
                 <div className="w-20 h-20 rounded-full bg-[#F0FDF4] flex items-center justify-center mx-auto mb-4">
                   <Briefcase className="w-10 h-10 text-[#22C55E]" />
                 </div>
                 <h3 className="text-2xl font-bold text-[#0F172A] mb-2">{branding.statPartners}</h3>
-                <p className="text-muted-foreground">Partner Companies</p>
+                <p className="text-muted-foreground">{t('landing.about.partnerCompanies')}</p>
               </div>
               <div className="text-center">
                 <div className="w-20 h-20 rounded-full bg-[#FEF3C7] flex items-center justify-center mx-auto mb-4">
                   <Globe className="w-10 h-10 text-[#F59E0B]" />
                 </div>
                 <h3 className="text-2xl font-bold text-[#0F172A] mb-2">{branding.statCountries}</h3>
-                <p className="text-muted-foreground">Countries Served</p>
+                <p className="text-muted-foreground">{t('landing.about.countriesServed')}</p>
               </div>
             </div>
           </div>
@@ -192,10 +185,10 @@ export function LandingPage() {
       <section className="py-20 bg-[#F8FAFC]">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-[#0F172A] mb-4">Our Values</h2>
+            <h2 className="text-4xl font-bold text-[#0F172A] mb-4">{t('landing.values.title')}</h2>
             <div className="w-20 h-1 bg-[#2563EB] mx-auto mb-6"></div>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              The principles that guide our work and define our commitment to excellence
+              {t('landing.values.subtitle')}
             </p>
           </div>
 
@@ -205,9 +198,9 @@ export function LandingPage() {
                 <div className="w-16 h-16 rounded-lg bg-[#EFF6FF] flex items-center justify-center mb-4">
                   <Shield className="w-8 h-8 text-[#2563EB]" />
                 </div>
-                <h3 className="text-xl font-bold mb-3">Trust & Transparency</h3>
+                <h3 className="text-xl font-bold mb-3">{t('landing.values.trust')}</h3>
                 <p className="text-muted-foreground">
-                  Building lasting relationships through honest communication and ethical practices
+                  {t('landing.values.trustBody')}
                 </p>
               </CardContent>
             </Card>
@@ -217,9 +210,9 @@ export function LandingPage() {
                 <div className="w-16 h-16 rounded-lg bg-[#F0FDF4] flex items-center justify-center mb-4">
                   <Heart className="w-8 h-8 text-[#22C55E]" />
                 </div>
-                <h3 className="text-xl font-bold mb-3">Empowering Workers</h3>
+                <h3 className="text-xl font-bold mb-3">{t('landing.values.empowering')}</h3>
                 <p className="text-muted-foreground">
-                  Supporting professionals in achieving their career goals and personal growth
+                  {t('landing.values.empoweringBody')}
                 </p>
               </CardContent>
             </Card>
@@ -229,9 +222,9 @@ export function LandingPage() {
                 <div className="w-16 h-16 rounded-lg bg-[#FEF3C7] flex items-center justify-center mb-4">
                   <Lightbulb className="w-8 h-8 text-[#F59E0B]" />
                 </div>
-                <h3 className="text-xl font-bold mb-3">Innovation in Recruitment</h3>
+                <h3 className="text-xl font-bold mb-3">{t('landing.values.innovation')}</h3>
                 <p className="text-muted-foreground">
-                  Leveraging technology to streamline processes and deliver better outcomes
+                  {t('landing.values.innovationBody')}
                 </p>
               </CardContent>
             </Card>
@@ -241,9 +234,9 @@ export function LandingPage() {
                 <div className="w-16 h-16 rounded-lg bg-[#EFF6FF] flex items-center justify-center mb-4">
                   <Handshake className="w-8 h-8 text-[#2563EB]" />
                 </div>
-                <h3 className="text-xl font-bold mb-3">Long-Term Partnerships</h3>
+                <h3 className="text-xl font-bold mb-3">{t('landing.values.partnerships')}</h3>
                 <p className="text-muted-foreground">
-                  Creating sustainable relationships with candidates and employers alike
+                  {t('landing.values.partnershipsBody')}
                 </p>
               </CardContent>
             </Card>
@@ -255,10 +248,10 @@ export function LandingPage() {
       <section id="services" className="py-20 bg-white">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-[#0F172A] mb-4">Our Services</h2>
+            <h2 className="text-4xl font-bold text-[#0F172A] mb-4">{t('landing.services.title')}</h2>
             <div className="w-20 h-1 bg-[#2563EB] mx-auto mb-6"></div>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Comprehensive recruitment solutions tailored to your needs
+              {t('landing.services.subtitle')}
             </p>
           </div>
 
@@ -268,9 +261,9 @@ export function LandingPage() {
                 <div className="w-20 h-20 rounded-full bg-[#EFF6FF] flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
                   <UserPlus className="w-10 h-10 text-[#2563EB]" />
                 </div>
-                <h3 className="text-xl font-bold mb-3">Talent Acquisition</h3>
+                <h3 className="text-xl font-bold mb-3">{t('landing.services.talent')}</h3>
                 <p className="text-muted-foreground">
-                  End-to-end recruitment services connecting you with top-tier professional drivers and logistics workers
+                  {t('landing.services.talentBody')}
                 </p>
               </CardContent>
             </Card>
@@ -280,9 +273,9 @@ export function LandingPage() {
                 <div className="w-20 h-20 rounded-full bg-[#F0FDF4] flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
                   <Users className="w-10 h-10 text-[#22C55E]" />
                 </div>
-                <h3 className="text-xl font-bold mb-3">Workforce Management</h3>
+                <h3 className="text-xl font-bold mb-3">{t('landing.services.workforce')}</h3>
                 <p className="text-muted-foreground">
-                  Complete workforce solutions including compliance tracking, performance monitoring, and development programs
+                  {t('landing.services.workforceBody')}
                 </p>
               </CardContent>
             </Card>
@@ -292,9 +285,9 @@ export function LandingPage() {
                 <div className="w-20 h-20 rounded-full bg-[#FEF3C7] flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
                   <Megaphone className="w-10 h-10 text-[#F59E0B]" />
                 </div>
-                <h3 className="text-xl font-bold mb-3">Recruitment Marketing</h3>
+                <h3 className="text-xl font-bold mb-3">{t('landing.services.marketing')}</h3>
                 <p className="text-muted-foreground">
-                  Strategic employer branding and candidate attraction campaigns across multiple channels
+                  {t('landing.services.marketingBody')}
                 </p>
               </CardContent>
             </Card>
@@ -304,9 +297,9 @@ export function LandingPage() {
                 <div className="w-20 h-20 rounded-full bg-[#F5F3FF] flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
                   <Cpu className="w-10 h-10 text-[#8B5CF6]" />
                 </div>
-                <h3 className="text-xl font-bold mb-3">Technology Driven Hiring</h3>
+                <h3 className="text-xl font-bold mb-3">{t('landing.services.techHiring')}</h3>
                 <p className="text-muted-foreground">
-                  Advanced applicant tracking and compliance management systems for efficient recruitment
+                  {t('landing.services.techHiringBody')}
                 </p>
               </CardContent>
             </Card>
@@ -318,10 +311,10 @@ export function LandingPage() {
       <section id="jobs" className="py-20 bg-[#F8FAFC]">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-[#0F172A] mb-4">Current Job Opportunities</h2>
+            <h2 className="text-4xl font-bold text-[#0F172A] mb-4">{t('landing.jobs.title')}</h2>
             <div className="w-20 h-1 bg-[#2563EB] mx-auto mb-6"></div>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Explore exciting career opportunities with our partner companies across Germany
+              {t('landing.jobs.subtitle')}
             </p>
           </div>
 
@@ -386,8 +379,8 @@ export function LandingPage() {
                         </div>
                         <Link to="/apply">
                           <Button className="w-full bg-[#2563EB] hover:bg-[#1d4ed8]">
-                            Apply Now
-                            <ArrowRight className="w-4 h-4 ml-2" />
+                            {t('landing.jobs.applyNow')}
+                            <ArrowRight className="w-4 h-4 ms-2 rtl:rotate-180" />
                           </Button>
                         </Link>
                       </div>
@@ -401,8 +394,8 @@ export function LandingPage() {
           <div className="text-center mt-10">
             <Link to="/jobs">
               <Button size="lg" variant="outline" className="px-8">
-                View All Positions
-                <ArrowRight className="w-5 h-5 ml-2" />
+                {t('landing.jobs.viewAll')}
+                <ArrowRight className="w-5 h-5 ms-2 rtl:rotate-180" />
               </Button>
             </Link>
           </div>
@@ -415,37 +408,36 @@ export function LandingPage() {
         <div className="container mx-auto px-4 text-center relative z-10">
           <div className="max-w-3xl mx-auto">
             <h2 className="text-4xl md:text-5xl font-bold mb-6">
-              Start Your Career in Germany
+              {t('landing.cta.title')}
             </h2>
             <p className="text-xl mb-8 opacity-90">
-              Join our growing community of professionals building successful careers across Europe. 
-              We handle all legal documentation, provide visa support, and ensure a smooth transition to your new role.
+              {t('landing.cta.body')}
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link to="/apply">
                 <Button size="lg" className="bg-white text-[#2563EB] hover:bg-gray-100 px-8 py-6 text-lg font-semibold">
-                  Apply Now
-                  <ArrowRight className="w-5 h-5 ml-2" />
+                  {t('landing.cta.applyNow')}
+                  <ArrowRight className="w-5 h-5 ms-2 rtl:rotate-180" />
                 </Button>
               </Link>
               <a href="#contact">
                 <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10 px-8 py-6 text-lg">
-                  Contact Us
+                  {t('landing.cta.contactUs')}
                 </Button>
               </a>
             </div>
             <div className="grid md:grid-cols-3 gap-8 mt-12">
               <div>
                 <div className="text-3xl font-bold mb-2">100%</div>
-                <div className="text-white/80">Legal Process</div>
+                <div className="text-white/80">{t('landing.cta.legalProcess')}</div>
               </div>
               <div>
                 <div className="text-3xl font-bold mb-2">24/7</div>
-                <div className="text-white/80">Support Available</div>
+                <div className="text-white/80">{t('landing.cta.supportAvailable')}</div>
               </div>
               <div>
                 <div className="text-3xl font-bold mb-2">{branding.statPlacements}</div>
-                <div className="text-white/80">Successful Placements</div>
+                <div className="text-white/80">{t('landing.cta.successfulPlacements')}</div>
               </div>
             </div>
           </div>
@@ -456,10 +448,10 @@ export function LandingPage() {
       <section id="contact" className="py-20 bg-white">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto text-center mb-12">
-            <h2 className="text-4xl font-bold text-[#0F172A] mb-4">Get In Touch</h2>
+            <h2 className="text-4xl font-bold text-[#0F172A] mb-4">{t('landing.contact.title')}</h2>
             <div className="w-20 h-1 bg-[#2563EB] mx-auto mb-6"></div>
             <p className="text-lg text-muted-foreground">
-              Have questions? Our team is ready to assist you with your recruitment journey
+              {t('landing.contact.subtitle')}
             </p>
           </div>
 
@@ -469,7 +461,7 @@ export function LandingPage() {
                 <div className="w-16 h-16 rounded-full bg-[#EFF6FF] flex items-center justify-center mx-auto mb-4">
                   <MapPin className="w-8 h-8 text-[#2563EB]" />
                 </div>
-                <h3 className="font-bold mb-3">Head Office</h3>
+                <h3 className="font-bold mb-3">{t('landing.contact.headOffice')}</h3>
                 <p className="text-sm text-muted-foreground">{branding.address}</p>
               </CardContent>
             </Card>
@@ -479,7 +471,7 @@ export function LandingPage() {
                 <div className="w-16 h-16 rounded-full bg-[#EFF6FF] flex items-center justify-center mx-auto mb-4">
                   <Mail className="w-8 h-8 text-[#2563EB]" />
                 </div>
-                <h3 className="font-bold mb-3">Email Us</h3>
+                <h3 className="font-bold mb-3">{t('landing.contact.emailUs')}</h3>
                 <p className="text-sm text-muted-foreground">
                   {branding.emailInfo}<br />
                   {branding.emailRecruitment}<br />
@@ -493,11 +485,11 @@ export function LandingPage() {
                 <div className="w-16 h-16 rounded-full bg-[#EFF6FF] flex items-center justify-center mx-auto mb-4">
                   <Phone className="w-8 h-8 text-[#2563EB]" />
                 </div>
-                <h3 className="font-bold mb-3">Call Us</h3>
+                <h3 className="font-bold mb-3">{t('landing.contact.callUs')}</h3>
                 <p className="text-sm text-muted-foreground">
                   {branding.phone1}<br />
                   {branding.phone2}<br />
-                  Mon-Fri: 9:00-18:00 CET
+                  {t('landing.contact.hours')}
                 </p>
               </CardContent>
             </Card>
@@ -505,7 +497,7 @@ export function LandingPage() {
 
           {/* Social Media */}
           <div className="text-center">
-            <h3 className="font-bold mb-4">Connect With Us</h3>
+            <h3 className="font-bold mb-4">{t('landing.contact.connect')}</h3>
             <div className="flex items-center justify-center gap-4">
               <a href={branding.linkedIn} target="_blank" rel="noopener noreferrer"
                  className="w-12 h-12 rounded-full bg-[#0A66C2] flex items-center justify-center hover:scale-110 transition-transform">
@@ -554,40 +546,40 @@ export function LandingPage() {
             </div>
 
             <div>
-              <h4 className="font-bold mb-4">Company</h4>
+              <h4 className="font-bold mb-4">{t('landing.footer.company')}</h4>
               <ul className="space-y-2 text-sm text-gray-400">
-                <li><a href="#about" className="hover:text-white transition-colors">About Us</a></li>
-                <li><a href="#services" className="hover:text-white transition-colors">Our Services</a></li>
-                <li><Link to="/jobs" className="hover:text-white transition-colors">Job Opportunities</Link></li>
-                <li><a href="#contact" className="hover:text-white transition-colors">Contact</a></li>
+                <li><a href="#about" className="hover:text-white transition-colors">{t('landing.footer.aboutUs')}</a></li>
+                <li><a href="#services" className="hover:text-white transition-colors">{t('landing.footer.ourServices')}</a></li>
+                <li><Link to="/jobs" className="hover:text-white transition-colors">{t('landing.footer.jobOpportunities')}</Link></li>
+                <li><a href="#contact" className="hover:text-white transition-colors">{t('landing.footer.contact')}</a></li>
               </ul>
             </div>
 
             <div>
-              <h4 className="font-bold mb-4">For Candidates</h4>
+              <h4 className="font-bold mb-4">{t('landing.footer.forCandidates')}</h4>
               <ul className="space-y-2 text-sm text-gray-400">
                 <li>
                   <Link to="/apply" className="hover:text-white transition-colors">
-                    Apply Now
+                    {t('landing.footer.applyNow')}
                   </Link>
                 </li>
-                <li><Link to="/jobs" className="hover:text-white transition-colors">Browse Jobs</Link></li>
+                <li><Link to="/jobs" className="hover:text-white transition-colors">{t('landing.footer.browseJobs')}</Link></li>
                 <li>
                   <Link to="/login" className="hover:text-white transition-colors">
-                    Candidate Login
+                    {t('landing.footer.candidateLogin')}
                   </Link>
                 </li>
-                <li><a href="#" className="hover:text-white transition-colors">FAQ</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">{t('landing.footer.faq')}</a></li>
               </ul>
             </div>
 
             <div>
-              <h4 className="font-bold mb-4">Legal</h4>
+              <h4 className="font-bold mb-4">{t('landing.footer.legal')}</h4>
               <ul className="space-y-2 text-sm text-gray-400">
-                <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Terms of Service</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Cookie Policy</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">GDPR Compliance</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">{t('landing.footer.privacyPolicy')}</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">{t('landing.footer.termsOfService')}</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">{t('landing.footer.cookiePolicy')}</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">{t('landing.footer.gdpr')}</a></li>
               </ul>
             </div>
           </div>
@@ -595,7 +587,7 @@ export function LandingPage() {
           <div className="border-t border-gray-800 pt-8">
             <div className="grid md:grid-cols-2 gap-4">
               <div className="text-sm text-gray-400">
-                <p>&copy; 2026 {branding.companyName}. All rights reserved.</p>
+                <p>&copy; 2026 {branding.companyName}. {t('landing.footer.rightsReserved')}</p>
                 <p className="mt-1">{branding.vatInfo}</p>
               </div>
               <div className="text-sm text-gray-400 md:text-right">

@@ -1,10 +1,12 @@
 import { Link } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent } from '../../components/ui/card';
 import { CheckCircle, Home, Mail, Clock, FileText } from 'lucide-react';
 
 export function ApplicationSuccess() {
   const applicationId = `APP-${Date.now().toString().slice(-8)}`;
+  const { t } = useTranslation('public');
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#EFF6FF] to-white flex items-center justify-center p-4">
@@ -17,34 +19,33 @@ export function ApplicationSuccess() {
 
           {/* Title */}
           <h1 className="text-3xl font-bold text-[#0F172A] mb-4">
-            Application Submitted Successfully!
+            {t('applicationSuccess.title')}
           </h1>
 
           {/* Application ID */}
           <div className="inline-block bg-[#F8FAFC] px-4 py-2 rounded-lg mb-6">
-            <p className="text-sm text-muted-foreground">Application Reference</p>
+            <p className="text-sm text-muted-foreground">{t('applicationSuccess.reference')}</p>
             <p className="text-xl font-semibold text-[#2563EB]">{applicationId}</p>
           </div>
 
           {/* Message */}
           <p className="text-lg text-muted-foreground mb-8 max-w-xl mx-auto">
-            Thank you for applying to our driver recruitment program. Your application has been received 
-            and will be reviewed by our HR team.
+            {t('applicationSuccess.body')}
           </p>
 
           {/* What's Next */}
-          <div className="bg-[#F8FAFC] rounded-lg p-6 mb-8 text-left">
-            <h2 className="font-semibold text-lg mb-4 text-center">What Happens Next?</h2>
-            
+          <div className="bg-[#F8FAFC] rounded-lg p-6 mb-8 text-start">
+            <h2 className="font-semibold text-lg mb-4 text-center">{t('applicationSuccess.whatsNextTitle')}</h2>
+
             <div className="space-y-4">
               <div className="flex items-start gap-4">
                 <div className="w-10 h-10 rounded-full bg-[#EFF6FF] flex items-center justify-center flex-shrink-0">
                   <Mail className="w-5 h-5 text-[#2563EB]" />
                 </div>
                 <div>
-                  <h3 className="font-medium mb-1">Email Confirmation</h3>
+                  <h3 className="font-medium mb-1">{t('applicationSuccess.step1Title')}</h3>
                   <p className="text-sm text-muted-foreground">
-                    You will receive a confirmation email with your application details and reference number.
+                    {t('applicationSuccess.step1Body')}
                   </p>
                 </div>
               </div>
@@ -54,9 +55,9 @@ export function ApplicationSuccess() {
                   <Clock className="w-5 h-5 text-[#F59E0B]" />
                 </div>
                 <div>
-                  <h3 className="font-medium mb-1">Application Review</h3>
+                  <h3 className="font-medium mb-1">{t('applicationSuccess.step2Title')}</h3>
                   <p className="text-sm text-muted-foreground">
-                    Our recruitment team will review your application within 5-7 business days.
+                    {t('applicationSuccess.step2Body')}
                   </p>
                 </div>
               </div>
@@ -66,9 +67,9 @@ export function ApplicationSuccess() {
                   <FileText className="w-5 h-5 text-[#22C55E]" />
                 </div>
                 <div>
-                  <h3 className="font-medium mb-1">Document Verification</h3>
+                  <h3 className="font-medium mb-1">{t('applicationSuccess.step3Title')}</h3>
                   <p className="text-sm text-muted-foreground">
-                    We will verify your documents and contact you if additional information is needed.
+                    {t('applicationSuccess.step3Body')}
                   </p>
                 </div>
               </div>
@@ -78,8 +79,8 @@ export function ApplicationSuccess() {
           {/* Important Notice */}
           <div className="bg-[#FEF3C7] border border-[#F59E0B] rounded-lg p-4 mb-8">
             <p className="text-sm text-[#92400E]">
-              <strong>Important:</strong> Please check your email regularly, including your spam folder. 
-              We will send all updates regarding your application to the email address you provided.
+              <strong>{t('applicationSuccess.importantLabel')}</strong>{' '}
+              {t('applicationSuccess.importantBody')}
             </p>
           </div>
 
@@ -88,18 +89,18 @@ export function ApplicationSuccess() {
             <Link to="/">
               <Button variant="outline" className="gap-2">
                 <Home className="w-4 h-4" />
-                Return to Home
+                {t('applicationSuccess.returnHome')}
               </Button>
             </Link>
             <Button className="bg-[#2563EB] hover:bg-[#1d4ed8]">
-              <Mail className="w-4 h-4 mr-2" />
-              Contact Support
+              <Mail className="w-4 h-4 me-2" />
+              {t('applicationSuccess.contactSupport')}
             </Button>
           </div>
 
           {/* Footer Note */}
           <p className="text-sm text-muted-foreground mt-8">
-            Questions about your application? Email us at{' '}
+            {t('applicationSuccess.questionsPrefix')}{' '}
             <a href="mailto:recruitment@tempworks.eu" className="text-[#2563EB] hover:underline">
               recruitment@tempworks.eu
             </a>

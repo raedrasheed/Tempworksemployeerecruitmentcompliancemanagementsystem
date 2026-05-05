@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
@@ -7,8 +8,11 @@ import { Briefcase, ArrowLeft, CheckCircle, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { authApi, setTokens, setCurrentUser, resolveAssetUrl } from '../../services/api';
 import { useBranding } from '../../hooks/useBranding';
+import { LanguageSwitcher } from '../../../i18n/LanguageSwitcher';
 
-function getPasswordStrength(password: string): { score: number; label: string; color: string } {
+type StrengthLabel = 'weak' | 'medium' | 'strong';
+
+function getPasswordStrength(password: string): { score: number; label: StrengthLabel; color: string } {
   let score = 0;
   if (password.length >= 8) score++;
   if (/[A-Z]/.test(password)) score++;
@@ -16,9 +20,9 @@ function getPasswordStrength(password: string): { score: number; label: string; 
   if (/[0-9]/.test(password)) score++;
   if (/[^A-Za-z0-9]/.test(password)) score++;
 
-  if (score <= 2) return { score, label: 'Weak', color: 'bg-red-500' };
-  if (score <= 3) return { score, label: 'Medium', color: 'bg-yellow-500' };
-  return { score, label: 'Strong', color: 'bg-green-500' };
+  if (score <= 2) return { score, label: 'weak', color: 'bg-red-500' };
+  if (score <= 3) return { score, label: 'medium', color: 'bg-yellow-500' };
+  return { score, label: 'strong', color: 'bg-green-500' };
 }
 
 function PasswordRule({ met, text }: { met: boolean; text: string }) {
@@ -32,6 +36,7 @@ function PasswordRule({ met, text }: { met: boolean; text: string }) {
 
 export function ActivationPage() {
   const branding = useBranding();
+  const { t } = useTranslation(['auth', 'common']);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token') || '';
@@ -57,15 +62,15 @@ export function ActivationPage() {
     setError('');
 
     if (!token) {
-      setError('Invalid or missing activation token.');
+      setError(t('activation.invalidTokenError'));
       return;
     }
     if (!allRulesMet) {
-      setError('Password does not meet the requirements.');
+      setError(t('activation.passwordRequirementsError'));
       return;
     }
     if (password !== confirmPassword) {
-      setError('Passwords do not match.');
+      setError(t('activation.passwordMismatchError'));
       return;
     }
 
@@ -74,26 +79,34 @@ export function ActivationPage() {
       const result = await authApi.activateAccount(token, password);
       setTokens(result.accessToken, result.refreshToken);
       setCurrentUser(result.user);
-      toast.success('Account activated successfully! Welcome!');
+      toast.success(t('activation.submitSuccess'));
       navigate('/dashboard');
     } catch (err: any) {
-      const msg = err?.message || 'Activation failed. The link may have expired or already been used.';
+      const msg = err?.message || t('activation.submitFailed');
       setError(Array.isArray(msg) ? msg.join(', ') : String(msg));
-      toast.error('Activation failed');
+      toast.error(t('activation.submitToastFailed'));
     } finally {
       setLoading(false);
     }
   };
 
+  const strengthColor =
+    strength.label === 'weak' ? 'text-red-500' :
+    strength.label === 'medium' ? 'text-yellow-600' : 'text-green-600';
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#EFF6FF] to-white flex items-center justify-center p-4">
-      <div className="absolute top-4 left-4">
+      <div className="absolute top-4 left-4 rtl:left-auto rtl:right-4">
         <Link to="/login">
           <Button variant="ghost" className="gap-2">
-            <ArrowLeft className="w-4 h-4" />
-            Back to Login
+            <ArrowLeft className="w-4 h-4 rtl:rotate-180" />
+            {t('activation.backToLogin')}
           </Button>
         </Link>
+      </div>
+
+      <div className="absolute top-4 right-4 rtl:right-auto rtl:left-4">
+        <LanguageSwitcher variant="labelled" />
       </div>
 
       <Card className="w-full max-w-md">
@@ -106,33 +119,33 @@ export function ActivationPage() {
                 <Briefcase className="w-7 h-7 text-white" />
               )}
             </div>
-            <div className="text-left">
+            <div className="text-start">
               <span className="text-xl font-bold text-[#0F172A] block">{branding.companyName}</span>
-              <span className="text-xs text-muted-foreground">Professional Recruitment</span>
+              <span className="text-xs text-muted-foreground">{t('common:branding.tagline')}</span>
             </div>
           </div>
-          <CardTitle className="text-2xl">Activate Your Account</CardTitle>
+          <CardTitle className="text-2xl">{t('activation.title')}</CardTitle>
           <p className="text-sm text-muted-foreground mt-2">
-            Set a password to complete your account activation
+            {t('activation.subtitle')}
           </p>
         </CardHeader>
 
         <CardContent className="space-y-6">
           {!token && (
             <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-3">
-              No activation token found. Please use the link from your invitation email.
+              {t('activation.noTokenError')}
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <label htmlFor="password" className="text-sm font-medium">
-                New Password
+                {t('activation.newPasswordLabel')}
               </label>
               <Input
                 id="password"
                 type="password"
-                placeholder="Create a strong password"
+                placeholder={t('activation.newPasswordPlaceholder')}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -147,17 +160,16 @@ export function ActivationPage() {
                         style={{ width: `${(strength.score / 5) * 100}%` }}
                       />
                     </div>
-                    <span className={`text-xs font-medium ${
-                      strength.label === 'Weak' ? 'text-red-500' :
-                      strength.label === 'Medium' ? 'text-yellow-600' : 'text-green-600'
-                    }`}>{strength.label}</span>
+                    <span className={`text-xs font-medium ${strengthColor}`}>
+                      {t(`passwordStrength.${strength.label}`)}
+                    </span>
                   </div>
                   <div className="grid grid-cols-2 gap-1">
-                    <PasswordRule met={rules.minLength} text="At least 8 characters" />
-                    <PasswordRule met={rules.uppercase} text="Uppercase letter" />
-                    <PasswordRule met={rules.lowercase} text="Lowercase letter" />
-                    <PasswordRule met={rules.number} text="Number" />
-                    <PasswordRule met={rules.special} text="Special character" />
+                    <PasswordRule met={rules.minLength} text={t('passwordStrength.minLength')} />
+                    <PasswordRule met={rules.uppercase} text={t('passwordStrength.uppercase')} />
+                    <PasswordRule met={rules.lowercase} text={t('passwordStrength.lowercase')} />
+                    <PasswordRule met={rules.number}    text={t('passwordStrength.number')} />
+                    <PasswordRule met={rules.special}   text={t('passwordStrength.special')} />
                   </div>
                 </div>
               )}
@@ -165,19 +177,19 @@ export function ActivationPage() {
 
             <div className="space-y-2">
               <label htmlFor="confirmPassword" className="text-sm font-medium">
-                Confirm Password
+                {t('activation.confirmPasswordLabel')}
               </label>
               <Input
                 id="confirmPassword"
                 type="password"
-                placeholder="Repeat your password"
+                placeholder={t('activation.confirmPasswordPlaceholder')}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
                 autoComplete="new-password"
               />
               {confirmPassword && password !== confirmPassword && (
-                <p className="text-xs text-red-500">Passwords do not match</p>
+                <p className="text-xs text-red-500">{t('activation.passwordMismatchHint')}</p>
               )}
             </div>
 
@@ -192,14 +204,14 @@ export function ActivationPage() {
               className="w-full bg-[#2563EB] hover:bg-[#1d4ed8]"
               disabled={loading || !token}
             >
-              {loading ? 'Activating...' : 'Activate Account'}
+              {loading ? t('activation.submitting') : t('activation.submit')}
             </Button>
           </form>
         </CardContent>
       </Card>
 
       <div className="absolute bottom-4 text-center text-sm text-muted-foreground">
-        <p>&copy; 2026 {branding.companyName} - Secure Access</p>
+        <p>{t('common:branding.copyright', { year: 2026, company: branding.companyName })} - {t('common:branding.secureAccess')}</p>
       </div>
     </div>
   );

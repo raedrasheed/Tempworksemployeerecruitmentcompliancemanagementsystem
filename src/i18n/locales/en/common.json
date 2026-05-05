@@ -1,0 +1,38 @@
+{
+  "actions": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "delete": "Delete",
+    "add": "Add",
+    "search": "Search",
+    "filter": "Filter",
+    "export": "Export",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "confirm": "Confirm",
+    "submit": "Submit",
+    "close": "Close",
+    "apply": "Apply",
+    "clearAll": "Clear all",
+    "viewAll": "View all"
+  },
+  "states": {
+    "loading": "Loading…",
+    "saving": "Saving…",
+    "submitting": "Submitting…",
+    "empty": "No results",
+    "error": "Something went wrong",
+    "tryAgain": "Please try again"
+  },
+  "language": {
+    "label": "Language",
+    "switcherLabel": "Change language"
+  },
+  "branding": {
+    "tagline": "Professional Recruitment",
+    "secureAccess": "Secure Access",
+    "copyright": "© {{year}} {{company}}"
+  }
+}

@@ -1,0 +1,160 @@
+{
+  "userStatus": {
+    "ACTIVE": "Aktívny",
+    "INACTIVE": "Neaktívny",
+    "SUSPENDED": "Pozastavený",
+    "PENDING": "Čaká",
+    "TERMINATED": "Ukončený"
+  },
+  "agencyStatus": {
+    "ACTIVE": "Aktívna",
+    "INACTIVE": "Neaktívna",
+    "SUSPENDED": "Pozastavená"
+  },
+  "agencyApprovalStatus": {
+    "PENDING_APPROVAL": "Čaká na schválenie",
+    "APPROVED": "Schválené",
+    "REJECTED": "Zamietnuté"
+  },
+  "employeeStatus": {
+    "ACTIVE": "Aktívny",
+    "INACTIVE": "Neaktívny",
+    "PENDING": "Čaká",
+    "ONBOARDING": "Nástup",
+    "TERMINATED": "Ukončený",
+    "ON_LEAVE": "Na dovolenke"
+  },
+  "applicantStatus": {
+    "NEW": "Nový",
+    "SCREENING": "Prehliadka",
+    "INTERVIEW": "Pohovor",
+    "OFFER": "Ponuka",
+    "ACCEPTED": "Akceptované",
+    "REJECTED": "Zamietnuté",
+    "WITHDRAWN": "Stiahnuté",
+    "ONBOARDING": "Nástup"
+  },
+  "applicantTier": {
+    "LEAD": "Záujemca",
+    "CANDIDATE": "Kandidát"
+  },
+  "documentStatus": {
+    "PENDING": "Čaká na kontrolu",
+    "VERIFIED": "Platný",
+    "REJECTED": "Zamietnutý",
+    "EXPIRED": "Expirovaný",
+    "EXPIRING_SOON": "Čoskoro vyprší"
+  },
+  "workflowStageStatus": {
+    "PENDING": "Čaká",
+    "IN_PROGRESS": "Prebieha",
+    "COMPLETED": "Dokončené",
+    "SKIPPED": "Preskočené",
+    "BLOCKED": "Blokované"
+  },
+  "workPermitStatus": {
+    "PENDING": "Čaká",
+    "APPLIED": "Podané",
+    "APPROVED": "Schválené",
+    "REJECTED": "Zamietnuté",
+    "EXPIRED": "Expirované",
+    "CANCELLED": "Zrušené"
+  },
+  "visaStatus": {
+    "PENDING": "Čaká",
+    "APPLIED": "Podané",
+    "APPOINTMENT_SCHEDULED": "Termín naplánovaný",
+    "APPROVED": "Schválené",
+    "REJECTED": "Zamietnuté",
+    "EXPIRED": "Expirované",
+    "CANCELLED": "Zrušené"
+  },
+  "gender": {
+    "MALE": "Muž",
+    "FEMALE": "Žena",
+    "OTHER": "Iné",
+    "PREFER_NOT_TO_SAY": "Nechcem uviesť"
+  },
+  "alertSeverity": {
+    "LOW": "Nízka",
+    "MEDIUM": "Stredná",
+    "HIGH": "Vysoká",
+    "CRITICAL": "Kritická"
+  },
+  "alertStatus": {
+    "OPEN": "Otvorené",
+    "ACKNOWLEDGED": "Potvrdené",
+    "RESOLVED": "Vyriešené",
+    "DISMISSED": "Zamietnuté"
+  },
+  "notificationType": {
+    "INFO": "Informácia",
+    "WARNING": "Upozornenie",
+    "ERROR": "Chyba",
+    "SUCCESS": "Úspech",
+    "COMPLIANCE": "Súlad",
+    "DOCUMENT_EXPIRY": "Expirácia dokumentu",
+    "WORKFLOW": "Pracovný postup",
+    "SYSTEM": "Systém",
+    "FINANCIAL": "Financie",
+    "VEHICLE_MOT_EXPIRING": "MOT expiruje",
+    "VEHICLE_TAX_EXPIRING": "Daň z vozidla expiruje",
+    "VEHICLE_INSURANCE_EXPIRING": "Poistenie expiruje",
+    "VEHICLE_REGISTRATION_EXPIRING": "Registrácia expiruje",
+    "VEHICLE_TACHOGRAPH_EXPIRING": "Tachograf expiruje",
+    "VEHICLE_ATP_EXPIRING": "ATP expiruje",
+    "VEHICLE_PRESSURE_TEST_DUE": "Tlaková skúška",
+    "VEHICLE_SERVICE_DUE": "Servis je potrebný",
+    "VEHICLE_SERVICE_OVERDUE": "Servis je po termíne"
+  },
+  "workflowCategory": {
+    "INITIAL": "Počiatočný",
+    "DOCUMENTATION": "Dokumentácia",
+    "COMPLIANCE": "Súlad",
+    "TRAINING": "Školenie",
+    "DEPLOYMENT": "Nasadenie",
+    "ADMINISTRATIVE": "Administratíva"
+  },
+  "candidateProgressStatus": {
+    "PENDING": "Čaká",
+    "IN_PROGRESS": "Prebieha",
+    "COMPLETED": "Dokončené",
+    "REJECTED": "Zamietnuté"
+  },
+  "approvalDecision": {
+    "APPROVED": "Schválené",
+    "REJECTED": "Zamietnuté",
+    "PENDING": "Čaká"
+  },
+  "attendanceStatus": {
+    "PRESENT": "Prítomný",
+    "ABSENT": "Neprítomný",
+    "LATE": "Meškanie",
+    "ON_LEAVE": "Na dovolenke",
+    "HOLIDAY": "Sviatok",
+    "REMOTE": "Vzdialene"
+  },
+  "fuelType": {
+    "DIESEL": "Diesel",
+    "PETROL": "Benzín",
+    "HYBRID": "Hybrid",
+    "ELECTRIC": "Elektrický",
+    "LPG": "LPG",
+    "CNG": "CNG"
+  },
+  "maintenanceStatus": {
+    "SCHEDULED": "Naplánované",
+    "IN_PROGRESS": "Prebieha",
+    "COMPLETED": "Dokončené",
+    "CANCELLED": "Zrušené",
+    "OVERDUE": "Po termíne"
+  },
+  "contractType": {
+    "Full-time": "Plný úväzok",
+    "Part-time": "Čiastočný úväzok",
+    "Contract": "Zmluva",
+    "Temporary": "Dočasná",
+    "Internship": "Stáž",
+    "Seasonal": "Sezónna"
+  }
+}

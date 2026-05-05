@@ -1,0 +1,24 @@
+{
+  "generic": {
+    "unexpected": "Etwas ist schief gelaufen. Bitte versuchen Sie es erneut.",
+    "network": "Netzwerkfehler. Bitte überprüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
+    "notFound": "Die angeforderte Ressource wurde nicht gefunden.",
+    "forbidden": "Sie haben keine Berechtigung für diese Aktion.",
+    "unauthorized": "Bitte melden Sie sich an, um fortzufahren."
+  },
+  "auth": {
+    "INVALID_CREDENTIALS": "Ungültige E-Mail oder Passwort.",
+    "ACCOUNT_LOCKED": "Ihr Konto ist vorübergehend gesperrt. Bitte versuchen Sie es später erneut.",
+    "ACCOUNT_INACTIVE": "Ihr Konto ist nicht aktiv.",
+    "PASSWORD_EXPIRED": "Ihr Passwort ist abgelaufen. Bitte legen Sie ein neues fest.",
+    "TWO_FACTOR_REQUIRED": "Bitte geben Sie den Bestätigungscode ein, den wir Ihnen gesendet haben.",
+    "TWO_FACTOR_INVALID": "Der Bestätigungscode ist ungültig oder abgelaufen."
+  },
+  "validation": {
+    "required": "Dieses Feld ist erforderlich.",
+    "email": "Bitte geben Sie eine gültige E-Mail-Adresse ein.",
+    "minLength": "Muss mindestens {{min}} Zeichen lang sein.",
+    "maxLength": "Darf höchstens {{max}} Zeichen lang sein.",
+    "passwordsDoNotMatch": "Passwörter stimmen nicht überein."
+  }
+}

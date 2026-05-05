@@ -1,0 +1,160 @@
+{
+  "userStatus": {
+    "ACTIVE": "Активен",
+    "INACTIVE": "Неактивен",
+    "SUSPENDED": "Приостановлен",
+    "PENDING": "Ожидание",
+    "TERMINATED": "Завершён"
+  },
+  "agencyStatus": {
+    "ACTIVE": "Активно",
+    "INACTIVE": "Неактивно",
+    "SUSPENDED": "Приостановлено"
+  },
+  "agencyApprovalStatus": {
+    "PENDING_APPROVAL": "Ожидает одобрения",
+    "APPROVED": "Одобрено",
+    "REJECTED": "Отклонено"
+  },
+  "employeeStatus": {
+    "ACTIVE": "Активен",
+    "INACTIVE": "Неактивен",
+    "PENDING": "Ожидание",
+    "ONBOARDING": "Адаптация",
+    "TERMINATED": "Завершён",
+    "ON_LEAVE": "В отпуске"
+  },
+  "applicantStatus": {
+    "NEW": "Новый",
+    "SCREENING": "Отбор",
+    "INTERVIEW": "Собеседование",
+    "OFFER": "Предложение",
+    "ACCEPTED": "Принято",
+    "REJECTED": "Отклонено",
+    "WITHDRAWN": "Отозвано",
+    "ONBOARDING": "Адаптация"
+  },
+  "applicantTier": {
+    "LEAD": "Лид",
+    "CANDIDATE": "Кандидат"
+  },
+  "documentStatus": {
+    "PENDING": "Ожидает проверки",
+    "VERIFIED": "Действительный",
+    "REJECTED": "Отклонён",
+    "EXPIRED": "Истёк",
+    "EXPIRING_SOON": "Скоро истечёт"
+  },
+  "workflowStageStatus": {
+    "PENDING": "Ожидание",
+    "IN_PROGRESS": "В процессе",
+    "COMPLETED": "Завершено",
+    "SKIPPED": "Пропущено",
+    "BLOCKED": "Заблокировано"
+  },
+  "workPermitStatus": {
+    "PENDING": "Ожидание",
+    "APPLIED": "Подано",
+    "APPROVED": "Одобрено",
+    "REJECTED": "Отклонено",
+    "EXPIRED": "Истёк",
+    "CANCELLED": "Отменено"
+  },
+  "visaStatus": {
+    "PENDING": "Ожидание",
+    "APPLIED": "Подано",
+    "APPOINTMENT_SCHEDULED": "Назначена встреча",
+    "APPROVED": "Одобрено",
+    "REJECTED": "Отклонено",
+    "EXPIRED": "Истёк",
+    "CANCELLED": "Отменено"
+  },
+  "gender": {
+    "MALE": "Мужской",
+    "FEMALE": "Женский",
+    "OTHER": "Другое",
+    "PREFER_NOT_TO_SAY": "Предпочитаю не указывать"
+  },
+  "alertSeverity": {
+    "LOW": "Низкий",
+    "MEDIUM": "Средний",
+    "HIGH": "Высокий",
+    "CRITICAL": "Критический"
+  },
+  "alertStatus": {
+    "OPEN": "Открыто",
+    "ACKNOWLEDGED": "Подтверждено",
+    "RESOLVED": "Решено",
+    "DISMISSED": "Отклонено"
+  },
+  "notificationType": {
+    "INFO": "Информация",
+    "WARNING": "Предупреждение",
+    "ERROR": "Ошибка",
+    "SUCCESS": "Успех",
+    "COMPLIANCE": "Соответствие",
+    "DOCUMENT_EXPIRY": "Истечение документа",
+    "WORKFLOW": "Рабочий процесс",
+    "SYSTEM": "Система",
+    "FINANCIAL": "Финансы",
+    "VEHICLE_MOT_EXPIRING": "MOT истекает",
+    "VEHICLE_TAX_EXPIRING": "Транспортный налог истекает",
+    "VEHICLE_INSURANCE_EXPIRING": "Страховка истекает",
+    "VEHICLE_REGISTRATION_EXPIRING": "Регистрация истекает",
+    "VEHICLE_TACHOGRAPH_EXPIRING": "Тахограф истекает",
+    "VEHICLE_ATP_EXPIRING": "ATP истекает",
+    "VEHICLE_PRESSURE_TEST_DUE": "Требуется проверка давления",
+    "VEHICLE_SERVICE_DUE": "Требуется обслуживание",
+    "VEHICLE_SERVICE_OVERDUE": "Обслуживание просрочено"
+  },
+  "workflowCategory": {
+    "INITIAL": "Начальный",
+    "DOCUMENTATION": "Документация",
+    "COMPLIANCE": "Соответствие",
+    "TRAINING": "Обучение",
+    "DEPLOYMENT": "Назначение",
+    "ADMINISTRATIVE": "Административный"
+  },
+  "candidateProgressStatus": {
+    "PENDING": "Ожидание",
+    "IN_PROGRESS": "В процессе",
+    "COMPLETED": "Завершено",
+    "REJECTED": "Отклонено"
+  },
+  "approvalDecision": {
+    "APPROVED": "Одобрено",
+    "REJECTED": "Отклонено",
+    "PENDING": "Ожидание"
+  },
+  "attendanceStatus": {
+    "PRESENT": "Присутствует",
+    "ABSENT": "Отсутствует",
+    "LATE": "Опоздание",
+    "ON_LEAVE": "В отпуске",
+    "HOLIDAY": "Праздник",
+    "REMOTE": "Удалённо"
+  },
+  "fuelType": {
+    "DIESEL": "Дизель",
+    "PETROL": "Бензин",
+    "HYBRID": "Гибрид",
+    "ELECTRIC": "Электро",
+    "LPG": "LPG",
+    "CNG": "CNG"
+  },
+  "maintenanceStatus": {
+    "SCHEDULED": "Запланировано",
+    "IN_PROGRESS": "В процессе",
+    "COMPLETED": "Завершено",
+    "CANCELLED": "Отменено",
+    "OVERDUE": "Просрочено"
+  },
+  "contractType": {
+    "Full-time": "Полная занятость",
+    "Part-time": "Частичная занятость",
+    "Contract": "Контракт",
+    "Temporary": "Временная",
+    "Internship": "Стажировка",
+    "Seasonal": "Сезонная"
+  }
+}

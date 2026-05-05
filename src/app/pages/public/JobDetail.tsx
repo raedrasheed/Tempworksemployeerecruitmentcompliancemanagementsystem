@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import {
   ArrowLeft, MapPin, Briefcase, Clock, Calendar, ChevronRight,
   AlertTriangle,
@@ -9,13 +10,20 @@ import { useBranding } from '../../hooks/useBranding';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Card, CardContent } from '../../components/ui/card';
+import { LanguageSwitcher } from '../../../i18n/LanguageSwitcher';
+import { formatDate, formatNumber } from '../../../i18n/formatters';
+import { enumLabel } from '../../../i18n/enumLabel';
 
-function formatSalary(min: any, max: any, currency: string): string {
-  if (!min && !max) return '';
-  const fmt = (n: number) => n.toLocaleString();
-  if (min && max) return `${currency} ${fmt(Number(min))} – ${fmt(Number(max))}`;
-  if (min) return `from ${currency} ${fmt(Number(min))}`;
-  return `up to ${currency} ${fmt(Number(max))}`;
+function useFormatSalary() {
+  const { t } = useTranslation('public');
+  return (min: any, max: any, currency: string): string => {
+    if (!min && !max) return '';
+    const minStr = min ? formatNumber(Number(min)) : '';
+    const maxStr = max ? formatNumber(Number(max)) : '';
+    if (min && max) return t('jobs.salaryRange', { currency, min: minStr, max: maxStr });
+    if (min)        return t('jobs.salaryFrom',  { currency, min: minStr });
+    return            t('jobs.salaryUpTo',       { currency, max: maxStr });
+  };
 }
 
 const CONTRACT_TYPE_COLORS: Record<string, string> = {
@@ -29,6 +37,8 @@ const CONTRACT_TYPE_COLORS: Record<string, string> = {
 
 export function JobDetail() {
   const branding = useBranding();
+  const { t } = useTranslation('public');
+  const formatSalary = useFormatSalary();
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const [job, setJob] = useState<any>(null);
@@ -46,7 +56,7 @@ export function JobDetail() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-muted-foreground">Loading…</div>
+        <div className="text-muted-foreground">{t('jobDetail.loading')}</div>
       </div>
     );
   }
@@ -56,10 +66,10 @@ export function JobDetail() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center space-y-4">
           <AlertTriangle className="w-12 h-12 text-orange-400 mx-auto" />
-          <h2 className="text-xl font-semibold">Job Not Found</h2>
-          <p className="text-muted-foreground">This job listing may have been removed or is no longer available.</p>
+          <h2 className="text-xl font-semibold">{t('jobDetail.notFoundTitle')}</h2>
+          <p className="text-muted-foreground">{t('jobDetail.notFoundBody')}</p>
           <Link to="/jobs">
-            <Button variant="outline">View All Jobs</Button>
+            <Button variant="outline">{t('jobDetail.viewAllJobs')}</Button>
           </Link>
         </div>
       </div>
@@ -84,11 +94,12 @@ export function JobDetail() {
             <span className="text-xl font-bold text-[#0F172A]">{branding.companyName}</span>
           </Link>
           <div className="flex items-center gap-3">
+            <LanguageSwitcher />
             <Link to="/jobs">
-              <Button variant="outline" size="sm">All Jobs</Button>
+              <Button variant="outline" size="sm">{t('jobDetail.headerAllJobs')}</Button>
             </Link>
             <Link to={`/apply?jobAdId=${job.id}&jobSlug=${encodeURIComponent(job.slug ?? '')}&jobCategory=${encodeURIComponent(job.category ?? '')}&jobTitle=${encodeURIComponent(job.title ?? '')}&requiredDocs=${encodeURIComponent(JSON.stringify(job.requiredDocuments ?? []))}`}>
-              <Button size="sm">Apply Now</Button>
+              <Button size="sm">{t('jobDetail.applyNow')}</Button>
             </Link>
           </div>
         </div>
@@ -98,10 +109,10 @@ export function JobDetail() {
       <div className="bg-white border-b">
         <div className="container mx-auto px-4 py-3">
           <nav className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Link to="/" className="hover:text-primary">Home</Link>
-            <ChevronRight className="w-4 h-4" />
-            <Link to="/jobs" className="hover:text-primary">Jobs</Link>
-            <ChevronRight className="w-4 h-4" />
+            <Link to="/" className="hover:text-primary">{t('jobDetail.breadcrumbHome')}</Link>
+            <ChevronRight className="w-4 h-4 rtl:rotate-180" />
+            <Link to="/jobs" className="hover:text-primary">{t('jobDetail.breadcrumbJobs')}</Link>
+            <ChevronRight className="w-4 h-4 rtl:rotate-180" />
             <span className="text-foreground line-clamp-1">{job.title}</span>
           </nav>
         </div>
@@ -116,7 +127,7 @@ export function JobDetail() {
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
                     <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${CONTRACT_TYPE_COLORS[job.contractType] ?? 'bg-gray-100 text-gray-700'}`}>
-                      {job.contractType}
+                      {enumLabel('contractType', job.contractType)}
                     </span>
                     <span className="text-xs text-muted-foreground">{job.category}</span>
                   </div>
@@ -135,7 +146,7 @@ export function JobDetail() {
                     {job.publishedAt && (
                       <span className="flex items-center gap-1.5">
                         <Calendar className="w-4 h-4" />
-                        Posted {new Date(job.publishedAt).toLocaleDateString()}
+                        {t('jobDetail.postedOn', { date: formatDate(job.publishedAt) })}
                       </span>
                     )}
                   </div>
@@ -143,7 +154,7 @@ export function JobDetail() {
                 <div className="flex-shrink-0">
                   <Link to={`/apply?jobAdId=${job.id}&jobSlug=${encodeURIComponent(job.slug ?? '')}&jobCategory=${encodeURIComponent(job.category ?? '')}&jobTitle=${encodeURIComponent(job.title ?? '')}&requiredDocs=${encodeURIComponent(JSON.stringify(job.requiredDocuments ?? []))}`}>
                     <Button size="lg" className="w-full sm:w-auto">
-                      Apply Now
+                      {t('jobDetail.applyNow')}
                     </Button>
                   </Link>
                 </div>
@@ -154,7 +165,7 @@ export function JobDetail() {
           {/* Description */}
           <Card className="mb-6">
             <CardContent className="p-6">
-              <h2 className="text-lg font-semibold mb-4">Job Description</h2>
+              <h2 className="text-lg font-semibold mb-4">{t('jobDetail.description')}</h2>
               <div className="prose prose-sm max-w-none text-muted-foreground leading-relaxed whitespace-pre-wrap">
                 {job.description}
               </div>
@@ -164,13 +175,13 @@ export function JobDetail() {
           {/* Apply CTA */}
           <Card className="bg-[#2563EB] text-white border-0">
             <CardContent className="p-6 text-center">
-              <h3 className="text-lg font-semibold mb-2">Interested in this position?</h3>
+              <h3 className="text-lg font-semibold mb-2">{t('jobDetail.interestedTitle')}</h3>
               <p className="text-blue-100 text-sm mb-5">
-                Submit your application today. Our team will review it and get back to you shortly.
+                {t('jobDetail.interestedBody')}
               </p>
               <Link to={`/apply?jobAdId=${job.id}&jobSlug=${encodeURIComponent(job.slug ?? '')}&jobCategory=${encodeURIComponent(job.category ?? '')}&jobTitle=${encodeURIComponent(job.title ?? '')}&requiredDocs=${encodeURIComponent(JSON.stringify(job.requiredDocuments ?? []))}`}>
                 <Button variant="secondary" size="lg">
-                  Apply for this Position
+                  {t('jobDetail.applyForPosition')}
                 </Button>
               </Link>
             </CardContent>
@@ -178,7 +189,7 @@ export function JobDetail() {
 
           <div className="mt-6 text-center">
             <Link to="/jobs" className="text-sm text-muted-foreground hover:text-primary flex items-center justify-center gap-1">
-              <ArrowLeft className="w-4 h-4" /> Back to all jobs
+              <ArrowLeft className="w-4 h-4 rtl:rotate-180" /> {t('jobDetail.backToAllJobs')}
             </Link>
           </div>
         </div>

@@ -1,0 +1,38 @@
+{
+  "actions": {
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "edit": "Bearbeiten",
+    "delete": "Löschen",
+    "add": "Hinzufügen",
+    "search": "Suchen",
+    "filter": "Filter",
+    "export": "Exportieren",
+    "back": "Zurück",
+    "next": "Weiter",
+    "previous": "Zurück",
+    "confirm": "Bestätigen",
+    "submit": "Absenden",
+    "close": "Schließen",
+    "apply": "Anwenden",
+    "clearAll": "Alle löschen",
+    "viewAll": "Alle anzeigen"
+  },
+  "states": {
+    "loading": "Lädt…",
+    "saving": "Wird gespeichert…",
+    "submitting": "Wird übermittelt…",
+    "empty": "Keine Ergebnisse",
+    "error": "Etwas ist schief gelaufen",
+    "tryAgain": "Bitte versuchen Sie es erneut"
+  },
+  "language": {
+    "label": "Sprache",
+    "switcherLabel": "Sprache ändern"
+  },
+  "branding": {
+    "tagline": "Professionelle Personalvermittlung",
+    "secureAccess": "Sicherer Zugang",
+    "copyright": "© {{year}} {{company}}"
+  }
+}

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
@@ -7,10 +8,12 @@ import { Briefcase, ArrowLeft, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { authApi, resolveAssetUrl } from '../../services/api';
 import { useBranding } from '../../hooks/useBranding';
+import { LanguageSwitcher } from '../../../i18n/LanguageSwitcher';
 
 export function LoginPage() {
   const navigate = useNavigate();
   const branding = useBranding();
+  const { t } = useTranslation(['auth', 'common']);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -25,10 +28,10 @@ export function LoginPage() {
   const [resending, setResending] = useState(false);
 
   const proceedAfterLogin = (result: any) => {
-    toast.success('Welcome back!');
+    toast.success(t('login.welcomeBack'));
     if (result?.passwordExpired) {
       navigate('/change-password', {
-        state: { message: 'Your password has expired. Please set a new one.' },
+        state: { message: t('login.passwordExpiredMessage') },
       });
       return;
     }
@@ -45,12 +48,12 @@ export function LoginPage() {
       if ('twoFactorRequired' in result && result.twoFactorRequired) {
         setTwoFactor({ challengeId: result.challengeId, emailHint: result.emailHint });
         setOtp('');
-        toast.info('We just emailed you a verification code.');
+        toast.info(t('twoFactor.codeSentToast'));
         return;
       }
       proceedAfterLogin(result);
     } catch (err: any) {
-      const raw = err?.message || 'Login failed. Please check your credentials.';
+      const raw = err?.message || t('login.loginFailed');
       const message = Array.isArray(raw) ? raw.join(', ') : String(raw);
       setError(message);
       toast.error(message);
@@ -68,7 +71,7 @@ export function LoginPage() {
       const result = await authApi.verifyTwoFactor(twoFactor.challengeId, otp.trim());
       proceedAfterLogin(result);
     } catch (err: any) {
-      const raw = err?.message || 'Verification failed';
+      const raw = err?.message || t('twoFactor.verifyFailed');
       const message = Array.isArray(raw) ? raw.join(', ') : String(raw);
       setError(message);
       toast.error(message);
@@ -84,9 +87,9 @@ export function LoginPage() {
       const { challengeId } = await authApi.resendTwoFactor(twoFactor.challengeId);
       setTwoFactor(prev => (prev ? { ...prev, challengeId } : prev));
       setOtp('');
-      toast.success('A new code is on the way.');
+      toast.success(t('twoFactor.resendSuccess'));
     } catch (err: any) {
-      toast.error(err?.message || 'Could not resend code. Please sign in again.');
+      toast.error(err?.message || t('twoFactor.resendFailed'));
       setTwoFactor(null);
     } finally {
       setResending(false);
@@ -102,13 +105,18 @@ export function LoginPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#EFF6FF] to-white flex items-center justify-center p-4">
       {/* Back to Home */}
-      <div className="absolute top-4 left-4">
+      <div className="absolute top-4 left-4 rtl:left-auto rtl:right-4">
         <Link to="/">
           <Button variant="ghost" className="gap-2">
-            <ArrowLeft className="w-4 h-4" />
-            Back to Home
+            <ArrowLeft className="w-4 h-4 rtl:rotate-180" />
+            {t('login.backToHome')}
           </Button>
         </Link>
+      </div>
+
+      {/* Language switcher */}
+      <div className="absolute top-4 right-4 rtl:right-auto rtl:left-4">
+        <LanguageSwitcher variant="labelled" />
       </div>
 
       <Card className="w-full max-w-md">
@@ -125,18 +133,20 @@ export function LoginPage() {
                 <Briefcase className="w-7 h-7 text-white" />
               )}
             </div>
-            <div className="text-left">
+            <div className="text-start">
               <span className="text-xl font-bold text-[#0F172A] block">{branding.companyName}</span>
-              <span className="text-xs text-muted-foreground">Professional Recruitment</span>
+              <span className="text-xs text-muted-foreground">{t('common:branding.tagline')}</span>
             </div>
           </div>
           <CardTitle className="text-2xl">
-            {twoFactor ? 'Two-Factor Verification' : 'Login to Platform'}
+            {twoFactor ? t('twoFactor.title') : t('login.title')}
           </CardTitle>
           <p className="text-sm text-muted-foreground mt-2">
             {twoFactor
-              ? `We sent a 6-digit code to ${twoFactor.emailHint ?? 'your email'}. Enter it below to continue.`
-              : 'Access your recruitment management dashboard'}
+              ? (twoFactor.emailHint
+                  ? t('twoFactor.subtitleWithEmail', { email: twoFactor.emailHint })
+                  : t('twoFactor.subtitleWithoutEmail'))
+              : t('login.subtitle')}
           </p>
         </CardHeader>
 
@@ -145,13 +155,11 @@ export function LoginPage() {
             <form onSubmit={handleVerifyOtp} className="space-y-4">
               <div className="flex items-center gap-3 p-3 rounded-md bg-[#EFF6FF] border border-[#2563EB]/20">
                 <ShieldCheck className="w-5 h-5 text-[#2563EB] shrink-0" />
-                <p className="text-sm text-[#0F172A]">
-                  Check your inbox for the verification code. It expires in 10 minutes.
-                </p>
+                <p className="text-sm text-[#0F172A]">{t('twoFactor.noticeBanner')}</p>
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="otp" className="text-sm font-medium">Verification code</label>
+                <label htmlFor="otp" className="text-sm font-medium">{t('twoFactor.codeLabel')}</label>
                 <Input
                   id="otp"
                   inputMode="numeric"
@@ -177,7 +185,7 @@ export function LoginPage() {
                 className="w-full bg-[#2563EB] hover:bg-[#1d4ed8]"
                 disabled={verifying || otp.length !== 6}
               >
-                {verifying ? 'Verifying…' : 'Verify & sign in'}
+                {verifying ? t('twoFactor.verifying') : t('twoFactor.verify')}
               </Button>
 
               <div className="flex items-center justify-between text-sm">
@@ -187,14 +195,14 @@ export function LoginPage() {
                   disabled={resending}
                   className="text-[#2563EB] hover:underline disabled:opacity-50"
                 >
-                  {resending ? 'Sending…' : 'Resend code'}
+                  {resending ? t('twoFactor.resending') : t('twoFactor.resend')}
                 </button>
                 <button
                   type="button"
                   onClick={cancelTwoFactor}
                   className="text-muted-foreground hover:underline"
                 >
-                  Use a different account
+                  {t('twoFactor.useDifferentAccount')}
                 </button>
               </div>
             </form>
@@ -203,11 +211,11 @@ export function LoginPage() {
 
             {/* Email Field */}
             <div className="space-y-2">
-              <label htmlFor="email" className="text-sm font-medium">Email Address</label>
+              <label htmlFor="email" className="text-sm font-medium">{t('login.emailLabel')}</label>
               <Input
                 id="email"
                 type="email"
-                placeholder="your.email@company.com"
+                placeholder={t('login.emailPlaceholder')}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 onBlur={() => setEmailTouched(true)}
@@ -215,21 +223,21 @@ export function LoginPage() {
                 required
                 autoComplete="email"
               />
-              {emailInvalid && <p className="text-xs text-red-500">Please enter a valid email address</p>}
+              {emailInvalid && <p className="text-xs text-red-500">{t('login.emailInvalid')}</p>}
             </div>
 
             {/* Password Field */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label htmlFor="password" className="text-sm font-medium">Password</label>
+                <label htmlFor="password" className="text-sm font-medium">{t('login.passwordLabel')}</label>
                 <Link to="/forgot-password" className="text-sm text-[#2563EB] hover:underline">
-                  Forgot password?
+                  {t('login.forgot')}
                 </Link>
               </div>
               <Input
                 id="password"
                 type="password"
-                placeholder="Enter your password"
+                placeholder={t('login.passwordPlaceholder')}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -248,7 +256,7 @@ export function LoginPage() {
               className="w-full bg-[#2563EB] hover:bg-[#1d4ed8]"
               disabled={loading}
             >
-              {loading ? 'Signing in...' : 'Sign In'}
+              {loading ? t('login.submitting') : t('login.submit')}
             </Button>
           </form>
           )}
@@ -260,14 +268,14 @@ export function LoginPage() {
               <div className="w-full border-t"></div>
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white px-2 text-muted-foreground">Or</span>
+              <span className="bg-white px-2 text-muted-foreground">{t('login.or')}</span>
             </div>
           </div>
 
           <div className="text-center space-y-3">
-            <p className="text-sm text-muted-foreground">Looking for a job opportunity?</p>
+            <p className="text-sm text-muted-foreground">{t('login.lookingForJob')}</p>
             <Link to="/apply">
-              <Button variant="outline" className="w-full">Submit Job Application</Button>
+              <Button variant="outline" className="w-full">{t('login.submitApplication')}</Button>
             </Link>
           </div>
           </>
@@ -276,7 +284,7 @@ export function LoginPage() {
       </Card>
 
       <div className="absolute bottom-4 text-center text-sm text-muted-foreground">
-        <p>&copy; 2026 {branding.companyName} - Secure Access</p>
+        <p>{t('common:branding.copyright', { year: 2026, company: branding.companyName })} - {t('common:branding.secureAccess')}</p>
       </div>
     </div>
   );

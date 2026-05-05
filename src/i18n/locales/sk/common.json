@@ -1,0 +1,38 @@
+{
+  "actions": {
+    "save": "Uložiť",
+    "cancel": "Zrušiť",
+    "edit": "Upraviť",
+    "delete": "Vymazať",
+    "add": "Pridať",
+    "search": "Hľadať",
+    "filter": "Filter",
+    "export": "Exportovať",
+    "back": "Späť",
+    "next": "Ďalej",
+    "previous": "Predchádzajúce",
+    "confirm": "Potvrdiť",
+    "submit": "Odoslať",
+    "close": "Zavrieť",
+    "apply": "Použiť",
+    "clearAll": "Vymazať všetko",
+    "viewAll": "Zobraziť všetko"
+  },
+  "states": {
+    "loading": "Načítava sa…",
+    "saving": "Ukladá sa…",
+    "submitting": "Odosiela sa…",
+    "empty": "Žiadne výsledky",
+    "error": "Niečo sa pokazilo",
+    "tryAgain": "Skúste to prosím znova"
+  },
+  "language": {
+    "label": "Jazyk",
+    "switcherLabel": "Zmeniť jazyk"
+  },
+  "branding": {
+    "tagline": "Profesionálny nábor",
+    "secureAccess": "Bezpečný prístup",
+    "copyright": "© {{year}} {{company}}"
+  }
+}

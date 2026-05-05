@@ -1,0 +1,24 @@
+{
+  "generic": {
+    "unexpected": "Niečo sa pokazilo. Skúste to prosím znova.",
+    "network": "Chyba siete. Skontrolujte pripojenie a skúste to znova.",
+    "notFound": "Požadovaný zdroj sa nenašiel.",
+    "forbidden": "Nemáte povolenie vykonať túto akciu.",
+    "unauthorized": "Pre pokračovanie sa prosím prihláste."
+  },
+  "auth": {
+    "INVALID_CREDENTIALS": "Neplatný e-mail alebo heslo.",
+    "ACCOUNT_LOCKED": "Váš účet je dočasne zablokovaný. Skúste to prosím neskôr.",
+    "ACCOUNT_INACTIVE": "Váš účet nie je aktívny.",
+    "PASSWORD_EXPIRED": "Vaše heslo vypršalo. Nastavte si nové.",
+    "TWO_FACTOR_REQUIRED": "Zadajte overovací kód, ktorý sme vám poslali.",
+    "TWO_FACTOR_INVALID": "Overovací kód je neplatný alebo expirovaný."
+  },
+  "validation": {
+    "required": "Toto pole je povinné.",
+    "email": "Zadajte platnú e-mailovú adresu.",
+    "minLength": "Musí mať aspoň {{min}} znakov.",
+    "maxLength": "Musí mať najviac {{max}} znakov.",
+    "passwordsDoNotMatch": "Heslá sa nezhodujú."
+  }
+}

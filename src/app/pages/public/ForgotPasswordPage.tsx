@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
@@ -7,11 +8,13 @@ import { Briefcase, ArrowLeft, CheckCircle } from 'lucide-react';
 import { authApi, resolveAssetUrl } from '../../services/api';
 import { useBranding } from '../../hooks/useBranding';
 import { ReCaptchaV2 } from '../../components/ui/ReCaptchaV2';
+import { LanguageSwitcher } from '../../../i18n/LanguageSwitcher';
 
 const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY as string;
 
 export function ForgotPasswordPage() {
   const branding = useBranding();
+  const { t } = useTranslation(['auth', 'common']);
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -34,13 +37,17 @@ export function ForgotPasswordPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#EFF6FF] to-white flex items-center justify-center p-4">
-      <div className="absolute top-4 left-4">
+      <div className="absolute top-4 left-4 rtl:left-auto rtl:right-4">
         <Link to="/login">
           <Button variant="ghost" className="gap-2">
-            <ArrowLeft className="w-4 h-4" />
-            Back to Login
+            <ArrowLeft className="w-4 h-4 rtl:rotate-180" />
+            {t('forgot.backToLogin')}
           </Button>
         </Link>
+      </div>
+
+      <div className="absolute top-4 right-4 rtl:right-auto rtl:left-4">
+        <LanguageSwitcher variant="labelled" />
       </div>
 
       <Card className="w-full max-w-md">
@@ -53,14 +60,14 @@ export function ForgotPasswordPage() {
                 <Briefcase className="w-7 h-7 text-white" />
               )}
             </div>
-            <div className="text-left">
+            <div className="text-start">
               <span className="text-xl font-bold text-[#0F172A] block">{branding.companyName}</span>
-              <span className="text-xs text-muted-foreground">Professional Recruitment</span>
+              <span className="text-xs text-muted-foreground">{t('common:branding.tagline')}</span>
             </div>
           </div>
-          <CardTitle className="text-2xl">Forgot Password</CardTitle>
+          <CardTitle className="text-2xl">{t('forgot.title')}</CardTitle>
           <p className="text-sm text-muted-foreground mt-2">
-            Enter your email address and we'll send you a reset link
+            {t('forgot.subtitle')}
           </p>
         </CardHeader>
 
@@ -72,13 +79,12 @@ export function ForgotPasswordPage() {
                   <CheckCircle className="w-8 h-8 text-green-600" />
                 </div>
                 <p className="text-sm text-center text-muted-foreground leading-relaxed">
-                  If an account exists for <span className="font-medium text-[#0F172A]">{email}</span>, a reset link has been sent.
-                  Please check your inbox and follow the instructions.
+                  {t('forgot.successMessage', { email })}
                 </p>
               </div>
               <Link to="/login">
                 <Button variant="outline" className="w-full">
-                  Back to Login
+                  {t('forgot.backToLogin')}
                 </Button>
               </Link>
             </div>
@@ -86,12 +92,12 @@ export function ForgotPasswordPage() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <label htmlFor="email" className="text-sm font-medium">
-                  Email Address
+                  {t('forgot.emailLabel')}
                 </label>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="your.email@company.com"
+                  placeholder={t('forgot.emailPlaceholder')}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -111,14 +117,14 @@ export function ForgotPasswordPage() {
                 type="submit"
                 className="w-full bg-[#2563EB] hover:bg-[#1d4ed8]"
                 disabled={loading || !captchaToken}
-                title={!captchaToken ? 'Please complete the "I am not a robot" check first' : undefined}
+                title={!captchaToken ? t('forgot.captchaTooltip') : undefined}
               >
-                {loading ? 'Sending...' : 'Send Reset Link'}
+                {loading ? t('forgot.submitting') : t('forgot.submit')}
               </Button>
 
               <div className="text-center">
                 <Link to="/login" className="text-sm text-[#2563EB] hover:underline">
-                  Back to Login
+                  {t('forgot.backToLogin')}
                 </Link>
               </div>
             </form>
@@ -127,7 +133,7 @@ export function ForgotPasswordPage() {
       </Card>
 
       <div className="absolute bottom-4 text-center text-sm text-muted-foreground">
-        <p>&copy; 2026 {branding.companyName} - Secure Access</p>
+        <p>{t('common:branding.copyright', { year: 2026, company: branding.companyName })} - {t('common:branding.secureAccess')}</p>
       </div>
     </div>
   );

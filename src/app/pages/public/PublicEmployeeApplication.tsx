@@ -1,17 +1,20 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { Briefcase, ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { publicApplicationApi, publicJobAdsApi, resolveAssetUrl } from '../../services/api';
 import { useBranding } from '../../hooks/useBranding';
 import { ApplicantFormSteps, EMPTY_FORM, getVisibleTabs, getStepErrors, getStepFieldErrors, StepIndicator, FormSettings, DEFAULT_FORM_SETTINGS, ApplicantFormData } from '../../components/applicants/ApplicantFormSteps';
 import { ReCaptchaV2 } from '../../components/ui/ReCaptchaV2';
+import { LanguageSwitcher } from '../../../i18n/LanguageSwitcher';
 
 const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY as string;
 
 export function PublicEmployeeApplication() {
   const branding = useBranding();
   const navigate = useNavigate();
+  const { t } = useTranslation('public');
   const [searchParams] = useSearchParams();
   const jobAdId = searchParams.get('jobAdId') || undefined;
   const jobSlug = searchParams.get('jobSlug') || undefined;
@@ -119,15 +122,15 @@ export function PublicEmployeeApplication() {
 
   const handleSubmit = useCallback(async () => {
     if (!photoFile) {
-      toast.error('A photo is required. Please go back to the Personal tab and upload your photo.');
+      toast.error(t('apply.errors.photoRequired'));
       return;
     }
     if (!formData.declarationAccepted || !formData.agreeDataProcessing || !formData.agreeBackground || !formData.agreeDataSharing) {
-      toast.error('You must agree to all statements in the Review tab before submitting.');
+      toast.error(t('apply.errors.agreementsRequired'));
       return;
     }
     if (!captchaToken) {
-      toast.error('Please complete the "I am not a robot" verification before submitting.');
+      toast.error(t('apply.errors.captchaRequired'));
       return;
     }
 
@@ -136,7 +139,7 @@ export function PublicEmployeeApplication() {
         !uploadedFiles.some((f: any) => f.sectionKey === `required:${name}` && f.file)
       );
       if (missing.length > 0) {
-        toast.error(`Required document(s) not uploaded: ${missing.join(', ')}. Please go to the Documents tab.`);
+        toast.error(t('apply.errors.missingDocs', { docs: missing.join(', ') }));
         return;
       }
     }
@@ -170,7 +173,7 @@ export function PublicEmployeeApplication() {
 
       if (photoFile && applicant?.id) {
         await publicApplicationApi.uploadDocument(applicant.id, photoFile, 'Profile Photo', 'Profile Photo').catch(() => {
-          toast.warning('Application submitted but photo upload failed. Please contact us to resubmit your photo.');
+          toast.warning(t('apply.errors.photoUploadFailed'));
         });
       }
 
@@ -185,17 +188,17 @@ export function PublicEmployeeApplication() {
         );
         const failed = results.filter(r => r.status === 'rejected').length;
         if (failed > 0) {
-          toast.warning(`Application submitted, but ${failed} document(s) failed to upload.`);
+          toast.warning(t('apply.errors.documentsUploadFailed', { count: failed }));
         }
       }
 
       navigate('/application-success');
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to submit application. Please try again.');
+      toast.error(err?.message || t('apply.errors.submitFailed'));
     } finally {
       setSubmitting(false);
     }
-  }, [formData, photoFile, captchaToken, uploadedFiles, jobAdId, navigate, requiredDocs]);
+  }, [formData, photoFile, captchaToken, uploadedFiles, jobAdId, navigate, requiredDocs, t]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -211,13 +214,16 @@ export function PublicEmployeeApplication() {
             </div>
             <div>
               <p className="font-bold text-gray-900 leading-tight">{branding.companyName}</p>
-              <p className="text-xs text-gray-500">Driver Application Form</p>
+              <p className="text-xs text-gray-500">{t('apply.headerTitle')}</p>
             </div>
           </div>
-          <Link to="/" className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900">
-            <ChevronLeft className="w-4 h-4" />
-            Back to Home
-          </Link>
+          <div className="flex items-center gap-3">
+            <LanguageSwitcher />
+            <Link to="/" className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900">
+              <ChevronLeft className="w-4 h-4 rtl:rotate-180" />
+              {t('apply.backToHome')}
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -226,8 +232,8 @@ export function PublicEmployeeApplication() {
           <div className="max-w-5xl mx-auto px-6 py-3 flex items-center gap-2 text-sm text-blue-700">
             <Briefcase className="w-4 h-4 flex-shrink-0" />
             <span>
-              Applying for a specific position.{' '}
-              <Link to="/jobs" className="underline hover:text-blue-900">Browse all jobs</Link>
+              {t('apply.specificPositionPrefix')}{' '}
+              <Link to="/jobs" className="underline hover:text-blue-900">{t('apply.browseAllJobs')}</Link>
             </span>
           </div>
         </div>
@@ -281,8 +287,8 @@ export function PublicEmployeeApplication() {
                 onClick={handleBack}
                 className="flex items-center gap-2 px-5 py-2.5 border-2 border-gray-300 text-gray-700 rounded-lg font-medium hover:border-gray-400 transition-colors"
               >
-                <ChevronLeft className="w-4 h-4" />
-                Back
+                <ChevronLeft className="w-4 h-4 rtl:rotate-180" />
+                {t('apply.back')}
               </button>
             ) : <div />}
 
@@ -290,21 +296,21 @@ export function PublicEmployeeApplication() {
               <button
                 type="button"
                 onClick={handleNext}
-                className="ml-auto flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                className="ms-auto flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
               >
-                Next
-                <ChevronRight className="w-4 h-4" />
+                {t('apply.next')}
+                <ChevronRight className="w-4 h-4 rtl:rotate-180" />
               </button>
             ) : (
               <button
                 type="button"
                 onClick={handleSubmit}
                 disabled={submitting || !captchaToken}
-                className="ml-auto flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                title={!captchaToken ? 'Please complete the reCAPTCHA' : undefined}
+                className="ms-auto flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                title={!captchaToken ? t('apply.captchaTitle') : undefined}
               >
                 <Check className="w-4 h-4" />
-                {submitting ? 'Submitting…' : 'Submit Application'}
+                {submitting ? t('apply.submitting') : t('apply.submit')}
               </button>
             )}
           </div>

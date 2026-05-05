@@ -138,6 +138,18 @@
     "accessDenied": "Access Denied",
     "noPermission": "You don't have permission to perform this action."
   },
+  "confirm": {
+    "areYouSure": "Are you sure?",
+    "cannotBeUndone": "This action cannot be undone.",
+    "cannotBeUndoneEasily": "This cannot be undone easily.",
+    "deleteTitle": "Delete?",
+    "archiveTitle": "Archive?",
+    "restoreTitle": "Restore?",
+    "approveTitle": "Approve?",
+    "rejectTitle": "Reject?",
+    "removeTitle": "Remove?",
+    "revokeTitle": "Revoke?"
+  },
   "form": {
     "required": "Required",
     "optional": "Optional",

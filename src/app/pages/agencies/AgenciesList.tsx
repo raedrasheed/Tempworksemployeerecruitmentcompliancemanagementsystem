@@ -14,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { toast } from 'sonner';
 import { confirm } from '../../components/ui/ConfirmDialog';
 import { agenciesApi } from '../../services/api';
+import { apiError } from '../../../i18n/apiError';
 import { FilterSystem, Column, FilterRule, FilterPreset } from '../../components/filters/FilterSystem';
 import { usePermissions } from '../../hooks/usePermissions';
 
@@ -67,6 +68,7 @@ const getStatusBadge = (status: string) => {
 export function AgenciesList() {
   const { canCreate, canEdit, canDelete } = usePermissions();
   const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const [agencies, setAgencies] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -119,16 +121,16 @@ export function AgenciesList() {
 
   const handleDelete = async (agency: any) => {
     if (!(await confirm({
-      title: 'Delete agency?',
-      description: `"${agency.name}" and its data will be permanently removed. This action cannot be undone.`,
-      confirmText: 'Delete', tone: 'destructive',
+      title: t('agencies.list.deleteTitle'),
+      description: t('agencies.list.deleteBody', { name: agency.name }),
+      confirmText: tc('actions.delete'), tone: 'destructive',
     }))) return;
     try {
       await agenciesApi.delete(agency.id);
       setAgencies(prev => prev.filter(a => a.id !== agency.id));
-      toast.success('Agency deleted successfully');
+      toast.success(t('agencies.list.deleteSuccess'));
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to delete agency');
+      toast.error(apiError(err, t('agencies.list.deleteFailed')));
     }
   };
 

@@ -16,6 +16,7 @@ import {
 } from '../../components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { employeesApi, agenciesApi, getAccessToken, documentsApi } from '../../services/api';
+import { apiError } from '../../../i18n/apiError';
 import { usePermissions } from '../../hooks/usePermissions';
 
 const STATUSES = ['ACTIVE', 'PENDING', 'ONBOARDING', 'INACTIVE', 'SUSPENDED', 'ON_LEAVE'];
@@ -79,6 +80,7 @@ function SortableHead({ label, field, sortBy, sortOrder, onSort }: {
 export function EmployeesList() {
   const { canCreate, canEdit, canDelete } = usePermissions();
   const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
 
   // ── Column visibility ──────────────────────────────────────────────────────
   const [visibleColumns, setVisibleColumns] = useState<Record<ColKey, boolean>>(loadVisibleColumns);
@@ -203,17 +205,17 @@ export function EmployeesList() {
   // ── Delete ─────────────────────────────────────────────────────────────────
   const handleDelete = async (employee: any) => {
     if (!(await confirm({
-      title: 'Delete employee?',
-      description: `"${employee.firstName} ${employee.lastName}" will be permanently removed. This cannot be undone.`,
-      confirmText: 'Delete', tone: 'destructive',
+      title: t('employees.list.deleteTitle'),
+      description: t('employees.list.deleteBody', { name: `${employee.firstName} ${employee.lastName}` }),
+      confirmText: tc('actions.delete'), tone: 'destructive',
     }))) return;
     try {
       await employeesApi.delete(employee.id);
       setEmployees(prev => prev.filter(e => e.id !== employee.id));
       setTotalEmployees(prev => prev - 1);
-      toast.success('Employee deleted successfully');
+      toast.success(t('employees.list.deleteSuccess'));
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to delete employee');
+      toast.error(apiError(err, t('employees.list.deleteFailed')));
     }
   };
 
@@ -221,7 +223,7 @@ export function EmployeesList() {
   const [pdfExporting, setPdfExporting] = useState(false);
   const handleBulkPdfExport = async () => {
     if (selected.size === 0) {
-      toast.error('Select at least one employee');
+      toast.error(t('employees.list.selectAtLeastOne'));
       return;
     }
     setPdfExporting(true);
@@ -231,7 +233,7 @@ export function EmployeesList() {
       const full = await Promise.all(ids.map(id => employeesApi.get(id).catch(() => null)));
       const records = full.filter(Boolean) as any[];
       if (records.length === 0) {
-        toast.error('Failed to load selected employees', { id: tid });
+        toast.error(t('employees.list.loadSelectedFailed'), { id: tid });
         return;
       }
       const today = new Date().toISOString().slice(0, 10);
@@ -254,9 +256,9 @@ export function EmployeesList() {
           toast.loading(`Generating PDFs... ${done}/${total}`, { id: tid });
         },
       });
-      toast.success(`Exported ${records.length} PDF${records.length > 1 ? 's' : ''}`, { id: tid });
+      toast.success(t('employees.list.exportedCount', { count: records.length }), { id: tid });
     } catch (err: any) {
-      toast.error(err?.message || 'PDF export failed', { id: tid });
+      toast.error(apiError(err, t('employees.list.pdfFailed')), { id: tid });
     } finally {
       setPdfExporting(false);
     }
@@ -269,7 +271,7 @@ export function EmployeesList() {
   // stays disabled until at least one row is ticked.
   const handleExportExcel = () => {
     if (selected.size === 0) {
-      toast.error('Select one or more rows to export');
+      toast.error(t('employees.list.selectToExport'));
       return;
     }
     const token = getAccessToken();
@@ -287,7 +289,7 @@ export function EmployeesList() {
         document.body.appendChild(a); a.click();
         document.body.removeChild(a); URL.revokeObjectURL(objectUrl);
       })
-      .catch(() => toast.error('Export failed'));
+      .catch(() => toast.error(t('employees.list.exportFailed')));
   };
 
   // ── Filters ────────────────────────────────────────────────────────────────

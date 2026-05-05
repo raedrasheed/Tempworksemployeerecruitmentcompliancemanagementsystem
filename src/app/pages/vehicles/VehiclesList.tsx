@@ -17,6 +17,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '../../components/ui/table';
 import { vehiclesApi, settingsApi } from '../../services/api';
+import { apiError } from '../../../i18n/apiError';
 import { usePermissions } from '../../hooks/usePermissions';
 
 // Legacy enum codes that may still appear on rows created before the
@@ -125,6 +126,7 @@ function SortableHead({ label, field, sortBy, sortOrder, onSort, className }: {
 export function VehiclesList() {
   const navigate = useNavigate();
   const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const { canCreate } = usePermissions();
   const canWrite = canCreate('vehicles');
 
@@ -208,11 +210,11 @@ export function VehiclesList() {
       setVehicles(res.data ?? []);
       setTotal(res.total ?? 0);
     } catch {
-      toast.error('Failed to load vehicles');
+      toast.error(t('vehicles.list.loadFailed'));
     } finally {
       setLoading(false);
     }
-  }, [page, search, typeFilter, statusFilter]);
+  }, [page, search, typeFilter, statusFilter, t]);
 
   const loadStats = useCallback(async () => {
     try { setStats(await vehiclesApi.getStats()); } catch { /* non-critical */ }
@@ -257,15 +259,15 @@ export function VehiclesList() {
   // ── Delete / Export ────────────────────────────────────────────────────────
   const handleDelete = async (vehicleId: string) => {
     if (!(await confirm({
-      title: 'Delete vehicle?',
-      description: 'This vehicle will be permanently removed. This cannot be undone easily.',
-      confirmText: 'Delete', tone: 'destructive',
+      title: t('vehicles.list.deleteTitle'),
+      description: t('vehicles.list.deleteBody'),
+      confirmText: tc('actions.delete'), tone: 'destructive',
     }))) return;
     try {
       await vehiclesApi.delete(vehicleId);
-      toast.success('Vehicle deleted');
+      toast.success(t('vehicles.list.deleteSuccess'));
       loadVehicles(); loadStats();
-    } catch { toast.error('Failed to delete vehicle'); }
+    } catch (err: any) { toast.error(apiError(err, t('vehicles.list.deleteFailed'))); }
   };
 
   const toggleSelect = (id: string) => {
@@ -299,8 +301,8 @@ export function VehiclesList() {
       const a = document.createElement('a');
       a.href = url; a.download = `vehicles-${new Date().toISOString().split('T')[0]}.xlsx`;
       a.click(); URL.revokeObjectURL(url);
-      toast.success(`Exported ${selectedIds.size > 0 ? selectedIds.size : 'all'} vehicle${selectedIds.size === 1 ? '' : 's'}`);
-    } catch { toast.error('Export failed'); }
+      toast.success(selectedIds.size > 0 ? t('vehicles.list.exportedCount', { count: selectedIds.size }) : t('vehicles.list.exportedAll'));
+    } catch { toast.error(t('vehicles.list.exportFailed')); }
     finally { setExporting(false); }
   };
 

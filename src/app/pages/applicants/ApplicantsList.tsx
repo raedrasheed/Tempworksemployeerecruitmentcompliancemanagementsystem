@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { applicantsApi, employeeWorkflowApi, agenciesApi, settingsApi, documentsApi } from '../../services/api';
+import { apiError } from '../../../i18n/apiError';
 import { usePermissions } from '../../hooks/usePermissions';
 import { getCurrentUser, getAccessToken } from '../../services/api';
 import { Link } from 'react-router';
@@ -126,6 +127,7 @@ function SortableHead({ label, field, sortBy, sortOrder, onSort }: {
 export function ApplicantsList() {
   const { canCreate, canEdit, canDelete } = usePermissions();
   const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const currentUser = getCurrentUser();
   const isAgencyUser = currentUser?.role === 'Agency User' || currentUser?.role === 'Agency Manager';
 
@@ -255,18 +257,18 @@ export function ApplicantsList() {
   // ── Delete ─────────────────────────────────────────────────────────────────
   const handleDelete = async (applicant: any) => {
     if (!(await confirm({
-      title: 'Delete applicant?',
-      description: `"${applicant.firstName} ${applicant.lastName}" will be permanently removed.`,
-      confirmText: 'Delete', tone: 'destructive',
+      title: t('applicants.list.deleteTitle'),
+      description: t('applicants.list.deleteBody', { name: `${applicant.firstName} ${applicant.lastName}` }),
+      confirmText: tc('actions.delete'), tone: 'destructive',
     }))) return;
     try {
       await applicantsApi.delete(applicant.id);
       setApplicantsData(prev => prev.filter(a => a.id !== applicant.id));
       setTotalApplicants(prev => prev - 1);
       setSelected(prev => { const n = new Set(prev); n.delete(applicant.id); return n; });
-      toast.success('Applicant deleted');
+      toast.success(t('applicants.list.deleteSuccess'));
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to delete applicant');
+      toast.error(apiError(err, t('applicants.list.deleteFailed')));
     }
   };
 
@@ -279,12 +281,12 @@ export function ApplicantsList() {
 
   // ── Bulk actions ───────────────────────────────────────────────────────────
   const handleBulkAction = async (action: string, value?: string, agencyId?: string) => {
-    if (selected.size === 0) { toast.error('Select at least one applicant'); return; }
+    if (selected.size === 0) { toast.error(t('applicants.list.selectAtLeastOne')); return; }
     setBulkActionInProgress(true);
     try {
       const result = await applicantsApi.bulkAction({ ids: [...selected], action, value, agencyId });
       const failed = result.results?.filter((r: any) => !r.success) ?? [];
-      if (failed.length === 0) toast.success(`Bulk action applied to ${selected.size} applicant(s)`);
+      if (failed.length === 0) toast.success(t('applicants.list.bulkAppliedCount', { count: selected.size }));
       else toast.warning(
         `Applied to ${selected.size - failed.length}, failed for ${failed.length}` +
           (failed[0]?.error ? ` (first error: ${failed[0].error})` : ''),
@@ -292,7 +294,7 @@ export function ApplicantsList() {
       setSelected(new Set());
       await fetchApplicants();
     } catch (err: any) {
-      toast.error(err?.message || 'Bulk action failed');
+      toast.error(apiError(err, t('applicants.list.bulkActionFailed')));
     } finally {
       setBulkActionInProgress(false);
     }
@@ -308,7 +310,7 @@ export function ApplicantsList() {
   const [pdfExporting, setPdfExporting] = useState(false);
   const handleBulkPdfExport = async () => {
     if (selected.size === 0) {
-      toast.error('Select at least one applicant');
+      toast.error(t('applicants.list.selectAtLeastOne'));
       return;
     }
     setPdfExporting(true);
@@ -318,7 +320,7 @@ export function ApplicantsList() {
       const full = await Promise.all(ids.map(id => applicantsApi.get(id).catch(() => null)));
       const records = full.filter(Boolean) as any[];
       if (records.length === 0) {
-        toast.error('Failed to load selected applicants', { id: tid });
+        toast.error(t('applicants.list.loadSelectedFailed'), { id: tid });
         return;
       }
       const today = new Date().toISOString().slice(0, 10);
@@ -343,7 +345,7 @@ export function ApplicantsList() {
           toast.loading(`Generating PDFs... ${done}/${total}`, { id: tid });
         },
       });
-      toast.success(`Exported ${records.length} PDF${records.length > 1 ? 's' : ''}`, { id: tid });
+      toast.success(t('applicants.list.exportedCount', { count: records.length }), { id: tid });
     } catch (err: any) {
       toast.error(err?.message || 'PDF export failed', { id: tid });
     } finally {
@@ -464,9 +466,9 @@ export function ApplicantsList() {
             <Button variant="outline" size="sm" className="text-red-600" disabled={bulkActionInProgress} onClick={async () => {
               if (selected.size === 0) return;
               if (await confirm({
-                title: 'Delete selected applicants?',
-                description: `${selected.size} applicant(s) will be permanently removed.`,
-                confirmText: 'Delete', tone: 'destructive',
+                title: t('applicants.list.deleteSelectedTitle'),
+                description: t('applicants.list.deleteSelectedBody', { count: selected.size }),
+                confirmText: tc('actions.delete'), tone: 'destructive',
               })) handleBulkAction('DELETE');
             }}>
               <Trash2 className="w-3 h-3 me-1" />Delete Selected

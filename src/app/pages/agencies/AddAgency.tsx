@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { ArrowLeft, ShieldOff, Upload, X } from 'lucide-react';
 import { useState } from 'react';
 import { usePermissions } from '../../hooks/usePermissions';
+import { apiError } from '../../../i18n/apiError';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -84,7 +85,7 @@ export function AddAgency() {
       return;
     }
     if (!/^image\/(jpe?g|png|webp|svg\+xml)$/i.test(f.type)) {
-      toast.error('Logo must be JPEG, PNG, WebP or SVG');
+      toast.error(t('agencies.add.validation.logoFormat'));
       return;
     }
     const reader = new FileReader();
@@ -98,14 +99,14 @@ export function AddAgency() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     // Minimal required-field + URL validation mirrors the backend DTO.
-    if (!form.name.trim())          return toast.error('Agency name is required');
-    if (!form.country)              return toast.error('Country is required');
+    if (!form.name.trim())          return toast.error(t('agencies.add.validation.nameRequired'));
+    if (!form.country)              return toast.error(t('agencies.add.validation.countryRequired'));
     if (!form.contactFirstName.trim() || !form.contactLastName.trim())
-      return toast.error('Contact person first and last name are required');
-    if (!form.email.trim())         return toast.error('Email is required');
-    if (!form.phone.trim())         return toast.error('Phone is required');
+      return toast.error(t('agencies.add.validation.contactNameRequired'));
+    if (!form.email.trim())         return toast.error(t('agencies.add.validation.emailRequired'));
+    if (!form.phone.trim())         return toast.error(t('agencies.add.validation.phoneRequired'));
     if (form.website && !looksLikeWebsite(form.website))
-      return toast.error('Website must be a valid URL');
+      return toast.error(t('agencies.add.validation.websiteInvalid'));
 
     setSubmitting(true);
     try {
@@ -117,12 +118,12 @@ export function AddAgency() {
       const created = await agenciesApi.create(payload);
       if (logoFile && created?.id) {
         try { await agenciesApi.uploadLogo(created.id, logoFile); }
-        catch (err: any) { toast.warning(`Agency created but logo upload failed: ${err?.message || 'unknown error'}`); }
+        catch (err: any) { toast.warning(t('agencies.add.toast.logoUploadFailed', { error: apiError(err) })); }
       }
-      toast.success('Agency added successfully');
+      toast.success(t('agencies.add.toast.addSuccess'));
       navigate(created?.id ? `/dashboard/agencies/${created.id}` : '/dashboard/agencies');
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to add agency');
+      toast.error(apiError(err, t('agencies.add.toast.addFailed')));
     } finally {
       setSubmitting(false);
     }
@@ -136,7 +137,7 @@ export function AddAgency() {
         </Button>
         <div>
           <h1 className="text-3xl font-semibold text-[#0F172A]">{t('agencies.add.title')}</h1>
-          <p className="text-muted-foreground mt-1">Create new recruitment agency partnership</p>
+          <p className="text-muted-foreground mt-1">{t('agencies.add.subtitle')}</p>
         </div>
       </div>
 
@@ -144,141 +145,141 @@ export function AddAgency() {
         <div className="max-w-3xl space-y-6">
           {/* Identity */}
           <Card>
-            <CardHeader><CardTitle>Agency Information</CardTitle></CardHeader>
+            <CardHeader><CardTitle>{t('agencies.add.agencyInfoTitle')}</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2 col-span-2">
-                  <Label htmlFor="name">Agency Name *</Label>
-                  <Input id="name" placeholder="Enter agency name" value={form.name} onChange={e => setField('name', e.target.value)} required />
+                  <Label htmlFor="name">{t('agencies.add.agencyName')}</Label>
+                  <Input id="name" placeholder={t('agencies.add.agencyNamePh')} value={form.name} onChange={e => setField('name', e.target.value)} required />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="country">Country *</Label>
+                  <Label htmlFor="country">{t('agencies.add.country')}</Label>
                   <CountrySelect value={form.country} onChange={v => setField('country', v)} required />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="status">Status</Label>
+                  <Label htmlFor="status">{t('agencies.add.status')}</Label>
                   <Select value={form.status} onValueChange={v => setField('status', v)}>
                     <SelectTrigger id="status"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="ACTIVE">Active</SelectItem>
-                      <SelectItem value="INACTIVE">Inactive</SelectItem>
-                      <SelectItem value="SUSPENDED">Suspended</SelectItem>
+                      <SelectItem value="ACTIVE">{tc('filters.active')}</SelectItem>
+                      <SelectItem value="INACTIVE">{tc('filters.inactive')}</SelectItem>
+                      <SelectItem value="SUSPENDED">{t('agencies.add.suspended', { defaultValue: 'Suspended' })}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="website">Website Address</Label>
-                <Input id="website" placeholder="https://agency.example.com" value={form.website} onChange={e => setField('website', e.target.value)} />
+                <Label htmlFor="website">{t('agencies.add.website')}</Label>
+                <Input id="website" placeholder={t('agencies.add.websitePh')} value={form.website} onChange={e => setField('website', e.target.value)} />
               </div>
             </CardContent>
           </Card>
 
           {/* Logo */}
           <Card>
-            <CardHeader><CardTitle>Logo</CardTitle></CardHeader>
+            <CardHeader><CardTitle>{t('agencies.add.logoTitle')}</CardTitle></CardHeader>
             <CardContent>
               <div className="flex items-center gap-4">
                 <div className="w-20 h-20 rounded-lg border border-dashed border-border bg-muted/40 overflow-hidden flex items-center justify-center">
                   {logoPreview
-                    ? <img src={logoPreview} alt="Logo preview" className="w-full h-full object-contain" />
+                    ? <img src={logoPreview} alt={t('agencies.add.logoPreviewAlt')} className="w-full h-full object-contain" />
                     : <Upload className="w-6 h-6 text-muted-foreground" />}
                 </div>
                 <div className="flex gap-2">
                   <Button type="button" variant="outline" size="sm" asChild>
                     <label className="cursor-pointer">
                       <input type="file" accept="image/jpeg,image/png,image/webp,image/svg+xml" className="sr-only" onChange={handleLogoPick} />
-                      {logoPreview ? 'Replace logo' : 'Select logo'}
+                      {logoPreview ? t('agencies.add.replaceLogo') : t('agencies.add.selectLogo')}
                     </label>
                   </Button>
                   {logoPreview && (
                     <Button type="button" variant="ghost" size="sm" onClick={clearLogo}>
-                      <X className="w-4 h-4 me-1" /> Clear
+                      <X className="w-4 h-4 me-1" /> {t('agencies.add.clearLogo')}
                     </Button>
                   )}
                 </div>
               </div>
               <p className="text-xs text-muted-foreground mt-2">
-                PNG, JPEG, WebP or SVG · up to 5MB. The logo is uploaded after the agency is created.
+                {t('agencies.add.logoHelp')}
               </p>
             </CardContent>
           </Card>
 
           {/* Contact person */}
           <Card>
-            <CardHeader><CardTitle>Contact Person</CardTitle></CardHeader>
+            <CardHeader><CardTitle>{t('agencies.add.contactTitle')}</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="contactFirstName">First Name *</Label>
+                  <Label htmlFor="contactFirstName">{t('agencies.add.firstName')}</Label>
                   <Input id="contactFirstName" value={form.contactFirstName} onChange={e => setField('contactFirstName', e.target.value)} required />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="contactMiddleName">Middle Name</Label>
+                  <Label htmlFor="contactMiddleName">{t('agencies.add.middleName')}</Label>
                   <Input id="contactMiddleName" value={form.contactMiddleName} onChange={e => setField('contactMiddleName', e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="contactLastName">Last Name *</Label>
+                  <Label htmlFor="contactLastName">{t('agencies.add.lastName')}</Label>
                   <Input id="contactLastName" value={form.contactLastName} onChange={e => setField('contactLastName', e.target.value)} required />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email *</Label>
-                  <Input id="email" type="email" placeholder="contact@agency.com" value={form.email} onChange={e => setField('email', e.target.value)} required />
+                  <Label htmlFor="email">{t('agencies.add.email')}</Label>
+                  <Input id="email" type="email" placeholder={t('agencies.add.emailPh')} value={form.email} onChange={e => setField('email', e.target.value)} required />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Phone *</Label>
+                  <Label htmlFor="phone">{t('agencies.add.phone')}</Label>
                   <PhoneInput id="phone" value={form.phone} onChange={v => setField('phone', v)} required />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="whatsapp">WhatsApp</Label>
-                <PhoneInput id="whatsapp" value={form.whatsapp} onChange={v => setField('whatsapp', v)} placeholder="optional" />
+                <Label htmlFor="whatsapp">{t('agencies.add.whatsapp')}</Label>
+                <PhoneInput id="whatsapp" value={form.whatsapp} onChange={v => setField('whatsapp', v)} placeholder={t('agencies.add.whatsappPh')} />
               </div>
             </CardContent>
           </Card>
 
           {/* HQ address */}
           <Card>
-            <CardHeader><CardTitle>Headquarters Address</CardTitle></CardHeader>
+            <CardHeader><CardTitle>{t('agencies.add.hqTitle')}</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="addressLine1">Address Line 1</Label>
+                <Label htmlFor="addressLine1">{t('agencies.add.addressLine1')}</Label>
                 <Input id="addressLine1" value={form.addressLine1} onChange={e => setField('addressLine1', e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="addressLine2">Address Line 2</Label>
+                <Label htmlFor="addressLine2">{t('agencies.add.addressLine2')}</Label>
                 <Input id="addressLine2" value={form.addressLine2} onChange={e => setField('addressLine2', e.target.value)} />
               </div>
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="city">City</Label>
+                  <Label htmlFor="city">{t('agencies.add.city')}</Label>
                   <Input id="city" value={form.city} onChange={e => setField('city', e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="stateRegion">State / Region</Label>
+                  <Label htmlFor="stateRegion">{t('agencies.add.stateRegion')}</Label>
                   <Input id="stateRegion" value={form.stateRegion} onChange={e => setField('stateRegion', e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="postalCode">Postal Code</Label>
+                  <Label htmlFor="postalCode">{t('agencies.add.postalCode')}</Label>
                   <Input id="postalCode" value={form.postalCode} onChange={e => setField('postalCode', e.target.value)} />
                 </div>
               </div>
               <p className="text-xs text-muted-foreground">
-                The country set above applies to this address.
+                {t('agencies.add.addressCountryHelp')}
               </p>
             </CardContent>
           </Card>
 
           {/* Notes */}
           <Card>
-            <CardHeader><CardTitle>Notes</CardTitle></CardHeader>
+            <CardHeader><CardTitle>{t('agencies.add.notesTitle')}</CardTitle></CardHeader>
             <CardContent>
               <Textarea
                 id="notes"
                 rows={5}
-                placeholder="Internal notes, agreement context, escalation contacts, etc."
+                placeholder={t('agencies.add.notesPh')}
                 value={form.notes}
                 onChange={e => setField('notes', e.target.value)}
               />
@@ -286,21 +287,20 @@ export function AddAgency() {
           </Card>
 
           <Card>
-            <CardHeader><CardTitle>Attached Documents</CardTitle></CardHeader>
+            <CardHeader><CardTitle>{t('agencies.add.documentsTitle')}</CardTitle></CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground">
-                Agreement, contract, and other agency files can be uploaded after the agency is created — the
-                document requires an agency reference to attach to.
+                {t('agencies.add.documentsHelp')}
               </p>
             </CardContent>
           </Card>
 
           <div className="flex gap-3">
             <Button type="submit" className="flex-1" disabled={submitting}>
-              {submitting ? 'Adding...' : 'Add Agency'}
+              {submitting ? t('agencies.add.submitting') : t('agencies.add.submit')}
             </Button>
             <Button type="button" variant="outline" className="flex-1" asChild>
-              <Link to="/dashboard/agencies">Cancel</Link>
+              <Link to="/dashboard/agencies">{tc('actions.cancel')}</Link>
             </Button>
           </div>
         </div>

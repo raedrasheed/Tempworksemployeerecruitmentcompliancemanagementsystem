@@ -13,6 +13,7 @@ import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { usersApi, getCurrentUser, resolveAssetUrl } from '../../services/api';
+import { apiError } from '../../../i18n/apiError';
 import { toast } from 'sonner';
 import { confirm } from '../../components/ui/ConfirmDialog';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -75,6 +76,7 @@ function SortableHead({ label, field, sortBy, sortOrder, onSort, className }: {
 
 export function UsersList() {
   const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const { canCreate, canView, canEdit, canDelete } = usePermissions();
   const currentUser = getCurrentUser();
   const isTempworksAdmin = currentUser?.role === 'System Admin' || currentUser?.role === 'HR Manager';
@@ -242,15 +244,15 @@ export function UsersList() {
 
   const handleDelete = async (user: any) => {
     if (!(await confirm({
-      title: 'Delete user?',
-      description: `${user.firstName} ${user.lastName} will be permanently removed. This action cannot be undone.`,
-      confirmText: 'Delete', tone: 'destructive',
+      title: t('users.list.deleteTitle'),
+      description: t('users.list.deleteBody', { name: `${user.firstName} ${user.lastName}` }),
+      confirmText: tc('actions.delete'), tone: 'destructive',
     }))) return;
     try {
       await usersApi.delete(user.id);
       setUsers(prev => prev.filter(u => u.id !== user.id));
-      toast.success('User deleted successfully');
-    } catch (err: any) { toast.error(err?.message || 'Failed to delete user'); }
+      toast.success(t('users.list.deleteSuccess'));
+    } catch (err: any) { toast.error(apiError(err, t('users.list.deleteFailed'))); }
   };
 
   // ── Tempworks-admin approval ──────────────────────────────────────────────
@@ -263,26 +265,26 @@ export function UsersList() {
     setApproveBusy(user.id);
     try {
       await usersApi.approveAgencyUser(user.id);
-      toast.success('User approved');
+      toast.success(t('users.list.approveSuccess'));
       reload();
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to approve user');
+      toast.error(apiError(err, t('users.list.approveFailed')));
     } finally {
       setApproveBusy(null);
     }
   };
 
   const handleBulkImport = async () => {
-    if (!csvText.trim()) { toast.error('Please paste CSV data first'); return; }
+    if (!csvText.trim()) { toast.error(t('users.list.csvEmpty')); return; }
     const records = parseCsvText(csvText);
-    if (records.length === 0) { toast.error('No valid records found. Ensure CSV has a header row.'); return; }
+    if (records.length === 0) { toast.error(t('users.list.csvNoRecords')); return; }
     setImporting(true);
     try {
       await usersApi.bulkImport(records);
-      toast.success(`${records.length} record(s) imported successfully`);
+      toast.success(t('users.list.csvImported', { count: records.length }));
       setShowImportModal(false); setCsvText('');
       reload();
-    } catch (err: any) { toast.error(err?.message || 'Bulk import failed'); }
+    } catch (err: any) { toast.error(apiError(err, t('users.list.bulkImportFailed'))); }
     finally { setImporting(false); }
   };
 

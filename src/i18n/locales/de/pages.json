@@ -38,7 +38,17 @@
       "empty": "Keine Mitarbeiter gefunden.",
       "deleteConfirmTitle": "Mitarbeiter löschen?",
       "deleteConfirmBody": "Der Datensatz wird in den Papierkorb verschoben.",
-      "deleted": "Mitarbeiter gelöscht."
+      "deleted": "Mitarbeiter gelöscht.",
+      "deleteTitle": "Delete employee?",
+      "deleteBody": "\"{{name}}\" will be permanently removed. This cannot be undone.",
+      "deleteSuccess": "Employee deleted successfully",
+      "deleteFailed": "Failed to delete employee",
+      "selectAtLeastOne": "Select at least one employee",
+      "loadSelectedFailed": "Failed to load selected employees",
+      "exportedCount": "Exported {{count}} PDF(s)",
+      "pdfFailed": "PDF export failed",
+      "selectToExport": "Select one or more rows to export",
+      "exportFailed": "Export failed"
     },
     "profile": {
       "title": "Mitarbeiterprofil",
@@ -258,13 +268,35 @@
       "addButton": "Bewerber hinzufügen",
       "search": "Bewerber suchen…",
       "empty": "Keine Bewerber gefunden.",
-      "deleteRequests": "Löschanfragen"
+      "deleteRequests": "Löschanfragen",
+      "deleteTitle": "Delete applicant?",
+      "deleteBody": "\"{{name}}\" will be permanently removed.",
+      "deleteSelectedTitle": "Delete selected applicants?",
+      "deleteSelectedBody": "{{count}} applicant(s) will be permanently removed.",
+      "deleteSuccess": "Applicant deleted",
+      "deleteFailed": "Failed to delete applicant",
+      "selectAtLeastOne": "Select at least one applicant",
+      "loadSelectedFailed": "Failed to load selected applicants",
+      "exportedCount": "Exported {{count}} PDF(s)",
+      "bulkAppliedCount": "Bulk action applied to {{count}} applicant(s)",
+      "bulkActionFailed": "Bulk action failed"
     },
     "candidates": {
       "title": "Kandidaten",
       "subtitle": "Geprüfte Kandidaten zur Vermittlung bereit",
       "search": "Kandidaten suchen…",
-      "empty": "Keine Kandidaten gefunden."
+      "empty": "Keine Kandidaten gefunden.",
+      "deleteTitle": "Delete candidate?",
+      "deleteBody": "\"{{name}}\" will be permanently removed.",
+      "deleteSelectedTitle": "Delete selected candidates?",
+      "deleteSelectedBody": "{{count}} candidate(s) will be permanently removed.",
+      "deleteSuccess": "Candidate deleted",
+      "deleteFailed": "Failed to delete candidate",
+      "selectAtLeastOne": "Select at least one candidate",
+      "pickWorkflow": "Pick a workflow",
+      "bulkAppliedCount": "Bulk action applied to {{count}} candidate(s)",
+      "bulkActionFailed": "Bulk action failed",
+      "done": "Done"
     },
     "profile": {
       "title": "Bewerberprofil",
@@ -1310,7 +1342,11 @@
       "subtitle": "Recruiting-Partner",
       "addButton": "Agentur hinzufügen",
       "search": "Agenturen suchen…",
-      "empty": "Keine Agenturen gefunden."
+      "empty": "Keine Agenturen gefunden.",
+      "deleteTitle": "Delete agency?",
+      "deleteBody": "\"{{name}}\" and its data will be permanently removed. This action cannot be undone.",
+      "deleteSuccess": "Agency deleted successfully",
+      "deleteFailed": "Failed to delete agency"
     },
     "profile": {
       "title": "Agenturprofil",
@@ -1365,7 +1401,57 @@
     },
     "add": {
       "title": "Agentur hinzufügen",
-      "back": "Zurück zu Agenturen"
+      "back": "Zurück zu Agenturen",
+      "subtitle": "Create new recruitment agency partnership",
+      "agencyInfoTitle": "Agency Information",
+      "agencyName": "Agency Name *",
+      "agencyNamePh": "Enter agency name",
+      "country": "Country *",
+      "status": "Status",
+      "website": "Website Address",
+      "websitePh": "https://agency.example.com",
+      "logoTitle": "Logo",
+      "logoPreviewAlt": "Logo preview",
+      "replaceLogo": "Replace logo",
+      "selectLogo": "Select logo",
+      "clearLogo": "Clear",
+      "logoHelp": "PNG, JPEG, WebP or SVG · up to 5MB. The logo is uploaded after the agency is created.",
+      "contactTitle": "Contact Person",
+      "firstName": "First Name *",
+      "middleName": "Middle Name",
+      "lastName": "Last Name *",
+      "email": "Email *",
+      "emailPh": "contact@agency.com",
+      "phone": "Phone *",
+      "whatsapp": "WhatsApp",
+      "whatsappPh": "optional",
+      "hqTitle": "Headquarters Address",
+      "addressLine1": "Address Line 1",
+      "addressLine2": "Address Line 2",
+      "city": "City",
+      "stateRegion": "State / Region",
+      "postalCode": "Postal Code",
+      "addressCountryHelp": "The country set above applies to this address.",
+      "notesTitle": "Notes",
+      "notesPh": "Internal notes, agreement context, escalation contacts, etc.",
+      "documentsTitle": "Attached Documents",
+      "documentsHelp": "Agreement, contract, and other agency files can be uploaded after the agency is created — the document requires an agency reference to attach to.",
+      "submit": "Add Agency",
+      "submitting": "Adding…",
+      "validation": {
+        "nameRequired": "Agency name is required",
+        "countryRequired": "Country is required",
+        "contactNameRequired": "Contact person first and last name are required",
+        "emailRequired": "Email is required",
+        "phoneRequired": "Phone is required",
+        "websiteInvalid": "Website must be a valid URL",
+        "logoFormat": "Logo must be JPEG, PNG, WebP or SVG"
+      },
+      "toast": {
+        "logoUploadFailed": "Agency created but logo upload failed: {{error}}",
+        "addSuccess": "Agency added successfully",
+        "addFailed": "Failed to add agency"
+      }
     },
     "edit": {
       "title": "Agentur bearbeiten",
@@ -1375,7 +1461,17 @@
       "title": "Agentur-Benutzer",
       "subtitle": "Benutzer dieser Agentur verwalten",
       "back": "Zurück zur Agentur",
-      "addButton": "Benutzer hinzufügen"
+      "addButton": "Benutzer hinzufügen",
+      "loadFailed": "Failed to load agency data",
+      "approveSuccess": "User approved",
+      "approveFailed": "Failed to approve user",
+      "overrideUpdated": "Manager override updated",
+      "overrideFailed": "Failed to update override",
+      "removeTitle": "Remove user from agency?",
+      "removeBody": "{{name}} will be removed from this agency.",
+      "removeConfirm": "Remove",
+      "removeSuccess": "User removed successfully",
+      "removeFailed": "Failed to remove user"
     }
   },
   "documents": {
@@ -1506,7 +1602,15 @@
       "subtitle": "Flottenverwaltung",
       "addButton": "Fahrzeug hinzufügen",
       "search": "Fahrzeuge suchen…",
-      "empty": "Keine Fahrzeuge gefunden."
+      "empty": "Keine Fahrzeuge gefunden.",
+      "deleteTitle": "Delete vehicle?",
+      "deleteBody": "This vehicle will be permanently removed. This cannot be undone easily.",
+      "deleteSuccess": "Vehicle deleted",
+      "deleteFailed": "Failed to delete vehicle",
+      "loadFailed": "Failed to load vehicles",
+      "exportedCount": "Exported {{count}} vehicle(s)",
+      "exportedAll": "Exported all vehicles",
+      "exportFailed": "Export failed"
     },
     "detail": {
       "title": "Fahrzeugdetails",
@@ -1915,7 +2019,17 @@
       "search": "Benutzer suchen…",
       "bulkImport": "Massenimport",
       "empty": "Keine Benutzer gefunden.",
-      "activationLink": "Aktivierungslink"
+      "activationLink": "Aktivierungslink",
+      "deleteTitle": "Delete user?",
+      "deleteBody": "{{name}} will be permanently removed. This action cannot be undone.",
+      "deleteSuccess": "User deleted successfully",
+      "deleteFailed": "Failed to delete user",
+      "approveSuccess": "User approved",
+      "approveFailed": "Failed to approve user",
+      "csvEmpty": "Please paste CSV data first",
+      "csvNoRecords": "No valid records found. Ensure CSV has a header row.",
+      "csvImported": "{{count}} record(s) imported successfully",
+      "bulkImportFailed": "Bulk import failed"
     },
     "add": {
       "title": "Benutzer hinzufügen",
@@ -1951,7 +2065,14 @@
       "subtitle": "Öffentliche Stellenanzeigen",
       "addButton": "Neue Stellenanzeige",
       "search": "Stellenanzeigen suchen…",
-      "empty": "Noch keine Stellenanzeigen."
+      "empty": "Noch keine Stellenanzeigen.",
+      "loadFailed": "Failed to load job ads",
+      "deleteTitle": "Delete job ad?",
+      "deleteBody": "\"{{title}}\" will be permanently removed. This cannot be undone.",
+      "deleteSuccess": "Job ad deleted",
+      "deleteFailed": "Failed to delete job ad",
+      "statusMoved": "Moved to {{status}}",
+      "statusFailed": "Failed to update status"
     },
     "form": {
       "addTitle": "Neue Stellenanzeige",
@@ -2132,6 +2253,69 @@
     "page": {
       "title": "Finanzen",
       "subtitle": "Transaktionen und Salden im Unternehmen"
+    },
+    "tab": {
+      "loading": "Loading financial records…",
+      "ledgerTitle": "Transaction Ledger",
+      "recordCount_one": "{{count}} record",
+      "recordCount_other": "{{count}} records",
+      "exportExcel": "Export Excel",
+      "addTransaction": "Add Transaction",
+      "addFirstTransaction": "Add First Transaction",
+      "totalDisbursed": "Total Disbursed",
+      "totalDeducted": "Total Deducted",
+      "currentBalance": "Current Balance",
+      "empty": "No financial records yet.",
+      "columns": {
+        "date": "Date",
+        "type": "Type",
+        "description": "Description",
+        "stage": "Stage",
+        "credit": "Credit (↑)",
+        "empAgency": "Emp/Agency",
+        "debit": "Debit (↓)",
+        "balance": "Balance",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "actionTitles": {
+        "edit": "Edit",
+        "delete": "Delete",
+        "addFirstDeduction": "Add first deduction",
+        "addAnotherDeduction": "Add another deduction"
+      },
+      "expanded": {
+        "transactionDetails": "Transaction Details",
+        "description": "Description",
+        "paymentMethod": "Payment Method",
+        "paidBy": "Paid By",
+        "recordedBy": "Recorded By",
+        "currency": "Currency",
+        "internalNotes": "Internal Notes",
+        "deductions": "Deductions ({{count}})"
+      },
+      "toast": {
+        "loadFailed": "Failed to load financial records",
+        "txTypeRequired": "Please select a transaction type",
+        "txDateRequired": "Please enter a transaction date",
+        "amountRequired": "Please enter a valid company disbursed amount (≥ 0)",
+        "recordUpdated": "Record updated",
+        "recordCreated": "Record created",
+        "saveFailed": "Save failed",
+        "deductionGtZero": "Deduction amount must be greater than 0",
+        "deductionMaxRemaining": "Deduction cannot exceed the remaining balance ({{remaining}})",
+        "deductionAddFailed": "Failed to add deduction",
+        "deductionRemoved": "Deduction removed",
+        "deductionRemoveFailed": "Failed to remove deduction",
+        "recordDeleted": "Record deleted",
+        "deleteFailed": "Delete failed",
+        "fileRequired": "Please select a file",
+        "attachmentUploaded": "Attachment uploaded",
+        "uploadFailed": "Upload failed",
+        "attachmentRemoved": "Attachment removed",
+        "removeFailed": "Remove failed",
+        "exportFailed": "Export failed"
+      }
     }
   }
 }

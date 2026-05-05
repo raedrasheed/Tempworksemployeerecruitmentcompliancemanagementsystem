@@ -10,6 +10,7 @@ import {
 import { toast } from 'sonner';
 import { confirm } from '../../components/ui/ConfirmDialog';
 import { jobAdsApi, settingsApi, getCurrentUser } from '../../services/api';
+import { apiError } from '../../../i18n/apiError';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import {
@@ -66,6 +67,7 @@ type SortOrder = 'asc' | 'desc';
 
 export function JobAdsList() {
   const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const navigate = useNavigate();
   const currentUser = getCurrentUser();
   const canWrite = WRITE_ROLES.includes(currentUser?.role ?? '');
@@ -138,11 +140,11 @@ export function JobAdsList() {
       setAds(res.data ?? []);
       setMeta(res.meta ?? { total: 0, page: 1, limit, totalPages: 1 });
     } catch {
-      toast.error('Failed to load job ads');
+      toast.error(t('jobAds.list.loadFailed'));
     } finally {
       setLoading(false);
     }
-  }, [search, statusFilter, categoryFilter, countryFilter]);
+  }, [search, statusFilter, categoryFilter, countryFilter, t]);
 
   useEffect(() => {
     settingsApi.getJobTypes()
@@ -162,26 +164,26 @@ export function JobAdsList() {
 
   const handleDelete = async (id: string, title: string) => {
     if (!(await confirm({
-      title: 'Delete job ad?',
-      description: `"${title}" will be permanently removed. This cannot be undone.`,
-      confirmText: 'Delete', tone: 'destructive',
+      title: t('jobAds.list.deleteTitle'),
+      description: t('jobAds.list.deleteBody', { title }),
+      confirmText: tc('actions.delete'), tone: 'destructive',
     }))) return;
     try {
       await jobAdsApi.delete(id);
-      toast.success('Job ad deleted');
+      toast.success(t('jobAds.list.deleteSuccess'));
       load(page);
-    } catch {
-      toast.error('Failed to delete job ad');
+    } catch (err: any) {
+      toast.error(apiError(err, t('jobAds.list.deleteFailed')));
     }
   };
 
   const handleQuickStatus = async (id: string, newStatus: string) => {
     try {
       await jobAdsApi.update(id, { status: newStatus });
-      toast.success(`Moved to ${newStatus}`);
+      toast.success(t('jobAds.list.statusMoved', { status: newStatus }));
       load(page);
-    } catch {
-      toast.error('Failed to update status');
+    } catch (err: any) {
+      toast.error(apiError(err, t('jobAds.list.statusFailed')));
     }
   };
 

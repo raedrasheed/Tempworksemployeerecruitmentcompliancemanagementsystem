@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { applicantsApi, agenciesApi, settingsApi, documentsApi, workflowApi } from '../../services/api';
+import { apiError } from '../../../i18n/apiError';
 import { usePermissions } from '../../hooks/usePermissions';
 import { getCurrentUser, getAccessToken } from '../../services/api';
 import { Link } from 'react-router';
@@ -126,6 +127,7 @@ function SortableHead({ label, field, sortBy, sortOrder, onSort }: {
 export function CandidatesList() {
   const { canCreate, canEdit, canDelete } = usePermissions();
   const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const currentUser = getCurrentUser();
   const isAgencyUser = currentUser?.role === 'Agency User' || currentUser?.role === 'Agency Manager';
 
@@ -255,18 +257,18 @@ export function CandidatesList() {
   // ── Delete ─────────────────────────────────────────────────────────────────
   const handleDelete = async (applicant: any) => {
     if (!(await confirm({
-      title: 'Delete candidate?',
-      description: `"${applicant.firstName} ${applicant.lastName}" will be permanently removed.`,
-      confirmText: 'Delete', tone: 'destructive',
+      title: t('applicants.candidates.deleteTitle'),
+      description: t('applicants.candidates.deleteBody', { name: `${applicant.firstName} ${applicant.lastName}` }),
+      confirmText: tc('actions.delete'), tone: 'destructive',
     }))) return;
     try {
       await applicantsApi.delete(applicant.id);
       setCandidatesData(prev => prev.filter(a => a.id !== applicant.id));
       setTotalCandidates(prev => prev - 1);
       setSelected(prev => { const n = new Set(prev); n.delete(applicant.id); return n; });
-      toast.success('Candidate deleted');
+      toast.success(t('applicants.candidates.deleteSuccess'));
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to delete candidate');
+      toast.error(apiError(err, t('applicants.candidates.deleteFailed')));
     }
   };
 
@@ -279,12 +281,12 @@ export function CandidatesList() {
 
   // ── Bulk actions ───────────────────────────────────────────────────────────
   const handleBulkAction = async (action: string, value?: string, agencyId?: string) => {
-    if (selected.size === 0) { toast.error('Select at least one candidate'); return; }
+    if (selected.size === 0) { toast.error(t('applicants.candidates.selectAtLeastOne')); return; }
     setBulkActionInProgress(true);
     try {
       const result = await applicantsApi.bulkAction({ ids: [...selected], action, value, agencyId });
       const failed = result.results?.filter((r: any) => !r.success) ?? [];
-      if (failed.length === 0) toast.success(`Bulk action applied to ${selected.size} candidate(s)`);
+      if (failed.length === 0) toast.success(t('applicants.candidates.bulkAppliedCount', { count: selected.size }));
       else toast.warning(
         `Applied to ${selected.size - failed.length}, failed for ${failed.length}` +
           (failed[0]?.error ? ` (first error: ${failed[0].error})` : ''),
@@ -292,7 +294,7 @@ export function CandidatesList() {
       setSelected(new Set());
       await fetchCandidates();
     } catch (err: any) {
-      toast.error(err?.message || 'Bulk action failed');
+      toast.error(apiError(err, t('applicants.candidates.bulkActionFailed')));
     } finally {
       setBulkActionInProgress(false);
     }
@@ -316,8 +318,8 @@ export function CandidatesList() {
   const [bulkWorkflowInFlight, setBulkWorkflowInFlight] = useState(false);
 
   const handleBulkAssignWorkflow = async () => {
-    if (!bulkWorkflowId) { toast.error('Pick a workflow'); return; }
-    if (selected.size === 0) { toast.error('Select at least one candidate'); return; }
+    if (!bulkWorkflowId) { toast.error(t('applicants.candidates.pickWorkflow')); return; }
+    if (selected.size === 0) { toast.error(t('applicants.candidates.selectAtLeastOne')); return; }
     setBulkWorkflowInFlight(true);
     try {
       const res = await workflowApi.assignCandidatesBulk({
@@ -334,7 +336,7 @@ export function CandidatesList() {
         s.errors ? `${s.errors} errors` : null,
       ].filter(Boolean).join(' · ');
       if ((s.errors ?? 0) > 0 || (s.forbidden ?? 0) > 0) toast.warning(bits);
-      else toast.success(bits || 'Done');
+      else toast.success(bits || t('applicants.candidates.done'));
       setShowBulkWorkflowDialog(false);
       setBulkWorkflowId('');
       setBulkWorkflowNotes('');
@@ -529,9 +531,9 @@ export function CandidatesList() {
             <Button variant="outline" size="sm" className="text-red-600" disabled={bulkActionInProgress} onClick={async () => {
               if (selected.size === 0) return;
               if (await confirm({
-                title: 'Delete selected candidates?',
-                description: `${selected.size} candidate(s) will be permanently removed.`,
-                confirmText: 'Delete', tone: 'destructive',
+                title: t('applicants.candidates.deleteSelectedTitle'),
+                description: t('applicants.candidates.deleteSelectedBody', { count: selected.size }),
+                confirmText: tc('actions.delete'), tone: 'destructive',
               })) handleBulkAction('DELETE');
             }}>
               <Trash2 className="w-3 h-3 me-1" />Delete Selected

@@ -17,6 +17,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Plus, Edit2, Trash2, ChevronDown, ChevronUp, Upload, X,
   FileText, Download, TrendingUp, TrendingDown, Wallet,
@@ -31,6 +32,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { toast } from 'sonner';
 import { financeApi, usersApi, getAccessToken } from '../../services/api';
 import { formatCurrency, formatDate, formatDateTime, formatNumber } from '../../../i18n/formatters';
+import { apiError } from '../../../i18n/apiError';
 
 const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1').replace('/api/v1', '');
 
@@ -159,6 +161,7 @@ interface Props {
 }
 
 export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite, canChangeStatus }: Props) {
+  const { t } = useTranslation('pages');
   const [records, setRecords] = useState<FinancialRecord[]>([]);
   const [totals, setTotals] = useState<Totals | null>(null);
   const [constants, setConstants] = useState<Constants | null>(null);
@@ -227,11 +230,11 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
       setRecords(items);
       setTotals(tots as Totals);
     } catch {
-      toast.error('Failed to load financial records');
+      toast.error(t('finance.tab.toast.loadFailed'));
     } finally {
       setLoading(false);
     }
-  }, [entityType, entityId]);
+  }, [entityType, entityId, t]);
 
   useEffect(() => { loadRecords(); }, [loadRecords]);
 
@@ -297,10 +300,10 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
   const closeModal = () => { setShowModal(false); setEditRecord(null); setPendingFiles([]); };
 
   const handleSave = async () => {
-    if (!form.transactionType) { toast.error('Please select a transaction type'); return; }
-    if (!form.transactionDate) { toast.error('Please enter a transaction date'); return; }
+    if (!form.transactionType) { toast.error(t('finance.tab.toast.txTypeRequired')); return; }
+    if (!form.transactionDate) { toast.error(t('finance.tab.toast.txDateRequired')); return; }
     if (form.companyDisbursedAmount === '' || Number(form.companyDisbursedAmount) < 0) {
-      toast.error('Please enter a valid company disbursed amount (≥ 0)');
+      toast.error(t('finance.tab.toast.amountRequired'));
       return;
     }
     setSaving(true);
@@ -327,11 +330,11 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
       if (editRecord) {
         await financeApi.update(editRecord.id, payload);
         savedId = editRecord.id;
-        toast.success('Record updated');
+        toast.success(t('finance.tab.toast.recordUpdated'));
       } else {
         const created = await financeApi.create(payload) as any;
         savedId = created.id;
-        toast.success('Record created');
+        toast.success(t('finance.tab.toast.recordCreated'));
       }
 
       // Upload any pending files queued inside the modal
@@ -353,7 +356,7 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
       // the operator sees the new audit entry without collapsing first.
       if (expandedId) loadHistoryFor(expandedId, true);
     } catch (err: any) {
-      toast.error(err?.message || 'Save failed');
+      toast.error(apiError(err, t('finance.tab.toast.saveFailed')));
     } finally {
       setSaving(false);
     }
@@ -381,14 +384,14 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
     if (!statusRecord) return;
     const amount = Number(statusForm.deductionAmount);
     if (!amount || amount <= 0) {
-      toast.error('Deduction amount must be greater than 0');
+      toast.error(t('finance.tab.toast.deductionGtZero'));
       return;
     }
     const alreadyDeducted = (statusRecord.deductions ?? []).reduce((s, d) => s + Number(d.amount ?? 0), 0)
       || Number(statusRecord.deductionAmount ?? 0);
     const remaining = Number(statusRecord.companyDisbursedAmount) - alreadyDeducted;
     if (amount > remaining + 0.005) {
-      toast.error(`Deduction cannot exceed the remaining balance (${remaining.toFixed(2)})`);
+      toast.error(t('finance.tab.toast.deductionMaxRemaining', { remaining: remaining.toFixed(2) }));
       return;
     }
     setSavingStatus(true);
@@ -410,7 +413,7 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
       // the operator sees the new audit entry without collapsing first.
       if (expandedId) loadHistoryFor(expandedId, true);
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to add deduction');
+      toast.error(apiError(err, t('finance.tab.toast.deductionAddFailed')));
     } finally {
       setSavingStatus(false);
     }
@@ -419,14 +422,14 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
   const handleRemoveDeduction = async (deductionId: string) => {
     try {
       await financeApi.removeDeduction(deductionId);
-      toast.success('Deduction removed');
+      toast.success(t('finance.tab.toast.deductionRemoved'));
       invalidateHistory();
       loadRecords();
       // If the row is still expanded, eagerly refresh its timeline so
       // the operator sees the new audit entry without collapsing first.
       if (expandedId) loadHistoryFor(expandedId, true);
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to remove deduction');
+      toast.error(apiError(err, t('finance.tab.toast.deductionRemoveFailed')));
     }
   };
 
@@ -436,14 +439,14 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
     setDeletingId(id);
     try {
       await financeApi.delete(id);
-      toast.success('Record deleted');
+      toast.success(t('finance.tab.toast.recordDeleted'));
       invalidateHistory();
       loadRecords();
       // If the row is still expanded, eagerly refresh its timeline so
       // the operator sees the new audit entry without collapsing first.
       if (expandedId) loadHistoryFor(expandedId, true);
     } catch (err: any) {
-      toast.error(err?.message || 'Delete failed');
+      toast.error(apiError(err, t('finance.tab.toast.deleteFailed')));
     } finally {
       setDeletingId(null);
     }
@@ -452,13 +455,13 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
   // ── Attachment upload ───────────────────────────────────────────────────────
 
   const handleAttach = async (recordId: string) => {
-    if (!attachFile) { toast.error('Please select a file'); return; }
+    if (!attachFile) { toast.error(t('finance.tab.toast.fileRequired')); return; }
     setUploadingAttachment(true);
     try {
       const fd = new FormData();
       fd.append('file', attachFile);
       await financeApi.addAttachment(recordId, fd);
-      toast.success('Attachment uploaded');
+      toast.success(t('finance.tab.toast.attachmentUploaded'));
       setAttachingId(null);
       setAttachFile(null);
       invalidateHistory();
@@ -467,7 +470,7 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
       // the operator sees the new audit entry without collapsing first.
       if (expandedId) loadHistoryFor(expandedId, true);
     } catch (err: any) {
-      toast.error(err?.message || 'Upload failed');
+      toast.error(apiError(err, t('finance.tab.toast.uploadFailed')));
     } finally {
       setUploadingAttachment(false);
     }
@@ -476,14 +479,14 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
   const handleRemoveAttachment = async (recordId: string, attachmentId: string) => {
     try {
       await financeApi.removeAttachment(recordId, attachmentId);
-      toast.success('Attachment removed');
+      toast.success(t('finance.tab.toast.attachmentRemoved'));
       invalidateHistory();
       loadRecords();
       // If the row is still expanded, eagerly refresh its timeline so
       // the operator sees the new audit entry without collapsing first.
       if (expandedId) loadHistoryFor(expandedId, true);
     } catch (err: any) {
-      toast.error(err?.message || 'Remove failed');
+      toast.error(apiError(err, t('finance.tab.toast.removeFailed')));
     }
   };
 
@@ -512,7 +515,7 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
       a.click();
       URL.revokeObjectURL(url);
     } catch (err: any) {
-      toast.error(err?.message || 'Export failed');
+      toast.error(apiError(err, t('finance.tab.toast.exportFailed')));
     }
   };
 
@@ -522,7 +525,7 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
     return (
       <Card>
         <CardContent className="py-12 text-center text-muted-foreground">
-          Loading financial records…
+          {t('finance.tab.loading')}
         </CardContent>
       </Card>
     );
@@ -535,16 +538,16 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
       {/* Header actions */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <h3 className="font-semibold text-lg">Transaction Ledger</h3>
-          <Badge variant="outline" className="text-xs">{records.length} record{records.length !== 1 ? 's' : ''}</Badge>
+          <h3 className="font-semibold text-lg">{t('finance.tab.ledgerTitle')}</h3>
+          <Badge variant="outline" className="text-xs">{t('finance.tab.recordCount', { count: records.length })}</Badge>
         </div>
         <div className="flex gap-2">
           <Button size="sm" variant="outline" onClick={handleExport}>
-            <Download className="w-4 h-4 me-1" />Export Excel
+            <Download className="w-4 h-4 me-1" />{t('finance.tab.exportExcel')}
           </Button>
           {canWrite && (
             <Button size="sm" onClick={openAdd}>
-              <Plus className="w-4 h-4 me-1" />Add Transaction
+              <Plus className="w-4 h-4 me-1" />{t('finance.tab.addTransaction')}
             </Button>
           )}
         </div>
@@ -560,7 +563,7 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
                   <TrendingUp className="w-4 h-4 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Total Disbursed</p>
+                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">{t('finance.tab.totalDisbursed')}</p>
                   <p className="text-xl font-bold text-blue-700">{fmt(totals.totalDisbursed, currency)}</p>
                 </div>
               </div>
@@ -573,7 +576,7 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
                   <TrendingDown className="w-4 h-4 text-amber-600" />
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Total Deducted</p>
+                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">{t('finance.tab.totalDeducted')}</p>
                   <p className="text-xl font-bold text-amber-700">{fmt(totals.totalDeducted, currency)}</p>
                 </div>
               </div>
@@ -586,7 +589,7 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
                   <Wallet className={`w-4 h-4 text-${totals.currentBalance > 0 ? 'emerald' : 'slate'}-600`} />
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Current Balance</p>
+                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">{t('finance.tab.currentBalance')}</p>
                   <p className={`text-xl font-bold text-${totals.currentBalance > 0 ? 'emerald' : 'slate'}-700`}>
                     {fmt(totals.currentBalance, currency)}
                   </p>
@@ -603,10 +606,10 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
           {records.length === 0 ? (
             <div className="py-12 text-center">
               <Wallet className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
-              <p className="text-muted-foreground text-sm">No financial records yet.</p>
+              <p className="text-muted-foreground text-sm">{t('finance.tab.empty')}</p>
               {canWrite && (
                 <Button size="sm" className="mt-3" onClick={openAdd}>
-                  <Plus className="w-4 h-4 me-1" />Add First Transaction
+                  <Plus className="w-4 h-4 me-1" />{t('finance.tab.addFirstTransaction')}
                 </Button>
               )}
             </div>
@@ -615,16 +618,16 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/40">
-                    <th className="text-start px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Date</th>
-                    <th className="text-start px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Type</th>
-                    <th className="text-start px-4 py-3 font-medium text-muted-foreground">Description</th>
-                    <th className="text-start px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Stage</th>
-                    <th className="text-end px-4 py-3 font-medium text-blue-600 whitespace-nowrap">Credit (↑)</th>
-                    <th className="text-end px-4 py-3 font-medium text-slate-500 whitespace-nowrap">Emp/Agency</th>
-                    <th className="text-end px-4 py-3 font-medium text-amber-600 whitespace-nowrap">Debit (↓)</th>
-                    <th className="text-end px-4 py-3 font-medium text-emerald-700 whitespace-nowrap">Balance</th>
-                    <th className="text-center px-4 py-3 font-medium text-muted-foreground">Status</th>
-                    <th className="text-end px-4 py-3 font-medium text-muted-foreground">Actions</th>
+                    <th className="text-start px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">{t('finance.tab.columns.date')}</th>
+                    <th className="text-start px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">{t('finance.tab.columns.type')}</th>
+                    <th className="text-start px-4 py-3 font-medium text-muted-foreground">{t('finance.tab.columns.description')}</th>
+                    <th className="text-start px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">{t('finance.tab.columns.stage')}</th>
+                    <th className="text-end px-4 py-3 font-medium text-blue-600 whitespace-nowrap">{t('finance.tab.columns.credit')}</th>
+                    <th className="text-end px-4 py-3 font-medium text-slate-500 whitespace-nowrap">{t('finance.tab.columns.empAgency')}</th>
+                    <th className="text-end px-4 py-3 font-medium text-amber-600 whitespace-nowrap">{t('finance.tab.columns.debit')}</th>
+                    <th className="text-end px-4 py-3 font-medium text-emerald-700 whitespace-nowrap">{t('finance.tab.columns.balance')}</th>
+                    <th className="text-center px-4 py-3 font-medium text-muted-foreground">{t('finance.tab.columns.status')}</th>
+                    <th className="text-end px-4 py-3 font-medium text-muted-foreground">{t('finance.tab.columns.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -697,7 +700,7 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
                                 <Button
                                   size="icon" variant="ghost"
                                   className="h-7 w-7"
-                                  title="Edit"
+                                  title={t('finance.tab.actionTitles.edit')}
                                   onClick={() => openEdit(rec)}
                                 >
                                   <Edit2 className="w-3.5 h-3.5" />
@@ -706,7 +709,7 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
                                   <Button
                                     size="icon" variant="ghost"
                                     className="h-7 w-7 text-amber-600"
-                                    title={rec.status === 'PARTIAL' ? 'Add another deduction' : 'Add first deduction'}
+                                    title={rec.status === 'PARTIAL' ? t('finance.tab.actionTitles.addAnotherDeduction') : t('finance.tab.actionTitles.addFirstDeduction')}
                                     onClick={() => openStatus(rec)}
                                   >
                                     <CheckCircle className="w-3.5 h-3.5" />
@@ -715,7 +718,7 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
                                 <Button
                                   size="icon" variant="ghost"
                                   className="h-7 w-7 text-red-500"
-                                  title="Delete"
+                                  title={t('finance.tab.actionTitles.delete')}
                                   disabled={deletingId === rec.id}
                                   onClick={() => handleDelete(rec.id)}
                                 >
@@ -733,17 +736,17 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
                           <td colSpan={10} className="px-6 py-4">
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                               <div className="space-y-2">
-                                <p className="font-medium text-xs text-muted-foreground uppercase tracking-wide">Transaction Details</p>
+                                <p className="font-medium text-xs text-muted-foreground uppercase tracking-wide">{t('finance.tab.expanded.transactionDetails')}</p>
                                 {/* Description = customer-facing line shown in the
                                     row above (truncated there). We repeat it in full
                                     here because long descriptions get clipped in the
                                     narrow Description column. */}
-                                <InfoItem label="Description" value={rec.description || '—'} />
-                                {rec.paymentMethod && <InfoItem label="Payment Method" value={rec.paymentMethod} />}
-                                {rec.paidByName && <InfoItem label="Paid By" value={rec.paidByName} />}
-                                {rec.paidByUser && <InfoItem label="Recorded By" value={`${rec.paidByUser.firstName} ${rec.paidByUser.lastName}`} />}
-                                <InfoItem label="Currency" value={rec.currency} />
-                                {rec.notes && <InfoItem label="Internal Notes" value={rec.notes} />}
+                                <InfoItem label={t('finance.tab.expanded.description')} value={rec.description || '—'} />
+                                {rec.paymentMethod && <InfoItem label={t('finance.tab.expanded.paymentMethod')} value={rec.paymentMethod} />}
+                                {rec.paidByName && <InfoItem label={t('finance.tab.expanded.paidBy')} value={rec.paidByName} />}
+                                {rec.paidByUser && <InfoItem label={t('finance.tab.expanded.recordedBy')} value={`${rec.paidByUser.firstName} ${rec.paidByUser.lastName}`} />}
+                                <InfoItem label={t('finance.tab.expanded.currency')} value={rec.currency} />
+                                {rec.notes && <InfoItem label={t('finance.tab.expanded.internalNotes')} value={rec.notes} />}
                               </div>
                               {/* Deductions — the record can carry any
                                   number of partial payroll deductions.
@@ -752,7 +755,7 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
                               <div className="space-y-2">
                                 <div className="flex items-center justify-between">
                                   <p className="font-medium text-xs text-muted-foreground uppercase tracking-wide">
-                                    Deductions ({rec.deductions?.length ?? 0})
+                                    {t('finance.tab.expanded.deductions', { count: rec.deductions?.length ?? 0 })}
                                   </p>
                                   {(() => {
                                     const sum = (rec.deductions ?? []).reduce((s, d) => s + Number(d.amount ?? 0), 0)

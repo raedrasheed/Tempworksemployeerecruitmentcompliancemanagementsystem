@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Plus, Trash2, Users, Shield, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -8,10 +9,13 @@ import { toast } from 'sonner';
 import { confirm } from '../../components/ui/ConfirmDialog';
 import { agenciesApi, usersApi, getCurrentUser } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
+import { apiError } from '../../../i18n/apiError';
 
 const ADMIN_ROLES = ['System Admin', 'HR Manager'];
 
 export function AgencyUsersManagement() {
+  const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const { id } = useParams();
   const { canCreate, canDelete, can } = usePermissions();
   const canManageUsers = canCreate('users') || can('agencies', 'update');
@@ -31,17 +35,17 @@ export function AgencyUsersManagement() {
       setAgency(agencyData);
       setAgencyUsers((usersResult as any)?.data ?? usersResult ?? []);
       setMaxUsers((agencyData as any).maxUsersPerAgency ?? 10);
-    }).catch(() => toast.error('Failed to load agency data'))
+    }).catch(() => toast.error(t('agencies.users.loadFailed')))
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [id, t]);
 
   const handleApprove = async (user: any) => {
     try {
       const updated = await usersApi.approveAgencyUser(user.id);
       setAgencyUsers(prev => prev.map(u => u.id === user.id ? { ...u, ...updated } : u));
-      toast.success('User approved');
+      toast.success(t('agencies.users.approveSuccess'));
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to approve user');
+      toast.error(apiError(err, t('agencies.users.approveFailed')));
     }
   };
 
@@ -49,30 +53,30 @@ export function AgencyUsersManagement() {
     try {
       const updated = await usersApi.setManagerOverride(user.id, flags);
       setAgencyUsers(prev => prev.map(u => u.id === user.id ? { ...u, ...updated } : u));
-      toast.success('Manager override updated');
+      toast.success(t('agencies.users.overrideUpdated'));
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to update override');
+      toast.error(apiError(err, t('agencies.users.overrideFailed')));
     }
   };
 
   const handleDeleteUser = async (user: any) => {
     if (!(await confirm({
-      title: 'Remove user from agency?',
-      description: `${user.firstName} ${user.lastName} will be removed from this agency.`,
-      confirmText: 'Remove',
+      title: t('agencies.users.removeTitle'),
+      description: t('agencies.users.removeBody', { name: `${user.firstName} ${user.lastName}` }),
+      confirmText: t('agencies.users.removeConfirm'),
       tone: 'destructive',
     }))) return;
     try {
       await usersApi.delete(user.id);
       setAgencyUsers(prev => prev.filter(u => u.id !== user.id));
-      toast.success('User removed successfully');
+      toast.success(t('agencies.users.removeSuccess'));
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to remove user');
+      toast.error(apiError(err, t('agencies.users.removeFailed')));
     }
   };
 
-  if (loading) return <div className="p-8 text-muted-foreground">Loading...</div>;
-  if (!agency) return <div className="p-8">Agency not found</div>;
+  if (loading) return <div className="p-8 text-muted-foreground">{tc('states.loading')}</div>;
+  if (!agency) return <div className="p-8">{t('agencies.profile.notFound')}</div>;
 
   const activeUsers = agencyUsers.filter(u => u.status === 'ACTIVE');
   const managers = agencyUsers.filter(u => u.role?.name === 'Agency Manager');

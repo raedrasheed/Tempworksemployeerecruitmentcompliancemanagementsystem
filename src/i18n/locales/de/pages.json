@@ -5,10 +5,36 @@
       "subtitle": "Fahrer- und Mitarbeiterdaten",
       "addButton": "Mitarbeiter hinzufügen",
       "search": "Nach Name, E-Mail, Staatsangehörigkeit suchen…",
-      "stats": { "total": "Gesamt", "active": "Aktiv", "onboarding": "Onboarding", "pending": "Ausstehend" },
-      "filters": { "allStatuses": "Alle Status", "allAgencies": "Alle Agenturen", "allCitizenships": "Alle Staatsangehörigkeiten", "from": "Von", "to": "Bis" },
-      "columns": { "contact": "Kontakt", "citizenship": "Staatsangehörigkeit", "license": "ID / Lizenz", "experience": "Erfahrung", "agency": "Agentur", "status": "Status", "name": "Name", "actions": "Aktionen" },
-      "actions": { "view": "Anzeigen", "edit": "Bearbeiten", "delete": "Löschen", "exportPdf": "PDF exportieren", "exportSelected": "Auswahl exportieren" },
+      "stats": {
+        "total": "Gesamt",
+        "active": "Aktiv",
+        "onboarding": "Onboarding",
+        "pending": "Ausstehend"
+      },
+      "filters": {
+        "allStatuses": "Alle Status",
+        "allAgencies": "Alle Agenturen",
+        "allCitizenships": "Alle Staatsangehörigkeiten",
+        "from": "Von",
+        "to": "Bis"
+      },
+      "columns": {
+        "contact": "Kontakt",
+        "citizenship": "Staatsangehörigkeit",
+        "license": "ID / Lizenz",
+        "experience": "Erfahrung",
+        "agency": "Agentur",
+        "status": "Status",
+        "name": "Name",
+        "actions": "Aktionen"
+      },
+      "actions": {
+        "view": "Anzeigen",
+        "edit": "Bearbeiten",
+        "delete": "Löschen",
+        "exportPdf": "PDF exportieren",
+        "exportSelected": "Auswahl exportieren"
+      },
       "empty": "Keine Mitarbeiter gefunden.",
       "deleteConfirmTitle": "Mitarbeiter löschen?",
       "deleteConfirmBody": "Der Datensatz wird in den Papierkorb verschoben.",
@@ -18,146 +44,660 @@
       "title": "Mitarbeiterprofil",
       "back": "Zurück zu Mitarbeiter",
       "subtitle": "Mitarbeiterinformationen anzeigen und verwalten",
-      "loading": "Lädt…", "notFound": "Mitarbeiter nicht gefunden",
-      "editProfile": "Profil bearbeiten", "delete": "Löschen",
+      "loading": "Lädt…",
+      "notFound": "Mitarbeiter nicht gefunden",
+      "editProfile": "Profil bearbeiten",
+      "delete": "Löschen",
       "employeeId": "Mitarbeiter-ID: {{id}}",
       "selfApplied": "Selbstbewerbung über öffentliches Formular",
       "unknownLegacy": "Unbekannt (Altdatensatz)",
       "tabs": {
-        "overview": "Übersicht", "application": "Bewerbung", "documents": "Dokumente ({{count}})",
-        "attendance": "Anwesenheit & Arbeitszeit", "contracts": "Verträge", "compliance": "Compliance",
-        "financial": "Finanzen", "notes": "Notizen",
-        "workHistory": "Arbeitsverlauf", "training": "Schulungen", "performance": "Leistung", "finance": "Finanzen"
+        "overview": "Übersicht",
+        "application": "Bewerbung",
+        "documents": "Dokumente ({{count}})",
+        "attendance": "Anwesenheit & Arbeitszeit",
+        "contracts": "Verträge",
+        "compliance": "Compliance",
+        "financial": "Finanzen",
+        "notes": "Notizen",
+        "workHistory": "Arbeitsverlauf",
+        "training": "Schulungen",
+        "performance": "Leistung",
+        "finance": "Finanzen"
       },
-      "header": { "email": "E-Mail", "phone": "Telefon", "citizenship": "Staatsangehörigkeit", "joined": "Beigetreten", "createdBy": "Erstellt von" },
-      "quickNav": { "certifications": "Zertifikate", "training": "Schulungsverlauf", "complianceTimeline": "Compliance-Zeitleiste", "performance": "Leistungsbeurteilungen" },
+      "header": {
+        "email": "E-Mail",
+        "phone": "Telefon",
+        "citizenship": "Staatsangehörigkeit",
+        "joined": "Beigetreten",
+        "createdBy": "Erstellt von"
+      },
+      "quickNav": {
+        "certifications": "Zertifikate",
+        "training": "Schulungsverlauf",
+        "complianceTimeline": "Compliance-Zeitleiste",
+        "performance": "Leistungsbeurteilungen"
+      },
       "personal": {
-        "title": "Persönliche Informationen", "fullName": "Vollständiger Name", "dateOfBirth": "Geburtsdatum",
-        "citizenship": "Staatsangehörigkeit", "jobCategory": "Stellenkategorie",
-        "licenseNumber": "Führerscheinnummer", "licenseCategory": "Führerscheinklasse",
-        "yearsExperience": "Berufserfahrung", "yearsValue": "{{count}} Jahre",
-        "address": "Adresse", "city": "Stadt", "country": "Land", "postalCode": "PLZ",
+        "title": "Persönliche Informationen",
+        "fullName": "Vollständiger Name",
+        "dateOfBirth": "Geburtsdatum",
+        "citizenship": "Staatsangehörigkeit",
+        "jobCategory": "Stellenkategorie",
+        "licenseNumber": "Führerscheinnummer",
+        "licenseCategory": "Führerscheinklasse",
+        "yearsExperience": "Berufserfahrung",
+        "yearsValue": "{{count}} Jahre",
+        "address": "Adresse",
+        "city": "Stadt",
+        "country": "Land",
+        "postalCode": "PLZ",
         "emergencyContact": "Notfallkontakt"
       },
-      "stats": { "title": "Schnellstatistik", "documents": "Dokumente", "validDocs": "Gültige Dokumente", "expiringSoon": "Läuft bald ab" },
-      "agency": { "title": "Agentur", "noAgency": "Keine Agentur (direkt)" },
+      "stats": {
+        "title": "Schnellstatistik",
+        "documents": "Dokumente",
+        "validDocs": "Gültige Dokumente",
+        "expiringSoon": "Läuft bald ab"
+      },
+      "agency": {
+        "title": "Agentur",
+        "noAgency": "Keine Agentur (direkt)"
+      },
       "agencyAccess": {
         "title": "Agenturzugriff",
         "subtitle": "Sicht- und Bearbeitungszugriff dieser Mitarbeiter pro Agentur erteilen oder entziehen. Die Konvertierung von einem Kandidaten erteilt nicht automatisch — Schalter müssen explizit aktiviert werden.",
-        "originBadge": "Herkunft", "ownAgencyFallback": "Mitarbeiteragentur",
-        "view": "Ansehen", "edit": "Bearbeiten", "granted": "Erteilt am {{date}}",
+        "originBadge": "Herkunft",
+        "ownAgencyFallback": "Mitarbeiteragentur",
+        "view": "Ansehen",
+        "edit": "Bearbeiten",
+        "granted": "Erteilt am {{date}}",
         "grantSection": "Einer anderen Agentur Zugriff erteilen",
-        "selectAgency": "Agentur auswählen", "notesPh": "Notizen (optional)",
-        "grantButton": "Ansehen + Bearbeiten erteilen", "granting": "Wird erteilt…",
-        "toast": { "updated": "Zugriff aktualisiert", "updateFailed": "Zugriff konnte nicht aktualisiert werden", "revoked": "Agenturzugriff entzogen", "revokeFailed": "Zugriff konnte nicht entzogen werden" },
-        "confirmRevokeAll": { "title": "Allen Agenturzugriff entziehen", "description": "Sowohl Ansehen als auch Bearbeiten werden ausgeschaltet, was den Zugriff dieser Agentur vollständig entfernt. Fortfahren?", "confirm": "Entziehen" },
-        "confirmRevoke": { "title": "Agenturzugriff entziehen", "description": "Zugriff von {{agency}} auf diesen Mitarbeiter entfernen? Ihre Benutzer sehen den Datensatz sofort nicht mehr.", "fallbackAgency": "diese Agentur", "confirm": "Entziehen" }
+        "selectAgency": "Agentur auswählen",
+        "notesPh": "Notizen (optional)",
+        "grantButton": "Ansehen + Bearbeiten erteilen",
+        "granting": "Wird erteilt…",
+        "toast": {
+          "updated": "Zugriff aktualisiert",
+          "updateFailed": "Zugriff konnte nicht aktualisiert werden",
+          "revoked": "Agenturzugriff entzogen",
+          "revokeFailed": "Zugriff konnte nicht entzogen werden"
+        },
+        "confirmRevokeAll": {
+          "title": "Allen Agenturzugriff entziehen",
+          "description": "Sowohl Ansehen als auch Bearbeiten werden ausgeschaltet, was den Zugriff dieser Agentur vollständig entfernt. Fortfahren?",
+          "confirm": "Entziehen"
+        },
+        "confirmRevoke": {
+          "title": "Agenturzugriff entziehen",
+          "description": "Zugriff von {{agency}} auf diesen Mitarbeiter entfernen? Ihre Benutzer sehen den Datensatz sofort nicht mehr.",
+          "fallbackAgency": "diese Agentur",
+          "confirm": "Entziehen"
+        }
       },
       "documents": {
-        "title": "Mitarbeiterdokumente", "uploadButton": "Dokument hochladen", "cancel": "Abbrechen",
-        "newDocumentTitle": "Neues Dokument", "documentType": "Dokumententyp", "selectType": "Typ auswählen",
-        "documentName": "Dokumentname", "documentNamePh": "z.B. Reisepass",
-        "issueDate": "Ausgabedatum", "expiryDate": "Ablaufdatum",
-        "documentNumber": "Dokumentennummer", "optionalPh": "Optional", "issuer": "Aussteller",
-        "fileLabel": "Datei", "uploading": "Wird hochgeladen...", "upload": "Hochladen",
+        "title": "Mitarbeiterdokumente",
+        "uploadButton": "Dokument hochladen",
+        "cancel": "Abbrechen",
+        "newDocumentTitle": "Neues Dokument",
+        "documentType": "Dokumententyp",
+        "selectType": "Typ auswählen",
+        "documentName": "Dokumentname",
+        "documentNamePh": "z.B. Reisepass",
+        "issueDate": "Ausgabedatum",
+        "expiryDate": "Ablaufdatum",
+        "documentNumber": "Dokumentennummer",
+        "optionalPh": "Optional",
+        "issuer": "Aussteller",
+        "fileLabel": "Datei",
+        "uploading": "Wird hochgeladen...",
+        "upload": "Hochladen",
         "empty": "Noch keine Dokumente hochgeladen.",
-        "fileSize": "{{name}} ({{size}} KB)", "expires": "Läuft ab: {{date}}",
-        "fileMeta": "{{type}} · {{size}} KB", "download": "Herunterladen", "view": "Ansehen",
-        "toast": { "fileRequired": "Bitte wählen Sie eine Datei aus", "typeRequired": "Bitte wählen Sie einen Dokumententyp", "nameRequired": "Bitte geben Sie einen Dokumentnamen ein", "uploaded": "Dokument erfolgreich hochgeladen", "uploadFailed": "Dokument konnte nicht hochgeladen werden" }
+        "fileSize": "{{name}} ({{size}} KB)",
+        "expires": "Läuft ab: {{date}}",
+        "fileMeta": "{{type}} · {{size}} KB",
+        "download": "Herunterladen",
+        "view": "Ansehen",
+        "toast": {
+          "fileRequired": "Bitte wählen Sie eine Datei aus",
+          "typeRequired": "Bitte wählen Sie einen Dokumententyp",
+          "nameRequired": "Bitte geben Sie einen Dokumentnamen ein",
+          "uploaded": "Dokument erfolgreich hochgeladen",
+          "uploadFailed": "Dokument konnte nicht hochgeladen werden"
+        }
       },
       "compliance": {
-        "title": "Compliance-Status", "empty": "Keine Compliance-Daten verfügbar. Laden Sie Dokumente hoch, um die Compliance zu verfolgen.",
-        "expiredAgo": "Vor {{count}} Tagen abgelaufen", "daysRemaining": "{{count}} Tage verbleibend"
+        "title": "Compliance-Status",
+        "empty": "Keine Compliance-Daten verfügbar. Laden Sie Dokumente hoch, um die Compliance zu verfolgen.",
+        "expiredAgo": "Vor {{count}} Tagen abgelaufen",
+        "daysRemaining": "{{count}} Tage verbleibend"
       },
       "financial": {
-        "title": "Bank- und Gehaltsprofil", "fromCandidateBadge": "Aus Kandidatenstufe",
+        "title": "Bank- und Gehaltsprofil",
+        "fromCandidateBadge": "Aus Kandidatenstufe",
         "subtitle": "Bank- und Gehaltsdaten aus der Kandidatenstufe werden nach der Konvertierung beibehalten.",
-        "bankName": "Bankname", "accountHolder": "Kontoinhaber", "accountNumber": "Kontonummer",
-        "sortCode": "Bankleitzahl", "iban": "IBAN", "taxCode": "Steuernummer",
-        "niNumber": "Sozialversicherungsnr.", "paymentMethod": "Zahlungsmethode",
-        "salaryAgreed": "Vereinbartes Gehalt", "notes": "Notizen"
+        "bankName": "Bankname",
+        "accountHolder": "Kontoinhaber",
+        "accountNumber": "Kontonummer",
+        "sortCode": "Bankleitzahl",
+        "iban": "IBAN",
+        "taxCode": "Steuernummer",
+        "niNumber": "Sozialversicherungsnr.",
+        "paymentMethod": "Zahlungsmethode",
+        "salaryAgreed": "Vereinbartes Gehalt",
+        "notes": "Notizen"
       },
       "notes": {
-        "title": "Notizen & Kommentare", "addLabel": "Notiz hinzufügen / aktualisieren",
+        "title": "Notizen & Kommentare",
+        "addLabel": "Notiz hinzufügen / aktualisieren",
         "writePh": "Schreiben Sie eine Notiz zu diesem Mitarbeiter…",
-        "saveButton": "Notiz speichern", "saving": "Wird gespeichert…",
-        "discard": "Änderungen verwerfen", "empty": "Keine Notizen für diesen Mitarbeiter."
+        "saveButton": "Notiz speichern",
+        "saving": "Wird gespeichert…",
+        "discard": "Änderungen verwerfen",
+        "empty": "Keine Notizen für diesen Mitarbeiter."
       },
       "toast": {
         "loadFailed": "Mitarbeiter konnte nicht geladen werden",
-        "stageUpdated": "Workflow-Stufe aktualisiert", "stageFailed": "Stufe konnte nicht aktualisiert werden",
-        "workflowConnected": "Workflow verbunden", "workflowFailed": "Workflow konnte nicht verbunden werden",
-        "currentStageUpdated": "Aktuelle Stufe aktualisiert", "currentStageFailed": "Stufe konnte nicht aktualisiert werden",
-        "workflowDisconnected": "Workflow getrennt", "disconnectFailed": "Trennen fehlgeschlagen",
-        "stageApproved": "Stufe genehmigt", "stageApproveFailed": "Stufe konnte nicht genehmigt werden",
-        "noteSaved": "Notiz gespeichert", "noteFailed": "Notiz konnte nicht gespeichert werden",
-        "agencyUpdated": "Agentur aktualisiert", "agencyFailed": "Agentur konnte nicht aktualisiert werden",
-        "deleted": "Mitarbeiter gelöscht", "deleteFailed": "Mitarbeiter konnte nicht gelöscht werden"
+        "stageUpdated": "Workflow-Stufe aktualisiert",
+        "stageFailed": "Stufe konnte nicht aktualisiert werden",
+        "workflowConnected": "Workflow verbunden",
+        "workflowFailed": "Workflow konnte nicht verbunden werden",
+        "currentStageUpdated": "Aktuelle Stufe aktualisiert",
+        "currentStageFailed": "Stufe konnte nicht aktualisiert werden",
+        "workflowDisconnected": "Workflow getrennt",
+        "disconnectFailed": "Trennen fehlgeschlagen",
+        "stageApproved": "Stufe genehmigt",
+        "stageApproveFailed": "Stufe konnte nicht genehmigt werden",
+        "noteSaved": "Notiz gespeichert",
+        "noteFailed": "Notiz konnte nicht gespeichert werden",
+        "agencyUpdated": "Agentur aktualisiert",
+        "agencyFailed": "Agentur konnte nicht aktualisiert werden",
+        "deleted": "Mitarbeiter gelöscht",
+        "deleteFailed": "Mitarbeiter konnte nicht gelöscht werden"
       },
-      "confirmDelete": { "title": "Mitarbeiter löschen?", "description": "{{name}} wird endgültig entfernt. Dies kann nicht rückgängig gemacht werden.", "confirm": "Löschen" },
-      "confirmDisconnect": { "title": "Vom Workflow trennen?", "description": "Dieser Mitarbeiter wird vom Workflow getrennt. Bestehender Fortschritt bleibt erhalten.", "confirm": "Trennen" }
+      "confirmDelete": {
+        "title": "Mitarbeiter löschen?",
+        "description": "{{name}} wird endgültig entfernt. Dies kann nicht rückgängig gemacht werden.",
+        "confirm": "Löschen"
+      },
+      "confirmDisconnect": {
+        "title": "Vom Workflow trennen?",
+        "description": "Dieser Mitarbeiter wird vom Workflow getrennt. Bestehender Fortschritt bleibt erhalten.",
+        "confirm": "Trennen"
+      }
     },
-    "add": { "title": "Mitarbeiter hinzufügen", "back": "Zurück zu Mitarbeiter" },
-    "edit": { "title": "Mitarbeiter bearbeiten", "back": "Zurück zum Profil" },
-    "certifications": { "title": "Zertifikate", "back": "Zurück zum Profil" },
-    "training": { "title": "Schulungsverlauf", "back": "Zurück zum Profil" },
-    "complianceTimeline": { "title": "Compliance-Zeitleiste", "back": "Zurück zum Profil" },
-    "performance": { "title": "Leistungsbeurteilung", "back": "Zurück zum Profil" }
+    "add": {
+      "title": "Mitarbeiter hinzufügen",
+      "back": "Zurück zu Mitarbeiter"
+    },
+    "edit": {
+      "title": "Mitarbeiter bearbeiten",
+      "back": "Zurück zum Profil"
+    },
+    "certifications": {
+      "title": "Zertifikate",
+      "back": "Zurück zum Profil"
+    },
+    "training": {
+      "title": "Schulungsverlauf",
+      "back": "Zurück zum Profil"
+    },
+    "complianceTimeline": {
+      "title": "Compliance-Zeitleiste",
+      "back": "Zurück zum Profil"
+    },
+    "performance": {
+      "title": "Leistungsbeurteilung",
+      "back": "Zurück zum Profil"
+    }
   },
   "applicants": {
-    "list": { "title": "Bewerber", "subtitle": "Bewerber und Leads", "addButton": "Bewerber hinzufügen", "search": "Bewerber suchen…", "empty": "Keine Bewerber gefunden.", "deleteRequests": "Löschanfragen" },
-    "candidates": { "title": "Kandidaten", "subtitle": "Geprüfte Kandidaten zur Vermittlung bereit", "search": "Kandidaten suchen…", "empty": "Keine Kandidaten gefunden." },
+    "list": {
+      "title": "Bewerber",
+      "subtitle": "Bewerber und Leads",
+      "addButton": "Bewerber hinzufügen",
+      "search": "Bewerber suchen…",
+      "empty": "Keine Bewerber gefunden.",
+      "deleteRequests": "Löschanfragen"
+    },
+    "candidates": {
+      "title": "Kandidaten",
+      "subtitle": "Geprüfte Kandidaten zur Vermittlung bereit",
+      "search": "Kandidaten suchen…",
+      "empty": "Keine Kandidaten gefunden."
+    },
     "profile": {
-      "title": "Bewerberprofil", "candidateTitle": "Kandidatenprofil",
+      "title": "Bewerberprofil",
+      "candidateTitle": "Kandidatenprofil",
       "subtitle": "Bewerberinformationen anzeigen und verwalten",
       "candidateSubtitle": "Kandidateninformationen anzeigen und verwalten",
-      "back": "Zurück", "loading": "Lädt…", "notFound": "Bewerber nicht gefunden", "candidateNotFound": "Kandidat nicht gefunden",
-      "convertToCandidate": "In Kandidat umwandeln", "convertToEmployee": "In Mitarbeiter umwandeln",
-      "promote": "Zu Kandidat befördern", "promoteToCandidate": "Zu Kandidat befördern",
-      "tabs": { "overview": "Übersicht", "application": "Bewerbung", "documents": "Dokumente ({{count}})", "workflow": "Workflow", "docCompliance": "Dokumentkonformität", "compliance": "Compliance", "financial": "Finanzen", "agencyHistory": "Agenturhistorie", "history": "Historie", "notes": "Notizen" },
+      "back": "Zurück",
+      "loading": "Lädt…",
+      "notFound": "Bewerber nicht gefunden",
+      "candidateNotFound": "Kandidat nicht gefunden",
+      "convertToCandidate": "In Kandidat umwandeln",
+      "convertToEmployee": "In Mitarbeiter umwandeln",
+      "promote": "Zu Kandidat befördern",
+      "promoteToCandidate": "Zu Kandidat befördern",
+      "tabs": {
+        "overview": "Übersicht",
+        "application": "Bewerbung",
+        "documents": "Dokumente ({{count}})",
+        "workflow": "Workflow",
+        "docCompliance": "Dokumentkonformität",
+        "compliance": "Compliance",
+        "financial": "Finanzen",
+        "agencyHistory": "Agenturhistorie",
+        "history": "Historie",
+        "notes": "Notizen"
+      },
       "toast": {
         "loadFailed": "Bewerber konnte nicht geladen werden",
-        "stageUpdated": "Workflow-Stufe aktualisiert", "stageFailed": "Stufe konnte nicht aktualisiert werden",
-        "workflowConnected": "Workflow verbunden", "workflowFailed": "Workflow konnte nicht verbunden werden",
-        "currentStageUpdated": "Aktuelle Stufe aktualisiert", "currentStageFailed": "Stufe konnte nicht aktualisiert werden",
-        "workflowDisconnected": "Workflow getrennt", "disconnectFailed": "Trennen fehlgeschlagen",
-        "stageApproved": "Stufe genehmigt", "stageApproveFailed": "Stufe konnte nicht genehmigt werden",
-        "agencyUpdated": "Agentur aktualisiert", "agencyFailed": "Agentur konnte nicht aktualisiert werden",
-        "noteSaved": "Notiz gespeichert", "noteFailed": "Notiz konnte nicht gespeichert werden",
-        "docApproved": "\"{{name}}\" genehmigt", "docApproveFailed": "Dokument konnte nicht genehmigt werden",
+        "stageUpdated": "Workflow-Stufe aktualisiert",
+        "stageFailed": "Stufe konnte nicht aktualisiert werden",
+        "workflowConnected": "Workflow verbunden",
+        "workflowFailed": "Workflow konnte nicht verbunden werden",
+        "currentStageUpdated": "Aktuelle Stufe aktualisiert",
+        "currentStageFailed": "Stufe konnte nicht aktualisiert werden",
+        "workflowDisconnected": "Workflow getrennt",
+        "disconnectFailed": "Trennen fehlgeschlagen",
+        "stageApproved": "Stufe genehmigt",
+        "stageApproveFailed": "Stufe konnte nicht genehmigt werden",
+        "agencyUpdated": "Agentur aktualisiert",
+        "agencyFailed": "Agentur konnte nicht aktualisiert werden",
+        "noteSaved": "Notiz gespeichert",
+        "noteFailed": "Notiz konnte nicht gespeichert werden",
+        "docApproved": "\"{{name}}\" genehmigt",
+        "docApproveFailed": "Dokument konnte nicht genehmigt werden",
         "rejectReasonRequired": "Ein Ablehnungsgrund ist erforderlich",
-        "docRejected": "\"{{name}}\" abgelehnt", "docRejectFailed": "Dokument konnte nicht abgelehnt werden",
-        "docDeleted": "Dokument gelöscht", "docDeleteFailed": "Dokument konnte nicht gelöscht werden",
+        "docRejected": "\"{{name}}\" abgelehnt",
+        "docRejectFailed": "Dokument konnte nicht abgelehnt werden",
+        "docDeleted": "Dokument gelöscht",
+        "docDeleteFailed": "Dokument konnte nicht gelöscht werden",
         "fileRequired": "Bitte wählen Sie eine Datei aus",
         "typeRequired": "Bitte wählen Sie einen Dokumententyp",
         "nameRequired": "Bitte geben Sie einen Dokumentnamen ein",
-        "uploaded": "Dokument erfolgreich hochgeladen", "uploadFailed": "Dokument konnte nicht hochgeladen werden",
-        "deleted": "Bewerber erfolgreich gelöscht", "deleteFailed": "Bewerber konnte nicht gelöscht werden",
+        "uploaded": "Dokument erfolgreich hochgeladen",
+        "uploadFailed": "Dokument konnte nicht hochgeladen werden",
+        "deleted": "Bewerber erfolgreich gelöscht",
+        "deleteFailed": "Bewerber konnte nicht gelöscht werden",
         "addressRequired": "Bitte füllen Sie alle erforderlichen Adressfelder aus",
         "convertedToEmployee": "Bewerber erfolgreich in Mitarbeiter umgewandelt",
         "convertFailed": "Bewerber konnte nicht in Mitarbeiter umgewandelt werden",
-        "promoted": "Zu Kandidat befördert", "promoteFailed": "Beförderung fehlgeschlagen",
-        "financialSaved": "Finanzprofil gespeichert", "financialFailed": "Finanzprofil konnte nicht gespeichert werden"
+        "promoted": "Zu Kandidat befördert",
+        "promoteFailed": "Beförderung fehlgeschlagen",
+        "financialSaved": "Finanzprofil gespeichert",
+        "financialFailed": "Finanzprofil konnte nicht gespeichert werden"
       },
-      "confirmDelete": { "title": "Bewerber löschen?", "description": "Dieser Bewerber wird endgültig entfernt.", "confirm": "Löschen" },
-      "confirmDeleteCandidate": { "title": "Kandidat löschen?", "description": "Dieser Kandidat wird endgültig entfernt.", "confirm": "Löschen" },
-      "confirmDisconnect": { "title": "Vom Workflow trennen?", "description": "Dieser Bewerber wird vom Workflow getrennt. Bestehender Fortschritt bleibt erhalten.", "confirm": "Trennen" },
-      "confirmDeleteDoc": { "title": "Dokument löschen?", "description": "\"{{name}}\" wird endgültig aus den Bewerberunterlagen entfernt.", "confirm": "Löschen" },
+      "confirmDelete": {
+        "title": "Bewerber löschen?",
+        "description": "Dieser Bewerber wird endgültig entfernt.",
+        "confirm": "Löschen"
+      },
+      "confirmDeleteCandidate": {
+        "title": "Kandidat löschen?",
+        "description": "Dieser Kandidat wird endgültig entfernt.",
+        "confirm": "Löschen"
+      },
+      "confirmDisconnect": {
+        "title": "Vom Workflow trennen?",
+        "description": "Dieser Bewerber wird vom Workflow getrennt. Bestehender Fortschritt bleibt erhalten.",
+        "confirm": "Trennen"
+      },
+      "confirmDeleteDoc": {
+        "title": "Dokument löschen?",
+        "description": "\"{{name}}\" wird endgültig aus den Bewerberunterlagen entfernt.",
+        "confirm": "Löschen"
+      },
       "candidateApproval": {
         "pendingTitle": "Dieser Kandidat wartet auf Tempworks-Genehmigung.",
         "pendingBody": "Er wurde von der zuständigen Agentur eingereicht und kann erst nach Genehmigung in den Workflow oder zum Mitarbeiter umgewandelt werden.",
-        "approve": "Genehmigen", "reject": "Ablehnen",
-        "approved": "Kandidat genehmigt", "rejected": "Kandidat abgelehnt",
-        "approveFailed": "Genehmigung fehlgeschlagen", "rejectFailed": "Ablehnung fehlgeschlagen",
-        "confirmReject": { "title": "Diesen Kandidaten ablehnen?", "description": "Er gelangt nicht in den Workflow. Dies kann durch späteres Genehmigen rückgängig gemacht werden.", "confirm": "Ablehnen" }
+        "approve": "Genehmigen",
+        "reject": "Ablehnen",
+        "approved": "Kandidat genehmigt",
+        "rejected": "Kandidat abgelehnt",
+        "approveFailed": "Genehmigung fehlgeschlagen",
+        "rejectFailed": "Ablehnung fehlgeschlagen",
+        "confirmReject": {
+          "title": "Diesen Kandidaten ablehnen?",
+          "description": "Er gelangt nicht in den Workflow. Dies kann durch späteres Genehmigen rückgängig gemacht werden.",
+          "confirm": "Ablehnen"
+        },
+        "pendingBadge": "Pending Tempworks approval",
+        "rejectedBadge": "Rejected"
+      },
+      "noIdentifierLegacy": "No identifier (legacy record)",
+      "wasLeadPrefix": "(was {{leadNumber}})",
+      "header": {
+        "email": "Email",
+        "phone": "Phone",
+        "citizenship": "Citizenship",
+        "applied": "Applied"
+      },
+      "emergency": {
+        "sectionTitle": "Family / Emergency Contact",
+        "name": "Name",
+        "relationship": "Relationship",
+        "phone": "Phone",
+        "email": "Email"
+      },
+      "quickNav": {
+        "travel": "Travel & Residence",
+        "driving": "Driving Licence & Experience",
+        "education": "Education",
+        "workExperience": "Work Experience"
+      },
+      "personal": {
+        "title": "Personal Information",
+        "fullName": "Full Name",
+        "dateOfBirth": "Date of Birth",
+        "citizenship": "Citizenship",
+        "licenseNumber": "License Number",
+        "licenseCategory": "License Category",
+        "yearsEUExperience": "Years EU Experience",
+        "permanentAddress": "Permanent Address",
+        "countryOfResidence": "Country of Residence",
+        "currentCountry": "Current Country",
+        "appliedPosition": "Applied Position",
+        "preferredStartDate": "Preferred Start Date",
+        "howTheyHeard": "How They Heard",
+        "general": "GENERAL"
+      },
+      "stats": {
+        "title": "Quick Stats",
+        "documents": "Documents",
+        "validDocs": "Valid Docs",
+        "expiringSoon": "Expiring Soon"
+      },
+      "lifecycle": {
+        "title": "Lifecycle Identifiers",
+        "leadId": "Lead ID",
+        "candidateId": "Candidate ID",
+        "createdBy": "Created By",
+        "createdLabel": "Created: {{date}}",
+        "convertedLabel": "Converted: {{date}}",
+        "notAssignedLegacy": "Not assigned (legacy)",
+        "notYetConverted": "Not yet converted",
+        "selfApplied": "Self-applied via public form",
+        "unknownLegacy": "Unknown (legacy record)"
+      },
+      "agency": {
+        "title": "Agency",
+        "noAgency": "No Agency (Direct)"
+      },
+      "travelDocs": {
+        "title": "Travel & Residence Documents",
+        "passportNumber": "Passport Number",
+        "passportValidUntil": "Passport Valid Until",
+        "issuingCountry": "Issuing Country",
+        "euVisa": "EU Visa",
+        "visaType": "Visa Type",
+        "visaNumber": "Visa Number",
+        "validUntil": "Valid Until",
+        "workPermitInEU": "Work Permit in EU",
+        "permitType": "Permit Type",
+        "permitNumber": "Permit Number",
+        "issueDate": "Issue Date",
+        "residenceCardInEU": "Residence Card in EU",
+        "residenceType": "Residence Type",
+        "residenceNumber": "Residence Number",
+        "country": "Country",
+        "city": "City",
+        "yes": "Yes",
+        "no": "No"
+      },
+      "driving": {
+        "title": "Driving Licence & Experience",
+        "licenceCertifications": "Licence & Certifications",
+        "licenseNumber": "License Number",
+        "issuingCountry": "Issuing Country",
+        "validUntil": "Valid Until",
+        "categories": "Categories:",
+        "tachographCard": "Tachograph Card",
+        "code95": "Code 95 / CPC",
+        "adrCertificate": "ADR Certificate",
+        "experienceTitle": "Driving Experience",
+        "euExperience": "EU Experience",
+        "yearsInEU": "Years in EU",
+        "totalCEExperience": "Total C+E Experience",
+        "yearsActiveDriving": "Years Active Driving",
+        "drivenOtherCountries": "Driven Other Countries",
+        "countries": "Countries:",
+        "yes": "Yes",
+        "no": "No",
+        "yesValue": "Yes ({{value}})",
+        "yesUntil": "Yes (until {{date}})",
+        "yesNA": "Yes (N/A)"
+      },
+      "languages": {
+        "title": "Language Skills",
+        "english": "English",
+        "german": "German",
+        "russian": "Russian",
+        "otherLanguages": "Other Languages",
+        "languageAtWork": "Language at Work"
+      },
+      "workFlex": {
+        "title": "Work Flexibility & Preferences",
+        "doubleCrew": "Double Crew",
+        "maxTourLength": "Max Tour Length",
+        "weekendDriving": "Weekend Driving",
+        "nightDriving": "Night Driving",
+        "preferredCountries": "Preferred Countries",
+        "undesiredCountries": "Undesired Countries",
+        "yes": "Yes",
+        "no": "No"
+      },
+      "education": {
+        "title": "Education",
+        "default": "Education",
+        "fieldOfStudy": "Field of Study",
+        "country": "Country",
+        "start": "Start",
+        "end": "End",
+        "ongoing": "Ongoing",
+        "degreePrefix": "Degree / Certificate:"
+      },
+      "workHistory": {
+        "title": "Work Experience",
+        "defaultPosition": "Position",
+        "country": "Country",
+        "start": "Start",
+        "end": "End",
+        "current": "Current",
+        "companyPhone": "Company Phone",
+        "responsibilities": "Responsibilities",
+        "reasonForLeaving": "Reason for leaving:",
+        "reference": "Reference",
+        "name": "Name",
+        "phone": "Phone",
+        "email": "Email"
+      },
+      "documentsTab": {
+        "title": "Applicant Documents",
+        "candidateTitle": "Candidate Documents",
+        "uploadButton": "Upload Document",
+        "cancel": "Cancel",
+        "newDocumentTitle": "New Document",
+        "documentType": "Document Type",
+        "selectType": "Select type",
+        "documentName": "Document Name",
+        "documentNamePh": "e.g. Passport",
+        "issueDate": "Issue Date",
+        "expiryDate": "Expiry Date",
+        "noExpiry": "No Expiry",
+        "documentNumber": "Document Number",
+        "optionalPh": "Optional",
+        "issuer": "Issuer",
+        "fileLabel": "File",
+        "fileSize": "{{name}} ({{size}} KB)",
+        "uploading": "Uploading...",
+        "upload": "Upload",
+        "loading": "Loading documents...",
+        "empty": "No documents uploaded yet.",
+        "expires": "Expires: {{date}}",
+        "fileMeta": "{{type}} · {{size}} KB",
+        "downloadTitle": "Download",
+        "approve": "Approve",
+        "reject": "Reject",
+        "editTitle": "Edit",
+        "deleteTitle": "Delete"
+      },
+      "workflowTab": {
+        "connectTitle": "Connect to a Workflow",
+        "connectSubtitle": "This applicant is not connected to any workflow yet.",
+        "candidateConnectSubtitle": "This candidate is not connected to any workflow yet.",
+        "selectWorkflowPh": "Select a workflow…",
+        "public": "Public",
+        "private": "Private",
+        "connect": "Connect",
+        "connecting": "Connecting…",
+        "connectButton": "Connect to Workflow",
+        "saving": "Saving…",
+        "confirm": "Confirm",
+        "connectedBy": "Connected {{date}} by {{name}}",
+        "changeWorkflow": "Change Workflow",
+        "change": "Change",
+        "changeTitle": "Reassign to a different workflow (admin only)",
+        "noStages": "This workflow has no stages configured yet.",
+        "current": "Current",
+        "inProgress": "In Progress",
+        "approved": "Approved",
+        "final": "Final",
+        "needsApproval": "Needs Approval",
+        "slaSuffix": "SLA: {{hours}}h",
+        "setCurrent": "Set Current",
+        "requiredDocs": "Required Documents",
+        "noRequiredDocs": "No required documents for this stage.",
+        "uploaded": "Uploaded",
+        "missing": "Missing",
+        "stageApproval": "Stage Approval",
+        "approvedBy": "by {{name}}",
+        "noApprovers": "No approvers assigned to this stage.",
+        "approveStage": "Approve Stage",
+        "approving": "Approving…"
+      },
+      "complianceTab": {
+        "title": "Compliance Status",
+        "empty": "No compliance data available. Upload documents to begin tracking compliance.",
+        "expiredAgo": "Expired {{count}} days ago",
+        "daysRemaining": "{{count}} days remaining"
+      },
+      "financialTab": {
+        "title": "Financial Transactions",
+        "candidatesOnlyBadge": "Candidates only",
+        "candidatesOnlyBody": "Financial transactions are available for Candidates only. Promote this applicant to Candidate first.",
+        "bankTitle": "Bank & Tax Details",
+        "save": "Save",
+        "saving": "Saving…",
+        "saved": "Saved",
+        "saveFailed": "Save failed",
+        "bankName": "Bank Name",
+        "iban": "IBAN",
+        "taxCode": "Tax Code",
+        "niNumber": "NI Number",
+        "paymentMethod": "Payment Method"
+      },
+      "historyTab": {
+        "title": "Agency Assignment History",
+        "loading": "Loading…",
+        "empty": "No agency assignment history recorded.",
+        "reason": "Reason: {{value}}",
+        "current": "Current"
+      },
+      "notesTab": {
+        "title": "Notes & Comments",
+        "submittedWithApplication": "Submitted with application",
+        "addLabel": "Add / update note",
+        "writePh": "Write a note about this applicant…",
+        "writeCandidatePh": "Write a note about this candidate…",
+        "saveButton": "Save note",
+        "saving": "Saving…",
+        "discard": "Discard changes",
+        "empty": "No notes for this applicant.",
+        "candidateEmpty": "No notes for this candidate."
+      },
+      "promoteDialog": {
+        "title": "Promote to Candidate",
+        "successTitle": "Promoted Successfully",
+        "successBody": "has been promoted from Lead to Candidate.",
+        "newCandidateId": "The new Candidate ID is",
+        "successFooter": "The profile is now visible to agency users, and the tier change has been recorded in the audit log.",
+        "done": "Done",
+        "intro": "will be promoted from Lead to Candidate. This grants agency users visibility. A holding agency will be assigned if configured.",
+        "candidateIntro": "will have its tier confirmed.",
+        "responsibleAgency": "Responsible Agency",
+        "selectDefault": "Use system default",
+        "useSystemDefault": "Use system default holding agency",
+        "agencyHelp": "The selected agency becomes responsible for this candidate and is recorded in Agency History.",
+        "loggedNote": "This action is logged and can be reviewed in Agency History.",
+        "promoting": "Promoting…",
+        "confirmPromotion": "Confirm Promotion",
+        "cancel": "Cancel"
+      },
+      "convertDialog": {
+        "title": "Convert to Employee",
+        "subtitle": "Converting <strong>{{name}}</strong> — all documents will be transferred and the applicant record will be archived.",
+        "candidateSubtitle": "Converting <strong>{{name}}</strong> — all documents will be transferred and the candidate record will be archived.",
+        "convertingPrefix": "Converting",
+        "applicantTransferSuffix": "— all documents will be transferred and the applicant record will be archived.",
+        "candidateTransferSuffix": "— all documents will be transferred and the candidate record will be archived.",
+        "name": "Name:",
+        "email": "Email:",
+        "phone": "Phone:",
+        "citizenship": "Citizenship:",
+        "address": "Address",
+        "addressLine1": "Address Line 1",
+        "addressLine2": "Address Line 2",
+        "city": "City",
+        "country": "Country",
+        "postalCode": "Postal Code",
+        "additionalDetails": "Additional Details",
+        "optional": "(optional)",
+        "licenseNumber": "License Number",
+        "licenseCategory": "License Category",
+        "yearsExperience": "Years Experience",
+        "emergencyContact": "Emergency Contact",
+        "emergencyPhone": "Emergency Phone",
+        "converting": "Converting…",
+        "confirmConversion": "Confirm Conversion",
+        "cancel": "Cancel"
+      },
+      "rejectDocDialog": {
+        "title": "Reject Document",
+        "rejecting": "Rejecting:",
+        "reasonLabel": "Rejection Reason",
+        "reasonPh": "Explain why this document is being rejected…",
+        "cancel": "Cancel",
+        "rejecting2": "Rejecting…",
+        "confirmRejection": "Confirm Rejection"
+      },
+      "infoRow": {
+        "notProvided": "Not provided"
       }
     },
-    "add": { "title": "Bewerber hinzufügen", "back": "Zurück zu Bewerbern" },
-    "edit": { "title": "Bewerber bearbeiten", "back": "Zurück zum Profil" },
-    "deleteRequests": { "title": "Löschanfragen für Kandidaten", "subtitle": "Löschanfragen prüfen und genehmigen", "empty": "Keine offenen Löschanfragen." }
+    "add": {
+      "title": "Bewerber hinzufügen",
+      "back": "Zurück zu Bewerbern"
+    },
+    "edit": {
+      "title": "Bewerber bearbeiten",
+      "back": "Zurück zum Profil"
+    },
+    "deleteRequests": {
+      "title": "Löschanfragen für Kandidaten",
+      "subtitle": "Löschanfragen prüfen und genehmigen",
+      "empty": "Keine offenen Löschanfragen."
+    }
   },
   "agencies": {
-    "list": { "title": "Agenturen", "subtitle": "Recruiting-Partner", "addButton": "Agentur hinzufügen", "search": "Agenturen suchen…", "empty": "Keine Agenturen gefunden." },
+    "list": {
+      "title": "Agenturen",
+      "subtitle": "Recruiting-Partner",
+      "addButton": "Agentur hinzufügen",
+      "search": "Agenturen suchen…",
+      "empty": "Keine Agenturen gefunden."
+    },
     "profile": {
       "title": "Agenturprofil",
       "back": "Zurück zu Agenturen",
@@ -167,115 +707,368 @@
       "manageAllUsers": "Alle Benutzer verwalten",
       "loading": "Lädt…",
       "notFound": "Agentur nicht gefunden",
-      "info": { "country": "Land", "email": "E-Mail", "phone": "Telefon", "contactPerson": "Ansprechpartner" },
-      "stats": { "activeEmployees": "Aktive Mitarbeiter", "totalEmployees": "Mitarbeiter gesamt", "agencyUsers": "Agentur-Benutzer", "status": "Status" },
-      "tabs": { "employees": "Mitarbeiter", "users": "Benutzer", "finance": "Finanzdaten", "settings": "Einstellungen" },
-      "employees": { "title": "Agenturmitarbeiter ({{count}})", "empty": "Keine Mitarbeiter für diese Agentur gefunden.", "viewProfile": "Profil ansehen" },
-      "users": { "title": "Agentur-Benutzer ({{count}})", "empty": "Keine Benutzer für diese Agentur gefunden." },
-      "settings": { "title": "Agentur-Einstellungen", "maxUsersLabel": "Maximale Anzahl Benutzer", "maxUsersHelp": "Anzahl aktiver Benutzer dieser Agentur begrenzen", "maxUsersOption": "{{count}} Benutzer", "save": "Einstellungen speichern" },
-      "toast": { "settingsSaved": "Einstellungen gespeichert", "settingsFailed": "Einstellungen konnten nicht gespeichert werden" }
+      "info": {
+        "country": "Land",
+        "email": "E-Mail",
+        "phone": "Telefon",
+        "contactPerson": "Ansprechpartner"
+      },
+      "stats": {
+        "activeEmployees": "Aktive Mitarbeiter",
+        "totalEmployees": "Mitarbeiter gesamt",
+        "agencyUsers": "Agentur-Benutzer",
+        "status": "Status"
+      },
+      "tabs": {
+        "employees": "Mitarbeiter",
+        "users": "Benutzer",
+        "finance": "Finanzdaten",
+        "settings": "Einstellungen"
+      },
+      "employees": {
+        "title": "Agenturmitarbeiter ({{count}})",
+        "empty": "Keine Mitarbeiter für diese Agentur gefunden.",
+        "viewProfile": "Profil ansehen"
+      },
+      "users": {
+        "title": "Agentur-Benutzer ({{count}})",
+        "empty": "Keine Benutzer für diese Agentur gefunden."
+      },
+      "settings": {
+        "title": "Agentur-Einstellungen",
+        "maxUsersLabel": "Maximale Anzahl Benutzer",
+        "maxUsersHelp": "Anzahl aktiver Benutzer dieser Agentur begrenzen",
+        "maxUsersOption": "{{count}} Benutzer",
+        "save": "Einstellungen speichern"
+      },
+      "toast": {
+        "settingsSaved": "Einstellungen gespeichert",
+        "settingsFailed": "Einstellungen konnten nicht gespeichert werden"
+      }
     },
-    "myProfile": { "title": "Meine Agentur" },
-    "add": { "title": "Agentur hinzufügen", "back": "Zurück zu Agenturen" },
-    "edit": { "title": "Agentur bearbeiten", "back": "Zurück zum Profil" },
-    "users": { "title": "Agentur-Benutzer", "subtitle": "Benutzer dieser Agentur verwalten", "back": "Zurück zur Agentur", "addButton": "Benutzer hinzufügen" }
+    "myProfile": {
+      "title": "Meine Agentur"
+    },
+    "add": {
+      "title": "Agentur hinzufügen",
+      "back": "Zurück zu Agenturen"
+    },
+    "edit": {
+      "title": "Agentur bearbeiten",
+      "back": "Zurück zum Profil"
+    },
+    "users": {
+      "title": "Agentur-Benutzer",
+      "subtitle": "Benutzer dieser Agentur verwalten",
+      "back": "Zurück zur Agentur",
+      "addButton": "Benutzer hinzufügen"
+    }
   },
   "documents": {
-    "dashboard": { "title": "Dokumente", "subtitle": "Übersicht der Dokumentenablage", "uploadButton": "Dokument hochladen" },
-    "compliance": { "title": "Dokumente & Compliance", "subtitle": "Compliance-Status aller Dokumente", "filterTitle": "Dokumente filtern" },
-    "explorer": { "title": "Dokumenten-Explorer", "searchTitle": "Mitarbeiter suchen & filtern" },
-    "verification": { "title": "Dokumentenprüfung", "pending": "Ausstehende Dokumente ({{count}})", "approve": "Genehmigen", "reject": "Ablehnen" },
-    "preview": { "title": "Dokument", "back": "Zurück", "download": "Herunterladen" },
-    "upload": { "title": "Dokument hochladen", "back": "Zurück" },
-    "edit": { "title": "Dokument bearbeiten", "back": "Zurück" }
+    "dashboard": {
+      "title": "Dokumente",
+      "subtitle": "Übersicht der Dokumentenablage",
+      "uploadButton": "Dokument hochladen"
+    },
+    "compliance": {
+      "title": "Dokumente & Compliance",
+      "subtitle": "Compliance-Status aller Dokumente",
+      "filterTitle": "Dokumente filtern"
+    },
+    "explorer": {
+      "title": "Dokumenten-Explorer",
+      "searchTitle": "Mitarbeiter suchen & filtern"
+    },
+    "verification": {
+      "title": "Dokumentenprüfung",
+      "pending": "Ausstehende Dokumente ({{count}})",
+      "approve": "Genehmigen",
+      "reject": "Ablehnen"
+    },
+    "preview": {
+      "title": "Dokument",
+      "back": "Zurück",
+      "download": "Herunterladen"
+    },
+    "upload": {
+      "title": "Dokument hochladen",
+      "back": "Zurück"
+    },
+    "edit": {
+      "title": "Dokument bearbeiten",
+      "back": "Zurück"
+    }
   },
   "compliance": {
-    "dashboard": { "title": "Compliance-Dashboard", "stats": { "validDocuments": "Gültige Dokumente", "expiringSoon": "Läuft bald ab", "expired": "Abgelaufen", "pending": "Ausstehend" } },
-    "alerts": { "title": "Compliance-Warnungen", "active": "Aktive Warnungen", "resolved": "Gelöste Warnungen", "empty": "Keine aktiven Warnungen." },
-    "employee": { "title": "Mitarbeiter-Compliance", "back": "Zurück" }
+    "dashboard": {
+      "title": "Compliance-Dashboard",
+      "stats": {
+        "validDocuments": "Gültige Dokumente",
+        "expiringSoon": "Läuft bald ab",
+        "expired": "Abgelaufen",
+        "pending": "Ausstehend"
+      }
+    },
+    "alerts": {
+      "title": "Compliance-Warnungen",
+      "active": "Aktive Warnungen",
+      "resolved": "Gelöste Warnungen",
+      "empty": "Keine aktiven Warnungen."
+    },
+    "employee": {
+      "title": "Mitarbeiter-Compliance",
+      "back": "Zurück"
+    }
   },
   "workflow": {
-    "overview": { "title": "Workflow-Übersicht", "subtitle": "Mitarbeiter durch die Recruiting-Pipeline verfolgen" },
-    "workPermits": { "title": "Arbeitserlaubnis-Tracking" },
-    "visas": { "title": "Visa-Tracking" },
-    "stage": { "title": "Stufendetails" },
-    "timeline": { "title": "Workflow-Zeitleiste" },
-    "analytics": { "title": "Workflow-Analyse" },
-    "management": { "title": "Workflow-Verwaltung" }
+    "overview": {
+      "title": "Workflow-Übersicht",
+      "subtitle": "Mitarbeiter durch die Recruiting-Pipeline verfolgen"
+    },
+    "workPermits": {
+      "title": "Arbeitserlaubnis-Tracking"
+    },
+    "visas": {
+      "title": "Visa-Tracking"
+    },
+    "stage": {
+      "title": "Stufendetails"
+    },
+    "timeline": {
+      "title": "Workflow-Zeitleiste"
+    },
+    "analytics": {
+      "title": "Workflow-Analyse"
+    },
+    "management": {
+      "title": "Workflow-Verwaltung"
+    }
   },
   "pipelines": {
-    "list": { "title": "Workflows", "subtitle": "Recruiting-Pipelines und Stufen-Konfiguration", "addButton": "Neuer Workflow", "newDialogTitle": "Neuer Workflow", "empty": "Noch keine Workflows." },
-    "board": { "title": "Workflow-Board" },
-    "stage": { "title": "Stufe" },
-    "settings": { "title": "Workflow-Einstellungen" }
+    "list": {
+      "title": "Workflows",
+      "subtitle": "Recruiting-Pipelines und Stufen-Konfiguration",
+      "addButton": "Neuer Workflow",
+      "newDialogTitle": "Neuer Workflow",
+      "empty": "Noch keine Workflows."
+    },
+    "board": {
+      "title": "Workflow-Board"
+    },
+    "stage": {
+      "title": "Stufe"
+    },
+    "settings": {
+      "title": "Workflow-Einstellungen"
+    }
   },
   "vehicles": {
-    "list": { "title": "Fahrzeuge", "subtitle": "Flottenverwaltung", "addButton": "Fahrzeug hinzufügen", "search": "Fahrzeuge suchen…", "empty": "Keine Fahrzeuge gefunden." },
+    "list": {
+      "title": "Fahrzeuge",
+      "subtitle": "Flottenverwaltung",
+      "addButton": "Fahrzeug hinzufügen",
+      "search": "Fahrzeuge suchen…",
+      "empty": "Keine Fahrzeuge gefunden."
+    },
     "detail": {
-      "title": "Fahrzeugdetails", "back": "Zurück zur Flotte",
-      "loading": "Lädt…", "notFound": "Fahrzeug nicht gefunden",
+      "title": "Fahrzeugdetails",
+      "back": "Zurück zur Flotte",
+      "loading": "Lädt…",
+      "notFound": "Fahrzeug nicht gefunden",
       "subtitle": "{{make}} {{model}} · {{type}}",
-      "expired": "Abgelaufen", "daysSuffix": "T",
-      "tabs": { "overview": "Übersicht", "driver": "Fahrer ({{count}})", "documents": "Dokumente ({{count}})", "maintenance": "Wartung ({{count}})" },
-      "info": { "title": "Fahrzeuginfo", "year": "Baujahr", "color": "Farbe", "vin": "FIN", "fuelType": "Kraftstoff", "currentMileage": "Aktueller Kilometerstand", "agency": "Agentur", "kmSuffix": "{{value}} km" },
-      "compliance": { "title": "Compliance", "motExpiry": "TÜV-Ablauf", "taxExpiry": "Steuer-Ablauf", "insuranceExpiry": "Versicherung-Ablauf" },
+      "expired": "Abgelaufen",
+      "daysSuffix": "T",
+      "tabs": {
+        "overview": "Übersicht",
+        "driver": "Fahrer ({{count}})",
+        "documents": "Dokumente ({{count}})",
+        "maintenance": "Wartung ({{count}})"
+      },
+      "info": {
+        "title": "Fahrzeuginfo",
+        "year": "Baujahr",
+        "color": "Farbe",
+        "vin": "FIN",
+        "fuelType": "Kraftstoff",
+        "currentMileage": "Aktueller Kilometerstand",
+        "agency": "Agentur",
+        "kmSuffix": "{{value}} km"
+      },
+      "compliance": {
+        "title": "Compliance",
+        "motExpiry": "TÜV-Ablauf",
+        "taxExpiry": "Steuer-Ablauf",
+        "insuranceExpiry": "Versicherung-Ablauf"
+      },
       "driver": {
-        "heading": "Fahrerzuweisungen", "assignButton": "Fahrer zuweisen",
-        "active": "Aktiv", "ended": "Beendet", "endAssignment": "Zuweisung beenden",
-        "licensePrefix": "Führerschein", "since": "Seit {{date}}", "empty": "Keine Zuweisungen",
-        "columns": { "driver": "Fahrer", "licence": "Führerschein", "from": "Von", "to": "Bis", "status": "Status" },
-        "dialog": {
-          "title": "Fahrer zuweisen", "selectDriver": "Fahrer auswählen",
-          "searchPlaceholder": "Nach Name oder Führerschein suchen…",
-          "searching": "Suche…", "noDriversFound": "Keine Fahrer gefunden", "defaultRoleLabel": "Fahrer",
-          "startDate": "Startdatum", "assignButton": "Fahrer zuweisen", "assigning": "Wird zugewiesen…"
+        "heading": "Fahrerzuweisungen",
+        "assignButton": "Fahrer zuweisen",
+        "active": "Aktiv",
+        "ended": "Beendet",
+        "endAssignment": "Zuweisung beenden",
+        "licensePrefix": "Führerschein",
+        "since": "Seit {{date}}",
+        "empty": "Keine Zuweisungen",
+        "columns": {
+          "driver": "Fahrer",
+          "licence": "Führerschein",
+          "from": "Von",
+          "to": "Bis",
+          "status": "Status"
         },
-        "toast": { "selectFirst": "Bitte wählen Sie einen Fahrer aus", "assigned": "Fahrer zugewiesen", "assignFailed": "Fahrer konnte nicht zugewiesen werden", "unassigned": "Fahrer entfernt", "unassignFailed": "Entfernen fehlgeschlagen" },
-        "confirmEnd": { "title": "Fahrerzuweisung beenden?", "description": "Die aktuelle Fahrerzuweisung wird beendet.", "confirm": "Zuweisung beenden" }
+        "dialog": {
+          "title": "Fahrer zuweisen",
+          "selectDriver": "Fahrer auswählen",
+          "searchPlaceholder": "Nach Name oder Führerschein suchen…",
+          "searching": "Suche…",
+          "noDriversFound": "Keine Fahrer gefunden",
+          "defaultRoleLabel": "Fahrer",
+          "startDate": "Startdatum",
+          "assignButton": "Fahrer zuweisen",
+          "assigning": "Wird zugewiesen…"
+        },
+        "toast": {
+          "selectFirst": "Bitte wählen Sie einen Fahrer aus",
+          "assigned": "Fahrer zugewiesen",
+          "assignFailed": "Fahrer konnte nicht zugewiesen werden",
+          "unassigned": "Fahrer entfernt",
+          "unassignFailed": "Entfernen fehlgeschlagen"
+        },
+        "confirmEnd": {
+          "title": "Fahrerzuweisung beenden?",
+          "description": "Die aktuelle Fahrerzuweisung wird beendet.",
+          "confirm": "Zuweisung beenden"
+        }
       },
       "documents": {
-        "heading": "Fahrzeugdokumente", "addButton": "Dokument hinzufügen", "empty": "Keine Dokumente",
-        "columns": { "name": "Name", "type": "Typ", "issuer": "Aussteller", "issued": "Ausgestellt", "expires": "Läuft ab", "actions": "Aktionen" },
-        "downloadTitle": "{{name}} herunterladen", "defaultFileName": "Datei",
-        "dialog": {
-          "addTitle": "Fahrzeugdokument hinzufügen", "editTitle": "Dokument bearbeiten",
-          "name": "Dokumentname", "namePh": "z.B. TÜV-Bescheinigung",
-          "type": "Dokumententyp", "issuedDate": "Ausgabedatum", "expiryDate": "Ablaufdatum",
-          "issuer": "Aussteller", "issuerPh": "z.B. DEKRA",
-          "notes": "Notizen", "notesPh": "Optionale Notizen",
-          "fileLabel": "Datei", "fileHint": "(optional, max 20 MB)", "fileSize": "{{name}} ({{size}} KB)",
-          "addButton": "Dokument hinzufügen", "saveButton": "Änderungen speichern", "saving": "Wird gespeichert…"
+        "heading": "Fahrzeugdokumente",
+        "addButton": "Dokument hinzufügen",
+        "empty": "Keine Dokumente",
+        "columns": {
+          "name": "Name",
+          "type": "Typ",
+          "issuer": "Aussteller",
+          "issued": "Ausgestellt",
+          "expires": "Läuft ab",
+          "actions": "Aktionen"
         },
-        "toast": { "nameRequired": "Dokumentname erforderlich", "added": "Dokument hinzugefügt", "updated": "Dokument aktualisiert", "addFailed": "Dokument konnte nicht hinzugefügt werden", "updateFailed": "Dokument konnte nicht aktualisiert werden", "deleted": "Dokument gelöscht", "deleteFailed": "Dokument konnte nicht gelöscht werden" },
-        "confirmDelete": { "title": "Dokument löschen?", "description": "Dieses Dokument wird endgültig entfernt.", "confirm": "Löschen" }
+        "downloadTitle": "{{name}} herunterladen",
+        "defaultFileName": "Datei",
+        "dialog": {
+          "addTitle": "Fahrzeugdokument hinzufügen",
+          "editTitle": "Dokument bearbeiten",
+          "name": "Dokumentname",
+          "namePh": "z.B. TÜV-Bescheinigung",
+          "type": "Dokumententyp",
+          "issuedDate": "Ausgabedatum",
+          "expiryDate": "Ablaufdatum",
+          "issuer": "Aussteller",
+          "issuerPh": "z.B. DEKRA",
+          "notes": "Notizen",
+          "notesPh": "Optionale Notizen",
+          "fileLabel": "Datei",
+          "fileHint": "(optional, max 20 MB)",
+          "fileSize": "{{name}} ({{size}} KB)",
+          "addButton": "Dokument hinzufügen",
+          "saveButton": "Änderungen speichern",
+          "saving": "Wird gespeichert…"
+        },
+        "toast": {
+          "nameRequired": "Dokumentname erforderlich",
+          "added": "Dokument hinzugefügt",
+          "updated": "Dokument aktualisiert",
+          "addFailed": "Dokument konnte nicht hinzugefügt werden",
+          "updateFailed": "Dokument konnte nicht aktualisiert werden",
+          "deleted": "Dokument gelöscht",
+          "deleteFailed": "Dokument konnte nicht gelöscht werden"
+        },
+        "confirmDelete": {
+          "title": "Dokument löschen?",
+          "description": "Dieses Dokument wird endgültig entfernt.",
+          "confirm": "Löschen"
+        }
       },
       "maintenance": {
-        "heading": "Wartungsprotokolle", "addButton": "Eintrag hinzufügen", "empty": "Keine Wartungsprotokolle",
-        "columns": { "type": "Typ", "status": "Status", "scheduled": "Geplant", "completed": "Abgeschlossen", "workshop": "Werkstatt", "cost": "Kosten", "actions": "Aktionen" },
-        "dialog": {
-          "addTitle": "Wartungseintrag hinzufügen", "editTitle": "Wartungseintrag bearbeiten",
-          "sectionService": "Service-Details", "sectionDriver": "Fahrer & Logistik", "sectionApproval": "Genehmigung",
-          "type": "Wartungsart", "typePh": "Typ auswählen", "notSpecified": "Nicht angegeben",
-          "status": "Status", "workshop": "Werkstatt", "workshopPh": "Werkstatt auswählen",
-          "mileageAtService": "Kilometerstand bei Service (km)", "mileagePh": "0",
-          "scheduledDate": "Geplantes Datum", "completedDate": "Abschlussdatum",
-          "totalCost": "Gesamtkosten (£)", "totalCostPh": "0.00",
-          "description": "Beschreibung", "descriptionPh": "Kurze Beschreibung",
-          "workDescription": "Arbeitsbeschreibung", "workDescriptionPh": "Detaillierte Arbeit...",
-          "notes": "Notizen", "notesPh": "Zusätzliche Notizen",
-          "serviceDriver": "Service-Fahrer", "selectDriver": "Fahrer auswählen",
-          "otherExternal": "Andere (extern)", "otherNone": "Andere / Keine",
-          "externalDriverName": "Externer Fahrername", "driverNamePh": "Fahrername", "namePh": "Name",
-          "dropOffDriver": "Anlieferungs-Fahrer", "dropOffDriverName": "Anlieferungs-Fahrername", "dropOffDateTime": "Anlieferungs-Datum/Uhrzeit",
-          "pickUpDriver": "Abholungs-Fahrer", "pickUpDriverName": "Abholungs-Fahrername", "pickUpDateTime": "Abholungs-Datum/Uhrzeit",
-          "approvedBy": "Genehmigt von", "pendingApproval": "Genehmigung ausstehend", "approvalDate": "Genehmigungsdatum",
-          "addButton": "Eintrag hinzufügen", "saveButton": "Änderungen speichern", "saving": "Wird gespeichert…"
+        "heading": "Wartungsprotokolle",
+        "addButton": "Eintrag hinzufügen",
+        "empty": "Keine Wartungsprotokolle",
+        "columns": {
+          "type": "Typ",
+          "status": "Status",
+          "scheduled": "Geplant",
+          "completed": "Abgeschlossen",
+          "workshop": "Werkstatt",
+          "cost": "Kosten",
+          "actions": "Aktionen"
         },
-        "toast": { "added": "Wartungseintrag hinzugefügt", "updated": "Wartungseintrag aktualisiert", "addFailed": "Eintrag konnte nicht hinzugefügt werden", "updateFailed": "Eintrag konnte nicht aktualisiert werden", "deleted": "Eintrag gelöscht", "deleteFailed": "Eintrag konnte nicht gelöscht werden" },
-        "confirmDelete": { "title": "Wartungseintrag löschen?", "description": "Dieser Wartungseintrag wird endgültig entfernt.", "confirm": "Löschen" }
+        "dialog": {
+          "addTitle": "Wartungseintrag hinzufügen",
+          "editTitle": "Wartungseintrag bearbeiten",
+          "sectionService": "Service-Details",
+          "sectionDriver": "Fahrer & Logistik",
+          "sectionApproval": "Genehmigung",
+          "type": "Wartungsart",
+          "typePh": "Typ auswählen",
+          "notSpecified": "Nicht angegeben",
+          "status": "Status",
+          "workshop": "Werkstatt",
+          "workshopPh": "Werkstatt auswählen",
+          "mileageAtService": "Kilometerstand bei Service (km)",
+          "mileagePh": "0",
+          "scheduledDate": "Geplantes Datum",
+          "completedDate": "Abschlussdatum",
+          "totalCost": "Gesamtkosten (£)",
+          "totalCostPh": "0.00",
+          "description": "Beschreibung",
+          "descriptionPh": "Kurze Beschreibung",
+          "workDescription": "Arbeitsbeschreibung",
+          "workDescriptionPh": "Detaillierte Arbeit...",
+          "notes": "Notizen",
+          "notesPh": "Zusätzliche Notizen",
+          "serviceDriver": "Service-Fahrer",
+          "selectDriver": "Fahrer auswählen",
+          "otherExternal": "Andere (extern)",
+          "otherNone": "Andere / Keine",
+          "externalDriverName": "Externer Fahrername",
+          "driverNamePh": "Fahrername",
+          "namePh": "Name",
+          "dropOffDriver": "Anlieferungs-Fahrer",
+          "dropOffDriverName": "Anlieferungs-Fahrername",
+          "dropOffDateTime": "Anlieferungs-Datum/Uhrzeit",
+          "pickUpDriver": "Abholungs-Fahrer",
+          "pickUpDriverName": "Abholungs-Fahrername",
+          "pickUpDateTime": "Abholungs-Datum/Uhrzeit",
+          "approvedBy": "Genehmigt von",
+          "pendingApproval": "Genehmigung ausstehend",
+          "approvalDate": "Genehmigungsdatum",
+          "addButton": "Eintrag hinzufügen",
+          "saveButton": "Änderungen speichern",
+          "saving": "Wird gespeichert…"
+        },
+        "toast": {
+          "added": "Wartungseintrag hinzugefügt",
+          "updated": "Wartungseintrag aktualisiert",
+          "addFailed": "Eintrag konnte nicht hinzugefügt werden",
+          "updateFailed": "Eintrag konnte nicht aktualisiert werden",
+          "deleted": "Eintrag gelöscht",
+          "deleteFailed": "Eintrag konnte nicht gelöscht werden"
+        },
+        "confirmDelete": {
+          "title": "Wartungseintrag löschen?",
+          "description": "Dieser Wartungseintrag wird endgültig entfernt.",
+          "confirm": "Löschen"
+        }
       },
-      "toast": { "loadFailed": "Fahrzeug konnte nicht geladen werden", "deleted": "Fahrzeug gelöscht", "deleteFailed": "Löschen fehlgeschlagen" },
-      "confirmDelete": { "title": "Fahrzeug löschen?", "description": "Dieses Fahrzeug wird endgültig entfernt. Diese Aktion kann nicht einfach rückgängig gemacht werden.", "confirm": "Löschen" }
+      "toast": {
+        "loadFailed": "Fahrzeug konnte nicht geladen werden",
+        "deleted": "Fahrzeug gelöscht",
+        "deleteFailed": "Löschen fehlgeschlagen"
+      },
+      "confirmDelete": {
+        "title": "Fahrzeug löschen?",
+        "description": "Dieses Fahrzeug wird endgültig entfernt. Diese Aktion kann nicht einfach rückgängig gemacht werden.",
+        "confirm": "Löschen"
+      }
     },
     "form": {
       "addTitle": "Fahrzeug hinzufügen",
@@ -286,65 +1079,122 @@
       "createButton": "Fahrzeug erstellen",
       "saveChanges": "Änderungen speichern",
       "sections": {
-        "details": "Fahrzeugdetails", "compliance": "Compliance & Zulassungsdaten", "purchase": "Kaufinformationen", "insurance": "Versicherungsinformationen",
-        "truck": "LKW & Anhänger Spezifikationen", "van": "Transporter-Spezifikationen", "car": "PKW-Spezifikationen", "tanker": "Tank-Spezifikationen",
-        "refrigerated": "Kühlanhänger-Spezifikationen", "specialty": "Spezialausrüstung"
+        "details": "Fahrzeugdetails",
+        "compliance": "Compliance & Zulassungsdaten",
+        "purchase": "Kaufinformationen",
+        "insurance": "Versicherungsinformationen",
+        "truck": "LKW & Anhänger Spezifikationen",
+        "van": "Transporter-Spezifikationen",
+        "car": "PKW-Spezifikationen",
+        "tanker": "Tank-Spezifikationen",
+        "refrigerated": "Kühlanhänger-Spezifikationen",
+        "specialty": "Spezialausrüstung"
       },
       "fields": {
-        "registrationNumber": "Kennzeichen", "registrationNumberPh": "z.B. AB12 CDE",
-        "licensePlate": "Nummernschild", "licensePlatePh": "z.B. AB12CDE",
-        "vehicleType": "Fahrzeugtyp", "vehicleTypePh": "Typ auswählen",
+        "registrationNumber": "Kennzeichen",
+        "registrationNumberPh": "z.B. AB12 CDE",
+        "licensePlate": "Nummernschild",
+        "licensePlatePh": "z.B. AB12CDE",
+        "vehicleType": "Fahrzeugtyp",
+        "vehicleTypePh": "Typ auswählen",
         "status": "Status",
-        "make": "Marke", "makePh": "z.B. Volvo",
-        "model": "Modell", "modelPh": "z.B. FH16",
-        "year": "Baujahr", "yearPh": "z.B. 2022",
-        "color": "Farbe", "colorPh": "z.B. Weiß",
-        "vin": "FIN", "vinPh": "Fahrzeug-Identifizierungsnummer",
-        "fuelType": "Kraftstoffart", "fuelTypePh": "Kraftstoffart auswählen",
-        "fuelCapacity": "Tankkapazität (Liter)", "fuelCapacityPh": "z.B. 200",
-        "currentMileage": "Aktueller Kilometerstand (km)", "currentMileagePh": "0",
-        "notes": "Notizen", "notesPh": "Zusätzliche Notizen",
-        "motExpiry": "TÜV-Ablauf", "taxExpiry": "Steuer-Ablauf", "registrationExpiry": "Zulassung-Ablauf", "insuranceExpiry": "Versicherung-Ablauf",
-        "purchaseOrder": "Bestellnummer", "purchaseOrderPh": "z.B. PO-2024-001",
+        "make": "Marke",
+        "makePh": "z.B. Volvo",
+        "model": "Modell",
+        "modelPh": "z.B. FH16",
+        "year": "Baujahr",
+        "yearPh": "z.B. 2022",
+        "color": "Farbe",
+        "colorPh": "z.B. Weiß",
+        "vin": "FIN",
+        "vinPh": "Fahrzeug-Identifizierungsnummer",
+        "fuelType": "Kraftstoffart",
+        "fuelTypePh": "Kraftstoffart auswählen",
+        "fuelCapacity": "Tankkapazität (Liter)",
+        "fuelCapacityPh": "z.B. 200",
+        "currentMileage": "Aktueller Kilometerstand (km)",
+        "currentMileagePh": "0",
+        "notes": "Notizen",
+        "notesPh": "Zusätzliche Notizen",
+        "motExpiry": "TÜV-Ablauf",
+        "taxExpiry": "Steuer-Ablauf",
+        "registrationExpiry": "Zulassung-Ablauf",
+        "insuranceExpiry": "Versicherung-Ablauf",
+        "purchaseOrder": "Bestellnummer",
+        "purchaseOrderPh": "z.B. PO-2024-001",
         "purchaseDate": "Kaufdatum",
-        "purchaseCost": "Kaufpreis", "purchaseCostPh": "z.B. 50000.00",
-        "purchaseContract": "Kaufvertrag", "purchaseContractPh": "z.B. CON-2024-001",
-        "vendorName": "Verkäufer", "vendorNamePh": "z.B. ABC Fahrzeughändler",
-        "vendorAddress": "Verkäuferadresse", "vendorAddressPh": "Vollständige Verkäuferadresse",
-        "policyNumber": "Versicherungsnummer", "policyNumberPh": "z.B. POL-2024-001",
-        "insuranceCompany": "Versicherer", "insuranceCompanyPh": "z.B. ABC Versicherung",
-        "insuranceTypeLabel": "Versicherungsart", "insuranceTypePh": "Versicherungsart auswählen",
+        "purchaseCost": "Kaufpreis",
+        "purchaseCostPh": "z.B. 50000.00",
+        "purchaseContract": "Kaufvertrag",
+        "purchaseContractPh": "z.B. CON-2024-001",
+        "vendorName": "Verkäufer",
+        "vendorNamePh": "z.B. ABC Fahrzeughändler",
+        "vendorAddress": "Verkäuferadresse",
+        "vendorAddressPh": "Vollständige Verkäuferadresse",
+        "policyNumber": "Versicherungsnummer",
+        "policyNumberPh": "z.B. POL-2024-001",
+        "insuranceCompany": "Versicherer",
+        "insuranceCompanyPh": "z.B. ABC Versicherung",
+        "insuranceTypeLabel": "Versicherungsart",
+        "insuranceTypePh": "Versicherungsart auswählen",
         "insuranceStartDate": "Versicherungs-Beginn",
-        "grossWeight": "Gesamtgewicht (Tonnen)", "grossWeightPh": "z.B. 44",
-        "payloadCapacity": "Nutzlast (Tonnen)", "payloadCapacityPh": "z.B. 26",
-        "tareWeight": "Leergewicht (Tonnen)", "tareWeightPh": "z.B. 18",
-        "numberOfAxles": "Anzahl der Achsen", "numberOfAxlesPh": "z.B. 5",
-        "bodyType": "Aufbau", "bodyTypePh": "Aufbau auswählen",
-        "hitchType": "Kupplungsart", "hitchTypePh": "Kupplungsart auswählen",
-        "lengthM": "Länge (m)", "lengthMPh": "z.B. 13.6",
-        "widthM": "Breite (m)", "widthMPh": "z.B. 2.5",
-        "heightM": "Höhe (m)", "heightMPh": "z.B. 2.5",
-        "euroEmission": "Euro-Norm", "euroEmissionPh": "Norm auswählen",
-        "tachographSerial": "Tachograf-Seriennummer", "tachographSerialPh": "z.B. VD0123456789",
+        "grossWeight": "Gesamtgewicht (Tonnen)",
+        "grossWeightPh": "z.B. 44",
+        "payloadCapacity": "Nutzlast (Tonnen)",
+        "payloadCapacityPh": "z.B. 26",
+        "tareWeight": "Leergewicht (Tonnen)",
+        "tareWeightPh": "z.B. 18",
+        "numberOfAxles": "Anzahl der Achsen",
+        "numberOfAxlesPh": "z.B. 5",
+        "bodyType": "Aufbau",
+        "bodyTypePh": "Aufbau auswählen",
+        "hitchType": "Kupplungsart",
+        "hitchTypePh": "Kupplungsart auswählen",
+        "lengthM": "Länge (m)",
+        "lengthMPh": "z.B. 13.6",
+        "widthM": "Breite (m)",
+        "widthMPh": "z.B. 2.5",
+        "heightM": "Höhe (m)",
+        "heightMPh": "z.B. 2.5",
+        "euroEmission": "Euro-Norm",
+        "euroEmissionPh": "Norm auswählen",
+        "tachographSerial": "Tachograf-Seriennummer",
+        "tachographSerialPh": "z.B. VD0123456789",
         "tachographCalibrationExpiry": "Tachograf-Kalibrierung läuft ab",
-        "trailerLength": "Anhängerlänge (m)", "trailerLengthPh": "z.B. 13.6",
-        "seatingCapacity": "Sitzplätze", "seatingCapacityPh": "z.B. 5",
-        "loadVolume": "Ladevolumen (m³)", "loadVolumePh": "z.B. 15.5",
+        "trailerLength": "Anhängerlänge (m)",
+        "trailerLengthPh": "z.B. 13.6",
+        "seatingCapacity": "Sitzplätze",
+        "seatingCapacityPh": "z.B. 5",
+        "loadVolume": "Ladevolumen (m³)",
+        "loadVolumePh": "z.B. 15.5",
         "partitionFitted": "Trennwand vorhanden",
-        "vinSubType": "FIN-Untertyp", "vinSubTypePh": "FIN-Untertyp auswählen",
-        "insuranceGroup": "Versicherungsgruppe", "insuranceGroupPh": "Versicherungsgruppe auswählen",
-        "tankerCapacity": "Tankkapazität (Liter)", "tankerCapacityPh": "z.B. 30000",
-        "tankMaterial": "Tankmaterial", "tankMaterialPh": "Tankmaterial auswählen",
-        "adrClass": "ADR-Klasse", "adrClassPh": "ADR-Klasse auswählen",
-        "unNumbers": "UN-Nummern", "unNumbersPh": "z.B. 1223, 1250",
-        "lastPressureTest": "Letzter Drucktest", "nextPressureTest": "Nächster Drucktest",
-        "refrigerationUnit": "Kühlaggregat", "refrigerationUnitPh": "z.B. Thermo King",
-        "refrigerationModel": "Kühlmodell", "refrigerationModelPh": "z.B. T-1200R",
-        "tempMin": "Min. Temperatur (°C)", "tempMinPh": "z.B. -25",
-        "tempMax": "Max. Temperatur (°C)", "tempMaxPh": "z.B. 10",
-        "atpCertificateNumber": "ATP-Zertifikatsnummer", "atpCertificateNumberPh": "z.B. ATP-2024-001",
+        "vinSubType": "FIN-Untertyp",
+        "vinSubTypePh": "FIN-Untertyp auswählen",
+        "insuranceGroup": "Versicherungsgruppe",
+        "insuranceGroupPh": "Versicherungsgruppe auswählen",
+        "tankerCapacity": "Tankkapazität (Liter)",
+        "tankerCapacityPh": "z.B. 30000",
+        "tankMaterial": "Tankmaterial",
+        "tankMaterialPh": "Tankmaterial auswählen",
+        "adrClass": "ADR-Klasse",
+        "adrClassPh": "ADR-Klasse auswählen",
+        "unNumbers": "UN-Nummern",
+        "unNumbersPh": "z.B. 1223, 1250",
+        "lastPressureTest": "Letzter Drucktest",
+        "nextPressureTest": "Nächster Drucktest",
+        "refrigerationUnit": "Kühlaggregat",
+        "refrigerationUnitPh": "z.B. Thermo King",
+        "refrigerationModel": "Kühlmodell",
+        "refrigerationModelPh": "z.B. T-1200R",
+        "tempMin": "Min. Temperatur (°C)",
+        "tempMinPh": "z.B. -25",
+        "tempMax": "Max. Temperatur (°C)",
+        "tempMaxPh": "z.B. 10",
+        "atpCertificateNumber": "ATP-Zertifikatsnummer",
+        "atpCertificateNumberPh": "z.B. ATP-2024-001",
         "atpCertificateExpiry": "ATP-Zertifikat-Ablauf",
-        "equipmentDescription": "Ausrüstungsbeschreibung", "equipmentDescriptionPh": "Beschreiben Sie spezielle Ausrüstung oder Modifikationen",
+        "equipmentDescription": "Ausrüstungsbeschreibung",
+        "equipmentDescriptionPh": "Beschreiben Sie spezielle Ausrüstung oder Modifikationen",
         "notSpecified": "Nicht angegeben"
       },
       "validation": {
@@ -361,86 +1211,261 @@
         "saveFailed": "Speichern fehlgeschlagen"
       }
     },
-    "workshops": { "title": "Werkstätten", "subtitle": "Autorisierte Service-Anbieter", "addButton": "Werkstatt hinzufügen", "empty": "Noch keine Werkstätten." },
-    "maintenanceTypes": { "title": "Wartungsarten", "addButton": "Art hinzufügen" },
-    "maintenanceRecords": { "title": "Wartungsprotokolle", "subtitle": "Alle Wartungsaktivitäten in der Flotte", "addButton": "Neuer Eintrag", "empty": "Noch keine Wartungsprotokolle." }
+    "workshops": {
+      "title": "Werkstätten",
+      "subtitle": "Autorisierte Service-Anbieter",
+      "addButton": "Werkstatt hinzufügen",
+      "empty": "Noch keine Werkstätten."
+    },
+    "maintenanceTypes": {
+      "title": "Wartungsarten",
+      "addButton": "Art hinzufügen"
+    },
+    "maintenanceRecords": {
+      "title": "Wartungsprotokolle",
+      "subtitle": "Alle Wartungsaktivitäten in der Flotte",
+      "addButton": "Neuer Eintrag",
+      "empty": "Noch keine Wartungsprotokolle."
+    }
   },
   "attendance": {
-    "list": { "title": "Anwesenheitslisten", "subtitle": "Monatliche Anwesenheit pro Mitarbeiter", "addButton": "Neue Liste", "empty": "Noch keine Anwesenheitslisten." },
-    "sheet": { "title": "Anwesenheitsliste", "back": "Zurück zu Anwesenheit", "save": "Liste speichern", "lock": "Periode sperren", "unlock": "Periode entsperren" }
+    "list": {
+      "title": "Anwesenheitslisten",
+      "subtitle": "Monatliche Anwesenheit pro Mitarbeiter",
+      "addButton": "Neue Liste",
+      "empty": "Noch keine Anwesenheitslisten."
+    },
+    "sheet": {
+      "title": "Anwesenheitsliste",
+      "back": "Zurück zu Anwesenheit",
+      "save": "Liste speichern",
+      "lock": "Periode sperren",
+      "unlock": "Periode entsperren"
+    }
   },
   "reports": {
-    "dashboard": { "title": "Berichte & Analyse", "subtitle": "Eigene Berichte erstellen und exportieren", "newReport": "Neuer Bericht", "empty": "Noch keine Berichte." }
+    "dashboard": {
+      "title": "Berichte & Analyse",
+      "subtitle": "Eigene Berichte erstellen und exportieren",
+      "newReport": "Neuer Bericht",
+      "empty": "Noch keine Berichte."
+    }
   },
   "notifications": {
-    "center": { "title": "Benachrichtigungen", "subtitle": "Alle Ihre Hinweise und Updates", "markAllRead": "Alle als gelesen markieren", "empty": "Keine Benachrichtigungen.", "filters": { "all": "Alle", "unread": "Ungelesen", "read": "Gelesen" } },
-    "settings": { "title": "Benachrichtigungseinstellungen", "subtitle": "Wählen Sie, welche Benachrichtigungen Sie erhalten", "save": "Einstellungen speichern" }
+    "center": {
+      "title": "Benachrichtigungen",
+      "subtitle": "Alle Ihre Hinweise und Updates",
+      "markAllRead": "Alle als gelesen markieren",
+      "empty": "Keine Benachrichtigungen.",
+      "filters": {
+        "all": "Alle",
+        "unread": "Ungelesen",
+        "read": "Gelesen"
+      }
+    },
+    "settings": {
+      "title": "Benachrichtigungseinstellungen",
+      "subtitle": "Wählen Sie, welche Benachrichtigungen Sie erhalten",
+      "save": "Einstellungen speichern"
+    }
   },
   "users": {
-    "list": { "title": "Benutzerverwaltung", "subtitle": "Systembenutzer und Zugriff", "addButton": "Benutzer hinzufügen", "search": "Benutzer suchen…", "bulkImport": "Massenimport", "empty": "Keine Benutzer gefunden.", "activationLink": "Aktivierungslink" },
-    "add": { "title": "Benutzer hinzufügen", "back": "Zurück zu Benutzern" },
-    "edit": { "title": "Benutzer bearbeiten", "back": "Zurück zu Benutzern" }
+    "list": {
+      "title": "Benutzerverwaltung",
+      "subtitle": "Systembenutzer und Zugriff",
+      "addButton": "Benutzer hinzufügen",
+      "search": "Benutzer suchen…",
+      "bulkImport": "Massenimport",
+      "empty": "Keine Benutzer gefunden.",
+      "activationLink": "Aktivierungslink"
+    },
+    "add": {
+      "title": "Benutzer hinzufügen",
+      "back": "Zurück zu Benutzern"
+    },
+    "edit": {
+      "title": "Benutzer bearbeiten",
+      "back": "Zurück zu Benutzern"
+    }
   },
   "roles": {
-    "list": { "title": "Rollen & Berechtigungen", "subtitle": "Rollen definieren und Berechtigungen zuweisen", "addButton": "Neue Rolle", "permissionsMatrix": "Berechtigungsmatrix", "allRoles": "Alle Rollen", "empty": "Noch keine Rollen." },
-    "create": { "title": "Rolle erstellen", "editTitle": "Rolle bearbeiten", "back": "Zurück zu Rollen" },
-    "matrix": { "title": "Berechtigungsmatrix", "back": "Zurück zu Rollen" }
+    "list": {
+      "title": "Rollen & Berechtigungen",
+      "subtitle": "Rollen definieren und Berechtigungen zuweisen",
+      "addButton": "Neue Rolle",
+      "permissionsMatrix": "Berechtigungsmatrix",
+      "allRoles": "Alle Rollen",
+      "empty": "Noch keine Rollen."
+    },
+    "create": {
+      "title": "Rolle erstellen",
+      "editTitle": "Rolle bearbeiten",
+      "back": "Zurück zu Rollen"
+    },
+    "matrix": {
+      "title": "Berechtigungsmatrix",
+      "back": "Zurück zu Rollen"
+    }
   },
   "jobAds": {
-    "list": { "title": "Stellenanzeigen", "subtitle": "Öffentliche Stellenanzeigen", "addButton": "Neue Stellenanzeige", "search": "Stellenanzeigen suchen…", "empty": "Noch keine Stellenanzeigen." },
-    "form": { "addTitle": "Neue Stellenanzeige", "editTitle": "Stellenanzeige bearbeiten", "back": "Zurück zu Stellenanzeigen" }
+    "list": {
+      "title": "Stellenanzeigen",
+      "subtitle": "Öffentliche Stellenanzeigen",
+      "addButton": "Neue Stellenanzeige",
+      "search": "Stellenanzeigen suchen…",
+      "empty": "Noch keine Stellenanzeigen."
+    },
+    "form": {
+      "addTitle": "Neue Stellenanzeige",
+      "editTitle": "Stellenanzeige bearbeiten",
+      "back": "Zurück zu Stellenanzeigen"
+    }
   },
   "recycleBin": {
-    "list": { "title": "Gelöschte Datensätze", "subtitle": "Datensätze wiederherstellen oder dauerhaft löschen", "accessDenied": "Zugriff verweigert", "empty": "Papierkorb ist leer.", "restore": "Wiederherstellen", "permanentlyDelete": "Endgültig löschen" }
+    "list": {
+      "title": "Gelöschte Datensätze",
+      "subtitle": "Datensätze wiederherstellen oder dauerhaft löschen",
+      "accessDenied": "Zugriff verweigert",
+      "empty": "Papierkorb ist leer.",
+      "restore": "Wiederherstellen",
+      "permanentlyDelete": "Endgültig löschen"
+    }
   },
   "logs": {
-    "dashboard": { "title": "Systemprotokolle", "subtitle": "Aktivitäts-Audit-Trail", "activityByModule": "Aktivität nach Modul", "search": "Protokolle durchsuchen…", "empty": "Keine Protokolle entsprechen Ihren Filtern." }
+    "dashboard": {
+      "title": "Systemprotokolle",
+      "subtitle": "Aktivitäts-Audit-Trail",
+      "activityByModule": "Aktivität nach Modul",
+      "search": "Protokolle durchsuchen…",
+      "empty": "Keine Protokolle entsprechen Ihren Filtern."
+    }
   },
   "settings": {
     "index": {
       "title": "Einstellungen",
       "subtitle": "Konfigurieren Sie Ihre TempWorks-Instanz",
       "groups": {
-        "appearance": "Darstellung", "appearanceDesc": "Theme und Farbschema",
-        "workflow": "Workflow", "workflowDesc": "Konfiguration der Recruiting-Pipeline",
-        "documentTypes": "Dokumentenarten", "documentTypesDesc": "Dokumentkategorien verwalten",
-        "notifications": "Benachrichtigungen", "notificationsDesc": "Benachrichtigungsregeln und Auslöser",
-        "security": "Sicherheit", "securityDesc": "Authentifizierung und Zugriffsrichtlinien",
-        "branding": "Branding", "brandingDesc": "Logo, Firmenname, Marketingtexte",
-        "system": "System", "systemDesc": "Datenbank, Backups, Systeminformationen"
+        "appearance": "Darstellung",
+        "appearanceDesc": "Theme und Farbschema",
+        "workflow": "Workflow",
+        "workflowDesc": "Konfiguration der Recruiting-Pipeline",
+        "documentTypes": "Dokumentenarten",
+        "documentTypesDesc": "Dokumentkategorien verwalten",
+        "notifications": "Benachrichtigungen",
+        "notificationsDesc": "Benachrichtigungsregeln und Auslöser",
+        "security": "Sicherheit",
+        "securityDesc": "Authentifizierung und Zugriffsrichtlinien",
+        "branding": "Branding",
+        "brandingDesc": "Logo, Firmenname, Marketingtexte",
+        "system": "System",
+        "systemDesc": "Datenbank, Backups, Systeminformationen"
       }
     },
-    "documentTypes": { "list": "Dokumentenarten", "addButton": "Neue Dokumentenart", "newTitle": "Neue Dokumentenart", "editTitle": "Dokumentenart bearbeiten", "viewTitle": "Dokumentenart", "back": "Zurück zu Dokumentenarten" },
-    "jobTypes": { "title": "Stellentypen", "addButton": "Typ hinzufügen" },
-    "skills": { "title": "Fähigkeiten", "addButton": "Fähigkeit hinzufügen" },
-    "workflowSettings": { "title": "Workflow-Einstellungen" },
-    "workflowConfiguration": { "title": "Workflow-Konfiguration" },
-    "notificationRules": { "title": "Benachrichtigungsregeln", "addButton": "Neue Regel" },
-    "security": { "title": "Sicherheitseinstellungen" },
-    "colorScheme": { "title": "Farbschema" },
-    "branding": { "title": "Branding" },
-    "databaseCleanup": { "title": "Datenbankbereinigung" },
-    "databaseBackup": { "title": "Datenbank-Backup" },
-    "systemInformation": { "title": "Systeminformationen" },
-    "transportTypes": { "title": "Transportarten", "addButton": "Art hinzufügen" },
-    "truckBrands": { "title": "LKW-Marken", "addButton": "Marke hinzufügen" },
-    "trailerTypes": { "title": "Anhängertypen", "addButton": "Typ hinzufügen" },
-    "vehicleSettings": { "title": "Fahrzeugeinstellungen" },
-    "transactionTypes": { "title": "Transaktionsarten", "addButton": "Art hinzufügen" },
-    "workHistoryEventTypes": { "title": "Arbeitsverlaufs-Ereignisse", "addButton": "Typ hinzufügen" },
-    "maintenanceTypes": { "title": "Wartungsarten", "addButton": "Art hinzufügen" }
+    "documentTypes": {
+      "list": "Dokumentenarten",
+      "addButton": "Neue Dokumentenart",
+      "newTitle": "Neue Dokumentenart",
+      "editTitle": "Dokumentenart bearbeiten",
+      "viewTitle": "Dokumentenart",
+      "back": "Zurück zu Dokumentenarten"
+    },
+    "jobTypes": {
+      "title": "Stellentypen",
+      "addButton": "Typ hinzufügen"
+    },
+    "skills": {
+      "title": "Fähigkeiten",
+      "addButton": "Fähigkeit hinzufügen"
+    },
+    "workflowSettings": {
+      "title": "Workflow-Einstellungen"
+    },
+    "workflowConfiguration": {
+      "title": "Workflow-Konfiguration"
+    },
+    "notificationRules": {
+      "title": "Benachrichtigungsregeln",
+      "addButton": "Neue Regel"
+    },
+    "security": {
+      "title": "Sicherheitseinstellungen"
+    },
+    "colorScheme": {
+      "title": "Farbschema"
+    },
+    "branding": {
+      "title": "Branding"
+    },
+    "databaseCleanup": {
+      "title": "Datenbankbereinigung"
+    },
+    "databaseBackup": {
+      "title": "Datenbank-Backup"
+    },
+    "systemInformation": {
+      "title": "Systeminformationen"
+    },
+    "transportTypes": {
+      "title": "Transportarten",
+      "addButton": "Art hinzufügen"
+    },
+    "truckBrands": {
+      "title": "LKW-Marken",
+      "addButton": "Marke hinzufügen"
+    },
+    "trailerTypes": {
+      "title": "Anhängertypen",
+      "addButton": "Typ hinzufügen"
+    },
+    "vehicleSettings": {
+      "title": "Fahrzeugeinstellungen"
+    },
+    "transactionTypes": {
+      "title": "Transaktionsarten",
+      "addButton": "Art hinzufügen"
+    },
+    "workHistoryEventTypes": {
+      "title": "Arbeitsverlaufs-Ereignisse",
+      "addButton": "Typ hinzufügen"
+    },
+    "maintenanceTypes": {
+      "title": "Wartungsarten",
+      "addButton": "Art hinzufügen"
+    }
   },
   "profile": {
-    "view": { "title": "Mein Profil", "subtitle": "Persönliche Daten und Kontakt", "edit": "Bearbeiten" },
-    "changePassword": { "title": "Passwort ändern", "subtitle": "Passwort aktualisieren, um Ihr Konto sicher zu halten" },
-    "preferences": { "title": "Einstellungen", "subtitle": "Sprache, Zeitzone und Benachrichtigungseinstellungen", "language": "Bevorzugte Sprache", "timezone": "Zeitzone", "save": "Einstellungen speichern", "saved": "Einstellungen gespeichert" }
+    "view": {
+      "title": "Mein Profil",
+      "subtitle": "Persönliche Daten und Kontakt",
+      "edit": "Bearbeiten"
+    },
+    "changePassword": {
+      "title": "Passwort ändern",
+      "subtitle": "Passwort aktualisieren, um Ihr Konto sicher zu halten"
+    },
+    "preferences": {
+      "title": "Einstellungen",
+      "subtitle": "Sprache, Zeitzone und Benachrichtigungseinstellungen",
+      "language": "Bevorzugte Sprache",
+      "timezone": "Zeitzone",
+      "save": "Einstellungen speichern",
+      "saved": "Einstellungen gespeichert"
+    }
   },
   "common": {
-    "from": "Von", "to": "Bis", "all": "Alle", "more": "Mehr",
-    "showMore": "Mehr anzeigen", "showLess": "Weniger anzeigen",
-    "results_one": "{{count}} Ergebnis", "results_other": "{{count}} Ergebnisse"
+    "from": "Von",
+    "to": "Bis",
+    "all": "Alle",
+    "more": "Mehr",
+    "showMore": "Mehr anzeigen",
+    "showLess": "Weniger anzeigen",
+    "results_one": "{{count}} Ergebnis",
+    "results_other": "{{count}} Ergebnisse"
   },
   "finance": {
-    "page": { "title": "Finanzen", "subtitle": "Transaktionen und Salden im Unternehmen" }
+    "page": {
+      "title": "Finanzen",
+      "subtitle": "Transaktionen und Salden im Unternehmen"
+    }
   }
 }

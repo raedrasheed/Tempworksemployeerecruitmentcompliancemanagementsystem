@@ -10,6 +10,8 @@ import {
 import { usePermissions } from '../../hooks/usePermissions';
 import { getCurrentUser, applicantsApi, documentsApi, settingsApi, employeeWorkflowApi, agenciesApi, workflowApi } from '../../services/api';
 import { apiError } from '../../../i18n/apiError';
+import { enumLabel } from '../../../i18n/enumLabel';
+import { formatDate } from '../../../i18n/formatters';
 import { FinancialRecordsTab } from '../../components/finance/FinancialRecordsTab';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -631,25 +633,25 @@ export function CandidateProfile() {
                         {applicantData.leadNumber}
                       </span>
                     ) : (
-                      <span className="text-xs text-muted-foreground italic">No identifier (legacy record)</span>
+                      <span className="text-xs text-muted-foreground italic">{t('pages:applicants.profile.noIdentifierLegacy')}</span>
                     )}
                     {/* Also show lead number for candidates so traceability is visible */}
                     {applicantData.tier === 'CANDIDATE' && applicantData.leadNumber && (
                       <span className="text-xs text-muted-foreground">
-                        (was <span className="font-mono">{applicantData.leadNumber}</span>)
+                        {t('pages:applicants.profile.wasLeadPrefix', { leadNumber: applicantData.leadNumber })}
                       </span>
                     )}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   {applicantData.approvalStatus === 'PENDING_APPROVAL' && (
-                    <Badge className="bg-amber-100 text-amber-900 border border-amber-300">Pending Tempworks approval</Badge>
+                    <Badge className="bg-amber-100 text-amber-900 border border-amber-300">{t('pages:applicants.profile.candidateApproval.pendingBadge')}</Badge>
                   )}
                   {applicantData.approvalStatus === 'REJECTED' && (
-                    <Badge className="bg-red-100 text-red-900 border border-red-300">Rejected</Badge>
+                    <Badge className="bg-red-100 text-red-900 border border-red-300">{t('pages:applicants.profile.candidateApproval.rejectedBadge')}</Badge>
                   )}
                   <Badge className={statusBadgeClass(applicantData.status)}>
-                    {applicantData.status?.replace(/_/g, ' ').toLowerCase()}
+                    {enumLabel('applicantStatus', applicantData.status)}
                   </Badge>
                 </div>
               </div>
@@ -685,14 +687,14 @@ export function CandidateProfile() {
                 <div className="flex items-center gap-2">
                   <Mail className="w-4 h-4 text-muted-foreground" />
                   <div>
-                    <p className="text-xs text-muted-foreground">Email</p>
+                    <p className="text-xs text-muted-foreground">{t('pages:applicants.profile.header.email')}</p>
                     <p className="text-sm font-medium">{applicantData.email}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <Phone className="w-4 h-4 text-muted-foreground" />
                   <div className="flex-1">
-                    <p className="text-xs text-muted-foreground">Phone</p>
+                    <p className="text-xs text-muted-foreground">{t('pages:applicants.profile.header.phone')}</p>
                     <p className="text-sm font-medium">{applicantData.phone}</p>
                   </div>
                   <WhatsAppButton phone={applicantData.phone} size="icon" />
@@ -700,15 +702,15 @@ export function CandidateProfile() {
                 <div className="flex items-center gap-2">
                   <Globe className="w-4 h-4 text-muted-foreground" />
                   <div>
-                    <p className="text-xs text-muted-foreground">Citizenship</p>
+                    <p className="text-xs text-muted-foreground">{t('pages:applicants.profile.header.citizenship')}</p>
                     <p className="text-sm font-medium">{applicantData.nationality}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <Calendar className="w-4 h-4 text-muted-foreground" />
                   <div>
-                    <p className="text-xs text-muted-foreground">Applied</p>
-                    <p className="text-sm font-medium">{applicantData.applicationDate}</p>
+                    <p className="text-xs text-muted-foreground">{t('pages:applicants.profile.header.applied')}</p>
+                    <p className="text-sm font-medium">{applicantData.applicationDate ? formatDate(applicantData.applicationDate) : ''}</p>
                   </div>
                 </div>
               </div>
@@ -717,26 +719,26 @@ export function CandidateProfile() {
                   leave blank dashes cluttering the card. */}
               {(applicantData.emergencyFullName || applicantData.emergencyPhoneFull || applicantData.emergencyEmail) && (
                 <div className="mt-6 pt-4 border-t">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">Family / Emergency Contact</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">{t('pages:applicants.profile.emergency.sectionTitle')}</p>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="flex items-center gap-2">
                       <UserPlus className="w-4 h-4 text-muted-foreground" />
                       <div>
-                        <p className="text-xs text-muted-foreground">Name</p>
+                        <p className="text-xs text-muted-foreground">{t('pages:applicants.profile.emergency.name')}</p>
                         <p className="text-sm font-medium">{applicantData.emergencyFullName || '—'}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <Briefcase className="w-4 h-4 text-muted-foreground" />
                       <div>
-                        <p className="text-xs text-muted-foreground">Relationship</p>
+                        <p className="text-xs text-muted-foreground">{t('pages:applicants.profile.emergency.relationship')}</p>
                         <p className="text-sm font-medium">{applicantData.emergencyRelation || '—'}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <Phone className="w-4 h-4 text-muted-foreground" />
                       <div className="flex-1">
-                        <p className="text-xs text-muted-foreground">Phone</p>
+                        <p className="text-xs text-muted-foreground">{t('pages:applicants.profile.emergency.phone')}</p>
                         <p className="text-sm font-medium">{applicantData.emergencyPhoneFull || '—'}</p>
                       </div>
                       {applicantData.emergencyPhoneFull && <WhatsAppButton phone={applicantData.emergencyPhoneFull} size="icon" />}
@@ -744,7 +746,7 @@ export function CandidateProfile() {
                     <div className="flex items-center gap-2">
                       <Mail className="w-4 h-4 text-muted-foreground" />
                       <div>
-                        <p className="text-xs text-muted-foreground">Email</p>
+                        <p className="text-xs text-muted-foreground">{t('pages:applicants.profile.emergency.email')}</p>
                         <p className="text-sm font-medium">{applicantData.emergencyEmail || '—'}</p>
                       </div>
                     </div>
@@ -759,14 +761,14 @@ export function CandidateProfile() {
       {/* Quick Nav */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: 'Travel & Residence', icon: FileText },
-          { label: 'Driving Licence & Experience', icon: Award },
-          { label: 'Education', icon: GraduationCap },
-          { label: 'Work Experience', icon: Briefcase },
+          { label: t('pages:applicants.profile.quickNav.travel'), icon: FileText },
+          { label: t('pages:applicants.profile.quickNav.driving'), icon: Award },
+          { label: t('pages:applicants.profile.quickNav.education'), icon: GraduationCap },
+          { label: t('pages:applicants.profile.quickNav.workExperience'), icon: Briefcase },
         ].map(({ label, icon: Icon }) => (
           <Button key={label} variant="outline" className="justify-between">
             <div className="flex items-center gap-2"><Icon className="w-4 h-4" /><span>{label}</span></div>
-            <ChevronRight className="w-4 h-4" />
+            <ChevronRight className="w-4 h-4 rtl:rotate-180" />
           </Button>
         ))}
       </div>
@@ -798,22 +800,22 @@ export function CandidateProfile() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Personal Information */}
             <Card className="lg:col-span-2">
-              <CardHeader><CardTitle>Personal Information</CardTitle></CardHeader>
+              <CardHeader><CardTitle>{t('pages:applicants.profile.personal.title')}</CardTitle></CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   {[
-                    ['Full Name', applicantData.fullName],
-                    ['Date of Birth', applicantData.dateOfBirth || '—'],
-                    ['Citizenship', applicantData.nationality],
-                    ['License Number', applicantData.drivingLicenseNumber || '—'],
-                    ['License Category', [applicantData.categoryC && 'C', applicantData.categoryE && 'E'].filter(Boolean).join('+') || '—'],
-                    ['Years EU Experience', applicantData.yearsEUExperience || '—'],
-                    ['Permanent Address', applicantData.permanentAddress || '—'],
-                    ['Country of Residence', applicantData.countryOfResidence || '—'],
-                    ['Current Country', applicantData.currentCountryOfResidence || '—'],
-                    ['Applied Position', applicantData.jobAd?.title || 'GENERAL'],
-                    ['Preferred Start Date', applicantData.preferredStartDate || '—'],
-                    ['How They Heard', applicantData.howDidYouHear || '—'],
+                    [t('pages:applicants.profile.personal.fullName'), applicantData.fullName],
+                    [t('pages:applicants.profile.personal.dateOfBirth'), applicantData.dateOfBirth ? formatDate(applicantData.dateOfBirth) : '—'],
+                    [t('pages:applicants.profile.personal.citizenship'), applicantData.nationality],
+                    [t('pages:applicants.profile.personal.licenseNumber'), applicantData.drivingLicenseNumber || '—'],
+                    [t('pages:applicants.profile.personal.licenseCategory'), [applicantData.categoryC && 'C', applicantData.categoryE && 'E'].filter(Boolean).join('+') || '—'],
+                    [t('pages:applicants.profile.personal.yearsEUExperience'), applicantData.yearsEUExperience || '—'],
+                    [t('pages:applicants.profile.personal.permanentAddress'), applicantData.permanentAddress || '—'],
+                    [t('pages:applicants.profile.personal.countryOfResidence'), applicantData.countryOfResidence || '—'],
+                    [t('pages:applicants.profile.personal.currentCountry'), applicantData.currentCountryOfResidence || '—'],
+                    [t('pages:applicants.profile.personal.appliedPosition'), applicantData.jobAd?.title || t('pages:applicants.profile.personal.general')],
+                    [t('pages:applicants.profile.personal.preferredStartDate'), applicantData.preferredStartDate ? formatDate(applicantData.preferredStartDate) : '—'],
+                    [t('pages:applicants.profile.personal.howTheyHeard'), applicantData.howDidYouHear || '—'],
                   ].map(([label, value]: any) => (
                     <div key={label}>
                       <p className="text-sm text-muted-foreground">{label}</p>
@@ -828,12 +830,12 @@ export function CandidateProfile() {
             <div className="space-y-6">
               {/* Quick Stats */}
               <Card>
-                <CardHeader><CardTitle>Quick Stats</CardTitle></CardHeader>
+                <CardHeader><CardTitle>{t('pages:applicants.profile.stats.title')}</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
                   {[
-                    { icon: FileText, color: 'text-[#2563EB]', bg: 'bg-[#EFF6FF]', value: documents.length, label: 'Documents' },
-                    { icon: Shield, color: 'text-[#22C55E]', bg: 'bg-[#F0FDF4]', value: validDocs, label: 'Valid Docs' },
-                    { icon: Clock, color: 'text-[#F59E0B]', bg: 'bg-[#FEF3C7]', value: expiringSoon, label: 'Expiring Soon' },
+                    { icon: FileText, color: 'text-[#2563EB]', bg: 'bg-[#EFF6FF]', value: documents.length, label: t('pages:applicants.profile.stats.documents') },
+                    { icon: Shield, color: 'text-[#22C55E]', bg: 'bg-[#F0FDF4]', value: validDocs, label: t('pages:applicants.profile.stats.validDocs') },
+                    { icon: Clock, color: 'text-[#F59E0B]', bg: 'bg-[#FEF3C7]', value: expiringSoon, label: t('pages:applicants.profile.stats.expiringSoon') },
                   ].map(({ icon: Icon, color, bg, value, label }) => (
                     <div key={label} className="flex items-center gap-3">
                       <div className={`w-10 h-10 rounded-lg ${bg} flex items-center justify-center`}>
@@ -850,32 +852,32 @@ export function CandidateProfile() {
 
               {/* Lifecycle Identifiers */}
               <Card>
-                <CardHeader><CardTitle>Lifecycle Identifiers</CardTitle></CardHeader>
+                <CardHeader><CardTitle>{t('pages:applicants.profile.lifecycle.title')}</CardTitle></CardHeader>
                 <CardContent className="space-y-3 text-sm">
                   <div className="space-y-2">
                     <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Lead ID</p>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">{t('pages:applicants.profile.lifecycle.leadId')}</p>
                       {applicantData.leadNumber
                         ? <span className="font-mono font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded px-2 py-0.5">{applicantData.leadNumber}</span>
-                        : <span className="text-muted-foreground italic text-xs">Not assigned (legacy)</span>}
-                      <p className="text-xs text-muted-foreground mt-1">Created: {applicantData.applicationDate || '—'}</p>
+                        : <span className="text-muted-foreground italic text-xs">{t('pages:applicants.profile.lifecycle.notAssignedLegacy')}</span>}
+                      <p className="text-xs text-muted-foreground mt-1">{t('pages:applicants.profile.lifecycle.createdLabel', { date: applicantData.applicationDate ? formatDate(applicantData.applicationDate) : '—' })}</p>
                     </div>
                     <div className="border-t pt-2">
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Candidate ID</p>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">{t('pages:applicants.profile.lifecycle.candidateId')}</p>
                       {applicantData.candidateNumber
                         ? <span className="font-mono font-semibold text-purple-700 bg-purple-50 border border-purple-200 rounded px-2 py-0.5">{applicantData.candidateNumber}</span>
-                        : <span className="text-muted-foreground italic text-xs">{applicantData.tier === 'LEAD' ? 'Not yet converted' : 'Not assigned (legacy)'}</span>}
+                        : <span className="text-muted-foreground italic text-xs">{applicantData.tier === 'LEAD' ? t('pages:applicants.profile.lifecycle.notYetConverted') : t('pages:applicants.profile.lifecycle.notAssignedLegacy')}</span>}
                       {applicantData.candidateConvertedAt && (
-                        <p className="text-xs text-muted-foreground mt-1">Converted: {applicantData.candidateConvertedAt}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{t('pages:applicants.profile.lifecycle.convertedLabel', { date: applicantData.candidateConvertedAt })}</p>
                       )}
                     </div>
                     {/* Creation attribution — self-applied via public form vs
                         dashboard-created by a staff user. */}
                     <div className="border-t pt-2">
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Created By</p>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">{t('pages:applicants.profile.lifecycle.createdBy')}</p>
                       {applicantData.source === 'SELF_APPLIED' ? (
                         <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-2 py-0.5">
-                          Self-applied via public form
+                          {t('pages:applicants.profile.lifecycle.selfApplied')}
                         </span>
                       ) : applicantData.createdBy ? (
                         <p className="text-sm font-medium">
@@ -885,7 +887,7 @@ export function CandidateProfile() {
                           )}
                         </p>
                       ) : (
-                        <span className="text-muted-foreground italic text-xs">Unknown (legacy record)</span>
+                        <span className="text-muted-foreground italic text-xs">{t('pages:applicants.profile.lifecycle.unknownLegacy')}</span>
                       )}
                     </div>
                   </div>
@@ -894,7 +896,7 @@ export function CandidateProfile() {
 
               {/* Agency */}
               <Card>
-                <CardHeader><CardTitle>Agency</CardTitle></CardHeader>
+                <CardHeader><CardTitle>{t('pages:applicants.profile.agency.title')}</CardTitle></CardHeader>
                 <CardContent className="space-y-3">
                   {applicantData.agency && (
                     <div className="flex items-center gap-3 pb-3 border-b">
@@ -911,10 +913,10 @@ export function CandidateProfile() {
                       disabled={changingAgency}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="No Agency (Direct)" />
+                        <SelectValue placeholder={t('pages:applicants.profile.agency.noAgency')} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="__none__">No Agency (Direct)</SelectItem>
+                        <SelectItem value="__none__">{t('pages:applicants.profile.agency.noAgency')}</SelectItem>
                         {agencies.map((a: any) => (
                           <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
                         ))}
@@ -926,50 +928,50 @@ export function CandidateProfile() {
             </div>
           </div>
 
-          {/* Applicant-specific details */}
+          {/* Candidate-specific details */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Travel & Residence Documents */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <FileText className="w-5 h-5" />Travel & Residence Documents
+                  <FileText className="w-5 h-5" />{t('pages:applicants.profile.travelDocs.title')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <InfoRow label="Passport Number" value={applicantData.passportNumber} />
-                <InfoRow label="Passport Valid Until" value={applicantData.passportValidUntil} />
-                <InfoRow label="Issuing Country" value={applicantData.issuingCountry} />
+                <InfoRow label={t('pages:applicants.profile.travelDocs.passportNumber')} value={applicantData.passportNumber} />
+                <InfoRow label={t('pages:applicants.profile.travelDocs.passportValidUntil')} value={applicantData.passportValidUntil} />
+                <InfoRow label={t('pages:applicants.profile.travelDocs.issuingCountry')} value={applicantData.issuingCountry} />
 
-                <InfoRow label="EU Visa" value={applicantData.hasEUVisa ? 'Yes' : 'No'} />
+                <InfoRow label={t('pages:applicants.profile.travelDocs.euVisa')} value={applicantData.hasEUVisa ? t('pages:applicants.profile.travelDocs.yes') : t('pages:applicants.profile.travelDocs.no')} />
                 {applicantData.hasEUVisa && (
                   <div className="ps-4 border-s-2 border-blue-100 ms-1 space-y-2">
-                    <InfoRow label="Visa Type" value={applicantData.euVisaType} />
-                    <InfoRow label="Issuing Country" value={applicantData.euVisaCountry} />
-                    <InfoRow label="Visa Number" value={applicantData.euVisaNumber} />
-                    <InfoRow label="Valid Until" value={applicantData.euVisaExpiryDate} />
+                    <InfoRow label={t('pages:applicants.profile.travelDocs.visaType')} value={applicantData.euVisaType} />
+                    <InfoRow label={t('pages:applicants.profile.travelDocs.issuingCountry')} value={applicantData.euVisaCountry} />
+                    <InfoRow label={t('pages:applicants.profile.travelDocs.visaNumber')} value={applicantData.euVisaNumber} />
+                    <InfoRow label={t('pages:applicants.profile.travelDocs.validUntil')} value={applicantData.euVisaExpiryDate} />
                   </div>
                 )}
 
-                <InfoRow label="Work Permit in EU" value={applicantData.hasWorkPermit ? 'Yes' : 'No'} />
+                <InfoRow label={t('pages:applicants.profile.travelDocs.workPermitInEU')} value={applicantData.hasWorkPermit ? t('pages:applicants.profile.travelDocs.yes') : t('pages:applicants.profile.travelDocs.no')} />
                 {applicantData.hasWorkPermit && (
                   <div className="ps-4 border-s-2 border-blue-100 ms-1 space-y-2">
-                    <InfoRow label="Permit Type" value={applicantData.workPermitType} />
-                    <InfoRow label="Permit Number" value={applicantData.workPermitNumber} />
-                    <InfoRow label="Issuing Country" value={applicantData.workPermitCountry} />
-                    <InfoRow label="Issue Date" value={applicantData.workPermitIssueDate} />
-                    <InfoRow label="Valid Until" value={applicantData.workPermitExpiryDate} />
+                    <InfoRow label={t('pages:applicants.profile.travelDocs.permitType')} value={applicantData.workPermitType} />
+                    <InfoRow label={t('pages:applicants.profile.travelDocs.permitNumber')} value={applicantData.workPermitNumber} />
+                    <InfoRow label={t('pages:applicants.profile.travelDocs.issuingCountry')} value={applicantData.workPermitCountry} />
+                    <InfoRow label={t('pages:applicants.profile.travelDocs.issueDate')} value={applicantData.workPermitIssueDate} />
+                    <InfoRow label={t('pages:applicants.profile.travelDocs.validUntil')} value={applicantData.workPermitExpiryDate} />
                   </div>
                 )}
 
-                <InfoRow label="Residence Card in EU" value={applicantData.hasResidenceCard ? 'Yes' : 'No'} />
+                <InfoRow label={t('pages:applicants.profile.travelDocs.residenceCardInEU')} value={applicantData.hasResidenceCard ? t('pages:applicants.profile.travelDocs.yes') : t('pages:applicants.profile.travelDocs.no')} />
                 {applicantData.hasResidenceCard && (
                   <div className="ps-4 border-s-2 border-blue-100 ms-1 space-y-2">
-                    <InfoRow label="Residence Type" value={applicantData.euResidenceType} />
-                    <InfoRow label="Residence Number" value={applicantData.euResidenceNumber} />
-                    <InfoRow label="Country" value={applicantData.euResidenceCountry} />
-                    <InfoRow label="City" value={applicantData.euResidenceCity} />
-                    <InfoRow label="Issue Date" value={applicantData.euResidenceIssueDate} />
-                    <InfoRow label="Valid Until" value={applicantData.euResidenceExpiryDate} />
+                    <InfoRow label={t('pages:applicants.profile.travelDocs.residenceType')} value={applicantData.euResidenceType} />
+                    <InfoRow label={t('pages:applicants.profile.travelDocs.residenceNumber')} value={applicantData.euResidenceNumber} />
+                    <InfoRow label={t('pages:applicants.profile.travelDocs.country')} value={applicantData.euResidenceCountry} />
+                    <InfoRow label={t('pages:applicants.profile.travelDocs.city')} value={applicantData.euResidenceCity} />
+                    <InfoRow label={t('pages:applicants.profile.travelDocs.issueDate')} value={applicantData.euResidenceIssueDate} />
+                    <InfoRow label={t('pages:applicants.profile.travelDocs.validUntil')} value={applicantData.euResidenceExpiryDate} />
                   </div>
                 )}
               </CardContent>
@@ -983,19 +985,19 @@ export function CandidateProfile() {
             <Card className="lg:col-span-2">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Award className="w-5 h-5" />Driving Licence & Experience
+                  <Award className="w-5 h-5" />{t('pages:applicants.profile.driving.title')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* ── Licence + Certifications ── */}
                   <div className="space-y-3">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Licence & Certifications</p>
-                    <InfoRow label="License Number" value={applicantData.drivingLicenseNumber} />
-                    <InfoRow label="Issuing Country" value={applicantData.licenseIssuingCountry} />
-                    <InfoRow label="Valid Until" value={applicantData.licenseValidUntil} />
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('pages:applicants.profile.driving.licenceCertifications')}</p>
+                    <InfoRow label={t('pages:applicants.profile.driving.licenseNumber')} value={applicantData.drivingLicenseNumber} />
+                    <InfoRow label={t('pages:applicants.profile.driving.issuingCountry')} value={applicantData.licenseIssuingCountry} />
+                    <InfoRow label={t('pages:applicants.profile.driving.validUntil')} value={applicantData.licenseValidUntil} />
                     <div className="pt-1">
-                      <p className="text-sm text-muted-foreground mb-2">Categories:</p>
+                      <p className="text-sm text-muted-foreground mb-2">{t('pages:applicants.profile.driving.categories')}</p>
                       <div className="flex flex-wrap gap-2">
                         {applicantData.categoryA && applicantData.categoryA !== '-' && <Badge variant="outline">A</Badge>}
                         {applicantData.categoryB && applicantData.categoryB !== '-' && <Badge variant="outline">B</Badge>}
@@ -1004,25 +1006,25 @@ export function CandidateProfile() {
                       </div>
                     </div>
                     <div className="pt-2 border-t space-y-2">
-                      <InfoRow label="Tachograph Card" value={applicantData.hasTachographCard ? `Yes (${applicantData.tachographNumber || 'N/A'})` : 'No'} />
-                      <InfoRow label="Code 95 / CPC" value={applicantData.hasQualificationCard ? `Yes (until ${applicantData.qualificationValidUntil || '—'})` : 'No'} />
-                      <InfoRow label="ADR Certificate" value={applicantData.hasADR ? `Yes (${applicantData.adrClasses || '—'})` : 'No'} />
+                      <InfoRow label={t('pages:applicants.profile.driving.tachographCard')} value={applicantData.hasTachographCard ? t('pages:applicants.profile.driving.yesValue', { value: applicantData.tachographNumber || t('pages:applicants.profile.driving.yesNA') }) : t('pages:applicants.profile.driving.no')} />
+                      <InfoRow label={t('pages:applicants.profile.driving.code95')} value={applicantData.hasQualificationCard ? t('pages:applicants.profile.driving.yesUntil', { date: applicantData.qualificationValidUntil || '—' }) : t('pages:applicants.profile.driving.no')} />
+                      <InfoRow label={t('pages:applicants.profile.driving.adrCertificate')} value={applicantData.hasADR ? t('pages:applicants.profile.driving.yesValue', { value: applicantData.adrClasses || '—' }) : t('pages:applicants.profile.driving.no')} />
                     </div>
                   </div>
 
                   {/* ── International Experience ── */}
                   <div className="space-y-3 md:ps-6 md:border-s">
                     <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
-                      <Globe className="w-3.5 h-3.5" /> Driving Experience
+                      <Globe className="w-3.5 h-3.5" /> {t('pages:applicants.profile.driving.experienceTitle')}
                     </p>
-                    <InfoRow label="EU Experience" value={applicantData.hasEUExperience ? 'Yes' : 'No'} />
-                    <InfoRow label="Years in EU" value={applicantData.yearsEUExperience} />
-                    <InfoRow label="Total C+E Experience" value={applicantData.totalCEExperience} />
-                    <InfoRow label="Years Active Driving" value={applicantData.yearsActiveDriving} />
-                    <InfoRow label="Driven Other Countries" value={applicantData.drivenOtherCountries ? 'Yes' : 'No'} />
+                    <InfoRow label={t('pages:applicants.profile.driving.euExperience')} value={applicantData.hasEUExperience ? t('pages:applicants.profile.driving.yes') : t('pages:applicants.profile.driving.no')} />
+                    <InfoRow label={t('pages:applicants.profile.driving.yearsInEU')} value={applicantData.yearsEUExperience} />
+                    <InfoRow label={t('pages:applicants.profile.driving.totalCEExperience')} value={applicantData.totalCEExperience} />
+                    <InfoRow label={t('pages:applicants.profile.driving.yearsActiveDriving')} value={applicantData.yearsActiveDriving} />
+                    <InfoRow label={t('pages:applicants.profile.driving.drivenOtherCountries')} value={applicantData.drivenOtherCountries ? t('pages:applicants.profile.driving.yes') : t('pages:applicants.profile.driving.no')} />
                     {applicantData.specifyCountries && (
                       <div className="pt-2 border-t">
-                        <p className="text-sm text-muted-foreground mb-1">Countries:</p>
+                        <p className="text-sm text-muted-foreground mb-1">{t('pages:applicants.profile.driving.countries')}</p>
                         <p className="font-medium">{applicantData.specifyCountries}</p>
                       </div>
                     )}
@@ -1035,18 +1037,18 @@ export function CandidateProfile() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Globe className="w-5 h-5" />Language Skills
+                  <Globe className="w-5 h-5" />{t('pages:applicants.profile.languages.title')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 gap-4">
-                  <InfoRow label="English" value={applicantData.englishLevel} />
-                  <InfoRow label="German" value={applicantData.germanLevel} />
-                  <InfoRow label="Russian" value={applicantData.russianLevel} />
-                  <InfoRow label="Other Languages" value={applicantData.otherLanguages} />
+                  <InfoRow label={t('pages:applicants.profile.languages.english')} value={applicantData.englishLevel} />
+                  <InfoRow label={t('pages:applicants.profile.languages.german')} value={applicantData.germanLevel} />
+                  <InfoRow label={t('pages:applicants.profile.languages.russian')} value={applicantData.russianLevel} />
+                  <InfoRow label={t('pages:applicants.profile.languages.otherLanguages')} value={applicantData.otherLanguages} />
                 </div>
                 <div className="mt-4 pt-4 border-t">
-                  <InfoRow label="Language at Work" value={applicantData.languageAtWork} />
+                  <InfoRow label={t('pages:applicants.profile.languages.languageAtWork')} value={applicantData.languageAtWork} />
                 </div>
               </CardContent>
             </Card>
@@ -1055,19 +1057,19 @@ export function CandidateProfile() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Calendar className="w-5 h-5" />Work Flexibility & Preferences
+                  <Calendar className="w-5 h-5" />{t('pages:applicants.profile.workFlex.title')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="grid grid-cols-2 gap-4">
-                  <InfoRow label="Double Crew" value={applicantData.doubleCrewWillingness ? 'Yes' : 'No'} />
-                  <InfoRow label="Max Tour Length" value={applicantData.maxTourWeeks} />
-                  <InfoRow label="Weekend Driving" value={applicantData.weekendDriving ? 'Yes' : 'No'} />
-                  <InfoRow label="Night Driving" value={applicantData.nightDriving ? 'Yes' : 'No'} />
+                  <InfoRow label={t('pages:applicants.profile.workFlex.doubleCrew')} value={applicantData.doubleCrewWillingness ? t('pages:applicants.profile.workFlex.yes') : t('pages:applicants.profile.workFlex.no')} />
+                  <InfoRow label={t('pages:applicants.profile.workFlex.maxTourLength')} value={applicantData.maxTourWeeks} />
+                  <InfoRow label={t('pages:applicants.profile.workFlex.weekendDriving')} value={applicantData.weekendDriving ? t('pages:applicants.profile.workFlex.yes') : t('pages:applicants.profile.workFlex.no')} />
+                  <InfoRow label={t('pages:applicants.profile.workFlex.nightDriving')} value={applicantData.nightDriving ? t('pages:applicants.profile.workFlex.yes') : t('pages:applicants.profile.workFlex.no')} />
                 </div>
                 <div className="grid grid-cols-2 gap-4 pt-3 border-t">
-                  <InfoRow label="Preferred Countries" value={applicantData.preferredCountries} />
-                  <InfoRow label="Undesired Countries" value={applicantData.undesiredCountries} />
+                  <InfoRow label={t('pages:applicants.profile.workFlex.preferredCountries')} value={applicantData.preferredCountries} />
+                  <InfoRow label={t('pages:applicants.profile.workFlex.undesiredCountries')} value={applicantData.undesiredCountries} />
                 </div>
               </CardContent>
             </Card>
@@ -1078,23 +1080,23 @@ export function CandidateProfile() {
               <Card className="lg:col-span-2">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <GraduationCap className="w-5 h-5" />Education
+                    <GraduationCap className="w-5 h-5" />{t('pages:applicants.profile.education.title')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {applicantData.applicationData.education.map((e: any, i: number) => (
                     <div key={e.id ?? i} className="p-3 border rounded-md">
                       <p className="text-sm font-semibold">
-                        {e.level || e.degree || 'Education'}{e.institution ? ` — ${e.institution}` : ''}
+                        {e.level || e.degree || t('pages:applicants.profile.education.default')}{e.institution ? ` — ${e.institution}` : ''}
                       </p>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-2 text-sm">
-                        {e.fieldOfStudy && <div><p className="text-xs text-muted-foreground">Field of Study</p><p className="font-medium">{e.fieldOfStudy}</p></div>}
-                        {e.country && <div><p className="text-xs text-muted-foreground">Country</p><p className="font-medium">{e.country}</p></div>}
-                        {e.startDate && <div><p className="text-xs text-muted-foreground">Start</p><p className="font-medium">{e.startDate}</p></div>}
-                        <div><p className="text-xs text-muted-foreground">End</p><p className="font-medium">{(e.current || e.ongoing) ? 'Ongoing' : (e.endDate || '—')}</p></div>
+                        {e.fieldOfStudy && <div><p className="text-xs text-muted-foreground">{t('pages:applicants.profile.education.fieldOfStudy')}</p><p className="font-medium">{e.fieldOfStudy}</p></div>}
+                        {e.country && <div><p className="text-xs text-muted-foreground">{t('pages:applicants.profile.education.country')}</p><p className="font-medium">{e.country}</p></div>}
+                        {e.startDate && <div><p className="text-xs text-muted-foreground">{t('pages:applicants.profile.education.start')}</p><p className="font-medium">{e.startDate}</p></div>}
+                        <div><p className="text-xs text-muted-foreground">{t('pages:applicants.profile.education.end')}</p><p className="font-medium">{(e.current || e.ongoing) ? t('pages:applicants.profile.education.ongoing') : (e.endDate || '—')}</p></div>
                       </div>
                       {e.degree && e.level !== e.degree && (
-                        <p className="text-xs text-muted-foreground mt-2">Degree / Certificate: <span className="text-foreground">{e.degree}</span></p>
+                        <p className="text-xs text-muted-foreground mt-2">{t('pages:applicants.profile.education.degreePrefix')} <span className="text-foreground">{e.degree}</span></p>
                       )}
                     </div>
                   ))}
@@ -1108,39 +1110,39 @@ export function CandidateProfile() {
               <Card className="lg:col-span-2">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Briefcase className="w-5 h-5" />Work Experience
+                    <Briefcase className="w-5 h-5" />{t('pages:applicants.profile.workHistory.title')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {applicantData.applicationData.workHistory.map((w: any, i: number) => (
                     <div key={w.id ?? i} className="p-3 border rounded-md">
                       <p className="text-sm font-semibold">
-                        {w.jobTitle || 'Position'}{w.company ? ` — ${w.company}` : ''}
+                        {w.jobTitle || t('pages:applicants.profile.workHistory.defaultPosition')}{w.company ? ` — ${w.company}` : ''}
                       </p>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-2 text-sm">
-                        {w.country && <div><p className="text-xs text-muted-foreground">Country</p><p className="font-medium">{w.country}</p></div>}
-                        {w.startDate && <div><p className="text-xs text-muted-foreground">Start</p><p className="font-medium">{w.startDate}</p></div>}
-                        <div><p className="text-xs text-muted-foreground">End</p><p className="font-medium">{w.current ? 'Current' : (w.endDate || '—')}</p></div>
+                        {w.country && <div><p className="text-xs text-muted-foreground">{t('pages:applicants.profile.workHistory.country')}</p><p className="font-medium">{w.country}</p></div>}
+                        {w.startDate && <div><p className="text-xs text-muted-foreground">{t('pages:applicants.profile.workHistory.start')}</p><p className="font-medium">{w.startDate}</p></div>}
+                        <div><p className="text-xs text-muted-foreground">{t('pages:applicants.profile.workHistory.end')}</p><p className="font-medium">{w.current ? t('pages:applicants.profile.workHistory.current') : (w.endDate || '—')}</p></div>
                         {(w.companyPhone || w.companyPhoneCode) && (
-                          <div><p className="text-xs text-muted-foreground">Company Phone</p><p className="font-medium">{[w.companyPhoneCode, w.companyPhone].filter(Boolean).join(' ')}</p></div>
+                          <div><p className="text-xs text-muted-foreground">{t('pages:applicants.profile.workHistory.companyPhone')}</p><p className="font-medium">{[w.companyPhoneCode, w.companyPhone].filter(Boolean).join(' ')}</p></div>
                         )}
                       </div>
                       {w.responsibilities && (
                         <div className="mt-2">
-                          <p className="text-xs text-muted-foreground">Responsibilities</p>
+                          <p className="text-xs text-muted-foreground">{t('pages:applicants.profile.workHistory.responsibilities')}</p>
                           <p className="text-sm whitespace-pre-wrap">{w.responsibilities}</p>
                         </div>
                       )}
                       {w.reasonForLeaving && (
-                        <p className="text-xs text-muted-foreground mt-2">Reason for leaving: <span className="text-foreground">{w.reasonForLeaving}</span></p>
+                        <p className="text-xs text-muted-foreground mt-2">{t('pages:applicants.profile.workHistory.reasonForLeaving')} <span className="text-foreground">{w.reasonForLeaving}</span></p>
                       )}
                       {(w.referenceName || w.referencePhone || w.referenceEmail) && (
                         <div className="mt-2 pt-2 border-t">
-                          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Reference</p>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">{t('pages:applicants.profile.workHistory.reference')}</p>
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-                            {w.referenceName && <div><p className="text-xs text-muted-foreground">Name</p><p className="font-medium">{w.referenceName}</p></div>}
-                            {(w.referencePhone || w.referencePhoneCode) && <div><p className="text-xs text-muted-foreground">Phone</p><p className="font-medium">{[w.referencePhoneCode, w.referencePhone].filter(Boolean).join(' ')}</p></div>}
-                            {w.referenceEmail && <div><p className="text-xs text-muted-foreground">Email</p><p className="font-medium">{w.referenceEmail}</p></div>}
+                            {w.referenceName && <div><p className="text-xs text-muted-foreground">{t('pages:applicants.profile.workHistory.name')}</p><p className="font-medium">{w.referenceName}</p></div>}
+                            {(w.referencePhone || w.referencePhoneCode) && <div><p className="text-xs text-muted-foreground">{t('pages:applicants.profile.workHistory.phone')}</p><p className="font-medium">{[w.referencePhoneCode, w.referencePhone].filter(Boolean).join(' ')}</p></div>}
+                            {w.referenceEmail && <div><p className="text-xs text-muted-foreground">{t('pages:applicants.profile.workHistory.email')}</p><p className="font-medium">{w.referenceEmail}</p></div>}
                           </div>
                         </div>
                       )}
@@ -1163,36 +1165,38 @@ export function CandidateProfile() {
         <TabsContent value="documents">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Applicant Documents</CardTitle>
+              <CardTitle>{t('pages:applicants.profile.documentsTab.candidateTitle')}</CardTitle>
               {canEdit('applicants') && (
                 <Button size="sm" onClick={() => setShowUpload(v => !v)} variant={showUpload ? 'outline' : 'default'}>
-                  {showUpload ? <><X className="w-4 h-4 me-1" />Cancel</> : <><Upload className="w-4 h-4 me-1" />Upload Document</>}
+                  {showUpload
+                    ? <><X className="w-4 h-4 me-1" />{t('pages:applicants.profile.documentsTab.cancel')}</>
+                    : <><Upload className="w-4 h-4 me-1" />{t('pages:applicants.profile.documentsTab.uploadButton')}</>}
                 </Button>
               )}
             </CardHeader>
             <CardContent className="space-y-4">
               {showUpload && (
                 <div className="border rounded-lg p-4 space-y-4 bg-muted/30">
-                  <h4 className="font-medium text-sm">New Document</h4>
+                  <h4 className="font-medium text-sm">{t('pages:applicants.profile.documentsTab.newDocumentTitle')}</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-1">
-                      <Label className="text-xs">Document Type *</Label>
+                      <Label className="text-xs">{t('pages:applicants.profile.documentsTab.documentType')} *</Label>
                       <Select value={uploadForm.documentTypeId} onValueChange={v => setUploadForm(f => ({ ...f, documentTypeId: v }))}>
-                        <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
+                        <SelectTrigger><SelectValue placeholder={t('pages:applicants.profile.documentsTab.selectType')} /></SelectTrigger>
                         <SelectContent>{docTypes.map(dt => <SelectItem key={dt.id} value={dt.id}>{dt.name}</SelectItem>)}</SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs">Document Name *</Label>
-                      <Input placeholder="e.g. Passport" value={uploadForm.name} onChange={e => setUploadForm(f => ({ ...f, name: e.target.value }))} />
+                      <Label className="text-xs">{t('pages:applicants.profile.documentsTab.documentName')} *</Label>
+                      <Input placeholder={t('pages:applicants.profile.documentsTab.documentNamePh')} value={uploadForm.name} onChange={e => setUploadForm(f => ({ ...f, name: e.target.value }))} />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs">Issue Date</Label>
+                      <Label className="text-xs">{t('pages:applicants.profile.documentsTab.issueDate')}</Label>
                       <Input type="date" value={uploadForm.issueDate} onChange={e => setUploadForm(f => ({ ...f, issueDate: e.target.value }))} />
                     </div>
                     <div className="space-y-1">
                       <div className="flex items-center justify-between gap-2">
-                        <Label className="text-xs">Expiry Date</Label>
+                        <Label className="text-xs">{t('pages:applicants.profile.documentsTab.expiryDate')}</Label>
                         <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
                           <Checkbox
                             checked={uploadForm.noExpiry}
@@ -1204,7 +1208,7 @@ export function CandidateProfile() {
                               expiryDate: c ? '' : f.expiryDate,
                             }))}
                           />
-                          No Expiry
+                          {t('pages:applicants.profile.documentsTab.noExpiry')}
                         </label>
                       </div>
                       <Input
@@ -1215,28 +1219,28 @@ export function CandidateProfile() {
                       />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs">Document Number</Label>
-                      <Input placeholder="Optional" value={uploadForm.documentNumber} onChange={e => setUploadForm(f => ({ ...f, documentNumber: e.target.value }))} />
+                      <Label className="text-xs">{t('pages:applicants.profile.documentsTab.documentNumber')}</Label>
+                      <Input placeholder={t('pages:applicants.profile.documentsTab.optionalPh')} value={uploadForm.documentNumber} onChange={e => setUploadForm(f => ({ ...f, documentNumber: e.target.value }))} />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs">Issuer</Label>
-                      <Input placeholder="Optional" value={uploadForm.issuer} onChange={e => setUploadForm(f => ({ ...f, issuer: e.target.value }))} />
+                      <Label className="text-xs">{t('pages:applicants.profile.documentsTab.issuer')}</Label>
+                      <Input placeholder={t('pages:applicants.profile.documentsTab.optionalPh')} value={uploadForm.issuer} onChange={e => setUploadForm(f => ({ ...f, issuer: e.target.value }))} />
                     </div>
                     <div className="space-y-1 md:col-span-2">
-                      <Label className="text-xs">File *</Label>
+                      <Label className="text-xs">{t('pages:applicants.profile.documentsTab.fileLabel')} *</Label>
                       <Input type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onChange={e => setUploadFile(e.target.files?.[0] ?? null)} />
-                      {uploadFile && <p className="text-xs text-muted-foreground">{uploadFile.name} ({(uploadFile.size / 1024).toFixed(1)} KB)</p>}
+                      {uploadFile && <p className="text-xs text-muted-foreground">{t('pages:applicants.profile.documentsTab.fileSize', { name: uploadFile.name, size: (uploadFile.size / 1024).toFixed(1) })}</p>}
                     </div>
                   </div>
                   <Button size="sm" onClick={handleUpload} disabled={uploading}>
-                    <Upload className="w-4 h-4 me-1" />{uploading ? 'Uploading...' : 'Upload'}
+                    <Upload className="w-4 h-4 me-1" />{uploading ? t('pages:applicants.profile.documentsTab.uploading') : t('pages:applicants.profile.documentsTab.upload')}
                   </Button>
                 </div>
               )}
               {docsLoading ? (
-                <p className="text-muted-foreground">Loading documents...</p>
+                <p className="text-muted-foreground">{t('pages:applicants.profile.documentsTab.loading')}</p>
               ) : documents.length === 0 ? (
-                <p className="text-muted-foreground">No documents uploaded yet.</p>
+                <p className="text-muted-foreground">{t('pages:applicants.profile.documentsTab.empty')}</p>
               ) : (
                 <div className="space-y-3">
                   {documents.map((doc: any) => (
@@ -1251,39 +1255,39 @@ export function CandidateProfile() {
                             {doc.documentType?.name} {doc.fileSize ? `· ${(doc.fileSize / 1024).toFixed(1)} KB` : ''}
                           </p>
                           {doc.expiryDate && (
-                            <p className="text-xs text-muted-foreground mt-1">Expires: {new Date(doc.expiryDate).toLocaleDateString()}</p>
+                            <p className="text-xs text-muted-foreground mt-1">{t('pages:applicants.profile.documentsTab.expires', { date: formatDate(doc.expiryDate) })}</p>
                           )}
                         </div>
                       </div>
                       <div className="flex items-center gap-2 flex-wrap justify-end">
                         <Badge variant="outline" className={docStatusClass(doc.status)}>
-                          {doc.status?.replace(/_/g, ' ').toLowerCase()}
+                          {enumLabel('documentStatus', doc.status)}
                         </Badge>
                         <a
                           href={`${API_BASE}${doc.fileUrl}`}
                           target="_blank" rel="noopener noreferrer"
                           className="inline-flex items-center gap-1 text-sm px-2 py-1 rounded hover:bg-muted transition-colors"
-                          title="Download"
+                          title={t('pages:applicants.profile.documentsTab.downloadTitle')}
                         >
                           <Download className="w-4 h-4" />
                         </a>
                         {doc.status === 'PENDING' && can('documents', 'verify') && (
                           <>
                             <Button size="sm" className="bg-emerald-500 hover:bg-emerald-600 text-white h-7 px-2" onClick={() => handleApproveDoc(doc)} disabled={verifyingDocId === doc.id}>
-                              <CheckCircle2 className="w-3.5 h-3.5 me-1" />{verifyingDocId === doc.id ? '…' : 'Approve'}
+                              <CheckCircle2 className="w-3.5 h-3.5 me-1" />{verifyingDocId === doc.id ? '…' : t('pages:applicants.profile.documentsTab.approve')}
                             </Button>
                             <Button size="sm" variant="outline" className="text-red-500 border-red-300 hover:bg-red-50 h-7 px-2" onClick={() => { setRejectDocDialog({ open: true, docId: doc.id, docName: doc.name }); setRejectDocReason(''); }} disabled={verifyingDocId === doc.id}>
-                              <XCircle className="w-3.5 h-3.5 me-1" />Reject
+                              <XCircle className="w-3.5 h-3.5 me-1" />{t('pages:applicants.profile.documentsTab.reject')}
                             </Button>
                           </>
                         )}
                         {canEdit('documents') && (
-                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0" asChild title="Edit">
+                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0" asChild title={t('pages:applicants.profile.documentsTab.editTitle')}>
                             <Link to={`/dashboard/documents/${doc.id}/edit`}><Edit className="w-3.5 h-3.5" /></Link>
                           </Button>
                         )}
                         {canDelete('documents') && (
-                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-red-400 hover:text-red-600 hover:bg-red-50" onClick={() => handleDeleteDoc(doc)} title="Delete">
+                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-red-400 hover:text-red-600 hover:bg-red-50" onClick={() => handleDeleteDoc(doc)} title={t('pages:applicants.profile.documentsTab.deleteTitle')}>
                             <Trash2 className="w-3.5 h-3.5" />
                           </Button>
                         )}
@@ -1303,10 +1307,10 @@ export function CandidateProfile() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Layers className="w-5 h-5 text-primary" /> Connect to a Workflow
+                  <Layers className="w-5 h-5 text-primary" /> {t('pages:applicants.profile.workflowTab.connectTitle')}
                 </CardTitle>
                 <p className="text-sm text-muted-foreground mt-1">
-                  This applicant is not connected to any workflow yet.
+                  {t('pages:applicants.profile.workflowTab.candidateConnectSubtitle')}
                 </p>
               </CardHeader>
               <CardContent>
@@ -1314,7 +1318,7 @@ export function CandidateProfile() {
                   <div className="space-y-3 max-w-sm">
                     <Select value={assignWorkflowId} onValueChange={setAssignWorkflowId}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select a workflow…" />
+                        <SelectValue placeholder={t('pages:applicants.profile.workflowTab.selectWorkflowPh')} />
                       </SelectTrigger>
                       <SelectContent>
                         {allWorkflows.map((w: any) => (
@@ -1323,7 +1327,7 @@ export function CandidateProfile() {
                               <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: w.color ?? '#6366F1' }} />
                               <span>{w.name}</span>
                               <span className={`ms-1 text-[10px] px-1.5 py-0.5 rounded border ${w.isPublic ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-slate-700 border-slate-200'}`}>
-                                {w.isPublic ? 'Public' : 'Private'}
+                                {w.isPublic ? t('pages:applicants.profile.workflowTab.public') : t('pages:applicants.profile.workflowTab.private')}
                               </span>
                             </div>
                           </SelectItem>
@@ -1332,17 +1336,17 @@ export function CandidateProfile() {
                     </Select>
                     <div className="flex gap-2">
                       <Button size="sm" onClick={handleAssignCandidateWorkflow} disabled={assigningWorkflow || !assignWorkflowId}>
-                        {assigningWorkflow ? 'Connecting…' : 'Connect'}
+                        {assigningWorkflow ? t('pages:applicants.profile.workflowTab.connecting') : t('pages:applicants.profile.workflowTab.connect')}
                       </Button>
                       <Button size="sm" variant="outline" onClick={() => { setShowAssignWorkflow(false); setAssignWorkflowId(''); }}>
-                        Cancel
+                        {t('common:actions.cancel')}
                       </Button>
                     </div>
                   </div>
                 ) : (
                   canEdit('applicants') && (
                     <Button onClick={() => setShowAssignWorkflow(true)}>
-                      <Plus className="w-4 h-4 me-2" /> Connect to Workflow
+                      <Plus className="w-4 h-4 me-2" /> {t('pages:applicants.profile.workflowTab.connectButton')}
                     </Button>
                   )
                 )}
@@ -1358,7 +1362,7 @@ export function CandidateProfile() {
                     <CardTitle>{candidateAssignment.workflow?.name}</CardTitle>
                     {candidateAssignment.workflow && (
                       <span className={`text-[11px] px-1.5 py-0.5 rounded border ${candidateAssignment.workflow.isPublic ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-slate-700 border-slate-200'}`}>
-                        {candidateAssignment.workflow.isPublic ? 'Public' : 'Private'}
+                        {candidateAssignment.workflow.isPublic ? t('pages:applicants.profile.workflowTab.public') : t('pages:applicants.profile.workflowTab.private')}
                       </span>
                     )}
                   </div>
@@ -1369,8 +1373,8 @@ export function CandidateProfile() {
                         rest of the workflow view (advance, approve,
                         etc.) stays available to regular edit roles. */}
                     {canEdit('applicants') && currentUser?.role === 'System Admin' && (
-                      <Button size="sm" variant="ghost" onClick={() => setShowAssignWorkflow(true)} title="Reassign to a different workflow (admin only)">
-                        Change
+                      <Button size="sm" variant="ghost" onClick={() => setShowAssignWorkflow(true)} title={t('pages:applicants.profile.workflowTab.changeTitle')}>
+                        {t('pages:applicants.profile.workflowTab.change')}
                       </Button>
                     )}
                     {canEdit('applicants') && (
@@ -1382,17 +1386,20 @@ export function CandidateProfile() {
                 </div>
                 {candidateAssignment.assignedBy && (
                   <p className="text-xs text-muted-foreground mt-1">
-                    Connected {new Date(candidateAssignment.assignedAt).toLocaleDateString()} by {candidateAssignment.assignedBy.firstName} {candidateAssignment.assignedBy.lastName}
+                    {t('pages:applicants.profile.workflowTab.connectedBy', {
+                      date: formatDate(candidateAssignment.assignedAt),
+                      name: `${candidateAssignment.assignedBy.firstName} ${candidateAssignment.assignedBy.lastName}`,
+                    })}
                   </p>
                 )}
               </CardHeader>
               <CardContent>
                 {showAssignWorkflow && (
                   <div className="mb-4 p-4 border rounded-lg bg-muted/30 space-y-3">
-                    <p className="text-sm font-medium">Change Workflow</p>
+                    <p className="text-sm font-medium">{t('pages:applicants.profile.workflowTab.changeWorkflow')}</p>
                     <Select value={assignWorkflowId} onValueChange={setAssignWorkflowId}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select a workflow…" />
+                        <SelectValue placeholder={t('pages:applicants.profile.workflowTab.selectWorkflowPh')} />
                       </SelectTrigger>
                       <SelectContent>
                         {allWorkflows.map((w: any) => (
@@ -1401,7 +1408,7 @@ export function CandidateProfile() {
                               <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: w.color ?? '#6366F1' }} />
                               <span>{w.name}</span>
                               <span className={`ms-1 text-[10px] px-1.5 py-0.5 rounded border ${w.isPublic ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-slate-700 border-slate-200'}`}>
-                                {w.isPublic ? 'Public' : 'Private'}
+                                {w.isPublic ? t('pages:applicants.profile.workflowTab.public') : t('pages:applicants.profile.workflowTab.private')}
                               </span>
                             </div>
                           </SelectItem>
@@ -1410,16 +1417,16 @@ export function CandidateProfile() {
                     </Select>
                     <div className="flex gap-2">
                       <Button size="sm" onClick={handleAssignCandidateWorkflow} disabled={assigningWorkflow || !assignWorkflowId}>
-                        {assigningWorkflow ? 'Saving…' : 'Confirm'}
+                        {assigningWorkflow ? t('pages:applicants.profile.workflowTab.saving') : t('pages:applicants.profile.workflowTab.confirm')}
                       </Button>
                       <Button size="sm" variant="outline" onClick={() => { setShowAssignWorkflow(false); setAssignWorkflowId(''); }}>
-                        Cancel
+                        {t('common:actions.cancel')}
                       </Button>
                     </div>
                   </div>
                 )}
                 {(!candidateAssignment.workflow?.stages || candidateAssignment.workflow.stages.length === 0) ? (
-                  <p className="text-sm text-muted-foreground">This workflow has no stages configured yet.</p>
+                  <p className="text-sm text-muted-foreground">{t('pages:applicants.profile.workflowTab.noStages')}</p>
                 ) : (
                   <div className="space-y-1">
                     {candidateAssignment.workflow.stages.map((stage: any, index: number) => {
@@ -1453,12 +1460,12 @@ export function CandidateProfile() {
                               <div className="flex flex-wrap items-center gap-2">
                                 <span className={`text-sm font-medium ${isCurrent ? 'text-primary' : ''}`}>{stage.name}</span>
                                 {isInProgress
-                                  ? <Badge className="text-xs bg-blue-600 hover:bg-blue-600">In Progress</Badge>
-                                  : isCurrent && <Badge className="text-xs bg-primary">Current</Badge>}
-                                {isApproved && <Badge className="text-xs bg-green-500">Approved</Badge>}
-                                {stage.isFinal && <Badge variant="outline" className="text-xs">Final</Badge>}
-                                {stage.requiresApproval && !isApproved && <Badge variant="outline" className="text-xs border-amber-400 text-amber-600">Needs Approval</Badge>}
-                                {stage.slaHours && <span className="text-xs text-muted-foreground">SLA: {stage.slaHours}h</span>}
+                                  ? <Badge className="text-xs bg-blue-600 hover:bg-blue-600">{t('pages:applicants.profile.workflowTab.inProgress')}</Badge>
+                                  : isCurrent && <Badge className="text-xs bg-primary">{t('pages:applicants.profile.workflowTab.current')}</Badge>}
+                                {isApproved && <Badge className="text-xs bg-green-500">{t('pages:applicants.profile.workflowTab.approved')}</Badge>}
+                                {stage.isFinal && <Badge variant="outline" className="text-xs">{t('pages:applicants.profile.workflowTab.final')}</Badge>}
+                                {stage.requiresApproval && !isApproved && <Badge variant="outline" className="text-xs border-amber-400 text-amber-600">{t('pages:applicants.profile.workflowTab.needsApproval')}</Badge>}
+                                {stage.slaHours && <span className="text-xs text-muted-foreground">{t('pages:applicants.profile.workflowTab.slaSuffix', { hours: stage.slaHours })}</span>}
                               </div>
                               {stage.description && <p className="text-xs text-muted-foreground mt-0.5">{stage.description}</p>}
                             </div>
@@ -1470,10 +1477,10 @@ export function CandidateProfile() {
                                   onClick={(e) => { e.stopPropagation(); handleSetCandidateStage(stage.id); }}
                                   disabled={settingStage}
                                 >
-                                  Set Current
+                                  {t('pages:applicants.profile.workflowTab.setCurrent')}
                                 </Button>
                               )}
-                              <ChevronRight className={`w-4 h-4 text-muted-foreground transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                              <ChevronRight className={`w-4 h-4 text-muted-foreground transition-transform rtl:rotate-180 ${isExpanded ? 'rotate-90 rtl:rotate-90' : ''}`} />
                             </div>
                           </div>
 
@@ -1483,9 +1490,9 @@ export function CandidateProfile() {
 
                               {/* Required Documents */}
                               <div>
-                                <p className="text-xs font-semibold uppercase text-muted-foreground mb-2">Required Documents</p>
+                                <p className="text-xs font-semibold uppercase text-muted-foreground mb-2">{t('pages:applicants.profile.workflowTab.requiredDocs')}</p>
                                 {!stage.requiredDocs || stage.requiredDocs.length === 0 ? (
-                                  <p className="text-xs text-muted-foreground">No required documents for this stage.</p>
+                                  <p className="text-xs text-muted-foreground">{t('pages:applicants.profile.workflowTab.noRequiredDocs')}</p>
                                 ) : (
                                   <div className="space-y-1.5">
                                     {stage.requiredDocs.map((rd: any) => {
@@ -1500,9 +1507,9 @@ export function CandidateProfile() {
                                             </div>
                                           </div>
                                           {uploaded ? (
-                                            <Badge className="text-xs bg-green-500">Uploaded</Badge>
+                                            <Badge className="text-xs bg-green-500">{t('pages:applicants.profile.workflowTab.uploaded')}</Badge>
                                           ) : (
-                                            <Badge variant="outline" className="text-xs border-red-400 text-red-500">Missing</Badge>
+                                            <Badge variant="outline" className="text-xs border-red-400 text-red-500">{t('pages:applicants.profile.workflowTab.missing')}</Badge>
                                           )}
                                         </div>
                                       );
@@ -1513,13 +1520,13 @@ export function CandidateProfile() {
 
                               {/* Approval */}
                               <div>
-                                <p className="text-xs font-semibold uppercase text-muted-foreground mb-2">Stage Approval</p>
+                                <p className="text-xs font-semibold uppercase text-muted-foreground mb-2">{t('pages:applicants.profile.workflowTab.stageApproval')}</p>
                                 {isApproved ? (
                                   <div className="flex items-center gap-2 p-2 rounded-md border bg-green-50 border-green-200">
-                                    <Badge className="bg-green-500 text-xs">Approved</Badge>
+                                    <Badge className="bg-green-500 text-xs">{t('pages:applicants.profile.workflowTab.approved')}</Badge>
                                     <span className="text-xs text-muted-foreground">
-                                      by {latestApproval.approvedBy?.firstName} {latestApproval.approvedBy?.lastName}
-                                      {' · '}{new Date(latestApproval.decidedAt ?? latestApproval.createdAt).toLocaleDateString()}
+                                      {t('pages:applicants.profile.workflowTab.approvedBy', { name: `${latestApproval.approvedBy?.firstName ?? ''} ${latestApproval.approvedBy?.lastName ?? ''}`.trim() })}
+                                      {' · '}{formatDate(latestApproval.decidedAt ?? latestApproval.createdAt)}
                                     </span>
                                     {latestApproval.notes && <span className="text-xs text-muted-foreground italic">— "{latestApproval.notes}"</span>}
                                   </div>
@@ -1543,13 +1550,13 @@ export function CandidateProfile() {
                                         disabled={approvingProgressId === progress.id}
                                         className="h-7 text-xs"
                                       >
-                                        {approvingProgressId === progress.id ? 'Approving…' : 'Approve Stage'}
+                                        {approvingProgressId === progress.id ? t('pages:applicants.profile.workflowTab.approving') : t('pages:applicants.profile.workflowTab.approveStage')}
                                       </Button>
                                     )}
                                   </div>
                                 ) : (
                                   <div className="space-y-2">
-                                    <p className="text-xs text-muted-foreground">No approvers assigned to this stage.</p>
+                                    <p className="text-xs text-muted-foreground">{t('pages:applicants.profile.workflowTab.noApprovers')}</p>
                                     {canEdit('applicants') && progress && (
                                       <Button
                                         size="sm"
@@ -1557,7 +1564,7 @@ export function CandidateProfile() {
                                         disabled={approvingProgressId === progress.id}
                                         className="h-7 text-xs"
                                       >
-                                        {approvingProgressId === progress.id ? 'Approving…' : 'Approve Stage'}
+                                        {approvingProgressId === progress.id ? t('pages:applicants.profile.workflowTab.approving') : t('pages:applicants.profile.workflowTab.approveStage')}
                                       </Button>
                                     )}
                                   </div>
@@ -1578,10 +1585,10 @@ export function CandidateProfile() {
         {/* Compliance */}
         <TabsContent value="compliance">
           <Card>
-            <CardHeader><CardTitle>Compliance Status</CardTitle></CardHeader>
+            <CardHeader><CardTitle>{t('pages:applicants.profile.complianceTab.title')}</CardTitle></CardHeader>
             <CardContent>
               {documents.length === 0 ? (
-                <p className="text-muted-foreground">No compliance data available. Upload documents to begin tracking compliance.</p>
+                <p className="text-muted-foreground">{t('pages:applicants.profile.complianceTab.empty')}</p>
               ) : (
                 <div className="space-y-3">
                   {documents.map((doc: any) => {
@@ -1596,11 +1603,13 @@ export function CandidateProfile() {
                         </div>
                         <div className="text-end">
                           <Badge variant="outline" className={docStatusClass(doc.status)}>
-                            {doc.status?.replace(/_/g, ' ').toLowerCase()}
+                            {enumLabel('documentStatus', doc.status)}
                           </Badge>
                           {daysLeft !== null && (
                             <p className={`text-xs mt-1 ${daysLeft <= 0 ? 'text-[#EF4444]' : daysLeft <= 30 ? 'text-[#F59E0B]' : 'text-muted-foreground'}`}>
-                              {daysLeft <= 0 ? `Expired ${Math.abs(daysLeft)} days ago` : `${daysLeft} days remaining`}
+                              {daysLeft <= 0
+                                ? t('pages:applicants.profile.complianceTab.expiredAgo', { count: Math.abs(daysLeft) })
+                                : t('pages:applicants.profile.complianceTab.daysRemaining', { count: daysLeft })}
                             </p>
                           )}
                         </div>
@@ -1620,13 +1629,13 @@ export function CandidateProfile() {
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle className="flex items-center gap-2">
-                    <DollarSign className="w-5 h-5 text-emerald-600" />Financial Transactions
+                    <DollarSign className="w-5 h-5 text-emerald-600" />{t('pages:applicants.profile.financialTab.title')}
                   </CardTitle>
-                  <Badge className="bg-amber-100 text-amber-800">Candidates only</Badge>
+                  <Badge className="bg-amber-100 text-amber-800">{t('pages:applicants.profile.financialTab.candidatesOnlyBadge')}</Badge>
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground text-sm">
-                    Financial transactions are available for Candidates only. Promote this applicant to Candidate first.
+                    {t('pages:applicants.profile.financialTab.candidatesOnlyBody')}
                   </p>
                 </CardContent>
               </Card>
@@ -1637,7 +1646,7 @@ export function CandidateProfile() {
                   <Card>
                     <CardHeader className="flex flex-row items-center justify-between">
                       <CardTitle className="text-base flex items-center gap-2">
-                        <DollarSign className="w-4 h-4 text-emerald-600" />Bank & Tax Details
+                        <DollarSign className="w-4 h-4 text-emerald-600" />{t('pages:applicants.profile.financialTab.bankTitle')}
                       </CardTitle>
                       <Button
                         size="sm" variant="outline"
@@ -1645,23 +1654,23 @@ export function CandidateProfile() {
                           if (!id) return;
                           setSavingFinancial(true);
                           applicantsApi.upsertFinancialProfile(id, financialForm)
-                            .then((saved: any) => { setFinancialProfile(saved); toast.success('Saved'); })
-                            .catch((err: any) => toast.error(err?.message || 'Save failed'))
+                            .then((saved: any) => { setFinancialProfile(saved); toast.success(t('pages:applicants.profile.financialTab.saved')); })
+                            .catch((err) => toast.error(apiError(err, t('pages:applicants.profile.financialTab.saveFailed'))))
                             .finally(() => setSavingFinancial(false));
                         }}
                         disabled={savingFinancial}
                       >
-                        {savingFinancial ? 'Saving…' : 'Save'}
+                        {savingFinancial ? t('pages:applicants.profile.financialTab.saving') : t('pages:applicants.profile.financialTab.save')}
                       </Button>
                     </CardHeader>
                     <CardContent>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                         {[
-                          ['bankName', 'Bank Name', 'text'],
-                          ['iban', 'IBAN', 'text'],
-                          ['taxCode', 'Tax Code', 'text'],
-                          ['niNumber', 'NI Number', 'text'],
-                          ['paymentMethod', 'Payment Method', 'text'],
+                          ['bankName', t('pages:applicants.profile.financialTab.bankName'), 'text'],
+                          ['iban', t('pages:applicants.profile.financialTab.iban'), 'text'],
+                          ['taxCode', t('pages:applicants.profile.financialTab.taxCode'), 'text'],
+                          ['niNumber', t('pages:applicants.profile.financialTab.niNumber'), 'text'],
+                          ['paymentMethod', t('pages:applicants.profile.financialTab.paymentMethod'), 'text'],
                         ].map(([field, label, type]) => (
                           <div key={field} className="space-y-1">
                             <Label className="text-xs">{label}</Label>
@@ -1694,14 +1703,14 @@ export function CandidateProfile() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <History className="w-5 h-5" />Agency Assignment History
+                <History className="w-5 h-5" />{t('pages:applicants.profile.historyTab.title')}
               </CardTitle>
             </CardHeader>
             <CardContent>
               {historyLoading ? (
-                <p className="text-muted-foreground">Loading…</p>
+                <p className="text-muted-foreground">{t('pages:applicants.profile.historyTab.loading')}</p>
               ) : agencyHistory.length === 0 ? (
-                <p className="text-muted-foreground text-sm">No agency assignment history recorded.</p>
+                <p className="text-muted-foreground text-sm">{t('pages:applicants.profile.historyTab.empty')}</p>
               ) : (
                 <div className="space-y-3">
                   {agencyHistory.map((h: any) => (
@@ -1711,14 +1720,14 @@ export function CandidateProfile() {
                         <div className="flex items-center justify-between">
                           <p className="font-medium">{h.agencyName}</p>
                           <span className="text-xs text-muted-foreground">
-                            {new Date(h.assignedAt).toLocaleDateString()}
-                            {h.removedAt && ` → ${new Date(h.removedAt).toLocaleDateString()}`}
+                            {formatDate(h.assignedAt)}
+                            {h.removedAt && ` → ${formatDate(h.removedAt)}`}
                           </span>
                         </div>
-                        {h.reason && <p className="text-sm text-muted-foreground mt-0.5">Reason: {h.reason}</p>}
+                        {h.reason && <p className="text-sm text-muted-foreground mt-0.5">{t('pages:applicants.profile.historyTab.reason', { value: h.reason })}</p>}
                         {h.notes && <p className="text-sm text-muted-foreground mt-0.5">{h.notes}</p>}
                         {!h.removedAt && (
-                          <Badge className="bg-green-100 text-green-800 mt-1" variant="outline">Current</Badge>
+                          <Badge className="bg-green-100 text-green-800 mt-1" variant="outline">{t('pages:applicants.profile.historyTab.current')}</Badge>
                         )}
                       </div>
                     </div>
@@ -1732,7 +1741,7 @@ export function CandidateProfile() {
         {/* Notes */}
         <TabsContent value="notes">
           <Card>
-            <CardHeader><CardTitle>Notes & Comments</CardTitle></CardHeader>
+            <CardHeader><CardTitle>{t('pages:applicants.profile.notesTab.title')}</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               {/* Historical JSON-blob notes (legacy form submissions)
                   stay rendered read-only above the editor so the
@@ -1748,7 +1757,7 @@ export function CandidateProfile() {
                     .join('\n');
                   return text ? (
                     <div className="p-3 border rounded-md bg-muted/40">
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Submitted with application</p>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">{t('pages:applicants.profile.notesTab.submittedWithApplication')}</p>
                       <p className="whitespace-pre-wrap text-sm">{text}</p>
                     </div>
                   ) : null;
@@ -1759,21 +1768,21 @@ export function CandidateProfile() {
 
               {canEdit('applicants') ? (
                 <div className="space-y-2">
-                  <Label htmlFor="candidate-note" className="text-sm">Add / update note</Label>
+                  <Label htmlFor="candidate-note" className="text-sm">{t('pages:applicants.profile.notesTab.addLabel')}</Label>
                   <Textarea
                     id="candidate-note"
                     rows={6}
-                    placeholder="Write a note about this candidate…"
+                    placeholder={t('pages:applicants.profile.notesTab.writeCandidatePh')}
                     value={noteDraft}
                     onChange={e => setNoteDraft(e.target.value)}
                   />
                   <div className="flex items-center gap-2">
                     <Button size="sm" onClick={handleSaveNote} disabled={savingNote || noteDraft === (applicantData.notes ?? '')}>
-                      {savingNote ? 'Saving…' : 'Save note'}
+                      {savingNote ? t('pages:applicants.profile.notesTab.saving') : t('pages:applicants.profile.notesTab.saveButton')}
                     </Button>
                     {noteDraft !== (applicantData.notes ?? '') && (
                       <Button size="sm" variant="ghost" onClick={() => setNoteDraft(applicantData.notes ?? '')} disabled={savingNote}>
-                        Discard changes
+                        {t('pages:applicants.profile.notesTab.discard')}
                       </Button>
                     )}
                   </div>
@@ -1781,7 +1790,7 @@ export function CandidateProfile() {
               ) : applicantData.notes ? (
                 <p className="whitespace-pre-wrap text-sm">{applicantData.notes}</p>
               ) : (
-                <p className="text-muted-foreground">No notes for this candidate.</p>
+                <p className="text-muted-foreground">{t('pages:applicants.profile.notesTab.candidateEmpty')}</p>
               )}
             </CardContent>
           </Card>
@@ -1794,16 +1803,16 @@ export function CandidateProfile() {
           <Card className="max-w-md w-full">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-emerald-600" />Promote to Candidate
+                <TrendingUp className="w-5 h-5 text-emerald-600" />{t('pages:applicants.profile.promoteDialog.title')}
               </CardTitle>
               <p className="text-sm text-muted-foreground mt-1">
-                <strong>{applicantData?.fullName}</strong> will be promoted from Lead to Candidate.
-                This grants agency users visibility. A holding agency will be assigned if configured.
+                <strong>{applicantData?.fullName}</strong>{' '}
+                {t('pages:applicants.profile.promoteDialog.intro')}
               </p>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800">
-                This action is logged and can be reviewed in Agency History.
+                {t('pages:applicants.profile.promoteDialog.loggedNote')}
               </div>
               <div className="flex gap-3">
                 <Button
@@ -1812,11 +1821,11 @@ export function CandidateProfile() {
                   disabled={convertingLead}
                 >
                   {convertingLead
-                    ? <><Loader2 className="w-4 h-4 me-2 animate-spin" />Promoting…</>
-                    : <><TrendingUp className="w-4 h-4 me-2" />Confirm Promotion</>}
+                    ? <><Loader2 className="w-4 h-4 me-2 animate-spin" />{t('pages:applicants.profile.promoteDialog.promoting')}</>
+                    : <><TrendingUp className="w-4 h-4 me-2" />{t('pages:applicants.profile.promoteDialog.confirmPromotion')}</>}
                 </Button>
                 <Button variant="outline" className="flex-1" onClick={() => setShowConvertLeadDialog(false)} disabled={convertingLead}>
-                  Cancel
+                  {t('pages:applicants.profile.promoteDialog.cancel')}
                 </Button>
               </div>
             </CardContent>
@@ -1831,50 +1840,50 @@ export function CandidateProfile() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <UserPlus className="w-5 h-5 text-[#22C55E]" />
-                Convert to Employee
+                {t('pages:applicants.profile.convertDialog.title')}
               </CardTitle>
               <p className="text-sm text-muted-foreground mt-1">
-                Converting <strong>{applicantData.fullName}</strong> — all documents will be transferred and the applicant record will be archived.
+                {t('pages:applicants.profile.convertDialog.convertingPrefix')} <strong>{applicantData.fullName}</strong> {t('pages:applicants.profile.convertDialog.candidateTransferSuffix')}
               </p>
             </CardHeader>
             <CardContent className="space-y-5">
-              {/* Read-only applicant info */}
+              {/* Read-only candidate info */}
               <div className="rounded-lg border bg-[#F8FAFC] p-4 grid grid-cols-2 gap-3 text-sm">
-                <div><span className="text-muted-foreground">Name: </span><span className="font-medium">{applicantData.fullName}</span></div>
-                <div><span className="text-muted-foreground">Email: </span><span className="font-medium">{applicantData.email}</span></div>
-                <div><span className="text-muted-foreground">Phone: </span><span className="font-medium">{applicantData.phone}</span></div>
-                <div><span className="text-muted-foreground">Citizenship: </span><span className="font-medium">{applicantData.nationality}</span></div>
+                <div><span className="text-muted-foreground">{t('pages:applicants.profile.convertDialog.name')} </span><span className="font-medium">{applicantData.fullName}</span></div>
+                <div><span className="text-muted-foreground">{t('pages:applicants.profile.convertDialog.email')} </span><span className="font-medium">{applicantData.email}</span></div>
+                <div><span className="text-muted-foreground">{t('pages:applicants.profile.convertDialog.phone')} </span><span className="font-medium">{applicantData.phone}</span></div>
+                <div><span className="text-muted-foreground">{t('pages:applicants.profile.convertDialog.citizenship')} </span><span className="font-medium">{applicantData.nationality}</span></div>
               </div>
 
               {/* Address — required */}
               <div>
                 <p className="text-sm font-semibold flex items-center gap-1.5 mb-3">
-                  <MapPin className="w-4 h-4 text-[#2563EB]" />Address <span className="text-[#EF4444]">*</span>
+                  <MapPin className="w-4 h-4 text-[#2563EB]" />{t('pages:applicants.profile.convertDialog.address')} <span className="text-[#EF4444]">*</span>
                 </p>
                 <div className="space-y-3">
                   <div>
-                    <Label htmlFor="cv-addr1">Address Line 1 <span className="text-[#EF4444]">*</span></Label>
+                    <Label htmlFor="cv-addr1">{t('pages:applicants.profile.convertDialog.addressLine1')} <span className="text-[#EF4444]">*</span></Label>
                     <Input id="cv-addr1" className="mt-1" value={convertForm.addressLine1}
                       onChange={e => setConvertForm(p => ({ ...p, addressLine1: e.target.value }))} />
                   </div>
                   <div>
-                    <Label htmlFor="cv-addr2">Address Line 2</Label>
+                    <Label htmlFor="cv-addr2">{t('pages:applicants.profile.convertDialog.addressLine2')}</Label>
                     <Input id="cv-addr2" className="mt-1" value={convertForm.addressLine2}
                       onChange={e => setConvertForm(p => ({ ...p, addressLine2: e.target.value }))} />
                   </div>
                   <div className="grid grid-cols-3 gap-3">
                     <div>
-                      <Label htmlFor="cv-city">City <span className="text-[#EF4444]">*</span></Label>
+                      <Label htmlFor="cv-city">{t('pages:applicants.profile.convertDialog.city')} <span className="text-[#EF4444]">*</span></Label>
                       <Input id="cv-city" className="mt-1" value={convertForm.city}
                         onChange={e => setConvertForm(p => ({ ...p, city: e.target.value }))} />
                     </div>
                     <div>
-                      <Label htmlFor="cv-country">Country <span className="text-[#EF4444]">*</span></Label>
+                      <Label htmlFor="cv-country">{t('pages:applicants.profile.convertDialog.country')} <span className="text-[#EF4444]">*</span></Label>
                       <Input id="cv-country" className="mt-1" value={convertForm.country}
                         onChange={e => setConvertForm(p => ({ ...p, country: e.target.value }))} />
                     </div>
                     <div>
-                      <Label htmlFor="cv-post">Postal Code <span className="text-[#EF4444]">*</span></Label>
+                      <Label htmlFor="cv-post">{t('pages:applicants.profile.convertDialog.postalCode')} <span className="text-[#EF4444]">*</span></Label>
                       <Input id="cv-post" className="mt-1" value={convertForm.postalCode}
                         onChange={e => setConvertForm(p => ({ ...p, postalCode: e.target.value }))} />
                     </div>
@@ -1884,30 +1893,30 @@ export function CandidateProfile() {
 
               {/* Optional extras */}
               <div>
-                <p className="text-sm font-semibold mb-3">Additional Details <span className="text-muted-foreground font-normal">(optional)</span></p>
+                <p className="text-sm font-semibold mb-3">{t('pages:applicants.profile.convertDialog.additionalDetails')} <span className="text-muted-foreground font-normal">{t('pages:applicants.profile.convertDialog.optional')}</span></p>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label htmlFor="cv-lic">License Number</Label>
+                    <Label htmlFor="cv-lic">{t('pages:applicants.profile.convertDialog.licenseNumber')}</Label>
                     <Input id="cv-lic" className="mt-1" value={convertForm.licenseNumber}
                       onChange={e => setConvertForm(p => ({ ...p, licenseNumber: e.target.value }))} />
                   </div>
                   <div>
-                    <Label htmlFor="cv-liccat">License Category</Label>
+                    <Label htmlFor="cv-liccat">{t('pages:applicants.profile.convertDialog.licenseCategory')}</Label>
                     <Input id="cv-liccat" className="mt-1" value={convertForm.licenseCategory}
                       onChange={e => setConvertForm(p => ({ ...p, licenseCategory: e.target.value }))} />
                   </div>
                   <div>
-                    <Label htmlFor="cv-yoe">Years Experience</Label>
+                    <Label htmlFor="cv-yoe">{t('pages:applicants.profile.convertDialog.yearsExperience')}</Label>
                     <Input id="cv-yoe" type="number" min={0} className="mt-1" value={convertForm.yearsExperience}
                       onChange={e => setConvertForm(p => ({ ...p, yearsExperience: e.target.value }))} />
                   </div>
                   <div>
-                    <Label htmlFor="cv-ec">Emergency Contact</Label>
+                    <Label htmlFor="cv-ec">{t('pages:applicants.profile.convertDialog.emergencyContact')}</Label>
                     <Input id="cv-ec" className="mt-1" value={convertForm.emergencyContact}
                       onChange={e => setConvertForm(p => ({ ...p, emergencyContact: e.target.value }))} />
                   </div>
                   <div className="col-span-2">
-                    <Label htmlFor="cv-ep">Emergency Phone</Label>
+                    <Label htmlFor="cv-ep">{t('pages:applicants.profile.convertDialog.emergencyPhone')}</Label>
                     <Input id="cv-ep" className="mt-1" value={convertForm.emergencyPhone}
                       onChange={e => setConvertForm(p => ({ ...p, emergencyPhone: e.target.value }))} />
                   </div>
@@ -1920,9 +1929,11 @@ export function CandidateProfile() {
                   onClick={handleConvertToEmployee}
                   disabled={converting || !convertForm.addressLine1.trim() || !convertForm.city.trim() || !convertForm.country.trim() || !convertForm.postalCode.trim()}
                 >
-                  {converting ? <><Loader2 className="w-4 h-4 me-2 animate-spin" />Converting…</> : <><UserPlus className="w-4 h-4 me-2" />Confirm Conversion</>}
+                  {converting
+                    ? <><Loader2 className="w-4 h-4 me-2 animate-spin" />{t('pages:applicants.profile.convertDialog.converting')}</>
+                    : <><UserPlus className="w-4 h-4 me-2" />{t('pages:applicants.profile.convertDialog.confirmConversion')}</>}
                 </Button>
-                <Button variant="outline" className="flex-1" onClick={() => setShowConvertDialog(false)} disabled={converting}>Cancel</Button>
+                <Button variant="outline" className="flex-1" onClick={() => setShowConvertDialog(false)} disabled={converting}>{t('pages:applicants.profile.convertDialog.cancel')}</Button>
               </div>
             </CardContent>
           </Card>
@@ -1933,18 +1944,18 @@ export function CandidateProfile() {
           when the reviewer clicks Reject on a PENDING document row. */}
       <Dialog open={rejectDocDialog.open} onOpenChange={open => !open && setRejectDocDialog(s => ({ ...s, open: false }))}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Reject Document</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t('pages:applicants.profile.rejectDocDialog.title')}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
-            <p className="text-sm text-muted-foreground">Rejecting: <span className="font-medium text-foreground">{rejectDocDialog.docName}</span></p>
+            <p className="text-sm text-muted-foreground">{t('pages:applicants.profile.rejectDocDialog.rejecting')} <span className="font-medium text-foreground">{rejectDocDialog.docName}</span></p>
             <div className="space-y-2">
-              <Label htmlFor="reject-doc-reason">Rejection Reason <span className="text-destructive">*</span></Label>
-              <Textarea id="reject-doc-reason" placeholder="Explain why this document is being rejected…" value={rejectDocReason} onChange={e => setRejectDocReason(e.target.value)} rows={4} />
+              <Label htmlFor="reject-doc-reason">{t('pages:applicants.profile.rejectDocDialog.reasonLabel')} <span className="text-destructive">*</span></Label>
+              <Textarea id="reject-doc-reason" placeholder={t('pages:applicants.profile.rejectDocDialog.reasonPh')} value={rejectDocReason} onChange={e => setRejectDocReason(e.target.value)} rows={4} />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setRejectDocDialog(s => ({ ...s, open: false }))}>Cancel</Button>
+            <Button variant="outline" onClick={() => setRejectDocDialog(s => ({ ...s, open: false }))}>{t('pages:applicants.profile.rejectDocDialog.cancel')}</Button>
             <Button className="bg-red-500 hover:bg-red-600 text-white" onClick={handleRejectDocSubmit} disabled={!!verifyingDocId || !rejectDocReason.trim()}>
-              <XCircle className="w-4 h-4 me-2" />{verifyingDocId ? 'Rejecting…' : 'Confirm Rejection'}
+              <XCircle className="w-4 h-4 me-2" />{verifyingDocId ? t('pages:applicants.profile.rejectDocDialog.rejecting2') : t('pages:applicants.profile.rejectDocDialog.confirmRejection')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1953,11 +1964,16 @@ export function CandidateProfile() {
   );
 }
 
-function InfoRow({ label, value }: { label: string; value?: string | null }) {
+function InfoRowInner({ label, value, fallback }: { label: string; value?: string | null; fallback: string }) {
   return (
     <div>
       <p className="text-sm text-muted-foreground">{label}</p>
-      <p className="font-medium">{value || <span className="text-muted-foreground italic">Not provided</span>}</p>
+      <p className="font-medium">{value || <span className="text-muted-foreground italic">{fallback}</span>}</p>
     </div>
   );
+}
+
+function InfoRow({ label, value }: { label: string; value?: string | null }) {
+  const { t } = useTranslation('pages');
+  return <InfoRowInner label={label} value={value} fallback={t('applicants.profile.infoRow.notProvided')} />;
 }

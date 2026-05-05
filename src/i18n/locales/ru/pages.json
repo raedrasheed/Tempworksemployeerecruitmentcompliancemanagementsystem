@@ -5,10 +5,36 @@
       "subtitle": "Записи о водителях и работниках",
       "addButton": "Добавить сотрудника",
       "search": "Поиск по имени, e-mail, гражданству…",
-      "stats": { "total": "Всего", "active": "Активные", "onboarding": "Адаптация", "pending": "Ожидание" },
-      "filters": { "allStatuses": "Все статусы", "allAgencies": "Все агентства", "allCitizenships": "Все гражданства", "from": "С", "to": "По" },
-      "columns": { "contact": "Контакт", "citizenship": "Гражданство", "license": "ID / Лицензия", "experience": "Опыт", "agency": "Агентство", "status": "Статус", "name": "Имя", "actions": "Действия" },
-      "actions": { "view": "Просмотр", "edit": "Редактировать", "delete": "Удалить", "exportPdf": "Экспорт PDF", "exportSelected": "Экспорт выбранных" },
+      "stats": {
+        "total": "Всего",
+        "active": "Активные",
+        "onboarding": "Адаптация",
+        "pending": "Ожидание"
+      },
+      "filters": {
+        "allStatuses": "Все статусы",
+        "allAgencies": "Все агентства",
+        "allCitizenships": "Все гражданства",
+        "from": "С",
+        "to": "По"
+      },
+      "columns": {
+        "contact": "Контакт",
+        "citizenship": "Гражданство",
+        "license": "ID / Лицензия",
+        "experience": "Опыт",
+        "agency": "Агентство",
+        "status": "Статус",
+        "name": "Имя",
+        "actions": "Действия"
+      },
+      "actions": {
+        "view": "Просмотр",
+        "edit": "Редактировать",
+        "delete": "Удалить",
+        "exportPdf": "Экспорт PDF",
+        "exportSelected": "Экспорт выбранных"
+      },
       "empty": "Сотрудники не найдены.",
       "deleteConfirmTitle": "Удалить сотрудника?",
       "deleteConfirmBody": "Запись будет перемещена в корзину.",
@@ -18,145 +44,660 @@
       "title": "Профиль сотрудника",
       "back": "К списку сотрудников",
       "subtitle": "Просмотр и управление информацией о сотруднике",
-      "loading": "Загрузка…", "notFound": "Сотрудник не найден",
-      "editProfile": "Редактировать профиль", "delete": "Удалить",
+      "loading": "Загрузка…",
+      "notFound": "Сотрудник не найден",
+      "editProfile": "Редактировать профиль",
+      "delete": "Удалить",
       "employeeId": "ID сотрудника: {{id}}",
       "selfApplied": "Подана через публичную форму",
       "unknownLegacy": "Неизвестно (старая запись)",
       "tabs": {
-        "overview": "Обзор", "application": "Заявка", "documents": "Документы ({{count}})",
-        "attendance": "Посещаемость и табели", "contracts": "Контракты", "compliance": "Соответствие",
-        "financial": "Финансы", "notes": "Заметки",
-        "workHistory": "История работы", "training": "Обучение", "performance": "Производительность", "finance": "Финансы"
+        "overview": "Обзор",
+        "application": "Заявка",
+        "documents": "Документы ({{count}})",
+        "attendance": "Посещаемость и табели",
+        "contracts": "Контракты",
+        "compliance": "Соответствие",
+        "financial": "Финансы",
+        "notes": "Заметки",
+        "workHistory": "История работы",
+        "training": "Обучение",
+        "performance": "Производительность",
+        "finance": "Финансы"
       },
-      "header": { "email": "Email", "phone": "Телефон", "citizenship": "Гражданство", "joined": "Дата приёма", "createdBy": "Создал" },
-      "quickNav": { "certifications": "Сертификаты", "training": "История обучения", "complianceTimeline": "Хронология соответствия", "performance": "Оценки производительности" },
+      "header": {
+        "email": "Email",
+        "phone": "Телефон",
+        "citizenship": "Гражданство",
+        "joined": "Дата приёма",
+        "createdBy": "Создал"
+      },
+      "quickNav": {
+        "certifications": "Сертификаты",
+        "training": "История обучения",
+        "complianceTimeline": "Хронология соответствия",
+        "performance": "Оценки производительности"
+      },
       "personal": {
-        "title": "Личная информация", "fullName": "Полное имя", "dateOfBirth": "Дата рождения",
-        "citizenship": "Гражданство", "jobCategory": "Категория должности",
-        "licenseNumber": "Номер водительского", "licenseCategory": "Категория водительского",
-        "yearsExperience": "Стаж работы", "yearsValue": "{{count}} лет",
-        "address": "Адрес", "city": "Город", "country": "Страна", "postalCode": "Индекс",
+        "title": "Личная информация",
+        "fullName": "Полное имя",
+        "dateOfBirth": "Дата рождения",
+        "citizenship": "Гражданство",
+        "jobCategory": "Категория должности",
+        "licenseNumber": "Номер водительского",
+        "licenseCategory": "Категория водительского",
+        "yearsExperience": "Стаж работы",
+        "yearsValue": "{{count}} лет",
+        "address": "Адрес",
+        "city": "Город",
+        "country": "Страна",
+        "postalCode": "Индекс",
         "emergencyContact": "Экстренный контакт"
       },
-      "stats": { "title": "Быстрая статистика", "documents": "Документы", "validDocs": "Действительные документы", "expiringSoon": "Скоро истекают" },
-      "agency": { "title": "Агентство", "noAgency": "Без агентства (напрямую)" },
+      "stats": {
+        "title": "Быстрая статистика",
+        "documents": "Документы",
+        "validDocs": "Действительные документы",
+        "expiringSoon": "Скоро истекают"
+      },
+      "agency": {
+        "title": "Агентство",
+        "noAgency": "Без агентства (напрямую)"
+      },
       "agencyAccess": {
         "title": "Доступ агентств",
         "subtitle": "Предоставьте или отзовите доступ агентств на просмотр и редактирование этого сотрудника. Перевод из кандидата не предоставляет доступ автоматически — переключатели нужно включать вручную.",
-        "originBadge": "Источник", "ownAgencyFallback": "Агентство сотрудника",
-        "view": "Просмотр", "edit": "Редактирование", "granted": "Предоставлено {{date}}",
+        "originBadge": "Источник",
+        "ownAgencyFallback": "Агентство сотрудника",
+        "view": "Просмотр",
+        "edit": "Редактирование",
+        "granted": "Предоставлено {{date}}",
         "grantSection": "Предоставить доступ другому агентству",
-        "selectAgency": "Выбрать агентство", "notesPh": "Заметки (необязательно)",
-        "grantButton": "Предоставить просмотр + редактирование", "granting": "Предоставляется…",
-        "toast": { "updated": "Доступ обновлён", "updateFailed": "Не удалось обновить доступ", "revoked": "Доступ агентства отозван", "revokeFailed": "Не удалось отозвать доступ" },
-        "confirmRevokeAll": { "title": "Отозвать весь доступ агентства", "description": "Отключение и Просмотра, и Редактирования полностью удалит доступ этого агентства. Продолжить?", "confirm": "Отозвать" },
-        "confirmRevoke": { "title": "Отозвать доступ агентства", "description": "Удалить доступ {{agency}} к этому сотруднику? Их пользователи сразу перестанут видеть запись.", "fallbackAgency": "это агентство", "confirm": "Отозвать" }
+        "selectAgency": "Выбрать агентство",
+        "notesPh": "Заметки (необязательно)",
+        "grantButton": "Предоставить просмотр + редактирование",
+        "granting": "Предоставляется…",
+        "toast": {
+          "updated": "Доступ обновлён",
+          "updateFailed": "Не удалось обновить доступ",
+          "revoked": "Доступ агентства отозван",
+          "revokeFailed": "Не удалось отозвать доступ"
+        },
+        "confirmRevokeAll": {
+          "title": "Отозвать весь доступ агентства",
+          "description": "Отключение и Просмотра, и Редактирования полностью удалит доступ этого агентства. Продолжить?",
+          "confirm": "Отозвать"
+        },
+        "confirmRevoke": {
+          "title": "Отозвать доступ агентства",
+          "description": "Удалить доступ {{agency}} к этому сотруднику? Их пользователи сразу перестанут видеть запись.",
+          "fallbackAgency": "это агентство",
+          "confirm": "Отозвать"
+        }
       },
       "documents": {
-        "title": "Документы сотрудника", "uploadButton": "Загрузить документ", "cancel": "Отмена",
-        "newDocumentTitle": "Новый документ", "documentType": "Тип документа", "selectType": "Выберите тип",
-        "documentName": "Название документа", "documentNamePh": "напр. Паспорт",
-        "issueDate": "Дата выдачи", "expiryDate": "Дата истечения",
-        "documentNumber": "Номер документа", "optionalPh": "Необязательно", "issuer": "Выдан кем",
-        "fileLabel": "Файл", "uploading": "Загружается...", "upload": "Загрузить",
+        "title": "Документы сотрудника",
+        "uploadButton": "Загрузить документ",
+        "cancel": "Отмена",
+        "newDocumentTitle": "Новый документ",
+        "documentType": "Тип документа",
+        "selectType": "Выберите тип",
+        "documentName": "Название документа",
+        "documentNamePh": "напр. Паспорт",
+        "issueDate": "Дата выдачи",
+        "expiryDate": "Дата истечения",
+        "documentNumber": "Номер документа",
+        "optionalPh": "Необязательно",
+        "issuer": "Выдан кем",
+        "fileLabel": "Файл",
+        "uploading": "Загружается...",
+        "upload": "Загрузить",
         "empty": "Документы ещё не загружены.",
-        "fileSize": "{{name}} ({{size}} КБ)", "expires": "Истекает: {{date}}",
-        "fileMeta": "{{type}} · {{size}} КБ", "download": "Скачать", "view": "Просмотр",
-        "toast": { "fileRequired": "Выберите файл", "typeRequired": "Выберите тип документа", "nameRequired": "Введите название документа", "uploaded": "Документ успешно загружен", "uploadFailed": "Не удалось загрузить документ" }
+        "fileSize": "{{name}} ({{size}} КБ)",
+        "expires": "Истекает: {{date}}",
+        "fileMeta": "{{type}} · {{size}} КБ",
+        "download": "Скачать",
+        "view": "Просмотр",
+        "toast": {
+          "fileRequired": "Выберите файл",
+          "typeRequired": "Выберите тип документа",
+          "nameRequired": "Введите название документа",
+          "uploaded": "Документ успешно загружен",
+          "uploadFailed": "Не удалось загрузить документ"
+        }
       },
       "compliance": {
-        "title": "Статус соответствия", "empty": "Нет данных о соответствии. Загрузите документы для отслеживания.",
-        "expiredAgo": "Истёк {{count}} дн. назад", "daysRemaining": "Осталось {{count}} дн."
+        "title": "Статус соответствия",
+        "empty": "Нет данных о соответствии. Загрузите документы для отслеживания.",
+        "expiredAgo": "Истёк {{count}} дн. назад",
+        "daysRemaining": "Осталось {{count}} дн."
       },
       "financial": {
-        "title": "Банковский и зарплатный профиль", "fromCandidateBadge": "Из этапа кандидата",
+        "title": "Банковский и зарплатный профиль",
+        "fromCandidateBadge": "Из этапа кандидата",
         "subtitle": "Банковские и зарплатные данные, собранные на этапе кандидата, сохраняются после перевода.",
-        "bankName": "Банк", "accountHolder": "Владелец счёта", "accountNumber": "Номер счёта",
-        "sortCode": "Код банка", "iban": "IBAN", "taxCode": "Налоговый код",
-        "niNumber": "NI номер", "paymentMethod": "Способ оплаты",
-        "salaryAgreed": "Согласованная зарплата", "notes": "Заметки"
+        "bankName": "Банк",
+        "accountHolder": "Владелец счёта",
+        "accountNumber": "Номер счёта",
+        "sortCode": "Код банка",
+        "iban": "IBAN",
+        "taxCode": "Налоговый код",
+        "niNumber": "NI номер",
+        "paymentMethod": "Способ оплаты",
+        "salaryAgreed": "Согласованная зарплата",
+        "notes": "Заметки"
       },
       "notes": {
-        "title": "Заметки и комментарии", "addLabel": "Добавить / обновить заметку",
+        "title": "Заметки и комментарии",
+        "addLabel": "Добавить / обновить заметку",
         "writePh": "Напишите заметку об этом сотруднике…",
-        "saveButton": "Сохранить заметку", "saving": "Сохранение…",
-        "discard": "Отменить изменения", "empty": "Нет заметок об этом сотруднике."
+        "saveButton": "Сохранить заметку",
+        "saving": "Сохранение…",
+        "discard": "Отменить изменения",
+        "empty": "Нет заметок об этом сотруднике."
       },
       "toast": {
         "loadFailed": "Не удалось загрузить сотрудника",
-        "stageUpdated": "Этап обновлён", "stageFailed": "Не удалось обновить этап",
-        "workflowConnected": "Workflow подключён", "workflowFailed": "Не удалось подключить workflow",
-        "currentStageUpdated": "Текущий этап обновлён", "currentStageFailed": "Не удалось обновить этап",
-        "workflowDisconnected": "Workflow отключён", "disconnectFailed": "Отключение не удалось",
-        "stageApproved": "Этап утверждён", "stageApproveFailed": "Не удалось утвердить этап",
-        "noteSaved": "Заметка сохранена", "noteFailed": "Не удалось сохранить заметку",
-        "agencyUpdated": "Агентство обновлено", "agencyFailed": "Не удалось обновить агентство",
-        "deleted": "Сотрудник удалён", "deleteFailed": "Не удалось удалить сотрудника"
+        "stageUpdated": "Этап обновлён",
+        "stageFailed": "Не удалось обновить этап",
+        "workflowConnected": "Workflow подключён",
+        "workflowFailed": "Не удалось подключить workflow",
+        "currentStageUpdated": "Текущий этап обновлён",
+        "currentStageFailed": "Не удалось обновить этап",
+        "workflowDisconnected": "Workflow отключён",
+        "disconnectFailed": "Отключение не удалось",
+        "stageApproved": "Этап утверждён",
+        "stageApproveFailed": "Не удалось утвердить этап",
+        "noteSaved": "Заметка сохранена",
+        "noteFailed": "Не удалось сохранить заметку",
+        "agencyUpdated": "Агентство обновлено",
+        "agencyFailed": "Не удалось обновить агентство",
+        "deleted": "Сотрудник удалён",
+        "deleteFailed": "Не удалось удалить сотрудника"
       },
-      "confirmDelete": { "title": "Удалить сотрудника?", "description": "{{name}} будет удалён без возможности восстановления. Это действие нельзя отменить.", "confirm": "Удалить" },
-      "confirmDisconnect": { "title": "Отключить от workflow?", "description": "Этот сотрудник будет отключён от workflow. Существующий прогресс сохраняется.", "confirm": "Отключить" }
+      "confirmDelete": {
+        "title": "Удалить сотрудника?",
+        "description": "{{name}} будет удалён без возможности восстановления. Это действие нельзя отменить.",
+        "confirm": "Удалить"
+      },
+      "confirmDisconnect": {
+        "title": "Отключить от workflow?",
+        "description": "Этот сотрудник будет отключён от workflow. Существующий прогресс сохраняется.",
+        "confirm": "Отключить"
+      }
     },
-    "add": { "title": "Добавить сотрудника", "back": "К списку сотрудников" },
-    "edit": { "title": "Редактировать сотрудника", "back": "К профилю" },
-    "certifications": { "title": "Сертификаты", "back": "К профилю" },
-    "training": { "title": "История обучения", "back": "К профилю" },
-    "complianceTimeline": { "title": "Хронология соответствия", "back": "К профилю" },
-    "performance": { "title": "Оценка производительности", "back": "К профилю" }
+    "add": {
+      "title": "Добавить сотрудника",
+      "back": "К списку сотрудников"
+    },
+    "edit": {
+      "title": "Редактировать сотрудника",
+      "back": "К профилю"
+    },
+    "certifications": {
+      "title": "Сертификаты",
+      "back": "К профилю"
+    },
+    "training": {
+      "title": "История обучения",
+      "back": "К профилю"
+    },
+    "complianceTimeline": {
+      "title": "Хронология соответствия",
+      "back": "К профилю"
+    },
+    "performance": {
+      "title": "Оценка производительности",
+      "back": "К профилю"
+    }
   },
   "applicants": {
-    "list": { "title": "Соискатели", "subtitle": "Соискатели и лиды", "addButton": "Добавить соискателя", "search": "Поиск соискателей…", "empty": "Соискатели не найдены.", "deleteRequests": "Запросы на удаление" },
-    "candidates": { "title": "Кандидаты", "subtitle": "Проверенные кандидаты, готовые к трудоустройству", "search": "Поиск кандидатов…", "empty": "Кандидаты не найдены." },
+    "list": {
+      "title": "Соискатели",
+      "subtitle": "Соискатели и лиды",
+      "addButton": "Добавить соискателя",
+      "search": "Поиск соискателей…",
+      "empty": "Соискатели не найдены.",
+      "deleteRequests": "Запросы на удаление"
+    },
+    "candidates": {
+      "title": "Кандидаты",
+      "subtitle": "Проверенные кандидаты, готовые к трудоустройству",
+      "search": "Поиск кандидатов…",
+      "empty": "Кандидаты не найдены."
+    },
     "profile": {
-      "title": "Профиль соискателя", "candidateTitle": "Профиль кандидата",
+      "title": "Профиль соискателя",
+      "candidateTitle": "Профиль кандидата",
       "subtitle": "Просмотр и управление информацией о соискателе",
       "candidateSubtitle": "Просмотр и управление информацией о кандидате",
-      "back": "Назад", "loading": "Загрузка…", "notFound": "Соискатель не найден", "candidateNotFound": "Кандидат не найден",
-      "convertToCandidate": "Перевести в кандидаты", "convertToEmployee": "Перевести в сотрудники",
-      "promote": "Перевести в кандидаты", "promoteToCandidate": "Перевести в кандидаты",
-      "tabs": { "overview": "Обзор", "application": "Заявка", "documents": "Документы ({{count}})", "workflow": "Workflow", "docCompliance": "Соответствие документов", "compliance": "Соответствие", "financial": "Финансы", "agencyHistory": "История агентств", "history": "История", "notes": "Заметки" },
+      "back": "Назад",
+      "loading": "Загрузка…",
+      "notFound": "Соискатель не найден",
+      "candidateNotFound": "Кандидат не найден",
+      "convertToCandidate": "Перевести в кандидаты",
+      "convertToEmployee": "Перевести в сотрудники",
+      "promote": "Перевести в кандидаты",
+      "promoteToCandidate": "Перевести в кандидаты",
+      "tabs": {
+        "overview": "Обзор",
+        "application": "Заявка",
+        "documents": "Документы ({{count}})",
+        "workflow": "Workflow",
+        "docCompliance": "Соответствие документов",
+        "compliance": "Соответствие",
+        "financial": "Финансы",
+        "agencyHistory": "История агентств",
+        "history": "История",
+        "notes": "Заметки"
+      },
       "toast": {
         "loadFailed": "Не удалось загрузить соискателя",
-        "stageUpdated": "Этап обновлён", "stageFailed": "Не удалось обновить этап",
-        "workflowConnected": "Workflow подключён", "workflowFailed": "Не удалось подключить workflow",
-        "currentStageUpdated": "Текущий этап обновлён", "currentStageFailed": "Не удалось обновить этап",
-        "workflowDisconnected": "Workflow отключён", "disconnectFailed": "Отключение не удалось",
-        "stageApproved": "Этап утверждён", "stageApproveFailed": "Не удалось утвердить этап",
-        "agencyUpdated": "Агентство обновлено", "agencyFailed": "Не удалось обновить агентство",
-        "noteSaved": "Заметка сохранена", "noteFailed": "Не удалось сохранить заметку",
-        "docApproved": "\"{{name}}\" утверждён", "docApproveFailed": "Не удалось утвердить документ",
+        "stageUpdated": "Этап обновлён",
+        "stageFailed": "Не удалось обновить этап",
+        "workflowConnected": "Workflow подключён",
+        "workflowFailed": "Не удалось подключить workflow",
+        "currentStageUpdated": "Текущий этап обновлён",
+        "currentStageFailed": "Не удалось обновить этап",
+        "workflowDisconnected": "Workflow отключён",
+        "disconnectFailed": "Отключение не удалось",
+        "stageApproved": "Этап утверждён",
+        "stageApproveFailed": "Не удалось утвердить этап",
+        "agencyUpdated": "Агентство обновлено",
+        "agencyFailed": "Не удалось обновить агентство",
+        "noteSaved": "Заметка сохранена",
+        "noteFailed": "Не удалось сохранить заметку",
+        "docApproved": "\"{{name}}\" утверждён",
+        "docApproveFailed": "Не удалось утвердить документ",
         "rejectReasonRequired": "Требуется причина отклонения",
-        "docRejected": "\"{{name}}\" отклонён", "docRejectFailed": "Не удалось отклонить документ",
-        "docDeleted": "Документ удалён", "docDeleteFailed": "Не удалось удалить документ",
-        "fileRequired": "Выберите файл", "typeRequired": "Выберите тип документа",
+        "docRejected": "\"{{name}}\" отклонён",
+        "docRejectFailed": "Не удалось отклонить документ",
+        "docDeleted": "Документ удалён",
+        "docDeleteFailed": "Не удалось удалить документ",
+        "fileRequired": "Выберите файл",
+        "typeRequired": "Выберите тип документа",
         "nameRequired": "Введите название документа",
-        "uploaded": "Документ успешно загружен", "uploadFailed": "Не удалось загрузить документ",
-        "deleted": "Соискатель успешно удалён", "deleteFailed": "Не удалось удалить соискателя",
+        "uploaded": "Документ успешно загружен",
+        "uploadFailed": "Не удалось загрузить документ",
+        "deleted": "Соискатель успешно удалён",
+        "deleteFailed": "Не удалось удалить соискателя",
         "addressRequired": "Заполните все обязательные поля адреса",
         "convertedToEmployee": "Соискатель успешно переведён в сотрудники",
         "convertFailed": "Не удалось перевести соискателя в сотрудники",
-        "promoted": "Переведён в кандидаты", "promoteFailed": "Перевод не удался",
-        "financialSaved": "Финансовый профиль сохранён", "financialFailed": "Не удалось сохранить финансовый профиль"
+        "promoted": "Переведён в кандидаты",
+        "promoteFailed": "Перевод не удался",
+        "financialSaved": "Финансовый профиль сохранён",
+        "financialFailed": "Не удалось сохранить финансовый профиль"
       },
-      "confirmDelete": { "title": "Удалить соискателя?", "description": "Этот соискатель будет удалён без возможности восстановления.", "confirm": "Удалить" },
-      "confirmDeleteCandidate": { "title": "Удалить кандидата?", "description": "Этот кандидат будет удалён без возможности восстановления.", "confirm": "Удалить" },
-      "confirmDisconnect": { "title": "Отключить от workflow?", "description": "Этот соискатель будет отключён от workflow. Существующий прогресс сохраняется.", "confirm": "Отключить" },
-      "confirmDeleteDoc": { "title": "Удалить документ?", "description": "\"{{name}}\" будет удалён из записей этого соискателя.", "confirm": "Удалить" },
+      "confirmDelete": {
+        "title": "Удалить соискателя?",
+        "description": "Этот соискатель будет удалён без возможности восстановления.",
+        "confirm": "Удалить"
+      },
+      "confirmDeleteCandidate": {
+        "title": "Удалить кандидата?",
+        "description": "Этот кандидат будет удалён без возможности восстановления.",
+        "confirm": "Удалить"
+      },
+      "confirmDisconnect": {
+        "title": "Отключить от workflow?",
+        "description": "Этот соискатель будет отключён от workflow. Существующий прогресс сохраняется.",
+        "confirm": "Отключить"
+      },
+      "confirmDeleteDoc": {
+        "title": "Удалить документ?",
+        "description": "\"{{name}}\" будет удалён из записей этого соискателя.",
+        "confirm": "Удалить"
+      },
       "candidateApproval": {
         "pendingTitle": "Этот кандидат ожидает утверждения Tempworks.",
         "pendingBody": "Он был отправлен ответственным агентством и не может войти в workflow или быть переведён в сотрудники до утверждения.",
-        "approve": "Утвердить", "reject": "Отклонить",
-        "approved": "Кандидат утверждён", "rejected": "Кандидат отклонён",
-        "approveFailed": "Не удалось утвердить", "rejectFailed": "Не удалось отклонить",
-        "confirmReject": { "title": "Отклонить этого кандидата?", "description": "Он не войдёт в workflow. Это можно отменить позже, утвердив кандидата.", "confirm": "Отклонить" }
+        "approve": "Утвердить",
+        "reject": "Отклонить",
+        "approved": "Кандидат утверждён",
+        "rejected": "Кандидат отклонён",
+        "approveFailed": "Не удалось утвердить",
+        "rejectFailed": "Не удалось отклонить",
+        "confirmReject": {
+          "title": "Отклонить этого кандидата?",
+          "description": "Он не войдёт в workflow. Это можно отменить позже, утвердив кандидата.",
+          "confirm": "Отклонить"
+        },
+        "pendingBadge": "Pending Tempworks approval",
+        "rejectedBadge": "Rejected"
+      },
+      "noIdentifierLegacy": "No identifier (legacy record)",
+      "wasLeadPrefix": "(was {{leadNumber}})",
+      "header": {
+        "email": "Email",
+        "phone": "Phone",
+        "citizenship": "Citizenship",
+        "applied": "Applied"
+      },
+      "emergency": {
+        "sectionTitle": "Family / Emergency Contact",
+        "name": "Name",
+        "relationship": "Relationship",
+        "phone": "Phone",
+        "email": "Email"
+      },
+      "quickNav": {
+        "travel": "Travel & Residence",
+        "driving": "Driving Licence & Experience",
+        "education": "Education",
+        "workExperience": "Work Experience"
+      },
+      "personal": {
+        "title": "Personal Information",
+        "fullName": "Full Name",
+        "dateOfBirth": "Date of Birth",
+        "citizenship": "Citizenship",
+        "licenseNumber": "License Number",
+        "licenseCategory": "License Category",
+        "yearsEUExperience": "Years EU Experience",
+        "permanentAddress": "Permanent Address",
+        "countryOfResidence": "Country of Residence",
+        "currentCountry": "Current Country",
+        "appliedPosition": "Applied Position",
+        "preferredStartDate": "Preferred Start Date",
+        "howTheyHeard": "How They Heard",
+        "general": "GENERAL"
+      },
+      "stats": {
+        "title": "Quick Stats",
+        "documents": "Documents",
+        "validDocs": "Valid Docs",
+        "expiringSoon": "Expiring Soon"
+      },
+      "lifecycle": {
+        "title": "Lifecycle Identifiers",
+        "leadId": "Lead ID",
+        "candidateId": "Candidate ID",
+        "createdBy": "Created By",
+        "createdLabel": "Created: {{date}}",
+        "convertedLabel": "Converted: {{date}}",
+        "notAssignedLegacy": "Not assigned (legacy)",
+        "notYetConverted": "Not yet converted",
+        "selfApplied": "Self-applied via public form",
+        "unknownLegacy": "Unknown (legacy record)"
+      },
+      "agency": {
+        "title": "Agency",
+        "noAgency": "No Agency (Direct)"
+      },
+      "travelDocs": {
+        "title": "Travel & Residence Documents",
+        "passportNumber": "Passport Number",
+        "passportValidUntil": "Passport Valid Until",
+        "issuingCountry": "Issuing Country",
+        "euVisa": "EU Visa",
+        "visaType": "Visa Type",
+        "visaNumber": "Visa Number",
+        "validUntil": "Valid Until",
+        "workPermitInEU": "Work Permit in EU",
+        "permitType": "Permit Type",
+        "permitNumber": "Permit Number",
+        "issueDate": "Issue Date",
+        "residenceCardInEU": "Residence Card in EU",
+        "residenceType": "Residence Type",
+        "residenceNumber": "Residence Number",
+        "country": "Country",
+        "city": "City",
+        "yes": "Yes",
+        "no": "No"
+      },
+      "driving": {
+        "title": "Driving Licence & Experience",
+        "licenceCertifications": "Licence & Certifications",
+        "licenseNumber": "License Number",
+        "issuingCountry": "Issuing Country",
+        "validUntil": "Valid Until",
+        "categories": "Categories:",
+        "tachographCard": "Tachograph Card",
+        "code95": "Code 95 / CPC",
+        "adrCertificate": "ADR Certificate",
+        "experienceTitle": "Driving Experience",
+        "euExperience": "EU Experience",
+        "yearsInEU": "Years in EU",
+        "totalCEExperience": "Total C+E Experience",
+        "yearsActiveDriving": "Years Active Driving",
+        "drivenOtherCountries": "Driven Other Countries",
+        "countries": "Countries:",
+        "yes": "Yes",
+        "no": "No",
+        "yesValue": "Yes ({{value}})",
+        "yesUntil": "Yes (until {{date}})",
+        "yesNA": "Yes (N/A)"
+      },
+      "languages": {
+        "title": "Language Skills",
+        "english": "English",
+        "german": "German",
+        "russian": "Russian",
+        "otherLanguages": "Other Languages",
+        "languageAtWork": "Language at Work"
+      },
+      "workFlex": {
+        "title": "Work Flexibility & Preferences",
+        "doubleCrew": "Double Crew",
+        "maxTourLength": "Max Tour Length",
+        "weekendDriving": "Weekend Driving",
+        "nightDriving": "Night Driving",
+        "preferredCountries": "Preferred Countries",
+        "undesiredCountries": "Undesired Countries",
+        "yes": "Yes",
+        "no": "No"
+      },
+      "education": {
+        "title": "Education",
+        "default": "Education",
+        "fieldOfStudy": "Field of Study",
+        "country": "Country",
+        "start": "Start",
+        "end": "End",
+        "ongoing": "Ongoing",
+        "degreePrefix": "Degree / Certificate:"
+      },
+      "workHistory": {
+        "title": "Work Experience",
+        "defaultPosition": "Position",
+        "country": "Country",
+        "start": "Start",
+        "end": "End",
+        "current": "Current",
+        "companyPhone": "Company Phone",
+        "responsibilities": "Responsibilities",
+        "reasonForLeaving": "Reason for leaving:",
+        "reference": "Reference",
+        "name": "Name",
+        "phone": "Phone",
+        "email": "Email"
+      },
+      "documentsTab": {
+        "title": "Applicant Documents",
+        "candidateTitle": "Candidate Documents",
+        "uploadButton": "Upload Document",
+        "cancel": "Cancel",
+        "newDocumentTitle": "New Document",
+        "documentType": "Document Type",
+        "selectType": "Select type",
+        "documentName": "Document Name",
+        "documentNamePh": "e.g. Passport",
+        "issueDate": "Issue Date",
+        "expiryDate": "Expiry Date",
+        "noExpiry": "No Expiry",
+        "documentNumber": "Document Number",
+        "optionalPh": "Optional",
+        "issuer": "Issuer",
+        "fileLabel": "File",
+        "fileSize": "{{name}} ({{size}} KB)",
+        "uploading": "Uploading...",
+        "upload": "Upload",
+        "loading": "Loading documents...",
+        "empty": "No documents uploaded yet.",
+        "expires": "Expires: {{date}}",
+        "fileMeta": "{{type}} · {{size}} KB",
+        "downloadTitle": "Download",
+        "approve": "Approve",
+        "reject": "Reject",
+        "editTitle": "Edit",
+        "deleteTitle": "Delete"
+      },
+      "workflowTab": {
+        "connectTitle": "Connect to a Workflow",
+        "connectSubtitle": "This applicant is not connected to any workflow yet.",
+        "candidateConnectSubtitle": "This candidate is not connected to any workflow yet.",
+        "selectWorkflowPh": "Select a workflow…",
+        "public": "Public",
+        "private": "Private",
+        "connect": "Connect",
+        "connecting": "Connecting…",
+        "connectButton": "Connect to Workflow",
+        "saving": "Saving…",
+        "confirm": "Confirm",
+        "connectedBy": "Connected {{date}} by {{name}}",
+        "changeWorkflow": "Change Workflow",
+        "change": "Change",
+        "changeTitle": "Reassign to a different workflow (admin only)",
+        "noStages": "This workflow has no stages configured yet.",
+        "current": "Current",
+        "inProgress": "In Progress",
+        "approved": "Approved",
+        "final": "Final",
+        "needsApproval": "Needs Approval",
+        "slaSuffix": "SLA: {{hours}}h",
+        "setCurrent": "Set Current",
+        "requiredDocs": "Required Documents",
+        "noRequiredDocs": "No required documents for this stage.",
+        "uploaded": "Uploaded",
+        "missing": "Missing",
+        "stageApproval": "Stage Approval",
+        "approvedBy": "by {{name}}",
+        "noApprovers": "No approvers assigned to this stage.",
+        "approveStage": "Approve Stage",
+        "approving": "Approving…"
+      },
+      "complianceTab": {
+        "title": "Compliance Status",
+        "empty": "No compliance data available. Upload documents to begin tracking compliance.",
+        "expiredAgo": "Expired {{count}} days ago",
+        "daysRemaining": "{{count}} days remaining"
+      },
+      "financialTab": {
+        "title": "Financial Transactions",
+        "candidatesOnlyBadge": "Candidates only",
+        "candidatesOnlyBody": "Financial transactions are available for Candidates only. Promote this applicant to Candidate first.",
+        "bankTitle": "Bank & Tax Details",
+        "save": "Save",
+        "saving": "Saving…",
+        "saved": "Saved",
+        "saveFailed": "Save failed",
+        "bankName": "Bank Name",
+        "iban": "IBAN",
+        "taxCode": "Tax Code",
+        "niNumber": "NI Number",
+        "paymentMethod": "Payment Method"
+      },
+      "historyTab": {
+        "title": "Agency Assignment History",
+        "loading": "Loading…",
+        "empty": "No agency assignment history recorded.",
+        "reason": "Reason: {{value}}",
+        "current": "Current"
+      },
+      "notesTab": {
+        "title": "Notes & Comments",
+        "submittedWithApplication": "Submitted with application",
+        "addLabel": "Add / update note",
+        "writePh": "Write a note about this applicant…",
+        "writeCandidatePh": "Write a note about this candidate…",
+        "saveButton": "Save note",
+        "saving": "Saving…",
+        "discard": "Discard changes",
+        "empty": "No notes for this applicant.",
+        "candidateEmpty": "No notes for this candidate."
+      },
+      "promoteDialog": {
+        "title": "Promote to Candidate",
+        "successTitle": "Promoted Successfully",
+        "successBody": "has been promoted from Lead to Candidate.",
+        "newCandidateId": "The new Candidate ID is",
+        "successFooter": "The profile is now visible to agency users, and the tier change has been recorded in the audit log.",
+        "done": "Done",
+        "intro": "will be promoted from Lead to Candidate. This grants agency users visibility. A holding agency will be assigned if configured.",
+        "candidateIntro": "will have its tier confirmed.",
+        "responsibleAgency": "Responsible Agency",
+        "selectDefault": "Use system default",
+        "useSystemDefault": "Use system default holding agency",
+        "agencyHelp": "The selected agency becomes responsible for this candidate and is recorded in Agency History.",
+        "loggedNote": "This action is logged and can be reviewed in Agency History.",
+        "promoting": "Promoting…",
+        "confirmPromotion": "Confirm Promotion",
+        "cancel": "Cancel"
+      },
+      "convertDialog": {
+        "title": "Convert to Employee",
+        "subtitle": "Converting <strong>{{name}}</strong> — all documents will be transferred and the applicant record will be archived.",
+        "candidateSubtitle": "Converting <strong>{{name}}</strong> — all documents will be transferred and the candidate record will be archived.",
+        "convertingPrefix": "Converting",
+        "applicantTransferSuffix": "— all documents will be transferred and the applicant record will be archived.",
+        "candidateTransferSuffix": "— all documents will be transferred and the candidate record will be archived.",
+        "name": "Name:",
+        "email": "Email:",
+        "phone": "Phone:",
+        "citizenship": "Citizenship:",
+        "address": "Address",
+        "addressLine1": "Address Line 1",
+        "addressLine2": "Address Line 2",
+        "city": "City",
+        "country": "Country",
+        "postalCode": "Postal Code",
+        "additionalDetails": "Additional Details",
+        "optional": "(optional)",
+        "licenseNumber": "License Number",
+        "licenseCategory": "License Category",
+        "yearsExperience": "Years Experience",
+        "emergencyContact": "Emergency Contact",
+        "emergencyPhone": "Emergency Phone",
+        "converting": "Converting…",
+        "confirmConversion": "Confirm Conversion",
+        "cancel": "Cancel"
+      },
+      "rejectDocDialog": {
+        "title": "Reject Document",
+        "rejecting": "Rejecting:",
+        "reasonLabel": "Rejection Reason",
+        "reasonPh": "Explain why this document is being rejected…",
+        "cancel": "Cancel",
+        "rejecting2": "Rejecting…",
+        "confirmRejection": "Confirm Rejection"
+      },
+      "infoRow": {
+        "notProvided": "Not provided"
       }
     },
-    "add": { "title": "Добавить соискателя", "back": "К соискателям" },
-    "edit": { "title": "Редактировать соискателя", "back": "К профилю" },
-    "deleteRequests": { "title": "Запросы на удаление кандидатов", "subtitle": "Просмотр и одобрение запросов", "empty": "Нет ожидающих запросов." }
+    "add": {
+      "title": "Добавить соискателя",
+      "back": "К соискателям"
+    },
+    "edit": {
+      "title": "Редактировать соискателя",
+      "back": "К профилю"
+    },
+    "deleteRequests": {
+      "title": "Запросы на удаление кандидатов",
+      "subtitle": "Просмотр и одобрение запросов",
+      "empty": "Нет ожидающих запросов."
+    }
   },
   "agencies": {
-    "list": { "title": "Агентства", "subtitle": "Партнёры по найму", "addButton": "Добавить агентство", "search": "Поиск агентств…", "empty": "Агентства не найдены." },
+    "list": {
+      "title": "Агентства",
+      "subtitle": "Партнёры по найму",
+      "addButton": "Добавить агентство",
+      "search": "Поиск агентств…",
+      "empty": "Агентства не найдены."
+    },
     "profile": {
       "title": "Профиль агентства",
       "back": "К агентствам",
@@ -166,110 +707,368 @@
       "manageAllUsers": "Все пользователи",
       "loading": "Загрузка…",
       "notFound": "Агентство не найдено",
-      "info": { "country": "Страна", "email": "Email", "phone": "Телефон", "contactPerson": "Контактное лицо" },
-      "stats": { "activeEmployees": "Активные сотрудники", "totalEmployees": "Всего сотрудников", "agencyUsers": "Пользователи агентства", "status": "Статус" },
-      "tabs": { "employees": "Сотрудники", "users": "Пользователи", "finance": "Финансы", "settings": "Настройки" },
-      "employees": { "title": "Сотрудники агентства ({{count}})", "empty": "Сотрудники не найдены.", "viewProfile": "Открыть профиль" },
-      "users": { "title": "Пользователи агентства ({{count}})", "empty": "Пользователи не найдены." },
-      "settings": { "title": "Настройки агентства", "maxUsersLabel": "Максимальное число пользователей", "maxUsersHelp": "Ограничить количество активных пользователей агентства", "maxUsersOption": "{{count}} пользователей", "save": "Сохранить настройки" },
-      "toast": { "settingsSaved": "Настройки сохранены", "settingsFailed": "Не удалось сохранить настройки" }
+      "info": {
+        "country": "Страна",
+        "email": "Email",
+        "phone": "Телефон",
+        "contactPerson": "Контактное лицо"
+      },
+      "stats": {
+        "activeEmployees": "Активные сотрудники",
+        "totalEmployees": "Всего сотрудников",
+        "agencyUsers": "Пользователи агентства",
+        "status": "Статус"
+      },
+      "tabs": {
+        "employees": "Сотрудники",
+        "users": "Пользователи",
+        "finance": "Финансы",
+        "settings": "Настройки"
+      },
+      "employees": {
+        "title": "Сотрудники агентства ({{count}})",
+        "empty": "Сотрудники не найдены.",
+        "viewProfile": "Открыть профиль"
+      },
+      "users": {
+        "title": "Пользователи агентства ({{count}})",
+        "empty": "Пользователи не найдены."
+      },
+      "settings": {
+        "title": "Настройки агентства",
+        "maxUsersLabel": "Максимальное число пользователей",
+        "maxUsersHelp": "Ограничить количество активных пользователей агентства",
+        "maxUsersOption": "{{count}} пользователей",
+        "save": "Сохранить настройки"
+      },
+      "toast": {
+        "settingsSaved": "Настройки сохранены",
+        "settingsFailed": "Не удалось сохранить настройки"
+      }
     },
-    "myProfile": { "title": "Моё агентство" },
-    "add": { "title": "Добавить агентство", "back": "К агентствам" },
-    "edit": { "title": "Редактировать агентство", "back": "К профилю" },
-    "users": { "title": "Пользователи агентства", "subtitle": "Управление пользователями этого агентства", "back": "К агентству", "addButton": "Добавить пользователя" }
+    "myProfile": {
+      "title": "Моё агентство"
+    },
+    "add": {
+      "title": "Добавить агентство",
+      "back": "К агентствам"
+    },
+    "edit": {
+      "title": "Редактировать агентство",
+      "back": "К профилю"
+    },
+    "users": {
+      "title": "Пользователи агентства",
+      "subtitle": "Управление пользователями этого агентства",
+      "back": "К агентству",
+      "addButton": "Добавить пользователя"
+    }
   },
   "documents": {
-    "dashboard": { "title": "Документы", "subtitle": "Обзор хранилища документов", "uploadButton": "Загрузить документ" },
-    "compliance": { "title": "Документы и соответствие", "subtitle": "Статус соответствия по всем документам", "filterTitle": "Фильтр документов" },
-    "explorer": { "title": "Обозреватель документов", "searchTitle": "Поиск и фильтр сотрудников" },
-    "verification": { "title": "Проверка документов", "pending": "Ожидающие проверки ({{count}})", "approve": "Утвердить", "reject": "Отклонить" },
-    "preview": { "title": "Документ", "back": "Назад", "download": "Скачать" },
-    "upload": { "title": "Загрузить документ", "back": "Назад" },
-    "edit": { "title": "Редактировать документ", "back": "Назад" }
+    "dashboard": {
+      "title": "Документы",
+      "subtitle": "Обзор хранилища документов",
+      "uploadButton": "Загрузить документ"
+    },
+    "compliance": {
+      "title": "Документы и соответствие",
+      "subtitle": "Статус соответствия по всем документам",
+      "filterTitle": "Фильтр документов"
+    },
+    "explorer": {
+      "title": "Обозреватель документов",
+      "searchTitle": "Поиск и фильтр сотрудников"
+    },
+    "verification": {
+      "title": "Проверка документов",
+      "pending": "Ожидающие проверки ({{count}})",
+      "approve": "Утвердить",
+      "reject": "Отклонить"
+    },
+    "preview": {
+      "title": "Документ",
+      "back": "Назад",
+      "download": "Скачать"
+    },
+    "upload": {
+      "title": "Загрузить документ",
+      "back": "Назад"
+    },
+    "edit": {
+      "title": "Редактировать документ",
+      "back": "Назад"
+    }
   },
   "compliance": {
-    "dashboard": { "title": "Панель соответствия", "stats": { "validDocuments": "Действительные документы", "expiringSoon": "Скоро истекут", "expired": "Истёкшие", "pending": "Ожидание" } },
-    "alerts": { "title": "Уведомления о соответствии", "active": "Активные уведомления", "resolved": "Решённые уведомления", "empty": "Нет активных уведомлений." },
-    "employee": { "title": "Соответствие сотрудника", "back": "Назад" }
+    "dashboard": {
+      "title": "Панель соответствия",
+      "stats": {
+        "validDocuments": "Действительные документы",
+        "expiringSoon": "Скоро истекут",
+        "expired": "Истёкшие",
+        "pending": "Ожидание"
+      }
+    },
+    "alerts": {
+      "title": "Уведомления о соответствии",
+      "active": "Активные уведомления",
+      "resolved": "Решённые уведомления",
+      "empty": "Нет активных уведомлений."
+    },
+    "employee": {
+      "title": "Соответствие сотрудника",
+      "back": "Назад"
+    }
   },
   "workflow": {
-    "overview": { "title": "Обзор процесса найма", "subtitle": "Отслеживание сотрудников по стадиям найма" },
-    "workPermits": { "title": "Отслеживание разрешений на работу" },
-    "visas": { "title": "Отслеживание виз" },
-    "stage": { "title": "Детали стадии" },
-    "timeline": { "title": "Хронология процесса" },
-    "analytics": { "title": "Аналитика процесса" },
-    "management": { "title": "Управление процессом" }
+    "overview": {
+      "title": "Обзор процесса найма",
+      "subtitle": "Отслеживание сотрудников по стадиям найма"
+    },
+    "workPermits": {
+      "title": "Отслеживание разрешений на работу"
+    },
+    "visas": {
+      "title": "Отслеживание виз"
+    },
+    "stage": {
+      "title": "Детали стадии"
+    },
+    "timeline": {
+      "title": "Хронология процесса"
+    },
+    "analytics": {
+      "title": "Аналитика процесса"
+    },
+    "management": {
+      "title": "Управление процессом"
+    }
   },
   "pipelines": {
-    "list": { "title": "Процессы найма", "subtitle": "Конфигурация процессов и стадий", "addButton": "Новый процесс", "newDialogTitle": "Новый процесс", "empty": "Процессов пока нет." },
-    "board": { "title": "Доска процесса" },
-    "stage": { "title": "Стадия" },
-    "settings": { "title": "Настройки процесса" }
+    "list": {
+      "title": "Процессы найма",
+      "subtitle": "Конфигурация процессов и стадий",
+      "addButton": "Новый процесс",
+      "newDialogTitle": "Новый процесс",
+      "empty": "Процессов пока нет."
+    },
+    "board": {
+      "title": "Доска процесса"
+    },
+    "stage": {
+      "title": "Стадия"
+    },
+    "settings": {
+      "title": "Настройки процесса"
+    }
   },
   "vehicles": {
-    "list": { "title": "Транспорт", "subtitle": "Управление автопарком", "addButton": "Добавить транспорт", "search": "Поиск транспорта…", "empty": "Транспорт не найден." },
+    "list": {
+      "title": "Транспорт",
+      "subtitle": "Управление автопарком",
+      "addButton": "Добавить транспорт",
+      "search": "Поиск транспорта…",
+      "empty": "Транспорт не найден."
+    },
     "detail": {
-      "title": "Детали транспорта", "back": "К автопарку",
-      "loading": "Загрузка…", "notFound": "Транспорт не найден",
+      "title": "Детали транспорта",
+      "back": "К автопарку",
+      "loading": "Загрузка…",
+      "notFound": "Транспорт не найден",
       "subtitle": "{{make}} {{model}} · {{type}}",
-      "expired": "Просрочено", "daysSuffix": "д",
-      "tabs": { "overview": "Обзор", "driver": "Водитель ({{count}})", "documents": "Документы ({{count}})", "maintenance": "ТО ({{count}})" },
-      "info": { "title": "О транспорте", "year": "Год", "color": "Цвет", "vin": "VIN", "fuelType": "Топливо", "currentMileage": "Текущий пробег", "agency": "Агентство", "kmSuffix": "{{value}} км" },
-      "compliance": { "title": "Соответствие", "motExpiry": "ТО истекает", "taxExpiry": "Налог истекает", "insuranceExpiry": "Страховка истекает" },
+      "expired": "Просрочено",
+      "daysSuffix": "д",
+      "tabs": {
+        "overview": "Обзор",
+        "driver": "Водитель ({{count}})",
+        "documents": "Документы ({{count}})",
+        "maintenance": "ТО ({{count}})"
+      },
+      "info": {
+        "title": "О транспорте",
+        "year": "Год",
+        "color": "Цвет",
+        "vin": "VIN",
+        "fuelType": "Топливо",
+        "currentMileage": "Текущий пробег",
+        "agency": "Агентство",
+        "kmSuffix": "{{value}} км"
+      },
+      "compliance": {
+        "title": "Соответствие",
+        "motExpiry": "ТО истекает",
+        "taxExpiry": "Налог истекает",
+        "insuranceExpiry": "Страховка истекает"
+      },
       "driver": {
-        "heading": "Назначения водителей", "assignButton": "Назначить водителя",
-        "active": "Активный", "ended": "Завершено", "endAssignment": "Завершить назначение",
-        "licensePrefix": "Удостоверение", "since": "С {{date}}", "empty": "Нет назначений",
-        "columns": { "driver": "Водитель", "licence": "Удостоверение", "from": "С", "to": "По", "status": "Статус" },
-        "dialog": { "title": "Назначить водителя", "selectDriver": "Выбрать водителя", "searchPlaceholder": "Поиск по имени или удостоверению…", "searching": "Поиск…", "noDriversFound": "Водители не найдены", "defaultRoleLabel": "Водитель", "startDate": "Дата начала", "assignButton": "Назначить водителя", "assigning": "Назначается…" },
-        "toast": { "selectFirst": "Выберите водителя", "assigned": "Водитель назначен", "assignFailed": "Не удалось назначить водителя", "unassigned": "Водитель снят", "unassignFailed": "Не удалось снять водителя" },
-        "confirmEnd": { "title": "Завершить назначение водителя?", "description": "Текущее назначение водителя будет завершено.", "confirm": "Завершить назначение" }
+        "heading": "Назначения водителей",
+        "assignButton": "Назначить водителя",
+        "active": "Активный",
+        "ended": "Завершено",
+        "endAssignment": "Завершить назначение",
+        "licensePrefix": "Удостоверение",
+        "since": "С {{date}}",
+        "empty": "Нет назначений",
+        "columns": {
+          "driver": "Водитель",
+          "licence": "Удостоверение",
+          "from": "С",
+          "to": "По",
+          "status": "Статус"
+        },
+        "dialog": {
+          "title": "Назначить водителя",
+          "selectDriver": "Выбрать водителя",
+          "searchPlaceholder": "Поиск по имени или удостоверению…",
+          "searching": "Поиск…",
+          "noDriversFound": "Водители не найдены",
+          "defaultRoleLabel": "Водитель",
+          "startDate": "Дата начала",
+          "assignButton": "Назначить водителя",
+          "assigning": "Назначается…"
+        },
+        "toast": {
+          "selectFirst": "Выберите водителя",
+          "assigned": "Водитель назначен",
+          "assignFailed": "Не удалось назначить водителя",
+          "unassigned": "Водитель снят",
+          "unassignFailed": "Не удалось снять водителя"
+        },
+        "confirmEnd": {
+          "title": "Завершить назначение водителя?",
+          "description": "Текущее назначение водителя будет завершено.",
+          "confirm": "Завершить назначение"
+        }
       },
       "documents": {
-        "heading": "Документы транспорта", "addButton": "Добавить документ", "empty": "Нет документов",
-        "columns": { "name": "Название", "type": "Тип", "issuer": "Выдан кем", "issued": "Выдан", "expires": "Истекает", "actions": "Действия" },
-        "downloadTitle": "Скачать {{name}}", "defaultFileName": "файл",
-        "dialog": {
-          "addTitle": "Добавить документ транспорта", "editTitle": "Редактировать документ",
-          "name": "Название документа", "namePh": "напр. Сертификат ТО",
-          "type": "Тип документа", "issuedDate": "Дата выдачи", "expiryDate": "Дата истечения",
-          "issuer": "Выдан кем", "issuerPh": "напр. DVSA",
-          "notes": "Заметки", "notesPh": "Дополнительные заметки",
-          "fileLabel": "Файл", "fileHint": "(необязательно, макс 20 МБ)", "fileSize": "{{name}} ({{size}} КБ)",
-          "addButton": "Добавить документ", "saveButton": "Сохранить", "saving": "Сохранение…"
+        "heading": "Документы транспорта",
+        "addButton": "Добавить документ",
+        "empty": "Нет документов",
+        "columns": {
+          "name": "Название",
+          "type": "Тип",
+          "issuer": "Выдан кем",
+          "issued": "Выдан",
+          "expires": "Истекает",
+          "actions": "Действия"
         },
-        "toast": { "nameRequired": "Требуется название документа", "added": "Документ добавлен", "updated": "Документ обновлён", "addFailed": "Не удалось добавить документ", "updateFailed": "Не удалось обновить документ", "deleted": "Документ удалён", "deleteFailed": "Не удалось удалить документ" },
-        "confirmDelete": { "title": "Удалить документ?", "description": "Документ будет удалён без возможности восстановления.", "confirm": "Удалить" }
+        "downloadTitle": "Скачать {{name}}",
+        "defaultFileName": "файл",
+        "dialog": {
+          "addTitle": "Добавить документ транспорта",
+          "editTitle": "Редактировать документ",
+          "name": "Название документа",
+          "namePh": "напр. Сертификат ТО",
+          "type": "Тип документа",
+          "issuedDate": "Дата выдачи",
+          "expiryDate": "Дата истечения",
+          "issuer": "Выдан кем",
+          "issuerPh": "напр. DVSA",
+          "notes": "Заметки",
+          "notesPh": "Дополнительные заметки",
+          "fileLabel": "Файл",
+          "fileHint": "(необязательно, макс 20 МБ)",
+          "fileSize": "{{name}} ({{size}} КБ)",
+          "addButton": "Добавить документ",
+          "saveButton": "Сохранить",
+          "saving": "Сохранение…"
+        },
+        "toast": {
+          "nameRequired": "Требуется название документа",
+          "added": "Документ добавлен",
+          "updated": "Документ обновлён",
+          "addFailed": "Не удалось добавить документ",
+          "updateFailed": "Не удалось обновить документ",
+          "deleted": "Документ удалён",
+          "deleteFailed": "Не удалось удалить документ"
+        },
+        "confirmDelete": {
+          "title": "Удалить документ?",
+          "description": "Документ будет удалён без возможности восстановления.",
+          "confirm": "Удалить"
+        }
       },
       "maintenance": {
-        "heading": "Записи ТО", "addButton": "Добавить запись", "empty": "Нет записей ТО",
-        "columns": { "type": "Тип", "status": "Статус", "scheduled": "Запланировано", "completed": "Завершено", "workshop": "Сервис", "cost": "Стоимость", "actions": "Действия" },
-        "dialog": {
-          "addTitle": "Добавить запись ТО", "editTitle": "Редактировать запись ТО",
-          "sectionService": "Детали обслуживания", "sectionDriver": "Водитель и логистика", "sectionApproval": "Утверждение",
-          "type": "Тип ТО", "typePh": "Выберите тип", "notSpecified": "Не указано",
-          "status": "Статус", "workshop": "Сервис", "workshopPh": "Выберите сервис",
-          "mileageAtService": "Пробег на ТО (км)", "mileagePh": "0",
-          "scheduledDate": "Запланированная дата", "completedDate": "Дата завершения",
-          "totalCost": "Общая стоимость (£)", "totalCostPh": "0.00",
-          "description": "Описание", "descriptionPh": "Краткое описание",
-          "workDescription": "Описание работ", "workDescriptionPh": "Подробное описание выполненной работы...",
-          "notes": "Заметки", "notesPh": "Дополнительные заметки",
-          "serviceDriver": "Водитель ТО", "selectDriver": "Выберите водителя",
-          "otherExternal": "Другой (внешний)", "otherNone": "Другой / нет",
-          "externalDriverName": "Имя внешнего водителя", "driverNamePh": "Имя водителя", "namePh": "Имя",
-          "dropOffDriver": "Водитель сдачи", "dropOffDriverName": "Имя водителя сдачи", "dropOffDateTime": "Дата/время сдачи",
-          "pickUpDriver": "Водитель приёма", "pickUpDriverName": "Имя водителя приёма", "pickUpDateTime": "Дата/время приёма",
-          "approvedBy": "Утвердил", "pendingApproval": "Ожидает утверждения", "approvalDate": "Дата утверждения",
-          "addButton": "Добавить запись", "saveButton": "Сохранить", "saving": "Сохранение…"
+        "heading": "Записи ТО",
+        "addButton": "Добавить запись",
+        "empty": "Нет записей ТО",
+        "columns": {
+          "type": "Тип",
+          "status": "Статус",
+          "scheduled": "Запланировано",
+          "completed": "Завершено",
+          "workshop": "Сервис",
+          "cost": "Стоимость",
+          "actions": "Действия"
         },
-        "toast": { "added": "Запись ТО добавлена", "updated": "Запись ТО обновлена", "addFailed": "Не удалось добавить запись", "updateFailed": "Не удалось обновить запись", "deleted": "Запись удалена", "deleteFailed": "Не удалось удалить запись" },
-        "confirmDelete": { "title": "Удалить запись ТО?", "description": "Запись ТО будет удалена без возможности восстановления.", "confirm": "Удалить" }
+        "dialog": {
+          "addTitle": "Добавить запись ТО",
+          "editTitle": "Редактировать запись ТО",
+          "sectionService": "Детали обслуживания",
+          "sectionDriver": "Водитель и логистика",
+          "sectionApproval": "Утверждение",
+          "type": "Тип ТО",
+          "typePh": "Выберите тип",
+          "notSpecified": "Не указано",
+          "status": "Статус",
+          "workshop": "Сервис",
+          "workshopPh": "Выберите сервис",
+          "mileageAtService": "Пробег на ТО (км)",
+          "mileagePh": "0",
+          "scheduledDate": "Запланированная дата",
+          "completedDate": "Дата завершения",
+          "totalCost": "Общая стоимость (£)",
+          "totalCostPh": "0.00",
+          "description": "Описание",
+          "descriptionPh": "Краткое описание",
+          "workDescription": "Описание работ",
+          "workDescriptionPh": "Подробное описание выполненной работы...",
+          "notes": "Заметки",
+          "notesPh": "Дополнительные заметки",
+          "serviceDriver": "Водитель ТО",
+          "selectDriver": "Выберите водителя",
+          "otherExternal": "Другой (внешний)",
+          "otherNone": "Другой / нет",
+          "externalDriverName": "Имя внешнего водителя",
+          "driverNamePh": "Имя водителя",
+          "namePh": "Имя",
+          "dropOffDriver": "Водитель сдачи",
+          "dropOffDriverName": "Имя водителя сдачи",
+          "dropOffDateTime": "Дата/время сдачи",
+          "pickUpDriver": "Водитель приёма",
+          "pickUpDriverName": "Имя водителя приёма",
+          "pickUpDateTime": "Дата/время приёма",
+          "approvedBy": "Утвердил",
+          "pendingApproval": "Ожидает утверждения",
+          "approvalDate": "Дата утверждения",
+          "addButton": "Добавить запись",
+          "saveButton": "Сохранить",
+          "saving": "Сохранение…"
+        },
+        "toast": {
+          "added": "Запись ТО добавлена",
+          "updated": "Запись ТО обновлена",
+          "addFailed": "Не удалось добавить запись",
+          "updateFailed": "Не удалось обновить запись",
+          "deleted": "Запись удалена",
+          "deleteFailed": "Не удалось удалить запись"
+        },
+        "confirmDelete": {
+          "title": "Удалить запись ТО?",
+          "description": "Запись ТО будет удалена без возможности восстановления.",
+          "confirm": "Удалить"
+        }
       },
-      "toast": { "loadFailed": "Не удалось загрузить транспорт", "deleted": "Транспорт удалён", "deleteFailed": "Удаление не удалось" },
-      "confirmDelete": { "title": "Удалить транспорт?", "description": "Транспорт будет удалён без возможности восстановления.", "confirm": "Удалить" }
+      "toast": {
+        "loadFailed": "Не удалось загрузить транспорт",
+        "deleted": "Транспорт удалён",
+        "deleteFailed": "Удаление не удалось"
+      },
+      "confirmDelete": {
+        "title": "Удалить транспорт?",
+        "description": "Транспорт будет удалён без возможности восстановления.",
+        "confirm": "Удалить"
+      }
     },
     "form": {
       "addTitle": "Добавить транспорт",
@@ -280,65 +1079,122 @@
       "createButton": "Создать транспорт",
       "saveChanges": "Сохранить изменения",
       "sections": {
-        "details": "Данные транспорта", "compliance": "Соответствие и регистрация", "purchase": "Информация о покупке", "insurance": "Страхование",
-        "truck": "Грузовик и прицеп", "van": "Фургон", "car": "Автомобиль", "tanker": "Цистерна",
-        "refrigerated": "Рефрижератор", "specialty": "Спецоборудование"
+        "details": "Данные транспорта",
+        "compliance": "Соответствие и регистрация",
+        "purchase": "Информация о покупке",
+        "insurance": "Страхование",
+        "truck": "Грузовик и прицеп",
+        "van": "Фургон",
+        "car": "Автомобиль",
+        "tanker": "Цистерна",
+        "refrigerated": "Рефрижератор",
+        "specialty": "Спецоборудование"
       },
       "fields": {
-        "registrationNumber": "Регистрационный номер", "registrationNumberPh": "напр. AB12 CDE",
-        "licensePlate": "Госномер", "licensePlatePh": "напр. AB12CDE",
-        "vehicleType": "Тип транспорта", "vehicleTypePh": "Выберите тип",
+        "registrationNumber": "Регистрационный номер",
+        "registrationNumberPh": "напр. AB12 CDE",
+        "licensePlate": "Госномер",
+        "licensePlatePh": "напр. AB12CDE",
+        "vehicleType": "Тип транспорта",
+        "vehicleTypePh": "Выберите тип",
         "status": "Статус",
-        "make": "Марка", "makePh": "напр. Volvo",
-        "model": "Модель", "modelPh": "напр. FH16",
-        "year": "Год", "yearPh": "напр. 2022",
-        "color": "Цвет", "colorPh": "напр. Белый",
-        "vin": "VIN", "vinPh": "Идентификационный номер",
-        "fuelType": "Тип топлива", "fuelTypePh": "Выберите тип топлива",
-        "fuelCapacity": "Объём бака (л)", "fuelCapacityPh": "напр. 200",
-        "currentMileage": "Текущий пробег (км)", "currentMileagePh": "0",
-        "notes": "Заметки", "notesPh": "Дополнительные заметки",
-        "motExpiry": "Срок ТО", "taxExpiry": "Срок налога", "registrationExpiry": "Срок регистрации", "insuranceExpiry": "Срок страховки",
-        "purchaseOrder": "Заказ", "purchaseOrderPh": "напр. PO-2024-001",
+        "make": "Марка",
+        "makePh": "напр. Volvo",
+        "model": "Модель",
+        "modelPh": "напр. FH16",
+        "year": "Год",
+        "yearPh": "напр. 2022",
+        "color": "Цвет",
+        "colorPh": "напр. Белый",
+        "vin": "VIN",
+        "vinPh": "Идентификационный номер",
+        "fuelType": "Тип топлива",
+        "fuelTypePh": "Выберите тип топлива",
+        "fuelCapacity": "Объём бака (л)",
+        "fuelCapacityPh": "напр. 200",
+        "currentMileage": "Текущий пробег (км)",
+        "currentMileagePh": "0",
+        "notes": "Заметки",
+        "notesPh": "Дополнительные заметки",
+        "motExpiry": "Срок ТО",
+        "taxExpiry": "Срок налога",
+        "registrationExpiry": "Срок регистрации",
+        "insuranceExpiry": "Срок страховки",
+        "purchaseOrder": "Заказ",
+        "purchaseOrderPh": "напр. PO-2024-001",
         "purchaseDate": "Дата покупки",
-        "purchaseCost": "Стоимость", "purchaseCostPh": "напр. 50000.00",
-        "purchaseContract": "Договор", "purchaseContractPh": "напр. CON-2024-001",
-        "vendorName": "Продавец", "vendorNamePh": "напр. ABC Автодилер",
-        "vendorAddress": "Адрес продавца", "vendorAddressPh": "Полный адрес",
-        "policyNumber": "Номер полиса", "policyNumberPh": "напр. POL-2024-001",
-        "insuranceCompany": "Страховая компания", "insuranceCompanyPh": "напр. ABC Страхование",
-        "insuranceTypeLabel": "Тип страховки", "insuranceTypePh": "Выберите тип",
+        "purchaseCost": "Стоимость",
+        "purchaseCostPh": "напр. 50000.00",
+        "purchaseContract": "Договор",
+        "purchaseContractPh": "напр. CON-2024-001",
+        "vendorName": "Продавец",
+        "vendorNamePh": "напр. ABC Автодилер",
+        "vendorAddress": "Адрес продавца",
+        "vendorAddressPh": "Полный адрес",
+        "policyNumber": "Номер полиса",
+        "policyNumberPh": "напр. POL-2024-001",
+        "insuranceCompany": "Страховая компания",
+        "insuranceCompanyPh": "напр. ABC Страхование",
+        "insuranceTypeLabel": "Тип страховки",
+        "insuranceTypePh": "Выберите тип",
         "insuranceStartDate": "Начало страховки",
-        "grossWeight": "Полная масса (т)", "grossWeightPh": "напр. 44",
-        "payloadCapacity": "Грузоподъёмность (т)", "payloadCapacityPh": "напр. 26",
-        "tareWeight": "Снаряжённая масса (т)", "tareWeightPh": "напр. 18",
-        "numberOfAxles": "Число осей", "numberOfAxlesPh": "напр. 5",
-        "bodyType": "Тип кузова", "bodyTypePh": "Выберите тип кузова",
-        "hitchType": "Тип сцепки", "hitchTypePh": "Выберите тип сцепки",
-        "lengthM": "Длина (м)", "lengthMPh": "напр. 13.6",
-        "widthM": "Ширина (м)", "widthMPh": "напр. 2.5",
-        "heightM": "Высота (м)", "heightMPh": "напр. 2.5",
-        "euroEmission": "Евро класс", "euroEmissionPh": "Выберите класс",
-        "tachographSerial": "Серийный № тахографа", "tachographSerialPh": "напр. VD0123456789",
+        "grossWeight": "Полная масса (т)",
+        "grossWeightPh": "напр. 44",
+        "payloadCapacity": "Грузоподъёмность (т)",
+        "payloadCapacityPh": "напр. 26",
+        "tareWeight": "Снаряжённая масса (т)",
+        "tareWeightPh": "напр. 18",
+        "numberOfAxles": "Число осей",
+        "numberOfAxlesPh": "напр. 5",
+        "bodyType": "Тип кузова",
+        "bodyTypePh": "Выберите тип кузова",
+        "hitchType": "Тип сцепки",
+        "hitchTypePh": "Выберите тип сцепки",
+        "lengthM": "Длина (м)",
+        "lengthMPh": "напр. 13.6",
+        "widthM": "Ширина (м)",
+        "widthMPh": "напр. 2.5",
+        "heightM": "Высота (м)",
+        "heightMPh": "напр. 2.5",
+        "euroEmission": "Евро класс",
+        "euroEmissionPh": "Выберите класс",
+        "tachographSerial": "Серийный № тахографа",
+        "tachographSerialPh": "напр. VD0123456789",
         "tachographCalibrationExpiry": "Калибровка тахографа",
-        "trailerLength": "Длина прицепа (м)", "trailerLengthPh": "напр. 13.6",
-        "seatingCapacity": "Число мест", "seatingCapacityPh": "напр. 5",
-        "loadVolume": "Объём загрузки (м³)", "loadVolumePh": "напр. 15.5",
+        "trailerLength": "Длина прицепа (м)",
+        "trailerLengthPh": "напр. 13.6",
+        "seatingCapacity": "Число мест",
+        "seatingCapacityPh": "напр. 5",
+        "loadVolume": "Объём загрузки (м³)",
+        "loadVolumePh": "напр. 15.5",
         "partitionFitted": "Перегородка установлена",
-        "vinSubType": "Подтип VIN", "vinSubTypePh": "Выберите подтип VIN",
-        "insuranceGroup": "Страховая группа", "insuranceGroupPh": "Выберите группу",
-        "tankerCapacity": "Объём цистерны (л)", "tankerCapacityPh": "напр. 30000",
-        "tankMaterial": "Материал цистерны", "tankMaterialPh": "Выберите материал",
-        "adrClass": "Класс ADR", "adrClassPh": "Выберите класс ADR",
-        "unNumbers": "UN номера", "unNumbersPh": "напр. 1223, 1250",
-        "lastPressureTest": "Последний тест давления", "nextPressureTest": "Следующий тест давления",
-        "refrigerationUnit": "Холодильная установка", "refrigerationUnitPh": "напр. Thermo King",
-        "refrigerationModel": "Модель холодильника", "refrigerationModelPh": "напр. T-1200R",
-        "tempMin": "Мин. температура (°C)", "tempMinPh": "напр. -25",
-        "tempMax": "Макс. температура (°C)", "tempMaxPh": "напр. 10",
-        "atpCertificateNumber": "Номер ATP сертификата", "atpCertificateNumberPh": "напр. ATP-2024-001",
+        "vinSubType": "Подтип VIN",
+        "vinSubTypePh": "Выберите подтип VIN",
+        "insuranceGroup": "Страховая группа",
+        "insuranceGroupPh": "Выберите группу",
+        "tankerCapacity": "Объём цистерны (л)",
+        "tankerCapacityPh": "напр. 30000",
+        "tankMaterial": "Материал цистерны",
+        "tankMaterialPh": "Выберите материал",
+        "adrClass": "Класс ADR",
+        "adrClassPh": "Выберите класс ADR",
+        "unNumbers": "UN номера",
+        "unNumbersPh": "напр. 1223, 1250",
+        "lastPressureTest": "Последний тест давления",
+        "nextPressureTest": "Следующий тест давления",
+        "refrigerationUnit": "Холодильная установка",
+        "refrigerationUnitPh": "напр. Thermo King",
+        "refrigerationModel": "Модель холодильника",
+        "refrigerationModelPh": "напр. T-1200R",
+        "tempMin": "Мин. температура (°C)",
+        "tempMinPh": "напр. -25",
+        "tempMax": "Макс. температура (°C)",
+        "tempMaxPh": "напр. 10",
+        "atpCertificateNumber": "Номер ATP сертификата",
+        "atpCertificateNumberPh": "напр. ATP-2024-001",
         "atpCertificateExpiry": "Срок ATP сертификата",
-        "equipmentDescription": "Описание оборудования", "equipmentDescriptionPh": "Опишите спецоборудование или модификации",
+        "equipmentDescription": "Описание оборудования",
+        "equipmentDescriptionPh": "Опишите спецоборудование или модификации",
         "notSpecified": "Не указано"
       },
       "validation": {
@@ -355,86 +1211,263 @@
         "saveFailed": "Сохранение не удалось"
       }
     },
-    "workshops": { "title": "Мастерские", "subtitle": "Авторизованные сервисы", "addButton": "Добавить мастерскую", "empty": "Мастерских пока нет." },
-    "maintenanceTypes": { "title": "Типы обслуживания", "addButton": "Добавить тип" },
-    "maintenanceRecords": { "title": "Записи обслуживания", "subtitle": "Все работы по обслуживанию автопарка", "addButton": "Новая запись", "empty": "Записей пока нет." }
+    "workshops": {
+      "title": "Мастерские",
+      "subtitle": "Авторизованные сервисы",
+      "addButton": "Добавить мастерскую",
+      "empty": "Мастерских пока нет."
+    },
+    "maintenanceTypes": {
+      "title": "Типы обслуживания",
+      "addButton": "Добавить тип"
+    },
+    "maintenanceRecords": {
+      "title": "Записи обслуживания",
+      "subtitle": "Все работы по обслуживанию автопарка",
+      "addButton": "Новая запись",
+      "empty": "Записей пока нет."
+    }
   },
   "attendance": {
-    "list": { "title": "Табели учёта", "subtitle": "Месячные табели на сотрудника", "addButton": "Новый табель", "empty": "Табелей пока нет." },
-    "sheet": { "title": "Табель учёта", "back": "К списку табелей", "save": "Сохранить табель", "lock": "Заблокировать период", "unlock": "Разблокировать период" }
+    "list": {
+      "title": "Табели учёта",
+      "subtitle": "Месячные табели на сотрудника",
+      "addButton": "Новый табель",
+      "empty": "Табелей пока нет."
+    },
+    "sheet": {
+      "title": "Табель учёта",
+      "back": "К списку табелей",
+      "save": "Сохранить табель",
+      "lock": "Заблокировать период",
+      "unlock": "Разблокировать период"
+    }
   },
   "reports": {
-    "dashboard": { "title": "Отчёты и аналитика", "subtitle": "Создавайте и экспортируйте отчёты", "newReport": "Новый отчёт", "empty": "Отчётов пока нет." }
+    "dashboard": {
+      "title": "Отчёты и аналитика",
+      "subtitle": "Создавайте и экспортируйте отчёты",
+      "newReport": "Новый отчёт",
+      "empty": "Отчётов пока нет."
+    }
   },
   "notifications": {
-    "center": { "title": "Уведомления", "subtitle": "Все ваши уведомления", "markAllRead": "Отметить все как прочитанные", "empty": "Нет уведомлений.", "filters": { "all": "Все", "unread": "Непрочитанные", "read": "Прочитанные" } },
-    "settings": { "title": "Настройки уведомлений", "subtitle": "Выберите получаемые уведомления", "save": "Сохранить" }
+    "center": {
+      "title": "Уведомления",
+      "subtitle": "Все ваши уведомления",
+      "markAllRead": "Отметить все как прочитанные",
+      "empty": "Нет уведомлений.",
+      "filters": {
+        "all": "Все",
+        "unread": "Непрочитанные",
+        "read": "Прочитанные"
+      }
+    },
+    "settings": {
+      "title": "Настройки уведомлений",
+      "subtitle": "Выберите получаемые уведомления",
+      "save": "Сохранить"
+    }
   },
   "users": {
-    "list": { "title": "Управление пользователями", "subtitle": "Пользователи системы и доступ", "addButton": "Добавить пользователя", "search": "Поиск пользователей…", "bulkImport": "Массовый импорт", "empty": "Пользователи не найдены.", "activationLink": "Ссылка активации" },
-    "add": { "title": "Добавить пользователя", "back": "К пользователям" },
-    "edit": { "title": "Редактировать пользователя", "back": "К пользователям" }
+    "list": {
+      "title": "Управление пользователями",
+      "subtitle": "Пользователи системы и доступ",
+      "addButton": "Добавить пользователя",
+      "search": "Поиск пользователей…",
+      "bulkImport": "Массовый импорт",
+      "empty": "Пользователи не найдены.",
+      "activationLink": "Ссылка активации"
+    },
+    "add": {
+      "title": "Добавить пользователя",
+      "back": "К пользователям"
+    },
+    "edit": {
+      "title": "Редактировать пользователя",
+      "back": "К пользователям"
+    }
   },
   "roles": {
-    "list": { "title": "Роли и разрешения", "subtitle": "Определяйте роли и назначайте разрешения", "addButton": "Новая роль", "permissionsMatrix": "Матрица разрешений", "allRoles": "Все роли", "empty": "Ролей пока нет." },
-    "create": { "title": "Создать роль", "editTitle": "Редактировать роль", "back": "К ролям" },
-    "matrix": { "title": "Матрица разрешений", "back": "К ролям" }
+    "list": {
+      "title": "Роли и разрешения",
+      "subtitle": "Определяйте роли и назначайте разрешения",
+      "addButton": "Новая роль",
+      "permissionsMatrix": "Матрица разрешений",
+      "allRoles": "Все роли",
+      "empty": "Ролей пока нет."
+    },
+    "create": {
+      "title": "Создать роль",
+      "editTitle": "Редактировать роль",
+      "back": "К ролям"
+    },
+    "matrix": {
+      "title": "Матрица разрешений",
+      "back": "К ролям"
+    }
   },
   "jobAds": {
-    "list": { "title": "Объявления о работе", "subtitle": "Публичные вакансии", "addButton": "Новое объявление", "search": "Поиск объявлений…", "empty": "Объявлений пока нет." },
-    "form": { "addTitle": "Новое объявление", "editTitle": "Редактировать объявление", "back": "К объявлениям" }
+    "list": {
+      "title": "Объявления о работе",
+      "subtitle": "Публичные вакансии",
+      "addButton": "Новое объявление",
+      "search": "Поиск объявлений…",
+      "empty": "Объявлений пока нет."
+    },
+    "form": {
+      "addTitle": "Новое объявление",
+      "editTitle": "Редактировать объявление",
+      "back": "К объявлениям"
+    }
   },
   "recycleBin": {
-    "list": { "title": "Удалённые записи", "subtitle": "Восстановите или удалите окончательно", "accessDenied": "Доступ запрещён", "empty": "Корзина пуста.", "restore": "Восстановить", "permanentlyDelete": "Удалить окончательно" }
+    "list": {
+      "title": "Удалённые записи",
+      "subtitle": "Восстановите или удалите окончательно",
+      "accessDenied": "Доступ запрещён",
+      "empty": "Корзина пуста.",
+      "restore": "Восстановить",
+      "permanentlyDelete": "Удалить окончательно"
+    }
   },
   "logs": {
-    "dashboard": { "title": "Системные журналы", "subtitle": "Аудит активности", "activityByModule": "Активность по модулю", "search": "Поиск в журналах…", "empty": "По вашим фильтрам ничего не найдено." }
+    "dashboard": {
+      "title": "Системные журналы",
+      "subtitle": "Аудит активности",
+      "activityByModule": "Активность по модулю",
+      "search": "Поиск в журналах…",
+      "empty": "По вашим фильтрам ничего не найдено."
+    }
   },
   "settings": {
     "index": {
       "title": "Настройки",
       "subtitle": "Настройка вашего экземпляра TempWorks",
       "groups": {
-        "appearance": "Внешний вид", "appearanceDesc": "Тема и цветовая схема",
-        "workflow": "Процесс найма", "workflowDesc": "Конфигурация процесса найма",
-        "documentTypes": "Типы документов", "documentTypesDesc": "Управление категориями документов",
-        "notifications": "Уведомления", "notificationsDesc": "Правила и триггеры уведомлений",
-        "security": "Безопасность", "securityDesc": "Политики аутентификации и доступа",
-        "branding": "Брендинг", "brandingDesc": "Логотип, название, маркетинговые тексты",
-        "system": "Система", "systemDesc": "База данных, резервные копии, информация о системе"
+        "appearance": "Внешний вид",
+        "appearanceDesc": "Тема и цветовая схема",
+        "workflow": "Процесс найма",
+        "workflowDesc": "Конфигурация процесса найма",
+        "documentTypes": "Типы документов",
+        "documentTypesDesc": "Управление категориями документов",
+        "notifications": "Уведомления",
+        "notificationsDesc": "Правила и триггеры уведомлений",
+        "security": "Безопасность",
+        "securityDesc": "Политики аутентификации и доступа",
+        "branding": "Брендинг",
+        "brandingDesc": "Логотип, название, маркетинговые тексты",
+        "system": "Система",
+        "systemDesc": "База данных, резервные копии, информация о системе"
       }
     },
-    "documentTypes": { "list": "Типы документов", "addButton": "Новый тип документа", "newTitle": "Новый тип документа", "editTitle": "Редактировать тип документа", "viewTitle": "Тип документа", "back": "К типам документов" },
-    "jobTypes": { "title": "Типы должностей", "addButton": "Добавить тип" },
-    "skills": { "title": "Навыки", "addButton": "Добавить навык" },
-    "workflowSettings": { "title": "Настройки процесса" },
-    "workflowConfiguration": { "title": "Конфигурация процесса" },
-    "notificationRules": { "title": "Правила уведомлений", "addButton": "Новое правило" },
-    "security": { "title": "Настройки безопасности" },
-    "colorScheme": { "title": "Цветовая схема" },
-    "branding": { "title": "Брендинг" },
-    "databaseCleanup": { "title": "Очистка базы данных" },
-    "databaseBackup": { "title": "Резервное копирование" },
-    "systemInformation": { "title": "Информация о системе" },
-    "transportTypes": { "title": "Типы транспорта", "addButton": "Добавить тип" },
-    "truckBrands": { "title": "Марки грузовиков", "addButton": "Добавить марку" },
-    "trailerTypes": { "title": "Типы прицепов", "addButton": "Добавить тип" },
-    "vehicleSettings": { "title": "Настройки транспорта" },
-    "transactionTypes": { "title": "Типы транзакций", "addButton": "Добавить тип" },
-    "workHistoryEventTypes": { "title": "Типы событий истории работы", "addButton": "Добавить тип" },
-    "maintenanceTypes": { "title": "Типы обслуживания", "addButton": "Добавить тип" }
+    "documentTypes": {
+      "list": "Типы документов",
+      "addButton": "Новый тип документа",
+      "newTitle": "Новый тип документа",
+      "editTitle": "Редактировать тип документа",
+      "viewTitle": "Тип документа",
+      "back": "К типам документов"
+    },
+    "jobTypes": {
+      "title": "Типы должностей",
+      "addButton": "Добавить тип"
+    },
+    "skills": {
+      "title": "Навыки",
+      "addButton": "Добавить навык"
+    },
+    "workflowSettings": {
+      "title": "Настройки процесса"
+    },
+    "workflowConfiguration": {
+      "title": "Конфигурация процесса"
+    },
+    "notificationRules": {
+      "title": "Правила уведомлений",
+      "addButton": "Новое правило"
+    },
+    "security": {
+      "title": "Настройки безопасности"
+    },
+    "colorScheme": {
+      "title": "Цветовая схема"
+    },
+    "branding": {
+      "title": "Брендинг"
+    },
+    "databaseCleanup": {
+      "title": "Очистка базы данных"
+    },
+    "databaseBackup": {
+      "title": "Резервное копирование"
+    },
+    "systemInformation": {
+      "title": "Информация о системе"
+    },
+    "transportTypes": {
+      "title": "Типы транспорта",
+      "addButton": "Добавить тип"
+    },
+    "truckBrands": {
+      "title": "Марки грузовиков",
+      "addButton": "Добавить марку"
+    },
+    "trailerTypes": {
+      "title": "Типы прицепов",
+      "addButton": "Добавить тип"
+    },
+    "vehicleSettings": {
+      "title": "Настройки транспорта"
+    },
+    "transactionTypes": {
+      "title": "Типы транзакций",
+      "addButton": "Добавить тип"
+    },
+    "workHistoryEventTypes": {
+      "title": "Типы событий истории работы",
+      "addButton": "Добавить тип"
+    },
+    "maintenanceTypes": {
+      "title": "Типы обслуживания",
+      "addButton": "Добавить тип"
+    }
   },
   "profile": {
-    "view": { "title": "Мой профиль", "subtitle": "Личная информация и контакт", "edit": "Редактировать" },
-    "changePassword": { "title": "Сменить пароль", "subtitle": "Обновите пароль для безопасности аккаунта" },
-    "preferences": { "title": "Настройки", "subtitle": "Язык, часовой пояс и уведомления", "language": "Предпочитаемый язык", "timezone": "Часовой пояс", "save": "Сохранить", "saved": "Настройки сохранены" }
+    "view": {
+      "title": "Мой профиль",
+      "subtitle": "Личная информация и контакт",
+      "edit": "Редактировать"
+    },
+    "changePassword": {
+      "title": "Сменить пароль",
+      "subtitle": "Обновите пароль для безопасности аккаунта"
+    },
+    "preferences": {
+      "title": "Настройки",
+      "subtitle": "Язык, часовой пояс и уведомления",
+      "language": "Предпочитаемый язык",
+      "timezone": "Часовой пояс",
+      "save": "Сохранить",
+      "saved": "Настройки сохранены"
+    }
   },
   "common": {
-    "from": "С", "to": "По", "all": "Все", "more": "Больше",
-    "showMore": "Показать больше", "showLess": "Показать меньше",
-    "results_one": "{{count}} результат", "results_few": "{{count}} результата", "results_many": "{{count}} результатов", "results_other": "{{count}} результата"
+    "from": "С",
+    "to": "По",
+    "all": "Все",
+    "more": "Больше",
+    "showMore": "Показать больше",
+    "showLess": "Показать меньше",
+    "results_one": "{{count}} результат",
+    "results_few": "{{count}} результата",
+    "results_many": "{{count}} результатов",
+    "results_other": "{{count}} результата"
   },
   "finance": {
-    "page": { "title": "Финансы", "subtitle": "Транзакции и балансы организации" }
+    "page": {
+      "title": "Финансы",
+      "subtitle": "Транзакции и балансы организации"
+    }
   }
 }

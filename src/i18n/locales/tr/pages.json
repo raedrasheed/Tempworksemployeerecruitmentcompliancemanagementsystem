@@ -5,10 +5,36 @@
       "subtitle": "Sürücü ve işçi kayıtları",
       "addButton": "Çalışan Ekle",
       "search": "İsim, e-posta, vatandaşlık ara…",
-      "stats": { "total": "Toplam", "active": "Aktif", "onboarding": "İşe Başlatma", "pending": "Beklemede" },
-      "filters": { "allStatuses": "Tüm Durumlar", "allAgencies": "Tüm Ajanslar", "allCitizenships": "Tüm Vatandaşlıklar", "from": "Başlangıç", "to": "Bitiş" },
-      "columns": { "contact": "İletişim", "citizenship": "Vatandaşlık", "license": "Kimlik / Lisans", "experience": "Deneyim", "agency": "Ajans", "status": "Durum", "name": "Ad", "actions": "İşlemler" },
-      "actions": { "view": "Görüntüle", "edit": "Düzenle", "delete": "Sil", "exportPdf": "PDF Dışa Aktar", "exportSelected": "Seçilenleri Dışa Aktar" },
+      "stats": {
+        "total": "Toplam",
+        "active": "Aktif",
+        "onboarding": "İşe Başlatma",
+        "pending": "Beklemede"
+      },
+      "filters": {
+        "allStatuses": "Tüm Durumlar",
+        "allAgencies": "Tüm Ajanslar",
+        "allCitizenships": "Tüm Vatandaşlıklar",
+        "from": "Başlangıç",
+        "to": "Bitiş"
+      },
+      "columns": {
+        "contact": "İletişim",
+        "citizenship": "Vatandaşlık",
+        "license": "Kimlik / Lisans",
+        "experience": "Deneyim",
+        "agency": "Ajans",
+        "status": "Durum",
+        "name": "Ad",
+        "actions": "İşlemler"
+      },
+      "actions": {
+        "view": "Görüntüle",
+        "edit": "Düzenle",
+        "delete": "Sil",
+        "exportPdf": "PDF Dışa Aktar",
+        "exportSelected": "Seçilenleri Dışa Aktar"
+      },
       "empty": "Çalışan bulunamadı.",
       "deleteConfirmTitle": "Çalışan silinsin mi?",
       "deleteConfirmBody": "Kayıt geri dönüşüm kutusuna taşınacak.",
@@ -18,145 +44,660 @@
       "title": "Çalışan Profili",
       "back": "Çalışanlara geri dön",
       "subtitle": "Çalışan bilgilerini görüntüle ve yönet",
-      "loading": "Yükleniyor…", "notFound": "Çalışan bulunamadı",
-      "editProfile": "Profili Düzenle", "delete": "Sil",
+      "loading": "Yükleniyor…",
+      "notFound": "Çalışan bulunamadı",
+      "editProfile": "Profili Düzenle",
+      "delete": "Sil",
       "employeeId": "Çalışan ID: {{id}}",
       "selfApplied": "Genel form üzerinden kendisi başvurdu",
       "unknownLegacy": "Bilinmiyor (eski kayıt)",
       "tabs": {
-        "overview": "Genel Bakış", "application": "Başvuru", "documents": "Belgeler ({{count}})",
-        "attendance": "Devam ve Zaman Çizelgeleri", "contracts": "Sözleşmeler", "compliance": "Uyumluluk",
-        "financial": "Finansal", "notes": "Notlar",
-        "workHistory": "İş Geçmişi", "training": "Eğitim", "performance": "Performans", "finance": "Finans"
+        "overview": "Genel Bakış",
+        "application": "Başvuru",
+        "documents": "Belgeler ({{count}})",
+        "attendance": "Devam ve Zaman Çizelgeleri",
+        "contracts": "Sözleşmeler",
+        "compliance": "Uyumluluk",
+        "financial": "Finansal",
+        "notes": "Notlar",
+        "workHistory": "İş Geçmişi",
+        "training": "Eğitim",
+        "performance": "Performans",
+        "finance": "Finans"
       },
-      "header": { "email": "E-posta", "phone": "Telefon", "citizenship": "Vatandaşlık", "joined": "Katılım", "createdBy": "Oluşturan" },
-      "quickNav": { "certifications": "Sertifikalar", "training": "Eğitim Geçmişi", "complianceTimeline": "Uyumluluk Zaman Çizelgesi", "performance": "Performans Değerlendirmeleri" },
+      "header": {
+        "email": "E-posta",
+        "phone": "Telefon",
+        "citizenship": "Vatandaşlık",
+        "joined": "Katılım",
+        "createdBy": "Oluşturan"
+      },
+      "quickNav": {
+        "certifications": "Sertifikalar",
+        "training": "Eğitim Geçmişi",
+        "complianceTimeline": "Uyumluluk Zaman Çizelgesi",
+        "performance": "Performans Değerlendirmeleri"
+      },
       "personal": {
-        "title": "Kişisel Bilgiler", "fullName": "Tam Ad", "dateOfBirth": "Doğum Tarihi",
-        "citizenship": "Vatandaşlık", "jobCategory": "İş Kategorisi",
-        "licenseNumber": "Ehliyet Numarası", "licenseCategory": "Ehliyet Sınıfı",
-        "yearsExperience": "Deneyim", "yearsValue": "{{count}} yıl",
-        "address": "Adres", "city": "Şehir", "country": "Ülke", "postalCode": "Posta Kodu",
+        "title": "Kişisel Bilgiler",
+        "fullName": "Tam Ad",
+        "dateOfBirth": "Doğum Tarihi",
+        "citizenship": "Vatandaşlık",
+        "jobCategory": "İş Kategorisi",
+        "licenseNumber": "Ehliyet Numarası",
+        "licenseCategory": "Ehliyet Sınıfı",
+        "yearsExperience": "Deneyim",
+        "yearsValue": "{{count}} yıl",
+        "address": "Adres",
+        "city": "Şehir",
+        "country": "Ülke",
+        "postalCode": "Posta Kodu",
         "emergencyContact": "Acil Durum İrtibatı"
       },
-      "stats": { "title": "Hızlı İstatistikler", "documents": "Belgeler", "validDocs": "Geçerli Belgeler", "expiringSoon": "Yakında Doluyor" },
-      "agency": { "title": "Ajans", "noAgency": "Ajans yok (doğrudan)" },
+      "stats": {
+        "title": "Hızlı İstatistikler",
+        "documents": "Belgeler",
+        "validDocs": "Geçerli Belgeler",
+        "expiringSoon": "Yakında Doluyor"
+      },
+      "agency": {
+        "title": "Ajans",
+        "noAgency": "Ajans yok (doğrudan)"
+      },
       "agencyAccess": {
         "title": "Ajans Erişimi",
         "subtitle": "Bu çalışanın görüntüleme ve düzenleme erişimini ajans bazında verin veya iptal edin. Adaydan dönüştürme otomatik olarak vermez — anahtarları açıkça açmalısınız.",
-        "originBadge": "Köken", "ownAgencyFallback": "Çalışanın ajansı",
-        "view": "Görüntüle", "edit": "Düzenle", "granted": "{{date}} tarihinde verildi",
+        "originBadge": "Köken",
+        "ownAgencyFallback": "Çalışanın ajansı",
+        "view": "Görüntüle",
+        "edit": "Düzenle",
+        "granted": "{{date}} tarihinde verildi",
         "grantSection": "Başka bir ajansa erişim ver",
-        "selectAgency": "Ajans seçin", "notesPh": "Notlar (isteğe bağlı)",
-        "grantButton": "Görüntüleme + Düzenleme ver", "granting": "Veriliyor…",
-        "toast": { "updated": "Erişim güncellendi", "updateFailed": "Erişim güncellenemedi", "revoked": "Ajans erişimi iptal edildi", "revokeFailed": "Erişim iptal edilemedi" },
-        "confirmRevokeAll": { "title": "Tüm ajans erişimini iptal et", "description": "Hem Görüntüleme hem Düzenleme kapatılıyor, bu durumda bu ajansın erişimi tamamen kaldırılır. Devam edilsin mi?", "confirm": "İptal et" },
-        "confirmRevoke": { "title": "Ajans erişimini iptal et", "description": "{{agency}} ajansının bu çalışana erişimi kaldırılsın mı? Kullanıcıları kaydı hemen göremeyecek.", "fallbackAgency": "bu ajans", "confirm": "İptal et" }
+        "selectAgency": "Ajans seçin",
+        "notesPh": "Notlar (isteğe bağlı)",
+        "grantButton": "Görüntüleme + Düzenleme ver",
+        "granting": "Veriliyor…",
+        "toast": {
+          "updated": "Erişim güncellendi",
+          "updateFailed": "Erişim güncellenemedi",
+          "revoked": "Ajans erişimi iptal edildi",
+          "revokeFailed": "Erişim iptal edilemedi"
+        },
+        "confirmRevokeAll": {
+          "title": "Tüm ajans erişimini iptal et",
+          "description": "Hem Görüntüleme hem Düzenleme kapatılıyor, bu durumda bu ajansın erişimi tamamen kaldırılır. Devam edilsin mi?",
+          "confirm": "İptal et"
+        },
+        "confirmRevoke": {
+          "title": "Ajans erişimini iptal et",
+          "description": "{{agency}} ajansının bu çalışana erişimi kaldırılsın mı? Kullanıcıları kaydı hemen göremeyecek.",
+          "fallbackAgency": "bu ajans",
+          "confirm": "İptal et"
+        }
       },
       "documents": {
-        "title": "Çalışan Belgeleri", "uploadButton": "Belge Yükle", "cancel": "İptal",
-        "newDocumentTitle": "Yeni Belge", "documentType": "Belge Türü", "selectType": "Tür seçin",
-        "documentName": "Belge Adı", "documentNamePh": "örn. Pasaport",
-        "issueDate": "Düzenleme Tarihi", "expiryDate": "Son Tarih",
-        "documentNumber": "Belge Numarası", "optionalPh": "İsteğe bağlı", "issuer": "Veren Kurum",
-        "fileLabel": "Dosya", "uploading": "Yükleniyor...", "upload": "Yükle",
+        "title": "Çalışan Belgeleri",
+        "uploadButton": "Belge Yükle",
+        "cancel": "İptal",
+        "newDocumentTitle": "Yeni Belge",
+        "documentType": "Belge Türü",
+        "selectType": "Tür seçin",
+        "documentName": "Belge Adı",
+        "documentNamePh": "örn. Pasaport",
+        "issueDate": "Düzenleme Tarihi",
+        "expiryDate": "Son Tarih",
+        "documentNumber": "Belge Numarası",
+        "optionalPh": "İsteğe bağlı",
+        "issuer": "Veren Kurum",
+        "fileLabel": "Dosya",
+        "uploading": "Yükleniyor...",
+        "upload": "Yükle",
         "empty": "Henüz belge yüklenmedi.",
-        "fileSize": "{{name}} ({{size}} KB)", "expires": "Son tarih: {{date}}",
-        "fileMeta": "{{type}} · {{size}} KB", "download": "İndir", "view": "Görüntüle",
-        "toast": { "fileRequired": "Lütfen bir dosya seçin", "typeRequired": "Lütfen bir belge türü seçin", "nameRequired": "Lütfen bir belge adı girin", "uploaded": "Belge başarıyla yüklendi", "uploadFailed": "Belge yüklenemedi" }
+        "fileSize": "{{name}} ({{size}} KB)",
+        "expires": "Son tarih: {{date}}",
+        "fileMeta": "{{type}} · {{size}} KB",
+        "download": "İndir",
+        "view": "Görüntüle",
+        "toast": {
+          "fileRequired": "Lütfen bir dosya seçin",
+          "typeRequired": "Lütfen bir belge türü seçin",
+          "nameRequired": "Lütfen bir belge adı girin",
+          "uploaded": "Belge başarıyla yüklendi",
+          "uploadFailed": "Belge yüklenemedi"
+        }
       },
       "compliance": {
-        "title": "Uyumluluk Durumu", "empty": "Uyumluluk verisi yok. Takip için belgeler yükleyin.",
-        "expiredAgo": "{{count}} gün önce doldu", "daysRemaining": "{{count}} gün kaldı"
+        "title": "Uyumluluk Durumu",
+        "empty": "Uyumluluk verisi yok. Takip için belgeler yükleyin.",
+        "expiredAgo": "{{count}} gün önce doldu",
+        "daysRemaining": "{{count}} gün kaldı"
       },
       "financial": {
-        "title": "Bankacılık ve Maaş Profili", "fromCandidateBadge": "Aday Aşamasından",
+        "title": "Bankacılık ve Maaş Profili",
+        "fromCandidateBadge": "Aday Aşamasından",
         "subtitle": "Aday aşamasında alınan bankacılık ve maaş bilgileri dönüşümden sonra korunur.",
-        "bankName": "Banka Adı", "accountHolder": "Hesap Sahibi", "accountNumber": "Hesap Numarası",
-        "sortCode": "Sort Kodu", "iban": "IBAN", "taxCode": "Vergi Kodu",
-        "niNumber": "NI Numarası", "paymentMethod": "Ödeme Yöntemi",
-        "salaryAgreed": "Anlaşılan Maaş", "notes": "Notlar"
+        "bankName": "Banka Adı",
+        "accountHolder": "Hesap Sahibi",
+        "accountNumber": "Hesap Numarası",
+        "sortCode": "Sort Kodu",
+        "iban": "IBAN",
+        "taxCode": "Vergi Kodu",
+        "niNumber": "NI Numarası",
+        "paymentMethod": "Ödeme Yöntemi",
+        "salaryAgreed": "Anlaşılan Maaş",
+        "notes": "Notlar"
       },
       "notes": {
-        "title": "Notlar ve Yorumlar", "addLabel": "Not ekle / güncelle",
+        "title": "Notlar ve Yorumlar",
+        "addLabel": "Not ekle / güncelle",
         "writePh": "Bu çalışan hakkında bir not yazın…",
-        "saveButton": "Notu kaydet", "saving": "Kaydediliyor…",
-        "discard": "Değişiklikleri iptal et", "empty": "Bu çalışan için not yok."
+        "saveButton": "Notu kaydet",
+        "saving": "Kaydediliyor…",
+        "discard": "Değişiklikleri iptal et",
+        "empty": "Bu çalışan için not yok."
       },
       "toast": {
         "loadFailed": "Çalışan yüklenemedi",
-        "stageUpdated": "İş akışı aşaması güncellendi", "stageFailed": "Aşama güncellenemedi",
-        "workflowConnected": "İş akışı bağlandı", "workflowFailed": "İş akışı bağlanamadı",
-        "currentStageUpdated": "Mevcut aşama güncellendi", "currentStageFailed": "Aşama güncellenemedi",
-        "workflowDisconnected": "İş akışı bağlantısı kesildi", "disconnectFailed": "Bağlantı kesilemedi",
-        "stageApproved": "Aşama onaylandı", "stageApproveFailed": "Aşama onaylanamadı",
-        "noteSaved": "Not kaydedildi", "noteFailed": "Not kaydedilemedi",
-        "agencyUpdated": "Ajans güncellendi", "agencyFailed": "Ajans güncellenemedi",
-        "deleted": "Çalışan silindi", "deleteFailed": "Çalışan silinemedi"
+        "stageUpdated": "İş akışı aşaması güncellendi",
+        "stageFailed": "Aşama güncellenemedi",
+        "workflowConnected": "İş akışı bağlandı",
+        "workflowFailed": "İş akışı bağlanamadı",
+        "currentStageUpdated": "Mevcut aşama güncellendi",
+        "currentStageFailed": "Aşama güncellenemedi",
+        "workflowDisconnected": "İş akışı bağlantısı kesildi",
+        "disconnectFailed": "Bağlantı kesilemedi",
+        "stageApproved": "Aşama onaylandı",
+        "stageApproveFailed": "Aşama onaylanamadı",
+        "noteSaved": "Not kaydedildi",
+        "noteFailed": "Not kaydedilemedi",
+        "agencyUpdated": "Ajans güncellendi",
+        "agencyFailed": "Ajans güncellenemedi",
+        "deleted": "Çalışan silindi",
+        "deleteFailed": "Çalışan silinemedi"
       },
-      "confirmDelete": { "title": "Çalışanı sil?", "description": "{{name}} kalıcı olarak silinecek. Bu geri alınamaz.", "confirm": "Sil" },
-      "confirmDisconnect": { "title": "İş akışından bağlantıyı kes?", "description": "Bu çalışanın iş akışı bağlantısı kesilecek. Mevcut ilerleme korunur.", "confirm": "Bağlantıyı kes" }
+      "confirmDelete": {
+        "title": "Çalışanı sil?",
+        "description": "{{name}} kalıcı olarak silinecek. Bu geri alınamaz.",
+        "confirm": "Sil"
+      },
+      "confirmDisconnect": {
+        "title": "İş akışından bağlantıyı kes?",
+        "description": "Bu çalışanın iş akışı bağlantısı kesilecek. Mevcut ilerleme korunur.",
+        "confirm": "Bağlantıyı kes"
+      }
     },
-    "add": { "title": "Çalışan Ekle", "back": "Çalışanlara geri dön" },
-    "edit": { "title": "Çalışanı Düzenle", "back": "Profile geri dön" },
-    "certifications": { "title": "Sertifikalar", "back": "Profile geri dön" },
-    "training": { "title": "Eğitim Geçmişi", "back": "Profile geri dön" },
-    "complianceTimeline": { "title": "Uyumluluk Zaman Çizelgesi", "back": "Profile geri dön" },
-    "performance": { "title": "Performans Değerlendirmesi", "back": "Profile geri dön" }
+    "add": {
+      "title": "Çalışan Ekle",
+      "back": "Çalışanlara geri dön"
+    },
+    "edit": {
+      "title": "Çalışanı Düzenle",
+      "back": "Profile geri dön"
+    },
+    "certifications": {
+      "title": "Sertifikalar",
+      "back": "Profile geri dön"
+    },
+    "training": {
+      "title": "Eğitim Geçmişi",
+      "back": "Profile geri dön"
+    },
+    "complianceTimeline": {
+      "title": "Uyumluluk Zaman Çizelgesi",
+      "back": "Profile geri dön"
+    },
+    "performance": {
+      "title": "Performans Değerlendirmesi",
+      "back": "Profile geri dön"
+    }
   },
   "applicants": {
-    "list": { "title": "Başvuranlar", "subtitle": "İş başvurusu yapanlar ve adaylar", "addButton": "Başvuran Ekle", "search": "Başvuranları ara…", "empty": "Başvuran bulunamadı.", "deleteRequests": "Silme Talepleri" },
-    "candidates": { "title": "Adaylar", "subtitle": "Yerleşmeye hazır onaylı adaylar", "search": "Adayları ara…", "empty": "Aday bulunamadı." },
+    "list": {
+      "title": "Başvuranlar",
+      "subtitle": "İş başvurusu yapanlar ve adaylar",
+      "addButton": "Başvuran Ekle",
+      "search": "Başvuranları ara…",
+      "empty": "Başvuran bulunamadı.",
+      "deleteRequests": "Silme Talepleri"
+    },
+    "candidates": {
+      "title": "Adaylar",
+      "subtitle": "Yerleşmeye hazır onaylı adaylar",
+      "search": "Adayları ara…",
+      "empty": "Aday bulunamadı."
+    },
     "profile": {
-      "title": "Başvuran Profili", "candidateTitle": "Aday Profili",
+      "title": "Başvuran Profili",
+      "candidateTitle": "Aday Profili",
       "subtitle": "Başvuran bilgilerini görüntüle ve yönet",
       "candidateSubtitle": "Aday bilgilerini görüntüle ve yönet",
-      "back": "Geri", "loading": "Yükleniyor…", "notFound": "Başvuran bulunamadı", "candidateNotFound": "Aday bulunamadı",
-      "convertToCandidate": "Adaya dönüştür", "convertToEmployee": "Çalışana dönüştür",
-      "promote": "Adaya Yükselt", "promoteToCandidate": "Adaya Yükselt",
-      "tabs": { "overview": "Genel Bakış", "application": "Başvuru", "documents": "Belgeler ({{count}})", "workflow": "İş Akışı", "docCompliance": "Belge Uyumluluğu", "compliance": "Uyumluluk", "financial": "Finansal", "agencyHistory": "Ajans Geçmişi", "history": "Geçmiş", "notes": "Notlar" },
+      "back": "Geri",
+      "loading": "Yükleniyor…",
+      "notFound": "Başvuran bulunamadı",
+      "candidateNotFound": "Aday bulunamadı",
+      "convertToCandidate": "Adaya dönüştür",
+      "convertToEmployee": "Çalışana dönüştür",
+      "promote": "Adaya Yükselt",
+      "promoteToCandidate": "Adaya Yükselt",
+      "tabs": {
+        "overview": "Genel Bakış",
+        "application": "Başvuru",
+        "documents": "Belgeler ({{count}})",
+        "workflow": "İş Akışı",
+        "docCompliance": "Belge Uyumluluğu",
+        "compliance": "Uyumluluk",
+        "financial": "Finansal",
+        "agencyHistory": "Ajans Geçmişi",
+        "history": "Geçmiş",
+        "notes": "Notlar"
+      },
       "toast": {
         "loadFailed": "Başvuran yüklenemedi",
-        "stageUpdated": "İş akışı aşaması güncellendi", "stageFailed": "Aşama güncellenemedi",
-        "workflowConnected": "İş akışı bağlandı", "workflowFailed": "İş akışı bağlanamadı",
-        "currentStageUpdated": "Mevcut aşama güncellendi", "currentStageFailed": "Aşama güncellenemedi",
-        "workflowDisconnected": "İş akışı bağlantısı kesildi", "disconnectFailed": "Bağlantı kesilemedi",
-        "stageApproved": "Aşama onaylandı", "stageApproveFailed": "Aşama onaylanamadı",
-        "agencyUpdated": "Ajans güncellendi", "agencyFailed": "Ajans güncellenemedi",
-        "noteSaved": "Not kaydedildi", "noteFailed": "Not kaydedilemedi",
-        "docApproved": "\"{{name}}\" onaylandı", "docApproveFailed": "Belge onaylanamadı",
+        "stageUpdated": "İş akışı aşaması güncellendi",
+        "stageFailed": "Aşama güncellenemedi",
+        "workflowConnected": "İş akışı bağlandı",
+        "workflowFailed": "İş akışı bağlanamadı",
+        "currentStageUpdated": "Mevcut aşama güncellendi",
+        "currentStageFailed": "Aşama güncellenemedi",
+        "workflowDisconnected": "İş akışı bağlantısı kesildi",
+        "disconnectFailed": "Bağlantı kesilemedi",
+        "stageApproved": "Aşama onaylandı",
+        "stageApproveFailed": "Aşama onaylanamadı",
+        "agencyUpdated": "Ajans güncellendi",
+        "agencyFailed": "Ajans güncellenemedi",
+        "noteSaved": "Not kaydedildi",
+        "noteFailed": "Not kaydedilemedi",
+        "docApproved": "\"{{name}}\" onaylandı",
+        "docApproveFailed": "Belge onaylanamadı",
         "rejectReasonRequired": "Reddetme nedeni gerekli",
-        "docRejected": "\"{{name}}\" reddedildi", "docRejectFailed": "Belge reddedilemedi",
-        "docDeleted": "Belge silindi", "docDeleteFailed": "Belge silinemedi",
-        "fileRequired": "Lütfen bir dosya seçin", "typeRequired": "Lütfen bir belge türü seçin",
+        "docRejected": "\"{{name}}\" reddedildi",
+        "docRejectFailed": "Belge reddedilemedi",
+        "docDeleted": "Belge silindi",
+        "docDeleteFailed": "Belge silinemedi",
+        "fileRequired": "Lütfen bir dosya seçin",
+        "typeRequired": "Lütfen bir belge türü seçin",
         "nameRequired": "Lütfen bir belge adı girin",
-        "uploaded": "Belge başarıyla yüklendi", "uploadFailed": "Belge yüklenemedi",
-        "deleted": "Başvuran başarıyla silindi", "deleteFailed": "Başvuran silinemedi",
+        "uploaded": "Belge başarıyla yüklendi",
+        "uploadFailed": "Belge yüklenemedi",
+        "deleted": "Başvuran başarıyla silindi",
+        "deleteFailed": "Başvuran silinemedi",
         "addressRequired": "Lütfen tüm zorunlu adres alanlarını doldurun",
         "convertedToEmployee": "Başvuran başarıyla çalışana dönüştürüldü",
         "convertFailed": "Başvuran çalışana dönüştürülemedi",
-        "promoted": "Adaya yükseltildi", "promoteFailed": "Yükseltme başarısız",
-        "financialSaved": "Finansal profil kaydedildi", "financialFailed": "Finansal profil kaydedilemedi"
+        "promoted": "Adaya yükseltildi",
+        "promoteFailed": "Yükseltme başarısız",
+        "financialSaved": "Finansal profil kaydedildi",
+        "financialFailed": "Finansal profil kaydedilemedi"
       },
-      "confirmDelete": { "title": "Başvuranı sil?", "description": "Bu başvuran kalıcı olarak silinecek.", "confirm": "Sil" },
-      "confirmDeleteCandidate": { "title": "Adayı sil?", "description": "Bu aday kalıcı olarak silinecek.", "confirm": "Sil" },
-      "confirmDisconnect": { "title": "İş akışından bağlantıyı kes?", "description": "Bu başvuranın iş akışı bağlantısı kesilecek. Mevcut ilerleme korunur.", "confirm": "Bağlantıyı kes" },
-      "confirmDeleteDoc": { "title": "Belgeyi sil?", "description": "\"{{name}}\" bu başvuranın kayıtlarından kalıcı olarak silinecek.", "confirm": "Sil" },
+      "confirmDelete": {
+        "title": "Başvuranı sil?",
+        "description": "Bu başvuran kalıcı olarak silinecek.",
+        "confirm": "Sil"
+      },
+      "confirmDeleteCandidate": {
+        "title": "Adayı sil?",
+        "description": "Bu aday kalıcı olarak silinecek.",
+        "confirm": "Sil"
+      },
+      "confirmDisconnect": {
+        "title": "İş akışından bağlantıyı kes?",
+        "description": "Bu başvuranın iş akışı bağlantısı kesilecek. Mevcut ilerleme korunur.",
+        "confirm": "Bağlantıyı kes"
+      },
+      "confirmDeleteDoc": {
+        "title": "Belgeyi sil?",
+        "description": "\"{{name}}\" bu başvuranın kayıtlarından kalıcı olarak silinecek.",
+        "confirm": "Sil"
+      },
       "candidateApproval": {
         "pendingTitle": "Bu aday Tempworks onayını bekliyor.",
         "pendingBody": "Sahibi olan ajans tarafından gönderildi ve onaylanana kadar iş akışına giremez veya çalışana dönüştürülemez.",
-        "approve": "Onayla", "reject": "Reddet",
-        "approved": "Aday onaylandı", "rejected": "Aday reddedildi",
-        "approveFailed": "Onay başarısız", "rejectFailed": "Reddetme başarısız",
-        "confirmReject": { "title": "Bu adayı reddet?", "description": "İş akışına girmeyecek. Bu, daha sonra onaylanarak geri alınabilir.", "confirm": "Reddet" }
+        "approve": "Onayla",
+        "reject": "Reddet",
+        "approved": "Aday onaylandı",
+        "rejected": "Aday reddedildi",
+        "approveFailed": "Onay başarısız",
+        "rejectFailed": "Reddetme başarısız",
+        "confirmReject": {
+          "title": "Bu adayı reddet?",
+          "description": "İş akışına girmeyecek. Bu, daha sonra onaylanarak geri alınabilir.",
+          "confirm": "Reddet"
+        },
+        "pendingBadge": "Pending Tempworks approval",
+        "rejectedBadge": "Rejected"
+      },
+      "noIdentifierLegacy": "No identifier (legacy record)",
+      "wasLeadPrefix": "(was {{leadNumber}})",
+      "header": {
+        "email": "Email",
+        "phone": "Phone",
+        "citizenship": "Citizenship",
+        "applied": "Applied"
+      },
+      "emergency": {
+        "sectionTitle": "Family / Emergency Contact",
+        "name": "Name",
+        "relationship": "Relationship",
+        "phone": "Phone",
+        "email": "Email"
+      },
+      "quickNav": {
+        "travel": "Travel & Residence",
+        "driving": "Driving Licence & Experience",
+        "education": "Education",
+        "workExperience": "Work Experience"
+      },
+      "personal": {
+        "title": "Personal Information",
+        "fullName": "Full Name",
+        "dateOfBirth": "Date of Birth",
+        "citizenship": "Citizenship",
+        "licenseNumber": "License Number",
+        "licenseCategory": "License Category",
+        "yearsEUExperience": "Years EU Experience",
+        "permanentAddress": "Permanent Address",
+        "countryOfResidence": "Country of Residence",
+        "currentCountry": "Current Country",
+        "appliedPosition": "Applied Position",
+        "preferredStartDate": "Preferred Start Date",
+        "howTheyHeard": "How They Heard",
+        "general": "GENERAL"
+      },
+      "stats": {
+        "title": "Quick Stats",
+        "documents": "Documents",
+        "validDocs": "Valid Docs",
+        "expiringSoon": "Expiring Soon"
+      },
+      "lifecycle": {
+        "title": "Lifecycle Identifiers",
+        "leadId": "Lead ID",
+        "candidateId": "Candidate ID",
+        "createdBy": "Created By",
+        "createdLabel": "Created: {{date}}",
+        "convertedLabel": "Converted: {{date}}",
+        "notAssignedLegacy": "Not assigned (legacy)",
+        "notYetConverted": "Not yet converted",
+        "selfApplied": "Self-applied via public form",
+        "unknownLegacy": "Unknown (legacy record)"
+      },
+      "agency": {
+        "title": "Agency",
+        "noAgency": "No Agency (Direct)"
+      },
+      "travelDocs": {
+        "title": "Travel & Residence Documents",
+        "passportNumber": "Passport Number",
+        "passportValidUntil": "Passport Valid Until",
+        "issuingCountry": "Issuing Country",
+        "euVisa": "EU Visa",
+        "visaType": "Visa Type",
+        "visaNumber": "Visa Number",
+        "validUntil": "Valid Until",
+        "workPermitInEU": "Work Permit in EU",
+        "permitType": "Permit Type",
+        "permitNumber": "Permit Number",
+        "issueDate": "Issue Date",
+        "residenceCardInEU": "Residence Card in EU",
+        "residenceType": "Residence Type",
+        "residenceNumber": "Residence Number",
+        "country": "Country",
+        "city": "City",
+        "yes": "Yes",
+        "no": "No"
+      },
+      "driving": {
+        "title": "Driving Licence & Experience",
+        "licenceCertifications": "Licence & Certifications",
+        "licenseNumber": "License Number",
+        "issuingCountry": "Issuing Country",
+        "validUntil": "Valid Until",
+        "categories": "Categories:",
+        "tachographCard": "Tachograph Card",
+        "code95": "Code 95 / CPC",
+        "adrCertificate": "ADR Certificate",
+        "experienceTitle": "Driving Experience",
+        "euExperience": "EU Experience",
+        "yearsInEU": "Years in EU",
+        "totalCEExperience": "Total C+E Experience",
+        "yearsActiveDriving": "Years Active Driving",
+        "drivenOtherCountries": "Driven Other Countries",
+        "countries": "Countries:",
+        "yes": "Yes",
+        "no": "No",
+        "yesValue": "Yes ({{value}})",
+        "yesUntil": "Yes (until {{date}})",
+        "yesNA": "Yes (N/A)"
+      },
+      "languages": {
+        "title": "Language Skills",
+        "english": "English",
+        "german": "German",
+        "russian": "Russian",
+        "otherLanguages": "Other Languages",
+        "languageAtWork": "Language at Work"
+      },
+      "workFlex": {
+        "title": "Work Flexibility & Preferences",
+        "doubleCrew": "Double Crew",
+        "maxTourLength": "Max Tour Length",
+        "weekendDriving": "Weekend Driving",
+        "nightDriving": "Night Driving",
+        "preferredCountries": "Preferred Countries",
+        "undesiredCountries": "Undesired Countries",
+        "yes": "Yes",
+        "no": "No"
+      },
+      "education": {
+        "title": "Education",
+        "default": "Education",
+        "fieldOfStudy": "Field of Study",
+        "country": "Country",
+        "start": "Start",
+        "end": "End",
+        "ongoing": "Ongoing",
+        "degreePrefix": "Degree / Certificate:"
+      },
+      "workHistory": {
+        "title": "Work Experience",
+        "defaultPosition": "Position",
+        "country": "Country",
+        "start": "Start",
+        "end": "End",
+        "current": "Current",
+        "companyPhone": "Company Phone",
+        "responsibilities": "Responsibilities",
+        "reasonForLeaving": "Reason for leaving:",
+        "reference": "Reference",
+        "name": "Name",
+        "phone": "Phone",
+        "email": "Email"
+      },
+      "documentsTab": {
+        "title": "Applicant Documents",
+        "candidateTitle": "Candidate Documents",
+        "uploadButton": "Upload Document",
+        "cancel": "Cancel",
+        "newDocumentTitle": "New Document",
+        "documentType": "Document Type",
+        "selectType": "Select type",
+        "documentName": "Document Name",
+        "documentNamePh": "e.g. Passport",
+        "issueDate": "Issue Date",
+        "expiryDate": "Expiry Date",
+        "noExpiry": "No Expiry",
+        "documentNumber": "Document Number",
+        "optionalPh": "Optional",
+        "issuer": "Issuer",
+        "fileLabel": "File",
+        "fileSize": "{{name}} ({{size}} KB)",
+        "uploading": "Uploading...",
+        "upload": "Upload",
+        "loading": "Loading documents...",
+        "empty": "No documents uploaded yet.",
+        "expires": "Expires: {{date}}",
+        "fileMeta": "{{type}} · {{size}} KB",
+        "downloadTitle": "Download",
+        "approve": "Approve",
+        "reject": "Reject",
+        "editTitle": "Edit",
+        "deleteTitle": "Delete"
+      },
+      "workflowTab": {
+        "connectTitle": "Connect to a Workflow",
+        "connectSubtitle": "This applicant is not connected to any workflow yet.",
+        "candidateConnectSubtitle": "This candidate is not connected to any workflow yet.",
+        "selectWorkflowPh": "Select a workflow…",
+        "public": "Public",
+        "private": "Private",
+        "connect": "Connect",
+        "connecting": "Connecting…",
+        "connectButton": "Connect to Workflow",
+        "saving": "Saving…",
+        "confirm": "Confirm",
+        "connectedBy": "Connected {{date}} by {{name}}",
+        "changeWorkflow": "Change Workflow",
+        "change": "Change",
+        "changeTitle": "Reassign to a different workflow (admin only)",
+        "noStages": "This workflow has no stages configured yet.",
+        "current": "Current",
+        "inProgress": "In Progress",
+        "approved": "Approved",
+        "final": "Final",
+        "needsApproval": "Needs Approval",
+        "slaSuffix": "SLA: {{hours}}h",
+        "setCurrent": "Set Current",
+        "requiredDocs": "Required Documents",
+        "noRequiredDocs": "No required documents for this stage.",
+        "uploaded": "Uploaded",
+        "missing": "Missing",
+        "stageApproval": "Stage Approval",
+        "approvedBy": "by {{name}}",
+        "noApprovers": "No approvers assigned to this stage.",
+        "approveStage": "Approve Stage",
+        "approving": "Approving…"
+      },
+      "complianceTab": {
+        "title": "Compliance Status",
+        "empty": "No compliance data available. Upload documents to begin tracking compliance.",
+        "expiredAgo": "Expired {{count}} days ago",
+        "daysRemaining": "{{count}} days remaining"
+      },
+      "financialTab": {
+        "title": "Financial Transactions",
+        "candidatesOnlyBadge": "Candidates only",
+        "candidatesOnlyBody": "Financial transactions are available for Candidates only. Promote this applicant to Candidate first.",
+        "bankTitle": "Bank & Tax Details",
+        "save": "Save",
+        "saving": "Saving…",
+        "saved": "Saved",
+        "saveFailed": "Save failed",
+        "bankName": "Bank Name",
+        "iban": "IBAN",
+        "taxCode": "Tax Code",
+        "niNumber": "NI Number",
+        "paymentMethod": "Payment Method"
+      },
+      "historyTab": {
+        "title": "Agency Assignment History",
+        "loading": "Loading…",
+        "empty": "No agency assignment history recorded.",
+        "reason": "Reason: {{value}}",
+        "current": "Current"
+      },
+      "notesTab": {
+        "title": "Notes & Comments",
+        "submittedWithApplication": "Submitted with application",
+        "addLabel": "Add / update note",
+        "writePh": "Write a note about this applicant…",
+        "writeCandidatePh": "Write a note about this candidate…",
+        "saveButton": "Save note",
+        "saving": "Saving…",
+        "discard": "Discard changes",
+        "empty": "No notes for this applicant.",
+        "candidateEmpty": "No notes for this candidate."
+      },
+      "promoteDialog": {
+        "title": "Promote to Candidate",
+        "successTitle": "Promoted Successfully",
+        "successBody": "has been promoted from Lead to Candidate.",
+        "newCandidateId": "The new Candidate ID is",
+        "successFooter": "The profile is now visible to agency users, and the tier change has been recorded in the audit log.",
+        "done": "Done",
+        "intro": "will be promoted from Lead to Candidate. This grants agency users visibility. A holding agency will be assigned if configured.",
+        "candidateIntro": "will have its tier confirmed.",
+        "responsibleAgency": "Responsible Agency",
+        "selectDefault": "Use system default",
+        "useSystemDefault": "Use system default holding agency",
+        "agencyHelp": "The selected agency becomes responsible for this candidate and is recorded in Agency History.",
+        "loggedNote": "This action is logged and can be reviewed in Agency History.",
+        "promoting": "Promoting…",
+        "confirmPromotion": "Confirm Promotion",
+        "cancel": "Cancel"
+      },
+      "convertDialog": {
+        "title": "Convert to Employee",
+        "subtitle": "Converting <strong>{{name}}</strong> — all documents will be transferred and the applicant record will be archived.",
+        "candidateSubtitle": "Converting <strong>{{name}}</strong> — all documents will be transferred and the candidate record will be archived.",
+        "convertingPrefix": "Converting",
+        "applicantTransferSuffix": "— all documents will be transferred and the applicant record will be archived.",
+        "candidateTransferSuffix": "— all documents will be transferred and the candidate record will be archived.",
+        "name": "Name:",
+        "email": "Email:",
+        "phone": "Phone:",
+        "citizenship": "Citizenship:",
+        "address": "Address",
+        "addressLine1": "Address Line 1",
+        "addressLine2": "Address Line 2",
+        "city": "City",
+        "country": "Country",
+        "postalCode": "Postal Code",
+        "additionalDetails": "Additional Details",
+        "optional": "(optional)",
+        "licenseNumber": "License Number",
+        "licenseCategory": "License Category",
+        "yearsExperience": "Years Experience",
+        "emergencyContact": "Emergency Contact",
+        "emergencyPhone": "Emergency Phone",
+        "converting": "Converting…",
+        "confirmConversion": "Confirm Conversion",
+        "cancel": "Cancel"
+      },
+      "rejectDocDialog": {
+        "title": "Reject Document",
+        "rejecting": "Rejecting:",
+        "reasonLabel": "Rejection Reason",
+        "reasonPh": "Explain why this document is being rejected…",
+        "cancel": "Cancel",
+        "rejecting2": "Rejecting…",
+        "confirmRejection": "Confirm Rejection"
+      },
+      "infoRow": {
+        "notProvided": "Not provided"
       }
     },
-    "add": { "title": "Başvuran Ekle", "back": "Başvuranlara geri dön" },
-    "edit": { "title": "Başvuranı Düzenle", "back": "Profile geri dön" },
-    "deleteRequests": { "title": "Aday Silme Talepleri", "subtitle": "Silme taleplerini incele ve onayla", "empty": "Bekleyen silme talebi yok." }
+    "add": {
+      "title": "Başvuran Ekle",
+      "back": "Başvuranlara geri dön"
+    },
+    "edit": {
+      "title": "Başvuranı Düzenle",
+      "back": "Profile geri dön"
+    },
+    "deleteRequests": {
+      "title": "Aday Silme Talepleri",
+      "subtitle": "Silme taleplerini incele ve onayla",
+      "empty": "Bekleyen silme talebi yok."
+    }
   },
   "agencies": {
-    "list": { "title": "Ajanslar", "subtitle": "İşe alım ortakları", "addButton": "Ajans Ekle", "search": "Ajansları ara…", "empty": "Ajans bulunamadı." },
+    "list": {
+      "title": "Ajanslar",
+      "subtitle": "İşe alım ortakları",
+      "addButton": "Ajans Ekle",
+      "search": "Ajansları ara…",
+      "empty": "Ajans bulunamadı."
+    },
     "profile": {
       "title": "Ajans Profili",
       "back": "Ajanslara geri dön",
@@ -166,110 +707,368 @@
       "manageAllUsers": "Tüm Kullanıcıları Yönet",
       "loading": "Yükleniyor…",
       "notFound": "Ajans bulunamadı",
-      "info": { "country": "Ülke", "email": "E-posta", "phone": "Telefon", "contactPerson": "İletişim Kişisi" },
-      "stats": { "activeEmployees": "Aktif Çalışanlar", "totalEmployees": "Toplam Çalışan", "agencyUsers": "Ajans Kullanıcıları", "status": "Durum" },
-      "tabs": { "employees": "Çalışanlar", "users": "Kullanıcılar", "finance": "Finansal Kayıtlar", "settings": "Ayarlar" },
-      "employees": { "title": "Ajans Çalışanları ({{count}})", "empty": "Bu ajans için çalışan bulunamadı.", "viewProfile": "Profili Gör" },
-      "users": { "title": "Ajans Kullanıcıları ({{count}})", "empty": "Bu ajans için kullanıcı bulunamadı." },
-      "settings": { "title": "Ajans Ayarları", "maxUsersLabel": "Maksimum Kullanıcı Sayısı", "maxUsersHelp": "Bu ajans için aktif kullanıcı sayısını sınırla", "maxUsersOption": "{{count}} kullanıcı", "save": "Ayarları Kaydet" },
-      "toast": { "settingsSaved": "Ayarlar kaydedildi", "settingsFailed": "Ayarlar kaydedilemedi" }
+      "info": {
+        "country": "Ülke",
+        "email": "E-posta",
+        "phone": "Telefon",
+        "contactPerson": "İletişim Kişisi"
+      },
+      "stats": {
+        "activeEmployees": "Aktif Çalışanlar",
+        "totalEmployees": "Toplam Çalışan",
+        "agencyUsers": "Ajans Kullanıcıları",
+        "status": "Durum"
+      },
+      "tabs": {
+        "employees": "Çalışanlar",
+        "users": "Kullanıcılar",
+        "finance": "Finansal Kayıtlar",
+        "settings": "Ayarlar"
+      },
+      "employees": {
+        "title": "Ajans Çalışanları ({{count}})",
+        "empty": "Bu ajans için çalışan bulunamadı.",
+        "viewProfile": "Profili Gör"
+      },
+      "users": {
+        "title": "Ajans Kullanıcıları ({{count}})",
+        "empty": "Bu ajans için kullanıcı bulunamadı."
+      },
+      "settings": {
+        "title": "Ajans Ayarları",
+        "maxUsersLabel": "Maksimum Kullanıcı Sayısı",
+        "maxUsersHelp": "Bu ajans için aktif kullanıcı sayısını sınırla",
+        "maxUsersOption": "{{count}} kullanıcı",
+        "save": "Ayarları Kaydet"
+      },
+      "toast": {
+        "settingsSaved": "Ayarlar kaydedildi",
+        "settingsFailed": "Ayarlar kaydedilemedi"
+      }
     },
-    "myProfile": { "title": "Ajansım" },
-    "add": { "title": "Ajans Ekle", "back": "Ajanslara geri dön" },
-    "edit": { "title": "Ajansı Düzenle", "back": "Profile geri dön" },
-    "users": { "title": "Ajans Kullanıcıları", "subtitle": "Bu ajansa atanmış kullanıcıları yönet", "back": "Ajansa geri dön", "addButton": "Kullanıcı Ekle" }
+    "myProfile": {
+      "title": "Ajansım"
+    },
+    "add": {
+      "title": "Ajans Ekle",
+      "back": "Ajanslara geri dön"
+    },
+    "edit": {
+      "title": "Ajansı Düzenle",
+      "back": "Profile geri dön"
+    },
+    "users": {
+      "title": "Ajans Kullanıcıları",
+      "subtitle": "Bu ajansa atanmış kullanıcıları yönet",
+      "back": "Ajansa geri dön",
+      "addButton": "Kullanıcı Ekle"
+    }
   },
   "documents": {
-    "dashboard": { "title": "Belgeler", "subtitle": "Belge deposu genel bakış", "uploadButton": "Belge Yükle" },
-    "compliance": { "title": "Belgeler ve Uyumluluk", "subtitle": "Tüm belgelerin uyumluluk durumu", "filterTitle": "Belgeleri Filtrele" },
-    "explorer": { "title": "Belge Gezgini", "searchTitle": "Çalışanları Ara ve Filtrele" },
-    "verification": { "title": "Belge Doğrulama", "pending": "Bekleyen Belgeler ({{count}})", "approve": "Onayla", "reject": "Reddet" },
-    "preview": { "title": "Belge", "back": "Geri", "download": "İndir" },
-    "upload": { "title": "Belge Yükle", "back": "Geri" },
-    "edit": { "title": "Belgeyi Düzenle", "back": "Geri" }
+    "dashboard": {
+      "title": "Belgeler",
+      "subtitle": "Belge deposu genel bakış",
+      "uploadButton": "Belge Yükle"
+    },
+    "compliance": {
+      "title": "Belgeler ve Uyumluluk",
+      "subtitle": "Tüm belgelerin uyumluluk durumu",
+      "filterTitle": "Belgeleri Filtrele"
+    },
+    "explorer": {
+      "title": "Belge Gezgini",
+      "searchTitle": "Çalışanları Ara ve Filtrele"
+    },
+    "verification": {
+      "title": "Belge Doğrulama",
+      "pending": "Bekleyen Belgeler ({{count}})",
+      "approve": "Onayla",
+      "reject": "Reddet"
+    },
+    "preview": {
+      "title": "Belge",
+      "back": "Geri",
+      "download": "İndir"
+    },
+    "upload": {
+      "title": "Belge Yükle",
+      "back": "Geri"
+    },
+    "edit": {
+      "title": "Belgeyi Düzenle",
+      "back": "Geri"
+    }
   },
   "compliance": {
-    "dashboard": { "title": "Uyumluluk Panosu", "stats": { "validDocuments": "Geçerli Belgeler", "expiringSoon": "Yakında Sona Eriyor", "expired": "Süresi Dolmuş", "pending": "Beklemede" } },
-    "alerts": { "title": "Uyumluluk Uyarıları", "active": "Aktif Uyarılar", "resolved": "Çözülen Uyarılar", "empty": "Aktif uyarı yok." },
-    "employee": { "title": "Çalışan Uyumluluğu", "back": "Geri" }
+    "dashboard": {
+      "title": "Uyumluluk Panosu",
+      "stats": {
+        "validDocuments": "Geçerli Belgeler",
+        "expiringSoon": "Yakında Sona Eriyor",
+        "expired": "Süresi Dolmuş",
+        "pending": "Beklemede"
+      }
+    },
+    "alerts": {
+      "title": "Uyumluluk Uyarıları",
+      "active": "Aktif Uyarılar",
+      "resolved": "Çözülen Uyarılar",
+      "empty": "Aktif uyarı yok."
+    },
+    "employee": {
+      "title": "Çalışan Uyumluluğu",
+      "back": "Geri"
+    }
   },
   "workflow": {
-    "overview": { "title": "İş Akışı Genel Bakış", "subtitle": "Çalışanları işe alım sürecinde takip et" },
-    "workPermits": { "title": "Çalışma İzni Takibi" },
-    "visas": { "title": "Vize Takibi" },
-    "stage": { "title": "Aşama Detayları" },
-    "timeline": { "title": "İş Akışı Zaman Çizelgesi" },
-    "analytics": { "title": "İş Akışı Analizi" },
-    "management": { "title": "İş Akışı Yönetimi" }
+    "overview": {
+      "title": "İş Akışı Genel Bakış",
+      "subtitle": "Çalışanları işe alım sürecinde takip et"
+    },
+    "workPermits": {
+      "title": "Çalışma İzni Takibi"
+    },
+    "visas": {
+      "title": "Vize Takibi"
+    },
+    "stage": {
+      "title": "Aşama Detayları"
+    },
+    "timeline": {
+      "title": "İş Akışı Zaman Çizelgesi"
+    },
+    "analytics": {
+      "title": "İş Akışı Analizi"
+    },
+    "management": {
+      "title": "İş Akışı Yönetimi"
+    }
   },
   "pipelines": {
-    "list": { "title": "İş Akışları", "subtitle": "İşe alım hatları ve aşama yapılandırmaları", "addButton": "Yeni İş Akışı", "newDialogTitle": "Yeni İş Akışı", "empty": "Henüz iş akışı yok." },
-    "board": { "title": "İş Akışı Panosu" },
-    "stage": { "title": "Aşama" },
-    "settings": { "title": "İş Akışı Ayarları" }
+    "list": {
+      "title": "İş Akışları",
+      "subtitle": "İşe alım hatları ve aşama yapılandırmaları",
+      "addButton": "Yeni İş Akışı",
+      "newDialogTitle": "Yeni İş Akışı",
+      "empty": "Henüz iş akışı yok."
+    },
+    "board": {
+      "title": "İş Akışı Panosu"
+    },
+    "stage": {
+      "title": "Aşama"
+    },
+    "settings": {
+      "title": "İş Akışı Ayarları"
+    }
   },
   "vehicles": {
-    "list": { "title": "Araçlar", "subtitle": "Filo yönetimi", "addButton": "Araç Ekle", "search": "Araçları ara…", "empty": "Araç bulunamadı." },
+    "list": {
+      "title": "Araçlar",
+      "subtitle": "Filo yönetimi",
+      "addButton": "Araç Ekle",
+      "search": "Araçları ara…",
+      "empty": "Araç bulunamadı."
+    },
     "detail": {
-      "title": "Araç Detayı", "back": "Filoya geri dön",
-      "loading": "Yükleniyor…", "notFound": "Araç bulunamadı",
+      "title": "Araç Detayı",
+      "back": "Filoya geri dön",
+      "loading": "Yükleniyor…",
+      "notFound": "Araç bulunamadı",
       "subtitle": "{{make}} {{model}} · {{type}}",
-      "expired": "Süresi doldu", "daysSuffix": "g",
-      "tabs": { "overview": "Genel Bakış", "driver": "Sürücü ({{count}})", "documents": "Belgeler ({{count}})", "maintenance": "Bakım ({{count}})" },
-      "info": { "title": "Araç Bilgisi", "year": "Yıl", "color": "Renk", "vin": "VIN", "fuelType": "Yakıt Tipi", "currentMileage": "Mevcut Kilometre", "agency": "Ajans", "kmSuffix": "{{value}} km" },
-      "compliance": { "title": "Uyumluluk", "motExpiry": "Muayene Bitiş", "taxExpiry": "Vergi Bitiş", "insuranceExpiry": "Sigorta Bitiş" },
+      "expired": "Süresi doldu",
+      "daysSuffix": "g",
+      "tabs": {
+        "overview": "Genel Bakış",
+        "driver": "Sürücü ({{count}})",
+        "documents": "Belgeler ({{count}})",
+        "maintenance": "Bakım ({{count}})"
+      },
+      "info": {
+        "title": "Araç Bilgisi",
+        "year": "Yıl",
+        "color": "Renk",
+        "vin": "VIN",
+        "fuelType": "Yakıt Tipi",
+        "currentMileage": "Mevcut Kilometre",
+        "agency": "Ajans",
+        "kmSuffix": "{{value}} km"
+      },
+      "compliance": {
+        "title": "Uyumluluk",
+        "motExpiry": "Muayene Bitiş",
+        "taxExpiry": "Vergi Bitiş",
+        "insuranceExpiry": "Sigorta Bitiş"
+      },
       "driver": {
-        "heading": "Sürücü Atamaları", "assignButton": "Sürücü Ata",
-        "active": "Aktif", "ended": "Sonlandı", "endAssignment": "Atamayı Sonlandır",
-        "licensePrefix": "Ehliyet", "since": "{{date}} tarihinden", "empty": "Atama yok",
-        "columns": { "driver": "Sürücü", "licence": "Ehliyet", "from": "Başlangıç", "to": "Bitiş", "status": "Durum" },
-        "dialog": { "title": "Sürücü Ata", "selectDriver": "Sürücü Seç", "searchPlaceholder": "İsim veya ehliyetle ara…", "searching": "Aranıyor…", "noDriversFound": "Sürücü bulunamadı", "defaultRoleLabel": "Sürücü", "startDate": "Başlangıç Tarihi", "assignButton": "Sürücü Ata", "assigning": "Atanıyor…" },
-        "toast": { "selectFirst": "Lütfen bir sürücü seçin", "assigned": "Sürücü atandı", "assignFailed": "Sürücü atanamadı", "unassigned": "Sürücü atamasından çıkarıldı", "unassignFailed": "Atama kaldırılamadı" },
-        "confirmEnd": { "title": "Sürücü atamasını sonlandır?", "description": "Mevcut sürücü ataması sonlandırılacak.", "confirm": "Atamayı sonlandır" }
+        "heading": "Sürücü Atamaları",
+        "assignButton": "Sürücü Ata",
+        "active": "Aktif",
+        "ended": "Sonlandı",
+        "endAssignment": "Atamayı Sonlandır",
+        "licensePrefix": "Ehliyet",
+        "since": "{{date}} tarihinden",
+        "empty": "Atama yok",
+        "columns": {
+          "driver": "Sürücü",
+          "licence": "Ehliyet",
+          "from": "Başlangıç",
+          "to": "Bitiş",
+          "status": "Durum"
+        },
+        "dialog": {
+          "title": "Sürücü Ata",
+          "selectDriver": "Sürücü Seç",
+          "searchPlaceholder": "İsim veya ehliyetle ara…",
+          "searching": "Aranıyor…",
+          "noDriversFound": "Sürücü bulunamadı",
+          "defaultRoleLabel": "Sürücü",
+          "startDate": "Başlangıç Tarihi",
+          "assignButton": "Sürücü Ata",
+          "assigning": "Atanıyor…"
+        },
+        "toast": {
+          "selectFirst": "Lütfen bir sürücü seçin",
+          "assigned": "Sürücü atandı",
+          "assignFailed": "Sürücü atanamadı",
+          "unassigned": "Sürücü atamasından çıkarıldı",
+          "unassignFailed": "Atama kaldırılamadı"
+        },
+        "confirmEnd": {
+          "title": "Sürücü atamasını sonlandır?",
+          "description": "Mevcut sürücü ataması sonlandırılacak.",
+          "confirm": "Atamayı sonlandır"
+        }
       },
       "documents": {
-        "heading": "Araç Belgeleri", "addButton": "Belge Ekle", "empty": "Belge yok",
-        "columns": { "name": "Ad", "type": "Tip", "issuer": "Veren Kurum", "issued": "Veriliş", "expires": "Bitiş", "actions": "İşlemler" },
-        "downloadTitle": "{{name}} indir", "defaultFileName": "dosya",
-        "dialog": {
-          "addTitle": "Araç Belgesi Ekle", "editTitle": "Belgeyi Düzenle",
-          "name": "Belge Adı", "namePh": "örn. Muayene Sertifikası",
-          "type": "Belge Türü", "issuedDate": "Veriliş Tarihi", "expiryDate": "Son Tarih",
-          "issuer": "Veren Kurum", "issuerPh": "örn. DVSA",
-          "notes": "Notlar", "notesPh": "İsteğe bağlı notlar",
-          "fileLabel": "Dosya", "fileHint": "(isteğe bağlı, en fazla 20 MB)", "fileSize": "{{name}} ({{size}} KB)",
-          "addButton": "Belge Ekle", "saveButton": "Değişiklikleri Kaydet", "saving": "Kaydediliyor…"
+        "heading": "Araç Belgeleri",
+        "addButton": "Belge Ekle",
+        "empty": "Belge yok",
+        "columns": {
+          "name": "Ad",
+          "type": "Tip",
+          "issuer": "Veren Kurum",
+          "issued": "Veriliş",
+          "expires": "Bitiş",
+          "actions": "İşlemler"
         },
-        "toast": { "nameRequired": "Belge adı gerekli", "added": "Belge eklendi", "updated": "Belge güncellendi", "addFailed": "Belge eklenemedi", "updateFailed": "Belge güncellenemedi", "deleted": "Belge silindi", "deleteFailed": "Belge silinemedi" },
-        "confirmDelete": { "title": "Belgeyi sil?", "description": "Bu belge kalıcı olarak silinecek.", "confirm": "Sil" }
+        "downloadTitle": "{{name}} indir",
+        "defaultFileName": "dosya",
+        "dialog": {
+          "addTitle": "Araç Belgesi Ekle",
+          "editTitle": "Belgeyi Düzenle",
+          "name": "Belge Adı",
+          "namePh": "örn. Muayene Sertifikası",
+          "type": "Belge Türü",
+          "issuedDate": "Veriliş Tarihi",
+          "expiryDate": "Son Tarih",
+          "issuer": "Veren Kurum",
+          "issuerPh": "örn. DVSA",
+          "notes": "Notlar",
+          "notesPh": "İsteğe bağlı notlar",
+          "fileLabel": "Dosya",
+          "fileHint": "(isteğe bağlı, en fazla 20 MB)",
+          "fileSize": "{{name}} ({{size}} KB)",
+          "addButton": "Belge Ekle",
+          "saveButton": "Değişiklikleri Kaydet",
+          "saving": "Kaydediliyor…"
+        },
+        "toast": {
+          "nameRequired": "Belge adı gerekli",
+          "added": "Belge eklendi",
+          "updated": "Belge güncellendi",
+          "addFailed": "Belge eklenemedi",
+          "updateFailed": "Belge güncellenemedi",
+          "deleted": "Belge silindi",
+          "deleteFailed": "Belge silinemedi"
+        },
+        "confirmDelete": {
+          "title": "Belgeyi sil?",
+          "description": "Bu belge kalıcı olarak silinecek.",
+          "confirm": "Sil"
+        }
       },
       "maintenance": {
-        "heading": "Bakım Kayıtları", "addButton": "Kayıt Ekle", "empty": "Bakım kaydı yok",
-        "columns": { "type": "Tip", "status": "Durum", "scheduled": "Planlanan", "completed": "Tamamlanan", "workshop": "Atölye", "cost": "Maliyet", "actions": "İşlemler" },
-        "dialog": {
-          "addTitle": "Bakım Kaydı Ekle", "editTitle": "Bakım Kaydını Düzenle",
-          "sectionService": "Servis Detayları", "sectionDriver": "Sürücü ve Lojistik", "sectionApproval": "Onay",
-          "type": "Bakım Türü", "typePh": "Tür seçin", "notSpecified": "Belirtilmemiş",
-          "status": "Durum", "workshop": "Atölye", "workshopPh": "Atölye seçin",
-          "mileageAtService": "Servis Kilometresi (km)", "mileagePh": "0",
-          "scheduledDate": "Planlanan Tarih", "completedDate": "Tamamlanma Tarihi",
-          "totalCost": "Toplam Maliyet (£)", "totalCostPh": "0.00",
-          "description": "Açıklama", "descriptionPh": "Kısa açıklama",
-          "workDescription": "İş Açıklaması", "workDescriptionPh": "Yapılan işin detaylı açıklaması...",
-          "notes": "Notlar", "notesPh": "Ek notlar",
-          "serviceDriver": "Servis Sürücüsü", "selectDriver": "Sürücü seçin",
-          "otherExternal": "Diğer (harici)", "otherNone": "Diğer / yok",
-          "externalDriverName": "Harici Sürücü Adı", "driverNamePh": "Sürücü adı", "namePh": "Ad",
-          "dropOffDriver": "Bırakan Sürücü", "dropOffDriverName": "Bırakan Sürücü Adı", "dropOffDateTime": "Bırakma Tarihi/Saati",
-          "pickUpDriver": "Alan Sürücü", "pickUpDriverName": "Alan Sürücü Adı", "pickUpDateTime": "Alma Tarihi/Saati",
-          "approvedBy": "Onaylayan", "pendingApproval": "Onay bekliyor", "approvalDate": "Onay Tarihi",
-          "addButton": "Kayıt Ekle", "saveButton": "Değişiklikleri Kaydet", "saving": "Kaydediliyor…"
+        "heading": "Bakım Kayıtları",
+        "addButton": "Kayıt Ekle",
+        "empty": "Bakım kaydı yok",
+        "columns": {
+          "type": "Tip",
+          "status": "Durum",
+          "scheduled": "Planlanan",
+          "completed": "Tamamlanan",
+          "workshop": "Atölye",
+          "cost": "Maliyet",
+          "actions": "İşlemler"
         },
-        "toast": { "added": "Bakım kaydı eklendi", "updated": "Bakım kaydı güncellendi", "addFailed": "Bakım kaydı eklenemedi", "updateFailed": "Kayıt güncellenemedi", "deleted": "Kayıt silindi", "deleteFailed": "Kayıt silinemedi" },
-        "confirmDelete": { "title": "Bakım kaydını sil?", "description": "Bu bakım kaydı kalıcı olarak silinecek.", "confirm": "Sil" }
+        "dialog": {
+          "addTitle": "Bakım Kaydı Ekle",
+          "editTitle": "Bakım Kaydını Düzenle",
+          "sectionService": "Servis Detayları",
+          "sectionDriver": "Sürücü ve Lojistik",
+          "sectionApproval": "Onay",
+          "type": "Bakım Türü",
+          "typePh": "Tür seçin",
+          "notSpecified": "Belirtilmemiş",
+          "status": "Durum",
+          "workshop": "Atölye",
+          "workshopPh": "Atölye seçin",
+          "mileageAtService": "Servis Kilometresi (km)",
+          "mileagePh": "0",
+          "scheduledDate": "Planlanan Tarih",
+          "completedDate": "Tamamlanma Tarihi",
+          "totalCost": "Toplam Maliyet (£)",
+          "totalCostPh": "0.00",
+          "description": "Açıklama",
+          "descriptionPh": "Kısa açıklama",
+          "workDescription": "İş Açıklaması",
+          "workDescriptionPh": "Yapılan işin detaylı açıklaması...",
+          "notes": "Notlar",
+          "notesPh": "Ek notlar",
+          "serviceDriver": "Servis Sürücüsü",
+          "selectDriver": "Sürücü seçin",
+          "otherExternal": "Diğer (harici)",
+          "otherNone": "Diğer / yok",
+          "externalDriverName": "Harici Sürücü Adı",
+          "driverNamePh": "Sürücü adı",
+          "namePh": "Ad",
+          "dropOffDriver": "Bırakan Sürücü",
+          "dropOffDriverName": "Bırakan Sürücü Adı",
+          "dropOffDateTime": "Bırakma Tarihi/Saati",
+          "pickUpDriver": "Alan Sürücü",
+          "pickUpDriverName": "Alan Sürücü Adı",
+          "pickUpDateTime": "Alma Tarihi/Saati",
+          "approvedBy": "Onaylayan",
+          "pendingApproval": "Onay bekliyor",
+          "approvalDate": "Onay Tarihi",
+          "addButton": "Kayıt Ekle",
+          "saveButton": "Değişiklikleri Kaydet",
+          "saving": "Kaydediliyor…"
+        },
+        "toast": {
+          "added": "Bakım kaydı eklendi",
+          "updated": "Bakım kaydı güncellendi",
+          "addFailed": "Bakım kaydı eklenemedi",
+          "updateFailed": "Kayıt güncellenemedi",
+          "deleted": "Kayıt silindi",
+          "deleteFailed": "Kayıt silinemedi"
+        },
+        "confirmDelete": {
+          "title": "Bakım kaydını sil?",
+          "description": "Bu bakım kaydı kalıcı olarak silinecek.",
+          "confirm": "Sil"
+        }
       },
-      "toast": { "loadFailed": "Araç yüklenemedi", "deleted": "Araç silindi", "deleteFailed": "Silme başarısız" },
-      "confirmDelete": { "title": "Aracı sil?", "description": "Bu araç kalıcı olarak silinecek. Bu işlem kolayca geri alınamaz.", "confirm": "Sil" }
+      "toast": {
+        "loadFailed": "Araç yüklenemedi",
+        "deleted": "Araç silindi",
+        "deleteFailed": "Silme başarısız"
+      },
+      "confirmDelete": {
+        "title": "Aracı sil?",
+        "description": "Bu araç kalıcı olarak silinecek. Bu işlem kolayca geri alınamaz.",
+        "confirm": "Sil"
+      }
     },
     "form": {
       "addTitle": "Araç Ekle",
@@ -280,65 +1079,122 @@
       "createButton": "Araç Oluştur",
       "saveChanges": "Değişiklikleri Kaydet",
       "sections": {
-        "details": "Araç Detayları", "compliance": "Uyumluluk ve Tescil Tarihleri", "purchase": "Satın Alma Bilgileri", "insurance": "Sigorta Bilgileri",
-        "truck": "Kamyon ve Römork Özellikleri", "van": "Van Özellikleri", "car": "Otomobil Özellikleri", "tanker": "Tanker Özellikleri",
-        "refrigerated": "Soğutmalı Römork Özellikleri", "specialty": "Özel Ekipman"
+        "details": "Araç Detayları",
+        "compliance": "Uyumluluk ve Tescil Tarihleri",
+        "purchase": "Satın Alma Bilgileri",
+        "insurance": "Sigorta Bilgileri",
+        "truck": "Kamyon ve Römork Özellikleri",
+        "van": "Van Özellikleri",
+        "car": "Otomobil Özellikleri",
+        "tanker": "Tanker Özellikleri",
+        "refrigerated": "Soğutmalı Römork Özellikleri",
+        "specialty": "Özel Ekipman"
       },
       "fields": {
-        "registrationNumber": "Tescil Numarası", "registrationNumberPh": "örn. AB12 CDE",
-        "licensePlate": "Plaka", "licensePlatePh": "örn. AB12CDE",
-        "vehicleType": "Araç Tipi", "vehicleTypePh": "Tip seçin",
+        "registrationNumber": "Tescil Numarası",
+        "registrationNumberPh": "örn. AB12 CDE",
+        "licensePlate": "Plaka",
+        "licensePlatePh": "örn. AB12CDE",
+        "vehicleType": "Araç Tipi",
+        "vehicleTypePh": "Tip seçin",
         "status": "Durum",
-        "make": "Marka", "makePh": "örn. Volvo",
-        "model": "Model", "modelPh": "örn. FH16",
-        "year": "Yıl", "yearPh": "örn. 2022",
-        "color": "Renk", "colorPh": "örn. Beyaz",
-        "vin": "VIN", "vinPh": "Araç Tanımlama Numarası",
-        "fuelType": "Yakıt Tipi", "fuelTypePh": "Yakıt tipi seçin",
-        "fuelCapacity": "Yakıt Kapasitesi (litre)", "fuelCapacityPh": "örn. 200",
-        "currentMileage": "Mevcut Kilometre", "currentMileagePh": "0",
-        "notes": "Notlar", "notesPh": "Ek notlar",
-        "motExpiry": "Muayene Bitiş", "taxExpiry": "Vergi Bitiş", "registrationExpiry": "Tescil Bitiş", "insuranceExpiry": "Sigorta Bitiş",
-        "purchaseOrder": "Satın Alma Siparişi", "purchaseOrderPh": "örn. PO-2024-001",
+        "make": "Marka",
+        "makePh": "örn. Volvo",
+        "model": "Model",
+        "modelPh": "örn. FH16",
+        "year": "Yıl",
+        "yearPh": "örn. 2022",
+        "color": "Renk",
+        "colorPh": "örn. Beyaz",
+        "vin": "VIN",
+        "vinPh": "Araç Tanımlama Numarası",
+        "fuelType": "Yakıt Tipi",
+        "fuelTypePh": "Yakıt tipi seçin",
+        "fuelCapacity": "Yakıt Kapasitesi (litre)",
+        "fuelCapacityPh": "örn. 200",
+        "currentMileage": "Mevcut Kilometre",
+        "currentMileagePh": "0",
+        "notes": "Notlar",
+        "notesPh": "Ek notlar",
+        "motExpiry": "Muayene Bitiş",
+        "taxExpiry": "Vergi Bitiş",
+        "registrationExpiry": "Tescil Bitiş",
+        "insuranceExpiry": "Sigorta Bitiş",
+        "purchaseOrder": "Satın Alma Siparişi",
+        "purchaseOrderPh": "örn. PO-2024-001",
         "purchaseDate": "Satın Alma Tarihi",
-        "purchaseCost": "Satın Alma Maliyeti", "purchaseCostPh": "örn. 50000.00",
-        "purchaseContract": "Satın Alma Sözleşmesi", "purchaseContractPh": "örn. CON-2024-001",
-        "vendorName": "Satıcı Adı", "vendorNamePh": "örn. ABC Araç Bayii",
-        "vendorAddress": "Satıcı Adresi", "vendorAddressPh": "Tam satıcı adresi",
-        "policyNumber": "Poliçe Numarası", "policyNumberPh": "örn. POL-2024-001",
-        "insuranceCompany": "Sigorta Şirketi", "insuranceCompanyPh": "örn. ABC Sigorta",
-        "insuranceTypeLabel": "Sigorta Türü", "insuranceTypePh": "Sigorta türü seçin",
+        "purchaseCost": "Satın Alma Maliyeti",
+        "purchaseCostPh": "örn. 50000.00",
+        "purchaseContract": "Satın Alma Sözleşmesi",
+        "purchaseContractPh": "örn. CON-2024-001",
+        "vendorName": "Satıcı Adı",
+        "vendorNamePh": "örn. ABC Araç Bayii",
+        "vendorAddress": "Satıcı Adresi",
+        "vendorAddressPh": "Tam satıcı adresi",
+        "policyNumber": "Poliçe Numarası",
+        "policyNumberPh": "örn. POL-2024-001",
+        "insuranceCompany": "Sigorta Şirketi",
+        "insuranceCompanyPh": "örn. ABC Sigorta",
+        "insuranceTypeLabel": "Sigorta Türü",
+        "insuranceTypePh": "Sigorta türü seçin",
         "insuranceStartDate": "Sigorta Başlangıç Tarihi",
-        "grossWeight": "Brüt Ağırlık (ton)", "grossWeightPh": "örn. 44",
-        "payloadCapacity": "Yük Kapasitesi (ton)", "payloadCapacityPh": "örn. 26",
-        "tareWeight": "Boş Ağırlık (ton)", "tareWeightPh": "örn. 18",
-        "numberOfAxles": "Aks Sayısı", "numberOfAxlesPh": "örn. 5",
-        "bodyType": "Kasa Türü", "bodyTypePh": "Kasa türü seçin",
-        "hitchType": "Çeki Türü", "hitchTypePh": "Çeki türü seçin",
-        "lengthM": "Uzunluk (m)", "lengthMPh": "örn. 13.6",
-        "widthM": "Genişlik (m)", "widthMPh": "örn. 2.5",
-        "heightM": "Yükseklik (m)", "heightMPh": "örn. 2.5",
-        "euroEmission": "Euro Emisyon Sınıfı", "euroEmissionPh": "Sınıf seçin",
-        "tachographSerial": "Takograf Seri No", "tachographSerialPh": "örn. VD0123456789",
+        "grossWeight": "Brüt Ağırlık (ton)",
+        "grossWeightPh": "örn. 44",
+        "payloadCapacity": "Yük Kapasitesi (ton)",
+        "payloadCapacityPh": "örn. 26",
+        "tareWeight": "Boş Ağırlık (ton)",
+        "tareWeightPh": "örn. 18",
+        "numberOfAxles": "Aks Sayısı",
+        "numberOfAxlesPh": "örn. 5",
+        "bodyType": "Kasa Türü",
+        "bodyTypePh": "Kasa türü seçin",
+        "hitchType": "Çeki Türü",
+        "hitchTypePh": "Çeki türü seçin",
+        "lengthM": "Uzunluk (m)",
+        "lengthMPh": "örn. 13.6",
+        "widthM": "Genişlik (m)",
+        "widthMPh": "örn. 2.5",
+        "heightM": "Yükseklik (m)",
+        "heightMPh": "örn. 2.5",
+        "euroEmission": "Euro Emisyon Sınıfı",
+        "euroEmissionPh": "Sınıf seçin",
+        "tachographSerial": "Takograf Seri No",
+        "tachographSerialPh": "örn. VD0123456789",
         "tachographCalibrationExpiry": "Takograf Kalibrasyon Bitişi",
-        "trailerLength": "Römork Uzunluğu (m)", "trailerLengthPh": "örn. 13.6",
-        "seatingCapacity": "Koltuk Kapasitesi", "seatingCapacityPh": "örn. 5",
-        "loadVolume": "Yük Hacmi (m³)", "loadVolumePh": "örn. 15.5",
+        "trailerLength": "Römork Uzunluğu (m)",
+        "trailerLengthPh": "örn. 13.6",
+        "seatingCapacity": "Koltuk Kapasitesi",
+        "seatingCapacityPh": "örn. 5",
+        "loadVolume": "Yük Hacmi (m³)",
+        "loadVolumePh": "örn. 15.5",
         "partitionFitted": "Bölme Takılı",
-        "vinSubType": "VIN Alt Türü", "vinSubTypePh": "VIN alt türü seçin",
-        "insuranceGroup": "Sigorta Grubu", "insuranceGroupPh": "Sigorta grubu seçin",
-        "tankerCapacity": "Tanker Kapasitesi (litre)", "tankerCapacityPh": "örn. 30000",
-        "tankMaterial": "Tank Malzemesi", "tankMaterialPh": "Tank malzemesi seçin",
-        "adrClass": "ADR Sınıfı", "adrClassPh": "ADR sınıfı seçin",
-        "unNumbers": "UN Numaraları", "unNumbersPh": "örn. 1223, 1250",
-        "lastPressureTest": "Son Basınç Testi", "nextPressureTest": "Sonraki Basınç Testi",
-        "refrigerationUnit": "Soğutma Ünitesi", "refrigerationUnitPh": "örn. Thermo King",
-        "refrigerationModel": "Soğutma Modeli", "refrigerationModelPh": "örn. T-1200R",
-        "tempMin": "Min Sıcaklık (°C)", "tempMinPh": "örn. -25",
-        "tempMax": "Maks Sıcaklık (°C)", "tempMaxPh": "örn. 10",
-        "atpCertificateNumber": "ATP Sertifika No", "atpCertificateNumberPh": "örn. ATP-2024-001",
+        "vinSubType": "VIN Alt Türü",
+        "vinSubTypePh": "VIN alt türü seçin",
+        "insuranceGroup": "Sigorta Grubu",
+        "insuranceGroupPh": "Sigorta grubu seçin",
+        "tankerCapacity": "Tanker Kapasitesi (litre)",
+        "tankerCapacityPh": "örn. 30000",
+        "tankMaterial": "Tank Malzemesi",
+        "tankMaterialPh": "Tank malzemesi seçin",
+        "adrClass": "ADR Sınıfı",
+        "adrClassPh": "ADR sınıfı seçin",
+        "unNumbers": "UN Numaraları",
+        "unNumbersPh": "örn. 1223, 1250",
+        "lastPressureTest": "Son Basınç Testi",
+        "nextPressureTest": "Sonraki Basınç Testi",
+        "refrigerationUnit": "Soğutma Ünitesi",
+        "refrigerationUnitPh": "örn. Thermo King",
+        "refrigerationModel": "Soğutma Modeli",
+        "refrigerationModelPh": "örn. T-1200R",
+        "tempMin": "Min Sıcaklık (°C)",
+        "tempMinPh": "örn. -25",
+        "tempMax": "Maks Sıcaklık (°C)",
+        "tempMaxPh": "örn. 10",
+        "atpCertificateNumber": "ATP Sertifika No",
+        "atpCertificateNumberPh": "örn. ATP-2024-001",
         "atpCertificateExpiry": "ATP Sertifika Bitiş",
-        "equipmentDescription": "Ekipman Açıklaması", "equipmentDescriptionPh": "Özel ekipman veya değişiklikleri açıklayın",
+        "equipmentDescription": "Ekipman Açıklaması",
+        "equipmentDescriptionPh": "Özel ekipman veya değişiklikleri açıklayın",
         "notSpecified": "Belirtilmemiş"
       },
       "validation": {
@@ -355,86 +1211,261 @@
         "saveFailed": "Kaydetme başarısız"
       }
     },
-    "workshops": { "title": "Atölyeler", "subtitle": "Yetkili servis sağlayıcıları", "addButton": "Atölye Ekle", "empty": "Henüz atölye yok." },
-    "maintenanceTypes": { "title": "Bakım Türleri", "addButton": "Tür Ekle" },
-    "maintenanceRecords": { "title": "Bakım Kayıtları", "subtitle": "Filodaki tüm bakım faaliyetleri", "addButton": "Yeni Kayıt", "empty": "Henüz kayıt yok." }
+    "workshops": {
+      "title": "Atölyeler",
+      "subtitle": "Yetkili servis sağlayıcıları",
+      "addButton": "Atölye Ekle",
+      "empty": "Henüz atölye yok."
+    },
+    "maintenanceTypes": {
+      "title": "Bakım Türleri",
+      "addButton": "Tür Ekle"
+    },
+    "maintenanceRecords": {
+      "title": "Bakım Kayıtları",
+      "subtitle": "Filodaki tüm bakım faaliyetleri",
+      "addButton": "Yeni Kayıt",
+      "empty": "Henüz kayıt yok."
+    }
   },
   "attendance": {
-    "list": { "title": "Devam Çizelgeleri", "subtitle": "Çalışan başına aylık devam", "addButton": "Yeni Çizelge", "empty": "Henüz çizelge yok." },
-    "sheet": { "title": "Devam Çizelgesi", "back": "Devam listesine dön", "save": "Çizelgeyi Kaydet", "lock": "Dönemi Kilitle", "unlock": "Dönemin Kilidini Aç" }
+    "list": {
+      "title": "Devam Çizelgeleri",
+      "subtitle": "Çalışan başına aylık devam",
+      "addButton": "Yeni Çizelge",
+      "empty": "Henüz çizelge yok."
+    },
+    "sheet": {
+      "title": "Devam Çizelgesi",
+      "back": "Devam listesine dön",
+      "save": "Çizelgeyi Kaydet",
+      "lock": "Dönemi Kilitle",
+      "unlock": "Dönemin Kilidini Aç"
+    }
   },
   "reports": {
-    "dashboard": { "title": "Raporlar ve Analizler", "subtitle": "Özel raporlar oluştur ve dışa aktar", "newReport": "Yeni Rapor", "empty": "Henüz rapor yok." }
+    "dashboard": {
+      "title": "Raporlar ve Analizler",
+      "subtitle": "Özel raporlar oluştur ve dışa aktar",
+      "newReport": "Yeni Rapor",
+      "empty": "Henüz rapor yok."
+    }
   },
   "notifications": {
-    "center": { "title": "Bildirimler", "subtitle": "Tüm uyarılarınız ve güncellemeler", "markAllRead": "Tümünü okundu olarak işaretle", "empty": "Bildirim yok.", "filters": { "all": "Tümü", "unread": "Okunmamış", "read": "Okunmuş" } },
-    "settings": { "title": "Bildirim Ayarları", "subtitle": "Hangi bildirimleri alacağınızı seçin", "save": "Tercihleri Kaydet" }
+    "center": {
+      "title": "Bildirimler",
+      "subtitle": "Tüm uyarılarınız ve güncellemeler",
+      "markAllRead": "Tümünü okundu olarak işaretle",
+      "empty": "Bildirim yok.",
+      "filters": {
+        "all": "Tümü",
+        "unread": "Okunmamış",
+        "read": "Okunmuş"
+      }
+    },
+    "settings": {
+      "title": "Bildirim Ayarları",
+      "subtitle": "Hangi bildirimleri alacağınızı seçin",
+      "save": "Tercihleri Kaydet"
+    }
   },
   "users": {
-    "list": { "title": "Kullanıcı Yönetimi", "subtitle": "Sistem kullanıcıları ve erişim", "addButton": "Kullanıcı Ekle", "search": "Kullanıcıları ara…", "bulkImport": "Toplu İçe Aktar", "empty": "Kullanıcı bulunamadı.", "activationLink": "Etkinleştirme Bağlantısı" },
-    "add": { "title": "Kullanıcı Ekle", "back": "Kullanıcılara geri dön" },
-    "edit": { "title": "Kullanıcıyı Düzenle", "back": "Kullanıcılara geri dön" }
+    "list": {
+      "title": "Kullanıcı Yönetimi",
+      "subtitle": "Sistem kullanıcıları ve erişim",
+      "addButton": "Kullanıcı Ekle",
+      "search": "Kullanıcıları ara…",
+      "bulkImport": "Toplu İçe Aktar",
+      "empty": "Kullanıcı bulunamadı.",
+      "activationLink": "Etkinleştirme Bağlantısı"
+    },
+    "add": {
+      "title": "Kullanıcı Ekle",
+      "back": "Kullanıcılara geri dön"
+    },
+    "edit": {
+      "title": "Kullanıcıyı Düzenle",
+      "back": "Kullanıcılara geri dön"
+    }
   },
   "roles": {
-    "list": { "title": "Roller ve İzinler", "subtitle": "Roller tanımla ve izinler ata", "addButton": "Yeni Rol", "permissionsMatrix": "İzin Matrisi", "allRoles": "Tüm Roller", "empty": "Henüz rol yok." },
-    "create": { "title": "Rol Oluştur", "editTitle": "Rolü Düzenle", "back": "Rollere geri dön" },
-    "matrix": { "title": "İzin Matrisi", "back": "Rollere geri dön" }
+    "list": {
+      "title": "Roller ve İzinler",
+      "subtitle": "Roller tanımla ve izinler ata",
+      "addButton": "Yeni Rol",
+      "permissionsMatrix": "İzin Matrisi",
+      "allRoles": "Tüm Roller",
+      "empty": "Henüz rol yok."
+    },
+    "create": {
+      "title": "Rol Oluştur",
+      "editTitle": "Rolü Düzenle",
+      "back": "Rollere geri dön"
+    },
+    "matrix": {
+      "title": "İzin Matrisi",
+      "back": "Rollere geri dön"
+    }
   },
   "jobAds": {
-    "list": { "title": "İş İlanları", "subtitle": "Halka açık iş ilanları", "addButton": "Yeni İlan", "search": "İlanları ara…", "empty": "Henüz ilan yok." },
-    "form": { "addTitle": "Yeni İlan", "editTitle": "İlanı Düzenle", "back": "İlanlara geri dön" }
+    "list": {
+      "title": "İş İlanları",
+      "subtitle": "Halka açık iş ilanları",
+      "addButton": "Yeni İlan",
+      "search": "İlanları ara…",
+      "empty": "Henüz ilan yok."
+    },
+    "form": {
+      "addTitle": "Yeni İlan",
+      "editTitle": "İlanı Düzenle",
+      "back": "İlanlara geri dön"
+    }
   },
   "recycleBin": {
-    "list": { "title": "Silinen Kayıtlar", "subtitle": "Kayıtları geri yükle veya kalıcı olarak sil", "accessDenied": "Erişim Reddedildi", "empty": "Geri dönüşüm kutusu boş.", "restore": "Geri Yükle", "permanentlyDelete": "Kalıcı olarak sil" }
+    "list": {
+      "title": "Silinen Kayıtlar",
+      "subtitle": "Kayıtları geri yükle veya kalıcı olarak sil",
+      "accessDenied": "Erişim Reddedildi",
+      "empty": "Geri dönüşüm kutusu boş.",
+      "restore": "Geri Yükle",
+      "permanentlyDelete": "Kalıcı olarak sil"
+    }
   },
   "logs": {
-    "dashboard": { "title": "Sistem Günlükleri", "subtitle": "Etkinlik denetim izi", "activityByModule": "Modüle göre etkinlik", "search": "Günlüklerde ara…", "empty": "Filtrelerinize uyan günlük yok." }
+    "dashboard": {
+      "title": "Sistem Günlükleri",
+      "subtitle": "Etkinlik denetim izi",
+      "activityByModule": "Modüle göre etkinlik",
+      "search": "Günlüklerde ara…",
+      "empty": "Filtrelerinize uyan günlük yok."
+    }
   },
   "settings": {
     "index": {
       "title": "Ayarlar",
       "subtitle": "TempWorks örneğinizi yapılandırın",
       "groups": {
-        "appearance": "Görünüm", "appearanceDesc": "Tema ve renk şeması",
-        "workflow": "İş Akışı", "workflowDesc": "İşe alım hattı yapılandırması",
-        "documentTypes": "Belge Türleri", "documentTypesDesc": "Belge kategorilerini yönet",
-        "notifications": "Bildirimler", "notificationsDesc": "Bildirim kuralları ve tetikleyicileri",
-        "security": "Güvenlik", "securityDesc": "Kimlik doğrulama ve erişim politikaları",
-        "branding": "Markalaşma", "brandingDesc": "Logo, şirket adı, pazarlama metinleri",
-        "system": "Sistem", "systemDesc": "Veritabanı, yedekler, sistem bilgisi"
+        "appearance": "Görünüm",
+        "appearanceDesc": "Tema ve renk şeması",
+        "workflow": "İş Akışı",
+        "workflowDesc": "İşe alım hattı yapılandırması",
+        "documentTypes": "Belge Türleri",
+        "documentTypesDesc": "Belge kategorilerini yönet",
+        "notifications": "Bildirimler",
+        "notificationsDesc": "Bildirim kuralları ve tetikleyicileri",
+        "security": "Güvenlik",
+        "securityDesc": "Kimlik doğrulama ve erişim politikaları",
+        "branding": "Markalaşma",
+        "brandingDesc": "Logo, şirket adı, pazarlama metinleri",
+        "system": "Sistem",
+        "systemDesc": "Veritabanı, yedekler, sistem bilgisi"
       }
     },
-    "documentTypes": { "list": "Belge Türleri", "addButton": "Yeni Belge Türü", "newTitle": "Yeni Belge Türü", "editTitle": "Belge Türünü Düzenle", "viewTitle": "Belge Türü", "back": "Belge türlerine geri dön" },
-    "jobTypes": { "title": "İş Türleri", "addButton": "Tür Ekle" },
-    "skills": { "title": "Yetkinlikler", "addButton": "Yetkinlik Ekle" },
-    "workflowSettings": { "title": "İş Akışı Ayarları" },
-    "workflowConfiguration": { "title": "İş Akışı Yapılandırması" },
-    "notificationRules": { "title": "Bildirim Kuralları", "addButton": "Yeni Kural" },
-    "security": { "title": "Güvenlik Ayarları" },
-    "colorScheme": { "title": "Renk Şeması" },
-    "branding": { "title": "Markalaşma" },
-    "databaseCleanup": { "title": "Veritabanı Temizleme" },
-    "databaseBackup": { "title": "Veritabanı Yedekleme" },
-    "systemInformation": { "title": "Sistem Bilgisi" },
-    "transportTypes": { "title": "Taşıma Türleri", "addButton": "Tür Ekle" },
-    "truckBrands": { "title": "Kamyon Markaları", "addButton": "Marka Ekle" },
-    "trailerTypes": { "title": "Römork Türleri", "addButton": "Tür Ekle" },
-    "vehicleSettings": { "title": "Araç Ayarları" },
-    "transactionTypes": { "title": "İşlem Türleri", "addButton": "Tür Ekle" },
-    "workHistoryEventTypes": { "title": "İş Geçmişi Olay Türleri", "addButton": "Tür Ekle" },
-    "maintenanceTypes": { "title": "Bakım Türleri", "addButton": "Tür Ekle" }
+    "documentTypes": {
+      "list": "Belge Türleri",
+      "addButton": "Yeni Belge Türü",
+      "newTitle": "Yeni Belge Türü",
+      "editTitle": "Belge Türünü Düzenle",
+      "viewTitle": "Belge Türü",
+      "back": "Belge türlerine geri dön"
+    },
+    "jobTypes": {
+      "title": "İş Türleri",
+      "addButton": "Tür Ekle"
+    },
+    "skills": {
+      "title": "Yetkinlikler",
+      "addButton": "Yetkinlik Ekle"
+    },
+    "workflowSettings": {
+      "title": "İş Akışı Ayarları"
+    },
+    "workflowConfiguration": {
+      "title": "İş Akışı Yapılandırması"
+    },
+    "notificationRules": {
+      "title": "Bildirim Kuralları",
+      "addButton": "Yeni Kural"
+    },
+    "security": {
+      "title": "Güvenlik Ayarları"
+    },
+    "colorScheme": {
+      "title": "Renk Şeması"
+    },
+    "branding": {
+      "title": "Markalaşma"
+    },
+    "databaseCleanup": {
+      "title": "Veritabanı Temizleme"
+    },
+    "databaseBackup": {
+      "title": "Veritabanı Yedekleme"
+    },
+    "systemInformation": {
+      "title": "Sistem Bilgisi"
+    },
+    "transportTypes": {
+      "title": "Taşıma Türleri",
+      "addButton": "Tür Ekle"
+    },
+    "truckBrands": {
+      "title": "Kamyon Markaları",
+      "addButton": "Marka Ekle"
+    },
+    "trailerTypes": {
+      "title": "Römork Türleri",
+      "addButton": "Tür Ekle"
+    },
+    "vehicleSettings": {
+      "title": "Araç Ayarları"
+    },
+    "transactionTypes": {
+      "title": "İşlem Türleri",
+      "addButton": "Tür Ekle"
+    },
+    "workHistoryEventTypes": {
+      "title": "İş Geçmişi Olay Türleri",
+      "addButton": "Tür Ekle"
+    },
+    "maintenanceTypes": {
+      "title": "Bakım Türleri",
+      "addButton": "Tür Ekle"
+    }
   },
   "profile": {
-    "view": { "title": "Profilim", "subtitle": "Kişisel bilgiler ve iletişim", "edit": "Düzenle" },
-    "changePassword": { "title": "Şifreyi Değiştir", "subtitle": "Hesabınızı güvende tutmak için şifrenizi güncelleyin" },
-    "preferences": { "title": "Tercihler", "subtitle": "Dil, saat dilimi ve bildirim ayarları", "language": "Tercih edilen dil", "timezone": "Saat dilimi", "save": "Tercihleri Kaydet", "saved": "Tercihler kaydedildi" }
+    "view": {
+      "title": "Profilim",
+      "subtitle": "Kişisel bilgiler ve iletişim",
+      "edit": "Düzenle"
+    },
+    "changePassword": {
+      "title": "Şifreyi Değiştir",
+      "subtitle": "Hesabınızı güvende tutmak için şifrenizi güncelleyin"
+    },
+    "preferences": {
+      "title": "Tercihler",
+      "subtitle": "Dil, saat dilimi ve bildirim ayarları",
+      "language": "Tercih edilen dil",
+      "timezone": "Saat dilimi",
+      "save": "Tercihleri Kaydet",
+      "saved": "Tercihler kaydedildi"
+    }
   },
   "common": {
-    "from": "Başlangıç", "to": "Bitiş", "all": "Tümü", "more": "Daha fazla",
-    "showMore": "Daha fazla göster", "showLess": "Daha az göster",
-    "results_one": "{{count}} sonuç", "results_other": "{{count}} sonuç"
+    "from": "Başlangıç",
+    "to": "Bitiş",
+    "all": "Tümü",
+    "more": "Daha fazla",
+    "showMore": "Daha fazla göster",
+    "showLess": "Daha az göster",
+    "results_one": "{{count}} sonuç",
+    "results_other": "{{count}} sonuç"
   },
   "finance": {
-    "page": { "title": "Finans", "subtitle": "Kuruluş genelindeki işlemler ve bakiyeler" }
+    "page": {
+      "title": "Finans",
+      "subtitle": "Kuruluş genelindeki işlemler ve bakiyeler"
+    }
   }
 }

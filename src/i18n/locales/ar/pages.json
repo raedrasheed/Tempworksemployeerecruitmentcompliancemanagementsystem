@@ -5,10 +5,36 @@
       "subtitle": "سجلات السائقين والعاملين",
       "addButton": "إضافة موظف",
       "search": "ابحث بالاسم أو البريد الإلكتروني أو الجنسية…",
-      "stats": { "total": "الإجمالي", "active": "نشطون", "onboarding": "قيد التعيين", "pending": "قيد الانتظار" },
-      "filters": { "allStatuses": "جميع الحالات", "allAgencies": "جميع الوكالات", "allCitizenships": "جميع الجنسيات", "from": "من", "to": "إلى" },
-      "columns": { "contact": "الاتصال", "citizenship": "الجنسية", "license": "الهوية / الرخصة", "experience": "الخبرة", "agency": "الوكالة", "status": "الحالة", "name": "الاسم", "actions": "الإجراءات" },
-      "actions": { "view": "عرض", "edit": "تعديل", "delete": "حذف", "exportPdf": "تصدير PDF", "exportSelected": "تصدير المحدد" },
+      "stats": {
+        "total": "الإجمالي",
+        "active": "نشطون",
+        "onboarding": "قيد التعيين",
+        "pending": "قيد الانتظار"
+      },
+      "filters": {
+        "allStatuses": "جميع الحالات",
+        "allAgencies": "جميع الوكالات",
+        "allCitizenships": "جميع الجنسيات",
+        "from": "من",
+        "to": "إلى"
+      },
+      "columns": {
+        "contact": "الاتصال",
+        "citizenship": "الجنسية",
+        "license": "الهوية / الرخصة",
+        "experience": "الخبرة",
+        "agency": "الوكالة",
+        "status": "الحالة",
+        "name": "الاسم",
+        "actions": "الإجراءات"
+      },
+      "actions": {
+        "view": "عرض",
+        "edit": "تعديل",
+        "delete": "حذف",
+        "exportPdf": "تصدير PDF",
+        "exportSelected": "تصدير المحدد"
+      },
       "empty": "لا يوجد موظفون.",
       "deleteConfirmTitle": "حذف الموظف؟",
       "deleteConfirmBody": "سيتم نقل السجل إلى سلة المحذوفات.",
@@ -18,145 +44,660 @@
       "title": "ملف الموظف",
       "back": "العودة إلى الموظفين",
       "subtitle": "عرض وإدارة معلومات الموظف",
-      "loading": "جارٍ التحميل…", "notFound": "لم يتم العثور على الموظف",
-      "editProfile": "تعديل الملف", "delete": "حذف",
+      "loading": "جارٍ التحميل…",
+      "notFound": "لم يتم العثور على الموظف",
+      "editProfile": "تعديل الملف",
+      "delete": "حذف",
       "employeeId": "رقم الموظف: {{id}}",
       "selfApplied": "تقديم ذاتي عبر النموذج العام",
       "unknownLegacy": "غير معروف (سجل قديم)",
       "tabs": {
-        "overview": "نظرة عامة", "application": "الطلب", "documents": "الوثائق ({{count}})",
-        "attendance": "الحضور وكشوف الوقت", "contracts": "العقود", "compliance": "الامتثال",
-        "financial": "المالية", "notes": "الملاحظات",
-        "workHistory": "سجل العمل", "training": "التدريب", "performance": "الأداء", "finance": "المالية"
+        "overview": "نظرة عامة",
+        "application": "الطلب",
+        "documents": "الوثائق ({{count}})",
+        "attendance": "الحضور وكشوف الوقت",
+        "contracts": "العقود",
+        "compliance": "الامتثال",
+        "financial": "المالية",
+        "notes": "الملاحظات",
+        "workHistory": "سجل العمل",
+        "training": "التدريب",
+        "performance": "الأداء",
+        "finance": "المالية"
       },
-      "header": { "email": "البريد الإلكتروني", "phone": "الهاتف", "citizenship": "الجنسية", "joined": "تاريخ الانضمام", "createdBy": "أنشأه" },
-      "quickNav": { "certifications": "الشهادات", "training": "سجل التدريب", "complianceTimeline": "الجدول الزمني للامتثال", "performance": "تقييمات الأداء" },
+      "header": {
+        "email": "البريد الإلكتروني",
+        "phone": "الهاتف",
+        "citizenship": "الجنسية",
+        "joined": "تاريخ الانضمام",
+        "createdBy": "أنشأه"
+      },
+      "quickNav": {
+        "certifications": "الشهادات",
+        "training": "سجل التدريب",
+        "complianceTimeline": "الجدول الزمني للامتثال",
+        "performance": "تقييمات الأداء"
+      },
       "personal": {
-        "title": "المعلومات الشخصية", "fullName": "الاسم الكامل", "dateOfBirth": "تاريخ الميلاد",
-        "citizenship": "الجنسية", "jobCategory": "فئة الوظيفة",
-        "licenseNumber": "رقم الرخصة", "licenseCategory": "فئة الرخصة",
-        "yearsExperience": "سنوات الخبرة", "yearsValue": "{{count}} سنة",
-        "address": "العنوان", "city": "المدينة", "country": "الدولة", "postalCode": "الرمز البريدي",
+        "title": "المعلومات الشخصية",
+        "fullName": "الاسم الكامل",
+        "dateOfBirth": "تاريخ الميلاد",
+        "citizenship": "الجنسية",
+        "jobCategory": "فئة الوظيفة",
+        "licenseNumber": "رقم الرخصة",
+        "licenseCategory": "فئة الرخصة",
+        "yearsExperience": "سنوات الخبرة",
+        "yearsValue": "{{count}} سنة",
+        "address": "العنوان",
+        "city": "المدينة",
+        "country": "الدولة",
+        "postalCode": "الرمز البريدي",
         "emergencyContact": "جهة الاتصال للطوارئ"
       },
-      "stats": { "title": "إحصائيات سريعة", "documents": "الوثائق", "validDocs": "وثائق سارية", "expiringSoon": "تنتهي قريباً" },
-      "agency": { "title": "الوكالة", "noAgency": "بدون وكالة (مباشر)" },
+      "stats": {
+        "title": "إحصائيات سريعة",
+        "documents": "الوثائق",
+        "validDocs": "وثائق سارية",
+        "expiringSoon": "تنتهي قريباً"
+      },
+      "agency": {
+        "title": "الوكالة",
+        "noAgency": "بدون وكالة (مباشر)"
+      },
       "agencyAccess": {
         "title": "وصول الوكالة",
         "subtitle": "منح أو سحب وصول الوكالات لعرض وتعديل هذا الموظف. التحويل من المرشح لا يمنح تلقائياً — يجب تشغيل المفاتيح يدوياً.",
-        "originBadge": "المصدر", "ownAgencyFallback": "وكالة الموظف",
-        "view": "عرض", "edit": "تعديل", "granted": "تم المنح في {{date}}",
+        "originBadge": "المصدر",
+        "ownAgencyFallback": "وكالة الموظف",
+        "view": "عرض",
+        "edit": "تعديل",
+        "granted": "تم المنح في {{date}}",
         "grantSection": "منح الوصول لوكالة أخرى",
-        "selectAgency": "اختر وكالة", "notesPh": "ملاحظات (اختياري)",
-        "grantButton": "منح العرض + التعديل", "granting": "جارٍ المنح…",
-        "toast": { "updated": "تم تحديث الوصول", "updateFailed": "فشل تحديث الوصول", "revoked": "تم سحب وصول الوكالة", "revokeFailed": "فشل سحب الوصول" },
-        "confirmRevokeAll": { "title": "سحب جميع وصول الوكالة", "description": "إيقاف العرض والتعديل سيزيل وصول هذه الوكالة بالكامل. متابعة؟", "confirm": "سحب" },
-        "confirmRevoke": { "title": "سحب وصول الوكالة", "description": "إزالة وصول {{agency}} لهذا الموظف؟ سيتوقف مستخدموها عن رؤية السجل فوراً.", "fallbackAgency": "هذه الوكالة", "confirm": "سحب" }
+        "selectAgency": "اختر وكالة",
+        "notesPh": "ملاحظات (اختياري)",
+        "grantButton": "منح العرض + التعديل",
+        "granting": "جارٍ المنح…",
+        "toast": {
+          "updated": "تم تحديث الوصول",
+          "updateFailed": "فشل تحديث الوصول",
+          "revoked": "تم سحب وصول الوكالة",
+          "revokeFailed": "فشل سحب الوصول"
+        },
+        "confirmRevokeAll": {
+          "title": "سحب جميع وصول الوكالة",
+          "description": "إيقاف العرض والتعديل سيزيل وصول هذه الوكالة بالكامل. متابعة؟",
+          "confirm": "سحب"
+        },
+        "confirmRevoke": {
+          "title": "سحب وصول الوكالة",
+          "description": "إزالة وصول {{agency}} لهذا الموظف؟ سيتوقف مستخدموها عن رؤية السجل فوراً.",
+          "fallbackAgency": "هذه الوكالة",
+          "confirm": "سحب"
+        }
       },
       "documents": {
-        "title": "وثائق الموظف", "uploadButton": "رفع وثيقة", "cancel": "إلغاء",
-        "newDocumentTitle": "وثيقة جديدة", "documentType": "نوع الوثيقة", "selectType": "اختر النوع",
-        "documentName": "اسم الوثيقة", "documentNamePh": "مثال: جواز السفر",
-        "issueDate": "تاريخ الإصدار", "expiryDate": "تاريخ الانتهاء",
-        "documentNumber": "رقم الوثيقة", "optionalPh": "اختياري", "issuer": "جهة الإصدار",
-        "fileLabel": "ملف", "uploading": "جارٍ الرفع...", "upload": "رفع",
+        "title": "وثائق الموظف",
+        "uploadButton": "رفع وثيقة",
+        "cancel": "إلغاء",
+        "newDocumentTitle": "وثيقة جديدة",
+        "documentType": "نوع الوثيقة",
+        "selectType": "اختر النوع",
+        "documentName": "اسم الوثيقة",
+        "documentNamePh": "مثال: جواز السفر",
+        "issueDate": "تاريخ الإصدار",
+        "expiryDate": "تاريخ الانتهاء",
+        "documentNumber": "رقم الوثيقة",
+        "optionalPh": "اختياري",
+        "issuer": "جهة الإصدار",
+        "fileLabel": "ملف",
+        "uploading": "جارٍ الرفع...",
+        "upload": "رفع",
         "empty": "لم يتم رفع وثائق بعد.",
-        "fileSize": "{{name}} ({{size}} كيلوبايت)", "expires": "ينتهي في: {{date}}",
-        "fileMeta": "{{type}} · {{size}} كيلوبايت", "download": "تنزيل", "view": "عرض",
-        "toast": { "fileRequired": "يرجى اختيار ملف", "typeRequired": "يرجى اختيار نوع الوثيقة", "nameRequired": "يرجى إدخال اسم الوثيقة", "uploaded": "تم رفع الوثيقة بنجاح", "uploadFailed": "فشل رفع الوثيقة" }
+        "fileSize": "{{name}} ({{size}} كيلوبايت)",
+        "expires": "ينتهي في: {{date}}",
+        "fileMeta": "{{type}} · {{size}} كيلوبايت",
+        "download": "تنزيل",
+        "view": "عرض",
+        "toast": {
+          "fileRequired": "يرجى اختيار ملف",
+          "typeRequired": "يرجى اختيار نوع الوثيقة",
+          "nameRequired": "يرجى إدخال اسم الوثيقة",
+          "uploaded": "تم رفع الوثيقة بنجاح",
+          "uploadFailed": "فشل رفع الوثيقة"
+        }
       },
       "compliance": {
-        "title": "حالة الامتثال", "empty": "لا توجد بيانات امتثال متاحة. ارفع وثائق لبدء التتبع.",
-        "expiredAgo": "انتهت قبل {{count}} يوم", "daysRemaining": "متبقي {{count}} يوم"
+        "title": "حالة الامتثال",
+        "empty": "لا توجد بيانات امتثال متاحة. ارفع وثائق لبدء التتبع.",
+        "expiredAgo": "انتهت قبل {{count}} يوم",
+        "daysRemaining": "متبقي {{count}} يوم"
       },
       "financial": {
-        "title": "الملف البنكي والراتب", "fromCandidateBadge": "من مرحلة المرشح",
+        "title": "الملف البنكي والراتب",
+        "fromCandidateBadge": "من مرحلة المرشح",
         "subtitle": "تُحفظ التفاصيل البنكية والراتبية المُلتقطة في مرحلة المرشح بعد التحويل.",
-        "bankName": "اسم البنك", "accountHolder": "صاحب الحساب", "accountNumber": "رقم الحساب",
-        "sortCode": "رمز البنك", "iban": "IBAN", "taxCode": "الرمز الضريبي",
-        "niNumber": "رقم التأمين الوطني", "paymentMethod": "طريقة الدفع",
-        "salaryAgreed": "الراتب المتفق عليه", "notes": "ملاحظات"
+        "bankName": "اسم البنك",
+        "accountHolder": "صاحب الحساب",
+        "accountNumber": "رقم الحساب",
+        "sortCode": "رمز البنك",
+        "iban": "IBAN",
+        "taxCode": "الرمز الضريبي",
+        "niNumber": "رقم التأمين الوطني",
+        "paymentMethod": "طريقة الدفع",
+        "salaryAgreed": "الراتب المتفق عليه",
+        "notes": "ملاحظات"
       },
       "notes": {
-        "title": "الملاحظات والتعليقات", "addLabel": "إضافة / تحديث ملاحظة",
+        "title": "الملاحظات والتعليقات",
+        "addLabel": "إضافة / تحديث ملاحظة",
         "writePh": "اكتب ملاحظة عن هذا الموظف…",
-        "saveButton": "حفظ الملاحظة", "saving": "جارٍ الحفظ…",
-        "discard": "تجاهل التغييرات", "empty": "لا توجد ملاحظات لهذا الموظف."
+        "saveButton": "حفظ الملاحظة",
+        "saving": "جارٍ الحفظ…",
+        "discard": "تجاهل التغييرات",
+        "empty": "لا توجد ملاحظات لهذا الموظف."
       },
       "toast": {
         "loadFailed": "تعذر تحميل الموظف",
-        "stageUpdated": "تم تحديث مرحلة سير العمل", "stageFailed": "فشل تحديث المرحلة",
-        "workflowConnected": "تم ربط سير العمل", "workflowFailed": "فشل ربط سير العمل",
-        "currentStageUpdated": "تم تحديث المرحلة الحالية", "currentStageFailed": "فشل تحديث المرحلة",
-        "workflowDisconnected": "تم فصل سير العمل", "disconnectFailed": "فشل الفصل",
-        "stageApproved": "تم اعتماد المرحلة", "stageApproveFailed": "فشل اعتماد المرحلة",
-        "noteSaved": "تم حفظ الملاحظة", "noteFailed": "فشل حفظ الملاحظة",
-        "agencyUpdated": "تم تحديث الوكالة", "agencyFailed": "فشل تحديث الوكالة",
-        "deleted": "تم حذف الموظف", "deleteFailed": "فشل حذف الموظف"
+        "stageUpdated": "تم تحديث مرحلة سير العمل",
+        "stageFailed": "فشل تحديث المرحلة",
+        "workflowConnected": "تم ربط سير العمل",
+        "workflowFailed": "فشل ربط سير العمل",
+        "currentStageUpdated": "تم تحديث المرحلة الحالية",
+        "currentStageFailed": "فشل تحديث المرحلة",
+        "workflowDisconnected": "تم فصل سير العمل",
+        "disconnectFailed": "فشل الفصل",
+        "stageApproved": "تم اعتماد المرحلة",
+        "stageApproveFailed": "فشل اعتماد المرحلة",
+        "noteSaved": "تم حفظ الملاحظة",
+        "noteFailed": "فشل حفظ الملاحظة",
+        "agencyUpdated": "تم تحديث الوكالة",
+        "agencyFailed": "فشل تحديث الوكالة",
+        "deleted": "تم حذف الموظف",
+        "deleteFailed": "فشل حذف الموظف"
       },
-      "confirmDelete": { "title": "حذف الموظف؟", "description": "سيتم إزالة {{name}} نهائياً. لا يمكن التراجع.", "confirm": "حذف" },
-      "confirmDisconnect": { "title": "فصل عن سير العمل؟", "description": "سيتم فصل هذا الموظف عن سير العمل. يُحفظ التقدم الحالي.", "confirm": "فصل" }
+      "confirmDelete": {
+        "title": "حذف الموظف؟",
+        "description": "سيتم إزالة {{name}} نهائياً. لا يمكن التراجع.",
+        "confirm": "حذف"
+      },
+      "confirmDisconnect": {
+        "title": "فصل عن سير العمل؟",
+        "description": "سيتم فصل هذا الموظف عن سير العمل. يُحفظ التقدم الحالي.",
+        "confirm": "فصل"
+      }
     },
-    "add": { "title": "إضافة موظف", "back": "العودة إلى الموظفين" },
-    "edit": { "title": "تعديل الموظف", "back": "العودة إلى الملف" },
-    "certifications": { "title": "الشهادات", "back": "العودة إلى الملف" },
-    "training": { "title": "سجل التدريب", "back": "العودة إلى الملف" },
-    "complianceTimeline": { "title": "الجدول الزمني للامتثال", "back": "العودة إلى الملف" },
-    "performance": { "title": "تقييم الأداء", "back": "العودة إلى الملف" }
+    "add": {
+      "title": "إضافة موظف",
+      "back": "العودة إلى الموظفين"
+    },
+    "edit": {
+      "title": "تعديل الموظف",
+      "back": "العودة إلى الملف"
+    },
+    "certifications": {
+      "title": "الشهادات",
+      "back": "العودة إلى الملف"
+    },
+    "training": {
+      "title": "سجل التدريب",
+      "back": "العودة إلى الملف"
+    },
+    "complianceTimeline": {
+      "title": "الجدول الزمني للامتثال",
+      "back": "العودة إلى الملف"
+    },
+    "performance": {
+      "title": "تقييم الأداء",
+      "back": "العودة إلى الملف"
+    }
   },
   "applicants": {
-    "list": { "title": "المتقدمون", "subtitle": "المتقدمون والعملاء المحتملون", "addButton": "إضافة متقدم", "search": "ابحث عن المتقدمين…", "empty": "لا يوجد متقدمون.", "deleteRequests": "طلبات الحذف" },
-    "candidates": { "title": "المرشحون", "subtitle": "مرشحون مدققون وجاهزون للتوظيف", "search": "ابحث عن المرشحين…", "empty": "لا يوجد مرشحون." },
+    "list": {
+      "title": "المتقدمون",
+      "subtitle": "المتقدمون والعملاء المحتملون",
+      "addButton": "إضافة متقدم",
+      "search": "ابحث عن المتقدمين…",
+      "empty": "لا يوجد متقدمون.",
+      "deleteRequests": "طلبات الحذف"
+    },
+    "candidates": {
+      "title": "المرشحون",
+      "subtitle": "مرشحون مدققون وجاهزون للتوظيف",
+      "search": "ابحث عن المرشحين…",
+      "empty": "لا يوجد مرشحون."
+    },
     "profile": {
-      "title": "ملف المتقدم", "candidateTitle": "ملف المرشح",
+      "title": "ملف المتقدم",
+      "candidateTitle": "ملف المرشح",
       "subtitle": "عرض وإدارة معلومات المتقدم",
       "candidateSubtitle": "عرض وإدارة معلومات المرشح",
-      "back": "رجوع", "loading": "جارٍ التحميل…", "notFound": "لم يتم العثور على المتقدم", "candidateNotFound": "لم يتم العثور على المرشح",
-      "convertToCandidate": "تحويل إلى مرشح", "convertToEmployee": "تحويل إلى موظف",
-      "promote": "ترقية إلى مرشح", "promoteToCandidate": "ترقية إلى مرشح",
-      "tabs": { "overview": "نظرة عامة", "application": "الطلب", "documents": "الوثائق ({{count}})", "workflow": "سير العمل", "docCompliance": "امتثال الوثائق", "compliance": "الامتثال", "financial": "المالية", "agencyHistory": "تاريخ الوكالات", "history": "التاريخ", "notes": "الملاحظات" },
+      "back": "رجوع",
+      "loading": "جارٍ التحميل…",
+      "notFound": "لم يتم العثور على المتقدم",
+      "candidateNotFound": "لم يتم العثور على المرشح",
+      "convertToCandidate": "تحويل إلى مرشح",
+      "convertToEmployee": "تحويل إلى موظف",
+      "promote": "ترقية إلى مرشح",
+      "promoteToCandidate": "ترقية إلى مرشح",
+      "tabs": {
+        "overview": "نظرة عامة",
+        "application": "الطلب",
+        "documents": "الوثائق ({{count}})",
+        "workflow": "سير العمل",
+        "docCompliance": "امتثال الوثائق",
+        "compliance": "الامتثال",
+        "financial": "المالية",
+        "agencyHistory": "تاريخ الوكالات",
+        "history": "التاريخ",
+        "notes": "الملاحظات"
+      },
       "toast": {
         "loadFailed": "تعذر تحميل المتقدم",
-        "stageUpdated": "تم تحديث مرحلة سير العمل", "stageFailed": "فشل تحديث المرحلة",
-        "workflowConnected": "تم ربط سير العمل", "workflowFailed": "فشل ربط سير العمل",
-        "currentStageUpdated": "تم تحديث المرحلة الحالية", "currentStageFailed": "فشل تحديث المرحلة",
-        "workflowDisconnected": "تم فصل سير العمل", "disconnectFailed": "فشل الفصل",
-        "stageApproved": "تم اعتماد المرحلة", "stageApproveFailed": "فشل اعتماد المرحلة",
-        "agencyUpdated": "تم تحديث الوكالة", "agencyFailed": "فشل تحديث الوكالة",
-        "noteSaved": "تم حفظ الملاحظة", "noteFailed": "فشل حفظ الملاحظة",
-        "docApproved": "تم اعتماد \"{{name}}\"", "docApproveFailed": "فشل اعتماد الوثيقة",
+        "stageUpdated": "تم تحديث مرحلة سير العمل",
+        "stageFailed": "فشل تحديث المرحلة",
+        "workflowConnected": "تم ربط سير العمل",
+        "workflowFailed": "فشل ربط سير العمل",
+        "currentStageUpdated": "تم تحديث المرحلة الحالية",
+        "currentStageFailed": "فشل تحديث المرحلة",
+        "workflowDisconnected": "تم فصل سير العمل",
+        "disconnectFailed": "فشل الفصل",
+        "stageApproved": "تم اعتماد المرحلة",
+        "stageApproveFailed": "فشل اعتماد المرحلة",
+        "agencyUpdated": "تم تحديث الوكالة",
+        "agencyFailed": "فشل تحديث الوكالة",
+        "noteSaved": "تم حفظ الملاحظة",
+        "noteFailed": "فشل حفظ الملاحظة",
+        "docApproved": "تم اعتماد \"{{name}}\"",
+        "docApproveFailed": "فشل اعتماد الوثيقة",
         "rejectReasonRequired": "سبب الرفض مطلوب",
-        "docRejected": "تم رفض \"{{name}}\"", "docRejectFailed": "فشل رفض الوثيقة",
-        "docDeleted": "تم حذف الوثيقة", "docDeleteFailed": "فشل حذف الوثيقة",
-        "fileRequired": "يرجى اختيار ملف", "typeRequired": "يرجى اختيار نوع الوثيقة",
+        "docRejected": "تم رفض \"{{name}}\"",
+        "docRejectFailed": "فشل رفض الوثيقة",
+        "docDeleted": "تم حذف الوثيقة",
+        "docDeleteFailed": "فشل حذف الوثيقة",
+        "fileRequired": "يرجى اختيار ملف",
+        "typeRequired": "يرجى اختيار نوع الوثيقة",
         "nameRequired": "يرجى إدخال اسم الوثيقة",
-        "uploaded": "تم رفع الوثيقة بنجاح", "uploadFailed": "فشل رفع الوثيقة",
-        "deleted": "تم حذف المتقدم بنجاح", "deleteFailed": "فشل حذف المتقدم",
+        "uploaded": "تم رفع الوثيقة بنجاح",
+        "uploadFailed": "فشل رفع الوثيقة",
+        "deleted": "تم حذف المتقدم بنجاح",
+        "deleteFailed": "فشل حذف المتقدم",
         "addressRequired": "يرجى ملء جميع حقول العنوان المطلوبة",
         "convertedToEmployee": "تم تحويل المتقدم إلى موظف بنجاح",
         "convertFailed": "فشل تحويل المتقدم إلى موظف",
-        "promoted": "تمت الترقية إلى مرشح", "promoteFailed": "فشلت الترقية",
-        "financialSaved": "تم حفظ الملف المالي", "financialFailed": "فشل حفظ الملف المالي"
+        "promoted": "تمت الترقية إلى مرشح",
+        "promoteFailed": "فشلت الترقية",
+        "financialSaved": "تم حفظ الملف المالي",
+        "financialFailed": "فشل حفظ الملف المالي"
       },
-      "confirmDelete": { "title": "حذف المتقدم؟", "description": "سيتم حذف هذا المتقدم نهائياً.", "confirm": "حذف" },
-      "confirmDeleteCandidate": { "title": "حذف المرشح؟", "description": "سيتم حذف هذا المرشح نهائياً.", "confirm": "حذف" },
-      "confirmDisconnect": { "title": "فصل عن سير العمل؟", "description": "سيتم فصل هذا المتقدم عن سير العمل. يُحفظ التقدم الحالي.", "confirm": "فصل" },
-      "confirmDeleteDoc": { "title": "حذف الوثيقة؟", "description": "سيتم حذف \"{{name}}\" نهائياً من سجلات هذا المتقدم.", "confirm": "حذف" },
+      "confirmDelete": {
+        "title": "حذف المتقدم؟",
+        "description": "سيتم حذف هذا المتقدم نهائياً.",
+        "confirm": "حذف"
+      },
+      "confirmDeleteCandidate": {
+        "title": "حذف المرشح؟",
+        "description": "سيتم حذف هذا المرشح نهائياً.",
+        "confirm": "حذف"
+      },
+      "confirmDisconnect": {
+        "title": "فصل عن سير العمل؟",
+        "description": "سيتم فصل هذا المتقدم عن سير العمل. يُحفظ التقدم الحالي.",
+        "confirm": "فصل"
+      },
+      "confirmDeleteDoc": {
+        "title": "حذف الوثيقة؟",
+        "description": "سيتم حذف \"{{name}}\" نهائياً من سجلات هذا المتقدم.",
+        "confirm": "حذف"
+      },
       "candidateApproval": {
         "pendingTitle": "هذا المرشح بانتظار موافقة Tempworks.",
         "pendingBody": "تم تقديمه من قِبل الوكالة المالكة ولا يمكنه الدخول إلى سير العمل أو التحويل إلى موظف حتى تتم الموافقة.",
-        "approve": "موافقة", "reject": "رفض",
-        "approved": "تمت الموافقة على المرشح", "rejected": "تم رفض المرشح",
-        "approveFailed": "فشلت الموافقة", "rejectFailed": "فشل الرفض",
-        "confirmReject": { "title": "رفض هذا المرشح؟", "description": "لن يدخل سير العمل. يمكن عكس ذلك بالموافقة لاحقاً.", "confirm": "رفض" }
+        "approve": "موافقة",
+        "reject": "رفض",
+        "approved": "تمت الموافقة على المرشح",
+        "rejected": "تم رفض المرشح",
+        "approveFailed": "فشلت الموافقة",
+        "rejectFailed": "فشل الرفض",
+        "confirmReject": {
+          "title": "رفض هذا المرشح؟",
+          "description": "لن يدخل سير العمل. يمكن عكس ذلك بالموافقة لاحقاً.",
+          "confirm": "رفض"
+        },
+        "pendingBadge": "Pending Tempworks approval",
+        "rejectedBadge": "Rejected"
+      },
+      "noIdentifierLegacy": "No identifier (legacy record)",
+      "wasLeadPrefix": "(was {{leadNumber}})",
+      "header": {
+        "email": "Email",
+        "phone": "Phone",
+        "citizenship": "Citizenship",
+        "applied": "Applied"
+      },
+      "emergency": {
+        "sectionTitle": "Family / Emergency Contact",
+        "name": "Name",
+        "relationship": "Relationship",
+        "phone": "Phone",
+        "email": "Email"
+      },
+      "quickNav": {
+        "travel": "Travel & Residence",
+        "driving": "Driving Licence & Experience",
+        "education": "Education",
+        "workExperience": "Work Experience"
+      },
+      "personal": {
+        "title": "Personal Information",
+        "fullName": "Full Name",
+        "dateOfBirth": "Date of Birth",
+        "citizenship": "Citizenship",
+        "licenseNumber": "License Number",
+        "licenseCategory": "License Category",
+        "yearsEUExperience": "Years EU Experience",
+        "permanentAddress": "Permanent Address",
+        "countryOfResidence": "Country of Residence",
+        "currentCountry": "Current Country",
+        "appliedPosition": "Applied Position",
+        "preferredStartDate": "Preferred Start Date",
+        "howTheyHeard": "How They Heard",
+        "general": "GENERAL"
+      },
+      "stats": {
+        "title": "Quick Stats",
+        "documents": "Documents",
+        "validDocs": "Valid Docs",
+        "expiringSoon": "Expiring Soon"
+      },
+      "lifecycle": {
+        "title": "Lifecycle Identifiers",
+        "leadId": "Lead ID",
+        "candidateId": "Candidate ID",
+        "createdBy": "Created By",
+        "createdLabel": "Created: {{date}}",
+        "convertedLabel": "Converted: {{date}}",
+        "notAssignedLegacy": "Not assigned (legacy)",
+        "notYetConverted": "Not yet converted",
+        "selfApplied": "Self-applied via public form",
+        "unknownLegacy": "Unknown (legacy record)"
+      },
+      "agency": {
+        "title": "Agency",
+        "noAgency": "No Agency (Direct)"
+      },
+      "travelDocs": {
+        "title": "Travel & Residence Documents",
+        "passportNumber": "Passport Number",
+        "passportValidUntil": "Passport Valid Until",
+        "issuingCountry": "Issuing Country",
+        "euVisa": "EU Visa",
+        "visaType": "Visa Type",
+        "visaNumber": "Visa Number",
+        "validUntil": "Valid Until",
+        "workPermitInEU": "Work Permit in EU",
+        "permitType": "Permit Type",
+        "permitNumber": "Permit Number",
+        "issueDate": "Issue Date",
+        "residenceCardInEU": "Residence Card in EU",
+        "residenceType": "Residence Type",
+        "residenceNumber": "Residence Number",
+        "country": "Country",
+        "city": "City",
+        "yes": "Yes",
+        "no": "No"
+      },
+      "driving": {
+        "title": "Driving Licence & Experience",
+        "licenceCertifications": "Licence & Certifications",
+        "licenseNumber": "License Number",
+        "issuingCountry": "Issuing Country",
+        "validUntil": "Valid Until",
+        "categories": "Categories:",
+        "tachographCard": "Tachograph Card",
+        "code95": "Code 95 / CPC",
+        "adrCertificate": "ADR Certificate",
+        "experienceTitle": "Driving Experience",
+        "euExperience": "EU Experience",
+        "yearsInEU": "Years in EU",
+        "totalCEExperience": "Total C+E Experience",
+        "yearsActiveDriving": "Years Active Driving",
+        "drivenOtherCountries": "Driven Other Countries",
+        "countries": "Countries:",
+        "yes": "Yes",
+        "no": "No",
+        "yesValue": "Yes ({{value}})",
+        "yesUntil": "Yes (until {{date}})",
+        "yesNA": "Yes (N/A)"
+      },
+      "languages": {
+        "title": "Language Skills",
+        "english": "English",
+        "german": "German",
+        "russian": "Russian",
+        "otherLanguages": "Other Languages",
+        "languageAtWork": "Language at Work"
+      },
+      "workFlex": {
+        "title": "Work Flexibility & Preferences",
+        "doubleCrew": "Double Crew",
+        "maxTourLength": "Max Tour Length",
+        "weekendDriving": "Weekend Driving",
+        "nightDriving": "Night Driving",
+        "preferredCountries": "Preferred Countries",
+        "undesiredCountries": "Undesired Countries",
+        "yes": "Yes",
+        "no": "No"
+      },
+      "education": {
+        "title": "Education",
+        "default": "Education",
+        "fieldOfStudy": "Field of Study",
+        "country": "Country",
+        "start": "Start",
+        "end": "End",
+        "ongoing": "Ongoing",
+        "degreePrefix": "Degree / Certificate:"
+      },
+      "workHistory": {
+        "title": "Work Experience",
+        "defaultPosition": "Position",
+        "country": "Country",
+        "start": "Start",
+        "end": "End",
+        "current": "Current",
+        "companyPhone": "Company Phone",
+        "responsibilities": "Responsibilities",
+        "reasonForLeaving": "Reason for leaving:",
+        "reference": "Reference",
+        "name": "Name",
+        "phone": "Phone",
+        "email": "Email"
+      },
+      "documentsTab": {
+        "title": "Applicant Documents",
+        "candidateTitle": "Candidate Documents",
+        "uploadButton": "Upload Document",
+        "cancel": "Cancel",
+        "newDocumentTitle": "New Document",
+        "documentType": "Document Type",
+        "selectType": "Select type",
+        "documentName": "Document Name",
+        "documentNamePh": "e.g. Passport",
+        "issueDate": "Issue Date",
+        "expiryDate": "Expiry Date",
+        "noExpiry": "No Expiry",
+        "documentNumber": "Document Number",
+        "optionalPh": "Optional",
+        "issuer": "Issuer",
+        "fileLabel": "File",
+        "fileSize": "{{name}} ({{size}} KB)",
+        "uploading": "Uploading...",
+        "upload": "Upload",
+        "loading": "Loading documents...",
+        "empty": "No documents uploaded yet.",
+        "expires": "Expires: {{date}}",
+        "fileMeta": "{{type}} · {{size}} KB",
+        "downloadTitle": "Download",
+        "approve": "Approve",
+        "reject": "Reject",
+        "editTitle": "Edit",
+        "deleteTitle": "Delete"
+      },
+      "workflowTab": {
+        "connectTitle": "Connect to a Workflow",
+        "connectSubtitle": "This applicant is not connected to any workflow yet.",
+        "candidateConnectSubtitle": "This candidate is not connected to any workflow yet.",
+        "selectWorkflowPh": "Select a workflow…",
+        "public": "Public",
+        "private": "Private",
+        "connect": "Connect",
+        "connecting": "Connecting…",
+        "connectButton": "Connect to Workflow",
+        "saving": "Saving…",
+        "confirm": "Confirm",
+        "connectedBy": "Connected {{date}} by {{name}}",
+        "changeWorkflow": "Change Workflow",
+        "change": "Change",
+        "changeTitle": "Reassign to a different workflow (admin only)",
+        "noStages": "This workflow has no stages configured yet.",
+        "current": "Current",
+        "inProgress": "In Progress",
+        "approved": "Approved",
+        "final": "Final",
+        "needsApproval": "Needs Approval",
+        "slaSuffix": "SLA: {{hours}}h",
+        "setCurrent": "Set Current",
+        "requiredDocs": "Required Documents",
+        "noRequiredDocs": "No required documents for this stage.",
+        "uploaded": "Uploaded",
+        "missing": "Missing",
+        "stageApproval": "Stage Approval",
+        "approvedBy": "by {{name}}",
+        "noApprovers": "No approvers assigned to this stage.",
+        "approveStage": "Approve Stage",
+        "approving": "Approving…"
+      },
+      "complianceTab": {
+        "title": "Compliance Status",
+        "empty": "No compliance data available. Upload documents to begin tracking compliance.",
+        "expiredAgo": "Expired {{count}} days ago",
+        "daysRemaining": "{{count}} days remaining"
+      },
+      "financialTab": {
+        "title": "Financial Transactions",
+        "candidatesOnlyBadge": "Candidates only",
+        "candidatesOnlyBody": "Financial transactions are available for Candidates only. Promote this applicant to Candidate first.",
+        "bankTitle": "Bank & Tax Details",
+        "save": "Save",
+        "saving": "Saving…",
+        "saved": "Saved",
+        "saveFailed": "Save failed",
+        "bankName": "Bank Name",
+        "iban": "IBAN",
+        "taxCode": "Tax Code",
+        "niNumber": "NI Number",
+        "paymentMethod": "Payment Method"
+      },
+      "historyTab": {
+        "title": "Agency Assignment History",
+        "loading": "Loading…",
+        "empty": "No agency assignment history recorded.",
+        "reason": "Reason: {{value}}",
+        "current": "Current"
+      },
+      "notesTab": {
+        "title": "Notes & Comments",
+        "submittedWithApplication": "Submitted with application",
+        "addLabel": "Add / update note",
+        "writePh": "Write a note about this applicant…",
+        "writeCandidatePh": "Write a note about this candidate…",
+        "saveButton": "Save note",
+        "saving": "Saving…",
+        "discard": "Discard changes",
+        "empty": "No notes for this applicant.",
+        "candidateEmpty": "No notes for this candidate."
+      },
+      "promoteDialog": {
+        "title": "Promote to Candidate",
+        "successTitle": "Promoted Successfully",
+        "successBody": "has been promoted from Lead to Candidate.",
+        "newCandidateId": "The new Candidate ID is",
+        "successFooter": "The profile is now visible to agency users, and the tier change has been recorded in the audit log.",
+        "done": "Done",
+        "intro": "will be promoted from Lead to Candidate. This grants agency users visibility. A holding agency will be assigned if configured.",
+        "candidateIntro": "will have its tier confirmed.",
+        "responsibleAgency": "Responsible Agency",
+        "selectDefault": "Use system default",
+        "useSystemDefault": "Use system default holding agency",
+        "agencyHelp": "The selected agency becomes responsible for this candidate and is recorded in Agency History.",
+        "loggedNote": "This action is logged and can be reviewed in Agency History.",
+        "promoting": "Promoting…",
+        "confirmPromotion": "Confirm Promotion",
+        "cancel": "Cancel"
+      },
+      "convertDialog": {
+        "title": "Convert to Employee",
+        "subtitle": "Converting <strong>{{name}}</strong> — all documents will be transferred and the applicant record will be archived.",
+        "candidateSubtitle": "Converting <strong>{{name}}</strong> — all documents will be transferred and the candidate record will be archived.",
+        "convertingPrefix": "Converting",
+        "applicantTransferSuffix": "— all documents will be transferred and the applicant record will be archived.",
+        "candidateTransferSuffix": "— all documents will be transferred and the candidate record will be archived.",
+        "name": "Name:",
+        "email": "Email:",
+        "phone": "Phone:",
+        "citizenship": "Citizenship:",
+        "address": "Address",
+        "addressLine1": "Address Line 1",
+        "addressLine2": "Address Line 2",
+        "city": "City",
+        "country": "Country",
+        "postalCode": "Postal Code",
+        "additionalDetails": "Additional Details",
+        "optional": "(optional)",
+        "licenseNumber": "License Number",
+        "licenseCategory": "License Category",
+        "yearsExperience": "Years Experience",
+        "emergencyContact": "Emergency Contact",
+        "emergencyPhone": "Emergency Phone",
+        "converting": "Converting…",
+        "confirmConversion": "Confirm Conversion",
+        "cancel": "Cancel"
+      },
+      "rejectDocDialog": {
+        "title": "Reject Document",
+        "rejecting": "Rejecting:",
+        "reasonLabel": "Rejection Reason",
+        "reasonPh": "Explain why this document is being rejected…",
+        "cancel": "Cancel",
+        "rejecting2": "Rejecting…",
+        "confirmRejection": "Confirm Rejection"
+      },
+      "infoRow": {
+        "notProvided": "Not provided"
       }
     },
-    "add": { "title": "إضافة متقدم", "back": "العودة إلى المتقدمين" },
-    "edit": { "title": "تعديل المتقدم", "back": "العودة إلى الملف" },
-    "deleteRequests": { "title": "طلبات حذف المرشحين", "subtitle": "مراجعة طلبات الحذف والموافقة عليها", "empty": "لا توجد طلبات معلقة." }
+    "add": {
+      "title": "إضافة متقدم",
+      "back": "العودة إلى المتقدمين"
+    },
+    "edit": {
+      "title": "تعديل المتقدم",
+      "back": "العودة إلى الملف"
+    },
+    "deleteRequests": {
+      "title": "طلبات حذف المرشحين",
+      "subtitle": "مراجعة طلبات الحذف والموافقة عليها",
+      "empty": "لا توجد طلبات معلقة."
+    }
   },
   "agencies": {
-    "list": { "title": "الوكالات", "subtitle": "شركاء التوظيف", "addButton": "إضافة وكالة", "search": "ابحث عن الوكالات…", "empty": "لا توجد وكالات." },
+    "list": {
+      "title": "الوكالات",
+      "subtitle": "شركاء التوظيف",
+      "addButton": "إضافة وكالة",
+      "search": "ابحث عن الوكالات…",
+      "empty": "لا توجد وكالات."
+    },
     "profile": {
       "title": "ملف الوكالة",
       "back": "العودة إلى الوكالات",
@@ -166,110 +707,368 @@
       "manageAllUsers": "إدارة جميع المستخدمين",
       "loading": "جارٍ التحميل…",
       "notFound": "لم يتم العثور على الوكالة",
-      "info": { "country": "الدولة", "email": "البريد الإلكتروني", "phone": "الهاتف", "contactPerson": "جهة الاتصال" },
-      "stats": { "activeEmployees": "الموظفون النشطون", "totalEmployees": "إجمالي الموظفين", "agencyUsers": "مستخدمو الوكالة", "status": "الحالة" },
-      "tabs": { "employees": "الموظفون", "users": "المستخدمون", "finance": "السجلات المالية", "settings": "الإعدادات" },
-      "employees": { "title": "موظفو الوكالة ({{count}})", "empty": "لم يتم العثور على موظفين لهذه الوكالة.", "viewProfile": "عرض الملف" },
-      "users": { "title": "مستخدمو الوكالة ({{count}})", "empty": "لم يتم العثور على مستخدمين لهذه الوكالة." },
-      "settings": { "title": "إعدادات الوكالة", "maxUsersLabel": "الحد الأقصى لعدد المستخدمين", "maxUsersHelp": "تحديد عدد المستخدمين النشطين لهذه الوكالة", "maxUsersOption": "{{count}} مستخدم", "save": "حفظ الإعدادات" },
-      "toast": { "settingsSaved": "تم حفظ الإعدادات", "settingsFailed": "فشل حفظ الإعدادات" }
+      "info": {
+        "country": "الدولة",
+        "email": "البريد الإلكتروني",
+        "phone": "الهاتف",
+        "contactPerson": "جهة الاتصال"
+      },
+      "stats": {
+        "activeEmployees": "الموظفون النشطون",
+        "totalEmployees": "إجمالي الموظفين",
+        "agencyUsers": "مستخدمو الوكالة",
+        "status": "الحالة"
+      },
+      "tabs": {
+        "employees": "الموظفون",
+        "users": "المستخدمون",
+        "finance": "السجلات المالية",
+        "settings": "الإعدادات"
+      },
+      "employees": {
+        "title": "موظفو الوكالة ({{count}})",
+        "empty": "لم يتم العثور على موظفين لهذه الوكالة.",
+        "viewProfile": "عرض الملف"
+      },
+      "users": {
+        "title": "مستخدمو الوكالة ({{count}})",
+        "empty": "لم يتم العثور على مستخدمين لهذه الوكالة."
+      },
+      "settings": {
+        "title": "إعدادات الوكالة",
+        "maxUsersLabel": "الحد الأقصى لعدد المستخدمين",
+        "maxUsersHelp": "تحديد عدد المستخدمين النشطين لهذه الوكالة",
+        "maxUsersOption": "{{count}} مستخدم",
+        "save": "حفظ الإعدادات"
+      },
+      "toast": {
+        "settingsSaved": "تم حفظ الإعدادات",
+        "settingsFailed": "فشل حفظ الإعدادات"
+      }
     },
-    "myProfile": { "title": "وكالتي" },
-    "add": { "title": "إضافة وكالة", "back": "العودة إلى الوكالات" },
-    "edit": { "title": "تعديل الوكالة", "back": "العودة إلى الملف" },
-    "users": { "title": "مستخدمو الوكالة", "subtitle": "إدارة المستخدمين المعينين لهذه الوكالة", "back": "العودة إلى الوكالة", "addButton": "إضافة مستخدم" }
+    "myProfile": {
+      "title": "وكالتي"
+    },
+    "add": {
+      "title": "إضافة وكالة",
+      "back": "العودة إلى الوكالات"
+    },
+    "edit": {
+      "title": "تعديل الوكالة",
+      "back": "العودة إلى الملف"
+    },
+    "users": {
+      "title": "مستخدمو الوكالة",
+      "subtitle": "إدارة المستخدمين المعينين لهذه الوكالة",
+      "back": "العودة إلى الوكالة",
+      "addButton": "إضافة مستخدم"
+    }
   },
   "documents": {
-    "dashboard": { "title": "الوثائق", "subtitle": "نظرة عامة على مستودع الوثائق", "uploadButton": "رفع وثيقة" },
-    "compliance": { "title": "الوثائق والامتثال", "subtitle": "حالة الامتثال عبر جميع الوثائق", "filterTitle": "تصفية الوثائق" },
-    "explorer": { "title": "مستكشف الوثائق", "searchTitle": "ابحث وفلتر الموظفين" },
-    "verification": { "title": "التحقق من الوثائق", "pending": "وثائق قيد الانتظار ({{count}})", "approve": "موافقة", "reject": "رفض" },
-    "preview": { "title": "وثيقة", "back": "رجوع", "download": "تنزيل" },
-    "upload": { "title": "رفع وثيقة", "back": "رجوع" },
-    "edit": { "title": "تعديل الوثيقة", "back": "رجوع" }
+    "dashboard": {
+      "title": "الوثائق",
+      "subtitle": "نظرة عامة على مستودع الوثائق",
+      "uploadButton": "رفع وثيقة"
+    },
+    "compliance": {
+      "title": "الوثائق والامتثال",
+      "subtitle": "حالة الامتثال عبر جميع الوثائق",
+      "filterTitle": "تصفية الوثائق"
+    },
+    "explorer": {
+      "title": "مستكشف الوثائق",
+      "searchTitle": "ابحث وفلتر الموظفين"
+    },
+    "verification": {
+      "title": "التحقق من الوثائق",
+      "pending": "وثائق قيد الانتظار ({{count}})",
+      "approve": "موافقة",
+      "reject": "رفض"
+    },
+    "preview": {
+      "title": "وثيقة",
+      "back": "رجوع",
+      "download": "تنزيل"
+    },
+    "upload": {
+      "title": "رفع وثيقة",
+      "back": "رجوع"
+    },
+    "edit": {
+      "title": "تعديل الوثيقة",
+      "back": "رجوع"
+    }
   },
   "compliance": {
-    "dashboard": { "title": "لوحة الامتثال", "stats": { "validDocuments": "وثائق صالحة", "expiringSoon": "تنتهي قريبًا", "expired": "منتهية", "pending": "قيد الانتظار" } },
-    "alerts": { "title": "تنبيهات الامتثال", "active": "تنبيهات نشطة", "resolved": "تنبيهات تم حلها", "empty": "لا توجد تنبيهات نشطة." },
-    "employee": { "title": "امتثال الموظف", "back": "رجوع" }
+    "dashboard": {
+      "title": "لوحة الامتثال",
+      "stats": {
+        "validDocuments": "وثائق صالحة",
+        "expiringSoon": "تنتهي قريبًا",
+        "expired": "منتهية",
+        "pending": "قيد الانتظار"
+      }
+    },
+    "alerts": {
+      "title": "تنبيهات الامتثال",
+      "active": "تنبيهات نشطة",
+      "resolved": "تنبيهات تم حلها",
+      "empty": "لا توجد تنبيهات نشطة."
+    },
+    "employee": {
+      "title": "امتثال الموظف",
+      "back": "رجوع"
+    }
   },
   "workflow": {
-    "overview": { "title": "نظرة عامة على سير العمل", "subtitle": "تتبع الموظفين عبر مسار التوظيف" },
-    "workPermits": { "title": "تتبع تصاريح العمل" },
-    "visas": { "title": "تتبع التأشيرات" },
-    "stage": { "title": "تفاصيل المرحلة" },
-    "timeline": { "title": "الجدول الزمني لسير العمل" },
-    "analytics": { "title": "تحليلات سير العمل" },
-    "management": { "title": "إدارة سير العمل" }
+    "overview": {
+      "title": "نظرة عامة على سير العمل",
+      "subtitle": "تتبع الموظفين عبر مسار التوظيف"
+    },
+    "workPermits": {
+      "title": "تتبع تصاريح العمل"
+    },
+    "visas": {
+      "title": "تتبع التأشيرات"
+    },
+    "stage": {
+      "title": "تفاصيل المرحلة"
+    },
+    "timeline": {
+      "title": "الجدول الزمني لسير العمل"
+    },
+    "analytics": {
+      "title": "تحليلات سير العمل"
+    },
+    "management": {
+      "title": "إدارة سير العمل"
+    }
   },
   "pipelines": {
-    "list": { "title": "سير العمل", "subtitle": "مسارات التوظيف وإعدادات المراحل", "addButton": "سير عمل جديد", "newDialogTitle": "سير عمل جديد", "empty": "لا يوجد سير عمل بعد." },
-    "board": { "title": "لوحة سير العمل" },
-    "stage": { "title": "المرحلة" },
-    "settings": { "title": "إعدادات سير العمل" }
+    "list": {
+      "title": "سير العمل",
+      "subtitle": "مسارات التوظيف وإعدادات المراحل",
+      "addButton": "سير عمل جديد",
+      "newDialogTitle": "سير عمل جديد",
+      "empty": "لا يوجد سير عمل بعد."
+    },
+    "board": {
+      "title": "لوحة سير العمل"
+    },
+    "stage": {
+      "title": "المرحلة"
+    },
+    "settings": {
+      "title": "إعدادات سير العمل"
+    }
   },
   "vehicles": {
-    "list": { "title": "المركبات", "subtitle": "إدارة الأسطول", "addButton": "إضافة مركبة", "search": "ابحث عن المركبات…", "empty": "لا توجد مركبات." },
+    "list": {
+      "title": "المركبات",
+      "subtitle": "إدارة الأسطول",
+      "addButton": "إضافة مركبة",
+      "search": "ابحث عن المركبات…",
+      "empty": "لا توجد مركبات."
+    },
     "detail": {
-      "title": "تفاصيل المركبة", "back": "العودة إلى الأسطول",
-      "loading": "جارٍ التحميل…", "notFound": "لم يتم العثور على المركبة",
+      "title": "تفاصيل المركبة",
+      "back": "العودة إلى الأسطول",
+      "loading": "جارٍ التحميل…",
+      "notFound": "لم يتم العثور على المركبة",
       "subtitle": "{{make}} {{model}} · {{type}}",
-      "expired": "منتهية الصلاحية", "daysSuffix": "ي",
-      "tabs": { "overview": "نظرة عامة", "driver": "السائق ({{count}})", "documents": "المستندات ({{count}})", "maintenance": "الصيانة ({{count}})" },
-      "info": { "title": "معلومات المركبة", "year": "السنة", "color": "اللون", "vin": "VIN", "fuelType": "نوع الوقود", "currentMileage": "العداد الحالي", "agency": "الوكالة", "kmSuffix": "{{value}} كم" },
-      "compliance": { "title": "الامتثال", "motExpiry": "انتهاء الفحص الفني", "taxExpiry": "انتهاء الضريبة", "insuranceExpiry": "انتهاء التأمين" },
+      "expired": "منتهية الصلاحية",
+      "daysSuffix": "ي",
+      "tabs": {
+        "overview": "نظرة عامة",
+        "driver": "السائق ({{count}})",
+        "documents": "المستندات ({{count}})",
+        "maintenance": "الصيانة ({{count}})"
+      },
+      "info": {
+        "title": "معلومات المركبة",
+        "year": "السنة",
+        "color": "اللون",
+        "vin": "VIN",
+        "fuelType": "نوع الوقود",
+        "currentMileage": "العداد الحالي",
+        "agency": "الوكالة",
+        "kmSuffix": "{{value}} كم"
+      },
+      "compliance": {
+        "title": "الامتثال",
+        "motExpiry": "انتهاء الفحص الفني",
+        "taxExpiry": "انتهاء الضريبة",
+        "insuranceExpiry": "انتهاء التأمين"
+      },
       "driver": {
-        "heading": "تعيينات السائقين", "assignButton": "تعيين سائق",
-        "active": "نشط", "ended": "منتهي", "endAssignment": "إنهاء التعيين",
-        "licensePrefix": "الرخصة", "since": "منذ {{date}}", "empty": "لا توجد تعيينات",
-        "columns": { "driver": "السائق", "licence": "الرخصة", "from": "من", "to": "إلى", "status": "الحالة" },
-        "dialog": { "title": "تعيين سائق", "selectDriver": "اختر سائقاً", "searchPlaceholder": "ابحث بالاسم أو رقم الرخصة…", "searching": "جارٍ البحث…", "noDriversFound": "لم يتم العثور على سائقين", "defaultRoleLabel": "سائق", "startDate": "تاريخ البدء", "assignButton": "تعيين سائق", "assigning": "جارٍ التعيين…" },
-        "toast": { "selectFirst": "يرجى اختيار سائق", "assigned": "تم تعيين السائق", "assignFailed": "فشل تعيين السائق", "unassigned": "تم إلغاء تعيين السائق", "unassignFailed": "فشل إلغاء التعيين" },
-        "confirmEnd": { "title": "إنهاء تعيين السائق؟", "description": "سيتم إنهاء تعيين السائق الحالي.", "confirm": "إنهاء التعيين" }
+        "heading": "تعيينات السائقين",
+        "assignButton": "تعيين سائق",
+        "active": "نشط",
+        "ended": "منتهي",
+        "endAssignment": "إنهاء التعيين",
+        "licensePrefix": "الرخصة",
+        "since": "منذ {{date}}",
+        "empty": "لا توجد تعيينات",
+        "columns": {
+          "driver": "السائق",
+          "licence": "الرخصة",
+          "from": "من",
+          "to": "إلى",
+          "status": "الحالة"
+        },
+        "dialog": {
+          "title": "تعيين سائق",
+          "selectDriver": "اختر سائقاً",
+          "searchPlaceholder": "ابحث بالاسم أو رقم الرخصة…",
+          "searching": "جارٍ البحث…",
+          "noDriversFound": "لم يتم العثور على سائقين",
+          "defaultRoleLabel": "سائق",
+          "startDate": "تاريخ البدء",
+          "assignButton": "تعيين سائق",
+          "assigning": "جارٍ التعيين…"
+        },
+        "toast": {
+          "selectFirst": "يرجى اختيار سائق",
+          "assigned": "تم تعيين السائق",
+          "assignFailed": "فشل تعيين السائق",
+          "unassigned": "تم إلغاء تعيين السائق",
+          "unassignFailed": "فشل إلغاء التعيين"
+        },
+        "confirmEnd": {
+          "title": "إنهاء تعيين السائق؟",
+          "description": "سيتم إنهاء تعيين السائق الحالي.",
+          "confirm": "إنهاء التعيين"
+        }
       },
       "documents": {
-        "heading": "مستندات المركبة", "addButton": "إضافة مستند", "empty": "لا توجد مستندات",
-        "columns": { "name": "الاسم", "type": "النوع", "issuer": "جهة الإصدار", "issued": "تاريخ الإصدار", "expires": "ينتهي", "actions": "الإجراءات" },
-        "downloadTitle": "تنزيل {{name}}", "defaultFileName": "ملف",
-        "dialog": {
-          "addTitle": "إضافة مستند للمركبة", "editTitle": "تعديل المستند",
-          "name": "اسم المستند", "namePh": "مثال: شهادة الفحص الفني",
-          "type": "نوع المستند", "issuedDate": "تاريخ الإصدار", "expiryDate": "تاريخ الانتهاء",
-          "issuer": "جهة الإصدار", "issuerPh": "مثال: DVSA",
-          "notes": "ملاحظات", "notesPh": "ملاحظات اختيارية",
-          "fileLabel": "ملف", "fileHint": "(اختياري، حد أقصى 20 ميجابايت)", "fileSize": "{{name}} ({{size}} كيلوبايت)",
-          "addButton": "إضافة مستند", "saveButton": "حفظ التغييرات", "saving": "جارٍ الحفظ…"
+        "heading": "مستندات المركبة",
+        "addButton": "إضافة مستند",
+        "empty": "لا توجد مستندات",
+        "columns": {
+          "name": "الاسم",
+          "type": "النوع",
+          "issuer": "جهة الإصدار",
+          "issued": "تاريخ الإصدار",
+          "expires": "ينتهي",
+          "actions": "الإجراءات"
         },
-        "toast": { "nameRequired": "اسم المستند مطلوب", "added": "تمت إضافة المستند", "updated": "تم تحديث المستند", "addFailed": "فشل إضافة المستند", "updateFailed": "فشل تحديث المستند", "deleted": "تم حذف المستند", "deleteFailed": "فشل حذف المستند" },
-        "confirmDelete": { "title": "حذف المستند؟", "description": "سيتم حذف هذا المستند نهائياً.", "confirm": "حذف" }
+        "downloadTitle": "تنزيل {{name}}",
+        "defaultFileName": "ملف",
+        "dialog": {
+          "addTitle": "إضافة مستند للمركبة",
+          "editTitle": "تعديل المستند",
+          "name": "اسم المستند",
+          "namePh": "مثال: شهادة الفحص الفني",
+          "type": "نوع المستند",
+          "issuedDate": "تاريخ الإصدار",
+          "expiryDate": "تاريخ الانتهاء",
+          "issuer": "جهة الإصدار",
+          "issuerPh": "مثال: DVSA",
+          "notes": "ملاحظات",
+          "notesPh": "ملاحظات اختيارية",
+          "fileLabel": "ملف",
+          "fileHint": "(اختياري، حد أقصى 20 ميجابايت)",
+          "fileSize": "{{name}} ({{size}} كيلوبايت)",
+          "addButton": "إضافة مستند",
+          "saveButton": "حفظ التغييرات",
+          "saving": "جارٍ الحفظ…"
+        },
+        "toast": {
+          "nameRequired": "اسم المستند مطلوب",
+          "added": "تمت إضافة المستند",
+          "updated": "تم تحديث المستند",
+          "addFailed": "فشل إضافة المستند",
+          "updateFailed": "فشل تحديث المستند",
+          "deleted": "تم حذف المستند",
+          "deleteFailed": "فشل حذف المستند"
+        },
+        "confirmDelete": {
+          "title": "حذف المستند؟",
+          "description": "سيتم حذف هذا المستند نهائياً.",
+          "confirm": "حذف"
+        }
       },
       "maintenance": {
-        "heading": "سجلات الصيانة", "addButton": "إضافة سجل", "empty": "لا توجد سجلات صيانة",
-        "columns": { "type": "النوع", "status": "الحالة", "scheduled": "مجدولة", "completed": "مكتملة", "workshop": "الورشة", "cost": "التكلفة", "actions": "الإجراءات" },
-        "dialog": {
-          "addTitle": "إضافة سجل صيانة", "editTitle": "تعديل سجل الصيانة",
-          "sectionService": "تفاصيل الخدمة", "sectionDriver": "السائق واللوجستيات", "sectionApproval": "الموافقة",
-          "type": "نوع الصيانة", "typePh": "اختر النوع", "notSpecified": "غير محدد",
-          "status": "الحالة", "workshop": "الورشة", "workshopPh": "اختر ورشة",
-          "mileageAtService": "العداد عند الخدمة (كم)", "mileagePh": "0",
-          "scheduledDate": "التاريخ المجدول", "completedDate": "تاريخ الإكمال",
-          "totalCost": "التكلفة الإجمالية (£)", "totalCostPh": "0.00",
-          "description": "الوصف", "descriptionPh": "وصف موجز",
-          "workDescription": "وصف العمل", "workDescriptionPh": "وصف تفصيلي للعمل المنجز...",
-          "notes": "ملاحظات", "notesPh": "ملاحظات إضافية",
-          "serviceDriver": "سائق الخدمة", "selectDriver": "اختر السائق",
-          "otherExternal": "آخر (خارجي)", "otherNone": "آخر / لا شيء",
-          "externalDriverName": "اسم السائق الخارجي", "driverNamePh": "اسم السائق", "namePh": "الاسم",
-          "dropOffDriver": "سائق التسليم", "dropOffDriverName": "اسم سائق التسليم", "dropOffDateTime": "تاريخ/وقت التسليم",
-          "pickUpDriver": "سائق الاستلام", "pickUpDriverName": "اسم سائق الاستلام", "pickUpDateTime": "تاريخ/وقت الاستلام",
-          "approvedBy": "اعتمد من قبل", "pendingApproval": "بانتظار الموافقة", "approvalDate": "تاريخ الموافقة",
-          "addButton": "إضافة سجل", "saveButton": "حفظ التغييرات", "saving": "جارٍ الحفظ…"
+        "heading": "سجلات الصيانة",
+        "addButton": "إضافة سجل",
+        "empty": "لا توجد سجلات صيانة",
+        "columns": {
+          "type": "النوع",
+          "status": "الحالة",
+          "scheduled": "مجدولة",
+          "completed": "مكتملة",
+          "workshop": "الورشة",
+          "cost": "التكلفة",
+          "actions": "الإجراءات"
         },
-        "toast": { "added": "تمت إضافة سجل الصيانة", "updated": "تم تحديث سجل الصيانة", "addFailed": "فشل إضافة سجل الصيانة", "updateFailed": "فشل تحديث السجل", "deleted": "تم حذف السجل", "deleteFailed": "فشل حذف السجل" },
-        "confirmDelete": { "title": "حذف سجل الصيانة؟", "description": "سيتم حذف سجل الصيانة هذا نهائياً.", "confirm": "حذف" }
+        "dialog": {
+          "addTitle": "إضافة سجل صيانة",
+          "editTitle": "تعديل سجل الصيانة",
+          "sectionService": "تفاصيل الخدمة",
+          "sectionDriver": "السائق واللوجستيات",
+          "sectionApproval": "الموافقة",
+          "type": "نوع الصيانة",
+          "typePh": "اختر النوع",
+          "notSpecified": "غير محدد",
+          "status": "الحالة",
+          "workshop": "الورشة",
+          "workshopPh": "اختر ورشة",
+          "mileageAtService": "العداد عند الخدمة (كم)",
+          "mileagePh": "0",
+          "scheduledDate": "التاريخ المجدول",
+          "completedDate": "تاريخ الإكمال",
+          "totalCost": "التكلفة الإجمالية (£)",
+          "totalCostPh": "0.00",
+          "description": "الوصف",
+          "descriptionPh": "وصف موجز",
+          "workDescription": "وصف العمل",
+          "workDescriptionPh": "وصف تفصيلي للعمل المنجز...",
+          "notes": "ملاحظات",
+          "notesPh": "ملاحظات إضافية",
+          "serviceDriver": "سائق الخدمة",
+          "selectDriver": "اختر السائق",
+          "otherExternal": "آخر (خارجي)",
+          "otherNone": "آخر / لا شيء",
+          "externalDriverName": "اسم السائق الخارجي",
+          "driverNamePh": "اسم السائق",
+          "namePh": "الاسم",
+          "dropOffDriver": "سائق التسليم",
+          "dropOffDriverName": "اسم سائق التسليم",
+          "dropOffDateTime": "تاريخ/وقت التسليم",
+          "pickUpDriver": "سائق الاستلام",
+          "pickUpDriverName": "اسم سائق الاستلام",
+          "pickUpDateTime": "تاريخ/وقت الاستلام",
+          "approvedBy": "اعتمد من قبل",
+          "pendingApproval": "بانتظار الموافقة",
+          "approvalDate": "تاريخ الموافقة",
+          "addButton": "إضافة سجل",
+          "saveButton": "حفظ التغييرات",
+          "saving": "جارٍ الحفظ…"
+        },
+        "toast": {
+          "added": "تمت إضافة سجل الصيانة",
+          "updated": "تم تحديث سجل الصيانة",
+          "addFailed": "فشل إضافة سجل الصيانة",
+          "updateFailed": "فشل تحديث السجل",
+          "deleted": "تم حذف السجل",
+          "deleteFailed": "فشل حذف السجل"
+        },
+        "confirmDelete": {
+          "title": "حذف سجل الصيانة؟",
+          "description": "سيتم حذف سجل الصيانة هذا نهائياً.",
+          "confirm": "حذف"
+        }
       },
-      "toast": { "loadFailed": "تعذر تحميل المركبة", "deleted": "تم حذف المركبة", "deleteFailed": "فشل الحذف" },
-      "confirmDelete": { "title": "حذف المركبة؟", "description": "سيتم حذف هذه المركبة نهائياً. لا يمكن التراجع عن هذا الإجراء بسهولة.", "confirm": "حذف" }
+      "toast": {
+        "loadFailed": "تعذر تحميل المركبة",
+        "deleted": "تم حذف المركبة",
+        "deleteFailed": "فشل الحذف"
+      },
+      "confirmDelete": {
+        "title": "حذف المركبة؟",
+        "description": "سيتم حذف هذه المركبة نهائياً. لا يمكن التراجع عن هذا الإجراء بسهولة.",
+        "confirm": "حذف"
+      }
     },
     "form": {
       "addTitle": "إضافة مركبة",
@@ -280,65 +1079,122 @@
       "createButton": "إنشاء مركبة",
       "saveChanges": "حفظ التغييرات",
       "sections": {
-        "details": "تفاصيل المركبة", "compliance": "تواريخ الامتثال والتسجيل", "purchase": "معلومات الشراء", "insurance": "معلومات التأمين",
-        "truck": "مواصفات الشاحنات والمقطورات", "van": "مواصفات الفان", "car": "مواصفات السيارة", "tanker": "مواصفات الصهريج",
-        "refrigerated": "مواصفات المقطورة المبردة", "specialty": "معدات خاصة"
+        "details": "تفاصيل المركبة",
+        "compliance": "تواريخ الامتثال والتسجيل",
+        "purchase": "معلومات الشراء",
+        "insurance": "معلومات التأمين",
+        "truck": "مواصفات الشاحنات والمقطورات",
+        "van": "مواصفات الفان",
+        "car": "مواصفات السيارة",
+        "tanker": "مواصفات الصهريج",
+        "refrigerated": "مواصفات المقطورة المبردة",
+        "specialty": "معدات خاصة"
       },
       "fields": {
-        "registrationNumber": "رقم التسجيل", "registrationNumberPh": "مثال: AB12 CDE",
-        "licensePlate": "لوحة الترخيص", "licensePlatePh": "مثال: AB12CDE",
-        "vehicleType": "نوع المركبة", "vehicleTypePh": "اختر النوع",
+        "registrationNumber": "رقم التسجيل",
+        "registrationNumberPh": "مثال: AB12 CDE",
+        "licensePlate": "لوحة الترخيص",
+        "licensePlatePh": "مثال: AB12CDE",
+        "vehicleType": "نوع المركبة",
+        "vehicleTypePh": "اختر النوع",
         "status": "الحالة",
-        "make": "الصانع", "makePh": "مثال: Volvo",
-        "model": "الموديل", "modelPh": "مثال: FH16",
-        "year": "السنة", "yearPh": "مثال: 2022",
-        "color": "اللون", "colorPh": "مثال: أبيض",
-        "vin": "VIN", "vinPh": "رقم تعريف المركبة",
-        "fuelType": "نوع الوقود", "fuelTypePh": "اختر نوع الوقود",
-        "fuelCapacity": "سعة الوقود (لتر)", "fuelCapacityPh": "مثال: 200",
-        "currentMileage": "العداد الحالي (كم)", "currentMileagePh": "0",
-        "notes": "ملاحظات", "notesPh": "ملاحظات إضافية",
-        "motExpiry": "انتهاء الفحص الفني", "taxExpiry": "انتهاء الضريبة", "registrationExpiry": "انتهاء التسجيل", "insuranceExpiry": "انتهاء التأمين",
-        "purchaseOrder": "أمر الشراء", "purchaseOrderPh": "مثال: PO-2024-001",
+        "make": "الصانع",
+        "makePh": "مثال: Volvo",
+        "model": "الموديل",
+        "modelPh": "مثال: FH16",
+        "year": "السنة",
+        "yearPh": "مثال: 2022",
+        "color": "اللون",
+        "colorPh": "مثال: أبيض",
+        "vin": "VIN",
+        "vinPh": "رقم تعريف المركبة",
+        "fuelType": "نوع الوقود",
+        "fuelTypePh": "اختر نوع الوقود",
+        "fuelCapacity": "سعة الوقود (لتر)",
+        "fuelCapacityPh": "مثال: 200",
+        "currentMileage": "العداد الحالي (كم)",
+        "currentMileagePh": "0",
+        "notes": "ملاحظات",
+        "notesPh": "ملاحظات إضافية",
+        "motExpiry": "انتهاء الفحص الفني",
+        "taxExpiry": "انتهاء الضريبة",
+        "registrationExpiry": "انتهاء التسجيل",
+        "insuranceExpiry": "انتهاء التأمين",
+        "purchaseOrder": "أمر الشراء",
+        "purchaseOrderPh": "مثال: PO-2024-001",
         "purchaseDate": "تاريخ الشراء",
-        "purchaseCost": "تكلفة الشراء", "purchaseCostPh": "مثال: 50000.00",
-        "purchaseContract": "عقد الشراء", "purchaseContractPh": "مثال: CON-2024-001",
-        "vendorName": "اسم البائع", "vendorNamePh": "مثال: ABC لتجارة المركبات",
-        "vendorAddress": "عنوان البائع", "vendorAddressPh": "العنوان الكامل للبائع",
-        "policyNumber": "رقم البوليصة", "policyNumberPh": "مثال: POL-2024-001",
-        "insuranceCompany": "شركة التأمين", "insuranceCompanyPh": "مثال: ABC للتأمين",
-        "insuranceTypeLabel": "نوع التأمين", "insuranceTypePh": "اختر نوع التأمين",
+        "purchaseCost": "تكلفة الشراء",
+        "purchaseCostPh": "مثال: 50000.00",
+        "purchaseContract": "عقد الشراء",
+        "purchaseContractPh": "مثال: CON-2024-001",
+        "vendorName": "اسم البائع",
+        "vendorNamePh": "مثال: ABC لتجارة المركبات",
+        "vendorAddress": "عنوان البائع",
+        "vendorAddressPh": "العنوان الكامل للبائع",
+        "policyNumber": "رقم البوليصة",
+        "policyNumberPh": "مثال: POL-2024-001",
+        "insuranceCompany": "شركة التأمين",
+        "insuranceCompanyPh": "مثال: ABC للتأمين",
+        "insuranceTypeLabel": "نوع التأمين",
+        "insuranceTypePh": "اختر نوع التأمين",
         "insuranceStartDate": "تاريخ بدء التأمين",
-        "grossWeight": "الوزن الإجمالي (طن)", "grossWeightPh": "مثال: 44",
-        "payloadCapacity": "سعة الحمولة (طن)", "payloadCapacityPh": "مثال: 26",
-        "tareWeight": "الوزن الفارغ (طن)", "tareWeightPh": "مثال: 18",
-        "numberOfAxles": "عدد المحاور", "numberOfAxlesPh": "مثال: 5",
-        "bodyType": "نوع الهيكل", "bodyTypePh": "اختر نوع الهيكل",
-        "hitchType": "نوع القارنة", "hitchTypePh": "اختر نوع القارنة",
-        "lengthM": "الطول (م)", "lengthMPh": "مثال: 13.6",
-        "widthM": "العرض (م)", "widthMPh": "مثال: 2.5",
-        "heightM": "الارتفاع (م)", "heightMPh": "مثال: 2.5",
-        "euroEmission": "فئة الانبعاثات الأوروبية", "euroEmissionPh": "اختر الفئة",
-        "tachographSerial": "الرقم التسلسلي للتاكوغراف", "tachographSerialPh": "مثال: VD0123456789",
+        "grossWeight": "الوزن الإجمالي (طن)",
+        "grossWeightPh": "مثال: 44",
+        "payloadCapacity": "سعة الحمولة (طن)",
+        "payloadCapacityPh": "مثال: 26",
+        "tareWeight": "الوزن الفارغ (طن)",
+        "tareWeightPh": "مثال: 18",
+        "numberOfAxles": "عدد المحاور",
+        "numberOfAxlesPh": "مثال: 5",
+        "bodyType": "نوع الهيكل",
+        "bodyTypePh": "اختر نوع الهيكل",
+        "hitchType": "نوع القارنة",
+        "hitchTypePh": "اختر نوع القارنة",
+        "lengthM": "الطول (م)",
+        "lengthMPh": "مثال: 13.6",
+        "widthM": "العرض (م)",
+        "widthMPh": "مثال: 2.5",
+        "heightM": "الارتفاع (م)",
+        "heightMPh": "مثال: 2.5",
+        "euroEmission": "فئة الانبعاثات الأوروبية",
+        "euroEmissionPh": "اختر الفئة",
+        "tachographSerial": "الرقم التسلسلي للتاكوغراف",
+        "tachographSerialPh": "مثال: VD0123456789",
         "tachographCalibrationExpiry": "انتهاء معايرة التاكوغراف",
-        "trailerLength": "طول المقطورة (م)", "trailerLengthPh": "مثال: 13.6",
-        "seatingCapacity": "عدد المقاعد", "seatingCapacityPh": "مثال: 5",
-        "loadVolume": "حجم الحمولة (م³)", "loadVolumePh": "مثال: 15.5",
+        "trailerLength": "طول المقطورة (م)",
+        "trailerLengthPh": "مثال: 13.6",
+        "seatingCapacity": "عدد المقاعد",
+        "seatingCapacityPh": "مثال: 5",
+        "loadVolume": "حجم الحمولة (م³)",
+        "loadVolumePh": "مثال: 15.5",
         "partitionFitted": "حاجز مركّب",
-        "vinSubType": "نوع VIN فرعي", "vinSubTypePh": "اختر النوع الفرعي لـ VIN",
-        "insuranceGroup": "مجموعة التأمين", "insuranceGroupPh": "اختر مجموعة التأمين",
-        "tankerCapacity": "سعة الصهريج (لتر)", "tankerCapacityPh": "مثال: 30000",
-        "tankMaterial": "مادة الخزان", "tankMaterialPh": "اختر مادة الخزان",
-        "adrClass": "فئة ADR", "adrClassPh": "اختر فئة ADR",
-        "unNumbers": "أرقام UN", "unNumbersPh": "مثال: 1223, 1250",
-        "lastPressureTest": "آخر اختبار ضغط", "nextPressureTest": "اختبار الضغط التالي",
-        "refrigerationUnit": "وحدة التبريد", "refrigerationUnitPh": "مثال: Thermo King",
-        "refrigerationModel": "موديل التبريد", "refrigerationModelPh": "مثال: T-1200R",
-        "tempMin": "أدنى درجة (°C)", "tempMinPh": "مثال: -25",
-        "tempMax": "أقصى درجة (°C)", "tempMaxPh": "مثال: 10",
-        "atpCertificateNumber": "رقم شهادة ATP", "atpCertificateNumberPh": "مثال: ATP-2024-001",
+        "vinSubType": "نوع VIN فرعي",
+        "vinSubTypePh": "اختر النوع الفرعي لـ VIN",
+        "insuranceGroup": "مجموعة التأمين",
+        "insuranceGroupPh": "اختر مجموعة التأمين",
+        "tankerCapacity": "سعة الصهريج (لتر)",
+        "tankerCapacityPh": "مثال: 30000",
+        "tankMaterial": "مادة الخزان",
+        "tankMaterialPh": "اختر مادة الخزان",
+        "adrClass": "فئة ADR",
+        "adrClassPh": "اختر فئة ADR",
+        "unNumbers": "أرقام UN",
+        "unNumbersPh": "مثال: 1223, 1250",
+        "lastPressureTest": "آخر اختبار ضغط",
+        "nextPressureTest": "اختبار الضغط التالي",
+        "refrigerationUnit": "وحدة التبريد",
+        "refrigerationUnitPh": "مثال: Thermo King",
+        "refrigerationModel": "موديل التبريد",
+        "refrigerationModelPh": "مثال: T-1200R",
+        "tempMin": "أدنى درجة (°C)",
+        "tempMinPh": "مثال: -25",
+        "tempMax": "أقصى درجة (°C)",
+        "tempMaxPh": "مثال: 10",
+        "atpCertificateNumber": "رقم شهادة ATP",
+        "atpCertificateNumberPh": "مثال: ATP-2024-001",
         "atpCertificateExpiry": "انتهاء شهادة ATP",
-        "equipmentDescription": "وصف المعدات", "equipmentDescriptionPh": "صف أي معدات أو تعديلات خاصة",
+        "equipmentDescription": "وصف المعدات",
+        "equipmentDescriptionPh": "صف أي معدات أو تعديلات خاصة",
         "notSpecified": "غير محدد"
       },
       "validation": {
@@ -355,87 +1211,265 @@
         "saveFailed": "فشل الحفظ"
       }
     },
-    "workshops": { "title": "ورش العمل", "subtitle": "مزودو الخدمات المعتمدون", "addButton": "إضافة ورشة", "empty": "لا توجد ورش بعد." },
-    "maintenanceTypes": { "title": "أنواع الصيانة", "addButton": "إضافة نوع" },
-    "maintenanceRecords": { "title": "سجلات الصيانة", "subtitle": "جميع أعمال الصيانة عبر الأسطول", "addButton": "سجل جديد", "empty": "لا توجد سجلات بعد." }
+    "workshops": {
+      "title": "ورش العمل",
+      "subtitle": "مزودو الخدمات المعتمدون",
+      "addButton": "إضافة ورشة",
+      "empty": "لا توجد ورش بعد."
+    },
+    "maintenanceTypes": {
+      "title": "أنواع الصيانة",
+      "addButton": "إضافة نوع"
+    },
+    "maintenanceRecords": {
+      "title": "سجلات الصيانة",
+      "subtitle": "جميع أعمال الصيانة عبر الأسطول",
+      "addButton": "سجل جديد",
+      "empty": "لا توجد سجلات بعد."
+    }
   },
   "attendance": {
-    "list": { "title": "سجلات الحضور", "subtitle": "حضور شهري لكل موظف", "addButton": "سجل جديد", "empty": "لا توجد سجلات بعد." },
-    "sheet": { "title": "سجل الحضور", "back": "العودة إلى الحضور", "save": "حفظ السجل", "lock": "قفل الفترة", "unlock": "فتح الفترة" }
+    "list": {
+      "title": "سجلات الحضور",
+      "subtitle": "حضور شهري لكل موظف",
+      "addButton": "سجل جديد",
+      "empty": "لا توجد سجلات بعد."
+    },
+    "sheet": {
+      "title": "سجل الحضور",
+      "back": "العودة إلى الحضور",
+      "save": "حفظ السجل",
+      "lock": "قفل الفترة",
+      "unlock": "فتح الفترة"
+    }
   },
   "reports": {
-    "dashboard": { "title": "التقارير والتحليلات", "subtitle": "أنشئ وصدّر تقارير مخصصة", "newReport": "تقرير جديد", "empty": "لا توجد تقارير بعد." }
+    "dashboard": {
+      "title": "التقارير والتحليلات",
+      "subtitle": "أنشئ وصدّر تقارير مخصصة",
+      "newReport": "تقرير جديد",
+      "empty": "لا توجد تقارير بعد."
+    }
   },
   "notifications": {
-    "center": { "title": "الإشعارات", "subtitle": "جميع تنبيهاتك وتحديثاتك", "markAllRead": "تعليم الكل كمقروء", "empty": "لا توجد إشعارات.", "filters": { "all": "الكل", "unread": "غير المقروءة", "read": "المقروءة" } },
-    "settings": { "title": "إعدادات الإشعارات", "subtitle": "اختر الإشعارات التي تتلقاها", "save": "حفظ التفضيلات" }
+    "center": {
+      "title": "الإشعارات",
+      "subtitle": "جميع تنبيهاتك وتحديثاتك",
+      "markAllRead": "تعليم الكل كمقروء",
+      "empty": "لا توجد إشعارات.",
+      "filters": {
+        "all": "الكل",
+        "unread": "غير المقروءة",
+        "read": "المقروءة"
+      }
+    },
+    "settings": {
+      "title": "إعدادات الإشعارات",
+      "subtitle": "اختر الإشعارات التي تتلقاها",
+      "save": "حفظ التفضيلات"
+    }
   },
   "users": {
-    "list": { "title": "إدارة المستخدمين", "subtitle": "مستخدمو النظام والصلاحيات", "addButton": "إضافة مستخدم", "search": "ابحث عن المستخدمين…", "bulkImport": "استيراد جماعي", "empty": "لا يوجد مستخدمون.", "activationLink": "رابط التفعيل" },
-    "add": { "title": "إضافة مستخدم", "back": "العودة إلى المستخدمين" },
-    "edit": { "title": "تعديل المستخدم", "back": "العودة إلى المستخدمين" }
+    "list": {
+      "title": "إدارة المستخدمين",
+      "subtitle": "مستخدمو النظام والصلاحيات",
+      "addButton": "إضافة مستخدم",
+      "search": "ابحث عن المستخدمين…",
+      "bulkImport": "استيراد جماعي",
+      "empty": "لا يوجد مستخدمون.",
+      "activationLink": "رابط التفعيل"
+    },
+    "add": {
+      "title": "إضافة مستخدم",
+      "back": "العودة إلى المستخدمين"
+    },
+    "edit": {
+      "title": "تعديل المستخدم",
+      "back": "العودة إلى المستخدمين"
+    }
   },
   "roles": {
-    "list": { "title": "الأدوار والصلاحيات", "subtitle": "حدد الأدوار وعيّن الصلاحيات", "addButton": "دور جديد", "permissionsMatrix": "مصفوفة الصلاحيات", "allRoles": "جميع الأدوار", "empty": "لا توجد أدوار بعد." },
-    "create": { "title": "إنشاء دور", "editTitle": "تعديل الدور", "back": "العودة إلى الأدوار" },
-    "matrix": { "title": "مصفوفة الصلاحيات", "back": "العودة إلى الأدوار" }
+    "list": {
+      "title": "الأدوار والصلاحيات",
+      "subtitle": "حدد الأدوار وعيّن الصلاحيات",
+      "addButton": "دور جديد",
+      "permissionsMatrix": "مصفوفة الصلاحيات",
+      "allRoles": "جميع الأدوار",
+      "empty": "لا توجد أدوار بعد."
+    },
+    "create": {
+      "title": "إنشاء دور",
+      "editTitle": "تعديل الدور",
+      "back": "العودة إلى الأدوار"
+    },
+    "matrix": {
+      "title": "مصفوفة الصلاحيات",
+      "back": "العودة إلى الأدوار"
+    }
   },
   "jobAds": {
-    "list": { "title": "إعلانات الوظائف", "subtitle": "إعلانات الوظائف العامة", "addButton": "إعلان جديد", "search": "ابحث عن الإعلانات…", "empty": "لا توجد إعلانات بعد." },
-    "form": { "addTitle": "إعلان جديد", "editTitle": "تعديل الإعلان", "back": "العودة إلى الإعلانات" }
+    "list": {
+      "title": "إعلانات الوظائف",
+      "subtitle": "إعلانات الوظائف العامة",
+      "addButton": "إعلان جديد",
+      "search": "ابحث عن الإعلانات…",
+      "empty": "لا توجد إعلانات بعد."
+    },
+    "form": {
+      "addTitle": "إعلان جديد",
+      "editTitle": "تعديل الإعلان",
+      "back": "العودة إلى الإعلانات"
+    }
   },
   "recycleBin": {
-    "list": { "title": "السجلات المحذوفة", "subtitle": "استعد السجلات أو احذفها نهائيًا", "accessDenied": "تم رفض الوصول", "empty": "سلة المحذوفات فارغة.", "restore": "استعادة", "permanentlyDelete": "حذف نهائي" }
+    "list": {
+      "title": "السجلات المحذوفة",
+      "subtitle": "استعد السجلات أو احذفها نهائيًا",
+      "accessDenied": "تم رفض الوصول",
+      "empty": "سلة المحذوفات فارغة.",
+      "restore": "استعادة",
+      "permanentlyDelete": "حذف نهائي"
+    }
   },
   "logs": {
-    "dashboard": { "title": "سجلات النظام", "subtitle": "مسار تدقيق النشاط", "activityByModule": "النشاط حسب الوحدة", "search": "ابحث في السجلات…", "empty": "لا توجد سجلات تطابق المرشحات." }
+    "dashboard": {
+      "title": "سجلات النظام",
+      "subtitle": "مسار تدقيق النشاط",
+      "activityByModule": "النشاط حسب الوحدة",
+      "search": "ابحث في السجلات…",
+      "empty": "لا توجد سجلات تطابق المرشحات."
+    }
   },
   "settings": {
     "index": {
       "title": "الإعدادات",
       "subtitle": "تكوين نسخة TempWorks الخاصة بك",
       "groups": {
-        "appearance": "المظهر", "appearanceDesc": "السمة ونمط الألوان",
-        "workflow": "سير العمل", "workflowDesc": "تكوين عملية التوظيف",
-        "documentTypes": "أنواع الوثائق", "documentTypesDesc": "إدارة فئات الوثائق",
-        "notifications": "الإشعارات", "notificationsDesc": "قواعد ومحفزات الإشعارات",
-        "security": "الأمان", "securityDesc": "سياسات المصادقة والوصول",
-        "branding": "العلامة التجارية", "brandingDesc": "الشعار، اسم الشركة، النصوص التسويقية",
-        "system": "النظام", "systemDesc": "قاعدة البيانات، النسخ الاحتياطي، معلومات النظام"
+        "appearance": "المظهر",
+        "appearanceDesc": "السمة ونمط الألوان",
+        "workflow": "سير العمل",
+        "workflowDesc": "تكوين عملية التوظيف",
+        "documentTypes": "أنواع الوثائق",
+        "documentTypesDesc": "إدارة فئات الوثائق",
+        "notifications": "الإشعارات",
+        "notificationsDesc": "قواعد ومحفزات الإشعارات",
+        "security": "الأمان",
+        "securityDesc": "سياسات المصادقة والوصول",
+        "branding": "العلامة التجارية",
+        "brandingDesc": "الشعار، اسم الشركة، النصوص التسويقية",
+        "system": "النظام",
+        "systemDesc": "قاعدة البيانات، النسخ الاحتياطي، معلومات النظام"
       }
     },
-    "documentTypes": { "list": "أنواع الوثائق", "addButton": "نوع وثيقة جديد", "newTitle": "نوع وثيقة جديد", "editTitle": "تعديل نوع الوثيقة", "viewTitle": "نوع الوثيقة", "back": "العودة إلى أنواع الوثائق" },
-    "jobTypes": { "title": "أنواع الوظائف", "addButton": "إضافة نوع" },
-    "skills": { "title": "المهارات", "addButton": "إضافة مهارة" },
-    "workflowSettings": { "title": "إعدادات سير العمل" },
-    "workflowConfiguration": { "title": "تكوين سير العمل" },
-    "notificationRules": { "title": "قواعد الإشعارات", "addButton": "قاعدة جديدة" },
-    "security": { "title": "إعدادات الأمان" },
-    "colorScheme": { "title": "نمط الألوان" },
-    "branding": { "title": "العلامة التجارية" },
-    "databaseCleanup": { "title": "تنظيف قاعدة البيانات" },
-    "databaseBackup": { "title": "نسخ احتياطي للقاعدة" },
-    "systemInformation": { "title": "معلومات النظام" },
-    "transportTypes": { "title": "أنواع النقل", "addButton": "إضافة نوع" },
-    "truckBrands": { "title": "ماركات الشاحنات", "addButton": "إضافة ماركة" },
-    "trailerTypes": { "title": "أنواع المقطورات", "addButton": "إضافة نوع" },
-    "vehicleSettings": { "title": "إعدادات المركبات" },
-    "transactionTypes": { "title": "أنواع المعاملات", "addButton": "إضافة نوع" },
-    "workHistoryEventTypes": { "title": "أنواع أحداث سجل العمل", "addButton": "إضافة نوع" },
-    "maintenanceTypes": { "title": "أنواع الصيانة", "addButton": "إضافة نوع" }
+    "documentTypes": {
+      "list": "أنواع الوثائق",
+      "addButton": "نوع وثيقة جديد",
+      "newTitle": "نوع وثيقة جديد",
+      "editTitle": "تعديل نوع الوثيقة",
+      "viewTitle": "نوع الوثيقة",
+      "back": "العودة إلى أنواع الوثائق"
+    },
+    "jobTypes": {
+      "title": "أنواع الوظائف",
+      "addButton": "إضافة نوع"
+    },
+    "skills": {
+      "title": "المهارات",
+      "addButton": "إضافة مهارة"
+    },
+    "workflowSettings": {
+      "title": "إعدادات سير العمل"
+    },
+    "workflowConfiguration": {
+      "title": "تكوين سير العمل"
+    },
+    "notificationRules": {
+      "title": "قواعد الإشعارات",
+      "addButton": "قاعدة جديدة"
+    },
+    "security": {
+      "title": "إعدادات الأمان"
+    },
+    "colorScheme": {
+      "title": "نمط الألوان"
+    },
+    "branding": {
+      "title": "العلامة التجارية"
+    },
+    "databaseCleanup": {
+      "title": "تنظيف قاعدة البيانات"
+    },
+    "databaseBackup": {
+      "title": "نسخ احتياطي للقاعدة"
+    },
+    "systemInformation": {
+      "title": "معلومات النظام"
+    },
+    "transportTypes": {
+      "title": "أنواع النقل",
+      "addButton": "إضافة نوع"
+    },
+    "truckBrands": {
+      "title": "ماركات الشاحنات",
+      "addButton": "إضافة ماركة"
+    },
+    "trailerTypes": {
+      "title": "أنواع المقطورات",
+      "addButton": "إضافة نوع"
+    },
+    "vehicleSettings": {
+      "title": "إعدادات المركبات"
+    },
+    "transactionTypes": {
+      "title": "أنواع المعاملات",
+      "addButton": "إضافة نوع"
+    },
+    "workHistoryEventTypes": {
+      "title": "أنواع أحداث سجل العمل",
+      "addButton": "إضافة نوع"
+    },
+    "maintenanceTypes": {
+      "title": "أنواع الصيانة",
+      "addButton": "إضافة نوع"
+    }
   },
   "profile": {
-    "view": { "title": "ملفي الشخصي", "subtitle": "المعلومات الشخصية وجهة الاتصال", "edit": "تعديل" },
-    "changePassword": { "title": "تغيير كلمة المرور", "subtitle": "حدّث كلمة المرور للحفاظ على أمان حسابك" },
-    "preferences": { "title": "التفضيلات", "subtitle": "اللغة والمنطقة الزمنية وإعدادات الإشعارات", "language": "اللغة المفضلة", "timezone": "المنطقة الزمنية", "save": "حفظ التفضيلات", "saved": "تم حفظ التفضيلات" }
+    "view": {
+      "title": "ملفي الشخصي",
+      "subtitle": "المعلومات الشخصية وجهة الاتصال",
+      "edit": "تعديل"
+    },
+    "changePassword": {
+      "title": "تغيير كلمة المرور",
+      "subtitle": "حدّث كلمة المرور للحفاظ على أمان حسابك"
+    },
+    "preferences": {
+      "title": "التفضيلات",
+      "subtitle": "اللغة والمنطقة الزمنية وإعدادات الإشعارات",
+      "language": "اللغة المفضلة",
+      "timezone": "المنطقة الزمنية",
+      "save": "حفظ التفضيلات",
+      "saved": "تم حفظ التفضيلات"
+    }
   },
   "common": {
-    "from": "من", "to": "إلى", "all": "الكل", "more": "المزيد",
-    "showMore": "عرض المزيد", "showLess": "عرض أقل",
-    "results_zero": "لا توجد نتائج", "results_one": "نتيجة واحدة", "results_two": "نتيجتان",
-    "results_few": "{{count}} نتائج", "results_many": "{{count}} نتيجة", "results_other": "{{count}} نتيجة"
+    "from": "من",
+    "to": "إلى",
+    "all": "الكل",
+    "more": "المزيد",
+    "showMore": "عرض المزيد",
+    "showLess": "عرض أقل",
+    "results_zero": "لا توجد نتائج",
+    "results_one": "نتيجة واحدة",
+    "results_two": "نتيجتان",
+    "results_few": "{{count}} نتائج",
+    "results_many": "{{count}} نتيجة",
+    "results_other": "{{count}} نتيجة"
   },
   "finance": {
-    "page": { "title": "المالية", "subtitle": "المعاملات والأرصدة عبر المؤسسة" }
+    "page": {
+      "title": "المالية",
+      "subtitle": "المعاملات والأرصدة عبر المؤسسة"
+    }
   }
 }

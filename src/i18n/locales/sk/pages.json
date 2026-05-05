@@ -44,91 +44,212 @@
       "title": "Profil zamestnanca",
       "back": "Späť na zamestnancov",
       "subtitle": "Zobrazenie a správa informácií o zamestnancovi",
-      "loading": "Načítava sa…", "notFound": "Zamestnanec sa nenašiel",
-      "editProfile": "Upraviť profil", "delete": "Vymazať",
+      "loading": "Načítava sa…",
+      "notFound": "Zamestnanec sa nenašiel",
+      "editProfile": "Upraviť profil",
+      "delete": "Vymazať",
       "employeeId": "ID zamestnanca: {{id}}",
       "selfApplied": "Sám sa prihlásil cez verejný formulár",
       "unknownLegacy": "Neznáme (starší záznam)",
       "tabs": {
-        "overview": "Prehľad", "application": "Prihláška", "documents": "Dokumenty ({{count}})",
-        "attendance": "Dochádzka a výkazy", "contracts": "Zmluvy", "compliance": "Súlad",
-        "financial": "Financie", "notes": "Poznámky",
-        "workHistory": "História práce", "training": "Školenia", "performance": "Výkon", "finance": "Financie"
+        "overview": "Prehľad",
+        "application": "Prihláška",
+        "documents": "Dokumenty ({{count}})",
+        "attendance": "Dochádzka a výkazy",
+        "contracts": "Zmluvy",
+        "compliance": "Súlad",
+        "financial": "Financie",
+        "notes": "Poznámky",
+        "workHistory": "História práce",
+        "training": "Školenia",
+        "performance": "Výkon",
+        "finance": "Financie"
       },
-      "header": { "email": "E-mail", "phone": "Telefón", "citizenship": "Občianstvo", "joined": "Nástup", "createdBy": "Vytvoril" },
-      "quickNav": { "certifications": "Certifikáty", "training": "História školení", "complianceTimeline": "Časová os súladu", "performance": "Hodnotenia výkonu" },
+      "header": {
+        "email": "E-mail",
+        "phone": "Telefón",
+        "citizenship": "Občianstvo",
+        "joined": "Nástup",
+        "createdBy": "Vytvoril"
+      },
+      "quickNav": {
+        "certifications": "Certifikáty",
+        "training": "História školení",
+        "complianceTimeline": "Časová os súladu",
+        "performance": "Hodnotenia výkonu"
+      },
       "personal": {
-        "title": "Osobné údaje", "fullName": "Celé meno", "dateOfBirth": "Dátum narodenia",
-        "citizenship": "Občianstvo", "jobCategory": "Kategória pozície",
-        "licenseNumber": "Číslo vodičáka", "licenseCategory": "Kategória vodičáka",
-        "yearsExperience": "Roky praxe", "yearsValue": "{{count}} rokov",
-        "address": "Adresa", "city": "Mesto", "country": "Krajina", "postalCode": "PSČ",
+        "title": "Osobné údaje",
+        "fullName": "Celé meno",
+        "dateOfBirth": "Dátum narodenia",
+        "citizenship": "Občianstvo",
+        "jobCategory": "Kategória pozície",
+        "licenseNumber": "Číslo vodičáka",
+        "licenseCategory": "Kategória vodičáka",
+        "yearsExperience": "Roky praxe",
+        "yearsValue": "{{count}} rokov",
+        "address": "Adresa",
+        "city": "Mesto",
+        "country": "Krajina",
+        "postalCode": "PSČ",
         "emergencyContact": "Núdzový kontakt"
       },
-      "stats": { "title": "Rýchla štatistika", "documents": "Dokumenty", "validDocs": "Platné dokumenty", "expiringSoon": "Končí platnosť" },
-      "agency": { "title": "Agentúra", "noAgency": "Bez agentúry (priamo)" },
+      "stats": {
+        "title": "Rýchla štatistika",
+        "documents": "Dokumenty",
+        "validDocs": "Platné dokumenty",
+        "expiringSoon": "Končí platnosť"
+      },
+      "agency": {
+        "title": "Agentúra",
+        "noAgency": "Bez agentúry (priamo)"
+      },
       "agencyAccess": {
         "title": "Prístup agentúr",
         "subtitle": "Udeľte alebo odoberte prístup agentúr na zobrazenie a úpravu tohto zamestnanca. Konverzia z kandidáta neudeľuje prístup automaticky — prepínače musíte zapnúť explicitne.",
-        "originBadge": "Pôvod", "ownAgencyFallback": "Agentúra zamestnanca",
-        "view": "Zobraziť", "edit": "Upraviť", "granted": "Udelené {{date}}",
+        "originBadge": "Pôvod",
+        "ownAgencyFallback": "Agentúra zamestnanca",
+        "view": "Zobraziť",
+        "edit": "Upraviť",
+        "granted": "Udelené {{date}}",
         "grantSection": "Udeliť prístup ďalšej agentúre",
-        "selectAgency": "Vybrať agentúru", "notesPh": "Poznámky (voliteľné)",
-        "grantButton": "Udeliť zobrazenie + úpravu", "granting": "Udeľuje sa…",
-        "toast": { "updated": "Prístup aktualizovaný", "updateFailed": "Nepodarilo sa aktualizovať prístup", "revoked": "Prístup agentúry odobraný", "revokeFailed": "Nepodarilo sa odobrať prístup" },
-        "confirmRevokeAll": { "title": "Odobrať celý prístup agentúre", "description": "Vypnutím Zobrazenia aj Úpravy úplne odoberiete prístup tejto agentúre. Pokračovať?", "confirm": "Odobrať" },
-        "confirmRevoke": { "title": "Odobrať prístup agentúre", "description": "Odobrať prístup agentúry {{agency}} k tomuto zamestnancovi? Jej používatelia okamžite prestanú vidieť záznam.", "fallbackAgency": "túto agentúru", "confirm": "Odobrať" }
+        "selectAgency": "Vybrať agentúru",
+        "notesPh": "Poznámky (voliteľné)",
+        "grantButton": "Udeliť zobrazenie + úpravu",
+        "granting": "Udeľuje sa…",
+        "toast": {
+          "updated": "Prístup aktualizovaný",
+          "updateFailed": "Nepodarilo sa aktualizovať prístup",
+          "revoked": "Prístup agentúry odobraný",
+          "revokeFailed": "Nepodarilo sa odobrať prístup"
+        },
+        "confirmRevokeAll": {
+          "title": "Odobrať celý prístup agentúre",
+          "description": "Vypnutím Zobrazenia aj Úpravy úplne odoberiete prístup tejto agentúre. Pokračovať?",
+          "confirm": "Odobrať"
+        },
+        "confirmRevoke": {
+          "title": "Odobrať prístup agentúre",
+          "description": "Odobrať prístup agentúry {{agency}} k tomuto zamestnancovi? Jej používatelia okamžite prestanú vidieť záznam.",
+          "fallbackAgency": "túto agentúru",
+          "confirm": "Odobrať"
+        }
       },
       "documents": {
-        "title": "Dokumenty zamestnanca", "uploadButton": "Nahrať dokument", "cancel": "Zrušiť",
-        "newDocumentTitle": "Nový dokument", "documentType": "Typ dokumentu", "selectType": "Vyberte typ",
-        "documentName": "Názov dokumentu", "documentNamePh": "napr. Pas",
-        "issueDate": "Dátum vydania", "expiryDate": "Dátum platnosti",
-        "documentNumber": "Číslo dokumentu", "optionalPh": "Voliteľné", "issuer": "Vydavateľ",
-        "fileLabel": "Súbor", "uploading": "Nahráva sa...", "upload": "Nahrať",
+        "title": "Dokumenty zamestnanca",
+        "uploadButton": "Nahrať dokument",
+        "cancel": "Zrušiť",
+        "newDocumentTitle": "Nový dokument",
+        "documentType": "Typ dokumentu",
+        "selectType": "Vyberte typ",
+        "documentName": "Názov dokumentu",
+        "documentNamePh": "napr. Pas",
+        "issueDate": "Dátum vydania",
+        "expiryDate": "Dátum platnosti",
+        "documentNumber": "Číslo dokumentu",
+        "optionalPh": "Voliteľné",
+        "issuer": "Vydavateľ",
+        "fileLabel": "Súbor",
+        "uploading": "Nahráva sa...",
+        "upload": "Nahrať",
         "empty": "Zatiaľ neboli nahrané žiadne dokumenty.",
-        "fileSize": "{{name}} ({{size}} KB)", "expires": "Platnosť do: {{date}}",
-        "fileMeta": "{{type}} · {{size}} KB", "download": "Stiahnuť", "view": "Zobraziť",
-        "toast": { "fileRequired": "Vyberte súbor", "typeRequired": "Vyberte typ dokumentu", "nameRequired": "Zadajte názov dokumentu", "uploaded": "Dokument úspešne nahraný", "uploadFailed": "Nepodarilo sa nahrať dokument" }
+        "fileSize": "{{name}} ({{size}} KB)",
+        "expires": "Platnosť do: {{date}}",
+        "fileMeta": "{{type}} · {{size}} KB",
+        "download": "Stiahnuť",
+        "view": "Zobraziť",
+        "toast": {
+          "fileRequired": "Vyberte súbor",
+          "typeRequired": "Vyberte typ dokumentu",
+          "nameRequired": "Zadajte názov dokumentu",
+          "uploaded": "Dokument úspešne nahraný",
+          "uploadFailed": "Nepodarilo sa nahrať dokument"
+        }
       },
       "compliance": {
-        "title": "Stav súladu", "empty": "Žiadne dáta o súlade. Nahrajte dokumenty na sledovanie súladu.",
-        "expiredAgo": "Skončilo pred {{count}} dňami", "daysRemaining": "Zostáva {{count}} dní"
+        "title": "Stav súladu",
+        "empty": "Žiadne dáta o súlade. Nahrajte dokumenty na sledovanie súladu.",
+        "expiredAgo": "Skončilo pred {{count}} dňami",
+        "daysRemaining": "Zostáva {{count}} dní"
       },
       "financial": {
-        "title": "Bankový a platový profil", "fromCandidateBadge": "Z kandidátskej fázy",
+        "title": "Bankový a platový profil",
+        "fromCandidateBadge": "Z kandidátskej fázy",
         "subtitle": "Bankové a platové údaje zachytené počas kandidátskej fázy zostávajú zachované po konverzii.",
-        "bankName": "Banka", "accountHolder": "Majiteľ účtu", "accountNumber": "Číslo účtu",
-        "sortCode": "Kód banky", "iban": "IBAN", "taxCode": "Daňový kód",
-        "niNumber": "Číslo SP", "paymentMethod": "Spôsob platby",
-        "salaryAgreed": "Dohodnutá mzda", "notes": "Poznámky"
+        "bankName": "Banka",
+        "accountHolder": "Majiteľ účtu",
+        "accountNumber": "Číslo účtu",
+        "sortCode": "Kód banky",
+        "iban": "IBAN",
+        "taxCode": "Daňový kód",
+        "niNumber": "Číslo SP",
+        "paymentMethod": "Spôsob platby",
+        "salaryAgreed": "Dohodnutá mzda",
+        "notes": "Poznámky"
       },
       "notes": {
-        "title": "Poznámky a komentáre", "addLabel": "Pridať / upraviť poznámku",
+        "title": "Poznámky a komentáre",
+        "addLabel": "Pridať / upraviť poznámku",
         "writePh": "Napíšte poznámku k tomuto zamestnancovi…",
-        "saveButton": "Uložiť poznámku", "saving": "Ukladá sa…",
-        "discard": "Zrušiť zmeny", "empty": "Pre tohto zamestnanca nie sú žiadne poznámky."
+        "saveButton": "Uložiť poznámku",
+        "saving": "Ukladá sa…",
+        "discard": "Zrušiť zmeny",
+        "empty": "Pre tohto zamestnanca nie sú žiadne poznámky."
       },
       "toast": {
         "loadFailed": "Nepodarilo sa načítať zamestnanca",
-        "stageUpdated": "Fáza workflow aktualizovaná", "stageFailed": "Nepodarilo sa aktualizovať fázu",
-        "workflowConnected": "Workflow pripojený", "workflowFailed": "Nepodarilo sa pripojiť workflow",
-        "currentStageUpdated": "Aktuálna fáza aktualizovaná", "currentStageFailed": "Nepodarilo sa aktualizovať fázu",
-        "workflowDisconnected": "Workflow odpojený", "disconnectFailed": "Odpojenie zlyhalo",
-        "stageApproved": "Fáza schválená", "stageApproveFailed": "Nepodarilo sa schváliť fázu",
-        "noteSaved": "Poznámka uložená", "noteFailed": "Nepodarilo sa uložiť poznámku",
-        "agencyUpdated": "Agentúra aktualizovaná", "agencyFailed": "Nepodarilo sa aktualizovať agentúru",
-        "deleted": "Zamestnanec vymazaný", "deleteFailed": "Nepodarilo sa vymazať zamestnanca"
+        "stageUpdated": "Fáza workflow aktualizovaná",
+        "stageFailed": "Nepodarilo sa aktualizovať fázu",
+        "workflowConnected": "Workflow pripojený",
+        "workflowFailed": "Nepodarilo sa pripojiť workflow",
+        "currentStageUpdated": "Aktuálna fáza aktualizovaná",
+        "currentStageFailed": "Nepodarilo sa aktualizovať fázu",
+        "workflowDisconnected": "Workflow odpojený",
+        "disconnectFailed": "Odpojenie zlyhalo",
+        "stageApproved": "Fáza schválená",
+        "stageApproveFailed": "Nepodarilo sa schváliť fázu",
+        "noteSaved": "Poznámka uložená",
+        "noteFailed": "Nepodarilo sa uložiť poznámku",
+        "agencyUpdated": "Agentúra aktualizovaná",
+        "agencyFailed": "Nepodarilo sa aktualizovať agentúru",
+        "deleted": "Zamestnanec vymazaný",
+        "deleteFailed": "Nepodarilo sa vymazať zamestnanca"
       },
-      "confirmDelete": { "title": "Vymazať zamestnanca?", "description": "{{name}} bude trvalo odstránený. Túto akciu nie je možné vrátiť späť.", "confirm": "Vymazať" },
-      "confirmDisconnect": { "title": "Odpojiť od workflow?", "description": "Tento zamestnanec bude odpojený od workflow. Existujúci pokrok zostáva zachovaný.", "confirm": "Odpojiť" }
+      "confirmDelete": {
+        "title": "Vymazať zamestnanca?",
+        "description": "{{name}} bude trvalo odstránený. Túto akciu nie je možné vrátiť späť.",
+        "confirm": "Vymazať"
+      },
+      "confirmDisconnect": {
+        "title": "Odpojiť od workflow?",
+        "description": "Tento zamestnanec bude odpojený od workflow. Existujúci pokrok zostáva zachovaný.",
+        "confirm": "Odpojiť"
+      }
     },
-    "add": { "title": "Pridať zamestnanca", "back": "Späť na zamestnancov" },
-    "edit": { "title": "Upraviť zamestnanca", "back": "Späť na profil" },
-    "certifications": { "title": "Certifikáty", "back": "Späť na profil" },
-    "training": { "title": "História školení", "back": "Späť na profil" },
-    "complianceTimeline": { "title": "Časová os súladu", "back": "Späť na profil" },
-    "performance": { "title": "Hodnotenie výkonu", "back": "Späť na profil" }
+    "add": {
+      "title": "Pridať zamestnanca",
+      "back": "Späť na zamestnancov"
+    },
+    "edit": {
+      "title": "Upraviť zamestnanca",
+      "back": "Späť na profil"
+    },
+    "certifications": {
+      "title": "Certifikáty",
+      "back": "Späť na profil"
+    },
+    "training": {
+      "title": "História školení",
+      "back": "Späť na profil"
+    },
+    "complianceTimeline": {
+      "title": "Časová os súladu",
+      "back": "Späť na profil"
+    },
+    "performance": {
+      "title": "Hodnotenie výkonu",
+      "back": "Späť na profil"
+    }
   },
   "applicants": {
     "list": {
@@ -149,51 +270,420 @@
       "title": "Profil uchádzača",
       "subtitle": "Zobrazenie a správa informácií o uchádzačovi",
       "candidateSubtitle": "Zobrazenie a správa informácií o kandidátovi",
-      "loading": "Načítava sa…", "notFound": "Uchádzač sa nenašiel", "candidateNotFound": "Kandidát sa nenašiel",
-      "promote": "Povýšiť na kandidáta", "promoteToCandidate": "Povýšiť na kandidáta",
-      "tabs": { "overview": "Prehľad", "application": "Prihláška", "documents": "Dokumenty ({{count}})", "workflow": "Workflow", "docCompliance": "Súlad dokumentov", "compliance": "Súlad", "financial": "Financie", "agencyHistory": "História agentúr", "history": "História", "notes": "Poznámky" },
+      "loading": "Načítava sa…",
+      "notFound": "Uchádzač sa nenašiel",
+      "candidateNotFound": "Kandidát sa nenašiel",
+      "promote": "Povýšiť na kandidáta",
+      "promoteToCandidate": "Povýšiť na kandidáta",
+      "tabs": {
+        "overview": "Prehľad",
+        "application": "Prihláška",
+        "documents": "Dokumenty ({{count}})",
+        "workflow": "Workflow",
+        "docCompliance": "Súlad dokumentov",
+        "compliance": "Súlad",
+        "financial": "Financie",
+        "agencyHistory": "História agentúr",
+        "history": "História",
+        "notes": "Poznámky"
+      },
       "toast": {
         "loadFailed": "Nepodarilo sa načítať uchádzača",
-        "stageUpdated": "Fáza workflow aktualizovaná", "stageFailed": "Nepodarilo sa aktualizovať fázu",
-        "workflowConnected": "Workflow pripojený", "workflowFailed": "Nepodarilo sa pripojiť workflow",
-        "currentStageUpdated": "Aktuálna fáza aktualizovaná", "currentStageFailed": "Nepodarilo sa aktualizovať fázu",
-        "workflowDisconnected": "Workflow odpojený", "disconnectFailed": "Odpojenie zlyhalo",
-        "stageApproved": "Fáza schválená", "stageApproveFailed": "Nepodarilo sa schváliť fázu",
-        "agencyUpdated": "Agentúra aktualizovaná", "agencyFailed": "Nepodarilo sa aktualizovať agentúru",
-        "noteSaved": "Poznámka uložená", "noteFailed": "Nepodarilo sa uložiť poznámku",
-        "docApproved": "\"{{name}}\" schválený", "docApproveFailed": "Nepodarilo sa schváliť dokument",
+        "stageUpdated": "Fáza workflow aktualizovaná",
+        "stageFailed": "Nepodarilo sa aktualizovať fázu",
+        "workflowConnected": "Workflow pripojený",
+        "workflowFailed": "Nepodarilo sa pripojiť workflow",
+        "currentStageUpdated": "Aktuálna fáza aktualizovaná",
+        "currentStageFailed": "Nepodarilo sa aktualizovať fázu",
+        "workflowDisconnected": "Workflow odpojený",
+        "disconnectFailed": "Odpojenie zlyhalo",
+        "stageApproved": "Fáza schválená",
+        "stageApproveFailed": "Nepodarilo sa schváliť fázu",
+        "agencyUpdated": "Agentúra aktualizovaná",
+        "agencyFailed": "Nepodarilo sa aktualizovať agentúru",
+        "noteSaved": "Poznámka uložená",
+        "noteFailed": "Nepodarilo sa uložiť poznámku",
+        "docApproved": "\"{{name}}\" schválený",
+        "docApproveFailed": "Nepodarilo sa schváliť dokument",
         "rejectReasonRequired": "Vyžaduje sa dôvod zamietnutia",
-        "docRejected": "\"{{name}}\" zamietnutý", "docRejectFailed": "Nepodarilo sa zamietnuť dokument",
-        "docDeleted": "Dokument vymazaný", "docDeleteFailed": "Nepodarilo sa vymazať dokument",
-        "fileRequired": "Vyberte súbor", "typeRequired": "Vyberte typ dokumentu",
+        "docRejected": "\"{{name}}\" zamietnutý",
+        "docRejectFailed": "Nepodarilo sa zamietnuť dokument",
+        "docDeleted": "Dokument vymazaný",
+        "docDeleteFailed": "Nepodarilo sa vymazať dokument",
+        "fileRequired": "Vyberte súbor",
+        "typeRequired": "Vyberte typ dokumentu",
         "nameRequired": "Zadajte názov dokumentu",
-        "uploaded": "Dokument úspešne nahraný", "uploadFailed": "Nepodarilo sa nahrať dokument",
-        "deleted": "Uchádzač úspešne vymazaný", "deleteFailed": "Nepodarilo sa vymazať uchádzača",
+        "uploaded": "Dokument úspešne nahraný",
+        "uploadFailed": "Nepodarilo sa nahrať dokument",
+        "deleted": "Uchádzač úspešne vymazaný",
+        "deleteFailed": "Nepodarilo sa vymazať uchádzača",
         "addressRequired": "Vyplňte všetky povinné polia adresy",
         "convertedToEmployee": "Uchádzač úspešne premenený na zamestnanca",
         "convertFailed": "Nepodarilo sa premeniť uchádzača na zamestnanca",
-        "promoted": "Povýšený na kandidáta", "promoteFailed": "Povýšenie zlyhalo",
-        "financialSaved": "Finančný profil uložený", "financialFailed": "Nepodarilo sa uložiť finančný profil"
+        "promoted": "Povýšený na kandidáta",
+        "promoteFailed": "Povýšenie zlyhalo",
+        "financialSaved": "Finančný profil uložený",
+        "financialFailed": "Nepodarilo sa uložiť finančný profil"
       },
-      "confirmDelete": { "title": "Vymazať uchádzača?", "description": "Tento uchádzač bude trvalo odstránený.", "confirm": "Vymazať" },
-      "confirmDeleteCandidate": { "title": "Vymazať kandidáta?", "description": "Tento kandidát bude trvalo odstránený.", "confirm": "Vymazať" },
-      "confirmDisconnect": { "title": "Odpojiť od workflow?", "description": "Tento uchádzač bude odpojený od workflow. Existujúci pokrok zostáva zachovaný.", "confirm": "Odpojiť" },
-      "confirmDeleteDoc": { "title": "Vymazať dokument?", "description": "\"{{name}}\" bude trvalo odstránený zo záznamov tohto uchádzača.", "confirm": "Vymazať" },
+      "confirmDelete": {
+        "title": "Vymazať uchádzača?",
+        "description": "Tento uchádzač bude trvalo odstránený.",
+        "confirm": "Vymazať"
+      },
+      "confirmDeleteCandidate": {
+        "title": "Vymazať kandidáta?",
+        "description": "Tento kandidát bude trvalo odstránený.",
+        "confirm": "Vymazať"
+      },
+      "confirmDisconnect": {
+        "title": "Odpojiť od workflow?",
+        "description": "Tento uchádzač bude odpojený od workflow. Existujúci pokrok zostáva zachovaný.",
+        "confirm": "Odpojiť"
+      },
+      "confirmDeleteDoc": {
+        "title": "Vymazať dokument?",
+        "description": "\"{{name}}\" bude trvalo odstránený zo záznamov tohto uchádzača.",
+        "confirm": "Vymazať"
+      },
       "candidateApproval": {
         "pendingTitle": "Tento kandidát čaká na schválenie spoločnosťou Tempworks.",
         "pendingBody": "Bol odoslaný príslušnou agentúrou a do schválenia nemôže vstúpiť do workflow ani byť premenený na zamestnanca.",
-        "approve": "Schváliť", "reject": "Zamietnuť",
-        "approved": "Kandidát schválený", "rejected": "Kandidát zamietnutý",
-        "approveFailed": "Schválenie zlyhalo", "rejectFailed": "Zamietnutie zlyhalo",
-        "confirmReject": { "title": "Zamietnuť tohto kandidáta?", "description": "Nevstúpi do workflow. Toto je možné zvrátiť neskorším schválením.", "confirm": "Zamietnuť" }
+        "approve": "Schváliť",
+        "reject": "Zamietnuť",
+        "approved": "Kandidát schválený",
+        "rejected": "Kandidát zamietnutý",
+        "approveFailed": "Schválenie zlyhalo",
+        "rejectFailed": "Zamietnutie zlyhalo",
+        "confirmReject": {
+          "title": "Zamietnuť tohto kandidáta?",
+          "description": "Nevstúpi do workflow. Toto je možné zvrátiť neskorším schválením.",
+          "confirm": "Zamietnuť"
+        },
+        "pendingBadge": "Pending Tempworks approval",
+        "rejectedBadge": "Rejected"
       },
       "candidateTitle": "Profil kandidáta",
       "back": "Späť",
       "convertToCandidate": "Konvertovať na kandidáta",
-      "convertToEmployee": "Konvertovať na zamestnanca"
+      "convertToEmployee": "Konvertovať na zamestnanca",
+      "noIdentifierLegacy": "No identifier (legacy record)",
+      "wasLeadPrefix": "(was {{leadNumber}})",
+      "header": {
+        "email": "Email",
+        "phone": "Phone",
+        "citizenship": "Citizenship",
+        "applied": "Applied"
+      },
+      "emergency": {
+        "sectionTitle": "Family / Emergency Contact",
+        "name": "Name",
+        "relationship": "Relationship",
+        "phone": "Phone",
+        "email": "Email"
+      },
+      "quickNav": {
+        "travel": "Travel & Residence",
+        "driving": "Driving Licence & Experience",
+        "education": "Education",
+        "workExperience": "Work Experience"
+      },
+      "personal": {
+        "title": "Personal Information",
+        "fullName": "Full Name",
+        "dateOfBirth": "Date of Birth",
+        "citizenship": "Citizenship",
+        "licenseNumber": "License Number",
+        "licenseCategory": "License Category",
+        "yearsEUExperience": "Years EU Experience",
+        "permanentAddress": "Permanent Address",
+        "countryOfResidence": "Country of Residence",
+        "currentCountry": "Current Country",
+        "appliedPosition": "Applied Position",
+        "preferredStartDate": "Preferred Start Date",
+        "howTheyHeard": "How They Heard",
+        "general": "GENERAL"
+      },
+      "stats": {
+        "title": "Quick Stats",
+        "documents": "Documents",
+        "validDocs": "Valid Docs",
+        "expiringSoon": "Expiring Soon"
+      },
+      "lifecycle": {
+        "title": "Lifecycle Identifiers",
+        "leadId": "Lead ID",
+        "candidateId": "Candidate ID",
+        "createdBy": "Created By",
+        "createdLabel": "Created: {{date}}",
+        "convertedLabel": "Converted: {{date}}",
+        "notAssignedLegacy": "Not assigned (legacy)",
+        "notYetConverted": "Not yet converted",
+        "selfApplied": "Self-applied via public form",
+        "unknownLegacy": "Unknown (legacy record)"
+      },
+      "agency": {
+        "title": "Agency",
+        "noAgency": "No Agency (Direct)"
+      },
+      "travelDocs": {
+        "title": "Travel & Residence Documents",
+        "passportNumber": "Passport Number",
+        "passportValidUntil": "Passport Valid Until",
+        "issuingCountry": "Issuing Country",
+        "euVisa": "EU Visa",
+        "visaType": "Visa Type",
+        "visaNumber": "Visa Number",
+        "validUntil": "Valid Until",
+        "workPermitInEU": "Work Permit in EU",
+        "permitType": "Permit Type",
+        "permitNumber": "Permit Number",
+        "issueDate": "Issue Date",
+        "residenceCardInEU": "Residence Card in EU",
+        "residenceType": "Residence Type",
+        "residenceNumber": "Residence Number",
+        "country": "Country",
+        "city": "City",
+        "yes": "Yes",
+        "no": "No"
+      },
+      "driving": {
+        "title": "Driving Licence & Experience",
+        "licenceCertifications": "Licence & Certifications",
+        "licenseNumber": "License Number",
+        "issuingCountry": "Issuing Country",
+        "validUntil": "Valid Until",
+        "categories": "Categories:",
+        "tachographCard": "Tachograph Card",
+        "code95": "Code 95 / CPC",
+        "adrCertificate": "ADR Certificate",
+        "experienceTitle": "Driving Experience",
+        "euExperience": "EU Experience",
+        "yearsInEU": "Years in EU",
+        "totalCEExperience": "Total C+E Experience",
+        "yearsActiveDriving": "Years Active Driving",
+        "drivenOtherCountries": "Driven Other Countries",
+        "countries": "Countries:",
+        "yes": "Yes",
+        "no": "No",
+        "yesValue": "Yes ({{value}})",
+        "yesUntil": "Yes (until {{date}})",
+        "yesNA": "Yes (N/A)"
+      },
+      "languages": {
+        "title": "Language Skills",
+        "english": "English",
+        "german": "German",
+        "russian": "Russian",
+        "otherLanguages": "Other Languages",
+        "languageAtWork": "Language at Work"
+      },
+      "workFlex": {
+        "title": "Work Flexibility & Preferences",
+        "doubleCrew": "Double Crew",
+        "maxTourLength": "Max Tour Length",
+        "weekendDriving": "Weekend Driving",
+        "nightDriving": "Night Driving",
+        "preferredCountries": "Preferred Countries",
+        "undesiredCountries": "Undesired Countries",
+        "yes": "Yes",
+        "no": "No"
+      },
+      "education": {
+        "title": "Education",
+        "default": "Education",
+        "fieldOfStudy": "Field of Study",
+        "country": "Country",
+        "start": "Start",
+        "end": "End",
+        "ongoing": "Ongoing",
+        "degreePrefix": "Degree / Certificate:"
+      },
+      "workHistory": {
+        "title": "Work Experience",
+        "defaultPosition": "Position",
+        "country": "Country",
+        "start": "Start",
+        "end": "End",
+        "current": "Current",
+        "companyPhone": "Company Phone",
+        "responsibilities": "Responsibilities",
+        "reasonForLeaving": "Reason for leaving:",
+        "reference": "Reference",
+        "name": "Name",
+        "phone": "Phone",
+        "email": "Email"
+      },
+      "documentsTab": {
+        "title": "Applicant Documents",
+        "candidateTitle": "Candidate Documents",
+        "uploadButton": "Upload Document",
+        "cancel": "Cancel",
+        "newDocumentTitle": "New Document",
+        "documentType": "Document Type",
+        "selectType": "Select type",
+        "documentName": "Document Name",
+        "documentNamePh": "e.g. Passport",
+        "issueDate": "Issue Date",
+        "expiryDate": "Expiry Date",
+        "noExpiry": "No Expiry",
+        "documentNumber": "Document Number",
+        "optionalPh": "Optional",
+        "issuer": "Issuer",
+        "fileLabel": "File",
+        "fileSize": "{{name}} ({{size}} KB)",
+        "uploading": "Uploading...",
+        "upload": "Upload",
+        "loading": "Loading documents...",
+        "empty": "No documents uploaded yet.",
+        "expires": "Expires: {{date}}",
+        "fileMeta": "{{type}} · {{size}} KB",
+        "downloadTitle": "Download",
+        "approve": "Approve",
+        "reject": "Reject",
+        "editTitle": "Edit",
+        "deleteTitle": "Delete"
+      },
+      "workflowTab": {
+        "connectTitle": "Connect to a Workflow",
+        "connectSubtitle": "This applicant is not connected to any workflow yet.",
+        "candidateConnectSubtitle": "This candidate is not connected to any workflow yet.",
+        "selectWorkflowPh": "Select a workflow…",
+        "public": "Public",
+        "private": "Private",
+        "connect": "Connect",
+        "connecting": "Connecting…",
+        "connectButton": "Connect to Workflow",
+        "saving": "Saving…",
+        "confirm": "Confirm",
+        "connectedBy": "Connected {{date}} by {{name}}",
+        "changeWorkflow": "Change Workflow",
+        "change": "Change",
+        "changeTitle": "Reassign to a different workflow (admin only)",
+        "noStages": "This workflow has no stages configured yet.",
+        "current": "Current",
+        "inProgress": "In Progress",
+        "approved": "Approved",
+        "final": "Final",
+        "needsApproval": "Needs Approval",
+        "slaSuffix": "SLA: {{hours}}h",
+        "setCurrent": "Set Current",
+        "requiredDocs": "Required Documents",
+        "noRequiredDocs": "No required documents for this stage.",
+        "uploaded": "Uploaded",
+        "missing": "Missing",
+        "stageApproval": "Stage Approval",
+        "approvedBy": "by {{name}}",
+        "noApprovers": "No approvers assigned to this stage.",
+        "approveStage": "Approve Stage",
+        "approving": "Approving…"
+      },
+      "complianceTab": {
+        "title": "Compliance Status",
+        "empty": "No compliance data available. Upload documents to begin tracking compliance.",
+        "expiredAgo": "Expired {{count}} days ago",
+        "daysRemaining": "{{count}} days remaining"
+      },
+      "financialTab": {
+        "title": "Financial Transactions",
+        "candidatesOnlyBadge": "Candidates only",
+        "candidatesOnlyBody": "Financial transactions are available for Candidates only. Promote this applicant to Candidate first.",
+        "bankTitle": "Bank & Tax Details",
+        "save": "Save",
+        "saving": "Saving…",
+        "saved": "Saved",
+        "saveFailed": "Save failed",
+        "bankName": "Bank Name",
+        "iban": "IBAN",
+        "taxCode": "Tax Code",
+        "niNumber": "NI Number",
+        "paymentMethod": "Payment Method"
+      },
+      "historyTab": {
+        "title": "Agency Assignment History",
+        "loading": "Loading…",
+        "empty": "No agency assignment history recorded.",
+        "reason": "Reason: {{value}}",
+        "current": "Current"
+      },
+      "notesTab": {
+        "title": "Notes & Comments",
+        "submittedWithApplication": "Submitted with application",
+        "addLabel": "Add / update note",
+        "writePh": "Write a note about this applicant…",
+        "writeCandidatePh": "Write a note about this candidate…",
+        "saveButton": "Save note",
+        "saving": "Saving…",
+        "discard": "Discard changes",
+        "empty": "No notes for this applicant.",
+        "candidateEmpty": "No notes for this candidate."
+      },
+      "promoteDialog": {
+        "title": "Promote to Candidate",
+        "successTitle": "Promoted Successfully",
+        "successBody": "has been promoted from Lead to Candidate.",
+        "newCandidateId": "The new Candidate ID is",
+        "successFooter": "The profile is now visible to agency users, and the tier change has been recorded in the audit log.",
+        "done": "Done",
+        "intro": "will be promoted from Lead to Candidate. This grants agency users visibility. A holding agency will be assigned if configured.",
+        "candidateIntro": "will have its tier confirmed.",
+        "responsibleAgency": "Responsible Agency",
+        "selectDefault": "Use system default",
+        "useSystemDefault": "Use system default holding agency",
+        "agencyHelp": "The selected agency becomes responsible for this candidate and is recorded in Agency History.",
+        "loggedNote": "This action is logged and can be reviewed in Agency History.",
+        "promoting": "Promoting…",
+        "confirmPromotion": "Confirm Promotion",
+        "cancel": "Cancel"
+      },
+      "convertDialog": {
+        "title": "Convert to Employee",
+        "subtitle": "Converting <strong>{{name}}</strong> — all documents will be transferred and the applicant record will be archived.",
+        "candidateSubtitle": "Converting <strong>{{name}}</strong> — all documents will be transferred and the candidate record will be archived.",
+        "convertingPrefix": "Converting",
+        "applicantTransferSuffix": "— all documents will be transferred and the applicant record will be archived.",
+        "candidateTransferSuffix": "— all documents will be transferred and the candidate record will be archived.",
+        "name": "Name:",
+        "email": "Email:",
+        "phone": "Phone:",
+        "citizenship": "Citizenship:",
+        "address": "Address",
+        "addressLine1": "Address Line 1",
+        "addressLine2": "Address Line 2",
+        "city": "City",
+        "country": "Country",
+        "postalCode": "Postal Code",
+        "additionalDetails": "Additional Details",
+        "optional": "(optional)",
+        "licenseNumber": "License Number",
+        "licenseCategory": "License Category",
+        "yearsExperience": "Years Experience",
+        "emergencyContact": "Emergency Contact",
+        "emergencyPhone": "Emergency Phone",
+        "converting": "Converting…",
+        "confirmConversion": "Confirm Conversion",
+        "cancel": "Cancel"
+      },
+      "rejectDocDialog": {
+        "title": "Reject Document",
+        "rejecting": "Rejecting:",
+        "reasonLabel": "Rejection Reason",
+        "reasonPh": "Explain why this document is being rejected…",
+        "cancel": "Cancel",
+        "rejecting2": "Rejecting…",
+        "confirmRejection": "Confirm Rejection"
+      },
+      "infoRow": {
+        "notProvided": "Not provided"
+      }
     },
-    "add": { "title": "Pridať uchádzača", "back": "Späť na uchádzačov" },
-    "edit": { "title": "Upraviť uchádzača", "back": "Späť na profil" },
+    "add": {
+      "title": "Pridať uchádzača",
+      "back": "Späť na uchádzačov"
+    },
+    "edit": {
+      "title": "Upraviť uchádzača",
+      "back": "Späť na profil"
+    },
     "deleteRequests": {
       "title": "Žiadosti o vymazanie kandidátov",
       "subtitle": "Skontrolujte a schváľte žiadosti o vymazanie",
@@ -201,7 +691,13 @@
     }
   },
   "agencies": {
-    "list": { "title": "Agentúry", "subtitle": "Náboroví partneri", "addButton": "Pridať agentúru", "search": "Hľadať agentúry…", "empty": "Žiadne agentúry." },
+    "list": {
+      "title": "Agentúry",
+      "subtitle": "Náboroví partneri",
+      "addButton": "Pridať agentúru",
+      "search": "Hľadať agentúry…",
+      "empty": "Žiadne agentúry."
+    },
     "profile": {
       "title": "Profil agentúry",
       "back": "Späť na agentúry",
@@ -211,110 +707,368 @@
       "manageAllUsers": "Spravovať všetkých používateľov",
       "loading": "Načítava sa…",
       "notFound": "Agentúra sa nenašla",
-      "info": { "country": "Krajina", "email": "E-mail", "phone": "Telefón", "contactPerson": "Kontaktná osoba" },
-      "stats": { "activeEmployees": "Aktívni zamestnanci", "totalEmployees": "Zamestnanci spolu", "agencyUsers": "Používatelia agentúry", "status": "Stav" },
-      "tabs": { "employees": "Zamestnanci", "users": "Používatelia", "finance": "Finančné záznamy", "settings": "Nastavenia" },
-      "employees": { "title": "Zamestnanci agentúry ({{count}})", "empty": "Pre túto agentúru sa nenašli žiadni zamestnanci.", "viewProfile": "Zobraziť profil" },
-      "users": { "title": "Používatelia agentúry ({{count}})", "empty": "Pre túto agentúru sa nenašli žiadni používatelia." },
-      "settings": { "title": "Nastavenia agentúry", "maxUsersLabel": "Maximálny počet používateľov", "maxUsersHelp": "Obmedzte počet aktívnych používateľov pre túto agentúru", "maxUsersOption": "{{count}} používateľov", "save": "Uložiť nastavenia" },
-      "toast": { "settingsSaved": "Nastavenia uložené", "settingsFailed": "Nepodarilo sa uložiť nastavenia" }
+      "info": {
+        "country": "Krajina",
+        "email": "E-mail",
+        "phone": "Telefón",
+        "contactPerson": "Kontaktná osoba"
+      },
+      "stats": {
+        "activeEmployees": "Aktívni zamestnanci",
+        "totalEmployees": "Zamestnanci spolu",
+        "agencyUsers": "Používatelia agentúry",
+        "status": "Stav"
+      },
+      "tabs": {
+        "employees": "Zamestnanci",
+        "users": "Používatelia",
+        "finance": "Finančné záznamy",
+        "settings": "Nastavenia"
+      },
+      "employees": {
+        "title": "Zamestnanci agentúry ({{count}})",
+        "empty": "Pre túto agentúru sa nenašli žiadni zamestnanci.",
+        "viewProfile": "Zobraziť profil"
+      },
+      "users": {
+        "title": "Používatelia agentúry ({{count}})",
+        "empty": "Pre túto agentúru sa nenašli žiadni používatelia."
+      },
+      "settings": {
+        "title": "Nastavenia agentúry",
+        "maxUsersLabel": "Maximálny počet používateľov",
+        "maxUsersHelp": "Obmedzte počet aktívnych používateľov pre túto agentúru",
+        "maxUsersOption": "{{count}} používateľov",
+        "save": "Uložiť nastavenia"
+      },
+      "toast": {
+        "settingsSaved": "Nastavenia uložené",
+        "settingsFailed": "Nepodarilo sa uložiť nastavenia"
+      }
     },
-    "myProfile": { "title": "Moja agentúra" },
-    "add": { "title": "Pridať agentúru", "back": "Späť na agentúry" },
-    "edit": { "title": "Upraviť agentúru", "back": "Späť na profil" },
-    "users": { "title": "Používatelia agentúry", "subtitle": "Spravujte používateľov priradených k agentúre", "back": "Späť na agentúru", "addButton": "Pridať používateľa" }
+    "myProfile": {
+      "title": "Moja agentúra"
+    },
+    "add": {
+      "title": "Pridať agentúru",
+      "back": "Späť na agentúry"
+    },
+    "edit": {
+      "title": "Upraviť agentúru",
+      "back": "Späť na profil"
+    },
+    "users": {
+      "title": "Používatelia agentúry",
+      "subtitle": "Spravujte používateľov priradených k agentúre",
+      "back": "Späť na agentúru",
+      "addButton": "Pridať používateľa"
+    }
   },
   "documents": {
-    "dashboard": { "title": "Dokumenty", "subtitle": "Prehľad úložiska dokumentov", "uploadButton": "Nahrať dokument" },
-    "compliance": { "title": "Dokumenty a súlad", "subtitle": "Stav súladu naprieč všetkými dokumentmi", "filterTitle": "Filtrovať dokumenty" },
-    "explorer": { "title": "Prehliadač dokumentov", "searchTitle": "Hľadať a filtrovať zamestnancov" },
-    "verification": { "title": "Overenie dokumentov", "pending": "Čakajúce dokumenty ({{count}})", "approve": "Schváliť", "reject": "Zamietnuť" },
-    "preview": { "title": "Dokument", "back": "Späť", "download": "Stiahnuť" },
-    "upload": { "title": "Nahrať dokument", "back": "Späť" },
-    "edit": { "title": "Upraviť dokument", "back": "Späť" }
+    "dashboard": {
+      "title": "Dokumenty",
+      "subtitle": "Prehľad úložiska dokumentov",
+      "uploadButton": "Nahrať dokument"
+    },
+    "compliance": {
+      "title": "Dokumenty a súlad",
+      "subtitle": "Stav súladu naprieč všetkými dokumentmi",
+      "filterTitle": "Filtrovať dokumenty"
+    },
+    "explorer": {
+      "title": "Prehliadač dokumentov",
+      "searchTitle": "Hľadať a filtrovať zamestnancov"
+    },
+    "verification": {
+      "title": "Overenie dokumentov",
+      "pending": "Čakajúce dokumenty ({{count}})",
+      "approve": "Schváliť",
+      "reject": "Zamietnuť"
+    },
+    "preview": {
+      "title": "Dokument",
+      "back": "Späť",
+      "download": "Stiahnuť"
+    },
+    "upload": {
+      "title": "Nahrať dokument",
+      "back": "Späť"
+    },
+    "edit": {
+      "title": "Upraviť dokument",
+      "back": "Späť"
+    }
   },
   "compliance": {
-    "dashboard": { "title": "Prehľad súladu", "stats": { "validDocuments": "Platné dokumenty", "expiringSoon": "Čoskoro expirujú", "expired": "Expirované", "pending": "Čakajúce" } },
-    "alerts": { "title": "Upozornenia súladu", "active": "Aktívne upozornenia", "resolved": "Vyriešené upozornenia", "empty": "Žiadne aktívne upozornenia." },
-    "employee": { "title": "Súlad zamestnanca", "back": "Späť" }
+    "dashboard": {
+      "title": "Prehľad súladu",
+      "stats": {
+        "validDocuments": "Platné dokumenty",
+        "expiringSoon": "Čoskoro expirujú",
+        "expired": "Expirované",
+        "pending": "Čakajúce"
+      }
+    },
+    "alerts": {
+      "title": "Upozornenia súladu",
+      "active": "Aktívne upozornenia",
+      "resolved": "Vyriešené upozornenia",
+      "empty": "Žiadne aktívne upozornenia."
+    },
+    "employee": {
+      "title": "Súlad zamestnanca",
+      "back": "Späť"
+    }
   },
   "workflow": {
-    "overview": { "title": "Prehľad pracovného postupu", "subtitle": "Sledovanie zamestnancov v náborovom procese" },
-    "workPermits": { "title": "Sledovanie pracovných povolení" },
-    "visas": { "title": "Sledovanie víz" },
-    "stage": { "title": "Detail fázy" },
-    "timeline": { "title": "Časová os pracovného postupu" },
-    "analytics": { "title": "Analýza pracovného postupu" },
-    "management": { "title": "Riadenie pracovného postupu" }
+    "overview": {
+      "title": "Prehľad pracovného postupu",
+      "subtitle": "Sledovanie zamestnancov v náborovom procese"
+    },
+    "workPermits": {
+      "title": "Sledovanie pracovných povolení"
+    },
+    "visas": {
+      "title": "Sledovanie víz"
+    },
+    "stage": {
+      "title": "Detail fázy"
+    },
+    "timeline": {
+      "title": "Časová os pracovného postupu"
+    },
+    "analytics": {
+      "title": "Analýza pracovného postupu"
+    },
+    "management": {
+      "title": "Riadenie pracovného postupu"
+    }
   },
   "pipelines": {
-    "list": { "title": "Pracovné postupy", "subtitle": "Náborové procesy a konfigurácia fáz", "addButton": "Nový pracovný postup", "newDialogTitle": "Nový pracovný postup", "empty": "Zatiaľ žiadne pracovné postupy." },
-    "board": { "title": "Tabuľa pracovného postupu" },
-    "stage": { "title": "Fáza" },
-    "settings": { "title": "Nastavenia pracovného postupu" }
+    "list": {
+      "title": "Pracovné postupy",
+      "subtitle": "Náborové procesy a konfigurácia fáz",
+      "addButton": "Nový pracovný postup",
+      "newDialogTitle": "Nový pracovný postup",
+      "empty": "Zatiaľ žiadne pracovné postupy."
+    },
+    "board": {
+      "title": "Tabuľa pracovného postupu"
+    },
+    "stage": {
+      "title": "Fáza"
+    },
+    "settings": {
+      "title": "Nastavenia pracovného postupu"
+    }
   },
   "vehicles": {
-    "list": { "title": "Vozidlá", "subtitle": "Správa vozového parku", "addButton": "Pridať vozidlo", "search": "Hľadať vozidlá…", "empty": "Žiadne vozidlá." },
+    "list": {
+      "title": "Vozidlá",
+      "subtitle": "Správa vozového parku",
+      "addButton": "Pridať vozidlo",
+      "search": "Hľadať vozidlá…",
+      "empty": "Žiadne vozidlá."
+    },
     "detail": {
-      "title": "Detail vozidla", "back": "Späť na vozidlá",
-      "loading": "Načítava sa…", "notFound": "Vozidlo sa nenašlo",
+      "title": "Detail vozidla",
+      "back": "Späť na vozidlá",
+      "loading": "Načítava sa…",
+      "notFound": "Vozidlo sa nenašlo",
       "subtitle": "{{make}} {{model}} · {{type}}",
-      "expired": "Po platnosti", "daysSuffix": "d",
-      "tabs": { "overview": "Prehľad", "driver": "Vodič ({{count}})", "documents": "Dokumenty ({{count}})", "maintenance": "Údržba ({{count}})" },
-      "info": { "title": "Informácie o vozidle", "year": "Rok", "color": "Farba", "vin": "VIN", "fuelType": "Typ paliva", "currentMileage": "Aktuálny stav km", "agency": "Agentúra", "kmSuffix": "{{value}} km" },
-      "compliance": { "title": "Súlad", "motExpiry": "Platnosť STK", "taxExpiry": "Platnosť dane", "insuranceExpiry": "Platnosť poistenia" },
+      "expired": "Po platnosti",
+      "daysSuffix": "d",
+      "tabs": {
+        "overview": "Prehľad",
+        "driver": "Vodič ({{count}})",
+        "documents": "Dokumenty ({{count}})",
+        "maintenance": "Údržba ({{count}})"
+      },
+      "info": {
+        "title": "Informácie o vozidle",
+        "year": "Rok",
+        "color": "Farba",
+        "vin": "VIN",
+        "fuelType": "Typ paliva",
+        "currentMileage": "Aktuálny stav km",
+        "agency": "Agentúra",
+        "kmSuffix": "{{value}} km"
+      },
+      "compliance": {
+        "title": "Súlad",
+        "motExpiry": "Platnosť STK",
+        "taxExpiry": "Platnosť dane",
+        "insuranceExpiry": "Platnosť poistenia"
+      },
       "driver": {
-        "heading": "Priradenia vodičov", "assignButton": "Priradiť vodiča",
-        "active": "Aktívny", "ended": "Ukončené", "endAssignment": "Ukončiť priradenie",
-        "licensePrefix": "Vodičák", "since": "Od {{date}}", "empty": "Žiadne priradenia",
-        "columns": { "driver": "Vodič", "licence": "Vodičák", "from": "Od", "to": "Do", "status": "Stav" },
-        "dialog": { "title": "Priradiť vodiča", "selectDriver": "Vybrať vodiča", "searchPlaceholder": "Hľadať podľa mena alebo vodičáka…", "searching": "Hľadá sa…", "noDriversFound": "Žiadni vodiči", "defaultRoleLabel": "Vodič", "startDate": "Dátum začiatku", "assignButton": "Priradiť vodiča", "assigning": "Priraďuje sa…" },
-        "toast": { "selectFirst": "Vyberte vodiča", "assigned": "Vodič priradený", "assignFailed": "Nepodarilo sa priradiť vodiča", "unassigned": "Vodič odstránený", "unassignFailed": "Nepodarilo sa odstrániť vodiča" },
-        "confirmEnd": { "title": "Ukončiť priradenie vodiča?", "description": "Aktuálne priradenie vodiča bude ukončené.", "confirm": "Ukončiť priradenie" }
+        "heading": "Priradenia vodičov",
+        "assignButton": "Priradiť vodiča",
+        "active": "Aktívny",
+        "ended": "Ukončené",
+        "endAssignment": "Ukončiť priradenie",
+        "licensePrefix": "Vodičák",
+        "since": "Od {{date}}",
+        "empty": "Žiadne priradenia",
+        "columns": {
+          "driver": "Vodič",
+          "licence": "Vodičák",
+          "from": "Od",
+          "to": "Do",
+          "status": "Stav"
+        },
+        "dialog": {
+          "title": "Priradiť vodiča",
+          "selectDriver": "Vybrať vodiča",
+          "searchPlaceholder": "Hľadať podľa mena alebo vodičáka…",
+          "searching": "Hľadá sa…",
+          "noDriversFound": "Žiadni vodiči",
+          "defaultRoleLabel": "Vodič",
+          "startDate": "Dátum začiatku",
+          "assignButton": "Priradiť vodiča",
+          "assigning": "Priraďuje sa…"
+        },
+        "toast": {
+          "selectFirst": "Vyberte vodiča",
+          "assigned": "Vodič priradený",
+          "assignFailed": "Nepodarilo sa priradiť vodiča",
+          "unassigned": "Vodič odstránený",
+          "unassignFailed": "Nepodarilo sa odstrániť vodiča"
+        },
+        "confirmEnd": {
+          "title": "Ukončiť priradenie vodiča?",
+          "description": "Aktuálne priradenie vodiča bude ukončené.",
+          "confirm": "Ukončiť priradenie"
+        }
       },
       "documents": {
-        "heading": "Dokumenty vozidla", "addButton": "Pridať dokument", "empty": "Žiadne dokumenty",
-        "columns": { "name": "Názov", "type": "Typ", "issuer": "Vydavateľ", "issued": "Vydané", "expires": "Platnosť do", "actions": "Akcie" },
-        "downloadTitle": "Stiahnuť {{name}}", "defaultFileName": "súbor",
-        "dialog": {
-          "addTitle": "Pridať dokument vozidla", "editTitle": "Upraviť dokument",
-          "name": "Názov dokumentu", "namePh": "napr. STK osvedčenie",
-          "type": "Typ dokumentu", "issuedDate": "Dátum vydania", "expiryDate": "Dátum platnosti",
-          "issuer": "Vydavateľ", "issuerPh": "napr. DVSA",
-          "notes": "Poznámky", "notesPh": "Voliteľné poznámky",
-          "fileLabel": "Súbor", "fileHint": "(voliteľné, max 20 MB)", "fileSize": "{{name}} ({{size}} KB)",
-          "addButton": "Pridať dokument", "saveButton": "Uložiť zmeny", "saving": "Ukladá sa…"
+        "heading": "Dokumenty vozidla",
+        "addButton": "Pridať dokument",
+        "empty": "Žiadne dokumenty",
+        "columns": {
+          "name": "Názov",
+          "type": "Typ",
+          "issuer": "Vydavateľ",
+          "issued": "Vydané",
+          "expires": "Platnosť do",
+          "actions": "Akcie"
         },
-        "toast": { "nameRequired": "Vyžaduje sa názov dokumentu", "added": "Dokument pridaný", "updated": "Dokument aktualizovaný", "addFailed": "Nepodarilo sa pridať dokument", "updateFailed": "Nepodarilo sa aktualizovať dokument", "deleted": "Dokument vymazaný", "deleteFailed": "Nepodarilo sa vymazať dokument" },
-        "confirmDelete": { "title": "Vymazať dokument?", "description": "Dokument bude trvalo odstránený.", "confirm": "Vymazať" }
+        "downloadTitle": "Stiahnuť {{name}}",
+        "defaultFileName": "súbor",
+        "dialog": {
+          "addTitle": "Pridať dokument vozidla",
+          "editTitle": "Upraviť dokument",
+          "name": "Názov dokumentu",
+          "namePh": "napr. STK osvedčenie",
+          "type": "Typ dokumentu",
+          "issuedDate": "Dátum vydania",
+          "expiryDate": "Dátum platnosti",
+          "issuer": "Vydavateľ",
+          "issuerPh": "napr. DVSA",
+          "notes": "Poznámky",
+          "notesPh": "Voliteľné poznámky",
+          "fileLabel": "Súbor",
+          "fileHint": "(voliteľné, max 20 MB)",
+          "fileSize": "{{name}} ({{size}} KB)",
+          "addButton": "Pridať dokument",
+          "saveButton": "Uložiť zmeny",
+          "saving": "Ukladá sa…"
+        },
+        "toast": {
+          "nameRequired": "Vyžaduje sa názov dokumentu",
+          "added": "Dokument pridaný",
+          "updated": "Dokument aktualizovaný",
+          "addFailed": "Nepodarilo sa pridať dokument",
+          "updateFailed": "Nepodarilo sa aktualizovať dokument",
+          "deleted": "Dokument vymazaný",
+          "deleteFailed": "Nepodarilo sa vymazať dokument"
+        },
+        "confirmDelete": {
+          "title": "Vymazať dokument?",
+          "description": "Dokument bude trvalo odstránený.",
+          "confirm": "Vymazať"
+        }
       },
       "maintenance": {
-        "heading": "Záznamy údržby", "addButton": "Pridať záznam", "empty": "Žiadne záznamy údržby",
-        "columns": { "type": "Typ", "status": "Stav", "scheduled": "Naplánované", "completed": "Dokončené", "workshop": "Servis", "cost": "Cena", "actions": "Akcie" },
-        "dialog": {
-          "addTitle": "Pridať záznam údržby", "editTitle": "Upraviť záznam údržby",
-          "sectionService": "Detaily servisu", "sectionDriver": "Vodič a logistika", "sectionApproval": "Schválenie",
-          "type": "Typ údržby", "typePh": "Vyberte typ", "notSpecified": "Neuvedené",
-          "status": "Stav", "workshop": "Servis", "workshopPh": "Vyberte servis",
-          "mileageAtService": "Stav km pri servise", "mileagePh": "0",
-          "scheduledDate": "Naplánovaný dátum", "completedDate": "Dátum dokončenia",
-          "totalCost": "Celková cena (£)", "totalCostPh": "0.00",
-          "description": "Popis", "descriptionPh": "Krátky popis",
-          "workDescription": "Popis prác", "workDescriptionPh": "Detailný popis vykonanej práce...",
-          "notes": "Poznámky", "notesPh": "Ďalšie poznámky",
-          "serviceDriver": "Servisný vodič", "selectDriver": "Vyberte vodiča",
-          "otherExternal": "Iný (externý)", "otherNone": "Iný / žiadny",
-          "externalDriverName": "Meno externého vodiča", "driverNamePh": "Meno vodiča", "namePh": "Meno",
-          "dropOffDriver": "Vodič pri odovzdaní", "dropOffDriverName": "Meno vodiča pri odovzdaní", "dropOffDateTime": "Dátum/čas odovzdania",
-          "pickUpDriver": "Vodič pri prevzatí", "pickUpDriverName": "Meno vodiča pri prevzatí", "pickUpDateTime": "Dátum/čas prevzatia",
-          "approvedBy": "Schválil", "pendingApproval": "Čaká na schválenie", "approvalDate": "Dátum schválenia",
-          "addButton": "Pridať záznam", "saveButton": "Uložiť zmeny", "saving": "Ukladá sa…"
+        "heading": "Záznamy údržby",
+        "addButton": "Pridať záznam",
+        "empty": "Žiadne záznamy údržby",
+        "columns": {
+          "type": "Typ",
+          "status": "Stav",
+          "scheduled": "Naplánované",
+          "completed": "Dokončené",
+          "workshop": "Servis",
+          "cost": "Cena",
+          "actions": "Akcie"
         },
-        "toast": { "added": "Záznam údržby pridaný", "updated": "Záznam údržby aktualizovaný", "addFailed": "Nepodarilo sa pridať záznam", "updateFailed": "Nepodarilo sa aktualizovať záznam", "deleted": "Záznam vymazaný", "deleteFailed": "Nepodarilo sa vymazať záznam" },
-        "confirmDelete": { "title": "Vymazať záznam údržby?", "description": "Záznam údržby bude trvalo odstránený.", "confirm": "Vymazať" }
+        "dialog": {
+          "addTitle": "Pridať záznam údržby",
+          "editTitle": "Upraviť záznam údržby",
+          "sectionService": "Detaily servisu",
+          "sectionDriver": "Vodič a logistika",
+          "sectionApproval": "Schválenie",
+          "type": "Typ údržby",
+          "typePh": "Vyberte typ",
+          "notSpecified": "Neuvedené",
+          "status": "Stav",
+          "workshop": "Servis",
+          "workshopPh": "Vyberte servis",
+          "mileageAtService": "Stav km pri servise",
+          "mileagePh": "0",
+          "scheduledDate": "Naplánovaný dátum",
+          "completedDate": "Dátum dokončenia",
+          "totalCost": "Celková cena (£)",
+          "totalCostPh": "0.00",
+          "description": "Popis",
+          "descriptionPh": "Krátky popis",
+          "workDescription": "Popis prác",
+          "workDescriptionPh": "Detailný popis vykonanej práce...",
+          "notes": "Poznámky",
+          "notesPh": "Ďalšie poznámky",
+          "serviceDriver": "Servisný vodič",
+          "selectDriver": "Vyberte vodiča",
+          "otherExternal": "Iný (externý)",
+          "otherNone": "Iný / žiadny",
+          "externalDriverName": "Meno externého vodiča",
+          "driverNamePh": "Meno vodiča",
+          "namePh": "Meno",
+          "dropOffDriver": "Vodič pri odovzdaní",
+          "dropOffDriverName": "Meno vodiča pri odovzdaní",
+          "dropOffDateTime": "Dátum/čas odovzdania",
+          "pickUpDriver": "Vodič pri prevzatí",
+          "pickUpDriverName": "Meno vodiča pri prevzatí",
+          "pickUpDateTime": "Dátum/čas prevzatia",
+          "approvedBy": "Schválil",
+          "pendingApproval": "Čaká na schválenie",
+          "approvalDate": "Dátum schválenia",
+          "addButton": "Pridať záznam",
+          "saveButton": "Uložiť zmeny",
+          "saving": "Ukladá sa…"
+        },
+        "toast": {
+          "added": "Záznam údržby pridaný",
+          "updated": "Záznam údržby aktualizovaný",
+          "addFailed": "Nepodarilo sa pridať záznam",
+          "updateFailed": "Nepodarilo sa aktualizovať záznam",
+          "deleted": "Záznam vymazaný",
+          "deleteFailed": "Nepodarilo sa vymazať záznam"
+        },
+        "confirmDelete": {
+          "title": "Vymazať záznam údržby?",
+          "description": "Záznam údržby bude trvalo odstránený.",
+          "confirm": "Vymazať"
+        }
       },
-      "toast": { "loadFailed": "Nepodarilo sa načítať vozidlo", "deleted": "Vozidlo vymazané", "deleteFailed": "Vymazanie zlyhalo" },
-      "confirmDelete": { "title": "Vymazať vozidlo?", "description": "Vozidlo bude trvalo odstránené. Túto akciu nie je možné jednoducho vrátiť.", "confirm": "Vymazať" }
+      "toast": {
+        "loadFailed": "Nepodarilo sa načítať vozidlo",
+        "deleted": "Vozidlo vymazané",
+        "deleteFailed": "Vymazanie zlyhalo"
+      },
+      "confirmDelete": {
+        "title": "Vymazať vozidlo?",
+        "description": "Vozidlo bude trvalo odstránené. Túto akciu nie je možné jednoducho vrátiť.",
+        "confirm": "Vymazať"
+      }
     },
     "form": {
       "addTitle": "Pridať vozidlo",
@@ -325,65 +1079,122 @@
       "createButton": "Vytvoriť vozidlo",
       "saveChanges": "Uložiť zmeny",
       "sections": {
-        "details": "Údaje o vozidle", "compliance": "Súlad a registračné dátumy", "purchase": "Informácie o kúpe", "insurance": "Informácie o poistení",
-        "truck": "Špecifikácie nákladiakov a prívesov", "van": "Špecifikácie dodávky", "car": "Špecifikácie auta", "tanker": "Špecifikácie cisterny",
-        "refrigerated": "Špecifikácie chladiarenského prívesu", "specialty": "Špeciálne vybavenie"
+        "details": "Údaje o vozidle",
+        "compliance": "Súlad a registračné dátumy",
+        "purchase": "Informácie o kúpe",
+        "insurance": "Informácie o poistení",
+        "truck": "Špecifikácie nákladiakov a prívesov",
+        "van": "Špecifikácie dodávky",
+        "car": "Špecifikácie auta",
+        "tanker": "Špecifikácie cisterny",
+        "refrigerated": "Špecifikácie chladiarenského prívesu",
+        "specialty": "Špeciálne vybavenie"
       },
       "fields": {
-        "registrationNumber": "Evidenčné číslo", "registrationNumberPh": "napr. AB12 CDE",
-        "licensePlate": "ŠPZ", "licensePlatePh": "napr. AB12CDE",
-        "vehicleType": "Typ vozidla", "vehicleTypePh": "Vyberte typ",
+        "registrationNumber": "Evidenčné číslo",
+        "registrationNumberPh": "napr. AB12 CDE",
+        "licensePlate": "ŠPZ",
+        "licensePlatePh": "napr. AB12CDE",
+        "vehicleType": "Typ vozidla",
+        "vehicleTypePh": "Vyberte typ",
         "status": "Stav",
-        "make": "Značka", "makePh": "napr. Volvo",
-        "model": "Model", "modelPh": "napr. FH16",
-        "year": "Rok", "yearPh": "napr. 2022",
-        "color": "Farba", "colorPh": "napr. Biela",
-        "vin": "VIN", "vinPh": "Identifikačné číslo vozidla",
-        "fuelType": "Typ paliva", "fuelTypePh": "Vyberte typ paliva",
-        "fuelCapacity": "Objem nádrže (litre)", "fuelCapacityPh": "napr. 200",
-        "currentMileage": "Aktuálny stav km", "currentMileagePh": "0",
-        "notes": "Poznámky", "notesPh": "Ďalšie poznámky",
-        "motExpiry": "STK platnosť", "taxExpiry": "Daň platnosť", "registrationExpiry": "Registrácia platnosť", "insuranceExpiry": "Poistenie platnosť",
-        "purchaseOrder": "Objednávka", "purchaseOrderPh": "napr. PO-2024-001",
+        "make": "Značka",
+        "makePh": "napr. Volvo",
+        "model": "Model",
+        "modelPh": "napr. FH16",
+        "year": "Rok",
+        "yearPh": "napr. 2022",
+        "color": "Farba",
+        "colorPh": "napr. Biela",
+        "vin": "VIN",
+        "vinPh": "Identifikačné číslo vozidla",
+        "fuelType": "Typ paliva",
+        "fuelTypePh": "Vyberte typ paliva",
+        "fuelCapacity": "Objem nádrže (litre)",
+        "fuelCapacityPh": "napr. 200",
+        "currentMileage": "Aktuálny stav km",
+        "currentMileagePh": "0",
+        "notes": "Poznámky",
+        "notesPh": "Ďalšie poznámky",
+        "motExpiry": "STK platnosť",
+        "taxExpiry": "Daň platnosť",
+        "registrationExpiry": "Registrácia platnosť",
+        "insuranceExpiry": "Poistenie platnosť",
+        "purchaseOrder": "Objednávka",
+        "purchaseOrderPh": "napr. PO-2024-001",
         "purchaseDate": "Dátum kúpy",
-        "purchaseCost": "Cena kúpy", "purchaseCostPh": "napr. 50000.00",
-        "purchaseContract": "Zmluva o kúpe", "purchaseContractPh": "napr. CON-2024-001",
-        "vendorName": "Predajca", "vendorNamePh": "napr. ABC Predaj vozidiel",
-        "vendorAddress": "Adresa predajcu", "vendorAddressPh": "Úplná adresa predajcu",
-        "policyNumber": "Číslo poistky", "policyNumberPh": "napr. POL-2024-001",
-        "insuranceCompany": "Poisťovňa", "insuranceCompanyPh": "napr. ABC poisťovňa",
-        "insuranceTypeLabel": "Typ poistenia", "insuranceTypePh": "Vyberte typ poistenia",
+        "purchaseCost": "Cena kúpy",
+        "purchaseCostPh": "napr. 50000.00",
+        "purchaseContract": "Zmluva o kúpe",
+        "purchaseContractPh": "napr. CON-2024-001",
+        "vendorName": "Predajca",
+        "vendorNamePh": "napr. ABC Predaj vozidiel",
+        "vendorAddress": "Adresa predajcu",
+        "vendorAddressPh": "Úplná adresa predajcu",
+        "policyNumber": "Číslo poistky",
+        "policyNumberPh": "napr. POL-2024-001",
+        "insuranceCompany": "Poisťovňa",
+        "insuranceCompanyPh": "napr. ABC poisťovňa",
+        "insuranceTypeLabel": "Typ poistenia",
+        "insuranceTypePh": "Vyberte typ poistenia",
         "insuranceStartDate": "Začiatok poistenia",
-        "grossWeight": "Celková hmotnosť (tony)", "grossWeightPh": "napr. 44",
-        "payloadCapacity": "Užitočná hmotnosť (tony)", "payloadCapacityPh": "napr. 26",
-        "tareWeight": "Vlastná hmotnosť (tony)", "tareWeightPh": "napr. 18",
-        "numberOfAxles": "Počet náprav", "numberOfAxlesPh": "napr. 5",
-        "bodyType": "Typ nadstavby", "bodyTypePh": "Vyberte typ nadstavby",
-        "hitchType": "Typ závesu", "hitchTypePh": "Vyberte typ závesu",
-        "lengthM": "Dĺžka (m)", "lengthMPh": "napr. 13.6",
-        "widthM": "Šírka (m)", "widthMPh": "napr. 2.5",
-        "heightM": "Výška (m)", "heightMPh": "napr. 2.5",
-        "euroEmission": "Euro emisná norma", "euroEmissionPh": "Vyberte normu",
-        "tachographSerial": "Sériové č. tachografu", "tachographSerialPh": "napr. VD0123456789",
+        "grossWeight": "Celková hmotnosť (tony)",
+        "grossWeightPh": "napr. 44",
+        "payloadCapacity": "Užitočná hmotnosť (tony)",
+        "payloadCapacityPh": "napr. 26",
+        "tareWeight": "Vlastná hmotnosť (tony)",
+        "tareWeightPh": "napr. 18",
+        "numberOfAxles": "Počet náprav",
+        "numberOfAxlesPh": "napr. 5",
+        "bodyType": "Typ nadstavby",
+        "bodyTypePh": "Vyberte typ nadstavby",
+        "hitchType": "Typ závesu",
+        "hitchTypePh": "Vyberte typ závesu",
+        "lengthM": "Dĺžka (m)",
+        "lengthMPh": "napr. 13.6",
+        "widthM": "Šírka (m)",
+        "widthMPh": "napr. 2.5",
+        "heightM": "Výška (m)",
+        "heightMPh": "napr. 2.5",
+        "euroEmission": "Euro emisná norma",
+        "euroEmissionPh": "Vyberte normu",
+        "tachographSerial": "Sériové č. tachografu",
+        "tachographSerialPh": "napr. VD0123456789",
         "tachographCalibrationExpiry": "Platnosť kalibrácie tachografu",
-        "trailerLength": "Dĺžka prívesu (m)", "trailerLengthPh": "napr. 13.6",
-        "seatingCapacity": "Počet sedadiel", "seatingCapacityPh": "napr. 5",
-        "loadVolume": "Nákladný objem (m³)", "loadVolumePh": "napr. 15.5",
+        "trailerLength": "Dĺžka prívesu (m)",
+        "trailerLengthPh": "napr. 13.6",
+        "seatingCapacity": "Počet sedadiel",
+        "seatingCapacityPh": "napr. 5",
+        "loadVolume": "Nákladný objem (m³)",
+        "loadVolumePh": "napr. 15.5",
         "partitionFitted": "Priečka inštalovaná",
-        "vinSubType": "VIN podtyp", "vinSubTypePh": "Vyberte VIN podtyp",
-        "insuranceGroup": "Poistná skupina", "insuranceGroupPh": "Vyberte poistnú skupinu",
-        "tankerCapacity": "Kapacita cisterny (litre)", "tankerCapacityPh": "napr. 30000",
-        "tankMaterial": "Materiál nádrže", "tankMaterialPh": "Vyberte materiál nádrže",
-        "adrClass": "ADR trieda", "adrClassPh": "Vyberte ADR triedu",
-        "unNumbers": "UN čísla", "unNumbersPh": "napr. 1223, 1250",
-        "lastPressureTest": "Posledná tlaková skúška", "nextPressureTest": "Nasledujúca tlaková skúška",
-        "refrigerationUnit": "Chladiaca jednotka", "refrigerationUnitPh": "napr. Thermo King",
-        "refrigerationModel": "Model chladenia", "refrigerationModelPh": "napr. T-1200R",
-        "tempMin": "Min. teplota (°C)", "tempMinPh": "napr. -25",
-        "tempMax": "Max. teplota (°C)", "tempMaxPh": "napr. 10",
-        "atpCertificateNumber": "Číslo ATP osvedčenia", "atpCertificateNumberPh": "napr. ATP-2024-001",
+        "vinSubType": "VIN podtyp",
+        "vinSubTypePh": "Vyberte VIN podtyp",
+        "insuranceGroup": "Poistná skupina",
+        "insuranceGroupPh": "Vyberte poistnú skupinu",
+        "tankerCapacity": "Kapacita cisterny (litre)",
+        "tankerCapacityPh": "napr. 30000",
+        "tankMaterial": "Materiál nádrže",
+        "tankMaterialPh": "Vyberte materiál nádrže",
+        "adrClass": "ADR trieda",
+        "adrClassPh": "Vyberte ADR triedu",
+        "unNumbers": "UN čísla",
+        "unNumbersPh": "napr. 1223, 1250",
+        "lastPressureTest": "Posledná tlaková skúška",
+        "nextPressureTest": "Nasledujúca tlaková skúška",
+        "refrigerationUnit": "Chladiaca jednotka",
+        "refrigerationUnitPh": "napr. Thermo King",
+        "refrigerationModel": "Model chladenia",
+        "refrigerationModelPh": "napr. T-1200R",
+        "tempMin": "Min. teplota (°C)",
+        "tempMinPh": "napr. -25",
+        "tempMax": "Max. teplota (°C)",
+        "tempMaxPh": "napr. 10",
+        "atpCertificateNumber": "Číslo ATP osvedčenia",
+        "atpCertificateNumberPh": "napr. ATP-2024-001",
         "atpCertificateExpiry": "Platnosť ATP osvedčenia",
-        "equipmentDescription": "Popis vybavenia", "equipmentDescriptionPh": "Popíšte špeciálne vybavenie alebo úpravy",
+        "equipmentDescription": "Popis vybavenia",
+        "equipmentDescriptionPh": "Popíšte špeciálne vybavenie alebo úpravy",
         "notSpecified": "Neuvedené"
       },
       "validation": {
@@ -400,40 +1211,134 @@
         "saveFailed": "Uloženie zlyhalo"
       }
     },
-    "workshops": { "title": "Servisy", "subtitle": "Autorizovaní poskytovatelia služieb", "addButton": "Pridať servis", "empty": "Zatiaľ žiadne servisy." },
-    "maintenanceTypes": { "title": "Typy údržby", "addButton": "Pridať typ" },
-    "maintenanceRecords": { "title": "Záznamy údržby", "subtitle": "Všetka údržba vozidiel", "addButton": "Nový záznam", "empty": "Zatiaľ žiadne záznamy." }
+    "workshops": {
+      "title": "Servisy",
+      "subtitle": "Autorizovaní poskytovatelia služieb",
+      "addButton": "Pridať servis",
+      "empty": "Zatiaľ žiadne servisy."
+    },
+    "maintenanceTypes": {
+      "title": "Typy údržby",
+      "addButton": "Pridať typ"
+    },
+    "maintenanceRecords": {
+      "title": "Záznamy údržby",
+      "subtitle": "Všetka údržba vozidiel",
+      "addButton": "Nový záznam",
+      "empty": "Zatiaľ žiadne záznamy."
+    }
   },
   "attendance": {
-    "list": { "title": "Dochádzkové hárky", "subtitle": "Mesačná dochádzka na zamestnanca", "addButton": "Nový hárok", "empty": "Zatiaľ žiadne hárky." },
-    "sheet": { "title": "Dochádzkový hárok", "back": "Späť na dochádzku", "save": "Uložiť hárok", "lock": "Uzamknúť obdobie", "unlock": "Odomknúť obdobie" }
+    "list": {
+      "title": "Dochádzkové hárky",
+      "subtitle": "Mesačná dochádzka na zamestnanca",
+      "addButton": "Nový hárok",
+      "empty": "Zatiaľ žiadne hárky."
+    },
+    "sheet": {
+      "title": "Dochádzkový hárok",
+      "back": "Späť na dochádzku",
+      "save": "Uložiť hárok",
+      "lock": "Uzamknúť obdobie",
+      "unlock": "Odomknúť obdobie"
+    }
   },
   "reports": {
-    "dashboard": { "title": "Reporty a analytika", "subtitle": "Vytvárajte a exportujte vlastné reporty", "newReport": "Nový report", "empty": "Zatiaľ žiadne reporty." }
+    "dashboard": {
+      "title": "Reporty a analytika",
+      "subtitle": "Vytvárajte a exportujte vlastné reporty",
+      "newReport": "Nový report",
+      "empty": "Zatiaľ žiadne reporty."
+    }
   },
   "notifications": {
-    "center": { "title": "Notifikácie", "subtitle": "Všetky vaše upozornenia", "markAllRead": "Označiť všetko ako prečítané", "empty": "Žiadne notifikácie.", "filters": { "all": "Všetky", "unread": "Neprečítané", "read": "Prečítané" } },
-    "settings": { "title": "Nastavenia notifikácií", "subtitle": "Vyberte, ktoré notifikácie chcete dostávať", "save": "Uložiť predvoľby" }
+    "center": {
+      "title": "Notifikácie",
+      "subtitle": "Všetky vaše upozornenia",
+      "markAllRead": "Označiť všetko ako prečítané",
+      "empty": "Žiadne notifikácie.",
+      "filters": {
+        "all": "Všetky",
+        "unread": "Neprečítané",
+        "read": "Prečítané"
+      }
+    },
+    "settings": {
+      "title": "Nastavenia notifikácií",
+      "subtitle": "Vyberte, ktoré notifikácie chcete dostávať",
+      "save": "Uložiť predvoľby"
+    }
   },
   "users": {
-    "list": { "title": "Správa používateľov", "subtitle": "Používatelia systému a prístup", "addButton": "Pridať používateľa", "search": "Hľadať používateľov…", "bulkImport": "Hromadný import", "empty": "Žiadni používatelia.", "activationLink": "Aktivačný odkaz" },
-    "add": { "title": "Pridať používateľa", "back": "Späť na používateľov" },
-    "edit": { "title": "Upraviť používateľa", "back": "Späť na používateľov" }
+    "list": {
+      "title": "Správa používateľov",
+      "subtitle": "Používatelia systému a prístup",
+      "addButton": "Pridať používateľa",
+      "search": "Hľadať používateľov…",
+      "bulkImport": "Hromadný import",
+      "empty": "Žiadni používatelia.",
+      "activationLink": "Aktivačný odkaz"
+    },
+    "add": {
+      "title": "Pridať používateľa",
+      "back": "Späť na používateľov"
+    },
+    "edit": {
+      "title": "Upraviť používateľa",
+      "back": "Späť na používateľov"
+    }
   },
   "roles": {
-    "list": { "title": "Roly a oprávnenia", "subtitle": "Definujte roly a priraďte oprávnenia", "addButton": "Nová rola", "permissionsMatrix": "Matica oprávnení", "allRoles": "Všetky roly", "empty": "Zatiaľ žiadne roly." },
-    "create": { "title": "Vytvoriť rolu", "editTitle": "Upraviť rolu", "back": "Späť na roly" },
-    "matrix": { "title": "Matica oprávnení", "back": "Späť na roly" }
+    "list": {
+      "title": "Roly a oprávnenia",
+      "subtitle": "Definujte roly a priraďte oprávnenia",
+      "addButton": "Nová rola",
+      "permissionsMatrix": "Matica oprávnení",
+      "allRoles": "Všetky roly",
+      "empty": "Zatiaľ žiadne roly."
+    },
+    "create": {
+      "title": "Vytvoriť rolu",
+      "editTitle": "Upraviť rolu",
+      "back": "Späť na roly"
+    },
+    "matrix": {
+      "title": "Matica oprávnení",
+      "back": "Späť na roly"
+    }
   },
   "jobAds": {
-    "list": { "title": "Pracovné inzeráty", "subtitle": "Verejné pracovné ponuky", "addButton": "Nový inzerát", "search": "Hľadať inzeráty…", "empty": "Zatiaľ žiadne inzeráty." },
-    "form": { "addTitle": "Nový inzerát", "editTitle": "Upraviť inzerát", "back": "Späť na inzeráty" }
+    "list": {
+      "title": "Pracovné inzeráty",
+      "subtitle": "Verejné pracovné ponuky",
+      "addButton": "Nový inzerát",
+      "search": "Hľadať inzeráty…",
+      "empty": "Zatiaľ žiadne inzeráty."
+    },
+    "form": {
+      "addTitle": "Nový inzerát",
+      "editTitle": "Upraviť inzerát",
+      "back": "Späť na inzeráty"
+    }
   },
   "recycleBin": {
-    "list": { "title": "Vymazané záznamy", "subtitle": "Obnovte alebo trvalo vymažte záznamy", "accessDenied": "Prístup zamietnutý", "empty": "Kôš je prázdny.", "restore": "Obnoviť", "permanentlyDelete": "Trvalo vymazať" }
+    "list": {
+      "title": "Vymazané záznamy",
+      "subtitle": "Obnovte alebo trvalo vymažte záznamy",
+      "accessDenied": "Prístup zamietnutý",
+      "empty": "Kôš je prázdny.",
+      "restore": "Obnoviť",
+      "permanentlyDelete": "Trvalo vymazať"
+    }
   },
   "logs": {
-    "dashboard": { "title": "Systémové záznamy", "subtitle": "Záznam aktivity (audit log)", "activityByModule": "Aktivita podľa modulu", "search": "Hľadať v záznamoch…", "empty": "Žiadne záznamy nezodpovedajú filtrom." }
+    "dashboard": {
+      "title": "Systémové záznamy",
+      "subtitle": "Záznam aktivity (audit log)",
+      "activityByModule": "Aktivita podľa modulu",
+      "search": "Hľadať v záznamoch…",
+      "empty": "Žiadne záznamy nezodpovedajú filtrom."
+    }
   },
   "settings": {
     "index": {
@@ -456,30 +1361,96 @@
         "systemDesc": "Databáza, zálohy, info o systéme"
       }
     },
-    "documentTypes": { "list": "Typy dokumentov", "addButton": "Nový typ dokumentu", "newTitle": "Nový typ dokumentu", "editTitle": "Upraviť typ dokumentu", "viewTitle": "Typ dokumentu", "back": "Späť na typy dokumentov" },
-    "jobTypes": { "title": "Typy práce", "addButton": "Pridať typ" },
-    "skills": { "title": "Zručnosti", "addButton": "Pridať zručnosť" },
-    "workflowSettings": { "title": "Nastavenia pracovného postupu" },
-    "workflowConfiguration": { "title": "Konfigurácia pracovného postupu" },
-    "notificationRules": { "title": "Pravidlá notifikácií", "addButton": "Nové pravidlo" },
-    "security": { "title": "Bezpečnostné nastavenia" },
-    "colorScheme": { "title": "Farebná schéma" },
-    "branding": { "title": "Branding" },
-    "databaseCleanup": { "title": "Čistenie databázy" },
-    "databaseBackup": { "title": "Záloha databázy" },
-    "systemInformation": { "title": "Informácie o systéme" },
-    "transportTypes": { "title": "Typy dopravy", "addButton": "Pridať typ" },
-    "truckBrands": { "title": "Značky kamiónov", "addButton": "Pridať značku" },
-    "trailerTypes": { "title": "Typy návesov", "addButton": "Pridať typ" },
-    "vehicleSettings": { "title": "Nastavenia vozidiel" },
-    "transactionTypes": { "title": "Typy transakcií", "addButton": "Pridať typ" },
-    "workHistoryEventTypes": { "title": "Typy udalostí histórie práce", "addButton": "Pridať typ" },
-    "maintenanceTypes": { "title": "Typy údržby", "addButton": "Pridať typ" }
+    "documentTypes": {
+      "list": "Typy dokumentov",
+      "addButton": "Nový typ dokumentu",
+      "newTitle": "Nový typ dokumentu",
+      "editTitle": "Upraviť typ dokumentu",
+      "viewTitle": "Typ dokumentu",
+      "back": "Späť na typy dokumentov"
+    },
+    "jobTypes": {
+      "title": "Typy práce",
+      "addButton": "Pridať typ"
+    },
+    "skills": {
+      "title": "Zručnosti",
+      "addButton": "Pridať zručnosť"
+    },
+    "workflowSettings": {
+      "title": "Nastavenia pracovného postupu"
+    },
+    "workflowConfiguration": {
+      "title": "Konfigurácia pracovného postupu"
+    },
+    "notificationRules": {
+      "title": "Pravidlá notifikácií",
+      "addButton": "Nové pravidlo"
+    },
+    "security": {
+      "title": "Bezpečnostné nastavenia"
+    },
+    "colorScheme": {
+      "title": "Farebná schéma"
+    },
+    "branding": {
+      "title": "Branding"
+    },
+    "databaseCleanup": {
+      "title": "Čistenie databázy"
+    },
+    "databaseBackup": {
+      "title": "Záloha databázy"
+    },
+    "systemInformation": {
+      "title": "Informácie o systéme"
+    },
+    "transportTypes": {
+      "title": "Typy dopravy",
+      "addButton": "Pridať typ"
+    },
+    "truckBrands": {
+      "title": "Značky kamiónov",
+      "addButton": "Pridať značku"
+    },
+    "trailerTypes": {
+      "title": "Typy návesov",
+      "addButton": "Pridať typ"
+    },
+    "vehicleSettings": {
+      "title": "Nastavenia vozidiel"
+    },
+    "transactionTypes": {
+      "title": "Typy transakcií",
+      "addButton": "Pridať typ"
+    },
+    "workHistoryEventTypes": {
+      "title": "Typy udalostí histórie práce",
+      "addButton": "Pridať typ"
+    },
+    "maintenanceTypes": {
+      "title": "Typy údržby",
+      "addButton": "Pridať typ"
+    }
   },
   "profile": {
-    "view": { "title": "Môj profil", "subtitle": "Osobné údaje a kontakt", "edit": "Upraviť" },
-    "changePassword": { "title": "Zmeniť heslo", "subtitle": "Aktualizujte heslo, aby ste si udržali zabezpečený účet" },
-    "preferences": { "title": "Predvoľby", "subtitle": "Jazyk, časové pásmo a nastavenia notifikácií", "language": "Preferovaný jazyk", "timezone": "Časové pásmo", "save": "Uložiť predvoľby", "saved": "Predvoľby uložené" }
+    "view": {
+      "title": "Môj profil",
+      "subtitle": "Osobné údaje a kontakt",
+      "edit": "Upraviť"
+    },
+    "changePassword": {
+      "title": "Zmeniť heslo",
+      "subtitle": "Aktualizujte heslo, aby ste si udržali zabezpečený účet"
+    },
+    "preferences": {
+      "title": "Predvoľby",
+      "subtitle": "Jazyk, časové pásmo a nastavenia notifikácií",
+      "language": "Preferovaný jazyk",
+      "timezone": "Časové pásmo",
+      "save": "Uložiť predvoľby",
+      "saved": "Predvoľby uložené"
+    }
   },
   "common": {
     "from": "Od",
@@ -494,6 +1465,9 @@
     "results_other": "{{count}} výsledkov"
   },
   "finance": {
-    "page": { "title": "Financie", "subtitle": "Transakcie a zostatky v rámci organizácie" }
+    "page": {
+      "title": "Financie",
+      "subtitle": "Transakcie a zostatky v rámci organizácie"
+    }
   }
 }

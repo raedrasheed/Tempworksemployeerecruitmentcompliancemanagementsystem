@@ -4,7 +4,7 @@ export type Locale = (typeof SUPPORTED_LOCALES)[number];
 export const RTL_LOCALES: readonly Locale[] = ['ar'];
 export const FALLBACK_LOCALE: Locale = 'en';
 export const DEFAULT_NS = 'common';
-export const NAMESPACES = ['common', 'nav', 'auth', 'public', 'enums', 'errors'] as const;
+export const NAMESPACES = ['common', 'nav', 'auth', 'public', 'enums', 'errors', 'dashboard'] as const;
 export type Namespace = (typeof NAMESPACES)[number];
 
 export const LOCALE_LABELS: Record<Locale, string> = {

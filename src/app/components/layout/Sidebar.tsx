@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router';
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   LayoutDashboard,
   Users,
@@ -33,13 +34,13 @@ import { useBranding } from '../../hooks/useBranding';
 
 interface NavChild {
   icon: React.ElementType;
-  label: string;
+  labelKey: string;
   path: string;
 }
 
 interface NavItem {
   icon: React.ElementType;
-  label: string;
+  labelKey: string;
   path: string;
   permission: string | null;
   roles?: string[];
@@ -53,33 +54,34 @@ const AGENCY_ROLES = ['Agency User', 'Agency Manager'];
 
 // Each nav item declares which permission (module:read) is required to see it.
 // null means always visible to any authenticated user.
+// labelKey is resolved against the `nav` namespace at render time.
 const allNavigationItems: NavItem[] = [
-  { icon: LayoutDashboard, label: 'Dashboard',             path: '/dashboard',                  permission: null },
-  { icon: UserCheck,       label: 'Applicants',            path: '/dashboard/applicants',       permission: 'applicants:read' },
-  { icon: UserCheck,       label: 'Candidates',            path: '/dashboard/candidates',       permission: 'applicants:read' },
-  { icon: Users,           label: 'Employees',             path: '/dashboard/employees',        permission: 'employees:read' },
-  { icon: ClipboardList,   label: 'Attendance Sheets',     path: '/dashboard/attendance',       permission: 'attendance:read' },
+  { icon: LayoutDashboard, labelKey: 'dashboard',           path: '/dashboard',                  permission: null },
+  { icon: UserCheck,       labelKey: 'applicants',          path: '/dashboard/applicants',       permission: 'applicants:read' },
+  { icon: UserCheck,       labelKey: 'candidates',          path: '/dashboard/candidates',       permission: 'applicants:read' },
+  { icon: Users,           labelKey: 'employees',           path: '/dashboard/employees',        permission: 'employees:read' },
+  { icon: ClipboardList,   labelKey: 'attendanceSheets',    path: '/dashboard/attendance',       permission: 'attendance:read' },
   {
-    icon: Truck, label: 'Vehicles', path: '/dashboard/vehicles', permission: 'vehicles:read',
+    icon: Truck, labelKey: 'vehicles', path: '/dashboard/vehicles', permission: 'vehicles:read',
     children: [
-      { icon: Truck,   label: 'Fleet',              path: '/dashboard/vehicles' },
-      { icon: Factory, label: 'Workshops',          path: '/dashboard/vehicles/workshops' },
-      { icon: Wrench,  label: 'Maintenance Records', path: '/dashboard/vehicles/maintenance-records' },
+      { icon: Truck,   labelKey: 'fleet',               path: '/dashboard/vehicles' },
+      { icon: Factory, labelKey: 'workshops',           path: '/dashboard/vehicles/workshops' },
+      { icon: Wrench,  labelKey: 'maintenanceRecords',  path: '/dashboard/vehicles/maintenance-records' },
     ],
   },
-  { icon: FolderOpen,      label: 'Documents & Compliance',path: '/dashboard/documents-compliance', permission: 'documents:read' },
-  { icon: FileSearch,      label: 'Document Explorer',     path: '/dashboard/document-explorer',permission: 'documents:read' },
-  { icon: Layers,          label: 'Workflows',             path: '/dashboard/workflows',        permission: 'workflow:read' },
-  { icon: Building2,       label: 'Agencies',              path: '/dashboard/agencies',         permission: 'agencies:read' },
-  { icon: BarChart3,       label: 'Reports',               path: '/dashboard/reports',          permission: 'reports:read' },
-  { icon: DollarSign,     label: 'Finance',               path: '/dashboard/finance',          permission: 'finance:read', roles: ['System Admin', 'HR Manager', 'Finance', 'Recruiter'], hideForRoles: AGENCY_ROLES },
-  { icon: Megaphone,      label: 'Job Ads',               path: '/dashboard/job-ads',          permission: 'job-ads:read', roles: ['System Admin', 'HR Manager', 'Recruiter'] },
-  { icon: Bell,            label: 'Notifications',         path: '/dashboard/notifications',    permission: 'notifications:read' },
-  { icon: UserCog,         label: 'Users',                 path: '/dashboard/users',            permission: 'users:read' },
-  { icon: Shield,          label: 'Roles & Permissions',   path: '/dashboard/roles',            permission: 'roles:read' },
-  { icon: Activity,        label: 'System Logs',           path: '/dashboard/logs',             permission: 'logs:read' },
-  { icon: Trash2,          label: 'Deleted Records',       path: '/dashboard/recycle-bin',      permission: 'recycle-bin:read', roles: ['System Admin', 'HR Manager', 'Compliance Officer'], hideForRoles: AGENCY_ROLES },
-  { icon: Settings,        label: 'Settings',              path: '/dashboard/settings',         permission: 'settings:read' },
+  { icon: FolderOpen,      labelKey: 'documentsCompliance', path: '/dashboard/documents-compliance', permission: 'documents:read' },
+  { icon: FileSearch,      labelKey: 'documentExplorer',    path: '/dashboard/document-explorer',permission: 'documents:read' },
+  { icon: Layers,          labelKey: 'workflows',           path: '/dashboard/workflows',        permission: 'workflow:read' },
+  { icon: Building2,       labelKey: 'agencies',            path: '/dashboard/agencies',         permission: 'agencies:read' },
+  { icon: BarChart3,       labelKey: 'reports',             path: '/dashboard/reports',          permission: 'reports:read' },
+  { icon: DollarSign,      labelKey: 'finance',             path: '/dashboard/finance',          permission: 'finance:read', roles: ['System Admin', 'HR Manager', 'Finance', 'Recruiter'], hideForRoles: AGENCY_ROLES },
+  { icon: Megaphone,       labelKey: 'jobAds',              path: '/dashboard/job-ads',          permission: 'job-ads:read', roles: ['System Admin', 'HR Manager', 'Recruiter'] },
+  { icon: Bell,            labelKey: 'notifications',       path: '/dashboard/notifications',    permission: 'notifications:read' },
+  { icon: UserCog,         labelKey: 'users',               path: '/dashboard/users',            permission: 'users:read' },
+  { icon: Shield,          labelKey: 'rolesPermissions',    path: '/dashboard/roles',            permission: 'roles:read' },
+  { icon: Activity,        labelKey: 'systemLogs',          path: '/dashboard/logs',             permission: 'logs:read' },
+  { icon: Trash2,          labelKey: 'deletedRecords',      path: '/dashboard/recycle-bin',      permission: 'recycle-bin:read', roles: ['System Admin', 'HR Manager', 'Compliance Officer'], hideForRoles: AGENCY_ROLES },
+  { icon: Settings,        labelKey: 'settings',            path: '/dashboard/settings',         permission: 'settings:read' },
 ];
 
 interface SidebarProps {
@@ -91,6 +93,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
   const location = useLocation();
   const { user: ctxUser } = useAuthContext();
   const branding = useBranding();
+  const { t } = useTranslation('nav');
 
   // Fallback to localStorage + live /auth/me when AuthContext hasn't populated
   // yet. Keeps the sidebar's nav filter and user block in sync with the Topbar,
@@ -165,7 +168,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
               <h1 className="text-lg font-bold text-sidebar-foreground">
                 {branding.companyName}
               </h1>
-              <p className="text-xs text-muted-foreground">Recruitment Platform</p>
+              <p className="text-xs text-muted-foreground">{t('sidebar.platformLabel')}</p>
             </div>
           )}
         </div>
@@ -194,18 +197,18 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                         : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                       isCollapsed && "justify-center",
                     )}
-                    title={isCollapsed ? item.label : undefined}
+                    title={isCollapsed ? t(item.labelKey) : undefined}
                   >
                     <item.icon className="w-5 h-5 flex-shrink-0" />
                     {!isCollapsed && (
                       <>
-                        <span className="text-sm flex-1 text-left">{item.label}</span>
+                        <span className="text-sm flex-1 text-start">{t(item.labelKey)}</span>
                         <ChevronDown className={cn("w-4 h-4 transition-transform", isOpen && "rotate-180")} />
                       </>
                     )}
                     {isCollapsed && (
                       <div className="absolute left-full ml-2 px-3 py-2 bg-popover text-popover-foreground border border-border text-sm rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
-                        {item.label}
+                        {t(item.labelKey)}
                         <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1 w-2 h-2 bg-popover rotate-45 border-l border-b border-border" />
                       </div>
                     )}
@@ -220,13 +223,13 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                         : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                       isCollapsed && "justify-center",
                     )}
-                    title={isCollapsed ? item.label : undefined}
+                    title={isCollapsed ? t(item.labelKey) : undefined}
                   >
                     <item.icon className="w-5 h-5 flex-shrink-0" />
-                    {!isCollapsed && <span className="text-sm">{item.label}</span>}
+                    {!isCollapsed && <span className="text-sm">{t(item.labelKey)}</span>}
                     {isCollapsed && (
                       <div className="absolute left-full ml-2 px-3 py-2 bg-popover text-popover-foreground border border-border text-sm rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
-                        {item.label}
+                        {t(item.labelKey)}
                         <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1 w-2 h-2 bg-popover rotate-45 border-l border-b border-border" />
                       </div>
                     )}
@@ -251,13 +254,13 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                                 : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                               isCollapsed && "justify-center px-2",
                             )}
-                            title={isCollapsed ? child.label : undefined}
+                            title={isCollapsed ? t(child.labelKey) : undefined}
                           >
                             <child.icon className="w-4 h-4 flex-shrink-0" />
-                            {!isCollapsed && <span>{child.label}</span>}
+                            {!isCollapsed && <span>{t(child.labelKey)}</span>}
                             {isCollapsed && (
                               <div className="absolute left-full ml-2 px-3 py-2 bg-popover text-popover-foreground border border-border text-sm rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
-                                {child.label}
+                                {t(child.labelKey)}
                                 <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1 w-2 h-2 bg-popover rotate-45 border-l border-b border-border" />
                               </div>
                             )}

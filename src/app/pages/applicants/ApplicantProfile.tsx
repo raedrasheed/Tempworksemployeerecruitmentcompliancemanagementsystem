@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import {
   ArrowLeft, Mail, Phone, Globe, Briefcase, Calendar, FileText,
   UserPlus, Edit, Trash2, Download, Upload, X,
@@ -8,6 +9,7 @@ import {
 } from 'lucide-react';
 import { usePermissions } from '../../hooks/usePermissions';
 import { getCurrentUser, applicantsApi, documentsApi, settingsApi, employeeWorkflowApi, agenciesApi, workflowApi } from '../../services/api';
+import { apiError } from '../../../i18n/apiError';
 import { FinancialRecordsTab } from '../../components/finance/FinancialRecordsTab';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -50,6 +52,7 @@ export function ApplicantProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { canEdit, canDelete, can } = usePermissions();
+  const { t } = useTranslation(['pages', 'common']);
   const currentUser = getCurrentUser();
   const isFinanceOrAdmin = currentUser?.role === 'System Admin' || currentUser?.role === 'HR Manager' || currentUser?.role === 'Finance';
   const isAgencyUser = currentUser?.role === 'Agency User' || currentUser?.role === 'Agency Manager';
@@ -266,11 +269,11 @@ export function ApplicantProfile() {
       // Seed the inline Notes editor with the raw note text so the
       // operator can append / tweak without retyping from scratch.
       setNoteDraft(typeof applicant.notes === 'string' ? applicant.notes : '');
-    }).catch(() => {
-      toast.error('Failed to load applicant');
+    }).catch((err) => {
+      toast.error(apiError(err, t('pages:applicants.profile.toast.loadFailed')));
       navigate('/dashboard/applicants');
     }).finally(() => setLoading(false));
-  }, [id, navigate]);
+  }, [id, navigate, t]);
 
   const handleStageChange = async (stageId: string) => {
     if (!stageId || !id) return;
@@ -278,9 +281,9 @@ export function ApplicantProfile() {
     try {
       const updated = await applicantsApi.setCurrentStage(id, stageId);
       setApplicantData((prev: any) => ({ ...prev, currentWorkflowStage: updated.currentWorkflowStage, currentWorkflowStageId: updated.currentWorkflowStageId }));
-      toast.success('Workflow stage updated');
-    } catch (err: any) {
-      toast.error(err?.message || 'Failed to update stage');
+      toast.success(t('pages:applicants.profile.toast.stageUpdated'));
+    } catch (err) {
+      toast.error(apiError(err, t('pages:applicants.profile.toast.stageFailed')));
     } finally {
       setChangingStage(false);
     }
@@ -291,12 +294,12 @@ export function ApplicantProfile() {
     setAssigningWorkflow(true);
     try {
       await workflowApi.assignCandidate({ candidateId: id, workflowId: assignWorkflowId });
-      toast.success('Workflow connected');
+      toast.success(t('pages:applicants.profile.toast.workflowConnected'));
       loadCandidateWorkflow();
       setShowAssignWorkflow(false);
       setAssignWorkflowId('');
-    } catch (err: any) {
-      toast.error(err?.message || 'Failed to connect workflow');
+    } catch (err) {
+      toast.error(apiError(err, t('pages:applicants.profile.toast.workflowFailed')));
     } finally {
       setAssigningWorkflow(false);
     }
@@ -305,16 +308,16 @@ export function ApplicantProfile() {
   const handleDisconnectCandidateWorkflow = async () => {
     if (!id || !candidateAssignment) return;
     if (!(await confirm({
-      title: 'Disconnect from workflow?',
-      description: 'This applicant will be disconnected from the workflow. Existing progress is preserved.',
-      confirmText: 'Disconnect',
+      title: t('pages:applicants.profile.confirmDisconnect.title'),
+      description: t('pages:applicants.profile.confirmDisconnect.description'),
+      confirmText: t('pages:applicants.profile.confirmDisconnect.confirm'),
     }))) return;
     try {
       await workflowApi.removeCandidateAssignment(id, candidateAssignment.id);
       setCandidateAssignment(null);
-      toast.success('Workflow disconnected');
-    } catch (err: any) {
-      toast.error(err?.message || 'Failed to disconnect');
+      toast.success(t('pages:applicants.profile.toast.workflowDisconnected'));
+    } catch (err) {
+      toast.error(apiError(err, t('pages:applicants.profile.toast.disconnectFailed')));
     }
   };
 
@@ -324,9 +327,9 @@ export function ApplicantProfile() {
     try {
       await workflowApi.advanceToStage(candidateAssignment.id, stageId);
       loadCandidateWorkflow();
-      toast.success('Current stage updated');
-    } catch (err: any) {
-      toast.error(err?.message || 'Failed to update stage');
+      toast.success(t('pages:applicants.profile.toast.currentStageUpdated'));
+    } catch (err) {
+      toast.error(apiError(err, t('pages:applicants.profile.toast.currentStageFailed')));
     } finally {
       setSettingStage(false);
     }
@@ -337,9 +340,9 @@ export function ApplicantProfile() {
     try {
       await workflowApi.submitApproval(progressId, { decision: 'APPROVED' });
       loadCandidateWorkflow();
-      toast.success('Stage approved');
-    } catch (err: any) {
-      toast.error(err?.message || 'Failed to approve stage');
+      toast.success(t('pages:applicants.profile.toast.stageApproved'));
+    } catch (err) {
+      toast.error(apiError(err, t('pages:applicants.profile.toast.stageApproveFailed')));
     } finally {
       setApprovingProgressId(null);
     }
@@ -352,9 +355,9 @@ export function ApplicantProfile() {
     try {
       const updated = await applicantsApi.update(id, { agencyId: newAgencyId });
       setApplicantData((prev: any) => ({ ...prev, agencyId: updated.agencyId, agency: updated.agency }));
-      toast.success('Agency updated');
-    } catch (err: any) {
-      toast.error(err?.message || 'Failed to update agency');
+      toast.success(t('pages:applicants.profile.toast.agencyUpdated'));
+    } catch (err) {
+      toast.error(apiError(err, t('pages:applicants.profile.toast.agencyFailed')));
     } finally {
       setChangingAgency(false);
     }
@@ -367,9 +370,9 @@ export function ApplicantProfile() {
     try {
       const updated = await applicantsApi.update(id, { notes: noteDraft } as any);
       setApplicantData((prev: any) => ({ ...prev, notes: updated.notes ?? noteDraft }));
-      toast.success('Note saved');
-    } catch (err: any) {
-      toast.error(err?.message || 'Failed to save note');
+      toast.success(t('pages:applicants.profile.toast.noteSaved'));
+    } catch (err) {
+      toast.error(apiError(err, t('pages:applicants.profile.toast.noteFailed')));
     } finally {
       setSavingNote(false);
     }
@@ -381,25 +384,25 @@ export function ApplicantProfile() {
     try {
       const updated = await documentsApi.verify(doc.id, { action: 'VERIFY' });
       setDocuments((prev: any[]) => prev.map(d => d.id === doc.id ? updated : d));
-      toast.success(`"${doc.name}" approved`);
-    } catch (err: any) {
-      toast.error(err?.message || 'Failed to approve document');
+      toast.success(t('pages:applicants.profile.toast.docApproved', { name: doc.name }));
+    } catch (err) {
+      toast.error(apiError(err, t('pages:applicants.profile.toast.docApproveFailed')));
     } finally {
       setVerifyingDocId(null);
     }
   };
 
   const handleRejectDocSubmit = async () => {
-    if (!rejectDocReason.trim()) { toast.error('A rejection reason is required'); return; }
+    if (!rejectDocReason.trim()) { toast.error(t('pages:applicants.profile.toast.rejectReasonRequired')); return; }
     setVerifyingDocId(rejectDocDialog.docId);
     try {
       const updated = await documentsApi.verify(rejectDocDialog.docId, { action: 'REJECT', reason: rejectDocReason.trim() });
       setDocuments((prev: any[]) => prev.map(d => d.id === rejectDocDialog.docId ? updated : d));
-      toast.success(`"${rejectDocDialog.docName}" rejected`);
+      toast.success(t('pages:applicants.profile.toast.docRejected', { name: rejectDocDialog.docName }));
       setRejectDocDialog({ open: false, docId: '', docName: '' });
       setRejectDocReason('');
-    } catch (err: any) {
-      toast.error(err?.message || 'Failed to reject document');
+    } catch (err) {
+      toast.error(apiError(err, t('pages:applicants.profile.toast.docRejectFailed')));
     } finally {
       setVerifyingDocId(null);
     }
@@ -407,25 +410,25 @@ export function ApplicantProfile() {
 
   const handleDeleteDoc = async (doc: any) => {
     const ok = await confirm({
-      title: 'Delete document?',
-      description: `"${doc.name}" will be permanently removed from this applicant's records.`,
-      confirmText: 'Delete',
+      title: t('pages:applicants.profile.confirmDeleteDoc.title'),
+      description: t('pages:applicants.profile.confirmDeleteDoc.description', { name: doc.name }),
+      confirmText: t('pages:applicants.profile.confirmDeleteDoc.confirm'),
       tone: 'destructive',
     });
     if (!ok) return;
     try {
       await documentsApi.delete(doc.id);
       setDocuments((prev: any[]) => prev.filter(d => d.id !== doc.id));
-      toast.success('Document deleted');
-    } catch (err: any) {
-      toast.error(err?.message || 'Failed to delete document');
+      toast.success(t('pages:applicants.profile.toast.docDeleted'));
+    } catch (err) {
+      toast.error(apiError(err, t('pages:applicants.profile.toast.docDeleteFailed')));
     }
   };
 
   const handleUpload = async () => {
-    if (!uploadFile) { toast.error('Please select a file'); return; }
-    if (!uploadForm.documentTypeId) { toast.error('Please select a document type'); return; }
-    if (!uploadForm.name.trim()) { toast.error('Please enter a document name'); return; }
+    if (!uploadFile) { toast.error(t('pages:applicants.profile.toast.fileRequired')); return; }
+    if (!uploadForm.documentTypeId) { toast.error(t('pages:applicants.profile.toast.typeRequired')); return; }
+    if (!uploadForm.name.trim()) { toast.error(t('pages:applicants.profile.toast.nameRequired')); return; }
     setUploading(true);
     try {
       const fd = new FormData();
@@ -443,13 +446,13 @@ export function ApplicantProfile() {
       if (uploadForm.documentNumber) fd.append('documentNumber', uploadForm.documentNumber);
       if (uploadForm.issuer) fd.append('issuer', uploadForm.issuer);
       await documentsApi.upload(fd);
-      toast.success('Document uploaded successfully');
+      toast.success(t('pages:applicants.profile.toast.uploaded'));
       setShowUpload(false);
       setUploadFile(null);
       setUploadForm({ documentTypeId: '', name: '', issueDate: '', expiryDate: '', noExpiry: false, documentNumber: '', issuer: '' });
       loadDocs();
-    } catch (err: any) {
-      toast.error(err?.message || 'Failed to upload document');
+    } catch (err) {
+      toast.error(apiError(err, t('pages:applicants.profile.toast.uploadFailed')));
     } finally {
       setUploading(false);
     }
@@ -458,23 +461,23 @@ export function ApplicantProfile() {
   const handleDelete = async () => {
     if (!id) return;
     if (!(await confirm({
-      title: 'Delete applicant?',
-      description: 'This applicant will be permanently removed.',
-      confirmText: 'Delete', tone: 'destructive',
+      title: t('pages:applicants.profile.confirmDelete.title'),
+      description: t('pages:applicants.profile.confirmDelete.description'),
+      confirmText: t('pages:applicants.profile.confirmDelete.confirm'), tone: 'destructive',
     }))) return;
     try {
       await applicantsApi.delete(id);
-      toast.success('Applicant deleted successfully');
+      toast.success(t('pages:applicants.profile.toast.deleted'));
       navigate('/dashboard/applicants');
-    } catch (err: any) {
-      toast.error(err?.message || 'Failed to delete applicant');
+    } catch (err) {
+      toast.error(apiError(err, t('pages:applicants.profile.toast.deleteFailed')));
     }
   };
 
   const handleConvertToEmployee = async () => {
     if (!id) return;
     if (!convertForm.addressLine1.trim() || !convertForm.city.trim() || !convertForm.country.trim() || !convertForm.postalCode.trim()) {
-      toast.error('Please fill in all required address fields');
+      toast.error(t('pages:applicants.profile.toast.addressRequired'));
       return;
     }
     setConverting(true);
@@ -493,11 +496,11 @@ export function ApplicantProfile() {
       if (convertForm.emergencyPhone.trim()) payload.emergencyPhone = convertForm.emergencyPhone.trim();
 
       const result = await applicantsApi.convertToEmployee(id, payload);
-      toast.success('Applicant successfully converted to employee');
+      toast.success(t('pages:applicants.profile.toast.convertedToEmployee'));
       setShowConvertDialog(false);
       navigate(`/dashboard/employees/${result.employee.id}`);
-    } catch (err: any) {
-      toast.error(err?.message || 'Failed to convert applicant to employee');
+    } catch (err) {
+      toast.error(apiError(err, t('pages:applicants.profile.toast.convertFailed')));
     } finally {
       setConverting(false);
     }
@@ -543,8 +546,8 @@ export function ApplicantProfile() {
       // Keep the dialog open but flip it into a confirmation panel so
       // the operator has to explicitly acknowledge the promotion.
       setPromoteSuccess({ newCandidateNumber: updated.candidateNumber });
-    } catch (err: any) {
-      toast.error(err?.message || 'Promotion failed');
+    } catch (err) {
+      toast.error(apiError(err, t('pages:applicants.profile.toast.promoteFailed')));
     } finally {
       setConvertingLead(false);
     }
@@ -561,9 +564,9 @@ export function ApplicantProfile() {
     try {
       const saved = await applicantsApi.upsertFinancialProfile(id, financialForm);
       setFinancialProfile(saved);
-      toast.success('Financial profile saved');
-    } catch (err: any) {
-      toast.error(err?.message || 'Failed to save financial profile');
+      toast.success(t('pages:applicants.profile.toast.financialSaved'));
+    } catch (err) {
+      toast.error(apiError(err, t('pages:applicants.profile.toast.financialFailed')));
     } finally {
       setSavingFinancial(false);
     }
@@ -572,19 +575,19 @@ export function ApplicantProfile() {
   const validDocs = documents.filter(d => d.status === 'VERIFIED' || d.status === 'Verified').length;
   const expiringSoon = documents.filter(d => d.status === 'EXPIRING_SOON').length;
 
-  if (loading) return <div className="p-8 text-muted-foreground">Loading...</div>;
-  if (!applicantData) return <div className="p-8">Applicant not found</div>;
+  if (loading) return <div className="p-8 text-muted-foreground">{t('pages:applicants.profile.loading')}</div>;
+  if (!applicantData) return <div className="p-8">{t('pages:applicants.profile.notFound')}</div>;
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" asChild>
-          <Link to="/dashboard/applicants"><ArrowLeft className="w-5 h-5" /></Link>
+          <Link to="/dashboard/applicants"><ArrowLeft className="w-5 h-5 rtl:rotate-180" /></Link>
         </Button>
         <div className="flex-1">
-          <h1 className="text-3xl font-semibold text-[#0F172A]">Applicant Profile</h1>
-          <p className="text-muted-foreground mt-1">View and manage applicant information</p>
+          <h1 className="text-3xl font-semibold text-[#0F172A]">{t('pages:applicants.profile.title')}</h1>
+          <p className="text-muted-foreground mt-1">{t('pages:applicants.profile.subtitle')}</p>
         </div>
         <div className="flex items-center gap-2">
           {/* Tier badge */}
@@ -805,27 +808,27 @@ export function ApplicantProfile() {
       {/* Tabs */}
       <Tabs defaultValue="overview" className="space-y-6">
         <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="application">Application</TabsTrigger>
-          <TabsTrigger value="documents">Documents ({documents.length})</TabsTrigger>
+          <TabsTrigger value="overview">{t('pages:applicants.profile.tabs.overview')}</TabsTrigger>
+          <TabsTrigger value="application">{t('pages:applicants.profile.tabs.application')}</TabsTrigger>
+          <TabsTrigger value="documents">{t('pages:applicants.profile.tabs.documents', { count: documents.length })}</TabsTrigger>
           {/* Workflows bind to Candidates on the backend — hide the
               tab entirely while the profile is still a LEAD. */}
           {applicantData?.tier !== 'LEAD' && (
-            <TabsTrigger value="workflow">Workflow</TabsTrigger>
+            <TabsTrigger value="workflow">{t('pages:applicants.profile.tabs.workflow')}</TabsTrigger>
           )}
-          <TabsTrigger value="compliance">Doc Compliance</TabsTrigger>
+          <TabsTrigger value="compliance">{t('pages:applicants.profile.tabs.docCompliance')}</TabsTrigger>
           {isFinanceOrAdmin && (
             <TabsTrigger
               value="financial"
               onClick={() => { loadFinancialProfile(); }}
             >
-              <DollarSign className="w-3 h-3 me-1" />Financial
+              <DollarSign className="w-3 h-3 me-1" />{t('pages:applicants.profile.tabs.financial')}
             </TabsTrigger>
           )}
           <TabsTrigger value="history" onClick={loadAgencyHistory}>
-            <History className="w-3 h-3 me-1" />Agency History
+            <History className="w-3 h-3 me-1" />{t('pages:applicants.profile.tabs.agencyHistory')}
           </TabsTrigger>
-          <TabsTrigger value="notes">Notes</TabsTrigger>
+          <TabsTrigger value="notes">{t('pages:applicants.profile.tabs.notes')}</TabsTrigger>
         </TabsList>
 
         {/* Overview */}

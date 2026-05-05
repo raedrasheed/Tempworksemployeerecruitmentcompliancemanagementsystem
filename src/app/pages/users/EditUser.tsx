@@ -1,4 +1,5 @@
 import { Link, useNavigate, useParams } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, ShieldOff, Unlock, RefreshCw, Mail, Camera, X } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -87,6 +88,7 @@ function getStatusStyle(status: string): StatusStyle {
 }
 
 export function EditUser() {
+  const { t } = useTranslation('pages');
   const { canEdit } = usePermissions();
   const { id } = useParams();
   const navigate = useNavigate();
@@ -294,7 +296,7 @@ export function EditUser() {
           <Link to="/dashboard/users"><ArrowLeft className="w-5 h-5" /></Link>
         </Button>
         <div>
-          <h1 className="text-3xl font-semibold text-[#0F172A]">Edit User</h1>
+          <h1 className="text-3xl font-semibold text-[#0F172A]">{t('users.edit.title')}</h1>
           <p className="text-muted-foreground mt-1">Update user information</p>
         </div>
       </div>

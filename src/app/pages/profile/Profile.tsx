@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { Camera, Save, Shield, CheckCircle, AlertCircle, Loader2, Settings } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -16,6 +17,7 @@ import { usersApi, authApi, resolveAssetUrl } from '../../services/api';
 import { toast } from 'sonner';
 
 export function Profile() {
+  const { t } = useTranslation('pages');
   const [isEditing, setIsEditing] = useState(false);
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
   const [twoFactorSaving, setTwoFactorSaving] = useState(false);
@@ -177,8 +179,8 @@ export function Profile() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-semibold text-[#0F172A]">Profile</h1>
-        <p className="text-muted-foreground mt-1">Manage your personal information and account settings</p>
+        <h1 className="text-3xl font-semibold text-[#0F172A]">{t('profile.view.title')}</h1>
+        <p className="text-muted-foreground mt-1">{t('profile.view.subtitle')}</p>
       </div>
 
       {/* Profile Completion */}

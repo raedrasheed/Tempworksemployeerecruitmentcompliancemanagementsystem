@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { Plus, Edit, Trash2, Shield, Users, Lock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -19,6 +20,7 @@ import { rolesApi } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
 
 export function RolesList() {
+  const { t } = useTranslation('pages');
   const { canCreate, canEdit, canDelete } = usePermissions();
   const [roles, setRoles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -65,21 +67,21 @@ export function RolesList() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-semibold text-[#0F172A]">Roles & Permissions</h1>
-          <p className="text-muted-foreground mt-1">Manage system roles and access control</p>
+          <h1 className="text-3xl font-semibold text-[#0F172A]">{t('roles.list.title')}</h1>
+          <p className="text-muted-foreground mt-1">{t('roles.list.subtitle')}</p>
         </div>
         <div className="flex items-center gap-3">
           <Button variant="outline" asChild>
             <Link to="/dashboard/roles/permissions-matrix">
-              <Lock className="w-4 h-4 mr-2" />
-              Permissions Matrix
+              <Lock className="w-4 h-4 me-2" />
+              {t('roles.list.permissionsMatrix')}
             </Link>
           </Button>
           {canCreate('roles') && (
             <Button asChild>
               <Link to="/dashboard/roles/create">
-                <Plus className="w-4 h-4 mr-2" />
-                Create Role
+                <Plus className="w-4 h-4 me-2" />
+                {t('roles.list.addButton')}
               </Link>
             </Button>
           )}

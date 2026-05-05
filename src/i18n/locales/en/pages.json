@@ -1,0 +1,474 @@
+{
+  "employees": {
+    "list": {
+      "title": "Employees",
+      "subtitle": "Driver and worker records",
+      "addButton": "Add Employee",
+      "search": "Search by name, email, citizenship…",
+      "stats": {
+        "total": "Total",
+        "active": "Active",
+        "onboarding": "Onboarding",
+        "pending": "Pending"
+      },
+      "filters": {
+        "allStatuses": "All Statuses",
+        "allAgencies": "All Agencies",
+        "allCitizenships": "All Citizenships",
+        "from": "From",
+        "to": "To"
+      },
+      "columns": {
+        "contact": "Contact",
+        "citizenship": "Citizenship",
+        "license": "ID / License",
+        "experience": "Experience",
+        "agency": "Agency",
+        "status": "Status",
+        "name": "Name",
+        "actions": "Actions"
+      },
+      "actions": {
+        "view": "View",
+        "edit": "Edit",
+        "delete": "Delete",
+        "exportPdf": "Export PDF",
+        "exportSelected": "Export Selected"
+      },
+      "empty": "No employees found.",
+      "deleteConfirmTitle": "Delete employee?",
+      "deleteConfirmBody": "This will move the record to the recycle bin.",
+      "deleted": "Employee deleted."
+    },
+    "profile": {
+      "title": "Employee Profile",
+      "back": "Back to employees",
+      "tabs": {
+        "overview": "Overview",
+        "documents": "Documents",
+        "compliance": "Compliance",
+        "workHistory": "Work History",
+        "training": "Training",
+        "performance": "Performance",
+        "finance": "Finance"
+      }
+    },
+    "add": {
+      "title": "Add Employee",
+      "back": "Back to employees"
+    },
+    "edit": {
+      "title": "Edit Employee",
+      "back": "Back to profile"
+    },
+    "certifications": {
+      "title": "Certifications",
+      "back": "Back to profile"
+    },
+    "training": {
+      "title": "Training History",
+      "back": "Back to profile"
+    },
+    "complianceTimeline": {
+      "title": "Compliance Timeline",
+      "back": "Back to profile"
+    },
+    "performance": {
+      "title": "Performance Review",
+      "back": "Back to profile"
+    }
+  },
+  "applicants": {
+    "list": {
+      "title": "Applicants",
+      "subtitle": "Job applicants and leads",
+      "addButton": "Add Applicant",
+      "search": "Search applicants…",
+      "empty": "No applicants found.",
+      "deleteRequests": "Delete Requests"
+    },
+    "candidates": {
+      "title": "Candidates",
+      "subtitle": "Vetted candidates ready for placement",
+      "search": "Search candidates…",
+      "empty": "No candidates found."
+    },
+    "profile": {
+      "title": "Applicant Profile",
+      "candidateTitle": "Candidate Profile",
+      "back": "Back",
+      "convertToCandidate": "Convert to Candidate",
+      "convertToEmployee": "Convert to Employee"
+    },
+    "add": {
+      "title": "Add Applicant",
+      "back": "Back to applicants"
+    },
+    "edit": {
+      "title": "Edit Applicant",
+      "back": "Back to profile"
+    },
+    "deleteRequests": {
+      "title": "Candidate Delete Requests",
+      "subtitle": "Review and approve candidate deletion requests",
+      "empty": "No pending delete requests."
+    }
+  },
+  "agencies": {
+    "list": {
+      "title": "Agencies",
+      "subtitle": "Recruitment partners",
+      "addButton": "Add Agency",
+      "search": "Search agencies…",
+      "empty": "No agencies found."
+    },
+    "profile": {
+      "title": "Agency Profile",
+      "back": "Back to agencies"
+    },
+    "myProfile": {
+      "title": "My Agency Profile"
+    },
+    "add": {
+      "title": "Add Agency",
+      "back": "Back to agencies"
+    },
+    "edit": {
+      "title": "Edit Agency",
+      "back": "Back to profile"
+    },
+    "users": {
+      "title": "Agency Users",
+      "subtitle": "Manage users assigned to this agency",
+      "back": "Back to agency",
+      "addButton": "Add User"
+    }
+  },
+  "documents": {
+    "dashboard": {
+      "title": "Documents",
+      "subtitle": "Document repository overview",
+      "uploadButton": "Upload Document"
+    },
+    "compliance": {
+      "title": "Documents & Compliance",
+      "subtitle": "Compliance status across all documents",
+      "filterTitle": "Filter Documents"
+    },
+    "explorer": {
+      "title": "Document Explorer",
+      "searchTitle": "Search & Filter Employees"
+    },
+    "verification": {
+      "title": "Document Verification",
+      "pending": "Pending Documents ({{count}})",
+      "approve": "Approve",
+      "reject": "Reject"
+    },
+    "preview": {
+      "title": "Document",
+      "back": "Back",
+      "download": "Download"
+    },
+    "upload": {
+      "title": "Upload Document",
+      "back": "Back"
+    },
+    "edit": {
+      "title": "Edit Document",
+      "back": "Back"
+    }
+  },
+  "compliance": {
+    "dashboard": {
+      "title": "Compliance Dashboard",
+      "stats": {
+        "validDocuments": "Valid Documents",
+        "expiringSoon": "Expiring Soon",
+        "expired": "Expired",
+        "pending": "Pending"
+      }
+    },
+    "alerts": {
+      "title": "Compliance Alerts",
+      "active": "Active Alerts",
+      "resolved": "Resolved Alerts",
+      "empty": "No active alerts."
+    },
+    "employee": {
+      "title": "Employee Compliance",
+      "back": "Back"
+    }
+  },
+  "workflow": {
+    "overview": {
+      "title": "Workflow Overview",
+      "subtitle": "Track employees through the recruitment pipeline"
+    },
+    "workPermits": {
+      "title": "Work Permit Tracking"
+    },
+    "visas": {
+      "title": "Visa Tracking"
+    },
+    "stage": {
+      "title": "Stage Details"
+    },
+    "timeline": {
+      "title": "Workflow Timeline"
+    },
+    "analytics": {
+      "title": "Workflow Analytics"
+    },
+    "management": {
+      "title": "Workflow Management"
+    }
+  },
+  "pipelines": {
+    "list": {
+      "title": "Workflows",
+      "subtitle": "Recruitment pipelines and stage configurations",
+      "addButton": "New Workflow",
+      "newDialogTitle": "New Workflow",
+      "empty": "No workflows yet."
+    },
+    "board": {
+      "title": "Workflow Board"
+    },
+    "stage": {
+      "title": "Stage"
+    },
+    "settings": {
+      "title": "Workflow Settings"
+    }
+  },
+  "vehicles": {
+    "list": {
+      "title": "Vehicles",
+      "subtitle": "Fleet management",
+      "addButton": "Add Vehicle",
+      "search": "Search vehicles…",
+      "empty": "No vehicles found."
+    },
+    "detail": {
+      "title": "Vehicle Detail",
+      "back": "Back to fleet"
+    },
+    "form": {
+      "addTitle": "Add Vehicle",
+      "editTitle": "Edit Vehicle",
+      "back": "Back"
+    },
+    "workshops": {
+      "title": "Workshops",
+      "subtitle": "Authorized service providers",
+      "addButton": "Add Workshop",
+      "empty": "No workshops yet."
+    },
+    "maintenanceTypes": {
+      "title": "Maintenance Types",
+      "addButton": "Add Type"
+    },
+    "maintenanceRecords": {
+      "title": "Maintenance Records",
+      "subtitle": "All maintenance activity across the fleet",
+      "addButton": "New Record",
+      "empty": "No maintenance records yet."
+    }
+  },
+  "attendance": {
+    "list": {
+      "title": "Attendance Sheets",
+      "subtitle": "Monthly attendance per employee",
+      "addButton": "New Sheet",
+      "empty": "No attendance sheets yet."
+    },
+    "sheet": {
+      "title": "Attendance Sheet",
+      "back": "Back to attendance",
+      "save": "Save Sheet",
+      "lock": "Lock Period",
+      "unlock": "Unlock Period"
+    }
+  },
+  "reports": {
+    "dashboard": {
+      "title": "Reports & Analytics",
+      "subtitle": "Build and export custom reports",
+      "newReport": "New Report",
+      "empty": "No reports yet."
+    }
+  },
+  "notifications": {
+    "center": {
+      "title": "Notifications",
+      "subtitle": "All your alerts and updates",
+      "markAllRead": "Mark all as read",
+      "empty": "No notifications.",
+      "filters": {
+        "all": "All",
+        "unread": "Unread",
+        "read": "Read"
+      }
+    },
+    "settings": {
+      "title": "Notification Settings",
+      "subtitle": "Choose which notifications you receive",
+      "save": "Save Preferences"
+    }
+  },
+  "users": {
+    "list": {
+      "title": "User Management",
+      "subtitle": "System users and access",
+      "addButton": "Add User",
+      "search": "Search users…",
+      "bulkImport": "Bulk Import",
+      "empty": "No users found.",
+      "activationLink": "Activation Link"
+    },
+    "add": {
+      "title": "Add User",
+      "back": "Back to users"
+    },
+    "edit": {
+      "title": "Edit User",
+      "back": "Back to users"
+    }
+  },
+  "roles": {
+    "list": {
+      "title": "Roles & Permissions",
+      "subtitle": "Define roles and assign permissions",
+      "addButton": "New Role",
+      "permissionsMatrix": "Permissions Matrix",
+      "allRoles": "All Roles",
+      "empty": "No roles yet."
+    },
+    "create": {
+      "title": "Create Role",
+      "editTitle": "Edit Role",
+      "back": "Back to roles"
+    },
+    "matrix": {
+      "title": "Permissions Matrix",
+      "back": "Back to roles"
+    }
+  },
+  "jobAds": {
+    "list": {
+      "title": "Job Ads",
+      "subtitle": "Public job postings",
+      "addButton": "New Job Ad",
+      "search": "Search job ads…",
+      "empty": "No job ads yet."
+    },
+    "form": {
+      "addTitle": "New Job Ad",
+      "editTitle": "Edit Job Ad",
+      "back": "Back to job ads"
+    }
+  },
+  "recycleBin": {
+    "list": {
+      "title": "Deleted Records",
+      "subtitle": "Restore or permanently delete records",
+      "accessDenied": "Access Denied",
+      "empty": "Recycle bin is empty.",
+      "restore": "Restore",
+      "permanentlyDelete": "Permanently delete"
+    }
+  },
+  "logs": {
+    "dashboard": {
+      "title": "System Logs",
+      "subtitle": "Activity audit trail",
+      "activityByModule": "Activity by Module",
+      "search": "Search logs…",
+      "empty": "No logs match your filters."
+    }
+  },
+  "settings": {
+    "index": {
+      "title": "Settings",
+      "subtitle": "Configure your TempWorks instance",
+      "groups": {
+        "appearance": "Appearance",
+        "appearanceDesc": "Theme and color scheme",
+        "workflow": "Workflow",
+        "workflowDesc": "Recruitment pipeline configuration",
+        "documentTypes": "Document Types",
+        "documentTypesDesc": "Manage document categories",
+        "notifications": "Notifications",
+        "notificationsDesc": "Notification rules and triggers",
+        "security": "Security",
+        "securityDesc": "Authentication and access policies",
+        "branding": "Branding",
+        "brandingDesc": "Logo, company name, marketing copy",
+        "system": "System",
+        "systemDesc": "Database, backups, system info"
+      }
+    },
+    "documentTypes": {
+      "list": "Document Types",
+      "addButton": "New Document Type",
+      "newTitle": "New Document Type",
+      "editTitle": "Edit Document Type",
+      "viewTitle": "Document Type",
+      "back": "Back to document types"
+    },
+    "jobTypes": { "title": "Job Types", "addButton": "Add Job Type" },
+    "skills": { "title": "Skills", "addButton": "Add Skill" },
+    "workflowSettings": { "title": "Workflow Settings" },
+    "workflowConfiguration": { "title": "Workflow Configuration" },
+    "notificationRules": { "title": "Notification Rules", "addButton": "New Rule" },
+    "security": { "title": "Security Settings" },
+    "colorScheme": { "title": "Color Scheme" },
+    "branding": { "title": "Branding" },
+    "databaseCleanup": { "title": "Database Cleanup" },
+    "databaseBackup": { "title": "Database Backup" },
+    "systemInformation": { "title": "System Information" },
+    "transportTypes": { "title": "Transport Types", "addButton": "Add Type" },
+    "truckBrands": { "title": "Truck Brands", "addButton": "Add Brand" },
+    "trailerTypes": { "title": "Trailer Types", "addButton": "Add Type" },
+    "vehicleSettings": { "title": "Vehicle Settings" },
+    "transactionTypes": { "title": "Transaction Types", "addButton": "Add Type" },
+    "workHistoryEventTypes": { "title": "Work History Event Types", "addButton": "Add Type" },
+    "maintenanceTypes": { "title": "Maintenance Types", "addButton": "Add Type" }
+  },
+  "profile": {
+    "view": {
+      "title": "My Profile",
+      "subtitle": "Personal information and contact",
+      "edit": "Edit"
+    },
+    "changePassword": {
+      "title": "Change Password",
+      "subtitle": "Update your password to keep your account secure"
+    },
+    "preferences": {
+      "title": "Preferences",
+      "subtitle": "Language, timezone, and notification settings",
+      "language": "Preferred Language",
+      "timezone": "Time Zone",
+      "save": "Save Preferences",
+      "saved": "Preferences saved"
+    }
+  },
+  "common": {
+    "from": "From",
+    "to": "To",
+    "all": "All",
+    "more": "More",
+    "showMore": "Show more",
+    "showLess": "Show less",
+    "results_one": "{{count}} result",
+    "results_other": "{{count}} results"
+  },
+  "finance": {
+    "page": {
+      "title": "Finance",
+      "subtitle": "Transactions and balances across the organization"
+    }
+  }
+}

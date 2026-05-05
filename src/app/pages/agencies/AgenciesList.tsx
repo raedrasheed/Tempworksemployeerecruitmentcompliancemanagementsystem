@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import {
   Plus, Eye, Edit, Trash2, Search,
   ArrowUp, ArrowDown, ArrowUpDown, Columns2, Check, X,
@@ -65,6 +66,7 @@ const getStatusBadge = (status: string) => {
 
 export function AgenciesList() {
   const { canCreate, canEdit, canDelete } = usePermissions();
+  const { t } = useTranslation('pages');
   const [agencies, setAgencies] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -223,14 +225,14 @@ export function AgenciesList() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-semibold text-[#0F172A]">Agencies</h1>
-          <p className="text-muted-foreground mt-1">Manage recruitment agency partnerships</p>
+          <h1 className="text-3xl font-semibold text-[#0F172A]">{t('agencies.list.title')}</h1>
+          <p className="text-muted-foreground mt-1">{t('agencies.list.subtitle')}</p>
         </div>
         {canCreate('agencies') && (
           <Button asChild>
             <Link to="/dashboard/agencies/add">
-              <Plus className="w-4 h-4 mr-2" />
-              Add Agency
+              <Plus className="w-4 h-4 me-2" />
+              {t('agencies.list.addButton')}
             </Link>
           </Button>
         )}
@@ -240,9 +242,9 @@ export function AgenciesList() {
         <CardContent className="p-4 space-y-3">
           <div className="flex flex-wrap gap-3 items-center">
             <div className="relative flex-1 min-w-[220px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Search agencies..."
+                placeholder={t('agencies.list.search')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9"

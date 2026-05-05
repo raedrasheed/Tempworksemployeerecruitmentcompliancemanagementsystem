@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { Upload, FileCheck, AlertTriangle, Clock, Eye } from 'lucide-react';
 import { usePermissions } from '../../hooks/usePermissions';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
@@ -12,6 +13,7 @@ import { documentsApi } from '../../services/api';
 
 export function DocumentsDashboard() {
   const { canCreate } = usePermissions();
+  const { t } = useTranslation('pages');
   const [documents, setDocuments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -47,14 +49,14 @@ export function DocumentsDashboard() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-semibold text-[#0F172A]">Documents</h1>
-          <p className="text-muted-foreground mt-1">Manage driver documents and compliance materials</p>
+          <h1 className="text-3xl font-semibold text-[#0F172A]">{t('documents.dashboard.title')}</h1>
+          <p className="text-muted-foreground mt-1">{t('documents.dashboard.subtitle')}</p>
         </div>
         {canCreate('documents') && (
           <Button asChild>
             <Link to="/dashboard/documents/upload">
-              <Upload className="w-4 h-4 mr-2" />
-              Upload Document
+              <Upload className="w-4 h-4 me-2" />
+              {t('documents.dashboard.uploadButton')}
             </Link>
           </Button>
         )}

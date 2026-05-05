@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { applicantsApi, employeeWorkflowApi, agenciesApi, settingsApi, documentsApi } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
 import { getCurrentUser, getAccessToken } from '../../services/api';
@@ -124,6 +125,7 @@ function SortableHead({ label, field, sortBy, sortOrder, onSort }: {
 
 export function ApplicantsList() {
   const { canCreate, canEdit, canDelete } = usePermissions();
+  const { t } = useTranslation('pages');
   const currentUser = getCurrentUser();
   const isAgencyUser = currentUser?.role === 'Agency User' || currentUser?.role === 'Agency Manager';
 
@@ -397,13 +399,13 @@ export function ApplicantsList() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-semibold text-[#0F172A]">Applicants</h1>
-          <p className="text-muted-foreground mt-1">Manage leads and convert to candidates</p>
+          <h1 className="text-3xl font-semibold text-[#0F172A]">{t('applicants.list.title')}</h1>
+          <p className="text-muted-foreground mt-1">{t('applicants.list.subtitle')}</p>
         </div>
         {canCreate('applicants') && (
           <Button asChild>
             <Link to="/dashboard/applicants/add">
-              <Plus className="w-4 h-4 mr-2" />Add Applicant
+              <Plus className="w-4 h-4 me-2" />{t('applicants.list.addButton')}
             </Link>
           </Button>
         )}

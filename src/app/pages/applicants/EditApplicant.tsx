@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { applicantsApi, settingsApi, agenciesApi } from '../../services/api';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent } from '../../components/ui/card';
@@ -13,6 +14,7 @@ const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1'
 import { ApplicantFormSteps, EMPTY_FORM, getVisibleTabs, StepIndicator, FormSettings, DEFAULT_FORM_SETTINGS, ApplicantFormData } from '../../components/applicants/ApplicantFormSteps';
 
 export function EditApplicant() {
+  const { t } = useTranslation('pages');
   const navigate = useNavigate();
   const { id } = useParams();
   const { canEdit } = usePermissions();
@@ -169,7 +171,7 @@ export function EditApplicant() {
           </Link>
         </Button>
         <div>
-          <h1 className="text-3xl font-semibold">Edit Applicant</h1>
+          <h1 className="text-3xl font-semibold">{t('applicants.edit.title')}</h1>
           <p className="text-muted-foreground mt-1">Update applicant information - ID: {id}</p>
         </div>
       </div>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   BarChart3, TrendingUp, Users, FileCheck, Plus, Play, Download,
   Trash2, Edit3, FileSpreadsheet, FileText, File, AlertTriangle,
@@ -127,6 +128,7 @@ function PreviewTable({ result, maxRows, startSerial = 1 }: { result: any; maxRo
 
 // ═════════════════════════════════════════════════════════════════════════════
 export function ReportsDashboard() {
+  const { t } = useTranslation('pages');
   const { canEdit } = usePermissions();
 
   const [kpis, setKpis]           = useState<any>(null);
@@ -248,8 +250,8 @@ export function ReportsDashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-semibold text-[#0F172A]">Reports & Analytics</h1>
-        <p className="text-muted-foreground mt-1">Dynamic report builder with Excel, PDF, and Word export</p>
+        <h1 className="text-3xl font-semibold text-[#0F172A]">{t('reports.dashboard.title')}</h1>
+        <p className="text-muted-foreground mt-1">{t('reports.dashboard.subtitle')}</p>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>

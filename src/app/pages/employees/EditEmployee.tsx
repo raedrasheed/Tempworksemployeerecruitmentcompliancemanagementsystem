@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, ShieldOff, Camera, User, X } from 'lucide-react';
 import { usePermissions } from '../../hooks/usePermissions';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
@@ -19,6 +20,7 @@ function resolvePhotoUrl(url: string | null | undefined): string | null {
 }
 
 export function EditEmployee() {
+  const { t } = useTranslation('pages');
   const { id } = useParams();
   const navigate = useNavigate();
   const { canEdit } = usePermissions();
@@ -173,7 +175,7 @@ export function EditEmployee() {
           <Link to={`/dashboard/employees/${id}`}><ArrowLeft className="w-5 h-5" /></Link>
         </Button>
         <div>
-          <h1 className="text-3xl font-semibold text-[#0F172A]">Edit Employee</h1>
+          <h1 className="text-3xl font-semibold text-[#0F172A]">{t('employees.edit.title')}</h1>
           <p className="text-muted-foreground mt-1">Update employee information</p>
         </div>
       </div>

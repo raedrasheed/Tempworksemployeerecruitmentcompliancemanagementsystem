@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { workflowApi, usersApi } from '../../services/api';
 import { confirm } from '../../components/ui/ConfirmDialog';
 import { toast } from 'sonner';
@@ -274,6 +275,7 @@ function CreateWorkflowModal({ onClose, onCreated }: { onClose: () => void; onCr
 
 export function WorkflowsPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation('pages');
   const [workflows, setWorkflows] = useState<any[]>([]);
   const [statsMap, setStatsMap] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
@@ -344,10 +346,10 @@ export function WorkflowsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <Layers className="w-6 h-6 text-primary" /> Workflows
+            <Layers className="w-6 h-6 text-primary" /> {t('pipelines.list.title')}
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Recruitment workflows — each has its own stages, requirements, and candidate workflow.
+            {t('pipelines.list.subtitle')}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -361,7 +363,7 @@ export function WorkflowsPage() {
             onClick={() => setShowCreate(true)}
             className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
           >
-            <Plus className="w-4 h-4" /> New Workflow
+            <Plus className="w-4 h-4" /> {t('pipelines.list.addButton')}
           </button>
         </div>
       </div>

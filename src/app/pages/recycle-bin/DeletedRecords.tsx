@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Search, RefreshCw, RotateCcw, Eye, Trash2, Shield,
   ChevronLeft, ChevronRight, Users, FileText, Building2, Briefcase,
@@ -78,6 +79,7 @@ function EntityBadge({ entityType }: { entityType: string }) {
 // ── Main Component ────────────────────────────────────────────────────────────
 
 export function DeletedRecords() {
+  const { t } = useTranslation('pages');
   const { canView } = usePermissions();
 
   if (!canView('recycle-bin')) {
@@ -85,7 +87,7 @@ export function DeletedRecords() {
       <div className="p-8 flex items-center justify-center min-h-64">
         <div className="text-center">
           <Shield className="w-12 h-12 mx-auto text-red-500 mb-3 opacity-60" />
-          <h2 className="text-lg font-semibold mb-1">Access Denied</h2>
+          <h2 className="text-lg font-semibold mb-1">{t('recycleBin.list.accessDenied')}</h2>
           <p className="text-muted-foreground text-sm">Only System Admins, HR Managers, and Compliance Officers can access Deleted Records.</p>
         </div>
       </div>
@@ -229,9 +231,9 @@ export function DeletedRecords() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Deleted Records</h1>
+          <h1 className="text-2xl font-bold">{t('recycleBin.list.title')}</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            View, restore, or permanently delete soft-deleted records across the system.
+            {t('recycleBin.list.subtitle')}
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={() => { fetchRecords(); fetchCounts(); }}>

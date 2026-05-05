@@ -1,0 +1,161 @@
+{
+  "employees": {
+    "list": {
+      "title": "الموظفون",
+      "subtitle": "سجلات السائقين والعاملين",
+      "addButton": "إضافة موظف",
+      "search": "ابحث بالاسم أو البريد الإلكتروني أو الجنسية…",
+      "stats": { "total": "الإجمالي", "active": "نشطون", "onboarding": "قيد التعيين", "pending": "قيد الانتظار" },
+      "filters": { "allStatuses": "جميع الحالات", "allAgencies": "جميع الوكالات", "allCitizenships": "جميع الجنسيات", "from": "من", "to": "إلى" },
+      "columns": { "contact": "الاتصال", "citizenship": "الجنسية", "license": "الهوية / الرخصة", "experience": "الخبرة", "agency": "الوكالة", "status": "الحالة", "name": "الاسم", "actions": "الإجراءات" },
+      "actions": { "view": "عرض", "edit": "تعديل", "delete": "حذف", "exportPdf": "تصدير PDF", "exportSelected": "تصدير المحدد" },
+      "empty": "لا يوجد موظفون.",
+      "deleteConfirmTitle": "حذف الموظف؟",
+      "deleteConfirmBody": "سيتم نقل السجل إلى سلة المحذوفات.",
+      "deleted": "تم حذف الموظف."
+    },
+    "profile": {
+      "title": "ملف الموظف",
+      "back": "العودة إلى الموظفين",
+      "tabs": { "overview": "نظرة عامة", "documents": "الوثائق", "compliance": "الامتثال", "workHistory": "سجل العمل", "training": "التدريب", "performance": "الأداء", "finance": "المالية" }
+    },
+    "add": { "title": "إضافة موظف", "back": "العودة إلى الموظفين" },
+    "edit": { "title": "تعديل الموظف", "back": "العودة إلى الملف" },
+    "certifications": { "title": "الشهادات", "back": "العودة إلى الملف" },
+    "training": { "title": "سجل التدريب", "back": "العودة إلى الملف" },
+    "complianceTimeline": { "title": "الجدول الزمني للامتثال", "back": "العودة إلى الملف" },
+    "performance": { "title": "تقييم الأداء", "back": "العودة إلى الملف" }
+  },
+  "applicants": {
+    "list": { "title": "المتقدمون", "subtitle": "المتقدمون والعملاء المحتملون", "addButton": "إضافة متقدم", "search": "ابحث عن المتقدمين…", "empty": "لا يوجد متقدمون.", "deleteRequests": "طلبات الحذف" },
+    "candidates": { "title": "المرشحون", "subtitle": "مرشحون مدققون وجاهزون للتوظيف", "search": "ابحث عن المرشحين…", "empty": "لا يوجد مرشحون." },
+    "profile": { "title": "ملف المتقدم", "candidateTitle": "ملف المرشح", "back": "رجوع", "convertToCandidate": "تحويل إلى مرشح", "convertToEmployee": "تحويل إلى موظف" },
+    "add": { "title": "إضافة متقدم", "back": "العودة إلى المتقدمين" },
+    "edit": { "title": "تعديل المتقدم", "back": "العودة إلى الملف" },
+    "deleteRequests": { "title": "طلبات حذف المرشحين", "subtitle": "مراجعة طلبات الحذف والموافقة عليها", "empty": "لا توجد طلبات معلقة." }
+  },
+  "agencies": {
+    "list": { "title": "الوكالات", "subtitle": "شركاء التوظيف", "addButton": "إضافة وكالة", "search": "ابحث عن الوكالات…", "empty": "لا توجد وكالات." },
+    "profile": { "title": "ملف الوكالة", "back": "العودة إلى الوكالات" },
+    "myProfile": { "title": "وكالتي" },
+    "add": { "title": "إضافة وكالة", "back": "العودة إلى الوكالات" },
+    "edit": { "title": "تعديل الوكالة", "back": "العودة إلى الملف" },
+    "users": { "title": "مستخدمو الوكالة", "subtitle": "إدارة المستخدمين المعينين لهذه الوكالة", "back": "العودة إلى الوكالة", "addButton": "إضافة مستخدم" }
+  },
+  "documents": {
+    "dashboard": { "title": "الوثائق", "subtitle": "نظرة عامة على مستودع الوثائق", "uploadButton": "رفع وثيقة" },
+    "compliance": { "title": "الوثائق والامتثال", "subtitle": "حالة الامتثال عبر جميع الوثائق", "filterTitle": "تصفية الوثائق" },
+    "explorer": { "title": "مستكشف الوثائق", "searchTitle": "ابحث وفلتر الموظفين" },
+    "verification": { "title": "التحقق من الوثائق", "pending": "وثائق قيد الانتظار ({{count}})", "approve": "موافقة", "reject": "رفض" },
+    "preview": { "title": "وثيقة", "back": "رجوع", "download": "تنزيل" },
+    "upload": { "title": "رفع وثيقة", "back": "رجوع" },
+    "edit": { "title": "تعديل الوثيقة", "back": "رجوع" }
+  },
+  "compliance": {
+    "dashboard": { "title": "لوحة الامتثال", "stats": { "validDocuments": "وثائق صالحة", "expiringSoon": "تنتهي قريبًا", "expired": "منتهية", "pending": "قيد الانتظار" } },
+    "alerts": { "title": "تنبيهات الامتثال", "active": "تنبيهات نشطة", "resolved": "تنبيهات تم حلها", "empty": "لا توجد تنبيهات نشطة." },
+    "employee": { "title": "امتثال الموظف", "back": "رجوع" }
+  },
+  "workflow": {
+    "overview": { "title": "نظرة عامة على سير العمل", "subtitle": "تتبع الموظفين عبر مسار التوظيف" },
+    "workPermits": { "title": "تتبع تصاريح العمل" },
+    "visas": { "title": "تتبع التأشيرات" },
+    "stage": { "title": "تفاصيل المرحلة" },
+    "timeline": { "title": "الجدول الزمني لسير العمل" },
+    "analytics": { "title": "تحليلات سير العمل" },
+    "management": { "title": "إدارة سير العمل" }
+  },
+  "pipelines": {
+    "list": { "title": "سير العمل", "subtitle": "مسارات التوظيف وإعدادات المراحل", "addButton": "سير عمل جديد", "newDialogTitle": "سير عمل جديد", "empty": "لا يوجد سير عمل بعد." },
+    "board": { "title": "لوحة سير العمل" },
+    "stage": { "title": "المرحلة" },
+    "settings": { "title": "إعدادات سير العمل" }
+  },
+  "vehicles": {
+    "list": { "title": "المركبات", "subtitle": "إدارة الأسطول", "addButton": "إضافة مركبة", "search": "ابحث عن المركبات…", "empty": "لا توجد مركبات." },
+    "detail": { "title": "تفاصيل المركبة", "back": "العودة إلى الأسطول" },
+    "form": { "addTitle": "إضافة مركبة", "editTitle": "تعديل المركبة", "back": "رجوع" },
+    "workshops": { "title": "ورش العمل", "subtitle": "مزودو الخدمات المعتمدون", "addButton": "إضافة ورشة", "empty": "لا توجد ورش بعد." },
+    "maintenanceTypes": { "title": "أنواع الصيانة", "addButton": "إضافة نوع" },
+    "maintenanceRecords": { "title": "سجلات الصيانة", "subtitle": "جميع أعمال الصيانة عبر الأسطول", "addButton": "سجل جديد", "empty": "لا توجد سجلات بعد." }
+  },
+  "attendance": {
+    "list": { "title": "سجلات الحضور", "subtitle": "حضور شهري لكل موظف", "addButton": "سجل جديد", "empty": "لا توجد سجلات بعد." },
+    "sheet": { "title": "سجل الحضور", "back": "العودة إلى الحضور", "save": "حفظ السجل", "lock": "قفل الفترة", "unlock": "فتح الفترة" }
+  },
+  "reports": {
+    "dashboard": { "title": "التقارير والتحليلات", "subtitle": "أنشئ وصدّر تقارير مخصصة", "newReport": "تقرير جديد", "empty": "لا توجد تقارير بعد." }
+  },
+  "notifications": {
+    "center": { "title": "الإشعارات", "subtitle": "جميع تنبيهاتك وتحديثاتك", "markAllRead": "تعليم الكل كمقروء", "empty": "لا توجد إشعارات.", "filters": { "all": "الكل", "unread": "غير المقروءة", "read": "المقروءة" } },
+    "settings": { "title": "إعدادات الإشعارات", "subtitle": "اختر الإشعارات التي تتلقاها", "save": "حفظ التفضيلات" }
+  },
+  "users": {
+    "list": { "title": "إدارة المستخدمين", "subtitle": "مستخدمو النظام والصلاحيات", "addButton": "إضافة مستخدم", "search": "ابحث عن المستخدمين…", "bulkImport": "استيراد جماعي", "empty": "لا يوجد مستخدمون.", "activationLink": "رابط التفعيل" },
+    "add": { "title": "إضافة مستخدم", "back": "العودة إلى المستخدمين" },
+    "edit": { "title": "تعديل المستخدم", "back": "العودة إلى المستخدمين" }
+  },
+  "roles": {
+    "list": { "title": "الأدوار والصلاحيات", "subtitle": "حدد الأدوار وعيّن الصلاحيات", "addButton": "دور جديد", "permissionsMatrix": "مصفوفة الصلاحيات", "allRoles": "جميع الأدوار", "empty": "لا توجد أدوار بعد." },
+    "create": { "title": "إنشاء دور", "editTitle": "تعديل الدور", "back": "العودة إلى الأدوار" },
+    "matrix": { "title": "مصفوفة الصلاحيات", "back": "العودة إلى الأدوار" }
+  },
+  "jobAds": {
+    "list": { "title": "إعلانات الوظائف", "subtitle": "إعلانات الوظائف العامة", "addButton": "إعلان جديد", "search": "ابحث عن الإعلانات…", "empty": "لا توجد إعلانات بعد." },
+    "form": { "addTitle": "إعلان جديد", "editTitle": "تعديل الإعلان", "back": "العودة إلى الإعلانات" }
+  },
+  "recycleBin": {
+    "list": { "title": "السجلات المحذوفة", "subtitle": "استعد السجلات أو احذفها نهائيًا", "accessDenied": "تم رفض الوصول", "empty": "سلة المحذوفات فارغة.", "restore": "استعادة", "permanentlyDelete": "حذف نهائي" }
+  },
+  "logs": {
+    "dashboard": { "title": "سجلات النظام", "subtitle": "مسار تدقيق النشاط", "activityByModule": "النشاط حسب الوحدة", "search": "ابحث في السجلات…", "empty": "لا توجد سجلات تطابق المرشحات." }
+  },
+  "settings": {
+    "index": {
+      "title": "الإعدادات",
+      "subtitle": "تكوين نسخة TempWorks الخاصة بك",
+      "groups": {
+        "appearance": "المظهر", "appearanceDesc": "السمة ونمط الألوان",
+        "workflow": "سير العمل", "workflowDesc": "تكوين عملية التوظيف",
+        "documentTypes": "أنواع الوثائق", "documentTypesDesc": "إدارة فئات الوثائق",
+        "notifications": "الإشعارات", "notificationsDesc": "قواعد ومحفزات الإشعارات",
+        "security": "الأمان", "securityDesc": "سياسات المصادقة والوصول",
+        "branding": "العلامة التجارية", "brandingDesc": "الشعار، اسم الشركة، النصوص التسويقية",
+        "system": "النظام", "systemDesc": "قاعدة البيانات، النسخ الاحتياطي، معلومات النظام"
+      }
+    },
+    "documentTypes": { "list": "أنواع الوثائق", "addButton": "نوع وثيقة جديد", "newTitle": "نوع وثيقة جديد", "editTitle": "تعديل نوع الوثيقة", "viewTitle": "نوع الوثيقة", "back": "العودة إلى أنواع الوثائق" },
+    "jobTypes": { "title": "أنواع الوظائف", "addButton": "إضافة نوع" },
+    "skills": { "title": "المهارات", "addButton": "إضافة مهارة" },
+    "workflowSettings": { "title": "إعدادات سير العمل" },
+    "workflowConfiguration": { "title": "تكوين سير العمل" },
+    "notificationRules": { "title": "قواعد الإشعارات", "addButton": "قاعدة جديدة" },
+    "security": { "title": "إعدادات الأمان" },
+    "colorScheme": { "title": "نمط الألوان" },
+    "branding": { "title": "العلامة التجارية" },
+    "databaseCleanup": { "title": "تنظيف قاعدة البيانات" },
+    "databaseBackup": { "title": "نسخ احتياطي للقاعدة" },
+    "systemInformation": { "title": "معلومات النظام" },
+    "transportTypes": { "title": "أنواع النقل", "addButton": "إضافة نوع" },
+    "truckBrands": { "title": "ماركات الشاحنات", "addButton": "إضافة ماركة" },
+    "trailerTypes": { "title": "أنواع المقطورات", "addButton": "إضافة نوع" },
+    "vehicleSettings": { "title": "إعدادات المركبات" },
+    "transactionTypes": { "title": "أنواع المعاملات", "addButton": "إضافة نوع" },
+    "workHistoryEventTypes": { "title": "أنواع أحداث سجل العمل", "addButton": "إضافة نوع" },
+    "maintenanceTypes": { "title": "أنواع الصيانة", "addButton": "إضافة نوع" }
+  },
+  "profile": {
+    "view": { "title": "ملفي الشخصي", "subtitle": "المعلومات الشخصية وجهة الاتصال", "edit": "تعديل" },
+    "changePassword": { "title": "تغيير كلمة المرور", "subtitle": "حدّث كلمة المرور للحفاظ على أمان حسابك" },
+    "preferences": { "title": "التفضيلات", "subtitle": "اللغة والمنطقة الزمنية وإعدادات الإشعارات", "language": "اللغة المفضلة", "timezone": "المنطقة الزمنية", "save": "حفظ التفضيلات", "saved": "تم حفظ التفضيلات" }
+  },
+  "common": {
+    "from": "من", "to": "إلى", "all": "الكل", "more": "المزيد",
+    "showMore": "عرض المزيد", "showLess": "عرض أقل",
+    "results_zero": "لا توجد نتائج", "results_one": "نتيجة واحدة", "results_two": "نتيجتان",
+    "results_few": "{{count}} نتائج", "results_many": "{{count}} نتيجة", "results_other": "{{count}} نتيجة"
+  },
+  "finance": {
+    "page": { "title": "المالية", "subtitle": "المعاملات والأرصدة عبر المؤسسة" }
+  }
+}

@@ -1,4 +1,5 @@
 import { Link, useNavigate, useParams } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, ShieldOff, Upload, X, FileText, Download } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -41,6 +42,7 @@ type FormShape = {
 };
 
 export function EditAgency() {
+  const { t } = useTranslation('pages');
   const { canEdit } = usePermissions();
   const { id } = useParams();
   const navigate = useNavigate();
@@ -236,7 +238,7 @@ export function EditAgency() {
           <Link to={`/dashboard/agencies/${id}`}><ArrowLeft className="w-5 h-5" /></Link>
         </Button>
         <div>
-          <h1 className="text-3xl font-semibold text-[#0F172A]">Edit Agency</h1>
+          <h1 className="text-3xl font-semibold text-[#0F172A]">{t('agencies.edit.title')}</h1>
           <p className="text-muted-foreground mt-1">Update agency information</p>
         </div>
       </div>

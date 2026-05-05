@@ -1,4 +1,5 @@
 import { Link, useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, ShieldOff, Upload, X } from 'lucide-react';
 import { useState } from 'react';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -49,6 +50,7 @@ const EMPTY: FormShape = {
 };
 
 export function AddAgency() {
+  const { t } = useTranslation('pages');
   const { canCreate } = usePermissions();
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
@@ -132,7 +134,7 @@ export function AddAgency() {
           <Link to="/dashboard/agencies"><ArrowLeft className="w-5 h-5" /></Link>
         </Button>
         <div>
-          <h1 className="text-3xl font-semibold text-[#0F172A]">Add New Agency</h1>
+          <h1 className="text-3xl font-semibold text-[#0F172A]">{t('agencies.add.title')}</h1>
           <p className="text-muted-foreground mt-1">Create new recruitment agency partnership</p>
         </div>
       </div>

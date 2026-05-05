@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Search, Download, Trash2, RefreshCw, FileText, Users, Activity, Shield,
   AlertTriangle, ChevronLeft, ChevronRight,
@@ -97,6 +98,7 @@ type SortOrder = 'asc' | 'desc';
 
 // ─── component ───────────────────────────────────────────────────────────────
 export function LogsDashboard() {
+  const { t } = useTranslation('pages');
   const { user: currentUser } = useAuthContext();
   const isAdmin = currentUser?.role === 'System Admin';
 
@@ -326,8 +328,8 @@ export function LogsDashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">System Logs</h1>
-          <p className="text-muted-foreground mt-1">Full audit trail of all system activity</p>
+          <h1 className="text-2xl font-semibold text-foreground">{t('logs.dashboard.title')}</h1>
+          <p className="text-muted-foreground mt-1">{t('logs.dashboard.subtitle')}</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => { fetchLogs(); fetchStats(); }}>

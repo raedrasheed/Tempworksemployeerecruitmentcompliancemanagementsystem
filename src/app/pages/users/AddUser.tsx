@@ -1,4 +1,5 @@
 import { Link, useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, ShieldOff, Camera, X } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -28,6 +29,7 @@ const TIMEZONES = [
 ];
 
 export function AddUser() {
+  const { t } = useTranslation('pages');
   const navigate = useNavigate();
   const { canCreate } = usePermissions();
   const currentUser = getCurrentUser();
@@ -191,7 +193,7 @@ export function AddUser() {
           <Link to="/dashboard/users"><ArrowLeft className="w-5 h-5" /></Link>
         </Button>
         <div>
-          <h1 className="text-3xl font-semibold text-[#0F172A]">Add New User</h1>
+          <h1 className="text-3xl font-semibold text-[#0F172A]">{t('users.add.title')}</h1>
           <p className="text-muted-foreground mt-1">Create new system user account</p>
         </div>
       </div>

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate, Link } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import {
   Plus, Search, ExternalLink, Edit2, Trash2,
   MapPin, Eye, Archive,
@@ -64,6 +65,7 @@ type SortField = ColKey;
 type SortOrder = 'asc' | 'desc';
 
 export function JobAdsList() {
+  const { t } = useTranslation('pages');
   const navigate = useNavigate();
   const currentUser = getCurrentUser();
   const canWrite = WRITE_ROLES.includes(currentUser?.role ?? '');
@@ -256,20 +258,20 @@ export function JobAdsList() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Job Ads</h1>
+          <h1 className="text-2xl font-bold text-foreground">{t('jobAds.list.title')}</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Manage published and draft job advertisements
+            {t('jobAds.list.subtitle')}
           </p>
         </div>
         {canWrite && (
           <div className="flex items-center gap-2">
             <Link to="/jobs" target="_blank">
               <Button variant="outline" size="sm" className="gap-2">
-                <ExternalLink className="w-4 h-4" /> View Public Page
+                <ExternalLink className="w-4 h-4" /> {t('jobAds.list.subtitle', { defaultValue: 'View Public Page' })}
               </Button>
             </Link>
             <Button onClick={() => navigate('/dashboard/job-ads/new')} className="gap-2">
-              <Plus className="w-4 h-4" /> New Job Ad
+              <Plus className="w-4 h-4" /> {t('jobAds.list.addButton')}
             </Button>
           </div>
         )}

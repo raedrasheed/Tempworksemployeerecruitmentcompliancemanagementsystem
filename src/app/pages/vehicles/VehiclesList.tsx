@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import {
   Search, Download, Eye, Plus, Truck, RefreshCw, X,
   Edit, Trash2, ArrowUp, ArrowDown, ArrowUpDown, Columns2, Check,
@@ -123,6 +124,7 @@ function SortableHead({ label, field, sortBy, sortOrder, onSort, className }: {
 
 export function VehiclesList() {
   const navigate = useNavigate();
+  const { t } = useTranslation('pages');
   const { canCreate } = usePermissions();
   const canWrite = canCreate('vehicles');
 
@@ -316,9 +318,9 @@ export function VehiclesList() {
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
             <Truck className="w-7 h-7 text-primary" />
-            Vehicle Management
+            {t('vehicles.list.title')}
           </h1>
-          <p className="text-muted-foreground text-sm mt-1">Manage company fleet, documents and maintenance</p>
+          <p className="text-muted-foreground text-sm mt-1">{t('vehicles.list.subtitle')}</p>
         </div>
         <div className="flex gap-2 items-center">
           <Button variant="outline" size="sm" onClick={loadVehicles} disabled={loading}>

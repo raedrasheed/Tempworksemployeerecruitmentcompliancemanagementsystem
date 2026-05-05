@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Link } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { Plus, Search, Download, Eye, Edit, Trash2, RefreshCw, ArrowUp, ArrowDown, ArrowUpDown, X, Columns2, Check, FileText, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { confirm } from '../../components/ui/ConfirmDialog';
@@ -77,6 +78,7 @@ function SortableHead({ label, field, sortBy, sortOrder, onSort }: {
 
 export function EmployeesList() {
   const { canCreate, canEdit, canDelete } = usePermissions();
+  const { t } = useTranslation('pages');
 
   // ── Column visibility ──────────────────────────────────────────────────────
   const [visibleColumns, setVisibleColumns] = useState<Record<ColKey, boolean>>(loadVisibleColumns);
@@ -321,13 +323,13 @@ export function EmployeesList() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-semibold text-[#0F172A]">Employees</h1>
-          <p className="text-muted-foreground mt-1">Manage and track all employees in the system</p>
+          <h1 className="text-3xl font-semibold text-[#0F172A]">{t('employees.list.title')}</h1>
+          <p className="text-muted-foreground mt-1">{t('employees.list.subtitle')}</p>
         </div>
         {canCreate('employees') && (
           <Button asChild>
             <Link to="/dashboard/employees/add">
-              <Plus className="w-4 h-4 mr-2" />Add Employee
+              <Plus className="w-4 h-4 me-2" />{t('employees.list.addButton')}
             </Link>
           </Button>
         )}
@@ -336,19 +338,19 @@ export function EmployeesList() {
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Total</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">{t('employees.list.stats.total')}</CardTitle></CardHeader>
           <CardContent><div className="text-2xl font-bold text-[#0F172A]">{totalEmployees}</div></CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Active</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">{t('employees.list.stats.active')}</CardTitle></CardHeader>
           <CardContent><div className="text-2xl font-bold text-green-600">{activeCount}</div></CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Onboarding</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">{t('employees.list.stats.onboarding')}</CardTitle></CardHeader>
           <CardContent><div className="text-2xl font-bold text-blue-600">{onboardingCount}</div></CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Pending</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">{t('employees.list.stats.pending')}</CardTitle></CardHeader>
           <CardContent><div className="text-2xl font-bold text-amber-600">{pendingCount}</div></CardContent>
         </Card>
       </div>
@@ -361,11 +363,11 @@ export function EmployeesList() {
             <div className="flex flex-wrap items-center gap-3">
               <div className="flex-1 min-w-48 relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input placeholder="Search by name, email, citizenship..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10" />
+                <Input placeholder={t('employees.list.search')} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="ps-10" />
               </div>
 
               <Select value={statusFilter || '__all__'} onValueChange={v => setStatusFilter(v === '__all__' ? '' : v)}>
-                <SelectTrigger className="w-40"><SelectValue placeholder="All Statuses" /></SelectTrigger>
+                <SelectTrigger className="w-40"><SelectValue placeholder={t('employees.list.filters.allStatuses')} /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__all__">All Statuses</SelectItem>
                   {STATUSES.map(s => <SelectItem key={s} value={s}>{s.replace(/_/g, ' ')}</SelectItem>)}
@@ -374,7 +376,7 @@ export function EmployeesList() {
 
               {agencies.length > 0 && (
                 <Select value={agencyFilter || '__all__'} onValueChange={v => setAgencyFilter(v === '__all__' ? '' : v)}>
-                  <SelectTrigger className="w-44"><SelectValue placeholder="All Agencies" /></SelectTrigger>
+                  <SelectTrigger className="w-44"><SelectValue placeholder={t('employees.list.filters.allAgencies')} /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__all__">All Agencies</SelectItem>
                     {agencies.map((a: any) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
@@ -452,7 +454,7 @@ export function EmployeesList() {
             {/* Row 2 */}
             <div className="flex flex-wrap items-center gap-3">
               <Select value={nationalityFilter || '__all__'} onValueChange={v => setNationalityFilter(v === '__all__' ? '' : v)}>
-                <SelectTrigger className="w-44"><SelectValue placeholder="All Citizenships" /></SelectTrigger>
+                <SelectTrigger className="w-44"><SelectValue placeholder={t('employees.list.filters.allCitizenships')} /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__all__">All Citizenships</SelectItem>
                   {nationalityOptions.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}

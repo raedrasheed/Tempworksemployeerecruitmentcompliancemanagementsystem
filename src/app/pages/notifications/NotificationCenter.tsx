@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import {
   Bell, BellOff, Check, CheckCheck, Trash2, Filter, RefreshCw,
   FileText, DollarSign, AlertTriangle, Info, Settings, ChevronDown, X,
@@ -138,6 +139,7 @@ function NotificationRow({
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function NotificationCenter() {
+  const { t } = useTranslation('pages');
   const [notifications, setNotifications] = useState<any[]>([]);
   const [total, setTotal]     = useState(0);
   const [page, setPage]       = useState(1);
@@ -238,7 +240,7 @@ export function NotificationCenter() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-semibold text-[#0F172A]">Notifications</h1>
+          <h1 className="text-3xl font-semibold text-[#0F172A]">{t('notifications.center.title')}</h1>
           <p className="text-muted-foreground mt-1">
             {unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'} · {total} total
           </p>

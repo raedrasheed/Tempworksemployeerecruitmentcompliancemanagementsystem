@@ -1,6 +1,7 @@
 import { Link } from 'react-router';
 import { FileType, Bell, Shield, Activity, Layers, Briefcase, Palette, Trash2, Database, Server, Building2, Star, Truck, Tag, GitBranch, DollarSign } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { usePermissions } from '../../hooks/usePermissions';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { API_URL, getCurrentUser } from '../../services/api';
@@ -22,6 +23,7 @@ interface SystemStats {
 }
 
 export function Settings() {
+  const { t } = useTranslation('pages');
   // settings:update is the gate for admin-only configuration cards
   // (branding, skills, truck brands, database backup/cleanup, …).
   // System Admins pass via the usePermissions isAdmin bypass so the
@@ -99,8 +101,8 @@ export function Settings() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-semibold text-foreground">Settings</h1>
-        <p className="text-muted-foreground mt-1">Manage system configuration and preferences</p>
+        <h1 className="text-3xl font-semibold text-foreground">{t('settings.index.title')}</h1>
+        <p className="text-muted-foreground mt-1">{t('settings.index.subtitle')}</p>
       </div>
 
       {/* Settings Menu */}

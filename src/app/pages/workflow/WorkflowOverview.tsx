@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
@@ -9,6 +10,7 @@ import { employeeWorkflowApi } from '../../services/api';
 
 export function WorkflowOverview() {
   const navigate = useNavigate();
+  const { t } = useTranslation('pages');
   const [stages, setStages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -30,9 +32,9 @@ export function WorkflowOverview() {
             <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
               <ArrowLeft className="w-5 h-5" />
             </Button>
-            <h1 className="text-3xl font-semibold text-[#0F172A]">Workflow Overview</h1>
+            <h1 className="text-3xl font-semibold text-[#0F172A]">{t('workflow.overview.title')}</h1>
           </div>
-          <p className="text-muted-foreground mt-1">Track recruitment workflow and driver progression</p>
+          <p className="text-muted-foreground mt-1">{t('workflow.overview.subtitle')}</p>
         </div>
         <div className="flex items-center gap-3">
           <Button variant="outline" asChild>

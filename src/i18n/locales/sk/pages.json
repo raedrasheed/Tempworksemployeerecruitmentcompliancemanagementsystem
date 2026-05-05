@@ -1,0 +1,230 @@
+{
+  "employees": {
+    "list": {
+      "title": "Zamestnanci",
+      "subtitle": "Záznamy vodičov a pracovníkov",
+      "addButton": "Pridať zamestnanca",
+      "search": "Hľadať podľa mena, e-mailu, občianstva…",
+      "stats": {
+        "total": "Spolu",
+        "active": "Aktívni",
+        "onboarding": "Nástup",
+        "pending": "Čakajúci"
+      },
+      "filters": {
+        "allStatuses": "Všetky stavy",
+        "allAgencies": "Všetky agentúry",
+        "allCitizenships": "Všetky občianstva",
+        "from": "Od",
+        "to": "Do"
+      },
+      "columns": {
+        "contact": "Kontakt",
+        "citizenship": "Občianstvo",
+        "license": "ID / Licencia",
+        "experience": "Prax",
+        "agency": "Agentúra",
+        "status": "Stav",
+        "name": "Meno",
+        "actions": "Akcie"
+      },
+      "actions": {
+        "view": "Zobraziť",
+        "edit": "Upraviť",
+        "delete": "Vymazať",
+        "exportPdf": "Exportovať PDF",
+        "exportSelected": "Exportovať vybrané"
+      },
+      "empty": "Žiadni zamestnanci.",
+      "deleteConfirmTitle": "Vymazať zamestnanca?",
+      "deleteConfirmBody": "Záznam bude presunutý do koša.",
+      "deleted": "Zamestnanec vymazaný."
+    },
+    "profile": {
+      "title": "Profil zamestnanca",
+      "back": "Späť na zamestnancov",
+      "tabs": {
+        "overview": "Prehľad",
+        "documents": "Dokumenty",
+        "compliance": "Súlad",
+        "workHistory": "História práce",
+        "training": "Školenia",
+        "performance": "Výkon",
+        "finance": "Financie"
+      }
+    },
+    "add": { "title": "Pridať zamestnanca", "back": "Späť na zamestnancov" },
+    "edit": { "title": "Upraviť zamestnanca", "back": "Späť na profil" },
+    "certifications": { "title": "Certifikáty", "back": "Späť na profil" },
+    "training": { "title": "História školení", "back": "Späť na profil" },
+    "complianceTimeline": { "title": "Časová os súladu", "back": "Späť na profil" },
+    "performance": { "title": "Hodnotenie výkonu", "back": "Späť na profil" }
+  },
+  "applicants": {
+    "list": {
+      "title": "Uchádzači",
+      "subtitle": "Záujemcovia a leady",
+      "addButton": "Pridať uchádzača",
+      "search": "Hľadať uchádzačov…",
+      "empty": "Žiadni uchádzači.",
+      "deleteRequests": "Žiadosti o vymazanie"
+    },
+    "candidates": {
+      "title": "Kandidáti",
+      "subtitle": "Preverení kandidáti pripravení na umiestnenie",
+      "search": "Hľadať kandidátov…",
+      "empty": "Žiadni kandidáti."
+    },
+    "profile": {
+      "title": "Profil uchádzača",
+      "candidateTitle": "Profil kandidáta",
+      "back": "Späť",
+      "convertToCandidate": "Konvertovať na kandidáta",
+      "convertToEmployee": "Konvertovať na zamestnanca"
+    },
+    "add": { "title": "Pridať uchádzača", "back": "Späť na uchádzačov" },
+    "edit": { "title": "Upraviť uchádzača", "back": "Späť na profil" },
+    "deleteRequests": {
+      "title": "Žiadosti o vymazanie kandidátov",
+      "subtitle": "Skontrolujte a schváľte žiadosti o vymazanie",
+      "empty": "Žiadne čakajúce žiadosti."
+    }
+  },
+  "agencies": {
+    "list": { "title": "Agentúry", "subtitle": "Náboroví partneri", "addButton": "Pridať agentúru", "search": "Hľadať agentúry…", "empty": "Žiadne agentúry." },
+    "profile": { "title": "Profil agentúry", "back": "Späť na agentúry" },
+    "myProfile": { "title": "Moja agentúra" },
+    "add": { "title": "Pridať agentúru", "back": "Späť na agentúry" },
+    "edit": { "title": "Upraviť agentúru", "back": "Späť na profil" },
+    "users": { "title": "Používatelia agentúry", "subtitle": "Spravujte používateľov priradených k agentúre", "back": "Späť na agentúru", "addButton": "Pridať používateľa" }
+  },
+  "documents": {
+    "dashboard": { "title": "Dokumenty", "subtitle": "Prehľad úložiska dokumentov", "uploadButton": "Nahrať dokument" },
+    "compliance": { "title": "Dokumenty a súlad", "subtitle": "Stav súladu naprieč všetkými dokumentmi", "filterTitle": "Filtrovať dokumenty" },
+    "explorer": { "title": "Prehliadač dokumentov", "searchTitle": "Hľadať a filtrovať zamestnancov" },
+    "verification": { "title": "Overenie dokumentov", "pending": "Čakajúce dokumenty ({{count}})", "approve": "Schváliť", "reject": "Zamietnuť" },
+    "preview": { "title": "Dokument", "back": "Späť", "download": "Stiahnuť" },
+    "upload": { "title": "Nahrať dokument", "back": "Späť" },
+    "edit": { "title": "Upraviť dokument", "back": "Späť" }
+  },
+  "compliance": {
+    "dashboard": { "title": "Prehľad súladu", "stats": { "validDocuments": "Platné dokumenty", "expiringSoon": "Čoskoro expirujú", "expired": "Expirované", "pending": "Čakajúce" } },
+    "alerts": { "title": "Upozornenia súladu", "active": "Aktívne upozornenia", "resolved": "Vyriešené upozornenia", "empty": "Žiadne aktívne upozornenia." },
+    "employee": { "title": "Súlad zamestnanca", "back": "Späť" }
+  },
+  "workflow": {
+    "overview": { "title": "Prehľad pracovného postupu", "subtitle": "Sledovanie zamestnancov v náborovom procese" },
+    "workPermits": { "title": "Sledovanie pracovných povolení" },
+    "visas": { "title": "Sledovanie víz" },
+    "stage": { "title": "Detail fázy" },
+    "timeline": { "title": "Časová os pracovného postupu" },
+    "analytics": { "title": "Analýza pracovného postupu" },
+    "management": { "title": "Riadenie pracovného postupu" }
+  },
+  "pipelines": {
+    "list": { "title": "Pracovné postupy", "subtitle": "Náborové procesy a konfigurácia fáz", "addButton": "Nový pracovný postup", "newDialogTitle": "Nový pracovný postup", "empty": "Zatiaľ žiadne pracovné postupy." },
+    "board": { "title": "Tabuľa pracovného postupu" },
+    "stage": { "title": "Fáza" },
+    "settings": { "title": "Nastavenia pracovného postupu" }
+  },
+  "vehicles": {
+    "list": { "title": "Vozidlá", "subtitle": "Správa vozového parku", "addButton": "Pridať vozidlo", "search": "Hľadať vozidlá…", "empty": "Žiadne vozidlá." },
+    "detail": { "title": "Detail vozidla", "back": "Späť na vozidlá" },
+    "form": { "addTitle": "Pridať vozidlo", "editTitle": "Upraviť vozidlo", "back": "Späť" },
+    "workshops": { "title": "Servisy", "subtitle": "Autorizovaní poskytovatelia služieb", "addButton": "Pridať servis", "empty": "Zatiaľ žiadne servisy." },
+    "maintenanceTypes": { "title": "Typy údržby", "addButton": "Pridať typ" },
+    "maintenanceRecords": { "title": "Záznamy údržby", "subtitle": "Všetka údržba vozidiel", "addButton": "Nový záznam", "empty": "Zatiaľ žiadne záznamy." }
+  },
+  "attendance": {
+    "list": { "title": "Dochádzkové hárky", "subtitle": "Mesačná dochádzka na zamestnanca", "addButton": "Nový hárok", "empty": "Zatiaľ žiadne hárky." },
+    "sheet": { "title": "Dochádzkový hárok", "back": "Späť na dochádzku", "save": "Uložiť hárok", "lock": "Uzamknúť obdobie", "unlock": "Odomknúť obdobie" }
+  },
+  "reports": {
+    "dashboard": { "title": "Reporty a analytika", "subtitle": "Vytvárajte a exportujte vlastné reporty", "newReport": "Nový report", "empty": "Zatiaľ žiadne reporty." }
+  },
+  "notifications": {
+    "center": { "title": "Notifikácie", "subtitle": "Všetky vaše upozornenia", "markAllRead": "Označiť všetko ako prečítané", "empty": "Žiadne notifikácie.", "filters": { "all": "Všetky", "unread": "Neprečítané", "read": "Prečítané" } },
+    "settings": { "title": "Nastavenia notifikácií", "subtitle": "Vyberte, ktoré notifikácie chcete dostávať", "save": "Uložiť predvoľby" }
+  },
+  "users": {
+    "list": { "title": "Správa používateľov", "subtitle": "Používatelia systému a prístup", "addButton": "Pridať používateľa", "search": "Hľadať používateľov…", "bulkImport": "Hromadný import", "empty": "Žiadni používatelia.", "activationLink": "Aktivačný odkaz" },
+    "add": { "title": "Pridať používateľa", "back": "Späť na používateľov" },
+    "edit": { "title": "Upraviť používateľa", "back": "Späť na používateľov" }
+  },
+  "roles": {
+    "list": { "title": "Roly a oprávnenia", "subtitle": "Definujte roly a priraďte oprávnenia", "addButton": "Nová rola", "permissionsMatrix": "Matica oprávnení", "allRoles": "Všetky roly", "empty": "Zatiaľ žiadne roly." },
+    "create": { "title": "Vytvoriť rolu", "editTitle": "Upraviť rolu", "back": "Späť na roly" },
+    "matrix": { "title": "Matica oprávnení", "back": "Späť na roly" }
+  },
+  "jobAds": {
+    "list": { "title": "Pracovné inzeráty", "subtitle": "Verejné pracovné ponuky", "addButton": "Nový inzerát", "search": "Hľadať inzeráty…", "empty": "Zatiaľ žiadne inzeráty." },
+    "form": { "addTitle": "Nový inzerát", "editTitle": "Upraviť inzerát", "back": "Späť na inzeráty" }
+  },
+  "recycleBin": {
+    "list": { "title": "Vymazané záznamy", "subtitle": "Obnovte alebo trvalo vymažte záznamy", "accessDenied": "Prístup zamietnutý", "empty": "Kôš je prázdny.", "restore": "Obnoviť", "permanentlyDelete": "Trvalo vymazať" }
+  },
+  "logs": {
+    "dashboard": { "title": "Systémové záznamy", "subtitle": "Záznam aktivity (audit log)", "activityByModule": "Aktivita podľa modulu", "search": "Hľadať v záznamoch…", "empty": "Žiadne záznamy nezodpovedajú filtrom." }
+  },
+  "settings": {
+    "index": {
+      "title": "Nastavenia",
+      "subtitle": "Konfigurácia inštancie TempWorks",
+      "groups": {
+        "appearance": "Vzhľad",
+        "appearanceDesc": "Téma a farebná schéma",
+        "workflow": "Pracovný postup",
+        "workflowDesc": "Konfigurácia náborového procesu",
+        "documentTypes": "Typy dokumentov",
+        "documentTypesDesc": "Spravujte kategórie dokumentov",
+        "notifications": "Notifikácie",
+        "notificationsDesc": "Pravidlá a spúšťače notifikácií",
+        "security": "Bezpečnosť",
+        "securityDesc": "Politiky autentifikácie a prístupu",
+        "branding": "Branding",
+        "brandingDesc": "Logo, názov spoločnosti, marketingové texty",
+        "system": "Systém",
+        "systemDesc": "Databáza, zálohy, info o systéme"
+      }
+    },
+    "documentTypes": { "list": "Typy dokumentov", "addButton": "Nový typ dokumentu", "newTitle": "Nový typ dokumentu", "editTitle": "Upraviť typ dokumentu", "viewTitle": "Typ dokumentu", "back": "Späť na typy dokumentov" },
+    "jobTypes": { "title": "Typy práce", "addButton": "Pridať typ" },
+    "skills": { "title": "Zručnosti", "addButton": "Pridať zručnosť" },
+    "workflowSettings": { "title": "Nastavenia pracovného postupu" },
+    "workflowConfiguration": { "title": "Konfigurácia pracovného postupu" },
+    "notificationRules": { "title": "Pravidlá notifikácií", "addButton": "Nové pravidlo" },
+    "security": { "title": "Bezpečnostné nastavenia" },
+    "colorScheme": { "title": "Farebná schéma" },
+    "branding": { "title": "Branding" },
+    "databaseCleanup": { "title": "Čistenie databázy" },
+    "databaseBackup": { "title": "Záloha databázy" },
+    "systemInformation": { "title": "Informácie o systéme" },
+    "transportTypes": { "title": "Typy dopravy", "addButton": "Pridať typ" },
+    "truckBrands": { "title": "Značky kamiónov", "addButton": "Pridať značku" },
+    "trailerTypes": { "title": "Typy návesov", "addButton": "Pridať typ" },
+    "vehicleSettings": { "title": "Nastavenia vozidiel" },
+    "transactionTypes": { "title": "Typy transakcií", "addButton": "Pridať typ" },
+    "workHistoryEventTypes": { "title": "Typy udalostí histórie práce", "addButton": "Pridať typ" },
+    "maintenanceTypes": { "title": "Typy údržby", "addButton": "Pridať typ" }
+  },
+  "profile": {
+    "view": { "title": "Môj profil", "subtitle": "Osobné údaje a kontakt", "edit": "Upraviť" },
+    "changePassword": { "title": "Zmeniť heslo", "subtitle": "Aktualizujte heslo, aby ste si udržali zabezpečený účet" },
+    "preferences": { "title": "Predvoľby", "subtitle": "Jazyk, časové pásmo a nastavenia notifikácií", "language": "Preferovaný jazyk", "timezone": "Časové pásmo", "save": "Uložiť predvoľby", "saved": "Predvoľby uložené" }
+  },
+  "common": {
+    "from": "Od",
+    "to": "Do",
+    "all": "Všetky",
+    "more": "Viac",
+    "showMore": "Zobraziť viac",
+    "showLess": "Zobraziť menej",
+    "results_one": "{{count}} výsledok",
+    "results_few": "{{count}} výsledky",
+    "results_many": "{{count}} výsledkov",
+    "results_other": "{{count}} výsledkov"
+  },
+  "finance": {
+    "page": { "title": "Financie", "subtitle": "Transakcie a zostatky v rámci organizácie" }
+  }
+}

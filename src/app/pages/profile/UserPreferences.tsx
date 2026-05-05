@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -20,6 +21,7 @@ const NOTIFICATION_OPTIONS = [
 ];
 
 export function UserPreferences() {
+  const { t } = useTranslation('pages');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
@@ -104,8 +106,8 @@ export function UserPreferences() {
           <Link to="/dashboard/profile"><ArrowLeft className="w-5 h-5" /></Link>
         </Button>
         <div>
-          <h1 className="text-3xl font-semibold text-[#0F172A]">Preferences</h1>
-          <p className="text-muted-foreground mt-1">Manage your language, timezone, and notification settings</p>
+          <h1 className="text-3xl font-semibold text-[#0F172A]">{t('profile.preferences.title')}</h1>
+          <p className="text-muted-foreground mt-1">{t('profile.preferences.subtitle')}</p>
         </div>
       </div>
 

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { authApi } from '../../services/api';
 import { Eye, EyeOff, Lock, CheckCircle, X, AlertCircle, ArrowLeft } from 'lucide-react';
@@ -10,6 +11,7 @@ import { Label } from '../../components/ui/label';
 import { Progress } from '../../components/ui/progress';
 
 export function ChangePassword() {
+  const { t } = useTranslation('pages');
   const navigate = useNavigate();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -91,9 +93,9 @@ export function ChangePassword() {
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <h1 className="text-3xl font-semibold text-[#0F172A]">Change Password</h1>
+          <h1 className="text-3xl font-semibold text-[#0F172A]">{t('profile.changePassword.title')}</h1>
         </div>
-        <p className="text-muted-foreground mt-1">Update your password to keep your account secure</p>
+        <p className="text-muted-foreground mt-1">{t('profile.changePassword.subtitle')}</p>
       </div>
 
       {/* Success Message */}

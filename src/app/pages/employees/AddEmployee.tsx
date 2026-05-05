@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, ShieldOff } from 'lucide-react';
 import { usePermissions } from '../../hooks/usePermissions';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
@@ -11,6 +12,7 @@ import { toast } from 'sonner';
 import { employeesApi, agenciesApi } from '../../services/api';
 
 export function AddEmployee() {
+  const { t } = useTranslation('pages');
   const navigate = useNavigate();
   const { canCreate } = usePermissions();
   const [agencies, setAgencies] = useState<any[]>([]);
@@ -86,7 +88,7 @@ export function AddEmployee() {
           <Link to="/dashboard/employees"><ArrowLeft className="w-5 h-5" /></Link>
         </Button>
         <div>
-          <h1 className="text-3xl font-semibold text-[#0F172A]">Add New Employee</h1>
+          <h1 className="text-3xl font-semibold text-[#0F172A]">{t('employees.add.title')}</h1>
           <p className="text-muted-foreground mt-1">Enter employee information to create a new profile</p>
         </div>
       </div>

@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { Link, useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { applicationDraftsApi, settingsApi, agenciesApi, getCurrentUser, resolveAssetUrl } from '../../services/api';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent } from '../../components/ui/card';
@@ -12,6 +13,7 @@ import { usePermissions } from '../../hooks/usePermissions';
 import { ApplicantFormSteps, EMPTY_FORM, getVisibleTabs, getStepErrors, getStepFieldErrors, StepIndicator, FormSettings, DEFAULT_FORM_SETTINGS, ApplicantFormData } from '../../components/applicants/ApplicantFormSteps';
 
 export function AddApplicant() {
+  const { t } = useTranslation('pages');
   const navigate = useNavigate();
   const { canCreate } = usePermissions();
   const [currentStep, setCurrentStep] = useState(1);
@@ -299,7 +301,7 @@ export function AddApplicant() {
           </Link>
         </Button>
         <div className="flex-1">
-          <h1 className="text-3xl font-semibold">New Applicant</h1>
+          <h1 className="text-3xl font-semibold">{t('applicants.add.title')}</h1>
           <p className="text-muted-foreground mt-1">
             {draftId
               ? 'Continuing your saved draft — no applicant has been created yet.'

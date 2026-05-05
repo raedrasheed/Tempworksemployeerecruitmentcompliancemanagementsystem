@@ -1,0 +1,160 @@
+{
+  "employees": {
+    "list": {
+      "title": "Mitarbeiter",
+      "subtitle": "Fahrer- und Mitarbeiterdaten",
+      "addButton": "Mitarbeiter hinzufügen",
+      "search": "Nach Name, E-Mail, Staatsangehörigkeit suchen…",
+      "stats": { "total": "Gesamt", "active": "Aktiv", "onboarding": "Onboarding", "pending": "Ausstehend" },
+      "filters": { "allStatuses": "Alle Status", "allAgencies": "Alle Agenturen", "allCitizenships": "Alle Staatsangehörigkeiten", "from": "Von", "to": "Bis" },
+      "columns": { "contact": "Kontakt", "citizenship": "Staatsangehörigkeit", "license": "ID / Lizenz", "experience": "Erfahrung", "agency": "Agentur", "status": "Status", "name": "Name", "actions": "Aktionen" },
+      "actions": { "view": "Anzeigen", "edit": "Bearbeiten", "delete": "Löschen", "exportPdf": "PDF exportieren", "exportSelected": "Auswahl exportieren" },
+      "empty": "Keine Mitarbeiter gefunden.",
+      "deleteConfirmTitle": "Mitarbeiter löschen?",
+      "deleteConfirmBody": "Der Datensatz wird in den Papierkorb verschoben.",
+      "deleted": "Mitarbeiter gelöscht."
+    },
+    "profile": {
+      "title": "Mitarbeiterprofil",
+      "back": "Zurück zu Mitarbeiter",
+      "tabs": { "overview": "Übersicht", "documents": "Dokumente", "compliance": "Compliance", "workHistory": "Arbeitsverlauf", "training": "Schulungen", "performance": "Leistung", "finance": "Finanzen" }
+    },
+    "add": { "title": "Mitarbeiter hinzufügen", "back": "Zurück zu Mitarbeiter" },
+    "edit": { "title": "Mitarbeiter bearbeiten", "back": "Zurück zum Profil" },
+    "certifications": { "title": "Zertifikate", "back": "Zurück zum Profil" },
+    "training": { "title": "Schulungsverlauf", "back": "Zurück zum Profil" },
+    "complianceTimeline": { "title": "Compliance-Zeitleiste", "back": "Zurück zum Profil" },
+    "performance": { "title": "Leistungsbeurteilung", "back": "Zurück zum Profil" }
+  },
+  "applicants": {
+    "list": { "title": "Bewerber", "subtitle": "Bewerber und Leads", "addButton": "Bewerber hinzufügen", "search": "Bewerber suchen…", "empty": "Keine Bewerber gefunden.", "deleteRequests": "Löschanfragen" },
+    "candidates": { "title": "Kandidaten", "subtitle": "Geprüfte Kandidaten zur Vermittlung bereit", "search": "Kandidaten suchen…", "empty": "Keine Kandidaten gefunden." },
+    "profile": { "title": "Bewerberprofil", "candidateTitle": "Kandidatenprofil", "back": "Zurück", "convertToCandidate": "In Kandidat umwandeln", "convertToEmployee": "In Mitarbeiter umwandeln" },
+    "add": { "title": "Bewerber hinzufügen", "back": "Zurück zu Bewerbern" },
+    "edit": { "title": "Bewerber bearbeiten", "back": "Zurück zum Profil" },
+    "deleteRequests": { "title": "Löschanfragen für Kandidaten", "subtitle": "Löschanfragen prüfen und genehmigen", "empty": "Keine offenen Löschanfragen." }
+  },
+  "agencies": {
+    "list": { "title": "Agenturen", "subtitle": "Recruiting-Partner", "addButton": "Agentur hinzufügen", "search": "Agenturen suchen…", "empty": "Keine Agenturen gefunden." },
+    "profile": { "title": "Agenturprofil", "back": "Zurück zu Agenturen" },
+    "myProfile": { "title": "Meine Agentur" },
+    "add": { "title": "Agentur hinzufügen", "back": "Zurück zu Agenturen" },
+    "edit": { "title": "Agentur bearbeiten", "back": "Zurück zum Profil" },
+    "users": { "title": "Agentur-Benutzer", "subtitle": "Benutzer dieser Agentur verwalten", "back": "Zurück zur Agentur", "addButton": "Benutzer hinzufügen" }
+  },
+  "documents": {
+    "dashboard": { "title": "Dokumente", "subtitle": "Übersicht der Dokumentenablage", "uploadButton": "Dokument hochladen" },
+    "compliance": { "title": "Dokumente & Compliance", "subtitle": "Compliance-Status aller Dokumente", "filterTitle": "Dokumente filtern" },
+    "explorer": { "title": "Dokumenten-Explorer", "searchTitle": "Mitarbeiter suchen & filtern" },
+    "verification": { "title": "Dokumentenprüfung", "pending": "Ausstehende Dokumente ({{count}})", "approve": "Genehmigen", "reject": "Ablehnen" },
+    "preview": { "title": "Dokument", "back": "Zurück", "download": "Herunterladen" },
+    "upload": { "title": "Dokument hochladen", "back": "Zurück" },
+    "edit": { "title": "Dokument bearbeiten", "back": "Zurück" }
+  },
+  "compliance": {
+    "dashboard": { "title": "Compliance-Dashboard", "stats": { "validDocuments": "Gültige Dokumente", "expiringSoon": "Läuft bald ab", "expired": "Abgelaufen", "pending": "Ausstehend" } },
+    "alerts": { "title": "Compliance-Warnungen", "active": "Aktive Warnungen", "resolved": "Gelöste Warnungen", "empty": "Keine aktiven Warnungen." },
+    "employee": { "title": "Mitarbeiter-Compliance", "back": "Zurück" }
+  },
+  "workflow": {
+    "overview": { "title": "Workflow-Übersicht", "subtitle": "Mitarbeiter durch die Recruiting-Pipeline verfolgen" },
+    "workPermits": { "title": "Arbeitserlaubnis-Tracking" },
+    "visas": { "title": "Visa-Tracking" },
+    "stage": { "title": "Stufendetails" },
+    "timeline": { "title": "Workflow-Zeitleiste" },
+    "analytics": { "title": "Workflow-Analyse" },
+    "management": { "title": "Workflow-Verwaltung" }
+  },
+  "pipelines": {
+    "list": { "title": "Workflows", "subtitle": "Recruiting-Pipelines und Stufen-Konfiguration", "addButton": "Neuer Workflow", "newDialogTitle": "Neuer Workflow", "empty": "Noch keine Workflows." },
+    "board": { "title": "Workflow-Board" },
+    "stage": { "title": "Stufe" },
+    "settings": { "title": "Workflow-Einstellungen" }
+  },
+  "vehicles": {
+    "list": { "title": "Fahrzeuge", "subtitle": "Flottenverwaltung", "addButton": "Fahrzeug hinzufügen", "search": "Fahrzeuge suchen…", "empty": "Keine Fahrzeuge gefunden." },
+    "detail": { "title": "Fahrzeugdetails", "back": "Zurück zur Flotte" },
+    "form": { "addTitle": "Fahrzeug hinzufügen", "editTitle": "Fahrzeug bearbeiten", "back": "Zurück" },
+    "workshops": { "title": "Werkstätten", "subtitle": "Autorisierte Service-Anbieter", "addButton": "Werkstatt hinzufügen", "empty": "Noch keine Werkstätten." },
+    "maintenanceTypes": { "title": "Wartungsarten", "addButton": "Art hinzufügen" },
+    "maintenanceRecords": { "title": "Wartungsprotokolle", "subtitle": "Alle Wartungsaktivitäten in der Flotte", "addButton": "Neuer Eintrag", "empty": "Noch keine Wartungsprotokolle." }
+  },
+  "attendance": {
+    "list": { "title": "Anwesenheitslisten", "subtitle": "Monatliche Anwesenheit pro Mitarbeiter", "addButton": "Neue Liste", "empty": "Noch keine Anwesenheitslisten." },
+    "sheet": { "title": "Anwesenheitsliste", "back": "Zurück zu Anwesenheit", "save": "Liste speichern", "lock": "Periode sperren", "unlock": "Periode entsperren" }
+  },
+  "reports": {
+    "dashboard": { "title": "Berichte & Analyse", "subtitle": "Eigene Berichte erstellen und exportieren", "newReport": "Neuer Bericht", "empty": "Noch keine Berichte." }
+  },
+  "notifications": {
+    "center": { "title": "Benachrichtigungen", "subtitle": "Alle Ihre Hinweise und Updates", "markAllRead": "Alle als gelesen markieren", "empty": "Keine Benachrichtigungen.", "filters": { "all": "Alle", "unread": "Ungelesen", "read": "Gelesen" } },
+    "settings": { "title": "Benachrichtigungseinstellungen", "subtitle": "Wählen Sie, welche Benachrichtigungen Sie erhalten", "save": "Einstellungen speichern" }
+  },
+  "users": {
+    "list": { "title": "Benutzerverwaltung", "subtitle": "Systembenutzer und Zugriff", "addButton": "Benutzer hinzufügen", "search": "Benutzer suchen…", "bulkImport": "Massenimport", "empty": "Keine Benutzer gefunden.", "activationLink": "Aktivierungslink" },
+    "add": { "title": "Benutzer hinzufügen", "back": "Zurück zu Benutzern" },
+    "edit": { "title": "Benutzer bearbeiten", "back": "Zurück zu Benutzern" }
+  },
+  "roles": {
+    "list": { "title": "Rollen & Berechtigungen", "subtitle": "Rollen definieren und Berechtigungen zuweisen", "addButton": "Neue Rolle", "permissionsMatrix": "Berechtigungsmatrix", "allRoles": "Alle Rollen", "empty": "Noch keine Rollen." },
+    "create": { "title": "Rolle erstellen", "editTitle": "Rolle bearbeiten", "back": "Zurück zu Rollen" },
+    "matrix": { "title": "Berechtigungsmatrix", "back": "Zurück zu Rollen" }
+  },
+  "jobAds": {
+    "list": { "title": "Stellenanzeigen", "subtitle": "Öffentliche Stellenanzeigen", "addButton": "Neue Stellenanzeige", "search": "Stellenanzeigen suchen…", "empty": "Noch keine Stellenanzeigen." },
+    "form": { "addTitle": "Neue Stellenanzeige", "editTitle": "Stellenanzeige bearbeiten", "back": "Zurück zu Stellenanzeigen" }
+  },
+  "recycleBin": {
+    "list": { "title": "Gelöschte Datensätze", "subtitle": "Datensätze wiederherstellen oder dauerhaft löschen", "accessDenied": "Zugriff verweigert", "empty": "Papierkorb ist leer.", "restore": "Wiederherstellen", "permanentlyDelete": "Endgültig löschen" }
+  },
+  "logs": {
+    "dashboard": { "title": "Systemprotokolle", "subtitle": "Aktivitäts-Audit-Trail", "activityByModule": "Aktivität nach Modul", "search": "Protokolle durchsuchen…", "empty": "Keine Protokolle entsprechen Ihren Filtern." }
+  },
+  "settings": {
+    "index": {
+      "title": "Einstellungen",
+      "subtitle": "Konfigurieren Sie Ihre TempWorks-Instanz",
+      "groups": {
+        "appearance": "Darstellung", "appearanceDesc": "Theme und Farbschema",
+        "workflow": "Workflow", "workflowDesc": "Konfiguration der Recruiting-Pipeline",
+        "documentTypes": "Dokumentenarten", "documentTypesDesc": "Dokumentkategorien verwalten",
+        "notifications": "Benachrichtigungen", "notificationsDesc": "Benachrichtigungsregeln und Auslöser",
+        "security": "Sicherheit", "securityDesc": "Authentifizierung und Zugriffsrichtlinien",
+        "branding": "Branding", "brandingDesc": "Logo, Firmenname, Marketingtexte",
+        "system": "System", "systemDesc": "Datenbank, Backups, Systeminformationen"
+      }
+    },
+    "documentTypes": { "list": "Dokumentenarten", "addButton": "Neue Dokumentenart", "newTitle": "Neue Dokumentenart", "editTitle": "Dokumentenart bearbeiten", "viewTitle": "Dokumentenart", "back": "Zurück zu Dokumentenarten" },
+    "jobTypes": { "title": "Stellentypen", "addButton": "Typ hinzufügen" },
+    "skills": { "title": "Fähigkeiten", "addButton": "Fähigkeit hinzufügen" },
+    "workflowSettings": { "title": "Workflow-Einstellungen" },
+    "workflowConfiguration": { "title": "Workflow-Konfiguration" },
+    "notificationRules": { "title": "Benachrichtigungsregeln", "addButton": "Neue Regel" },
+    "security": { "title": "Sicherheitseinstellungen" },
+    "colorScheme": { "title": "Farbschema" },
+    "branding": { "title": "Branding" },
+    "databaseCleanup": { "title": "Datenbankbereinigung" },
+    "databaseBackup": { "title": "Datenbank-Backup" },
+    "systemInformation": { "title": "Systeminformationen" },
+    "transportTypes": { "title": "Transportarten", "addButton": "Art hinzufügen" },
+    "truckBrands": { "title": "LKW-Marken", "addButton": "Marke hinzufügen" },
+    "trailerTypes": { "title": "Anhängertypen", "addButton": "Typ hinzufügen" },
+    "vehicleSettings": { "title": "Fahrzeugeinstellungen" },
+    "transactionTypes": { "title": "Transaktionsarten", "addButton": "Art hinzufügen" },
+    "workHistoryEventTypes": { "title": "Arbeitsverlaufs-Ereignisse", "addButton": "Typ hinzufügen" },
+    "maintenanceTypes": { "title": "Wartungsarten", "addButton": "Art hinzufügen" }
+  },
+  "profile": {
+    "view": { "title": "Mein Profil", "subtitle": "Persönliche Daten und Kontakt", "edit": "Bearbeiten" },
+    "changePassword": { "title": "Passwort ändern", "subtitle": "Passwort aktualisieren, um Ihr Konto sicher zu halten" },
+    "preferences": { "title": "Einstellungen", "subtitle": "Sprache, Zeitzone und Benachrichtigungseinstellungen", "language": "Bevorzugte Sprache", "timezone": "Zeitzone", "save": "Einstellungen speichern", "saved": "Einstellungen gespeichert" }
+  },
+  "common": {
+    "from": "Von", "to": "Bis", "all": "Alle", "more": "Mehr",
+    "showMore": "Mehr anzeigen", "showLess": "Weniger anzeigen",
+    "results_one": "{{count}} Ergebnis", "results_other": "{{count}} Ergebnisse"
+  },
+  "finance": {
+    "page": { "title": "Finanzen", "subtitle": "Transaktionen und Salden im Unternehmen" }
+  }
+}

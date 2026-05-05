@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef, type RefObject } from 'react';
 import { useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import {
   Download, Search, FileArchive, FileDown, ArrowLeft,
   ArrowUp, ArrowDown, ArrowUpDown, Columns2, Check, X,
@@ -190,6 +191,7 @@ function triggerZipDownload(blob: Blob, filename: string) {
 }
 
 export function EmployeeDocumentExplorer() {
+  const { t } = useTranslation('pages');
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'employees' | 'applicants'>('employees');
 
@@ -586,9 +588,9 @@ export function EmployeeDocumentExplorer() {
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <h1 className="text-3xl font-semibold text-[#0F172A]">Document Explorer</h1>
+          <h1 className="text-3xl font-semibold text-[#0F172A]">{t('documents.explorer.title')}</h1>
         </div>
-        <p className="text-muted-foreground mt-1">Search employees and applicants to view and download their documents</p>
+        <p className="text-muted-foreground mt-1">{t('documents.explorer.searchTitle')}</p>
       </div>
 
       {/* Tab toggle */}
@@ -597,13 +599,13 @@ export function EmployeeDocumentExplorer() {
           onClick={() => setActiveTab('employees')}
           className={`px-5 py-2.5 text-sm font-medium border-b-2 transition-colors ${activeTab === 'employees' ? 'border-[#2563EB] text-[#2563EB]' : 'border-transparent text-muted-foreground hover:text-gray-700'}`}
         >
-          Employees
+          {t('employees.list.title')}
         </button>
         <button
           onClick={() => setActiveTab('applicants')}
           className={`px-5 py-2.5 text-sm font-medium border-b-2 transition-colors ${activeTab === 'applicants' ? 'border-[#7C3AED] text-[#7C3AED]' : 'border-transparent text-muted-foreground hover:text-gray-700'}`}
         >
-          Applicants
+          {t('applicants.list.title')}
         </button>
       </div>
 

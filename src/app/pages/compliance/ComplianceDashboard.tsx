@@ -1,4 +1,5 @@
 import { Link } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { AlertTriangle, CheckCircle2, Clock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
@@ -8,6 +9,7 @@ import { usePermissions } from '../../hooks/usePermissions';
 
 export function ComplianceDashboard() {
   const { canView } = usePermissions();
+  const { t } = useTranslation('pages');
   const expiringDocs = mockDocuments.filter(d => d.status === 'expiring_soon');
   const expiredDocs = mockDocuments.filter(d => d.status === 'expired');
   const validDocs = mockDocuments.filter(d => d.status === 'valid');
@@ -15,14 +17,14 @@ export function ComplianceDashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-semibold text-[#0F172A]">Compliance Dashboard</h1>
-        <p className="text-muted-foreground mt-1">Monitor driver compliance and document status</p>
+        <h1 className="text-3xl font-semibold text-[#0F172A]">{t('compliance.dashboard.title')}</h1>
+        <p className="text-muted-foreground mt-1">{t('documents.compliance.subtitle')}</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Valid Documents</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t('compliance.dashboard.stats.validDocuments')}</CardTitle>
             <CheckCircle2 className="w-4 h-4 text-[#22C55E]" />
           </CardHeader>
           <CardContent>
@@ -32,7 +34,7 @@ export function ComplianceDashboard() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Expiring Soon</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t('compliance.dashboard.stats.expiringSoon')}</CardTitle>
             <Clock className="w-4 h-4 text-[#F59E0B]" />
           </CardHeader>
           <CardContent>
@@ -42,7 +44,7 @@ export function ComplianceDashboard() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Expired</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t('compliance.dashboard.stats.expired')}</CardTitle>
             <AlertTriangle className="w-4 h-4 text-[#EF4444]" />
           </CardHeader>
           <CardContent>

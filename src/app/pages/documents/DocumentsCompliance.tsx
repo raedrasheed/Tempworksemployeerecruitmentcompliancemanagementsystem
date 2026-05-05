@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import {
   Search, AlertTriangle, CheckCircle, Clock, FileText,
   Download, Upload, RefreshCw, Edit, Trash2, CheckCircle2, XCircle,
@@ -90,6 +91,7 @@ function loadVisibleColumns(): Record<ColKey, boolean> {
 }
 
 export function DocumentsCompliance() {
+  const { t } = useTranslation('pages');
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { canCreate, canEdit, canDelete, can } = usePermissions();
@@ -385,9 +387,9 @@ export function DocumentsCompliance() {
             <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
               <ArrowLeft className="w-5 h-5" />
             </Button>
-            <h1 className="text-3xl font-semibold text-[#0F172A]">Documents & Compliance</h1>
+            <h1 className="text-3xl font-semibold text-[#0F172A]">{t('documents.compliance.title')}</h1>
           </div>
-          <p className="text-muted-foreground mt-1">Monitor driver documents and compliance status</p>
+          <p className="text-muted-foreground mt-1">{t('documents.compliance.subtitle')}</p>
         </div>
         {canCreate('documents') && (
           <Button asChild>

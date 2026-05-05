@@ -1,0 +1,160 @@
+{
+  "employees": {
+    "list": {
+      "title": "Çalışanlar",
+      "subtitle": "Sürücü ve işçi kayıtları",
+      "addButton": "Çalışan Ekle",
+      "search": "İsim, e-posta, vatandaşlık ara…",
+      "stats": { "total": "Toplam", "active": "Aktif", "onboarding": "İşe Başlatma", "pending": "Beklemede" },
+      "filters": { "allStatuses": "Tüm Durumlar", "allAgencies": "Tüm Ajanslar", "allCitizenships": "Tüm Vatandaşlıklar", "from": "Başlangıç", "to": "Bitiş" },
+      "columns": { "contact": "İletişim", "citizenship": "Vatandaşlık", "license": "Kimlik / Lisans", "experience": "Deneyim", "agency": "Ajans", "status": "Durum", "name": "Ad", "actions": "İşlemler" },
+      "actions": { "view": "Görüntüle", "edit": "Düzenle", "delete": "Sil", "exportPdf": "PDF Dışa Aktar", "exportSelected": "Seçilenleri Dışa Aktar" },
+      "empty": "Çalışan bulunamadı.",
+      "deleteConfirmTitle": "Çalışan silinsin mi?",
+      "deleteConfirmBody": "Kayıt geri dönüşüm kutusuna taşınacak.",
+      "deleted": "Çalışan silindi."
+    },
+    "profile": {
+      "title": "Çalışan Profili",
+      "back": "Çalışanlara geri dön",
+      "tabs": { "overview": "Genel Bakış", "documents": "Belgeler", "compliance": "Uyumluluk", "workHistory": "İş Geçmişi", "training": "Eğitim", "performance": "Performans", "finance": "Finans" }
+    },
+    "add": { "title": "Çalışan Ekle", "back": "Çalışanlara geri dön" },
+    "edit": { "title": "Çalışanı Düzenle", "back": "Profile geri dön" },
+    "certifications": { "title": "Sertifikalar", "back": "Profile geri dön" },
+    "training": { "title": "Eğitim Geçmişi", "back": "Profile geri dön" },
+    "complianceTimeline": { "title": "Uyumluluk Zaman Çizelgesi", "back": "Profile geri dön" },
+    "performance": { "title": "Performans Değerlendirmesi", "back": "Profile geri dön" }
+  },
+  "applicants": {
+    "list": { "title": "Başvuranlar", "subtitle": "İş başvurusu yapanlar ve adaylar", "addButton": "Başvuran Ekle", "search": "Başvuranları ara…", "empty": "Başvuran bulunamadı.", "deleteRequests": "Silme Talepleri" },
+    "candidates": { "title": "Adaylar", "subtitle": "Yerleşmeye hazır onaylı adaylar", "search": "Adayları ara…", "empty": "Aday bulunamadı." },
+    "profile": { "title": "Başvuran Profili", "candidateTitle": "Aday Profili", "back": "Geri", "convertToCandidate": "Adaya dönüştür", "convertToEmployee": "Çalışana dönüştür" },
+    "add": { "title": "Başvuran Ekle", "back": "Başvuranlara geri dön" },
+    "edit": { "title": "Başvuranı Düzenle", "back": "Profile geri dön" },
+    "deleteRequests": { "title": "Aday Silme Talepleri", "subtitle": "Silme taleplerini incele ve onayla", "empty": "Bekleyen silme talebi yok." }
+  },
+  "agencies": {
+    "list": { "title": "Ajanslar", "subtitle": "İşe alım ortakları", "addButton": "Ajans Ekle", "search": "Ajansları ara…", "empty": "Ajans bulunamadı." },
+    "profile": { "title": "Ajans Profili", "back": "Ajanslara geri dön" },
+    "myProfile": { "title": "Ajansım" },
+    "add": { "title": "Ajans Ekle", "back": "Ajanslara geri dön" },
+    "edit": { "title": "Ajansı Düzenle", "back": "Profile geri dön" },
+    "users": { "title": "Ajans Kullanıcıları", "subtitle": "Bu ajansa atanmış kullanıcıları yönet", "back": "Ajansa geri dön", "addButton": "Kullanıcı Ekle" }
+  },
+  "documents": {
+    "dashboard": { "title": "Belgeler", "subtitle": "Belge deposu genel bakış", "uploadButton": "Belge Yükle" },
+    "compliance": { "title": "Belgeler ve Uyumluluk", "subtitle": "Tüm belgelerin uyumluluk durumu", "filterTitle": "Belgeleri Filtrele" },
+    "explorer": { "title": "Belge Gezgini", "searchTitle": "Çalışanları Ara ve Filtrele" },
+    "verification": { "title": "Belge Doğrulama", "pending": "Bekleyen Belgeler ({{count}})", "approve": "Onayla", "reject": "Reddet" },
+    "preview": { "title": "Belge", "back": "Geri", "download": "İndir" },
+    "upload": { "title": "Belge Yükle", "back": "Geri" },
+    "edit": { "title": "Belgeyi Düzenle", "back": "Geri" }
+  },
+  "compliance": {
+    "dashboard": { "title": "Uyumluluk Panosu", "stats": { "validDocuments": "Geçerli Belgeler", "expiringSoon": "Yakında Sona Eriyor", "expired": "Süresi Dolmuş", "pending": "Beklemede" } },
+    "alerts": { "title": "Uyumluluk Uyarıları", "active": "Aktif Uyarılar", "resolved": "Çözülen Uyarılar", "empty": "Aktif uyarı yok." },
+    "employee": { "title": "Çalışan Uyumluluğu", "back": "Geri" }
+  },
+  "workflow": {
+    "overview": { "title": "İş Akışı Genel Bakış", "subtitle": "Çalışanları işe alım sürecinde takip et" },
+    "workPermits": { "title": "Çalışma İzni Takibi" },
+    "visas": { "title": "Vize Takibi" },
+    "stage": { "title": "Aşama Detayları" },
+    "timeline": { "title": "İş Akışı Zaman Çizelgesi" },
+    "analytics": { "title": "İş Akışı Analizi" },
+    "management": { "title": "İş Akışı Yönetimi" }
+  },
+  "pipelines": {
+    "list": { "title": "İş Akışları", "subtitle": "İşe alım hatları ve aşama yapılandırmaları", "addButton": "Yeni İş Akışı", "newDialogTitle": "Yeni İş Akışı", "empty": "Henüz iş akışı yok." },
+    "board": { "title": "İş Akışı Panosu" },
+    "stage": { "title": "Aşama" },
+    "settings": { "title": "İş Akışı Ayarları" }
+  },
+  "vehicles": {
+    "list": { "title": "Araçlar", "subtitle": "Filo yönetimi", "addButton": "Araç Ekle", "search": "Araçları ara…", "empty": "Araç bulunamadı." },
+    "detail": { "title": "Araç Detayı", "back": "Filoya geri dön" },
+    "form": { "addTitle": "Araç Ekle", "editTitle": "Aracı Düzenle", "back": "Geri" },
+    "workshops": { "title": "Atölyeler", "subtitle": "Yetkili servis sağlayıcıları", "addButton": "Atölye Ekle", "empty": "Henüz atölye yok." },
+    "maintenanceTypes": { "title": "Bakım Türleri", "addButton": "Tür Ekle" },
+    "maintenanceRecords": { "title": "Bakım Kayıtları", "subtitle": "Filodaki tüm bakım faaliyetleri", "addButton": "Yeni Kayıt", "empty": "Henüz kayıt yok." }
+  },
+  "attendance": {
+    "list": { "title": "Devam Çizelgeleri", "subtitle": "Çalışan başına aylık devam", "addButton": "Yeni Çizelge", "empty": "Henüz çizelge yok." },
+    "sheet": { "title": "Devam Çizelgesi", "back": "Devam listesine dön", "save": "Çizelgeyi Kaydet", "lock": "Dönemi Kilitle", "unlock": "Dönemin Kilidini Aç" }
+  },
+  "reports": {
+    "dashboard": { "title": "Raporlar ve Analizler", "subtitle": "Özel raporlar oluştur ve dışa aktar", "newReport": "Yeni Rapor", "empty": "Henüz rapor yok." }
+  },
+  "notifications": {
+    "center": { "title": "Bildirimler", "subtitle": "Tüm uyarılarınız ve güncellemeler", "markAllRead": "Tümünü okundu olarak işaretle", "empty": "Bildirim yok.", "filters": { "all": "Tümü", "unread": "Okunmamış", "read": "Okunmuş" } },
+    "settings": { "title": "Bildirim Ayarları", "subtitle": "Hangi bildirimleri alacağınızı seçin", "save": "Tercihleri Kaydet" }
+  },
+  "users": {
+    "list": { "title": "Kullanıcı Yönetimi", "subtitle": "Sistem kullanıcıları ve erişim", "addButton": "Kullanıcı Ekle", "search": "Kullanıcıları ara…", "bulkImport": "Toplu İçe Aktar", "empty": "Kullanıcı bulunamadı.", "activationLink": "Etkinleştirme Bağlantısı" },
+    "add": { "title": "Kullanıcı Ekle", "back": "Kullanıcılara geri dön" },
+    "edit": { "title": "Kullanıcıyı Düzenle", "back": "Kullanıcılara geri dön" }
+  },
+  "roles": {
+    "list": { "title": "Roller ve İzinler", "subtitle": "Roller tanımla ve izinler ata", "addButton": "Yeni Rol", "permissionsMatrix": "İzin Matrisi", "allRoles": "Tüm Roller", "empty": "Henüz rol yok." },
+    "create": { "title": "Rol Oluştur", "editTitle": "Rolü Düzenle", "back": "Rollere geri dön" },
+    "matrix": { "title": "İzin Matrisi", "back": "Rollere geri dön" }
+  },
+  "jobAds": {
+    "list": { "title": "İş İlanları", "subtitle": "Halka açık iş ilanları", "addButton": "Yeni İlan", "search": "İlanları ara…", "empty": "Henüz ilan yok." },
+    "form": { "addTitle": "Yeni İlan", "editTitle": "İlanı Düzenle", "back": "İlanlara geri dön" }
+  },
+  "recycleBin": {
+    "list": { "title": "Silinen Kayıtlar", "subtitle": "Kayıtları geri yükle veya kalıcı olarak sil", "accessDenied": "Erişim Reddedildi", "empty": "Geri dönüşüm kutusu boş.", "restore": "Geri Yükle", "permanentlyDelete": "Kalıcı olarak sil" }
+  },
+  "logs": {
+    "dashboard": { "title": "Sistem Günlükleri", "subtitle": "Etkinlik denetim izi", "activityByModule": "Modüle göre etkinlik", "search": "Günlüklerde ara…", "empty": "Filtrelerinize uyan günlük yok." }
+  },
+  "settings": {
+    "index": {
+      "title": "Ayarlar",
+      "subtitle": "TempWorks örneğinizi yapılandırın",
+      "groups": {
+        "appearance": "Görünüm", "appearanceDesc": "Tema ve renk şeması",
+        "workflow": "İş Akışı", "workflowDesc": "İşe alım hattı yapılandırması",
+        "documentTypes": "Belge Türleri", "documentTypesDesc": "Belge kategorilerini yönet",
+        "notifications": "Bildirimler", "notificationsDesc": "Bildirim kuralları ve tetikleyicileri",
+        "security": "Güvenlik", "securityDesc": "Kimlik doğrulama ve erişim politikaları",
+        "branding": "Markalaşma", "brandingDesc": "Logo, şirket adı, pazarlama metinleri",
+        "system": "Sistem", "systemDesc": "Veritabanı, yedekler, sistem bilgisi"
+      }
+    },
+    "documentTypes": { "list": "Belge Türleri", "addButton": "Yeni Belge Türü", "newTitle": "Yeni Belge Türü", "editTitle": "Belge Türünü Düzenle", "viewTitle": "Belge Türü", "back": "Belge türlerine geri dön" },
+    "jobTypes": { "title": "İş Türleri", "addButton": "Tür Ekle" },
+    "skills": { "title": "Yetkinlikler", "addButton": "Yetkinlik Ekle" },
+    "workflowSettings": { "title": "İş Akışı Ayarları" },
+    "workflowConfiguration": { "title": "İş Akışı Yapılandırması" },
+    "notificationRules": { "title": "Bildirim Kuralları", "addButton": "Yeni Kural" },
+    "security": { "title": "Güvenlik Ayarları" },
+    "colorScheme": { "title": "Renk Şeması" },
+    "branding": { "title": "Markalaşma" },
+    "databaseCleanup": { "title": "Veritabanı Temizleme" },
+    "databaseBackup": { "title": "Veritabanı Yedekleme" },
+    "systemInformation": { "title": "Sistem Bilgisi" },
+    "transportTypes": { "title": "Taşıma Türleri", "addButton": "Tür Ekle" },
+    "truckBrands": { "title": "Kamyon Markaları", "addButton": "Marka Ekle" },
+    "trailerTypes": { "title": "Römork Türleri", "addButton": "Tür Ekle" },
+    "vehicleSettings": { "title": "Araç Ayarları" },
+    "transactionTypes": { "title": "İşlem Türleri", "addButton": "Tür Ekle" },
+    "workHistoryEventTypes": { "title": "İş Geçmişi Olay Türleri", "addButton": "Tür Ekle" },
+    "maintenanceTypes": { "title": "Bakım Türleri", "addButton": "Tür Ekle" }
+  },
+  "profile": {
+    "view": { "title": "Profilim", "subtitle": "Kişisel bilgiler ve iletişim", "edit": "Düzenle" },
+    "changePassword": { "title": "Şifreyi Değiştir", "subtitle": "Hesabınızı güvende tutmak için şifrenizi güncelleyin" },
+    "preferences": { "title": "Tercihler", "subtitle": "Dil, saat dilimi ve bildirim ayarları", "language": "Tercih edilen dil", "timezone": "Saat dilimi", "save": "Tercihleri Kaydet", "saved": "Tercihler kaydedildi" }
+  },
+  "common": {
+    "from": "Başlangıç", "to": "Bitiş", "all": "Tümü", "more": "Daha fazla",
+    "showMore": "Daha fazla göster", "showLess": "Daha az göster",
+    "results_one": "{{count}} sonuç", "results_other": "{{count}} sonuç"
+  },
+  "finance": {
+    "page": { "title": "Finans", "subtitle": "Kuruluş genelindeki işlemler ve bakiyeler" }
+  }
+}

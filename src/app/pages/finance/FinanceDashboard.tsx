@@ -14,6 +14,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Link, useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import {
   Download, Search, Filter, X, TrendingUp, TrendingDown,
   Wallet, DollarSign, ChevronUp, ChevronDown, RefreshCw,
@@ -113,6 +114,7 @@ const DEFAULT_FILTERS = {
 };
 
 export function FinanceDashboard() {
+  const { t } = useTranslation('pages');
   const navigate = useNavigate();
   const currentUser = getCurrentUser();
 
@@ -351,10 +353,10 @@ export function FinanceDashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-semibold text-[#0F172A] flex items-center gap-3">
-            <DollarSign className="w-8 h-8 text-emerald-600" />Finance Dashboard
+            <DollarSign className="w-8 h-8 text-emerald-600" />{t('finance.page.title')}
           </h1>
           <p className="text-muted-foreground mt-1">
-            Global view of all company disbursements and payroll deductions
+            {t('finance.page.subtitle')}
           </p>
         </div>
         <div className="flex gap-2">

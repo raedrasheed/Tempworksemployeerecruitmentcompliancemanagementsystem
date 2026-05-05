@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import {
   Search,
   Download,
@@ -136,6 +137,7 @@ function SortHead({
 // ─── Main Component ─────────────────────────────────────────────────────────────
 
 export function AttendanceList() {
+  const { t } = useTranslation('pages');
   const navigate = useNavigate();
   const { canCreate } = usePermissions();
 
@@ -340,10 +342,10 @@ export function AttendanceList() {
         <div>
           <h1 className="text-3xl font-semibold text-[#0F172A] flex items-center gap-3">
             <ClipboardList className="w-8 h-8 text-blue-600" />
-            Attendance Sheets
+            {t('attendance.list.title')}
           </h1>
           <p className="text-muted-foreground mt-1">
-            Track and manage attendance for all employees
+            {t('attendance.list.subtitle')}
           </p>
         </div>
         <div className="flex gap-2 items-center">

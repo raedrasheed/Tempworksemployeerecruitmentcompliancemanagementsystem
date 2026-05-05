@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import {
   Search, CheckCircle2, XCircle, FileText, Eye, Clock, ShieldCheck, ArrowLeft,
 } from 'lucide-react';
@@ -17,6 +18,7 @@ import { documentsApi, employeesApi } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
 
 export function DocumentVerification() {
+  const { t } = useTranslation('pages');
   const { can } = usePermissions();
   const navigate = useNavigate();
   const [documents, setDocuments]     = useState<any[]>([]);
@@ -111,10 +113,10 @@ export function DocumentVerification() {
             <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
               <ArrowLeft className="w-5 h-5" />
             </Button>
-            <h1 className="text-3xl font-semibold text-[#0F172A]">Document Verification</h1>
+            <h1 className="text-3xl font-semibold text-[#0F172A]">{t('documents.verification.title')}</h1>
           </div>
           <p className="text-muted-foreground mt-1">
-            Review and approve pending driver documents
+            {t('documents.dashboard.subtitle')}
           </p>
         </div>
         {!can('documents', 'verify') && (
@@ -179,7 +181,7 @@ export function DocumentVerification() {
       {/* Verification Queue */}
       <Card>
         <CardHeader>
-          <CardTitle>Pending Documents ({filtered.length})</CardTitle>
+          <CardTitle>{t('documents.verification.pending', { count: filtered.length })}</CardTitle>
         </CardHeader>
         <CardContent>
           {filtered.length === 0 ? (

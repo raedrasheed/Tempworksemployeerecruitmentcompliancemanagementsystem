@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import {
   Wrench, Pencil, Trash2, ArrowLeft, RefreshCw, Search, Filter, Download,
   FileSpreadsheet, FileText, ChevronDown,
@@ -36,6 +37,7 @@ function statusBadge(status: string) {
 }
 
 export function MaintenanceRecordsList() {
+  const { t } = useTranslation('pages');
   const navigate = useNavigate();
   const { canCreate } = usePermissions();
   const canWrite = canCreate('vehicles');
@@ -232,9 +234,9 @@ export function MaintenanceRecordsList() {
           </Button>
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2">
-              <Wrench className="w-6 h-6" /> Maintenance Records
+              <Wrench className="w-6 h-6" /> {t('vehicles.maintenanceRecords.title')}
             </h1>
-            <p className="text-sm text-muted-foreground">Service logs and maintenance history</p>
+            <p className="text-sm text-muted-foreground">{t('vehicles.maintenanceRecords.subtitle')}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">

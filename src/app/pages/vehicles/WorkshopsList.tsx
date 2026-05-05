@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import {
   Plus, Wrench, Pencil, Trash2, X, Save, ArrowLeft, RefreshCw,
   ArrowUp, ArrowDown, ArrowUpDown, Columns2, Check,
@@ -79,6 +80,7 @@ export function WorkshopsList() {
   const { canCreate } = usePermissions();
   const canWrite = canCreate('vehicles');
   const navigate = useNavigate();
+  const { t } = useTranslation('pages');
 
   const [workshops, setWorkshops] = useState<Workshop[]>([]);
   const [loading, setLoading]     = useState(true);
@@ -249,18 +251,18 @@ export function WorkshopsList() {
             </Button>
             <h1 className="text-2xl font-bold flex items-center gap-2">
               <Wrench className="w-6 h-6 text-primary" />
-              Workshop Register
+              {t('vehicles.workshops.title')}
             </h1>
           </div>
-          <p className="text-sm text-muted-foreground mt-1">Manage garages and service centres used for vehicle maintenance</p>
+          <p className="text-sm text-muted-foreground mt-1">{t('vehicles.workshops.subtitle')}</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={load} disabled={loading}>
-            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} /> Refresh
+            <RefreshCw className={`w-4 h-4 me-2 ${loading ? 'animate-spin' : ''}`} /> {t('dashboard:refresh', { defaultValue: 'Refresh' })}
           </Button>
           {canWrite && (
             <Button size="sm" onClick={openNew}>
-              <Plus className="w-4 h-4 mr-2" /> Add Workshop
+              <Plus className="w-4 h-4 me-2" /> {t('vehicles.workshops.addButton')}
             </Button>
           )}
         </div>

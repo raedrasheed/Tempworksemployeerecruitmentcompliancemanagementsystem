@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import {
   Plus, Edit, Eye, Search, Trash2, Upload, Download, Copy, Check,
   ArrowUp, ArrowDown, ArrowUpDown, X, Columns2, RefreshCw,
@@ -73,6 +74,7 @@ function SortableHead({ label, field, sortBy, sortOrder, onSort, className }: {
 }
 
 export function UsersList() {
+  const { t } = useTranslation('pages');
   const { canCreate, canView, canEdit, canDelete } = usePermissions();
   const currentUser = getCurrentUser();
   const isTempworksAdmin = currentUser?.role === 'System Admin' || currentUser?.role === 'HR Manager';
@@ -328,8 +330,8 @@ export function UsersList() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-semibold text-[#0F172A]">User Management</h1>
-          <p className="text-muted-foreground mt-1">Manage system users and permissions</p>
+          <h1 className="text-3xl font-semibold text-[#0F172A]">{t('users.list.title')}</h1>
+          <p className="text-muted-foreground mt-1">{t('users.list.subtitle')}</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={reload} disabled={loading}>

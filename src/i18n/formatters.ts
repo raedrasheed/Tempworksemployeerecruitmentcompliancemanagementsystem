@@ -57,3 +57,26 @@ export function formatCurrency(
     ...options,
   }).format(value);
 }
+
+/**
+ * Localized country name from an ISO 3166-1 alpha-2 code, via
+ * `Intl.DisplayNames`. Used by phone-code/country dropdowns so a code like
+ * `GB` renders as "United Kingdom" in en, "Vereinigtes Königreich" in de,
+ * "المملكة المتحدة" in ar, etc. Falls back to the provided fallback (or the
+ * raw code) when the runtime can't resolve the region.
+ */
+export function countryName(
+  iso: string | null | undefined,
+  fallback?: string,
+): string {
+  if (!iso) return fallback ?? '';
+  const code = iso.trim().toUpperCase();
+  if (!/^[A-Z]{2}$/.test(code)) return fallback ?? iso;
+  try {
+    const dn = new Intl.DisplayNames([intlLocale()], { type: 'region' });
+    const name = dn.of(code);
+    return name && name !== code ? name : (fallback ?? code);
+  } catch {
+    return fallback ?? code;
+  }
+}

@@ -8,6 +8,7 @@ import { useBranding } from '../../hooks/useBranding';
 import { ApplicantFormSteps, EMPTY_FORM, getVisibleTabs, getStepErrors, getStepFieldErrors, StepIndicator, FormSettings, DEFAULT_FORM_SETTINGS, ApplicantFormData } from '../../components/applicants/ApplicantFormSteps';
 import { ReCaptchaV2 } from '../../components/ui/ReCaptchaV2';
 import { LanguageSwitcher } from '../../../i18n/LanguageSwitcher';
+import { apiError } from '../../../i18n/apiError';
 
 const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY as string;
 
@@ -194,7 +195,7 @@ export function PublicEmployeeApplication() {
 
       navigate('/application-success');
     } catch (err: any) {
-      toast.error(err?.message || t('apply.errors.submitFailed'));
+      toast.error(apiError(err, t('apply.errors.submitFailed')));
     } finally {
       setSubmitting(false);
     }

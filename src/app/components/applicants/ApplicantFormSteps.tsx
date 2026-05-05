@@ -12,6 +12,8 @@ import { CountrySelect } from '../ui/CountrySelect';
 import { EU_COUNTRIES } from '../../data/countries';
 import { PHONE_CODES } from '../../data/phoneCodes';
 import i18n from '../../../i18n';
+import { enumLabel } from '../../../i18n/enumLabel';
+import { countryName } from '../../../i18n/formatters';
 
 /** Shorthand for translating keys under pages.applicants.form.* */
 const tf = (key: string, opts?: Record<string, unknown>): string =>
@@ -1162,7 +1164,7 @@ function Step2Contact({ d, u, settings }: { d: ApplicantFormData; u: (fn: (p: Ap
                     <SelectItem key={`${c.label}-${c.code}`} value={c.code}>
                       <span className="flex items-center gap-2">
                         <img src={`https://flagcdn.com/w20/${c.iso.toLowerCase()}.png`} width={20} height={15} alt={c.iso} className="inline-block rounded-sm" />
-                        <span>{c.label} ({c.code})</span>
+                        <span>{countryName(c.iso, c.label)} ({c.code})</span>
                       </span>
                     </SelectItem>
                   ))}
@@ -1198,7 +1200,7 @@ function Step2Contact({ d, u, settings }: { d: ApplicantFormData; u: (fn: (p: Ap
                       <SelectItem key={`wa-${c.label}-${c.code}`} value={c.code}>
                         <span className="flex items-center gap-2">
                           <img src={`https://flagcdn.com/w20/${c.iso.toLowerCase()}.png`} width={20} height={15} alt={c.iso} className="inline-block rounded-sm" />
-                          <span>{c.label} ({c.code})</span>
+                          <span>{countryName(c.iso, c.label)} ({c.code})</span>
                         </span>
                       </SelectItem>
                     ))}
@@ -1272,7 +1274,7 @@ function Step2Contact({ d, u, settings }: { d: ApplicantFormData; u: (fn: (p: Ap
                     <SelectItem key={`${c.label}-${c.code}`} value={c.code}>
                       <span className="flex items-center gap-2">
                         <img src={`https://flagcdn.com/w20/${c.iso.toLowerCase()}.png`} width={20} height={15} alt={c.iso} className="inline-block rounded-sm" />
-                        <span>{c.label} ({c.code})</span>
+                        <span>{countryName(c.iso, c.label)} ({c.code})</span>
                       </span>
                     </SelectItem>
                   ))}
@@ -2160,7 +2162,7 @@ function Step7WorkHistory({ d, u, uploadedFiles, onFilesChange }: { d: Applicant
                       <SelectItem key={`${pc.label}-${pc.code}`} value={pc.code}>
                         <span className="flex items-center gap-2">
                           <img src={`https://flagcdn.com/w20/${pc.iso.toLowerCase()}.png`} width={20} height={15} alt={pc.iso} className="inline-block rounded-sm" />
-                          <span>{pc.label} ({pc.code})</span>
+                          <span>{countryName(pc.iso, pc.label)} ({pc.code})</span>
                         </span>
                       </SelectItem>
                     ))}
@@ -2215,7 +2217,7 @@ function Step7WorkHistory({ d, u, uploadedFiles, onFilesChange }: { d: Applicant
                       <SelectItem key={`${pc.label}-${pc.code}`} value={pc.code}>
                         <span className="flex items-center gap-2">
                           <img src={`https://flagcdn.com/w20/${pc.iso.toLowerCase()}.png`} width={20} height={15} alt={pc.iso} className="inline-block rounded-sm" />
-                          <span>{pc.label} ({pc.code})</span>
+                          <span>{countryName(pc.iso, pc.label)} ({pc.code})</span>
                         </span>
                       </SelectItem>
                     ))}
@@ -2317,7 +2319,7 @@ function Step8Skills({ d, u, settings, uploadedFiles, onFilesChange, fieldErrors
                 <Select value={lang.language} onValueChange={v => updateLang(lang.id, 'language', v)}>
                   <SelectTrigger className={errClass(k('language'))}><SelectValue placeholder={t('applicants.form.step8.languagePh')} /></SelectTrigger>
                   <SelectContent>
-                    {LANGUAGES.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
+                    {LANGUAGES.map(l => <SelectItem key={l} value={l}>{enumLabel('language', l)}</SelectItem>)}
                   </SelectContent>
                 </Select>
                 <FieldError errors={fieldErrors} name={k('language')} />
@@ -2334,7 +2336,7 @@ function Step8Skills({ d, u, settings, uploadedFiles, onFilesChange, fieldErrors
                     <Select value={(lang as any)[levelKey]} onValueChange={v => updateLang(lang.id, levelKey as keyof LanguageEntry, v)}>
                       <SelectTrigger className={errClass(k(levelKey))}><SelectValue placeholder={t('applicants.form.step8.levelPh')} /></SelectTrigger>
                       <SelectContent>
-                        {PROFICIENCY_LEVELS.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
+                        {PROFICIENCY_LEVELS.map(l => <SelectItem key={l} value={l}>{enumLabel('proficiency', l)}</SelectItem>)}
                       </SelectContent>
                     </Select>
                     <FieldError errors={fieldErrors} name={k(levelKey)} />
@@ -2383,7 +2385,7 @@ function Step8Skills({ d, u, settings, uploadedFiles, onFilesChange, fieldErrors
             <Select value={entry.level} onValueChange={v => updateSkill(entry.id, 'level', v)}>
               <SelectTrigger className="w-36"><SelectValue placeholder={t('applicants.form.step8.levelPh')} /></SelectTrigger>
               <SelectContent>
-                {SKILL_LEVELS.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
+                {SKILL_LEVELS.map(l => <SelectItem key={l} value={l}>{enumLabel('skillLevel', l)}</SelectItem>)}
               </SelectContent>
             </Select>
             <button type="button" onClick={() => removeSkill(entry.id)} className="p-1 text-gray-400 hover:text-red-500 flex-shrink-0">
@@ -2614,8 +2616,14 @@ function Step10Documents({ uploadedFiles, onFilesChange, requiredDocuments = [] 
 }
 
 async function downloadApplicationSummary(d: ApplicantFormData, uploadedFiles: UploadedFileItem[]) {
+  const S = (k: string) => tf(`step11.summary.${k}`);
+  const yesNo = (v: 'yes' | 'no' | string | boolean | null | undefined): string => {
+    if (v === true || v === 'yes') return S('yes');
+    if (v === false || v === 'no') return S('no');
+    return (v as string) ?? '';
+  };
   const field = (label: string, value: string | undefined | null | boolean) => {
-    const v = typeof value === 'boolean' ? (value ? 'Yes' : 'No') : value;
+    const v = typeof value === 'boolean' ? (value ? S('yes') : S('no')) : value;
     if (!v) return '';
     return `<div class="field"><span class="label">${label}</span><span class="value">${v}</span></div>`;
   };
@@ -2635,11 +2643,14 @@ async function downloadApplicationSummary(d: ApplicantFormData, uploadedFiles: U
     uploadedFiles.filter(f => f.file).map(async f => {
       const isImage = f.file!.type.startsWith('image/');
       const dataUrl = isImage ? await readAsDataUrl(f.file!).catch(() => null) : null;
-      return { label: f.type || f.sectionKey || 'Document', name: f.file!.name, isImage, isPdf: f.file!.type === 'application/pdf', dataUrl };
+      return { label: f.type || f.sectionKey || S('documentDefault'), name: f.file!.name, isImage, isPdf: f.file!.type === 'application/pdf', dataUrl };
     })
   );
 
-  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"/><title>Application Summary</title>
+  const dir = i18n.dir();
+  const lang = i18n.resolvedLanguage ?? i18n.language ?? 'en';
+
+  const html = `<!DOCTYPE html><html lang="${lang}" dir="${dir}"><head><meta charset="UTF-8"/><title>${S('title')}</title>
 <style>
   body{font-family:Arial,sans-serif;margin:32px;color:#1f2937;font-size:13px;}
   h1{color:#1a56db;margin-bottom:4px;}
@@ -2653,49 +2664,49 @@ async function downloadApplicationSummary(d: ApplicantFormData, uploadedFiles: U
   .entry-title{font-weight:700;margin-bottom:4px;}
   @media print{body{margin:16px;}}
 </style></head><body>
-<h1>Application Summary</h1>
-<p class="ref">Submitted by: ${[d.firstName, d.middleName, d.lastName].filter(Boolean).join(' ')} &nbsp;|&nbsp; ${d.email}</p>
+<h1>${S('title')}</h1>
+<p class="ref">${S('submittedBy')}: ${[d.firstName, d.middleName, d.lastName].filter(Boolean).join(' ')} &nbsp;|&nbsp; ${d.email}</p>
 <div class="grid">
-${section('Personal Information', `<div class="grid">
-  ${field('First Name', d.firstName)}${field('Middle Name', d.middleName)}${field('Last Name', d.lastName)}
-  ${field('Date of Birth', d.dateOfBirth)}${field('Gender', d.gender)}${field('Citizenship', [d.citizenship, ...(d.otherCitizenships ?? [])].filter(Boolean).join(', '))}
-  ${field('Country of Birth', d.countryOfBirth)}${field('City of Birth', d.cityOfBirth)}
-  ${field('Lived abroad 6+ months (last 12 months)', d.livedAbroadRecently)}
-  ${d.livedAbroadRecently === 'yes' ? field('Country (Abroad)', d.abroadCountry) + field('Address (Abroad)', [d.abroadAddress?.line1, d.abroadAddress?.city, d.abroadAddress?.country].filter(Boolean).join(', ')) + field('Period Abroad', d.abroadDateFrom && d.abroadDateTo ? d.abroadDateFrom + ' \u2013 ' + d.abroadDateTo : '') : ''}
+${section(S('personalSection'), `<div class="grid">
+  ${field(S('firstName'), d.firstName)}${field(S('middleName'), d.middleName)}${field(S('lastName'), d.lastName)}
+  ${field(S('dateOfBirth'), d.dateOfBirth)}${field(S('gender'), enumLabel('gender', d.gender) || d.gender)}${field(S('citizenship'), [d.citizenship, ...(d.otherCitizenships ?? [])].filter(Boolean).join(', '))}
+  ${field(S('countryOfBirth'), d.countryOfBirth)}${field(S('cityOfBirth'), d.cityOfBirth)}
+  ${field(S('livedAbroad'), yesNo(d.livedAbroadRecently))}
+  ${d.livedAbroadRecently === 'yes' ? field(S('abroadCountry'), d.abroadCountry) + field(S('abroadAddress'), [d.abroadAddress?.line1, d.abroadAddress?.city, d.abroadAddress?.country].filter(Boolean).join(', ')) + field(S('periodAbroad'), d.abroadDateFrom && d.abroadDateTo ? d.abroadDateFrom + ' \u2013 ' + d.abroadDateTo : '') : ''}
 </div>`)}
-${section('Contact', `<div class="grid">
-  ${field('Email', d.email)}${field('Phone', d.phone ? `${d.phoneCode} ${d.phone}` : '')}
-  ${field('WhatsApp', d.phoneIsWhatsApp ? `${d.phoneCode} ${d.phone} (same as phone)` : d.whatsapp ? `${d.whatsappCode} ${d.whatsapp}` : '')}
-  ${field('Emergency Contact', d.emergencyContact)}${field('Emergency Phone', d.emergencyPhone)}
+${section(S('contactSection'), `<div class="grid">
+  ${field(S('email'), d.email)}${field(S('phone'), d.phone ? `${d.phoneCode} ${d.phone}` : '')}
+  ${field(S('whatsapp'), d.phoneIsWhatsApp ? `${d.phoneCode} ${d.phone} (${S('sameAsPhone')})` : d.whatsapp ? `${d.whatsappCode} ${d.whatsapp}` : '')}
+  ${field(S('emergencyContact'), d.emergencyContact)}${field(S('emergencyPhone'), d.emergencyPhone)}
 </div>`)}
 </div>
-${d.hasDrivingLicense === 'yes' ? section('Driving License', `<div class="grid">
-  ${field('License Number', d.licenseNumber)}${field('Issuing Country', d.licenseCountry)}
-  ${field('Categories', d.licenseCategories?.join(', '))}${field('Issue Date', d.licenseIssueDate)}
-  ${field('First Issue Date', d.licenseFirstIssueDate)}${field('Expiry', d.licenseNoExpiry ? 'No Expiry' : d.licenseExpiryDate)}
+${d.hasDrivingLicense === 'yes' ? section(S('drivingLicenseSection'), `<div class="grid">
+  ${field(S('licenseNumber'), d.licenseNumber)}${field(S('issuingCountry'), d.licenseCountry)}
+  ${field(S('categories'), d.licenseCategories?.join(', '))}${field(S('issueDate'), d.licenseIssueDate)}
+  ${field(S('firstIssueDate'), d.licenseFirstIssueDate)}${field(S('expiry'), d.licenseNoExpiry ? S('noExpiry') : d.licenseExpiryDate)}
 </div>`) : ''}
-${d.drivingExpType ? section('Driving Experience', `<div class="grid">
-  ${field('Experience Type', d.drivingExpType)}
-  ${(d.drivingExpType === 'eu' || d.drivingExpType === 'both') ? field('EU Years', d.euExpYears) + field('EU KM', d.euExpKm) + field('EU Country', d.euExpCountries) : ''}
-  ${(d.drivingExpType === 'domestic' || d.drivingExpType === 'both') ? field('Domestic Years', d.domesticExpYears) + field('Domestic KM', d.domesticExpKm) + field('Domestic Country', d.domesticExpCountry) : ''}
-  ${field('Transport Types', d.transportTypes?.join(', '))}${field('Truck Brands', d.truckBrands?.join(', '))}
-  ${field('Gearbox', d.gearboxType)}
+${d.drivingExpType ? section(S('drivingExpSection'), `<div class="grid">
+  ${field(S('experienceType'), d.drivingExpType)}
+  ${(d.drivingExpType === 'eu' || d.drivingExpType === 'both') ? field(S('euYears'), d.euExpYears) + field(S('euKm'), d.euExpKm) + field(S('euCountry'), d.euExpCountries) : ''}
+  ${(d.drivingExpType === 'domestic' || d.drivingExpType === 'both') ? field(S('domesticYears'), d.domesticExpYears) + field(S('domesticKm'), d.domesticExpKm) + field(S('domesticCountry'), d.domesticExpCountry) : ''}
+  ${field(S('transportTypes'), d.transportTypes?.join(', '))}${field(S('truckBrands'), d.truckBrands?.join(', '))}
+  ${field(S('gearbox'), d.gearboxType)}
 </div>`) : ''}
-${d.education.length > 0 ? section('Education', d.education.map(e => `<div class="entry"><div class="entry-title">${e.level || 'Degree'} — ${e.institution || ''}</div>${field('Field', e.fieldOfStudy)}${field('Country', e.country)}${field('Period', [e.startDate, e.current ? 'Present' : e.endDate].filter(Boolean).join(' – '))}</div>`).join('')) : ''}
-${d.workHistory.length > 0 ? section('Work Experience', d.workHistory.map(w => `<div class="entry"><div class="entry-title">${w.jobTitle || 'Position'} — ${w.company || ''}</div>${field('Country', w.country)}${field('Period', [w.startDate, w.current ? 'Present' : w.endDate].filter(Boolean).join(' – '))}${field('Reason for Leaving', w.reasonForLeaving)}${field('Reference', w.referenceName ? `${w.referenceName} | ${w.referencePhone} | ${w.referenceEmail}` : '')}</div>`).join('')) : ''}
-${d.languages.length > 0 ? section('Languages', d.languages.map(l => `<div class="entry"><div class="entry-title">${l.language}${l.motherTongue ? ' (Mother Tongue)' : ''}</div>${field('Speaking', l.speakingLevel)}${field('Reading', l.readingLevel)}${field('Writing', l.writingLevel)}${field('Listening', l.listeningLevel)}</div>`).join('')) : ''}
-${d.skills.length > 0 ? section('Skills', `<div class="grid">${d.skills.map(s => field(s.skill, s.level || '—')).join('')}</div>`) : ''}
-${section('Additional Information', `<div class="grid">
-  ${field('Preferred Start Date', d.preferredStartDate)}${field('Availability', d.availability)}
-  ${field('Annual Salary Expectation (EUR)', d.salaryExpectation)}${field('Willing to Relocate', d.willingToRelocate)}
-  ${field('Weekend Driving', d.weekendDriving)}${field('Night Driving', d.nightDriving)}
-  ${field('How did you hear', d.howDidYouHear)}
+${d.education.length > 0 ? section(S('educationSection'), d.education.map(e => `<div class="entry"><div class="entry-title">${e.level || S('degree')} — ${e.institution || ''}</div>${field(S('field'), e.fieldOfStudy)}${field(S('country'), e.country)}${field(S('period'), [e.startDate, e.current ? S('present') : e.endDate].filter(Boolean).join(' – '))}</div>`).join('')) : ''}
+${d.workHistory.length > 0 ? section(S('workSection'), d.workHistory.map(w => `<div class="entry"><div class="entry-title">${w.jobTitle || S('position')} — ${w.company || ''}</div>${field(S('country'), w.country)}${field(S('period'), [w.startDate, w.current ? S('present') : w.endDate].filter(Boolean).join(' – '))}${field(S('reasonForLeaving'), w.reasonForLeaving)}${field(S('reference'), w.referenceName ? `${w.referenceName} | ${w.referencePhone} | ${w.referenceEmail}` : '')}</div>`).join('')) : ''}
+${d.languages.length > 0 ? section(S('languagesSection'), d.languages.map(l => `<div class="entry"><div class="entry-title">${enumLabel('language', l.language) || l.language}${l.motherTongue ? ` (${S('motherTongue')})` : ''}</div>${field(S('speaking'), enumLabel('proficiency', l.speakingLevel) || l.speakingLevel)}${field(S('reading'), enumLabel('proficiency', l.readingLevel) || l.readingLevel)}${field(S('writing'), enumLabel('proficiency', l.writingLevel) || l.writingLevel)}${field(S('listening'), enumLabel('proficiency', l.listeningLevel) || l.listeningLevel)}</div>`).join('')) : ''}
+${d.skills.length > 0 ? section(S('skillsSection'), `<div class="grid">${d.skills.map(s => field(s.skill, (enumLabel('skillLevel', s.level) || s.level) || '—')).join('')}</div>`) : ''}
+${section(S('additionalSection'), `<div class="grid">
+  ${field(S('preferredStartDate'), d.preferredStartDate)}${field(S('availability'), d.availability)}
+  ${field(S('salaryExpectation'), d.salaryExpectation)}${field(S('willingToRelocate'), yesNo(d.willingToRelocate))}
+  ${field(S('weekendDriving'), yesNo(d.weekendDriving))}${field(S('nightDriving'), yesNo(d.nightDriving))}
+  ${field(S('howDidYouHear'), d.howDidYouHear)}
 </div>`)}
-${filesWithData.length > 0 ? section('Uploaded Documents', filesWithData.map(f => `
+${filesWithData.length > 0 ? section(S('documentsSection'), filesWithData.map(f => `
 <div class="entry">
   <div class="entry-title">${f.label} — <span style="font-weight:normal;color:#6b7280;">${f.name}</span></div>
   ${f.isImage && f.dataUrl ? `<img src="${f.dataUrl}" style="max-width:100%;max-height:320px;margin-top:8px;border-radius:4px;border:1px solid #e5e7eb;" />` : ''}
-  ${f.isPdf ? `<p style="color:#6b7280;font-size:12px;margin:4px 0 0;">PDF document — open original file to view contents.</p>` : ''}
+  ${f.isPdf ? `<p style="color:#6b7280;font-size:12px;margin:4px 0 0;">${S('pdfNote')}</p>` : ''}
 </div>`).join('')) : ''}
 </body></html>`;
 
@@ -2892,8 +2903,8 @@ function Step11Review({ d, u, settings, photoFile, existingPhotoUrl, uploadedFil
           <div className="grid md:grid-cols-2 gap-3">
             {d.languages.map(l => (
               <div key={l.id} className="p-3 bg-gray-50 rounded-lg">
-                <p className="text-sm font-semibold text-gray-900">{l.language}{l.motherTongue ? ` (${t('applicants.form.step11.phRefBadgeMother')})` : ''}</p>
-                <p className="text-xs text-gray-500 mt-0.5">{t('applicants.form.step11.speakingPrefix')}: {l.speakingLevel || '—'} · {t('applicants.form.step11.readingPrefix')}: {l.readingLevel || '—'} · {t('applicants.form.step11.writingPrefix')}: {l.writingLevel || '—'} · {t('applicants.form.step11.listeningPrefix')}: {l.listeningLevel || '—'}</p>
+                <p className="text-sm font-semibold text-gray-900">{enumLabel('language', l.language) || l.language}{l.motherTongue ? ` (${t('applicants.form.step11.phRefBadgeMother')})` : ''}</p>
+                <p className="text-xs text-gray-500 mt-0.5">{t('applicants.form.step11.speakingPrefix')}: {enumLabel('proficiency', l.speakingLevel) || '—'} · {t('applicants.form.step11.readingPrefix')}: {enumLabel('proficiency', l.readingLevel) || '—'} · {t('applicants.form.step11.writingPrefix')}: {enumLabel('proficiency', l.writingLevel) || '—'} · {t('applicants.form.step11.listeningPrefix')}: {enumLabel('proficiency', l.listeningLevel) || '—'}</p>
               </div>
             ))}
           </div>
@@ -2907,7 +2918,7 @@ function Step11Review({ d, u, settings, photoFile, existingPhotoUrl, uploadedFil
             {d.skills.map(s => (
               <div key={s.id} className="p-3 bg-gray-50 rounded-lg flex items-center justify-between">
                 <span className="text-sm font-semibold text-gray-900">{s.skill}</span>
-                {s.level && <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">{s.level}</span>}
+                {s.level && <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">{enumLabel('skillLevel', s.level) || s.level}</span>}
               </div>
             ))}
           </div>

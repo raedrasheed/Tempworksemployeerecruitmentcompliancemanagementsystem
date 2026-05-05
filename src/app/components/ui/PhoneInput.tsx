@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './select';
 import { Input } from './input';
 import { PHONE_CODES, splitPhone } from '../../data/phoneCodes';
+import { countryName } from '../../../i18n/formatters';
 
 interface Props {
   value: string;
@@ -81,7 +82,7 @@ export function PhoneInput({
                   className="inline-block rounded-sm"
                 />
                 <span className="font-mono text-xs w-12">{c.code}</span>
-                <span className="text-muted-foreground">{c.label}</span>
+                <span className="text-muted-foreground">{countryName(c.iso, c.label)}</span>
               </span>
             </SelectItem>
           ))}

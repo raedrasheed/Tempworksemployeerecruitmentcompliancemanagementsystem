@@ -1,5 +1,14 @@
 {
   "generic": {
+    "UNEXPECTED": "Etwas ist schief gelaufen. Bitte versuchen Sie es erneut.",
+    "NETWORK": "Netzwerkfehler. Bitte überprüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
+    "NOT_FOUND": "Die angeforderte Ressource wurde nicht gefunden.",
+    "FORBIDDEN": "Sie haben keine Berechtigung für diese Aktion.",
+    "UNAUTHORIZED": "Bitte melden Sie sich an, um fortzufahren.",
+    "BAD_REQUEST": "Die Anfrage war ungültig.",
+    "CONFLICT": "Diese Aktion steht im Konflikt mit vorhandenen Daten.",
+    "UNIQUE_VIOLATION": "Ein Datensatz mit diesen Daten existiert bereits.",
+    "RATE_LIMITED": "Zu viele Anfragen. Bitte versuchen Sie es später.",
     "unexpected": "Etwas ist schief gelaufen. Bitte versuchen Sie es erneut.",
     "network": "Netzwerkfehler. Bitte überprüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
     "notFound": "Die angeforderte Ressource wurde nicht gefunden.",
@@ -10,9 +19,19 @@
     "INVALID_CREDENTIALS": "Ungültige E-Mail oder Passwort.",
     "ACCOUNT_LOCKED": "Ihr Konto ist vorübergehend gesperrt. Bitte versuchen Sie es später erneut.",
     "ACCOUNT_INACTIVE": "Ihr Konto ist nicht aktiv.",
+    "ACCOUNT_PENDING": "Ihr Konto ist noch nicht aktiviert. Bitte prüfen Sie Ihre E-Mails.",
+    "ACCOUNT_SUSPENDED": "Ihr Konto ist gesperrt. Bitte wenden Sie sich an Ihren Administrator.",
+    "ACCOUNT_TERMINATED": "Ihr Konto wurde beendet.",
     "PASSWORD_EXPIRED": "Ihr Passwort ist abgelaufen. Bitte legen Sie ein neues fest.",
+    "PASSWORD_TOO_SHORT": "Das Passwort muss mindestens {{min}} Zeichen lang sein.",
+    "CURRENT_PASSWORD_INCORRECT": "Ihr aktuelles Passwort ist falsch.",
+    "ACTIVATION_INVALID": "Ihr Aktivierungslink ist ungültig oder abgelaufen.",
+    "RESET_INVALID": "Ihr Passwort-Reset-Link ist ungültig oder abgelaufen.",
+    "ACCESS_DENIED": "Zugriff verweigert.",
     "TWO_FACTOR_REQUIRED": "Bitte geben Sie den Bestätigungscode ein, den wir Ihnen gesendet haben.",
-    "TWO_FACTOR_INVALID": "Der Bestätigungscode ist ungültig oder abgelaufen."
+    "TWO_FACTOR_INVALID": "Der Bestätigungscode ist ungültig oder abgelaufen.",
+    "TWO_FACTOR_EXPIRED": "Die Bestätigungssitzung ist abgelaufen. Bitte melden Sie sich erneut an.",
+    "TWO_FACTOR_TOO_MANY_ATTEMPTS": "Zu viele Versuche. Bitte melden Sie sich erneut an."
   },
   "validation": {
     "required": "Dieses Feld ist erforderlich.",

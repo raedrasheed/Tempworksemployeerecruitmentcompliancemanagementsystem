@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { authApi, resolveAssetUrl } from '../../services/api';
 import { useBranding } from '../../hooks/useBranding';
 import { LanguageSwitcher } from '../../../i18n/LanguageSwitcher';
+import { apiError } from '../../../i18n/apiError';
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -53,8 +54,7 @@ export function LoginPage() {
       }
       proceedAfterLogin(result);
     } catch (err: any) {
-      const raw = err?.message || t('login.loginFailed');
-      const message = Array.isArray(raw) ? raw.join(', ') : String(raw);
+      const message = apiError(err, t('login.loginFailed'));
       setError(message);
       toast.error(message);
     } finally {
@@ -71,8 +71,7 @@ export function LoginPage() {
       const result = await authApi.verifyTwoFactor(twoFactor.challengeId, otp.trim());
       proceedAfterLogin(result);
     } catch (err: any) {
-      const raw = err?.message || t('twoFactor.verifyFailed');
-      const message = Array.isArray(raw) ? raw.join(', ') : String(raw);
+      const message = apiError(err, t('twoFactor.verifyFailed'));
       setError(message);
       toast.error(message);
     } finally {
@@ -89,7 +88,7 @@ export function LoginPage() {
       setOtp('');
       toast.success(t('twoFactor.resendSuccess'));
     } catch (err: any) {
-      toast.error(err?.message || t('twoFactor.resendFailed'));
+      toast.error(apiError(err, t('twoFactor.resendFailed')));
       setTwoFactor(null);
     } finally {
       setResending(false);

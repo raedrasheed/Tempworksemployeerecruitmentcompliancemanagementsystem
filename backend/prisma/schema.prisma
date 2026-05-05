@@ -494,6 +494,9 @@ model JobType {
   description       String?
   requiredDocuments String[] @default([])
   isActive          Boolean  @default(true)
+  /// Per-locale overrides. Shape: { "ar": { "name": "…", "description": "…" }, "de": { … }, … }.
+  /// Reads should fall back to `name`/`description` when the active locale has no entry.
+  translations      Json?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -665,6 +668,8 @@ model DocumentType {
   trackExpiry       Boolean   @default(true)
   renewalPeriodDays Int?
   isActive          Boolean   @default(true)
+  /// Per-locale overrides. Shape: { "ar": { "name": "…", "description": "…" }, "de": { … }, … }.
+  translations      Json?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
   deletedAt         DateTime?
@@ -1266,6 +1271,9 @@ model WorkflowStage {
   approvalMode    String    @default("ANY")
   isFinal         Boolean   @default(false)
   isActive        Boolean   @default(true)
+  /// Per-locale overrides for `name` and `description`.
+  /// Shape: { "ar": { "name": "…", "description": "…" }, "de": { … }, … }.
+  translations    Json?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 

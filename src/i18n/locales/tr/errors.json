@@ -1,5 +1,14 @@
 {
   "generic": {
+    "UNEXPECTED": "Bir şeyler yanlış gitti. Lütfen tekrar deneyin.",
+    "NETWORK": "Ağ hatası. Bağlantınızı kontrol edin ve tekrar deneyin.",
+    "NOT_FOUND": "İstenen kaynak bulunamadı.",
+    "FORBIDDEN": "Bu işlemi gerçekleştirme izniniz yok.",
+    "UNAUTHORIZED": "Devam etmek için lütfen oturum açın.",
+    "BAD_REQUEST": "İstek geçersiz.",
+    "CONFLICT": "Bu işlem mevcut verilerle çakışıyor.",
+    "UNIQUE_VIOLATION": "Bu verilere sahip bir kayıt zaten var.",
+    "RATE_LIMITED": "Çok fazla istek. Lütfen daha sonra tekrar deneyin.",
     "unexpected": "Bir şeyler yanlış gitti. Lütfen tekrar deneyin.",
     "network": "Ağ hatası. Bağlantınızı kontrol edin ve tekrar deneyin.",
     "notFound": "İstenen kaynak bulunamadı.",
@@ -10,9 +19,19 @@
     "INVALID_CREDENTIALS": "Geçersiz e-posta veya şifre.",
     "ACCOUNT_LOCKED": "Hesabınız geçici olarak kilitlendi. Lütfen daha sonra tekrar deneyin.",
     "ACCOUNT_INACTIVE": "Hesabınız aktif değil.",
+    "ACCOUNT_PENDING": "Hesabınız henüz etkinleştirilmedi. Lütfen e-postanızı kontrol edin.",
+    "ACCOUNT_SUSPENDED": "Hesabınız askıya alındı. Lütfen yöneticinizle iletişime geçin.",
+    "ACCOUNT_TERMINATED": "Hesabınız sonlandırıldı.",
     "PASSWORD_EXPIRED": "Şifrenizin süresi doldu. Lütfen yeni bir şifre belirleyin.",
+    "PASSWORD_TOO_SHORT": "Şifre en az {{min}} karakter olmalıdır.",
+    "CURRENT_PASSWORD_INCORRECT": "Mevcut şifreniz hatalı.",
+    "ACTIVATION_INVALID": "Etkinleştirme bağlantınız geçersiz veya süresi dolmuş.",
+    "RESET_INVALID": "Şifre sıfırlama bağlantınız geçersiz veya süresi dolmuş.",
+    "ACCESS_DENIED": "Erişim reddedildi.",
     "TWO_FACTOR_REQUIRED": "Lütfen size gönderdiğimiz doğrulama kodunu girin.",
-    "TWO_FACTOR_INVALID": "Doğrulama kodu geçersiz veya süresi dolmuş."
+    "TWO_FACTOR_INVALID": "Doğrulama kodu geçersiz veya süresi dolmuş.",
+    "TWO_FACTOR_EXPIRED": "Doğrulama oturumunun süresi doldu. Lütfen tekrar oturum açın.",
+    "TWO_FACTOR_TOO_MANY_ATTEMPTS": "Çok fazla deneme. Lütfen tekrar oturum açın."
   },
   "validation": {
     "required": "Bu alan zorunludur.",

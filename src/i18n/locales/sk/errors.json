@@ -1,5 +1,14 @@
 {
   "generic": {
+    "UNEXPECTED": "Niečo sa pokazilo. Skúste to prosím znova.",
+    "NETWORK": "Chyba siete. Skontrolujte pripojenie a skúste to znova.",
+    "NOT_FOUND": "Požadovaný zdroj sa nenašiel.",
+    "FORBIDDEN": "Nemáte povolenie vykonať túto akciu.",
+    "UNAUTHORIZED": "Pre pokračovanie sa prosím prihláste.",
+    "BAD_REQUEST": "Požiadavka bola neplatná.",
+    "CONFLICT": "Táto akcia je v konflikte s existujúcimi údajmi.",
+    "UNIQUE_VIOLATION": "Záznam s týmito údajmi už existuje.",
+    "RATE_LIMITED": "Príliš veľa požiadaviek. Skúste to neskôr.",
     "unexpected": "Niečo sa pokazilo. Skúste to prosím znova.",
     "network": "Chyba siete. Skontrolujte pripojenie a skúste to znova.",
     "notFound": "Požadovaný zdroj sa nenašiel.",
@@ -10,9 +19,19 @@
     "INVALID_CREDENTIALS": "Neplatný e-mail alebo heslo.",
     "ACCOUNT_LOCKED": "Váš účet je dočasne zablokovaný. Skúste to prosím neskôr.",
     "ACCOUNT_INACTIVE": "Váš účet nie je aktívny.",
+    "ACCOUNT_PENDING": "Váš účet ešte nie je aktivovaný. Skontrolujte svoj e-mail.",
+    "ACCOUNT_SUSPENDED": "Váš účet je pozastavený. Kontaktujte svojho administrátora.",
+    "ACCOUNT_TERMINATED": "Váš účet bol ukončený.",
     "PASSWORD_EXPIRED": "Vaše heslo vypršalo. Nastavte si nové.",
+    "PASSWORD_TOO_SHORT": "Heslo musí mať aspoň {{min}} znakov.",
+    "CURRENT_PASSWORD_INCORRECT": "Vaše aktuálne heslo je nesprávne.",
+    "ACTIVATION_INVALID": "Aktivačný odkaz je neplatný alebo vypršal.",
+    "RESET_INVALID": "Odkaz na obnovu hesla je neplatný alebo vypršal.",
+    "ACCESS_DENIED": "Prístup zamietnutý.",
     "TWO_FACTOR_REQUIRED": "Zadajte overovací kód, ktorý sme vám poslali.",
-    "TWO_FACTOR_INVALID": "Overovací kód je neplatný alebo expirovaný."
+    "TWO_FACTOR_INVALID": "Overovací kód je neplatný alebo expirovaný.",
+    "TWO_FACTOR_EXPIRED": "Overovacia relácia vypršala. Prihláste sa znova.",
+    "TWO_FACTOR_TOO_MANY_ATTEMPTS": "Príliš veľa pokusov. Prihláste sa znova."
   },
   "validation": {
     "required": "Toto pole je povinné.",

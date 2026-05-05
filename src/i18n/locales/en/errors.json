@@ -1,5 +1,14 @@
 {
   "generic": {
+    "UNEXPECTED": "Something went wrong. Please try again.",
+    "NETWORK": "Network error. Please check your connection and try again.",
+    "NOT_FOUND": "The requested resource was not found.",
+    "FORBIDDEN": "You do not have permission to perform this action.",
+    "UNAUTHORIZED": "Please sign in to continue.",
+    "BAD_REQUEST": "The request was invalid.",
+    "CONFLICT": "This action conflicts with existing data.",
+    "UNIQUE_VIOLATION": "A record with this data already exists.",
+    "RATE_LIMITED": "Too many requests. Please try again later.",
     "unexpected": "Something went wrong. Please try again.",
     "network": "Network error. Please check your connection and try again.",
     "notFound": "The requested resource was not found.",
@@ -10,9 +19,19 @@
     "INVALID_CREDENTIALS": "Invalid email or password.",
     "ACCOUNT_LOCKED": "Your account is temporarily locked. Please try again later.",
     "ACCOUNT_INACTIVE": "Your account is not active.",
+    "ACCOUNT_PENDING": "Your account is not yet activated. Please check your email.",
+    "ACCOUNT_SUSPENDED": "Your account is suspended. Please contact your administrator.",
+    "ACCOUNT_TERMINATED": "Your account has been terminated.",
     "PASSWORD_EXPIRED": "Your password has expired. Please set a new one.",
+    "PASSWORD_TOO_SHORT": "Password must be at least {{min}} characters long.",
+    "CURRENT_PASSWORD_INCORRECT": "Your current password is incorrect.",
+    "ACTIVATION_INVALID": "Your activation link is invalid or has expired.",
+    "RESET_INVALID": "Your password reset link is invalid or has expired.",
+    "ACCESS_DENIED": "Access denied.",
     "TWO_FACTOR_REQUIRED": "Please enter the verification code we sent you.",
-    "TWO_FACTOR_INVALID": "The verification code is invalid or expired."
+    "TWO_FACTOR_INVALID": "The verification code is invalid or expired.",
+    "TWO_FACTOR_EXPIRED": "Verification session expired. Please sign in again.",
+    "TWO_FACTOR_TOO_MANY_ATTEMPTS": "Too many attempts. Please sign in again."
   },
   "validation": {
     "required": "This field is required.",

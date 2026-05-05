@@ -145,14 +145,14 @@ function NotificationBell({
       >
         <Bell className="w-5 h-5" />
         {unreadCount > 0 && (
-          <Badge className="absolute -top-1 -right-1 w-5 h-5 flex items-center justify-center p-0 bg-destructive text-destructive-foreground text-xs">
+          <Badge className="absolute -top-1 -end-1 w-5 h-5 flex items-center justify-center p-0 bg-destructive text-destructive-foreground text-xs">
             {unreadCount > 99 ? '99+' : unreadCount}
           </Badge>
         )}
       </Button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-96 bg-card border border-border rounded-xl shadow-xl z-50 overflow-hidden">
+        <div className="absolute end-0 top-full mt-2 w-96 bg-card border border-border rounded-xl shadow-xl z-50 overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-border">
             <div className="flex items-center gap-2">
@@ -200,7 +200,7 @@ function NotificationBell({
                 <button
                   key={n.id}
                   onClick={() => handleClickItem(n)}
-                  className={`w-full text-left flex items-start gap-3 px-4 py-3 hover:bg-accent transition-colors ${
+                  className={`w-full text-start flex items-start gap-3 px-4 py-3 hover:bg-accent transition-colors ${
                     !n.isRead ? 'bg-blue-50 dark:bg-blue-950/20' : ''
                   }`}
                 >

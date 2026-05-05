@@ -3,6 +3,7 @@
  *  and splits/joins it against the known dial codes so the caller only
  *  sees one string value — no schema change required.
  */
+import { useTranslation } from 'react-i18next';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './select';
 import { Input } from './input';
 import { PHONE_CODES, splitPhone } from '../../data/phoneCodes';
@@ -24,17 +25,19 @@ interface Props {
 export function PhoneInput({
   value,
   onChange,
-  placeholder = 'e.g. 20 7123 4567',
+  placeholder,
   disabled,
   required,
   id,
   className,
   defaultCode = '',
 }: Props) {
+  const { t } = useTranslation('ui');
   const { code, number } = splitPhone(value);
   const activeCode = code || defaultCode;
   const hasCode = !!activeCode;
   const iso = PHONE_CODES.find(p => p.code === activeCode)?.iso ?? '';
+  const inputPlaceholder = placeholder ?? t('phone.placeholder');
 
   const commit = (nextCode: string, nextNumber: string) => {
     const n = nextNumber.trim();
@@ -63,7 +66,7 @@ export function PhoneInput({
               {activeCode}
             </span>
           ) : (
-            <span className="text-sm text-muted-foreground">Code</span>
+            <span className="text-sm text-muted-foreground">{t('phone.code')}</span>
           )}
         </SelectTrigger>
         <SelectContent className="max-h-64 overflow-y-auto">
@@ -90,7 +93,7 @@ export function PhoneInput({
         inputMode="tel"
         value={number}
         onChange={(e) => commit(activeCode, e.target.value)}
-        placeholder={placeholder}
+        placeholder={inputPlaceholder}
         disabled={disabled}
         required={required}
         className="flex-1"

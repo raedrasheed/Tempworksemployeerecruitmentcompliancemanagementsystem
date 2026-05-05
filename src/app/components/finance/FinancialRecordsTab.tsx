@@ -30,6 +30,7 @@ import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { toast } from 'sonner';
 import { financeApi, usersApi, getAccessToken } from '../../services/api';
+import { formatCurrency, formatDate, formatDateTime, formatNumber } from '../../../i18n/formatters';
 
 const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1').replace('/api/v1', '');
 
@@ -125,16 +126,12 @@ const EMPTY_STATUS_FORM = {
 
 function fmt(amount: number | undefined | null, currency = 'EUR') {
   if (amount == null || isNaN(Number(amount))) return '—';
-  return new Intl.NumberFormat('en-IE', {
-    style: 'currency',
-    currency: currency || 'EUR',
-    minimumFractionDigits: 2,
-  }).format(Number(amount));
+  return formatCurrency(Number(amount), currency || 'EUR', { minimumFractionDigits: 2 });
 }
 
 function fmtDate(date: string) {
   if (!date) return '—';
-  return new Date(date).toLocaleDateString('en-IE', { day: '2-digit', month: 'short', year: 'numeric' });
+  return formatDate(date, { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 /** Date + HH:MM on a single line. Used where the clock time matters
@@ -145,10 +142,8 @@ function fmtDateTime(date: string) {
   if (!date) return '—';
   const d = new Date(date);
   const hasTime = d.getUTCHours() !== 0 || d.getUTCMinutes() !== 0;
-  const datePart = d.toLocaleDateString('en-IE', { day: '2-digit', month: 'short', year: 'numeric' });
-  if (!hasTime) return datePart;
-  const timePart = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  return `${datePart} ${timePart}`;
+  if (!hasTime) return fmtDate(date);
+  return formatDateTime(d, { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -1314,7 +1309,7 @@ function InfoItem({ label, value }: { label: string; value: string }) {
 // currency so monetary diffs can be rendered with the right formatting.
 function HistoryEntry({ entry, currency }: { entry: any; currency: string }) {
   const when = new Date(entry.createdAt);
-  const stamp = `${when.toLocaleDateString()} ${when.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+  const stamp = formatDateTime(when, { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   const who = entry.user?.name || entry.user?.email || entry.userEmail || 'System';
 
   // Map backend action codes into friendly verbs + tone classes so the
@@ -1336,7 +1331,7 @@ function HistoryEntry({ entry, currency }: { entry: any; currency: string }) {
   const fmtCurrency = (v: any) => {
     const n = Number(v);
     if (Number.isFinite(n)) {
-      try { return `${currency} ${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`; }
+      try { return `${currency} ${formatNumber(n, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`; }
       catch { return `${currency} ${n.toFixed(2)}`; }
     }
     return String(v);

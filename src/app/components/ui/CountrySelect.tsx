@@ -1,6 +1,7 @@
 /** Reusable country dropdown. Uses the centralized COUNTRIES list.
  *  All country selects across the site should use this component.
  */
+import { useTranslation } from 'react-i18next';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './select';
 import { COUNTRIES, Country } from '../../data/countries';
 
@@ -16,18 +17,19 @@ interface Props {
 
 const NONE_VALUE = '__none__';
 
-export function CountrySelect({ value, onChange, placeholder = 'Select country', required, className, disabled, countries = COUNTRIES }: Props) {
+export function CountrySelect({ value, onChange, placeholder, required, className, disabled, countries = COUNTRIES }: Props) {
+  const { t } = useTranslation('ui');
   const selectValue = value === '' ? NONE_VALUE : value;
   const handleChange = (v: string) => onChange(v === NONE_VALUE ? '' : v);
 
   return (
     <Select value={selectValue} onValueChange={handleChange} disabled={disabled}>
       <SelectTrigger className={className}>
-        <SelectValue placeholder={placeholder} />
+        <SelectValue placeholder={placeholder ?? t('country.selectPlaceholder')} />
       </SelectTrigger>
       <SelectContent className="max-h-64 overflow-y-auto">
         {!required && (
-          <SelectItem value={NONE_VALUE}>— None —</SelectItem>
+          <SelectItem value={NONE_VALUE}>{t('country.none')}</SelectItem>
         )}
         {countries.map(c => (
           <SelectItem key={c.code} value={c.name}>

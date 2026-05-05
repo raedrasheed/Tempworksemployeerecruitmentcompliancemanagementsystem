@@ -27,21 +27,18 @@ import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { toast } from 'sonner';
 import { financeApi, getCurrentUser } from '../../services/api';
+import { formatCurrency, formatDate } from '../../../i18n/formatters';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function fmt(amount: number | undefined | null, currency = 'EUR') {
   if (amount == null || isNaN(Number(amount))) return '—';
-  return new Intl.NumberFormat('en-IE', {
-    style: 'currency',
-    currency: currency || 'EUR',
-    minimumFractionDigits: 2,
-  }).format(Number(amount));
+  return formatCurrency(Number(amount), currency || 'EUR', { minimumFractionDigits: 2 });
 }
 
 function fmtDate(date: string) {
   if (!date) return '—';
-  return new Date(date).toLocaleDateString('en-IE', { day: '2-digit', month: 'short', year: 'numeric' });
+  return formatDate(date, { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 // ─── Column visibility ────────────────────────────────────────────────────────

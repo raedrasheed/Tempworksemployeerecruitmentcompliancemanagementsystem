@@ -207,9 +207,9 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                       </>
                     )}
                     {isCollapsed && (
-                      <div className="absolute left-full ml-2 px-3 py-2 bg-popover text-popover-foreground border border-border text-sm rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
+                      <div className="absolute start-full ms-2 px-3 py-2 bg-popover text-popover-foreground border border-border text-sm rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
                         {t(item.labelKey)}
-                        <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1 w-2 h-2 bg-popover rotate-45 border-l border-b border-border" />
+                        <div className="absolute start-0 top-1/2 -translate-y-1/2 -translate-x-1 rtl:translate-x-1 w-2 h-2 bg-popover rotate-45 border-l border-b border-border" />
                       </div>
                     )}
                   </button>
@@ -228,9 +228,9 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                     <item.icon className="w-5 h-5 flex-shrink-0" />
                     {!isCollapsed && <span className="text-sm">{t(item.labelKey)}</span>}
                     {isCollapsed && (
-                      <div className="absolute left-full ml-2 px-3 py-2 bg-popover text-popover-foreground border border-border text-sm rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
+                      <div className="absolute start-full ms-2 px-3 py-2 bg-popover text-popover-foreground border border-border text-sm rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
                         {t(item.labelKey)}
-                        <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1 w-2 h-2 bg-popover rotate-45 border-l border-b border-border" />
+                        <div className="absolute start-0 top-1/2 -translate-y-1/2 -translate-x-1 rtl:translate-x-1 w-2 h-2 bg-popover rotate-45 border-l border-b border-border" />
                       </div>
                     )}
                   </Link>
@@ -238,7 +238,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
 
                 {/* Sub-nav children */}
                 {hasChildren && (isOpen || isCollapsed) && (
-                  <ul className={cn("mt-1 space-y-0.5", !isCollapsed && "pl-4")}>
+                  <ul className={cn("mt-1 space-y-0.5", !isCollapsed && "ps-4")}>
                     {item.children!.map((child) => {
                       const childActive = child.path === item.path
                         ? location.pathname === child.path
@@ -259,9 +259,9 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                             <child.icon className="w-4 h-4 flex-shrink-0" />
                             {!isCollapsed && <span>{t(child.labelKey)}</span>}
                             {isCollapsed && (
-                              <div className="absolute left-full ml-2 px-3 py-2 bg-popover text-popover-foreground border border-border text-sm rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
+                              <div className="absolute start-full ms-2 px-3 py-2 bg-popover text-popover-foreground border border-border text-sm rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
                                 {t(child.labelKey)}
-                                <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1 w-2 h-2 bg-popover rotate-45 border-l border-b border-border" />
+                                <div className="absolute start-0 top-1/2 -translate-y-1/2 -translate-x-1 rtl:translate-x-1 w-2 h-2 bg-popover rotate-45 border-l border-b border-border" />
                               </div>
                             )}
                           </Link>
@@ -303,13 +303,13 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
       {/* Toggle Button */}
       <button
         onClick={onToggle}
-        className="absolute -right-3 top-20 w-6 h-6 rounded-full bg-sidebar border border-sidebar-border flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary transition-colors shadow-sm z-10"
+        className="absolute -end-3 top-20 w-6 h-6 rounded-full bg-sidebar border border-sidebar-border flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary transition-colors shadow-sm z-10"
         aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
       >
         {isCollapsed ? (
-          <ChevronRight className="w-4 h-4" />
+          <ChevronRight className="w-4 h-4 rtl:rotate-180" />
         ) : (
-          <ChevronLeft className="w-4 h-4" />
+          <ChevronLeft className="w-4 h-4 rtl:rotate-180" />
         )}
       </button>
     </aside>

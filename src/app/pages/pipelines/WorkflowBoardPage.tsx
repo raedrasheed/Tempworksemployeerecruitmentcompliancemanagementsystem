@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { workflowApi } from '../../services/api';
+import { apiError } from '../../../i18n/apiError';
 import {
   ArrowLeft,
   Layers,
@@ -117,6 +119,8 @@ function AdvanceModal({ assignmentId, workflow, onClose, onAdvanced }: { assignm
 // ─── Assign Candidate Modal ───────────────────────────────────────────────────
 
 function AssignModal({ workflow, onClose, onAssigned }: { workflow: any; onClose: () => void; onAssigned: () => void }) {
+  const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const [candidateId, setCandidateId] = useState('');
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
@@ -124,14 +128,14 @@ function AssignModal({ workflow, onClose, onAssigned }: { workflow: any; onClose
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!candidateId.trim()) { setError('Candidate ID is required'); return; }
+    if (!candidateId.trim()) { setError(tc('form.fieldRequired')); return; }
     setSaving(true);
     try {
       await workflowApi.assignCandidate({ candidateId, workflowId: workflow.id, notes: notes || undefined });
       onAssigned();
       onClose();
     } catch (err: any) {
-      setError(err.message || 'Assignment failed');
+      setError(apiError(err, t('pipelines.errors.assignmentFailed')));
     } finally {
       setSaving(false);
     }
@@ -233,6 +237,7 @@ function StageCard({ col, totalStages, totalActive }: { col: any; totalStages: n
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export function WorkflowBoardPage() {
+  const { t } = useTranslation('pages');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [board, setBoard]   = useState<any>(null);
@@ -256,11 +261,11 @@ export function WorkflowBoardPage() {
       setBoard(boardData);
       setStats(statsData);
     } catch (err: any) {
-      setError(err.message || 'Failed to load workflow');
+      setError(apiError(err, t('pipelines.errors.loadWorkflowFailed')));
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [id, t]);
 
   useEffect(() => { load(); }, [load]);
 

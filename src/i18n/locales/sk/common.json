@@ -81,7 +81,39 @@
     "to": "Do",
     "search": "Hľadať",
     "advancedFilters": "Rozšírené filtre",
-    "clear": "Vymazať"
+    "clear": "Vymazať",
+    "filtersLabel": "Filters",
+    "rulesTitle": "Filter Rules",
+    "savedFilters": "Saved Filters",
+    "searchColumns": "Search Columns",
+    "searchColumnPh": "Search column name…",
+    "logic": "Logic",
+    "and": "AND",
+    "or": "OR",
+    "addFilter": "Add Filter",
+    "savePreset": "Save Preset",
+    "savePresetTitle": "Save Filter Preset",
+    "presetName": "Preset Name",
+    "presetNamePh": "e.g., Senior Drivers EU",
+    "valuePh": "Value",
+    "valueAnd": "and",
+    "selectValue": "Select value",
+    "operator": {
+      "contains": "Contains",
+      "equals": "Equals",
+      "startsWith": "Starts with",
+      "endsWith": "Ends with",
+      "greaterThan": ">",
+      "lessThan": "<",
+      "greaterThanOrEqual": ">=",
+      "lessThanOrEqual": "<=",
+      "between": "Between",
+      "before": "Before",
+      "after": "After",
+      "notEquals": "Not Equals",
+      "in": "In List",
+      "is": "Is"
+    }
   },
   "toast": {
     "created": "Vytvorené",
@@ -100,7 +132,8 @@
     "uploadFailed": "Nahrávanie zlyhalo",
     "networkOffline": "Žiadne pripojenie k internetu",
     "errorGeneric": "Niečo sa pokazilo",
-    "permissionDenied": "Nemáte oprávnenie na túto akciu"
+    "permissionDenied": "Nemáte oprávnenie na túto akciu",
+    "logoTooLarge": "Logo must be 5MB or smaller"
   },
   "form": {
     "required": "Povinné",
@@ -118,5 +151,9 @@
     "tagline": "Profesionálny nábor",
     "secureAccess": "Bezpečný prístup",
     "copyright": "© {{year}} {{company}}"
+  },
+  "permissions": {
+    "accessDenied": "Access Denied",
+    "noPermission": "You don't have permission to perform this action."
   }
 }

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { authApi } from '../../services/api';
+import { apiError } from '../../../i18n/apiError';
 import { Eye, EyeOff, Lock, CheckCircle, X, AlertCircle, ArrowLeft } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -35,38 +36,38 @@ export function ChangePassword() {
   const passwordStrength = calculatePasswordStrength(newPassword);
 
   const getStrengthLabel = (strength: number): { label: string; color: string } => {
-    if (strength < 25) return { label: 'Weak', color: 'bg-[#EF4444]' };
-    if (strength < 50) return { label: 'Fair', color: 'bg-[#F59E0B]' };
-    if (strength < 75) return { label: 'Good', color: 'bg-[#3B82F6]' };
-    return { label: 'Strong', color: 'bg-[#22C55E]' };
+    if (strength < 25) return { label: t('profile.changePassword.strength.weak'), color: 'bg-[#EF4444]' };
+    if (strength < 50) return { label: t('profile.changePassword.strength.fair'), color: 'bg-[#F59E0B]' };
+    if (strength < 75) return { label: t('profile.changePassword.strength.good'), color: 'bg-[#3B82F6]' };
+    return { label: t('profile.changePassword.strength.strong'), color: 'bg-[#22C55E]' };
   };
 
   const strengthInfo = getStrengthLabel(passwordStrength);
 
   // Password validation rules
   const validationRules = [
-    { label: 'At least 8 characters', test: (pwd: string) => pwd.length >= 8 },
-    { label: 'Contains uppercase letter', test: (pwd: string) => /[A-Z]/.test(pwd) },
-    { label: 'Contains lowercase letter', test: (pwd: string) => /[a-z]/.test(pwd) },
-    { label: 'Contains number', test: (pwd: string) => /[0-9]/.test(pwd) },
-    { label: 'Contains special character', test: (pwd: string) => /[^a-zA-Z0-9]/.test(pwd) },
+    { label: t('profile.changePassword.rules.length'), test: (pwd: string) => pwd.length >= 8 },
+    { label: t('profile.changePassword.rules.upper'), test: (pwd: string) => /[A-Z]/.test(pwd) },
+    { label: t('profile.changePassword.rules.lower'), test: (pwd: string) => /[a-z]/.test(pwd) },
+    { label: t('profile.changePassword.rules.number'), test: (pwd: string) => /[0-9]/.test(pwd) },
+    { label: t('profile.changePassword.rules.special'), test: (pwd: string) => /[^a-zA-Z0-9]/.test(pwd) },
   ];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!currentPassword) {
-      toast.error('Please enter your current password');
+      toast.error(t('profile.changePassword.errEnterCurrent'));
       return;
     }
 
     if (newPassword.length < 8) {
-      toast.error('New password must be at least 8 characters long');
+      toast.error(t('profile.changePassword.errMinLength'));
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      toast.error('Passwords do not match');
+      toast.error(t('profile.changePassword.errMismatch'));
       return;
     }
 
@@ -76,13 +77,10 @@ export function ChangePassword() {
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-      toast.success('Password changed successfully');
+      toast.success(t('profile.changePassword.successToast'));
       setTimeout(() => setSuccessMessage(false), 5000);
     } catch (err: any) {
-      const msg = Array.isArray(err?.message)
-        ? err.message.join(', ')
-        : (err?.message || 'Failed to change password');
-      toast.error(msg);
+      toast.error(apiError(err, t('profile.changePassword.errGeneric')));
     }
   };
 

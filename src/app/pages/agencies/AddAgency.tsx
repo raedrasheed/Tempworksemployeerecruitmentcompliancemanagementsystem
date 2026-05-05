@@ -51,6 +51,7 @@ const EMPTY: FormShape = {
 
 export function AddAgency() {
   const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const { canCreate } = usePermissions();
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
@@ -66,8 +67,8 @@ export function AddAgency() {
     return (
       <div className="flex flex-col items-center justify-center py-24 gap-3 text-muted-foreground">
         <ShieldOff className="w-12 h-12 opacity-30" />
-        <p className="text-lg font-semibold text-[#0F172A]">Access Denied</p>
-        <p className="text-sm">You don't have permission to perform this action.</p>
+        <p className="text-lg font-semibold text-[#0F172A]">{tc('permissions.accessDenied')}</p>
+        <p className="text-sm">{tc('permissions.noPermission')}</p>
       </div>
     );
   }
@@ -79,7 +80,7 @@ export function AddAgency() {
     const f = e.target.files?.[0] ?? null;
     if (!f) return;
     if (f.size > 5 * 1024 * 1024) {
-      toast.error('Logo must be 5MB or smaller');
+      toast.error(tc('toast.logoTooLarge'));
       return;
     }
     if (!/^image\/(jpe?g|png|webp|svg\+xml)$/i.test(f.type)) {

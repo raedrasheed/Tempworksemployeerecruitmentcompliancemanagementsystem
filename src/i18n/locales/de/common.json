@@ -80,7 +80,39 @@
     "to": "Bis",
     "search": "Suchen",
     "advancedFilters": "Erweiterte Filter",
-    "clear": "Zurücksetzen"
+    "clear": "Zurücksetzen",
+    "filtersLabel": "Filters",
+    "rulesTitle": "Filter Rules",
+    "savedFilters": "Saved Filters",
+    "searchColumns": "Search Columns",
+    "searchColumnPh": "Search column name…",
+    "logic": "Logic",
+    "and": "AND",
+    "or": "OR",
+    "addFilter": "Add Filter",
+    "savePreset": "Save Preset",
+    "savePresetTitle": "Save Filter Preset",
+    "presetName": "Preset Name",
+    "presetNamePh": "e.g., Senior Drivers EU",
+    "valuePh": "Value",
+    "valueAnd": "and",
+    "selectValue": "Select value",
+    "operator": {
+      "contains": "Contains",
+      "equals": "Equals",
+      "startsWith": "Starts with",
+      "endsWith": "Ends with",
+      "greaterThan": ">",
+      "lessThan": "<",
+      "greaterThanOrEqual": ">=",
+      "lessThanOrEqual": "<=",
+      "between": "Between",
+      "before": "Before",
+      "after": "After",
+      "notEquals": "Not Equals",
+      "in": "In List",
+      "is": "Is"
+    }
   },
   "toast": {
     "created": "Erstellt",
@@ -99,7 +131,8 @@
     "uploadFailed": "Upload fehlgeschlagen",
     "networkOffline": "Keine Internetverbindung",
     "errorGeneric": "Etwas ist schief gelaufen",
-    "permissionDenied": "Sie haben keine Berechtigung dafür"
+    "permissionDenied": "Sie haben keine Berechtigung dafür",
+    "logoTooLarge": "Logo must be 5MB or smaller"
   },
   "form": {
     "required": "Pflichtfeld",
@@ -117,5 +150,9 @@
     "tagline": "Professionelle Personalvermittlung",
     "secureAccess": "Sicherer Zugang",
     "copyright": "© {{year}} {{company}}"
+  },
+  "permissions": {
+    "accessDenied": "Access Denied",
+    "noPermission": "You don't have permission to perform this action."
   }
 }

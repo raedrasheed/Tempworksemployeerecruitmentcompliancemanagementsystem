@@ -80,7 +80,39 @@
     "to": "To",
     "search": "Search",
     "advancedFilters": "Advanced filters",
-    "clear": "Clear"
+    "clear": "Clear",
+    "filtersLabel": "Filters",
+    "rulesTitle": "Filter Rules",
+    "savedFilters": "Saved Filters",
+    "searchColumns": "Search Columns",
+    "searchColumnPh": "Search column name…",
+    "logic": "Logic",
+    "and": "AND",
+    "or": "OR",
+    "addFilter": "Add Filter",
+    "savePreset": "Save Preset",
+    "savePresetTitle": "Save Filter Preset",
+    "presetName": "Preset Name",
+    "presetNamePh": "e.g., Senior Drivers EU",
+    "valuePh": "Value",
+    "valueAnd": "and",
+    "selectValue": "Select value",
+    "operator": {
+      "contains": "Contains",
+      "equals": "Equals",
+      "startsWith": "Starts with",
+      "endsWith": "Ends with",
+      "greaterThan": ">",
+      "lessThan": "<",
+      "greaterThanOrEqual": ">=",
+      "lessThanOrEqual": "<=",
+      "between": "Between",
+      "before": "Before",
+      "after": "After",
+      "notEquals": "Not Equals",
+      "in": "In List",
+      "is": "Is"
+    }
   },
   "toast": {
     "created": "Created",
@@ -99,7 +131,12 @@
     "uploadFailed": "Upload failed",
     "networkOffline": "No internet connection",
     "errorGeneric": "Something went wrong",
-    "permissionDenied": "You don't have permission to do that"
+    "permissionDenied": "You don't have permission to do that",
+    "logoTooLarge": "Logo must be 5MB or smaller"
+  },
+  "permissions": {
+    "accessDenied": "Access Denied",
+    "noPermission": "You don't have permission to perform this action."
   },
   "form": {
     "required": "Required",

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { workflowApi, usersApi } from '../../services/api';
 import { confirm } from '../../components/ui/ConfirmDialog';
 import { toast } from 'sonner';
+import { apiError } from '../../../i18n/apiError';
 import {
   Layers,
   Plus,
@@ -191,6 +192,8 @@ function WorkflowCard({
 // ─── Create workflow modal ─────────────────────────────────────────────────
 
 function CreateWorkflowModal({ onClose, onCreated }: { onClose: () => void; onCreated: (id: string) => void }) {
+  const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const [form, setForm] = useState({ name: '', description: '', isDefault: false, isPublic: true, color: '#2563EB' });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -199,14 +202,14 @@ function CreateWorkflowModal({ onClose, onCreated }: { onClose: () => void; onCr
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name.trim()) { setError('Name is required'); return; }
+    if (!form.name.trim()) { setError(tc('form.fieldRequired')); return; }
     setSaving(true);
     try {
       const created = await workflowApi.create(form);
       onCreated(created.id);
       onClose();
     } catch (err: any) {
-      setError(err.message || 'Failed to create workflow');
+      setError(apiError(err, t('pipelines.errors.createFailed')));
     } finally {
       setSaving(false);
     }
@@ -299,7 +302,7 @@ export function WorkflowsPage() {
       });
       setStatsMap(map);
     } catch (err: any) {
-      setError(err.message || 'Failed to load workflows');
+      setError(apiError(err, t('pipelines.errors.loadWorkflowsFailed')));
     } finally {
       setLoading(false);
     }
@@ -313,16 +316,16 @@ export function WorkflowsPage() {
 
   const handleCopy = async (workflow: any) => {
     if (!(await confirm({
-      title: 'Duplicate workflow?',
-      description: `A copy of "${workflow.name}" will be created with all its stages, required documents, assigned users, and access list. It will not carry over any in-flight candidate or employee assignments.`,
-      confirmText: 'Duplicate',
+      title: t('pipelines.confirm.duplicateTitle'),
+      description: t('pipelines.confirm.duplicateBody', { name: workflow.name }),
+      confirmText: t('pipelines.confirm.duplicateConfirm'),
     }))) return;
     try {
       const copied = await workflowApi.copy(workflow.id);
-      toast.success(`Created "${copied.name}"`);
+      toast.success(t('pipelines.toast.duplicated', { name: copied.name }));
       load();
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to duplicate workflow');
+      toast.error(apiError(err, t('pipelines.errors.duplicateFailed')));
     }
   };
 
@@ -442,6 +445,7 @@ function ManageAccessModal({
   workflow: any;
   onClose: () => void;
 }) {
+  const { t } = useTranslation('pages');
   const [access, setAccess] = useState<any[]>([]);
   const [users, setUsers]   = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -459,7 +463,7 @@ function ManageAccessModal({
       setAccess(Array.isArray(list) ? list : []);
       setUsers(allUsers);
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to load access list');
+      toast.error(apiError(err, t('pipelines.errors.loadAccessFailed')));
     } finally {
       setLoading(false);
     }
@@ -479,11 +483,11 @@ function ManageAccessModal({
     setAdding(true);
     try {
       await workflowApi.addAccessUser(workflow.id, selectedUserId);
-      toast.success('Access granted');
+      toast.success(t('pipelines.toast.accessGranted'));
       setSelectedUserId('');
       load();
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to grant access');
+      toast.error(apiError(err, t('pipelines.errors.grantFailed')));
     } finally {
       setAdding(false);
     }
@@ -491,18 +495,18 @@ function ManageAccessModal({
 
   const handleRemove = async (userId: string, name: string) => {
     const ok = await confirm({
-      title: 'Revoke access?',
-      description: `${name} will no longer be able to use "${workflow.name}".`,
-      confirmText: 'Revoke',
+      title: t('pipelines.confirm.revokeTitle'),
+      description: t('pipelines.confirm.revokeBody', { name, workflow: workflow.name }),
+      confirmText: t('pipelines.confirm.revokeConfirm'),
       tone: 'destructive',
     });
     if (!ok) return;
     try {
       await workflowApi.removeAccessUser(workflow.id, userId);
-      toast.success('Access revoked');
+      toast.success(t('pipelines.toast.accessRevoked'));
       load();
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to revoke access');
+      toast.error(apiError(err, t('pipelines.errors.revokeFailed')));
     }
   };
 

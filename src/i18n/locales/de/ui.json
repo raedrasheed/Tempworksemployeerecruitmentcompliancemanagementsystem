@@ -44,5 +44,9 @@
     "answerPlaceholder": "Antwort eingeben",
     "verified": "Verifiziert",
     "incorrect": "Falsch, bitte erneut versuchen"
+  },
+  "carousel": {
+    "previous": "Previous slide",
+    "next": "Next slide"
   }
 }

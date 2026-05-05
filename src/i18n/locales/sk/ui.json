@@ -44,5 +44,9 @@
     "answerPlaceholder": "Zadajte odpoveď",
     "verified": "Overené",
     "incorrect": "Nesprávne, skúste znova"
+  },
+  "carousel": {
+    "previous": "Previous slide",
+    "next": "Next slide"
   }
 }

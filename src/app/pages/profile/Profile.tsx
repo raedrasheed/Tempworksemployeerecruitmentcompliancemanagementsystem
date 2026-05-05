@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { Camera, Save, Shield, CheckCircle, AlertCircle, Loader2, Settings } from 'lucide-react';
+import { apiError } from '../../../i18n/apiError';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -65,7 +66,7 @@ export function Profile() {
           postalCode: merged.postalCode || '',
         });
       })
-      .catch(() => toast.error('Failed to load profile'))
+      .catch(() => toast.error(t('profile.toast.loadFailed')))
       .finally(() => setLoading(false));
   }, []);
 
@@ -106,11 +107,9 @@ export function Profile() {
         postalCode: updated?.postalCode ?? '',
       });
       setIsEditing(false);
-      toast.success('Profile updated successfully');
+      toast.success(t('profile.toast.updated'));
     } catch (err: any) {
-      // Surface validation messages instead of a generic toast
-      const detail = Array.isArray(err?.message) ? err.message.join('; ') : err?.message;
-      toast.error(detail || 'Failed to update profile');
+      toast.error(apiError(err, t('profile.toast.updateFailed')));
     } finally {
       setSaving(false);
     }
@@ -137,9 +136,9 @@ export function Profile() {
     try {
       const result = await usersApi.uploadOwnPhoto(file);
       setUserData((prev: any) => ({ ...prev, photoUrl: result?.photoUrl ?? prev?.photoUrl }));
-      toast.success('Photo updated successfully');
+      toast.success(t('profile.toast.photoUpdated'));
     } catch (err: any) {
-      toast.error(err?.message || 'Photo upload failed');
+      toast.error(apiError(err, t('profile.toast.photoFailed')));
       setPhotoPreview(null);
     } finally {
       setUploadingPhoto(false);
@@ -543,16 +542,16 @@ export function Profile() {
                     try {
                       if (checked) {
                         await authApi.enableTwoFactor();
-                        toast.success('Two-factor authentication enabled. A code will be emailed on every sign-in.');
+                        toast.success(t('profile.toast.twoFaEnabled'));
                       } else {
                         await authApi.disableTwoFactor();
-                        toast.success('Two-factor authentication disabled');
+                        toast.success(t('profile.toast.twoFaDisabled'));
                       }
                       setUserData((prev: any) => prev ? { ...prev, twoFactorEnabled: checked } : prev);
                     } catch (err: any) {
                       // Roll back on error
                       setTwoFactorEnabled(!checked);
-                      toast.error(err?.message || 'Failed to update 2FA');
+                      toast.error(apiError(err, t('profile.toast.twoFaFailed')));
                     } finally {
                       setTwoFactorSaving(false);
                     }

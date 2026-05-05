@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { Search, Bell, Settings, User, Lock, Moon, Sun, LogOut, ChevronDown, Eye, EyeOff, CheckCircle, X, Palette, CheckCheck, FileText, DollarSign, AlertTriangle, Info, Building2 } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
+import { apiError } from '../../../i18n/apiError';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -287,10 +288,7 @@ function ChangePasswordDialog({ open, onClose }: { open: boolean; onClose: () =>
       toast.success(t('changePassword.successToast'));
       handleClose();
     } catch (err: any) {
-      const msg = Array.isArray(err?.message)
-        ? err.message.join(', ')
-        : (err?.message || t('changePassword.errorGeneric'));
-      toast.error(msg);
+      toast.error(apiError(err, t('changePassword.errorGeneric')));
     } finally {
       setLoading(false);
     }

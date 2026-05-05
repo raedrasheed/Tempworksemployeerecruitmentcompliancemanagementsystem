@@ -84,7 +84,39 @@
     "to": "إلى",
     "search": "بحث",
     "advancedFilters": "مرشحات متقدمة",
-    "clear": "مسح"
+    "clear": "مسح",
+    "filtersLabel": "Filters",
+    "rulesTitle": "Filter Rules",
+    "savedFilters": "Saved Filters",
+    "searchColumns": "Search Columns",
+    "searchColumnPh": "Search column name…",
+    "logic": "Logic",
+    "and": "AND",
+    "or": "OR",
+    "addFilter": "Add Filter",
+    "savePreset": "Save Preset",
+    "savePresetTitle": "Save Filter Preset",
+    "presetName": "Preset Name",
+    "presetNamePh": "e.g., Senior Drivers EU",
+    "valuePh": "Value",
+    "valueAnd": "and",
+    "selectValue": "Select value",
+    "operator": {
+      "contains": "Contains",
+      "equals": "Equals",
+      "startsWith": "Starts with",
+      "endsWith": "Ends with",
+      "greaterThan": ">",
+      "lessThan": "<",
+      "greaterThanOrEqual": ">=",
+      "lessThanOrEqual": "<=",
+      "between": "Between",
+      "before": "Before",
+      "after": "After",
+      "notEquals": "Not Equals",
+      "in": "In List",
+      "is": "Is"
+    }
   },
   "toast": {
     "created": "تم الإنشاء",
@@ -103,7 +135,8 @@
     "uploadFailed": "فشل الرفع",
     "networkOffline": "لا يوجد اتصال بالإنترنت",
     "errorGeneric": "حدث خطأ ما",
-    "permissionDenied": "ليس لديك إذن لذلك"
+    "permissionDenied": "ليس لديك إذن لذلك",
+    "logoTooLarge": "Logo must be 5MB or smaller"
   },
   "form": {
     "required": "مطلوب",
@@ -121,5 +154,9 @@
     "tagline": "توظيف احترافي",
     "secureAccess": "وصول آمن",
     "copyright": "© {{year}} {{company}}"
+  },
+  "permissions": {
+    "accessDenied": "Access Denied",
+    "noPermission": "You don't have permission to perform this action."
   }
 }

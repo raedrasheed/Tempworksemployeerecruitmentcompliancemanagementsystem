@@ -1474,6 +1474,30 @@
     },
     "settings": {
       "title": "Workflow Settings"
+    },
+    "errors": {
+      "assignmentFailed": "Assignment failed",
+      "loadWorkflowFailed": "Failed to load workflow",
+      "createFailed": "Failed to create workflow",
+      "loadWorkflowsFailed": "Failed to load workflows",
+      "duplicateFailed": "Failed to duplicate workflow",
+      "loadAccessFailed": "Failed to load access list",
+      "grantFailed": "Failed to grant access",
+      "revokeFailed": "Failed to revoke access",
+      "submitApprovalFailed": "Failed to submit approval"
+    },
+    "toast": {
+      "duplicated": "Created \"{{name}}\"",
+      "accessGranted": "Access granted",
+      "accessRevoked": "Access revoked"
+    },
+    "confirm": {
+      "duplicateTitle": "Duplicate workflow?",
+      "duplicateBody": "A copy of \"{{name}}\" will be created with all its stages, required documents, assigned users, and access list. It will not carry over any in-flight candidate or employee assignments.",
+      "duplicateConfirm": "Duplicate",
+      "revokeTitle": "Revoke access?",
+      "revokeBody": "{{name}} will no longer be able to use \"{{workflow}}\".",
+      "revokeConfirm": "Revoke"
     }
   },
   "vehicles": {
@@ -2010,7 +2034,35 @@
     },
     "changePassword": {
       "title": "Change Password",
-      "subtitle": "Update your password to keep your account secure"
+      "subtitle": "Update your password to keep your account secure",
+      "errEnterCurrent": "Please enter your current password",
+      "errMinLength": "New password must be at least 8 characters long",
+      "errMismatch": "Passwords do not match",
+      "successToast": "Password changed successfully",
+      "errGeneric": "Failed to change password",
+      "strength": {
+        "weak": "Weak",
+        "fair": "Fair",
+        "good": "Good",
+        "strong": "Strong"
+      },
+      "rules": {
+        "length": "At least 8 characters",
+        "upper": "Contains uppercase letter",
+        "lower": "Contains lowercase letter",
+        "number": "Contains number",
+        "special": "Contains special character"
+      }
+    },
+    "toast": {
+      "loadFailed": "Failed to load profile",
+      "updated": "Profile updated successfully",
+      "updateFailed": "Failed to update profile",
+      "photoUpdated": "Photo updated successfully",
+      "photoFailed": "Photo upload failed",
+      "twoFaEnabled": "Two-factor authentication enabled. A code will be emailed on every sign-in.",
+      "twoFaDisabled": "Two-factor authentication disabled",
+      "twoFaFailed": "Failed to update 2FA"
     },
     "preferences": {
       "title": "Preferences",

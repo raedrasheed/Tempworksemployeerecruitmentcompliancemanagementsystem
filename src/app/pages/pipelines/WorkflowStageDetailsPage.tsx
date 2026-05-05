@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
+import { apiError } from '../../../i18n/apiError';
 import {
   ArrowLeft, Users, Clock, AlertTriangle, TrendingUp,
   CheckCircle, Search, ChevronDown, ChevronUp, UserCircle, Flag,
@@ -28,6 +30,7 @@ function ApproveModal({
   onClose: () => void;
   onDone: () => void;
 }) {
+  const { t } = useTranslation('pages');
   const [decision, setDecision] = useState<'APPROVED' | 'REJECTED'>('APPROVED');
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
@@ -44,7 +47,7 @@ function ApproveModal({
       }
       onDone();
     } catch (err: any) {
-      setError(err.message || 'Failed to submit approval');
+      setError(apiError(err, t('pipelines.errors.submitApprovalFailed')));
     } finally {
       setSaving(false);
     }

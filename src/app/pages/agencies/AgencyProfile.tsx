@@ -81,14 +81,14 @@ export function AgencyProfile() {
         {canEdit('agencies') && (
           <Button variant="outline" asChild>
             <Link to={`/dashboard/agencies/${id}/edit`}>
-              <Pencil className="w-4 h-4 mr-2" />
+              <Pencil className="w-4 h-4 me-2" />
               Edit Profile
             </Link>
           </Button>
         )}
         <Button variant="outline" asChild>
           <Link to={`/dashboard/agencies/${id}/users`}>
-            <Users className="w-4 h-4 mr-2" />
+            <Users className="w-4 h-4 me-2" />
             Manage Users
           </Link>
         </Button>
@@ -229,7 +229,7 @@ export function AgencyProfile() {
                         <Button size="sm" asChild>
                           <Link to={`/dashboard/employees/${emp.id}`}>
                             View Profile
-                            <ChevronRight className="w-4 h-4 ml-1" />
+                            <ChevronRight className="w-4 h-4 ms-1" />
                           </Link>
                         </Button>
                       </div>
@@ -247,7 +247,7 @@ export function AgencyProfile() {
               <CardTitle>Agency Users ({agencyUsers.length})</CardTitle>
               <Button asChild>
                 <Link to={`/dashboard/agencies/${id}/users`}>
-                  <Users className="w-4 h-4 mr-2" />
+                  <Users className="w-4 h-4 me-2" />
                   Manage All Users
                 </Link>
               </Button>
@@ -311,7 +311,7 @@ export function AgencyProfile() {
 
               <div className="flex justify-end pt-4">
                 <Button onClick={handleSaveSettings} disabled={savingSettings}>
-                  <Settings className="w-4 h-4 mr-2" />
+                  <Settings className="w-4 h-4 me-2" />
                   {savingSettings ? 'Saving...' : 'Save Settings'}
                 </Button>
               </div>

@@ -324,7 +324,7 @@ export function VehiclesList() {
         </div>
         <div className="flex gap-2 items-center">
           <Button variant="outline" size="sm" onClick={loadVehicles} disabled={loading}>
-            <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-4 h-4 me-1 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
 
@@ -335,19 +335,19 @@ export function VehiclesList() {
               onClick={() => setShowColPicker(v => !v)}
               className={showColPicker ? 'border-blue-500 text-blue-600' : ''}
             >
-              <Columns2 className="w-4 h-4 mr-1.5" />Columns
+              <Columns2 className="w-4 h-4 me-1.5" />Columns
               {hiddenCount > 0 && (
-                <span className="ml-1.5 bg-blue-600 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
+                <span className="ms-1.5 bg-blue-600 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
                   {hiddenCount}
                 </span>
               )}
             </Button>
             {showColPicker && (
-              <div className="absolute right-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[180px]">
+              <div className="absolute end-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[180px]">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">Toggle columns</p>
                 <div className="space-y-0.5">
                   {ALL_COLUMNS.map(c => (
-                    <button key={c.key} onClick={() => toggleColumn(c.key)} className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-gray-50 text-sm text-left">
+                    <button key={c.key} onClick={() => toggleColumn(c.key)} className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-gray-50 text-sm text-start">
                       <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${visibleColumns[c.key] ? 'bg-blue-600 border-blue-600' : 'border-gray-300'}`}>
                         {visibleColumns[c.key] && <Check className="w-2.5 h-2.5 text-white" />}
                       </span>
@@ -365,12 +365,12 @@ export function VehiclesList() {
           </div>
 
           <Button variant="outline" size="sm" onClick={handleExport} disabled={exporting} className={selectedIds.size > 0 ? 'border-blue-500 text-blue-600' : ''}>
-            <Download className="w-4 h-4 mr-2" />
+            <Download className="w-4 h-4 me-2" />
             {exporting ? 'Exporting…' : selectedIds.size > 0 ? `Export ${selectedIds.size} selected` : 'Export Excel'}
           </Button>
           {canWrite && (
             <Button size="sm" onClick={() => navigate('/dashboard/vehicles/new')}>
-              <Plus className="w-4 h-4 mr-2" />Add Vehicle
+              <Plus className="w-4 h-4 me-2" />Add Vehicle
             </Button>
           )}
         </div>
@@ -400,12 +400,12 @@ export function VehiclesList() {
         <CardContent className="p-4">
           <div className="flex flex-wrap gap-3 items-center">
             <div className="relative flex-1 min-w-48">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 placeholder="Search registration, make, model…"
                 value={search}
                 onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                className="pl-9"
+                className="ps-9"
               />
             </div>
             <Select value={typeFilter || 'all'} onValueChange={(v) => { setTypeFilter(v === 'all' ? '' : v); setPage(1); }}>
@@ -424,7 +424,7 @@ export function VehiclesList() {
             </Select>
             {hasFilters && (
               <Button variant="ghost" size="sm" onClick={clearFilters}>
-                <X className="w-4 h-4 mr-1" />Clear
+                <X className="w-4 h-4 me-1" />Clear
               </Button>
             )}
           </div>
@@ -470,7 +470,7 @@ export function VehiclesList() {
                   {col('serviceType') && <SortableHead label="Service Type" field="serviceType" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
                   {col('workshop') && <SortableHead label="Workshop" field="workshop" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
                   {col('odometer') && <SortableHead label="Odometer" field="odometer" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="text-end">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -532,7 +532,7 @@ export function VehiclesList() {
                           {v.currentMileage ? `${Number(v.currentMileage).toLocaleString()} km` : <span className="text-muted-foreground">—</span>}
                         </TableCell>
                       )}
-                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                      <TableCell className="text-end" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-1">
                           <Button size="sm" variant="ghost" onClick={() => navigate(`/dashboard/vehicles/${v.id}`)}>
                             <Eye className="w-4 h-4" />

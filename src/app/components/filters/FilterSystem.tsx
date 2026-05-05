@@ -178,7 +178,7 @@ export function FilterSystem({
         <Filter className="w-4 h-4" />
         Filters
         {activeFilters.length > 0 && (
-          <Badge className="ml-1 bg-[#2563EB] text-white">
+          <Badge className="ms-1 bg-[#2563EB] text-white">
             {activeFilters.length}
           </Badge>
         )}
@@ -187,7 +187,7 @@ export function FilterSystem({
 
       {/* Filter Dropdown */}
       {isOpen && (
-        <Card className="absolute top-full left-0 mt-2 w-[600px] max-h-[600px] overflow-auto z-50 shadow-lg">
+        <Card className="absolute top-full start-0 mt-2 w-[600px] max-h-[600px] overflow-auto z-50 shadow-lg">
           <CardContent className="p-4 space-y-4">
             {/* Header */}
             <div className="flex items-center justify-between pb-3 border-b">
@@ -321,7 +321,7 @@ export function FilterSystem({
               <Button
                 size="sm"
                 onClick={() => setIsOpen(false)}
-                className="ml-auto"
+                className="ms-auto"
               >
                 Apply
               </Button>
@@ -375,7 +375,7 @@ export function FilterSystem({
               <span className="font-semibold">{formatFilterValue(filter)}</span>
               <button
                 onClick={() => removeFilter(filter.id)}
-                className="ml-1 hover:text-red-600"
+                className="ms-1 hover:text-red-600"
               >
                 <X className="w-3 h-3" />
               </button>

@@ -235,7 +235,7 @@ export function AddUser() {
                   <p className="text-xs text-muted-foreground">JPG, PNG or GIF · max 5 MB</p>
                   <div className="flex gap-2">
                     <Button type="button" variant="outline" size="sm" onClick={() => photoInputRef.current?.click()}>
-                      <Camera className="w-3.5 h-3.5 mr-1" />
+                      <Camera className="w-3.5 h-3.5 me-1" />
                       {photoPreview ? 'Change' : 'Upload'}
                     </Button>
                     {photoPreview && (

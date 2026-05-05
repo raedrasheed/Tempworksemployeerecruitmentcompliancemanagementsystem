@@ -201,7 +201,7 @@ export function WorkflowManagement() {
         <div className="flex items-center gap-3">
           {canEdit('workflow') && (
             <Button variant="outline" onClick={() => alert('Workflow configuration saved')}>
-              <Save className="w-4 h-4 mr-2" />
+              <Save className="w-4 h-4 me-2" />
               Save Changes
             </Button>
           )}
@@ -209,7 +209,7 @@ export function WorkflowManagement() {
           <Dialog open={isAddStageOpen} onOpenChange={setIsAddStageOpen}>
             <DialogTrigger asChild>
               <Button>
-                <Plus className="w-4 h-4 mr-2" />
+                <Plus className="w-4 h-4 me-2" />
                 Add Stage
               </Button>
             </DialogTrigger>
@@ -344,7 +344,7 @@ export function WorkflowManagement() {
                       variant="outline"
                       onClick={() => openRequirementsEditor(stage)}
                     >
-                      <Edit className="w-4 h-4 mr-1" />
+                      <Edit className="w-4 h-4 me-1" />
                       Edit Requirements
                     </Button>
                   )}
@@ -384,7 +384,7 @@ export function WorkflowManagement() {
                     </div>
                   ))}
                   <Button size="sm" variant="outline">
-                    <Plus className="w-4 h-4 mr-1" />
+                    <Plus className="w-4 h-4 me-1" />
                     Add Document
                   </Button>
                 </div>
@@ -402,7 +402,7 @@ export function WorkflowManagement() {
                     </div>
                   ))}
                   <Button size="sm" variant="outline">
-                    <Plus className="w-4 h-4 mr-1" />
+                    <Plus className="w-4 h-4 me-1" />
                     Add Action
                   </Button>
                 </div>
@@ -420,7 +420,7 @@ export function WorkflowManagement() {
                     </div>
                   ))}
                   <Button size="sm" variant="outline">
-                    <Plus className="w-4 h-4 mr-1" />
+                    <Plus className="w-4 h-4 me-1" />
                     Add Approval
                   </Button>
                 </div>

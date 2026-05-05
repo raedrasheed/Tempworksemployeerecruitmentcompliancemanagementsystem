@@ -415,13 +415,13 @@ export function WorkflowSettingsPage() {
         <div className="flex items-center gap-3">
           {canEdit('settings') && (
             <Button variant="outline" onClick={handleCopy}>
-              <Copy className="w-4 h-4 mr-2" />
+              <Copy className="w-4 h-4 me-2" />
               Duplicate
             </Button>
           )}
           {canEdit('settings') && (
             <Button variant="outline" onClick={handleSaveOrder} disabled={saving}>
-              <Save className="w-4 h-4 mr-2" />
+              <Save className="w-4 h-4 me-2" />
               {saving ? 'Saving…' : 'Save Changes'}
             </Button>
           )}
@@ -429,7 +429,7 @@ export function WorkflowSettingsPage() {
             <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
               <DialogTrigger asChild>
                 <Button>
-                  <Plus className="w-4 h-4 mr-2" />
+                  <Plus className="w-4 h-4 me-2" />
                   Add Stage
                 </Button>
               </DialogTrigger>
@@ -556,7 +556,7 @@ export function WorkflowSettingsPage() {
           </div>
           <div className="flex justify-end">
             <Button variant="outline" onClick={handleSaveMeta} disabled={savingMeta}>
-              <Save className="w-4 h-4 mr-2" />{savingMeta ? 'Saving…' : 'Save Details'}
+              <Save className="w-4 h-4 me-2" />{savingMeta ? 'Saving…' : 'Save Details'}
             </Button>
           </div>
         </CardContent>
@@ -634,13 +634,13 @@ export function WorkflowSettingsPage() {
                   <div className="flex items-center gap-2">
                     {canEdit('settings') && (
                       <Button size="sm" variant="outline" onClick={() => openEditStage(stage)}>
-                        <Edit className="w-4 h-4 mr-1" />
+                        <Edit className="w-4 h-4 me-1" />
                         Edit Stage
                       </Button>
                     )}
                     {stage.isActive && canEdit('settings') && (
                       <Button size="sm" variant="outline" onClick={() => openEditRequirements(stage)}>
-                        <FileText className="w-4 h-4 mr-1" />
+                        <FileText className="w-4 h-4 me-1" />
                         Edit Requirements
                       </Button>
                     )}
@@ -654,8 +654,8 @@ export function WorkflowSettingsPage() {
                           : 'border-[#22C55E] text-[#22C55E] hover:bg-[#F0FDF4]'}
                       >
                         {stage.isActive
-                          ? <><PowerOff className="w-4 h-4 mr-1" />Deactivate</>
-                          : <><Power className="w-4 h-4 mr-1" />Activate</>}
+                          ? <><PowerOff className="w-4 h-4 me-1" />Deactivate</>
+                          : <><Power className="w-4 h-4 me-1" />Activate</>}
                       </Button>
                     )}
                     {canDelete('settings') && (
@@ -715,7 +715,7 @@ export function WorkflowSettingsPage() {
                       }}
                       disabled={!newDocId || newDocId === '__none__'}
                     >
-                      <Plus className="w-4 h-4 mr-1" /> Add Document
+                      <Plus className="w-4 h-4 me-1" /> Add Document
                     </Button>
                   </div>
                 </div>
@@ -775,7 +775,7 @@ export function WorkflowSettingsPage() {
                       }}
                       disabled={!newResponsibleId || newResponsibleId === '__none__' || responsibleAny}
                     >
-                      <Plus className="w-4 h-4 mr-1" /> Add User
+                      <Plus className="w-4 h-4 me-1" /> Add User
                     </Button>
                   </div>
                 </div>
@@ -866,7 +866,7 @@ export function WorkflowSettingsPage() {
                       }}
                       disabled={!newUserId || newUserId === '__none__'}
                     >
-                      <Plus className="w-4 h-4 mr-1" /> Add Approval
+                      <Plus className="w-4 h-4 me-1" /> Add Approval
                     </Button>
                   </div>
                 </div>

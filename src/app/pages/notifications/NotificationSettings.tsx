@@ -110,7 +110,7 @@ export function NotificationSettings() {
           <p className="text-muted-foreground mt-1">Choose what you get notified about and how</p>
         </div>
         <Button onClick={handleSave} disabled={saving || !dirty}>
-          {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+          {saving ? <Loader2 className="w-4 h-4 me-2 animate-spin" /> : <Save className="w-4 h-4 me-2" />}
           {saving ? 'Saving…' : 'Save Changes'}
         </Button>
       </div>
@@ -156,7 +156,7 @@ export function NotificationSettings() {
                 return (
                   <div key={evt.key}>
                     <div className="flex items-center px-6 py-4">
-                      <div className="flex-1 min-w-0 pr-4">
+                      <div className="flex-1 min-w-0 pe-4">
                         <p className="text-sm font-medium">{evt.label}</p>
                         <p className="text-xs text-muted-foreground mt-0.5">{evt.description}</p>
                       </div>
@@ -204,7 +204,7 @@ export function NotificationSettings() {
           <div className="bg-card border rounded-lg shadow-lg px-4 py-3 flex items-center gap-3">
             <span className="text-sm text-muted-foreground">You have unsaved changes</span>
             <Button size="sm" onClick={handleSave} disabled={saving}>
-              {saving ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : <Save className="w-4 h-4 mr-1.5" />}
+              {saving ? <Loader2 className="w-4 h-4 me-1.5 animate-spin" /> : <Save className="w-4 h-4 me-1.5" />}
               Save
             </Button>
           </div>

@@ -165,7 +165,7 @@ export function EditDocument() {
 
           <div className="flex gap-3">
             <Button type="submit" className="flex-1" disabled={submitting}>
-              <Save className="w-4 h-4 mr-2" />
+              <Save className="w-4 h-4 me-2" />
               {submitting ? 'Saving...' : 'Save Changes'}
             </Button>
             <Button type="button" variant="outline" className="flex-1" asChild>

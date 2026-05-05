@@ -312,7 +312,7 @@ export function LogsDashboard() {
   const SortableHead = ({ label, field }: { label: string; field: SortField }) => {
     const active = sortBy === field;
     return (
-      <th className="text-left px-4 py-3 font-medium text-muted-foreground">
+      <th className="text-start px-4 py-3 font-medium text-muted-foreground">
         <button onClick={() => handleSort(field)} className="flex items-center gap-1 hover:text-foreground group">
           {label}
           {active
@@ -333,11 +333,11 @@ export function LogsDashboard() {
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => { fetchLogs(); fetchStats(); }}>
-            <RefreshCw className="w-4 h-4 mr-1.5" />
+            <RefreshCw className="w-4 h-4 me-1.5" />
             Refresh
           </Button>
           <Button variant="outline" size="sm" onClick={() => exportToCsv(displayLogs)} disabled={displayLogs.length === 0}>
-            <Download className="w-4 h-4 mr-1.5" />
+            <Download className="w-4 h-4 me-1.5" />
             Export CSV
           </Button>
           {/* Column picker */}
@@ -347,22 +347,22 @@ export function LogsDashboard() {
               onClick={() => setShowColPicker(v => !v)}
               className={showColPicker ? 'border-primary text-primary' : ''}
             >
-              <Columns2 className="w-4 h-4 mr-1.5" />Columns
+              <Columns2 className="w-4 h-4 me-1.5" />Columns
               {hiddenCount > 0 && (
-                <span className="ml-1.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
+                <span className="ms-1.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
                   {hiddenCount}
                 </span>
               )}
             </Button>
             {showColPicker && (
-              <div className="absolute right-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[200px]">
+              <div className="absolute end-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[200px]">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">Toggle columns</p>
                 <div className="space-y-0.5 max-h-72 overflow-y-auto">
                   {ALL_COLUMNS.map(c => (
                     <button
                       key={c.key}
                       onClick={() => toggleColumn(c.key)}
-                      className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-gray-50 text-sm text-left"
+                      className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-gray-50 text-sm text-start"
                     >
                       <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${visibleColumns[c.key] ? 'bg-primary border-primary' : 'border-gray-300'}`}>
                         {visibleColumns[c.key] && <Check className="w-2.5 h-2.5 text-primary-foreground" />}
@@ -399,7 +399,7 @@ export function LogsDashboard() {
               className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
               onClick={() => setClearOpen(true)}
             >
-              <Trash2 className="w-4 h-4 mr-1.5" />
+              <Trash2 className="w-4 h-4 me-1.5" />
               Clear Logs
             </Button>
           )}
@@ -487,12 +487,12 @@ export function LogsDashboard() {
         <CardContent className="p-4 space-y-3">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 placeholder="Search by action, entity, email…"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="pl-9"
+                className="ps-9"
               />
             </div>
             <Select value={dateRange} onValueChange={setDateRange}>
@@ -563,7 +563,7 @@ export function LogsDashboard() {
             />
             {hasExtraFilters && (
               <Button variant="ghost" size="sm" onClick={clearExtraFilters}>
-                <X className="w-3 h-3 mr-1" />Clear extras
+                <X className="w-3 h-3 me-1" />Clear extras
               </Button>
             )}
           </div>
@@ -575,7 +575,7 @@ export function LogsDashboard() {
         <CardHeader className="pb-3 flex flex-row items-center justify-between">
           <CardTitle className="text-base">
             Activity Logs
-            <span className="ml-2 text-sm font-normal text-muted-foreground">
+            <span className="ms-2 text-sm font-normal text-muted-foreground">
               {loading ? 'Loading…' : `${total.toLocaleString()} entries`}
             </span>
           </CardTitle>

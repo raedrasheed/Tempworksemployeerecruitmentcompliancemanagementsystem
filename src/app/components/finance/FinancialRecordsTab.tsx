@@ -540,11 +540,11 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
         </div>
         <div className="flex gap-2">
           <Button size="sm" variant="outline" onClick={handleExport}>
-            <Download className="w-4 h-4 mr-1" />Export Excel
+            <Download className="w-4 h-4 me-1" />Export Excel
           </Button>
           {canWrite && (
             <Button size="sm" onClick={openAdd}>
-              <Plus className="w-4 h-4 mr-1" />Add Transaction
+              <Plus className="w-4 h-4 me-1" />Add Transaction
             </Button>
           )}
         </div>
@@ -606,7 +606,7 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
               <p className="text-muted-foreground text-sm">No financial records yet.</p>
               {canWrite && (
                 <Button size="sm" className="mt-3" onClick={openAdd}>
-                  <Plus className="w-4 h-4 mr-1" />Add First Transaction
+                  <Plus className="w-4 h-4 me-1" />Add First Transaction
                 </Button>
               )}
             </div>
@@ -615,16 +615,16 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/40">
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Date</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Type</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Description</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Stage</th>
-                    <th className="text-right px-4 py-3 font-medium text-blue-600 whitespace-nowrap">Credit (↑)</th>
-                    <th className="text-right px-4 py-3 font-medium text-slate-500 whitespace-nowrap">Emp/Agency</th>
-                    <th className="text-right px-4 py-3 font-medium text-amber-600 whitespace-nowrap">Debit (↓)</th>
-                    <th className="text-right px-4 py-3 font-medium text-emerald-700 whitespace-nowrap">Balance</th>
+                    <th className="text-start px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Date</th>
+                    <th className="text-start px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Type</th>
+                    <th className="text-start px-4 py-3 font-medium text-muted-foreground">Description</th>
+                    <th className="text-start px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Stage</th>
+                    <th className="text-end px-4 py-3 font-medium text-blue-600 whitespace-nowrap">Credit (↑)</th>
+                    <th className="text-end px-4 py-3 font-medium text-slate-500 whitespace-nowrap">Emp/Agency</th>
+                    <th className="text-end px-4 py-3 font-medium text-amber-600 whitespace-nowrap">Debit (↓)</th>
+                    <th className="text-end px-4 py-3 font-medium text-emerald-700 whitespace-nowrap">Balance</th>
                     <th className="text-center px-4 py-3 font-medium text-muted-foreground">Status</th>
-                    <th className="text-right px-4 py-3 font-medium text-muted-foreground">Actions</th>
+                    <th className="text-end px-4 py-3 font-medium text-muted-foreground">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -664,22 +664,22 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
                             </span>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-right font-semibold text-blue-700 whitespace-nowrap">
+                        <td className="px-4 py-3 text-end font-semibold text-blue-700 whitespace-nowrap">
                           {Number(rec.companyDisbursedAmount) > 0
                             ? fmt(rec.companyDisbursedAmount, rec.currency)
                             : <span className="text-muted-foreground font-normal">—</span>}
                         </td>
-                        <td className="px-4 py-3 text-right text-slate-500 whitespace-nowrap text-xs">
+                        <td className="px-4 py-3 text-end text-slate-500 whitespace-nowrap text-xs">
                           {Number(rec.employeeOrAgencyPaidAmount) > 0
                             ? fmt(rec.employeeOrAgencyPaidAmount, rec.currency)
                             : '—'}
                         </td>
-                        <td className="px-4 py-3 text-right font-semibold text-amber-700 whitespace-nowrap">
+                        <td className="px-4 py-3 text-end font-semibold text-amber-700 whitespace-nowrap">
                           {rec.deductionAmount != null && Number(rec.deductionAmount) > 0
                             ? fmt(rec.deductionAmount, rec.currency)
                             : <span className="text-muted-foreground font-normal">—</span>}
                         </td>
-                        <td className="px-4 py-3 text-right font-bold whitespace-nowrap">
+                        <td className="px-4 py-3 text-end font-bold whitespace-nowrap">
                           <span className={rec.runningBalance > 0 ? 'text-emerald-700' : rec.runningBalance < 0 ? 'text-red-600' : 'text-slate-500'}>
                             {fmt(rec.runningBalance, rec.currency)}
                           </span>
@@ -687,7 +687,7 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
                         <td className="px-4 py-3 text-center">
                           <StatusBadge status={rec.status} />
                         </td>
-                        <td className="px-4 py-3 text-right" onClick={e => e.stopPropagation()}>
+                        <td className="px-4 py-3 text-end" onClick={e => e.stopPropagation()}>
                           <div className="flex items-center justify-end gap-1">
                             {expandedId === rec.id
                               ? <ChevronUp className="w-4 h-4 text-muted-foreground" />
@@ -801,7 +801,7 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
                                     className="w-full text-xs mt-1"
                                     onClick={() => openStatus(rec)}
                                   >
-                                    <CheckCircle className="w-3 h-3 mr-1" />
+                                    <CheckCircle className="w-3 h-3 me-1" />
                                     {rec.status === 'PARTIAL' ? 'Add another deduction' : 'Add first deduction'}
                                   </Button>
                                 )}
@@ -863,7 +863,7 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
                                     className="w-full text-xs"
                                     onClick={() => setAttachingId(rec.id)}
                                   >
-                                    <Paperclip className="w-3 h-3 mr-1" />Attach File
+                                    <Paperclip className="w-3 h-3 me-1" />Attach File
                                   </Button>
                                 ) : null}
                               </div>
@@ -904,10 +904,10 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
                       {/* Label spans Date, Type, Description, Stage so the
                           first monetary cell lines up with Credit (↑). */}
                       <td colSpan={4} className="px-4 py-3 text-sm font-semibold">Totals</td>
-                      <td className="px-4 py-3 text-right text-blue-700">{fmt(totals.totalDisbursed, currency)}</td>
-                      <td className="px-4 py-3 text-right text-slate-500 text-xs">{fmt(totals.totalEmpAgency, currency)}</td>
-                      <td className="px-4 py-3 text-right text-amber-700">{fmt(totals.totalDeducted, currency)}</td>
-                      <td className="px-4 py-3 text-right">
+                      <td className="px-4 py-3 text-end text-blue-700">{fmt(totals.totalDisbursed, currency)}</td>
+                      <td className="px-4 py-3 text-end text-slate-500 text-xs">{fmt(totals.totalEmpAgency, currency)}</td>
+                      <td className="px-4 py-3 text-end text-amber-700">{fmt(totals.totalDeducted, currency)}</td>
+                      <td className="px-4 py-3 text-end">
                         <span className={`font-bold ${totals.currentBalance > 0 ? 'text-emerald-700' : totals.currentBalance < 0 ? 'text-red-600' : 'text-slate-500'}`}>
                           {fmt(totals.currentBalance, currency)}
                         </span>
@@ -1113,7 +1113,7 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
                     <Paperclip className="w-3.5 h-3.5" />
                     Attached Documents
                     {pendingFiles.length > 0 && (
-                      <Badge variant="outline" className="text-xs ml-1">{pendingFiles.length} queued</Badge>
+                      <Badge variant="outline" className="text-xs ms-1">{pendingFiles.length} queued</Badge>
                     )}
                   </Label>
                   <label className="cursor-pointer">
@@ -1278,20 +1278,20 @@ function StatusBadge({ status }: { status: string }) {
   if (status === 'DEDUCTED') {
     return (
       <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 font-medium text-xs">
-        <CheckCircle className="w-3 h-3 mr-1" />Deducted
+        <CheckCircle className="w-3 h-3 me-1" />Deducted
       </Badge>
     );
   }
   if (status === 'PARTIAL') {
     return (
       <Badge className="bg-blue-100 text-blue-800 border-blue-200 font-medium text-xs">
-        <Clock className="w-3 h-3 mr-1" />Partial
+        <Clock className="w-3 h-3 me-1" />Partial
       </Badge>
     );
   }
   return (
     <Badge className="bg-amber-50 text-amber-700 border-amber-200 font-medium text-xs">
-      <Clock className="w-3 h-3 mr-1" />Pending
+      <Clock className="w-3 h-3 me-1" />Pending
     </Badge>
   );
 }
@@ -1386,7 +1386,7 @@ function HistoryEntry({ entry, currency }: { entry: any; currency: string }) {
           <p className="text-[11px] text-muted-foreground break-words">{parts.join(' · ')}</p>
         )}
       </div>
-      <div className="text-right shrink-0">
+      <div className="text-end shrink-0">
         <p className="font-medium">{who}</p>
         <p className="text-[11px] text-muted-foreground">{stamp}</p>
       </div>

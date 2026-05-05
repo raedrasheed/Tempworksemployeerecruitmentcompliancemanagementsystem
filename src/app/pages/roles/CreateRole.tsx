@@ -171,7 +171,7 @@ export function CreateRole() {
           </p>
         </div>
         <Button onClick={handleSave} disabled={submitting}>
-          <Save className="w-4 h-4 mr-2" />
+          <Save className="w-4 h-4 me-2" />
           {submitting ? 'Saving...' : isEditMode ? 'Save Changes' : 'Create Role'}
         </Button>
       </div>
@@ -225,7 +225,7 @@ export function CreateRole() {
               <table className="w-full">
                 <thead className="bg-[#F8FAFC] border-b">
                   <tr>
-                    <th className="text-left p-4 font-semibold text-sm w-1/3">Module</th>
+                    <th className="text-start p-4 font-semibold text-sm w-1/3">Module</th>
                     {ACTIONS.map(action => (
                       <th key={action} className="text-center p-4 font-semibold text-sm w-1/6">
                         <div className="flex flex-col items-center gap-2">

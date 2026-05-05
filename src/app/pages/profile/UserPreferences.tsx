@@ -212,7 +212,7 @@ export function UserPreferences() {
 
           <div className="flex gap-3">
             <Button type="submit" className="flex-1 bg-[#2563EB] hover:bg-[#1d4ed8]" disabled={saving}>
-              {saving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving...</> : 'Save Preferences'}
+              {saving ? <><Loader2 className="w-4 h-4 me-2 animate-spin" />Saving...</> : 'Save Preferences'}
             </Button>
             <Button type="button" variant="outline" className="flex-1" asChild>
               <Link to="/dashboard/profile">Cancel</Link>

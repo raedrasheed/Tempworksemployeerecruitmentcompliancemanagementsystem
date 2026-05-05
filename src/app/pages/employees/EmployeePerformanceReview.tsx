@@ -293,7 +293,7 @@ export function EmployeePerformanceReview() {
               <CardTitle>Latest Performance Review - {latestReview.period}</CardTitle>
               <p className="text-sm text-muted-foreground mt-1">Reviewed on {latestReview.reviewDate} by {latestReview.reviewer}</p>
             </div>
-            <div className="text-right">
+            <div className="text-end">
               <div className="flex items-center gap-2">
                 <Star className="w-6 h-6 text-[#F59E0B] fill-[#F59E0B]" />
                 <span className="text-3xl font-semibold">{latestReview.overallRating}</span>

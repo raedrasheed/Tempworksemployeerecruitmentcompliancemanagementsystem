@@ -306,8 +306,8 @@ export function AttendanceTab({ employeeId, employeeName, canWrite, canLock = fa
             <CardTitle className="flex items-center gap-2">
               <CalendarIcon className="w-5 h-5" />Attendance &amp; Time Sheets
               {currentPeriodLock && (
-                <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 ml-2">
-                  <Lock className="w-3 h-3 mr-1" />Locked
+                <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 ms-2">
+                  <Lock className="w-3 h-3 me-1" />Locked
                 </Badge>
               )}
             </CardTitle>
@@ -325,21 +325,21 @@ export function AttendanceTab({ employeeId, employeeName, canWrite, canLock = fa
                 </SelectContent>
               </Select>
               <Button variant="outline" size="sm" onClick={handleExport}>
-                <Download className="w-4 h-4 mr-1" />Export
+                <Download className="w-4 h-4 me-1" />Export
               </Button>
               {canWrite && (
                 <Button size="sm" variant="outline" onClick={() => setBulkOpen(true)} disabled={!effectiveCanWrite}>
-                  <Layers className="w-4 h-4 mr-1" />Bulk Entry
+                  <Layers className="w-4 h-4 me-1" />Bulk Entry
                 </Button>
               )}
               {canWrite && (
                 <Button size="sm" onClick={() => openNew()} disabled={!effectiveCanWrite}>
-                  <Plus className="w-4 h-4 mr-1" />Add Day
+                  <Plus className="w-4 h-4 me-1" />Add Day
                 </Button>
               )}
               {canLock && (
                 <Button size="sm" variant={currentPeriodLock ? 'outline' : 'outline'} onClick={handleLockToggle}>
-                  <Lock className="w-4 h-4 mr-1" />{currentPeriodLock ? 'Unlock Month' : 'Lock Month'}
+                  <Lock className="w-4 h-4 me-1" />{currentPeriodLock ? 'Unlock Month' : 'Lock Month'}
                 </Button>
               )}
             </div>
@@ -376,15 +376,15 @@ export function AttendanceTab({ employeeId, employeeName, canWrite, canLock = fa
             <table className="w-full text-sm">
               <thead className="bg-muted/40 text-muted-foreground">
                 <tr>
-                  <th className="text-left px-3 py-2 font-medium w-16">Day</th>
-                  <th className="text-left px-3 py-2 font-medium">Date</th>
-                  <th className="text-left px-3 py-2 font-medium">Status</th>
-                  <th className="text-left px-3 py-2 font-medium">Check-in</th>
-                  <th className="text-left px-3 py-2 font-medium">Check-out</th>
-                  <th className="text-left px-3 py-2 font-medium">Break-in</th>
-                  <th className="text-left px-3 py-2 font-medium">Break-out</th>
-                  <th className="text-right px-3 py-2 font-medium">Total</th>
-                  <th className="text-left px-3 py-2 font-medium">Notes</th>
+                  <th className="text-start px-3 py-2 font-medium w-16">Day</th>
+                  <th className="text-start px-3 py-2 font-medium">Date</th>
+                  <th className="text-start px-3 py-2 font-medium">Status</th>
+                  <th className="text-start px-3 py-2 font-medium">Check-in</th>
+                  <th className="text-start px-3 py-2 font-medium">Check-out</th>
+                  <th className="text-start px-3 py-2 font-medium">Break-in</th>
+                  <th className="text-start px-3 py-2 font-medium">Break-out</th>
+                  <th className="text-end px-3 py-2 font-medium">Total</th>
+                  <th className="text-start px-3 py-2 font-medium">Notes</th>
                   <th className="px-3 py-2 w-24" />
                 </tr>
               </thead>
@@ -402,7 +402,7 @@ export function AttendanceTab({ employeeId, employeeName, canWrite, canLock = fa
                         <td className="px-3 py-1.5 text-muted-foreground">{d}</td>
                         <td className="px-3 py-1.5">
                           {dateStr}
-                          {isWeekend && <span className="text-xs text-muted-foreground ml-1">· {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dateObj.getUTCDay()]}</span>}
+                          {isWeekend && <span className="text-xs text-muted-foreground ms-1">· {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dateObj.getUTCDay()]}</span>}
                         </td>
                         <td className="px-3 py-1.5">
                           {rec ? (
@@ -417,9 +417,9 @@ export function AttendanceTab({ employeeId, employeeName, canWrite, canLock = fa
                         <td className="px-3 py-1.5 font-mono">{rec?.checkOut ?? '—'}</td>
                         <td className="px-3 py-1.5 font-mono">{rec?.breakIn  ?? '—'}</td>
                         <td className="px-3 py-1.5 font-mono">{rec?.breakOut ?? '—'}</td>
-                        <td className="px-3 py-1.5 text-right font-medium">{formatHours(rec?.workingHours)}</td>
+                        <td className="px-3 py-1.5 text-end font-medium">{formatHours(rec?.workingHours)}</td>
                         <td className="px-3 py-1.5 text-muted-foreground truncate max-w-xs">{rec?.notes ?? ''}</td>
-                        <td className="px-3 py-1.5 text-right whitespace-nowrap">
+                        <td className="px-3 py-1.5 text-end whitespace-nowrap">
                           {canWrite && effectiveCanWrite && (
                             <>
                               <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => openNew(dateStr)}>
@@ -498,8 +498,8 @@ export function AttendanceTab({ employeeId, employeeName, canWrite, canLock = fa
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}><X className="w-4 h-4 mr-2" />Cancel</Button>
-            <Button onClick={handleSave} disabled={saving}><Save className="w-4 h-4 mr-2" />{saving ? 'Saving…' : 'Save'}</Button>
+            <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}><X className="w-4 h-4 me-2" />Cancel</Button>
+            <Button onClick={handleSave} disabled={saving}><Save className="w-4 h-4 me-2" />{saving ? 'Saving…' : 'Save'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -557,8 +557,8 @@ export function AttendanceTab({ employeeId, employeeName, canWrite, canLock = fa
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setBulkOpen(false)} disabled={bulkSaving}><X className="w-4 h-4 mr-2" />Cancel</Button>
-            <Button onClick={handleBulkApply} disabled={bulkSaving}><Layers className="w-4 h-4 mr-2" />{bulkSaving ? 'Applying…' : 'Apply'}</Button>
+            <Button variant="outline" onClick={() => setBulkOpen(false)} disabled={bulkSaving}><X className="w-4 h-4 me-2" />Cancel</Button>
+            <Button onClick={handleBulkApply} disabled={bulkSaving}><Layers className="w-4 h-4 me-2" />{bulkSaving ? 'Applying…' : 'Apply'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

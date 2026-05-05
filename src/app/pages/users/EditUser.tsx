@@ -355,7 +355,7 @@ export function EditUser() {
               onClick={handleUnlockAccount}
               className="border-amber-400 text-amber-700 hover:bg-amber-100 shrink-0"
             >
-              <Unlock className="w-4 h-4 mr-1" />
+              <Unlock className="w-4 h-4 me-1" />
               Unlock
             </Button>
           </div>
@@ -366,7 +366,7 @@ export function EditUser() {
           size="sm"
           onClick={handleResetPassword}
         >
-          <RefreshCw className="w-4 h-4 mr-2" />
+          <RefreshCw className="w-4 h-4 me-2" />
           Reset Password
         </Button>
         {(userStatus === 'PENDING' || form.status === 'PENDING') && (
@@ -376,7 +376,7 @@ export function EditUser() {
             size="sm"
             onClick={handleResendActivation}
           >
-            <Mail className="w-4 h-4 mr-2" />
+            <Mail className="w-4 h-4 me-2" />
             Resend Activation
           </Button>
         )}
@@ -407,7 +407,7 @@ export function EditUser() {
                   <p className="text-xs text-muted-foreground">JPG, PNG or GIF · max 5 MB</p>
                   <div className="flex gap-2">
                     <Button type="button" variant="outline" size="sm" onClick={() => photoInputRef.current?.click()} disabled={uploadingPhoto}>
-                      <Camera className="w-3.5 h-3.5 mr-1" />
+                      <Camera className="w-3.5 h-3.5 me-1" />
                       {photoPreview || existingPhotoUrl ? 'Change' : 'Upload'}
                     </Button>
                     {(photoPreview || existingPhotoUrl) && (

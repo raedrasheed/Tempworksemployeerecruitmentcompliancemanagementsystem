@@ -81,7 +81,7 @@ export function DocumentTypes() {
         {canCreate('settings') && (
           <Button asChild>
             <Link to="/dashboard/settings/document-types/new">
-              <Plus className="w-4 h-4 mr-2" />
+              <Plus className="w-4 h-4 me-2" />
               Add Document Type
             </Link>
           </Button>
@@ -135,11 +135,11 @@ export function DocumentTypes() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left py-3 px-4 font-medium text-sm text-muted-foreground">Document Type</th>
-                    <th className="text-left py-3 px-4 font-medium text-sm text-muted-foreground">Category</th>
-                    <th className="text-left py-3 px-4 font-medium text-sm text-muted-foreground">Status</th>
-                    <th className="text-left py-3 px-4 font-medium text-sm text-muted-foreground">Uploads</th>
-                    <th className="text-left py-3 px-4 font-medium text-sm text-muted-foreground">Actions</th>
+                    <th className="text-start py-3 px-4 font-medium text-sm text-muted-foreground">Document Type</th>
+                    <th className="text-start py-3 px-4 font-medium text-sm text-muted-foreground">Category</th>
+                    <th className="text-start py-3 px-4 font-medium text-sm text-muted-foreground">Status</th>
+                    <th className="text-start py-3 px-4 font-medium text-sm text-muted-foreground">Uploads</th>
+                    <th className="text-start py-3 px-4 font-medium text-sm text-muted-foreground">Actions</th>
                   </tr>
                 </thead>
                 <tbody>

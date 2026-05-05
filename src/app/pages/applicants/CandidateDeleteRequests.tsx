@@ -142,13 +142,13 @@ export function CandidateDeleteRequests() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b text-left text-muted-foreground">
-                    <th className="pb-3 font-medium pr-4">Candidate Name</th>
-                    <th className="pb-3 font-medium pr-4">Candidate ID</th>
-                    <th className="pb-3 font-medium pr-4">Requested By</th>
-                    <th className="pb-3 font-medium pr-4">Date</th>
-                    <th className="pb-3 font-medium pr-4">Reason</th>
-                    <th className="pb-3 font-medium pr-4">Status</th>
+                  <tr className="border-b text-start text-muted-foreground">
+                    <th className="pb-3 font-medium pe-4">Candidate Name</th>
+                    <th className="pb-3 font-medium pe-4">Candidate ID</th>
+                    <th className="pb-3 font-medium pe-4">Requested By</th>
+                    <th className="pb-3 font-medium pe-4">Date</th>
+                    <th className="pb-3 font-medium pe-4">Reason</th>
+                    <th className="pb-3 font-medium pe-4">Status</th>
                     <th className="pb-3 font-medium">Actions</th>
                   </tr>
                 </thead>
@@ -168,14 +168,14 @@ export function CandidateDeleteRequests() {
 
                     return (
                       <tr key={req.id} className="hover:bg-muted/30">
-                        <td className="py-3 pr-4 font-medium text-[#0F172A]">{candidateName || '—'}</td>
-                        <td className="py-3 pr-4 text-muted-foreground font-mono text-xs">{candidateId}</td>
-                        <td className="py-3 pr-4">{requestedBy || '—'}</td>
-                        <td className="py-3 pr-4 text-muted-foreground">{date}</td>
-                        <td className="py-3 pr-4 max-w-[200px]">
+                        <td className="py-3 pe-4 font-medium text-[#0F172A]">{candidateName || '—'}</td>
+                        <td className="py-3 pe-4 text-muted-foreground font-mono text-xs">{candidateId}</td>
+                        <td className="py-3 pe-4">{requestedBy || '—'}</td>
+                        <td className="py-3 pe-4 text-muted-foreground">{date}</td>
+                        <td className="py-3 pe-4 max-w-[200px]">
                           <span className="line-clamp-2 text-muted-foreground">{req.reason ?? '—'}</span>
                         </td>
-                        <td className="py-3 pr-4">{statusBadge(req.status)}</td>
+                        <td className="py-3 pe-4">{statusBadge(req.status)}</td>
                         <td className="py-3">
                           {isPending ? (
                             <div className="flex gap-2">
@@ -185,7 +185,7 @@ export function CandidateDeleteRequests() {
                                 onClick={() => handleApprove(req.id)}
                                 disabled={processing}
                               >
-                                <CheckCircle className="w-3.5 h-3.5 mr-1" />
+                                <CheckCircle className="w-3.5 h-3.5 me-1" />
                                 Approve
                               </Button>
                               <Button
@@ -195,7 +195,7 @@ export function CandidateDeleteRequests() {
                                 onClick={() => openRejectModal(req.id)}
                                 disabled={processing}
                               >
-                                <XCircle className="w-3.5 h-3.5 mr-1" />
+                                <XCircle className="w-3.5 h-3.5 me-1" />
                                 Reject
                               </Button>
                             </div>

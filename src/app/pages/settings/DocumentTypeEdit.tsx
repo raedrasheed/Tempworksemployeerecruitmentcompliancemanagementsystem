@@ -218,7 +218,7 @@ export function DocumentTypeEdit() {
                 </div>
 
                 {formData.expiryTracking && (
-                  <div className="space-y-2 pl-4 border-l-2 border-[#2563EB]">
+                  <div className="space-y-2 ps-4 border-s-2 border-[#2563EB]">
                     <Label htmlFor="expiryWarningDays">Warning Period (Days Before Expiry)</Label>
                     <Input
                       id="expiryWarningDays"
@@ -393,7 +393,7 @@ export function DocumentTypeEdit() {
             {/* Actions */}
             <div className="space-y-3">
               <Button type="submit" className="w-full" size="lg" disabled={saving}>
-                <Save className="w-4 h-4 mr-2" />
+                <Save className="w-4 h-4 me-2" />
                 {saving ? 'Saving...' : 'Save Changes'}
               </Button>
               <Button type="button" variant="outline" className="w-full" asChild>

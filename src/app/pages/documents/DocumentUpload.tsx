@@ -164,7 +164,7 @@ export function DocumentUpload() {
                   {file ? (
                     <div className="flex items-center justify-center gap-3">
                       <FileText className="w-8 h-8 text-[#2563EB]" />
-                      <div className="text-left">
+                      <div className="text-start">
                         <p className="font-medium">{file.name}</p>
                         <p className="text-sm text-muted-foreground">{(file.size / 1024).toFixed(1)} KB</p>
                       </div>
@@ -191,7 +191,7 @@ export function DocumentUpload() {
 
           <div className="flex gap-3">
             <Button type="submit" className="flex-1" disabled={submitting}>
-              <Upload className="w-4 h-4 mr-2" />
+              <Upload className="w-4 h-4 me-2" />
               {submitting ? 'Uploading...' : 'Upload Document'}
             </Button>
             <Button type="button" variant="outline" className="flex-1" asChild>

@@ -102,9 +102,9 @@ function PreviewTable({ result, maxRows, startSerial = 1 }: { result: any; maxRo
     <table className="w-full text-sm">
       <thead className="bg-[#F8FAFC] border-b">
         <tr>
-          <th className="text-center p-3 font-semibold text-xs whitespace-nowrap border-r w-10 text-muted-foreground">#</th>
+          <th className="text-center p-3 font-semibold text-xs whitespace-nowrap border-e w-10 text-muted-foreground">#</th>
           {cols.map((c: any) => (
-            <th key={c.key} className="text-left p-3 font-semibold text-xs whitespace-nowrap border-r last:border-r-0">{c.label}</th>
+            <th key={c.key} className="text-start p-3 font-semibold text-xs whitespace-nowrap border-e last:border-e-0">{c.label}</th>
           ))}
         </tr>
       </thead>
@@ -113,9 +113,9 @@ function PreviewTable({ result, maxRows, startSerial = 1 }: { result: any; maxRo
           <tr><td colSpan={cols.length + 1} className="p-6 text-center text-muted-foreground">No data returned</td></tr>
         ) : rows.map((row: any, ri: number) => (
           <tr key={ri} className={`border-b ${ri % 2 === 1 ? 'bg-[#F8FAFC]' : ''} hover:bg-[#EFF6FF] transition-colors`}>
-            <td className="p-3 border-r text-xs text-center text-muted-foreground tabular-nums w-10">{startSerial + ri}</td>
+            <td className="p-3 border-e text-xs text-center text-muted-foreground tabular-nums w-10">{startSerial + ri}</td>
             {cols.map((c: any) => (
-              <td key={c.key} className="p-3 border-r last:border-r-0 text-xs max-w-[180px] truncate">
+              <td key={c.key} className="p-3 border-e last:border-e-0 text-xs max-w-[180px] truncate">
                 {fmtCell(row[c.key], c.type)}
               </td>
             ))}
@@ -256,11 +256,11 @@ export function ReportsDashboard() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="w-full grid grid-cols-3 mb-2">
-          <TabsTrigger value="dashboard"><BarChart3 className="w-4 h-4 mr-2" />Dashboard</TabsTrigger>
-          <TabsTrigger value="builder"><Plus className="w-4 h-4 mr-2" />Report Builder</TabsTrigger>
+          <TabsTrigger value="dashboard"><BarChart3 className="w-4 h-4 me-2" />Dashboard</TabsTrigger>
+          <TabsTrigger value="builder"><Plus className="w-4 h-4 me-2" />Report Builder</TabsTrigger>
           <TabsTrigger value="saved">
-            <Database className="w-4 h-4 mr-2" />Saved Reports
-            {savedReports.length > 0 && <Badge className="ml-2 bg-[#2563EB] text-white text-xs px-1.5">{savedReports.length}</Badge>}
+            <Database className="w-4 h-4 me-2" />Saved Reports
+            {savedReports.length > 0 && <Badge className="ms-2 bg-[#2563EB] text-white text-xs px-1.5">{savedReports.length}</Badge>}
           </TabsTrigger>
         </TabsList>
 
@@ -390,7 +390,7 @@ export function ReportsDashboard() {
               {builder.dataSource && (
                 <Card>
                   <CardHeader><CardTitle className="text-sm flex items-center gap-2"><Layers className="w-4 h-4 text-[#8B5CF6]" />Columns</CardTitle></CardHeader>
-                  <CardContent className="space-y-2 max-h-80 overflow-y-auto pr-1">
+                  <CardContent className="space-y-2 max-h-80 overflow-y-auto pe-1">
                     {sourceFields.map((f: any) => {
                       const col = builder.columns.find((c: any) => c.columnName === f.key);
                       return (
@@ -401,7 +401,7 @@ export function ReportsDashboard() {
                             <Badge variant="outline" className="text-xs px-1.5">{f.type}</Badge>
                           </div>
                           {col && (
-                            <div className="pl-6 space-y-2">
+                            <div className="ps-6 space-y-2">
                               <Input className="h-7 text-xs" placeholder="Display name" value={col.displayName} onChange={e => updateColumn(f.key, { displayName: e.target.value })} />
                               <div className="flex gap-3">
                                 <label className="flex items-center gap-1 text-xs cursor-pointer">
@@ -494,7 +494,7 @@ export function ReportsDashboard() {
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle className="text-sm flex items-center gap-2"><Filter className="w-4 h-4 text-[#06B6D4]" />Filters <Badge variant="outline">{builder.filters.length}</Badge></CardTitle>
-                    <Button size="sm" variant="outline" onClick={addFilter}><Plus className="w-3.5 h-3.5 mr-1" />Add Filter</Button>
+                    <Button size="sm" variant="outline" onClick={addFilter}><Plus className="w-3.5 h-3.5 me-1" />Add Filter</Button>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     {builder.filters.length === 0 && <p className="text-sm text-muted-foreground">No filters — all rows will be included.</p>}
@@ -546,11 +546,11 @@ export function ReportsDashboard() {
               {/* Action buttons */}
               <div className="flex flex-wrap gap-3">
                 <Button onClick={handlePreview} disabled={previewLoading} className="bg-[#2563EB] hover:bg-[#1D4ED8]">
-                  {previewLoading ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Play className="w-4 h-4 mr-2" />}
+                  {previewLoading ? <RefreshCw className="w-4 h-4 me-2 animate-spin" /> : <Play className="w-4 h-4 me-2" />}
                   {previewLoading ? 'Running preview…' : 'Preview (50 rows)'}
                 </Button>
                 <Button onClick={handleSave} disabled={saving} variant="outline">
-                  {saving ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : null}
+                  {saving ? <RefreshCw className="w-4 h-4 me-2 animate-spin" /> : null}
                   {saving ? 'Saving…' : editingId ? 'Update Report' : 'Save Report'}
                 </Button>
                 {editingId && (['excel', 'pdf', 'word'] as const).map(fmt => (
@@ -617,13 +617,13 @@ export function ReportsDashboard() {
                   </div>
                   <div className="flex items-center gap-1 flex-wrap">
                     <Button size="sm" variant="outline" onClick={() => handleRunReport(report.id)} disabled={runningId === report.id}>
-                      {runningId === report.id ? <RefreshCw className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Play className="w-3.5 h-3.5 mr-1" />}
+                      {runningId === report.id ? <RefreshCw className="w-3.5 h-3.5 me-1 animate-spin" /> : <Play className="w-3.5 h-3.5 me-1" />}
                       Run
                     </Button>
                     {canEdit('reports') && (
                       <>
                         <Button size="sm" variant="outline" onClick={() => loadIntoBuilder(report)}>
-                          <Edit3 className="w-3.5 h-3.5 mr-1" />Edit
+                          <Edit3 className="w-3.5 h-3.5 me-1" />Edit
                         </Button>
                         {(['excel', 'pdf', 'word'] as const).map(fmt => (
                           <Button key={fmt} size="sm" variant="ghost" title={`Export as ${fmt}`} disabled={!!exporting[`${report.id}-${fmt}`]} onClick={() => handleExport(report.id, fmt, report.name)}>

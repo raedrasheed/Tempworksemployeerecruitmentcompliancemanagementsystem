@@ -139,7 +139,7 @@ export function SystemInformation() {
       <div className="flex items-center gap-4">
         <Link to="/dashboard/settings">
           <Button variant="ghost" size="sm">
-            <ArrowLeft className="w-4 h-4 mr-2" />
+            <ArrowLeft className="w-4 h-4 me-2" />
             Back to Settings
           </Button>
         </Link>
@@ -313,7 +313,7 @@ export function SystemInformation() {
               <div className="flex items-center justify-end gap-3 pt-4 border-t">
                 {saved && <span className="text-sm text-green-600 font-medium">Saved successfully</span>}
                 <Button onClick={handleSave} disabled={saving}>
-                  <Save className="w-4 h-4 mr-2" />
+                  <Save className="w-4 h-4 me-2" />
                   {saving ? 'Saving…' : 'Save Changes'}
                 </Button>
               </div>

@@ -237,7 +237,7 @@ export function MaintenanceTypesList() {
         </div>
         {canWrite && (
           <Button size="sm" onClick={openNew}>
-            <Plus className="w-4 h-4 mr-2" /> Add Type
+            <Plus className="w-4 h-4 me-2" /> Add Type
           </Button>
         )}
       </div>
@@ -247,12 +247,12 @@ export function MaintenanceTypesList() {
         <CardContent className="p-4 space-y-3">
           <div className="flex flex-wrap items-center gap-2">
             <div className="relative flex-1 min-w-[220px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 placeholder="Search name or description…"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="pl-9"
+                className="ps-9"
               />
             </div>
             <Select value={activeFilter} onValueChange={v => setActiveFilter(v as any)}>
@@ -265,28 +265,28 @@ export function MaintenanceTypesList() {
             </Select>
 
             {/* Column picker */}
-            <div className="relative ml-auto" ref={colPickerRef}>
+            <div className="relative ms-auto" ref={colPickerRef}>
               <Button
                 variant="outline" size="sm"
                 onClick={() => setShowColPicker(v => !v)}
                 className={showColPicker ? 'border-primary text-primary' : ''}
               >
-                <Columns2 className="w-4 h-4 mr-1.5" />Columns
+                <Columns2 className="w-4 h-4 me-1.5" />Columns
                 {hiddenCount > 0 && (
-                  <span className="ml-1.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
+                  <span className="ms-1.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
                     {hiddenCount}
                   </span>
                 )}
               </Button>
               {showColPicker && (
-                <div className="absolute right-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[200px]">
+                <div className="absolute end-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[200px]">
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">Toggle columns</p>
                   <div className="space-y-0.5 max-h-72 overflow-y-auto">
                     {ALL_COLUMNS.map(c => (
                       <button
                         key={c.key}
                         onClick={() => toggleColumn(c.key)}
-                        className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-gray-50 text-sm text-left"
+                        className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-gray-50 text-sm text-start"
                       >
                         <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${visibleColumns[c.key] ? 'bg-primary border-primary' : 'border-gray-300'}`}>
                           {visibleColumns[c.key] && <Check className="w-2.5 h-2.5 text-primary-foreground" />}
@@ -332,7 +332,7 @@ export function MaintenanceTypesList() {
             </div>
             {hasFilters && (
               <Button variant="ghost" size="sm" onClick={clearFilters}>
-                <X className="w-3 h-3 mr-1" />Clear filters
+                <X className="w-3 h-3 me-1" />Clear filters
               </Button>
             )}
           </div>
@@ -349,7 +349,7 @@ export function MaintenanceTypesList() {
                 {col('days')        && <SortableHead label="Interval (Days)" field="days" />}
                 {col('km')          && <SortableHead label="Interval (km)"   field="km" />}
                 {col('active')      && <SortableHead label="Status"          field="active" />}
-                {canWrite && <TableHead className="text-right">Actions</TableHead>}
+                {canWrite && <TableHead className="text-end">Actions</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -371,7 +371,7 @@ export function MaintenanceTypesList() {
                     </TableCell>
                   )}
                   {canWrite && (
-                    <TableCell className="text-right space-x-1">
+                    <TableCell className="text-end space-x-1">
                       <Button size="sm" variant="ghost" onClick={() => openEdit(t)}><Pencil className="w-4 h-4" /></Button>
                       <Button size="sm" variant="ghost" onClick={() => handleDelete(t.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
                     </TableCell>
@@ -409,7 +409,7 @@ export function MaintenanceTypesList() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialog(false)}>Cancel</Button>
             <Button onClick={handleSave} disabled={saving}>
-              <Save className="w-4 h-4 mr-2" />
+              <Save className="w-4 h-4 me-2" />
               {saving ? 'Saving…' : editing ? 'Save Changes' : 'Create'}
             </Button>
           </DialogFooter>

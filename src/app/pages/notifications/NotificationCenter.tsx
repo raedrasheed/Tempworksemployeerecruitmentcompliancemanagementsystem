@@ -114,7 +114,7 @@ function NotificationRow({
       </div>
 
       {/* Actions (show on hover) */}
-      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-1" onClick={e => e.stopPropagation()}>
+      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ms-1" onClick={e => e.stopPropagation()}>
         {!n.isRead && (
           <button
             title="Mark as read"
@@ -248,7 +248,7 @@ export function NotificationCenter() {
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" asChild>
             <Link to="/dashboard/notifications/settings">
-              <Settings className="w-4 h-4 mr-2" />
+              <Settings className="w-4 h-4 me-2" />
               Settings
             </Link>
           </Button>
@@ -258,12 +258,12 @@ export function NotificationCenter() {
             onClick={() => setShowFilters(v => !v)}
             className={hasActiveFilters ? 'border-blue-500 text-blue-600' : ''}
           >
-            <Filter className="w-4 h-4 mr-2" />
-            Filters {hasActiveFilters && <Badge className="ml-1 h-4 text-xs bg-blue-500">{[filterIsRead !== 'all', filterType !== 'all', filterEventType !== 'all', !!filterDateFrom, !!filterDateTo].filter(Boolean).length}</Badge>}
+            <Filter className="w-4 h-4 me-2" />
+            Filters {hasActiveFilters && <Badge className="ms-1 h-4 text-xs bg-blue-500">{[filterIsRead !== 'all', filterType !== 'all', filterEventType !== 'all', !!filterDateFrom, !!filterDateTo].filter(Boolean).length}</Badge>}
           </Button>
           {unreadCount > 0 && (
             <Button size="sm" onClick={handleMarkAllRead} disabled={markingAll}>
-              <CheckCheck className="w-4 h-4 mr-2" />
+              <CheckCheck className="w-4 h-4 me-2" />
               {markingAll ? 'Marking…' : 'Mark All Read'}
             </Button>
           )}
@@ -331,7 +331,7 @@ export function NotificationCenter() {
               {hasActiveFilters && (
                 <div className="flex items-end">
                   <Button variant="ghost" size="sm" onClick={handleResetFilters} className="h-8 text-muted-foreground">
-                    <X className="w-3 h-3 mr-1" /> Reset
+                    <X className="w-3 h-3 me-1" /> Reset
                   </Button>
                 </div>
               )}

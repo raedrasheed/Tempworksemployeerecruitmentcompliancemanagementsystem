@@ -463,7 +463,7 @@ export function EditAgency() {
                 <Button type="button" variant="outline" size="sm" asChild disabled={uploadingDoc || !newDocTypeId}>
                   <label className="cursor-pointer">
                     <input type="file" className="sr-only" onChange={handleDocUpload} disabled={uploadingDoc || !newDocTypeId} />
-                    <Upload className="w-4 h-4 mr-1.5" />
+                    <Upload className="w-4 h-4 me-1.5" />
                     {uploadingDoc ? 'Uploading...' : 'Upload'}
                   </label>
                 </Button>

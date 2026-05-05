@@ -471,7 +471,7 @@ export function CandidatesList() {
       {selected.size > 0 && (
         <div className="flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-lg px-4 py-2">
           <span className="text-sm font-medium text-blue-800">{selected.size} selected</span>
-          <div className="flex gap-2 ml-auto">
+          <div className="flex gap-2 ms-auto">
             {!isAgencyUser && (
               <>
                 <Button variant="outline" size="sm" disabled={bulkActionInProgress} onClick={() => handleBulkAction('STATUS_CHANGE', 'ACCEPTED')}>Mark Accepted</Button>
@@ -534,7 +534,7 @@ export function CandidatesList() {
                 confirmText: 'Delete', tone: 'destructive',
               })) handleBulkAction('DELETE');
             }}>
-              <Trash2 className="w-3 h-3 mr-1" />Delete Selected
+              <Trash2 className="w-3 h-3 me-1" />Delete Selected
             </Button>
             <Button variant="ghost" size="sm" onClick={() => setSelected(new Set())}>Clear</Button>
           </div>
@@ -549,8 +549,8 @@ export function CandidatesList() {
             {/* Row 1 */}
             <div className="flex flex-wrap items-center gap-3">
               <div className="flex-1 min-w-48 relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input placeholder="Search name, email, ID..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10" />
+                <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input placeholder="Search name, email, ID..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="ps-10" />
               </div>
 
               <Select value={statusFilter || '__all__'} onValueChange={v => setStatusFilter(v === '__all__' ? '' : v)}>
@@ -572,7 +572,7 @@ export function CandidatesList() {
               )}
 
               <Button variant="outline" size="sm" onClick={fetchCandidates} disabled={loading}>
-                <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />Refresh
+                <RefreshCw className={`w-4 h-4 me-1 ${loading ? 'animate-spin' : ''}`} />Refresh
               </Button>
               <Button
                 variant="outline"
@@ -581,7 +581,7 @@ export function CandidatesList() {
                 disabled={selected.size === 0}
                 title={selected.size === 0 ? 'Select one or more rows to export' : undefined}
               >
-                <Download className="w-4 h-4 mr-2" />Export to Excel ({selected.size})
+                <Download className="w-4 h-4 me-2" />Export to Excel ({selected.size})
               </Button>
               <Button
                 variant="outline"
@@ -591,8 +591,8 @@ export function CandidatesList() {
                 title={selected.size === 0 ? 'Select one or more rows to export as PDFs' : undefined}
               >
                 {pdfExporting
-                  ? <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  : <FileText className="w-4 h-4 mr-2" />}
+                  ? <Loader2 className="w-4 h-4 me-2 animate-spin" />
+                  : <FileText className="w-4 h-4 me-2" />}
                 Export PDFs ({selected.size})
               </Button>
 
@@ -603,23 +603,23 @@ export function CandidatesList() {
                   onClick={() => setShowColPicker(v => !v)}
                   className={showColPicker ? 'border-blue-500 text-blue-600' : ''}
                 >
-                  <Columns2 className="w-4 h-4 mr-1.5" />Columns
+                  <Columns2 className="w-4 h-4 me-1.5" />Columns
                   {ALL_COLUMNS.filter(c => !visibleColumns[c.key]).length > 0 && (
-                    <span className="ml-1.5 bg-blue-600 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
+                    <span className="ms-1.5 bg-blue-600 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
                       {ALL_COLUMNS.filter(c => !visibleColumns[c.key]).length}
                     </span>
                   )}
                 </Button>
 
                 {showColPicker && (
-                  <div className="absolute right-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[180px]">
+                  <div className="absolute end-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[180px]">
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">Toggle columns</p>
                     <div className="space-y-0.5">
                       {ALL_COLUMNS.filter(c => !(c.key === 'tier' && isAgencyUser)).map(c => (
                         <button
                           key={c.key}
                           onClick={() => toggleColumn(c.key)}
-                          className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-gray-50 text-sm text-left"
+                          className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-gray-50 text-sm text-start"
                         >
                           <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${visibleColumns[c.key] ? 'bg-blue-600 border-blue-600' : 'border-gray-300'}`}>
                             {visibleColumns[c.key] && <Check className="w-2.5 h-2.5 text-white" />}
@@ -667,7 +667,7 @@ export function CandidatesList() {
 
               {hasActiveFilters && (
                 <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground hover:text-foreground">
-                  <X className="w-3.5 h-3.5 mr-1" />Clear filters
+                  <X className="w-3.5 h-3.5 me-1" />Clear filters
                 </Button>
               )}
             </div>
@@ -691,7 +691,7 @@ export function CandidatesList() {
                   {col('tier') && !isAgencyUser && <SortableHead label="Tier" field="tier" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
                   {col('applied')     && <SortableHead label="Applied"      field="createdAt"   sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
                   {col('status')      && <SortableHead label="Status"       field="status"      sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="text-end">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -782,15 +782,15 @@ export function CandidatesList() {
                         <Badge className={getStatusColor(applicant.status)}>{applicant.status?.replace(/_/g, ' ')}</Badge>
                       </TableCell>
                     )}
-                    <TableCell className="text-right">
+                    <TableCell className="text-end">
                       <div className="flex items-center justify-end gap-1">
                         <Button variant="ghost" size="sm" asChild>
-                          <Link to={`/dashboard/candidates/${applicant.id}`}><Eye className="w-4 h-4 mr-1" />View</Link>
+                          <Link to={`/dashboard/candidates/${applicant.id}`}><Eye className="w-4 h-4 me-1" />View</Link>
                         </Button>
                         <WhatsAppButton phone={applicant.phone} size="icon" />
                         {canEdit('applicants') && (
                           <Button variant="ghost" size="sm" asChild>
-                            <Link to={`/dashboard/candidates/${applicant.id}/edit`}><Edit className="w-4 h-4 mr-1" />Edit</Link>
+                            <Link to={`/dashboard/candidates/${applicant.id}/edit`}><Edit className="w-4 h-4 me-1" />Edit</Link>
                           </Button>
                         )}
                         {canDelete('applicants') && (
@@ -942,7 +942,7 @@ export function CandidatesList() {
                       <span className="flex items-center gap-2">
                         <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: w.color ?? '#6366F1' }} />
                         <span>{w.name}</span>
-                        <span className={`ml-1 text-[10px] px-1.5 py-0.5 rounded border ${w.isPublic ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-slate-700 border-slate-200'}`}>
+                        <span className={`ms-1 text-[10px] px-1.5 py-0.5 rounded border ${w.isPublic ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-slate-700 border-slate-200'}`}>
                           {w.isPublic ? 'Public' : 'Private'}
                         </span>
                       </span>

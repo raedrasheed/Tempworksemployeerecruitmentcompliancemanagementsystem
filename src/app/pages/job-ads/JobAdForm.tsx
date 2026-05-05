@@ -355,7 +355,7 @@ export function JobAdForm() {
             onClick={() => handleSave(false)}
             disabled={saving}
           >
-            <Save className="w-4 h-4 mr-2" />
+            <Save className="w-4 h-4 me-2" />
             Save as Draft
           </Button>
           {form.status !== 'PUBLISHED' && (
@@ -364,7 +364,7 @@ export function JobAdForm() {
               disabled={saving}
               className="bg-emerald-600 hover:bg-emerald-700 text-white"
             >
-              <Eye className="w-4 h-4 mr-2" />
+              <Eye className="w-4 h-4 me-2" />
               {isEdit ? 'Save & Publish' : 'Create & Publish'}
             </Button>
           )}
@@ -373,7 +373,7 @@ export function JobAdForm() {
               onClick={() => handleSave(false)}
               disabled={saving}
             >
-              <Save className="w-4 h-4 mr-2" />
+              <Save className="w-4 h-4 me-2" />
               Save Changes
             </Button>
           )}

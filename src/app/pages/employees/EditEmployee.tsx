@@ -334,7 +334,7 @@ export function EditEmployee() {
                     <button
                       type="button"
                       onClick={() => photoInputRef.current?.click()}
-                      className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow hover:bg-primary/90 transition-colors"
+                      className="absolute bottom-0 end-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow hover:bg-primary/90 transition-colors"
                       title="Change photo"
                     >
                       <Camera className="w-4 h-4" />
@@ -367,7 +367,7 @@ export function EditEmployee() {
                   className="w-full"
                   onClick={() => photoInputRef.current?.click()}
                 >
-                  <Camera className="w-4 h-4 mr-2" />
+                  <Camera className="w-4 h-4 me-2" />
                   {currentPhotoUrl ? 'Change Photo' : 'Upload Photo'}
                 </Button>
                 <p className="text-xs text-muted-foreground text-center">

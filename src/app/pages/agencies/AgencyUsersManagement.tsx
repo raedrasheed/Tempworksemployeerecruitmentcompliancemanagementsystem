@@ -91,7 +91,7 @@ export function AgencyUsersManagement() {
         {canManageUsers && (
           <Button asChild disabled={atLimit}>
             <Link to="/dashboard/users/add">
-              <Plus className="w-4 h-4 mr-2" />
+              <Plus className="w-4 h-4 me-2" />
               Add User
             </Link>
           </Button>
@@ -168,12 +168,12 @@ export function AgencyUsersManagement() {
               <table className="w-full">
                 <thead className="bg-[#F8FAFC] border-b">
                   <tr>
-                    <th className="text-left p-4 font-semibold text-sm">User</th>
-                    <th className="text-left p-4 font-semibold text-sm">Role</th>
-                    <th className="text-left p-4 font-semibold text-sm">Approval</th>
-                    <th className="text-left p-4 font-semibold text-sm">Status</th>
-                    <th className="text-left p-4 font-semibold text-sm">Last Login</th>
-                    <th className="text-left p-4 font-semibold text-sm">Actions</th>
+                    <th className="text-start p-4 font-semibold text-sm">User</th>
+                    <th className="text-start p-4 font-semibold text-sm">Role</th>
+                    <th className="text-start p-4 font-semibold text-sm">Approval</th>
+                    <th className="text-start p-4 font-semibold text-sm">Status</th>
+                    <th className="text-start p-4 font-semibold text-sm">Last Login</th>
+                    <th className="text-start p-4 font-semibold text-sm">Actions</th>
                   </tr>
                 </thead>
                 <tbody>

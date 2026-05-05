@@ -52,7 +52,7 @@ function WorkflowCard({
       onClick={onSelect}
     >
       {/* Color stripe */}
-      <div className="absolute top-0 left-0 right-0 h-1 rounded-t-xl" style={{ background: workflow.color }} />
+      <div className="absolute top-0 start-0 end-0 h-1 rounded-t-xl" style={{ background: workflow.color }} />
 
       <div className="flex items-start justify-between mt-1">
         <div className="flex-1 min-w-0">
@@ -87,7 +87,7 @@ function WorkflowCard({
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-1 ml-3" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-1 ms-3" onClick={(e) => e.stopPropagation()}>
           {/* Configure button — always visible on hover */}
           <button
             onClick={onConfigure}
@@ -106,7 +106,7 @@ function WorkflowCard({
               <MoreVertical className="w-4 h-4" />
             </button>
             {menuOpen && (
-              <div className="absolute right-0 mt-1 w-40 bg-popover border border-border rounded-lg shadow-lg z-10 py-1" onMouseLeave={() => setMenuOpen(false)}>
+              <div className="absolute end-0 mt-1 w-40 bg-popover border border-border rounded-lg shadow-lg z-10 py-1" onMouseLeave={() => setMenuOpen(false)}>
                 <button
                   onClick={() => { setMenuOpen(false); onConfigure(); }}
                   className="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted"
@@ -556,7 +556,7 @@ function ManageAccessModal({
               disabled={!selectedUserId || adding}
               className="px-3 py-2 rounded-md bg-primary text-primary-foreground text-sm disabled:opacity-50"
             >
-              <Plus className="w-4 h-4 inline mr-1" />{adding ? 'Adding…' : 'Add'}
+              <Plus className="w-4 h-4 inline me-1" />{adding ? 'Adding…' : 'Add'}
             </button>
           </div>
         </div>

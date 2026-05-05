@@ -269,7 +269,7 @@ export function DatabaseBackup() {
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard/settings')}>
-          <ArrowLeft className="w-4 h-4 mr-1" />
+          <ArrowLeft className="w-4 h-4 me-1" />
           Back to Settings
         </Button>
       </div>
@@ -289,8 +289,8 @@ export function DatabaseBackup() {
         </div>
         <Button onClick={() => setShowCreate(true)} disabled={locked}>
           {locked
-            ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" />Operation in progress…</>
-            : <><Plus className="w-4 h-4 mr-2" />Create Backup</>
+            ? <><RefreshCw className="w-4 h-4 me-2 animate-spin" />Operation in progress…</>
+            : <><Plus className="w-4 h-4 me-2" />Create Backup</>
           }
         </Button>
       </div>
@@ -361,7 +361,7 @@ export function DatabaseBackup() {
           </SelectContent>
         </Select>
         <Button variant="outline" size="sm" onClick={() => { fetchBackups(); fetchStatus(); }} disabled={loading}>
-          <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`w-4 h-4 me-1 ${loading ? 'animate-spin' : ''}`} />
           Refresh
         </Button>
       </div>
@@ -392,7 +392,7 @@ export function DatabaseBackup() {
                     <TableHead>Created By</TableHead>
                     <TableHead>Created At</TableHead>
                     <TableHead>Notes</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead className="text-end">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -415,7 +415,7 @@ export function DatabaseBackup() {
                       <TableCell className="text-sm text-muted-foreground">{b.fileSizeHuman}</TableCell>
                       <TableCell>
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_BADGE[b.status] ?? 'bg-gray-100 text-gray-700'}`}>
-                          {b.status === 'RUNNING' && <RefreshCw className="w-3 h-3 mr-1 animate-spin" />}
+                          {b.status === 'RUNNING' && <RefreshCw className="w-3 h-3 me-1 animate-spin" />}
                           {b.status}
                         </span>
                       </TableCell>
@@ -428,7 +428,7 @@ export function DatabaseBackup() {
                       <TableCell className="text-sm text-muted-foreground max-w-[150px] truncate">
                         {b.notes ?? '—'}
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-end">
                         <div className="flex items-center justify-end gap-1">
                           {b.status === 'COMPLETED' && b.fileExists && (
                             <>
@@ -518,8 +518,8 @@ export function DatabaseBackup() {
             <Button variant="outline" onClick={() => setShowCreate(false)} disabled={creating}>Cancel</Button>
             <Button onClick={handleCreate} disabled={creating}>
               {creating
-                ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" />Creating…</>
-                : <><Database className="w-4 h-4 mr-2" />Create Backup</>
+                ? <><RefreshCw className="w-4 h-4 me-2 animate-spin" />Creating…</>
+                : <><Database className="w-4 h-4 me-2" />Create Backup</>
               }
             </Button>
           </DialogFooter>
@@ -550,8 +550,8 @@ export function DatabaseBackup() {
             <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={deleting}>Cancel</Button>
             <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
               {deleting
-                ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" />Deleting…</>
-                : <><Trash2 className="w-4 h-4 mr-2" />Delete Backup</>
+                ? <><RefreshCw className="w-4 h-4 me-2 animate-spin" />Deleting…</>
+                : <><Trash2 className="w-4 h-4 me-2" />Delete Backup</>
               }
             </Button>
           </DialogFooter>
@@ -597,7 +597,7 @@ export function DatabaseBackup() {
                 )}
               </div>
               <div className="p-3 bg-amber-50 border border-amber-200 rounded text-sm text-amber-800">
-                <AlertTriangle className="w-4 h-4 inline mr-1" />
+                <AlertTriangle className="w-4 h-4 inline me-1" />
                 You may need to restart the backend server for all changes to take effect.
               </div>
               <Button className="w-full" onClick={() => { setShowRestore(false); setPreview(null); setRestoreResult(null); }}>
@@ -706,7 +706,7 @@ export function DatabaseBackup() {
                       Skip pre-restore safety backup
                     </Label>
                   </div>
-                  <p className="text-xs text-green-700 mt-1 ml-6">
+                  <p className="text-xs text-green-700 mt-1 ms-6">
                     By default, a safety backup of the current database is created before restore.
                     Uncheck (default) to keep this protection. Only skip if you are certain.
                   </p>
@@ -760,8 +760,8 @@ export function DatabaseBackup() {
                   onClick={handleRestore}
                 >
                   {restoring
-                    ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" />Restoring…</>
-                    : <><RotateCcw className="w-4 h-4 mr-2" />Execute Restore</>
+                    ? <><RefreshCw className="w-4 h-4 me-2 animate-spin" />Restoring…</>
+                    : <><RotateCcw className="w-4 h-4 me-2" />Execute Restore</>
                   }
                 </Button>
               </DialogFooter>

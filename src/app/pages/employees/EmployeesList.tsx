@@ -362,7 +362,7 @@ export function EmployeesList() {
             {/* Row 1 */}
             <div className="flex flex-wrap items-center gap-3">
               <div className="flex-1 min-w-48 relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input placeholder={t('employees.list.search')} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="ps-10" />
               </div>
 
@@ -385,7 +385,7 @@ export function EmployeesList() {
               )}
 
               <Button variant="outline" size="sm" onClick={fetchEmployees} disabled={loading}>
-                <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />Refresh
+                <RefreshCw className={`w-4 h-4 me-1 ${loading ? 'animate-spin' : ''}`} />Refresh
               </Button>
               <Button
                 variant="outline"
@@ -394,7 +394,7 @@ export function EmployeesList() {
                 disabled={selected.size === 0}
                 title={selected.size === 0 ? 'Select one or more rows to export' : undefined}
               >
-                <Download className="w-4 h-4 mr-2" />Export to Excel ({selected.size})
+                <Download className="w-4 h-4 me-2" />Export to Excel ({selected.size})
               </Button>
               <Button
                 variant="outline"
@@ -404,8 +404,8 @@ export function EmployeesList() {
                 title={selected.size === 0 ? 'Select one or more rows to export as PDFs' : undefined}
               >
                 {pdfExporting
-                  ? <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  : <FileText className="w-4 h-4 mr-2" />}
+                  ? <Loader2 className="w-4 h-4 me-2 animate-spin" />
+                  : <FileText className="w-4 h-4 me-2" />}
                 Export PDFs ({selected.size})
               </Button>
 
@@ -416,23 +416,23 @@ export function EmployeesList() {
                   onClick={() => setShowColPicker(v => !v)}
                   className={showColPicker ? 'border-blue-500 text-blue-600' : ''}
                 >
-                  <Columns2 className="w-4 h-4 mr-1.5" />Columns
+                  <Columns2 className="w-4 h-4 me-1.5" />Columns
                   {ALL_COLUMNS.filter(c => !visibleColumns[c.key]).length > 0 && (
-                    <span className="ml-1.5 bg-blue-600 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
+                    <span className="ms-1.5 bg-blue-600 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
                       {ALL_COLUMNS.filter(c => !visibleColumns[c.key]).length}
                     </span>
                   )}
                 </Button>
 
                 {showColPicker && (
-                  <div className="absolute right-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[180px]">
+                  <div className="absolute end-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[180px]">
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">Toggle columns</p>
                     <div className="space-y-0.5">
                       {ALL_COLUMNS.map(c => (
                         <button
                           key={c.key}
                           onClick={() => toggleColumn(c.key)}
-                          className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-gray-50 text-sm text-left"
+                          className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-gray-50 text-sm text-start"
                         >
                           <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${visibleColumns[c.key] ? 'bg-blue-600 border-blue-600' : 'border-gray-300'}`}>
                             {visibleColumns[c.key] && <Check className="w-2.5 h-2.5 text-white" />}
@@ -470,7 +470,7 @@ export function EmployeesList() {
 
               {hasActiveFilters && (
                 <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground hover:text-foreground">
-                  <X className="w-3.5 h-3.5 mr-1" />Clear filters
+                  <X className="w-3.5 h-3.5 me-1" />Clear filters
                 </Button>
               )}
             </div>
@@ -494,7 +494,7 @@ export function EmployeesList() {
                   {col('experience')  && <SortableHead label="Experience"   field="yearsExperience" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
                   {col('agency')      && <SortableHead label="Agency"       field="agency"          sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
                   {col('status')      && <SortableHead label="Status"       field="status"          sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="text-end">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -569,14 +569,14 @@ export function EmployeesList() {
                         </Badge>
                       </TableCell>
                     )}
-                    <TableCell className="text-right">
+                    <TableCell className="text-end">
                       <div className="flex items-center justify-end gap-1">
                         <Button variant="ghost" size="sm" asChild>
-                          <Link to={`/dashboard/employees/${driver.id}`}><Eye className="w-4 h-4 mr-1" />View</Link>
+                          <Link to={`/dashboard/employees/${driver.id}`}><Eye className="w-4 h-4 me-1" />View</Link>
                         </Button>
                         {canEdit('employees') && (
                           <Button variant="ghost" size="sm" asChild>
-                            <Link to={`/dashboard/employees/${driver.id}/edit`}><Edit className="w-4 h-4 mr-1" />Edit</Link>
+                            <Link to={`/dashboard/employees/${driver.id}/edit`}><Edit className="w-4 h-4 me-1" />Edit</Link>
                           </Button>
                         )}
                         {canDelete('employees') && (

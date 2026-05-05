@@ -119,7 +119,7 @@ export function DatabaseCleanup() {
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard/settings')}>
-          <ArrowLeft className="w-4 h-4 mr-1" />
+          <ArrowLeft className="w-4 h-4 me-1" />
           Back to Settings
         </Button>
       </div>
@@ -221,11 +221,11 @@ export function DatabaseCleanup() {
       {/* Preview & Action Buttons */}
       <div className="flex flex-wrap items-center gap-3">
         <Button variant="outline" onClick={loadPreview} disabled={previewLoading}>
-          {previewLoading ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Eye className="w-4 h-4 mr-2" />}
+          {previewLoading ? <RefreshCw className="w-4 h-4 me-2 animate-spin" /> : <Eye className="w-4 h-4 me-2" />}
           Preview Impact
         </Button>
         <Button variant="destructive" onClick={openConfirmDialog}>
-          <Trash2 className="w-4 h-4 mr-2" />
+          <Trash2 className="w-4 h-4 me-2" />
           Execute Database Cleanup
         </Button>
       </div>
@@ -394,9 +394,9 @@ export function DatabaseCleanup() {
               onClick={executeCleanup}
             >
               {executing ? (
-                <><RefreshCw className="w-4 h-4 mr-2 animate-spin" />Executing…</>
+                <><RefreshCw className="w-4 h-4 me-2 animate-spin" />Executing…</>
               ) : (
-                <><Trash2 className="w-4 h-4 mr-2" />Execute Cleanup</>
+                <><Trash2 className="w-4 h-4 me-2" />Execute Cleanup</>
               )}
             </Button>
           </DialogFooter>

@@ -121,13 +121,13 @@ export function DocumentPreview() {
           {canEdit('documents') && (
             <Button variant="outline" asChild>
               <Link to={`/dashboard/documents/${id}/edit`}>
-                <Edit className="w-4 h-4 mr-2" />Edit
+                <Edit className="w-4 h-4 me-2" />Edit
               </Link>
             </Button>
           )}
           <Button variant="outline" asChild>
             <a href={getFileUrl(document.fileUrl)} target="_blank" rel="noopener noreferrer" download>
-              <Download className="w-4 h-4 mr-2" />Download
+              <Download className="w-4 h-4 me-2" />Download
             </a>
           </Button>
           {canDelete('documents') && (
@@ -136,7 +136,7 @@ export function DocumentPreview() {
               className="text-[#EF4444] border-[#EF4444]"
               onClick={handleDelete}
             >
-              <Trash2 className="w-4 h-4 mr-2" />Delete
+              <Trash2 className="w-4 h-4 me-2" />Delete
             </Button>
           )}
         </div>
@@ -165,7 +165,7 @@ export function DocumentPreview() {
                 <p className="text-sm text-muted-foreground mt-2">{document.name}</p>
                 <Button variant="outline" className="mt-4" asChild>
                   <a href={getFileUrl(document.fileUrl)} target="_blank" rel="noopener noreferrer" download>
-                    <Download className="w-4 h-4 mr-2" />Download to view
+                    <Download className="w-4 h-4 me-2" />Download to view
                   </a>
                 </Button>
               </div>
@@ -258,7 +258,7 @@ export function DocumentPreview() {
                 onClick={handleApprove}
                 disabled={verifying}
               >
-                <CheckCircle2 className="w-4 h-4 mr-2" />
+                <CheckCircle2 className="w-4 h-4 me-2" />
                 {verifying ? 'Processing…' : 'Approve Document'}
               </Button>
               <Button
@@ -267,7 +267,7 @@ export function DocumentPreview() {
                 onClick={() => { setRejectionReason(''); setRejectOpen(true); }}
                 disabled={verifying}
               >
-                <XCircle className="w-4 h-4 mr-2" />
+                <XCircle className="w-4 h-4 me-2" />
                 Reject Document
               </Button>
             </div>
@@ -308,7 +308,7 @@ export function DocumentPreview() {
               onClick={handleReject}
               disabled={verifying || !rejectionReason.trim()}
             >
-              <XCircle className="w-4 h-4 mr-2" />
+              <XCircle className="w-4 h-4 me-2" />
               {verifying ? 'Rejecting…' : 'Confirm Rejection'}
             </Button>
           </DialogFooter>

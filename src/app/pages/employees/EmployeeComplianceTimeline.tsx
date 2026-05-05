@@ -256,7 +256,7 @@ export function EmployeeComplianceTimeline() {
         <CardContent>
           <div className="relative">
             {/* Timeline vertical line */}
-            <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-[#E2E8F0]" />
+            <div className="absolute start-6 top-0 bottom-0 w-0.5 bg-[#E2E8F0]" />
             
             <div className="space-y-6">
               {mockComplianceTimeline.map((event) => (

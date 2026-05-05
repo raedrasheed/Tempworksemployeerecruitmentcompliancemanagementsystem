@@ -1088,7 +1088,7 @@ function Step1Personal({ d, u, jobTypes, photoFile, onPhotoChange, existingPhoto
           <RadioYN name="livedAbroadRecently" value={d.livedAbroadRecently} onChange={set('livedAbroadRecently')} />
         </div>
         {d.livedAbroadRecently === 'yes' && (
-          <div className="space-y-4 pt-2 border-l-2 border-blue-100 pl-4">
+          <div className="space-y-4 pt-2 border-s-2 border-blue-100 ps-4">
             <div className="space-y-1">
               <Label className="text-xs">Country *</Label>
               <CountrySelect value={d.abroadCountry} onChange={set('abroadCountry')} placeholder="Select country" />
@@ -1815,7 +1815,7 @@ function Step5DrivingExperience({ d, u, settings, fieldErrors }: { d: ApplicantF
           {d.transportTypes.map(t => (
             <span key={t} className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-lg text-sm">
               {t}
-              <button type="button" onClick={() => toggle('transportTypes', t)} className="text-gray-400 hover:text-red-500 ml-1">
+              <button type="button" onClick={() => toggle('transportTypes', t)} className="text-gray-400 hover:text-red-500 ms-1">
                 <X className="w-3 h-3" />
               </button>
             </span>
@@ -1842,7 +1842,7 @@ function Step5DrivingExperience({ d, u, settings, fieldErrors }: { d: ApplicantF
           {d.truckBrands.map(b => (
             <span key={b} className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-lg text-sm">
               {b}
-              <button type="button" onClick={() => toggle('truckBrands', b)} className="text-gray-400 hover:text-red-500 ml-1">
+              <button type="button" onClick={() => toggle('truckBrands', b)} className="text-gray-400 hover:text-red-500 ms-1">
                 <X className="w-3 h-3" />
               </button>
             </span>
@@ -1880,7 +1880,7 @@ function Step5DrivingExperience({ d, u, settings, fieldErrors }: { d: ApplicantF
           {d.selectedGpsSystems.map(g => (
             <span key={g} className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-lg text-sm">
               {g}
-              <button type="button" onClick={() => toggle('selectedGpsSystems', g)} className="text-gray-400 hover:text-red-500 ml-1">
+              <button type="button" onClick={() => toggle('selectedGpsSystems', g)} className="text-gray-400 hover:text-red-500 ms-1">
                 <X className="w-3 h-3" />
               </button>
             </span>
@@ -1899,7 +1899,7 @@ function Step5DrivingExperience({ d, u, settings, fieldErrors }: { d: ApplicantF
           {d.trailerTypes.map(t => (
             <span key={t} className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-lg text-sm">
               {t}
-              <button type="button" onClick={() => toggle('trailerTypes', t)} className="text-gray-400 hover:text-red-500 ml-1">
+              <button type="button" onClick={() => toggle('trailerTypes', t)} className="text-gray-400 hover:text-red-500 ms-1">
                 <X className="w-3 h-3" />
               </button>
             </span>
@@ -2505,14 +2505,14 @@ function Step10Documents({ uploadedFiles, onFilesChange, requiredDocuments = [] 
                   <FileText className={`w-4 h-4 shrink-0 ${item.file ? 'text-green-600' : 'text-red-500'}`} />
                   <span className={`text-sm font-medium ${item.file ? 'text-green-800' : 'text-red-800'}`}>{docName}</span>
                   {item.file
-                    ? <span className="ml-auto text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">Uploaded</span>
-                    : <span className="ml-auto text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium">Required *</span>
+                    ? <span className="ms-auto text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">Uploaded</span>
+                    : <span className="ms-auto text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium">Required *</span>
                   }
                 </div>
                 <label className="block cursor-pointer">
                   <div className={`flex items-center gap-2 px-3 py-2 rounded border text-sm transition-colors ${item.file ? 'bg-green-50 border-green-300 text-green-800' : 'bg-white border-red-300 text-red-500 hover:border-red-400'}`}>
                     {item.file ? (
-                      <><Check className="w-4 h-4 text-green-600 shrink-0" /><span className="truncate">{item.file.name}</span><span className="ml-auto text-xs">{(item.file.size / 1024 / 1024).toFixed(1)} MB</span></>
+                      <><Check className="w-4 h-4 text-green-600 shrink-0" /><span className="truncate">{item.file.name}</span><span className="ms-auto text-xs">{(item.file.size / 1024 / 1024).toFixed(1)} MB</span></>
                     ) : (
                       <><Upload className="w-4 h-4" /><span>Choose file (required)</span></>
                     )}
@@ -2538,7 +2538,7 @@ function Step10Documents({ uploadedFiles, onFilesChange, requiredDocuments = [] 
                 <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-md">
                   <FileText className="w-4 h-4 text-blue-500 shrink-0" />
                   <span className="text-sm text-blue-800 font-medium">{item.type.replace(/^Upload\s+/i, '')}</span>
-                  <span className="ml-auto text-xs text-blue-500 italic">auto-detected</span>
+                  <span className="ms-auto text-xs text-blue-500 italic">auto-detected</span>
                 </div>
               ) : (
                 <Select value={item.type} onValueChange={type => updateItem(item.id, { type })}>
@@ -2556,7 +2556,7 @@ function Step10Documents({ uploadedFiles, onFilesChange, requiredDocuments = [] 
           <label className="block cursor-pointer">
             <div className={`flex items-center gap-2 px-3 py-2 rounded border text-sm transition-colors ${item.file ? 'bg-green-50 border-green-300 text-green-800' : 'bg-gray-50 border-gray-200 text-gray-500 hover:border-blue-300'}`}>
               {item.file ? (
-                <><Check className="w-4 h-4 text-green-600 shrink-0" /><span className="truncate">{item.file.name}</span><span className="ml-auto text-xs">{(item.file.size / 1024 / 1024).toFixed(1)} MB</span></>
+                <><Check className="w-4 h-4 text-green-600 shrink-0" /><span className="truncate">{item.file.name}</span><span className="ms-auto text-xs">{(item.file.size / 1024 / 1024).toFixed(1)} MB</span></>
               ) : (
                 <><Upload className="w-4 h-4" /><span>Choose file</span></>
               )}
@@ -2908,7 +2908,7 @@ function Step11Review({ d, u, settings, photoFile, existingPhotoUrl, uploadedFil
           <p className="text-xs text-amber-700">You must agree to all statements below before submitting your application.</p>
         </div>
         {settings.declarationText && (
-          <p className="text-sm text-amber-800 leading-relaxed border-l-4 border-amber-300 pl-3">{settings.declarationText}</p>
+          <p className="text-sm text-amber-800 leading-relaxed border-s-4 border-amber-300 ps-3">{settings.declarationText}</p>
         )}
         <div className="space-y-3">
           {STATEMENTS.map(({ field, label }) => (

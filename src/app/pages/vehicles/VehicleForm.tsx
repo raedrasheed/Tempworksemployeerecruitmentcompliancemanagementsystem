@@ -293,7 +293,7 @@ export function VehicleForm() {
     <div className="p-6 max-w-3xl mx-auto space-y-6">
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
-          <ArrowLeft className="w-4 h-4 mr-1" /> Back
+          <ArrowLeft className="w-4 h-4 me-1" /> Back
         </Button>
         <div>
           <h1 className="text-xl font-bold flex items-center gap-2">
@@ -687,7 +687,7 @@ export function VehicleForm() {
         <div className="flex gap-3 justify-end">
           <Button type="button" variant="outline" onClick={() => navigate(-1)}>Cancel</Button>
           <Button type="submit" disabled={saving}>
-            <Save className="w-4 h-4 mr-2" />
+            <Save className="w-4 h-4 me-2" />
             {saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Create Vehicle'}
           </Button>
         </div>

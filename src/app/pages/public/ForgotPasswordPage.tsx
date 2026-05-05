@@ -37,7 +37,7 @@ export function ForgotPasswordPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#EFF6FF] to-white flex items-center justify-center p-4">
-      <div className="absolute top-4 left-4 rtl:left-auto rtl:right-4">
+      <div className="absolute top-4 start-4">
         <Link to="/login">
           <Button variant="ghost" className="gap-2">
             <ArrowLeft className="w-4 h-4 rtl:rotate-180" />
@@ -46,7 +46,7 @@ export function ForgotPasswordPage() {
         </Link>
       </div>
 
-      <div className="absolute top-4 right-4 rtl:right-auto rtl:left-4">
+      <div className="absolute top-4 end-4">
         <LanguageSwitcher variant="labelled" />
       </div>
 

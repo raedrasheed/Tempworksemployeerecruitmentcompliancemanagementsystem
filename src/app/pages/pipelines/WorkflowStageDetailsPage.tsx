@@ -244,7 +244,7 @@ function CandidateCardCorridor({
               ? 'Rejected'
               : 'Not Started'}
           </span>
-          <span className="text-sm ml-auto">
+          <span className="text-sm ms-auto">
             {candidate.requiredDocsUploaded} / {candidate.requiredDocsTotal} documents
           </span>
         </div>
@@ -262,7 +262,7 @@ function CandidateCardCorridor({
               onChange={(e) => setFlagged(e.target.checked)}
               className="rounded border-border"
             />
-            <label htmlFor={`flag-${candidate.progressId}`} className="text-sm text-foreground ml-2">
+            <label htmlFor={`flag-${candidate.progressId}`} className="text-sm text-foreground ms-2">
               Flag this candidate
             </label>
             {flagged && (
@@ -295,7 +295,7 @@ function CandidateCardCorridor({
           className="flex-1"
         >
           <Button className="w-full" variant="outline">
-            <Eye className="w-4 h-4 mr-2" />
+            <Eye className="w-4 h-4 me-2" />
             View Full Profile (New Tab)
           </Button>
         </a>
@@ -303,7 +303,7 @@ function CandidateCardCorridor({
           onClick={() => onApprove(candidate)}
           className="bg-emerald-600 hover:bg-emerald-700"
         >
-          <ThumbsUp className="w-4 h-4 mr-2" />
+          <ThumbsUp className="w-4 h-4 me-2" />
           Approve
         </Button>
       </div>
@@ -577,12 +577,12 @@ export function WorkflowStageDetailsPage() {
 
             {/* Search */}
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 placeholder="Search by name, email, or application ID..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-9"
+                className="ps-9"
               />
             </div>
 
@@ -674,7 +674,7 @@ export function WorkflowStageDetailsPage() {
                 <div className="col-span-2">
                   <div className="font-semibold text-sm text-foreground">Status</div>
                 </div>
-                <div className="col-span-3 text-right">
+                <div className="col-span-3 text-end">
                   <div className="font-semibold text-sm text-foreground">Actions</div>
                 </div>
               </div>
@@ -684,7 +684,7 @@ export function WorkflowStageDetailsPage() {
                 <div key={item.progressId}>
                   <button
                     onClick={() => setExpandedRow(expandedRow === item.progressId ? null : item.progressId)}
-                    className="w-full grid grid-cols-12 gap-4 px-6 py-4 border-b border-border hover:bg-muted/50 transition-colors text-left"
+                    className="w-full grid grid-cols-12 gap-4 px-6 py-4 border-b border-border hover:bg-muted/50 transition-colors text-start"
                   >
                     <div className="col-span-2 flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-[#EFF6FF] flex items-center justify-center overflow-hidden shrink-0">
@@ -694,7 +694,7 @@ export function WorkflowStageDetailsPage() {
                           <UserCircle className="w-5 h-5 text-[#2563EB]" />
                         )}
                       </div>
-                      <div className="text-left">
+                      <div className="text-start">
                         <p className="font-medium text-foreground text-sm">{item.firstName} {item.lastName}</p>
                         <p className="text-xs text-muted-foreground">{item.email}</p>
                       </div>
@@ -729,7 +729,7 @@ export function WorkflowStageDetailsPage() {
                     <div className="col-span-2 flex items-center gap-2">
                       {item.flagged && (
                         <Badge variant="outline" className="border-amber-500 text-amber-600 bg-amber-50">
-                          <Flag className="w-3 h-3 mr-1" /> Flagged
+                          <Flag className="w-3 h-3 me-1" /> Flagged
                         </Badge>
                       )}
                       {item.latestApproval && (
@@ -754,7 +754,7 @@ export function WorkflowStageDetailsPage() {
                           setApprovePerson(item);
                         }}
                       >
-                        <ThumbsUp className="w-3.5 h-3.5 mr-1" /> Approve
+                        <ThumbsUp className="w-3.5 h-3.5 me-1" /> Approve
                       </Button>
                       <Button
                         size="sm"

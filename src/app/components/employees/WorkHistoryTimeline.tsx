@@ -262,7 +262,7 @@ export function WorkHistoryTimeline({ employeeId, canWrite }: Props) {
         </div>
         {canWrite && (
           <Button size="sm" onClick={openCreate}>
-            <Plus className="w-4 h-4 mr-1" />Add Entry
+            <Plus className="w-4 h-4 me-1" />Add Entry
           </Button>
         )}
       </CardHeader>
@@ -274,19 +274,19 @@ export function WorkHistoryTimeline({ employeeId, canWrite }: Props) {
             No work history yet. {canWrite && 'Add the first contract event to start the timeline.'}
           </div>
         ) : (
-          <ol className="relative border-l-2 border-muted/60 ml-2 space-y-5">
+          <ol className="relative border-s-2 border-muted/60 ms-2 space-y-5">
             {entries.map((entry: any) => {
               const meta = resolveMeta(entry.eventType);
               const Icon = meta.icon;
               return (
-                <li key={entry.id} className="pl-5 relative">
-                  <span className={`absolute -left-[9px] top-1 w-4 h-4 rounded-full border-2 border-background ${TONE_DOT[meta.tone]}`} />
+                <li key={entry.id} className="ps-5 relative">
+                  <span className={`absolute -start-[9px] top-1 w-4 h-4 rounded-full border-2 border-background ${TONE_DOT[meta.tone]}`} />
                   <div className="rounded-lg border bg-card p-3">
                     <div className="flex items-start justify-between gap-3 flex-wrap">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <Badge variant="outline" className={TONE_CLASS[meta.tone]}>
-                            <Icon className="w-3 h-3 mr-1" />{meta.label}
+                            <Icon className="w-3 h-3 me-1" />{meta.label}
                           </Badge>
                           <span className="text-sm font-medium">{formatDate(entry.date)}</span>
                         </div>
@@ -416,8 +416,8 @@ export function WorkHistoryTimeline({ employeeId, canWrite }: Props) {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}><X className="w-4 h-4 mr-2" />Cancel</Button>
-            <Button onClick={handleSave} disabled={saving}><Save className="w-4 h-4 mr-2" />{saving ? 'Saving…' : 'Save'}</Button>
+            <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}><X className="w-4 h-4 me-2" />Cancel</Button>
+            <Button onClick={handleSave} disabled={saving}><Save className="w-4 h-4 me-2" />{saving ? 'Saving…' : 'Save'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

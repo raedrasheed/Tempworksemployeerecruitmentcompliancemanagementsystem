@@ -598,7 +598,7 @@ export function ApplicantProfile() {
           {canEdit('applicants') && (
             <Button asChild variant="outline">
               <Link to={`/dashboard/applicants/${id}/edit`}>
-                <Edit className="w-4 h-4 mr-2" />Edit
+                <Edit className="w-4 h-4 me-2" />Edit
               </Link>
             </Button>
           )}
@@ -614,19 +614,19 @@ export function ApplicantProfile() {
                 setShowConvertLeadDialog(true);
               }}
             >
-              <TrendingUp className="w-4 h-4 mr-2" />Promote to Candidate
+              <TrendingUp className="w-4 h-4 me-2" />Promote to Candidate
             </Button>
           )}
           {/* Convert Candidate → Employee */}
           {canEdit('applicants') && applicantData?.tier === 'CANDIDATE' && (
             <Button className="bg-[#22C55E] hover:bg-[#16a34a]" onClick={() => setShowConvertDialog(true)}>
-              <UserPlus className="w-4 h-4 mr-2" />Convert to Employee
+              <UserPlus className="w-4 h-4 me-2" />Convert to Employee
             </Button>
           )}
           <ApplicantPdfExportButton applicant={applicantData} documents={documents} />
           {canDelete('applicants') && (
             <Button variant="outline" className="text-[#EF4444] border-[#EF4444]" onClick={handleDelete}>
-              <Trash2 className="w-4 h-4 mr-2" />Delete
+              <Trash2 className="w-4 h-4 me-2" />Delete
             </Button>
           )}
         </div>
@@ -819,11 +819,11 @@ export function ApplicantProfile() {
               value="financial"
               onClick={() => { loadFinancialProfile(); }}
             >
-              <DollarSign className="w-3 h-3 mr-1" />Financial
+              <DollarSign className="w-3 h-3 me-1" />Financial
             </TabsTrigger>
           )}
           <TabsTrigger value="history" onClick={loadAgencyHistory}>
-            <History className="w-3 h-3 mr-1" />Agency History
+            <History className="w-3 h-3 me-1" />Agency History
           </TabsTrigger>
           <TabsTrigger value="notes">Notes</TabsTrigger>
         </TabsList>
@@ -916,7 +916,7 @@ export function ApplicantProfile() {
                         <p className="text-sm font-medium">
                           {[applicantData.createdBy.firstName, applicantData.createdBy.lastName].filter(Boolean).join(' ')}
                           {applicantData.createdBy.email && (
-                            <span className="text-xs text-muted-foreground font-normal ml-1">· {applicantData.createdBy.email}</span>
+                            <span className="text-xs text-muted-foreground font-normal ms-1">· {applicantData.createdBy.email}</span>
                           )}
                         </p>
                       ) : (
@@ -977,7 +977,7 @@ export function ApplicantProfile() {
 
                 <InfoRow label="EU Visa" value={applicantData.hasEUVisa ? 'Yes' : 'No'} />
                 {applicantData.hasEUVisa && (
-                  <div className="pl-4 border-l-2 border-blue-100 ml-1 space-y-2">
+                  <div className="ps-4 border-s-2 border-blue-100 ms-1 space-y-2">
                     <InfoRow label="Visa Type" value={applicantData.euVisaType} />
                     <InfoRow label="Issuing Country" value={applicantData.euVisaCountry} />
                     <InfoRow label="Visa Number" value={applicantData.euVisaNumber} />
@@ -987,7 +987,7 @@ export function ApplicantProfile() {
 
                 <InfoRow label="Work Permit in EU" value={applicantData.hasWorkPermit ? 'Yes' : 'No'} />
                 {applicantData.hasWorkPermit && (
-                  <div className="pl-4 border-l-2 border-blue-100 ml-1 space-y-2">
+                  <div className="ps-4 border-s-2 border-blue-100 ms-1 space-y-2">
                     <InfoRow label="Permit Type" value={applicantData.workPermitType} />
                     <InfoRow label="Permit Number" value={applicantData.workPermitNumber} />
                     <InfoRow label="Issuing Country" value={applicantData.workPermitCountry} />
@@ -998,7 +998,7 @@ export function ApplicantProfile() {
 
                 <InfoRow label="Residence Card in EU" value={applicantData.hasResidenceCard ? 'Yes' : 'No'} />
                 {applicantData.hasResidenceCard && (
-                  <div className="pl-4 border-l-2 border-blue-100 ml-1 space-y-2">
+                  <div className="ps-4 border-s-2 border-blue-100 ms-1 space-y-2">
                     <InfoRow label="Residence Type" value={applicantData.euResidenceType} />
                     <InfoRow label="Residence Number" value={applicantData.euResidenceNumber} />
                     <InfoRow label="Country" value={applicantData.euResidenceCountry} />
@@ -1046,7 +1046,7 @@ export function ApplicantProfile() {
                   </div>
 
                   {/* ── International Experience ── */}
-                  <div className="space-y-3 md:pl-6 md:border-l">
+                  <div className="space-y-3 md:ps-6 md:border-s">
                     <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
                       <Globe className="w-3.5 h-3.5" /> Driving Experience
                     </p>
@@ -1201,7 +1201,7 @@ export function ApplicantProfile() {
               <CardTitle>Applicant Documents</CardTitle>
               {canEdit('applicants') && (
                 <Button size="sm" onClick={() => setShowUpload(v => !v)} variant={showUpload ? 'outline' : 'default'}>
-                  {showUpload ? <><X className="w-4 h-4 mr-1" />Cancel</> : <><Upload className="w-4 h-4 mr-1" />Upload Document</>}
+                  {showUpload ? <><X className="w-4 h-4 me-1" />Cancel</> : <><Upload className="w-4 h-4 me-1" />Upload Document</>}
                 </Button>
               )}
             </CardHeader>
@@ -1264,7 +1264,7 @@ export function ApplicantProfile() {
                     </div>
                   </div>
                   <Button size="sm" onClick={handleUpload} disabled={uploading}>
-                    <Upload className="w-4 h-4 mr-1" />{uploading ? 'Uploading...' : 'Upload'}
+                    <Upload className="w-4 h-4 me-1" />{uploading ? 'Uploading...' : 'Upload'}
                   </Button>
                 </div>
               )}
@@ -1305,10 +1305,10 @@ export function ApplicantProfile() {
                         {doc.status === 'PENDING' && can('documents', 'verify') && (
                           <>
                             <Button size="sm" className="bg-emerald-500 hover:bg-emerald-600 text-white h-7 px-2" onClick={() => handleApproveDoc(doc)} disabled={verifyingDocId === doc.id}>
-                              <CheckCircle2 className="w-3.5 h-3.5 mr-1" />{verifyingDocId === doc.id ? '…' : 'Approve'}
+                              <CheckCircle2 className="w-3.5 h-3.5 me-1" />{verifyingDocId === doc.id ? '…' : 'Approve'}
                             </Button>
                             <Button size="sm" variant="outline" className="text-red-500 border-red-300 hover:bg-red-50 h-7 px-2" onClick={() => { setRejectDocDialog({ open: true, docId: doc.id, docName: doc.name }); setRejectDocReason(''); }} disabled={verifyingDocId === doc.id}>
-                              <XCircle className="w-3.5 h-3.5 mr-1" />Reject
+                              <XCircle className="w-3.5 h-3.5 me-1" />Reject
                             </Button>
                           </>
                         )}
@@ -1357,7 +1357,7 @@ export function ApplicantProfile() {
                             <div className="flex items-center gap-2">
                               <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: w.color ?? '#6366F1' }} />
                               <span>{w.name}</span>
-                              <span className={`ml-1 text-[10px] px-1.5 py-0.5 rounded border ${w.isPublic ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-slate-700 border-slate-200'}`}>
+                              <span className={`ms-1 text-[10px] px-1.5 py-0.5 rounded border ${w.isPublic ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-slate-700 border-slate-200'}`}>
                                 {w.isPublic ? 'Public' : 'Private'}
                               </span>
                             </div>
@@ -1377,7 +1377,7 @@ export function ApplicantProfile() {
                 ) : (
                   canEdit('applicants') && (
                     <Button onClick={() => setShowAssignWorkflow(true)}>
-                      <Plus className="w-4 h-4 mr-2" /> Connect to Workflow
+                      <Plus className="w-4 h-4 me-2" /> Connect to Workflow
                     </Button>
                   )
                 )}
@@ -1432,7 +1432,7 @@ export function ApplicantProfile() {
                             <div className="flex items-center gap-2">
                               <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: w.color ?? '#6366F1' }} />
                               <span>{w.name}</span>
-                              <span className={`ml-1 text-[10px] px-1.5 py-0.5 rounded border ${w.isPublic ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-slate-700 border-slate-200'}`}>
+                              <span className={`ms-1 text-[10px] px-1.5 py-0.5 rounded border ${w.isPublic ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-slate-700 border-slate-200'}`}>
                                 {w.isPublic ? 'Public' : 'Private'}
                               </span>
                             </div>
@@ -1622,7 +1622,7 @@ export function ApplicantProfile() {
                           <p className="font-medium">{doc.name}</p>
                           <p className="text-sm text-muted-foreground">{doc.documentType?.name}</p>
                         </div>
-                        <div className="text-right">
+                        <div className="text-end">
                           <Badge variant="outline" className={docStatusClass(doc.status)}>
                             {doc.status?.replace(/_/g, ' ').toLowerCase()}
                           </Badge>
@@ -1889,8 +1889,8 @@ export function ApplicantProfile() {
                       disabled={convertingLead}
                     >
                       {convertingLead
-                        ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Promoting…</>
-                        : <><TrendingUp className="w-4 h-4 mr-2" />Confirm Promotion</>}
+                        ? <><Loader2 className="w-4 h-4 me-2 animate-spin" />Promoting…</>
+                        : <><TrendingUp className="w-4 h-4 me-2" />Confirm Promotion</>}
                     </Button>
                     <Button variant="outline" className="flex-1" onClick={closePromoteDialog} disabled={convertingLead}>
                       Cancel
@@ -1999,7 +1999,7 @@ export function ApplicantProfile() {
                   onClick={handleConvertToEmployee}
                   disabled={converting || !convertForm.addressLine1.trim() || !convertForm.city.trim() || !convertForm.country.trim() || !convertForm.postalCode.trim()}
                 >
-                  {converting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Converting…</> : <><UserPlus className="w-4 h-4 mr-2" />Confirm Conversion</>}
+                  {converting ? <><Loader2 className="w-4 h-4 me-2 animate-spin" />Converting…</> : <><UserPlus className="w-4 h-4 me-2" />Confirm Conversion</>}
                 </Button>
                 <Button variant="outline" className="flex-1" onClick={() => setShowConvertDialog(false)} disabled={converting}>Cancel</Button>
               </div>
@@ -2023,7 +2023,7 @@ export function ApplicantProfile() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setRejectDocDialog(s => ({ ...s, open: false }))}>Cancel</Button>
             <Button className="bg-red-500 hover:bg-red-600 text-white" onClick={handleRejectDocSubmit} disabled={!!verifyingDocId || !rejectDocReason.trim()}>
-              <XCircle className="w-4 h-4 mr-2" />{verifyingDocId ? 'Rejecting…' : 'Confirm Rejection'}
+              <XCircle className="w-4 h-4 me-2" />{verifyingDocId ? 'Rejecting…' : 'Confirm Rejection'}
             </Button>
           </DialogFooter>
         </DialogContent>

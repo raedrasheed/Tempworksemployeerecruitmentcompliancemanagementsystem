@@ -33,7 +33,7 @@ export function WorkflowStageDetail() {
           <p className="text-muted-foreground mt-1">Stage {stage.order} of {workflowStages.length} • Manage drivers in this workflow stage</p>
         </div>
         <Button>
-          <Download className="w-4 h-4 mr-2" />
+          <Download className="w-4 h-4 me-2" />
           Export Report
         </Button>
       </div>
@@ -130,12 +130,12 @@ export function WorkflowStageDetail() {
             <div className="relative">
               <Input 
                 placeholder="Search drivers..." 
-                className="w-64 pl-9"
+                className="w-64 ps-9"
               />
-              <Filter className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Filter className="w-4 h-4 absolute start-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             </div>
             <Button variant="outline">
-              <Filter className="w-4 h-4 mr-2" />
+              <Filter className="w-4 h-4 me-2" />
               Filter
             </Button>
           </div>
@@ -164,7 +164,7 @@ export function WorkflowStageDetail() {
                   </div>
                   
                   <div className="flex items-center gap-6">
-                    <div className="text-right">
+                    <div className="text-end">
                       <p className="text-sm font-medium">{daysInStage} days</p>
                       <p className="text-xs text-muted-foreground">in stage</p>
                     </div>
@@ -186,7 +186,7 @@ export function WorkflowStageDetail() {
                     <Button size="sm" asChild>
                       <Link to={`/dashboard/drivers/${driver.id}`}>
                         View Profile
-                        <ChevronRight className="w-4 h-4 ml-1" />
+                        <ChevronRight className="w-4 h-4 ms-1" />
                       </Link>
                     </Button>
                   </div>

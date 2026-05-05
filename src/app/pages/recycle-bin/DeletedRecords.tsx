@@ -237,7 +237,7 @@ export function DeletedRecords() {
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={() => { fetchRecords(); fetchCounts(); }}>
-          <RefreshCw className="w-4 h-4 mr-2" />
+          <RefreshCw className="w-4 h-4 me-2" />
           Refresh
         </Button>
       </div>
@@ -265,12 +265,12 @@ export function DeletedRecords() {
           <div className="flex flex-wrap gap-3">
             <div className="flex-1 min-w-48">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   placeholder="Search by name, email, ID…"
                   value={search}
                   onChange={e => { setSearch(e.target.value); setPage(1); }}
-                  className="pl-9"
+                  className="ps-9"
                 />
               </div>
             </div>
@@ -318,13 +318,13 @@ export function DeletedRecords() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-muted/40">
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Type</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Name / ID</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Business ID</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Deleted At</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Reason</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Related</th>
-                  <th className="px-4 py-3 text-right font-medium text-muted-foreground">Actions</th>
+                  <th className="px-4 py-3 text-start font-medium text-muted-foreground">Type</th>
+                  <th className="px-4 py-3 text-start font-medium text-muted-foreground">Name / ID</th>
+                  <th className="px-4 py-3 text-start font-medium text-muted-foreground">Business ID</th>
+                  <th className="px-4 py-3 text-start font-medium text-muted-foreground">Deleted At</th>
+                  <th className="px-4 py-3 text-start font-medium text-muted-foreground">Reason</th>
+                  <th className="px-4 py-3 text-start font-medium text-muted-foreground">Related</th>
+                  <th className="px-4 py-3 text-end font-medium text-muted-foreground">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -375,7 +375,7 @@ export function DeletedRecords() {
                         )}
                         {rec.canRestoreWithRelated && rec.relatedDeletedCount > 0 && (
                           <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700 hover:bg-blue-50" onClick={() => openRestore(rec, true)} title="Restore with related records">
-                            <RotateCcw className="w-4 h-4 mr-1" />
+                            <RotateCcw className="w-4 h-4 me-1" />
                             <span className="text-xs">+related</span>
                           </Button>
                         )}
@@ -436,7 +436,7 @@ export function DeletedRecords() {
                     <div key={r.id} className="flex items-center justify-between p-2 border rounded text-sm">
                       <div>
                         <EntityBadge entityType={r.entityType} />
-                        <span className="ml-2">{r.displayName}</span>
+                        <span className="ms-2">{r.displayName}</span>
                       </div>
                       <span className="text-xs text-muted-foreground">{formatDate(r.deletedAt)}</span>
                     </div>
@@ -449,7 +449,7 @@ export function DeletedRecords() {
             <Button variant="outline" onClick={() => setShowRelatedDialog(false)}>Close</Button>
             {selectedRecord?.canRestoreWithRelated && (
               <Button onClick={() => { setShowRelatedDialog(false); openRestore(selectedRecord!, true); }}>
-                <RotateCcw className="w-4 h-4 mr-2" />
+                <RotateCcw className="w-4 h-4 me-2" />
                 Restore with Related
               </Button>
             )}
@@ -479,7 +479,7 @@ export function DeletedRecords() {
             <Button variant="outline" onClick={() => setShowRestoreDialog(false)}>Cancel</Button>
             <Button onClick={executeRestore} disabled={restoreLoading}>
               {restoreLoading ? 'Restoring…' : (
-                <><RotateCcw className="w-4 h-4 mr-2" />Restore</>
+                <><RotateCcw className="w-4 h-4 me-2" />Restore</>
               )}
             </Button>
           </DialogFooter>

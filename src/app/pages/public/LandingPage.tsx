@@ -590,7 +590,7 @@ export function LandingPage() {
                 <p>&copy; 2026 {branding.companyName}. {t('landing.footer.rightsReserved')}</p>
                 <p className="mt-1">{branding.vatInfo}</p>
               </div>
-              <div className="text-sm text-gray-400 md:text-right">
+              <div className="text-sm text-gray-400 md:text-end">
                 <p>{branding.address}</p>
                 <p className="mt-1">Tel: {branding.phone1} | Email: {branding.emailInfo}</p>
               </div>

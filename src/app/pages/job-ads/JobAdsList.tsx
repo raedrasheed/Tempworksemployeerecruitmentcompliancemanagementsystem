@@ -242,7 +242,7 @@ export function JobAdsList() {
   const SortableHead = ({ label, field, className }: { label: string; field: SortField; className?: string }) => {
     const active = sortBy === field;
     return (
-      <th className={`px-4 py-3 text-left font-medium text-muted-foreground ${className ?? ''}`}>
+      <th className={`px-4 py-3 text-start font-medium text-muted-foreground ${className ?? ''}`}>
         <button onClick={() => handleSort(field)} className="flex items-center gap-1 hover:text-foreground group">
           {label}
           {active
@@ -282,12 +282,12 @@ export function JobAdsList() {
         <CardContent className="p-4 space-y-3">
           <div className="flex flex-wrap gap-3 items-center">
             <div className="flex-1 min-w-[200px] relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 placeholder="Search title, city, country…"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="pl-9"
+                className="ps-9"
               />
             </div>
             <Select
@@ -370,33 +370,33 @@ export function JobAdsList() {
             </div>
             {hasAnyFilters && (
               <Button variant="ghost" size="sm" onClick={clearAllFilters}>
-                <X className="w-3 h-3 mr-1" />Clear filters
+                <X className="w-3 h-3 me-1" />Clear filters
               </Button>
             )}
 
             {/* Column picker */}
-            <div className="relative ml-auto" ref={colPickerRef}>
+            <div className="relative ms-auto" ref={colPickerRef}>
               <Button
                 variant="outline" size="sm"
                 onClick={() => setShowColPicker(v => !v)}
                 className={showColPicker ? 'border-primary text-primary' : ''}
               >
-                <Columns2 className="w-4 h-4 mr-1.5" />Columns
+                <Columns2 className="w-4 h-4 me-1.5" />Columns
                 {hiddenCount > 0 && (
-                  <span className="ml-1.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
+                  <span className="ms-1.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
                     {hiddenCount}
                   </span>
                 )}
               </Button>
               {showColPicker && (
-                <div className="absolute right-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[200px]">
+                <div className="absolute end-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[200px]">
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">Toggle columns</p>
                   <div className="space-y-0.5 max-h-72 overflow-y-auto">
                     {ALL_COLUMNS.map(c => (
                       <button
                         key={c.key}
                         onClick={() => toggleColumn(c.key)}
-                        className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-gray-50 text-sm text-left"
+                        className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-gray-50 text-sm text-start"
                       >
                         <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${visibleColumns[c.key] ? 'bg-primary border-primary' : 'border-gray-300'}`}>
                           {visibleColumns[c.key] && <Check className="w-2.5 h-2.5 text-primary-foreground" />}
@@ -445,7 +445,7 @@ export function JobAdsList() {
               {col('createdAt')    && <SortableHead label="Created"    field="createdAt" />}
               {col('updatedAt')    && <SortableHead label="Updated"    field="updatedAt" />}
               {col('slug')         && <SortableHead label="Slug"       field="slug" />}
-              <th className="px-4 py-3 text-right font-medium text-muted-foreground">Actions</th>
+              <th className="px-4 py-3 text-end font-medium text-muted-foreground">Actions</th>
             </tr>
           </thead>
           <tbody>

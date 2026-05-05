@@ -335,21 +335,21 @@ export function UsersList() {
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={reload} disabled={loading}>
-            <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-4 h-4 me-1 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
           <Button variant="outline" size="sm" onClick={handleExport}>
-            <Download className="w-4 h-4 mr-2" />Export
+            <Download className="w-4 h-4 me-2" />Export
           </Button>
           {canCreate('users') && (
             <Button variant="outline" size="sm" onClick={() => setShowImportModal(true)}>
-              <Upload className="w-4 h-4 mr-2" />Bulk Import
+              <Upload className="w-4 h-4 me-2" />Bulk Import
             </Button>
           )}
           {canCreate('users') && (
             <Button asChild>
               <Link to="/dashboard/users/add">
-                <Plus className="w-4 h-4 mr-2" />Add User
+                <Plus className="w-4 h-4 me-2" />Add User
               </Link>
             </Button>
           )}
@@ -362,12 +362,12 @@ export function UsersList() {
           {/* Row 1: search (full width, so the icon can't get pushed out of
               place by wrapping filter pills) */}
           <div className="relative w-full">
-            <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder="Search name, email, role, agency, phone, dept…"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="pl-9 w-full"
+              className="ps-9 w-full"
             />
           </div>
 
@@ -423,30 +423,30 @@ export function UsersList() {
 
             {hasActiveFilters && (
               <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground hover:text-foreground">
-                <X className="w-3.5 h-3.5 mr-1" />Clear filters
+                <X className="w-3.5 h-3.5 me-1" />Clear filters
               </Button>
             )}
 
             {/* Column picker */}
-            <div className="relative ml-auto" ref={colPickerRef}>
+            <div className="relative ms-auto" ref={colPickerRef}>
               <Button
                 variant="outline" size="sm"
                 onClick={() => setShowColPicker(v => !v)}
                 className={showColPicker ? 'border-blue-500 text-blue-600' : ''}
               >
-                <Columns2 className="w-4 h-4 mr-1.5" />Columns
+                <Columns2 className="w-4 h-4 me-1.5" />Columns
                 {hiddenCount > 0 && (
-                  <span className="ml-1.5 bg-blue-600 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
+                  <span className="ms-1.5 bg-blue-600 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
                     {hiddenCount}
                   </span>
                 )}
               </Button>
               {showColPicker && (
-                <div className="absolute right-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[180px]">
+                <div className="absolute end-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[180px]">
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">Toggle columns</p>
                   <div className="space-y-0.5">
                     {ALL_COLUMNS.map(c => (
-                      <button key={c.key} onClick={() => toggleColumn(c.key)} className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-gray-50 text-sm text-left">
+                      <button key={c.key} onClick={() => toggleColumn(c.key)} className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-gray-50 text-sm text-start">
                         <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${visibleColumns[c.key] ? 'bg-blue-600 border-blue-600' : 'border-gray-300'}`}>
                           {visibleColumns[c.key] && <Check className="w-2.5 h-2.5 text-white" />}
                         </span>
@@ -480,7 +480,7 @@ export function UsersList() {
                   {col('agency')    && <SortableHead label="Agency"     field="agency"    sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
                   {col('status')    && <SortableHead label="Status"     field="status"    sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
                   {col('lastLogin') && <SortableHead label="Last Login" field="lastLogin" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="text-end">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -531,11 +531,11 @@ export function UsersList() {
                         {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString() : '—'}
                       </TableCell>
                     )}
-                    <TableCell className="text-right">
+                    <TableCell className="text-end">
                       <div className="flex items-center justify-end gap-1">
                         {canEdit('users') && (user.status === 'PENDING' || user.status === 'INACTIVE') && (
                           <Button variant="ghost" size="sm" onClick={() => handleGetActivationLink(user)} disabled={loadingLink === user.id} className="text-amber-600 hover:text-amber-700 hover:bg-amber-50 text-xs" title="Get activation link">
-                            <Copy className="w-3.5 h-3.5 mr-1" />
+                            <Copy className="w-3.5 h-3.5 me-1" />
                             {loadingLink === user.id ? '...' : 'Activation Link'}
                           </Button>
                         )}
@@ -561,12 +561,12 @@ export function UsersList() {
                             view and this row would be redundant). */}
                         {mayViewRow(user) && !mayEditRow(user) && (
                           <Button variant="ghost" size="sm" asChild>
-                            <Link to={`/dashboard/users/${user.id}/edit`}><Eye className="w-4 h-4 mr-1" />View</Link>
+                            <Link to={`/dashboard/users/${user.id}/edit`}><Eye className="w-4 h-4 me-1" />View</Link>
                           </Button>
                         )}
                         {mayEditRow(user) && (
                           <Button variant="ghost" size="sm" asChild>
-                            <Link to={`/dashboard/users/${user.id}/edit`}><Edit className="w-4 h-4 mr-1" />Edit</Link>
+                            <Link to={`/dashboard/users/${user.id}/edit`}><Edit className="w-4 h-4 me-1" />Edit</Link>
                           </Button>
                         )}
                         {mayDeleteRow(user) && (
@@ -601,7 +601,7 @@ export function UsersList() {
             <div className="bg-gray-50 border rounded-md p-3 break-all text-sm font-mono text-gray-700">{activationLink}</div>
             <div className="flex gap-3 pt-1">
               <Button className="flex-1" onClick={handleCopyLink}>
-                {linkCopied ? <Check className="w-4 h-4 mr-2 text-green-400" /> : <Copy className="w-4 h-4 mr-2" />}
+                {linkCopied ? <Check className="w-4 h-4 me-2 text-green-400" /> : <Copy className="w-4 h-4 me-2" />}
                 {linkCopied ? 'Copied!' : 'Copy Link'}
               </Button>
               <Button variant="outline" className="flex-1" onClick={() => setActivationLink(null)}>Close</Button>

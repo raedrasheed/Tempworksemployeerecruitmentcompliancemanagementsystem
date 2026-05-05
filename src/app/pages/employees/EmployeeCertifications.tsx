@@ -123,7 +123,7 @@ export function EmployeeCertifications() {
           <p className="text-muted-foreground mt-1">{driver.firstName} {driver.lastName} • All professional certifications and licenses</p>
         </div>
         <Button>
-          <Plus className="w-4 h-4 mr-2" />
+          <Plus className="w-4 h-4 me-2" />
           Add Certification
         </Button>
       </div>
@@ -245,11 +245,11 @@ export function EmployeeCertifications() {
                         </div>
                         <div className="flex items-center gap-2">
                           <Button size="sm" variant="ghost">
-                            <Download className="w-4 h-4 mr-1" />
+                            <Download className="w-4 h-4 me-1" />
                             Download
                           </Button>
                           <Button size="sm" variant="outline">
-                            <Upload className="w-4 h-4 mr-1" />
+                            <Upload className="w-4 h-4 me-1" />
                             Renew
                           </Button>
                         </div>

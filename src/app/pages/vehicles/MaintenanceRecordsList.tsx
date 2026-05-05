@@ -230,7 +230,7 @@ export function MaintenanceRecordsList() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard/vehicles')}>
-            <ArrowLeft className="w-4 h-4 mr-1" /> Back
+            <ArrowLeft className="w-4 h-4 me-1" /> Back
           </Button>
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2">
@@ -241,7 +241,7 @@ export function MaintenanceRecordsList() {
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={load}>
-            <RefreshCw className="w-4 h-4 mr-2" /> Refresh
+            <RefreshCw className="w-4 h-4 me-2" /> Refresh
           </Button>
 
           {/* Export dropdown */}
@@ -251,24 +251,24 @@ export function MaintenanceRecordsList() {
               onClick={() => setExportOpen((o) => !o)}
               disabled={exporting}
             >
-              <Download className="w-4 h-4 mr-2" />
+              <Download className="w-4 h-4 me-2" />
               {exporting ? 'Exporting…' : 'Export'}
-              <ChevronDown className="w-4 h-4 ml-1" />
+              <ChevronDown className="w-4 h-4 ms-1" />
             </Button>
             {exportOpen && (
-              <div className="absolute right-0 mt-1 w-64 bg-popover border rounded-md shadow-lg z-50 py-1">
+              <div className="absolute end-0 mt-1 w-64 bg-popover border rounded-md shadow-lg z-50 py-1">
                 <div className="px-3 py-2 text-xs font-medium text-muted-foreground border-b">
                   Excel (.xlsx)
                 </div>
                 <button
-                  className="w-full text-left px-3 py-2 text-sm hover:bg-accent flex items-center gap-2"
+                  className="w-full text-start px-3 py-2 text-sm hover:bg-accent flex items-center gap-2"
                   onClick={() => handleExportExcel('all')}
                 >
                   <FileSpreadsheet className="w-4 h-4 text-green-600" />
                   All filtered records ({total})
                 </button>
                 <button
-                  className="w-full text-left px-3 py-2 text-sm hover:bg-accent flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full text-start px-3 py-2 text-sm hover:bg-accent flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   onClick={() => handleExportExcel('selected')}
                   disabled={selected.size === 0}
                 >
@@ -279,14 +279,14 @@ export function MaintenanceRecordsList() {
                   PDF (.pdf)
                 </div>
                 <button
-                  className="w-full text-left px-3 py-2 text-sm hover:bg-accent flex items-center gap-2"
+                  className="w-full text-start px-3 py-2 text-sm hover:bg-accent flex items-center gap-2"
                   onClick={() => handleExportPdf('all')}
                 >
                   <FileText className="w-4 h-4 text-red-600" />
                   All filtered records ({total})
                 </button>
                 <button
-                  className="w-full text-left px-3 py-2 text-sm hover:bg-accent flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full text-start px-3 py-2 text-sm hover:bg-accent flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   onClick={() => handleExportPdf('selected')}
                   disabled={selected.size === 0}
                 >
@@ -310,12 +310,12 @@ export function MaintenanceRecordsList() {
             <div className="space-y-1">
               <Label className="text-xs">Search</Label>
               <div className="relative">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute start-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Vehicle, type, workshop..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="pl-8"
+                  className="ps-8"
                 />
               </div>
             </div>
@@ -356,7 +356,7 @@ export function MaintenanceRecordsList() {
             <span className="text-xs text-muted-foreground">
               Showing {filteredRecords.length} of {total} records
               {selected.size > 0 && (
-                <span className="ml-2 font-medium text-foreground">
+                <span className="ms-2 font-medium text-foreground">
                   · {selected.size} selected
                 </span>
               )}
@@ -394,8 +394,8 @@ export function MaintenanceRecordsList() {
                 <TableHead>Scheduled</TableHead>
                 <TableHead>Completed</TableHead>
                 <TableHead>Mileage</TableHead>
-                <TableHead className="text-right">Cost</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="text-end">Cost</TableHead>
+                <TableHead className="text-end">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -437,8 +437,8 @@ export function MaintenanceRecordsList() {
                   <TableCell className="text-sm">{formatDate(rec.scheduledDate)}</TableCell>
                   <TableCell className="text-sm">{formatDate(rec.completedDate)}</TableCell>
                   <TableCell className="text-sm">{rec.mileageAtService ? `${rec.mileageAtService.toLocaleString()} km` : '—'}</TableCell>
-                  <TableCell className="text-right text-sm">{formatCurrency(rec.cost)}</TableCell>
-                  <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                  <TableCell className="text-end text-sm">{formatCurrency(rec.cost)}</TableCell>
+                  <TableCell className="text-end" onClick={(e) => e.stopPropagation()}>
                     <Button
                       size="sm"
                       variant="ghost"

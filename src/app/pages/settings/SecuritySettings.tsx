@@ -128,7 +128,7 @@ export function SecuritySettings() {
             </p>
           </div>
           <Button onClick={handleSaveLockout} disabled={loading || saving || !dirty}>
-            {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+            {saving ? <Loader2 className="w-4 h-4 me-2 animate-spin" /> : <Save className="w-4 h-4 me-2" />}
             Save threshold
           </Button>
         </CardContent>
@@ -164,7 +164,7 @@ export function SecuritySettings() {
             </p>
           </div>
           <Button onClick={handleSaveIdle} disabled={loading || savingIdle || !idleDirty}>
-            {savingIdle ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+            {savingIdle ? <Loader2 className="w-4 h-4 me-2 animate-spin" /> : <Save className="w-4 h-4 me-2" />}
             Save timeout
           </Button>
         </CardContent>

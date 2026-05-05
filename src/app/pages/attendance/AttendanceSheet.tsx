@@ -430,9 +430,9 @@ export function AttendanceSheet() {
           variant="ghost"
           size="sm"
           onClick={() => navigate('/dashboard/attendance')}
-          className="text-muted-foreground hover:text-foreground -ml-2"
+          className="text-muted-foreground hover:text-foreground -ms-2"
         >
-          <ArrowLeft className="w-4 h-4 mr-1" />
+          <ArrowLeft className="w-4 h-4 me-1" />
           Back to Attendance Sheets
         </Button>
       </div>
@@ -524,7 +524,7 @@ export function AttendanceSheet() {
                   size="sm"
                   onClick={() => setShowBulkFill(true)}
                 >
-                  <ClipboardList className="w-4 h-4 mr-1" />
+                  <ClipboardList className="w-4 h-4 me-1" />
                   Fill Month
                 </Button>
                 <Button
@@ -608,7 +608,7 @@ export function AttendanceSheet() {
                     <TableHead className="w-24">Check Out</TableHead>
                     <TableHead className="w-20">Hours</TableHead>
                     <TableHead>Notes</TableHead>
-                    <TableHead className="text-right w-24">Actions</TableHead>
+                    <TableHead className="text-end w-24">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -640,7 +640,7 @@ export function AttendanceSheet() {
                             {day.dayName}
                           </span>
                           {isWeekend && (
-                            <span className="ml-1 text-xs text-muted-foreground opacity-60">
+                            <span className="ms-1 text-xs text-muted-foreground opacity-60">
                               ·
                             </span>
                           )}
@@ -696,7 +696,7 @@ export function AttendanceSheet() {
                         </TableCell>
 
                         {/* Actions */}
-                        <TableCell className="text-right">
+                        <TableCell className="text-end">
                           <div className="flex items-center justify-end gap-1">
                             {record ? (
                               <>
@@ -706,7 +706,7 @@ export function AttendanceSheet() {
                                   onClick={() => openEditModal(record, day.date)}
                                   className="h-7 px-2"
                                 >
-                                  <Pencil className="w-3.5 h-3.5 mr-1" />
+                                  <Pencil className="w-3.5 h-3.5 me-1" />
                                   Edit
                                 </Button>
                                 <Button
@@ -725,7 +725,7 @@ export function AttendanceSheet() {
                                 onClick={() => openEditModal(null, day.date)}
                                 className="h-7 px-2 text-muted-foreground hover:text-foreground"
                               >
-                                <Plus className="w-3.5 h-3.5 mr-1" />
+                                <Plus className="w-3.5 h-3.5 me-1" />
                                 Add
                               </Button>
                             )}
@@ -820,7 +820,7 @@ export function AttendanceSheet() {
             <div className="space-y-1.5">
               <Label htmlFor="edit-hours">
                 Working Hours
-                <span className="text-xs text-muted-foreground ml-2">
+                <span className="text-xs text-muted-foreground ms-2">
                   (auto-calculated from check in/out)
                 </span>
               </Label>
@@ -919,7 +919,7 @@ export function AttendanceSheet() {
               Cancel
             </Button>
             <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
-              <Trash2 className="w-4 h-4 mr-1" />
+              <Trash2 className="w-4 h-4 me-1" />
               {deleting ? 'Deleting…' : 'Delete Record'}
             </Button>
           </DialogFooter>

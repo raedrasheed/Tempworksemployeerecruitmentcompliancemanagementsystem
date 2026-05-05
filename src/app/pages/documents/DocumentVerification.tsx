@@ -167,12 +167,12 @@ export function DocumentVerification() {
       <Card>
         <CardContent className="p-4">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder="Search by document name, type, or driver name..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="pl-9"
+              className="ps-9"
             />
           </div>
         </CardContent>
@@ -199,12 +199,12 @@ export function DocumentVerification() {
               <table className="w-full">
                 <thead className="bg-[#F8FAFC] border-b">
                   <tr>
-                    <th className="text-left p-4 text-sm font-semibold">Document</th>
-                    <th className="text-left p-4 text-sm font-semibold">Type</th>
-                    <th className="text-left p-4 text-sm font-semibold">Employee / Entity</th>
-                    <th className="text-left p-4 text-sm font-semibold">Uploaded By</th>
-                    <th className="text-left p-4 text-sm font-semibold">Expiry Date</th>
-                    <th className="text-left p-4 text-sm font-semibold">Actions</th>
+                    <th className="text-start p-4 text-sm font-semibold">Document</th>
+                    <th className="text-start p-4 text-sm font-semibold">Type</th>
+                    <th className="text-start p-4 text-sm font-semibold">Employee / Entity</th>
+                    <th className="text-start p-4 text-sm font-semibold">Uploaded By</th>
+                    <th className="text-start p-4 text-sm font-semibold">Expiry Date</th>
+                    <th className="text-start p-4 text-sm font-semibold">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -258,7 +258,7 @@ export function DocumentVerification() {
                                 onClick={() => handleApprove(doc)}
                                 disabled={verifying === doc.id}
                               >
-                                <CheckCircle2 className="w-4 h-4 mr-1" />
+                                <CheckCircle2 className="w-4 h-4 me-1" />
                                 {verifying === doc.id ? '…' : 'Approve'}
                               </Button>
                               <Button
@@ -268,7 +268,7 @@ export function DocumentVerification() {
                                 onClick={() => openRejectDialog(doc)}
                                 disabled={verifying === doc.id}
                               >
-                                <XCircle className="w-4 h-4 mr-1" />
+                                <XCircle className="w-4 h-4 me-1" />
                                 Reject
                               </Button>
                             </>
@@ -323,7 +323,7 @@ export function DocumentVerification() {
               onClick={handleReject}
               disabled={!!verifying || !rejectionReason.trim()}
             >
-              <XCircle className="w-4 h-4 mr-2" />
+              <XCircle className="w-4 h-4 me-2" />
               {verifying ? 'Rejecting…' : 'Confirm Rejection'}
             </Button>
           </DialogFooter>

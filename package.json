@@ -6,7 +6,10 @@
   "scripts": {
     "build": "vite build",
     "dev": "vite",
-    "preview": "vite preview --host 0.0.0.0 --port 8080"
+    "preview": "vite preview --host 0.0.0.0 --port 8080",
+    "i18n:check-keys": "node scripts/i18n-check-keys.mjs",
+    "i18n:check-literals": "node scripts/i18n-check-literals.mjs",
+    "i18n:check": "npm run i18n:check-keys && npm run i18n:check-literals"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",

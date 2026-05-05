@@ -70,7 +70,7 @@ export function StageTransition({ currentStageId, employeeId, employeeName }: St
           <Dialog open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
             <DialogTrigger asChild>
               <Button variant="outline" size="sm">
-                <History className="w-4 h-4 mr-2" />
+                <History className="w-4 h-4 me-2" />
                 View History
               </Button>
             </DialogTrigger>
@@ -131,7 +131,7 @@ export function StageTransition({ currentStageId, employeeId, employeeName }: St
           <div>
             <p className="text-sm text-muted-foreground mb-3">Quick Action</p>
             <Button className="w-full" onClick={handleMoveToNext}>
-              <ArrowRight className="w-4 h-4 mr-2" />
+              <ArrowRight className="w-4 h-4 me-2" />
               Move to {nextStage.name}
             </Button>
           </div>

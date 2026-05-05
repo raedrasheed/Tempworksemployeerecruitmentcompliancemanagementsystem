@@ -366,7 +366,7 @@ export function AddApplicant() {
               </Button>
             ) : <div />}
 
-            <div className="flex flex-wrap items-center gap-2 ml-auto">
+            <div className="flex flex-wrap items-center gap-2 ms-auto">
               {/* Save for Later — partial persistence, no Applicant
                   row. Available at every step (including step 1). */}
               <Button

@@ -62,7 +62,7 @@ export function WorkflowAnalytics() {
           <Button variant="outline">Last 30 Days</Button>
           {canEdit('reports') && (
             <Button>
-              <Download className="w-4 h-4 mr-2" />
+              <Download className="w-4 h-4 me-2" />
               Export Report
             </Button>
           )}
@@ -220,7 +220,7 @@ export function WorkflowAnalytics() {
                 <div key={item.name} className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
                   <span className="text-sm">{item.name}</span>
-                  <Badge variant="outline" className="ml-auto">{item.value}%</Badge>
+                  <Badge variant="outline" className="ms-auto">{item.value}%</Badge>
                 </div>
               ))}
             </div>
@@ -253,7 +253,7 @@ export function WorkflowAnalytics() {
                       <p className="text-sm text-muted-foreground">{item.count} drivers</p>
                     </div>
                   </div>
-                  <div className="text-right">
+                  <div className="text-end">
                     <p className="text-2xl font-semibold">{item.percentage}%</p>
                     {index > 0 && (
                       <p className="text-xs text-muted-foreground">
@@ -264,7 +264,7 @@ export function WorkflowAnalytics() {
                 </div>
                 <div className="relative h-2 bg-[#F1F5F9] rounded-full overflow-hidden">
                   <div 
-                    className={`absolute top-0 left-0 h-full rounded-full ${
+                    className={`absolute top-0 start-0 h-full rounded-full ${
                       item.percentage >= 80 ? 'bg-[#22C55E]' :
                       item.percentage >= 60 ? 'bg-[#2563EB]' :
                       item.percentage >= 40 ? 'bg-[#F59E0B]' :

@@ -269,18 +269,18 @@ export function JobTypes() {
       {/* Search + Add */}
       <div className="flex items-center gap-4">
         <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             placeholder="Search job categories..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
+            className="ps-10"
           />
         </div>
 
         {canCreate('settings') && (
           <Button className="bg-[#2563EB] hover:bg-[#1d4ed8]" onClick={openCreateDialog}>
-            <Plus className="w-4 h-4 mr-2" />
+            <Plus className="w-4 h-4 me-2" />
             Add Job Category
           </Button>
         )}
@@ -333,17 +333,17 @@ export function JobTypes() {
                       </p>
                     </div>
 
-                    <div className="flex items-center gap-2 ml-4">
+                    <div className="flex items-center gap-2 ms-4">
                       {canEdit('settings') && (
                         <Button variant="outline" size="sm" onClick={() => handleToggleActive(jobType)}>
                           {jobType.isActive ? (
                             <>
-                              <XCircle className="w-4 h-4 mr-1" />
+                              <XCircle className="w-4 h-4 me-1" />
                               Deactivate
                             </>
                           ) : (
                             <>
-                              <CheckCircle className="w-4 h-4 mr-1" />
+                              <CheckCircle className="w-4 h-4 me-1" />
                               Activate
                             </>
                           )}
@@ -351,7 +351,7 @@ export function JobTypes() {
                       )}
                       {canEdit('settings') && (
                         <Button variant="outline" size="sm" onClick={() => openEditDialog(jobType)}>
-                          <Pencil className="w-4 h-4 mr-1" />
+                          <Pencil className="w-4 h-4 me-1" />
                           Edit
                         </Button>
                       )}
@@ -362,7 +362,7 @@ export function JobTypes() {
                           className="text-red-600 hover:text-red-700 hover:bg-red-50"
                           onClick={() => setDeleteTarget(jobType)}
                         >
-                          <Trash2 className="w-4 h-4 mr-1" />
+                          <Trash2 className="w-4 h-4 me-1" />
                           Delete
                         </Button>
                       )}
@@ -453,7 +453,7 @@ export function JobTypes() {
 
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={saving}>
-              <X className="w-4 h-4 mr-2" />
+              <X className="w-4 h-4 me-2" />
               Cancel
             </Button>
             <Button
@@ -461,7 +461,7 @@ export function JobTypes() {
               onClick={handleSave}
               disabled={!formData.name.trim() || saving}
             >
-              <Save className="w-4 h-4 mr-2" />
+              <Save className="w-4 h-4 me-2" />
               {saving ? 'Saving...' : editingJobType ? 'Update' : 'Create'}
             </Button>
           </div>

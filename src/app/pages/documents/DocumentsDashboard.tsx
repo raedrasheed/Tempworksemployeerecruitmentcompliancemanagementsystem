@@ -143,7 +143,7 @@ export function DocumentsDashboard() {
                   <TableHead>Uploaded</TableHead>
                   <TableHead>Expiry Date</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="text-end">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -164,10 +164,10 @@ export function DocumentsDashboard() {
                         {doc.status}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-end">
                       <Button variant="ghost" size="sm" asChild>
                         <Link to={`/dashboard/documents/${doc.id}`}>
-                          <Eye className="w-4 h-4 mr-2" />
+                          <Eye className="w-4 h-4 me-2" />
                           View
                         </Link>
                       </Button>

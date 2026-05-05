@@ -130,7 +130,7 @@ export function BrandingSettings() {
     <div className="space-y-6">
       <div className="flex items-center gap-4">
         <Link to="/dashboard/settings">
-          <Button variant="ghost" size="sm"><ArrowLeft className="w-4 h-4 mr-2" />Back to Settings</Button>
+          <Button variant="ghost" size="sm"><ArrowLeft className="w-4 h-4 me-2" />Back to Settings</Button>
         </Link>
         <div>
           <h1 className="text-3xl font-semibold text-foreground">Company Branding</h1>
@@ -158,7 +158,7 @@ export function BrandingSettings() {
           <div className="flex items-center gap-3">
             <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
             <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
-              <Upload className="w-4 h-4 mr-2" />Choose File
+              <Upload className="w-4 h-4 me-2" />Choose File
             </Button>
             {selectedFile && (
               <Button onClick={handleUploadLogo} disabled={uploading}>
@@ -300,7 +300,7 @@ export function BrandingSettings() {
       {/* Save button */}
       <div className="flex justify-end pb-6">
         <Button onClick={handleSave} disabled={saving} size="lg">
-          <Save className="w-4 h-4 mr-2" />
+          <Save className="w-4 h-4 me-2" />
           {saving ? 'Saving…' : 'Save All Changes'}
         </Button>
       </div>

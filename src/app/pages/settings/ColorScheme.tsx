@@ -42,7 +42,7 @@ function DarkSchemeCard({ scheme, selected, onSelect }: {
     <button
       onClick={onSelect}
       className={cn(
-        'relative flex flex-col rounded-xl border-2 overflow-hidden transition-all hover:scale-[1.02] text-left',
+        'relative flex flex-col rounded-xl border-2 overflow-hidden transition-all hover:scale-[1.02] text-start',
         selected
           ? 'border-primary shadow-lg shadow-primary/20'
           : 'border-border hover:border-muted-foreground/40',
@@ -94,7 +94,7 @@ function LightSchemeCard({ scheme, selected, onSelect }: {
     <button
       onClick={onSelect}
       className={cn(
-        'relative flex flex-col rounded-xl border-2 overflow-hidden transition-all hover:scale-[1.02] text-left',
+        'relative flex flex-col rounded-xl border-2 overflow-hidden transition-all hover:scale-[1.02] text-start',
         selected
           ? 'border-primary shadow-lg shadow-primary/20'
           : 'border-border hover:border-muted-foreground/40',
@@ -193,7 +193,7 @@ function ThemePreview({ brand, isDark, dark, light }: {
             {[0, 1, 2, 3].map(i => (
               <div key={i} className="rounded-lg p-1.5 flex flex-col gap-1" style={{ backgroundColor: cardBg }}>
                 <div className="h-1.5 rounded-full w-3/4" style={{ backgroundColor: accent }} />
-                <div className="h-2 rounded font-bold text-[7px] flex items-center pl-0.5" style={{ color: textColor }}>
+                <div className="h-2 rounded font-bold text-[7px] flex items-center ps-0.5" style={{ color: textColor }}>
                   {i % 2 === 0 ? '1,240' : '98.2%'}
                 </div>
               </div>

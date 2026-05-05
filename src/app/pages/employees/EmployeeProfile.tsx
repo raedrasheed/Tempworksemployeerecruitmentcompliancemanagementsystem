@@ -370,13 +370,13 @@ export function EmployeeProfile() {
           {canEdit('employees') && (
             <Button asChild>
               <Link to={`/dashboard/employees/${id}/edit`}>
-                <Edit className="w-4 h-4 mr-2" />Edit Profile
+                <Edit className="w-4 h-4 me-2" />Edit Profile
               </Link>
             </Button>
           )}
           {canDelete('employees') && (
             <Button variant="outline" className="text-[#EF4444] border-[#EF4444]" onClick={handleDelete}>
-              <Trash2 className="w-4 h-4 mr-2" />Delete
+              <Trash2 className="w-4 h-4 me-2" />Delete
             </Button>
           )}
         </div>
@@ -494,7 +494,7 @@ export function EmployeeProfile() {
           <TabsTrigger value="compliance">Compliance</TabsTrigger>
           {isFinanceOrAdmin && (
             <TabsTrigger value="financial">
-              <DollarSign className="w-3 h-3 mr-1" />Financial
+              <DollarSign className="w-3 h-3 me-1" />Financial
             </TabsTrigger>
           )}
           <TabsTrigger value="notes">Notes</TabsTrigger>
@@ -605,7 +605,7 @@ export function EmployeeProfile() {
                           <div className="flex items-center gap-2">
                             <Briefcase className="w-4 h-4 text-[#2563EB]" />
                             <p className="font-medium text-sm">{ownAgency?.name ?? 'Employee\'s agency'}</p>
-                            <Badge variant="outline" className="ml-auto text-[10px]">Origin</Badge>
+                            <Badge variant="outline" className="ms-auto text-[10px]">Origin</Badge>
                           </div>
                           <div className="grid grid-cols-2 gap-2">
                             <label className="flex items-center gap-2 cursor-pointer text-sm">
@@ -710,7 +710,7 @@ export function EmployeeProfile() {
                           }}
                           disabled={!grantAgencyId || grantBusy}
                         >
-                          <Plus className="w-4 h-4 mr-1" />
+                          <Plus className="w-4 h-4 me-1" />
                           {grantBusy ? 'Granting…' : 'Grant view + edit'}
                         </Button>
                       </div>
@@ -739,7 +739,7 @@ export function EmployeeProfile() {
               <CardTitle>Employee Documents</CardTitle>
               {canEdit('employees') && (
                 <Button size="sm" onClick={() => setShowUpload(v => !v)} variant={showUpload ? 'outline' : 'default'}>
-                  {showUpload ? <><X className="w-4 h-4 mr-1" />Cancel</> : <><Upload className="w-4 h-4 mr-1" />Upload Document</>}
+                  {showUpload ? <><X className="w-4 h-4 me-1" />Cancel</> : <><Upload className="w-4 h-4 me-1" />Upload Document</>}
                 </Button>
               )}
             </CardHeader>
@@ -784,7 +784,7 @@ export function EmployeeProfile() {
                     </div>
                   </div>
                   <Button size="sm" onClick={handleUpload} disabled={uploading}>
-                    <Upload className="w-4 h-4 mr-1" />{uploading ? 'Uploading...' : 'Upload'}
+                    <Upload className="w-4 h-4 me-1" />{uploading ? 'Uploading...' : 'Upload'}
                   </Button>
                 </div>
               )}
@@ -813,7 +813,7 @@ export function EmployeeProfile() {
                         </Badge>
                         <Button variant="ghost" size="sm" asChild>
                           <a href={`${API_BASE}${doc.fileUrl}`} target="_blank" rel="noopener noreferrer" download>
-                            <Download className="w-4 h-4 mr-1" />Download
+                            <Download className="w-4 h-4 me-1" />Download
                           </a>
                         </Button>
                         <Button variant="ghost" size="sm" asChild>
@@ -866,7 +866,7 @@ export function EmployeeProfile() {
                           <p className="font-medium">{doc.name}</p>
                           <p className="text-sm text-muted-foreground">{doc.documentType?.name}</p>
                         </div>
-                        <div className="text-right">
+                        <div className="text-end">
                           <Badge variant="outline" className={docStatusClass(doc.status)}>
                             {doc.status?.replace(/_/g, ' ').toLowerCase()}
                           </Badge>

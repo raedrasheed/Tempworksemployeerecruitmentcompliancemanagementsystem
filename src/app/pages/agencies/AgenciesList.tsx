@@ -247,7 +247,7 @@ export function AgenciesList() {
                 placeholder={t('agencies.list.search')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
+                className="ps-9"
               />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -311,31 +311,31 @@ export function AgenciesList() {
             </div>
             {hasExtraFilters && (
               <Button variant="ghost" size="sm" onClick={clearExtraFilters}>
-                <X className="w-3 h-3 mr-1" />Clear
+                <X className="w-3 h-3 me-1" />Clear
               </Button>
             )}
-            <div className="ml-auto relative" ref={colPickerRef}>
+            <div className="ms-auto relative" ref={colPickerRef}>
               <Button
                 variant="outline" size="sm"
                 onClick={() => setShowColPicker(v => !v)}
                 className={showColPicker ? 'border-primary text-primary' : ''}
               >
-                <Columns2 className="w-4 h-4 mr-1.5" />Columns
+                <Columns2 className="w-4 h-4 me-1.5" />Columns
                 {hiddenCount > 0 && (
-                  <span className="ml-1.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
+                  <span className="ms-1.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
                     {hiddenCount}
                   </span>
                 )}
               </Button>
               {showColPicker && (
-                <div className="absolute right-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[200px]">
+                <div className="absolute end-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[200px]">
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">Toggle columns</p>
                   <div className="space-y-0.5 max-h-72 overflow-y-auto">
                     {ALL_COLUMNS.map(c => (
                       <button
                         key={c.key}
                         onClick={() => toggleColumn(c.key)}
-                        className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-gray-50 text-sm text-left"
+                        className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-gray-50 text-sm text-start"
                       >
                         <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${visibleColumns[c.key] ? 'bg-primary border-primary' : 'border-gray-300'}`}>
                           {visibleColumns[c.key] && <Check className="w-2.5 h-2.5 text-primary-foreground" />}
@@ -382,7 +382,7 @@ export function AgenciesList() {
                   {col('phone')         && <SortableHead label="Phone"          field="phone" />}
                   {col('status')        && <SortableHead label="Status"         field="status" />}
                   {col('createdAt')     && <SortableHead label="Created"        field="createdAt" />}
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="text-end">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -399,11 +399,11 @@ export function AgenciesList() {
                     {col('phone')         && <TableCell className="text-sm text-muted-foreground">{agency.phone ?? '—'}</TableCell>}
                     {col('status')        && <TableCell>{getStatusBadge(agency.status)}</TableCell>}
                     {col('createdAt')     && <TableCell className="text-sm text-muted-foreground">{agency.createdAt ? new Date(agency.createdAt).toLocaleDateString() : '—'}</TableCell>}
-                    <TableCell className="text-right">
+                    <TableCell className="text-end">
                       <div className="flex items-center justify-end gap-1">
                         <Button variant="ghost" size="sm" asChild>
                           <Link to={`/dashboard/agencies/${agency.id}`}>
-                            <Eye className="w-4 h-4 mr-1" />
+                            <Eye className="w-4 h-4 me-1" />
                             View
                           </Link>
                         </Button>

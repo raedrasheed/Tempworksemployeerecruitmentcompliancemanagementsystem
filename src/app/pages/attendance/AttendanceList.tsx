@@ -350,7 +350,7 @@ export function AttendanceList() {
         </div>
         <div className="flex gap-2 items-center">
           <Button variant="outline" size="sm" onClick={() => fetchEmployees()} disabled={loading}>
-            <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-4 h-4 me-1 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
 
@@ -361,22 +361,22 @@ export function AttendanceList() {
               onClick={() => setShowColPicker(v => !v)}
               className={showColPicker ? 'border-blue-500 text-blue-600' : ''}
             >
-              <Columns2 className="w-4 h-4 mr-1.5" />Columns
+              <Columns2 className="w-4 h-4 me-1.5" />Columns
               {ALL_COLUMNS.filter(c => !visibleColumns[c.key]).length > 0 && (
-                <span className="ml-1.5 bg-blue-600 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
+                <span className="ms-1.5 bg-blue-600 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
                   {ALL_COLUMNS.filter(c => !visibleColumns[c.key]).length}
                 </span>
               )}
             </Button>
             {showColPicker && (
-              <div className="absolute right-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[180px]">
+              <div className="absolute end-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[180px]">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">Toggle columns</p>
                 <div className="space-y-0.5">
                   {ALL_COLUMNS.map(c => (
                     <button
                       key={c.key}
                       onClick={() => toggleColumn(c.key)}
-                      className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-gray-50 text-sm text-left"
+                      className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-gray-50 text-sm text-start"
                     >
                       <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${visibleColumns[c.key] ? 'bg-blue-600 border-blue-600' : 'border-gray-300'}`}>
                         {visibleColumns[c.key] && <Check className="w-2.5 h-2.5 text-white" />}
@@ -395,7 +395,7 @@ export function AttendanceList() {
           </div>
 
           <Button size="sm" onClick={() => setShowExportModal(true)}>
-            <Download className="w-4 h-4 mr-1" />
+            <Download className="w-4 h-4 me-1" />
             Export Excel
           </Button>
         </div>
@@ -474,12 +474,12 @@ export function AttendanceList() {
           <div className="flex flex-wrap items-end gap-3">
             {/* Search */}
             <div className="flex-1 min-w-[200px] relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 placeholder="Search by employee name..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-10"
+                className="ps-10"
               />
             </div>
 
@@ -558,7 +558,7 @@ export function AttendanceList() {
             {/* Clear filters */}
             {hasFilters && (
               <Button variant="ghost" size="sm" onClick={clearFilters} className="self-end">
-                <X className="w-4 h-4 mr-1" />
+                <X className="w-4 h-4 me-1" />
                 Clear
               </Button>
             )}
@@ -602,7 +602,7 @@ export function AttendanceList() {
                     {col('late')       && <SortHead col="late"       label="Late"        sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} className="text-center" />}
                     {col('onLeave')    && <SortHead col="onLeave"    label="On Leave"    sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} className="text-center" />}
                     {col('totalDays')  && <SortHead col="totalDays"  label="Total Days"  sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} className="text-center" />}
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead className="text-end">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -710,13 +710,13 @@ export function AttendanceList() {
                           </TableCell>
                         )}
 
-                        <TableCell className="text-right">
+                        <TableCell className="text-end">
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => navigate(`/dashboard/attendance/${emp.id}`)}
                           >
-                            <Eye className="w-4 h-4 mr-1" />
+                            <Eye className="w-4 h-4 me-1" />
                             View Timesheet
                           </Button>
                         </TableCell>
@@ -837,7 +837,7 @@ export function AttendanceList() {
               Cancel
             </Button>
             <Button onClick={handleExport} disabled={exporting}>
-              <Download className="w-4 h-4 mr-1" />
+              <Download className="w-4 h-4 me-1" />
               {exporting ? 'Exporting…' : 'Export Excel'}
             </Button>
           </DialogFooter>

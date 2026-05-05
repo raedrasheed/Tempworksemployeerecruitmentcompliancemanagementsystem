@@ -192,7 +192,7 @@ export function AddAgency() {
                   </Button>
                   {logoPreview && (
                     <Button type="button" variant="ghost" size="sm" onClick={clearLogo}>
-                      <X className="w-4 h-4 mr-1" /> Clear
+                      <X className="w-4 h-4 me-1" /> Clear
                     </Button>
                   )}
                 </div>

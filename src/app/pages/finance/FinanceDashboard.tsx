@@ -361,10 +361,10 @@ export function FinanceDashboard() {
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={() => load()} disabled={loading}>
-            <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />Refresh
+            <RefreshCw className={`w-4 h-4 me-1 ${loading ? 'animate-spin' : ''}`} />Refresh
           </Button>
           <Button variant="outline" size="sm" onClick={() => setShowFilters(v => !v)}>
-            <Filter className="w-4 h-4 mr-1" />{showFilters ? 'Hide Filters' : 'Filters'}
+            <Filter className="w-4 h-4 me-1" />{showFilters ? 'Hide Filters' : 'Filters'}
           </Button>
 
           {/* Column picker */}
@@ -374,22 +374,22 @@ export function FinanceDashboard() {
               onClick={() => setShowColPicker(v => !v)}
               className={showColPicker ? 'border-primary text-primary' : ''}
             >
-              <Columns2 className="w-4 h-4 mr-1" />Columns
+              <Columns2 className="w-4 h-4 me-1" />Columns
               {hiddenCount > 0 && (
-                <span className="ml-1.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
+                <span className="ms-1.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
                   {hiddenCount}
                 </span>
               )}
             </Button>
             {showColPicker && (
-              <div className="absolute right-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[200px]">
+              <div className="absolute end-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[200px]">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">Toggle columns</p>
                 <div className="space-y-0.5 max-h-72 overflow-y-auto">
                   {ALL_COLUMNS.map(c => (
                     <button
                       key={c.key}
                       onClick={() => toggleColumn(c.key)}
-                      className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-gray-50 text-sm text-left"
+                      className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-gray-50 text-sm text-start"
                     >
                       <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${visibleColumns[c.key] ? 'bg-primary border-primary' : 'border-gray-300'}`}>
                         {visibleColumns[c.key] && <Check className="w-2.5 h-2.5 text-primary-foreground" />}
@@ -422,7 +422,7 @@ export function FinanceDashboard() {
 
           {canExport && (
             <Button size="sm" onClick={handleExport} disabled={exporting}>
-              <Download className="w-4 h-4 mr-1" />{exporting ? 'Exporting…' : 'Export Excel'}
+              <Download className="w-4 h-4 me-1" />{exporting ? 'Exporting…' : 'Export Excel'}
             </Button>
           )}
         </div>
@@ -496,9 +496,9 @@ export function FinanceDashboard() {
               <div className="space-y-1 md:col-span-2">
                 <Label className="text-xs">Search</Label>
                 <div className="relative">
-                  <Search className="absolute left-2.5 top-2.5 w-4 h-4 text-muted-foreground" />
+                  <Search className="absolute start-2.5 top-2.5 w-4 h-4 text-muted-foreground" />
                   <Input
-                    className="pl-8"
+                    className="ps-8"
                     placeholder="Description, payroll ref, name…"
                     value={filters.search}
                     onChange={e => setFilter('search', e.target.value)}
@@ -602,7 +602,7 @@ export function FinanceDashboard() {
             </div>
             <div className="flex justify-end">
               <Button size="sm" variant="ghost" onClick={resetFilters} className="text-muted-foreground">
-                <X className="w-4 h-4 mr-1" />Clear Filters
+                <X className="w-4 h-4 me-1" />Clear Filters
               </Button>
             </div>
           </CardContent>
@@ -615,7 +615,7 @@ export function FinanceDashboard() {
           <Filter className="w-3 h-3" />
           <span>Extra client-side filters active</span>
           <Button size="sm" variant="ghost" className="h-6 text-xs" onClick={() => setFilters(f => ({ ...f, paidByFilter: '', minAmount: '', maxAmount: '' }))}>
-            <X className="w-3 h-3 mr-1" />Clear
+            <X className="w-3 h-3 me-1" />Clear
           </Button>
         </div>
       )}
@@ -647,7 +647,7 @@ export function FinanceDashboard() {
                     {col('status')      && <SortHead label="Status"      field="status" align="center" />}
                     {col('payrollRef')  && <SortHead label="Payroll Ref" field="payrollReference" />}
                     {col('createdAt')   && <SortHead label="Created"     field="createdAt" />}
-                    <th className="text-right px-4 py-3 font-medium text-muted-foreground">Profile</th>
+                    <th className="text-end px-4 py-3 font-medium text-muted-foreground">Profile</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -694,19 +694,19 @@ export function FinanceDashboard() {
                         </td>
                       )}
                       {col('disbursed') && (
-                        <td className="px-4 py-3 text-right font-semibold text-blue-700 whitespace-nowrap">
+                        <td className="px-4 py-3 text-end font-semibold text-blue-700 whitespace-nowrap">
                           {fmt(rec.companyDisbursedAmount, rec.currency)}
                         </td>
                       )}
                       {col('empAgency') && (
-                        <td className="px-4 py-3 text-right text-slate-500 text-xs whitespace-nowrap">
+                        <td className="px-4 py-3 text-end text-slate-500 text-xs whitespace-nowrap">
                           {Number(rec.employeeOrAgencyPaidAmount) > 0
                             ? fmt(rec.employeeOrAgencyPaidAmount, rec.currency)
                             : '—'}
                         </td>
                       )}
                       {col('deducted') && (
-                        <td className="px-4 py-3 text-right font-semibold text-amber-700 whitespace-nowrap">
+                        <td className="px-4 py-3 text-end font-semibold text-amber-700 whitespace-nowrap">
                           {rec.deductionAmount != null && Number(rec.deductionAmount) > 0
                             ? fmt(rec.deductionAmount, rec.currency)
                             : <span className="text-muted-foreground font-normal">—</span>}
@@ -719,11 +719,11 @@ export function FinanceDashboard() {
                         <td className="px-4 py-3 text-center">
                           {rec.status === 'DEDUCTED' ? (
                             <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-xs">
-                              <CheckCircle className="w-3 h-3 mr-1" />Deducted
+                              <CheckCircle className="w-3 h-3 me-1" />Deducted
                             </Badge>
                           ) : (
                             <Badge className="bg-amber-50 text-amber-700 border-amber-200 text-xs">
-                              <Clock className="w-3 h-3 mr-1" />Pending
+                              <Clock className="w-3 h-3 me-1" />Pending
                             </Badge>
                           )}
                         </td>
@@ -736,7 +736,7 @@ export function FinanceDashboard() {
                           {rec.createdAt ? fmtDate(rec.createdAt) : '—'}
                         </td>
                       )}
-                      <td className="px-4 py-3 text-right">
+                      <td className="px-4 py-3 text-end">
                         <Button
                           size="icon" variant="ghost"
                           className="h-7 w-7"

@@ -39,13 +39,13 @@ export function WorkflowOverview() {
         <div className="flex items-center gap-3">
           <Button variant="outline" asChild>
             <Link to="/dashboard/workflow/timeline">
-              <Clock className="w-4 h-4 mr-2" />
+              <Clock className="w-4 h-4 me-2" />
               Activity Timeline
             </Link>
           </Button>
           <Button asChild>
             <Link to="/dashboard/workflow/analytics">
-              <BarChart3 className="w-4 h-4 mr-2" />
+              <BarChart3 className="w-4 h-4 me-2" />
               Analytics
             </Link>
           </Button>
@@ -77,7 +77,7 @@ export function WorkflowOverview() {
               <Card key={stage.id} className="relative hover:shadow-md transition-shadow">
                 <CardContent className="p-5">
                   {/* Count Badge */}
-                  <div className="absolute top-4 right-4">
+                  <div className="absolute top-4 end-4">
                     <Badge
                       className="rounded-full w-7 h-7 flex items-center justify-center p-0 text-white"
                       style={{ backgroundColor: stageColor }}
@@ -87,7 +87,7 @@ export function WorkflowOverview() {
                   </div>
 
                   {/* Stage Name */}
-                  <h3 className="font-semibold text-[#0F172A] mb-4 pr-8">{stage.name}</h3>
+                  <h3 className="font-semibold text-[#0F172A] mb-4 pe-8">{stage.name}</h3>
 
                   {/* Progress */}
                   <div className="space-y-2 mb-3">

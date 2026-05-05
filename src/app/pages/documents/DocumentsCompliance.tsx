@@ -394,7 +394,7 @@ export function DocumentsCompliance() {
         {canCreate('documents') && (
           <Button asChild>
             <Link to="/dashboard/documents/upload">
-              <Upload className="w-4 h-4 mr-2" />Upload Document
+              <Upload className="w-4 h-4 me-2" />Upload Document
             </Link>
           </Button>
         )}
@@ -442,7 +442,7 @@ export function DocumentsCompliance() {
             <CardTitle className="text-base flex items-center gap-2"><Filter className="w-4 h-4" /> Filter Documents</CardTitle>
             {hasFilters && (
               <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground">
-                <X className="w-3 h-3 mr-1" /> Clear filters
+                <X className="w-3 h-3 me-1" /> Clear filters
               </Button>
             )}
           </div>
@@ -451,12 +451,12 @@ export function DocumentsCompliance() {
           {/* Row 1: search + status + type */}
           <div className="flex flex-wrap gap-2">
             <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 placeholder="Search name, doc number, business ID, issuer…"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="pl-9"
+                className="ps-9"
               />
             </div>
             <Select value={statusFilter || '__all__'} onValueChange={v => setStatusFilter(v === '__all__' ? '' : v)}>
@@ -532,29 +532,29 @@ export function DocumentsCompliance() {
             </div>
 
             {/* Column picker */}
-            <div className="relative ml-auto" ref={colPickerRef}>
+            <div className="relative ms-auto" ref={colPickerRef}>
               <Button
                 variant="outline" size="sm"
                 onClick={() => setShowColPicker(v => !v)}
                 className={showColPicker ? 'border-primary text-primary' : ''}
               >
-                <Columns2 className="w-4 h-4 mr-1.5" />Columns
+                <Columns2 className="w-4 h-4 me-1.5" />Columns
                 {hiddenCount > 0 && (
-                  <span className="ml-1.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
+                  <span className="ms-1.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
                     {hiddenCount}
                   </span>
                 )}
               </Button>
 
               {showColPicker && (
-                <div className="absolute right-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[200px]">
+                <div className="absolute end-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[200px]">
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">Toggle columns</p>
                   <div className="space-y-0.5 max-h-72 overflow-y-auto">
                     {ALL_COLUMNS.map(c => (
                       <button
                         key={c.key}
                         onClick={() => toggleColumn(c.key)}
-                        className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-gray-50 text-sm text-left"
+                        className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-gray-50 text-sm text-start"
                       >
                         <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${visibleColumns[c.key] ? 'bg-primary border-primary' : 'border-gray-300'}`}>
                           {visibleColumns[c.key] && <Check className="w-2.5 h-2.5 text-primary-foreground" />}
@@ -602,7 +602,7 @@ export function DocumentsCompliance() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setRejectDialog(s => ({ ...s, open: false }))}>Cancel</Button>
             <Button className="bg-red-500 hover:bg-red-600 text-white" onClick={handleReject} disabled={!!verifying || !rejectionReason.trim()}>
-              <XCircle className="w-4 h-4 mr-2" />{verifying ? 'Rejecting…' : 'Confirm Rejection'}
+              <XCircle className="w-4 h-4 me-2" />{verifying ? 'Rejecting…' : 'Confirm Rejection'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -632,7 +632,7 @@ export function DocumentsCompliance() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setRenewDialog(s => ({ ...s, open: false }))}>Cancel</Button>
             <Button onClick={handleRenew} disabled={renewing}>
-              <RefreshCw className="w-4 h-4 mr-2" />{renewing ? 'Creating…' : 'Create Renewal'}
+              <RefreshCw className="w-4 h-4 me-2" />{renewing ? 'Creating…' : 'Create Renewal'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -669,7 +669,7 @@ export function DocumentsCompliance() {
                   {col('documentNumber') && <SortableHead label="Doc Number"   field="documentNumber" />}
                   {col('issueDate')      && <SortableHead label="Issue Date"   field="issueDate" />}
                   {col('entityType')     && <SortableHead label="Entity Type"  field="ownerName" />}
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="text-end">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -700,7 +700,7 @@ export function DocumentsCompliance() {
                         <TableCell>
                           <div className="flex flex-col gap-0.5">
                             <button
-                              className="text-left text-sm font-medium hover:text-primary truncate max-w-[160px]"
+                              className="text-start text-sm font-medium hover:text-primary truncate max-w-[160px]"
                               onClick={() => setEntityTypeF(doc.entityType)}
                             >
                               {doc.ownerName ?? doc.entityId.slice(0, 8) + '…'}
@@ -782,16 +782,16 @@ export function DocumentsCompliance() {
                           {doc.status === 'PENDING' && can('documents', 'verify') && (
                             <>
                               <Button size="sm" className="bg-emerald-500 hover:bg-emerald-600 text-white h-7 px-2" onClick={() => handleApprove(doc)} disabled={verifying === doc.id}>
-                                <CheckCircle2 className="w-3 h-3 mr-1" />{verifying === doc.id ? '…' : 'Approve'}
+                                <CheckCircle2 className="w-3 h-3 me-1" />{verifying === doc.id ? '…' : 'Approve'}
                               </Button>
                               <Button size="sm" variant="outline" className="text-red-500 border-red-300 hover:bg-red-50 h-7 px-2" onClick={() => { setRejectDialog({ open: true, docId: doc.id, docName: doc.name }); setRejectionReason(''); }} disabled={verifying === doc.id}>
-                                <XCircle className="w-3 h-3 mr-1" />Reject
+                                <XCircle className="w-3 h-3 me-1" />Reject
                               </Button>
                             </>
                           )}
                           {(doc.status === 'EXPIRED' || doc.status === 'EXPIRING_SOON' || doc.status === 'VERIFIED') && canCreate('documents') && (
                             <Button size="sm" variant="outline" className="h-7 px-2" onClick={() => openRenewDialog(doc)}>
-                              <RefreshCw className="w-3 h-3 mr-1" />Renew
+                              <RefreshCw className="w-3 h-3 me-1" />Renew
                             </Button>
                           )}
                           <Button size="sm" variant="ghost" className="h-7 w-7 p-0" asChild>

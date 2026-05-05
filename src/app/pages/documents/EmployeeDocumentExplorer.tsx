@@ -104,22 +104,22 @@ function ColumnPicker<K extends string>({
         onClick={() => setOpen(v => !v)}
         className={open ? 'border-primary text-primary' : ''}
       >
-        <Columns2 className="w-4 h-4 mr-1.5" />Columns
+        <Columns2 className="w-4 h-4 me-1.5" />Columns
         {hiddenCount > 0 && (
-          <span className="ml-1.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
+          <span className="ms-1.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
             {hiddenCount}
           </span>
         )}
       </Button>
       {open && (
-        <div className="absolute right-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[200px]">
+        <div className="absolute end-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[200px]">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">Toggle columns</p>
           <div className="space-y-0.5 max-h-72 overflow-y-auto">
             {columns.map(c => (
               <button
                 key={c.key}
                 onClick={() => set({ ...visible, [c.key]: !visible[c.key] })}
-                className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-gray-50 text-sm text-left"
+                className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-gray-50 text-sm text-start"
               >
                 <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${visible[c.key] ? 'bg-primary border-primary' : 'border-gray-300'}`}>
                   {visible[c.key] && <Check className="w-2.5 h-2.5 text-primary-foreground" />}
@@ -151,7 +151,7 @@ function SortableTh<F extends string>({
   label: string; field: F; sortBy: F; sortOrder: SortOrder; onSort: (f: F) => void; className?: string;
 }) {
   return (
-    <th className={`text-left p-4 font-semibold text-sm ${className ?? ''}`}>
+    <th className={`text-start p-4 font-semibold text-sm ${className ?? ''}`}>
       <button onClick={() => onSort(field)} className="flex items-center gap-1 hover:text-foreground group">
         {label}
         <SortIcon active={sortBy === field} order={sortOrder} />
@@ -618,12 +618,12 @@ export function EmployeeDocumentExplorer() {
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               <div className="relative md:col-span-2">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   placeholder="Search by name or email..."
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  className="pl-9"
+                  className="ps-9"
                 />
               </div>
               <Select value={nationalityFilter} onValueChange={setNationalityFilter}>
@@ -672,7 +672,7 @@ export function EmployeeDocumentExplorer() {
               />
               {(empEmailFilter || empMinDocs) && (
                 <Button variant="ghost" size="sm" onClick={() => { setEmpEmailFilter(''); setEmpMinDocs(''); }}>
-                  <X className="w-3 h-3 mr-1" />Clear extras
+                  <X className="w-3 h-3 me-1" />Clear extras
                 </Button>
               )}
             </div>
@@ -713,7 +713,7 @@ export function EmployeeDocumentExplorer() {
             <table className="w-full">
               <thead className="bg-[#F8FAFC] border-b">
                 <tr>
-                  <th className="text-left p-4 w-12">
+                  <th className="text-start p-4 w-12">
                     <Checkbox
                       checked={selectedEmployees.length === filteredEmployees.length && filteredEmployees.length > 0}
                       onCheckedChange={toggleAllEmployees}
@@ -811,7 +811,7 @@ export function EmployeeDocumentExplorer() {
                     }
                   }}
                 >
-                  <FileDown className="w-4 h-4 mr-2" />
+                  <FileDown className="w-4 h-4 me-2" />
                   {downloading ? 'Preparing…' : 'Download Selected'}
                 </Button>
                 <Button
@@ -829,7 +829,7 @@ export function EmployeeDocumentExplorer() {
                     }
                   }}
                 >
-                  <FileArchive className="w-4 h-4 mr-2" />
+                  <FileArchive className="w-4 h-4 me-2" />
                   {downloading ? 'Preparing…' : 'Download All'}
                 </Button>
               </div>
@@ -839,12 +839,12 @@ export function EmployeeDocumentExplorer() {
             {/* Document filters */}
             <div className="flex flex-wrap gap-2 items-center">
               <div className="relative flex-1 min-w-[220px]">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   placeholder="Search documents by name, number, ID…"
                   value={empDocsSearch}
                   onChange={e => setEmpDocsSearch(e.target.value)}
-                  className="pl-9"
+                  className="ps-9"
                 />
               </div>
               <Select value={empDocsStatusFilter} onValueChange={setEmpDocsStatusFilter}>
@@ -875,10 +875,10 @@ export function EmployeeDocumentExplorer() {
                   setEmpDocsSearch(''); setEmpDocsStatusFilter('all'); setEmpDocsTypeFilter('');
                   setEmpDocsExpFrom(''); setEmpDocsExpTo('');
                 }}>
-                  <X className="w-3 h-3 mr-1" />Clear
+                  <X className="w-3 h-3 me-1" />Clear
                 </Button>
               )}
-              <div className="ml-auto">
+              <div className="ms-auto">
                 <ColumnPicker
                   columns={DOC_COLUMNS}
                   visible={empDocsCols}
@@ -893,7 +893,7 @@ export function EmployeeDocumentExplorer() {
               <table className="w-full">
                 <thead className="bg-[#F8FAFC] border-b">
                   <tr>
-                    <th className="text-left p-4 w-12">
+                    <th className="text-start p-4 w-12">
                       <Checkbox
                         checked={selectedDocuments.length === displayEmpDocs.length && displayEmpDocs.length > 0}
                         onCheckedChange={toggleAllDocuments}
@@ -910,7 +910,7 @@ export function EmployeeDocumentExplorer() {
                     {empDocsCols.documentNumber && <SortableTh label="Doc Number"    field="documentNumber" sortBy={empDocsSortBy} sortOrder={empDocsSortOrder} onSort={handleEmpDocsSort} />}
                     {empDocsCols.uploadDate     && <SortableTh label="Upload Date"   field="uploadDate"     sortBy={empDocsSortBy} sortOrder={empDocsSortOrder} onSort={handleEmpDocsSort} />}
                     {empDocsCols.fileSize       && <SortableTh label="File Size"     field="fileSize"       sortBy={empDocsSortBy} sortOrder={empDocsSortOrder} onSort={handleEmpDocsSort} />}
-                    <th className="text-left p-4 font-semibold text-sm">Action</th>
+                    <th className="text-start p-4 font-semibold text-sm">Action</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -944,7 +944,7 @@ export function EmployeeDocumentExplorer() {
                         <td className="p-4">
                           <Button size="sm" variant="ghost" asChild>
                             <a href={getFileUrl(doc.fileUrl)} target="_blank" rel="noopener noreferrer" download>
-                              <Download className="w-4 h-4 mr-1" />Download
+                              <Download className="w-4 h-4 me-1" />Download
                             </a>
                           </Button>
                         </td>
@@ -981,12 +981,12 @@ export function EmployeeDocumentExplorer() {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="relative md:col-span-2">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   placeholder="Search by name or email..."
                   value={appSearchQuery}
                   onChange={e => setAppSearchQuery(e.target.value)}
-                  className="pl-9"
+                  className="ps-9"
                 />
               </div>
               <Select value={appStatusFilter} onValueChange={setAppStatusFilter}>
@@ -1028,7 +1028,7 @@ export function EmployeeDocumentExplorer() {
                 <Button variant="ghost" size="sm" onClick={() => {
                   setAppEmailFilter(''); setAppMinDocs(''); setAppNationalityFilter('all');
                 }}>
-                  <X className="w-3 h-3 mr-1" />Clear extras
+                  <X className="w-3 h-3 me-1" />Clear extras
                 </Button>
               )}
             </div>
@@ -1057,7 +1057,7 @@ export function EmployeeDocumentExplorer() {
               <table className="w-full">
                 <thead className="bg-[#F8FAFC] border-b">
                   <tr>
-                    <th className="text-left p-4 w-12">
+                    <th className="text-start p-4 w-12">
                       <Checkbox
                         checked={selectedApplicants.length === filteredApplicants.length && filteredApplicants.length > 0}
                         onCheckedChange={toggleAllApplicants}
@@ -1154,7 +1154,7 @@ export function EmployeeDocumentExplorer() {
                       }
                     }}
                   >
-                    <FileDown className="w-4 h-4 mr-2" />
+                    <FileDown className="w-4 h-4 me-2" />
                     {downloading ? 'Preparing…' : 'Download Selected'}
                   </Button>
                   <Button
@@ -1172,7 +1172,7 @@ export function EmployeeDocumentExplorer() {
                       }
                     }}
                   >
-                    <FileArchive className="w-4 h-4 mr-2" />
+                    <FileArchive className="w-4 h-4 me-2" />
                     {downloading ? 'Preparing…' : 'Download All'}
                   </Button>
                 </div>
@@ -1182,12 +1182,12 @@ export function EmployeeDocumentExplorer() {
               {/* Document filters */}
               <div className="flex flex-wrap gap-2 items-center">
                 <div className="relative flex-1 min-w-[220px]">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
                     placeholder="Search documents by name, number, ID…"
                     value={appDocsSearch}
                     onChange={e => setAppDocsSearch(e.target.value)}
-                    className="pl-9"
+                    className="ps-9"
                   />
                 </div>
                 <Select value={appDocsStatusFilter} onValueChange={setAppDocsStatusFilter}>
@@ -1218,10 +1218,10 @@ export function EmployeeDocumentExplorer() {
                     setAppDocsSearch(''); setAppDocsStatusFilter('all'); setAppDocsTypeFilter('');
                     setAppDocsExpFrom(''); setAppDocsExpTo('');
                   }}>
-                    <X className="w-3 h-3 mr-1" />Clear
+                    <X className="w-3 h-3 me-1" />Clear
                   </Button>
                 )}
-                <div className="ml-auto">
+                <div className="ms-auto">
                   <ColumnPicker
                     columns={DOC_COLUMNS}
                     visible={appDocsCols}
@@ -1236,7 +1236,7 @@ export function EmployeeDocumentExplorer() {
                 <table className="w-full">
                   <thead className="bg-[#F8FAFC] border-b">
                     <tr>
-                      <th className="text-left p-4 w-12">
+                      <th className="text-start p-4 w-12">
                         <Checkbox
                           checked={selectedApplicantDocs.length === displayAppDocs.length && displayAppDocs.length > 0}
                           onCheckedChange={toggleAllApplicantDocs}
@@ -1253,7 +1253,7 @@ export function EmployeeDocumentExplorer() {
                       {appDocsCols.documentNumber && <SortableTh label="Doc Number"    field="documentNumber" sortBy={appDocsSortBy} sortOrder={appDocsSortOrder} onSort={handleAppDocsSort} />}
                       {appDocsCols.uploadDate     && <SortableTh label="Upload Date"   field="uploadDate"     sortBy={appDocsSortBy} sortOrder={appDocsSortOrder} onSort={handleAppDocsSort} />}
                       {appDocsCols.fileSize       && <SortableTh label="File Size"     field="fileSize"       sortBy={appDocsSortBy} sortOrder={appDocsSortOrder} onSort={handleAppDocsSort} />}
-                      <th className="text-left p-4 font-semibold text-sm">Action</th>
+                      <th className="text-start p-4 font-semibold text-sm">Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1287,7 +1287,7 @@ export function EmployeeDocumentExplorer() {
                           <td className="p-4">
                             <Button size="sm" variant="ghost" asChild>
                               <a href={getFileUrl(doc.fileUrl)} target="_blank" rel="noopener noreferrer" download>
-                                <Download className="w-4 h-4 mr-1" />Download
+                                <Download className="w-4 h-4 me-1" />Download
                               </a>
                             </Button>
                           </td>

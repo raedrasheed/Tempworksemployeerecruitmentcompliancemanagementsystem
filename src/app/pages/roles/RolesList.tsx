@@ -177,7 +177,7 @@ export function RolesList() {
                             </Badge>
                           )}
                           <Badge variant="outline">
-                            <Users className="w-3 h-3 mr-1" />
+                            <Users className="w-3 h-3 me-1" />
                             {role._count?.users ?? 0} users
                           </Badge>
                         </div>
@@ -204,11 +204,11 @@ export function RolesList() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 ml-4">
+                    <div className="flex items-center gap-2 ms-4">
                       {canEdit('roles') && (
                         <Button size="sm" variant="outline" asChild>
                           <Link to={`/dashboard/roles/${role.id}/edit`}>
-                            <Edit className="w-4 h-4 mr-1" />
+                            <Edit className="w-4 h-4 me-1" />
                             Edit
                           </Link>
                         </Button>

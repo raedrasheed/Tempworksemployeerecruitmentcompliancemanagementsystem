@@ -215,12 +215,12 @@ export function StageDetails() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold text-lg">People in {stage.name}</h2>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 placeholder="Search by name or email..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 w-64"
+                className="ps-9 w-64"
               />
             </div>
           </div>
@@ -267,7 +267,7 @@ export function StageDetails() {
                       </div>
 
                       <div className="flex items-center gap-3">
-                        <div className="text-right">
+                        <div className="text-end">
                           <p className="font-medium text-[#0F172A]">{person.daysInStage}d</p>
                           <p className="text-xs text-muted-foreground">in stage</p>
                         </div>
@@ -305,7 +305,7 @@ export function StageDetails() {
 
                         <Link to={person.linkTo}>
                           <Button variant="outline" size="sm">
-                            View Profile <ChevronRight className="w-4 h-4 ml-1" />
+                            View Profile <ChevronRight className="w-4 h-4 ms-1" />
                           </Button>
                         </Link>
                       </div>
@@ -336,7 +336,7 @@ export function StageDetails() {
                               }>
                                 {doc.name}
                               </span>
-                              <span className={`ml-auto text-xs px-1.5 py-0.5 rounded font-medium ${
+                              <span className={`ms-auto text-xs px-1.5 py-0.5 rounded font-medium ${
                                 doc.status === 'VERIFIED' ? 'bg-[#F0FDF4] text-[#22C55E]' :
                                 doc.status === 'REJECTED' ? 'bg-[#FEF2F2] text-[#EF4444]' :
                                 doc.status === 'PENDING' ? 'bg-[#FEF3C7] text-[#F59E0B]' :

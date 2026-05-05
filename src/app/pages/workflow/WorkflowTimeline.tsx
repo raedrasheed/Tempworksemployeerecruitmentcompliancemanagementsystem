@@ -173,7 +173,7 @@ export function WorkflowTimeline() {
         <CardContent>
           <div className="relative">
             {/* Timeline line */}
-            <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-[#E2E8F0]" />
+            <div className="absolute start-6 top-0 bottom-0 w-0.5 bg-[#E2E8F0]" />
             
             <div className="space-y-6">
               {mockTimelineEvents.map((event) => (
@@ -216,7 +216,7 @@ export function WorkflowTimeline() {
                         <Button size="sm" variant="ghost" asChild>
                           <Link to={`/dashboard/drivers/${event.driverId}`}>
                             View Driver
-                            <ArrowRight className="w-4 h-4 ml-1" />
+                            <ArrowRight className="w-4 h-4 ms-1" />
                           </Link>
                         </Button>
                       </div>

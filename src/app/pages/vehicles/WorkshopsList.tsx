@@ -300,17 +300,17 @@ export function WorkshopsList() {
         </Select>
         {hasFilters && (
           <Button variant="ghost" size="sm" onClick={clearFilters}>
-            <X className="w-3.5 h-3.5 mr-1" /> Clear
+            <X className="w-3.5 h-3.5 me-1" /> Clear
           </Button>
         )}
 
         {/* column picker */}
-        <div className="relative ml-auto" ref={colPickerRef}>
+        <div className="relative ms-auto" ref={colPickerRef}>
           <Button variant="outline" size="sm" onClick={() => setShowColPicker((v) => !v)}>
-            <Columns2 className="w-4 h-4 mr-2" /> Columns
+            <Columns2 className="w-4 h-4 me-2" /> Columns
           </Button>
           {showColPicker && (
-            <div className="absolute right-0 top-full mt-1 z-50 bg-popover border rounded-md shadow-md p-2 w-44">
+            <div className="absolute end-0 top-full mt-1 z-50 bg-popover border rounded-md shadow-md p-2 w-44">
               {ALL_COLUMNS.map(({ key, label }) => (
                 <button
                   key={key}
@@ -339,7 +339,7 @@ export function WorkshopsList() {
                 {col('email')   && <SortableHead label="Email"   field="email"   sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
                 {col('city')    && <SortableHead label="City"    field="city"    sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
                 {col('country') && <SortableHead label="Country" field="country" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
-                {canWrite && <TableHead className="text-right">Actions</TableHead>}
+                {canWrite && <TableHead className="text-end">Actions</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -353,7 +353,7 @@ export function WorkshopsList() {
                 <TableRow key={w.id} className={!w.isActive ? 'opacity-60' : ''}>
                   <TableCell className="font-medium">
                     {w.name}
-                    {!w.isActive && <span className="ml-2 text-xs text-muted-foreground">(inactive)</span>}
+                    {!w.isActive && <span className="ms-2 text-xs text-muted-foreground">(inactive)</span>}
                   </TableCell>
                   {col('contact') && <TableCell className="text-sm">{w.contactName ?? '—'}</TableCell>}
                   {col('phone')   && <TableCell className="text-sm">{w.phone ?? '—'}</TableCell>}
@@ -361,7 +361,7 @@ export function WorkshopsList() {
                   {col('city')    && <TableCell className="text-sm">{w.city ?? '—'}</TableCell>}
                   {col('country') && <TableCell className="text-sm">{w.country ?? '—'}</TableCell>}
                   {canWrite && (
-                    <TableCell className="text-right space-x-1">
+                    <TableCell className="text-end space-x-1">
                       <Button size="sm" variant="ghost" onClick={() => openEdit(w)}><Pencil className="w-4 h-4" /></Button>
                       <Button size="sm" variant="ghost" onClick={() => handleDelete(w.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
                     </TableCell>
@@ -417,7 +417,7 @@ export function WorkshopsList() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialog(false)}>Cancel</Button>
             <Button onClick={handleSave} disabled={saving}>
-              <Save className="w-4 h-4 mr-2" />
+              <Save className="w-4 h-4 me-2" />
               {saving ? 'Saving…' : editing ? 'Save Changes' : 'Create Workshop'}
             </Button>
           </DialogFooter>

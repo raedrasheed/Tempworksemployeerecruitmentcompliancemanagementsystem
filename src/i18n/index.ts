@@ -1,4 +1,4 @@
-import i18n from 'i18next';
+import i18n, { type BackendModule, type ReadCallback, type Services, type InitOptions } from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 
@@ -8,8 +8,14 @@ import {
   NAMESPACES,
   DEFAULT_NS,
   STORAGE_KEY,
+  type Locale,
+  type Namespace,
 } from './config';
+import { pseudoizeTree } from './pseudo';
 
+// English is the fallback and is always needed up-front. Bundling it
+// statically guarantees it's available synchronously on first render so
+// no UI flickers untranslated while the chosen locale loads.
 import enCommon    from './locales/en/common.json';
 import enNav       from './locales/en/nav.json';
 import enAuth      from './locales/en/auth.json';
@@ -20,74 +26,54 @@ import enDashboard from './locales/en/dashboard.json';
 import enUi        from './locales/en/ui.json';
 import enPages     from './locales/en/pages.json';
 
-import skCommon    from './locales/sk/common.json';
-import skNav       from './locales/sk/nav.json';
-import skAuth      from './locales/sk/auth.json';
-import skPublic    from './locales/sk/public.json';
-import skEnums     from './locales/sk/enums.json';
-import skErrors    from './locales/sk/errors.json';
-import skDashboard from './locales/sk/dashboard.json';
-import skUi        from './locales/sk/ui.json';
-import skPages     from './locales/sk/pages.json';
+const ENGLISH_RESOURCES: Record<Namespace, Record<string, unknown>> = {
+  common: enCommon, nav: enNav, auth: enAuth, public: enPublic,
+  enums: enEnums, errors: enErrors, dashboard: enDashboard,
+  ui: enUi, pages: enPages,
+};
 
-import deCommon    from './locales/de/common.json';
-import deNav       from './locales/de/nav.json';
-import deAuth      from './locales/de/auth.json';
-import dePublic    from './locales/de/public.json';
-import deEnums     from './locales/de/enums.json';
-import deErrors    from './locales/de/errors.json';
-import deDashboard from './locales/de/dashboard.json';
-import deUi        from './locales/de/ui.json';
-import dePages     from './locales/de/pages.json';
-
-import ruCommon    from './locales/ru/common.json';
-import ruNav       from './locales/ru/nav.json';
-import ruAuth      from './locales/ru/auth.json';
-import ruPublic    from './locales/ru/public.json';
-import ruEnums     from './locales/ru/enums.json';
-import ruErrors    from './locales/ru/errors.json';
-import ruDashboard from './locales/ru/dashboard.json';
-import ruUi        from './locales/ru/ui.json';
-import ruPages     from './locales/ru/pages.json';
-
-import arCommon    from './locales/ar/common.json';
-import arNav       from './locales/ar/nav.json';
-import arAuth      from './locales/ar/auth.json';
-import arPublic    from './locales/ar/public.json';
-import arEnums     from './locales/ar/enums.json';
-import arErrors    from './locales/ar/errors.json';
-import arDashboard from './locales/ar/dashboard.json';
-import arUi        from './locales/ar/ui.json';
-import arPages     from './locales/ar/pages.json';
-
-import trCommon    from './locales/tr/common.json';
-import trNav       from './locales/tr/nav.json';
-import trAuth      from './locales/tr/auth.json';
-import trPublic    from './locales/tr/public.json';
-import trEnums     from './locales/tr/enums.json';
-import trErrors    from './locales/tr/errors.json';
-import trDashboard from './locales/tr/dashboard.json';
-import trUi        from './locales/tr/ui.json';
-import trPages     from './locales/tr/pages.json';
-
-const resources = {
-  en: { common: enCommon, nav: enNav, auth: enAuth, public: enPublic, enums: enEnums, errors: enErrors, dashboard: enDashboard, ui: enUi, pages: enPages },
-  sk: { common: skCommon, nav: skNav, auth: skAuth, public: skPublic, enums: skEnums, errors: skErrors, dashboard: skDashboard, ui: skUi, pages: skPages },
-  de: { common: deCommon, nav: deNav, auth: deAuth, public: dePublic, enums: deEnums, errors: deErrors, dashboard: deDashboard, ui: deUi, pages: dePages },
-  ru: { common: ruCommon, nav: ruNav, auth: ruAuth, public: ruPublic, enums: ruEnums, errors: ruErrors, dashboard: ruDashboard, ui: ruUi, pages: ruPages },
-  ar: { common: arCommon, nav: arNav, auth: arAuth, public: arPublic, enums: arEnums, errors: arErrors, dashboard: arDashboard, ui: arUi, pages: arPages },
-  tr: { common: trCommon, nav: trNav, auth: trAuth, public: trPublic, enums: trEnums, errors: trErrors, dashboard: trDashboard, ui: trUi, pages: trPages },
-} as const;
+// Lazy-load every other locale via dynamic imports. Each locale becomes its
+// own Vite chunk, so a user who never switches off English doesn't pay for
+// the other 5 locales' bytes. The `pseudo` locale is materialized
+// in-memory by walking the English tree and accenting every leaf.
+const lazyBackend: BackendModule = {
+  type: 'backend',
+  init(_services: Services, _backendOptions: object, _i18nextOptions: InitOptions) { /* no-op */ },
+  read(language: string, namespace: string, callback: ReadCallback) {
+    if (language === 'en') {
+      const ns = ENGLISH_RESOURCES[namespace as Namespace];
+      callback(null, ns ?? {});
+      return;
+    }
+    if (language === 'pseudo') {
+      const ns = ENGLISH_RESOURCES[namespace as Namespace];
+      callback(null, ns ? (pseudoizeTree(ns) as Record<string, unknown>) : {});
+      return;
+    }
+    if (!(SUPPORTED_LOCALES as readonly string[]).includes(language)) {
+      callback(new Error(`Unsupported locale: ${language}`), false);
+      return;
+    }
+    // Vite picks these up at build time and creates a chunk per (locale, ns).
+    // Using a template literal with two variables means Vite generates a
+    // glob — fine for our small JSON files.
+    import(`./locales/${language}/${namespace}.json`)
+      .then((mod) => callback(null, mod.default))
+      .catch((err) => callback(err as Error, false));
+  },
+};
 
 void i18n
+  .use(lazyBackend)
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
-    resources,
+    resources: { en: ENGLISH_RESOURCES },
     fallbackLng: FALLBACK_LOCALE,
-    supportedLngs: [...SUPPORTED_LOCALES],
+    supportedLngs: [...SUPPORTED_LOCALES, 'pseudo'],
     nonExplicitSupportedLngs: true,
     load: 'languageOnly',
+    partialBundledLanguages: true, // English is bundled, others are loaded lazily
     ns: [...NAMESPACES],
     defaultNS: DEFAULT_NS,
     detection: {
@@ -100,3 +86,4 @@ void i18n
   });
 
 export default i18n;
+export type { Locale };

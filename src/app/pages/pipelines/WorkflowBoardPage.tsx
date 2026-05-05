@@ -98,7 +98,7 @@ function AdvanceModal({ assignmentId, workflow, onClose, onAdvanced }: { assignm
                 <input type="radio" name="stage" value={s.id} checked={selectedStageId === s.id} onChange={() => setSelectedStageId(s.id)} className="sr-only" />
                 <div className="w-2.5 h-2.5 rounded-full" style={{ background: s.color }} />
                 <span className="text-sm text-foreground">{s.name}</span>
-                {selectedStageId === s.id && <CheckCircle2 className="w-4 h-4 ml-auto" style={{ color: s.color }} />}
+                {selectedStageId === s.id && <CheckCircle2 className="w-4 h-4 ms-auto" style={{ color: s.color }} />}
               </label>
             ))}
           </div>
@@ -186,7 +186,7 @@ function StageCard({ col, totalStages, totalActive }: { col: any; totalStages: n
     <Card className="relative hover:shadow-md transition-shadow">
       <CardContent className="p-5">
         {/* Active count badge */}
-        <div className="absolute top-4 right-4">
+        <div className="absolute top-4 end-4">
           <Badge
             className="rounded-full w-7 h-7 flex items-center justify-center p-0 text-white text-xs font-semibold"
             style={{ backgroundColor: stageColor }}
@@ -196,7 +196,7 @@ function StageCard({ col, totalStages, totalActive }: { col: any; totalStages: n
         </div>
 
         {/* Stage name */}
-        <h3 className="font-semibold text-[#0F172A] mb-4 pr-8">{stage.name}</h3>
+        <h3 className="font-semibold text-[#0F172A] mb-4 pe-8">{stage.name}</h3>
 
         {/* Progress bar */}
         <div className="space-y-2 mb-3">
@@ -321,7 +321,7 @@ export function WorkflowBoardPage() {
 
         <div className="flex items-center gap-2 flex-wrap">
           {/* Stats */}
-          <div className="flex items-center gap-4 text-sm text-muted-foreground mr-2">
+          <div className="flex items-center gap-4 text-sm text-muted-foreground me-2">
             <span className="flex items-center gap-1.5">
               <BarChart2 className="w-4 h-4" />
               <strong className="text-foreground">{totalActive}</strong> active

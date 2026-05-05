@@ -155,7 +155,7 @@ export function TransactionTypesSettings() {
         </div>
         {canCreate('settings') && (
           <Button className="bg-[#2563EB] hover:bg-[#1d4ed8]" onClick={openCreate}>
-            <Plus className="w-4 h-4 mr-2" />New Type
+            <Plus className="w-4 h-4 me-2" />New Type
           </Button>
         )}
       </div>
@@ -206,7 +206,7 @@ export function TransactionTypesSettings() {
             <ul className="divide-y">
               {sorted.map(t => (
                 <li key={t.id} className="flex items-center gap-3 px-4 py-3">
-                  <span className="font-mono text-xs text-muted-foreground w-10 text-right">{t.sortOrder}</span>
+                  <span className="font-mono text-xs text-muted-foreground w-10 text-end">{t.sortOrder}</span>
                   <span className={`flex-1 text-sm ${t.isActive ? '' : 'text-muted-foreground line-through'}`}>
                     {t.name}
                   </span>
@@ -218,13 +218,13 @@ export function TransactionTypesSettings() {
                   </Badge>
                   {canEdit('settings') && (
                     <Button variant="outline" size="sm" onClick={() => handleToggleActive(t)}>
-                      {t.isActive ? <XCircle className="w-4 h-4 mr-1" /> : <CheckCircle className="w-4 h-4 mr-1" />}
+                      {t.isActive ? <XCircle className="w-4 h-4 me-1" /> : <CheckCircle className="w-4 h-4 me-1" />}
                       {t.isActive ? 'Deactivate' : 'Activate'}
                     </Button>
                   )}
                   {canEdit('settings') && (
                     <Button variant="outline" size="sm" onClick={() => openEdit(t)}>
-                      <Pencil className="w-4 h-4 mr-1" />Edit
+                      <Pencil className="w-4 h-4 me-1" />Edit
                     </Button>
                   )}
                   {canDelete('settings') && t.isActive && (
@@ -288,14 +288,14 @@ export function TransactionTypesSettings() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}>
-              <X className="w-4 h-4 mr-2" />Cancel
+              <X className="w-4 h-4 me-2" />Cancel
             </Button>
             <Button
               className="bg-[#2563EB] hover:bg-[#1d4ed8]"
               onClick={handleSave}
               disabled={saving || !form.name.trim()}
             >
-              <Save className="w-4 h-4 mr-2" />
+              <Save className="w-4 h-4 me-2" />
               {saving ? 'Saving…' : editing ? 'Save Changes' : 'Create'}
             </Button>
           </DialogFooter>

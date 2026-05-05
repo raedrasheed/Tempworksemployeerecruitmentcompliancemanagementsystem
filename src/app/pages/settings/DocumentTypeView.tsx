@@ -95,7 +95,7 @@ export function DocumentTypeView() {
         <div className="flex items-center gap-3">
           <Button variant="outline" asChild>
             <Link to={`/dashboard/settings/document-types/${id}/edit`}>
-              <Edit className="w-4 h-4 mr-2" />
+              <Edit className="w-4 h-4 me-2" />
               Edit
             </Link>
           </Button>
@@ -104,7 +104,7 @@ export function DocumentTypeView() {
             className="text-red-600 hover:text-red-700 hover:bg-red-50"
             onClick={() => setShowDeleteDialog(true)}
           >
-            <Trash2 className="w-4 h-4 mr-2" />
+            <Trash2 className="w-4 h-4 me-2" />
             Deactivate
           </Button>
         </div>

@@ -169,7 +169,7 @@ export function EmployeeTrainingHistory() {
           <p className="text-muted-foreground mt-1">{driver.firstName} {driver.lastName} • Complete training and course records</p>
         </div>
         <Button>
-          <Plus className="w-4 h-4 mr-2" />
+          <Plus className="w-4 h-4 me-2" />
           Enroll in Course
         </Button>
       </div>
@@ -370,7 +370,7 @@ export function EmployeeTrainingHistory() {
                           )}
                         </div>
                       </div>
-                      <div className="flex flex-col items-end gap-2 ml-4">
+                      <div className="flex flex-col items-end gap-2 ms-4">
                         {course.score && (
                           <div className="text-center">
                             <div className={`text-2xl font-semibold ${
@@ -385,7 +385,7 @@ export function EmployeeTrainingHistory() {
                           </div>
                         )}
                         <Button size="sm" variant="outline">
-                          <Download className="w-4 h-4 mr-1" />
+                          <Download className="w-4 h-4 me-1" />
                           Certificate
                         </Button>
                       </div>

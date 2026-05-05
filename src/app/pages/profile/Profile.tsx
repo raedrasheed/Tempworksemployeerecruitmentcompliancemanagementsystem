@@ -201,7 +201,7 @@ export function Profile() {
             <div className="flex items-center gap-3">
               <Button variant="outline" size="sm" asChild>
                 <Link to="/dashboard/preferences">
-                  <Settings className="w-4 h-4 mr-2" />
+                  <Settings className="w-4 h-4 me-2" />
                   Preferences
                 </Link>
               </Button>
@@ -228,7 +228,7 @@ export function Profile() {
                   <div className="flex gap-2">
                     <Button variant="outline" onClick={handleCancel} disabled={saving}>Cancel</Button>
                     <Button onClick={handleSave} disabled={saving}>
-                      {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+                      {saving ? <Loader2 className="w-4 h-4 me-2 animate-spin" /> : <Save className="w-4 h-4 me-2" />}
                       Save Changes
                     </Button>
                   </div>
@@ -245,7 +245,7 @@ export function Profile() {
                     onClick={() => photoInputRef.current?.click()}
                     disabled={uploadingPhoto}
                     title="Change profile photo"
-                    className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-[#2563EB] flex items-center justify-center text-white hover:bg-[#1D4ED8] transition-colors disabled:opacity-50"
+                    className="absolute bottom-0 end-0 w-8 h-8 rounded-full bg-[#2563EB] flex items-center justify-center text-white hover:bg-[#1D4ED8] transition-colors disabled:opacity-50"
                   >
                     {uploadingPhoto ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
                   </button>
@@ -463,7 +463,7 @@ export function Profile() {
                   <div className="flex flex-wrap gap-2 mt-2">
                     {permissions.map((permission, index) => (
                       <Badge key={index} variant="outline" className="bg-[#EFF6FF] text-[#2563EB] border-[#2563EB]">
-                        <CheckCircle className="w-3 h-3 mr-1" />
+                        <CheckCircle className="w-3 h-3 me-1" />
                         {permission}
                       </Badge>
                     ))}

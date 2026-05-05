@@ -2,32 +2,38 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import i18n from './index';
 import {
   dirOf,
+  isAnyLocale,
   isSupportedLocale,
   normalizeLocale,
+  PSEUDO_LOCALE,
   STORAGE_KEY,
   type Locale,
+  type LocaleOrPseudo,
 } from './config';
 
 interface LanguageContextValue {
-  locale: Locale;
+  locale: LocaleOrPseudo;
   dir: 'ltr' | 'rtl';
-  setLocale: (l: Locale) => void;
+  setLocale: (l: LocaleOrPseudo) => void;
 }
 
 const LanguageContext = createContext<LanguageContextValue | null>(null);
 
-function applyDocumentAttributes(locale: Locale) {
+function applyDocumentAttributes(locale: LocaleOrPseudo) {
   const dir = dirOf(locale);
   if (typeof document !== 'undefined') {
-    document.documentElement.lang = locale;
+    // For pseudo, keep `lang="en"` so screen readers / spell-check don't get confused.
+    document.documentElement.lang = locale === PSEUDO_LOCALE ? 'en' : (locale as Locale);
     document.documentElement.dir = dir;
   }
 }
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>(() => {
+  const [locale, setLocaleState] = useState<LocaleOrPseudo>(() => {
     const detected = i18n.resolvedLanguage ?? i18n.language;
-    return isSupportedLocale(detected) ? detected : normalizeLocale(detected);
+    if (isAnyLocale(detected)) return detected;
+    if (isSupportedLocale(detected)) return detected;
+    return normalizeLocale(detected);
   });
 
   // Apply <html lang>/<html dir> immediately on first render and whenever the locale changes.
@@ -39,7 +45,11 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   // running on init, or another component calling i18n.changeLanguage directly).
   useEffect(() => {
     const handler = (lng: string) => {
-      const next = isSupportedLocale(lng) ? lng : normalizeLocale(lng);
+      const next: LocaleOrPseudo = isAnyLocale(lng)
+        ? lng
+        : isSupportedLocale(lng)
+        ? lng
+        : normalizeLocale(lng);
       setLocaleState(prev => (prev === next ? prev : next));
     };
     i18n.on('languageChanged', handler);
@@ -51,7 +61,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const value = useMemo<LanguageContextValue>(() => ({
     locale,
     dir: dirOf(locale),
-    setLocale: (l: Locale) => {
+    setLocale: (l: LocaleOrPseudo) => {
       void i18n.changeLanguage(l);
       try { localStorage.setItem(STORAGE_KEY, l); } catch {/* ignore quota / privacy mode */}
       setLocaleState(l);

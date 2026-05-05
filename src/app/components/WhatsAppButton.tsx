@@ -44,7 +44,7 @@ export function WhatsAppButton({ phone, defaultCountryCode, message, label, size
 
   const base = (
     <>
-      <WhatsAppIcon className={size === 'icon' ? 'w-4 h-4' : 'w-4 h-4 mr-1.5'} />
+      <WhatsAppIcon className={size === 'icon' ? 'w-4 h-4' : 'w-4 h-4 me-1.5'} />
       {label ? <span>{label}</span> : null}
     </>
   );

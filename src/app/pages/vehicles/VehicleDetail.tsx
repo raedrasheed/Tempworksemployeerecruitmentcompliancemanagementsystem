@@ -384,7 +384,7 @@ export function VehicleDetail() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard/vehicles')}>
-            <ArrowLeft className="w-4 h-4 mr-1" /> Back
+            <ArrowLeft className="w-4 h-4 me-1" /> Back
           </Button>
           <div>
             <h1 className="text-xl font-bold flex items-center gap-2">
@@ -399,7 +399,7 @@ export function VehicleDetail() {
           {canWrite && (
             <>
               <Button size="sm" variant="outline" onClick={() => navigate(`/dashboard/vehicles/${id}/edit`)}>
-                <Edit className="w-4 h-4 mr-1" /> Edit
+                <Edit className="w-4 h-4 me-1" /> Edit
               </Button>
               <Button size="sm" variant="destructive" onClick={handleDelete}>
                 <Trash2 className="w-4 h-4" />
@@ -477,7 +477,7 @@ export function VehicleDetail() {
                 setPickerOpen(false);
                 setAssignDialog(true);
               }}>
-                <User className="w-4 h-4 mr-2" /> Assign Driver
+                <User className="w-4 h-4 me-2" /> Assign Driver
               </Button>
             )}
           </div>
@@ -544,7 +544,7 @@ export function VehicleDetail() {
             <h3 className="font-medium">Vehicle Documents</h3>
             {canWrite && (
               <Button size="sm" onClick={openAddDoc}>
-                <Plus className="w-4 h-4 mr-2" /> Add Document
+                <Plus className="w-4 h-4 me-2" /> Add Document
               </Button>
             )}
           </div>
@@ -557,7 +557,7 @@ export function VehicleDetail() {
                 <TableHead>Issuer</TableHead>
                 <TableHead>Issued</TableHead>
                 <TableHead>Expires</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="text-end">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -570,7 +570,7 @@ export function VehicleDetail() {
                   <TableCell className="text-sm">{doc.issuer ?? '—'}</TableCell>
                   <TableCell className="text-sm">{doc.issuedDate ? new Date(doc.issuedDate).toLocaleDateString() : '—'}</TableCell>
                   <TableCell>{expiryCell(doc.expiryDate)}</TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-end">
                     <div className="flex items-center justify-end gap-1">
                       {doc.fileUrl && (
                         <a
@@ -608,7 +608,7 @@ export function VehicleDetail() {
             <h3 className="font-medium">Maintenance Records</h3>
             {canWrite && (
               <Button size="sm" onClick={openAddMaintenance}>
-                <Plus className="w-4 h-4 mr-2" /> Add Record
+                <Plus className="w-4 h-4 me-2" /> Add Record
               </Button>
             )}
           </div>
@@ -622,7 +622,7 @@ export function VehicleDetail() {
                 <TableHead>Completed</TableHead>
                 <TableHead>Workshop</TableHead>
                 <TableHead>Cost</TableHead>
-                {canWrite && <TableHead className="text-right">Actions</TableHead>}
+                {canWrite && <TableHead className="text-end">Actions</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -637,7 +637,7 @@ export function VehicleDetail() {
                   <TableCell className="text-sm">{rec.workshop?.name ?? '—'}</TableCell>
                   <TableCell className="text-sm">{rec.cost ? `£${rec.cost.toFixed(2)}` : '—'}</TableCell>
                   {canWrite && (
-                    <TableCell className="text-right">
+                    <TableCell className="text-end">
                       <div className="flex items-center justify-end gap-1">
                         <Button size="sm" variant="ghost" onClick={() => openEditMaintenance(rec)}>
                           <Edit className="w-4 h-4 text-muted-foreground" />
@@ -688,7 +688,7 @@ export function VehicleDetail() {
                   {driverSelectedName && (
                     <button
                       type="button"
-                      className="text-muted-foreground hover:text-foreground text-xs ml-auto"
+                      className="text-muted-foreground hover:text-foreground text-xs ms-auto"
                       onClick={(e) => { e.stopPropagation(); setDriverEmpId(''); setDriverName(''); setDriverSearch(''); setPickerOpen(true); }}
                     >✕</button>
                   )}
@@ -705,7 +705,7 @@ export function VehicleDetail() {
                       <button
                         key={emp.id}
                         type="button"
-                        className={`w-full text-left px-3 py-2 text-sm hover:bg-accent flex items-start gap-2 ${driverEmployeeId === emp.id ? 'bg-accent font-medium' : ''}`}
+                        className={`w-full text-start px-3 py-2 text-sm hover:bg-accent flex items-start gap-2 ${driverEmployeeId === emp.id ? 'bg-accent font-medium' : ''}`}
                         onClick={() => {
                           setDriverEmpId(emp.id);
                           setDriverName(`${emp.firstName} ${emp.lastName}`);
@@ -788,7 +788,7 @@ export function VehicleDetail() {
                 <Label>File <span className="text-muted-foreground text-xs">(optional, max 20 MB)</span></Label>
                 <input
                   type="file"
-                  className="block w-full text-sm text-muted-foreground file:mr-3 file:py-1 file:px-3 file:rounded file:border file:border-input file:text-sm file:bg-background file:cursor-pointer hover:file:bg-accent cursor-pointer"
+                  className="block w-full text-sm text-muted-foreground file:me-3 file:py-1 file:px-3 file:rounded file:border file:border-input file:text-sm file:bg-background file:cursor-pointer hover:file:bg-accent cursor-pointer"
                   onChange={(e) => setDocFile(e.target.files?.[0] ?? null)}
                 />
                 {docFile && (

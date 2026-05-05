@@ -1,14 +1,23 @@
 import { Globe, Check } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useLanguage } from './LanguageContext';
-import { LOCALE_LABELS, LOCALE_SHORT_LABELS, SUPPORTED_LOCALES, type Locale } from './config';
+import {
+  LOCALE_LABELS,
+  LOCALE_SHORT_LABELS,
+  PSEUDO_LOCALE,
+  SUPPORTED_LOCALES,
+  type LocaleOrPseudo,
+} from './config';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '../app/components/ui/dropdown-menu';
 import { cn } from '../app/components/ui/utils';
+
+const IS_DEV = import.meta.env.DEV;
 
 interface LanguageSwitcherProps {
   /** "compact" → flag + 2-letter code, "labelled" → flag + native name. */
@@ -43,7 +52,7 @@ export function LanguageSwitcher({
         </span>
       </DropdownMenuTrigger>
       <DropdownMenuContent align={align} className="min-w-[10rem]">
-        {SUPPORTED_LOCALES.map((l: Locale) => {
+        {SUPPORTED_LOCALES.map((l) => {
           const isCurrent = l === locale;
           return (
             <DropdownMenuItem
@@ -57,6 +66,20 @@ export function LanguageSwitcher({
             </DropdownMenuItem>
           );
         })}
+        {IS_DEV && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              key={PSEUDO_LOCALE}
+              onClick={() => setLocale(PSEUDO_LOCALE as LocaleOrPseudo)}
+              aria-current={locale === PSEUDO_LOCALE}
+              className="flex items-center justify-between gap-3 text-muted-foreground"
+            >
+              <span>{LOCALE_LABELS[PSEUDO_LOCALE]}</span>
+              {locale === PSEUDO_LOCALE && <Check className="w-4 h-4 text-primary" aria-hidden="true" />}
+            </DropdownMenuItem>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

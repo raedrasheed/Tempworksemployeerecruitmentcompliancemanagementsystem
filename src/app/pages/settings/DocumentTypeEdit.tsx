@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Save, Info } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -27,6 +28,7 @@ function toCategoryKey(category: string): string {
 }
 
 export function DocumentTypeEdit() {
+  const { t } = useTranslation('pages');
   const navigate = useNavigate();
   const { id } = useParams();
   const [loading, setLoading] = useState(true);
@@ -121,8 +123,8 @@ export function DocumentTypeEdit() {
           </Link>
         </Button>
         <div className="flex-1">
-          <h1 className="text-3xl font-semibold text-[#0F172A]">Edit Document Type</h1>
-          <p className="text-muted-foreground mt-1">Update document type configuration</p>
+          <h1 className="text-3xl font-semibold text-[#0F172A]">{t('settings.documentTypes.editTitle')}</h1>
+          <p className="text-muted-foreground mt-1">{t('settings.documentTypes.edit.subtitle')}</p>
         </div>
       </div>
 
@@ -133,14 +135,14 @@ export function DocumentTypeEdit() {
             {/* Basic Information */}
             <Card>
               <CardHeader>
-                <CardTitle>Basic Information</CardTitle>
+                <CardTitle>{t('settings.documentTypes.edit.basicInformation')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Document Type Name *</Label>
+                  <Label htmlFor="name">{t('settings.documentTypes.edit.nameRequired')}</Label>
                   <Input
                     id="name"
-                    placeholder="e.g., Passport, Driving License, Work Permit"
+                    placeholder={t('settings.documentTypes.edit.namePlaceholder')}
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     required
@@ -148,10 +150,10 @@ export function DocumentTypeEdit() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
+                  <Label htmlFor="description">{t('settings.documentTypes.edit.description')}</Label>
                   <Textarea
                     id="description"
-                    placeholder="Describe the purpose and requirements of this document type..."
+                    placeholder={t('settings.documentTypes.edit.descriptionPlaceholder')}
                     rows={3}
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -159,24 +161,24 @@ export function DocumentTypeEdit() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="category">Category *</Label>
+                  <Label htmlFor="category">{t('settings.documentTypes.edit.categoryRequired')}</Label>
                   <Select
                     value={formData.category}
                     onValueChange={(value) => setFormData({ ...formData, category: value })}
                     required
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
+                      <SelectValue placeholder={t('settings.documentTypes.edit.selectCategory')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="identity">Identity Documents</SelectItem>
-                      <SelectItem value="license">Licenses & Certifications</SelectItem>
-                      <SelectItem value="medical">Medical & Health</SelectItem>
-                      <SelectItem value="legal">Legal & Immigration</SelectItem>
-                      <SelectItem value="employment">Employment Documents</SelectItem>
-                      <SelectItem value="insurance">Insurance & Coverage</SelectItem>
-                      <SelectItem value="training">Training & Education</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
+                      <SelectItem value="identity">{t('settings.documentTypes.edit.catIdentity')}</SelectItem>
+                      <SelectItem value="license">{t('settings.documentTypes.edit.catLicense')}</SelectItem>
+                      <SelectItem value="medical">{t('settings.documentTypes.edit.catMedical')}</SelectItem>
+                      <SelectItem value="legal">{t('settings.documentTypes.edit.catLegal')}</SelectItem>
+                      <SelectItem value="employment">{t('settings.documentTypes.edit.catEmployment')}</SelectItem>
+                      <SelectItem value="insurance">{t('settings.documentTypes.edit.catInsurance')}</SelectItem>
+                      <SelectItem value="training">{t('settings.documentTypes.edit.catTraining')}</SelectItem>
+                      <SelectItem value="other">{t('settings.documentTypes.edit.catOther')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -186,14 +188,14 @@ export function DocumentTypeEdit() {
             {/* Document Settings */}
             <Card>
               <CardHeader>
-                <CardTitle>Document Settings</CardTitle>
+                <CardTitle>{t('settings.documentTypes.edit.documentSettings')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label htmlFor="required">Required Document</Label>
+                    <Label htmlFor="required">{t('settings.documentTypes.edit.requiredDocument')}</Label>
                     <p className="text-sm text-muted-foreground">
-                      This document must be submitted by all employees
+                      {t('settings.documentTypes.edit.requiredHelper')}
                     </p>
                   </div>
                   <Switch
@@ -205,9 +207,9 @@ export function DocumentTypeEdit() {
 
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label htmlFor="expiryTracking">Expiry Date Tracking</Label>
+                    <Label htmlFor="expiryTracking">{t('settings.documentTypes.edit.expiryTracking')}</Label>
                     <p className="text-sm text-muted-foreground">
-                      Track expiration dates and send renewal reminders
+                      {t('settings.documentTypes.edit.expiryHelper')}
                     </p>
                   </div>
                   <Switch
@@ -219,7 +221,7 @@ export function DocumentTypeEdit() {
 
                 {formData.expiryTracking && (
                   <div className="space-y-2 ps-4 border-s-2 border-[#2563EB]">
-                    <Label htmlFor="expiryWarningDays">Warning Period (Days Before Expiry)</Label>
+                    <Label htmlFor="expiryWarningDays">{t('settings.documentTypes.edit.warningPeriod')}</Label>
                     <Input
                       id="expiryWarningDays"
                       type="number"

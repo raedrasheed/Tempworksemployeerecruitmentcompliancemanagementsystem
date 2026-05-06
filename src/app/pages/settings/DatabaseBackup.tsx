@@ -272,7 +272,7 @@ export function DatabaseBackup() {
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard/settings')}>
           <ArrowLeft className="w-4 h-4 me-1" />
-          Back to Settings
+          {t('settings.databaseBackup.backToSettings')}
         </Button>
       </div>
 
@@ -284,8 +284,7 @@ export function DatabaseBackup() {
           <div>
             <h1 className="text-2xl font-bold">{t('settings.databaseBackup.headerTitle')}</h1>
             <p className="text-muted-foreground mt-1">
-              Create, manage, and restore full PostgreSQL database backups.
-              All operations are logged to the audit trail.
+              {t('settings.databaseBackup.headerSubtitle')}
             </p>
           </div>
         </div>
@@ -304,10 +303,10 @@ export function DatabaseBackup() {
           <div className="text-sm text-amber-800">
             <p className="font-semibold">{t('settings.databaseBackup.safetyTitle')}</p>
             <ul className="mt-1 list-disc list-inside space-y-1">
-              <li>Backup files are stored in <code className="bg-amber-100 px-1 rounded">./backups/</code> on the server. Secure this directory appropriately.</li>
-              <li>A pre-restore safety backup is created automatically before any restore (unless skipped).</li>
-              <li>During restore, active database connections may cause conflicts. Schedule restores during low-traffic windows.</li>
-              <li>Requires <code className="bg-amber-100 px-1 rounded">pg_dump</code> / <code className="bg-amber-100 px-1 rounded">pg_restore</code> installed on the server. Set <code className="bg-amber-100 px-1 rounded">PG_BIN_PATH</code> env var if needed.</li>
+              <li>{t('settings.databaseBackup.safetyBullet1Pre')} <code className="bg-amber-100 px-1 rounded">./backups/</code> {t('settings.databaseBackup.safetyBullet1Post')}</li>
+              <li>{t('settings.databaseBackup.safetyBullet2')}</li>
+              <li>{t('settings.databaseBackup.safetyBullet3')}</li>
+              <li>{t('settings.databaseBackup.safetyBullet4Pre')} <code className="bg-amber-100 px-1 rounded">pg_dump</code> {t('settings.databaseBackup.safetyBullet4Mid')} <code className="bg-amber-100 px-1 rounded">pg_restore</code> {t('settings.databaseBackup.safetyBullet4Post')} <code className="bg-amber-100 px-1 rounded">PG_BIN_PATH</code> {t('settings.databaseBackup.safetyBullet4Env')}</li>
             </ul>
           </div>
         </div>
@@ -323,7 +322,7 @@ export function DatabaseBackup() {
         </Card>
         <Card>
           <CardContent className="pt-4 pb-3">
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">Completed</p>
+            <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('settings.databaseBackup.completed')}</p>
             <p className="text-2xl font-bold text-green-700">{completedBackups}</p>
           </CardContent>
         </Card>
@@ -335,9 +334,9 @@ export function DatabaseBackup() {
         </Card>
         <Card>
           <CardContent className="pt-4 pb-3">
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">Status</p>
+            <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('settings.databaseBackup.status')}</p>
             <p className={`text-sm font-semibold ${locked ? 'text-blue-600' : 'text-green-600'}`}>
-              {locked ? 'Operation running…' : 'Idle'}
+              {locked ? t('settings.databaseBackup.operationRunning') : t('settings.databaseBackup.idle')}
             </p>
           </CardContent>
         </Card>
@@ -346,7 +345,7 @@ export function DatabaseBackup() {
       {/* Filter bar */}
       <div className="flex flex-wrap items-center gap-3">
         <Input
-          placeholder="Search by filename or notes…"
+          placeholder={t('settings.databaseBackup.searchPlaceholder')}
           value={search}
           onChange={e => setSearch(e.target.value)}
           className="max-w-xs"
@@ -357,14 +356,14 @@ export function DatabaseBackup() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="__all__">{t('settings.databaseBackup.allStatuses')}</SelectItem>
-            <SelectItem value="COMPLETED">Completed</SelectItem>
-            <SelectItem value="RUNNING">Running</SelectItem>
-            <SelectItem value="FAILED">Failed</SelectItem>
+            <SelectItem value="COMPLETED">{t('settings.databaseBackup.statusCompleted')}</SelectItem>
+            <SelectItem value="RUNNING">{t('settings.databaseBackup.statusRunning')}</SelectItem>
+            <SelectItem value="FAILED">{t('settings.databaseBackup.statusFailed')}</SelectItem>
           </SelectContent>
         </Select>
         <Button variant="outline" size="sm" onClick={() => { fetchBackups(); fetchStatus(); }} disabled={loading}>
           <RefreshCw className={`w-4 h-4 me-1 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
+          {t('settings.databaseBackup.refresh')}
         </Button>
       </div>
 
@@ -374,7 +373,7 @@ export function DatabaseBackup() {
           {loading ? (
             <div className="py-16 text-center text-muted-foreground">
               <RefreshCw className="w-8 h-8 mx-auto mb-3 animate-spin opacity-40" />
-              <p>Loading backups…</p>
+              <p>{t('settings.databaseBackup.loadingBackups')}</p>
             </div>
           ) : backups.length === 0 ? (
             <div className="py-16 text-center text-muted-foreground">
@@ -387,14 +386,14 @@ export function DatabaseBackup() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/40">
-                    <TableHead>File Name</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Size</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Created By</TableHead>
-                    <TableHead>Created At</TableHead>
-                    <TableHead>Notes</TableHead>
-                    <TableHead className="text-end">Actions</TableHead>
+                    <TableHead>{t('settings.databaseBackup.fileName')}</TableHead>
+                    <TableHead>{t('settings.databaseBackup.type')}</TableHead>
+                    <TableHead>{t('settings.databaseBackup.size')}</TableHead>
+                    <TableHead>{t('settings.databaseBackup.status')}</TableHead>
+                    <TableHead>{t('settings.databaseBackup.createdBy')}</TableHead>
+                    <TableHead>{t('settings.databaseBackup.createdAt')}</TableHead>
+                    <TableHead>{t('settings.databaseBackup.notes')}</TableHead>
+                    <TableHead className="text-end">{t('settings.databaseBackup.actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -406,7 +405,7 @@ export function DatabaseBackup() {
                           <div>
                             <div className="font-mono text-xs text-foreground">{b.fileName}</div>
                             {!b.fileExists && b.status === 'COMPLETED' && (
-                              <div className="text-xs text-red-500">File missing from disk</div>
+                              <div className="text-xs text-red-500">{t('settings.databaseBackup.fileMissing')}</div>
                             )}
                           </div>
                         </div>
@@ -437,7 +436,7 @@ export function DatabaseBackup() {
                               <Button
                                 variant="ghost" size="sm"
                                 onClick={() => handleDownload(b)}
-                                title="Download backup"
+                                title={t('settings.databaseBackup.downloadTitle')}
                               >
                                 <Download className="w-4 h-4" />
                               </Button>
@@ -445,7 +444,7 @@ export function DatabaseBackup() {
                                 variant="ghost" size="sm"
                                 onClick={() => openRestoreModal(b)}
                                 disabled={locked}
-                                title="Restore from backup"
+                                title={t('settings.databaseBackup.restoreTitle')}
                                 className="text-amber-600 hover:text-amber-700 hover:bg-amber-50"
                               >
                                 <RotateCcw className="w-4 h-4" />
@@ -456,7 +455,7 @@ export function DatabaseBackup() {
                             <Button
                               variant="ghost" size="sm"
                               onClick={() => setDeleteTarget(b)}
-                              title="Delete backup"
+                              title={t('settings.databaseBackup.deleteBackupTitle')}
                               className="text-red-500 hover:text-red-600 hover:bg-red-50"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -476,10 +475,10 @@ export function DatabaseBackup() {
       {/* Pagination */}
       {!loading && totalPages > 1 && (
         <div className="flex items-center justify-between text-sm">
-          <p className="text-muted-foreground">Page {page} of {totalPages} · {total} backups</p>
+          <p className="text-muted-foreground">{t('settings.databaseBackup.pageOf', { current: page, total: totalPages, count: total })}</p>
           <div className="flex gap-2">
-            <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>Previous</Button>
-            <Button size="sm" variant="outline" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>Next</Button>
+            <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>{t('settings.databaseBackup.previous')}</Button>
+            <Button size="sm" variant="outline" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>{t('settings.databaseBackup.next')}</Button>
           </div>
         </div>
       )}
@@ -490,38 +489,37 @@ export function DatabaseBackup() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Database className="w-5 h-5 text-blue-600" />
-              Create Database Backup
+              {t('settings.databaseBackup.createDialogTitle')}
             </DialogTitle>
             <DialogDescription>
-              Creates a full PostgreSQL backup using <code>pg_dump</code>.
-              The backup is stored securely on the server.
+              <span dangerouslySetInnerHTML={{ __html: t('settings.databaseBackup.createDialogDescription') }} />
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
-              <Label>Notes (optional)</Label>
+              <Label>{t('settings.databaseBackup.notesOptional')}</Label>
               <Input
-                placeholder="e.g. Pre-deployment backup, weekly snapshot…"
+                placeholder={t('settings.databaseBackup.notesPlaceholder')}
                 value={createNotes}
                 onChange={e => setCreateNotes(e.target.value)}
               />
             </div>
             <div className="p-3 bg-blue-50 border border-blue-200 rounded text-xs text-blue-800 space-y-1">
-              <p className="font-medium">What's included:</p>
+              <p className="font-medium">{t('settings.databaseBackup.whatsIncluded')}</p>
               <ul className="list-disc list-inside space-y-0.5">
-                <li>Full database schema and all data</li>
-                <li>Sequences and identity counters</li>
-                <li>Indexes and constraints</li>
-                <li>Format: pg_dump custom (compressed)</li>
+                <li>{t('settings.databaseBackup.incl1')}</li>
+                <li>{t('settings.databaseBackup.incl2')}</li>
+                <li>{t('settings.databaseBackup.incl3')}</li>
+                <li>{t('settings.databaseBackup.incl4')}</li>
               </ul>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreate(false)} disabled={creating}>Cancel</Button>
+            <Button variant="outline" onClick={() => setShowCreate(false)} disabled={creating}>{t('settings.databaseBackup.cancel')}</Button>
             <Button onClick={handleCreate} disabled={creating}>
               {creating
-                ? <><RefreshCw className="w-4 h-4 me-2 animate-spin" />Creating…</>
-                : <><Database className="w-4 h-4 me-2" />Create Backup</>
+                ? <><RefreshCw className="w-4 h-4 me-2 animate-spin" />{t('settings.databaseBackup.creating')}</>
+                : <><Database className="w-4 h-4 me-2" />{t('settings.databaseBackup.createBackup')}</>
               }
             </Button>
           </DialogFooter>
@@ -534,26 +532,25 @@ export function DatabaseBackup() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-destructive">
               <Trash2 className="w-5 h-5" />
-              Delete Backup
+              {t('settings.databaseBackup.deleteDialogTitle')}
             </DialogTitle>
             <DialogDescription>
-              This will permanently delete the backup file and its metadata record.
-              This action cannot be undone.
+              {t('settings.databaseBackup.deleteDialogDescription')}
             </DialogDescription>
           </DialogHeader>
           {deleteTarget && (
             <div className="py-2 space-y-2">
               <div className="p-3 bg-muted rounded text-sm font-mono">{deleteTarget.fileName}</div>
-              <p className="text-sm text-muted-foreground">Size: {deleteTarget.fileSizeHuman}</p>
-              <p className="text-sm text-muted-foreground">Created: {fmt(deleteTarget.createdAt)}</p>
+              <p className="text-sm text-muted-foreground">{t('settings.databaseBackup.sizeLabel', { size: deleteTarget.fileSizeHuman })}</p>
+              <p className="text-sm text-muted-foreground">{t('settings.databaseBackup.createdLabel', { date: fmt(deleteTarget.createdAt) })}</p>
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={deleting}>Cancel</Button>
+            <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={deleting}>{t('settings.databaseBackup.cancel')}</Button>
             <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
               {deleting
-                ? <><RefreshCw className="w-4 h-4 me-2 animate-spin" />Deleting…</>
-                : <><Trash2 className="w-4 h-4 me-2" />Delete Backup</>
+                ? <><RefreshCw className="w-4 h-4 me-2 animate-spin" />{t('settings.databaseBackup.deleting')}</>
+                : <><Trash2 className="w-4 h-4 me-2" />{t('settings.databaseBackup.deleteBackup')}</>
               }
             </Button>
           </DialogFooter>
@@ -568,17 +565,17 @@ export function DatabaseBackup() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-amber-700">
               <RotateCcw className="w-5 h-5" />
-              Restore Database from Backup
+              {t('settings.databaseBackup.restoreDialogTitle')}
             </DialogTitle>
             <DialogDescription>
-              Review the backup details, select a restore mode, and confirm the restore operation.
+              {t('settings.databaseBackup.restoreDialogDescription')}
             </DialogDescription>
           </DialogHeader>
 
           {previewLoading ? (
             <div className="py-8 text-center">
               <RefreshCw className="w-8 h-8 mx-auto animate-spin opacity-40 mb-3" />
-              <p className="text-muted-foreground">Loading backup preview…</p>
+              <p className="text-muted-foreground">{t('settings.databaseBackup.loadingPreview')}</p>
             </div>
           ) : restoreResult ? (
             /* ── Success state ── */
@@ -586,16 +583,16 @@ export function DatabaseBackup() {
               <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
                 <div className="flex items-center gap-2 text-green-800 font-semibold mb-2">
                   <CheckCircle2 className="w-5 h-5" />
-                  Restore Completed Successfully
+                  {t('settings.databaseBackup.restoreCompleted')}
                 </div>
                 <p className="text-sm text-green-700">{restoreResult.message}</p>
               </div>
               <div className="text-sm space-y-1">
-                <div className="flex justify-between"><span className="text-muted-foreground">Backup</span><span className="font-mono">{restoreResult.fileName}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Mode</span><span>{restoreResult.restoreMode}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Completed</span><span>{fmt(restoreResult.completedAt)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">{t('settings.databaseBackup.backupLabel')}</span><span className="font-mono">{restoreResult.fileName}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">{t('settings.databaseBackup.modeLabel')}</span><span>{restoreResult.restoreMode}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">{t('settings.databaseBackup.completedLabel')}</span><span>{fmt(restoreResult.completedAt)}</span></div>
                 {restoreResult.safetyBackupId && (
-                  <div className="flex justify-between"><span className="text-muted-foreground">Safety Backup ID</span><span className="font-mono text-xs">{restoreResult.safetyBackupId}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">{t('settings.databaseBackup.safetyBackupId')}</span><span className="font-mono text-xs">{restoreResult.safetyBackupId}</span></div>
                 )}
               </div>
               <div className="p-3 bg-amber-50 border border-amber-200 rounded text-sm text-amber-800">
@@ -611,7 +608,7 @@ export function DatabaseBackup() {
             <div className="space-y-5 py-2">
               {/* Backup summary */}
               <div className="p-4 bg-muted/40 rounded-lg text-sm space-y-2">
-                <p className="font-medium flex items-center gap-2"><FileArchive className="w-4 h-4" />Backup Details</p>
+                <p className="font-medium flex items-center gap-2"><FileArchive className="w-4 h-4" />{t('settings.databaseBackup.backupDetails')}</p>
                 <div className="grid grid-cols-2 gap-x-4 gap-y-1">
                   <span className="text-muted-foreground">File</span>
                   <span className="font-mono text-xs">{preview.backup.fileName}</span>
@@ -619,7 +616,7 @@ export function DatabaseBackup() {
                   <span>{preview.backup.fileSizeHuman}</span>
                   <span className="text-muted-foreground">Created</span>
                   <span>{fmt(preview.backup.createdAt)}</span>
-                  <span className="text-muted-foreground">Created By</span>
+                  <span className="text-muted-foreground">{t('settings.databaseBackup.createdBy')}</span>
                   <span>{preview.backup.createdBy?.name ?? '—'}</span>
                   {preview.backup.metadata?.pgVersion && (
                     <>
@@ -629,7 +626,7 @@ export function DatabaseBackup() {
                   )}
                   {preview.backup.metadata?.estimatedTotalRows != null && (
                     <>
-                      <span className="text-muted-foreground">Est. Rows</span>
+                      <span className="text-muted-foreground">{t('settings.databaseBackup.estRows')}</span>
                       <span>{Number(preview.backup.metadata.estimatedTotalRows).toLocaleString()}</span>
                     </>
                   )}
@@ -656,7 +653,7 @@ export function DatabaseBackup() {
 
               {/* Restore mode selector */}
               <div className="space-y-3">
-                <Label className="text-sm font-medium">Restore Mode</Label>
+                <Label className="text-sm font-medium">{t('settings.databaseBackup.restoreMode')}</Label>
                 <div className="space-y-2">
                   {preview.restoreOptions.map(opt => (
                     <label
@@ -717,7 +714,7 @@ export function DatabaseBackup() {
 
               {/* Optional notes */}
               <div className="space-y-1.5">
-                <Label className="text-sm">Reason / notes (optional)</Label>
+                <Label className="text-sm">{t('settings.databaseBackup.reasonNotesOptional')}</Label>
                 <Input
                   placeholder="e.g. Reverting failed deployment, disaster recovery…"
                   value={restoreNotes}
@@ -754,7 +751,7 @@ export function DatabaseBackup() {
 
               <DialogFooter className="gap-2">
                 <Button variant="outline" onClick={() => setShowRestore(false)} disabled={restoring}>
-                  Cancel
+                  {t('settings.databaseBackup.cancel')}
                 </Button>
                 <Button
                   variant="destructive"
@@ -762,8 +759,8 @@ export function DatabaseBackup() {
                   onClick={handleRestore}
                 >
                   {restoring
-                    ? <><RefreshCw className="w-4 h-4 me-2 animate-spin" />Restoring…</>
-                    : <><RotateCcw className="w-4 h-4 me-2" />Execute Restore</>
+                    ? <><RefreshCw className="w-4 h-4 me-2 animate-spin" />{t('settings.databaseBackup.restoring')}</>
+                    : <><RotateCcw className="w-4 h-4 me-2" />{t('settings.databaseBackup.executeRestore')}</>
                   }
                 </Button>
               </DialogFooter>

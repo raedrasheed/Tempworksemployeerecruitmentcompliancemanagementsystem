@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import {
   AlertTriangle, Shield, Trash2, Eye, CheckCircle2, XCircle,
   RefreshCw, ArrowLeft,
@@ -43,6 +44,7 @@ const CONFIRM_PHRASE = 'CLEAN DATABASE';
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function DatabaseCleanup() {
+  const { t } = useTranslation('pages');
   const navigate = useNavigate();
   const { canDelete } = usePermissions();
   const isAdmin = canDelete('settings');
@@ -65,8 +67,8 @@ export function DatabaseCleanup() {
       <div className="p-6 flex items-center justify-center min-h-64">
         <div className="text-center">
           <XCircle className="w-12 h-12 mx-auto text-red-500 mb-3" />
-          <h2 className="text-lg font-semibold mb-1">Access Denied</h2>
-          <p className="text-muted-foreground">Only System Administrators can access database cleanup.</p>
+          <h2 className="text-lg font-semibold mb-1">{t('settings.databaseCleanup.accessDenied')}</h2>
+          <p className="text-muted-foreground">{t('settings.databaseCleanup.accessDeniedBody')}</p>
         </div>
       </div>
     );
@@ -129,7 +131,7 @@ export function DatabaseCleanup() {
           <Trash2 className="w-6 h-6 text-red-600" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Database Cleanup / Reset</h1>
+          <h1 className="text-2xl font-bold text-foreground">{t('settings.databaseCleanup.headerTitle')}</h1>
           <p className="text-muted-foreground mt-1">
             Remove all business data while preserving System Admin and Super Admin users.
             This action is <strong className="text-red-600">irreversible</strong>.
@@ -142,7 +144,7 @@ export function DatabaseCleanup() {
         <div className="flex items-start gap-3">
           <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
           <div className="text-sm text-red-800">
-            <p className="font-semibold mb-2">⚠️  This is an extremely destructive, irreversible operation.</p>
+            <p className="font-semibold mb-2">{t('settings.databaseCleanup.destructiveWarning')}</p>
             <ul className="list-disc list-inside space-y-1">
               <li>All applicants, employees, documents, agencies, job ads, and financial records will be permanently deleted.</li>
               <li>All reports, notifications, workflows, and compliance data will be removed.</li>
@@ -234,7 +236,7 @@ export function DatabaseCleanup() {
       {showPreview && preview && (
         <Card className="border-amber-200">
           <CardHeader>
-            <CardTitle className="text-base text-amber-900">Cleanup Preview</CardTitle>
+            <CardTitle className="text-base text-amber-900">{t('settings.databaseCleanup.cleanupPreview')}</CardTitle>
             <CardDescription>
               ~{preview.totalToRemove.toLocaleString()} records will be permanently removed.
             </CardDescription>
@@ -242,7 +244,7 @@ export function DatabaseCleanup() {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <h4 className="font-semibold text-sm mb-3 text-red-700">Will Remove:</h4>
+                <h4 className="font-semibold text-sm mb-3 text-red-700">{t('settings.databaseCleanup.willRemove')}</h4>
                 <div className="space-y-1">
                   {Object.entries(preview.willRemove).map(([key, count]) => (
                     <div key={key} className="flex justify-between text-sm py-1 border-b border-dashed">
@@ -253,7 +255,7 @@ export function DatabaseCleanup() {
                 </div>
               </div>
               <div>
-                <h4 className="font-semibold text-sm mb-3 text-green-700">Will Preserve:</h4>
+                <h4 className="font-semibold text-sm mb-3 text-green-700">{t('settings.databaseCleanup.willPreserve')}</h4>
                 <div className="space-y-1">
                   {[
                     ['Admin users', preview.willPreserve.users],
@@ -289,7 +291,7 @@ export function DatabaseCleanup() {
           <CardContent>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <h4 className="font-medium mb-2">Records Removed:</h4>
+                <h4 className="font-medium mb-2">{t('settings.databaseCleanup.recordsRemoved')}</h4>
                 {Object.entries(result.removed).map(([k, v]) => (
                   <div key={k} className="flex justify-between py-0.5">
                     <span className="text-muted-foreground capitalize">{k.replace(/([A-Z])/g, ' $1').trim()}</span>
@@ -298,7 +300,7 @@ export function DatabaseCleanup() {
                 ))}
               </div>
               <div>
-                <h4 className="font-medium mb-2">Preserved:</h4>
+                <h4 className="font-medium mb-2">{t('settings.databaseCleanup.preserved')}</h4>
                 {Object.entries(result.preserved).map(([k, v]) => (
                   <div key={k} className="flex justify-between py-0.5">
                     <span className="text-muted-foreground capitalize">{k}</span>
@@ -337,7 +339,7 @@ export function DatabaseCleanup() {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-sm">Reason for cleanup (optional)</Label>
+              <Label className="text-sm">{t('settings.databaseCleanup.reasonOptional')}</Label>
               <Input
                 placeholder="e.g. End of trial period, staging environment reset…"
                 value={reason}
@@ -394,9 +396,9 @@ export function DatabaseCleanup() {
               onClick={executeCleanup}
             >
               {executing ? (
-                <><RefreshCw className="w-4 h-4 me-2 animate-spin" />Executing…</>
+                <><RefreshCw className="w-4 h-4 me-2 animate-spin" />{t('settings.databaseCleanup.executing')}</>
               ) : (
-                <><Trash2 className="w-4 h-4 me-2" />Execute Cleanup</>
+                <><Trash2 className="w-4 h-4 me-2" />{t('settings.databaseCleanup.executeCleanup')}</>
               )}
             </Button>
           </DialogFooter>

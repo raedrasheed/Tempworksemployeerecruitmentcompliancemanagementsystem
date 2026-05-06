@@ -7,6 +7,7 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Shield, Check, Minus } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -60,6 +61,7 @@ const humanizeModule = (mod: string) =>
   mod.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
 export function PermissionsMatrix() {
+  const { t } = useTranslation('pages');
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [roles, setRoles]             = useState<Role[]>([]);
   const [loading, setLoading]         = useState(true);
@@ -124,7 +126,7 @@ export function PermissionsMatrix() {
   }, [roles]);
 
   if (loading) {
-    return <div className="p-8 text-muted-foreground">Loading permissions...</div>;
+    return <div className="p-8 text-muted-foreground">{t('roles.matrix.loading')}</div>;
   }
 
   return (
@@ -134,16 +136,16 @@ export function PermissionsMatrix() {
           <Link to="/dashboard/roles"><ArrowLeft className="w-5 h-5" /></Link>
         </Button>
         <div className="flex-1">
-          <h1 className="text-3xl font-semibold text-[#0F172A]">Permissions Matrix</h1>
+          <h1 className="text-3xl font-semibold text-[#0F172A]">{t('roles.matrix.header')}</h1>
           <p className="text-muted-foreground mt-1">
-            Live view of every permission mapped to every role, grouped by module.
+            {t('roles.matrix.subtitle')}
           </p>
         </div>
       </div>
 
       {/* Role legend */}
       <Card>
-        <CardHeader><CardTitle>Roles</CardTitle></CardHeader>
+        <CardHeader><CardTitle>{t('roles.matrix.rolesCardTitle')}</CardTitle></CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-3">
             {orderedRoles.map(role => (
@@ -163,10 +165,10 @@ export function PermissionsMatrix() {
       {/* Matrix */}
       <Card>
         <CardHeader>
-          <CardTitle>Module × Role</CardTitle>
+          <CardTitle>{t('roles.matrix.matrixCardTitle')}</CardTitle>
           <p className="text-sm text-muted-foreground mt-1">
-            <Check className="w-4 h-4 inline text-[#22C55E]" /> granted &nbsp;•&nbsp;
-            <Minus className="w-4 h-4 inline text-[#CBD5E1]" /> denied
+            <Check className="w-4 h-4 inline text-[#22C55E]" /> {t('roles.matrix.legendGranted')} &nbsp;•&nbsp;
+            <Minus className="w-4 h-4 inline text-[#CBD5E1]" /> {t('roles.matrix.legendDenied')}
           </p>
         </CardHeader>
         <CardContent>
@@ -174,7 +176,7 @@ export function PermissionsMatrix() {
             <table className="w-full min-w-[1200px] text-sm">
               <thead className="bg-[#F8FAFC] border-b sticky top-0 z-10">
                 <tr>
-                  <th className="text-start p-4 font-semibold sticky left-0 bg-[#F8FAFC] z-20 min-w-[220px]">Module / Action</th>
+                  <th className="text-start p-4 font-semibold sticky left-0 bg-[#F8FAFC] z-20 min-w-[220px]">{t('roles.matrix.moduleAction')}</th>
                   {orderedRoles.map(role => (
                     <th key={role.id} className="p-2 text-center font-semibold">
                       <Badge variant="outline" style={{ borderColor: ROLE_COLOR[role.name] ?? '#64748B', color: ROLE_COLOR[role.name] ?? '#64748B' }}>

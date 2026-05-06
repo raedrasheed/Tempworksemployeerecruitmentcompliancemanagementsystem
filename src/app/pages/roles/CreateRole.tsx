@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Save, Shield, ShieldOff } from 'lucide-react';
 import { usePermissions } from '../../hooks/usePermissions';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
@@ -13,14 +14,15 @@ import { rolesApi } from '../../services/api';
 const ACTIONS = ['read', 'create', 'update', 'delete'] as const;
 type Action = typeof ACTIONS[number];
 
-const ACTION_LABELS: Record<Action, string> = {
-  read: 'View',
-  create: 'Create',
-  update: 'Edit',
-  delete: 'Delete',
+const ACTION_LABEL_KEYS: Record<Action, string> = {
+  read: 'roles.create.actionView',
+  create: 'roles.create.actionCreate',
+  update: 'roles.create.actionEdit',
+  delete: 'roles.create.actionDelete',
 };
 
 export function CreateRole() {
+  const { t } = useTranslation('pages');
   const { id } = useParams();
   const isEditMode = !!id;
   const navigate = useNavigate();
@@ -53,7 +55,7 @@ export function CreateRole() {
       })
       .catch(() => {
         if (isEditMode) setNotFound(true);
-        else toast.error('Failed to load permissions');
+        else toast.error(t('roles.create.loadPermissionsFailed'));
       })
       .finally(() => setLoading(false));
   }, [id]);
@@ -105,7 +107,7 @@ export function CreateRole() {
 
   const handleSave = async () => {
     if (!roleName.trim()) {
-      toast.error('Role name is required');
+      toast.error(t('roles.create.roleNameRequired'));
       return;
     }
     setSubmitting(true);
@@ -119,28 +121,28 @@ export function CreateRole() {
       }
       if (isEditMode) {
         await rolesApi.update(id!, payload);
-        toast.success('Role updated successfully');
+        toast.success(t('roles.create.updateSuccess'));
       } else {
         await rolesApi.create(payload);
-        toast.success('Role created successfully');
+        toast.success(t('roles.create.createSuccess'));
       }
       navigate('/dashboard/roles');
     } catch (err: any) {
-      toast.error(err?.message || (isEditMode ? 'Failed to update role' : 'Failed to create role'));
+      toast.error(err?.message || (isEditMode ? t('roles.create.updateFailed') : t('roles.create.createFailed')));
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (loading) return <div className="p-8 text-muted-foreground">Loading...</div>;
-  if (notFound) return <div className="p-8">Role not found.</div>;
+  if (loading) return <div className="p-8 text-muted-foreground">{t('roles.create.loading')}</div>;
+  if (notFound) return <div className="p-8">{t('roles.create.notFound')}</div>;
 
   if (isEditMode ? !canEdit('roles') : !canCreate('roles')) {
     return (
       <div className="flex flex-col items-center justify-center py-24 gap-3 text-muted-foreground">
         <ShieldOff className="w-12 h-12 opacity-30" />
-        <p className="text-lg font-semibold text-[#0F172A]">Access Denied</p>
-        <p className="text-sm">You don't have permission to perform this action.</p>
+        <p className="text-lg font-semibold text-[#0F172A]">{t('roles.create.accessDenied')}</p>
+        <p className="text-sm">{t('roles.create.accessDeniedBody')}</p>
       </div>
     );
   }
@@ -164,29 +166,29 @@ export function CreateRole() {
         </Button>
         <div className="flex-1">
           <h1 className="text-3xl font-semibold text-[#0F172A]">
-            {isEditMode ? 'Edit Role' : 'Create New Role'}
+            {isEditMode ? t('roles.create.editTitle') : t('roles.create.createNewTitle')}
           </h1>
           <p className="text-muted-foreground mt-1">
-            {isEditMode ? 'Modify role details and permissions' : 'Define a new role with custom permissions'}
+            {isEditMode ? t('roles.create.editSubtitle') : t('roles.create.createSubtitle')}
           </p>
         </div>
         <Button onClick={handleSave} disabled={submitting}>
           <Save className="w-4 h-4 me-2" />
-          {submitting ? 'Saving...' : isEditMode ? 'Save Changes' : 'Create Role'}
+          {submitting ? t('roles.create.saving') : isEditMode ? t('roles.create.saveChanges') : t('roles.create.createRole')}
         </Button>
       </div>
 
       {/* Role Basic Info */}
       <Card>
         <CardHeader>
-          <CardTitle>Role Information</CardTitle>
+          <CardTitle>{t('roles.create.roleInfo')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label htmlFor="roleName">Role Name</Label>
+            <Label htmlFor="roleName">{t('roles.create.roleName')}</Label>
             <Input
               id="roleName"
-              placeholder="e.g., Regional Manager"
+              placeholder={t('roles.create.rolePlaceholder')}
               value={roleName}
               onChange={(e) => setRoleName(e.target.value)}
               className="mt-1.5"
@@ -195,10 +197,10 @@ export function CreateRole() {
             />
           </div>
           <div>
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="description">{t('roles.create.description')}</Label>
             <Input
               id="description"
-              placeholder="Brief description of this role"
+              placeholder={t('roles.create.descriptionPlaceholder')}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               readOnly={isSystem}
@@ -212,24 +214,24 @@ export function CreateRole() {
       {/* Permissions Matrix */}
       <Card>
         <CardHeader>
-          <CardTitle>Permissions</CardTitle>
+          <CardTitle>{t('roles.create.permissions')}</CardTitle>
           <p className="text-sm text-muted-foreground mt-1">
-            Select permissions for each module
+            {t('roles.create.permissionsHelper')}
           </p>
         </CardHeader>
         <CardContent>
           {modules.length === 0 ? (
-            <p className="text-muted-foreground text-sm">No permissions available.</p>
+            <p className="text-muted-foreground text-sm">{t('roles.create.noPermissions')}</p>
           ) : (
             <div className="border rounded-lg overflow-hidden">
               <table className="w-full">
                 <thead className="bg-[#F8FAFC] border-b">
                   <tr>
-                    <th className="text-start p-4 font-semibold text-sm w-1/3">Module</th>
+                    <th className="text-start p-4 font-semibold text-sm w-1/3">{t('roles.create.module')}</th>
                     {ACTIONS.map(action => (
                       <th key={action} className="text-center p-4 font-semibold text-sm w-1/6">
                         <div className="flex flex-col items-center gap-2">
-                          <span>{ACTION_LABELS[action]}</span>
+                          <span>{t(ACTION_LABEL_KEYS[action])}</span>
                           <Checkbox
                             checked={isActionAllChecked(action)}
                             onCheckedChange={() => handleSelectAllAction(action)}

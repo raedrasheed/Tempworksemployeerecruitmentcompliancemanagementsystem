@@ -954,7 +954,7 @@ export function CandidatesList() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="bulk-workflow-notes" className="text-sm">Notes <span className="text-muted-foreground text-xs">(optional)</span></Label>
+              <Label htmlFor="bulk-workflow-notes" className="text-sm">{t('applicants.candidates.workflowDialog.notes')} <span className="text-muted-foreground text-xs">{t('applicants.candidates.workflowDialog.optionalLabel')}</span></Label>
               <Input
                 id="bulk-workflow-notes"
                 placeholder="Context / reason — saved to the assignment audit trail"

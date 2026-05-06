@@ -262,6 +262,9 @@
       "i01": "surname, name and native number husband/wife and his/her permanent residence",
       "i02": "name, address employer husband/wife",
       "i03": "name, surname, native number child, date birth"
-    }
+    },
+    "controllerCompany": "Tempworks s.r.o",
+    "controllerAddress1": "Röntgenova 3751/28",
+    "controllerAddress2": "851 01 Petržalka"
   }
 }

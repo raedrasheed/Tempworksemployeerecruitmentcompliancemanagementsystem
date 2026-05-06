@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { usePermissions } from '../../hooks/usePermissions';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -72,6 +73,7 @@ const DOCUMENT_OPTIONS = [
 ];
 
 export function JobTypes() {
+  const { t } = useTranslation('pages');
   const { canCreate, canEdit, canDelete } = usePermissions();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
@@ -208,10 +210,10 @@ export function JobTypes() {
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <h1 className="text-3xl font-bold text-[#0F172A]">Job Categories Configuration</h1>
+          <h1 className="text-3xl font-bold text-[#0F172A]">{t('settings.jobTypes.headerTitle')}</h1>
         </div>
         <p className="text-muted-foreground">
-          Manage job categories and their document requirements for employee recruitment
+          {t('settings.jobTypes.headerSubtitle')}
         </p>
       </div>
 
@@ -221,7 +223,7 @@ export function JobTypes() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Total Job Categories</p>
+                <p className="text-sm text-muted-foreground mb-1">{t('settings.jobTypes.statTotal')}</p>
                 <p className="text-2xl font-bold">{loading ? '—' : jobTypes.length}</p>
               </div>
               <Briefcase className="w-8 h-8 text-[#2563EB]" />
@@ -233,7 +235,7 @@ export function JobTypes() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Active Types</p>
+                <p className="text-sm text-muted-foreground mb-1">{t('settings.jobTypes.statActive')}</p>
                 <p className="text-2xl font-bold text-[#22C55E]">{loading ? '—' : totalActive}</p>
               </div>
               <CheckCircle className="w-8 h-8 text-[#22C55E]" />
@@ -245,7 +247,7 @@ export function JobTypes() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Inactive Types</p>
+                <p className="text-sm text-muted-foreground mb-1">{t('settings.jobTypes.statInactive')}</p>
                 <p className="text-2xl font-bold text-muted-foreground">{loading ? '—' : totalInactive}</p>
               </div>
               <XCircle className="w-8 h-8 text-muted-foreground" />
@@ -257,7 +259,7 @@ export function JobTypes() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Total Applicants</p>
+                <p className="text-sm text-muted-foreground mb-1">{t('settings.jobTypes.statApplicants')}</p>
                 <p className="text-2xl font-bold">{loading ? '—' : totalApplicants}</p>
               </div>
               <Briefcase className="w-8 h-8 text-[#F59E0B]" />
@@ -288,7 +290,7 @@ export function JobTypes() {
 
       {/* Job Categories List */}
       {loading ? (
-        <div className="py-12 text-center text-muted-foreground">Loading job categories...</div>
+        <div className="py-12 text-center text-muted-foreground">{t('settings.jobTypes.loading')}</div>
       ) : (
         <div className="space-y-4">
           {filteredJobTypes.map((jobType) => {
@@ -317,7 +319,7 @@ export function JobTypes() {
 
                       {jobType.requiredDocuments?.length > 0 && (
                         <div className="space-y-1 mb-3">
-                          <p className="text-sm font-medium">Required Documents:</p>
+                          <p className="text-sm font-medium">{t('settings.jobTypes.requiredDocuments')}</p>
                           <div className="flex flex-wrap gap-2">
                             {jobType.requiredDocuments.map((doc) => (
                               <Badge key={doc} variant="outline" className="bg-[#F8FAFC]">
@@ -396,7 +398,7 @@ export function JobTypes() {
 
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="jt-name">Job Category Name *</Label>
+              <Label htmlFor="jt-name">{t('settings.jobTypes.dialogNameRequired')}</Label>
               <Input
                 id="jt-name"
                 placeholder="e.g., Truck Driver"
@@ -417,8 +419,8 @@ export function JobTypes() {
 
             <div className="flex items-center justify-between p-4 border rounded-lg">
               <div>
-                <Label htmlFor="jt-isActive">Active Status</Label>
-                <p className="text-sm text-muted-foreground">Allow new applications for this job category</p>
+                <Label htmlFor="jt-isActive">{t('settings.jobTypes.activeStatus')}</Label>
+                <p className="text-sm text-muted-foreground">{t('settings.jobTypes.activeStatusHelper')}</p>
               </div>
               <Switch
                 id="jt-isActive"

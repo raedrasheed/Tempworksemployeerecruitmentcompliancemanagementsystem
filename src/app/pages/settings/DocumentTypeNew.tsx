@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Save, Info } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -23,6 +24,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 export function DocumentTypeNew() {
+  const { t } = useTranslation('pages');
   const navigate = useNavigate();
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
@@ -106,8 +108,8 @@ export function DocumentTypeNew() {
           </Link>
         </Button>
         <div className="flex-1">
-          <h1 className="text-3xl font-semibold text-[#0F172A]">New Document Type</h1>
-          <p className="text-muted-foreground mt-1">Create a new document type configuration</p>
+          <h1 className="text-3xl font-semibold text-[#0F172A]">{t('settings.documentTypes.new.headerTitle')}</h1>
+          <p className="text-muted-foreground mt-1">{t('settings.documentTypes.new.headerSubtitle')}</p>
         </div>
       </div>
 
@@ -118,14 +120,14 @@ export function DocumentTypeNew() {
             {/* Basic Information */}
             <Card>
               <CardHeader>
-                <CardTitle>Basic Information</CardTitle>
+                <CardTitle>{t('settings.documentTypes.new.basicInformation')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Document Type Name *</Label>
+                  <Label htmlFor="name">{t('settings.documentTypes.new.nameRequired')}</Label>
                   <Input
                     id="name"
-                    placeholder="e.g., Passport, Driving License, Work Permit"
+                    placeholder={t('settings.documentTypes.new.namePlaceholder')}
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     required
@@ -133,10 +135,10 @@ export function DocumentTypeNew() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
+                  <Label htmlFor="description">{t('settings.documentTypes.new.description')}</Label>
                   <Textarea
                     id="description"
-                    placeholder="Describe the purpose and requirements of this document type..."
+                    placeholder={t('settings.documentTypes.new.descriptionPlaceholder')}
                     rows={3}
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -144,24 +146,24 @@ export function DocumentTypeNew() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="category">Category *</Label>
+                  <Label htmlFor="category">{t('settings.documentTypes.new.categoryRequired')}</Label>
                   <Select
                     value={formData.category}
                     onValueChange={(value) => setFormData({ ...formData, category: value })}
                     required
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
+                      <SelectValue placeholder={t('settings.documentTypes.new.selectCategory')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="identity">Identity Documents</SelectItem>
-                      <SelectItem value="license">Licenses & Certifications</SelectItem>
-                      <SelectItem value="medical">Medical & Health</SelectItem>
-                      <SelectItem value="legal">Legal & Immigration</SelectItem>
-                      <SelectItem value="employment">Employment Documents</SelectItem>
-                      <SelectItem value="insurance">Insurance & Coverage</SelectItem>
-                      <SelectItem value="training">Training & Education</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
+                      <SelectItem value="identity">{t('settings.documentTypes.new.catIdentity')}</SelectItem>
+                      <SelectItem value="license">{t('settings.documentTypes.new.catLicense')}</SelectItem>
+                      <SelectItem value="medical">{t('settings.documentTypes.new.catMedical')}</SelectItem>
+                      <SelectItem value="legal">{t('settings.documentTypes.new.catLegal')}</SelectItem>
+                      <SelectItem value="employment">{t('settings.documentTypes.new.catEmployment')}</SelectItem>
+                      <SelectItem value="insurance">{t('settings.documentTypes.new.catInsurance')}</SelectItem>
+                      <SelectItem value="training">{t('settings.documentTypes.new.catTraining')}</SelectItem>
+                      <SelectItem value="other">{t('settings.documentTypes.new.catOther')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -171,14 +173,14 @@ export function DocumentTypeNew() {
             {/* Document Settings */}
             <Card>
               <CardHeader>
-                <CardTitle>Document Settings</CardTitle>
+                <CardTitle>{t('settings.documentTypes.new.documentSettings')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label htmlFor="required">Required Document</Label>
+                    <Label htmlFor="required">{t('settings.documentTypes.new.requiredDocument')}</Label>
                     <p className="text-sm text-muted-foreground">
-                      This document must be submitted by all employees
+                      {t('settings.documentTypes.new.requiredHelper')}
                     </p>
                   </div>
                   <Switch
@@ -190,9 +192,9 @@ export function DocumentTypeNew() {
 
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label htmlFor="expiryTracking">Expiry Date Tracking</Label>
+                    <Label htmlFor="expiryTracking">{t('settings.documentTypes.new.expiryTracking')}</Label>
                     <p className="text-sm text-muted-foreground">
-                      Track expiration dates and send renewal reminders
+                      {t('settings.documentTypes.new.expiryHelper')}
                     </p>
                   </div>
                   <Switch
@@ -204,7 +206,7 @@ export function DocumentTypeNew() {
 
                 {formData.expiryTracking && (
                   <div className="space-y-2 ps-4 border-s-2 border-[#2563EB]">
-                    <Label htmlFor="expiryWarningDays">Warning Period (Days Before Expiry)</Label>
+                    <Label htmlFor="expiryWarningDays">{t('settings.documentTypes.new.warningPeriod')}</Label>
                     <Input
                       id="expiryWarningDays"
                       type="number"
@@ -218,9 +220,9 @@ export function DocumentTypeNew() {
 
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label htmlFor="allowMultiple">Allow Multiple Uploads</Label>
+                    <Label htmlFor="allowMultiple">{t('settings.documentTypes.new.allowMultiple')}</Label>
                     <p className="text-sm text-muted-foreground">
-                      Employees can upload multiple files for this document type
+                      {t('settings.documentTypes.new.allowMultipleHelper')}
                     </p>
                   </div>
                   <Switch
@@ -232,9 +234,9 @@ export function DocumentTypeNew() {
 
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label htmlFor="verificationRequired">Verification Required</Label>
+                    <Label htmlFor="verificationRequired">{t('settings.documentTypes.new.verificationRequired')}</Label>
                     <p className="text-sm text-muted-foreground">
-                      Document must be verified by an administrator
+                      {t('settings.documentTypes.new.verificationHelper')}
                     </p>
                   </div>
                   <Switch
@@ -249,11 +251,11 @@ export function DocumentTypeNew() {
             {/* File Upload Settings */}
             <Card>
               <CardHeader>
-                <CardTitle>File Upload Settings</CardTitle>
+                <CardTitle>{t('settings.documentTypes.new.fileUploadSettings')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Allowed File Formats</Label>
+                  <Label>{t('settings.documentTypes.new.allowedFileFormats')}</Label>
                   <div className="flex flex-wrap gap-2">
                     {fileFormats.map((format) => (
                       <Button
@@ -268,12 +270,12 @@ export function DocumentTypeNew() {
                     ))}
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Selected: {selectedFormats.length > 0 ? selectedFormats.join(', ') : 'None'}
+                    {selectedFormats.length > 0 ? selectedFormats.join(', ') : t('settings.documentTypes.new.noneSelected')}
                   </p>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="maxFileSize">Maximum File Size (MB)</Label>
+                  <Label htmlFor="maxFileSize">{t('settings.documentTypes.new.maxFileSize')}</Label>
                   <Input
                     id="maxFileSize"
                     type="number"
@@ -290,9 +292,9 @@ export function DocumentTypeNew() {
             {/* Job Category Applicability */}
             <Card>
               <CardHeader>
-                <CardTitle>Job Category Applicability</CardTitle>
+                <CardTitle>{t('settings.documentTypes.new.jobCategoryApplicability')}</CardTitle>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Select which job categories require this document (leave empty for all)
+                  {t('settings.documentTypes.new.jobCategorySubtitle')}
                 </p>
               </CardHeader>
               <CardContent>
@@ -331,7 +333,7 @@ export function DocumentTypeNew() {
                     <div className="flex gap-2">
                       <Info className="w-4 h-4 text-[#2563EB] mt-0.5" />
                       <p className="text-sm text-[#2563EB]">
-                        No job categories selected. This document will apply to all job categories.
+                        {t('settings.documentTypes.new.allCategoriesInfo')}
                       </p>
                     </div>
                   </div>
@@ -342,20 +344,20 @@ export function DocumentTypeNew() {
             {/* Validation Rules */}
             <Card>
               <CardHeader>
-                <CardTitle>Validation Rules (Optional)</CardTitle>
+                <CardTitle>{t('settings.documentTypes.new.validationRulesOptional')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  <Label htmlFor="validationRules">Custom Validation Rules</Label>
+                  <Label htmlFor="validationRules">{t('settings.documentTypes.new.customValidationRules')}</Label>
                   <Textarea
                     id="validationRules"
-                    placeholder="Enter any specific validation requirements or rules for this document type..."
+                    placeholder={t('settings.documentTypes.new.validationExample')}
                     rows={4}
                     value={formData.validationRules}
                     onChange={(e) => setFormData({ ...formData, validationRules: e.target.value })}
                   />
                   <p className="text-sm text-muted-foreground">
-                    Example: Must be issued within the last 6 months, Must contain specific fields, etc.
+                    {t('settings.documentTypes.new.validationExample')}
                   </p>
                 </div>
               </CardContent>
@@ -367,50 +369,50 @@ export function DocumentTypeNew() {
             {/* Summary Card */}
             <Card className="bg-gradient-to-br from-[#EFF6FF] to-white border-[#2563EB]">
               <CardHeader>
-                <CardTitle className="text-sm">Configuration Summary</CardTitle>
+                <CardTitle className="text-sm">{t('settings.documentTypes.new.configSummary')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Status:</span>
+                    <span className="text-muted-foreground">{t('settings.documentTypes.new.statusLabel')}</span>
                     <span className="font-medium">
-                      {formData.required ? 'Required' : 'Optional'}
+                      {formData.required ? t('settings.documentTypes.new.statusRequired') : t('settings.documentTypes.new.statusOptional')}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Expiry Tracking:</span>
+                    <span className="text-muted-foreground">{t('settings.documentTypes.new.expiryTrackingLabel')}</span>
                     <span className="font-medium">
-                      {formData.expiryTracking ? 'Enabled' : 'Disabled'}
+                      {formData.expiryTracking ? t('settings.documentTypes.new.expiryEnabled') : t('settings.documentTypes.new.expiryDisabled')}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Verification:</span>
+                    <span className="text-muted-foreground">{t('settings.documentTypes.new.verificationLabel')}</span>
                     <span className="font-medium">
-                      {formData.verificationRequired ? 'Required' : 'Not Required'}
+                      {formData.verificationRequired ? t('settings.documentTypes.new.statusRequired') : t('settings.documentTypes.edit.verificationNotRequired')}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Multiple Files:</span>
+                    <span className="text-muted-foreground">{t('settings.documentTypes.new.multipleFilesLabel')}</span>
                     <span className="font-medium">
-                      {formData.allowMultiple ? 'Allowed' : 'Single File'}
+                      {formData.allowMultiple ? t('settings.documentTypes.new.allowed') : t('settings.documentTypes.new.singleFile')}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">File Formats:</span>
+                    <span className="text-muted-foreground">{t('settings.documentTypes.new.fileFormatsLabel')}</span>
                     <span className="font-medium">
-                      {selectedFormats.length || 'Any'}
+                      {selectedFormats.length || t('settings.documentTypes.new.anyFormat')}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Max Size:</span>
+                    <span className="text-muted-foreground">{t('settings.documentTypes.new.maxSizeLabel')}</span>
                     <span className="font-medium">
                       {formData.maxFileSize || '10'} MB
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Job Categories:</span>
+                    <span className="text-muted-foreground">{t('settings.documentTypes.new.jobCategoriesLabel')}</span>
                     <span className="font-medium">
-                      {selectedJobTypes.length || 'All'}
+                      {selectedJobTypes.length || t('settings.documentTypes.new.allCategories')}
                     </span>
                   </div>
                 </div>
@@ -422,15 +424,15 @@ export function DocumentTypeNew() {
               <CardHeader>
                 <CardTitle className="text-sm flex items-center gap-2">
                   <Info className="w-4 h-4" />
-                  Important Information
+                  {t('settings.documentTypes.new.importantInformation')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <ul className="text-sm space-y-2 text-muted-foreground">
-                  <li>• Document types affect employee onboarding requirements</li>
-                  <li>• Required documents must be uploaded before workflow completion</li>
-                  <li>• Expiry tracking will generate automatic notifications</li>
-                  <li>• Changes will apply to all future uploads</li>
+                  <li>• {t('settings.documentTypes.new.info1')}</li>
+                  <li>• {t('settings.documentTypes.new.info2')}</li>
+                  <li>• {t('settings.documentTypes.new.info3')}</li>
+                  <li>• {t('settings.documentTypes.new.info4')}</li>
                 </ul>
               </CardContent>
             </Card>
@@ -439,10 +441,10 @@ export function DocumentTypeNew() {
             <div className="space-y-3">
               <Button type="submit" className="w-full" size="lg" disabled={saving}>
                 <Save className="w-4 h-4 me-2" />
-                {saving ? 'Creating...' : 'Create Document Type'}
+                {saving ? t('settings.documentTypes.new.creating') : t('settings.documentTypes.new.createButton')}
               </Button>
               <Button type="button" variant="outline" className="w-full" asChild>
-                <Link to="/dashboard/settings/document-types">Cancel</Link>
+                <Link to="/dashboard/settings/document-types">{t('settings.documentTypes.new.cancel')}</Link>
               </Button>
             </div>
           </div>

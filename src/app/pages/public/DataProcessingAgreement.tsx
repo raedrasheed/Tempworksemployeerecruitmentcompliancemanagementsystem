@@ -44,9 +44,9 @@ export function DataProcessingAgreement() {
           <h2 className="text-lg font-bold text-center mb-8">{t('dpa.subtitle')}</h2>
 
           <p className="mb-1">{t('dpa.employerLabel')}</p>
-          <p className="font-bold">Tempworks s.r.o</p>
-          <p className="font-bold">Röntgenova 3751/28</p>
-          <p className="font-bold">851 01 Petržalka</p>
+          <p className="font-bold">{t('dpa.controllerCompany')}</p>
+          <p className="font-bold">{t('dpa.controllerAddress1')}</p>
+          <p className="font-bold">{t('dpa.controllerAddress2')}</p>
           <p className="font-bold">Bratislava</p>
           <p className="font-bold mb-4">{t('dpa.companyIdLabel')}</p>
           <p className="font-bold mb-8">{t('dpa.court')}</p>

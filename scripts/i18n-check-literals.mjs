@@ -40,6 +40,12 @@ function looksUserVisible(s) {
   if (/^https?:\/\//.test(t)) return false;     // URLs
   if (!/[A-Za-z]/.test(t)) return false;        // pure punctuation/digits
   if (/^[a-z][a-z0-9-]*$/i.test(t) && !t.includes(' ')) return false; // single tokens, likely IDs
+  // TS-signature false positives
+  if (/^= /.test(t)) return false;              // assignment/comparison: "= from && t"
+  if (/ && /.test(t)) return false;             // JS logical operators in expressions
+  if (/\? ['"]/.test(t)) return false;          // ternary with string literal: "0 ? 'cls' : ..."
+  if (/\bas Record\b/.test(t)) return false;    // TypeScript cast: "[c.key]) as Record"
+  if (/^\(e: React/.test(t)) return false;      // event handler type signature
   return true;
 }
 

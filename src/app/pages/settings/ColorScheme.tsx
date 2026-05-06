@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { Check, Palette, Moon, Sun, Monitor, ArrowLeft } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
@@ -207,6 +208,7 @@ function ThemePreview({ brand, isDark, dark, light }: {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export function ColorScheme() {
+  const { t } = useTranslation('pages');
   const { isDark, toggleDark, brandScheme, setBrandScheme, darkScheme, setDarkScheme, lightScheme, setLightScheme } = useTheme();
   const navigate = useNavigate();
 
@@ -217,9 +219,9 @@ export function ColorScheme() {
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <h1 className="text-2xl font-semibold text-foreground">Appearance & Color Scheme</h1>
+          <h1 className="text-2xl font-semibold text-foreground">{t('settings.colorScheme.headerTitle')}</h1>
         </div>
-        <p className="text-muted-foreground mt-1">Customize the visual theme for the entire application</p>
+        <p className="text-muted-foreground mt-1">{t('settings.colorScheme.headerSubtitle')}</p>
       </div>
 
       {/* Mode toggle */}

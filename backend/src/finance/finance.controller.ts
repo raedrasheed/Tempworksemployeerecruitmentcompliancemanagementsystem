@@ -1,8 +1,9 @@
 import {
   Controller, Get, Post, Body, Patch, Param, Delete,
   Query, UseGuards, HttpCode, HttpStatus, UseInterceptors,
-  UploadedFile, BadRequestException, Res,
+  UploadedFile, BadRequestException, Res, Headers,
 } from '@nestjs/common';
+import { resolveAcceptLanguage } from '../common/i18n/server-translate';
 import { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryUpload, DOCUMENT_MIME } from '../common/storage/multer.config';
@@ -66,8 +67,12 @@ export class FinanceController {
   @Get('export')
   @Roles(...FINANCE_EXPORT_ROLES)
   @ApiOperation({ summary: 'Export financial records as Excel (.xlsx)' })
-  async exportExcel(@Query() filter: FilterFinancialRecordsDto, @Res() res: Response) {
-    const buffer = await this.financeService.exportExcel(filter);
+  async exportExcel(
+    @Query() filter: FilterFinancialRecordsDto,
+    @Res() res: Response,
+    @Headers('accept-language') acceptLanguage?: string,
+  ) {
+    const buffer = await this.financeService.exportExcel(filter, resolveAcceptLanguage(acceptLanguage));
     const filename = `financial-records-${new Date().toISOString().slice(0, 10)}.xlsx`;
     res.set({
       'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',

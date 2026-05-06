@@ -4,6 +4,7 @@ import {
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
+import { tServer, ServerLocale } from '../common/i18n/server-translate';
 import { CreateApplicantDto } from './dto/create-applicant.dto';
 import { UpdateApplicantDto } from './dto/update-applicant.dto';
 import { ConvertToEmployeeDto } from './dto/convert-to-employee.dto';
@@ -763,6 +764,7 @@ export class ApplicantsService {
     filter: FilterApplicantsDto,
     actor?: { role: string; agencyId?: string; agencyIsSystem?: boolean },
     ids?: string[],
+    locale: ServerLocale = 'en',
   ): Promise<Buffer> {
     let items: any[];
     if (ids && ids.length > 0) {
@@ -785,32 +787,34 @@ export class ApplicantsService {
     workbook.creator = 'TempWorks';
     workbook.created = new Date();
 
-    const sheet = workbook.addWorksheet('Applicants', {
-      views: [{ state: 'frozen', ySplit: 1 }],
-    });
+    const col = (key: string) => tServer(`applicants.columns.${key}`, {}, locale, 'exports');
+    const sheet = workbook.addWorksheet(
+      tServer('applicants.sheetName', {}, locale, 'exports'),
+      { views: [{ state: 'frozen', ySplit: 1 }] },
+    );
 
     sheet.columns = [
-      { header: 'ID',                   key: 'id',                  width: 36 },
-      { header: 'Lead Number',          key: 'leadNumber',          width: 18 },
-      { header: 'Candidate Number',     key: 'candidateNumber',     width: 18 },
-      { header: 'Tier',                 key: 'tier',                width: 12 },
-      { header: 'First Name',           key: 'firstName',           width: 16 },
-      { header: 'Last Name',            key: 'lastName',            width: 16 },
-      { header: 'Email',                key: 'email',               width: 28 },
-      { header: 'Phone',                key: 'phone',               width: 18 },
-      { header: 'Citizenship',          key: 'citizenship',         width: 16 },
-      { header: 'Status',               key: 'status',              width: 14 },
-      { header: 'Job Type',             key: 'jobType',             width: 22 },
-      { header: 'Agency',               key: 'agency',              width: 22 },
-      { header: 'Residency Status',     key: 'residencyStatus',     width: 18 },
-      { header: 'Has NI',               key: 'hasNi',               width: 10 },
-      { header: 'NI Number',            key: 'niNumber',            width: 16 },
-      { header: 'Has Work Auth',        key: 'hasWorkAuth',         width: 14 },
-      { header: 'Work Auth Type',       key: 'workAuthType',        width: 20 },
-      { header: 'Availability',         key: 'availability',        width: 16 },
-      { header: 'Salary Expectation',   key: 'salaryExpectation',   width: 18 },
-      { header: 'Preferred Start Date', key: 'preferredStartDate',  width: 18, style: { numFmt: 'yyyy-mm-dd' } },
-      { header: 'Created At',           key: 'createdAt',           width: 18, style: { numFmt: 'yyyy-mm-dd' } },
+      { header: col('id'),                 key: 'id',                  width: 36 },
+      { header: col('leadNumber'),         key: 'leadNumber',          width: 18 },
+      { header: col('candidateNumber'),    key: 'candidateNumber',     width: 18 },
+      { header: col('tier'),               key: 'tier',                width: 12 },
+      { header: col('firstName'),          key: 'firstName',           width: 16 },
+      { header: col('lastName'),           key: 'lastName',            width: 16 },
+      { header: col('email'),              key: 'email',               width: 28 },
+      { header: col('phone'),              key: 'phone',               width: 18 },
+      { header: col('citizenship'),        key: 'citizenship',         width: 16 },
+      { header: col('status'),             key: 'status',              width: 14 },
+      { header: col('jobType'),            key: 'jobType',             width: 22 },
+      { header: col('agency'),             key: 'agency',              width: 22 },
+      { header: col('residencyStatus'),    key: 'residencyStatus',     width: 18 },
+      { header: col('hasNi'),              key: 'hasNi',               width: 10 },
+      { header: col('niNumber'),           key: 'niNumber',            width: 16 },
+      { header: col('hasWorkAuth'),        key: 'hasWorkAuth',         width: 14 },
+      { header: col('workAuthType'),       key: 'workAuthType',        width: 20 },
+      { header: col('availability'),       key: 'availability',        width: 16 },
+      { header: col('salaryExpectation'),  key: 'salaryExpectation',   width: 18 },
+      { header: col('preferredStartDate'), key: 'preferredStartDate',  width: 18, style: { numFmt: 'yyyy-mm-dd' } },
+      { header: col('createdAt'),          key: 'createdAt',           width: 18, style: { numFmt: 'yyyy-mm-dd' } },
     ];
 
     sheet.getRow(1).eachCell((cell) => {

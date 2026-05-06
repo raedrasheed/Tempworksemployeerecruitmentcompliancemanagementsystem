@@ -10,6 +10,7 @@ import {
   TextRun, HeadingLevel, WidthType,
 } from 'docx';
 import { PrismaService } from '../prisma/prisma.service';
+import { tServer, ServerLocale } from '../common/i18n/server-translate';
 import {
   CreateReportDto, UpdateReportDto, RunReportDto, ExportFormat,
   ReportFilterDto, ReportColumnDto, ReportSortingDto,
@@ -749,11 +750,11 @@ export class ReportsService {
 
   // ── Export ────────────────────────────────────────────────────────────────
 
-  async export(id: string, format: ExportFormat): Promise<{ buffer: Buffer; mimeType: string; filename: string }> {
+  async export(id: string, format: ExportFormat, locale: ServerLocale = 'en'): Promise<{ buffer: Buffer; mimeType: string; filename: string }> {
     const report = await this.findOne(id);
     const { columns, rows } = await this.executeReport(report, { page: 1, limit: 50000 });
     switch (format) {
-      case ExportFormat.EXCEL: return this.toExcel(report, columns, rows);
+      case ExportFormat.EXCEL: return this.toExcel(report, columns, rows, locale);
       case ExportFormat.PDF:   return this.toPdf(report, columns, rows);
       case ExportFormat.WORD:  return this.toWord(report, columns, rows);
       default: throw new BadRequestException(`Unsupported format: ${format}`);
@@ -958,11 +959,15 @@ export class ReportsService {
 
   // ── Excel ─────────────────────────────────────────────────────────────────
 
-  private async toExcel(report: any, columns: any[], rows: any[]): Promise<{ buffer: Buffer; mimeType: string; filename: string }> {
+  private async toExcel(report: any, columns: any[], rows: any[], locale: ServerLocale = 'en'): Promise<{ buffer: Buffer; mimeType: string; filename: string }> {
     const wb = new ExcelJS.Workbook();
     wb.creator = 'TempWorks';
     wb.created = new Date();
-    const ws = wb.addWorksheet(report.name.substring(0, 31));
+    // Use the user-authored report name verbatim — that's user-authored
+    // content, not a translatable label. Fall back to a localized
+    // placeholder only when the report has no name.
+    const sheetName = (report.name || tServer('reports.fallbackTitle', {}, locale, 'exports')).substring(0, 31);
+    const ws = wb.addWorksheet(sheetName);
 
     // Title (columns.length data cols + 1 serial col)
     const lastCol = String.fromCharCode(64 + Math.max(columns.length + 1, 2));
@@ -972,7 +977,7 @@ export class ReportsService {
     titleCell.font  = { bold: true, size: 14, color: { argb: 'FF0F172A' } };
     titleCell.alignment = { horizontal: 'center' };
 
-    ws.getCell('A2').value = `Generated: ${new Date().toLocaleString()}`;
+    ws.getCell('A2').value = `${tServer('common.exportedAt', {}, locale, 'exports')}: ${new Date().toLocaleString()}`;
     ws.getCell('A2').font  = { italic: true, size: 9, color: { argb: 'FF64748B' } };
     if (report.description) {
       ws.getCell('A3').value = report.description;
@@ -983,7 +988,7 @@ export class ReportsService {
     const headerRow = ws.getRow(5);
     headerRow.height = 22;
     const noCell = headerRow.getCell(1);
-    noCell.value = '#';
+    noCell.value = tServer('reports.rowNumber', {}, locale, 'exports');
     noCell.font  = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10 };
     noCell.fill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } };
     noCell.alignment = { horizontal: 'center', vertical: 'middle' };

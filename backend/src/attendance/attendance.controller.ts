@@ -1,10 +1,11 @@
 import {
   Controller, Get, Post, Patch, Delete, Body, Param, Query,
-  UseGuards, HttpCode, HttpStatus, Res, Request,
+  UseGuards, HttpCode, HttpStatus, Res, Request, Headers,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AttendanceService } from './attendance.service';
+import { resolveAcceptLanguage } from '../common/i18n/server-translate';
 import {
   FilterAttendanceEmployeesDto,
   GetEmployeeAttendanceDto,
@@ -46,8 +47,12 @@ export class AttendanceController {
   @Get('export/excel')
   @Roles(...EXPORT_ROLES)
   @ApiOperation({ summary: 'Export attendance data as Excel workbook' })
-  async exportExcel(@Query() dto: ExportAttendanceDto, @Res() res: Response) {
-    const buffer    = await this.attendanceService.exportExcel(dto);
+  async exportExcel(
+    @Query() dto: ExportAttendanceDto,
+    @Res() res: Response,
+    @Headers('accept-language') acceptLanguage?: string,
+  ) {
+    const buffer    = await this.attendanceService.exportExcel(dto, resolveAcceptLanguage(acceptLanguage));
     const monthPad  = String(dto.month).padStart(2, '0');
     const filename  = dto.employeeId
       ? `attendance-driver-${dto.year}-${monthPad}.xlsx`

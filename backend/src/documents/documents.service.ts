@@ -382,6 +382,15 @@ export class DocumentsService {
             : `Document "${dto.name}" for ${entityName} expires in ${daysUntilExpiry} days.`,
           dto.entityType,
           dto.entityId,
+          {
+            titleKey: isExpired ? 'events.documentExpired.title' : 'events.documentExpiringSoon.title',
+            messageKey: isExpired ? 'events.documentExpired.body' : 'events.documentExpiringSoon.body',
+            params: {
+              documentName: dto.name,
+              entityName,
+              daysUntilExpiry,
+            },
+          },
         ).catch(e => this.logger.error('Doc expiry notification error:', e));
       }
     }

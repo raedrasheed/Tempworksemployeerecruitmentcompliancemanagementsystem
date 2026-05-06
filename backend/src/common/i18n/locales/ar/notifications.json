@@ -28,25 +28,41 @@
       "title": "Document rejected: {{documentName}}",
       "body": "{{verifierName}} rejected the document for {{entityName}}"
     },
+    "documentExpiringSoon": {
+      "title": "Document Expiring Soon",
+      "body": "Document \"{{documentName}}\" for {{entityName}} expires in {{daysUntilExpiry}} days."
+    },
+    "documentExpired": {
+      "title": "Document Expired",
+      "body": "Document \"{{documentName}}\" for {{entityName}} has already expired."
+    },
     "documentExpiring": {
       "title": "Document expiring: {{documentName}}",
       "body": "Expires on {{expiryDate}} for {{entityName}}"
     },
     "financeRecordCreated": {
-      "title": "Finance record created: {{candidateName}}",
-      "body": "{{transactionType}} of {{amount}} {{currency}} recorded by {{actorName}}"
+      "title": "New Financial Record Added",
+      "body": "A new financial record was added for {{entityName}}: {{transactionType}}{{amountSuffix}}"
     },
     "financeRecordUpdated": {
-      "title": "Finance record updated: {{candidateName}}",
-      "body": "{{actorName}} updated the {{transactionType}} record"
+      "title": "Financial Record Updated",
+      "body": "A financial record was updated for {{entityName}}."
     },
     "financeRecordDeleted": {
-      "title": "Finance record deleted: {{candidateName}}",
-      "body": "{{actorName}} deleted a {{transactionType}} record"
+      "title": "Financial Record Deleted",
+      "body": "A financial record was deleted for {{entityName}}."
+    },
+    "financeRecordDeducted": {
+      "title": "Record Marked for Deduction",
+      "body": "A financial record for {{entityName}} has been marked as deducted{{amountSuffix}}."
+    },
+    "financeRecordFullyDeducted": {
+      "title": "Record Fully Deducted",
+      "body": "A financial record for {{entityName}} has been fully deducted ({{currency}} {{amount}})."
     },
     "financeHighBalance": {
-      "title": "High outstanding balance: {{candidateName}}",
-      "body": "Outstanding balance of {{amount}} {{currency}} exceeds the alert threshold"
+      "title": "High Balance Alert",
+      "body": "Outstanding balance for {{entityName}} has reached {{amount}} EUR (threshold: {{threshold}} EUR)."
     },
     "financeRecordRestored": {
       "title": "Finance record restored: {{candidateName}}",

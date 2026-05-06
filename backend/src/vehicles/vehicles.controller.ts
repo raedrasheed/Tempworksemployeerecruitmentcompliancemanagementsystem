@@ -1,8 +1,9 @@
 import {
   Controller, Get, Post, Patch, Delete, Body, Param, Query,
   UseGuards, HttpCode, HttpStatus, Res, Request,
-  UseInterceptors, UploadedFile, BadRequestException,
+  UseInterceptors, UploadedFile, BadRequestException, Headers,
 } from '@nestjs/common';
+import { resolveAcceptLanguage } from '../common/i18n/server-translate';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryUpload, DOCUMENT_MIME } from '../common/storage/multer.config';
 import { Response } from 'express';
@@ -65,8 +66,12 @@ export class VehiclesController {
   @Get('export/excel')
   @Roles(...EXPORT_ROLES)
   @ApiOperation({ summary: 'Export vehicle list as Excel' })
-  async exportExcel(@Query() dto: ExportVehiclesDto, @Res() res: Response) {
-    const buffer = await this.vehiclesService.exportVehicles(dto);
+  async exportExcel(
+    @Query() dto: ExportVehiclesDto,
+    @Res() res: Response,
+    @Headers('accept-language') acceptLanguage?: string,
+  ) {
+    const buffer = await this.vehiclesService.exportVehicles(dto, resolveAcceptLanguage(acceptLanguage));
     res.set({
       'Content-Type':        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'Content-Disposition': `attachment; filename="vehicles-${new Date().toISOString().split('T')[0]}.xlsx"`,
@@ -120,9 +125,10 @@ export class VehiclesController {
     @Query() dto: FilterMaintenanceDto,
     @Query('recordIds') recordIds: string | string[] | undefined,
     @Res() res: Response,
+    @Headers('accept-language') acceptLanguage?: string,
   ) {
     const ids = !recordIds ? undefined : Array.isArray(recordIds) ? recordIds : recordIds.split(',').filter(Boolean);
-    const buffer = await this.vehiclesService.exportMaintenanceRecordsExcel(dto, ids);
+    const buffer = await this.vehiclesService.exportMaintenanceRecordsExcel(dto, ids, resolveAcceptLanguage(acceptLanguage));
     res.set({
       'Content-Type':        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'Content-Disposition': `attachment; filename="maintenance-records-${new Date().toISOString().split('T')[0]}.xlsx"`,

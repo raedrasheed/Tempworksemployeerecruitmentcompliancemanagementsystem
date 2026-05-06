@@ -395,6 +395,11 @@ export class DocumentsService {
       `A new document "${dto.name}" was uploaded for ${entityName}.`,
       dto.entityType,
       dto.entityId,
+      {
+        titleKey: 'events.documentUploaded.title',
+        messageKey: 'events.documentUploaded.body',
+        params: { documentName: dto.name, entityName, uploaderName: '' },
+      },
     ).catch(e => this.logger.error('Doc upload notification error:', e));
 
     return doc;

@@ -5,6 +5,7 @@ import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { PaginatedResponse } from '../common/dto/pagination-response.dto';
 import * as ExcelJS from 'exceljs';
+import { tServer, ServerLocale } from '../common/i18n/server-translate';
 
 @Injectable()
 export class EmployeesService {
@@ -396,6 +397,7 @@ export class EmployeesService {
     query: PaginationDto & { agencyId?: string; status?: string; nationality?: string },
     actor?: { role?: string; agencyId?: string; agencyIsSystem?: boolean },
     ids?: string[],
+    locale: ServerLocale = 'en',
   ): Promise<Buffer> {
     let items: any[];
 
@@ -427,28 +429,33 @@ export class EmployeesService {
     workbook.creator = 'TempWorks';
     workbook.created = new Date();
 
-    const sheet = workbook.addWorksheet('Employees', {
-      views: [{ state: 'frozen', ySplit: 1 }],
-    });
+    // Resolve column headers via the export catalog so AR/DE/RU/SK/TR
+    // exports match the requester's UI locale. EN fallback is automatic
+    // when a translation is missing.
+    const col = (key: string) => tServer(`employees.columns.${key}`, {}, locale, 'exports');
+    const sheet = workbook.addWorksheet(
+      tServer('employees.sheetName', {}, locale, 'exports'),
+      { views: [{ state: 'frozen', ySplit: 1 }] },
+    );
 
     sheet.columns = [
-      { header: 'Employee Number',   key: 'employeeNumber',  width: 18 },
-      { header: 'First Name',        key: 'firstName',       width: 16 },
-      { header: 'Last Name',         key: 'lastName',        width: 16 },
-      { header: 'Email',             key: 'email',           width: 28 },
-      { header: 'Phone',             key: 'phone',           width: 18 },
-      { header: 'Citizenship',       key: 'nationality',     width: 16 },
-      { header: 'License Number',    key: 'licenseNumber',   width: 20 },
-      { header: 'License Category',  key: 'licenseCategory', width: 14 },
-      { header: 'Experience (yrs)',  key: 'yearsExperience', width: 14 },
-      { header: 'Job Type',          key: 'jobType',         width: 22 },
-      { header: 'Agency',            key: 'agency',          width: 22 },
-      { header: 'Address',           key: 'address',         width: 30 },
-      { header: 'City',              key: 'city',            width: 16 },
-      { header: 'Country',           key: 'country',         width: 16 },
-      { header: 'Postal Code',       key: 'postalCode',      width: 12 },
-      { header: 'Status',            key: 'status',          width: 14 },
-      { header: 'Joined',            key: 'createdAt',       width: 16, style: { numFmt: 'yyyy-mm-dd' } },
+      { header: col('employeeNumber'),  key: 'employeeNumber',  width: 18 },
+      { header: col('firstName'),       key: 'firstName',       width: 16 },
+      { header: col('lastName'),        key: 'lastName',        width: 16 },
+      { header: col('email'),           key: 'email',           width: 28 },
+      { header: col('phone'),           key: 'phone',           width: 18 },
+      { header: col('nationality'),     key: 'nationality',     width: 16 },
+      { header: col('licenseNumber'),   key: 'licenseNumber',   width: 20 },
+      { header: col('licenseCategory'), key: 'licenseCategory', width: 14 },
+      { header: col('yearsExperience'), key: 'yearsExperience', width: 14 },
+      { header: col('jobType'),         key: 'jobType',         width: 22 },
+      { header: col('agency'),          key: 'agency',          width: 22 },
+      { header: col('address'),         key: 'address',         width: 30 },
+      { header: col('city'),            key: 'city',            width: 16 },
+      { header: col('country'),         key: 'country',         width: 16 },
+      { header: col('postalCode'),      key: 'postalCode',      width: 12 },
+      { header: col('status'),          key: 'status',          width: 14 },
+      { header: col('createdAt'),       key: 'createdAt',       width: 16, style: { numFmt: 'yyyy-mm-dd' } },
     ];
 
     sheet.getRow(1).eachCell((cell) => {

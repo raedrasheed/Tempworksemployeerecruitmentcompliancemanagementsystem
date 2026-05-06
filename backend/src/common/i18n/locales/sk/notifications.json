@@ -1,0 +1,60 @@
+{
+  "events": {
+    "vehicleCheckExpiring": {
+      "title": "{{registrationNumber}}: {{checkLabel}} Expiring Soon",
+      "body": "{{checkLabel}} expires in {{daysUntilDue}} days"
+    },
+    "vehicleServiceDueKm": {
+      "title": "{{registrationNumber}}: Service Due Soon",
+      "body": "Service due in {{kmRemaining}} km"
+    },
+    "vehicleComplianceOverdue": {
+      "title": "🚨 {{registrationNumber}}: Compliance Overdue",
+      "body": "Vehicle has expired compliance. Service immediately."
+    },
+    "vehicleScheduledMaintenance": {
+      "title": "{{registrationNumber}}: Scheduled Maintenance",
+      "body": "{{maintenanceTypeName}} scheduled in {{daysUntil}} days at {{workshopName}}"
+    },
+    "documentUploaded": {
+      "title": "Document uploaded: {{documentName}}",
+      "body": "{{uploaderName}} uploaded a new document for {{entityName}}"
+    },
+    "documentVerified": {
+      "title": "Document verified: {{documentName}}",
+      "body": "{{verifierName}} approved the document for {{entityName}}"
+    },
+    "documentRejected": {
+      "title": "Document rejected: {{documentName}}",
+      "body": "{{verifierName}} rejected the document for {{entityName}}"
+    },
+    "documentExpiring": {
+      "title": "Document expiring: {{documentName}}",
+      "body": "Expires on {{expiryDate}} for {{entityName}}"
+    },
+    "financeRecordCreated": {
+      "title": "Finance record created: {{candidateName}}",
+      "body": "{{transactionType}} of {{amount}} {{currency}} recorded by {{actorName}}"
+    },
+    "financeRecordUpdated": {
+      "title": "Finance record updated: {{candidateName}}",
+      "body": "{{actorName}} updated the {{transactionType}} record"
+    },
+    "financeRecordDeleted": {
+      "title": "Finance record deleted: {{candidateName}}",
+      "body": "{{actorName}} deleted a {{transactionType}} record"
+    },
+    "financeHighBalance": {
+      "title": "High outstanding balance: {{candidateName}}",
+      "body": "Outstanding balance of {{amount}} {{currency}} exceeds the alert threshold"
+    },
+    "financeRecordRestored": {
+      "title": "Finance record restored: {{candidateName}}",
+      "body": "{{actorName}} restored a {{transactionType}} record"
+    },
+    "generic": {
+      "title": "Notification",
+      "body": "You have a new notification"
+    }
+  }
+}

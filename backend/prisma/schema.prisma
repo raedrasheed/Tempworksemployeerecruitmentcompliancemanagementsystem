@@ -792,8 +792,19 @@ model Visa {
 model Notification {
   id              String           @id @default(uuid())
   userId          String
+  // Pre-rendered English title/message. Always populated for backward
+  // compatibility — old clients keep working, search/grep over historical
+  // notifications keeps reading meaningful text.
   title           String
   message         String
+  // i18n metadata. Set by Phase 3.F+ producers; null on legacy rows.
+  // The reader prefers translated `<group>.<KEY>` lookup against the
+  // server's notifications catalog (`tServer`) using the requester's
+  // `Accept-Language`, falling back to `title` / `message` when the keys
+  // aren't set or the locale catalog has no matching entry.
+  titleKey        String?
+  messageKey      String?
+  params          Json?
   type            NotificationType @default(INFO)
   // Specific event type string (e.g. DOCUMENT_UPLOADED, FINANCIAL_RECORD_CREATED)
   eventType       String?

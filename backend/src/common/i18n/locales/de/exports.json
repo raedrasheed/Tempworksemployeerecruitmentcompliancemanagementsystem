@@ -1,0 +1,45 @@
+{
+  "common": {
+    "exportedAt": "Exported at",
+    "page": "Page",
+    "total": "Total",
+    "filters": "Filters",
+    "noData": "No data"
+  },
+  "employees": {
+    "sheetName": "Employees",
+    "title": "Employee Export",
+    "columns": {
+      "employeeNumber": "Employee Number",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "email": "Email",
+      "phone": "Phone",
+      "nationality": "Citizenship",
+      "licenseNumber": "License Number",
+      "licenseCategory": "License Category",
+      "yearsExperience": "Experience (yrs)",
+      "jobType": "Job Type",
+      "agency": "Agency",
+      "address": "Address",
+      "city": "City",
+      "country": "Country",
+      "postalCode": "Postal Code",
+      "status": "Status",
+      "createdAt": "Joined"
+    }
+  },
+  "attendance": {
+    "sheetName": "Attendance",
+    "title": "Attendance Export",
+    "columns": {
+      "date": "Date",
+      "employee": "Employee",
+      "status": "Status",
+      "checkIn": "Check In",
+      "checkOut": "Check Out",
+      "workingHours": "Working Hours",
+      "notes": "Notes"
+    }
+  }
+}

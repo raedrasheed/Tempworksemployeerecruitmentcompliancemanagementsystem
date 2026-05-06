@@ -169,6 +169,27 @@ export async function apiFetch<T = any>(
     headers['Authorization'] = `Bearer ${token}`;
   }
 
+  // Forward the active UI locale so the backend can:
+  //   - render Notification rows in the correct language (Phase 3.F)
+  //   - localize Excel/PDF export column headers (Phase 3.F+)
+  // The header is set unconditionally; legacy endpoints that don't
+  // care about it just ignore it. Reads `localStorage[STORAGE_KEY]` —
+  // the same source `i18next-browser-languagedetector` uses — to avoid
+  // pulling i18next into this module synchronously.
+  if (!headers['Accept-Language']) {
+    try {
+      // STORAGE_KEY mirrored from src/i18n/config.ts ('tempworks.lang') —
+      // hardcoded to avoid pulling i18next into the request loop.
+      const saved = typeof localStorage !== 'undefined'
+        ? localStorage.getItem('tempworks.lang')
+        : null;
+      const navigatorLang = typeof navigator !== 'undefined' ? navigator.language : '';
+      headers['Accept-Language'] = (saved || navigatorLang || 'en');
+    } catch {
+      headers['Accept-Language'] = 'en';
+    }
+  }
+
   const response = await fetch(`${API_URL}${path}`, {
     ...options,
     headers,

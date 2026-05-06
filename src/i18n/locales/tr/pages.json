@@ -54,7 +54,15 @@
       "showAll": "Show all",
       "hideAll": "Hide all",
       "loading": "Loading…",
-      "emptyFiltered": "No employees found matching your criteria."
+      "emptyFiltered": "No employees found matching your criteria.",
+      "cols": {
+        "contact": "Contact",
+        "nationality": "Citizenship",
+        "license": "ID / License",
+        "experience": "Experience",
+        "agency": "Agency",
+        "status": "Status"
+      }
     },
     "profile": {
       "title": "Çalışan Profili",
@@ -585,6 +593,18 @@
         "promoting": "Promoting…",
         "promoteAction": "Promote",
         "cancel": "Cancel"
+      },
+      "cols": {
+        "contact": "Contact",
+        "nationality": "Citizenship",
+        "appliedPosition": "Applied Position",
+        "passportNumber": "Passport Number",
+        "age": "Age",
+        "gender": "Gender",
+        "agency": "Agency",
+        "tier": "Tier",
+        "applied": "Applied",
+        "status": "Status"
       }
     },
     "candidates": {
@@ -1930,6 +1950,15 @@
         "employees": "Employees",
         "created": "Created",
         "actions": "Actions"
+      },
+      "cols": {
+        "name": "Agency Name",
+        "country": "Country",
+        "contactPerson": "Contact Person",
+        "email": "Email",
+        "phone": "Phone",
+        "status": "Status",
+        "createdAt": "Created"
       }
     },
     "profile": {
@@ -2301,6 +2330,22 @@
     "compliancePage": {
       "deleteSuccess": "Document deleted",
       "deleteFailed": "Failed to delete document"
+    },
+    "list": {
+      "cols": {
+        "docId": "Doc ID",
+        "owner": "Owner",
+        "document": "Document",
+        "type": "Type",
+        "status": "Status",
+        "expiry": "Expiry Date",
+        "verifiedBy": "Verified by",
+        "compliance": "Compliance",
+        "createdAt": "Upload Date",
+        "documentNumber": "Doc Number",
+        "issueDate": "Issue Date",
+        "entityType": "Entity Type"
+      }
     }
   },
   "compliance": {
@@ -2551,7 +2596,25 @@
       "loadFailed": "Failed to load vehicles",
       "exportedCount": "Exported {{count}} vehicle(s)",
       "exportedAll": "Exported all vehicles",
-      "exportFailed": "Export failed"
+      "exportFailed": "Export failed",
+      "cols": {
+        "type": "Type",
+        "makeModel": "Make / Model",
+        "year": "Year",
+        "status": "Status",
+        "driver": "Current Driver",
+        "mot": "MOT",
+        "tax": "Tax Expiry",
+        "registration": "Registration Expiry",
+        "insurance": "Insurance",
+        "tachograph": "Tachograph Calib.",
+        "atp": "ATP Cert.",
+        "pressureTest": "Next Pressure Test",
+        "lastService": "Last Service",
+        "serviceType": "Service Type",
+        "workshop": "Workshop",
+        "odometer": "Odometer (km)"
+      }
     },
     "detail": {
       "title": "Araç Detayı",
@@ -2898,7 +2961,16 @@
       "title": "Atölyeler",
       "subtitle": "Yetkili servis sağlayıcıları",
       "addButton": "Atölye Ekle",
-      "empty": "Henüz atölye yok."
+      "empty": "Henüz atölye yok.",
+      "list": {
+        "cols": {
+          "contact": "Contact",
+          "phone": "Phone",
+          "email": "Email",
+          "city": "City",
+          "country": "Country"
+        }
+      }
     },
     "maintenanceTypes": {
       "title": "Bakım Türleri",
@@ -2909,6 +2981,17 @@
       "subtitle": "Filodaki tüm bakım faaliyetleri",
       "addButton": "Yeni Kayıt",
       "empty": "Henüz kayıt yok."
+    },
+    "maintTypes": {
+      "list": {
+        "cols": {
+          "name": "Name",
+          "description": "Description",
+          "days": "Interval (Days)",
+          "km": "Interval (km)",
+          "active": "Status"
+        }
+      }
     }
   },
   "attendance": {
@@ -2920,7 +3003,17 @@
       "toggleColumns": "Toggle columns",
       "showAll": "Show all",
       "hideAll": "Hide all",
-      "noEmployees": "No employees found"
+      "noEmployees": "No employees found",
+      "cols": {
+        "employeeId": "Employee ID",
+        "license": "License",
+        "agency": "Agency",
+        "present": "Present",
+        "absent": "Absent",
+        "late": "Late",
+        "onLeave": "On Leave",
+        "totalDays": "Total Days"
+      }
     },
     "sheet": {
       "title": "Devam Çizelgesi",
@@ -2940,7 +3033,25 @@
       "title": "Raporlar ve Analizler",
       "subtitle": "Özel raporlar oluştur ve dışa aktar",
       "newReport": "Yeni Rapor",
-      "empty": "Henüz rapor yok."
+      "empty": "Henüz rapor yok.",
+      "noColumnsSelected": "No columns selected.",
+      "noDataReturned": "No data returned",
+      "reportBuilder": "Report Builder",
+      "employeesByStatus": "Employees by Status",
+      "applicantsByStatus": "Applicants by Status",
+      "builderHelp": "Select a source, pick columns, add filters, define sorting",
+      "newClear": "New / Clear",
+      "reportInfo": "Report Info",
+      "singleTable": "Single Table",
+      "combinedMultiTable": "Combined (Multi-Table)",
+      "joining": "Joining:",
+      "noSortRules": "No sort rules",
+      "addFilter": "Add Filter",
+      "noFiltersBody": "No filters — all rows will be included.",
+      "valueTo": "Value (to)",
+      "loadingSavedReports": "Loading saved reports…",
+      "noSavedReportsTitle": "No saved reports yet",
+      "noSavedReportsBody": "Use the Report Builder tab to create and save your first report."
     }
   },
   "notifications": {
@@ -2993,7 +3104,14 @@
       "csvEmpty": "Please paste CSV data first",
       "csvNoRecords": "No valid records found. Ensure CSV has a header row.",
       "csvImported": "{{count}} record(s) imported successfully",
-      "bulkImportFailed": "Bulk import failed"
+      "bulkImportFailed": "Bulk import failed",
+      "cols": {
+        "email": "Email",
+        "role": "Role",
+        "agency": "Agency",
+        "status": "Status",
+        "lastLogin": "Last Login"
+      }
     },
     "add": {
       "title": "Kullanıcı Ekle",
@@ -3058,7 +3176,19 @@
       "createdFrom": "Created from",
       "toggleColumns": "Toggle columns",
       "showAll": "Show all",
-      "hideAll": "Hide all"
+      "hideAll": "Hide all",
+      "cols": {
+        "title": "Title",
+        "category": "Category",
+        "city": "City",
+        "country": "Country",
+        "contractType": "Contract",
+        "status": "Status",
+        "applicants": "Applicants",
+        "createdAt": "Created",
+        "updatedAt": "Updated",
+        "slug": "Slug"
+      }
     },
     "form": {
       "addTitle": "Yeni İlan",
@@ -3081,7 +3211,17 @@
       "accessDenied": "Erişim Reddedildi",
       "empty": "Geri dönüşüm kutusu boş.",
       "restore": "Geri Yükle",
-      "permanentlyDelete": "Kalıcı olarak sil"
+      "permanentlyDelete": "Kalıcı olarak sil",
+      "accessDeniedBody": "Only System Admins, HR Managers, and Compliance Officers can access Deleted Records.",
+      "allTypes": "All Types",
+      "newestFirst": "Newest first",
+      "oldestFirst": "Oldest first",
+      "deletedFrom": "Deleted from",
+      "nameOrId": "Name / ID",
+      "businessId": "Business ID",
+      "deletedAt": "Deleted At",
+      "loading": "Loading…",
+      "related": "+related"
     }
   },
   "logs": {
@@ -3111,6 +3251,19 @@
       "toDate": "To Date",
       "moduleEntity": "Module / Entity (optional)",
       "allModulesPh": "All modules"
+    },
+    "list": {
+      "cols": {
+        "timestamp": "Timestamp",
+        "user": "User",
+        "userEmail": "Email",
+        "action": "Action",
+        "entity": "Module",
+        "entityId": "Entity ID",
+        "changes": "Changes",
+        "ipAddress": "IP Address",
+        "userAgent": "User Agent"
+      }
     }
   },
   "settings": {
@@ -3173,7 +3326,18 @@
       "title": "Veritabanı Temizleme"
     },
     "databaseBackup": {
-      "title": "Veritabanı Yedekleme"
+      "title": "Veritabanı Yedekleme",
+      "accessDenied": "Access Denied",
+      "accessDeniedBody": "Only System Administrators can access database backup.",
+      "headerTitle": "Database Backup & Restore",
+      "operationInProgress": "Operation in progress…",
+      "createBackup": "Create Backup",
+      "safetyTitle": "Important — Backup & Restore Safety Notes",
+      "totalBackups": "Total Backups",
+      "latestBackup": "Latest Backup",
+      "allStatuses": "All Statuses",
+      "noBackupsTitle": "No backups found",
+      "noBackupsBody": "Create your first backup using the button above."
     },
     "systemInformation": {
       "title": "Sistem Bilgisi"
@@ -3287,7 +3451,34 @@
       "cancel": "Cancel",
       "channels": "Channels",
       "notificationTypes": "Notification Types",
-      "notificationPreferences": "Notification Preferences"
+      "notificationPreferences": "Notification Preferences",
+      "languages": {
+        "English": "English",
+        "Arabic": "Arabic (العربية)",
+        "Polish": "Polish (Polski)",
+        "German": "German (Deutsch)",
+        "French": "French (Français)",
+        "Spanish": "Spanish (Español)",
+        "Italian": "Italian (Italiano)",
+        "Romanian": "Romanian (Română)",
+        "Ukrainian": "Ukrainian (Українська)"
+      },
+      "timezones": {
+        "UTC": "UTC (Coordinated Universal Time)",
+        "Europe/London": "London (GMT/BST)",
+        "Europe/Warsaw": "Warsaw (CET/CEST)",
+        "Europe/Berlin": "Berlin (CET/CEST)",
+        "Europe/Paris": "Paris (CET/CEST)",
+        "Europe/Madrid": "Madrid (CET/CEST)",
+        "Europe/Rome": "Rome (CET/CEST)",
+        "Europe/Bucharest": "Bucharest (EET/EEST)",
+        "Europe/Kiev": "Kyiv (EET/EEST)",
+        "America/New_York": "New York (ET)",
+        "America/Chicago": "Chicago (CT)",
+        "America/Los_Angeles": "Los Angeles (PT)",
+        "Asia/Dubai": "Dubai (GST)",
+        "Asia/Riyadh": "Riyadh (AST)"
+      }
     },
     "toast": {
       "loadFailed": "Failed to load profile",
@@ -3490,6 +3681,22 @@
       "loading": "Loading…",
       "credit": "Credit (↑)",
       "debit": "Debit (↓)"
+    },
+    "list": {
+      "cols": {
+        "date": "Date",
+        "person": "Person",
+        "paidBy": "Paid By",
+        "type": "Type",
+        "description": "Description",
+        "disbursed": "Credit (↑)",
+        "empAgency": "Emp/Agency",
+        "deducted": "Debit (↓)",
+        "currency": "Currency",
+        "status": "Status",
+        "payrollRef": "Payroll Ref",
+        "createdAt": "Created"
+      }
     }
   }
 }

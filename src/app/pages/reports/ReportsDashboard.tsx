@@ -95,9 +95,10 @@ function fmtCell(value: any, type?: string): string {
 
 // ─── Preview Table ─────────────────────────────────────────────────────────────
 function PreviewTable({ result, maxRows, startSerial = 1 }: { result: any; maxRows?: number; startSerial?: number }) {
+  const { t } = useTranslation('pages');
   const cols: any[] = result.columns ?? [];
   const rows: any[] = (result.rows ?? []).slice(0, maxRows ?? 9999);
-  if (!cols.length) return <p className="p-4 text-sm text-muted-foreground">No columns selected.</p>;
+  if (!cols.length) return <p className="p-4 text-sm text-muted-foreground">{t('reports.dashboard.noColumnsSelected')}</p>;
   return (
     <table className="w-full text-sm">
       <thead className="bg-[#F8FAFC] border-b">
@@ -110,7 +111,7 @@ function PreviewTable({ result, maxRows, startSerial = 1 }: { result: any; maxRo
       </thead>
       <tbody>
         {rows.length === 0 ? (
-          <tr><td colSpan={cols.length + 1} className="p-6 text-center text-muted-foreground">No data returned</td></tr>
+          <tr><td colSpan={cols.length + 1} className="p-6 text-center text-muted-foreground">{t('reports.dashboard.noDataReturned')}</td></tr>
         ) : rows.map((row: any, ri: number) => (
           <tr key={ri} className={`border-b ${ri % 2 === 1 ? 'bg-[#F8FAFC]' : ''} hover:bg-[#EFF6FF] transition-colors`}>
             <td className="p-3 border-e text-xs text-center text-muted-foreground tabular-nums w-10">{startSerial + ri}</td>
@@ -257,7 +258,7 @@ export function ReportsDashboard() {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="w-full grid grid-cols-3 mb-2">
           <TabsTrigger value="dashboard"><BarChart3 className="w-4 h-4 me-2" />Dashboard</TabsTrigger>
-          <TabsTrigger value="builder"><Plus className="w-4 h-4 me-2" />Report Builder</TabsTrigger>
+          <TabsTrigger value="builder"><Plus className="w-4 h-4 me-2" />{t('reports.dashboard.reportBuilder')}</TabsTrigger>
           <TabsTrigger value="saved">
             <Database className="w-4 h-4 me-2" />Saved Reports
             {savedReports.length > 0 && <Badge className="ms-2 bg-[#2563EB] text-white text-xs px-1.5">{savedReports.length}</Badge>}
@@ -275,7 +276,7 @@ export function ReportsDashboard() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
-              <CardHeader><CardTitle className="text-base">Employees by Status</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-base">{t('reports.dashboard.employeesByStatus')}</CardTitle></CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={260}>
                   <BarChart data={kpis?.employees?.byStatus ?? []} barSize={40}>
@@ -291,7 +292,7 @@ export function ReportsDashboard() {
               </CardContent>
             </Card>
             <Card>
-              <CardHeader><CardTitle className="text-base">Applicants by Status</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-base">{t('reports.dashboard.applicantsByStatus')}</CardTitle></CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={260}>
                   <PieChart>
@@ -311,9 +312,9 @@ export function ReportsDashboard() {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="font-semibold text-lg">{editingId ? 'Edit Report' : 'New Report'}</h2>
-              <p className="text-sm text-muted-foreground">Select a source, pick columns, add filters, define sorting</p>
+              <p className="text-sm text-muted-foreground">{t('reports.dashboard.builderHelp')}</p>
             </div>
-            {editingId && <Button variant="outline" size="sm" onClick={resetBuilder}>New / Clear</Button>}
+            {editingId && <Button variant="outline" size="sm" onClick={resetBuilder}>{t('reports.dashboard.newClear')}</Button>}
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
@@ -322,7 +323,7 @@ export function ReportsDashboard() {
 
               {/* Info */}
               <Card>
-                <CardHeader><CardTitle className="text-sm flex items-center gap-2"><Database className="w-4 h-4 text-[#2563EB]" />Report Info</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="text-sm flex items-center gap-2"><Database className="w-4 h-4 text-[#2563EB]" />{t('reports.dashboard.reportInfo')}</CardTitle></CardHeader>
                 <CardContent className="space-y-3">
                   <div>
                     <Label>Name *</Label>
@@ -339,7 +340,7 @@ export function ReportsDashboard() {
                       <SelectContent>
                         {dataSources.some((ds: any) => ds.group === 'single') && (
                           <>
-                            <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Single Table</div>
+                            <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t('reports.dashboard.singleTable')}</div>
                             {dataSources.filter((ds: any) => ds.group === 'single').map((ds: any) => (
                               <SelectItem key={ds.key} value={ds.key}>
                                 <div className="flex items-center gap-2">
@@ -352,7 +353,7 @@ export function ReportsDashboard() {
                         )}
                         {dataSources.some((ds: any) => ds.group === 'combined') && (
                           <>
-                            <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide border-t mt-1 pt-2">Combined (Multi-Table)</div>
+                            <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide border-t mt-1 pt-2">{t('reports.dashboard.combinedMultiTable')}</div>
                             {dataSources.filter((ds: any) => ds.group === 'combined').map((ds: any) => (
                               <SelectItem key={ds.key} value={ds.key}>
                                 <div className="flex items-center gap-2">
@@ -372,7 +373,7 @@ export function ReportsDashboard() {
                       return (
                         <div className="mt-2 flex items-center gap-1.5 text-xs text-[#8B5CF6]">
                           <Link2 className="w-3 h-3" />
-                          <span className="font-medium">Joining:</span>
+                          <span className="font-medium">{t('reports.dashboard.joining')}</span>
                           {(sel.tables as string[]).map((t: string, i: number) => (
                             <span key={t}>
                               {i > 0 && <span className="text-muted-foreground mx-0.5">+</span>}
@@ -471,7 +472,7 @@ export function ReportsDashboard() {
                     </Select>
                   </CardHeader>
                   <CardContent className="space-y-2">
-                    {builder.sorting.length === 0 && <p className="text-xs text-muted-foreground">No sort rules</p>}
+                    {builder.sorting.length === 0 && <p className="text-xs text-muted-foreground">{t('reports.dashboard.noSortRules')}</p>}
                     {builder.sorting.map((s: any, i) => (
                       <div key={i} className="flex items-center gap-2">
                         <span className="text-xs flex-1 truncate font-medium">{s.columnName}</span>
@@ -494,10 +495,10 @@ export function ReportsDashboard() {
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle className="text-sm flex items-center gap-2"><Filter className="w-4 h-4 text-[#06B6D4]" />Filters <Badge variant="outline">{builder.filters.length}</Badge></CardTitle>
-                    <Button size="sm" variant="outline" onClick={addFilter}><Plus className="w-3.5 h-3.5 me-1" />Add Filter</Button>
+                    <Button size="sm" variant="outline" onClick={addFilter}><Plus className="w-3.5 h-3.5 me-1" />{t('reports.dashboard.addFilter')}</Button>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    {builder.filters.length === 0 && <p className="text-sm text-muted-foreground">No filters — all rows will be included.</p>}
+                    {builder.filters.length === 0 && <p className="text-sm text-muted-foreground">{t('reports.dashboard.noFiltersBody')}</p>}
                     {builder.filters.map((f: any, i: number) => (
                       <div key={f.id ?? i} className="border rounded-lg p-3 grid grid-cols-2 sm:grid-cols-4 gap-2 items-end">
                         <div>
@@ -522,7 +523,7 @@ export function ReportsDashboard() {
                         )}
                         {f.operator === 'between' ? (
                           <div>
-                            <Label className="text-xs">Value (to)</Label>
+                            <Label className="text-xs">{t('reports.dashboard.valueTo')}</Label>
                             <Input className="h-8 text-xs mt-0.5" placeholder="end" value={f.value2 ?? ''} onChange={e => updateFilter(i, { value2: e.target.value })} />
                           </div>
                         ) : (
@@ -577,13 +578,13 @@ export function ReportsDashboard() {
         {/* ── SAVED REPORTS ─────────────────────────────────────────── */}
         <TabsContent value="saved" className="space-y-4">
           {reportsLoading ? (
-            <div className="p-8 text-center text-muted-foreground">Loading saved reports…</div>
+            <div className="p-8 text-center text-muted-foreground">{t('reports.dashboard.loadingSavedReports')}</div>
           ) : savedReports.length === 0 ? (
             <Card>
               <CardContent className="p-12 text-center">
                 <Database className="w-12 h-12 mx-auto mb-3 text-muted-foreground opacity-40" />
-                <h3 className="font-semibold mb-1">No saved reports yet</h3>
-                <p className="text-sm text-muted-foreground">Use the Report Builder tab to create and save your first report.</p>
+                <h3 className="font-semibold mb-1">{t('reports.dashboard.noSavedReportsTitle')}</h3>
+                <p className="text-sm text-muted-foreground">{t('reports.dashboard.noSavedReportsBody')}</p>
               </CardContent>
             </Card>
           ) : savedReports.map(report => (

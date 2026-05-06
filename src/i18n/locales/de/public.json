@@ -238,6 +238,30 @@
     "section7p1": "7.1. In in case that employer will begin with processing personal data provided employees for purposes other than those arising from this document, immediately informs the relevant employees of this fact.",
     "section7p2": "7.2. This document is provided to each employee in written form and is continuously available to all employees on the employer's intranet.",
     "section7p3": "7.3. List specific intermediaries, recipients and time processing personal data are available in independent document.",
-    "consentLine": "I agree to provide my data and profile to other agencies, partners, or customers of the employer or the purposes of their selection process."
+    "consentLine": "I agree to provide my data and profile to other agencies, partners, or customers of the employer or the purposes of their selection process.",
+    "section1p1bold1": "GDPR",
+    "section1p1mid": "), hereinafter referred to as the ",
+    "section1p1bold2": "(\"Regulation\").",
+    "section2p1aItems": {
+      "i01": "name, surname, title",
+      "i02": "date and place birth, ID number",
+      "i03": "place permanent residence possibly transitional residence, possibly delivery address",
+      "i04": "nationality",
+      "i05": "state citizenship",
+      "i06": "family status",
+      "i07": "private email, private phone number",
+      "i08": "achieved education",
+      "i09": "data about paid wages",
+      "i10": "health insurance company",
+      "i11": "family status",
+      "i12": "number children",
+      "i13": "health disadvantage and kind received pension",
+      "i14": "data about health capabilities employee on performance kind work agreed upon employment contract including records of work-related accidents"
+    },
+    "section2p1bItems": {
+      "i01": "surname, name and native number husband/wife and his/her permanent residence",
+      "i02": "name, address employer husband/wife",
+      "i03": "name, surname, native number child, date birth"
+    }
   }
 }

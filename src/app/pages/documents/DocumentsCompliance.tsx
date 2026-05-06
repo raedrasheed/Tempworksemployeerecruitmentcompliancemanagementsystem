@@ -59,19 +59,19 @@ type ColKey =
   | 'expiry' | 'verifiedBy' | 'compliance'
   | 'createdAt' | 'documentNumber' | 'issueDate' | 'entityType';
 
-const ALL_COLUMNS: { key: ColKey; label: string }[] = [
-  { key: 'docId',          label: 'Doc ID' },
-  { key: 'owner',          label: 'Owner' },
-  { key: 'document',       label: 'Document' },
-  { key: 'type',           label: 'Type' },
-  { key: 'status',         label: 'Status' },
-  { key: 'expiry',         label: 'Expiry Date' },
-  { key: 'verifiedBy',     label: 'Verified by' },
-  { key: 'compliance',     label: 'Compliance' },
-  { key: 'createdAt',      label: 'Upload Date' },
-  { key: 'documentNumber', label: 'Doc Number' },
-  { key: 'issueDate',      label: 'Issue Date' },
-  { key: 'entityType',     label: 'Entity Type' },
+const ALL_COLUMNS: { key: ColKey; labelKey: string }[] = [
+  { key: 'docId',          labelKey: 'documents.list.cols.docId' },
+  { key: 'owner',          labelKey: 'documents.list.cols.owner' },
+  { key: 'document',       labelKey: 'documents.list.cols.document' },
+  { key: 'type',           labelKey: 'documents.list.cols.type' },
+  { key: 'status',         labelKey: 'documents.list.cols.status' },
+  { key: 'expiry',         labelKey: 'documents.list.cols.expiry' },
+  { key: 'verifiedBy',     labelKey: 'documents.list.cols.verifiedBy' },
+  { key: 'compliance',     labelKey: 'documents.list.cols.compliance' },
+  { key: 'createdAt',      labelKey: 'documents.list.cols.createdAt' },
+  { key: 'documentNumber', labelKey: 'documents.list.cols.documentNumber' },
+  { key: 'issueDate',      labelKey: 'documents.list.cols.issueDate' },
+  { key: 'entityType',     labelKey: 'documents.list.cols.entityType' },
 ];
 
 const DEFAULT_VISIBLE: Record<ColKey, boolean> = {
@@ -561,7 +561,7 @@ export function DocumentsCompliance() {
                         <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${visibleColumns[c.key] ? 'bg-primary border-primary' : 'border-gray-300'}`}>
                           {visibleColumns[c.key] && <Check className="w-2.5 h-2.5 text-primary-foreground" />}
                         </span>
-                        {c.label}
+                        {t(c.labelKey)}
                       </button>
                     ))}
                   </div>

@@ -54,12 +54,12 @@ function SortableHead({ label, field, sortBy, sortOrder, onSort, className }: {
 
 type ColKey = 'contact' | 'phone' | 'email' | 'city' | 'country';
 
-const ALL_COLUMNS: { key: ColKey; label: string }[] = [
-  { key: 'contact', label: 'Contact' },
-  { key: 'phone',   label: 'Phone' },
-  { key: 'email',   label: 'Email' },
-  { key: 'city',    label: 'City' },
-  { key: 'country', label: 'Country' },
+const ALL_COLUMNS: { key: ColKey; labelKey: string }[] = [
+  { key: 'contact', labelKey: 'vehicles.workshops.list.cols.contact' },
+  { key: 'phone',   labelKey: 'vehicles.workshops.list.cols.phone' },
+  { key: 'email',   labelKey: 'vehicles.workshops.list.cols.email' },
+  { key: 'city',    labelKey: 'vehicles.workshops.list.cols.city' },
+  { key: 'country', labelKey: 'vehicles.workshops.list.cols.country' },
 ];
 
 const DEFAULT_VISIBLE: Record<ColKey, boolean> = {
@@ -311,7 +311,7 @@ export function WorkshopsList() {
           </Button>
           {showColPicker && (
             <div className="absolute end-0 top-full mt-1 z-50 bg-popover border rounded-md shadow-md p-2 w-44">
-              {ALL_COLUMNS.map(({ key, label }) => (
+              {ALL_COLUMNS.map(({ key, labelKey }) => (
                 <button
                   key={key}
                   className="flex items-center gap-2 w-full px-2 py-1.5 text-sm rounded hover:bg-muted"
@@ -320,7 +320,7 @@ export function WorkshopsList() {
                   <span className={`w-4 h-4 border rounded flex items-center justify-center ${col(key) ? 'bg-primary border-primary' : 'border-input'}`}>
                     {col(key) && <Check className="w-3 h-3 text-primary-foreground" />}
                   </span>
-                  {label}
+                  {t(labelKey)}
                 </button>
               ))}
             </div>

@@ -49,17 +49,17 @@ type ColKey =
   | 'contact' | 'nationality' | 'appliedPosition' | 'passportNumber'
   | 'age' | 'gender' | 'agency' | 'tier' | 'applied' | 'status';
 
-const ALL_COLUMNS: { key: ColKey; label: string }[] = [
-  { key: 'contact',         label: 'Contact' },
-  { key: 'nationality',     label: 'Citizenship' },
-  { key: 'appliedPosition', label: 'Applied Position' },
-  { key: 'passportNumber',  label: 'Passport Number' },
-  { key: 'age',             label: 'Age' },
-  { key: 'gender',          label: 'Gender' },
-  { key: 'agency',          label: 'Agency' },
-  { key: 'tier',            label: 'Tier' },
-  { key: 'applied',         label: 'Applied' },
-  { key: 'status',          label: 'Status' },
+const ALL_COLUMNS: { key: ColKey; labelKey: string }[] = [
+  { key: 'contact',         labelKey: 'applicants.list.cols.contact' },
+  { key: 'nationality',     labelKey: 'applicants.list.cols.nationality' },
+  { key: 'appliedPosition', labelKey: 'applicants.list.cols.appliedPosition' },
+  { key: 'passportNumber',  labelKey: 'applicants.list.cols.passportNumber' },
+  { key: 'age',             labelKey: 'applicants.list.cols.age' },
+  { key: 'gender',          labelKey: 'applicants.list.cols.gender' },
+  { key: 'agency',          labelKey: 'applicants.list.cols.agency' },
+  { key: 'tier',            labelKey: 'applicants.list.cols.tier' },
+  { key: 'applied',         labelKey: 'applicants.list.cols.applied' },
+  { key: 'status',          labelKey: 'applicants.list.cols.status' },
 ];
 
 const DEFAULT_VISIBLE: Record<ColKey, boolean> = {
@@ -626,7 +626,7 @@ export function CandidatesList() {
                           <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${visibleColumns[c.key] ? 'bg-blue-600 border-blue-600' : 'border-gray-300'}`}>
                             {visibleColumns[c.key] && <Check className="w-2.5 h-2.5 text-white" />}
                           </span>
-                          {c.label}
+                          {t(c.labelKey)}
                         </button>
                       ))}
                     </div>

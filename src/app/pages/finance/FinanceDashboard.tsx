@@ -49,19 +49,19 @@ type ColKey =
   | 'disbursed' | 'empAgency' | 'deducted' | 'currency' | 'status'
   | 'payrollRef' | 'createdAt';
 
-const ALL_COLUMNS: { key: ColKey; label: string }[] = [
-  { key: 'date',        label: 'Date' },
-  { key: 'person',      label: 'Person' },
-  { key: 'paidBy',      label: 'Paid By' },
-  { key: 'type',        label: 'Type' },
-  { key: 'description', label: 'Description' },
-  { key: 'disbursed',   label: 'Credit (↑)' },
-  { key: 'empAgency',   label: 'Emp/Agency' },
-  { key: 'deducted',    label: 'Debit (↓)' },
-  { key: 'currency',    label: 'Currency' },
-  { key: 'status',      label: 'Status' },
-  { key: 'payrollRef',  label: 'Payroll Ref' },
-  { key: 'createdAt',   label: 'Created' },
+const ALL_COLUMNS: { key: ColKey; labelKey: string }[] = [
+  { key: 'date',        labelKey: 'finance.list.cols.date' },
+  { key: 'person',      labelKey: 'finance.list.cols.person' },
+  { key: 'paidBy',      labelKey: 'finance.list.cols.paidBy' },
+  { key: 'type',        labelKey: 'finance.list.cols.type' },
+  { key: 'description', labelKey: 'finance.list.cols.description' },
+  { key: 'disbursed',   labelKey: 'finance.list.cols.disbursed' },
+  { key: 'empAgency',   labelKey: 'finance.list.cols.empAgency' },
+  { key: 'deducted',    labelKey: 'finance.list.cols.deducted' },
+  { key: 'currency',    labelKey: 'finance.list.cols.currency' },
+  { key: 'status',      labelKey: 'finance.list.cols.status' },
+  { key: 'payrollRef',  labelKey: 'finance.list.cols.payrollRef' },
+  { key: 'createdAt',   labelKey: 'finance.list.cols.createdAt' },
 ];
 
 const DEFAULT_VISIBLE: Record<ColKey, boolean> = {
@@ -394,7 +394,7 @@ export function FinanceDashboard() {
                       <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${visibleColumns[c.key] ? 'bg-primary border-primary' : 'border-gray-300'}`}>
                         {visibleColumns[c.key] && <Check className="w-2.5 h-2.5 text-primary-foreground" />}
                       </span>
-                      {c.label}
+                      {t(c.labelKey)}
                     </button>
                   ))}
                 </div>

@@ -37,13 +37,13 @@ type SortOrder = 'asc' | 'desc';
 // ── Column visibility ────────────────────────────────────────────────────────
 type ColKey = 'contact' | 'nationality' | 'license' | 'experience' | 'agency' | 'status';
 
-const ALL_COLUMNS: { key: ColKey; label: string }[] = [
-  { key: 'contact',     label: 'Contact' },
-  { key: 'nationality', label: 'Citizenship' },
-  { key: 'license',     label: 'ID / License' },
-  { key: 'experience',  label: 'Experience' },
-  { key: 'agency',      label: 'Agency' },
-  { key: 'status',      label: 'Status' },
+const ALL_COLUMNS: { key: ColKey; labelKey: string }[] = [
+  { key: 'contact',     labelKey: 'employees.list.cols.contact' },
+  { key: 'nationality', labelKey: 'employees.list.cols.nationality' },
+  { key: 'license',     labelKey: 'employees.list.cols.license' },
+  { key: 'experience',  labelKey: 'employees.list.cols.experience' },
+  { key: 'agency',      labelKey: 'employees.list.cols.agency' },
+  { key: 'status',      labelKey: 'employees.list.cols.status' },
 ];
 
 const DEFAULT_VISIBLE: Record<ColKey, boolean> = {
@@ -439,7 +439,7 @@ export function EmployeesList() {
                           <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${visibleColumns[c.key] ? 'bg-blue-600 border-blue-600' : 'border-gray-300'}`}>
                             {visibleColumns[c.key] && <Check className="w-2.5 h-2.5 text-white" />}
                           </span>
-                          {c.label}
+                          {t(c.labelKey)}
                         </button>
                       ))}
                     </div>

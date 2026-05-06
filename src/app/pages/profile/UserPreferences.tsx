@@ -10,6 +10,19 @@ import { Separator } from '../../components/ui/separator';
 import { toast } from 'sonner';
 import { usersApi } from '../../services/api';
 
+const LANGUAGE_OPTIONS = [
+  'English', 'Arabic', 'Polish', 'German', 'French',
+  'Spanish', 'Italian', 'Romanian', 'Ukrainian',
+] as const;
+
+const TIMEZONE_OPTIONS = [
+  'UTC',
+  'Europe/London', 'Europe/Warsaw', 'Europe/Berlin', 'Europe/Paris',
+  'Europe/Madrid', 'Europe/Rome', 'Europe/Bucharest', 'Europe/Kiev',
+  'America/New_York', 'America/Chicago', 'America/Los_Angeles',
+  'Asia/Dubai', 'Asia/Riyadh',
+] as const;
+
 const NOTIFICATION_OPTIONS = [
   { key: 'emailNotifications', label: 'Email notifications', description: 'Receive notifications via email' },
   { key: 'inAppNotifications', label: 'In-app notifications', description: 'Show notifications within the platform' },
@@ -125,15 +138,9 @@ export function UserPreferences() {
                     <SelectValue placeholder={t('profile.preferences.languagePh')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="English">English</SelectItem>
-                    <SelectItem value="Arabic">Arabic (العربية)</SelectItem>
-                    <SelectItem value="Polish">Polish (Polski)</SelectItem>
-                    <SelectItem value="German">German (Deutsch)</SelectItem>
-                    <SelectItem value="French">French (Français)</SelectItem>
-                    <SelectItem value="Spanish">Spanish (Español)</SelectItem>
-                    <SelectItem value="Italian">Italian (Italiano)</SelectItem>
-                    <SelectItem value="Romanian">Romanian (Română)</SelectItem>
-                    <SelectItem value="Ukrainian">Ukrainian (Українська)</SelectItem>
+                    {LANGUAGE_OPTIONS.map(code => (
+                      <SelectItem key={code} value={code}>{t(`profile.preferences.languages.${code}`)}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -145,20 +152,9 @@ export function UserPreferences() {
                     <SelectValue placeholder={t('profile.preferences.timezonePh')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="UTC">UTC (Coordinated Universal Time)</SelectItem>
-                    <SelectItem value="Europe/London">London (GMT/BST)</SelectItem>
-                    <SelectItem value="Europe/Warsaw">Warsaw (CET/CEST)</SelectItem>
-                    <SelectItem value="Europe/Berlin">Berlin (CET/CEST)</SelectItem>
-                    <SelectItem value="Europe/Paris">Paris (CET/CEST)</SelectItem>
-                    <SelectItem value="Europe/Madrid">Madrid (CET/CEST)</SelectItem>
-                    <SelectItem value="Europe/Rome">Rome (CET/CEST)</SelectItem>
-                    <SelectItem value="Europe/Bucharest">Bucharest (EET/EEST)</SelectItem>
-                    <SelectItem value="Europe/Kiev">Kyiv (EET/EEST)</SelectItem>
-                    <SelectItem value="America/New_York">New York (ET)</SelectItem>
-                    <SelectItem value="America/Chicago">Chicago (CT)</SelectItem>
-                    <SelectItem value="America/Los_Angeles">Los Angeles (PT)</SelectItem>
-                    <SelectItem value="Asia/Dubai">Dubai (GST)</SelectItem>
-                    <SelectItem value="Asia/Riyadh">Riyadh (AST)</SelectItem>
+                    {TIMEZONE_OPTIONS.map(tz => (
+                      <SelectItem key={tz} value={tz}>{t(`profile.preferences.timezones.${tz}`)}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

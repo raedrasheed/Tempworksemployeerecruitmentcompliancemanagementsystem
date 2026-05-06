@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import {
   AlertTriangle, Shield, Download, RotateCcw, Trash2, Eye, CheckCircle2,
   XCircle, RefreshCw, ArrowLeft, HardDrive, Plus, Info, Clock, FileArchive,
@@ -83,6 +84,7 @@ function fmt(iso?: string | null): string {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function DatabaseBackup() {
+  const { t } = useTranslation('pages');
   const navigate = useNavigate();
   const { canEdit } = usePermissions();
   const isAdmin  = canEdit('settings');
@@ -253,8 +255,8 @@ export function DatabaseBackup() {
       <div className="p-6 flex items-center justify-center min-h-64">
         <div className="text-center">
           <XCircle className="w-12 h-12 mx-auto text-red-500 mb-3" />
-          <h2 className="text-lg font-semibold mb-1">Access Denied</h2>
-          <p className="text-muted-foreground">Only System Administrators can access database backup.</p>
+          <h2 className="text-lg font-semibold mb-1">{t('settings.databaseBackup.accessDenied')}</h2>
+          <p className="text-muted-foreground">{t('settings.databaseBackup.accessDeniedBody')}</p>
         </div>
       </div>
     );
@@ -280,7 +282,7 @@ export function DatabaseBackup() {
             <Database className="w-6 h-6 text-blue-600" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold">Database Backup & Restore</h1>
+            <h1 className="text-2xl font-bold">{t('settings.databaseBackup.headerTitle')}</h1>
             <p className="text-muted-foreground mt-1">
               Create, manage, and restore full PostgreSQL database backups.
               All operations are logged to the audit trail.
@@ -289,8 +291,8 @@ export function DatabaseBackup() {
         </div>
         <Button onClick={() => setShowCreate(true)} disabled={locked}>
           {locked
-            ? <><RefreshCw className="w-4 h-4 me-2 animate-spin" />Operation in progress…</>
-            : <><Plus className="w-4 h-4 me-2" />Create Backup</>
+            ? <><RefreshCw className="w-4 h-4 me-2 animate-spin" />{t('settings.databaseBackup.operationInProgress')}</>
+            : <><Plus className="w-4 h-4 me-2" />{t('settings.databaseBackup.createBackup')}</>
           }
         </Button>
       </div>
@@ -300,7 +302,7 @@ export function DatabaseBackup() {
         <div className="flex items-start gap-3">
           <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
           <div className="text-sm text-amber-800">
-            <p className="font-semibold">Important — Backup & Restore Safety Notes</p>
+            <p className="font-semibold">{t('settings.databaseBackup.safetyTitle')}</p>
             <ul className="mt-1 list-disc list-inside space-y-1">
               <li>Backup files are stored in <code className="bg-amber-100 px-1 rounded">./backups/</code> on the server. Secure this directory appropriately.</li>
               <li>A pre-restore safety backup is created automatically before any restore (unless skipped).</li>
@@ -315,7 +317,7 @@ export function DatabaseBackup() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="pt-4 pb-3">
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">Total Backups</p>
+            <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('settings.databaseBackup.totalBackups')}</p>
             <p className="text-2xl font-bold text-blue-700">{total}</p>
           </CardContent>
         </Card>
@@ -327,7 +329,7 @@ export function DatabaseBackup() {
         </Card>
         <Card>
           <CardContent className="pt-4 pb-3">
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">Latest Backup</p>
+            <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('settings.databaseBackup.latestBackup')}</p>
             <p className="text-sm font-medium">{backups[0] ? fmt(backups[0].createdAt) : '—'}</p>
           </CardContent>
         </Card>
@@ -354,7 +356,7 @@ export function DatabaseBackup() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="__all__">All Statuses</SelectItem>
+            <SelectItem value="__all__">{t('settings.databaseBackup.allStatuses')}</SelectItem>
             <SelectItem value="COMPLETED">Completed</SelectItem>
             <SelectItem value="RUNNING">Running</SelectItem>
             <SelectItem value="FAILED">Failed</SelectItem>
@@ -377,8 +379,8 @@ export function DatabaseBackup() {
           ) : backups.length === 0 ? (
             <div className="py-16 text-center text-muted-foreground">
               <FileArchive className="w-10 h-10 mx-auto mb-3 opacity-30" />
-              <p className="font-medium">No backups found</p>
-              <p className="text-sm mt-1">Create your first backup using the button above.</p>
+              <p className="font-medium">{t('settings.databaseBackup.noBackupsTitle')}</p>
+              <p className="text-sm mt-1">{t('settings.databaseBackup.noBackupsBody')}</p>
             </div>
           ) : (
             <div className="overflow-x-auto">

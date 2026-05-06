@@ -31,12 +31,12 @@ const EMPTY_FORM: MForm = { name: '', description: '', defaultIntervalDays: '', 
 
 // ── Column visibility ───────────────────────────────────────────────────────
 type ColKey = 'name' | 'description' | 'days' | 'km' | 'active';
-const ALL_COLUMNS: { key: ColKey; label: string }[] = [
-  { key: 'name',        label: 'Name' },
-  { key: 'description', label: 'Description' },
-  { key: 'days',        label: 'Interval (Days)' },
-  { key: 'km',          label: 'Interval (km)' },
-  { key: 'active',      label: 'Status' },
+const ALL_COLUMNS: { key: ColKey; labelKey: string }[] = [
+  { key: 'name',        labelKey: 'vehicles.maintTypes.list.cols.name' },
+  { key: 'description', labelKey: 'vehicles.maintTypes.list.cols.description' },
+  { key: 'days',        labelKey: 'vehicles.maintTypes.list.cols.days' },
+  { key: 'km',          labelKey: 'vehicles.maintTypes.list.cols.km' },
+  { key: 'active',      labelKey: 'vehicles.maintTypes.list.cols.active' },
 ];
 const DEFAULT_VISIBLE: Record<ColKey, boolean> = {
   name: true, description: true, days: true, km: true,
@@ -293,7 +293,7 @@ export function MaintenanceTypesList() {
                         <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${visibleColumns[c.key] ? 'bg-primary border-primary' : 'border-gray-300'}`}>
                           {visibleColumns[c.key] && <Check className="w-2.5 h-2.5 text-primary-foreground" />}
                         </span>
-                        {c.label}
+                        {t(c.labelKey)}
                       </button>
                     ))}
                   </div>

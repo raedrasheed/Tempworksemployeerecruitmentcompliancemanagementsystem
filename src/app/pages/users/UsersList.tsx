@@ -35,12 +35,12 @@ function parseCsvText(text: string): any[] {
 // ── Column visibility ────────────────────────────────────────────────────────
 type ColKey = 'email' | 'role' | 'agency' | 'status' | 'lastLogin';
 
-const ALL_COLUMNS: { key: ColKey; label: string }[] = [
-  { key: 'email',     label: 'Email' },
-  { key: 'role',      label: 'Role' },
-  { key: 'agency',    label: 'Agency' },
-  { key: 'status',    label: 'Status' },
-  { key: 'lastLogin', label: 'Last Login' },
+const ALL_COLUMNS: { key: ColKey; labelKey: string }[] = [
+  { key: 'email',     labelKey: 'users.list.cols.email' },
+  { key: 'role',      labelKey: 'users.list.cols.role' },
+  { key: 'agency',    labelKey: 'users.list.cols.agency' },
+  { key: 'status',    labelKey: 'users.list.cols.status' },
+  { key: 'lastLogin', labelKey: 'users.list.cols.lastLogin' },
 ];
 
 const DEFAULT_VISIBLE: Record<ColKey, boolean> = {
@@ -452,7 +452,7 @@ export function UsersList() {
                         <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${visibleColumns[c.key] ? 'bg-blue-600 border-blue-600' : 'border-gray-300'}`}>
                           {visibleColumns[c.key] && <Check className="w-2.5 h-2.5 text-white" />}
                         </span>
-                        {c.label}
+                        {t(c.labelKey)}
                       </button>
                     ))}
                   </div>

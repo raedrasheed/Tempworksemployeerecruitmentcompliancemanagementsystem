@@ -88,7 +88,7 @@ export function DeletedRecords() {
         <div className="text-center">
           <Shield className="w-12 h-12 mx-auto text-red-500 mb-3 opacity-60" />
           <h2 className="text-lg font-semibold mb-1">{t('recycleBin.list.accessDenied')}</h2>
-          <p className="text-muted-foreground text-sm">Only System Admins, HR Managers, and Compliance Officers can access Deleted Records.</p>
+          <p className="text-muted-foreground text-sm">{t('recycleBin.list.accessDeniedBody')}</p>
         </div>
       </div>
     );
@@ -276,10 +276,10 @@ export function DeletedRecords() {
             </div>
             <Select value={entityType} onValueChange={v => { setEntityType(v); setPage(1); }}>
               <SelectTrigger className="w-44">
-                <SelectValue placeholder="All Types" />
+                <SelectValue placeholder={t('recycleBin.list.allTypes')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="__all__">All Types</SelectItem>
+                <SelectItem value="__all__">{t('recycleBin.list.allTypes')}</SelectItem>
                 {Object.entries(ENTITY_LABELS).map(([key, meta]) => (
                   <SelectItem key={key} value={key}>{meta.label}</SelectItem>
                 ))}
@@ -290,12 +290,12 @@ export function DeletedRecords() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="desc">Newest first</SelectItem>
-                <SelectItem value="asc">Oldest first</SelectItem>
+                <SelectItem value="desc">{t('recycleBin.list.newestFirst')}</SelectItem>
+                <SelectItem value="asc">{t('recycleBin.list.oldestFirst')}</SelectItem>
               </SelectContent>
             </Select>
             <div className="flex items-center gap-2">
-              <Label className="text-xs text-muted-foreground whitespace-nowrap">Deleted from</Label>
+              <Label className="text-xs text-muted-foreground whitespace-nowrap">{t('recycleBin.list.deletedFrom')}</Label>
               <Input type="date" value={deletedFrom} onChange={e => { setDeletedFrom(e.target.value); setPage(1); }} className="w-36" />
             </div>
             <div className="flex items-center gap-2">
@@ -319,9 +319,9 @@ export function DeletedRecords() {
               <thead>
                 <tr className="border-b bg-muted/40">
                   <th className="px-4 py-3 text-start font-medium text-muted-foreground">Type</th>
-                  <th className="px-4 py-3 text-start font-medium text-muted-foreground">Name / ID</th>
-                  <th className="px-4 py-3 text-start font-medium text-muted-foreground">Business ID</th>
-                  <th className="px-4 py-3 text-start font-medium text-muted-foreground">Deleted At</th>
+                  <th className="px-4 py-3 text-start font-medium text-muted-foreground">{t('recycleBin.list.nameOrId')}</th>
+                  <th className="px-4 py-3 text-start font-medium text-muted-foreground">{t('recycleBin.list.businessId')}</th>
+                  <th className="px-4 py-3 text-start font-medium text-muted-foreground">{t('recycleBin.list.deletedAt')}</th>
                   <th className="px-4 py-3 text-start font-medium text-muted-foreground">Reason</th>
                   <th className="px-4 py-3 text-start font-medium text-muted-foreground">Related</th>
                   <th className="px-4 py-3 text-end font-medium text-muted-foreground">Actions</th>
@@ -329,7 +329,7 @@ export function DeletedRecords() {
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">Loading…</td></tr>
+                  <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">{t('recycleBin.list.loading')}</td></tr>
                 ) : records.length === 0 ? (
                   <tr><td colSpan={7} className="px-4 py-12 text-center text-muted-foreground">
                     <RotateCcw className="w-8 h-8 mx-auto mb-2 opacity-30" />
@@ -376,7 +376,7 @@ export function DeletedRecords() {
                         {rec.canRestoreWithRelated && rec.relatedDeletedCount > 0 && (
                           <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700 hover:bg-blue-50" onClick={() => openRestore(rec, true)} title="Restore with related records">
                             <RotateCcw className="w-4 h-4 me-1" />
-                            <span className="text-xs">+related</span>
+                            <span className="text-xs">{t('recycleBin.list.related')}</span>
                           </Button>
                         )}
                         {rec.canHardDelete && (
@@ -421,7 +421,7 @@ export function DeletedRecords() {
             </DialogDescription>
           </DialogHeader>
           {relatedLoading ? (
-            <div className="py-8 text-center text-muted-foreground">Loading…</div>
+            <div className="py-8 text-center text-muted-foreground">{t('recycleBin.list.loading')}</div>
           ) : relatedData ? (
             <div className="space-y-4">
               {Object.entries(relatedData.summary).map(([type, count]) => (

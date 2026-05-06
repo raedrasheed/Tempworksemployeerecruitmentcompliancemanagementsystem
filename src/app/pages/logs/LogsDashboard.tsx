@@ -63,16 +63,16 @@ type ColKey =
   | 'timestamp' | 'user' | 'userEmail' | 'action' | 'entity'
   | 'entityId' | 'changes' | 'ipAddress' | 'userAgent';
 
-const ALL_COLUMNS: { key: ColKey; label: string }[] = [
-  { key: 'timestamp', label: 'Timestamp' },
-  { key: 'user',      label: 'User' },
-  { key: 'userEmail', label: 'Email' },
-  { key: 'action',    label: 'Action' },
-  { key: 'entity',    label: 'Module' },
-  { key: 'entityId',  label: 'Entity ID' },
-  { key: 'changes',   label: 'Changes' },
-  { key: 'ipAddress', label: 'IP Address' },
-  { key: 'userAgent', label: 'User Agent' },
+const ALL_COLUMNS: { key: ColKey; labelKey: string }[] = [
+  { key: 'timestamp', labelKey: 'logs.list.cols.timestamp' },
+  { key: 'user',      labelKey: 'logs.list.cols.user' },
+  { key: 'userEmail', labelKey: 'logs.list.cols.userEmail' },
+  { key: 'action',    labelKey: 'logs.list.cols.action' },
+  { key: 'entity',    labelKey: 'logs.list.cols.entity' },
+  { key: 'entityId',  labelKey: 'logs.list.cols.entityId' },
+  { key: 'changes',   labelKey: 'logs.list.cols.changes' },
+  { key: 'ipAddress', labelKey: 'logs.list.cols.ipAddress' },
+  { key: 'userAgent', labelKey: 'logs.list.cols.userAgent' },
 ];
 
 const DEFAULT_VISIBLE: Record<ColKey, boolean> = {
@@ -367,7 +367,7 @@ export function LogsDashboard() {
                       <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${visibleColumns[c.key] ? 'bg-primary border-primary' : 'border-gray-300'}`}>
                         {visibleColumns[c.key] && <Check className="w-2.5 h-2.5 text-primary-foreground" />}
                       </span>
-                      {c.label}
+                      {t(c.labelKey)}
                     </button>
                   ))}
                 </div>

@@ -62,23 +62,23 @@ function expiryBadge(date: string | null | undefined) {
 // ── Column visibility ────────────────────────────────────────────────────────
 type ColKey = 'type' | 'makeModel' | 'year' | 'status' | 'driver' | 'mot' | 'tax' | 'registration' | 'insurance' | 'tachograph' | 'atp' | 'pressureTest' | 'lastService' | 'serviceType' | 'workshop' | 'odometer';
 
-const ALL_COLUMNS: { key: ColKey; label: string }[] = [
-  { key: 'type',      label: 'Type' },
-  { key: 'makeModel', label: 'Make / Model' },
-  { key: 'year',      label: 'Year' },
-  { key: 'status',    label: 'Status' },
-  { key: 'driver',    label: 'Current Driver' },
-  { key: 'mot',       label: 'MOT' },
-  { key: 'tax',       label: 'Tax Expiry' },
-  { key: 'registration', label: 'Registration Expiry' },
-  { key: 'insurance', label: 'Insurance' },
-  { key: 'tachograph', label: 'Tachograph Calib.' },
-  { key: 'atp',       label: 'ATP Cert.' },
-  { key: 'pressureTest', label: 'Next Pressure Test' },
-  { key: 'lastService', label: 'Last Service' },
-  { key: 'serviceType', label: 'Service Type' },
-  { key: 'workshop', label: 'Workshop' },
-  { key: 'odometer', label: 'Odometer (km)' },
+const ALL_COLUMNS: { key: ColKey; labelKey: string }[] = [
+  { key: 'type',      labelKey: 'vehicles.list.cols.type' },
+  { key: 'makeModel', labelKey: 'vehicles.list.cols.makeModel' },
+  { key: 'year',      labelKey: 'vehicles.list.cols.year' },
+  { key: 'status',    labelKey: 'vehicles.list.cols.status' },
+  { key: 'driver',    labelKey: 'vehicles.list.cols.driver' },
+  { key: 'mot',       labelKey: 'vehicles.list.cols.mot' },
+  { key: 'tax',       labelKey: 'vehicles.list.cols.tax' },
+  { key: 'registration', labelKey: 'vehicles.list.cols.registration' },
+  { key: 'insurance', labelKey: 'vehicles.list.cols.insurance' },
+  { key: 'tachograph', labelKey: 'vehicles.list.cols.tachograph' },
+  { key: 'atp',       labelKey: 'vehicles.list.cols.atp' },
+  { key: 'pressureTest', labelKey: 'vehicles.list.cols.pressureTest' },
+  { key: 'lastService', labelKey: 'vehicles.list.cols.lastService' },
+  { key: 'serviceType', labelKey: 'vehicles.list.cols.serviceType' },
+  { key: 'workshop', labelKey: 'vehicles.list.cols.workshop' },
+  { key: 'odometer', labelKey: 'vehicles.list.cols.odometer' },
 ];
 
 // All compliance/expiry columns are visible by default so the Fleet
@@ -353,7 +353,7 @@ export function VehiclesList() {
                       <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${visibleColumns[c.key] ? 'bg-blue-600 border-blue-600' : 'border-gray-300'}`}>
                         {visibleColumns[c.key] && <Check className="w-2.5 h-2.5 text-white" />}
                       </span>
-                      {c.label}
+                      {t(c.labelKey)}
                     </button>
                   ))}
                 </div>

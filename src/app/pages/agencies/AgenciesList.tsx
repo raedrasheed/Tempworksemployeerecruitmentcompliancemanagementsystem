@@ -28,14 +28,14 @@ const agencyColumns: Column[] = [
 
 // ── Column visibility ───────────────────────────────────────────────────────
 type ColKey = 'name' | 'country' | 'contactPerson' | 'email' | 'phone' | 'status' | 'createdAt';
-const ALL_COLUMNS: { key: ColKey; label: string }[] = [
-  { key: 'name',          label: 'Agency Name' },
-  { key: 'country',       label: 'Country' },
-  { key: 'contactPerson', label: 'Contact Person' },
-  { key: 'email',         label: 'Email' },
-  { key: 'phone',         label: 'Phone' },
-  { key: 'status',        label: 'Status' },
-  { key: 'createdAt',     label: 'Created' },
+const ALL_COLUMNS: { key: ColKey; labelKey: string }[] = [
+  { key: 'name',          labelKey: 'agencies.list.cols.name' },
+  { key: 'country',       labelKey: 'agencies.list.cols.country' },
+  { key: 'contactPerson', labelKey: 'agencies.list.cols.contactPerson' },
+  { key: 'email',         labelKey: 'agencies.list.cols.email' },
+  { key: 'phone',         labelKey: 'agencies.list.cols.phone' },
+  { key: 'status',        labelKey: 'agencies.list.cols.status' },
+  { key: 'createdAt',     labelKey: 'agencies.list.cols.createdAt' },
 ];
 const DEFAULT_VISIBLE: Record<ColKey, boolean> = {
   name: true, country: true, contactPerson: true, email: true, phone: true, status: true,
@@ -342,7 +342,7 @@ export function AgenciesList() {
                         <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${visibleColumns[c.key] ? 'bg-primary border-primary' : 'border-gray-300'}`}>
                           {visibleColumns[c.key] && <Check className="w-2.5 h-2.5 text-primary-foreground" />}
                         </span>
-                        {c.label}
+                        {t(c.labelKey)}
                       </button>
                     ))}
                   </div>

@@ -88,15 +88,15 @@ const statusColors: Record<string, string> = {
 
 type ColKey = 'employeeId' | 'license' | 'agency' | 'present' | 'absent' | 'late' | 'onLeave' | 'totalDays';
 
-const ALL_COLUMNS: { key: ColKey; label: string }[] = [
-  { key: 'employeeId', label: 'Employee ID' },
-  { key: 'license',    label: 'License' },
-  { key: 'agency',     label: 'Agency' },
-  { key: 'present',    label: 'Present' },
-  { key: 'absent',     label: 'Absent' },
-  { key: 'late',       label: 'Late' },
-  { key: 'onLeave',    label: 'On Leave' },
-  { key: 'totalDays',  label: 'Total Days' },
+const ALL_COLUMNS: { key: ColKey; labelKey: string }[] = [
+  { key: 'employeeId', labelKey: 'attendance.list.cols.employeeId' },
+  { key: 'license',    labelKey: 'attendance.list.cols.license' },
+  { key: 'agency',     labelKey: 'attendance.list.cols.agency' },
+  { key: 'present',    labelKey: 'attendance.list.cols.present' },
+  { key: 'absent',     labelKey: 'attendance.list.cols.absent' },
+  { key: 'late',       labelKey: 'attendance.list.cols.late' },
+  { key: 'onLeave',    labelKey: 'attendance.list.cols.onLeave' },
+  { key: 'totalDays',  labelKey: 'attendance.list.cols.totalDays' },
 ];
 
 const DEFAULT_VISIBLE: Record<ColKey, boolean> = {
@@ -381,7 +381,7 @@ export function AttendanceList() {
                       <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${visibleColumns[c.key] ? 'bg-blue-600 border-blue-600' : 'border-gray-300'}`}>
                         {visibleColumns[c.key] && <Check className="w-2.5 h-2.5 text-white" />}
                       </span>
-                      {c.label}
+                      {t(c.labelKey)}
                     </button>
                   ))}
                 </div>

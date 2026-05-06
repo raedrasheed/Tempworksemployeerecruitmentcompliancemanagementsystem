@@ -347,16 +347,16 @@ export function WorkflowSettingsPage() {
   const handleCopy = async () => {
     if (!workflow) return;
     if (!(await confirm({
-      title: 'Duplicate workflow?',
-      description: `A copy of "${workflow.name}" will be created with all its stages, required documents, assigned users, and access list. It will not carry over any in-flight candidate or employee assignments.`,
-      confirmText: 'Duplicate',
+      title: t('pipelines.confirm.duplicateTitle'),
+      description: t('pipelines.confirm.duplicateBody', { name: workflow.name }),
+      confirmText: t('pipelines.confirm.duplicateConfirm'),
     }))) return;
     try {
       const copied = await workflowApi.copy(id!);
-      toast.success(`Created "${copied.name}"`);
+      toast.success(t('pipelines.toast.duplicated', { name: copied.name }));
       navigate(`/dashboard/settings/workflows/${copied.id}`);
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to duplicate workflow');
+      toast.error(err?.message || t('pipelines.errors.duplicateFailed'));
     }
   };
 

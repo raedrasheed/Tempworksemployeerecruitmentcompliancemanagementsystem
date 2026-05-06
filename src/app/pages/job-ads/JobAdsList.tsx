@@ -31,17 +31,17 @@ type ColKey =
   | 'title' | 'category' | 'city' | 'country' | 'contractType'
   | 'status' | 'applicants' | 'createdAt' | 'updatedAt' | 'slug';
 
-const ALL_COLUMNS: { key: ColKey; label: string }[] = [
-  { key: 'title',        label: 'Title' },
-  { key: 'category',     label: 'Category' },
-  { key: 'city',         label: 'City' },
-  { key: 'country',      label: 'Country' },
-  { key: 'contractType', label: 'Contract' },
-  { key: 'status',       label: 'Status' },
-  { key: 'applicants',   label: 'Applicants' },
-  { key: 'createdAt',    label: 'Created' },
-  { key: 'updatedAt',    label: 'Updated' },
-  { key: 'slug',         label: 'Slug' },
+const ALL_COLUMNS: { key: ColKey; labelKey: string }[] = [
+  { key: 'title',        labelKey: 'jobAds.list.cols.title' },
+  { key: 'category',     labelKey: 'jobAds.list.cols.category' },
+  { key: 'city',         labelKey: 'jobAds.list.cols.city' },
+  { key: 'country',      labelKey: 'jobAds.list.cols.country' },
+  { key: 'contractType', labelKey: 'jobAds.list.cols.contractType' },
+  { key: 'status',       labelKey: 'jobAds.list.cols.status' },
+  { key: 'applicants',   labelKey: 'jobAds.list.cols.applicants' },
+  { key: 'createdAt',    labelKey: 'jobAds.list.cols.createdAt' },
+  { key: 'updatedAt',    labelKey: 'jobAds.list.cols.updatedAt' },
+  { key: 'slug',         labelKey: 'jobAds.list.cols.slug' },
 ];
 
 const DEFAULT_VISIBLE: Record<ColKey, boolean> = {
@@ -403,7 +403,7 @@ export function JobAdsList() {
                         <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${visibleColumns[c.key] ? 'bg-primary border-primary' : 'border-gray-300'}`}>
                           {visibleColumns[c.key] && <Check className="w-2.5 h-2.5 text-primary-foreground" />}
                         </span>
-                        {c.label}
+                        {t(c.labelKey)}
                       </button>
                     ))}
                   </div>

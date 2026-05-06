@@ -188,20 +188,20 @@ export function Profile() {
           <div className="flex items-center justify-between mb-3">
             <div>
               <div className="flex items-center gap-3">
-                <h3 className="font-semibold text-[#0F172A]">Profile Completion</h3>
+                <h3 className="font-semibold text-[#0F172A]">{t('profile.view.completion')}</h3>
                 {userData?.userNumber && (
                   <Badge variant="outline" className="font-mono text-sm bg-[#EFF6FF] text-[#2563EB] border-[#2563EB]">
                     {userData.userNumber}
                   </Badge>
                 )}
               </div>
-              <p className="text-sm text-muted-foreground">Complete your profile to unlock all features</p>
+              <p className="text-sm text-muted-foreground">{t('profile.view.completionBody')}</p>
             </div>
             <div className="flex items-center gap-3">
               <Button variant="outline" size="sm" asChild>
                 <Link to="/dashboard/preferences">
                   <Settings className="w-4 h-4 me-2" />
-                  Preferences
+                  {t('profile.view.preferences')}
                 </Link>
               </Button>
               <Badge className={profileCompletion === 100 ? 'bg-[#22C55E]' : 'bg-[#F59E0B]'}>
@@ -220,15 +220,15 @@ export function Profile() {
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>Personal Information</CardTitle>
+                <CardTitle>{t('profile.view.personalInformation')}</CardTitle>
                 {!isEditing ? (
-                  <Button onClick={() => setIsEditing(true)}>Edit Profile</Button>
+                  <Button onClick={() => setIsEditing(true)}>{t('profile.view.editProfile')}</Button>
                 ) : (
                   <div className="flex gap-2">
-                    <Button variant="outline" onClick={handleCancel} disabled={saving}>Cancel</Button>
+                    <Button variant="outline" onClick={handleCancel} disabled={saving}>{t('profile.view.cancel')}</Button>
                     <Button onClick={handleSave} disabled={saving}>
                       {saving ? <Loader2 className="w-4 h-4 me-2 animate-spin" /> : <Save className="w-4 h-4 me-2" />}
-                      Save Changes
+                      {t('profile.view.saveChanges')}
                     </Button>
                   </div>
                 )}
@@ -243,7 +243,7 @@ export function Profile() {
                     type="button"
                     onClick={() => photoInputRef.current?.click()}
                     disabled={uploadingPhoto}
-                    title="Change profile photo"
+                    title={t('profile.view.changePhotoTitle')}
                     className="absolute bottom-0 end-0 w-8 h-8 rounded-full bg-[#2563EB] flex items-center justify-center text-white hover:bg-[#1D4ED8] transition-colors disabled:opacity-50"
                   >
                     {uploadingPhoto ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
@@ -259,7 +259,7 @@ export function Profile() {
                 <div>
                   <h3 className="font-semibold">{displayName}</h3>
                   <p className="text-sm text-muted-foreground">{roleName}</p>
-                  <p className="text-xs text-muted-foreground mt-1">Click the camera icon to change your photo</p>
+                  <p className="text-xs text-muted-foreground mt-1">{t('profile.view.changePhotoHint')}</p>
                 </div>
               </div>
 
@@ -282,13 +282,13 @@ export function Profile() {
                   <Input value={userData?.lastName || ''} disabled className="bg-[#F8FAFC]" />
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground -mt-2">Contact admin to update name fields</p>
+              <p className="text-xs text-muted-foreground -mt-2">{t('profile.view.contactAdminNames')}</p>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Email Address</Label>
                   <Input type="email" value={userData?.email || ''} disabled className="bg-[#F8FAFC]" />
-                  <p className="text-xs text-muted-foreground">Email cannot be changed</p>
+                  <p className="text-xs text-muted-foreground">{t('profile.view.emailCannotChange')}</p>
                 </div>
 
                 <div className="space-y-2">
@@ -324,7 +324,7 @@ export function Profile() {
                         <SelectItem value="MALE">Male</SelectItem>
                         <SelectItem value="FEMALE">Female</SelectItem>
                         <SelectItem value="OTHER">Other</SelectItem>
-                        <SelectItem value="PREFER_NOT_TO_SAY">Prefer not to say</SelectItem>
+                        <SelectItem value="PREFER_NOT_TO_SAY">{t('profile.view.preferNotToSay')}</SelectItem>
                       </SelectContent>
                     </Select>
                   ) : (
@@ -484,7 +484,7 @@ export function Profile() {
               {userData?.userNumber && (
                 <>
                   <div>
-                    <Label className="text-muted-foreground text-sm">User Number</Label>
+                    <Label className="text-muted-foreground text-sm">{t('profile.view.userNumber')}</Label>
                     <p className="font-bold mt-1 text-lg text-[#2563EB] font-mono">
                       {userData.userNumber}
                     </p>
@@ -494,21 +494,21 @@ export function Profile() {
               )}
 
               <div>
-                <Label className="text-muted-foreground text-sm">Account Created</Label>
+                <Label className="text-muted-foreground text-sm">{t('profile.view.accountCreated')}</Label>
                 <p className="font-medium mt-1">{formatDate(userData?.createdAt)}</p>
               </div>
 
               <Separator />
 
               <div>
-                <Label className="text-muted-foreground text-sm">Last Login</Label>
+                <Label className="text-muted-foreground text-sm">{t('profile.view.lastLogin')}</Label>
                 <p className="font-medium mt-1">{formatDateTime(userData?.lastLoginAt)}</p>
               </div>
 
               <Separator />
 
               <div>
-                <Label className="text-muted-foreground text-sm">User ID</Label>
+                <Label className="text-muted-foreground text-sm">{t('profile.view.userId')}</Label>
                 <p className="font-medium mt-1 text-sm text-muted-foreground font-mono">
                   {userData?.id ? userData.id.slice(0, 8).toUpperCase() : '—'}
                 </p>
@@ -526,7 +526,7 @@ export function Profile() {
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <Shield className="w-4 h-4 text-[#2563EB]" />
-                    <Label className="font-medium">Two-Factor Authentication</Label>
+                    <Label className="font-medium">{t('profile.view.twoFactorAuth')}</Label>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
                     Add an extra layer of security to your account
@@ -564,7 +564,7 @@ export function Profile() {
                   <div className="flex items-start gap-2">
                     <CheckCircle className="w-4 h-4 text-[#2563EB] mt-0.5" />
                     <div>
-                      <p className="text-sm font-medium text-[#2563EB]">2FA Enabled</p>
+                      <p className="text-sm font-medium text-[#2563EB]">{t('profile.view.twoFaEnabled')}</p>
                       <p className="text-xs text-muted-foreground mt-1">
                         Your account is protected with two-factor authentication
                       </p>
@@ -579,7 +579,7 @@ export function Profile() {
                 <Label className="text-muted-foreground text-sm">Password</Label>
                 <p className="text-sm mt-1">••••••••••••</p>
                 <Button variant="outline" size="sm" className="mt-2" asChild>
-                  <Link to="/dashboard/change-password">Change Password</Link>
+                  <Link to="/dashboard/change-password">{t('profile.view.changePassword')}</Link>
                 </Button>
               </div>
             </CardContent>
@@ -594,7 +594,7 @@ export function Profile() {
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <CheckCircle className="w-4 h-4 text-[#22C55E]" />
-                  <span className="text-sm">Email Verified</span>
+                  <span className="text-sm">{t('profile.view.emailVerified')}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   {userData?.status === 'ACTIVE' ? (

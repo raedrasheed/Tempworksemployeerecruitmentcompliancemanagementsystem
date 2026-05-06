@@ -101,9 +101,9 @@ export function ChangePassword() {
         <div className="p-4 bg-[#F0FDF4] border border-[#22C55E] rounded-lg flex items-start gap-3">
           <CheckCircle className="w-5 h-5 text-[#22C55E] mt-0.5" />
           <div className="flex-1">
-            <p className="font-semibold text-[#22C55E]">Password Updated Successfully</p>
+            <p className="font-semibold text-[#22C55E]">{t('profile.changePassword.successHeader')}</p>
             <p className="text-sm text-muted-foreground mt-1">
-              Your password has been changed. Please use your new password for future logins.
+              {t('profile.changePassword.successBody')}
             </p>
           </div>
           <button onClick={() => setSuccessMessage(false)}>
@@ -115,12 +115,12 @@ export function ChangePassword() {
       <form onSubmit={handleSubmit}>
         <Card>
           <CardHeader>
-            <CardTitle>Password Security</CardTitle>
+            <CardTitle>{t('profile.changePassword.passwordSecurity')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Current Password */}
             <div className="space-y-2">
-              <Label htmlFor="current-password">Current Password</Label>
+              <Label htmlFor="current-password">{t('profile.changePassword.currentPassword')}</Label>
               <div className="relative">
                 <Lock className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
@@ -129,7 +129,7 @@ export function ChangePassword() {
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
                   className="ps-10 pe-10"
-                  placeholder="Enter your current password"
+                  placeholder={t('profile.changePassword.currentPasswordPh')}
                 />
                 <button
                   type="button"
@@ -143,7 +143,7 @@ export function ChangePassword() {
 
             {/* New Password */}
             <div className="space-y-2">
-              <Label htmlFor="new-password">New Password</Label>
+              <Label htmlFor="new-password">{t('profile.changePassword.newPassword')}</Label>
               <div className="relative">
                 <Lock className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
@@ -152,7 +152,7 @@ export function ChangePassword() {
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   className="ps-10 pe-10"
-                  placeholder="Enter your new password"
+                  placeholder={t('profile.changePassword.newPasswordPh')}
                 />
                 <button
                   type="button"
@@ -167,7 +167,7 @@ export function ChangePassword() {
               {newPassword && (
                 <div className="space-y-2 mt-3">
                   <div className="flex items-center justify-between">
-                    <Label className="text-sm">Password Strength:</Label>
+                    <Label className="text-sm">{t('profile.changePassword.strengthLabel')}</Label>
                     <span className={`text-sm font-medium ${
                       strengthInfo.color.replace('bg-', 'text-')
                     }`}>
@@ -184,7 +184,7 @@ export function ChangePassword() {
 
             {/* Confirm Password */}
             <div className="space-y-2">
-              <Label htmlFor="confirm-password">Confirm New Password</Label>
+              <Label htmlFor="confirm-password">{t('profile.changePassword.confirmNewPassword')}</Label>
               <div className="relative">
                 <Lock className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
@@ -193,7 +193,7 @@ export function ChangePassword() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   className="ps-10 pe-10"
-                  placeholder="Confirm your new password"
+                  placeholder={t('profile.changePassword.confirmNewPasswordPh')}
                 />
                 <button
                   type="button"
@@ -210,12 +210,12 @@ export function ChangePassword() {
                   {newPassword === confirmPassword ? (
                     <>
                       <CheckCircle className="w-4 h-4 text-[#22C55E]" />
-                      <span className="text-sm text-[#22C55E]">Passwords match</span>
+                      <span className="text-sm text-[#22C55E]">{t('profile.changePassword.passwordsMatch')}</span>
                     </>
                   ) : (
                     <>
                       <X className="w-4 h-4 text-[#EF4444]" />
-                      <span className="text-sm text-[#EF4444]">Passwords do not match</span>
+                      <span className="text-sm text-[#EF4444]">{t('profile.changePassword.passwordsMismatch')}</span>
                     </>
                   )}
                 </div>
@@ -224,7 +224,7 @@ export function ChangePassword() {
 
             {/* Password Requirements */}
             <div className="p-4 bg-[#F8FAFC] border rounded-lg">
-              <p className="text-sm font-medium mb-3">Password Requirements:</p>
+              <p className="text-sm font-medium mb-3">{t('profile.changePassword.passwordRequirements')}</p>
               <div className="space-y-2">
                 {validationRules.map((rule, index) => {
                   const isValid = rule.test(newPassword);
@@ -255,12 +255,12 @@ export function ChangePassword() {
               <div className="flex items-start gap-2">
                 <AlertCircle className="w-5 h-5 text-[#2563EB] mt-0.5" />
                 <div>
-                  <p className="text-sm font-medium text-[#2563EB]">Security Tips</p>
+                  <p className="text-sm font-medium text-[#2563EB]">{t('profile.changePassword.securityTips')}</p>
                   <ul className="text-xs text-muted-foreground mt-2 space-y-1 list-disc list-inside">
-                    <li>Use a unique password that you don't use for other accounts</li>
-                    <li>Consider using a passphrase or password manager</li>
-                    <li>Change your password regularly (every 3-6 months)</li>
-                    <li>Never share your password with anyone</li>
+                    <li>{t('profile.changePassword.tip1')}</li>
+                    <li>{t('profile.changePassword.tip2')}</li>
+                    <li>{t('profile.changePassword.tip3')}</li>
+                    <li>{t('profile.changePassword.tip4')}</li>
                   </ul>
                 </div>
               </div>
@@ -269,18 +269,18 @@ export function ChangePassword() {
             {/* Action Buttons */}
             <div className="flex gap-3 pt-4">
               <Button type="submit" className="flex-1">
-                Update Password
+                {t('profile.changePassword.updatePassword')}
               </Button>
-              <Button 
-                type="button" 
-                variant="outline" 
+              <Button
+                type="button"
+                variant="outline"
                 onClick={() => {
                   setCurrentPassword('');
                   setNewPassword('');
                   setConfirmPassword('');
                 }}
               >
-                Cancel
+                {t('profile.changePassword.cancel')}
               </Button>
             </div>
           </CardContent>

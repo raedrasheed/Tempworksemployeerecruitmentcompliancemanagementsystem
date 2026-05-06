@@ -3170,7 +3170,27 @@
     "view": {
       "title": "My Profile",
       "subtitle": "Personal information and contact",
-      "edit": "Edit"
+      "edit": "Edit",
+      "completion": "Profile Completion",
+      "completionBody": "Complete your profile to unlock all features",
+      "preferences": "Preferences",
+      "personalInformation": "Personal Information",
+      "editProfile": "Edit Profile",
+      "saveChanges": "Save Changes",
+      "cancel": "Cancel",
+      "changePhotoTitle": "Change profile photo",
+      "changePhotoHint": "Click the camera icon to change your photo",
+      "contactAdminNames": "Contact admin to update name fields",
+      "emailCannotChange": "Email cannot be changed",
+      "preferNotToSay": "Prefer not to say",
+      "userNumber": "User Number",
+      "accountCreated": "Account Created",
+      "lastLogin": "Last Login",
+      "userId": "User ID",
+      "twoFactorAuth": "Two-Factor Authentication",
+      "twoFaEnabled": "2FA Enabled",
+      "changePassword": "Change Password",
+      "emailVerified": "Email Verified"
     },
     "changePassword": {
       "title": "Change Password",
@@ -3192,7 +3212,27 @@
         "lower": "Contains lowercase letter",
         "number": "Contains number",
         "special": "Contains special character"
-      }
+      },
+      "successHeader": "Password Updated Successfully",
+      "successBody": "Your password has been changed. Please use your new password for future logins.",
+      "passwordSecurity": "Password Security",
+      "currentPassword": "Current Password",
+      "currentPasswordPh": "Enter your current password",
+      "newPassword": "New Password",
+      "newPasswordPh": "Enter your new password",
+      "confirmNewPassword": "Confirm New Password",
+      "confirmNewPasswordPh": "Confirm your new password",
+      "strengthLabel": "Password Strength:",
+      "passwordsMatch": "Passwords match",
+      "passwordsMismatch": "Passwords do not match",
+      "passwordRequirements": "Password Requirements:",
+      "securityTips": "Security Tips",
+      "tip1": "Use a unique password that you don't use for other accounts",
+      "tip2": "Consider using a passphrase or password manager",
+      "tip3": "Change your password regularly (every 3-6 months)",
+      "tip4": "Never share your password with anyone",
+      "updatePassword": "Update Password",
+      "cancel": "Cancel"
     },
     "toast": {
       "loadFailed": "Failed to load profile",
@@ -3208,9 +3248,16 @@
       "title": "Preferences",
       "subtitle": "Language, timezone, and notification settings",
       "language": "Preferred Language",
+      "languagePh": "Select language",
       "timezone": "Time Zone",
+      "timezonePh": "Select timezone",
       "save": "Save Preferences",
-      "saved": "Preferences saved"
+      "saved": "Preferences saved",
+      "saving": "Saving...",
+      "cancel": "Cancel",
+      "channels": "Channels",
+      "notificationTypes": "Notification Types",
+      "notificationPreferences": "Notification Preferences"
     }
   },
   "common": {

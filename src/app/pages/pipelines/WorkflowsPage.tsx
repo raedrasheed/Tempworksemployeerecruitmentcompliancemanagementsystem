@@ -331,9 +331,9 @@ export function WorkflowsPage() {
 
   const handleDelete = async (id: string) => {
     if (!(await confirm({
-      title: 'Delete workflow?',
-      description: 'This workflow will be permanently removed. This cannot be undone.',
-      confirmText: 'Delete', tone: 'destructive',
+      title: t('common:confirm.deleteWorkflowTitle'),
+      description: t('common:confirm.deleteWorkflowBody'),
+      confirmText: t('common:actions.delete'), tone: 'destructive',
     }))) return;
     try { await workflowApi.delete(id); load(); } catch {}
   };

@@ -119,10 +119,10 @@ export function UserPreferences() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label>Preferred Language</Label>
+                <Label>{t('profile.preferences.language')}</Label>
                 <Select value={form.preferredLanguage} onValueChange={val => setForm(prev => ({ ...prev, preferredLanguage: val }))}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select language" />
+                    <SelectValue placeholder={t('profile.preferences.languagePh')} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="English">English</SelectItem>
@@ -139,10 +139,10 @@ export function UserPreferences() {
               </div>
 
               <div className="space-y-2">
-                <Label>Time Zone</Label>
+                <Label>{t('profile.preferences.timezone')}</Label>
                 <Select value={form.timeZone} onValueChange={val => setForm(prev => ({ ...prev, timeZone: val }))}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select timezone" />
+                    <SelectValue placeholder={t('profile.preferences.timezonePh')} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="UTC">UTC (Coordinated Universal Time)</SelectItem>
@@ -167,11 +167,11 @@ export function UserPreferences() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Notification Preferences</CardTitle>
+              <CardTitle>{t('profile.preferences.notificationPreferences')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <h4 className="text-sm font-medium text-[#0F172A] mb-3">Channels</h4>
+                <h4 className="text-sm font-medium text-[#0F172A] mb-3">{t('profile.preferences.channels')}</h4>
                 {NOTIFICATION_OPTIONS.slice(0, 2).map(({ key, label, description }) => (
                   <div key={key} className="flex items-start gap-3 mb-3">
                     <input
@@ -190,7 +190,7 @@ export function UserPreferences() {
               </div>
               <Separator />
               <div>
-                <h4 className="text-sm font-medium text-[#0F172A] mb-3">Notification Types</h4>
+                <h4 className="text-sm font-medium text-[#0F172A] mb-3">{t('profile.preferences.notificationTypes')}</h4>
                 {NOTIFICATION_OPTIONS.slice(2).map(({ key, label, description }) => (
                   <div key={key} className="flex items-start gap-3 mb-3">
                     <input
@@ -212,10 +212,10 @@ export function UserPreferences() {
 
           <div className="flex gap-3">
             <Button type="submit" className="flex-1 bg-[#2563EB] hover:bg-[#1d4ed8]" disabled={saving}>
-              {saving ? <><Loader2 className="w-4 h-4 me-2 animate-spin" />Saving...</> : 'Save Preferences'}
+              {saving ? <><Loader2 className="w-4 h-4 me-2 animate-spin" />{t('profile.preferences.saving')}</> : t('profile.preferences.save')}
             </Button>
             <Button type="button" variant="outline" className="flex-1" asChild>
-              <Link to="/dashboard/profile">Cancel</Link>
+              <Link to="/dashboard/profile">{t('profile.preferences.cancel')}</Link>
             </Button>
           </div>
         </div>

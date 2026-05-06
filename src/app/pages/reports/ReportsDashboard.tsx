@@ -238,9 +238,9 @@ export function ReportsDashboard() {
 
   const handleDelete = async (id: string) => {
     if (!(await confirm({
-      title: 'Delete report?',
-      description: 'This report will be permanently removed.',
-      confirmText: 'Delete', tone: 'destructive',
+      title: t('common:confirm.deleteReportTitle'),
+      description: t('common:confirm.deleteReportBody'),
+      confirmText: t('common:actions.delete'), tone: 'destructive',
     }))) return;
     try { await reportsApi.delete(id); setSavedReports(p => p.filter(r => r.id !== id)); if (editingId === id) resetBuilder(); toast.success('Deleted'); }
     catch (err: any) { toast.error(err?.message || 'Delete failed'); }

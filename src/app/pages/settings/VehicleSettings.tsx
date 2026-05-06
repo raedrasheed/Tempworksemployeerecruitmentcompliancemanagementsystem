@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Plus, Trash2, Save, Truck, Edit2, X, Wrench } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '../../components/ui/button';
@@ -199,6 +200,7 @@ function MaintenanceTypesEditor({
   saving: boolean;
   canEdit: boolean;
 }) {
+  const { t } = useTranslation('common');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<MaintenanceTypeForm>(INITIAL_MT_FORM);
 
@@ -250,9 +252,9 @@ function MaintenanceTypesEditor({
 
   const handleDelete = async (id: string, name: string) => {
     if (!(await confirm({
-      title: 'Delete maintenance type?',
-      description: `"${name}" will be deleted. Existing records using this type will not be affected.`,
-      confirmText: 'Delete',
+      title: t('confirm.deleteMaintenanceTypeTitle'),
+      description: t('confirm.deleteMaintenanceTypeBodyNamed', { name }),
+      confirmText: t('actions.delete'),
       tone: 'destructive',
     }))) return;
 

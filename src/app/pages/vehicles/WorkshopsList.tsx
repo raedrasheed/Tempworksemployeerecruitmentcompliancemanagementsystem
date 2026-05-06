@@ -225,9 +225,9 @@ export function WorkshopsList() {
 
   const handleDelete = async (id: string) => {
     if (!(await confirm({
-      title: 'Delete workshop?',
-      description: 'This workshop will be permanently removed.',
-      confirmText: 'Delete', tone: 'destructive',
+      title: t('common:confirm.deleteWorkshopTitle'),
+      description: t('common:confirm.deleteWorkshopBody'),
+      confirmText: t('common:actions.delete'), tone: 'destructive',
     }))) return;
     try {
       await vehiclesApi.deleteWorkshop(id);

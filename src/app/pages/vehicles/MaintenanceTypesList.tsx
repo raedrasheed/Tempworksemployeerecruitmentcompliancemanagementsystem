@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import {
   Plus, Settings, Pencil, Trash2, Save, ArrowLeft, Search,
   ArrowUp, ArrowDown, ArrowUpDown, Columns2, Check, X,
@@ -56,6 +57,7 @@ type SortField = ColKey;
 type SortOrder = 'asc' | 'desc';
 
 export function MaintenanceTypesList() {
+  const { t } = useTranslation('common');
   const { canCreate } = usePermissions();
   const canWrite = canCreate('vehicles');
   const navigate = useNavigate();
@@ -157,9 +159,9 @@ export function MaintenanceTypesList() {
 
   const handleDelete = async (id: string) => {
     if (!(await confirm({
-      title: 'Deactivate maintenance type?',
-      description: 'This maintenance type will be marked inactive and hidden from future selections.',
-      confirmText: 'Deactivate',
+      title: t('confirm.deactivateMaintenanceTypeTitle'),
+      description: t('confirm.deactivateMaintenanceTypeBody'),
+      confirmText: t('confirm.deactivateConfirm'),
       tone: 'destructive',
     }))) return;
     try { await vehiclesApi.deleteMaintenanceType(id); toast.success('Deactivated'); load(); }

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { Plus, Edit, Trash2, GripVertical, Save, FileText, CheckCircle, AlertCircle, ShieldOff, ArrowLeft } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -112,6 +113,7 @@ const initialStages: WorkflowStage[] = [
 ];
 
 export function WorkflowManagement() {
+  const { t } = useTranslation('common');
   const { canEdit } = usePermissions();
   const navigate = useNavigate();
   const [stages, setStages] = useState<WorkflowStage[]>(initialStages);
@@ -146,9 +148,9 @@ export function WorkflowManagement() {
 
   const handleDeleteStage = async (stageId: string) => {
     if (await confirm({
-      title: 'Delete stage?',
-      description: 'This stage will be permanently removed.',
-      confirmText: 'Delete', tone: 'destructive',
+      title: t('confirm.deleteStageTitle'),
+      description: t('confirm.deleteStageBodyGeneric'),
+      confirmText: t('actions.delete'), tone: 'destructive',
     })) {
       setStages(stages.filter(s => s.id !== stageId));
     }

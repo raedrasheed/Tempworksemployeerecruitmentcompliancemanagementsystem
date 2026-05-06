@@ -203,9 +203,9 @@ export function WorkHistoryTimeline({ employeeId, canWrite }: Props) {
 
   const handleDelete = async (entry: any) => {
     const ok = await confirm({
-      title: 'Delete work history entry?',
-      description: `"${resolveMeta(entry.eventType).label}" on ${formatDate(entry.date)} will be removed.`,
-      confirmText: 'Delete',
+      title: t('common:confirm.deleteWorkHistoryTitle'),
+      description: t('common:confirm.deleteWorkHistoryBody', { label: resolveMeta(entry.eventType).label, date: formatDate(entry.date) }),
+      confirmText: t('common:actions.delete'),
       tone: 'destructive',
     });
     if (!ok) return;
@@ -235,9 +235,9 @@ export function WorkHistoryTimeline({ employeeId, canWrite }: Props) {
 
   const handleRemoveAttachment = async (entryId: string, attachmentId: string, name: string) => {
     const ok = await confirm({
-      title: 'Remove attachment?',
-      description: `"${name}" will be removed from this entry.`,
-      confirmText: 'Remove',
+      title: t('common:confirm.removeAttachmentTitle'),
+      description: t('common:confirm.deleteDocumentBodyNamed', { name }),
+      confirmText: t('common:actions.remove'),
       tone: 'destructive',
     });
     if (!ok) return;

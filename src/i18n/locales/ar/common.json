@@ -172,6 +172,26 @@
     "revokeTitle": "Revoke?",
     "deleteDocumentTitle": "Delete document?",
     "deleteDocumentBodyDefault": "This document will be permanently removed. This cannot be undone.",
-    "deleteDocumentBodyNamed": "\"{{name}}\" will be permanently removed. This cannot be undone."
+    "deleteDocumentBodyNamed": "\"{{name}}\" will be permanently removed. This cannot be undone.",
+    "deleteWorkflowTitle": "Delete workflow?",
+    "deleteWorkflowBody": "This workflow will be permanently removed. This cannot be undone.",
+    "deleteStageTitle": "Delete stage?",
+    "deleteStageBodyGeneric": "This stage will be permanently removed.",
+    "deleteWorkshopTitle": "Delete workshop?",
+    "deleteWorkshopBody": "This workshop will be permanently removed.",
+    "deleteReportTitle": "Delete report?",
+    "deleteReportBody": "This report will be permanently removed.",
+    "deleteMaintenanceTypeTitle": "Delete maintenance type?",
+    "deleteMaintenanceTypeBody": "This maintenance type will be deleted. Existing records using this type will not be affected.",
+    "deleteMaintenanceTypeBodyNamed": "\"{{name}}\" will be deleted. Existing records using this type will not be affected.",
+    "deactivateMaintenanceTypeTitle": "Deactivate maintenance type?",
+    "deactivateMaintenanceTypeBody": "This maintenance type will be marked inactive and hidden from future selections.",
+    "deactivateConfirm": "Deactivate",
+    "deleteMaintenanceRecordTitle": "Delete maintenance record?",
+    "deleteMaintenanceRecordBody": "This record will be permanently removed.",
+    "deleteWorkHistoryTitle": "Delete work history entry?",
+    "deleteWorkHistoryBody": "\"{{label}}\" on {{date}} will be removed.",
+    "removeAttachmentTitle": "Remove attachment?",
+    "removeAttachmentBody": "This attachment will be removed."
   }
 }

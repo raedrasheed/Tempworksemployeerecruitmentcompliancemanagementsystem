@@ -114,9 +114,9 @@ export function MaintenanceRecordsList() {
 
   const handleDelete = async (id: string) => {
     if (!(await confirm({
-      title: 'Delete maintenance record?',
-      description: 'This record will be permanently removed.',
-      confirmText: 'Delete', tone: 'destructive',
+      title: t('common:confirm.deleteMaintenanceRecordTitle'),
+      description: t('common:confirm.deleteMaintenanceRecordBody'),
+      confirmText: t('common:actions.delete'), tone: 'destructive',
     }))) return;
     try {
       await vehiclesApi.deleteMaintenance(id);

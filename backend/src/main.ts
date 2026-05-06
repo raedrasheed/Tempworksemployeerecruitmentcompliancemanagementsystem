@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Catch, ArgumentsHost, ExceptionFilter, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { I18nExceptionFilter } from './common/i18n/i18n-exception.filter';
+import { validationExceptionFactory } from './common/errors/validation-exception.factory';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import * as express from 'express';
@@ -655,13 +656,17 @@ async function bootstrap() {
   // envelope so the frontend can render a localized error.
   app.useGlobalFilters(new I18nExceptionFilter());
 
-  // Global validation
+  // Global validation. The custom `exceptionFactory` produces a coded
+  // envelope `{ code: 'VALIDATION.FAILED', fields: [...] }` that the
+  // I18nExceptionFilter forwards verbatim, so the frontend can render
+  // inline form errors per field with stable codes.
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
       forbidNonWhitelisted: false,
       transform: true,
       transformOptions: { enableImplicitConversion: true },
+      exceptionFactory: validationExceptionFactory,
     }),
   );
 

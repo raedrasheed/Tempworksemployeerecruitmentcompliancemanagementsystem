@@ -20,6 +20,17 @@ export interface CodedErrorBody {
   code: string;
   message: string;
   params?: Record<string, unknown>;
+  /**
+   * Validation-specific: per-field error envelope produced by the global
+   * `ValidationPipe.exceptionFactory`. Forwarded verbatim by the filter so
+   * the frontend can render inline form errors.
+   */
+  fields?: Array<{
+    field: string;
+    code: string;
+    message: string;
+    params?: Record<string, unknown>;
+  }>;
 }
 
 const PRISMA_TO_HTTP: Record<string, { status: HttpStatus; code: string; message: string }> = {
@@ -55,6 +66,7 @@ export class I18nExceptionFilter implements ExceptionFilter {
     let code = 'GENERIC.UNEXPECTED';
     let message = 'Internal server error';
     let params: Record<string, unknown> | undefined;
+    let fields: CodedErrorBody['fields'] | undefined;
     let errorLabel = 'Internal Server Error';
 
     if (exception instanceof HttpException) {
@@ -66,7 +78,7 @@ export class I18nExceptionFilter implements ExceptionFilter {
         code = defaultCodeForStatus(status);
       } else if (body && typeof body === 'object') {
         const obj = body as Record<string, any>;
-        // Already-coded shape: { code, message, params, ... }
+        // Already-coded shape: { code, message, params, fields, ... }
         if (typeof obj.code === 'string') {
           code = obj.code;
           message = typeof obj.message === 'string'
@@ -75,6 +87,7 @@ export class I18nExceptionFilter implements ExceptionFilter {
             ? obj.message.join(', ')
             : message;
           if (obj.params && typeof obj.params === 'object') params = obj.params;
+          if (Array.isArray(obj.fields)) fields = obj.fields as CodedErrorBody['fields'];
         } else {
           // Plain Nest body: { statusCode, message, error }
           message = Array.isArray(obj.message)
@@ -102,6 +115,7 @@ export class I18nExceptionFilter implements ExceptionFilter {
       code,
       message,
       ...(params ? { params } : {}),
+      ...(fields ? { fields } : {}),
       timestamp: new Date().toISOString(),
       path: request.url,
     });

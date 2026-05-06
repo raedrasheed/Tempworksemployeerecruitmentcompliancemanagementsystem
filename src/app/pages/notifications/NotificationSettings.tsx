@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Save, Loader2, Bell, Mail, MessageSquare, Info } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -39,6 +40,7 @@ function ChannelHeader({ icon, label, sub }: { icon: React.ReactNode; label: str
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function NotificationSettings() {
+  const { t } = useTranslation('pages');
   const [meta, setMeta]     = useState<EventMeta[]>([]);
   const [prefs, setPrefs]   = useState<Record<string, ChannelPrefs>>({});
   const [loading, setLoading]   = useState(true);
@@ -106,8 +108,8 @@ export function NotificationSettings() {
           <Link to="/dashboard/notifications"><ArrowLeft className="w-5 h-5" /></Link>
         </Button>
         <div className="flex-1">
-          <h1 className="text-3xl font-semibold text-[#0F172A]">Notification Settings</h1>
-          <p className="text-muted-foreground mt-1">Choose what you get notified about and how</p>
+          <h1 className="text-3xl font-semibold text-[#0F172A]">{t('notifications.settings.title')}</h1>
+          <p className="text-muted-foreground mt-1">{t('notifications.settings.subtitle')}</p>
         </div>
         <Button onClick={handleSave} disabled={saving || !dirty}>
           {saving ? <Loader2 className="w-4 h-4 me-2 animate-spin" /> : <Save className="w-4 h-4 me-2" />}
@@ -202,7 +204,7 @@ export function NotificationSettings() {
       {dirty && (
         <div className="sticky bottom-4 flex justify-end">
           <div className="bg-card border rounded-lg shadow-lg px-4 py-3 flex items-center gap-3">
-            <span className="text-sm text-muted-foreground">You have unsaved changes</span>
+            <span className="text-sm text-muted-foreground">{t('notifications.settings.unsavedChanges')}</span>
             <Button size="sm" onClick={handleSave} disabled={saving}>
               {saving ? <Loader2 className="w-4 h-4 me-1.5 animate-spin" /> : <Save className="w-4 h-4 me-1.5" />}
               Save

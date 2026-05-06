@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { workflowApi, settingsApi, usersApi } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
@@ -44,6 +45,7 @@ interface Stage {
 }
 
 export function WorkflowSettingsPage() {
+  const { t } = useTranslation('pages');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { canEdit, canDelete, canCreate } = usePermissions();
@@ -121,7 +123,7 @@ export function WorkflowSettingsPage() {
       }));
       setStages(mapped);
     } catch (e: any) {
-      setError(e?.message ?? 'Failed to load workflow');
+      setError(e?.message ?? t('pipelines.settings.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -147,7 +149,7 @@ export function WorkflowSettingsPage() {
       setIsAddOpen(false);
       setAddForm({ name: '', description: '', color: '#2563EB', slaHours: '', requiresApproval: false, isFinal: false });
     } catch (e: any) {
-      alert(e?.message ?? 'Failed to create stage');
+      toast.error(e?.message ?? t('pipelines.settings.createStageFailed'));
     } finally {
       setAddingStage(false);
     }
@@ -157,15 +159,15 @@ export function WorkflowSettingsPage() {
 
   const handleDeleteStage = async (stageId: string, stageName: string) => {
     if (!(await confirm({
-      title: 'Delete stage?',
-      description: `Delete the "${stageName}" stage? Candidates currently in this stage will lose their progress.`,
-      confirmText: 'Delete', tone: 'destructive',
+      title: t('pipelines.settings.deleteStageTitle'),
+      description: t('pipelines.settings.deleteStageBody', { name: stageName }),
+      confirmText: t('pipelines.settings.deleteStageConfirm'), tone: 'destructive',
     }))) return;
     try {
       await workflowApi.deleteStage(stageId);
       setStages(prev => prev.filter(s => s.id !== stageId).map((s, i) => ({ ...s, order: i + 1 })));
     } catch (e: any) {
-      alert(e?.message ?? 'Failed to delete stage');
+      toast.error(e?.message ?? t('pipelines.settings.deleteStageFailed'));
     }
   };
 
@@ -173,17 +175,18 @@ export function WorkflowSettingsPage() {
 
   const handleToggleActive = async (stage: Stage) => {
     const next = !stage.isActive;
-    const verb = next ? 'activate' : 'deactivate';
     if (!(await confirm({
-      title: `${verb[0].toUpperCase() + verb.slice(1)} stage?`,
-      description: `The "${stage.name}" stage will be ${verb}d.`,
-      confirmText: verb[0].toUpperCase() + verb.slice(1),
+      title: next ? t('pipelines.settings.activateStageTitle') : t('pipelines.settings.deactivateStageTitle'),
+      description: next
+        ? t('pipelines.settings.activateStageBody', { name: stage.name })
+        : t('pipelines.settings.deactivateStageBody', { name: stage.name }),
+      confirmText: next ? t('pipelines.settings.activate') : t('pipelines.settings.deactivate'),
     }))) return;
     try {
       await workflowApi.updateStage(stage.id, { isActive: next } as any);
       setStages(prev => prev.map(s => s.id === stage.id ? { ...s, isActive: next } : s));
     } catch (e: any) {
-      alert(e?.message ?? `Failed to ${verb} stage`);
+      toast.error(e?.message ?? t('pipelines.settings.toggleStageFailed', { verb: next ? t('pipelines.settings.activate').toLowerCase() : t('pipelines.settings.deactivate').toLowerCase() }));
     }
   };
 
@@ -211,9 +214,9 @@ export function WorkflowSettingsPage() {
     setSaving(true);
     try {
       await workflowApi.reorderStages(id!, stages.map(s => s.id));
-      alert('Stage order saved successfully.');
+      toast.success(t('pipelines.settings.stageOrderSaved'));
     } catch (e: any) {
-      alert(e?.message ?? 'Failed to save order');
+      toast.error(e?.message ?? t('pipelines.settings.saveOrderFailed'));
     } finally {
       setSaving(false);
     }
@@ -228,7 +231,7 @@ export function WorkflowSettingsPage() {
       await workflowApi.update(id!, metaForm);
       await load();
     } catch (e: any) {
-      alert(e?.message ?? 'Failed to save workflow details');
+      toast.error(e?.message ?? t('pipelines.settings.saveDetailsFailed'));
     } finally {
       setSavingMeta(false);
     }
@@ -297,7 +300,7 @@ export function WorkflowSettingsPage() {
       await load();
       setIsEditReqOpen(false);
     } catch (e: any) {
-      alert(e?.message ?? 'Failed to save requirements');
+      toast.error(e?.message ?? t('pipelines.settings.saveRequirementsFailed'));
     } finally {
       setSavingReq(false);
     }
@@ -333,7 +336,7 @@ export function WorkflowSettingsPage() {
       await load();
       setIsEditStageOpen(false);
     } catch (e: any) {
-      alert(e?.message ?? 'Failed to save stage');
+      toast.error(e?.message ?? t('pipelines.settings.saveStageFailed'));
     } finally {
       setSavingEditStage(false);
     }
@@ -361,9 +364,9 @@ export function WorkflowSettingsPage() {
 
   const handleArchive = async () => {
     if (!(await confirm({
-      title: 'Archive workflow?',
-      description: 'No new candidates can be assigned but existing progress is preserved.',
-      confirmText: 'Archive',
+      title: t('pipelines.settings.archiveTitle'),
+      description: t('pipelines.settings.archiveConfirmBody'),
+      confirmText: t('pipelines.settings.archiveConfirm'),
     }))) return;
     try {
       await workflowApi.archive(id!);
@@ -384,7 +387,7 @@ export function WorkflowSettingsPage() {
   if (error || !workflow) {
     return (
       <div className="p-6">
-        <div className="text-center py-10 text-[#EF4444]">{error ?? 'Workflow not found'}</div>
+        <div className="text-center py-10 text-[#EF4444]">{error ?? t('pipelines.settings.workflowNotFound')}</div>
       </div>
     );
   }
@@ -402,27 +405,27 @@ export function WorkflowSettingsPage() {
           </button>
           <div>
             <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-              <Link to="/dashboard/settings" className="hover:text-foreground transition-colors">Settings</Link>
+              <Link to="/dashboard/settings" className="hover:text-foreground transition-colors">{t('pipelines.settings.breadcrumbSettings')}</Link>
               <span>/</span>
-              <Link to="/dashboard/workflows" className="hover:text-foreground transition-colors">Workflows</Link>
+              <Link to="/dashboard/workflows" className="hover:text-foreground transition-colors">{t('pipelines.settings.breadcrumbWorkflows')}</Link>
               <span>/</span>
               <span className="text-foreground">{workflow.name}</span>
             </div>
             <h1 className="text-3xl font-semibold text-[#0F172A]">{workflow.name}</h1>
-            <p className="text-muted-foreground mt-1">Configure stages and requirements for this workflow</p>
+            <p className="text-muted-foreground mt-1">{t('pipelines.settings.subtitle')}</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
           {canEdit('settings') && (
             <Button variant="outline" onClick={handleCopy}>
               <Copy className="w-4 h-4 me-2" />
-              Duplicate
+              {t('pipelines.settings.duplicate')}
             </Button>
           )}
           {canEdit('settings') && (
             <Button variant="outline" onClick={handleSaveOrder} disabled={saving}>
               <Save className="w-4 h-4 me-2" />
-              {saving ? 'Saving…' : 'Save Changes'}
+              {saving ? t('pipelines.settings.saving') : t('pipelines.settings.saveChanges')}
             </Button>
           )}
           {canCreate('settings') && (
@@ -430,24 +433,24 @@ export function WorkflowSettingsPage() {
               <DialogTrigger asChild>
                 <Button>
                   <Plus className="w-4 h-4 me-2" />
-                  Add Stage
+                  {t('pipelines.settings.addStage')}
                 </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[500px]">
                 <DialogHeader>
-                  <DialogTitle>Add New Stage</DialogTitle>
+                  <DialogTitle>{t('pipelines.settings.addNewStage')}</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4 pt-4">
                   <div>
-                    <Label htmlFor="stageName">Stage Name</Label>
-                    <Input id="stageName" placeholder="e.g., Document Collection" value={addForm.name} onChange={e => setAddForm({ ...addForm, name: e.target.value })} className="mt-1.5" />
+                    <Label htmlFor="stageName">{t('pipelines.settings.stageName')}</Label>
+                    <Input id="stageName" placeholder={t('pipelines.settings.stageNamePlaceholder')} value={addForm.name} onChange={e => setAddForm({ ...addForm, name: e.target.value })} className="mt-1.5" />
                   </div>
                   <div>
-                    <Label htmlFor="stageDesc">Description</Label>
-                    <Input id="stageDesc" placeholder="Brief description" value={addForm.description} onChange={e => setAddForm({ ...addForm, description: e.target.value })} className="mt-1.5" />
+                    <Label htmlFor="stageDesc">{t('pipelines.settings.description')}</Label>
+                    <Input id="stageDesc" placeholder={t('pipelines.settings.descriptionPlaceholder')} value={addForm.description} onChange={e => setAddForm({ ...addForm, description: e.target.value })} className="mt-1.5" />
                   </div>
                   <div>
-                    <Label>Stage Color</Label>
+                    <Label>{t('pipelines.settings.stageColor')}</Label>
                     <Select value={addForm.color} onValueChange={v => setAddForm({ ...addForm, color: v })}>
                       <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
                       <SelectContent>
@@ -456,23 +459,23 @@ export function WorkflowSettingsPage() {
                     </Select>
                   </div>
                   <div>
-                    <Label htmlFor="stageSla">SLA (hours, optional)</Label>
-                    <Input id="stageSla" type="number" min="1" placeholder="e.g., 48" value={addForm.slaHours} onChange={e => setAddForm({ ...addForm, slaHours: e.target.value })} className="mt-1.5" />
+                    <Label htmlFor="stageSla">{t('pipelines.settings.slaHours')}</Label>
+                    <Input id="stageSla" type="number" min="1" placeholder={t('pipelines.settings.slaHoursPlaceholder')} value={addForm.slaHours} onChange={e => setAddForm({ ...addForm, slaHours: e.target.value })} className="mt-1.5" />
                   </div>
                   <div className="flex items-center gap-6">
                     <label className="flex items-center gap-2 text-sm cursor-pointer">
                       <input type="checkbox" checked={addForm.requiresApproval} onChange={e => setAddForm({ ...addForm, requiresApproval: e.target.checked })} className="rounded" />
-                      <span>Requires approval</span>
+                      <span>{t('pipelines.settings.requiresApproval')}</span>
                     </label>
                     <label className="flex items-center gap-2 text-sm cursor-pointer">
                       <input type="checkbox" checked={addForm.isFinal} onChange={e => setAddForm({ ...addForm, isFinal: e.target.checked })} className="rounded" />
-                      <span>Final stage</span>
+                      <span>{t('pipelines.settings.finalStage')}</span>
                     </label>
                   </div>
                   <div className="flex justify-end gap-2 pt-4">
-                    <Button variant="outline" onClick={() => setIsAddOpen(false)}>Cancel</Button>
+                    <Button variant="outline" onClick={() => setIsAddOpen(false)}>{t('pipelines.settings.cancel')}</Button>
                     <Button onClick={handleAddStage} disabled={addingStage || !addForm.name.trim()}>
-                      {addingStage ? 'Adding…' : 'Add Stage'}
+                      {addingStage ? t('pipelines.settings.adding') : t('pipelines.settings.addStage')}
                     </Button>
                   </div>
                 </div>
@@ -488,9 +491,9 @@ export function WorkflowSettingsPage() {
           <div className="flex items-start gap-3">
             <Shield className="w-5 h-5 text-[#EF4444] mt-0.5" />
             <div>
-              <p className="font-medium text-[#EF4444]">System Administrator Access Only</p>
+              <p className="font-medium text-[#EF4444]">{t('pipelines.settings.adminAccessTitle')}</p>
               <p className="text-sm text-muted-foreground mt-1">
-                Changes here affect all candidates assigned to this workflow. All changes are logged.
+                {t('pipelines.settings.adminAccessBody')}
               </p>
             </div>
           </div>
@@ -503,9 +506,9 @@ export function WorkflowSettingsPage() {
           <div className="flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-[#2563EB] mt-0.5" />
             <div>
-              <p className="font-medium text-[#2563EB]">Drag and Drop to Reorder</p>
+              <p className="font-medium text-[#2563EB]">{t('pipelines.settings.dragDropTitle')}</p>
               <p className="text-sm text-muted-foreground mt-1">
-                Use the drag handle to reorder stages. Click "Save Changes" to persist the new order.
+                {t('pipelines.settings.dragDropBody')}
               </p>
             </div>
           </div>
@@ -515,16 +518,16 @@ export function WorkflowSettingsPage() {
       {/* Workflow Details */}
       <Card>
         <CardHeader>
-          <CardTitle>Workflow Details</CardTitle>
+          <CardTitle>{t('pipelines.settings.workflowDetails')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="wfName">Name *</Label>
+              <Label htmlFor="wfName">{t('pipelines.settings.nameRequired')}</Label>
               <Input id="wfName" value={metaForm.name} onChange={e => setMetaForm({ ...metaForm, name: e.target.value })} className="mt-1.5" />
             </div>
             <div>
-              <Label>Color</Label>
+              <Label>{t('pipelines.settings.color')}</Label>
               <Select value={metaForm.color} onValueChange={v => setMetaForm({ ...metaForm, color: v })}>
                 <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -534,29 +537,29 @@ export function WorkflowSettingsPage() {
             </div>
           </div>
           <div>
-            <Label htmlFor="wfDesc">Description</Label>
+            <Label htmlFor="wfDesc">{t('pipelines.settings.description')}</Label>
             <Textarea
               id="wfDesc"
               value={metaForm.description}
               onChange={e => setMetaForm({ ...metaForm, description: e.target.value })}
               className="mt-1.5 min-h-[96px]"
               rows={4}
-              placeholder="Optional description…"
+              placeholder={t('pipelines.settings.descriptionOptional')}
             />
           </div>
           <div className="flex items-center gap-6">
             <label className="flex items-center gap-2 text-sm cursor-pointer">
               <input type="checkbox" checked={metaForm.isDefault} onChange={e => setMetaForm({ ...metaForm, isDefault: e.target.checked })} className="rounded" />
-              <span>Set as default workflow</span>
+              <span>{t('pipelines.settings.setAsDefault')}</span>
             </label>
             <label className="flex items-center gap-2 text-sm cursor-pointer">
               <input type="checkbox" checked={metaForm.isPublic} onChange={e => setMetaForm({ ...metaForm, isPublic: e.target.checked })} className="rounded" />
-              <span>Public visibility</span>
+              <span>{t('pipelines.settings.publicVisibility')}</span>
             </label>
           </div>
           <div className="flex justify-end">
             <Button variant="outline" onClick={handleSaveMeta} disabled={savingMeta}>
-              <Save className="w-4 h-4 me-2" />{savingMeta ? 'Saving…' : 'Save Details'}
+              <Save className="w-4 h-4 me-2" />{savingMeta ? t('pipelines.settings.saving') : t('pipelines.settings.saveDetails')}
             </Button>
           </div>
         </CardContent>
@@ -566,12 +569,14 @@ export function WorkflowSettingsPage() {
       <Card>
         <CardHeader>
           <CardTitle>
-            Workflow Stages ({activeCount} active{inactiveCount > 0 ? `, ${inactiveCount} inactive` : ''})
+            {inactiveCount > 0
+              ? t('pipelines.settings.stagesActiveAndInactiveCount', { active: activeCount, inactive: inactiveCount })
+              : t('pipelines.settings.stagesActiveCount', { active: activeCount })}
           </CardTitle>
         </CardHeader>
         <CardContent>
           {stages.length === 0 ? (
-            <div className="text-center py-10 text-muted-foreground">No stages configured. Click "Add Stage" to get started.</div>
+            <div className="text-center py-10 text-muted-foreground">{t('pipelines.settings.noStagesConfigured')}</div>
           ) : (
             <div className="space-y-3">
               {stages.map((stage) => (
@@ -602,29 +607,29 @@ export function WorkflowSettingsPage() {
                           {stage.name}
                         </h3>
                         <Badge variant="outline" style={stage.isActive ? { borderColor: stage.color, color: stage.color } : {}}>
-                          Stage {stage.order}
+                          {t('pipelines.settings.stageBadge', { order: stage.order })}
                         </Badge>
                         {stage.isFinal && (
-                          <Badge variant="outline" className="border-emerald-500 text-emerald-600 bg-emerald-50">Final</Badge>
+                          <Badge variant="outline" className="border-emerald-500 text-emerald-600 bg-emerald-50">{t('pipelines.settings.finalBadge')}</Badge>
                         )}
                         {!stage.isActive && (
-                          <Badge variant="outline" className="border-[#94A3B8] text-[#64748B] bg-[#F1F5F9]">Inactive</Badge>
+                          <Badge variant="outline" className="border-[#94A3B8] text-[#64748B] bg-[#F1F5F9]">{t('pipelines.settings.inactiveBadge')}</Badge>
                         )}
                       </div>
                       {stage.description && <p className="text-sm text-muted-foreground mb-2">{stage.description}</p>}
                       <div className="flex items-center gap-4 text-sm text-muted-foreground">
                         <div className="flex items-center gap-1">
                           <FileText className="w-4 h-4" />
-                          <span>{stage.requiredDocs.length} documents</span>
+                          <span>{t('pipelines.settings.documentsCount', { count: stage.requiredDocs.length })}</span>
                         </div>
                         <div className="flex items-center gap-1">
                           <CheckCircle className="w-4 h-4" />
-                          <span>{stage.assignedUsers.length} approvals</span>
+                          <span>{t('pipelines.settings.approvalsCount', { count: stage.assignedUsers.length })}</span>
                         </div>
                         {stage.slaHours && (
                           <div className="flex items-center gap-1">
                             <Clock className="w-4 h-4" />
-                            <span>{stage.slaHours}h SLA</span>
+                            <span>{t('pipelines.settings.slaHoursDisplay', { hours: stage.slaHours })}</span>
                           </div>
                         )}
                       </div>
@@ -635,13 +640,13 @@ export function WorkflowSettingsPage() {
                     {canEdit('settings') && (
                       <Button size="sm" variant="outline" onClick={() => openEditStage(stage)}>
                         <Edit className="w-4 h-4 me-1" />
-                        Edit Stage
+                        {t('pipelines.settings.editStage')}
                       </Button>
                     )}
                     {stage.isActive && canEdit('settings') && (
                       <Button size="sm" variant="outline" onClick={() => openEditRequirements(stage)}>
                         <FileText className="w-4 h-4 me-1" />
-                        Edit Requirements
+                        {t('pipelines.settings.editRequirements')}
                       </Button>
                     )}
                     {canEdit('settings') && (
@@ -654,8 +659,8 @@ export function WorkflowSettingsPage() {
                           : 'border-[#22C55E] text-[#22C55E] hover:bg-[#F0FDF4]'}
                       >
                         {stage.isActive
-                          ? <><PowerOff className="w-4 h-4 me-1" />Deactivate</>
-                          : <><Power className="w-4 h-4 me-1" />Activate</>}
+                          ? <><PowerOff className="w-4 h-4 me-1" />{t('pipelines.settings.deactivate')}</>
+                          : <><Power className="w-4 h-4 me-1" />{t('pipelines.settings.activate')}</>}
                       </Button>
                     )}
                     {canDelete('settings') && (
@@ -675,13 +680,13 @@ export function WorkflowSettingsPage() {
       <Dialog open={isEditReqOpen} onOpenChange={setIsEditReqOpen}>
         <DialogContent className="sm:max-w-[700px]">
           <DialogHeader>
-            <DialogTitle>Edit Stage Requirements - {selectedStage?.name}</DialogTitle>
+            <DialogTitle>{t('pipelines.settings.editRequirementsTitle', { name: selectedStage?.name ?? '' })}</DialogTitle>
           </DialogHeader>
           {selectedStage && (
             <div className="space-y-6 pt-4">
               {/* Required Documents */}
               <div>
-                <Label>Required Documents</Label>
+                <Label>{t('pipelines.settings.requiredDocuments')}</Label>
                 <div className="space-y-2 mt-2">
                   {reqDocs.map((doc, idx) => (
                     <div key={doc.id} className="flex items-center gap-2">
@@ -694,11 +699,11 @@ export function WorkflowSettingsPage() {
                   <div className="flex items-center gap-2">
                     <Select value={newDocId} onValueChange={setNewDocId}>
                       <SelectTrigger className="flex-1">
-                        <SelectValue placeholder="Select a document type…" />
+                        <SelectValue placeholder={t('pipelines.settings.selectDocumentType')} />
                       </SelectTrigger>
                       <SelectContent>
                         {documentTypes.length === 0 ? (
-                          <SelectItem value="__none__" disabled>No document types configured</SelectItem>
+                          <SelectItem value="__none__" disabled>{t('pipelines.settings.noDocumentTypes')}</SelectItem>
                         ) : (
                           documentTypes
                             .filter(dt => !reqDocs.some(d => d.id === dt.id))
@@ -715,7 +720,7 @@ export function WorkflowSettingsPage() {
                       }}
                       disabled={!newDocId || newDocId === '__none__'}
                     >
-                      <Plus className="w-4 h-4 me-1" /> Add Document
+                      <Plus className="w-4 h-4 me-1" /> {t('pipelines.settings.addDocument')}
                     </Button>
                   </div>
                 </div>
@@ -727,7 +732,7 @@ export function WorkflowSettingsPage() {
                   advance the candidate. */}
               <div>
                 <div className="flex items-center justify-between">
-                  <Label>Responsible Users</Label>
+                  <Label>{t('pipelines.settings.responsibleUsers')}</Label>
                   <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
                     <input
                       type="checkbox"
@@ -735,13 +740,13 @@ export function WorkflowSettingsPage() {
                       checked={responsibleAny}
                       onChange={(e) => setResponsibleAny(e.target.checked)}
                     />
-                    Any user may process
+                    {t('pipelines.settings.anyUserMayProcess')}
                   </label>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
                   {responsibleAny
-                    ? 'Any authenticated user may advance candidates through this stage.'
-                    : 'Only the users listed here may advance candidates through this stage.'}
+                    ? t('pipelines.settings.anyUserBody')
+                    : t('pipelines.settings.responsibleListBody')}
                 </p>
                 <div className={`space-y-2 mt-2 ${responsibleAny ? 'opacity-50 pointer-events-none' : ''}`}>
                   {responsibleUsers.map((u, idx) => (
@@ -755,11 +760,11 @@ export function WorkflowSettingsPage() {
                   <div className="flex items-center gap-2">
                     <Select value={newResponsibleId} onValueChange={setNewResponsibleId}>
                       <SelectTrigger className="flex-1">
-                        <SelectValue placeholder="Select a user…" />
+                        <SelectValue placeholder={t('pipelines.settings.selectUser')} />
                       </SelectTrigger>
                       <SelectContent>
                         {allUsers.length === 0 ? (
-                          <SelectItem value="__none__" disabled>No users available</SelectItem>
+                          <SelectItem value="__none__" disabled>{t('pipelines.settings.noUsers')}</SelectItem>
                         ) : (
                           allUsers
                             .filter(u => !responsibleUsers.some(r => r.id === u.id))
@@ -775,7 +780,7 @@ export function WorkflowSettingsPage() {
                       }}
                       disabled={!newResponsibleId || newResponsibleId === '__none__' || responsibleAny}
                     >
-                      <Plus className="w-4 h-4 me-1" /> Add User
+                      <Plus className="w-4 h-4 me-1" /> {t('pipelines.settings.addUser')}
                     </Button>
                   </div>
                 </div>
@@ -787,13 +792,13 @@ export function WorkflowSettingsPage() {
                   With one or more approvers, at least one of them
                   must approve before advancement. */}
               <div>
-                <Label>Approvers</Label>
+                <Label>{t('pipelines.settings.approvers')}</Label>
                 <p className="text-xs text-muted-foreground mt-1">
                   {reqUsers.length === 0
-                    ? 'None — candidate advances as soon as a Responsible user sends them to the next stage.'
+                    ? t('pipelines.settings.approversNone')
                     : approvalMode === 'ALL'
-                      ? `All ${reqUsers.length} approver${reqUsers.length === 1 ? '' : 's'} must individually approve before the candidate can advance.`
-                      : `At least ${Math.max(1, Math.min(minApprovals || 1, reqUsers.length))} of ${reqUsers.length} approver${reqUsers.length === 1 ? '' : 's'} must approve before the candidate can advance.`}
+                      ? t('pipelines.settings.approversAll', { count: reqUsers.length })
+                      : t('pipelines.settings.approversAny', { min: Math.max(1, Math.min(minApprovals || 1, reqUsers.length)), count: reqUsers.length })}
                 </p>
 
                 {/* Approval mode + minimum approvals — only
@@ -804,17 +809,17 @@ export function WorkflowSettingsPage() {
                 {reqUsers.length > 0 && (
                   <div className="mt-2 flex items-center gap-3 flex-wrap">
                     <div className="flex items-center gap-2">
-                      <Label htmlFor="wf-approval-mode" className="text-xs text-muted-foreground">Approval mode</Label>
+                      <Label htmlFor="wf-approval-mode" className="text-xs text-muted-foreground">{t('pipelines.settings.approvalMode')}</Label>
                       <Select value={approvalMode} onValueChange={(v) => setApprovalMode(v as 'ANY' | 'ALL')}>
                         <SelectTrigger id="wf-approval-mode" className="w-28 h-8"><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="ANY">Any</SelectItem>
-                          <SelectItem value="ALL">All</SelectItem>
+                          <SelectItem value="ANY">{t('pipelines.settings.approvalAny')}</SelectItem>
+                          <SelectItem value="ALL">{t('pipelines.settings.approvalAll')}</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                     <div className={`flex items-center gap-2 ${approvalMode === 'ALL' ? 'opacity-50' : ''}`}>
-                      <Label htmlFor="wf-min-approvals" className="text-xs text-muted-foreground">Minimum approvals required</Label>
+                      <Label htmlFor="wf-min-approvals" className="text-xs text-muted-foreground">{t('pipelines.settings.minApprovalsRequired')}</Label>
                       <input
                         id="wf-min-approvals"
                         type="number"
@@ -829,7 +834,7 @@ export function WorkflowSettingsPage() {
                         onChange={(e) => setMinApprovals(Math.max(1, Math.min(Number(e.target.value) || 1, reqUsers.length)))}
                         className="w-16 px-2 py-1 border rounded text-sm text-center disabled:bg-muted"
                       />
-                      <span className="text-xs text-muted-foreground">of {reqUsers.length}</span>
+                      <span className="text-xs text-muted-foreground">{t('pipelines.settings.approvalsOf', { count: reqUsers.length })}</span>
                     </div>
                   </div>
                 )}
@@ -845,11 +850,11 @@ export function WorkflowSettingsPage() {
                   <div className="flex items-center gap-2">
                     <Select value={newUserId} onValueChange={setNewUserId}>
                       <SelectTrigger className="flex-1">
-                        <SelectValue placeholder="Select a user…" />
+                        <SelectValue placeholder={t('pipelines.settings.selectUser')} />
                       </SelectTrigger>
                       <SelectContent>
                         {allUsers.length === 0 ? (
-                          <SelectItem value="__none__" disabled>No users available</SelectItem>
+                          <SelectItem value="__none__" disabled>{t('pipelines.settings.noUsers')}</SelectItem>
                         ) : (
                           allUsers
                             .filter(u => !reqUsers.some(r => r.id === u.id))
@@ -866,16 +871,16 @@ export function WorkflowSettingsPage() {
                       }}
                       disabled={!newUserId || newUserId === '__none__'}
                     >
-                      <Plus className="w-4 h-4 me-1" /> Add Approval
+                      <Plus className="w-4 h-4 me-1" /> {t('pipelines.settings.addApproval')}
                     </Button>
                   </div>
                 </div>
               </div>
 
               <div className="flex justify-end gap-2 pt-4 border-t">
-                <Button variant="outline" onClick={() => setIsEditReqOpen(false)}>Cancel</Button>
+                <Button variant="outline" onClick={() => setIsEditReqOpen(false)}>{t('pipelines.settings.cancel')}</Button>
                 <Button onClick={handleSaveRequirements} disabled={savingReq}>
-                  {savingReq ? 'Saving…' : 'Save Requirements'}
+                  {savingReq ? t('pipelines.settings.savingRequirements') : t('pipelines.settings.saveRequirements')}
                 </Button>
               </div>
             </div>
@@ -887,29 +892,29 @@ export function WorkflowSettingsPage() {
       <Dialog open={isEditStageOpen} onOpenChange={setIsEditStageOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Edit Stage — {editStageTarget?.name}</DialogTitle>
+            <DialogTitle>{t('pipelines.settings.editStageDialogTitle', { name: editStageTarget?.name ?? '' })}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-4">
             <div>
-              <Label>Stage Name *</Label>
+              <Label>{t('pipelines.settings.stageNameRequired')}</Label>
               <Input
                 value={editStageForm.name}
                 onChange={e => setEditStageForm({ ...editStageForm, name: e.target.value })}
-                placeholder="e.g. Document Collection"
+                placeholder={t('pipelines.settings.stageEditPlaceholder')}
                 className="mt-1.5"
               />
             </div>
             <div>
-              <Label>Description</Label>
+              <Label>{t('pipelines.settings.description')}</Label>
               <Input
                 value={editStageForm.description}
                 onChange={e => setEditStageForm({ ...editStageForm, description: e.target.value })}
-                placeholder="Brief description…"
+                placeholder={t('pipelines.settings.descriptionEditPlaceholder')}
                 className="mt-1.5"
               />
             </div>
             <div>
-              <Label>Stage Color</Label>
+              <Label>{t('pipelines.settings.stageColor')}</Label>
               <Select value={editStageForm.color} onValueChange={v => setEditStageForm({ ...editStageForm, color: v })}>
                 <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -918,11 +923,11 @@ export function WorkflowSettingsPage() {
               </Select>
             </div>
             <div>
-              <Label>SLA (hours, optional)</Label>
+              <Label>{t('pipelines.settings.slaHours')}</Label>
               <Input
                 type="number"
                 min="1"
-                placeholder="e.g. 48"
+                placeholder={t('pipelines.settings.slaEditPlaceholder')}
                 value={editStageForm.slaHours}
                 onChange={e => setEditStageForm({ ...editStageForm, slaHours: e.target.value })}
                 className="mt-1.5"
@@ -936,7 +941,7 @@ export function WorkflowSettingsPage() {
                   onChange={e => setEditStageForm({ ...editStageForm, requiresApproval: e.target.checked })}
                   className="rounded"
                 />
-                <span>Requires approval</span>
+                <span>{t('pipelines.settings.requiresApproval')}</span>
               </label>
               <label className="flex items-center gap-2 text-sm cursor-pointer">
                 <input
@@ -945,13 +950,13 @@ export function WorkflowSettingsPage() {
                   onChange={e => setEditStageForm({ ...editStageForm, isFinal: e.target.checked })}
                   className="rounded"
                 />
-                <span>Final stage</span>
+                <span>{t('pipelines.settings.finalStage')}</span>
               </label>
             </div>
             <div className="flex justify-end gap-2 pt-4 border-t">
-              <Button variant="outline" onClick={() => setIsEditStageOpen(false)}>Cancel</Button>
+              <Button variant="outline" onClick={() => setIsEditStageOpen(false)}>{t('pipelines.settings.cancel')}</Button>
               <Button onClick={handleSaveEditStage} disabled={savingEditStage || !editStageForm.name.trim()}>
-                {savingEditStage ? 'Saving…' : 'Save Stage'}
+                {savingEditStage ? t('pipelines.settings.savingStage') : t('pipelines.settings.saveStage')}
               </Button>
             </div>
           </div>
@@ -962,17 +967,17 @@ export function WorkflowSettingsPage() {
       <Card className="border-[#EF4444]/30">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-[#EF4444]">
-            <AlertCircle className="w-4 h-4" /> Danger Zone
+            <AlertCircle className="w-4 h-4" /> {t('pipelines.settings.dangerZone')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-medium text-[#0F172A]">Archive Workflow</p>
-              <p className="text-sm text-muted-foreground">No new candidates can be assigned. Existing progress is preserved.</p>
+              <p className="font-medium text-[#0F172A]">{t('pipelines.settings.archiveWorkflow')}</p>
+              <p className="text-sm text-muted-foreground">{t('pipelines.settings.archiveBody')}</p>
             </div>
             <Button variant="outline" className="border-[#EF4444]/50 text-[#EF4444] hover:bg-[#FEE2E2]" onClick={handleArchive}>
-              Archive Workflow
+              {t('pipelines.settings.archiveWorkflow')}
             </Button>
           </div>
         </CardContent>

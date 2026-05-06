@@ -218,12 +218,12 @@ function CreateWorkflowModal({ onClose, onCreated }: { onClose: () => void; onCr
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <div className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-md mx-4 p-6">
-        <h2 className="text-lg font-semibold text-foreground mb-1">New Workflow</h2>
-        <p className="text-sm text-muted-foreground mb-4">After creation you'll be taken to configure its stages.</p>
+        <h2 className="text-lg font-semibold text-foreground mb-1">{t('pipelines.list.newWorkflowTitle')}</h2>
+        <p className="text-sm text-muted-foreground mb-4">{t('pipelines.list.newWorkflowBody')}</p>
         {error && <p className="text-sm text-destructive mb-3">{error}</p>}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1">Name *</label>
+            <label className="block text-sm font-medium text-foreground mb-1">{t('pipelines.list.nameRequired')}</label>
             <input
               className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
               value={form.name}
@@ -259,7 +259,7 @@ function CreateWorkflowModal({ onClose, onCreated }: { onClose: () => void; onCr
           <div className="flex items-center gap-4">
             <label className="flex items-center gap-2 cursor-pointer text-sm">
               <input type="checkbox" checked={form.isDefault} onChange={(e) => setForm({ ...form, isDefault: e.target.checked })} className="rounded" />
-              <span className="text-foreground">Set as default workflow</span>
+              <span className="text-foreground">{t('pipelines.list.setAsDefault')}</span>
             </label>
           </div>
           <div className="flex gap-3 pt-2">
@@ -388,8 +388,8 @@ export function WorkflowsPage() {
       ) : workflows.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <Layers className="w-16 h-16 text-muted-foreground/30 mb-4" />
-          <h3 className="text-lg font-medium text-foreground mb-2">No workflows yet</h3>
-          <p className="text-sm text-muted-foreground mb-6">Create your first recruitment workflow to start managing candidate progress.</p>
+          <h3 className="text-lg font-medium text-foreground mb-2">{t('pipelines.list.noWorkflowsTitle')}</h3>
+          <p className="text-sm text-muted-foreground mb-6">{t('pipelines.list.noWorkflowsBody')}</p>
           <button
             onClick={() => setShowCreate(true)}
             className="flex items-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
@@ -517,7 +517,7 @@ function ManageAccessModal({
           <div className="flex items-center gap-2 min-w-0">
             <Lock className="w-5 h-5 text-slate-600 shrink-0" />
             <div className="min-w-0">
-              <h3 className="font-semibold text-base truncate">Manage Access</h3>
+              <h3 className="font-semibold text-base truncate">{t('pipelines.list.manageAccess')}</h3>
               <p className="text-xs text-muted-foreground truncate">
                 Users allowed to use <strong className="text-foreground">{workflow.name}</strong>
               </p>
@@ -531,7 +531,7 @@ function ManageAccessModal({
 
         {/* Add user row */}
         <div className="p-5 border-b space-y-2">
-          <label className="text-xs font-medium text-muted-foreground">Add user</label>
+          <label className="text-xs font-medium text-muted-foreground">{t('pipelines.list.addUser')}</label>
           <input
             type="text"
             placeholder="Search users by name or email…"

@@ -283,9 +283,9 @@ export function NotificationCenter() {
                 <Select value={filterIsRead} onValueChange={v => { setFilterIsRead(v); setPage(1); }}>
                   <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All</SelectItem>
-                    <SelectItem value="unread">Unread only</SelectItem>
-                    <SelectItem value="read">Read only</SelectItem>
+                    <SelectItem value="all">{t('notifications.center.filters.all')}</SelectItem>
+                    <SelectItem value="unread">{t('notifications.center.unreadOnly')}</SelectItem>
+                    <SelectItem value="read">{t('notifications.center.readOnly')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -294,7 +294,7 @@ export function NotificationCenter() {
                 <Select value={filterType} onValueChange={v => { setFilterType(v); setPage(1); }}>
                   <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All types</SelectItem>
+                    <SelectItem value="all">{t('notifications.center.allTypes')}</SelectItem>
                     <SelectItem value="DOCUMENT_EXPIRY">Document</SelectItem>
                     <SelectItem value="FINANCIAL">Financial</SelectItem>
                     <SelectItem value="WARNING">Warning</SelectItem>
@@ -308,24 +308,24 @@ export function NotificationCenter() {
                 <Select value={filterEventType} onValueChange={v => { setFilterEventType(v); setPage(1); }}>
                   <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All events</SelectItem>
-                    <SelectItem value="DOCUMENT_UPLOADED">Doc Uploaded</SelectItem>
-                    <SelectItem value="DOCUMENT_EXPIRING_SOON">Doc Expiring</SelectItem>
-                    <SelectItem value="DOCUMENT_EXPIRED">Doc Expired</SelectItem>
-                    <SelectItem value="FINANCIAL_RECORD_CREATED">Finance Added</SelectItem>
-                    <SelectItem value="FINANCIAL_RECORD_UPDATED">Finance Updated</SelectItem>
-                    <SelectItem value="FINANCIAL_RECORD_DELETED">Finance Deleted</SelectItem>
+                    <SelectItem value="all">{t('notifications.center.allEvents')}</SelectItem>
+                    <SelectItem value="DOCUMENT_UPLOADED">{t('notifications.center.docUploaded')}</SelectItem>
+                    <SelectItem value="DOCUMENT_EXPIRING_SOON">{t('notifications.center.docExpiring')}</SelectItem>
+                    <SelectItem value="DOCUMENT_EXPIRED">{t('notifications.center.docExpired')}</SelectItem>
+                    <SelectItem value="FINANCIAL_RECORD_CREATED">{t('notifications.center.financeAdded')}</SelectItem>
+                    <SelectItem value="FINANCIAL_RECORD_UPDATED">{t('notifications.center.financeUpdated')}</SelectItem>
+                    <SelectItem value="FINANCIAL_RECORD_DELETED">{t('notifications.center.financeDeleted')}</SelectItem>
                     <SelectItem value="FINANCIAL_RECORD_DEDUCTED">Deduction</SelectItem>
-                    <SelectItem value="FINANCIAL_HIGH_BALANCE">High Balance</SelectItem>
+                    <SelectItem value="FINANCIAL_HIGH_BALANCE">{t('notifications.center.highBalance')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs">Date from</Label>
+                <Label className="text-xs">{t('notifications.center.dateFrom')}</Label>
                 <Input type="date" className="h-8 text-sm" value={filterDateFrom} onChange={e => { setFilterDateFrom(e.target.value); setPage(1); }} />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs">Date to</Label>
+                <Label className="text-xs">{t('notifications.center.dateTo')}</Label>
                 <Input type="date" className="h-8 text-sm" value={filterDateTo} onChange={e => { setFilterDateTo(e.target.value); setPage(1); }} />
               </div>
               {hasActiveFilters && (
@@ -349,7 +349,7 @@ export function NotificationCenter() {
         ) : notifications.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3 text-muted-foreground">
             <BellOff className="w-12 h-12 opacity-30" />
-            <p className="text-lg font-medium">No notifications</p>
+            <p className="text-lg font-medium">{t('notifications.center.noNotifications')}</p>
             <p className="text-sm">
               {hasActiveFilters ? 'No results for the current filters.' : 'You\'re all caught up!'}
             </p>

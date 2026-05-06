@@ -57,7 +57,7 @@ function ApproveModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <div className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-md mx-4 p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-foreground">Stage Approval</h2>
+          <h2 className="text-lg font-semibold text-foreground">{t('pipelines.stage.approvalTitle')}</h2>
           <button onClick={onClose} className="p-1.5 rounded-md hover:bg-muted text-muted-foreground">
             <X className="w-4 h-4" />
           </button>
@@ -93,7 +93,7 @@ function ApproveModal({
         )}
 
         <div className="mb-4">
-          <label className="block text-sm font-medium text-foreground mb-1">Notes (optional)</label>
+          <label className="block text-sm font-medium text-foreground mb-1">{t('pipelines.stage.notesOptional')}</label>
           <textarea
             className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
             rows={3}
@@ -210,7 +210,7 @@ function CandidateCardCorridor({
 
       {/* Quick Note Input */}
       <div className="space-y-2">
-        <label className="block text-sm font-medium text-foreground">Add Quick Note</label>
+        <label className="block text-sm font-medium text-foreground">{t('pipelines.stage.addQuickNote')}</label>
         <div className="flex gap-2">
           <textarea
             className="flex-1 border border-border rounded-lg px-3 py-2 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
@@ -231,7 +231,7 @@ function CandidateCardCorridor({
 
       {/* Document Status */}
       <div className="space-y-2">
-        <label className="block text-sm font-medium text-foreground">Document Status</label>
+        <label className="block text-sm font-medium text-foreground">{t('pipelines.stage.documentStatus')}</label>
         <div
           className={`border rounded-lg px-4 py-3 flex items-center gap-2 ${getDocStatusColor(
             candidate.documentStatus
@@ -255,7 +255,7 @@ function CandidateCardCorridor({
 
       {/* Flag Toggle */}
       <div className="space-y-2">
-        <label className="block text-sm font-medium text-foreground">Flag Status</label>
+        <label className="block text-sm font-medium text-foreground">{t('pipelines.stage.flagStatus')}</label>
         <div className="flex gap-2 items-end">
           <div className="flex-1 space-y-1">
             <input
@@ -361,9 +361,9 @@ export function WorkflowStageDetailsPage() {
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
           <AlertTriangle className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-          <h2 className="text-2xl font-semibold mb-2">Stage Not Found</h2>
-          <p className="text-muted-foreground mb-4">The requested workflow stage could not be found.</p>
-          <Button onClick={() => navigate(-1)}>Return to Workflow</Button>
+          <h2 className="text-2xl font-semibold mb-2">{t('pipelines.stage.stageNotFound')}</h2>
+          <p className="text-muted-foreground mb-4">{t('pipelines.stage.stageNotFoundBody')}</p>
+          <Button onClick={() => navigate(-1)}>{t('pipelines.stage.returnToWorkflow')}</Button>
         </div>
       </div>
     );
@@ -476,7 +476,7 @@ export function WorkflowStageDetailsPage() {
               </div>
               <div>
                 <p className="text-3xl font-semibold text-[#0F172A]">{stats.total}</p>
-                <p className="text-sm text-muted-foreground mt-1">Total in Stage</p>
+                <p className="text-sm text-muted-foreground mt-1">{t('pipelines.stage.totalInStage')}</p>
                 <p className="text-xs text-muted-foreground">
                   {stats.employeesCount} employees · {stats.candidatesCount} applicants
                 </p>
@@ -493,7 +493,7 @@ export function WorkflowStageDetailsPage() {
               </div>
               <div>
                 <p className="text-3xl font-semibold text-[#0F172A]">{stats.avgDays}</p>
-                <p className="text-sm text-muted-foreground mt-1">Avg. Days in Stage</p>
+                <p className="text-sm text-muted-foreground mt-1">{t('pipelines.stage.avgDaysInStage')}</p>
               </div>
             </div>
           </CardContent>
@@ -507,7 +507,7 @@ export function WorkflowStageDetailsPage() {
               </div>
               <div>
                 <p className="text-3xl font-semibold text-[#0F172A]">{stats.atRiskCount}</p>
-                <p className="text-sm text-muted-foreground mt-1">At Risk (&gt;14 days)</p>
+                <p className="text-sm text-muted-foreground mt-1">{t('pipelines.stage.atRisk')}</p>
               </div>
             </div>
           </CardContent>
@@ -532,7 +532,7 @@ export function WorkflowStageDetailsPage() {
       {(stage.requiredDocs?.length > 0 || stage.assignedUsers?.length > 0) && (
         <Card>
           <CardContent className="p-6">
-            <h2 className="font-semibold text-lg mb-4">Stage Requirements</h2>
+            <h2 className="font-semibold text-lg mb-4">{t('pipelines.stage.stageRequirements')}</h2>
             <div className="space-y-3">
               {stage.requiredDocs?.map((rd: any) => (
                 <div key={rd.id} className="flex items-center justify-between p-4 border rounded-lg">
@@ -596,11 +596,11 @@ export function WorkflowStageDetailsPage() {
                   <SelectValue placeholder="Deadline Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Deadlines</SelectItem>
-                  <SelectItem value="ON_TIME">On Time</SelectItem>
+                  <SelectItem value="all">{t('pipelines.stage.allDeadlines')}</SelectItem>
+                  <SelectItem value="ON_TIME">{t('pipelines.stage.onTime')}</SelectItem>
                   <SelectItem value="WARNING">Warning</SelectItem>
                   <SelectItem value="OVERDUE">Overdue</SelectItem>
-                  <SelectItem value="NO_DEADLINE">No Deadline</SelectItem>
+                  <SelectItem value="NO_DEADLINE">{t('pipelines.stage.noDeadline')}</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -609,11 +609,11 @@ export function WorkflowStageDetailsPage() {
                   <SelectValue placeholder="Doc Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Docs</SelectItem>
+                  <SelectItem value="all">{t('pipelines.stage.allDocs')}</SelectItem>
                   <SelectItem value="APPROVED">Approved</SelectItem>
-                  <SelectItem value="PENDING_REVIEW">Pending Review</SelectItem>
+                  <SelectItem value="PENDING_REVIEW">{t('pipelines.stage.pendingReview')}</SelectItem>
                   <SelectItem value="REJECTED">Rejected</SelectItem>
-                  <SelectItem value="NOT_STARTED">Not Started</SelectItem>
+                  <SelectItem value="NOT_STARTED">{t('pipelines.stage.notStarted')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>

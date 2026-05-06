@@ -377,7 +377,7 @@ export class AuthService {
   // ---------------------------------------------------------------------------
   async setTwoFactorEnabled(userId: string, enabled: boolean, ipAddress?: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new UnauthorizedException();
+    if (!user) throw new UnauthorizedException({ code: 'AUTH.USER_NOT_FOUND', message: 'User not found' });
     await this.prisma.user.update({
       where: { id: userId },
       data: { twoFactorEnabled: enabled },
@@ -453,7 +453,7 @@ export class AuthService {
     ipAddress?: string,
   ) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new UnauthorizedException();
+    if (!user) throw new UnauthorizedException({ code: 'AUTH.USER_NOT_FOUND', message: 'User not found' });
 
     const isValid = await bcrypt.compare(currentPassword, user.passwordHash);
     if (!isValid) {
@@ -512,7 +512,7 @@ export class AuthService {
         agency: true,
       },
     });
-    if (!user) throw new UnauthorizedException();
+    if (!user) throw new UnauthorizedException({ code: 'AUTH.USER_NOT_FOUND', message: 'User not found' });
 
     // Merge role defaults with any agency-wide permission overrides applied
     // by Tempworks admins. `allow=true` adds a permission; `allow=false`
@@ -693,7 +693,7 @@ export class AuthService {
     const user = await this.prisma.user.findFirst({
       where: { id: userId, deletedAt: null },
     });
-    if (!user) throw new NotFoundException('User not found');
+    if (!user) throw new NotFoundException({ code: 'USER.NOT_FOUND', message: 'User not found' });
 
     const frontendUrl = this.config.get<string>('FRONTEND_URL', 'http://localhost:3000');
 
@@ -812,12 +812,14 @@ export class AuthService {
     const user = await this.prisma.user.findFirst({
       where: { id: userId, deletedAt: null },
     });
-    if (!user) throw new NotFoundException('User not found');
+    if (!user) throw new NotFoundException({ code: 'USER.NOT_FOUND', message: 'User not found' });
 
     if (user.status !== 'PENDING' && user.status !== 'INACTIVE') {
-      throw new BadRequestException(
-        'Activation email can only be resent for PENDING or INACTIVE accounts',
-      );
+      throw new BadRequestException({
+        code: 'AUTH.ACCOUNT_STATUS',
+        message: 'Activation email can only be resent for PENDING or INACTIVE accounts',
+        params: { status: user.status },
+      });
     }
 
     // Invalidate existing unused activation tokens
@@ -871,18 +873,19 @@ export class AuthService {
       throw new BadRequestException({ code: 'AUTH.PASSWORD_TOO_SHORT', message: 'Password must be at least 8 characters long', params: { min: 8 } });
     }
     if (!/[A-Z]/.test(password)) {
-      throw new BadRequestException('Password must contain at least one uppercase letter');
+      throw new BadRequestException({ code: 'AUTH.PASSWORD_NEEDS_UPPERCASE', message: 'Password must contain at least one uppercase letter' });
     }
     if (!/[a-z]/.test(password)) {
-      throw new BadRequestException('Password must contain at least one lowercase letter');
+      throw new BadRequestException({ code: 'AUTH.PASSWORD_NEEDS_LOWERCASE', message: 'Password must contain at least one lowercase letter' });
     }
     if (!/[0-9]/.test(password)) {
-      throw new BadRequestException('Password must contain at least one digit');
+      throw new BadRequestException({ code: 'AUTH.PASSWORD_NEEDS_DIGIT', message: 'Password must contain at least one digit' });
     }
     if (!/[!@#$%^&*()_+\-=\[\]{}|;':",./<>?]/.test(password)) {
-      throw new BadRequestException(
-        "Password must contain at least one special character (!@#$%^&*()_+-=[]{}|;':\",./<>?)",
-      );
+      throw new BadRequestException({
+        code: 'AUTH.PASSWORD_NEEDS_SPECIAL',
+        message: "Password must contain at least one special character (!@#$%^&*()_+-=[]{}|;':\",./<>?)",
+      });
     }
   }
 

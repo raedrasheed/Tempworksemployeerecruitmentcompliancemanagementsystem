@@ -47,7 +47,7 @@ export class WorkflowService {
       where: { id, deletedAt: null },
       include: WORKFLOW_INCLUDE,
     });
-    if (!workflow) throw new NotFoundException('Workflow not found');
+    if (!workflow) throw new NotFoundException({ code: 'WORKFLOW.NOT_FOUND', message: 'Workflow not found' });
     return workflow;
   }
 
@@ -92,7 +92,7 @@ export class WorkflowService {
         accessUsers: true,
       },
     });
-    if (!source) throw new NotFoundException('Workflow not found');
+    if (!source) throw new NotFoundException({ code: 'WORKFLOW.NOT_FOUND', message: 'Workflow not found' });
 
     // Pick a unique name. If a name is passed use it verbatim; otherwise
     // append " (Copy)", " (Copy 2)", … until we find an unused slot among
@@ -253,7 +253,7 @@ export class WorkflowService {
   async addAccessUser(workflowId: string, userId: string, actorId?: string) {
     await this.getWorkflow(workflowId);
     const user = await this.prisma.user.findFirst({ where: { id: userId, deletedAt: null } });
-    if (!user) throw new NotFoundException('User not found');
+    if (!user) throw new NotFoundException({ code: 'USER.NOT_FOUND', message: 'User not found' });
     try {
       const row = await (this.prisma as any).workflowAccessUser.create({
         data: { workflowId, userId },
@@ -266,7 +266,7 @@ export class WorkflowService {
       }
       return row;
     } catch (err: any) {
-      if (err?.code === 'P2002') throw new ConflictException('User already has access to this workflow');
+      if (err?.code === 'P2002') throw new ConflictException({ code: 'WORKFLOW.USER_ACCESS_EXISTS', message: 'User already has access to this workflow' });
       throw err;
     }
   }
@@ -276,7 +276,7 @@ export class WorkflowService {
     const existing = await (this.prisma as any).workflowAccessUser.findUnique({
       where: { workflowId_userId: { workflowId, userId } },
     });
-    if (!existing) throw new NotFoundException('User does not have access to this workflow');
+    if (!existing) throw new NotFoundException({ code: 'WORKFLOW.USER_ACCESS_NOT_FOUND', message: 'User does not have access to this workflow' });
     await (this.prisma as any).workflowAccessUser.delete({
       where: { workflowId_userId: { workflowId, userId } },
     });
@@ -350,7 +350,7 @@ export class WorkflowService {
 
   async updateStage(stageId: string, dto: Partial<CreateWorkflowStageDto>, actorId?: string) {
     const stage = await this.prisma.workflowStage.findUnique({ where: { id: stageId } });
-    if (!stage) throw new NotFoundException('Stage not found');
+    if (!stage) throw new NotFoundException({ code: 'WORKFLOW.STAGE_NOT_FOUND', message: 'Stage not found' });
 
     const {
       assignedUserIds, approverUserIds, responsibleUserIds,
@@ -426,7 +426,7 @@ export class WorkflowService {
 
   async deleteStage(stageId: string, actorId?: string) {
     const stage = await this.prisma.workflowStage.findUnique({ where: { id: stageId } });
-    if (!stage) throw new NotFoundException('Stage not found');
+    if (!stage) throw new NotFoundException({ code: 'WORKFLOW.STAGE_NOT_FOUND', message: 'Stage not found' });
     await this.prisma.workflowStage.delete({ where: { id: stageId } });
     return { message: 'Stage deleted' };
   }
@@ -460,7 +460,7 @@ export class WorkflowService {
       this.prisma.applicant.findFirst({ where: { id: dto.candidateId, tier: 'CANDIDATE', deletedAt: null } }),
       this.getWorkflow(dto.workflowId),
     ]);
-    if (!candidate) throw new NotFoundException('Candidate not found');
+    if (!candidate) throw new NotFoundException({ code: 'APPLICANT.NOT_FOUND', message: 'Candidate not found' });
 
     // Business rule: a candidate is on exactly ONE active workflow at
     // any time. Reassignment to a different workflow is an
@@ -472,17 +472,19 @@ export class WorkflowService {
 
     const existingOnSame = activeAssignments.find(a => a.workflowId === dto.workflowId);
     if (existingOnSame) {
-      throw new ConflictException('Candidate already has an active assignment in this workflow');
+      throw new ConflictException({ code: 'WORKFLOW.ALREADY_ASSIGNED', message: 'Candidate already has an active assignment in this workflow' });
     }
 
     const existingOnOther = activeAssignments.find(a => a.workflowId !== dto.workflowId);
     if (existingOnOther) {
       const isAdmin = actor?.role === 'System Admin';
       if (!isAdmin) {
-        throw new ForbiddenException(
-          `Candidate is already assigned to "${existingOnOther.workflow?.name ?? 'another workflow'}". ` +
-          'Only a System Admin can reassign a candidate to a different workflow.',
-        );
+        throw new ForbiddenException({
+          code: 'WORKFLOW.REASSIGN_REQUIRES_ADMIN',
+          message: `Candidate is already assigned to "${existingOnOther.workflow?.name ?? 'another workflow'}". ` +
+            'Only a System Admin can reassign a candidate to a different workflow.',
+          params: { workflowName: existingOnOther.workflow?.name ?? 'another workflow' },
+        });
       }
       // Admin reassignment: withdraw the prior assignment (preserves
       // its stage-progress history) before creating the new one.
@@ -565,10 +567,10 @@ export class WorkflowService {
     actor?: { role?: string },
   ) {
     if (!Array.isArray(dto.candidateIds) || dto.candidateIds.length === 0) {
-      throw new BadRequestException('candidateIds is required and must be non-empty');
+      throw new BadRequestException({ code: 'WORKFLOW.CANDIDATE_IDS_REQUIRED', message: 'candidateIds is required and must be non-empty' });
     }
     if (dto.candidateIds.length > 500) {
-      throw new BadRequestException('Refusing to process more than 500 candidates in a single bulk assign');
+      throw new BadRequestException({ code: 'WORKFLOW.BULK_LIMIT_EXCEEDED', message: 'Refusing to process more than 500 candidates in a single bulk assign', params: { limit: 500 } });
     }
     // Pre-resolve the workflow once so every iteration doesn't re-
     // query the same row. The per-candidate path revalidates too, so
@@ -681,7 +683,7 @@ export class WorkflowService {
     const assignment = await this.prisma.candidateWorkflowAssignment.findFirst({
       where: { id: assignmentId, candidateId },
     });
-    if (!assignment) throw new NotFoundException('Assignment not found');
+    if (!assignment) throw new NotFoundException({ code: 'WORKFLOW.ASSIGNMENT_NOT_FOUND', message: 'Assignment not found' });
     await this.prisma.candidateWorkflowAssignment.delete({ where: { id: assignmentId } });
     return { success: true };
   }
@@ -695,9 +697,10 @@ export class WorkflowService {
     // reason plainly instead of silently 500-ing. Historical
     // EmployeeWorkflowAssignment rows are still readable via the
     // getEmployee* endpoints so operators can clean up.
-    throw new BadRequestException(
-      'Workflows can only be assigned to candidates. Assign this person while still on the Candidates list.',
-    );
+    throw new BadRequestException({
+      code: 'WORKFLOW.EMPLOYEE_ASSIGN_FORBIDDEN',
+      message: 'Workflows can only be assigned to candidates. Assign this person while still on the Candidates list.',
+    });
     // The body below is kept commented-out for clarity of the old
     // behaviour — do not re-enable without a product decision.
     /*
@@ -705,7 +708,7 @@ export class WorkflowService {
       this.prisma.employee.findFirst({ where: { id: dto.employeeId, deletedAt: null } }),
       this.getWorkflow(dto.workflowId),
     ]);
-    if (!employee) throw new NotFoundException('Employee not found');
+    if (!employee) throw new NotFoundException({ code: 'EMPLOYEE.NOT_FOUND', message: 'Employee not found' });
 
     // Delete any existing assignment (one-per-employee rule)
     await this.prisma.employeeWorkflowAssignment.deleteMany({ where: { employeeId: dto.employeeId } });
@@ -772,13 +775,13 @@ export class WorkflowService {
 
   async approveEmployeeStage(employeeId: string, stageId: string, actorId: string, notes?: string) {
     const assignment = await this.prisma.employeeWorkflowAssignment.findUnique({ where: { employeeId } });
-    if (!assignment) throw new NotFoundException('No workflow assignment found for this employee');
+    if (!assignment) throw new NotFoundException({ code: 'WORKFLOW.ASSIGNMENT_NOT_FOUND', message: 'No workflow assignment found for this employee' });
 
     const stage = await this.prisma.workflowStage.findFirst({
       where: { id: stageId, workflowId: assignment.workflowId },
       include: { assignedUsers: true },
     });
-    if (!stage) throw new NotFoundException('Stage not found in this employee\'s workflow');
+    if (!stage) throw new NotFoundException({ code: 'WORKFLOW.STAGE_NOT_IN_WORKFLOW', message: 'Stage not found in this employee\'s workflow' });
 
     const approval = await this.prisma.employeeStageApproval.upsert({
       where: { employeeId_stageId: { employeeId, stageId } },
@@ -794,19 +797,20 @@ export class WorkflowService {
     // Workflows are candidate-only — advancing an employee through a
     // pipeline stage no longer makes sense. Reads / deletes still
     // work on legacy rows.
-    throw new BadRequestException(
-      'Workflows can only be modified on candidates. Employees no longer move through workflow stages.',
-    );
+    throw new BadRequestException({
+      code: 'WORKFLOW.EMPLOYEE_MODIFY_FORBIDDEN',
+      message: 'Workflows can only be modified on candidates. Employees no longer move through workflow stages.',
+    });
     /* Legacy body preserved for reference:
     const assignment = await this.prisma.employeeWorkflowAssignment.findUnique({
       where: { employeeId },
     });
-    if (!assignment) throw new NotFoundException('No workflow assignment found for this employee');
+    if (!assignment) throw new NotFoundException({ code: 'WORKFLOW.ASSIGNMENT_NOT_FOUND', message: 'No workflow assignment found for this employee' });
 
     const stage = await this.prisma.workflowStage.findFirst({
       where: { id: stageId, workflowId: assignment.workflowId },
     });
-    if (!stage) throw new NotFoundException('Stage does not belong to this employee\'s workflow');
+    if (!stage) throw new NotFoundException({ code: 'WORKFLOW.STAGE_NOT_IN_WORKFLOW', message: 'Stage does not belong to this employee\'s workflow' });
 
     const [updated, approvals] = await Promise.all([
       this.prisma.employeeWorkflowAssignment.update({
@@ -841,7 +845,7 @@ export class WorkflowService {
     const assignment = await this.prisma.employeeWorkflowAssignment.findFirst({
       where: { employeeId, workflowId },
     });
-    if (!assignment) throw new NotFoundException('Assignment not found');
+    if (!assignment) throw new NotFoundException({ code: 'WORKFLOW.ASSIGNMENT_NOT_FOUND', message: 'Assignment not found' });
     await this.prisma.employeeWorkflowAssignment.delete({ where: { id: assignment.id } });
     if (actorId) {
       await this.prisma.auditLog.create({
@@ -941,10 +945,10 @@ export class WorkflowService {
         stageProgress: { include: { stage: { include: { assignedUsers: true } }, approvals: true } },
       },
     });
-    if (!assignment) throw new NotFoundException('Assignment not found');
+    if (!assignment) throw new NotFoundException({ code: 'WORKFLOW.ASSIGNMENT_NOT_FOUND', message: 'Assignment not found' });
 
     const stage = (assignment.workflow as any).stages.find((s: any) => s.id === stageId);
-    if (!stage) throw new BadRequestException('Stage does not belong to this workflow');
+    if (!stage) throw new BadRequestException({ code: 'WORKFLOW.STAGE_NOT_IN_WORKFLOW', message: 'Stage does not belong to this workflow' });
 
     // Guard the CURRENT (source) stage's approval + responsibility
     // rules before allowing advance. The candidate is advanced FROM
@@ -981,11 +985,14 @@ export class WorkflowService {
           ? srcApprovers.length
           : Math.max(1, Math.min(Number(srcStage.minApprovals ?? 1) || 1, srcApprovers.length));
         if (approvedBy.size < required) {
-          throw new ForbiddenException(
-            `Stage "${srcStage.name}" is awaiting approval. ` +
-            `${approvedBy.size} of ${required} required approver(s) have approved` +
-            (mode === 'ALL' ? ' (mode: All approvers).' : '.'),
-          );
+          throw new ForbiddenException({
+            code: 'WORKFLOW.APPROVAL_PENDING',
+            message:
+              `Stage "${srcStage.name}" is awaiting approval. ` +
+              `${approvedBy.size} of ${required} required approver(s) have approved` +
+              (mode === 'ALL' ? ' (mode: All approvers).' : '.'),
+            params: { stageName: srcStage.name, approved: approvedBy.size, required, mode },
+          });
         }
       }
 
@@ -997,9 +1004,11 @@ export class WorkflowService {
       if (!hasApprovers && !srcStage.responsibleAny && srcResponsible.length > 0) {
         const allowed = new Set(srcResponsible.map((u: any) => u.userId));
         if (!actorId || !allowed.has(actorId)) {
-          throw new ForbiddenException(
-            `Only the responsible users assigned to "${srcStage.name}" may advance the candidate.`,
-          );
+          throw new ForbiddenException({
+            code: 'WORKFLOW.RESPONSIBLE_ONLY',
+            message: `Only the responsible users assigned to "${srcStage.name}" may advance the candidate.`,
+            params: { stageName: srcStage.name },
+          });
         }
       }
 
@@ -1014,7 +1023,7 @@ export class WorkflowService {
     const existing = await this.prisma.candidateStageProgress.findFirst({
       where: { assignmentId, stageId, status: { in: ['ACTIVE', 'IN_PROGRESS'] as any } },
     });
-    if (existing) throw new ConflictException('Candidate is already active in this stage');
+    if (existing) throw new ConflictException({ code: 'WORKFLOW.ALREADY_AT_STAGE', message: 'Candidate is already active in this stage' });
 
     const slaDeadline = stage.slaHours ? new Date(Date.now() + stage.slaHours * 3600 * 1000) : null;
 
@@ -1041,7 +1050,7 @@ export class WorkflowService {
 
   async updateProgress(progressId: string, dto: UpdateWorkflowStageProgressDto, actorId?: string) {
     const progress = await this.prisma.candidateStageProgress.findUnique({ where: { id: progressId }, include: { stage: true } });
-    if (!progress) throw new NotFoundException('Progress record not found');
+    if (!progress) throw new NotFoundException({ code: 'WORKFLOW.PROGRESS_NOT_FOUND', message: 'Progress record not found' });
 
     const data: any = { status: dto.status };
     if (dto.status === 'COMPLETED') data.completedAt = new Date();
@@ -1070,7 +1079,7 @@ export class WorkflowService {
 
   async addNote(progressId: string, dto: CreateStageNoteDto, actorId?: string) {
     const progress = await this.prisma.candidateStageProgress.findUnique({ where: { id: progressId } });
-    if (!progress) throw new NotFoundException('Progress record not found');
+    if (!progress) throw new NotFoundException({ code: 'WORKFLOW.PROGRESS_NOT_FOUND', message: 'Progress record not found' });
     return this.prisma.candidateStageNote.create({
       data: { progressId, content: dto.content, isPrivate: dto.isPrivate ?? false, authorId: actorId },
       include: { author: { select: { id: true, firstName: true, lastName: true } } },
@@ -1079,7 +1088,7 @@ export class WorkflowService {
 
   async deleteNote(noteId: string, actorId?: string) {
     const note = await this.prisma.candidateStageNote.findUnique({ where: { id: noteId } });
-    if (!note) throw new NotFoundException('Note not found');
+    if (!note) throw new NotFoundException({ code: 'WORKFLOW.NOTE_NOT_FOUND', message: 'Note not found' });
     await this.prisma.candidateStageNote.update({ where: { id: noteId }, data: { deletedAt: new Date() } });
     return { message: 'Note deleted' };
   }
@@ -1088,7 +1097,7 @@ export class WorkflowService {
 
   async toggleProgressFlag(progressId: string, flagged: boolean, reason: string | null, actorId?: string) {
     const progress = await this.prisma.candidateStageProgress.findUnique({ where: { id: progressId } });
-    if (!progress) throw new NotFoundException('Progress record not found');
+    if (!progress) throw new NotFoundException({ code: 'WORKFLOW.PROGRESS_NOT_FOUND', message: 'Progress record not found' });
     const updated = await this.prisma.candidateStageProgress.update({
       where: { id: progressId },
       data: {
@@ -1117,8 +1126,8 @@ export class WorkflowService {
       where: { id: progressId },
       include: { stage: { include: { assignedUsers: true } } },
     });
-    if (!progress) throw new NotFoundException('Progress record not found');
-    if (!(progress.stage as any).requiresApproval) throw new BadRequestException('This stage does not require approval');
+    if (!progress) throw new NotFoundException({ code: 'WORKFLOW.PROGRESS_NOT_FOUND', message: 'Progress record not found' });
+    if (!(progress.stage as any).requiresApproval) throw new BadRequestException({ code: 'WORKFLOW.APPROVAL_NOT_REQUIRED', message: 'This stage does not require approval' });
 
     // Only users assigned with role APPROVER (or legacy REVIEWER)
     // may submit approval decisions. Responsible-only users can
@@ -1126,9 +1135,11 @@ export class WorkflowService {
     const approvers = ((progress.stage as any).assignedUsers ?? [])
       .filter((u: any) => u.role === 'APPROVER' || u.role === 'REVIEWER');
     if (approvers.length > 0 && actorId && !approvers.some((u: any) => u.userId === actorId)) {
-      throw new ForbiddenException(
-        `You are not an approver for "${(progress.stage as any).name}". Only assigned approvers may approve this stage.`,
-      );
+      throw new ForbiddenException({
+        code: 'WORKFLOW.NOT_AN_APPROVER',
+        message: `You are not an approver for "${(progress.stage as any).name}". Only assigned approvers may approve this stage.`,
+        params: { stageName: (progress.stage as any).name },
+      });
     }
 
     // Upsert approval for this actor on this progress
@@ -1158,7 +1169,7 @@ export class WorkflowService {
         workflow: { select: { id: true, name: true } },
       },
     });
-    if (!stage) throw new NotFoundException('Stage not found');
+    if (!stage) throw new NotFoundException({ code: 'WORKFLOW.STAGE_NOT_FOUND', message: 'Stage not found' });
 
     // All stages in the workflow for "Stage X of Y"
     const allStages = await this.prisma.workflowStage.findMany({

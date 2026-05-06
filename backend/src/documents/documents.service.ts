@@ -191,7 +191,7 @@ export class DocumentsService {
         renewals: { select: { id: true, docId: true, name: true, status: true, createdAt: true } },
       },
     });
-    if (!doc) throw new NotFoundException(`Document ${id} not found`);
+    if (!doc) throw new NotFoundException({ code: 'DOCUMENT.NOT_FOUND', message: `Document ${id} not found`, params: { id } });
     return doc;
   }
 
@@ -267,7 +267,7 @@ export class DocumentsService {
       docType = all.find(t => documentTypeName.toLowerCase().includes(t.name.toLowerCase())) ?? null;
     }
     if (!docType) docType = await this.prisma.documentType.findFirst({ orderBy: { createdAt: 'asc' } });
-    if (!docType) throw new BadRequestException('No document types configured');
+    if (!docType) throw new BadRequestException({ code: 'DOCUMENT.TYPES_NOT_CONFIGURED', message: 'No document types configured' });
 
     // Attribute to System Admin
     let systemUser = await this.prisma.user.findFirst({
@@ -275,7 +275,7 @@ export class DocumentsService {
       orderBy: { createdAt: 'asc' },
     });
     if (!systemUser) systemUser = await this.prisma.user.findFirst({ where: { deletedAt: null }, orderBy: { createdAt: 'asc' } });
-    if (!systemUser) throw new BadRequestException('No users found to attribute upload to');
+    if (!systemUser) throw new BadRequestException({ code: 'DOCUMENT.NO_ATTRIBUTION_USER', message: 'No users found to attribute upload to' });
 
     const safeDocType = this.sanitize(docType.name) || 'Others';
     const upload = await this.storage.uploadFile(file.buffer, {
@@ -313,7 +313,7 @@ export class DocumentsService {
 
   async create(dto: CreateDocumentDto, file: Express.Multer.File, uploadedById: string) {
     const docType = await this.prisma.documentType.findUnique({ where: { id: dto.documentTypeId } });
-    if (!docType) throw new NotFoundException('Document type not found');
+    if (!docType) throw new NotFoundException({ code: 'DOCUMENT.TYPE_NOT_FOUND', message: 'Document type not found' });
 
     const entityName  = await this.resolveEntityName(dto.entityType, dto.entityId);
     const safeDocType = this.sanitize(docType.name) || 'Others';
@@ -424,9 +424,11 @@ export class DocumentsService {
     const doc = await this.findOne(id);
 
     if (doc.status !== 'PENDING') {
-      throw new BadRequestException(
-        `Document is already ${doc.status.charAt(0) + doc.status.slice(1).toLowerCase()} and cannot be re-verified`,
-      );
+      throw new BadRequestException({
+        code: 'DOCUMENT.ALREADY_VERIFIED',
+        message: `Document is already ${doc.status.charAt(0) + doc.status.slice(1).toLowerCase()} and cannot be re-verified`,
+        params: { status: doc.status.toLowerCase() },
+      });
     }
 
     const isApprove = dto.action === VerifyActionEnum.VERIFY;

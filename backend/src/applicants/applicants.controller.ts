@@ -84,7 +84,7 @@ export class ApplicantsController {
     maxBytes: 5 * 1024 * 1024,
   })))
   uploadPhoto(@Param('id') id: string, @UploadedFile() file: Express.Multer.File) {
-    if (!file) throw new BadRequestException('No photo file provided');
+    if (!file) throw new BadRequestException({ code: 'GENERIC.FILE_REQUIRED', message: 'No photo file provided' });
     return this.applicantsService.uploadPhoto(id, file);
   }
 

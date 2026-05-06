@@ -116,8 +116,8 @@ export class DocumentsController {
     @Body('name') name: string,
     @Body('documentTypeName') documentTypeName: string,
   ) {
-    if (!file)     throw new BadRequestException('File is required');
-    if (!entityId) throw new BadRequestException('entityId is required');
+    if (!file)     throw new BadRequestException({ code: 'GENERIC.FILE_REQUIRED', message: 'File is required' });
+    if (!entityId) throw new BadRequestException({ code: 'DOCUMENT.ENTITY_ID_REQUIRED', message: 'entityId is required' });
     return this.documentsService.publicCreate(file, entityId, name || file.originalname, documentTypeName || 'Other');
   }
 
@@ -151,7 +151,7 @@ export class DocumentsController {
     @Body() dto: CreateDocumentDto,
     @CurrentUser() user: any,
   ) {
-    if (!file) throw new BadRequestException('File is required');
+    if (!file) throw new BadRequestException({ code: 'GENERIC.FILE_REQUIRED', message: 'File is required' });
     return this.documentsService.create(dto, file, user.id);
   }
 

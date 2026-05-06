@@ -921,7 +921,7 @@ export class VehiclesService {
     return workbook.xlsx.writeBuffer() as unknown as Promise<Buffer>;
   }
 
-  async exportMaintenanceRecordsPdf(dto: FilterMaintenanceDto, recordIds?: string[]): Promise<Buffer> {
+  async exportMaintenanceRecordsPdf(dto: FilterMaintenanceDto, recordIds?: string[], locale: ServerLocale = 'en'): Promise<Buffer> {
     const records = await this.fetchMaintenanceForExport(dto, recordIds);
 
     return new Promise((resolve, reject) => {
@@ -931,24 +931,27 @@ export class VehiclesService {
       doc.on('end', () => resolve(Buffer.concat(chunks)));
       doc.on('error', reject);
 
-      // Title
+      // Title + subtitle (localized)
+      const generatedLabel = tServer('common.generatedAt', {}, locale, 'exports');
+      const recordsLabel   = tServer('common.recordsSuffix', {}, locale, 'exports');
+      const mcol = (k: string) => tServer(`vehicles.maintenancePdfColumns.${k}`, {}, locale, 'exports');
       doc.fontSize(16).font('Helvetica-Bold').fillColor('#0F172A')
-        .text('Maintenance Records', { align: 'center' });
+        .text(tServer('vehicles.maintenancePdfTitle', {}, locale, 'exports'), { align: 'center' });
       doc.fontSize(9).font('Helvetica').fillColor('#64748B')
-        .text(`Generated: ${new Date().toLocaleString()}  |  ${records.length} records`, { align: 'center' });
+        .text(`${generatedLabel}: ${new Date().toLocaleString()}  |  ${records.length} ${recordsLabel}`, { align: 'center' });
       doc.moveDown(0.6);
 
       const columns = [
-        { label: 'Vehicle',    key: 'vehicle',     width: 70 },
-        { label: 'Type',       key: 'type',        width: 80 },
-        { label: 'Workshop',   key: 'workshop',    width: 90 },
-        { label: 'Status',     key: 'status',      width: 70 },
-        { label: 'Scheduled',  key: 'scheduled',   width: 65 },
-        { label: 'Completed',  key: 'completed',   width: 65 },
-        { label: 'Mileage',    key: 'mileage',     width: 60 },
-        { label: 'Cost',       key: 'cost',        width: 60 },
-        { label: 'Technician', key: 'technician',  width: 80 },
-        { label: 'Invoice',    key: 'invoice',     width: 70 },
+        { label: mcol('vehicle'),    key: 'vehicle',     width: 70 },
+        { label: mcol('type'),       key: 'type',        width: 80 },
+        { label: mcol('workshop'),   key: 'workshop',    width: 90 },
+        { label: mcol('status'),     key: 'status',      width: 70 },
+        { label: mcol('scheduled'),  key: 'scheduled',   width: 65 },
+        { label: mcol('completed'),  key: 'completed',   width: 65 },
+        { label: mcol('mileage'),    key: 'mileage',     width: 60 },
+        { label: mcol('cost'),       key: 'cost',        width: 60 },
+        { label: mcol('technician'), key: 'technician',  width: 80 },
+        { label: mcol('invoice'),    key: 'invoice',     width: 70 },
       ];
 
       const tblW   = columns.reduce((s, c) => s + c.width, 0);
@@ -1012,7 +1015,7 @@ export class VehiclesService {
 
       // Footer
       doc.fillColor('#94A3B8').fontSize(8)
-        .text('TempWorks — Maintenance Records', 36, (doc as any).page.height - 24, { align: 'center' });
+        .text(tServer('vehicles.maintenancePdfFooter', {}, locale, 'exports'), 36, (doc as any).page.height - 24, { align: 'center' });
       doc.end();
     });
   }

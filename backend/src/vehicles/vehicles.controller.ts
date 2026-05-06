@@ -144,9 +144,10 @@ export class VehiclesController {
     @Query() dto: FilterMaintenanceDto,
     @Query('recordIds') recordIds: string | string[] | undefined,
     @Res() res: Response,
+    @Headers('accept-language') acceptLanguage?: string,
   ) {
     const ids = !recordIds ? undefined : Array.isArray(recordIds) ? recordIds : recordIds.split(',').filter(Boolean);
-    const buffer = await this.vehiclesService.exportMaintenanceRecordsPdf(dto, ids);
+    const buffer = await this.vehiclesService.exportMaintenanceRecordsPdf(dto, ids, resolveAcceptLanguage(acceptLanguage));
     res.set({
       'Content-Type':        'application/pdf',
       'Content-Disposition': `attachment; filename="maintenance-records-${new Date().toISOString().split('T')[0]}.pdf"`,

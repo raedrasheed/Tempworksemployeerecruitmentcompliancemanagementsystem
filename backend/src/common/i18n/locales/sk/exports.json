@@ -1,6 +1,9 @@
 {
   "common": {
     "exportedAt": "Exported at",
+    "generatedAt": "Generated",
+    "recordsSuffix": "records",
+    "footerBrand": "TempWorks",
     "page": "Page",
     "total": "Total",
     "filters": "Filters",
@@ -136,6 +139,20 @@
     "sheetName": "Vehicles",
     "title": "Vehicle Export",
     "maintenanceSheetName": "Maintenance Records",
+    "maintenancePdfTitle": "Maintenance Records",
+    "maintenancePdfFooter": "TempWorks — Maintenance Records",
+    "maintenancePdfColumns": {
+      "vehicle": "Vehicle",
+      "type": "Type",
+      "workshop": "Workshop",
+      "status": "Status",
+      "scheduled": "Scheduled",
+      "completed": "Completed",
+      "mileage": "Mileage",
+      "cost": "Cost",
+      "technician": "Technician",
+      "invoice": "Invoice"
+    },
     "columns": {
       "registration": "Registration",
       "registrationNumber": "Registration Number",

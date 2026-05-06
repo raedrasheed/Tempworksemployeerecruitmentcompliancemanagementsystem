@@ -92,6 +92,7 @@ function ColumnPicker<K extends string>({
   storageKey: string;
   defaults: Record<K, boolean>;
 }) {
+  const { t } = useTranslation('pages');
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useClickOutside(ref, open, () => setOpen(false));
@@ -113,7 +114,7 @@ function ColumnPicker<K extends string>({
       </Button>
       {open && (
         <div className="absolute end-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[200px]">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">Toggle columns</p>
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">{t('documents.explorer.toggleColumns')}</p>
           <div className="space-y-0.5 max-h-72 overflow-y-auto">
             {columns.map(c => (
               <button
@@ -132,7 +133,7 @@ function ColumnPicker<K extends string>({
             <button
               onClick={() => set(Object.fromEntries(columns.map(c => [c.key, true])) as Record<K, boolean>)}
               className="flex-1 text-xs text-center text-primary hover:underline py-0.5"
-            >Show all</button>
+            >{t('documents.explorer.showAll')}</button>
             <span className="text-gray-300">|</span>
             <button
               onClick={() => set(defaults)}
@@ -497,11 +498,11 @@ export function EmployeeDocumentExplorer() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'VERIFIED':      return <Badge variant="outline" className="bg-[#F0FDF4] text-[#22C55E] border-[#22C55E]">Valid</Badge>;
-      case 'EXPIRING_SOON': return <Badge variant="outline" className="bg-[#FEF3C7] text-[#F59E0B] border-[#F59E0B]">Expiring Soon</Badge>;
-      case 'EXPIRED':       return <Badge variant="outline" className="bg-[#FEE2E2] text-[#EF4444] border-[#EF4444]">Expired</Badge>;
-      case 'REJECTED':      return <Badge variant="outline" className="bg-[#FEE2E2] text-[#EF4444] border-[#EF4444]">Rejected</Badge>;
-      default:              return <Badge variant="outline" className="bg-[#F8FAFC] text-[#64748B] border-[#E2E8F0]">Pending</Badge>;
+      case 'VERIFIED':      return <Badge variant="outline" className="bg-[#F0FDF4] text-[#22C55E] border-[#22C55E]">{t('documents.preview.statusBadge.valid')}</Badge>;
+      case 'EXPIRING_SOON': return <Badge variant="outline" className="bg-[#FEF3C7] text-[#F59E0B] border-[#F59E0B]">{t('documents.explorer.expiringSoon')}</Badge>;
+      case 'EXPIRED':       return <Badge variant="outline" className="bg-[#FEE2E2] text-[#EF4444] border-[#EF4444]">{t('documents.preview.statusBadge.expired')}</Badge>;
+      case 'REJECTED':      return <Badge variant="outline" className="bg-[#FEE2E2] text-[#EF4444] border-[#EF4444]">{t('documents.preview.statusBadge.rejected')}</Badge>;
+      default:              return <Badge variant="outline" className="bg-[#F8FAFC] text-[#64748B] border-[#E2E8F0]">{t('documents.preview.statusBadge.pending')}</Badge>;
     }
   };
 
@@ -579,7 +580,7 @@ export function EmployeeDocumentExplorer() {
     }
   };
 
-  if (loading) return <div className="p-8 text-muted-foreground">Loading...</div>;
+  if (loading) return <div className="p-8 text-muted-foreground">{t('documents.explorer.loading')}</div>;
 
   return (
     <div className="space-y-6">
@@ -629,7 +630,7 @@ export function EmployeeDocumentExplorer() {
               <Select value={nationalityFilter} onValueChange={setNationalityFilter}>
                 <SelectTrigger><SelectValue placeholder="Citizenship" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Citizenships</SelectItem>
+                  <SelectItem value="all">{t('documents.explorer.allCitizenships')}</SelectItem>
                   {nationalities.map(nat => (
                     <SelectItem key={nat} value={nat}>{nat}</SelectItem>
                   ))}
@@ -638,7 +639,7 @@ export function EmployeeDocumentExplorer() {
               <Select value={agencyFilter} onValueChange={setAgencyFilter}>
                 <SelectTrigger><SelectValue placeholder="Agency" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Agencies</SelectItem>
+                  <SelectItem value="all">{t('documents.explorer.allAgencies')}</SelectItem>
                   {agencies.map(a => (
                     <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
                   ))}
@@ -647,7 +648,7 @@ export function EmployeeDocumentExplorer() {
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="all">{t('documents.explorer.allStatus')}</SelectItem>
                   <SelectItem value="ACTIVE">Active</SelectItem>
                   <SelectItem value="PENDING">Pending</SelectItem>
                   <SelectItem value="INACTIVE">Inactive</SelectItem>
@@ -728,7 +729,7 @@ export function EmployeeDocumentExplorer() {
               </thead>
               <tbody>
                 {filteredEmployees.length === 0 ? (
-                  <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">No employees found</td></tr>
+                  <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">{t('documents.explorer.noEmployees')}</td></tr>
                 ) : filteredEmployees.map(emp => {
                   const isSelected = selectedEmployees.includes(emp.id);
                   return (
@@ -850,10 +851,10 @@ export function EmployeeDocumentExplorer() {
               <Select value={empDocsStatusFilter} onValueChange={setEmpDocsStatusFilter}>
                 <SelectTrigger className="w-44"><SelectValue placeholder="All Statuses" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="all">{t('documents.explorer.allStatuses')}</SelectItem>
                   <SelectItem value="PENDING">Pending</SelectItem>
                   <SelectItem value="VERIFIED">Valid</SelectItem>
-                  <SelectItem value="EXPIRING_SOON">Expiring Soon</SelectItem>
+                  <SelectItem value="EXPIRING_SOON">{t('documents.explorer.expiringSoon')}</SelectItem>
                   <SelectItem value="EXPIRED">Expired</SelectItem>
                   <SelectItem value="REJECTED">Rejected</SelectItem>
                 </SelectContent>
@@ -865,7 +866,7 @@ export function EmployeeDocumentExplorer() {
                 className="w-44"
               />
               <div className="flex items-center gap-1">
-                <span className="text-xs text-muted-foreground whitespace-nowrap">Expiry from</span>
+                <span className="text-xs text-muted-foreground whitespace-nowrap">{t('documents.explorer.expiryFrom')}</span>
                 <Input type="date" value={empDocsExpFrom} onChange={e => setEmpDocsExpFrom(e.target.value)} className="w-36" />
                 <span className="text-xs text-muted-foreground">to</span>
                 <Input type="date" value={empDocsExpTo} onChange={e => setEmpDocsExpTo(e.target.value)} className="w-36" />
@@ -915,7 +916,7 @@ export function EmployeeDocumentExplorer() {
                 </thead>
                 <tbody>
                   {displayEmpDocs.length === 0 ? (
-                    <tr><td colSpan={12} className="p-8 text-center text-muted-foreground">No documents found for selected employees</td></tr>
+                    <tr><td colSpan={12} className="p-8 text-center text-muted-foreground">{t('documents.explorer.noDocsForEmployees')}</td></tr>
                   ) : displayEmpDocs.map(doc => {
                     const isSelected = selectedDocuments.includes(doc.id);
                     const emp = employees.find(e => e.id === doc.entityId);
@@ -964,7 +965,7 @@ export function EmployeeDocumentExplorer() {
             <div className="w-16 h-16 rounded-full bg-[#F8FAFC] flex items-center justify-center mx-auto mb-4">
               <FileArchive className="w-8 h-8 text-muted-foreground" />
             </div>
-            <h3 className="font-semibold text-lg mb-2">No Employees Selected</h3>
+            <h3 className="font-semibold text-lg mb-2">{t('documents.explorer.noEmployeesSelected')}</h3>
             <p className="text-muted-foreground">
               Select one or more employees from the table above to view and download their documents
             </p>
@@ -992,7 +993,7 @@ export function EmployeeDocumentExplorer() {
               <Select value={appStatusFilter} onValueChange={setAppStatusFilter}>
                 <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="all">{t('documents.explorer.allStatus')}</SelectItem>
                   <SelectItem value="ACTIVE">Active</SelectItem>
                   <SelectItem value="PENDING">Pending</SelectItem>
                   <SelectItem value="HIRED">Hired</SelectItem>
@@ -1002,7 +1003,7 @@ export function EmployeeDocumentExplorer() {
               <Select value={appNationalityFilter} onValueChange={setAppNationalityFilter}>
                 <SelectTrigger><SelectValue placeholder="Citizenship" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Citizenships</SelectItem>
+                  <SelectItem value="all">{t('documents.explorer.allCitizenships')}</SelectItem>
                   {applicantNationalities.map(nat => (
                     <SelectItem key={nat} value={nat}>{nat}</SelectItem>
                   ))}
@@ -1071,7 +1072,7 @@ export function EmployeeDocumentExplorer() {
                 </thead>
                 <tbody>
                   {filteredApplicants.length === 0 ? (
-                    <tr><td colSpan={5} className="p-8 text-center text-muted-foreground">No applicants found</td></tr>
+                    <tr><td colSpan={5} className="p-8 text-center text-muted-foreground">{t('documents.explorer.noApplicants')}</td></tr>
                   ) : filteredApplicants.map(app => {
                     const isSelected = selectedApplicants.includes(app.id);
                     return (
@@ -1193,10 +1194,10 @@ export function EmployeeDocumentExplorer() {
                 <Select value={appDocsStatusFilter} onValueChange={setAppDocsStatusFilter}>
                   <SelectTrigger className="w-44"><SelectValue placeholder="All Statuses" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Statuses</SelectItem>
+                    <SelectItem value="all">{t('documents.explorer.allStatuses')}</SelectItem>
                     <SelectItem value="PENDING">Pending</SelectItem>
                     <SelectItem value="VERIFIED">Valid</SelectItem>
-                    <SelectItem value="EXPIRING_SOON">Expiring Soon</SelectItem>
+                    <SelectItem value="EXPIRING_SOON">{t('documents.explorer.expiringSoon')}</SelectItem>
                     <SelectItem value="EXPIRED">Expired</SelectItem>
                     <SelectItem value="REJECTED">Rejected</SelectItem>
                   </SelectContent>
@@ -1208,7 +1209,7 @@ export function EmployeeDocumentExplorer() {
                   className="w-44"
                 />
                 <div className="flex items-center gap-1">
-                  <span className="text-xs text-muted-foreground whitespace-nowrap">Expiry from</span>
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">{t('documents.explorer.expiryFrom')}</span>
                   <Input type="date" value={appDocsExpFrom} onChange={e => setAppDocsExpFrom(e.target.value)} className="w-36" />
                   <span className="text-xs text-muted-foreground">to</span>
                   <Input type="date" value={appDocsExpTo} onChange={e => setAppDocsExpTo(e.target.value)} className="w-36" />
@@ -1258,7 +1259,7 @@ export function EmployeeDocumentExplorer() {
                   </thead>
                   <tbody>
                     {displayAppDocs.length === 0 ? (
-                      <tr><td colSpan={12} className="p-8 text-center text-muted-foreground">No documents found for selected applicants</td></tr>
+                      <tr><td colSpan={12} className="p-8 text-center text-muted-foreground">{t('documents.explorer.noDocsForApplicants')}</td></tr>
                     ) : displayAppDocs.map(doc => {
                       const isSelected = selectedApplicantDocs.includes(doc.id);
                       const app = applicants.find(a => a.id === doc.entityId);
@@ -1307,7 +1308,7 @@ export function EmployeeDocumentExplorer() {
               <div className="w-16 h-16 rounded-full bg-[#F8FAFC] flex items-center justify-center mx-auto mb-4">
                 <FileArchive className="w-8 h-8 text-muted-foreground" />
               </div>
-              <h3 className="font-semibold text-lg mb-2">No Applicants Selected</h3>
+              <h3 className="font-semibold text-lg mb-2">{t('documents.explorer.noApplicantsSelected')}</h3>
               <p className="text-muted-foreground">
                 Select one or more applicants from the table above to view and download their documents
               </p>

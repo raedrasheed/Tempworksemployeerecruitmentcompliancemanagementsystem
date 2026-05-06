@@ -88,29 +88,29 @@ export function ApplicantPDF({ applicant, photoDataUrl }: { applicant: any; phot
         <View style={S.section}>
           <Text style={S.sectionTitle}>{tp('personalInformation')}</Text>
           <View style={S.grid2}>
-            <F label="First Name" value={applicant.firstName} />
-            <F label="Last Name" value={applicant.lastName} />
-            <F label="Middle Name" value={applicant.middleName} />
-            <F label="Gender" value={ad.gender} />
-            <F label="Date of Birth" value={ad.dateOfBirth || applicant.dateOfBirth} />
-            <F label="Country of Birth" value={ad.countryOfBirth || applicant.countryOfBirth} />
-            <F label="City of Birth" value={ad.cityOfBirth || applicant.cityOfBirth} />
-            <F label="Citizenship" value={ad.citizenship || applicant.citizenship} />
-            <F label="Job Category" value={applicant.jobType?.name} />
-            <F label="Preferred Start Date" value={applicant.preferredStartDate} />
-            <F label="Availability" value={applicant.availability} />
-            <F label="Willing to Relocate" value={yn(applicant.willingToRelocate)} />
+            <F label={tp('field.firstName')} value={applicant.firstName} />
+            <F label={tp('field.lastName')} value={applicant.lastName} />
+            <F label={tp('field.middleName')} value={applicant.middleName} />
+            <F label={tp('field.gender')} value={ad.gender} />
+            <F label={tp('field.dateOfBirth')} value={ad.dateOfBirth || applicant.dateOfBirth} />
+            <F label={tp('field.countryOfBirth')} value={ad.countryOfBirth || applicant.countryOfBirth} />
+            <F label={tp('field.cityOfBirth')} value={ad.cityOfBirth || applicant.cityOfBirth} />
+            <F label={tp('field.citizenship')} value={ad.citizenship || applicant.citizenship} />
+            <F label={tp('field.jobCategory')} value={applicant.jobType?.name} />
+            <F label={tp('field.preferredStartDate')} value={applicant.preferredStartDate} />
+            <F label={tp('field.availability')} value={applicant.availability} />
+            <F label={tp('field.willingToRelocate')} value={yn(applicant.willingToRelocate)} />
           </View>
-          {applicant.preferredLocations && <FF label="Preferred Locations" value={applicant.preferredLocations} />}
-          {applicant.salaryExpectation && <FF label="Salary Expectation" value={applicant.salaryExpectation} />}
+          {applicant.preferredLocations && <FF label={tp('field.preferredLocations')} value={applicant.preferredLocations} />}
+          {applicant.salaryExpectation && <FF label={tp('field.salaryExpectation')} value={applicant.salaryExpectation} />}
         </View>
 
         {/* Contact */}
         <View style={S.section}>
           <Text style={S.sectionTitle}>{tp('contactDetails')}</Text>
           <View style={S.grid2}>
-            <F label="Email" value={applicant.email} />
-            <F label="Phone" value={applicant.phone} />
+            <F label={tp('field.email')} value={applicant.email} />
+            <F label={tp('field.phone')} value={applicant.phone} />
           </View>
           {(ad.homeAddress?.addressLine1 || ad.currentAddress?.addressLine1) && (
             <>
@@ -118,10 +118,10 @@ export function ApplicantPDF({ applicant, photoDataUrl }: { applicant: any; phot
                 <>
                   <Text style={S.subTitle}>{tp('permanentAddress')}</Text>
                   <View style={S.grid2}>
-                    <FF label="Address" value={[ad.homeAddress.addressLine1, ad.homeAddress.addressLine2].filter(Boolean).join(', ')} />
-                    <F label="City" value={ad.homeAddress.city} />
-                    <F label="Postal Code" value={ad.homeAddress.postalCode} />
-                    <F label="Country" value={ad.homeAddress.country} />
+                    <FF label={tp('field.address')} value={[ad.homeAddress.addressLine1, ad.homeAddress.addressLine2].filter(Boolean).join(', ')} />
+                    <F label={tp('field.city')} value={ad.homeAddress.city} />
+                    <F label={tp('field.postalCode')} value={ad.homeAddress.postalCode} />
+                    <F label={tp('field.country')} value={ad.homeAddress.country} />
                   </View>
                 </>
               )}
@@ -131,10 +131,10 @@ export function ApplicantPDF({ applicant, photoDataUrl }: { applicant: any; phot
             <>
               <Text style={S.subTitle}>{tp('emergencyContact')}</Text>
               <View style={S.grid2}>
-                <F label="Name" value={`${ad.emergencyFirstName} ${ad.emergencyLastName}`} />
-                <F label="Relationship" value={ad.emergencyRelation} />
-                <F label="Phone" value={`${ad.emergencyPhoneCode ?? ''} ${ad.emergencyPhone ?? ''}`.trim()} />
-                <F label="Email" value={ad.emergencyEmail} />
+                <F label={tp('field.name')} value={`${ad.emergencyFirstName} ${ad.emergencyLastName}`} />
+                <F label={tp('field.relationship')} value={ad.emergencyRelation} />
+                <F label={tp('field.phone')} value={`${ad.emergencyPhoneCode ?? ''} ${ad.emergencyPhone ?? ''}`.trim()} />
+                <F label={tp('field.email')} value={ad.emergencyEmail} />
               </View>
             </>
           )}
@@ -145,18 +145,18 @@ export function ApplicantPDF({ applicant, photoDataUrl }: { applicant: any; phot
           <Text style={S.sectionTitle}>{tp('identification')}</Text>
           <Text style={S.subTitle}>Passport</Text>
           <View style={S.grid2}>
-            <F label="Passport Number" value={ad.passportNumber} />
-            <F label="Issuing Country" value={ad.passportCountry} />
-            <F label="Issue Date" value={ad.passportIssueDate} />
-            <F label="Expiry Date" value={ad.passportNoExpiry ? 'No Expiry' : ad.passportExpiryDate} />
+            <F label={tp('field.passportNumber')} value={ad.passportNumber} />
+            <F label={tp('field.issuingCountry')} value={ad.passportCountry} />
+            <F label={tp('field.issueDate')} value={ad.passportIssueDate} />
+            <F label={tp('field.expiryDate')} value={ad.passportNoExpiry ? tp('field.noExpiry') : ad.passportExpiryDate} />
           </View>
           {ad.hasIdCard === 'yes' && (
             <>
               <Text style={S.subTitle}>{tp('nationalIdCard')}</Text>
               <View style={S.grid2}>
-                <F label="ID Number" value={ad.idCardNumber} />
-                <F label="Country" value={ad.idCardCountry} />
-                <F label="Expiry" value={ad.idCardNoExpiry ? 'No Expiry' : ad.idCardExpiryDate} />
+                <F label={tp('field.idNumber')} value={ad.idCardNumber} />
+                <F label={tp('field.country')} value={ad.idCardCountry} />
+                <F label={tp('field.expiry')} value={ad.idCardNoExpiry ? tp('field.noExpiry') : ad.idCardExpiryDate} />
               </View>
             </>
           )}
@@ -164,11 +164,11 @@ export function ApplicantPDF({ applicant, photoDataUrl }: { applicant: any; phot
             <>
               <Text style={S.subTitle}>{tp('euVisa')}</Text>
               <View style={S.grid2}>
-                <F label="Type" value={ad.euVisaType} />
-                <F label="Issuing Country" value={ad.euVisaCountry} />
-                <F label="Number" value={ad.euVisaNumber} />
-                <F label="Expiry" value={ad.euVisaNoExpiry ? 'No Expiry' : ad.euVisaExpiryDate} />
-                {ad.purposeOfIssue && <FF label="Purpose of Issue" value={ad.purposeOfIssue} />}
+                <F label={tp('field.type')} value={ad.euVisaType} />
+                <F label={tp('field.issuingCountry')} value={ad.euVisaCountry} />
+                <F label={tp('field.number')} value={ad.euVisaNumber} />
+                <F label={tp('field.expiry')} value={ad.euVisaNoExpiry ? tp('field.noExpiry') : ad.euVisaExpiryDate} />
+                {ad.purposeOfIssue && <FF label={tp('field.purposeOfIssue')} value={ad.purposeOfIssue} />}
               </View>
             </>
           )}
@@ -176,9 +176,9 @@ export function ApplicantPDF({ applicant, photoDataUrl }: { applicant: any; phot
             <>
               <Text style={S.subTitle}>{tp('euResidencePermit')}</Text>
               <View style={S.grid2}>
-                <F label="Permit Number" value={ad.euResidenceNumber} />
-                <F label="Country" value={ad.euResidenceCountry} />
-                <F label="Expiry" value={ad.euResidenceNoExpiry ? 'No Expiry' : ad.euResidenceExpiryDate} />
+                <F label={tp('field.permitNumber')} value={ad.euResidenceNumber} />
+                <F label={tp('field.country')} value={ad.euResidenceCountry} />
+                <F label={tp('field.expiry')} value={ad.euResidenceNoExpiry ? tp('field.noExpiry') : ad.euResidenceExpiryDate} />
               </View>
             </>
           )}
@@ -186,20 +186,20 @@ export function ApplicantPDF({ applicant, photoDataUrl }: { applicant: any; phot
             <>
               <Text style={S.subTitle}>{tp('euWorkPermit')}</Text>
               <View style={S.grid2}>
-                <F label="Type" value={ad.workPermitType} />
-                <F label="Number" value={ad.workPermitNumber} />
-                <F label="Country" value={ad.workPermitCountry} />
-                <F label="Expiry" value={ad.workPermitNoExpiry ? 'No Expiry' : ad.workPermitExpiryDate} />
+                <F label={tp('field.type')} value={ad.workPermitType} />
+                <F label={tp('field.number')} value={ad.workPermitNumber} />
+                <F label={tp('field.country')} value={ad.workPermitCountry} />
+                <F label={tp('field.expiry')} value={ad.workPermitNoExpiry ? tp('field.noExpiry') : ad.workPermitExpiryDate} />
               </View>
             </>
           )}
           <View style={S.grid2}>
-            <F label="Home Country Criminal Record" value={yn(ad.hasHomeCriminalRecord)} />
-            {ad.hasHomeCriminalRecord === 'yes' && <F label="Date of Issue" value={ad.homeCriminalRecordDate} />}
-            {ad.hasHomeCriminalRecord === 'yes' && <F label="Country of Issue" value={ad.homeCriminalRecordCountry} />}
-            <F label="EU Criminal Record" value={yn(ad.hasEuCriminalRecord)} />
-            {ad.hasEuCriminalRecord === 'yes' && <F label="Date of Issue" value={ad.euCriminalRecordDate} />}
-            {ad.hasEuCriminalRecord === 'yes' && <F label="Country of Issue" value={ad.euCriminalRecordCountry} />}
+            <F label={tp('field.homeCriminalRecord')} value={yn(ad.hasHomeCriminalRecord)} />
+            {ad.hasHomeCriminalRecord === 'yes' && <F label={tp('field.dateOfIssue')} value={ad.homeCriminalRecordDate} />}
+            {ad.hasHomeCriminalRecord === 'yes' && <F label={tp('field.countryOfIssue')} value={ad.homeCriminalRecordCountry} />}
+            <F label={tp('field.euCriminalRecord')} value={yn(ad.hasEuCriminalRecord)} />
+            {ad.hasEuCriminalRecord === 'yes' && <F label={tp('field.dateOfIssue')} value={ad.euCriminalRecordDate} />}
+            {ad.hasEuCriminalRecord === 'yes' && <F label={tp('field.countryOfIssue')} value={ad.euCriminalRecordCountry} />}
           </View>
         </View>
 
@@ -216,10 +216,10 @@ export function ApplicantPDF({ applicant, photoDataUrl }: { applicant: any; phot
           <View style={S.section}>
             <Text style={S.sectionTitle}>{tp('drivingLicense')}</Text>
             <View style={S.grid2}>
-              <F label="License Number" value={ad.licenseNumber} />
-              <F label="Issuing Country" value={ad.licenseCountry} />
-              <F label="Issue Date" value={ad.licenseIssueDate} />
-              <F label="Expiry" value={ad.licenseNoExpiry ? 'No Expiry' : ad.licenseExpiryDate} />
+              <F label={tp('field.licenseNumber')} value={ad.licenseNumber} />
+              <F label={tp('field.issuingCountry')} value={ad.licenseCountry} />
+              <F label={tp('field.issueDate')} value={ad.licenseIssueDate} />
+              <F label={tp('field.expiry')} value={ad.licenseNoExpiry ? tp('field.noExpiry') : ad.licenseExpiryDate} />
             </View>
             {ad.licenseCategories?.length > 0 && (
               <>
@@ -235,10 +235,10 @@ export function ApplicantPDF({ applicant, photoDataUrl }: { applicant: any; phot
                 {ad.qualifications.map((q: any, i: number) => (
                   <View key={i} style={S.entryBox}>
                     <View style={S.grid2}>
-                      <F label="Type" value={q.type} />
-                      <F label="Country" value={q.country} />
-                      <F label="Issue Date" value={q.issueDate} />
-                      <F label="Expiry" value={q.noExpiry ? 'No Expiry' : q.expiryDate} />
+                      <F label={tp('field.type')} value={q.type} />
+                      <F label={tp('field.country')} value={q.country} />
+                      <F label={tp('field.issueDate')} value={q.issueDate} />
+                      <F label={tp('field.expiry')} value={q.noExpiry ? tp('field.noExpiry') : q.expiryDate} />
                     </View>
                   </View>
                 ))}
@@ -255,13 +255,13 @@ export function ApplicantPDF({ applicant, photoDataUrl }: { applicant: any; phot
               <View key={i} style={S.entryBox}>
                 <Text style={S.entryNum}>Entry {i + 1}</Text>
                 <View style={S.grid2}>
-                  <F label="Level" value={e.level} />
-                  <F label="Institution" value={e.institution} />
-                  <F label="Field of Study" value={e.fieldOfStudy} />
-                  <F label="Country" value={e.country} />
-                  <F label="Start Date" value={e.startDate} />
-                  <F label="End Date" value={e.ongoing ? 'Ongoing' : e.endDate} />
-                  <FF label="Degree / Certificate" value={e.degree} />
+                  <F label={tp('field.level')} value={e.level} />
+                  <F label={tp('field.institution')} value={e.institution} />
+                  <F label={tp('field.fieldOfStudy')} value={e.fieldOfStudy} />
+                  <F label={tp('field.country')} value={e.country} />
+                  <F label={tp('field.startDate')} value={e.startDate} />
+                  <F label={tp('field.endDate')} value={e.ongoing ? 'Ongoing' : e.endDate} />
+                  <FF label={tp('field.degreeCertificate')} value={e.degree} />
                 </View>
               </View>
             ))}
@@ -276,14 +276,14 @@ export function ApplicantPDF({ applicant, photoDataUrl }: { applicant: any; phot
               <View key={i} style={S.entryBox}>
                 <Text style={S.entryNum}>Position {i + 1}</Text>
                 <View style={S.grid2}>
-                  <F label="Company" value={w.company} />
-                  <F label="Job Title" value={w.jobTitle} />
-                  <F label="Country" value={w.country} />
-                  <F label="Start Date" value={w.startDate} />
-                  <F label="End Date" value={w.current ? 'Current' : w.endDate} />
+                  <F label={tp('field.company')} value={w.company} />
+                  <F label={tp('field.jobTitle')} value={w.jobTitle} />
+                  <F label={tp('field.country')} value={w.country} />
+                  <F label={tp('field.startDate')} value={w.startDate} />
+                  <F label={tp('field.endDate')} value={w.current ? 'Current' : w.endDate} />
                 </View>
-                {w.responsibilities && <FF label="Responsibilities" value={w.responsibilities} />}
-                {w.references && <FF label="References" value={w.references} />}
+                {w.responsibilities && <FF label={tp('field.responsibilities')} value={w.responsibilities} />}
+                {w.references && <FF label={tp('field.references')} value={w.references} />}
               </View>
             ))}
           </View>
@@ -329,18 +329,18 @@ export function ApplicantPDF({ applicant, photoDataUrl }: { applicant: any; phot
             </>
           )}
           <View style={S.grid2}>
-            <F label="First Aid Certificate" value={yn(ad.hasFirstAid)} />
-            {ad.hasFirstAid === 'yes' && <F label="First Aid Expiry" value={ad.firstAidNoExpiry ? 'No Expiry' : ad.firstAidExpiry} />}
+            <F label={tp('field.firstAidCert')} value={yn(ad.hasFirstAid)} />
+            {ad.hasFirstAid === 'yes' && <F label={tp('field.firstAidExpiry')} value={ad.firstAidNoExpiry ? tp('field.noExpiry') : ad.firstAidExpiry} />}
           </View>
-          {ad.toolsDescription && <FF label="Tools & Equipment" value={ad.toolsDescription} />}
+          {ad.toolsDescription && <FF label={tp('field.toolsEquipment')} value={ad.toolsDescription} />}
         </View>
 
         {/* Additional */}
         <View style={S.section}>
           <Text style={S.sectionTitle}>{tp('additionalInformation')}</Text>
           <View style={S.grid2}>
-            <F label="How Did You Hear" value={ad.howDidYouHear} />
-            <F label="Additional Notes" value={ad.additionalNotes} />
+            <F label={tp('field.howDidYouHear')} value={ad.howDidYouHear} />
+            <F label={tp('field.additionalNotes')} value={ad.additionalNotes} />
           </View>
         </View>
 
@@ -348,9 +348,9 @@ export function ApplicantPDF({ applicant, photoDataUrl }: { applicant: any; phot
         <View style={S.section}>
           <Text style={S.sectionTitle}>Declaration</Text>
           <View style={S.grid2}>
-            <F label="Information Declaration" value={ad.declarationAccepted ? '✓ Agreed' : '✗ Not agreed'} />
-            <F label="Data Processing Consent" value={ad.agreeDataProcessing ? '✓ Agreed' : '✗ Not agreed'} />
-            <F label="Background Declaration" value={ad.agreeBackground ? '✓ Agreed' : '✗ Not agreed'} />
+            <F label={tp('field.informationDeclaration')} value={ad.declarationAccepted ? '✓ Agreed' : '✗ Not agreed'} />
+            <F label={tp('field.dataProcessingConsent')} value={ad.agreeDataProcessing ? '✓ Agreed' : '✗ Not agreed'} />
+            <F label={tp('field.backgroundDeclaration')} value={ad.agreeBackground ? '✓ Agreed' : '✗ Not agreed'} />
           </View>
         </View>
 

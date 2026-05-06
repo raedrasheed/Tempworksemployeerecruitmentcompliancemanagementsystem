@@ -351,10 +351,10 @@ export function DocumentsCompliance() {
   };
 
   const getComplianceBadge = (status: string) => {
-    if (status === 'VERIFIED')      return <span className="px-2 py-0.5 rounded-full text-xs border border-emerald-400 text-emerald-600 bg-emerald-50">Compliant</span>;
-    if (status === 'EXPIRING_SOON') return <span className="px-2 py-0.5 rounded-full text-xs border border-amber-400  text-amber-600  bg-amber-50">At Risk</span>;
-    if (status === 'PENDING')       return <span className="px-2 py-0.5 rounded-full text-xs border border-gray-300   text-gray-600   bg-gray-50">Pending</span>;
-    return <span className="px-2 py-0.5 rounded-full text-xs border border-red-400 text-red-600 bg-red-50">Non-Compliant</span>;
+    if (status === 'VERIFIED')      return <span className="px-2 py-0.5 rounded-full text-xs border border-emerald-400 text-emerald-600 bg-emerald-50">{t('documents.compliance.complianceBadge.compliant')}</span>;
+    if (status === 'EXPIRING_SOON') return <span className="px-2 py-0.5 rounded-full text-xs border border-amber-400  text-amber-600  bg-amber-50">{t('documents.compliance.complianceBadge.atRisk')}</span>;
+    if (status === 'PENDING')       return <span className="px-2 py-0.5 rounded-full text-xs border border-gray-300   text-gray-600   bg-gray-50">{t('documents.compliance.complianceBadge.pending')}</span>;
+    return <span className="px-2 py-0.5 rounded-full text-xs border border-red-400 text-red-600 bg-red-50">{t('documents.compliance.complianceBadge.nonCompliant')}</span>;
   };
 
   const SortableHead = ({ label, field, className }: { label: string; field: SortField; className?: string }) => {
@@ -427,7 +427,7 @@ export function DocumentsCompliance() {
           <CardContent className="p-4 flex items-start gap-3">
             <AlertTriangle className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
             <div className="flex-1">
-              <p className="font-medium text-amber-700">Compliance Alerts</p>
+              <p className="font-medium text-amber-700">{t('documents.compliance.complianceAlerts')}</p>
               <p className="text-sm text-muted-foreground mt-0.5">
                 {expiredDocs} expired · {expiringDocs} expiring soon. Immediate action required.
               </p>
@@ -441,7 +441,7 @@ export function DocumentsCompliance() {
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-base flex items-center gap-2"><Filter className="w-4 h-4" /> Filter Documents</CardTitle>
+            <CardTitle className="text-base flex items-center gap-2"><Filter className="w-4 h-4" /> {t('documents.compliance.filterTitle')}</CardTitle>
             {hasFilters && (
               <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground">
                 <X className="w-3 h-3 me-1" /> Clear filters
@@ -462,23 +462,23 @@ export function DocumentsCompliance() {
               />
             </div>
             <Select value={statusFilter || '__all__'} onValueChange={v => setStatusFilter(v === '__all__' ? '' : v)}>
-              <SelectTrigger className="w-44"><SelectValue placeholder="All Statuses" /></SelectTrigger>
+              <SelectTrigger className="w-44"><SelectValue placeholder={t('documents.compliance.allStatuses')} /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="__all__">All Statuses</SelectItem>
+                <SelectItem value="__all__">{t('documents.compliance.allStatuses')}</SelectItem>
                 {STATUS_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select value={typeFilter || '__all__'} onValueChange={v => setTypeFilter(v === '__all__' ? '' : v)}>
-              <SelectTrigger className="w-48"><SelectValue placeholder="All Types" /></SelectTrigger>
+              <SelectTrigger className="w-48"><SelectValue placeholder={t('documents.compliance.allTypes')} /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="__all__">All Types</SelectItem>
+                <SelectItem value="__all__">{t('documents.compliance.allTypes')}</SelectItem>
                 {docTypes.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select value={entityTypeF || '__all__'} onValueChange={v => setEntityTypeF(v === '__all__' ? '' : v)}>
-              <SelectTrigger className="w-36"><SelectValue placeholder="All Entities" /></SelectTrigger>
+              <SelectTrigger className="w-36"><SelectValue placeholder={t('documents.compliance.allEntities')} /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="__all__">All Entities</SelectItem>
+                <SelectItem value="__all__">{t('documents.compliance.allEntities')}</SelectItem>
                 <SelectItem value="APPLICANT">Applicants</SelectItem>
                 <SelectItem value="EMPLOYEE">Employees</SelectItem>
               </SelectContent>
@@ -511,9 +511,9 @@ export function DocumentsCompliance() {
               className="w-40"
             />
             <Select value={complianceFilter || '__all__'} onValueChange={v => setComplianceFilter(v === '__all__' ? '' : v)}>
-              <SelectTrigger className="w-40"><SelectValue placeholder="All Compliance" /></SelectTrigger>
+              <SelectTrigger className="w-40"><SelectValue placeholder={t('documents.compliance.allCompliance')} /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="__all__">All Compliance</SelectItem>
+                <SelectItem value="__all__">{t('documents.compliance.allCompliance')}</SelectItem>
                 {COMPLIANCE_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
               </SelectContent>
             </Select>
@@ -521,13 +521,13 @@ export function DocumentsCompliance() {
           {/* Row 3: expiry range + issue range + column picker */}
           <div className="flex flex-wrap items-center gap-2">
             <div className="flex items-center gap-1">
-              <span className="text-xs text-muted-foreground whitespace-nowrap">Expiry from</span>
+              <span className="text-xs text-muted-foreground whitespace-nowrap">{t('documents.compliance.expiryFrom')}</span>
               <Input type="date" value={expFrom} onChange={e => setExpFrom(e.target.value)} className="w-36" />
               <span className="text-xs text-muted-foreground">to</span>
               <Input type="date" value={expTo} onChange={e => setExpTo(e.target.value)} className="w-36" />
             </div>
             <div className="flex items-center gap-1">
-              <span className="text-xs text-muted-foreground whitespace-nowrap">Issue from</span>
+              <span className="text-xs text-muted-foreground whitespace-nowrap">{t('documents.compliance.issueFrom')}</span>
               <Input type="date" value={issueFrom} onChange={e => setIssueFrom(e.target.value)} className="w-36" />
               <span className="text-xs text-muted-foreground">to</span>
               <Input type="date" value={issueTo} onChange={e => setIssueTo(e.target.value)} className="w-36" />
@@ -550,7 +550,7 @@ export function DocumentsCompliance() {
 
               {showColPicker && (
                 <div className="absolute end-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[200px]">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">Toggle columns</p>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">{t('documents.compliance.toggleColumns')}</p>
                   <div className="space-y-0.5 max-h-72 overflow-y-auto">
                     {ALL_COLUMNS.map(c => (
                       <button
@@ -573,7 +573,7 @@ export function DocumentsCompliance() {
                         localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
                       }}
                       className="flex-1 text-xs text-center text-primary hover:underline py-0.5"
-                    >Show all</button>
+                    >{t('documents.compliance.showAll')}</button>
                     <span className="text-gray-300">|</span>
                     <button
                       onClick={() => {
@@ -595,9 +595,9 @@ export function DocumentsCompliance() {
         <DialogContent>
           <DialogHeader><DialogTitle>Reject Document</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
-            <p className="text-sm text-muted-foreground">Rejecting: <span className="font-medium text-foreground">{rejectDialog.docName}</span></p>
+            <p className="text-sm text-muted-foreground">{t('documents.compliance.rejecting')} <span className="font-medium text-foreground">{rejectDialog.docName}</span></p>
             <div className="space-y-2">
-              <Label htmlFor="reject-reason">Rejection Reason <span className="text-destructive">*</span></Label>
+              <Label htmlFor="reject-reason">{t('documents.compliance.rejectionReason')} <span className="text-destructive">*</span></Label>
               <Textarea id="reject-reason" placeholder="Explain why this document is being rejected…" value={rejectionReason} onChange={e => setRejectionReason(e.target.value)} rows={4} />
             </div>
           </div>
@@ -676,9 +676,9 @@ export function DocumentsCompliance() {
               </TableHeader>
               <TableBody>
                 {loading ? (
-                  <TableRow><TableCell colSpan={visibleCount + 1} className="p-8 text-center text-muted-foreground">Loading…</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={visibleCount + 1} className="p-8 text-center text-muted-foreground">{t('documents.compliance.loading')}</TableCell></TableRow>
                 ) : displayData.length === 0 ? (
-                  <TableRow><TableCell colSpan={visibleCount + 1} className="p-8 text-center text-muted-foreground">No documents found</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={visibleCount + 1} className="p-8 text-center text-muted-foreground">{t('documents.compliance.noDocuments')}</TableCell></TableRow>
                 ) : displayData.map(doc => {
                   const daysLeft = doc.expiryDate
                     ? Math.ceil((new Date(doc.expiryDate).getTime() - Date.now()) / 86400000)
@@ -694,7 +694,7 @@ export function DocumentsCompliance() {
                             ? <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono">{doc.docId}</code>
                             : <span className="text-xs text-muted-foreground italic">—</span>}
                           {doc.renewedFrom && (
-                            <div className="text-xs text-blue-500 mt-0.5">↩ renewal</div>
+                            <div className="text-xs text-blue-500 mt-0.5">{t('documents.compliance.renewalSuffix')}</div>
                           )}
                         </TableCell>
                       )}

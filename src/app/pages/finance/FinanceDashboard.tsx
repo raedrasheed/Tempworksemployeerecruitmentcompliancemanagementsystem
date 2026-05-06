@@ -314,9 +314,9 @@ export function FinanceDashboard() {
   if (!allowed) {
     return (
       <div className="p-8 text-center">
-        <p className="text-muted-foreground">You do not have permission to access the Finance Dashboard.</p>
+        <p className="text-muted-foreground">{t('finance.dashboard.noPermission')}</p>
         <Button asChild className="mt-4" variant="outline">
-          <Link to="/dashboard">Back to Dashboard</Link>
+          <Link to="/dashboard">{t('finance.dashboard.backToDashboard')}</Link>
         </Button>
       </div>
     );
@@ -383,7 +383,7 @@ export function FinanceDashboard() {
             </Button>
             {showColPicker && (
               <div className="absolute end-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[200px]">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">Toggle columns</p>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">{t('finance.dashboard.toggleColumns')}</p>
                 <div className="space-y-0.5 max-h-72 overflow-y-auto">
                   {ALL_COLUMNS.map(c => (
                     <button
@@ -406,7 +406,7 @@ export function FinanceDashboard() {
                       localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
                     }}
                     className="flex-1 text-xs text-center text-primary hover:underline py-0.5"
-                  >Show all</button>
+                  >{t('finance.dashboard.showAll')}</button>
                   <span className="text-gray-300">|</span>
                   <button
                     onClick={() => {
@@ -437,7 +437,7 @@ export function FinanceDashboard() {
                 <TrendingUp className="w-4 h-4 text-blue-600" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wide">Total Disbursed</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('finance.dashboard.totalDisbursed')}</p>
                 <p className="text-xl font-bold text-blue-700">{fmt(totals.disbursed)}</p>
                 <p className="text-xs text-muted-foreground">{meta?.total ?? records.length} records</p>
               </div>
@@ -451,7 +451,7 @@ export function FinanceDashboard() {
                 <TrendingDown className="w-4 h-4 text-amber-600" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wide">Total Deducted</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('finance.dashboard.totalDeducted')}</p>
                 <p className="text-xl font-bold text-amber-700">{fmt(totals.deducted)}</p>
               </div>
             </div>
@@ -464,7 +464,7 @@ export function FinanceDashboard() {
                 <Wallet className="w-4 h-4 text-emerald-600" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wide">Current Balance</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('finance.dashboard.currentBalance')}</p>
                 <p className={`text-xl font-bold ${totals.balance > 0 ? 'text-emerald-700' : 'text-slate-600'}`}>
                   {fmt(totals.balance)}
                 </p>
@@ -479,9 +479,9 @@ export function FinanceDashboard() {
                 <DollarSign className="w-4 h-4 text-slate-600" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wide">Emp / Agency Paid</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('finance.dashboard.empAgencyPaid')}</p>
                 <p className="text-xl font-bold text-slate-600">{fmt(totals.empAgency)}</p>
-                <p className="text-xs text-muted-foreground">informational only</p>
+                <p className="text-xs text-muted-foreground">{t('finance.dashboard.informationalOnly')}</p>
               </div>
             </div>
           </CardContent>
@@ -506,7 +506,7 @@ export function FinanceDashboard() {
                 </div>
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Person Type</Label>
+                <Label className="text-xs">{t('finance.dashboard.personType')}</Label>
                 <Select value={filters.entityType || '__all__'} onValueChange={v => setFilter('entityType', v === '__all__' ? '' : v)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -521,18 +521,18 @@ export function FinanceDashboard() {
                 <Select value={filters.status || '__all__'} onValueChange={v => setFilter('status', v === '__all__' ? '' : v)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__all__">All Statuses</SelectItem>
+                    <SelectItem value="__all__">{t('finance.dashboard.allStatuses')}</SelectItem>
                     <SelectItem value="PENDING">Pending</SelectItem>
                     <SelectItem value="DEDUCTED">Deducted</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Transaction Type</Label>
+                <Label className="text-xs">{t('finance.dashboard.transactionType')}</Label>
                 <Select value={filters.transactionType || '__all__'} onValueChange={v => setFilter('transactionType', v === '__all__' ? '' : v)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__all__">All Types</SelectItem>
+                    <SelectItem value="__all__">{t('finance.dashboard.allTypes')}</SelectItem>
                     {(constants?.transactionTypes ?? []).map((t: string) => (
                       <SelectItem key={t} value={t}>{t}</SelectItem>
                     ))}
@@ -544,7 +544,7 @@ export function FinanceDashboard() {
                 <Select value={filters.currency || '__all__'} onValueChange={v => setFilter('currency', v === '__all__' ? '' : v)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__all__">All Currencies</SelectItem>
+                    <SelectItem value="__all__">{t('finance.dashboard.allCurrencies')}</SelectItem>
                     {(constants?.currencies ?? []).map((c: string) => (
                       <SelectItem key={c} value={c}>{c}</SelectItem>
                     ))}
@@ -552,7 +552,7 @@ export function FinanceDashboard() {
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Date From</Label>
+                <Label className="text-xs">{t('finance.dashboard.dateFrom')}</Label>
                 <Input
                   type="date"
                   value={filters.dateFrom}
@@ -560,7 +560,7 @@ export function FinanceDashboard() {
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Date To</Label>
+                <Label className="text-xs">{t('finance.dashboard.dateTo')}</Label>
                 <Input
                   type="date"
                   value={filters.dateTo}
@@ -570,7 +570,7 @@ export function FinanceDashboard() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
               <div className="space-y-1">
-                <Label className="text-xs">Paid By</Label>
+                <Label className="text-xs">{t('finance.dashboard.paidBy')}</Label>
                 <Input
                   placeholder="Name contains…"
                   value={filters.paidByFilter}
@@ -578,7 +578,7 @@ export function FinanceDashboard() {
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Min Disbursed</Label>
+                <Label className="text-xs">{t('finance.dashboard.minDisbursed')}</Label>
                 <Input
                   type="number"
                   min={0}
@@ -589,7 +589,7 @@ export function FinanceDashboard() {
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Max Disbursed</Label>
+                <Label className="text-xs">{t('finance.dashboard.maxDisbursed')}</Label>
                 <Input
                   type="number"
                   min={0}
@@ -624,7 +624,7 @@ export function FinanceDashboard() {
       <Card>
         <CardContent className="p-0">
           {loading ? (
-            <div className="py-12 text-center text-muted-foreground">Loading…</div>
+            <div className="py-12 text-center text-muted-foreground">{t('finance.dashboard.loading')}</div>
           ) : displayRecords.length === 0 ? (
             <div className="py-12 text-center text-muted-foreground">
               <Wallet className="w-10 h-10 mx-auto mb-3 opacity-30" />
@@ -753,8 +753,8 @@ export function FinanceDashboard() {
                 <tfoot>
                   <tr className="bg-muted/10">
                     <td colSpan={visibleCount + 1} className="px-4 py-2 text-xs text-muted-foreground">
-                      <span className="text-blue-600 font-medium">Credit (↑)</span> = company disbursed &nbsp;·&nbsp;
-                      <span className="text-amber-600 font-medium">Debit (↓)</span> = payroll deduction &nbsp;·&nbsp;
+                      <span className="text-blue-600 font-medium">{t('finance.dashboard.credit')}</span> = company disbursed &nbsp;·&nbsp;
+                      <span className="text-amber-600 font-medium">{t('finance.dashboard.debit')}</span> = payroll deduction &nbsp;·&nbsp;
                       <span className="text-slate-500">Emp/Agency</span> = paid by employee/agency (informational, excluded from balance)
                     </td>
                   </tr>

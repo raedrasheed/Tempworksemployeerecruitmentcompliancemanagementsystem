@@ -297,10 +297,10 @@ export function JobAdsList() {
               onValueChange={v => setStatusFilter(v === '__all__' ? '' : v)}
             >
               <SelectTrigger className="w-36">
-                <SelectValue placeholder="All Statuses" />
+                <SelectValue placeholder={t('jobAds.list.allStatuses')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="__all__">All Statuses</SelectItem>
+                <SelectItem value="__all__">{t('jobAds.list.allStatuses')}</SelectItem>
                 <SelectItem value="DRAFT">Draft</SelectItem>
                 <SelectItem value="PUBLISHED">Published</SelectItem>
                 <SelectItem value="ARCHIVED">Archived</SelectItem>
@@ -311,10 +311,10 @@ export function JobAdsList() {
               onValueChange={v => setCategoryFilter(v === '__all__' ? '' : v)}
             >
               <SelectTrigger className="w-48">
-                <SelectValue placeholder="All Categories" />
+                <SelectValue placeholder={t('jobAds.list.allCategories')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="__all__">All Categories</SelectItem>
+                <SelectItem value="__all__">{t('jobAds.list.allCategories')}</SelectItem>
                 {categories.map(c => (
                   <SelectItem key={c} value={c}>{c}</SelectItem>
                 ))}
@@ -325,10 +325,10 @@ export function JobAdsList() {
               onValueChange={v => setCountryFilter(v === '__all__' ? '' : v)}
             >
               <SelectTrigger className="w-40">
-                <SelectValue placeholder="All Countries" />
+                <SelectValue placeholder={t('jobAds.list.allCountries')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="__all__">All Countries</SelectItem>
+                <SelectItem value="__all__">{t('jobAds.list.allCountries')}</SelectItem>
                 {countryOptions.map(c => (
                   <SelectItem key={c} value={c}>{c}</SelectItem>
                 ))}
@@ -347,10 +347,10 @@ export function JobAdsList() {
               onValueChange={v => setContractFilter(v === '__all__' ? '' : v)}
             >
               <SelectTrigger className="w-44">
-                <SelectValue placeholder="All Contracts" />
+                <SelectValue placeholder={t('jobAds.list.allContracts')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="__all__">All Contracts</SelectItem>
+                <SelectItem value="__all__">{t('jobAds.list.allContracts')}</SelectItem>
                 {contractOptions.map(c => (
                   <SelectItem key={c} value={c}>{c}</SelectItem>
                 ))}
@@ -365,7 +365,7 @@ export function JobAdsList() {
               className="w-36"
             />
             <div className="flex items-center gap-1">
-              <span className="text-xs text-muted-foreground whitespace-nowrap">Created from</span>
+              <span className="text-xs text-muted-foreground whitespace-nowrap">{t('jobAds.list.createdFrom')}</span>
               <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="w-36" />
               <span className="text-xs text-muted-foreground">to</span>
               <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="w-36" />
@@ -392,7 +392,7 @@ export function JobAdsList() {
               </Button>
               {showColPicker && (
                 <div className="absolute end-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[200px]">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">Toggle columns</p>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">{t('jobAds.list.toggleColumns')}</p>
                   <div className="space-y-0.5 max-h-72 overflow-y-auto">
                     {ALL_COLUMNS.map(c => (
                       <button
@@ -415,7 +415,7 @@ export function JobAdsList() {
                         localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
                       }}
                       className="flex-1 text-xs text-center text-primary hover:underline py-0.5"
-                    >Show all</button>
+                    >{t('jobAds.list.showAll')}</button>
                     <span className="text-gray-300">|</span>
                     <button
                       onClick={() => {

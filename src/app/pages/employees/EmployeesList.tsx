@@ -371,7 +371,7 @@ export function EmployeesList() {
               <Select value={statusFilter || '__all__'} onValueChange={v => setStatusFilter(v === '__all__' ? '' : v)}>
                 <SelectTrigger className="w-40"><SelectValue placeholder={t('employees.list.filters.allStatuses')} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__all__">All Statuses</SelectItem>
+                  <SelectItem value="__all__">{t('employees.list.filters.allStatuses')}</SelectItem>
                   {STATUSES.map(s => <SelectItem key={s} value={s}>{s.replace(/_/g, ' ')}</SelectItem>)}
                 </SelectContent>
               </Select>
@@ -380,7 +380,7 @@ export function EmployeesList() {
                 <Select value={agencyFilter || '__all__'} onValueChange={v => setAgencyFilter(v === '__all__' ? '' : v)}>
                   <SelectTrigger className="w-44"><SelectValue placeholder={t('employees.list.filters.allAgencies')} /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__all__">All Agencies</SelectItem>
+                    <SelectItem value="__all__">{t('employees.list.filters.allAgencies')}</SelectItem>
                     {agencies.map((a: any) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
@@ -428,7 +428,7 @@ export function EmployeesList() {
 
                 {showColPicker && (
                   <div className="absolute end-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[180px]">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">Toggle columns</p>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">{t('employees.list.toggleColumns')}</p>
                     <div className="space-y-0.5">
                       {ALL_COLUMNS.map(c => (
                         <button
@@ -444,9 +444,9 @@ export function EmployeesList() {
                       ))}
                     </div>
                     <div className="border-t mt-2 pt-2 flex gap-1.5">
-                      <button onClick={() => { const all = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, true])) as Record<ColKey, boolean>; setVisibleColumns(all); localStorage.setItem('employees-table-columns', JSON.stringify(all)); }} className="flex-1 text-xs text-center text-blue-600 hover:underline py-0.5">Show all</button>
+                      <button onClick={() => { const all = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, true])) as Record<ColKey, boolean>; setVisibleColumns(all); localStorage.setItem('employees-table-columns', JSON.stringify(all)); }} className="flex-1 text-xs text-center text-blue-600 hover:underline py-0.5">{t('employees.list.showAll')}</button>
                       <span className="text-gray-300">|</span>
-                      <button onClick={() => { const none = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, false])) as Record<ColKey, boolean>; setVisibleColumns(none); localStorage.setItem('employees-table-columns', JSON.stringify(none)); }} className="flex-1 text-xs text-center text-gray-500 hover:underline py-0.5">Hide all</button>
+                      <button onClick={() => { const none = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, false])) as Record<ColKey, boolean>; setVisibleColumns(none); localStorage.setItem('employees-table-columns', JSON.stringify(none)); }} className="flex-1 text-xs text-center text-gray-500 hover:underline py-0.5">{t('employees.list.hideAll')}</button>
                     </div>
                   </div>
                 )}
@@ -458,13 +458,13 @@ export function EmployeesList() {
               <Select value={nationalityFilter || '__all__'} onValueChange={v => setNationalityFilter(v === '__all__' ? '' : v)}>
                 <SelectTrigger className="w-44"><SelectValue placeholder={t('employees.list.filters.allCitizenships')} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__all__">All Citizenships</SelectItem>
+                  <SelectItem value="__all__">{t('employees.list.filters.allCitizenships')}</SelectItem>
                   {nationalityOptions.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
                 </SelectContent>
               </Select>
 
               <div className="flex items-center gap-1.5">
-                <span className="text-xs text-muted-foreground whitespace-nowrap">Joined from</span>
+                <span className="text-xs text-muted-foreground whitespace-nowrap">{t('employees.list.filters.joinedFrom')}</span>
                 <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="w-36 text-sm" />
                 <span className="text-xs text-muted-foreground">to</span>
                 <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="w-36 text-sm" />
@@ -502,12 +502,12 @@ export function EmployeesList() {
               <TableBody>
                 {loading && (
                   <TableRow>
-                    <TableCell colSpan={colSpan} className="text-center py-8 text-muted-foreground">Loading...</TableCell>
+                    <TableCell colSpan={colSpan} className="text-center py-8 text-muted-foreground">{t('employees.list.loading')}</TableCell>
                   </TableRow>
                 )}
                 {!loading && displayData.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={colSpan} className="text-center py-12 text-muted-foreground">No employees found matching your criteria.</TableCell>
+                    <TableCell colSpan={colSpan} className="text-center py-12 text-muted-foreground">{t('employees.list.emptyFiltered')}</TableCell>
                   </TableRow>
                 )}
                 {!loading && displayData.map(driver => (

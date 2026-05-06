@@ -16,7 +16,8 @@
         "allAgencies": "Alle Agenturen",
         "allCitizenships": "Alle Staatsangehörigkeiten",
         "from": "Von",
-        "to": "Bis"
+        "to": "Bis",
+        "joinedFrom": "Joined from"
       },
       "columns": {
         "contact": "Kontakt",
@@ -48,7 +49,12 @@
       "exportedCount": "Exported {{count}} PDF(s)",
       "pdfFailed": "PDF export failed",
       "selectToExport": "Select one or more rows to export",
-      "exportFailed": "Export failed"
+      "exportFailed": "Export failed",
+      "toggleColumns": "Toggle columns",
+      "showAll": "Show all",
+      "hideAll": "Hide all",
+      "loading": "Loading…",
+      "emptyFiltered": "No employees found matching your criteria."
     },
     "profile": {
       "title": "Mitarbeiterprofil",
@@ -2899,12 +2905,28 @@
       "deleteSuccess": "Job ad deleted",
       "deleteFailed": "Failed to delete job ad",
       "statusMoved": "Moved to {{status}}",
-      "statusFailed": "Failed to update status"
+      "statusFailed": "Failed to update status",
+      "allStatuses": "All Statuses",
+      "allCategories": "All Categories",
+      "allCountries": "All Countries",
+      "allContracts": "All Contracts",
+      "createdFrom": "Created from",
+      "toggleColumns": "Toggle columns",
+      "showAll": "Show all",
+      "hideAll": "Hide all"
     },
     "form": {
       "addTitle": "Neue Stellenanzeige",
       "editTitle": "Stellenanzeige bearbeiten",
-      "back": "Zurück zu Stellenanzeigen"
+      "back": "Zurück zu Stellenanzeigen",
+      "loading": "Loading…",
+      "basicInfo": "Basic Information",
+      "cityRequired": "City is required",
+      "countryRequired": "Country is required",
+      "jobDescription": "Job Description",
+      "salaryStatus": "Salary & Status",
+      "requiredDocuments": "Required Documents",
+      "loadingDocTypes": "Loading document types…"
     }
   },
   "recycleBin": {
@@ -2923,7 +2945,27 @@
       "subtitle": "Aktivitäts-Audit-Trail",
       "activityByModule": "Aktivität nach Modul",
       "search": "Protokolle durchsuchen…",
-      "empty": "Keine Protokolle entsprechen Ihren Filtern."
+      "empty": "Keine Protokolle entsprechen Ihren Filtern.",
+      "activityByAction": "Activity by Action",
+      "toggleColumns": "Toggle columns",
+      "showAll": "Show all",
+      "hideAll": "Hide all",
+      "allTime": "All Time",
+      "last7Days": "Last 7 Days",
+      "last30Days": "Last 30 Days",
+      "last90Days": "Last 90 Days",
+      "customRange": "Custom Range…",
+      "allModules": "All Modules",
+      "allActions": "All Actions",
+      "loginFailed": "Login Failed",
+      "changePassword": "Change Password",
+      "stageChange": "Stage Change",
+      "customFrom": "Custom from",
+      "irreversible": "This action is irreversible and cannot be undone.",
+      "fromDate": "From Date",
+      "toDate": "To Date",
+      "moduleEntity": "Module / Entity (optional)",
+      "allModulesPh": "All modules"
     }
   },
   "settings": {
@@ -3231,6 +3273,31 @@
         "confirm": "Confirm Deduction",
         "cancel": "Cancel"
       }
+    },
+    "dashboard": {
+      "noPermission": "You do not have permission to access the Finance Dashboard.",
+      "backToDashboard": "Back to Dashboard",
+      "toggleColumns": "Toggle columns",
+      "showAll": "Show all",
+      "hideAll": "Hide all",
+      "totalDisbursed": "Total Disbursed",
+      "totalDeducted": "Total Deducted",
+      "currentBalance": "Current Balance",
+      "empAgencyPaid": "Emp / Agency Paid",
+      "informationalOnly": "informational only",
+      "personType": "Person Type",
+      "allStatuses": "All Statuses",
+      "transactionType": "Transaction Type",
+      "allTypes": "All Types",
+      "allCurrencies": "All Currencies",
+      "dateFrom": "Date From",
+      "dateTo": "Date To",
+      "paidBy": "Paid By",
+      "minDisbursed": "Min Disbursed",
+      "maxDisbursed": "Max Disbursed",
+      "loading": "Loading…",
+      "credit": "Credit (↑)",
+      "debit": "Debit (↓)"
     }
   }
 }

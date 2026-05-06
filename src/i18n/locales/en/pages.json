@@ -16,8 +16,14 @@
         "allAgencies": "All Agencies",
         "allCitizenships": "All Citizenships",
         "from": "From",
-        "to": "To"
+        "to": "To",
+        "joinedFrom": "Joined from"
       },
+      "toggleColumns": "Toggle columns",
+      "showAll": "Show all",
+      "hideAll": "Hide all",
+      "loading": "Loading…",
+      "emptyFiltered": "No employees found matching your criteria.",
       "columns": {
         "contact": "Contact",
         "citizenship": "Citizenship",
@@ -2899,12 +2905,28 @@
       "deleteSuccess": "Job ad deleted",
       "deleteFailed": "Failed to delete job ad",
       "statusMoved": "Moved to {{status}}",
-      "statusFailed": "Failed to update status"
+      "statusFailed": "Failed to update status",
+      "allStatuses": "All Statuses",
+      "allCategories": "All Categories",
+      "allCountries": "All Countries",
+      "allContracts": "All Contracts",
+      "createdFrom": "Created from",
+      "toggleColumns": "Toggle columns",
+      "showAll": "Show all",
+      "hideAll": "Hide all"
     },
     "form": {
       "addTitle": "New Job Ad",
       "editTitle": "Edit Job Ad",
-      "back": "Back to job ads"
+      "back": "Back to job ads",
+      "loading": "Loading…",
+      "basicInfo": "Basic Information",
+      "cityRequired": "City is required",
+      "countryRequired": "Country is required",
+      "jobDescription": "Job Description",
+      "salaryStatus": "Salary & Status",
+      "requiredDocuments": "Required Documents",
+      "loadingDocTypes": "Loading document types…"
     }
   },
   "recycleBin": {
@@ -2922,8 +2944,28 @@
       "title": "System Logs",
       "subtitle": "Activity audit trail",
       "activityByModule": "Activity by Module",
+      "activityByAction": "Activity by Action",
       "search": "Search logs…",
-      "empty": "No logs match your filters."
+      "empty": "No logs match your filters.",
+      "toggleColumns": "Toggle columns",
+      "showAll": "Show all",
+      "hideAll": "Hide all",
+      "allTime": "All Time",
+      "last7Days": "Last 7 Days",
+      "last30Days": "Last 30 Days",
+      "last90Days": "Last 90 Days",
+      "customRange": "Custom Range…",
+      "allModules": "All Modules",
+      "allActions": "All Actions",
+      "loginFailed": "Login Failed",
+      "changePassword": "Change Password",
+      "stageChange": "Stage Change",
+      "customFrom": "Custom from",
+      "irreversible": "This action is irreversible and cannot be undone.",
+      "fromDate": "From Date",
+      "toDate": "To Date",
+      "moduleEntity": "Module / Entity (optional)",
+      "allModulesPh": "All modules"
     }
   },
   "settings": {
@@ -3035,6 +3077,31 @@
     "page": {
       "title": "Finance",
       "subtitle": "Transactions and balances across the organization"
+    },
+    "dashboard": {
+      "noPermission": "You do not have permission to access the Finance Dashboard.",
+      "backToDashboard": "Back to Dashboard",
+      "toggleColumns": "Toggle columns",
+      "showAll": "Show all",
+      "hideAll": "Hide all",
+      "totalDisbursed": "Total Disbursed",
+      "totalDeducted": "Total Deducted",
+      "currentBalance": "Current Balance",
+      "empAgencyPaid": "Emp / Agency Paid",
+      "informationalOnly": "informational only",
+      "personType": "Person Type",
+      "allStatuses": "All Statuses",
+      "transactionType": "Transaction Type",
+      "allTypes": "All Types",
+      "allCurrencies": "All Currencies",
+      "dateFrom": "Date From",
+      "dateTo": "Date To",
+      "paidBy": "Paid By",
+      "minDisbursed": "Min Disbursed",
+      "maxDisbursed": "Max Disbursed",
+      "loading": "Loading…",
+      "credit": "Credit (↑)",
+      "debit": "Debit (↓)"
     },
     "tab": {
       "loading": "Loading financial records…",

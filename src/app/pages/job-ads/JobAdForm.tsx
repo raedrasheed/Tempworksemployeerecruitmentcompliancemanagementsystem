@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Save, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import { jobAdsApi, settingsApi } from '../../services/api';
@@ -39,6 +40,7 @@ const EMPTY_FORM = {
 };
 
 export function JobAdForm() {
+  const { t } = useTranslation('pages');
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const isEdit = Boolean(id);
@@ -100,11 +102,11 @@ export function JobAdForm() {
     if (!form.category.trim())    return toast.error('Category is required');
     if (!form.description.trim()) return toast.error('Description is required');
     if (!form.city.trim()) {
-      toast.error('City is required');
+      toast.error(t('jobAds.form.cityRequired'));
       cityInputRef.current?.focus();
       return;
     }
-    if (!form.country.trim())     return toast.error('Country is required');
+    if (!form.country.trim())     return toast.error(t('jobAds.form.countryRequired'));
 
     setSaving(true);
     try {
@@ -139,7 +141,7 @@ export function JobAdForm() {
 
   if (loading) {
     return (
-      <div className="p-6 text-center text-muted-foreground">Loading…</div>
+      <div className="p-6 text-center text-muted-foreground">{t('jobAds.form.loading')}</div>
     );
   }
 
@@ -163,7 +165,7 @@ export function JobAdForm() {
       {/* Basic Info */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Basic Information</CardTitle>
+          <CardTitle className="text-base">{t('jobAds.form.basicInfo')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
@@ -217,7 +219,7 @@ export function JobAdForm() {
                 className={submitAttempted && !form.city.trim() ? 'border-destructive focus-visible:ring-destructive' : ''}
               />
               {submitAttempted && !form.city.trim() && (
-                <p className="text-xs text-destructive mt-1">City is required</p>
+                <p className="text-xs text-destructive mt-1">{t('jobAds.form.cityRequired')}</p>
               )}
             </div>
             <div>
@@ -229,7 +231,7 @@ export function JobAdForm() {
                 required
               />
               {submitAttempted && !form.country.trim() && (
-                <p className="text-xs text-destructive mt-1">Country is required</p>
+                <p className="text-xs text-destructive mt-1">{t('jobAds.form.countryRequired')}</p>
               )}
             </div>
           </div>
@@ -239,7 +241,7 @@ export function JobAdForm() {
       {/* Description */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Job Description</CardTitle>
+          <CardTitle className="text-base">{t('jobAds.form.jobDescription')}</CardTitle>
         </CardHeader>
         <CardContent>
           <Label>Description <span className="text-destructive">*</span></Label>
@@ -256,7 +258,7 @@ export function JobAdForm() {
       {/* Salary & Status */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Salary & Status</CardTitle>
+          <CardTitle className="text-base">{t('jobAds.form.salaryStatus')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-3 gap-4">
@@ -311,7 +313,7 @@ export function JobAdForm() {
       {/* Required Documents */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Required Documents</CardTitle>
+          <CardTitle className="text-base">{t('jobAds.form.requiredDocuments')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-sm text-muted-foreground">
@@ -319,7 +321,7 @@ export function JobAdForm() {
             They will not be able to submit without uploading all checked documents.
           </p>
           {docTypes.length === 0 && (
-            <p className="text-sm text-muted-foreground italic">Loading document types…</p>
+            <p className="text-sm text-muted-foreground italic">{t('jobAds.form.loadingDocTypes')}</p>
           )}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {docTypes.map(name => (

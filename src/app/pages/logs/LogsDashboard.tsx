@@ -356,7 +356,7 @@ export function LogsDashboard() {
             </Button>
             {showColPicker && (
               <div className="absolute end-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[200px]">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">Toggle columns</p>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">{t('logs.dashboard.toggleColumns')}</p>
                 <div className="space-y-0.5 max-h-72 overflow-y-auto">
                   {ALL_COLUMNS.map(c => (
                     <button
@@ -379,7 +379,7 @@ export function LogsDashboard() {
                       localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
                     }}
                     className="flex-1 text-xs text-center text-primary hover:underline py-0.5"
-                  >Show all</button>
+                  >{t('logs.dashboard.showAll')}</button>
                   <span className="text-gray-300">|</span>
                   <button
                     onClick={() => {
@@ -451,7 +451,7 @@ export function LogsDashboard() {
         <div className="grid grid-cols-2 gap-4">
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold">Activity by Module</CardTitle>
+              <CardTitle className="text-sm font-semibold">{t('logs.dashboard.activityByModule')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
@@ -466,7 +466,7 @@ export function LogsDashboard() {
           </Card>
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold">Activity by Action</CardTitle>
+              <CardTitle className="text-sm font-semibold">{t('logs.dashboard.activityByAction')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
@@ -498,35 +498,35 @@ export function LogsDashboard() {
             <Select value={dateRange} onValueChange={setDateRange}>
               <SelectTrigger><SelectValue placeholder="Date Range" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Time</SelectItem>
+                <SelectItem value="all">{t('logs.dashboard.allTime')}</SelectItem>
                 <SelectItem value="today">Today</SelectItem>
-                <SelectItem value="week">Last 7 Days</SelectItem>
-                <SelectItem value="month">Last 30 Days</SelectItem>
-                <SelectItem value="quarter">Last 90 Days</SelectItem>
-                <SelectItem value="custom">Custom Range…</SelectItem>
+                <SelectItem value="week">{t('logs.dashboard.last7Days')}</SelectItem>
+                <SelectItem value="month">{t('logs.dashboard.last30Days')}</SelectItem>
+                <SelectItem value="quarter">{t('logs.dashboard.last90Days')}</SelectItem>
+                <SelectItem value="custom">{t('logs.dashboard.customRange')}</SelectItem>
               </SelectContent>
             </Select>
             <Select value={entityFilter} onValueChange={setEntityFilter}>
-              <SelectTrigger><SelectValue placeholder="Module / Entity" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder={t('logs.dashboard.moduleEntity')} /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Modules</SelectItem>
+                <SelectItem value="all">{t('logs.dashboard.allModules')}</SelectItem>
                 {knownEntities.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select value={actionFilter} onValueChange={setActionFilter}>
               <SelectTrigger><SelectValue placeholder="Action" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Actions</SelectItem>
+                <SelectItem value="all">{t('logs.dashboard.allActions')}</SelectItem>
                 <SelectItem value="CREATE">Create</SelectItem>
                 <SelectItem value="UPDATE">Update</SelectItem>
                 <SelectItem value="DELETE">Delete</SelectItem>
                 <SelectItem value="LOGIN">Login</SelectItem>
                 <SelectItem value="LOGOUT">Logout</SelectItem>
-                <SelectItem value="LOGIN_FAILED">Login Failed</SelectItem>
+                <SelectItem value="LOGIN_FAILED">{t('logs.dashboard.loginFailed')}</SelectItem>
                 <SelectItem value="UPLOAD">Upload</SelectItem>
                 <SelectItem value="VERIFY">Verify</SelectItem>
-                <SelectItem value="CHANGE_PASSWORD">Change Password</SelectItem>
-                <SelectItem value="STAGE_CHANGE">Stage Change</SelectItem>
+                <SelectItem value="CHANGE_PASSWORD">{t('logs.dashboard.changePassword')}</SelectItem>
+                <SelectItem value="STAGE_CHANGE">{t('logs.dashboard.stageChange')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -534,7 +534,7 @@ export function LogsDashboard() {
           {/* Custom date range inputs – only when 'custom' is selected */}
           {dateRange === 'custom' && (
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs text-muted-foreground whitespace-nowrap">Custom from</span>
+              <span className="text-xs text-muted-foreground whitespace-nowrap">{t('logs.dashboard.customFrom')}</span>
               <Input type="date" value={customFrom} onChange={e => setCustomFrom(e.target.value)} className="w-40" />
               <span className="text-xs text-muted-foreground">to</span>
               <Input type="date" value={customTo} onChange={e => setCustomTo(e.target.value)} className="w-40" />
@@ -717,26 +717,26 @@ export function LogsDashboard() {
             <div className="space-y-4 py-2">
               <div className="flex items-start gap-3 p-3 rounded-lg bg-destructive/10 border border-destructive/30">
                 <AlertTriangle className="w-5 h-5 text-destructive mt-0.5 shrink-0" />
-                <p className="text-sm text-destructive">This action is irreversible and cannot be undone.</p>
+                <p className="text-sm text-destructive">{t('logs.dashboard.irreversible')}</p>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label htmlFor="clearFrom">From Date</Label>
+                  <Label htmlFor="clearFrom">{t('logs.dashboard.fromDate')}</Label>
                   <Input id="clearFrom" type="date" value={clearFrom} onChange={e => setClearFrom(e.target.value)} />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="clearTo">To Date</Label>
+                  <Label htmlFor="clearTo">{t('logs.dashboard.toDate')}</Label>
                   <Input id="clearTo" type="date" value={clearTo} onChange={e => setClearTo(e.target.value)} />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="clearEntity">Module / Entity (optional)</Label>
+                <Label htmlFor="clearEntity">{t('logs.dashboard.moduleEntity')}</Label>
                 <Select value={clearEntity || 'all'} onValueChange={v => setClearEntity(v === 'all' ? '' : v)}>
-                  <SelectTrigger id="clearEntity"><SelectValue placeholder="All modules" /></SelectTrigger>
+                  <SelectTrigger id="clearEntity"><SelectValue placeholder={t('logs.dashboard.allModulesPh')} /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All modules</SelectItem>
+                    <SelectItem value="all">{t('logs.dashboard.allModulesPh')}</SelectItem>
                     {knownEntities.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
                   </SelectContent>
                 </Select>

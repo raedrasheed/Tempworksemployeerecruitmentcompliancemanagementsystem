@@ -254,21 +254,21 @@ export function AgenciesList() {
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-44">
-                <SelectValue placeholder="Filter by status" />
+                <SelectValue placeholder={t('agencies.list.allStatus')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="ACTIVE">Active</SelectItem>
-                <SelectItem value="INACTIVE">Inactive</SelectItem>
-                <SelectItem value="SUSPENDED">Suspended</SelectItem>
+                <SelectItem value="all">{t('agencies.list.allStatus')}</SelectItem>
+                <SelectItem value="ACTIVE">{tc('filters.active')}</SelectItem>
+                <SelectItem value="INACTIVE">{tc('filters.inactive')}</SelectItem>
+                <SelectItem value="SUSPENDED">{t('agencies.add.suspended', { defaultValue: 'Suspended' })}</SelectItem>
               </SelectContent>
             </Select>
             <Select value={countryFilter} onValueChange={setCountryFilter}>
               <SelectTrigger className="w-44">
-                <SelectValue placeholder="Filter by country" />
+                <SelectValue placeholder={t('agencies.list.allCountries')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Countries</SelectItem>
+                <SelectItem value="all">{t('agencies.list.allCountries')}</SelectItem>
                 {countryOptions.map(c => (
                   <SelectItem key={c} value={c}>{c}</SelectItem>
                 ))}
@@ -306,14 +306,14 @@ export function AgenciesList() {
               className="w-44"
             />
             <div className="flex items-center gap-1">
-              <span className="text-xs text-muted-foreground whitespace-nowrap">Created from</span>
+              <span className="text-xs text-muted-foreground whitespace-nowrap">{t('agencies.list.createdFrom')}</span>
               <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="w-36" />
-              <span className="text-xs text-muted-foreground">to</span>
+              <span className="text-xs text-muted-foreground">{t('agencies.list.createdTo')}</span>
               <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="w-36" />
             </div>
             {hasExtraFilters && (
               <Button variant="ghost" size="sm" onClick={clearExtraFilters}>
-                <X className="w-3 h-3 me-1" />Clear
+                <X className="w-3 h-3 me-1" />{tc('actions.clearAll')}
               </Button>
             )}
             <div className="ms-auto relative" ref={colPickerRef}>
@@ -322,7 +322,7 @@ export function AgenciesList() {
                 onClick={() => setShowColPicker(v => !v)}
                 className={showColPicker ? 'border-primary text-primary' : ''}
               >
-                <Columns2 className="w-4 h-4 me-1.5" />Columns
+                <Columns2 className="w-4 h-4 me-1.5" />{t('agencies.list.columns')}
                 {hiddenCount > 0 && (
                   <span className="ms-1.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
                     {hiddenCount}
@@ -331,7 +331,7 @@ export function AgenciesList() {
               </Button>
               {showColPicker && (
                 <div className="absolute end-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[200px]">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">Toggle columns</p>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">{t('agencies.list.toggleColumns')}</p>
                   <div className="space-y-0.5 max-h-72 overflow-y-auto">
                     {ALL_COLUMNS.map(c => (
                       <button
@@ -354,7 +354,7 @@ export function AgenciesList() {
                         localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
                       }}
                       className="flex-1 text-xs text-center text-primary hover:underline py-0.5"
-                    >Show all</button>
+                    >{t('agencies.list.showAll')}</button>
                     <span className="text-gray-300">|</span>
                     <button
                       onClick={() => {
@@ -377,21 +377,21 @@ export function AgenciesList() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  {col('name')          && <SortableHead label="Agency Name"    field="name" />}
-                  {col('country')       && <SortableHead label="Country"        field="country" />}
-                  {col('contactPerson') && <SortableHead label="Contact Person" field="contactPerson" />}
-                  {col('email')         && <SortableHead label="Email"          field="email" />}
-                  {col('phone')         && <SortableHead label="Phone"          field="phone" />}
-                  {col('status')        && <SortableHead label="Status"         field="status" />}
-                  {col('createdAt')     && <SortableHead label="Created"        field="createdAt" />}
-                  <TableHead className="text-end">Actions</TableHead>
+                  {col('name')          && <SortableHead label={t('agencies.list.tableHeaders.agency')}    field="name" />}
+                  {col('country')       && <SortableHead label={t('agencies.list.tableHeaders.country')}        field="country" />}
+                  {col('contactPerson') && <SortableHead label={t('agencies.list.tableHeaders.contact')} field="contactPerson" />}
+                  {col('email')         && <SortableHead label={t('agencies.list.tableHeaders.email')}          field="email" />}
+                  {col('phone')         && <SortableHead label={t('agencies.list.tableHeaders.phone')}          field="phone" />}
+                  {col('status')        && <SortableHead label={t('agencies.list.tableHeaders.status')}         field="status" />}
+                  {col('createdAt')     && <SortableHead label={t('agencies.list.tableHeaders.created')}        field="createdAt" />}
+                  <TableHead className="text-end">{t('agencies.list.tableHeaders.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
-                  <TableRow><TableCell colSpan={visibleCount + 1} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={visibleCount + 1} className="text-center py-8 text-muted-foreground">{t('agencies.list.loading')}</TableCell></TableRow>
                 ) : displayAgencies.length === 0 ? (
-                  <TableRow><TableCell colSpan={visibleCount + 1} className="text-center py-8 text-muted-foreground">No agencies found</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={visibleCount + 1} className="text-center py-8 text-muted-foreground">{t('agencies.list.emptyShort')}</TableCell></TableRow>
                 ) : displayAgencies.map((agency) => (
                   <TableRow key={agency.id}>
                     {col('name')          && <TableCell className="font-medium">{agency.name}</TableCell>}
@@ -406,7 +406,7 @@ export function AgenciesList() {
                         <Button variant="ghost" size="sm" asChild>
                           <Link to={`/dashboard/agencies/${agency.id}`}>
                             <Eye className="w-4 h-4 me-1" />
-                            View
+                            {tc('actions.view')}
                           </Link>
                         </Button>
                         {canEdit('agencies') && (

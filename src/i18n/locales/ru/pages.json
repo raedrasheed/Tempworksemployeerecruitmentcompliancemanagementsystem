@@ -259,6 +259,30 @@
     "performance": {
       "title": "Оценка производительности",
       "back": "К профилю"
+    },
+    "pdf": {
+      "personalInformation": "Personal Information",
+      "contactDetails": "Contact Details",
+      "emergencyContact": "Emergency Contact",
+      "footer": "TempWorks Europe — Confidential"
+    },
+    "workHistoryTimeline": {
+      "addEntry": "Add Entry",
+      "empty": "No work history yet.",
+      "emptyHint": "Add the first contract event to start the timeline.",
+      "createdBy": "Created by",
+      "approvedBy": "Approved by",
+      "editTitle": "Edit Work History Entry",
+      "addTitle": "Add Work History Entry",
+      "dialogIntro": "Post-hire contract event. Attachments can be added after saving.",
+      "date": "Date *",
+      "eventType": "Event Type *",
+      "noEventTypes": "No event types configured — add some in Settings → Work History Event Types",
+      "description": "Description",
+      "descriptionPh": "Optional — context, salary, reason, etc.",
+      "approvedByLabel": "Approved By",
+      "none": "None",
+      "notSpecified": "Not specified"
     }
   },
   "applicants": {
@@ -279,7 +303,57 @@
       "loadSelectedFailed": "Failed to load selected applicants",
       "exportedCount": "Exported {{count}} PDF(s)",
       "bulkAppliedCount": "Bulk action applied to {{count}} applicant(s)",
-      "bulkActionFailed": "Bulk action failed"
+      "bulkActionFailed": "Bulk action failed",
+      "acceptedOnboarding": "Accepted / Onboarding",
+      "promoteToCandidate": "Promote to Candidate",
+      "changeStatus": "Change Status",
+      "selected": "{{count}} selected",
+      "deleteSelected": "Delete Selected",
+      "clear": "Clear",
+      "searchPh": "Search name, email, ID…",
+      "allStatuses": "All Statuses",
+      "allAgencies": "All Agencies",
+      "allCitizenships": "All Citizenships",
+      "allJobCategories": "All Job Categories",
+      "appliedFrom": "Applied from",
+      "appliedTo": "to",
+      "exportToExcel": "Export to Excel",
+      "exportPdfs": "Export PDFs",
+      "exportPdfsTitle": "Select one or more rows to export as PDFs",
+      "exportExcelTitle": "Select one or more rows to export",
+      "columns": "Columns",
+      "toggleColumns": "Toggle columns",
+      "showAll": "Show all",
+      "hideAll": "Hide all",
+      "clearFilters": "Clear filters",
+      "loading": "Loading…",
+      "emptyFiltered": "No applicants found matching your criteria.",
+      "legacy": "Legacy",
+      "tableHeaders": {
+        "applicant": "Applicant",
+        "contact": "Contact",
+        "citizenship": "Citizenship",
+        "appliedPosition": "Applied Position",
+        "passportNumber": "Passport Number",
+        "age": "Age",
+        "gender": "Gender",
+        "agency": "Agency",
+        "tier": "Tier",
+        "applied": "Applied",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "promoteDialog": {
+        "title_one": "Promote {{count}} Lead to Candidate",
+        "title_other": "Promote {{count}} Leads to Candidate",
+        "body": "Every selected lead is promoted to a candidate and pinned to the responsible agency you pick below. Leave the picker blank to fall back to the system default holding agency.",
+        "responsibleAgency": "Responsible Agency",
+        "useSystemDefault": "Use system default",
+        "useSystemDefaultHolding": "Use system default holding agency",
+        "promoting": "Promoting…",
+        "promoteAction": "Promote",
+        "cancel": "Cancel"
+      }
     },
     "candidates": {
       "title": "Кандидаты",
@@ -296,7 +370,66 @@
       "pickWorkflow": "Pick a workflow",
       "bulkAppliedCount": "Bulk action applied to {{count}} candidate(s)",
       "bulkActionFailed": "Bulk action failed",
-      "done": "Done"
+      "done": "Done",
+      "searchPh": "Search name, email, ID…",
+      "acceptedOnboarding": "Accepted / Onboarding",
+      "markAccepted": "Mark Accepted",
+      "changeStatus": "Change Status",
+      "connectToWorkflow": "Connect to Workflow",
+      "convertToEmployees": "Convert to Employees",
+      "deleteSelected": "Delete Selected",
+      "selected": "{{count}} selected",
+      "clear": "Clear",
+      "allStatuses": "All Statuses",
+      "allAgencies": "All Agencies",
+      "allCitizenships": "All Citizenships",
+      "allJobCategories": "All Job Categories",
+      "appliedFrom": "Applied from",
+      "appliedTo": "to",
+      "exportToExcel": "Export to Excel",
+      "exportPdfs": "Export PDFs",
+      "exportPdfsTitle": "Select one or more rows to export as PDFs",
+      "exportExcelTitle": "Select one or more rows to export",
+      "columns": "Columns",
+      "toggleColumns": "Toggle columns",
+      "showAll": "Show all",
+      "hideAll": "Hide all",
+      "clearFilters": "Clear filters",
+      "loading": "Loading…",
+      "emptyFiltered": "No candidates found matching your criteria.",
+      "legacy": "Legacy",
+      "tableHeaders": {
+        "candidate": "Candidate",
+        "contact": "Contact",
+        "citizenship": "Citizenship",
+        "appliedPosition": "Applied Position",
+        "passportNumber": "Passport Number",
+        "age": "Age",
+        "gender": "Gender",
+        "agency": "Agency",
+        "applied": "Applied",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "workflowDialog": {
+        "title_one": "Connect {{count}} Candidate to a Workflow",
+        "title_other": "Connect {{count}} Candidates to a Workflow",
+        "responsibleAgencyOptional": "Responsible Agency (optional)",
+        "keepCurrent": "Keep each candidate's current agency",
+        "useDefaultHolding": "Use system default holding agency",
+        "inProgress": "In Progress",
+        "workflowRequired": "Workflow *",
+        "selectWorkflow": "Select workflow…",
+        "notes": "Notes",
+        "notesPh": "Optional context",
+        "assigning": "Assigning…",
+        "assign": "Assign",
+        "cancel": "Cancel"
+      },
+      "convertDialog": {
+        "title_one": "Convert {{count}} Candidate to Employee",
+        "title_other": "Convert {{count}} Candidates to Employees"
+      }
     },
     "profile": {
       "title": "Профиль соискателя",
@@ -1472,7 +1605,14 @@
       "discardTitle": "Discard saved draft?",
       "discardBody": "Your saved progress will be deleted and the form reset. This cannot be undone.",
       "discardConfirm": "Discard",
-      "discardSuccess": "Draft discarded."
+      "discardSuccess": "Draft discarded.",
+      "draftSubtitle": "Continuing your saved draft — no applicant has been created yet.",
+      "formSubtitle": "Driver Application Form",
+      "discardButton": "Discard draft",
+      "agencyLabel": "Agency",
+      "agencyOptional": "(optional)",
+      "selectAgencyPh": "Select agency…",
+      "noAgency": "No Agency"
     },
     "deleteRequestsPage": {
       "approveTitle": "Approve delete request?",
@@ -1482,7 +1622,44 @@
       "approveSuccess": "Delete request approved",
       "approveFailed": "Failed to approve request",
       "rejectSuccess": "Delete request rejected",
-      "rejectFailed": "Failed to reject request"
+      "rejectFailed": "Failed to reject request",
+      "title": "Candidate Delete Requests",
+      "subtitle": "Review and manage data deletion requests",
+      "loading": "Loading…",
+      "empty": "No delete requests",
+      "emptyHelp": "There are no {{filter}} delete requests at this time.",
+      "tabs": {
+        "all": "All",
+        "pending": "Pending",
+        "approved": "Approved",
+        "rejected": "Rejected"
+      },
+      "statusBadges": {
+        "pending": "Pending",
+        "approved": "Approved",
+        "rejected": "Rejected"
+      },
+      "cardTitle": "Delete Requests",
+      "tableHeaders": {
+        "candidateName": "Candidate Name",
+        "candidateId": "Candidate ID",
+        "requestedBy": "Requested By",
+        "date": "Date",
+        "reason": "Reason",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "approve": "Approve",
+      "reject": "Reject",
+      "rejectModal": {
+        "title": "Reject Delete Request",
+        "intro": "Optionally provide a reason for rejecting this delete request.",
+        "notesLabel": "Review Notes",
+        "notesPh": "Reason for rejection (optional)…",
+        "rejecting": "Rejecting…",
+        "rejectAction": "Reject Request",
+        "cancel": "Cancel"
+      }
     }
   },
   "agencies": {
@@ -1495,7 +1672,29 @@
       "deleteTitle": "Delete agency?",
       "deleteBody": "\"{{name}}\" and its data will be permanently removed. This action cannot be undone.",
       "deleteSuccess": "Agency deleted successfully",
-      "deleteFailed": "Failed to delete agency"
+      "deleteFailed": "Failed to delete agency",
+      "allStatus": "All Status",
+      "allCountries": "All Countries",
+      "createdFrom": "Created from",
+      "createdTo": "to",
+      "toggleColumns": "Toggle columns",
+      "showAll": "Show all",
+      "hideAll": "Hide all",
+      "columns": "Columns",
+      "loading": "Loading…",
+      "emptyShort": "No agencies found",
+      "tableHeaders": {
+        "agency": "Agency",
+        "country": "Country",
+        "contact": "Contact Person",
+        "email": "Email",
+        "phone": "Phone",
+        "website": "Website",
+        "status": "Status",
+        "employees": "Employees",
+        "created": "Created",
+        "actions": "Actions"
+      }
     },
     "profile": {
       "title": "Профиль агентства",
@@ -1546,7 +1745,8 @@
       }
     },
     "myProfile": {
-      "title": "Моё агентство"
+      "title": "Моё агентство",
+      "notAttached": "Your account is not attached to any agency."
     },
     "add": {
       "title": "Добавить агентство",
@@ -1651,7 +1851,29 @@
       "removeBody": "{{name}} will be removed from this agency.",
       "removeConfirm": "Remove",
       "removeSuccess": "User removed successfully",
-      "removeFailed": "Failed to remove user"
+      "removeFailed": "Failed to remove user",
+      "manageSubtitle": "{{name}} — Manage agency user accounts",
+      "atLimitTitle": "Maximum number of users reached",
+      "atLimitBody": "This agency has reached the maximum limit of {{count}} active users. Contact a System Administrator to increase the limit.",
+      "activeUsers": "Active Users",
+      "managers": "Managers",
+      "inactive": "Inactive",
+      "agencyUsersTitle": "Agency Users ({{count}})",
+      "noUsers": "No users found for this agency.",
+      "tableHeaders": {
+        "user": "User",
+        "role": "Role",
+        "approval": "Approval",
+        "status": "Status",
+        "lastLogin": "Last Login",
+        "actions": "Actions"
+      },
+      "approvalStatus": {
+        "pending": "Pending",
+        "rejected": "Rejected",
+        "approved": "Approved"
+      },
+      "managerOverridePrefix": "Manager override:"
     }
   },
   "documents": {

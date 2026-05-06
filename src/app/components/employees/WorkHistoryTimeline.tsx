@@ -9,6 +9,7 @@
  * see the latest contract event at the top of the list.
  */
 import { useEffect, useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { employeeWorkHistoryApi, usersApi, settingsApi } from '../../services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
@@ -77,6 +78,8 @@ interface Props {
 }
 
 export function WorkHistoryTimeline({ employeeId, canWrite }: Props) {
+  const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const [entries, setEntries]  = useState<any[]>([]);
   const [loading, setLoading]  = useState(true);
   const [users,   setUsers]    = useState<any[]>([]);
@@ -262,16 +265,16 @@ export function WorkHistoryTimeline({ employeeId, canWrite }: Props) {
         </div>
         {canWrite && (
           <Button size="sm" onClick={openCreate}>
-            <Plus className="w-4 h-4 me-1" />Add Entry
+            <Plus className="w-4 h-4 me-1" />{t('employees.workHistoryTimeline.addEntry')}
           </Button>
         )}
       </CardHeader>
       <CardContent>
         {loading ? (
-          <p className="py-8 text-center text-muted-foreground text-sm">Loading…</p>
+          <p className="py-8 text-center text-muted-foreground text-sm">{tc('states.loading')}</p>
         ) : entries.length === 0 ? (
           <div className="py-10 text-center text-muted-foreground text-sm">
-            No work history yet. {canWrite && 'Add the first contract event to start the timeline.'}
+            {t('employees.workHistoryTimeline.empty')} {canWrite && t('employees.workHistoryTimeline.emptyHint')}
           </div>
         ) : (
           <ol className="relative border-s-2 border-muted/60 ms-2 space-y-5">
@@ -295,10 +298,10 @@ export function WorkHistoryTimeline({ employeeId, canWrite }: Props) {
                         )}
                         <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground flex-wrap">
                           {entry.createdBy && (
-                            <span>Created by <strong className="text-foreground">{fullName(entry.createdBy)}</strong></span>
+                            <span>{t('employees.workHistoryTimeline.createdBy')} <strong className="text-foreground">{fullName(entry.createdBy)}</strong></span>
                           )}
                           {entry.approvedBy && (
-                            <span>Approved by <strong className="text-foreground">{fullName(entry.approvedBy)}</strong></span>
+                            <span>{t('employees.workHistoryTimeline.approvedBy')} <strong className="text-foreground">{fullName(entry.approvedBy)}</strong></span>
                           )}
                           <span>· {formatDate(entry.createdAt)}</span>
                         </div>
@@ -368,23 +371,23 @@ export function WorkHistoryTimeline({ employeeId, canWrite }: Props) {
       <Dialog open={open} onOpenChange={(o) => !saving && setOpen(o)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{editingId ? 'Edit Work History Entry' : 'Add Work History Entry'}</DialogTitle>
-            <DialogDescription>Post-hire contract event. Attachments can be added after saving.</DialogDescription>
+            <DialogTitle>{editingId ? t('employees.workHistoryTimeline.editTitle') : t('employees.workHistoryTimeline.addTitle')}</DialogTitle>
+            <DialogDescription>{t('employees.workHistoryTimeline.dialogIntro')}</DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label htmlFor="wh-date" className="text-xs">Date *</Label>
+                <Label htmlFor="wh-date" className="text-xs">{t('employees.workHistoryTimeline.date')}</Label>
                 <Input id="wh-date" type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
               </div>
               <div>
-                <Label className="text-xs">Event Type *</Label>
+                <Label className="text-xs">{t('employees.workHistoryTimeline.eventType')}</Label>
                 <Select value={form.eventType} onValueChange={(v) => setForm(f => ({ ...f, eventType: v as EventTypeValue }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {eventTypes.length === 0 ? (
                       <SelectItem value="__empty__" disabled>
-                        <span className="text-muted-foreground italic">No event types configured — add some in Settings → Work History Event Types</span>
+                        <span className="text-muted-foreground italic">{t('employees.workHistoryTimeline.noEventTypes')}</span>
                       </SelectItem>
                     ) : (
                       eventTypes.map(e => <SelectItem key={e.value} value={e.value}>{e.label}</SelectItem>)
@@ -394,20 +397,20 @@ export function WorkHistoryTimeline({ employeeId, canWrite }: Props) {
               </div>
             </div>
             <div>
-              <Label htmlFor="wh-desc" className="text-xs">Description</Label>
+              <Label htmlFor="wh-desc" className="text-xs">{t('employees.workHistoryTimeline.description')}</Label>
               <Input
                 id="wh-desc"
                 value={form.description}
                 onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                placeholder="Optional — context, salary, reason, etc."
+                placeholder={t('employees.workHistoryTimeline.descriptionPh')}
               />
             </div>
             <div>
-              <Label className="text-xs">Approved By</Label>
+              <Label className="text-xs">{t('employees.workHistoryTimeline.approvedByLabel')}</Label>
               <Select value={form.approvedById || '__none__'} onValueChange={(v) => setForm(f => ({ ...f, approvedById: v === '__none__' ? '' : v }))}>
-                <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={t('employees.workHistoryTimeline.none')} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__none__"><span className="text-muted-foreground">Not specified</span></SelectItem>
+                  <SelectItem value="__none__"><span className="text-muted-foreground">{t('employees.workHistoryTimeline.notSpecified')}</span></SelectItem>
                   {userOptions.map((u: any) => (
                     <SelectItem key={u.id} value={u.id}>{fullName(u) || u.email}</SelectItem>
                   ))}
@@ -416,8 +419,8 @@ export function WorkHistoryTimeline({ employeeId, canWrite }: Props) {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}><X className="w-4 h-4 me-2" />Cancel</Button>
-            <Button onClick={handleSave} disabled={saving}><Save className="w-4 h-4 me-2" />{saving ? 'Saving…' : 'Save'}</Button>
+            <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}><X className="w-4 h-4 me-2" />{tc('actions.cancel')}</Button>
+            <Button onClick={handleSave} disabled={saving}><Save className="w-4 h-4 me-2" />{saving ? tc('states.saving') : tc('actions.save')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

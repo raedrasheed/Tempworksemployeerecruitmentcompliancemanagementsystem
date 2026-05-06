@@ -464,7 +464,7 @@ export function CandidatesList() {
           <CardContent><div className="text-2xl font-bold text-emerald-600">{candidates.length}</div></CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Accepted / Onboarding</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">{t('applicants.candidates.acceptedOnboarding')}</CardTitle></CardHeader>
           <CardContent><div className="text-2xl font-bold text-green-600">{acceptedCount}</div></CardContent>
         </Card>
       </div>
@@ -472,11 +472,11 @@ export function CandidatesList() {
       {/* Bulk action toolbar */}
       {selected.size > 0 && (
         <div className="flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-lg px-4 py-2">
-          <span className="text-sm font-medium text-blue-800">{selected.size} selected</span>
+          <span className="text-sm font-medium text-blue-800">{t('applicants.candidates.selected', { count: selected.size })}</span>
           <div className="flex gap-2 ms-auto">
             {!isAgencyUser && (
               <>
-                <Button variant="outline" size="sm" disabled={bulkActionInProgress} onClick={() => handleBulkAction('STATUS_CHANGE', 'ACCEPTED')}>Mark Accepted</Button>
+                <Button variant="outline" size="sm" disabled={bulkActionInProgress} onClick={() => handleBulkAction('STATUS_CHANGE', 'ACCEPTED')}>{t('applicants.candidates.markAccepted')}</Button>
                 <Button
                   variant="outline"
                   size="sm"
@@ -489,7 +489,7 @@ export function CandidatesList() {
                     setPendingStatus('');
                     setStatusModalOpen(true);
                   }}
-                >Change Status</Button>
+                >{t('applicants.candidates.changeStatus')}</Button>
                 <Button
                   variant="outline"
                   size="sm"
@@ -512,7 +512,7 @@ export function CandidatesList() {
                     setBulkWorkflowNotes('');
                     setShowBulkWorkflowDialog(true);
                   }}
-                >Connect to Workflow</Button>
+                >{t('applicants.candidates.connectToWorkflow')}</Button>
                 <Button
                   size="sm"
                   className="bg-[#22C55E] hover:bg-[#16a34a] text-white"
@@ -525,7 +525,7 @@ export function CandidatesList() {
                     setBulkConvertAgencyId('');
                     setShowBulkConvertDialog(true);
                   }}
-                >Convert to Employees</Button>
+                >{t('applicants.candidates.convertToEmployees')}</Button>
               </>
             )}
             <Button variant="outline" size="sm" className="text-red-600" disabled={bulkActionInProgress} onClick={async () => {
@@ -536,9 +536,9 @@ export function CandidatesList() {
                 confirmText: tc('actions.delete'), tone: 'destructive',
               })) handleBulkAction('DELETE');
             }}>
-              <Trash2 className="w-3 h-3 me-1" />Delete Selected
+              <Trash2 className="w-3 h-3 me-1" />{t('applicants.candidates.deleteSelected')}
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => setSelected(new Set())}>Clear</Button>
+            <Button variant="ghost" size="sm" onClick={() => setSelected(new Set())}>{t('applicants.candidates.clear')}</Button>
           </div>
         </div>
       )}
@@ -552,50 +552,50 @@ export function CandidatesList() {
             <div className="flex flex-wrap items-center gap-3">
               <div className="flex-1 min-w-48 relative">
                 <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input placeholder="Search name, email, ID..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="ps-10" />
+                <Input placeholder={t('applicants.candidates.searchPh')} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="ps-10" />
               </div>
 
               <Select value={statusFilter || '__all__'} onValueChange={v => setStatusFilter(v === '__all__' ? '' : v)}>
-                <SelectTrigger className="w-40"><SelectValue placeholder="All Statuses" /></SelectTrigger>
+                <SelectTrigger className="w-40"><SelectValue placeholder={t('applicants.candidates.allStatuses')} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__all__">All Statuses</SelectItem>
+                  <SelectItem value="__all__">{t('applicants.candidates.allStatuses')}</SelectItem>
                   {STATUSES.map(s => <SelectItem key={s} value={s}>{s.replace(/_/g, ' ')}</SelectItem>)}
                 </SelectContent>
               </Select>
 
               {!isAgencyUser && agencies.length > 0 && (
                 <Select value={agencyFilter || '__all__'} onValueChange={v => setAgencyFilter(v === '__all__' ? '' : v)}>
-                  <SelectTrigger className="w-44"><SelectValue placeholder="All Agencies" /></SelectTrigger>
+                  <SelectTrigger className="w-44"><SelectValue placeholder={t('applicants.candidates.allAgencies')} /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__all__">All Agencies</SelectItem>
+                    <SelectItem value="__all__">{t('applicants.candidates.allAgencies')}</SelectItem>
                     {agencies.map((a: any) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
               )}
 
               <Button variant="outline" size="sm" onClick={fetchCandidates} disabled={loading}>
-                <RefreshCw className={`w-4 h-4 me-1 ${loading ? 'animate-spin' : ''}`} />Refresh
+                <RefreshCw className={`w-4 h-4 me-1 ${loading ? 'animate-spin' : ''}`} />{tc('actions.refresh')}
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleExportExcel}
                 disabled={selected.size === 0}
-                title={selected.size === 0 ? 'Select one or more rows to export' : undefined}
+                title={selected.size === 0 ? t('applicants.candidates.exportExcelTitle') : undefined}
               >
-                <Download className="w-4 h-4 me-2" />Export to Excel ({selected.size})
+                <Download className="w-4 h-4 me-2" />{t('applicants.candidates.exportToExcel')} ({selected.size})
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleBulkPdfExport}
                 disabled={selected.size === 0 || pdfExporting}
-                title={selected.size === 0 ? 'Select one or more rows to export as PDFs' : undefined}
+                title={selected.size === 0 ? t('applicants.candidates.exportPdfsTitle') : undefined}
               >
                 {pdfExporting
                   ? <Loader2 className="w-4 h-4 me-2 animate-spin" />
                   : <FileText className="w-4 h-4 me-2" />}
-                Export PDFs ({selected.size})
+                {t('applicants.candidates.exportPdfs')} ({selected.size})
               </Button>
 
               {/* Column picker */}
@@ -605,7 +605,7 @@ export function CandidatesList() {
                   onClick={() => setShowColPicker(v => !v)}
                   className={showColPicker ? 'border-blue-500 text-blue-600' : ''}
                 >
-                  <Columns2 className="w-4 h-4 me-1.5" />Columns
+                  <Columns2 className="w-4 h-4 me-1.5" />{t('applicants.candidates.columns')}
                   {ALL_COLUMNS.filter(c => !visibleColumns[c.key]).length > 0 && (
                     <span className="ms-1.5 bg-blue-600 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
                       {ALL_COLUMNS.filter(c => !visibleColumns[c.key]).length}
@@ -615,7 +615,7 @@ export function CandidatesList() {
 
                 {showColPicker && (
                   <div className="absolute end-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[180px]">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">Toggle columns</p>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">{t('applicants.candidates.toggleColumns')}</p>
                     <div className="space-y-0.5">
                       {ALL_COLUMNS.filter(c => !(c.key === 'tier' && isAgencyUser)).map(c => (
                         <button
@@ -631,9 +631,9 @@ export function CandidatesList() {
                       ))}
                     </div>
                     <div className="border-t mt-2 pt-2 flex gap-1.5">
-                      <button onClick={() => { const all = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, true])) as Record<ColKey, boolean>; setVisibleColumns(all); localStorage.setItem('candidates-table-columns-v3', JSON.stringify(all)); }} className="flex-1 text-xs text-center text-blue-600 hover:underline py-0.5">Show all</button>
+                      <button onClick={() => { const all = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, true])) as Record<ColKey, boolean>; setVisibleColumns(all); localStorage.setItem('candidates-table-columns-v3', JSON.stringify(all)); }} className="flex-1 text-xs text-center text-blue-600 hover:underline py-0.5">{t('applicants.candidates.showAll')}</button>
                       <span className="text-gray-300">|</span>
-                      <button onClick={() => { const none = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, false])) as Record<ColKey, boolean>; setVisibleColumns(none); localStorage.setItem('candidates-table-columns-v3', JSON.stringify(none)); }} className="flex-1 text-xs text-center text-gray-500 hover:underline py-0.5">Hide all</button>
+                      <button onClick={() => { const none = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, false])) as Record<ColKey, boolean>; setVisibleColumns(none); localStorage.setItem('candidates-table-columns-v3', JSON.stringify(none)); }} className="flex-1 text-xs text-center text-gray-500 hover:underline py-0.5">{t('applicants.candidates.hideAll')}</button>
                     </div>
                   </div>
                 )}
@@ -643,33 +643,33 @@ export function CandidatesList() {
             {/* Row 2 */}
             <div className="flex flex-wrap items-center gap-3">
               <Select value={nationalityFilter || '__all__'} onValueChange={v => setNationalityFilter(v === '__all__' ? '' : v)}>
-                <SelectTrigger className="w-44"><SelectValue placeholder="All Citizenships" /></SelectTrigger>
+                <SelectTrigger className="w-44"><SelectValue placeholder={t('applicants.candidates.allCitizenships')} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__all__">All Citizenships</SelectItem>
+                  <SelectItem value="__all__">{t('applicants.candidates.allCitizenships')}</SelectItem>
                   {nationalityOptions.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
                 </SelectContent>
               </Select>
 
               {jobTypes.length > 0 && (
                 <Select value={jobTypeFilter || '__all__'} onValueChange={v => setJobTypeFilter(v === '__all__' ? '' : v)}>
-                  <SelectTrigger className="w-48"><SelectValue placeholder="All Job Categories" /></SelectTrigger>
+                  <SelectTrigger className="w-48"><SelectValue placeholder={t('applicants.candidates.allJobCategories')} /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__all__">All Job Categories</SelectItem>
+                    <SelectItem value="__all__">{t('applicants.candidates.allJobCategories')}</SelectItem>
                     {jobTypes.map((jt: any) => <SelectItem key={jt.id} value={jt.id}>{jt.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
               )}
 
               <div className="flex items-center gap-1.5">
-                <span className="text-xs text-muted-foreground whitespace-nowrap">Applied from</span>
+                <span className="text-xs text-muted-foreground whitespace-nowrap">{t('applicants.candidates.appliedFrom')}</span>
                 <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="w-36 text-sm" />
-                <span className="text-xs text-muted-foreground">to</span>
+                <span className="text-xs text-muted-foreground">{t('applicants.candidates.appliedTo')}</span>
                 <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="w-36 text-sm" />
               </div>
 
               {hasActiveFilters && (
                 <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground hover:text-foreground">
-                  <X className="w-3.5 h-3.5 me-1" />Clear filters
+                  <X className="w-3.5 h-3.5 me-1" />{t('applicants.candidates.clearFilters')}
                 </Button>
               )}
             </div>
@@ -682,29 +682,29 @@ export function CandidatesList() {
                   <TableHead className="w-10">
                     <Checkbox checked={displayData.length > 0 && selected.size === displayData.length} onCheckedChange={toggleSelectAll} />
                   </TableHead>
-                  <SortableHead label="Candidate"    field="firstName"   sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />
-                  {col('contact')     && <SortableHead label="Contact"      field="email"       sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
-                  {col('nationality') && <SortableHead label="Citizenship"  field="nationality" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
-                  {col('appliedPosition') && <TableHead>Applied Position</TableHead>}
-                  {col('passportNumber')  && <TableHead>Passport Number</TableHead>}
-                  {col('age')             && <TableHead>Age</TableHead>}
-                  {col('gender')          && <TableHead>Gender</TableHead>}
-                  {col('agency')      && <SortableHead label="Agency"       field="agency"      sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
-                  {col('tier') && !isAgencyUser && <SortableHead label="Tier" field="tier" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
-                  {col('applied')     && <SortableHead label="Applied"      field="createdAt"   sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
-                  {col('status')      && <SortableHead label="Status"       field="status"      sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
-                  <TableHead className="text-end">Actions</TableHead>
+                  <SortableHead label={t('applicants.candidates.tableHeaders.candidate')}    field="firstName"   sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />
+                  {col('contact')     && <SortableHead label={t('applicants.candidates.tableHeaders.contact')}      field="email"       sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  {col('nationality') && <SortableHead label={t('applicants.candidates.tableHeaders.citizenship')}  field="nationality" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  {col('appliedPosition') && <TableHead>{t('applicants.candidates.tableHeaders.appliedPosition')}</TableHead>}
+                  {col('passportNumber')  && <TableHead>{t('applicants.candidates.tableHeaders.passportNumber')}</TableHead>}
+                  {col('age')             && <TableHead>{t('applicants.candidates.tableHeaders.age')}</TableHead>}
+                  {col('gender')          && <TableHead>{t('applicants.candidates.tableHeaders.gender')}</TableHead>}
+                  {col('agency')      && <SortableHead label={t('applicants.candidates.tableHeaders.agency')}       field="agency"      sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  {col('tier') && !isAgencyUser && <SortableHead label={t('applicants.list.tableHeaders.tier')} field="tier" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  {col('applied')     && <SortableHead label={t('applicants.candidates.tableHeaders.applied')}      field="createdAt"   sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  {col('status')      && <SortableHead label={t('applicants.candidates.tableHeaders.status')}       field="status"      sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  <TableHead className="text-end">{t('applicants.candidates.tableHeaders.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading && (
                   <TableRow>
-                    <TableCell colSpan={colSpan} className="text-center py-8 text-muted-foreground">Loading...</TableCell>
+                    <TableCell colSpan={colSpan} className="text-center py-8 text-muted-foreground">{t('applicants.candidates.loading')}</TableCell>
                   </TableRow>
                 )}
                 {!loading && displayData.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={colSpan} className="text-center py-12 text-muted-foreground">No candidates found matching your criteria.</TableCell>
+                    <TableCell colSpan={colSpan} className="text-center py-12 text-muted-foreground">{t('applicants.candidates.emptyFiltered')}</TableCell>
                   </TableRow>
                 )}
                 {!loading && displayData.map(applicant => (
@@ -880,14 +880,14 @@ export function CandidatesList() {
               skipped and reported back so you can convert it individually.
             </p>
             <div className="space-y-1.5">
-              <Label htmlFor="bulk-convert-agency" className="text-sm">Responsible Agency (optional)</Label>
+              <Label htmlFor="bulk-convert-agency" className="text-sm">{t('applicants.candidates.workflowDialog.responsibleAgencyOptional')}</Label>
               <Select value={bulkConvertAgencyId || '__keep__'} onValueChange={(v) => setBulkConvertAgencyId(v === '__keep__' ? '' : v)}>
                 <SelectTrigger id="bulk-convert-agency">
-                  <SelectValue placeholder="Keep each candidate's current agency" />
+                  <SelectValue placeholder={t('applicants.candidates.workflowDialog.keepCurrent')} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__keep__">
-                    <span className="text-muted-foreground">Keep each candidate's current agency</span>
+                    <span className="text-muted-foreground">{t('applicants.candidates.workflowDialog.keepCurrent')}</span>
                   </SelectItem>
                   {agencies.map((a: any) => (
                     <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
@@ -923,17 +923,17 @@ export function CandidatesList() {
       <Dialog open={showBulkWorkflowDialog} onOpenChange={(o) => !o && setShowBulkWorkflowDialog(false)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Connect {selected.size} Candidate{selected.size === 1 ? '' : 's'} to a Workflow</DialogTitle>
+            <DialogTitle>{t('applicants.candidates.workflowDialog.title', { count: selected.size })}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <p className="text-sm text-muted-foreground">
               Every selected candidate will be placed on Stage 1 of the chosen workflow with status
-              <strong className="text-foreground"> In Progress</strong>. Candidates already on the same
+              <strong className="text-foreground"> {t('applicants.candidates.workflowDialog.inProgress')}</strong>. Candidates already on the same
               workflow are skipped; reassignment to a different workflow is a System-Admin-only action
               and will be blocked for others.
             </p>
             <div className="space-y-1.5">
-              <Label htmlFor="bulk-workflow" className="text-sm">Workflow *</Label>
+              <Label htmlFor="bulk-workflow" className="text-sm">{t('applicants.candidates.workflowDialog.workflowRequired')}</Label>
               <Select value={bulkWorkflowId} onValueChange={setBulkWorkflowId}>
                 <SelectTrigger id="bulk-workflow">
                   <SelectValue placeholder={allWorkflows.length === 0 ? 'No workflows available' : 'Pick a workflow…'} />

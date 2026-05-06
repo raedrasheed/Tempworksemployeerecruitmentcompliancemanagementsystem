@@ -426,7 +426,7 @@ export function ApplicantsList() {
           </Card>
         )}
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Accepted / Onboarding</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">{t('applicants.list.acceptedOnboarding')}</CardTitle></CardHeader>
           <CardContent><div className="text-2xl font-bold text-green-600">{acceptedCount}</div></CardContent>
         </Card>
       </div>
@@ -434,7 +434,7 @@ export function ApplicantsList() {
       {/* Bulk action toolbar */}
       {selected.size > 0 && (
         <div className="flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-lg px-4 py-2">
-          <span className="text-sm font-medium text-blue-800">{selected.size} selected</span>
+          <span className="text-sm font-medium text-blue-800">{t('applicants.list.selected', { count: selected.size })}</span>
           <div className="flex gap-2 ms-auto">
             {!isAgencyUser && (
               <>
@@ -447,7 +447,7 @@ export function ApplicantsList() {
                     setBulkPromoteAgencyId('');
                     setShowBulkPromoteDialog(true);
                   }}
-                >Promote to Candidate</Button>
+                >{t('applicants.list.promoteToCandidate')}</Button>
                 <Button
                   variant="outline"
                   size="sm"
@@ -460,7 +460,7 @@ export function ApplicantsList() {
                     setPendingStatus('');
                     setStatusModalOpen(true);
                   }}
-                >Change Status</Button>
+                >{t('applicants.list.changeStatus')}</Button>
               </>
             )}
             <Button variant="outline" size="sm" className="text-red-600" disabled={bulkActionInProgress} onClick={async () => {
@@ -471,9 +471,9 @@ export function ApplicantsList() {
                 confirmText: tc('actions.delete'), tone: 'destructive',
               })) handleBulkAction('DELETE');
             }}>
-              <Trash2 className="w-3 h-3 me-1" />Delete Selected
+              <Trash2 className="w-3 h-3 me-1" />{t('applicants.list.deleteSelected')}
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => setSelected(new Set())}>Clear</Button>
+            <Button variant="ghost" size="sm" onClick={() => setSelected(new Set())}>{t('applicants.list.clear')}</Button>
           </div>
         </div>
       )}
@@ -487,50 +487,50 @@ export function ApplicantsList() {
             <div className="flex flex-wrap items-center gap-3">
               <div className="flex-1 min-w-48 relative">
                 <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input placeholder="Search name, email, ID..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="ps-10" />
+                <Input placeholder={t('applicants.list.searchPh')} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="ps-10" />
               </div>
 
               <Select value={statusFilter || '__all__'} onValueChange={v => setStatusFilter(v === '__all__' ? '' : v)}>
-                <SelectTrigger className="w-40"><SelectValue placeholder="All Statuses" /></SelectTrigger>
+                <SelectTrigger className="w-40"><SelectValue placeholder={t('applicants.list.allStatuses')} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__all__">All Statuses</SelectItem>
+                  <SelectItem value="__all__">{t('applicants.list.allStatuses')}</SelectItem>
                   {STATUSES.map(s => <SelectItem key={s} value={s}>{s.replace(/_/g, ' ')}</SelectItem>)}
                 </SelectContent>
               </Select>
 
               {!isAgencyUser && agencies.length > 0 && (
                 <Select value={agencyFilter || '__all__'} onValueChange={v => setAgencyFilter(v === '__all__' ? '' : v)}>
-                  <SelectTrigger className="w-44"><SelectValue placeholder="All Agencies" /></SelectTrigger>
+                  <SelectTrigger className="w-44"><SelectValue placeholder={t('applicants.list.allAgencies')} /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__all__">All Agencies</SelectItem>
+                    <SelectItem value="__all__">{t('applicants.list.allAgencies')}</SelectItem>
                     {agencies.map((a: any) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
               )}
 
               <Button variant="outline" size="sm" onClick={fetchApplicants} disabled={loading}>
-                <RefreshCw className={`w-4 h-4 me-1 ${loading ? 'animate-spin' : ''}`} />Refresh
+                <RefreshCw className={`w-4 h-4 me-1 ${loading ? 'animate-spin' : ''}`} />{tc('actions.refresh')}
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleExportExcel}
                 disabled={selected.size === 0}
-                title={selected.size === 0 ? 'Select one or more rows to export' : undefined}
+                title={selected.size === 0 ? t('applicants.list.exportExcelTitle') : undefined}
               >
-                <Download className="w-4 h-4 me-2" />Export to Excel ({selected.size})
+                <Download className="w-4 h-4 me-2" />{t('applicants.list.exportToExcel')} ({selected.size})
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleBulkPdfExport}
                 disabled={selected.size === 0 || pdfExporting}
-                title={selected.size === 0 ? 'Select one or more rows to export as PDFs' : undefined}
+                title={selected.size === 0 ? t('applicants.list.exportPdfsTitle') : undefined}
               >
                 {pdfExporting
                   ? <Loader2 className="w-4 h-4 me-2 animate-spin" />
                   : <FileText className="w-4 h-4 me-2" />}
-                Export PDFs ({selected.size})
+                {t('applicants.list.exportPdfs')} ({selected.size})
               </Button>
 
               {/* Column picker */}
@@ -540,7 +540,7 @@ export function ApplicantsList() {
                   onClick={() => setShowColPicker(v => !v)}
                   className={showColPicker ? 'border-blue-500 text-blue-600' : ''}
                 >
-                  <Columns2 className="w-4 h-4 me-1.5" />Columns
+                  <Columns2 className="w-4 h-4 me-1.5" />{t('applicants.list.columns')}
                   {ALL_COLUMNS.filter(c => !visibleColumns[c.key]).length > 0 && (
                     <span className="ms-1.5 bg-blue-600 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
                       {ALL_COLUMNS.filter(c => !visibleColumns[c.key]).length}
@@ -550,7 +550,7 @@ export function ApplicantsList() {
 
                 {showColPicker && (
                   <div className="absolute end-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[180px]">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">Toggle columns</p>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">{t('applicants.list.toggleColumns')}</p>
                     <div className="space-y-0.5">
                       {ALL_COLUMNS.filter(c => !(c.key === 'tier' && isAgencyUser)).map(c => (
                         <button
@@ -566,9 +566,9 @@ export function ApplicantsList() {
                       ))}
                     </div>
                     <div className="border-t mt-2 pt-2 flex gap-1.5">
-                      <button onClick={() => { const all = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, true])) as Record<ColKey, boolean>; setVisibleColumns(all); localStorage.setItem('applicants-table-columns-v3', JSON.stringify(all)); }} className="flex-1 text-xs text-center text-blue-600 hover:underline py-0.5">Show all</button>
+                      <button onClick={() => { const all = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, true])) as Record<ColKey, boolean>; setVisibleColumns(all); localStorage.setItem('applicants-table-columns-v3', JSON.stringify(all)); }} className="flex-1 text-xs text-center text-blue-600 hover:underline py-0.5">{t('applicants.list.showAll')}</button>
                       <span className="text-gray-300">|</span>
-                      <button onClick={() => { const none = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, false])) as Record<ColKey, boolean>; setVisibleColumns(none); localStorage.setItem('applicants-table-columns-v3', JSON.stringify(none)); }} className="flex-1 text-xs text-center text-gray-500 hover:underline py-0.5">Hide all</button>
+                      <button onClick={() => { const none = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, false])) as Record<ColKey, boolean>; setVisibleColumns(none); localStorage.setItem('applicants-table-columns-v3', JSON.stringify(none)); }} className="flex-1 text-xs text-center text-gray-500 hover:underline py-0.5">{t('applicants.list.hideAll')}</button>
                     </div>
                   </div>
                 )}
@@ -578,33 +578,33 @@ export function ApplicantsList() {
             {/* Row 2 */}
             <div className="flex flex-wrap items-center gap-3">
               <Select value={nationalityFilter || '__all__'} onValueChange={v => setNationalityFilter(v === '__all__' ? '' : v)}>
-                <SelectTrigger className="w-44"><SelectValue placeholder="All Citizenships" /></SelectTrigger>
+                <SelectTrigger className="w-44"><SelectValue placeholder={t('applicants.list.allCitizenships')} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__all__">All Citizenships</SelectItem>
+                  <SelectItem value="__all__">{t('applicants.list.allCitizenships')}</SelectItem>
                   {nationalityOptions.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
                 </SelectContent>
               </Select>
 
               {jobTypes.length > 0 && (
                 <Select value={jobTypeFilter || '__all__'} onValueChange={v => setJobTypeFilter(v === '__all__' ? '' : v)}>
-                  <SelectTrigger className="w-48"><SelectValue placeholder="All Job Categories" /></SelectTrigger>
+                  <SelectTrigger className="w-48"><SelectValue placeholder={t('applicants.list.allJobCategories')} /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__all__">All Job Categories</SelectItem>
+                    <SelectItem value="__all__">{t('applicants.list.allJobCategories')}</SelectItem>
                     {jobTypes.map((jt: any) => <SelectItem key={jt.id} value={jt.id}>{jt.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
               )}
 
               <div className="flex items-center gap-1.5">
-                <span className="text-xs text-muted-foreground whitespace-nowrap">Applied from</span>
+                <span className="text-xs text-muted-foreground whitespace-nowrap">{t('applicants.list.appliedFrom')}</span>
                 <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="w-36 text-sm" />
-                <span className="text-xs text-muted-foreground">to</span>
+                <span className="text-xs text-muted-foreground">{t('applicants.list.appliedTo')}</span>
                 <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="w-36 text-sm" />
               </div>
 
               {hasActiveFilters && (
                 <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground hover:text-foreground">
-                  <X className="w-3.5 h-3.5 me-1" />Clear filters
+                  <X className="w-3.5 h-3.5 me-1" />{t('applicants.list.clearFilters')}
                 </Button>
               )}
             </div>
@@ -617,29 +617,29 @@ export function ApplicantsList() {
                   <TableHead className="w-10">
                     <Checkbox checked={displayData.length > 0 && selected.size === displayData.length} onCheckedChange={toggleSelectAll} />
                   </TableHead>
-                  <SortableHead label="Applicant"    field="firstName"   sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />
-                  {col('contact')     && <SortableHead label="Contact"      field="email"       sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
-                  {col('nationality') && <SortableHead label="Citizenship"  field="nationality" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
-                  {col('appliedPosition') && <TableHead>Applied Position</TableHead>}
-                  {col('passportNumber')  && <TableHead>Passport Number</TableHead>}
-                  {col('age')             && <TableHead>Age</TableHead>}
-                  {col('gender')          && <TableHead>Gender</TableHead>}
-                  {col('agency')      && <SortableHead label="Agency"       field="agency"      sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
-                  {col('tier') && !isAgencyUser && <SortableHead label="Tier" field="tier" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
-                  {col('applied')     && <SortableHead label="Applied"      field="createdAt"   sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
-                  {col('status')      && <SortableHead label="Status"       field="status"      sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
-                  <TableHead className="text-end">Actions</TableHead>
+                  <SortableHead label={t('applicants.list.tableHeaders.applicant')}    field="firstName"   sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />
+                  {col('contact')     && <SortableHead label={t('applicants.list.tableHeaders.contact')}      field="email"       sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  {col('nationality') && <SortableHead label={t('applicants.list.tableHeaders.citizenship')}  field="nationality" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  {col('appliedPosition') && <TableHead>{t('applicants.list.tableHeaders.appliedPosition')}</TableHead>}
+                  {col('passportNumber')  && <TableHead>{t('applicants.list.tableHeaders.passportNumber')}</TableHead>}
+                  {col('age')             && <TableHead>{t('applicants.list.tableHeaders.age')}</TableHead>}
+                  {col('gender')          && <TableHead>{t('applicants.list.tableHeaders.gender')}</TableHead>}
+                  {col('agency')      && <SortableHead label={t('applicants.list.tableHeaders.agency')}       field="agency"      sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  {col('tier') && !isAgencyUser && <SortableHead label={t('applicants.list.tableHeaders.tier')} field="tier" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  {col('applied')     && <SortableHead label={t('applicants.list.tableHeaders.applied')}      field="createdAt"   sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  {col('status')      && <SortableHead label={t('applicants.list.tableHeaders.status')}       field="status"      sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  <TableHead className="text-end">{t('applicants.list.tableHeaders.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading && (
                   <TableRow>
-                    <TableCell colSpan={colSpan} className="text-center py-8 text-muted-foreground">Loading...</TableCell>
+                    <TableCell colSpan={colSpan} className="text-center py-8 text-muted-foreground">{t('applicants.list.loading')}</TableCell>
                   </TableRow>
                 )}
                 {!loading && displayData.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={colSpan} className="text-center py-12 text-muted-foreground">No applicants found matching your criteria.</TableCell>
+                    <TableCell colSpan={colSpan} className="text-center py-12 text-muted-foreground">{t('applicants.list.emptyFiltered')}</TableCell>
                   </TableRow>
                 )}
                 {!loading && displayData.map(applicant => (
@@ -661,7 +661,7 @@ export function ApplicantsList() {
                               ? <span className="text-purple-600">{applicant.candidateNumber}</span>
                               : applicant.leadNumber
                                 ? <span className="text-blue-600">{applicant.leadNumber}</span>
-                                : <span className="italic opacity-60">Legacy</span>}
+                                : <span className="italic opacity-60">{t('applicants.list.legacy')}</span>}
                           </div>
                         </div>
                       </div>
@@ -803,22 +803,21 @@ export function ApplicantsList() {
       <Dialog open={showBulkPromoteDialog} onOpenChange={(o) => !o && setShowBulkPromoteDialog(false)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Promote {selected.size} Lead{selected.size === 1 ? '' : 's'} to Candidate</DialogTitle>
+            <DialogTitle>{t('applicants.list.promoteDialog.title', { count: selected.size })}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <p className="text-sm text-muted-foreground">
-              Every selected lead is promoted to a candidate and pinned to the responsible agency you pick below.
-              Leave the picker blank to fall back to the system default holding agency.
+              {t('applicants.list.promoteDialog.body')}
             </p>
             <div className="space-y-1.5">
-              <Label htmlFor="bulk-promote-agency" className="text-sm">Responsible Agency</Label>
+              <Label htmlFor="bulk-promote-agency" className="text-sm">{t('applicants.list.promoteDialog.responsibleAgency')}</Label>
               <Select value={bulkPromoteAgencyId || '__default__'} onValueChange={(v) => setBulkPromoteAgencyId(v === '__default__' ? '' : v)}>
                 <SelectTrigger id="bulk-promote-agency">
-                  <SelectValue placeholder="Use system default" />
+                  <SelectValue placeholder={t('applicants.list.promoteDialog.useSystemDefault')} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__default__">
-                    <span className="text-muted-foreground">Use system default holding agency</span>
+                    <span className="text-muted-foreground">{t('applicants.list.promoteDialog.useSystemDefaultHolding')}</span>
                   </SelectItem>
                   {agencies.map((a: any) => (
                     <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
@@ -828,7 +827,7 @@ export function ApplicantsList() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowBulkPromoteDialog(false)} disabled={bulkActionInProgress}>Cancel</Button>
+            <Button variant="outline" onClick={() => setShowBulkPromoteDialog(false)} disabled={bulkActionInProgress}>{tc('actions.cancel')}</Button>
             <Button
               className="bg-emerald-600 hover:bg-emerald-700 text-white"
               disabled={bulkActionInProgress}
@@ -837,7 +836,7 @@ export function ApplicantsList() {
                 await handleBulkAction('TIER_CHANGE', 'CANDIDATE', bulkPromoteAgencyId || undefined);
               }}
             >
-              Promote
+              {t('applicants.list.promoteDialog.promoteAction')}
             </Button>
           </DialogFooter>
         </DialogContent>

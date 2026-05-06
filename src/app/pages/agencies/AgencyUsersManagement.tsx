@@ -89,14 +89,14 @@ export function AgencyUsersManagement() {
           <Link to={`/dashboard/agencies/${id}`}><ArrowLeft className="w-5 h-5" /></Link>
         </Button>
         <div className="flex-1">
-          <h1 className="text-3xl font-semibold text-[#0F172A]">Agency Users</h1>
-          <p className="text-muted-foreground mt-1">{agency.name} — Manage agency user accounts</p>
+          <h1 className="text-3xl font-semibold text-[#0F172A]">{t('agencies.users.title')}</h1>
+          <p className="text-muted-foreground mt-1">{t('agencies.users.manageSubtitle', { name: agency.name })}</p>
         </div>
         {canManageUsers && (
           <Button asChild disabled={atLimit}>
             <Link to="/dashboard/users/add">
               <Plus className="w-4 h-4 me-2" />
-              Add User
+              {t('agencies.users.addButton')}
             </Link>
           </Button>
         )}
@@ -108,9 +108,9 @@ export function AgencyUsersManagement() {
             <div className="flex items-start gap-3">
               <AlertTriangle className="w-5 h-5 text-[#F59E0B] mt-0.5" />
               <div>
-                <p className="font-medium text-[#F59E0B]">Maximum number of users reached</p>
+                <p className="font-medium text-[#F59E0B]">{t('agencies.users.atLimitTitle')}</p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  This agency has reached the maximum limit of {maxUsers} active users. Contact a System Administrator to increase the limit.
+                  {t('agencies.users.atLimitBody', { count: maxUsers })}
                 </p>
               </div>
             </div>
@@ -127,7 +127,7 @@ export function AgencyUsersManagement() {
               </div>
               <div>
                 <p className="text-2xl font-semibold">{activeUsers.length}/{maxUsers}</p>
-                <p className="text-sm text-muted-foreground">Active Users</p>
+                <p className="text-sm text-muted-foreground">{t('agencies.users.activeUsers')}</p>
               </div>
             </div>
           </CardContent>
@@ -140,7 +140,7 @@ export function AgencyUsersManagement() {
               </div>
               <div>
                 <p className="text-2xl font-semibold">{managers.length}</p>
-                <p className="text-sm text-muted-foreground">Managers</p>
+                <p className="text-sm text-muted-foreground">{t('agencies.users.managers')}</p>
               </div>
             </div>
           </CardContent>
@@ -153,7 +153,7 @@ export function AgencyUsersManagement() {
               </div>
               <div>
                 <p className="text-2xl font-semibold">{agencyUsers.filter(u => u.status !== 'ACTIVE').length}</p>
-                <p className="text-sm text-muted-foreground">Inactive</p>
+                <p className="text-sm text-muted-foreground">{t('agencies.users.inactive')}</p>
               </div>
             </div>
           </CardContent>
@@ -162,22 +162,22 @@ export function AgencyUsersManagement() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Agency Users ({agencyUsers.length})</CardTitle>
+          <CardTitle>{t('agencies.users.agencyUsersTitle', { count: agencyUsers.length })}</CardTitle>
         </CardHeader>
         <CardContent>
           {agencyUsers.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">No users found for this agency.</p>
+            <p className="text-muted-foreground text-center py-8">{t('agencies.users.noUsers')}</p>
           ) : (
             <div className="border rounded-lg overflow-hidden">
               <table className="w-full">
                 <thead className="bg-[#F8FAFC] border-b">
                   <tr>
-                    <th className="text-start p-4 font-semibold text-sm">User</th>
-                    <th className="text-start p-4 font-semibold text-sm">Role</th>
-                    <th className="text-start p-4 font-semibold text-sm">Approval</th>
-                    <th className="text-start p-4 font-semibold text-sm">Status</th>
-                    <th className="text-start p-4 font-semibold text-sm">Last Login</th>
-                    <th className="text-start p-4 font-semibold text-sm">Actions</th>
+                    <th className="text-start p-4 font-semibold text-sm">{t('agencies.users.tableHeaders.user')}</th>
+                    <th className="text-start p-4 font-semibold text-sm">{t('agencies.users.tableHeaders.role')}</th>
+                    <th className="text-start p-4 font-semibold text-sm">{t('agencies.users.tableHeaders.approval')}</th>
+                    <th className="text-start p-4 font-semibold text-sm">{t('agencies.users.tableHeaders.status')}</th>
+                    <th className="text-start p-4 font-semibold text-sm">{t('agencies.users.tableHeaders.lastLogin')}</th>
+                    <th className="text-start p-4 font-semibold text-sm">{t('agencies.users.tableHeaders.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -200,15 +200,15 @@ export function AgencyUsersManagement() {
                       </td>
                       <td className="p-4">
                         {user.approvalStatus === 'PENDING_APPROVAL' ? (
-                          <Badge className="bg-amber-100 text-amber-900 border border-amber-300">Pending</Badge>
+                          <Badge className="bg-amber-100 text-amber-900 border border-amber-300">{t('agencies.users.approvalStatus.pending')}</Badge>
                         ) : user.approvalStatus === 'REJECTED' ? (
-                          <Badge className="bg-red-100 text-red-900 border border-red-300">Rejected</Badge>
+                          <Badge className="bg-red-100 text-red-900 border border-red-300">{t('agencies.users.approvalStatus.rejected')}</Badge>
                         ) : (
-                          <Badge className="bg-emerald-100 text-emerald-900 border border-emerald-300">Approved</Badge>
+                          <Badge className="bg-emerald-100 text-emerald-900 border border-emerald-300">{t('agencies.users.approvalStatus.approved')}</Badge>
                         )}
                         {user.approvalStatus === 'APPROVED' && (user.allowManagerEdit || user.allowManagerDelete) && (
                           <div className="text-[10px] text-muted-foreground mt-1">
-                            Manager override:{' '}
+                            {t('agencies.users.managerOverridePrefix')}{' '}
                             {[user.allowManagerEdit && 'edit', user.allowManagerDelete && 'delete'].filter(Boolean).join(' + ')}
                           </div>
                         )}

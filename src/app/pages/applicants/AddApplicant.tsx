@@ -14,6 +14,7 @@ import { ApplicantFormSteps, EMPTY_FORM, getVisibleTabs, getStepErrors, getStepF
 
 export function AddApplicant() {
   const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const navigate = useNavigate();
   const { canCreate } = usePermissions();
   const [currentStep, setCurrentStep] = useState(1);
@@ -286,8 +287,8 @@ export function AddApplicant() {
     return (
       <div className="flex flex-col items-center justify-center py-24 gap-3 text-muted-foreground">
         <ShieldOff className="w-12 h-12 opacity-30" />
-        <p className="text-lg font-semibold">Access Denied</p>
-        <p className="text-sm">You don't have permission to perform this action.</p>
+        <p className="text-lg font-semibold">{tc('permissions.accessDenied')}</p>
+        <p className="text-sm">{tc('permissions.noPermission')}</p>
       </div>
     );
   }
@@ -304,14 +305,14 @@ export function AddApplicant() {
           <h1 className="text-3xl font-semibold">{t('applicants.add.title')}</h1>
           <p className="text-muted-foreground mt-1">
             {draftId
-              ? 'Continuing your saved draft — no applicant has been created yet.'
-              : 'Driver Application Form'}
+              ? t('applicants.addPage.draftSubtitle')
+              : t('applicants.addPage.formSubtitle')}
           </p>
         </div>
         {draftId && (
           <Button variant="outline" size="sm" onClick={handleDiscardDraft} className="gap-2 text-red-600 hover:text-red-700">
             <Trash2 className="w-4 h-4" />
-            Discard draft
+            {t('applicants.addPage.discardButton')}
           </Button>
         )}
       </div>
@@ -319,13 +320,13 @@ export function AddApplicant() {
       <Card>
         <CardContent className="pt-6 pb-6">
           <div className="max-w-sm">
-            <Label htmlFor="agencyId" className="mb-2 block">Agency <span className="text-muted-foreground font-normal">(optional)</span></Label>
+            <Label htmlFor="agencyId" className="mb-2 block">{t('applicants.addPage.agencyLabel')} <span className="text-muted-foreground font-normal">{t('applicants.addPage.agencyOptional')}</span></Label>
             <Select value={agencyId} onValueChange={setAgencyId}>
               <SelectTrigger id="agencyId">
-                <SelectValue placeholder="Select agency..." />
+                <SelectValue placeholder={t('applicants.addPage.selectAgencyPh')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">No Agency</SelectItem>
+                <SelectItem value="none">{t('applicants.addPage.noAgency')}</SelectItem>
                 {agencies.map((a) => (
                   <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
                 ))}

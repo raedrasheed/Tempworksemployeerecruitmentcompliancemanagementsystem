@@ -18,6 +18,7 @@
  *    when the displayed month is locked
  */
 import { useState, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { attendanceApi } from '../../services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
@@ -97,6 +98,7 @@ interface Props {
 }
 
 export function AttendanceTab({ employeeId, employeeName, canWrite, canLock = false }: Props) {
+  const { t: tc } = useTranslation('common');
   const now = new Date();
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year,  setYear]  = useState(now.getFullYear());
@@ -390,7 +392,7 @@ export function AttendanceTab({ employeeId, employeeName, canWrite, canLock = fa
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={10} className="p-6 text-center text-muted-foreground">Loading…</td></tr>
+                  <tr><td colSpan={10} className="p-6 text-center text-muted-foreground">{tc('states.loading')}</td></tr>
                 ) : (
                   allDays.map(d => {
                     const rec = byDay.get(d);

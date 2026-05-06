@@ -4,6 +4,9 @@ import { ArrowLeft, ShieldOff, Upload, X, FileText, Download } from 'lucide-reac
 import { useState, useEffect, useCallback } from 'react';
 import { usePermissions } from '../../hooks/usePermissions';
 import { apiError } from '../../../i18n/apiError';
+import { useValidationErrors } from '../../../i18n/useValidationErrors';
+import { FieldError } from '../../components/ui/field-error';
+import { ValidationSummary } from '../../components/ui/validation-summary';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -58,6 +61,8 @@ export function EditAgency() {
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const { errors: fieldErrs, setFromError, clearAll: clearFieldErrors, clearError } = useValidationErrors();
+
   const [form, setForm] = useState<FormShape>({
     name: '', country: '', contactFirstName: '', contactMiddleName: '', contactLastName: '',
     email: '', phone: '', whatsapp: '', status: 'ACTIVE', website: '',
@@ -135,8 +140,10 @@ export function EditAgency() {
     );
   }
 
-  const setField = <K extends keyof FormShape>(key: K, value: FormShape[K]) =>
+  const setField = <K extends keyof FormShape>(key: K, value: FormShape[K]) => {
     setForm(prev => ({ ...prev, [key]: value }));
+    if (fieldErrs[key as string]) clearError(key as string);
+  };
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0]; if (!f || !id) return;
@@ -199,6 +206,7 @@ export function EditAgency() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    clearFieldErrors();
     if (!form.name.trim())          return toast.error(t('agencies.add.validation.nameRequired'));
     if (!form.country)              return toast.error(t('agencies.add.validation.countryRequired'));
     if (!form.contactFirstName.trim() || !form.contactLastName.trim())
@@ -223,6 +231,7 @@ export function EditAgency() {
       toast.success(t('agencies.edit.updateSuccess'));
       navigate(`/dashboard/agencies/${id}`);
     } catch (err: any) {
+      setFromError(err);
       toast.error(apiError(err, t('agencies.edit.updateFailed')));
     } finally {
       setSubmitting(false);
@@ -247,6 +256,7 @@ export function EditAgency() {
 
       <form onSubmit={handleSubmit}>
         <div className="max-w-3xl space-y-6">
+          <ValidationSummary errors={fieldErrs} />
           {/* Identity */}
           <Card>
             <CardHeader><CardTitle>{t('agencies.add.agencyInfoTitle')}</CardTitle></CardHeader>
@@ -254,7 +264,10 @@ export function EditAgency() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2 col-span-2">
                   <Label htmlFor="name">{t('agencies.add.agencyName')}</Label>
-                  <Input id="name" value={form.name} onChange={e => setField('name', e.target.value)} required disabled={isAgencyManager} />
+                  <Input id="name" value={form.name} onChange={e => setField('name', e.target.value)} required disabled={isAgencyManager}
+                    aria-invalid={!!fieldErrs.name}
+                    className={fieldErrs.name ? 'border-red-500 focus-visible:ring-red-500' : ''} />
+                  <FieldError errors={fieldErrs} name="name" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="country">{t('agencies.add.country')}</Label>
@@ -329,11 +342,15 @@ export function EditAgency() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="email">{t('agencies.add.email')}</Label>
-                  <Input id="email" type="email" value={form.email} onChange={e => setField('email', e.target.value)} required />
+                  <Input id="email" type="email" value={form.email} onChange={e => setField('email', e.target.value)} required
+                    aria-invalid={!!fieldErrs.email}
+                    className={fieldErrs.email ? 'border-red-500 focus-visible:ring-red-500' : ''} />
+                  <FieldError errors={fieldErrs} name="email" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="phone">{t('agencies.add.phone')}</Label>
                   <PhoneInput id="phone" value={form.phone} onChange={v => setField('phone', v)} required />
+                  <FieldError errors={fieldErrs} name="phone" />
                 </div>
               </div>
               <div className="space-y-2">

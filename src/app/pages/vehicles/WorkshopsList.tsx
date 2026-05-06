@@ -21,6 +21,10 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '../../components/ui/table';
 import { vehiclesApi } from '../../services/api';
+import { apiError } from '../../../i18n/apiError';
+import { useValidationErrors } from '../../../i18n/useValidationErrors';
+import { FieldError } from '../../components/ui/field-error';
+import { ValidationSummary } from '../../components/ui/validation-summary';
 import { usePermissions } from '../../hooks/usePermissions';
 
 type Workshop = {
@@ -103,6 +107,7 @@ export function WorkshopsList() {
   // column visibility
   const [visibleCols, setVisibleCols]   = useState<Record<ColKey, boolean>>(loadVisibleColumns);
   const [showColPicker, setShowColPicker] = useState(false);
+  const { errors: fieldErrs, setFromError, clearAll: clearFieldErrors, clearError } = useValidationErrors();
   const colPickerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -206,6 +211,7 @@ export function WorkshopsList() {
 
   const handleSave = async () => {
     if (!form.name.trim()) { toast.error(tc('toast.nameRequired')); return; }
+    clearFieldErrors();
     setSaving(true);
     try {
       if (editing) {
@@ -217,8 +223,9 @@ export function WorkshopsList() {
       }
       setDialog(false);
       load();
-    } catch {
-      toast.error(tc('toast.saveFailed'));
+    } catch (err: any) {
+      setFromError(err);
+      toast.error(apiError(err, tc('toast.saveFailed')));
     } finally {
       setSaving(false);
     }
@@ -239,7 +246,10 @@ export function WorkshopsList() {
     }
   };
 
-  const setField = (key: keyof WForm, value: string) => setForm((f) => ({ ...f, [key]: value }));
+  const setField = (key: keyof WForm, value: string) => {
+    setForm((f) => ({ ...f, [key]: value }));
+    if (fieldErrs[key as string]) clearError(key as string);
+  };
 
   return (
     <div className="p-6 space-y-6">
@@ -380,9 +390,13 @@ export function WorkshopsList() {
             <DialogTitle>{editing ? 'Edit Workshop' : 'Add Workshop'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
+            <ValidationSummary errors={fieldErrs} />
             <div className="space-y-1">
               <Label>Workshop Name *</Label>
-              <Input value={form.name} onChange={(e) => setField('name', e.target.value)} placeholder="e.g. City Truck Services Ltd" />
+              <Input value={form.name} onChange={(e) => setField('name', e.target.value)} placeholder="e.g. City Truck Services Ltd"
+                aria-invalid={!!fieldErrs.name}
+                className={fieldErrs.name ? 'border-red-500 focus-visible:ring-red-500' : ''} />
+              <FieldError errors={fieldErrs} name="name" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">

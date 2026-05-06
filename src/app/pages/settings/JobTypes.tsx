@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { apiError } from '../../../i18n/apiError';
+import { useValidationErrors } from '../../../i18n/useValidationErrors';
+import { FieldError } from '../../components/ui/field-error';
+import { ValidationSummary } from '../../components/ui/validation-summary';
 import { usePermissions } from '../../hooks/usePermissions';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -96,6 +99,7 @@ export function JobTypes() {
   // Delete confirm
   const [deleteTarget, setDeleteTarget] = useState<JobType | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const { errors: fieldErrs, setFromError, clearAll: clearFieldErrors, clearError } = useValidationErrors();
 
   useEffect(() => {
     loadJobTypes();
@@ -147,6 +151,7 @@ export function JobTypes() {
 
   async function handleSave() {
     if (!formData.name.trim()) return;
+    clearFieldErrors();
     setSaving(true);
     try {
       const payload = {
@@ -167,6 +172,7 @@ export function JobTypes() {
       }
       setIsDialogOpen(false);
     } catch (err: any) {
+      setFromError(err);
       toast.error(apiError(err, tc('toast.saveFailed')));
     } finally {
       setSaving(false);
@@ -399,14 +405,18 @@ export function JobTypes() {
           </DialogHeader>
 
           <div className="space-y-4 py-4">
+            <ValidationSummary errors={fieldErrs} />
             <div className="space-y-2">
               <Label htmlFor="jt-name">{t('settings.jobTypes.dialogNameRequired')}</Label>
               <Input
                 id="jt-name"
                 placeholder="e.g., Truck Driver"
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={(e) => { setFormData({ ...formData, name: e.target.value }); if (fieldErrs.name) clearError('name'); }}
+                aria-invalid={!!fieldErrs.name}
+                className={fieldErrs.name ? 'border-red-500 focus-visible:ring-red-500' : ''}
               />
+              <FieldError errors={fieldErrs} name="name" />
             </div>
 
             <div className="space-y-2">

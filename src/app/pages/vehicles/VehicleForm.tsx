@@ -14,6 +14,9 @@ import {
 } from '../../components/ui/select';
 import { vehiclesApi, settingsApi } from '../../services/api';
 import { apiError } from '../../../i18n/apiError';
+import { useValidationErrors } from '../../../i18n/useValidationErrors';
+import { FieldError } from '../../components/ui/field-error';
+import { ValidationSummary } from '../../components/ui/validation-summary';
 import { enumLabel } from '../../../i18n/enumLabel';
 
 type VehicleLookups = Record<string, string[]>;
@@ -123,6 +126,7 @@ export function VehicleForm() {
   const [lookups, setLookups] = useState<VehicleLookups | null>(null);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(isEdit);
+  const { errors: fieldErrs, setFromError, clearAll: clearFieldErrors, clearError } = useValidationErrors();
 
   useEffect(() => {
     settingsApi.getVehicleSettings()
@@ -198,10 +202,12 @@ export function VehicleForm() {
 
   const set = (key: keyof FormData, value: string | boolean) => {
     setForm((f) => ({ ...f, [key]: value }));
+    if (fieldErrs[key as string]) clearError(key as string);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    clearFieldErrors();
     if (!form.registrationNumber.trim()) { toast.error(t('pages:vehicles.form.validation.registrationRequired')); return; }
     if (!form.type) { toast.error(t('pages:vehicles.form.validation.typeRequired')); return; }
     if (!form.make.trim()) { toast.error(t('pages:vehicles.form.validation.makeRequired')); return; }
@@ -281,6 +287,7 @@ export function VehicleForm() {
       }
       navigate(`/dashboard/vehicles/${id}`);
     } catch (err: any) {
+      setFromError(err);
       toast.error(apiError(err, t('pages:vehicles.form.toast.saveFailed')));
     } finally {
       setSaving(false);
@@ -306,13 +313,17 @@ export function VehicleForm() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        <ValidationSummary errors={fieldErrs} />
         {/* Vehicle Details */}
         <Card>
           <CardHeader><CardTitle className="text-base">{t('pages:vehicles.form.sections.details')}</CardTitle></CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1">
               <Label>{t('pages:vehicles.form.fields.registrationNumber')} *</Label>
-              <Input value={form.registrationNumber} onChange={(e) => set('registrationNumber', e.target.value.toUpperCase())} placeholder={t('pages:vehicles.form.fields.registrationNumberPh')} />
+              <Input value={form.registrationNumber} onChange={(e) => set('registrationNumber', e.target.value.toUpperCase())} placeholder={t('pages:vehicles.form.fields.registrationNumberPh')}
+                aria-invalid={!!fieldErrs.registrationNumber}
+                className={fieldErrs.registrationNumber ? 'border-red-500 focus-visible:ring-red-500' : ''} />
+              <FieldError errors={fieldErrs} name="registrationNumber" />
             </div>
             <div className="space-y-1">
               <Label>{t('pages:vehicles.form.fields.licensePlate')}</Label>
@@ -338,11 +349,17 @@ export function VehicleForm() {
             </div>
             <div className="space-y-1">
               <Label>{t('pages:vehicles.form.fields.make')} *</Label>
-              <Input value={form.make} onChange={(e) => set('make', e.target.value)} placeholder={t('pages:vehicles.form.fields.makePh')} />
+              <Input value={form.make} onChange={(e) => set('make', e.target.value)} placeholder={t('pages:vehicles.form.fields.makePh')}
+                aria-invalid={!!fieldErrs.make}
+                className={fieldErrs.make ? 'border-red-500 focus-visible:ring-red-500' : ''} />
+              <FieldError errors={fieldErrs} name="make" />
             </div>
             <div className="space-y-1">
               <Label>{t('pages:vehicles.form.fields.model')} *</Label>
-              <Input value={form.model} onChange={(e) => set('model', e.target.value)} placeholder={t('pages:vehicles.form.fields.modelPh')} />
+              <Input value={form.model} onChange={(e) => set('model', e.target.value)} placeholder={t('pages:vehicles.form.fields.modelPh')}
+                aria-invalid={!!fieldErrs.model}
+                className={fieldErrs.model ? 'border-red-500 focus-visible:ring-red-500' : ''} />
+              <FieldError errors={fieldErrs} name="model" />
             </div>
             <div className="space-y-1">
               <Label>{t('pages:vehicles.form.fields.year')}</Label>

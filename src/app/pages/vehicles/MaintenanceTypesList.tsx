@@ -7,6 +7,10 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { confirm } from '../../components/ui/ConfirmDialog';
+import { apiError } from '../../../i18n/apiError';
+import { useValidationErrors } from '../../../i18n/useValidationErrors';
+import { FieldError } from '../../components/ui/field-error';
+import { ValidationSummary } from '../../components/ui/validation-summary';
 import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -137,6 +141,7 @@ export function MaintenanceTypesList() {
 
   const handleSave = async () => {
     if (!form.name.trim()) { toast.error(t('toast.nameRequired')); return; }
+    clearFieldErrors();
     setSaving(true);
     try {
       const data: any = {
@@ -154,7 +159,10 @@ export function MaintenanceTypesList() {
       }
       setDialog(false);
       load();
-    } catch { toast.error(t('toast.saveFailed')); }
+    } catch (err: any) {
+      setFromError(err);
+      toast.error(apiError(err, t('toast.saveFailed')));
+    }
     finally { setSaving(false); }
   };
 
@@ -169,7 +177,11 @@ export function MaintenanceTypesList() {
     catch { toast.error(t('toast.deleteFailed')); }
   };
 
-  const set = (k: keyof MForm, v: string) => setForm((f) => ({ ...f, [k]: v }));
+  const { errors: fieldErrs, setFromError, clearAll: clearFieldErrors, clearError } = useValidationErrors();
+  const set = (k: keyof MForm, v: string) => {
+    setForm((f) => ({ ...f, [k]: v }));
+    if (fieldErrs[k as string]) clearError(k as string);
+  };
 
   const displayTypes = useMemo(() => {
     const q = search.toLowerCase();
@@ -390,9 +402,13 @@ export function MaintenanceTypesList() {
         <DialogContent>
           <DialogHeader><DialogTitle>{editing ? 'Edit Maintenance Type' : 'Add Maintenance Type'}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
+            <ValidationSummary errors={fieldErrs} />
             <div className="space-y-1">
               <Label>Name *</Label>
-              <Input value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="e.g. Oil Change" />
+              <Input value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="e.g. Oil Change"
+                aria-invalid={!!fieldErrs.name}
+                className={fieldErrs.name ? 'border-red-500 focus-visible:ring-red-500' : ''} />
+              <FieldError errors={fieldErrs} name="name" />
             </div>
             <div className="space-y-1">
               <Label>Description</Label>

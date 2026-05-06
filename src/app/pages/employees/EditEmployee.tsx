@@ -11,6 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { toast } from 'sonner';
 import { employeesApi, agenciesApi, settingsApi } from '../../services/api';
 import { apiError } from '../../../i18n/apiError';
+import { useValidationErrors } from '../../../i18n/useValidationErrors';
+import { FieldError } from '../../components/ui/field-error';
+import { ValidationSummary } from '../../components/ui/validation-summary';
 
 const API_BASE = import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:3000';
 
@@ -38,6 +41,7 @@ export function EditEmployee() {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const { errors: fieldErrs, setFromError, clearAll: clearFieldErrors, clearError } = useValidationErrors();
 
   const [form, setForm] = useState({
     firstName: '', lastName: '', email: '', phone: '',
@@ -84,8 +88,10 @@ export function EditEmployee() {
       .finally(() => setLoading(false));
   }, [id, t]);
 
-  const set = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
+  const set = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm(prev => ({ ...prev, [field]: e.target.value }));
+    if (fieldErrs[field]) clearError(field);
+  };
 
   // Photo handlers
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -105,6 +111,7 @@ export function EditEmployee() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    clearFieldErrors();
     setSubmitting(true);
     try {
       const payload: any = {
@@ -150,6 +157,7 @@ export function EditEmployee() {
       toast.success(t('employees.edit.updateSuccess'));
       navigate(`/dashboard/employees/${id}`);
     } catch (err: any) {
+      setFromError(err);
       toast.error(apiError(err, t('employees.edit.updateFailed')));
     } finally {
       setSubmitting(false);
@@ -183,6 +191,7 @@ export function EditEmployee() {
       </div>
 
       <form onSubmit={handleSubmit}>
+        <ValidationSummary errors={fieldErrs} className="mb-4" />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
 
@@ -192,21 +201,33 @@ export function EditEmployee() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="firstName">{t('employees.add.firstName')}</Label>
-                    <Input id="firstName" value={form.firstName} onChange={set('firstName')} required />
+                    <Input id="firstName" value={form.firstName} onChange={set('firstName')} required
+                      aria-invalid={!!fieldErrs.firstName}
+                      className={fieldErrs.firstName ? 'border-red-500 focus-visible:ring-red-500' : ''} />
+                    <FieldError errors={fieldErrs} name="firstName" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="lastName">{t('employees.add.lastName')}</Label>
-                    <Input id="lastName" value={form.lastName} onChange={set('lastName')} required />
+                    <Input id="lastName" value={form.lastName} onChange={set('lastName')} required
+                      aria-invalid={!!fieldErrs.lastName}
+                      className={fieldErrs.lastName ? 'border-red-500 focus-visible:ring-red-500' : ''} />
+                    <FieldError errors={fieldErrs} name="lastName" />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="email">{t('employees.add.email')}</Label>
-                    <Input id="email" type="email" value={form.email} onChange={set('email')} required />
+                    <Input id="email" type="email" value={form.email} onChange={set('email')} required
+                      aria-invalid={!!fieldErrs.email}
+                      className={fieldErrs.email ? 'border-red-500 focus-visible:ring-red-500' : ''} />
+                    <FieldError errors={fieldErrs} name="email" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="phone">{t('employees.add.phone')}</Label>
-                    <Input id="phone" type="tel" value={form.phone} onChange={set('phone')} required />
+                    <Input id="phone" type="tel" value={form.phone} onChange={set('phone')} required
+                      aria-invalid={!!fieldErrs.phone}
+                      className={fieldErrs.phone ? 'border-red-500 focus-visible:ring-red-500' : ''} />
+                    <FieldError errors={fieldErrs} name="phone" />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">

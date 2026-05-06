@@ -11,6 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { toast } from 'sonner';
 import { employeesApi, agenciesApi } from '../../services/api';
 import { apiError } from '../../../i18n/apiError';
+import { useValidationErrors } from '../../../i18n/useValidationErrors';
+import { FieldError } from '../../components/ui/field-error';
+import { ValidationSummary } from '../../components/ui/validation-summary';
 
 export function AddEmployee() {
   const { t } = useTranslation('pages');
@@ -19,6 +22,7 @@ export function AddEmployee() {
   const { canCreate } = usePermissions();
   const [agencies, setAgencies] = useState<any[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const { errors: fieldErrs, setFromError, clearAll: clearFieldErrors, clearError } = useValidationErrors();
   const [form, setForm] = useState({
     firstName: '', lastName: '', email: '', phone: '',
     nationality: '', dateOfBirth: '',
@@ -35,11 +39,14 @@ export function AddEmployee() {
       .catch(() => {});
   }, []);
 
-  const set = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
+  const set = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm(prev => ({ ...prev, [field]: e.target.value }));
+    if (fieldErrs[field]) clearError(field);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    clearFieldErrors();
     setSubmitting(true);
     try {
       const payload: any = {
@@ -67,6 +74,7 @@ export function AddEmployee() {
       toast.success(t('employees.add.addSuccess'));
       navigate(`/dashboard/employees/${created.id}`);
     } catch (err: any) {
+      setFromError(err);
       toast.error(apiError(err, t('employees.add.addFailed')));
     } finally {
       setSubmitting(false);
@@ -96,6 +104,7 @@ export function AddEmployee() {
       </div>
 
       <form onSubmit={handleSubmit}>
+        <ValidationSummary errors={fieldErrs} className="mb-4" />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
 
@@ -105,21 +114,33 @@ export function AddEmployee() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="firstName">{t('employees.add.firstName')}</Label>
-                    <Input id="firstName" placeholder={t('employees.add.firstNamePh')} value={form.firstName} onChange={set('firstName')} required />
+                    <Input id="firstName" placeholder={t('employees.add.firstNamePh')} value={form.firstName} onChange={set('firstName')} required
+                      aria-invalid={!!fieldErrs.firstName}
+                      className={fieldErrs.firstName ? 'border-red-500 focus-visible:ring-red-500' : ''} />
+                    <FieldError errors={fieldErrs} name="firstName" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="lastName">{t('employees.add.lastName')}</Label>
-                    <Input id="lastName" placeholder={t('employees.add.lastNamePh')} value={form.lastName} onChange={set('lastName')} required />
+                    <Input id="lastName" placeholder={t('employees.add.lastNamePh')} value={form.lastName} onChange={set('lastName')} required
+                      aria-invalid={!!fieldErrs.lastName}
+                      className={fieldErrs.lastName ? 'border-red-500 focus-visible:ring-red-500' : ''} />
+                    <FieldError errors={fieldErrs} name="lastName" />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="email">{t('employees.add.email')}</Label>
-                    <Input id="email" type="email" placeholder={t('employees.add.emailPh')} value={form.email} onChange={set('email')} required />
+                    <Input id="email" type="email" placeholder={t('employees.add.emailPh')} value={form.email} onChange={set('email')} required
+                      aria-invalid={!!fieldErrs.email}
+                      className={fieldErrs.email ? 'border-red-500 focus-visible:ring-red-500' : ''} />
+                    <FieldError errors={fieldErrs} name="email" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="phone">{t('employees.add.phone')}</Label>
-                    <Input id="phone" type="tel" placeholder={t('employees.add.phonePh')} value={form.phone} onChange={set('phone')} required />
+                    <Input id="phone" type="tel" placeholder={t('employees.add.phonePh')} value={form.phone} onChange={set('phone')} required
+                      aria-invalid={!!fieldErrs.phone}
+                      className={fieldErrs.phone ? 'border-red-500 focus-visible:ring-red-500' : ''} />
+                    <FieldError errors={fieldErrs} name="phone" />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">

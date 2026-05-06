@@ -33,6 +33,9 @@ import { toast } from 'sonner';
 import { financeApi, usersApi, getAccessToken } from '../../services/api';
 import { formatCurrency, formatDate, formatDateTime, formatNumber } from '../../../i18n/formatters';
 import { apiError } from '../../../i18n/apiError';
+import { useValidationErrors } from '../../../i18n/useValidationErrors';
+import { FieldError } from '../ui/field-error';
+import { ValidationSummary } from '../ui/validation-summary';
 
 const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1').replace('/api/v1', '');
 
@@ -194,6 +197,7 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
   const [editRecord, setEditRecord] = useState<FinancialRecord | null>(null);
   const [form, setForm] = useState<Record<string, any>>({ ...EMPTY_FORM });
   const [saving, setSaving] = useState(false);
+  const { errors: fieldErrs, setFromError, clearAll: clearFieldErrors, clearError } = useValidationErrors();
 
   // Status modal
   const [showStatusModal, setShowStatusModal] = useState(false);
@@ -300,6 +304,7 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
   const closeModal = () => { setShowModal(false); setEditRecord(null); setPendingFiles([]); };
 
   const handleSave = async () => {
+    clearFieldErrors();
     if (!form.transactionType) { toast.error(t('finance.tab.toast.txTypeRequired')); return; }
     if (!form.transactionDate) { toast.error(t('finance.tab.toast.txDateRequired')); return; }
     if (form.companyDisbursedAmount === '' || Number(form.companyDisbursedAmount) < 0) {
@@ -356,6 +361,7 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
       // the operator sees the new audit entry without collapsing first.
       if (expandedId) loadHistoryFor(expandedId, true);
     } catch (err: any) {
+      setFromError(err);
       toast.error(apiError(err, t('finance.tab.toast.saveFailed')));
     } finally {
       setSaving(false);
@@ -947,6 +953,7 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
               </Button>
             </CardHeader>
             <CardContent className="space-y-4">
+              <ValidationSummary errors={fieldErrs} />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Date */}
                 <div className="space-y-1">

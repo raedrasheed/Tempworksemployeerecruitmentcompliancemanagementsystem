@@ -714,10 +714,10 @@ export function EditUser() {
 
           <div className="flex gap-3">
             <Button type="submit" className="flex-1" disabled={submitting}>
-              {submitting ? 'Saving...' : 'Save Changes'}
+              {submitting ? tc('states.saving') : tc('actions.saveChanges')}
             </Button>
             <Button type="button" variant="outline" className="flex-1" asChild>
-              <Link to="/dashboard/users">Cancel</Link>
+              <Link to="/dashboard/users">{tc('actions.cancel')}</Link>
             </Button>
           </div>
         </div>

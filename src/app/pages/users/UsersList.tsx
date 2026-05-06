@@ -295,7 +295,7 @@ export function UsersList() {
       setActivationLink(res.url);
       setActivationLinkUser(`${user.firstName} ${user.lastName}`);
       setLinkCopied(false);
-    } catch (err: any) { toast.error(err?.message || 'Failed to generate activation link'); }
+    } catch (err: any) { toast.error(err?.message || t('users.list.activationLinkFailed')); }
     finally { setLoadingLink(null); }
   };
 
@@ -303,7 +303,7 @@ export function UsersList() {
     if (!activationLink) return;
     navigator.clipboard.writeText(activationLink).then(() => {
       setLinkCopied(true);
-      toast.success('Activation link copied to clipboard');
+      toast.success(t('users.list.activationLinkCopied'));
       setTimeout(() => setLinkCopied(false), 3000);
     });
   };
@@ -311,7 +311,7 @@ export function UsersList() {
   const handleExport = async () => {
     try {
       const data = await usersApi.bulkExport();
-      if (!Array.isArray(data) || data.length === 0) { toast.info('No data to export'); return; }
+      if (!Array.isArray(data) || data.length === 0) { toast.info(t('users.list.noDataToExport')); return; }
       const headers = Object.keys(data[0]).join(',');
       const rows = data.map(row => Object.values(row).map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(','));
       const csv = [headers, ...rows].join('\n');
@@ -320,8 +320,8 @@ export function UsersList() {
       const a = document.createElement('a');
       a.href = url; a.download = `users-export-${new Date().toISOString().slice(0, 10)}.csv`;
       a.click(); URL.revokeObjectURL(url);
-      toast.success('Export downloaded');
-    } catch (err: any) { toast.error(err?.message || 'Export failed'); }
+      toast.success(t('users.list.exportDownloaded'));
+    } catch (err: any) { toast.error(err?.message || tc('toast.exportFailed')); }
   };
 
   const hiddenCount = ALL_COLUMNS.filter(c => !visibleColumns[c.key]).length;

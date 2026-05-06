@@ -410,10 +410,10 @@ export function MaintenanceTypesList() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialog(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setDialog(false)}>{t('actions.cancel')}</Button>
             <Button onClick={handleSave} disabled={saving}>
               <Save className="w-4 h-4 me-2" />
-              {saving ? 'Saving…' : editing ? 'Save Changes' : 'Create'}
+              {saving ? t('states.saving') : editing ? t('actions.saveChanges') : t('actions.create')}
             </Button>
           </DialogFooter>
         </DialogContent>

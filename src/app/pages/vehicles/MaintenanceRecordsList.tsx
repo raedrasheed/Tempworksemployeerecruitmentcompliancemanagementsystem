@@ -38,6 +38,7 @@ function statusBadge(status: string) {
 
 export function MaintenanceRecordsList() {
   const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const navigate = useNavigate();
   const { canCreate } = usePermissions();
   const canWrite = canCreate('vehicles');
@@ -304,11 +305,11 @@ export function MaintenanceRecordsList() {
         <CardContent className="p-4 space-y-3">
           <div className="flex items-center gap-2">
             <Filter className="w-4 h-4 text-muted-foreground" />
-            <span className="text-sm font-medium">Filters</span>
+            <span className="text-sm font-medium">{tc('filters.filtersLabel')}</span>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
             <div className="space-y-1">
-              <Label className="text-xs">Search</Label>
+              <Label className="text-xs">{tc('actions.search')}</Label>
               <div className="relative">
                 <Search className="absolute start-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -402,13 +403,13 @@ export function MaintenanceRecordsList() {
               {loading ? (
                 <TableRow>
                   <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
-                    Loading...
+                    {tc('states.loading')}
                   </TableCell>
                 </TableRow>
               ) : filteredRecords.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
-                    No maintenance records found
+                    {t('vehicles.maintenanceRecords.empty')}
                   </TableCell>
                 </TableRow>
               ) : filteredRecords.map((rec: any) => (

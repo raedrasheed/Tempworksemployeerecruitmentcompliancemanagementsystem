@@ -3201,12 +3201,22 @@
       "pendingApproval": "Pending approval",
       "activationLinkTitle": "Activation Link",
       "bulkImportTitle": "Bulk Import Users",
-      "csvDataLabel": "CSV Data"
+      "csvDataLabel": "CSV Data",
+      "activationLinkFailed": "Failed to generate activation link",
+      "activationLinkCopied": "Activation link copied to clipboard",
+      "noDataToExport": "No data to export",
+      "exportDownloaded": "Export downloaded"
     },
     "add": {
       "title": "Kullanıcı Ekle",
       "back": "Kullanıcılara geri dön",
-      "subtitle": "Create new system user account"
+      "subtitle": "Create new system user account",
+      "loadFailed": "Failed to load roles or agencies",
+      "selectRole": "Please select a role",
+      "selectAgency": "Please select an agency",
+      "passwordRequired": "Please enter a password or enable Send Activation Email",
+      "createSuccess": "User added successfully",
+      "createFailed": "Failed to add user"
     },
     "edit": {
       "title": "Kullanıcıyı Düzenle",

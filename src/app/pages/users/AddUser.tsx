@@ -107,7 +107,7 @@ export function AddUser() {
         setRoles(Array.isArray(roleList) ? roleList : []);
         setAgencies((agencyResult as any)?.data ?? []);
       }).catch(() => {
-        toast.error('Failed to load roles or agencies');
+        toast.error(t('users.add.loadFailed'));
       });
   }, []);
 
@@ -122,15 +122,15 @@ export function AddUser() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.roleId) {
-      toast.error('Please select a role');
+      toast.error(t('users.add.selectRole'));
       return;
     }
     if (!form.agencyId) {
-      toast.error('Please select an agency');
+      toast.error(t('users.add.selectAgency'));
       return;
     }
     if (!sendActivationEmail && !form.password) {
-      toast.error('Please enter a password or enable Send Activation Email');
+      toast.error(t('users.add.passwordRequired'));
       return;
     }
 
@@ -168,10 +168,10 @@ export function AddUser() {
       if (photoFile && newUser?.id) {
         await usersApi.uploadPhoto(newUser.id, photoFile);
       }
-      toast.success('User added successfully');
+      toast.success(t('users.add.createSuccess'));
       navigate('/dashboard/users');
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to add user');
+      toast.error(err?.message || t('users.add.createFailed'));
     } finally {
       setSubmitting(false);
     }
@@ -537,10 +537,10 @@ export function AddUser() {
               className="flex-1"
               disabled={submitting || (isAgencyManager && maxUsersLimit !== null && agencyUserCount !== null && agencyUserCount >= maxUsersLimit)}
             >
-              {submitting ? 'Adding...' : 'Add User'}
+              {submitting ? tc('states.saving') : t('users.add.title')}
             </Button>
             <Button type="button" variant="outline" className="flex-1" asChild>
-              <Link to="/dashboard/users">Cancel</Link>
+              <Link to="/dashboard/users">{tc('actions.cancel')}</Link>
             </Button>
           </div>
         </div>

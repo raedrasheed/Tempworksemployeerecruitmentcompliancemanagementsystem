@@ -1,4 +1,5 @@
 import { Link, useParams } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Plus, Award, Calendar, CheckCircle2, AlertTriangle, Download, Upload } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -99,6 +100,7 @@ const mockCertifications: Certification[] = [
 ];
 
 export function EmployeeCertifications() {
+  const { t } = useTranslation('pages');
   const { id } = useParams();
   const driver = mockDrivers.find(d => d.id === id);
   
@@ -119,7 +121,7 @@ export function EmployeeCertifications() {
           </Link>
         </Button>
         <div className="flex-1">
-          <h1 className="text-3xl font-semibold text-[#0F172A]">Certifications & Licenses</h1>
+          <h1 className="text-3xl font-semibold text-[#0F172A]">{t('employees.certifications.pageTitle')}</h1>
           <p className="text-muted-foreground mt-1">{driver.firstName} {driver.lastName} • All professional certifications and licenses</p>
         </div>
         <Button>
@@ -152,7 +154,7 @@ export function EmployeeCertifications() {
               </div>
               <div>
                 <p className="text-2xl font-semibold">{expiringSoon}</p>
-                <p className="text-sm text-muted-foreground">Expiring Soon</p>
+                <p className="text-sm text-muted-foreground">{t('employees.certifications.expiringSoon')}</p>
               </div>
             </div>
           </CardContent>
@@ -259,14 +261,14 @@ export function EmployeeCertifications() {
                         <div>
                           <div className="flex items-center gap-2 text-sm mb-1">
                             <Calendar className="w-4 h-4 text-muted-foreground" />
-                            <span className="text-muted-foreground">Issued:</span>
+                            <span className="text-muted-foreground">{t('employees.certifications.issued')}</span>
                             <span className="font-medium">{cert.issuedDate}</span>
                           </div>
                         </div>
                         <div>
                           <div className="flex items-center gap-2 text-sm mb-1">
                             <Calendar className="w-4 h-4 text-muted-foreground" />
-                            <span className="text-muted-foreground">Expires:</span>
+                            <span className="text-muted-foreground">{t('employees.certifications.expires')}</span>
                             <span className="font-medium">{cert.expiryDate}</span>
                             {daysUntilExpiry > 0 && daysUntilExpiry < 90 && (
                               <span className="text-xs text-[#F59E0B]">({daysUntilExpiry} days)</span>
@@ -292,7 +294,7 @@ export function EmployeeCertifications() {
                       {/* Endorsements */}
                       {cert.endorsements && cert.endorsements.length > 0 && (
                         <div className="mb-2">
-                          <p className="text-xs text-muted-foreground mb-1">Endorsements:</p>
+                          <p className="text-xs text-muted-foreground mb-1">{t('employees.certifications.endorsements')}</p>
                           <div className="flex flex-wrap gap-1">
                             {cert.endorsements.map((endorsement, idx) => (
                               <Badge key={idx} variant="outline" className="text-xs bg-[#F0FDF4] text-[#22C55E] border-[#22C55E]">
@@ -306,7 +308,7 @@ export function EmployeeCertifications() {
                       {/* Restrictions */}
                       {cert.restrictions && cert.restrictions.length > 0 && (
                         <div>
-                          <p className="text-xs text-muted-foreground mb-1">Restrictions:</p>
+                          <p className="text-xs text-muted-foreground mb-1">{t('employees.certifications.restrictions')}</p>
                           <div className="flex flex-wrap gap-1">
                             {cert.restrictions.map((restriction, idx) => (
                               <Badge key={idx} variant="outline" className="text-xs bg-[#FEF3C7] text-[#F59E0B] border-[#F59E0B]">
@@ -320,7 +322,7 @@ export function EmployeeCertifications() {
                       {/* Attachments */}
                       {cert.attachments.length > 0 && (
                         <div className="mt-3 pt-3 border-t">
-                          <p className="text-xs text-muted-foreground mb-2">Attached Documents:</p>
+                          <p className="text-xs text-muted-foreground mb-2">{t('employees.certifications.attachedDocs')}</p>
                           <div className="flex flex-wrap gap-2">
                             {cert.attachments.map((attachment, idx) => (
                               <Badge key={idx} variant="outline" className="text-xs">

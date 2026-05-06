@@ -1,4 +1,5 @@
 import { Link, useParams } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, CheckCircle2, AlertTriangle, XCircle, Clock, FileText, Shield, Calendar } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -130,6 +131,7 @@ const mockComplianceTimeline: ComplianceEvent[] = [
 ];
 
 export function EmployeeComplianceTimeline() {
+  const { t } = useTranslation('pages');
   const { id } = useParams();
   const driver = mockDrivers.find(d => d.id === id);
   
@@ -150,10 +152,10 @@ export function EmployeeComplianceTimeline() {
           </Link>
         </Button>
         <div className="flex-1">
-          <h1 className="text-3xl font-semibold text-[#0F172A]">Compliance Timeline</h1>
-          <p className="text-muted-foreground mt-1">{driver.firstName} {driver.lastName} • Complete compliance history and events</p>
+          <h1 className="text-3xl font-semibold text-[#0F172A]">{t('employees.complianceTimeline.title')}</h1>
+          <p className="text-muted-foreground mt-1">{t('employees.complianceTimeline.subtitle', { name: `${driver.firstName} ${driver.lastName}` })}</p>
         </div>
-        <Button variant="outline">Export Timeline</Button>
+        <Button variant="outline">{t('employees.complianceTimeline.exportTimeline')}</Button>
       </div>
 
       {/* Compliance Overview */}
@@ -166,7 +168,7 @@ export function EmployeeComplianceTimeline() {
               </div>
               <div>
                 <p className="text-2xl font-semibold">{completedEvents}</p>
-                <p className="text-sm text-muted-foreground">Completed</p>
+                <p className="text-sm text-muted-foreground">{t('employees.complianceTimeline.completed')}</p>
               </div>
             </div>
           </CardContent>
@@ -180,7 +182,7 @@ export function EmployeeComplianceTimeline() {
               </div>
               <div>
                 <p className="text-2xl font-semibold">{warningEvents}</p>
-                <p className="text-sm text-muted-foreground">Warnings</p>
+                <p className="text-sm text-muted-foreground">{t('employees.complianceTimeline.warnings')}</p>
               </div>
             </div>
           </CardContent>
@@ -194,7 +196,7 @@ export function EmployeeComplianceTimeline() {
               </div>
               <div>
                 <p className="text-2xl font-semibold">{resolvedIssues}</p>
-                <p className="text-sm text-muted-foreground">Resolved</p>
+                <p className="text-sm text-muted-foreground">{t('employees.complianceTimeline.resolved')}</p>
               </div>
             </div>
           </CardContent>
@@ -208,7 +210,7 @@ export function EmployeeComplianceTimeline() {
               </div>
               <div>
                 <p className="text-2xl font-semibold">100%</p>
-                <p className="text-sm text-muted-foreground">Compliance Rate</p>
+                <p className="text-sm text-muted-foreground">{t('employees.complianceTimeline.complianceRate')}</p>
               </div>
             </div>
           </CardContent>
@@ -218,29 +220,29 @@ export function EmployeeComplianceTimeline() {
       {/* Compliance Status Summary */}
       <Card>
         <CardHeader>
-          <CardTitle>Current Compliance Status</CardTitle>
+          <CardTitle>{t('employees.complianceTimeline.currentStatusTitle')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="flex items-start gap-3 p-4 border rounded-lg bg-[#F0FDF4]">
               <CheckCircle2 className="w-5 h-5 text-[#22C55E] mt-0.5" />
               <div>
-                <p className="font-medium text-[#22C55E]">All Documents Valid</p>
-                <p className="text-sm text-muted-foreground mt-1">All required documents are current and verified</p>
+                <p className="font-medium text-[#22C55E]">{t('employees.complianceTimeline.allDocsValid')}</p>
+                <p className="text-sm text-muted-foreground mt-1">{t('employees.complianceTimeline.allDocsValidHelp')}</p>
               </div>
             </div>
             <div className="flex items-start gap-3 p-4 border rounded-lg bg-[#F0FDF4]">
               <CheckCircle2 className="w-5 h-5 text-[#22C55E] mt-0.5" />
               <div>
-                <p className="font-medium text-[#22C55E]">Training Up to Date</p>
-                <p className="text-sm text-muted-foreground mt-1">All mandatory training completed</p>
+                <p className="font-medium text-[#22C55E]">{t('employees.complianceTimeline.trainingUpToDate')}</p>
+                <p className="text-sm text-muted-foreground mt-1">{t('employees.complianceTimeline.trainingUpToDateHelp')}</p>
               </div>
             </div>
             <div className="flex items-start gap-3 p-4 border rounded-lg bg-[#F0FDF4]">
               <CheckCircle2 className="w-5 h-5 text-[#22C55E] mt-0.5" />
               <div>
-                <p className="font-medium text-[#22C55E]">No Active Issues</p>
-                <p className="text-sm text-muted-foreground mt-1">Zero outstanding compliance issues</p>
+                <p className="font-medium text-[#22C55E]">{t('employees.complianceTimeline.noActiveIssues')}</p>
+                <p className="text-sm text-muted-foreground mt-1">{t('employees.complianceTimeline.noActiveIssuesHelp')}</p>
               </div>
             </div>
           </div>
@@ -250,8 +252,8 @@ export function EmployeeComplianceTimeline() {
       {/* Timeline */}
       <Card>
         <CardHeader>
-          <CardTitle>Compliance Event Timeline</CardTitle>
-          <p className="text-sm text-muted-foreground mt-1">Chronological record of all compliance-related events</p>
+          <CardTitle>{t('employees.complianceTimeline.eventTimelineTitle')}</CardTitle>
+          <p className="text-sm text-muted-foreground mt-1">{t('employees.complianceTimeline.eventTimelineSubtitle')}</p>
         </CardHeader>
         <CardContent>
           <div className="relative">
@@ -306,7 +308,7 @@ export function EmployeeComplianceTimeline() {
                         <div className="flex items-center gap-2">
                           <Calendar className="w-4 h-4 text-muted-foreground" />
                           <div>
-                            <p className="text-xs text-muted-foreground">Date</p>
+                            <p className="text-xs text-muted-foreground">{t('employees.complianceTimeline.date')}</p>
                             <p className="font-medium">{event.date}</p>
                           </div>
                         </div>
@@ -314,7 +316,7 @@ export function EmployeeComplianceTimeline() {
                           <div className="flex items-center gap-2">
                             <Shield className="w-4 h-4 text-muted-foreground" />
                             <div>
-                              <p className="text-xs text-muted-foreground">Actioned By</p>
+                              <p className="text-xs text-muted-foreground">{t('employees.complianceTimeline.actionedBy')}</p>
                               <p className="font-medium">{event.actionedBy}</p>
                             </div>
                           </div>
@@ -323,7 +325,7 @@ export function EmployeeComplianceTimeline() {
                           <div className="flex items-center gap-2">
                             <FileText className="w-4 h-4 text-muted-foreground" />
                             <div>
-                              <p className="text-xs text-muted-foreground">Reference</p>
+                              <p className="text-xs text-muted-foreground">{t('employees.complianceTimeline.reference')}</p>
                               <p className="font-medium">{event.documentRef}</p>
                             </div>
                           </div>
@@ -332,7 +334,7 @@ export function EmployeeComplianceTimeline() {
 
                       {event.notes && (
                         <div className="mt-3 pt-3 border-t">
-                          <p className="text-xs text-muted-foreground mb-1">Notes:</p>
+                          <p className="text-xs text-muted-foreground mb-1">{t('employees.complianceTimeline.notesLabel')}</p>
                           <p className="text-sm bg-[#F8FAFC] p-2 rounded">{event.notes}</p>
                         </div>
                       )}
@@ -344,7 +346,7 @@ export function EmployeeComplianceTimeline() {
           </div>
 
           <div className="text-center pt-6 border-t">
-            <Button variant="outline">Load Older Events</Button>
+            <Button variant="outline">{t('employees.complianceTimeline.loadOlder')}</Button>
           </div>
         </CardContent>
       </Card>
@@ -352,7 +354,7 @@ export function EmployeeComplianceTimeline() {
       {/* Upcoming Compliance Requirements */}
       <Card>
         <CardHeader>
-          <CardTitle>Upcoming Compliance Requirements</CardTitle>
+          <CardTitle>{t('employees.complianceTimeline.upcomingTitle')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
@@ -360,24 +362,24 @@ export function EmployeeComplianceTimeline() {
               <Clock className="w-5 h-5 text-[#F59E0B] mt-0.5" />
               <div className="flex-1">
                 <div className="flex items-center justify-between mb-1">
-                  <p className="font-medium">ADR Certificate Renewal</p>
+                  <p className="font-medium">{t('employees.complianceTimeline.adrTitle')}</p>
                   <Badge variant="outline" className="bg-[#FEF3C7] text-[#F59E0B] border-[#F59E0B]">
-                    Due in 11 months
+                    {t('employees.complianceTimeline.adrBadge')}
                   </Badge>
                 </div>
-                <p className="text-sm text-muted-foreground">Dangerous goods certificate expires March 10, 2025</p>
+                <p className="text-sm text-muted-foreground">{t('employees.complianceTimeline.adrHelp')}</p>
               </div>
             </div>
             <div className="flex items-start gap-3 p-4 border rounded-lg">
               <Clock className="w-5 h-5 text-[#2563EB] mt-0.5" />
               <div className="flex-1">
                 <div className="flex items-center justify-between mb-1">
-                  <p className="font-medium">Annual Medical Examination</p>
+                  <p className="font-medium">{t('employees.complianceTimeline.medicalTitle')}</p>
                   <Badge variant="outline" className="bg-[#EFF6FF] text-[#2563EB] border-[#2563EB]">
-                    Due in 10 months
+                    {t('employees.complianceTimeline.medicalBadge')}
                   </Badge>
                 </div>
-                <p className="text-sm text-muted-foreground">Next medical check-up required by February 1, 2025</p>
+                <p className="text-sm text-muted-foreground">{t('employees.complianceTimeline.medicalHelp')}</p>
               </div>
             </div>
           </div>

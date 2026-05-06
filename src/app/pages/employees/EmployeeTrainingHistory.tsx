@@ -1,4 +1,5 @@
 import { Link, useParams } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, GraduationCap, Calendar, Clock, Award, CheckCircle2, XCircle, Plus, Download } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -143,6 +144,7 @@ const mockTrainingHistory: TrainingCourse[] = [
 ];
 
 export function EmployeeTrainingHistory() {
+  const { t } = useTranslation('pages');
   const { id } = useParams();
   const driver = mockDrivers.find(d => d.id === id);
   
@@ -165,7 +167,7 @@ export function EmployeeTrainingHistory() {
           </Link>
         </Button>
         <div className="flex-1">
-          <h1 className="text-3xl font-semibold text-[#0F172A]">Training History</h1>
+          <h1 className="text-3xl font-semibold text-[#0F172A]">{t('employees.training.title')}</h1>
           <p className="text-muted-foreground mt-1">{driver.firstName} {driver.lastName} • Complete training and course records</p>
         </div>
         <Button>
@@ -198,7 +200,7 @@ export function EmployeeTrainingHistory() {
               </div>
               <div>
                 <p className="text-2xl font-semibold">{inProgressCourses}</p>
-                <p className="text-sm text-muted-foreground">In Progress</p>
+                <p className="text-sm text-muted-foreground">{t('employees.training.inProgress')}</p>
               </div>
             </div>
           </CardContent>
@@ -212,7 +214,7 @@ export function EmployeeTrainingHistory() {
               </div>
               <div>
                 <p className="text-2xl font-semibold">{totalHours}h</p>
-                <p className="text-sm text-muted-foreground">Total Hours</p>
+                <p className="text-sm text-muted-foreground">{t('employees.training.totalHours')}</p>
               </div>
             </div>
           </CardContent>
@@ -226,7 +228,7 @@ export function EmployeeTrainingHistory() {
               </div>
               <div>
                 <p className="text-2xl font-semibold">89%</p>
-                <p className="text-sm text-muted-foreground">Avg Score</p>
+                <p className="text-sm text-muted-foreground">{t('employees.training.avgScore')}</p>
               </div>
             </div>
           </CardContent>
@@ -356,12 +358,12 @@ export function EmployeeTrainingHistory() {
                             <div className="mt-3 pt-3 border-t">
                               <div className="flex items-center gap-4 text-sm">
                                 <div>
-                                  <span className="text-muted-foreground">Certificate: </span>
+                                  <span className="text-muted-foreground">{t('employees.training.certificate')} </span>
                                   <span className="font-medium">{course.certificateNumber}</span>
                                 </div>
                                 {course.certificateExpiry && (
                                   <div>
-                                    <span className="text-muted-foreground">Expires: </span>
+                                    <span className="text-muted-foreground">{t('employees.training.expires')} </span>
                                     <span className="font-medium">{course.certificateExpiry}</span>
                                   </div>
                                 )}
@@ -408,17 +410,17 @@ export function EmployeeTrainingHistory() {
             <div className="flex items-start gap-3 p-4 border rounded-lg bg-[#F8FAFC]">
               <GraduationCap className="w-5 h-5 text-[#2563EB] mt-0.5" />
               <div className="flex-1">
-                <p className="font-medium">Advanced Route Planning & Navigation</p>
-                <p className="text-sm text-muted-foreground mt-1">Improve efficiency with modern navigation tools • 8 hours • Online</p>
-                <Button size="sm" className="mt-2">Enroll Now</Button>
+                <p className="font-medium">{t('employees.training.advancedRouteTitle')}</p>
+                <p className="text-sm text-muted-foreground mt-1">{t('employees.training.advancedRouteHelp')}</p>
+                <Button size="sm" className="mt-2">{t('employees.training.enrollNow')}</Button>
               </div>
             </div>
             <div className="flex items-start gap-3 p-4 border rounded-lg bg-[#F8FAFC]">
               <GraduationCap className="w-5 h-5 text-[#2563EB] mt-0.5" />
               <div className="flex-1">
-                <p className="font-medium">Electric & Hybrid Truck Operation</p>
-                <p className="text-sm text-muted-foreground mt-1">Learn to operate new generation vehicles • 12 hours • Warsaw</p>
-                <Button size="sm" className="mt-2">Enroll Now</Button>
+                <p className="font-medium">{t('employees.training.electricTruckTitle')}</p>
+                <p className="text-sm text-muted-foreground mt-1">{t('employees.training.electricTruckHelp')}</p>
+                <Button size="sm" className="mt-2">{t('employees.training.enrollNow')}</Button>
               </div>
             </div>
           </div>

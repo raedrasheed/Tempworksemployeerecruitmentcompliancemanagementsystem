@@ -13,6 +13,7 @@ import { CountrySelect } from '../../components/ui/CountrySelect';
 import { PhoneInput } from '../../components/ui/PhoneInput';
 import { toast } from 'sonner';
 import { confirm } from '../../components/ui/ConfirmDialog';
+import { apiError } from '../../../i18n/apiError';
 import { usersApi, rolesApi, agenciesApi, authApi, getCurrentUser, resolveAssetUrl } from '../../services/api';
 
 const GENDERS = [
@@ -89,6 +90,7 @@ function getStatusStyle(status: string): StatusStyle {
 
 export function EditUser() {
   const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const { canEdit } = usePermissions();
   const { id } = useParams();
   const navigate = useNavigate();
@@ -204,23 +206,23 @@ export function EditUser() {
       if (typeof patch.allowManagerView === 'boolean') setAllowManagerView(patch.allowManagerView);
       if (typeof patch.allowManagerEdit === 'boolean') setAllowManagerEdit(patch.allowManagerEdit);
       if (typeof patch.allowManagerDelete === 'boolean') setAllowManagerDelete(patch.allowManagerDelete);
-      toast.success('Agency Manager permissions updated');
+      toast.success(t('users.edit.permissionsUpdated'));
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to update permissions');
+      toast.error(apiError(err, t('users.edit.permissionsFailed')));
     } finally {
       setSavingOverride(false);
     }
   };
 
-  if (loading) return <div className="p-8 text-muted-foreground">Loading...</div>;
-  if (notFound) return <div className="p-8">User not found</div>;
+  if (loading) return <div className="p-8 text-muted-foreground">{tc('states.loading')}</div>;
+  if (notFound) return <div className="p-8">{t('users.edit.notFound', { defaultValue: 'User not found' })}</div>;
 
   if (!canEdit('users')) {
     return (
       <div className="flex flex-col items-center justify-center py-24 gap-3 text-muted-foreground">
         <ShieldOff className="w-12 h-12 opacity-30" />
-        <p className="text-lg font-semibold text-[#0F172A]">Access Denied</p>
-        <p className="text-sm">You don't have permission to perform this action.</p>
+        <p className="text-lg font-semibold text-[#0F172A]">{tc('permissions.accessDenied')}</p>
+        <p className="text-sm">{tc('permissions.noPermission')}</p>
       </div>
     );
   }
@@ -236,7 +238,7 @@ export function EditUser() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.agencyId) {
-      toast.error('Please select an agency');
+      toast.error(t('users.edit.selectAgency'));
       return;
     }
     setSubmitting(true);
@@ -247,10 +249,10 @@ export function EditUser() {
         try { await usersApi.uploadPhoto(id!, photoFile); }
         finally { setUploadingPhoto(false); }
       }
-      toast.success('User updated successfully');
+      toast.success(t('users.edit.updateSuccess'));
       navigate('/dashboard/users');
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to update user');
+      toast.error(apiError(err, t('users.edit.updateFailed')));
     } finally {
       setSubmitting(false);
     }
@@ -260,32 +262,32 @@ export function EditUser() {
     try {
       await usersApi.unlockUser(id!);
       setLockedAt(null);
-      toast.success('Account unlocked successfully');
+      toast.success(t('users.edit.unlockSuccess'));
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to unlock account');
+      toast.error(apiError(err, t('users.edit.unlockFailed')));
     }
   };
 
   const handleResetPassword = async () => {
     if (!(await confirm({
-      title: 'Send password reset email?',
-      description: 'A password reset email will be sent to this user.',
-      confirmText: 'Send email',
+      title: t('users.edit.resetTitle'),
+      description: t('users.edit.resetBody'),
+      confirmText: t('users.edit.resetConfirm'),
     }))) return;
     try {
       await authApi.adminResetPassword(id!);
-      toast.success('Password reset email sent successfully');
+      toast.success(t('users.edit.resetSuccess'));
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to send password reset');
+      toast.error(apiError(err, t('users.edit.resetFailed')));
     }
   };
 
   const handleResendActivation = async () => {
     try {
       await authApi.resendActivation(id!);
-      toast.success('Activation email resent successfully');
+      toast.success(t('users.edit.activationResent'));
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to resend activation email');
+      toast.error(apiError(err, t('users.edit.activationFailed')));
     }
   };
 

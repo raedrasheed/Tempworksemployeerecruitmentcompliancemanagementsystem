@@ -20,6 +20,7 @@ import {
 import { toast } from 'sonner';
 import { confirm } from '../../components/ui/ConfirmDialog';
 import { documentsApi, settingsApi } from '../../services/api';
+import { apiError } from '../../../i18n/apiError';
 import { usePermissions } from '../../hooks/usePermissions';
 
 const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1').replace('/api/v1', '');
@@ -92,6 +93,7 @@ function loadVisibleColumns(): Record<ColKey, boolean> {
 
 export function DocumentsCompliance() {
   const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { canCreate, canEdit, canDelete, can } = usePermissions();
@@ -293,16 +295,16 @@ export function DocumentsCompliance() {
 
   const handleDelete = async (doc: any) => {
     if (!(await confirm({
-      title: 'Delete document?',
-      description: `"${doc.name}" will be permanently removed. This cannot be undone.`,
-      confirmText: 'Delete', tone: 'destructive',
+      title: tc('confirm.deleteDocumentTitle'),
+      description: tc('confirm.deleteDocumentBodyNamed', { name: doc.name }),
+      confirmText: tc('actions.delete'), tone: 'destructive',
     }))) return;
     try {
       await documentsApi.delete(doc.id);
       setDocuments(prev => prev.filter(d => d.id !== doc.id));
-      toast.success('Document deleted');
+      toast.success(t('documents.compliancePage.deleteSuccess'));
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to delete document');
+      toast.error(apiError(err, t('documents.compliancePage.deleteFailed')));
     }
   };
 

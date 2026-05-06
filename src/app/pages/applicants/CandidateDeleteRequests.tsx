@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Trash2, CheckCircle, XCircle, Inbox } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -7,6 +8,7 @@ import { Badge } from '../../components/ui/badge';
 import { toast } from 'sonner';
 import { confirm } from '../../components/ui/ConfirmDialog';
 import { applicantsApi } from '../../services/api';
+import { apiError } from '../../../i18n/apiError';
 
 const STATUS_TABS = ['All', 'Pending', 'Approved', 'Rejected'] as const;
 
@@ -24,6 +26,7 @@ function statusBadge(status: string) {
 }
 
 export function CandidateDeleteRequests() {
+  const { t } = useTranslation('pages');
   const [filterStatus, setFilterStatus] = useState<string>('All');
   const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,11 +45,11 @@ export function CandidateDeleteRequests() {
       const result = await applicantsApi.getDeleteRequests(params);
       setRequests(Array.isArray(result) ? result : (result?.data ?? []));
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to load delete requests');
+      toast.error(apiError(err, t('applicants.deleteRequestsPage.loadFailed')));
     } finally {
       setLoading(false);
     }
-  }, [filterStatus]);
+  }, [filterStatus, t]);
 
   useEffect(() => {
     fetchRequests();
@@ -54,18 +57,18 @@ export function CandidateDeleteRequests() {
 
   const handleApprove = async (id: string) => {
     if (!(await confirm({
-      title: 'Approve delete request?',
-      description: 'The candidate will be permanently deleted. This action cannot be undone.',
-      confirmText: 'Approve & delete',
+      title: t('applicants.deleteRequestsPage.approveTitle'),
+      description: t('applicants.deleteRequestsPage.approveBody'),
+      confirmText: t('applicants.deleteRequestsPage.approveConfirm'),
       tone: 'destructive',
     }))) return;
     setProcessing(true);
     try {
       await applicantsApi.reviewDeleteRequest(id, 'APPROVED');
-      toast.success('Delete request approved');
+      toast.success(t('applicants.deleteRequestsPage.approveSuccess'));
       fetchRequests();
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to approve request');
+      toast.error(apiError(err, t('applicants.deleteRequestsPage.approveFailed')));
     } finally {
       setProcessing(false);
     }
@@ -82,12 +85,12 @@ export function CandidateDeleteRequests() {
     setProcessing(true);
     try {
       await applicantsApi.reviewDeleteRequest(rejectingId, 'REJECTED', rejectNotes || undefined);
-      toast.success('Delete request rejected');
+      toast.success(t('applicants.deleteRequestsPage.rejectSuccess'));
       setRejectModalOpen(false);
       setRejectingId(null);
       fetchRequests();
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to reject request');
+      toast.error(apiError(err, t('applicants.deleteRequestsPage.rejectFailed')));
     } finally {
       setProcessing(false);
     }

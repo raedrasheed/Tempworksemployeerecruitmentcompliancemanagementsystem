@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { ArrowLeft, ShieldOff, Upload, X, FileText, Download } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import { usePermissions } from '../../hooks/usePermissions';
+import { apiError } from '../../../i18n/apiError';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -43,6 +44,7 @@ type FormShape = {
 
 export function EditAgency() {
   const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const { canEdit } = usePermissions();
   const { id } = useParams();
   const navigate = useNavigate();
@@ -114,7 +116,7 @@ export function EditAgency() {
         });
         setLogoUrl(agency.logoUrl ?? null);
       })
-      .catch(() => toast.error('Failed to load agency'))
+      .catch(() => toast.error(t('agencies.edit.loadFailed')))
       .finally(() => setLoading(false));
 
     loadDocs();
@@ -127,8 +129,8 @@ export function EditAgency() {
     return (
       <div className="flex flex-col items-center justify-center py-24 gap-3 text-muted-foreground">
         <ShieldOff className="w-12 h-12 opacity-30" />
-        <p className="text-lg font-semibold text-[#0F172A]">Access Denied</p>
-        <p className="text-sm">You don't have permission to perform this action.</p>
+        <p className="text-lg font-semibold text-[#0F172A]">{tc('permissions.accessDenied')}</p>
+        <p className="text-sm">{tc('permissions.noPermission')}</p>
       </div>
     );
   }
@@ -138,17 +140,17 @@ export function EditAgency() {
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0]; if (!f || !id) return;
-    if (f.size > 5 * 1024 * 1024) { toast.error('Logo must be 5MB or smaller'); return; }
+    if (f.size > 5 * 1024 * 1024) { toast.error(tc('toast.logoTooLarge')); return; }
     if (!/^image\/(jpe?g|png|webp|svg\+xml)$/i.test(f.type)) {
-      toast.error('Logo must be JPEG, PNG, WebP or SVG'); return;
+      toast.error(t('agencies.add.validation.logoFormat')); return;
     }
     setUploadingLogo(true);
     try {
       const updated = await agenciesApi.uploadLogo(id, f);
       setLogoUrl(updated.logoUrl ?? null);
-      toast.success('Logo updated');
+      toast.success(t('agencies.edit.logoUpdated'));
     } catch (err: any) {
-      toast.error(err?.message || 'Logo upload failed');
+      toast.error(apiError(err, t('agencies.edit.logoFailed')));
     } finally {
       setUploadingLogo(false);
       // Allow selecting the same file again later
@@ -158,7 +160,7 @@ export function EditAgency() {
 
   const handleDocUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0]; if (!f || !id) return;
-    if (!newDocTypeId) { toast.error('Choose a document type first'); (e.target as HTMLInputElement).value = ''; return; }
+    if (!newDocTypeId) { toast.error(t('agencies.edit.chooseDocType')); (e.target as HTMLInputElement).value = ''; return; }
     const fd = new FormData();
     fd.append('file', f);
     fd.append('entityType', 'AGENCY');
@@ -168,12 +170,12 @@ export function EditAgency() {
     setUploadingDoc(true);
     try {
       await documentsApi.upload(fd);
-      toast.success('Document uploaded');
+      toast.success(t('agencies.edit.documentUploaded'));
       setNewDocName('');
       setNewDocTypeId('');
       loadDocs();
     } catch (err: any) {
-      toast.error(err?.message || 'Upload failed');
+      toast.error(apiError(err, t('agencies.edit.documentUploadFailed')));
     } finally {
       setUploadingDoc(false);
       (e.target as HTMLInputElement).value = '';
@@ -182,29 +184,29 @@ export function EditAgency() {
 
   const handleDocDelete = async (doc: any) => {
     if (!(await confirm({
-      title: 'Remove document?',
-      description: `"${doc.name}" will be removed from this agency.`,
-      confirmText: 'Remove', tone: 'destructive',
+      title: t('agencies.edit.removeDocTitle'),
+      description: t('agencies.edit.removeDocBody', { name: doc.name }),
+      confirmText: tc('actions.remove'), tone: 'destructive',
     }))) return;
     try {
       await documentsApi.delete(doc.id);
-      toast.success('Document removed');
+      toast.success(t('agencies.edit.documentRemoved'));
       loadDocs();
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to remove document');
+      toast.error(apiError(err, t('agencies.edit.documentRemoveFailed')));
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name.trim())          return toast.error('Agency name is required');
-    if (!form.country)              return toast.error('Country is required');
+    if (!form.name.trim())          return toast.error(t('agencies.add.validation.nameRequired'));
+    if (!form.country)              return toast.error(t('agencies.add.validation.countryRequired'));
     if (!form.contactFirstName.trim() || !form.contactLastName.trim())
-      return toast.error('Contact person first and last name are required');
-    if (!form.email.trim())         return toast.error('Email is required');
-    if (!form.phone.trim())         return toast.error('Phone is required');
+      return toast.error(t('agencies.add.validation.contactNameRequired'));
+    if (!form.email.trim())         return toast.error(t('agencies.add.validation.emailRequired'));
+    if (!form.phone.trim())         return toast.error(t('agencies.add.validation.phoneRequired'));
     if (form.website && !looksLikeWebsite(form.website))
-      return toast.error('Website must be a valid URL');
+      return toast.error(t('agencies.add.validation.websiteInvalid'));
 
     setSubmitting(true);
     try {
@@ -218,16 +220,16 @@ export function EditAgency() {
       // payload here too so nothing drifts in the audit log.
       if (!isSystemAdmin) delete payload.isSystem;
       await agenciesApi.update(id!, payload);
-      toast.success('Agency updated successfully');
+      toast.success(t('agencies.edit.updateSuccess'));
       navigate(`/dashboard/agencies/${id}`);
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to update agency');
+      toast.error(apiError(err, t('agencies.edit.updateFailed')));
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (loading) return <div className="p-8 text-muted-foreground">Loading...</div>;
+  if (loading) return <div className="p-8 text-muted-foreground">{tc('states.loading')}</div>;
 
   const logoSrc = logoUrl ? resolveAssetUrl(logoUrl) : null;
 
@@ -239,7 +241,7 @@ export function EditAgency() {
         </Button>
         <div>
           <h1 className="text-3xl font-semibold text-[#0F172A]">{t('agencies.edit.title')}</h1>
-          <p className="text-muted-foreground mt-1">Update agency information</p>
+          <p className="text-muted-foreground mt-1">{t('agencies.edit.subtitle')}</p>
         </div>
       </div>
 
@@ -247,44 +249,44 @@ export function EditAgency() {
         <div className="max-w-3xl space-y-6">
           {/* Identity */}
           <Card>
-            <CardHeader><CardTitle>Agency Information</CardTitle></CardHeader>
+            <CardHeader><CardTitle>{t('agencies.add.agencyInfoTitle')}</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2 col-span-2">
-                  <Label htmlFor="name">Agency Name *</Label>
+                  <Label htmlFor="name">{t('agencies.add.agencyName')}</Label>
                   <Input id="name" value={form.name} onChange={e => setField('name', e.target.value)} required disabled={isAgencyManager} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="country">Country *</Label>
+                  <Label htmlFor="country">{t('agencies.add.country')}</Label>
                   <CountrySelect value={form.country} onChange={v => setField('country', v)} required disabled={isAgencyManager} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="status">Status</Label>
+                  <Label htmlFor="status">{t('agencies.add.status')}</Label>
                   <Select value={form.status} onValueChange={v => setField('status', v)} disabled={isAgencyManager}>
                     <SelectTrigger id="status"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="ACTIVE">Active</SelectItem>
-                      <SelectItem value="INACTIVE">Inactive</SelectItem>
-                      <SelectItem value="SUSPENDED">Suspended</SelectItem>
+                      <SelectItem value="ACTIVE">{tc('filters.active')}</SelectItem>
+                      <SelectItem value="INACTIVE">{tc('filters.inactive')}</SelectItem>
+                      <SelectItem value="SUSPENDED">{t('agencies.add.suspended', { defaultValue: 'Suspended' })}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="website">Website Address</Label>
-                <Input id="website" placeholder="https://agency.example.com" value={form.website} onChange={e => setField('website', e.target.value)} />
+                <Label htmlFor="website">{t('agencies.add.website')}</Label>
+                <Input id="website" placeholder={t('agencies.add.websitePh')} value={form.website} onChange={e => setField('website', e.target.value)} />
               </div>
             </CardContent>
           </Card>
 
           {/* Logo */}
           <Card>
-            <CardHeader><CardTitle>Logo</CardTitle></CardHeader>
+            <CardHeader><CardTitle>{t('agencies.add.logoTitle')}</CardTitle></CardHeader>
             <CardContent>
               <div className="flex items-center gap-4">
                 <div className="w-20 h-20 rounded-lg border border-dashed border-border bg-muted/40 overflow-hidden flex items-center justify-center">
                   {logoSrc
-                    ? <img src={logoSrc} alt="Agency logo" className="w-full h-full object-contain" />
+                    ? <img src={logoSrc} alt={t('agencies.edit.logoAlt')} className="w-full h-full object-contain" />
                     : <Upload className="w-6 h-6 text-muted-foreground" />}
                 </div>
                 <Button type="button" variant="outline" size="sm" asChild disabled={uploadingLogo}>
@@ -296,74 +298,74 @@ export function EditAgency() {
                       onChange={handleLogoUpload}
                       disabled={uploadingLogo}
                     />
-                    {uploadingLogo ? 'Uploading...' : logoSrc ? 'Replace logo' : 'Upload logo'}
+                    {uploadingLogo ? t('agencies.edit.uploading') : logoSrc ? t('agencies.edit.replaceLogo') : t('agencies.edit.uploadLogo')}
                   </label>
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground mt-2">
-                PNG, JPEG, WebP or SVG · up to 5MB.
+                {t('agencies.edit.logoHelp')}
               </p>
             </CardContent>
           </Card>
 
           {/* Contact person */}
           <Card>
-            <CardHeader><CardTitle>Contact Person</CardTitle></CardHeader>
+            <CardHeader><CardTitle>{t('agencies.add.contactTitle')}</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="contactFirstName">First Name *</Label>
+                  <Label htmlFor="contactFirstName">{t('agencies.add.firstName')}</Label>
                   <Input id="contactFirstName" value={form.contactFirstName} onChange={e => setField('contactFirstName', e.target.value)} required />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="contactMiddleName">Middle Name</Label>
+                  <Label htmlFor="contactMiddleName">{t('agencies.add.middleName')}</Label>
                   <Input id="contactMiddleName" value={form.contactMiddleName} onChange={e => setField('contactMiddleName', e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="contactLastName">Last Name *</Label>
+                  <Label htmlFor="contactLastName">{t('agencies.add.lastName')}</Label>
                   <Input id="contactLastName" value={form.contactLastName} onChange={e => setField('contactLastName', e.target.value)} required />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email *</Label>
+                  <Label htmlFor="email">{t('agencies.add.email')}</Label>
                   <Input id="email" type="email" value={form.email} onChange={e => setField('email', e.target.value)} required />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Phone *</Label>
+                  <Label htmlFor="phone">{t('agencies.add.phone')}</Label>
                   <PhoneInput id="phone" value={form.phone} onChange={v => setField('phone', v)} required />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="whatsapp">WhatsApp</Label>
-                <PhoneInput id="whatsapp" value={form.whatsapp} onChange={v => setField('whatsapp', v)} placeholder="optional" />
+                <Label htmlFor="whatsapp">{t('agencies.add.whatsapp')}</Label>
+                <PhoneInput id="whatsapp" value={form.whatsapp} onChange={v => setField('whatsapp', v)} placeholder={t('agencies.add.whatsappPh')} />
               </div>
             </CardContent>
           </Card>
 
           {/* HQ address */}
           <Card>
-            <CardHeader><CardTitle>Headquarters Address</CardTitle></CardHeader>
+            <CardHeader><CardTitle>{t('agencies.add.hqTitle')}</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="addressLine1">Address Line 1</Label>
+                <Label htmlFor="addressLine1">{t('agencies.add.addressLine1')}</Label>
                 <Input id="addressLine1" value={form.addressLine1} onChange={e => setField('addressLine1', e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="addressLine2">Address Line 2</Label>
+                <Label htmlFor="addressLine2">{t('agencies.add.addressLine2')}</Label>
                 <Input id="addressLine2" value={form.addressLine2} onChange={e => setField('addressLine2', e.target.value)} />
               </div>
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="city">City</Label>
+                  <Label htmlFor="city">{t('agencies.add.city')}</Label>
                   <Input id="city" value={form.city} onChange={e => setField('city', e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="stateRegion">State / Region</Label>
+                  <Label htmlFor="stateRegion">{t('agencies.add.stateRegion')}</Label>
                   <Input id="stateRegion" value={form.stateRegion} onChange={e => setField('stateRegion', e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="postalCode">Postal Code</Label>
+                  <Label htmlFor="postalCode">{t('agencies.add.postalCode')}</Label>
                   <Input id="postalCode" value={form.postalCode} onChange={e => setField('postalCode', e.target.value)} />
                 </div>
               </div>
@@ -372,12 +374,12 @@ export function EditAgency() {
 
           {/* Notes */}
           <Card>
-            <CardHeader><CardTitle>Notes</CardTitle></CardHeader>
+            <CardHeader><CardTitle>{t('agencies.add.notesTitle')}</CardTitle></CardHeader>
             <CardContent>
               <Textarea
                 id="notes"
                 rows={5}
-                placeholder="Internal notes, agreement context, escalation contacts, etc."
+                placeholder={t('agencies.add.notesPh')}
                 value={form.notes}
                 onChange={e => setField('notes', e.target.value)}
               />
@@ -389,7 +391,7 @@ export function EditAgency() {
               data instead of being scoped to the agency. */}
           {isSystemAdmin && (
             <Card>
-              <CardHeader><CardTitle>Tenancy Scope</CardTitle></CardHeader>
+              <CardHeader><CardTitle>{t('agencies.edit.tenancyTitle')}</CardTitle></CardHeader>
               <CardContent>
                 <label className="flex items-start gap-3 cursor-pointer">
                   <input
@@ -400,9 +402,9 @@ export function EditAgency() {
                     onChange={e => setField('isSystem', e.target.checked)}
                   />
                   <div className="space-y-1">
-                    <div className="font-medium text-[#0F172A]">Treat as Tempworks system agency (global scope)</div>
+                    <div className="font-medium text-[#0F172A]">{t('agencies.edit.tenancyToggle')}</div>
                     <p className="text-sm text-muted-foreground">
-                      Users attached to this agency bypass tenancy scoping and see data across every tenant. Enable only for the Tempworks root / owner agency; leave off for every real tenant.
+                      {t('agencies.edit.tenancyHelp')}
                     </p>
                   </div>
                 </label>
@@ -412,10 +414,10 @@ export function EditAgency() {
 
           {/* Attached documents */}
           <Card>
-            <CardHeader><CardTitle>Attached Documents</CardTitle></CardHeader>
+            <CardHeader><CardTitle>{t('agencies.add.documentsTitle')}</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               {documents.length === 0 && (
-                <p className="text-sm text-muted-foreground">No documents attached to this agency yet.</p>
+                <p className="text-sm text-muted-foreground">{t('agencies.edit.noDocuments')}</p>
               )}
               {documents.length > 0 && (
                 <div className="divide-y rounded-md border">
@@ -426,7 +428,7 @@ export function EditAgency() {
                         <p className="text-sm font-medium truncate">{doc.name}</p>
                         <p className="text-xs text-muted-foreground truncate">
                           {doc.documentType?.name ?? '—'}
-                          {doc.expiryDate ? ` · expires ${new Date(doc.expiryDate).toLocaleDateString()}` : ''}
+                          {doc.expiryDate ? t('agencies.edit.expiresPrefix', { date: new Date(doc.expiryDate).toLocaleDateString() }) : ''}
                         </p>
                       </div>
                       {doc.fileUrl && (
@@ -446,40 +448,40 @@ export function EditAgency() {
 
               <div className="pt-2 border-t grid grid-cols-[1fr_1fr_auto] gap-3 items-end">
                 <div className="space-y-2">
-                  <Label>Document Type</Label>
+                  <Label>{t('agencies.edit.documentType')}</Label>
                   <Select value={newDocTypeId} onValueChange={setNewDocTypeId}>
-                    <SelectTrigger><SelectValue placeholder="e.g. Agency contract" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder={t('agencies.edit.documentTypePh')} /></SelectTrigger>
                     <SelectContent>
-                      {docTypes.map((t: any) => (
-                        <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                      {docTypes.map((dt: any) => (
+                        <SelectItem key={dt.id} value={dt.id}>{dt.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Document Name</Label>
-                  <Input value={newDocName} onChange={e => setNewDocName(e.target.value)} placeholder="Optional — defaults to file name" />
+                  <Label>{t('agencies.edit.documentName')}</Label>
+                  <Input value={newDocName} onChange={e => setNewDocName(e.target.value)} placeholder={t('agencies.edit.documentNamePh')} />
                 </div>
                 <Button type="button" variant="outline" size="sm" asChild disabled={uploadingDoc || !newDocTypeId}>
                   <label className="cursor-pointer">
                     <input type="file" className="sr-only" onChange={handleDocUpload} disabled={uploadingDoc || !newDocTypeId} />
                     <Upload className="w-4 h-4 me-1.5" />
-                    {uploadingDoc ? 'Uploading...' : 'Upload'}
+                    {uploadingDoc ? t('agencies.edit.uploading') : t('agencies.edit.uploadButton')}
                   </label>
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground">
-                Files are stored through the shared Documents module, linked to this agency (entityType=AGENCY).
+                {t('agencies.edit.documentsModuleHelp')}
               </p>
             </CardContent>
           </Card>
 
           <div className="flex gap-3">
             <Button type="submit" className="flex-1" disabled={submitting}>
-              {submitting ? 'Saving...' : 'Save Changes'}
+              {submitting ? t('agencies.edit.saving') : t('agencies.edit.saveChanges')}
             </Button>
             <Button type="button" variant="outline" className="flex-1" asChild>
-              <Link to={`/dashboard/agencies/${id}`}>Cancel</Link>
+              <Link to={`/dashboard/agencies/${id}`}>{tc('actions.cancel')}</Link>
             </Button>
           </div>
         </div>

@@ -239,9 +239,9 @@ export function AddApplicant() {
   // progress.
   const handleDiscardDraft = async () => {
     const ok = await confirm({
-      title: 'Discard saved draft?',
-      description: 'Your saved progress will be deleted and the form reset. This cannot be undone.',
-      confirmText: 'Discard',
+      title: t('applicants.addPage.discardTitle'),
+      description: t('applicants.addPage.discardBody'),
+      confirmText: t('applicants.addPage.discardConfirm'),
       tone: 'destructive',
     });
     if (!ok) return;
@@ -253,7 +253,7 @@ export function AddApplicant() {
       setPhotoFile(null);
       setCurrentStep(1);
       setDraftId(null);
-      toast.success('Draft discarded.');
+      toast.success(t('applicants.addPage.discardSuccess'));
     } catch (err: any) {
       toast.error(err?.message || 'Failed to discard draft');
     }

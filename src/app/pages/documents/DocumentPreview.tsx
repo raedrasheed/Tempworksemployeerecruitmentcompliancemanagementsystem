@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Download, FileText, CheckCircle2, XCircle, Edit, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -13,11 +14,14 @@ import { toast } from 'sonner';
 import { confirm } from '../../components/ui/ConfirmDialog';
 import { documentsApi } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
+import { apiError } from '../../../i18n/apiError';
 
 const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1').replace('/api/v1', '');
 const getFileUrl = (fileUrl: string) => `${API_BASE}${fileUrl}`;
 
 export function DocumentPreview() {
+  const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const { id } = useParams();
   const navigate = useNavigate();
   const { canEdit, canDelete, can } = usePermissions();
@@ -33,7 +37,7 @@ export function DocumentPreview() {
   useEffect(() => {
     documentsApi.get(id!)
       .then(setDocument)
-      .catch(() => toast.error('Document not found'))
+      .catch(() => toast.error(t('documents.preview.notFound')))
       .finally(() => setLoading(false));
   }, [id]);
 
@@ -42,9 +46,9 @@ export function DocumentPreview() {
     try {
       const updated = await documentsApi.verify(id!, { action: 'VERIFY' });
       setDocument(updated);
-      toast.success('Document approved');
+      toast.success(t('documents.preview.approveSuccess'));
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to approve document');
+      toast.error(apiError(err, t('documents.preview.approveFailed')));
     } finally {
       setVerifying(false);
     }
@@ -52,7 +56,7 @@ export function DocumentPreview() {
 
   const handleReject = async () => {
     if (!rejectionReason.trim()) {
-      toast.error('A rejection reason is required');
+      toast.error(t('documents.preview.rejectionRequired'));
       return;
     }
     setVerifying(true);
@@ -62,10 +66,10 @@ export function DocumentPreview() {
         reason: rejectionReason.trim(),
       });
       setDocument(updated);
-      toast.success('Document rejected');
+      toast.success(t('documents.preview.rejectSuccess'));
       setRejectOpen(false);
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to reject document');
+      toast.error(apiError(err, t('documents.preview.rejectFailed')));
     } finally {
       setVerifying(false);
     }
@@ -73,16 +77,16 @@ export function DocumentPreview() {
 
   const handleDelete = async () => {
     if (!(await confirm({
-      title: 'Delete document?',
-      description: 'This document will be permanently removed. This cannot be undone.',
-      confirmText: 'Delete', tone: 'destructive',
+      title: tc('confirm.deleteDocumentTitle'),
+      description: tc('confirm.deleteDocumentBodyDefault'),
+      confirmText: tc('actions.delete'), tone: 'destructive',
     }))) return;
     try {
       await documentsApi.delete(id!);
-      toast.success('Document deleted');
+      toast.success(t('documents.preview.deleteSuccess'));
       navigate('/dashboard/documents-compliance');
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to delete document');
+      toast.error(apiError(err, t('documents.preview.deleteFailed')));
     }
   };
 

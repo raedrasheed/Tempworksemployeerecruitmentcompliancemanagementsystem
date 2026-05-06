@@ -165,6 +165,9 @@
     "approveTitle": "Approve?",
     "rejectTitle": "Reject?",
     "removeTitle": "Remove?",
-    "revokeTitle": "Revoke?"
+    "revokeTitle": "Revoke?",
+    "deleteDocumentTitle": "Delete document?",
+    "deleteDocumentBodyDefault": "This document will be permanently removed. This cannot be undone.",
+    "deleteDocumentBodyNamed": "\"{{name}}\" will be permanently removed. This cannot be undone."
   }
 }

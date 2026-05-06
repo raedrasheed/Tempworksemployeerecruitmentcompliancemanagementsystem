@@ -324,7 +324,7 @@ export function MaintenanceRecordsList() {
               <Select value={statusFilter || 'all'} onValueChange={(v) => { setStatusFilter(v === 'all' ? '' : v); setPage(1); }}>
                 <SelectTrigger><SelectValue placeholder="All" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="all">{t('vehicles.maintenanceRecords.filterAllStatuses')}</SelectItem>
                   {MAINTENANCE_STATUSES.map((s) => (
                     <SelectItem key={s} value={s}>{s.replace('_', ' ')}</SelectItem>
                   ))}
@@ -336,7 +336,7 @@ export function MaintenanceRecordsList() {
               <Select value={workshopFilter || 'all'} onValueChange={(v) => { setWorkshopFilter(v === 'all' ? '' : v); setPage(1); }}>
                 <SelectTrigger><SelectValue placeholder="All" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Workshops</SelectItem>
+                  <SelectItem value="all">{t('vehicles.maintenanceRecords.filterAllWorkshops')}</SelectItem>
                   {workshops.map((w: any) => (
                     <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>
                   ))}
@@ -344,11 +344,11 @@ export function MaintenanceRecordsList() {
               </Select>
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Date From</Label>
+              <Label className="text-xs">{t('vehicles.maintenanceRecords.dateFrom')}</Label>
               <Input type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setPage(1); }} />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Date To</Label>
+              <Label className="text-xs">{t('vehicles.maintenanceRecords.dateTo')}</Label>
               <Input type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setPage(1); }} />
             </div>
           </div>
@@ -367,7 +367,7 @@ export function MaintenanceRecordsList() {
                   Clear Selection
                 </Button>
               )}
-              <Button variant="ghost" size="sm" onClick={clearFilters}>Clear Filters</Button>
+              <Button variant="ghost" size="sm" onClick={clearFilters}>{t('vehicles.maintenanceRecords.clearFilters')}</Button>
             </div>
           </div>
         </CardContent>

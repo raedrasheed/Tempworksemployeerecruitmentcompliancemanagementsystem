@@ -1,4 +1,5 @@
 import { Link, useParams } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Clock, CheckCircle2, AlertCircle, Filter, Download, UserPlus, ChevronRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -8,6 +9,8 @@ import { Progress } from '../../components/ui/progress';
 import { workflowStages, mockDrivers } from '../../data/mockData';
 
 export function WorkflowStageDetail() {
+  const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const { stageId } = useParams();
   const stage = workflowStages.find(s => s.id === stageId);
   
@@ -34,7 +37,7 @@ export function WorkflowStageDetail() {
         </div>
         <Button>
           <Download className="w-4 h-4 me-2" />
-          Export Report
+          {t('workflow.stageDetail.exportReport')}
         </Button>
       </div>
 
@@ -48,7 +51,7 @@ export function WorkflowStageDetail() {
               </div>
               <div>
                 <p className="text-2xl font-semibold">{driversInStage.length}</p>
-                <p className="text-sm text-muted-foreground">Drivers in Stage</p>
+                <p className="text-sm text-muted-foreground">{t('workflow.stageDetail.driversInStage')}</p>
               </div>
             </div>
           </CardContent>
@@ -62,7 +65,7 @@ export function WorkflowStageDetail() {
               </div>
               <div>
                 <p className="text-2xl font-semibold">{avgDaysInStage}</p>
-                <p className="text-sm text-muted-foreground">Avg. Days in Stage</p>
+                <p className="text-sm text-muted-foreground">{t('workflow.stageDetail.avgDaysInStage')}</p>
               </div>
             </div>
           </CardContent>
@@ -76,7 +79,7 @@ export function WorkflowStageDetail() {
               </div>
               <div>
                 <p className="text-2xl font-semibold">{atRiskCount}</p>
-                <p className="text-sm text-muted-foreground">At Risk (SLA)</p>
+                <p className="text-sm text-muted-foreground">{t('workflow.stageDetail.atRiskSla')}</p>
               </div>
             </div>
           </CardContent>
@@ -90,7 +93,7 @@ export function WorkflowStageDetail() {
               </div>
               <div>
                 <p className="text-2xl font-semibold">85%</p>
-                <p className="text-sm text-muted-foreground">Completion Rate</p>
+                <p className="text-sm text-muted-foreground">{t('workflow.stageDetail.completionRate')}</p>
               </div>
             </div>
           </CardContent>
@@ -100,7 +103,7 @@ export function WorkflowStageDetail() {
       {/* Stage Requirements & Tasks */}
       <Card>
         <CardHeader>
-          <CardTitle>Stage Requirements</CardTitle>
+          <CardTitle>{t('workflow.stageDetail.stageRequirements')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
@@ -113,7 +116,7 @@ export function WorkflowStageDetail() {
                 </div>
                 {req.required && (
                   <Badge variant="outline" className="bg-[#FEE2E2] text-[#EF4444] border-[#EF4444]">
-                    Required
+                    {tc('required')}
                   </Badge>
                 )}
               </div>
@@ -166,12 +169,12 @@ export function WorkflowStageDetail() {
                   <div className="flex items-center gap-6">
                     <div className="text-end">
                       <p className="text-sm font-medium">{daysInStage} days</p>
-                      <p className="text-xs text-muted-foreground">in stage</p>
+                      <p className="text-xs text-muted-foreground">{t('workflow.stageDetail.inStage')}</p>
                     </div>
                     
                     {isAtRisk && (
                       <Badge variant="outline" className="bg-[#FEF3C7] text-[#F59E0B] border-[#F59E0B]">
-                        At Risk
+                        {t('workflow.stageDetail.atRisk')}
                       </Badge>
                     )}
                     
@@ -206,7 +209,7 @@ export function WorkflowStageDetail() {
           <div className="space-y-4">
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium">Stage Completion Rate</span>
+                <span className="text-sm font-medium">{t('workflow.stageDetail.stageCompletionRate')}</span>
                 <span className="text-sm font-medium">85%</span>
               </div>
               <Progress value={85} className="h-2" />
@@ -215,15 +218,15 @@ export function WorkflowStageDetail() {
             <div className="grid grid-cols-3 gap-4 pt-4 border-t">
               <div className="text-center">
                 <p className="text-2xl font-semibold text-[#22C55E]">{driversInStage.length - atRiskCount}</p>
-                <p className="text-sm text-muted-foreground mt-1">On Track</p>
+                <p className="text-sm text-muted-foreground mt-1">{t('workflow.stageDetail.onTrack')}</p>
               </div>
               <div className="text-center">
                 <p className="text-2xl font-semibold text-[#F59E0B]">{atRiskCount}</p>
-                <p className="text-sm text-muted-foreground mt-1">At Risk</p>
+                <p className="text-sm text-muted-foreground mt-1">{t('workflow.stageDetail.atRisk')}</p>
               </div>
               <div className="text-center">
                 <p className="text-2xl font-semibold text-[#0F172A]">{slaThreshold} days</p>
-                <p className="text-sm text-muted-foreground mt-1">SLA Threshold</p>
+                <p className="text-sm text-muted-foreground mt-1">{t('workflow.stageDetail.slaThreshold')}</p>
               </div>
             </div>
           </div>

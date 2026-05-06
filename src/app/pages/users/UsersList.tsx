@@ -377,27 +377,27 @@ export function UsersList() {
           <div className="flex flex-wrap gap-3 items-center">
             {roleOptions.length > 0 && (
               <Select value={roleFilter || '__all__'} onValueChange={v => setRoleFilter(v === '__all__' ? '' : v)}>
-                <SelectTrigger className="w-44"><SelectValue placeholder="All Roles" /></SelectTrigger>
+                <SelectTrigger className="w-44"><SelectValue placeholder={t('users.list.filterAllRoles')} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__all__">All Roles</SelectItem>
+                  <SelectItem value="__all__">{t('users.list.filterAllRoles')}</SelectItem>
                   {roleOptions.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
                 </SelectContent>
               </Select>
             )}
 
             <Select value={statusFilter || '__all__'} onValueChange={v => setStatusFilter(v === '__all__' ? '' : v)}>
-              <SelectTrigger className="w-40"><SelectValue placeholder="All Statuses" /></SelectTrigger>
+              <SelectTrigger className="w-40"><SelectValue placeholder={t('users.list.filterAllStatuses')} /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="__all__">All Statuses</SelectItem>
+                <SelectItem value="__all__">{t('users.list.filterAllStatuses')}</SelectItem>
                 {STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
               </SelectContent>
             </Select>
 
             {agencyOptions.length > 0 && (
               <Select value={agencyFilter || '__all__'} onValueChange={v => setAgencyFilter(v === '__all__' ? '' : v)}>
-                <SelectTrigger className="w-44"><SelectValue placeholder="All Agencies" /></SelectTrigger>
+                <SelectTrigger className="w-44"><SelectValue placeholder={t('users.list.filterAllAgencies')} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__all__">All Agencies</SelectItem>
+                  <SelectItem value="__all__">{t('users.list.filterAllAgencies')}</SelectItem>
                   {agencyOptions.map(a => <SelectItem key={a} value={a}>{a}</SelectItem>)}
                 </SelectContent>
               </Select>
@@ -405,9 +405,9 @@ export function UsersList() {
 
             {departmentOptions.length > 0 && (
               <Select value={departmentFilter || '__all__'} onValueChange={v => setDepartmentFilter(v === '__all__' ? '' : v)}>
-                <SelectTrigger className="w-44"><SelectValue placeholder="All Departments" /></SelectTrigger>
+                <SelectTrigger className="w-44"><SelectValue placeholder={t('users.list.filterAllDepts')} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__all__">All Departments</SelectItem>
+                  <SelectItem value="__all__">{t('users.list.filterAllDepts')}</SelectItem>
                   {departmentOptions.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
                 </SelectContent>
               </Select>
@@ -415,9 +415,9 @@ export function UsersList() {
 
             {countryOptions.length > 0 && (
               <Select value={countryFilter || '__all__'} onValueChange={v => setCountryFilter(v === '__all__' ? '' : v)}>
-                <SelectTrigger className="w-40"><SelectValue placeholder="All Countries" /></SelectTrigger>
+                <SelectTrigger className="w-40"><SelectValue placeholder={t('users.list.filterAllCountries')} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__all__">All Countries</SelectItem>
+                  <SelectItem value="__all__">{t('users.list.filterAllCountries')}</SelectItem>
                   {countryOptions.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                 </SelectContent>
               </Select>
@@ -445,7 +445,7 @@ export function UsersList() {
               </Button>
               {showColPicker && (
                 <div className="absolute end-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[180px]">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">Toggle columns</p>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">{t('users.list.toggleCols')}</p>
                   <div className="space-y-0.5">
                     {ALL_COLUMNS.map(c => (
                       <button key={c.key} onClick={() => toggleColumn(c.key)} className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-gray-50 text-sm text-start">
@@ -457,9 +457,9 @@ export function UsersList() {
                     ))}
                   </div>
                   <div className="border-t mt-2 pt-2 flex gap-1.5">
-                    <button onClick={() => { const all = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, true])) as Record<ColKey, boolean>; setVisibleColumns(all); localStorage.setItem('users-table-columns', JSON.stringify(all)); }} className="flex-1 text-xs text-center text-blue-600 hover:underline py-0.5">Show all</button>
+                    <button onClick={() => { const all = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, true])) as Record<ColKey, boolean>; setVisibleColumns(all); localStorage.setItem('users-table-columns', JSON.stringify(all)); }} className="flex-1 text-xs text-center text-blue-600 hover:underline py-0.5">{t('users.list.showAll')}</button>
                     <span className="text-gray-300">|</span>
-                    <button onClick={() => { const none = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, false])) as Record<ColKey, boolean>; setVisibleColumns(none); localStorage.setItem('users-table-columns', JSON.stringify(none)); }} className="flex-1 text-xs text-center text-gray-500 hover:underline py-0.5">Hide all</button>
+                    <button onClick={() => { const none = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, false])) as Record<ColKey, boolean>; setVisibleColumns(none); localStorage.setItem('users-table-columns', JSON.stringify(none)); }} className="flex-1 text-xs text-center text-gray-500 hover:underline py-0.5">{t('users.list.hideAll')}</button>
                   </div>
                 </div>
               )}
@@ -487,9 +487,9 @@ export function UsersList() {
               </TableHeader>
               <TableBody>
                 {loading ? (
-                  <TableRow><TableCell colSpan={colSpan} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={colSpan} className="text-center py-8 text-muted-foreground">{tc('states.loading')}</TableCell></TableRow>
                 ) : displayUsers.length === 0 ? (
-                  <TableRow><TableCell colSpan={colSpan} className="text-center py-8 text-muted-foreground">No users found</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={colSpan} className="text-center py-8 text-muted-foreground">{t('users.list.empty')}</TableCell></TableRow>
                 ) : displayUsers.map(user => (
                   <TableRow key={user.id}>
                     <TableCell>
@@ -543,7 +543,7 @@ export function UsersList() {
                         )}
                         {/* Approval pill (pending only) */}
                         {user.approvalStatus === 'PENDING_APPROVAL' && (
-                          <Badge variant="outline" className="text-[10px] border-amber-300 text-amber-700 bg-amber-50">Pending approval</Badge>
+                          <Badge variant="outline" className="text-[10px] border-amber-300 text-amber-700 bg-amber-50">{t('users.list.pendingApproval')}</Badge>
                         )}
                         {isTempworksAdmin && user.approvalStatus === 'PENDING_APPROVAL' && (
                           <Button
@@ -594,7 +594,7 @@ export function UsersList() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-lg space-y-4 p-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-[#0F172A]">Activation Link</h2>
+              <h2 className="text-xl font-semibold text-[#0F172A]">{t('users.list.activationLinkTitle')}</h2>
               <Button variant="ghost" size="sm" onClick={() => setActivationLink(null)}>✕</Button>
             </div>
             <p className="text-sm text-muted-foreground">
@@ -617,7 +617,7 @@ export function UsersList() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl space-y-4 p-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-[#0F172A]">Bulk Import Users</h2>
+              <h2 className="text-xl font-semibold text-[#0F172A]">{t('users.list.bulkImportTitle')}</h2>
               <Button variant="ghost" size="sm" onClick={() => { setShowImportModal(false); setCsvText(''); }}>✕</Button>
             </div>
             <p className="text-sm text-muted-foreground">
@@ -625,7 +625,7 @@ export function UsersList() {
               (e.g. <code className="bg-gray-100 px-1 rounded text-xs">firstName,lastName,email,roleId,agencyId</code>).
             </p>
             <div className="space-y-2">
-              <Label htmlFor="csvInput">CSV Data</Label>
+              <Label htmlFor="csvInput">{t('users.list.csvDataLabel')}</Label>
               <textarea
                 id="csvInput" rows={10}
                 className="w-full border rounded-md p-3 text-sm font-mono resize-y focus:outline-none focus:ring-2 focus:ring-[#2563EB]"

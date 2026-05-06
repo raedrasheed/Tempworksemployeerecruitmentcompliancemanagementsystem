@@ -2392,22 +2392,80 @@
       "subtitle": "Отслеживание сотрудников по стадиям найма"
     },
     "workPermits": {
-      "title": "Отслеживание разрешений на работу"
+      "title": "Отслеживание разрешений на работу",
+      "subtitle": "Monitor work permit applications and status",
+      "inProgress": "In Progress"
     },
     "visas": {
-      "title": "Отслеживание виз"
+      "title": "Отслеживание виз",
+      "subtitle": "Monitor visa applications and embassy appointments"
     },
     "stage": {
       "title": "Детали стадии"
     },
     "timeline": {
-      "title": "Хронология процесса"
+      "title": "Хронология процесса",
+      "activityTitle": "Workflow Activity Timeline",
+      "subtitle": "Real-time activity feed of all workflow events and updates",
+      "filterByType": "Filter by Type",
+      "filterByDate": "Filter by Date",
+      "eventsToday": "Events Today",
+      "thisWeek": "This Week",
+      "completedStages": "Completed Stages",
+      "loadMore": "Load More Events"
     },
     "analytics": {
-      "title": "Аналитика процесса"
+      "title": "Аналитика процесса",
+      "subtitle": "Performance metrics, bottlenecks, and insights",
+      "periodLast30": "Last 30 Days",
+      "exportReport": "Export Report",
+      "avgTimeLabel": "Avg. Time to Complete",
+      "completionRateLabel": "Completion Rate",
+      "slaBreachesLabel": "SLA Breaches",
+      "activeInWorkflow": "Active in Workflow",
+      "stageVsSlaCardTitle": "Stage Performance vs SLA",
+      "stageVsSlaTitle": "Average days per stage compared to SLA thresholds",
+      "monthlyTrendCardTitle": "Monthly Workflow Trends",
+      "monthlyTrendTitle": "Applications started vs completed over time",
+      "bottleneckCardTitle": "Bottleneck Analysis",
+      "bottleneckTitle": "Stages causing the most delays",
+      "dropOffCardTitle": "Recruitment Conversion Funnel",
+      "dropOffTitle": "Drop-off rates at each workflow stage",
+      "insightsCardTitle": "Insights & Recommendations",
+      "insight1Title": "Work Permit Processing Delays",
+      "insight2Title": "Document Verification Improvement",
+      "insight3Title": "High Drop-off at Visa Stage"
     },
     "management": {
-      "title": "Управление процессом"
+      "title": "Управление процессом",
+      "subtitle": "Configure recruitment workflow stages and requirements",
+      "stageName": "Stage Name",
+      "stageColor": "Stage Color",
+      "addStage": "Add Stage",
+      "dragToReorder": "Drag and Drop to Reorder"
+    },
+    "stageDetails": {
+      "notFound": "Stage Not Found",
+      "notFoundDesc": "The requested workflow stage could not be found.",
+      "returnToWorkflow": "Return to Workflow",
+      "totalInStage": "Total in Stage",
+      "avgDaysInStage": "Avg. Days in Stage",
+      "atRisk": "At Risk (>14 days)",
+      "stageRequirements": "Stage Requirements",
+      "inStage": "in stage"
+    },
+    "stageDetail": {
+      "exportReport": "Export Report",
+      "stageRequirements": "Stage Requirements",
+      "driversInStage": "Drivers in Stage",
+      "avgDaysInStage": "Avg. Days in Stage",
+      "atRiskSla": "At Risk (SLA)",
+      "completionRate": "Completion Rate",
+      "inStage": "in stage",
+      "stageCompletionRate": "Stage Completion Rate",
+      "onTrack": "On Track",
+      "atRisk": "At Risk",
+      "slaThreshold": "SLA Threshold"
     }
   },
   "pipelines": {
@@ -2615,7 +2673,12 @@
         "serviceType": "Service Type",
         "workshop": "Workshop",
         "odometer": "Odometer (km)"
-      }
+      },
+      "toggleCols": "Toggle columns",
+      "showAll": "Show all",
+      "hideAll": "Hide all",
+      "filterAllTypes": "All Types",
+      "filterAllStatuses": "All Statuses"
     },
     "detail": {
       "title": "Детали транспорта",
@@ -2971,7 +3034,11 @@
           "city": "City",
           "country": "Country"
         }
-      }
+      },
+      "filterAllCities": "All Cities",
+      "filterAllCountries": "All Countries",
+      "filterAllStatuses": "All Status",
+      "inactive": "(inactive)"
     },
     "maintenanceTypes": {
       "title": "Типы обслуживания",
@@ -2981,7 +3048,12 @@
       "title": "Записи обслуживания",
       "subtitle": "Все работы по обслуживанию автопарка",
       "addButton": "Новая запись",
-      "empty": "Записей пока нет."
+      "empty": "Записей пока нет.",
+      "filterAllStatuses": "All Statuses",
+      "filterAllWorkshops": "All Workshops",
+      "dateFrom": "Date From",
+      "dateTo": "Date To",
+      "clearFilters": "Clear Filters"
     },
     "maintTypes": {
       "list": {
@@ -2992,7 +3064,12 @@
           "km": "Interval (km)",
           "active": "Status"
         }
-      }
+      },
+      "subtitle": "Configure service types and default intervals",
+      "filterAllStatuses": "All Statuses",
+      "toggleCols": "Toggle columns",
+      "showAll": "Show all",
+      "empty": "No maintenance types found"
     }
   },
   "attendance": {
@@ -3112,11 +3189,24 @@
         "agency": "Agency",
         "status": "Status",
         "lastLogin": "Last Login"
-      }
+      },
+      "filterAllRoles": "All Roles",
+      "filterAllStatuses": "All Statuses",
+      "filterAllAgencies": "All Agencies",
+      "filterAllDepts": "All Departments",
+      "filterAllCountries": "All Countries",
+      "toggleCols": "Toggle columns",
+      "showAll": "Show all",
+      "hideAll": "Hide all",
+      "pendingApproval": "Pending approval",
+      "activationLinkTitle": "Activation Link",
+      "bulkImportTitle": "Bulk Import Users",
+      "csvDataLabel": "CSV Data"
     },
     "add": {
       "title": "Добавить пользователя",
-      "back": "К пользователям"
+      "back": "К пользователям",
+      "subtitle": "Create new system user account"
     },
     "edit": {
       "title": "Редактировать пользователя",
@@ -3134,7 +3224,31 @@
       "resetSuccess": "Password reset email sent successfully",
       "resetFailed": "Failed to send password reset",
       "activationResent": "Activation email resent successfully",
-      "activationFailed": "Failed to resend activation email"
+      "activationFailed": "Failed to resend activation email",
+      "subtitle": "Update user information",
+      "accountStatus": "Account Status",
+      "changeStatus": "Change status",
+      "allowView": "Allow Agency Manager to view this user",
+      "allowViewHelper": "When on, the owning agency's users can open this approved user's profile; off hides them from the list entirely.",
+      "allowEdit": "Allow Agency Manager to edit this user",
+      "allowEditHelper": "When on, the Agency Manager can update profile fields for this approved user.",
+      "allowDelete": "Allow Agency Manager to delete this user",
+      "allowDeleteHelper": "When on, the Agency Manager can soft-delete this approved user."
+    },
+    "form": {
+      "photoLabel": "Profile Photo",
+      "photoHint": "JPG, PNG or GIF · max 5 MB",
+      "firstName": "First Name *",
+      "middleName": "Middle Name",
+      "lastName": "Last Name *",
+      "email": "Email *",
+      "jobTitle": "Job Title",
+      "startDate": "Start Date",
+      "dateOfBirth": "Date of Birth",
+      "addressLine1": "Address Line 1",
+      "addressLine2": "Address Line 2",
+      "postalCode": "Postal Code",
+      "password": "Password *"
     }
   },
   "roles": {

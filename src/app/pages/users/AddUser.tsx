@@ -30,6 +30,7 @@ const TIMEZONES = [
 
 export function AddUser() {
   const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const navigate = useNavigate();
   const { canCreate } = usePermissions();
   const currentUser = getCurrentUser();
@@ -180,8 +181,8 @@ export function AddUser() {
     return (
       <div className="flex flex-col items-center justify-center py-24 gap-3 text-muted-foreground">
         <ShieldOff className="w-12 h-12 opacity-30" />
-        <p className="text-lg font-semibold text-[#0F172A]">Access Denied</p>
-        <p className="text-sm">You don't have permission to perform this action.</p>
+        <p className="text-lg font-semibold text-[#0F172A]">{tc('permissions.accessDenied')}</p>
+        <p className="text-sm">{tc('permissions.noPermission')}</p>
       </div>
     );
   }
@@ -194,7 +195,7 @@ export function AddUser() {
         </Button>
         <div>
           <h1 className="text-3xl font-semibold text-[#0F172A]">{t('users.add.title')}</h1>
-          <p className="text-muted-foreground mt-1">Create new system user account</p>
+          <p className="text-muted-foreground mt-1">{t('users.add.subtitle')}</p>
         </div>
       </div>
 
@@ -231,8 +232,8 @@ export function AddUser() {
                   )}
                 </div>
                 <div className="space-y-1">
-                  <p className="text-sm font-medium">Profile Photo</p>
-                  <p className="text-xs text-muted-foreground">JPG, PNG or GIF · max 5 MB</p>
+                  <p className="text-sm font-medium">{t('users.form.photoLabel')}</p>
+                  <p className="text-xs text-muted-foreground">{t('users.form.photoHint')}</p>
                   <div className="flex gap-2">
                     <Button type="button" variant="outline" size="sm" onClick={() => photoInputRef.current?.click()}>
                       <Camera className="w-3.5 h-3.5 me-1" />
@@ -261,20 +262,20 @@ export function AddUser() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="firstName">First Name *</Label>
+                  <Label htmlFor="firstName">{t('users.form.firstName')}</Label>
                   <Input id="firstName" placeholder="First name" value={form.firstName} onChange={handleChange} required />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="middleName">Middle Name</Label>
+                  <Label htmlFor="middleName">{t('users.form.middleName')}</Label>
                   <Input id="middleName" placeholder="Middle name" value={form.middleName} onChange={handleChange} />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="lastName">Last Name *</Label>
+                <Label htmlFor="lastName">{t('users.form.lastName')}</Label>
                 <Input id="lastName" placeholder="Last name" value={form.lastName} onChange={handleChange} required />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email">Email *</Label>
+                <Label htmlFor="email">{t('users.form.email')}</Label>
                 <Input id="email" type="email" placeholder="user@company.com" value={form.email} onChange={handleChange} required />
               </div>
             </CardContent>
@@ -342,7 +343,7 @@ export function AddUser() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="jobTitle">Job Title</Label>
+                  <Label htmlFor="jobTitle">{t('users.form.jobTitle')}</Label>
                   <Input id="jobTitle" placeholder="e.g. Recruitment Officer" value={form.jobTitle} onChange={handleChange} />
                 </div>
                 <div className="space-y-2">
@@ -352,7 +353,7 @@ export function AddUser() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="startDate">Start Date</Label>
+                  <Label htmlFor="startDate">{t('users.form.startDate')}</Label>
                   <Input id="startDate" type="date" value={form.startDate} onChange={handleChange} />
                 </div>
                 <div className="space-y-2">
@@ -382,7 +383,7 @@ export function AddUser() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="dateOfBirth">Date of Birth</Label>
+                  <Label htmlFor="dateOfBirth">{t('users.form.dateOfBirth')}</Label>
                   <Input id="dateOfBirth" type="date" value={form.dateOfBirth} onChange={handleChange} />
                 </div>
                 <div className="space-y-2">
@@ -427,11 +428,11 @@ export function AddUser() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="addressLine1">Address Line 1</Label>
+                <Label htmlFor="addressLine1">{t('users.form.addressLine1')}</Label>
                 <Input id="addressLine1" placeholder="Street address" value={form.addressLine1} onChange={handleChange} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="addressLine2">Address Line 2</Label>
+                <Label htmlFor="addressLine2">{t('users.form.addressLine2')}</Label>
                 <Input id="addressLine2" placeholder="Apartment, suite, etc." value={form.addressLine2} onChange={handleChange} />
               </div>
               <div className="grid grid-cols-3 gap-4">
@@ -447,7 +448,7 @@ export function AddUser() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="postalCode">Postal Code</Label>
+                  <Label htmlFor="postalCode">{t('users.form.postalCode')}</Label>
                   <Input id="postalCode" placeholder="Post code" value={form.postalCode} onChange={handleChange} />
                 </div>
               </div>
@@ -515,7 +516,7 @@ export function AddUser() {
 
               {!sendActivationEmail && (
                 <div className="space-y-2">
-                  <Label htmlFor="password">Password *</Label>
+                  <Label htmlFor="password">{t('users.form.password')}</Label>
                   <Input
                     id="password"
                     type="password"

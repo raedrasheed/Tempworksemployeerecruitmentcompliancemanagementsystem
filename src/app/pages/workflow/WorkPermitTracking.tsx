@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -7,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { mockDrivers } from '../../data/mockData';
 
 export function WorkPermitTracking() {
+  const { t } = useTranslation('pages');
   const navigate = useNavigate();
   const workPermitDrivers = mockDrivers.filter(d =>
     d.currentStage === 'work_permit' || d.currentStage === 'visa_application'
@@ -19,9 +21,9 @@ export function WorkPermitTracking() {
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <h1 className="text-3xl font-semibold text-[#0F172A]">Work Permit Tracking</h1>
+          <h1 className="text-3xl font-semibold text-[#0F172A]">{t('workflow.workPermits.title')}</h1>
         </div>
-        <p className="text-muted-foreground mt-1">Monitor work permit applications and status</p>
+        <p className="text-muted-foreground mt-1">{t('workflow.workPermits.subtitle')}</p>
       </div>
 
       <Card>
@@ -50,7 +52,7 @@ export function WorkPermitTracking() {
                     <TableCell>{driver.joinedDate}</TableCell>
                     <TableCell>{driver.currentStage.replace(/_/g, ' ')}</TableCell>
                     <TableCell>
-                      <Badge className="bg-[#F59E0B]">In Progress</Badge>
+                      <Badge className="bg-[#F59E0B]">{t('workflow.workPermits.inProgress')}</Badge>
                     </TableCell>
                   </TableRow>
                 ))}

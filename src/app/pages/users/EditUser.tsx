@@ -299,7 +299,7 @@ export function EditUser() {
         </Button>
         <div>
           <h1 className="text-3xl font-semibold text-[#0F172A]">{t('users.edit.title')}</h1>
-          <p className="text-muted-foreground mt-1">Update user information</p>
+          <p className="text-muted-foreground mt-1">{t('users.edit.subtitle')}</p>
         </div>
       </div>
 
@@ -311,14 +311,14 @@ export function EditUser() {
             <div className="flex items-center gap-3 min-w-0">
               <span className={`w-2.5 h-2.5 rounded-full ${style.dot}`} />
               <div className="min-w-0">
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">Account Status</p>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">{t('users.edit.accountStatus')}</p>
                 <Badge className={`${style.badge} mt-1`}>{style.label}</Badge>
               </div>
             </div>
             <p className="text-sm text-muted-foreground flex-1 min-w-[200px]">{style.description}</p>
             {isAdminOrHR && (
               <div className="space-y-1">
-                <Label htmlFor="status-select" className="text-xs">Change status</Label>
+                <Label htmlFor="status-select" className="text-xs">{t('users.edit.changeStatus')}</Label>
                 <Select value={form.status} onValueChange={val => handleSelect('status', val)}>
                   <SelectTrigger id="status-select" className={`w-44 font-medium ${style.badge} hover:opacity-90`}>
                     <SelectValue />
@@ -405,8 +405,8 @@ export function EditUser() {
                   )}
                 </div>
                 <div className="space-y-1">
-                  <p className="text-sm font-medium">Profile Photo</p>
-                  <p className="text-xs text-muted-foreground">JPG, PNG or GIF · max 5 MB</p>
+                  <p className="text-sm font-medium">{t('users.form.photoLabel')}</p>
+                  <p className="text-xs text-muted-foreground">{t('users.form.photoHint')}</p>
                   <div className="flex gap-2">
                     <Button type="button" variant="outline" size="sm" onClick={() => photoInputRef.current?.click()} disabled={uploadingPhoto}>
                       <Camera className="w-3.5 h-3.5 me-1" />
@@ -441,20 +441,20 @@ export function EditUser() {
               )}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="firstName">First Name *</Label>
+                  <Label htmlFor="firstName">{t('users.form.firstName')}</Label>
                   <Input id="firstName" value={form.firstName} onChange={handleChange} required />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="middleName">Middle Name</Label>
+                  <Label htmlFor="middleName">{t('users.form.middleName')}</Label>
                   <Input id="middleName" value={form.middleName} onChange={handleChange} />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="lastName">Last Name *</Label>
+                <Label htmlFor="lastName">{t('users.form.lastName')}</Label>
                 <Input id="lastName" value={form.lastName} onChange={handleChange} required />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email">Email *</Label>
+                <Label htmlFor="email">{t('users.form.email')}</Label>
                 <Input id="email" type="email" value={form.email} onChange={handleChange} required />
               </div>
             </CardContent>
@@ -512,7 +512,7 @@ export function EditUser() {
               )}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="jobTitle">Job Title</Label>
+                  <Label htmlFor="jobTitle">{t('users.form.jobTitle')}</Label>
                   {isAdminOrHR ? (
                     <Input id="jobTitle" value={form.jobTitle} onChange={handleChange} />
                   ) : (
@@ -529,7 +529,7 @@ export function EditUser() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="startDate">Start Date</Label>
+                <Label htmlFor="startDate">{t('users.form.startDate')}</Label>
                 {isAdminOrHR ? (
                   <Input id="startDate" type="date" value={form.startDate} onChange={handleChange} />
                 ) : (
@@ -547,7 +547,7 @@ export function EditUser() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="dateOfBirth">Date of Birth</Label>
+                  <Label htmlFor="dateOfBirth">{t('users.form.dateOfBirth')}</Label>
                   <Input id="dateOfBirth" type="date" value={form.dateOfBirth} onChange={handleChange} />
                 </div>
                 <div className="space-y-2">
@@ -592,11 +592,11 @@ export function EditUser() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="addressLine1">Address Line 1</Label>
+                <Label htmlFor="addressLine1">{t('users.form.addressLine1')}</Label>
                 <Input id="addressLine1" placeholder="Street address" value={form.addressLine1} onChange={handleChange} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="addressLine2">Address Line 2</Label>
+                <Label htmlFor="addressLine2">{t('users.form.addressLine2')}</Label>
                 <Input id="addressLine2" placeholder="Apartment, suite, etc." value={form.addressLine2} onChange={handleChange} />
               </div>
               <div className="grid grid-cols-3 gap-4">
@@ -612,7 +612,7 @@ export function EditUser() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="postalCode">Postal Code</Label>
+                  <Label htmlFor="postalCode">{t('users.form.postalCode')}</Label>
                   <Input id="postalCode" placeholder="Post code" value={form.postalCode} onChange={handleChange} />
                 </div>
               </div>
@@ -678,8 +678,8 @@ export function EditUser() {
                     onChange={e => handleManagerOverride({ allowManagerView: e.target.checked })}
                   />
                   <div>
-                    <div className="font-medium text-sm text-[#0F172A]">Allow Agency Manager to view this user</div>
-                    <p className="text-xs text-muted-foreground">When on, the owning agency's users can open this approved user's profile; off hides them from the list entirely.</p>
+                    <div className="font-medium text-sm text-[#0F172A]">{t('users.edit.allowView')}</div>
+                    <p className="text-xs text-muted-foreground">{t('users.edit.allowViewHelper')}</p>
                   </div>
                 </label>
                 <label className="flex items-start gap-3 cursor-pointer">
@@ -691,8 +691,8 @@ export function EditUser() {
                     onChange={e => handleManagerOverride({ allowManagerEdit: e.target.checked })}
                   />
                   <div>
-                    <div className="font-medium text-sm text-[#0F172A]">Allow Agency Manager to edit this user</div>
-                    <p className="text-xs text-muted-foreground">When on, the Agency Manager can update profile fields for this approved user.</p>
+                    <div className="font-medium text-sm text-[#0F172A]">{t('users.edit.allowEdit')}</div>
+                    <p className="text-xs text-muted-foreground">{t('users.edit.allowEditHelper')}</p>
                   </div>
                 </label>
                 <label className="flex items-start gap-3 cursor-pointer">
@@ -704,8 +704,8 @@ export function EditUser() {
                     onChange={e => handleManagerOverride({ allowManagerDelete: e.target.checked })}
                   />
                   <div>
-                    <div className="font-medium text-sm text-[#0F172A]">Allow Agency Manager to delete this user</div>
-                    <p className="text-xs text-muted-foreground">When on, the Agency Manager can soft-delete this approved user.</p>
+                    <div className="font-medium text-sm text-[#0F172A]">{t('users.edit.allowDelete')}</div>
+                    <p className="text-xs text-muted-foreground">{t('users.edit.allowDeleteHelper')}</p>
                   </div>
                 </label>
               </CardContent>

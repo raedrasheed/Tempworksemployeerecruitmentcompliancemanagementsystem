@@ -1,4 +1,5 @@
 import { Link, useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { FileText, CheckCircle2, Clock, AlertTriangle, User, Calendar, ArrowRight, ArrowLeft } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -109,6 +110,7 @@ const mockTimelineEvents: TimelineEvent[] = [
 ];
 
 export function WorkflowTimeline() {
+  const { t } = useTranslation('pages');
   const navigate = useNavigate();
   return (
     <div className="space-y-6">
@@ -118,14 +120,14 @@ export function WorkflowTimeline() {
             <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
               <ArrowLeft className="w-5 h-5" />
             </Button>
-            <h1 className="text-3xl font-semibold text-[#0F172A]">Workflow Activity Timeline</h1>
+            <h1 className="text-3xl font-semibold text-[#0F172A]">{t('workflow.timeline.activityTitle')}</h1>
           </div>
-          <p className="text-muted-foreground mt-1">Real-time activity feed of all workflow events and updates</p>
+          <p className="text-muted-foreground mt-1">{t('workflow.timeline.subtitle')}</p>
         </div>
         <div className="flex items-center gap-3">
           <Input placeholder="Search timeline..." className="w-64" />
-          <Button variant="outline">Filter by Type</Button>
-          <Button variant="outline">Filter by Date</Button>
+          <Button variant="outline">{t('workflow.timeline.filterByType')}</Button>
+          <Button variant="outline">{t('workflow.timeline.filterByDate')}</Button>
         </div>
       </div>
 
@@ -135,7 +137,7 @@ export function WorkflowTimeline() {
           <CardContent className="p-6">
             <div className="text-center">
               <p className="text-3xl font-semibold text-[#22C55E]">24</p>
-              <p className="text-sm text-muted-foreground mt-1">Events Today</p>
+              <p className="text-sm text-muted-foreground mt-1">{t('workflow.timeline.eventsToday')}</p>
             </div>
           </CardContent>
         </Card>
@@ -143,7 +145,7 @@ export function WorkflowTimeline() {
           <CardContent className="p-6">
             <div className="text-center">
               <p className="text-3xl font-semibold text-[#2563EB]">156</p>
-              <p className="text-sm text-muted-foreground mt-1">This Week</p>
+              <p className="text-sm text-muted-foreground mt-1">{t('workflow.timeline.thisWeek')}</p>
             </div>
           </CardContent>
         </Card>
@@ -159,7 +161,7 @@ export function WorkflowTimeline() {
           <CardContent className="p-6">
             <div className="text-center">
               <p className="text-3xl font-semibold text-[#22C55E]">18</p>
-              <p className="text-sm text-muted-foreground mt-1">Completed Stages</p>
+              <p className="text-sm text-muted-foreground mt-1">{t('workflow.timeline.completedStages')}</p>
             </div>
           </CardContent>
         </Card>
@@ -255,7 +257,7 @@ export function WorkflowTimeline() {
           </div>
 
           <div className="text-center pt-6">
-            <Button variant="outline">Load More Events</Button>
+            <Button variant="outline">{t('workflow.timeline.loadMore')}</Button>
           </div>
         </CardContent>
       </Card>

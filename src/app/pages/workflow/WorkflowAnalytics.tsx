@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
@@ -44,6 +45,7 @@ const conversionFunnelData = [
 ];
 
 export function WorkflowAnalytics() {
+  const { t } = useTranslation('pages');
   const { canEdit } = usePermissions();
   const navigate = useNavigate();
   return (
@@ -54,16 +56,16 @@ export function WorkflowAnalytics() {
             <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
               <ArrowLeft className="w-5 h-5" />
             </Button>
-            <h1 className="text-3xl font-semibold text-[#0F172A]">Workflow Analytics</h1>
+            <h1 className="text-3xl font-semibold text-[#0F172A]">{t('workflow.analytics.title')}</h1>
           </div>
-          <p className="text-muted-foreground mt-1">Performance metrics, bottlenecks, and insights</p>
+          <p className="text-muted-foreground mt-1">{t('workflow.analytics.subtitle')}</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline">Last 30 Days</Button>
+          <Button variant="outline">{t('workflow.analytics.periodLast30')}</Button>
           {canEdit('reports') && (
             <Button>
               <Download className="w-4 h-4 me-2" />
-              Export Report
+              {t('workflow.analytics.exportReport')}
             </Button>
           )}
         </div>
@@ -75,7 +77,7 @@ export function WorkflowAnalytics() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Avg. Time to Complete</p>
+                <p className="text-sm text-muted-foreground">{t('workflow.analytics.avgTimeLabel')}</p>
                 <p className="text-3xl font-semibold text-[#0F172A] mt-1">45 days</p>
                 <div className="flex items-center gap-1 mt-2">
                   <TrendingDown className="w-4 h-4 text-[#22C55E]" />
@@ -93,7 +95,7 @@ export function WorkflowAnalytics() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Completion Rate</p>
+                <p className="text-sm text-muted-foreground">{t('workflow.analytics.completionRateLabel')}</p>
                 <p className="text-3xl font-semibold text-[#0F172A] mt-1">51%</p>
                 <div className="flex items-center gap-1 mt-2">
                   <TrendingUp className="w-4 h-4 text-[#22C55E]" />
@@ -111,7 +113,7 @@ export function WorkflowAnalytics() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">SLA Breaches</p>
+                <p className="text-sm text-muted-foreground">{t('workflow.analytics.slaBreachesLabel')}</p>
                 <p className="text-3xl font-semibold text-[#0F172A] mt-1">12</p>
                 <div className="flex items-center gap-1 mt-2">
                   <TrendingUp className="w-4 h-4 text-[#EF4444]" />
@@ -129,7 +131,7 @@ export function WorkflowAnalytics() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Active in Workflow</p>
+                <p className="text-sm text-muted-foreground">{t('workflow.analytics.activeInWorkflow')}</p>
                 <p className="text-3xl font-semibold text-[#0F172A] mt-1">101</p>
                 <div className="flex items-center gap-1 mt-2">
                   <TrendingUp className="w-4 h-4 text-[#2563EB]" />
@@ -147,8 +149,8 @@ export function WorkflowAnalytics() {
       {/* Stage Performance */}
       <Card>
         <CardHeader>
-          <CardTitle>Stage Performance vs SLA</CardTitle>
-          <p className="text-sm text-muted-foreground mt-1">Average days per stage compared to SLA thresholds</p>
+          <CardTitle>{t('workflow.analytics.stageVsSlaCardTitle')}</CardTitle>
+          <p className="text-sm text-muted-foreground mt-1">{t('workflow.analytics.stageVsSlaTitle')}</p>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={350}>
@@ -169,8 +171,8 @@ export function WorkflowAnalytics() {
         {/* Monthly Trends */}
         <Card>
           <CardHeader>
-            <CardTitle>Monthly Workflow Trends</CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">Applications started vs completed over time</p>
+            <CardTitle>{t('workflow.analytics.monthlyTrendCardTitle')}</CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">{t('workflow.analytics.monthlyTrendTitle')}</p>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -190,8 +192,8 @@ export function WorkflowAnalytics() {
         {/* Bottleneck Analysis */}
         <Card>
           <CardHeader>
-            <CardTitle>Bottleneck Analysis</CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">Stages causing the most delays</p>
+            <CardTitle>{t('workflow.analytics.bottleneckCardTitle')}</CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">{t('workflow.analytics.bottleneckTitle')}</p>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-center">
@@ -231,8 +233,8 @@ export function WorkflowAnalytics() {
       {/* Conversion Funnel */}
       <Card>
         <CardHeader>
-          <CardTitle>Recruitment Conversion Funnel</CardTitle>
-          <p className="text-sm text-muted-foreground mt-1">Drop-off rates at each workflow stage</p>
+          <CardTitle>{t('workflow.analytics.dropOffCardTitle')}</CardTitle>
+          <p className="text-sm text-muted-foreground mt-1">{t('workflow.analytics.dropOffTitle')}</p>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -282,14 +284,14 @@ export function WorkflowAnalytics() {
       {/* Recommendations */}
       <Card>
         <CardHeader>
-          <CardTitle>Insights & Recommendations</CardTitle>
+          <CardTitle>{t('workflow.analytics.insightsCardTitle')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
             <div className="flex items-start gap-3 p-4 bg-[#FEF3C7] border border-[#F59E0B] rounded-lg">
               <AlertCircle className="w-5 h-5 text-[#F59E0B] mt-0.5" />
               <div className="flex-1">
-                <p className="font-medium text-[#0F172A]">Work Permit Processing Delays</p>
+                <p className="font-medium text-[#0F172A]">{t('workflow.analytics.insight1Title')}</p>
                 <p className="text-sm text-muted-foreground mt-1">
                   Work permit stage is 7% over SLA. Consider increasing staff or outsourcing to specialized agencies.
                 </p>
@@ -298,7 +300,7 @@ export function WorkflowAnalytics() {
             <div className="flex items-start gap-3 p-4 bg-[#EFF6FF] border border-[#2563EB] rounded-lg">
               <TrendingUp className="w-5 h-5 text-[#2563EB] mt-0.5" />
               <div className="flex-1">
-                <p className="font-medium text-[#0F172A]">Document Verification Improvement</p>
+                <p className="font-medium text-[#0F172A]">{t('workflow.analytics.insight2Title')}</p>
                 <p className="text-sm text-muted-foreground mt-1">
                   Document verification time decreased by 15% this month. Great work from the verification team!
                 </p>
@@ -307,7 +309,7 @@ export function WorkflowAnalytics() {
             <div className="flex items-start gap-3 p-4 bg-[#FEE2E2] border border-[#EF4444] rounded-lg">
               <AlertCircle className="w-5 h-5 text-[#EF4444] mt-0.5" />
               <div className="flex-1">
-                <p className="font-medium text-[#0F172A]">High Drop-off at Visa Stage</p>
+                <p className="font-medium text-[#0F172A]">{t('workflow.analytics.insight3Title')}</p>
                 <p className="text-sm text-muted-foreground mt-1">
                   26% of applications don't proceed past visa approval. Review rejection reasons and improve application quality.
                 </p>

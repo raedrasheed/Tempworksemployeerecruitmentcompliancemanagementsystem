@@ -81,6 +81,7 @@ export function WorkshopsList() {
   const canWrite = canCreate('vehicles');
   const navigate = useNavigate();
   const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
 
   const [workshops, setWorkshops] = useState<Workshop[]>([]);
   const [loading, setLoading]     = useState(true);
@@ -279,21 +280,21 @@ export function WorkshopsList() {
         <Select value={cityFilter || '__all__'} onValueChange={(v) => setCityFilter(v === '__all__' ? '' : v)}>
           <SelectTrigger className="w-36"><SelectValue placeholder="City" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="__all__">All Cities</SelectItem>
+            <SelectItem value="__all__">{t('vehicles.workshops.filterAllCities')}</SelectItem>
             {cityOptions.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={countryFilter || '__all__'} onValueChange={(v) => setCountryFilter(v === '__all__' ? '' : v)}>
           <SelectTrigger className="w-36"><SelectValue placeholder="Country" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="__all__">All Countries</SelectItem>
+            <SelectItem value="__all__">{t('vehicles.workshops.filterAllCountries')}</SelectItem>
             {countryOptions.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={statusFilter || '__all__'} onValueChange={(v) => setStatusFilter(v === '__all__' ? '' : v)}>
           <SelectTrigger className="w-32"><SelectValue placeholder="Status" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="__all__">All Status</SelectItem>
+            <SelectItem value="__all__">{t('vehicles.workshops.filterAllStatuses')}</SelectItem>
             <SelectItem value="active">Active</SelectItem>
             <SelectItem value="inactive">Inactive</SelectItem>
           </SelectContent>
@@ -344,7 +345,7 @@ export function WorkshopsList() {
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={visibleCount} className="text-center py-8 text-muted-foreground">Loading…</TableCell></TableRow>
+                <TableRow><TableCell colSpan={visibleCount} className="text-center py-8 text-muted-foreground">{tc('states.loading')}</TableCell></TableRow>
               ) : displayWorkshops.length === 0 ? (
                 <TableRow><TableCell colSpan={visibleCount} className="text-center py-8 text-muted-foreground">
                   {hasFilters ? 'No workshops match the current filters' : 'No workshops registered yet'}
@@ -353,7 +354,7 @@ export function WorkshopsList() {
                 <TableRow key={w.id} className={!w.isActive ? 'opacity-60' : ''}>
                   <TableCell className="font-medium">
                     {w.name}
-                    {!w.isActive && <span className="ms-2 text-xs text-muted-foreground">(inactive)</span>}
+                    {!w.isActive && <span className="ms-2 text-xs text-muted-foreground">{t('vehicles.workshops.inactive')}</span>}
                   </TableCell>
                   {col('contact') && <TableCell className="text-sm">{w.contactName ?? '—'}</TableCell>}
                   {col('phone')   && <TableCell className="text-sm">{w.phone ?? '—'}</TableCell>}

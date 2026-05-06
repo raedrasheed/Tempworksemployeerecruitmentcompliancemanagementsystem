@@ -114,6 +114,7 @@ const initialStages: WorkflowStage[] = [
 
 export function WorkflowManagement() {
   const { t } = useTranslation('common');
+  const { t: tp } = useTranslation('pages');
   const { canEdit } = usePermissions();
   const navigate = useNavigate();
   const [stages, setStages] = useState<WorkflowStage[]>(initialStages);
@@ -196,15 +197,15 @@ export function WorkflowManagement() {
             <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
               <ArrowLeft className="w-5 h-5" />
             </Button>
-            <h1 className="text-3xl font-semibold text-[#0F172A]">Workflow Management</h1>
+            <h1 className="text-3xl font-semibold text-[#0F172A]">{tp('workflow.management.title')}</h1>
           </div>
-          <p className="text-muted-foreground mt-1">Configure recruitment workflow stages and requirements</p>
+          <p className="text-muted-foreground mt-1">{tp('workflow.management.subtitle')}</p>
         </div>
         <div className="flex items-center gap-3">
           {canEdit('workflow') && (
             <Button variant="outline" onClick={() => alert('Workflow configuration saved')}>
               <Save className="w-4 h-4 me-2" />
-              Save Changes
+              {t('saveChanges')}
             </Button>
           )}
           {canEdit('workflow') && (
@@ -212,7 +213,7 @@ export function WorkflowManagement() {
             <DialogTrigger asChild>
               <Button>
                 <Plus className="w-4 h-4 me-2" />
-                Add Stage
+                {tp('workflow.management.addStage')}
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[500px]">
@@ -221,7 +222,7 @@ export function WorkflowManagement() {
               </DialogHeader>
               <div className="space-y-4 pt-4">
                 <div>
-                  <Label htmlFor="stageName">Stage Name</Label>
+                  <Label htmlFor="stageName">{tp('workflow.management.stageName')}</Label>
                   <Input
                     id="stageName"
                     placeholder="e.g., Background Check"
@@ -241,7 +242,7 @@ export function WorkflowManagement() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="stageColor">Stage Color</Label>
+                  <Label htmlFor="stageColor">{tp('workflow.management.stageColor')}</Label>
                   <Select value={newStageColor} onValueChange={setNewStageColor}>
                     <SelectTrigger id="stageColor" className="mt-1.5">
                       <SelectValue />
@@ -262,7 +263,7 @@ export function WorkflowManagement() {
                   <Button variant="outline" onClick={() => setIsAddStageOpen(false)}>
                     Cancel
                   </Button>
-                  <Button onClick={handleAddStage}>Add Stage</Button>
+                  <Button onClick={handleAddStage}>{tp('workflow.management.addStage')}</Button>
                 </div>
               </div>
             </DialogContent>
@@ -277,7 +278,7 @@ export function WorkflowManagement() {
           <div className="flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-[#2563EB] mt-0.5" />
             <div>
-              <p className="font-medium text-[#2563EB]">Drag and Drop to Reorder</p>
+              <p className="font-medium text-[#2563EB]">{tp('workflow.management.dragToReorder')}</p>
               <p className="text-sm text-muted-foreground mt-1">
                 Use the drag handle to reorder workflow stages. Changes will be reflected across the entire system.
               </p>

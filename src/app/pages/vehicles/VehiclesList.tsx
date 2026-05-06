@@ -346,7 +346,7 @@ export function VehiclesList() {
             </Button>
             {showColPicker && (
               <div className="absolute end-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[180px]">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">Toggle columns</p>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">{t('vehicles.list.toggleCols')}</p>
                 <div className="space-y-0.5">
                   {ALL_COLUMNS.map(c => (
                     <button key={c.key} onClick={() => toggleColumn(c.key)} className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-gray-50 text-sm text-start">
@@ -358,9 +358,9 @@ export function VehiclesList() {
                   ))}
                 </div>
                 <div className="border-t mt-2 pt-2 flex gap-1.5">
-                  <button onClick={() => { const all = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, true])) as Record<ColKey, boolean>; setVisibleColumns(all); localStorage.setItem('vehicles-table-columns', JSON.stringify(all)); }} className="flex-1 text-xs text-center text-blue-600 hover:underline py-0.5">Show all</button>
+                  <button onClick={() => { const all = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, true])) as Record<ColKey, boolean>; setVisibleColumns(all); localStorage.setItem('vehicles-table-columns', JSON.stringify(all)); }} className="flex-1 text-xs text-center text-blue-600 hover:underline py-0.5">{t('vehicles.list.showAll')}</button>
                   <span className="text-gray-300">|</span>
-                  <button onClick={() => { const none = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, false])) as Record<ColKey, boolean>; setVisibleColumns(none); localStorage.setItem('vehicles-table-columns', JSON.stringify(none)); }} className="flex-1 text-xs text-center text-gray-500 hover:underline py-0.5">Hide all</button>
+                  <button onClick={() => { const none = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, false])) as Record<ColKey, boolean>; setVisibleColumns(none); localStorage.setItem('vehicles-table-columns', JSON.stringify(none)); }} className="flex-1 text-xs text-center text-gray-500 hover:underline py-0.5">{t('vehicles.list.hideAll')}</button>
                 </div>
               </div>
             )}
@@ -411,16 +411,16 @@ export function VehiclesList() {
               />
             </div>
             <Select value={typeFilter || 'all'} onValueChange={(v) => { setTypeFilter(v === 'all' ? '' : v); setPage(1); }}>
-              <SelectTrigger className="w-44"><SelectValue placeholder="All Types" /></SelectTrigger>
+              <SelectTrigger className="w-44"><SelectValue placeholder={t('vehicles.list.filterAllTypes')} /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="all">{t('vehicles.list.filterAllTypes')}</SelectItem>
                 {vehicleTypes.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select value={statusFilter || 'all'} onValueChange={(v) => { setStatusFilter(v === 'all' ? '' : v); setPage(1); }}>
-              <SelectTrigger className="w-40"><SelectValue placeholder="All Statuses" /></SelectTrigger>
+              <SelectTrigger className="w-40"><SelectValue placeholder={t('vehicles.list.filterAllStatuses')} /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="all">{t('vehicles.list.filterAllStatuses')}</SelectItem>
                 {VEHICLE_STATUSES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
               </SelectContent>
             </Select>
@@ -477,9 +477,9 @@ export function VehiclesList() {
               </TableHeader>
               <TableBody>
                 {loading ? (
-                  <TableRow><TableCell colSpan={colSpan} className="text-center py-8 text-muted-foreground">Loading…</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={colSpan} className="text-center py-8 text-muted-foreground">{tc('states.loading')}</TableCell></TableRow>
                 ) : displayVehicles.length === 0 ? (
-                  <TableRow><TableCell colSpan={colSpan} className="text-center py-8 text-muted-foreground">No vehicles found</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={colSpan} className="text-center py-8 text-muted-foreground">{t('vehicles.list.empty')}</TableCell></TableRow>
                 ) : displayVehicles.map((v) => {
                   const driver = v.driverAssignments?.[0]?.employee;
                   const isSelected = selectedIds.has(v.id);

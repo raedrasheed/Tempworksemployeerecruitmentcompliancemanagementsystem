@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Users, Clock, AlertTriangle, TrendingUp, CheckCircle, XCircle, Search, ChevronRight, UserCircle, FileText, ChevronDown, ChevronUp } from 'lucide-react';
 import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -8,6 +9,7 @@ import { Input } from '../../components/ui/input';
 import { employeeWorkflowApi } from '../../services/api';
 
 export function StageDetails() {
+  const { t } = useTranslation('pages');
   const { stageId } = useParams<{ stageId: string }>();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -46,9 +48,9 @@ export function StageDetails() {
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
           <AlertTriangle className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-          <h2 className="text-2xl font-semibold mb-2">Stage Not Found</h2>
-          <p className="text-muted-foreground mb-4">The requested workflow stage could not be found.</p>
-          <Button asChild><Link to="/dashboard/workflow">Return to Workflow</Link></Button>
+          <h2 className="text-2xl font-semibold mb-2">{t('workflow.stageDetails.notFound')}</h2>
+          <p className="text-muted-foreground mb-4">{t('workflow.stageDetails.notFoundDesc')}</p>
+          <Button asChild><Link to="/dashboard/workflow">{t('workflow.stageDetails.returnToWorkflow')}</Link></Button>
         </div>
       </div>
     );
@@ -131,7 +133,7 @@ export function StageDetails() {
               </div>
               <div>
                 <p className="text-3xl font-semibold text-[#0F172A]">{stats.total}</p>
-                <p className="text-sm text-muted-foreground mt-1">Total in Stage</p>
+                <p className="text-sm text-muted-foreground mt-1">{t('workflow.stageDetails.totalInStage')}</p>
                 <p className="text-xs text-muted-foreground">{stats.applicantsCount} applicants · {stats.employeesCount} employees</p>
               </div>
             </div>
@@ -150,7 +152,7 @@ export function StageDetails() {
                     ? Math.round(allPeople.reduce((s, p) => s + p.daysInStage, 0) / allPeople.length)
                     : 0}
                 </p>
-                <p className="text-sm text-muted-foreground mt-1">Avg. Days in Stage</p>
+                <p className="text-sm text-muted-foreground mt-1">{t('workflow.stageDetails.avgDaysInStage')}</p>
               </div>
             </div>
           </CardContent>
@@ -164,7 +166,7 @@ export function StageDetails() {
               </div>
               <div>
                 <p className="text-3xl font-semibold text-[#0F172A]">{atRiskCount}</p>
-                <p className="text-sm text-muted-foreground mt-1">At Risk (&gt;14 days)</p>
+                <p className="text-sm text-muted-foreground mt-1">{t('workflow.stageDetails.atRisk')}</p>
               </div>
             </div>
           </CardContent>
@@ -189,7 +191,7 @@ export function StageDetails() {
       {(stage.requirementsDocuments?.length > 0 || stage.requirementsActions?.length > 0 || stage.requirementsApprovals?.length > 0) && (
         <Card>
           <CardContent className="p-6">
-            <h2 className="font-semibold text-lg mb-4">Stage Requirements</h2>
+            <h2 className="font-semibold text-lg mb-4">{t('workflow.stageDetails.stageRequirements')}</h2>
             <div className="space-y-3">
               {[
                 ...stage.requirementsDocuments.map((r: string) => ({ name: r, type: 'Document' })),
@@ -269,7 +271,7 @@ export function StageDetails() {
                       <div className="flex items-center gap-3">
                         <div className="text-end">
                           <p className="font-medium text-[#0F172A]">{person.daysInStage}d</p>
-                          <p className="text-xs text-muted-foreground">in stage</p>
+                          <p className="text-xs text-muted-foreground">{t('workflow.stageDetails.inStage')}</p>
                         </div>
 
                         {person.daysInStage > 14 && (

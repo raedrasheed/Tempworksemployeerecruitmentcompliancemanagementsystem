@@ -58,6 +58,7 @@ type SortOrder = 'asc' | 'desc';
 
 export function MaintenanceTypesList() {
   const { t } = useTranslation('common');
+  const { t: tp } = useTranslation('pages');
   const { canCreate } = usePermissions();
   const canWrite = canCreate('vehicles');
   const navigate = useNavigate();
@@ -235,7 +236,7 @@ export function MaintenanceTypesList() {
               Maintenance Types
             </h1>
           </div>
-          <p className="text-sm text-muted-foreground mt-1">Configure service types and default intervals</p>
+          <p className="text-sm text-muted-foreground mt-1">{tp('vehicles.maintTypes.subtitle')}</p>
         </div>
         {canWrite && (
           <Button size="sm" onClick={openNew}>
@@ -260,7 +261,7 @@ export function MaintenanceTypesList() {
             <Select value={activeFilter} onValueChange={v => setActiveFilter(v as any)}>
               <SelectTrigger className="w-40"><SelectValue placeholder="All" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="all">{tp('vehicles.maintTypes.filterAllStatuses')}</SelectItem>
                 <SelectItem value="active">Active</SelectItem>
                 <SelectItem value="inactive">Inactive</SelectItem>
               </SelectContent>
@@ -282,7 +283,7 @@ export function MaintenanceTypesList() {
               </Button>
               {showColPicker && (
                 <div className="absolute end-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[200px]">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">Toggle columns</p>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">{tp('vehicles.maintTypes.toggleCols')}</p>
                   <div className="space-y-0.5 max-h-72 overflow-y-auto">
                     {ALL_COLUMNS.map(c => (
                       <button
@@ -293,7 +294,7 @@ export function MaintenanceTypesList() {
                         <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${visibleColumns[c.key] ? 'bg-primary border-primary' : 'border-gray-300'}`}>
                           {visibleColumns[c.key] && <Check className="w-2.5 h-2.5 text-primary-foreground" />}
                         </span>
-                        {t(c.labelKey)}
+                        {tp(c.labelKey)}
                       </button>
                     ))}
                   </div>
@@ -305,7 +306,7 @@ export function MaintenanceTypesList() {
                         localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
                       }}
                       className="flex-1 text-xs text-center text-primary hover:underline py-0.5"
-                    >Show all</button>
+                    >{tp('vehicles.maintTypes.showAll')}</button>
                     <span className="text-gray-300">|</span>
                     <button
                       onClick={() => {
@@ -356,9 +357,9 @@ export function MaintenanceTypesList() {
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={visibleCount + (canWrite ? 1 : 0)} className="text-center py-8 text-muted-foreground">Loading…</TableCell></TableRow>
+                <TableRow><TableCell colSpan={visibleCount + (canWrite ? 1 : 0)} className="text-center py-8 text-muted-foreground">{t('states.loading')}</TableCell></TableRow>
               ) : displayTypes.length === 0 ? (
-                <TableRow><TableCell colSpan={visibleCount + (canWrite ? 1 : 0)} className="text-center py-8 text-muted-foreground">No maintenance types found</TableCell></TableRow>
+                <TableRow><TableCell colSpan={visibleCount + (canWrite ? 1 : 0)} className="text-center py-8 text-muted-foreground">{tp('vehicles.maintTypes.empty')}</TableCell></TableRow>
               ) : displayTypes.map((t) => (
                 <TableRow key={t.id}>
                   {col('name')        && <TableCell className="font-medium">{t.name}</TableCell>}

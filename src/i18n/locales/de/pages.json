@@ -3345,6 +3345,68 @@
         "brandingDesc": "Logo, Firmenname, Marketingtexte",
         "system": "System",
         "systemDesc": "Datenbank, Backups, Systeminformationen"
+      },
+      "cards": {
+        "appearanceTitle": "Appearance",
+        "appearanceBadge": "Theme",
+        "appearanceDesc": "Color schemes, brand colors & dark mode",
+        "manageWorkflowsTitle": "Manage Workflows",
+        "adminOnlyBadge": "Admin Only",
+        "manageWorkflowsDesc": "Create and configure recruitment workflows",
+        "jobCategoriesTitle": "Job Categories",
+        "jobCategoriesDesc": "Configure job categories and document requirements",
+        "newBadge": "New",
+        "documentTypesTitle": "Document Types",
+        "documentTypesDesc": "Manage document types and requirements",
+        "transactionTypesTitle": "Transaction Types",
+        "transactionTypesDesc": "Configure the transaction type options shown in the finance ledger",
+        "workHistoryTitle": "Work History Event Types",
+        "workHistoryDesc": "Configure the event types shown in the Employee profile Contracts tab",
+        "notificationRulesTitle": "Notification Rules",
+        "notificationRulesDesc": "Configure notification preferences and rules",
+        "securitySettingsTitle": "Security Settings",
+        "securitySettingsDesc": "Manage security and access control settings",
+        "brandingTitle": "Company Branding",
+        "brandingDesc": "Company name and logo shown across the platform",
+        "skillsTitle": "Skills List",
+        "skillsDesc": "Manage predefined skills shown in the applicant form",
+        "transportTypesTitle": "Transport Types",
+        "transportTypesDesc": "Manage transport type options in the applicant form",
+        "truckBrandsTitle": "Truck Brands",
+        "truckBrandsDesc": "Manage truck brand options in the applicant form",
+        "trailerTypesTitle": "Trailer Types",
+        "trailerTypesDesc": "Manage trailer type options in the applicant form",
+        "vehicleSettingsTitle": "Vehicle Settings",
+        "vehicleSettingsDesc": "Central hub for vehicle lookups, maintenance types, service intervals, and vehicle form configuration",
+        "databaseBackupTitle": "Database Backup & Restore",
+        "databaseBackupDesc": "Create, manage, and restore full PostgreSQL backups",
+        "databaseBackupAdminBadge": "Admin Only",
+        "systemInformationTitle": "System Information",
+        "systemInformationDesc": "Edit version, contact info, and organization details",
+        "databaseCleanupTitle": "Database Cleanup",
+        "dangerZoneBadge": "Danger Zone",
+        "databaseCleanupDesc": "Reset business data while preserving admin accounts"
+      },
+      "logRetention": {
+        "cardTitle": "Log Retention Policy",
+        "cardDesc": "Configure how long system logs are stored",
+        "periodLabel": "Log Retention Period",
+        "periodHelper": "System logs older than this period will be automatically deleted",
+        "days30": "30 days",
+        "days90": "90 days (Recommended)",
+        "days180": "180 days",
+        "days365": "365 days (1 year)",
+        "saveButton": "Save Log Settings"
+      },
+      "sysInfoCard": {
+        "cardTitle": "System Information",
+        "cardDescFallback": "Live system data from database",
+        "editButton": "Edit",
+        "systemVersion": "System Version",
+        "lastUpdated": "Last Updated",
+        "databaseStatus": "Database Status",
+        "totalUsers": "Total Users",
+        "notSet": "Not set"
       }
     },
     "documentTypes": {
@@ -3559,20 +3621,60 @@
     },
     "skills": {
       "title": "Fähigkeiten",
-      "addButton": "Fähigkeit hinzufügen"
+      "addButton": "Fähigkeit hinzufügen",
+      "accessDenied": "Access denied.",
+      "headerTitle": "Skills List",
+      "headerSubtitle": "Manage the predefined skills shown in the applicant form",
+      "addCardTitle": "Add New Skill",
+      "addCardDesc": "New skills will appear as options in the applicant Skills section",
+      "loading": "Loading...",
+      "empty": "No skills defined yet.",
+      "saving": "Saving...",
+      "saveChanges": "Save Changes"
     },
     "workflowSettings": {
       "title": "Workflow-Einstellungen"
     },
     "workflowConfiguration": {
-      "title": "Workflow-Konfiguration"
+      "title": "Workflow-Konfiguration",
+      "subtitle": "Configure recruitment workflow stages"
     },
     "notificationRules": {
       "title": "Benachrichtigungsregeln",
       "addButton": "Neue Regel"
     },
     "security": {
-      "title": "Sicherheitseinstellungen"
+      "title": "Sicherheitseinstellungen",
+      "headerTitle": "Security Settings",
+      "headerSubtitle": "Manage security and access control",
+      "lockoutCardTitle": "Account Lockout",
+      "lockoutLabel": "Lock account after N failed login attempts",
+      "failedAttemptsSuffix": "failed attempts",
+      "lockoutHelper": "Locked accounts are automatically released after 30 minutes. An administrator can unlock earlier from the user's edit page.",
+      "lockoutValidationError": "Please enter a number between 1 and 20",
+      "lockoutUpdated": "Lockout threshold updated",
+      "saveThreshold": "Save threshold",
+      "idleCardTitle": "Session Idle Timeout",
+      "idleLabel": "Sign users out after N minutes of inactivity",
+      "idleMinutesSuffix": "minutes",
+      "idleHelper": "Applies to every signed-in browser tab. Keyboard, mouse, scroll or touch activity postpones the timer. Users are warned 60 seconds before being signed out.",
+      "idleValidationError": "Please enter a number between 1 and 1440 minutes",
+      "idleUpdated": "Idle timeout updated. New value applies on next sign-in.",
+      "saveTimeout": "Save timeout",
+      "authCardTitle": "Authentication",
+      "twoFactorLabel": "Two-Factor Authentication",
+      "twoFactorHelper": "Require 2FA for all users",
+      "sessionTimeoutLabel": "Session Timeout",
+      "sessionTimeout15": "15 minutes",
+      "sessionTimeout30": "30 minutes",
+      "sessionTimeout60": "1 hour",
+      "sessionTimeout120": "2 hours",
+      "accessControlTitle": "Access Control",
+      "ipRestrictionLabel": "IP Address Restriction",
+      "ipRestrictionHelper": "Restrict access by IP address",
+      "auditLoggingLabel": "Audit Logging",
+      "auditLoggingHelper": "Log all user activities",
+      "statusCardTitle": "Security Status"
     },
     "colorScheme": {
       "title": "Farbschema",
@@ -3717,34 +3819,124 @@
       "executeRestore": "Execute Restore"
     },
     "systemInformation": {
-      "title": "Systeminformationen"
+      "title": "Systeminformationen",
+      "accessDenied": "Access Denied",
+      "accessDeniedBody": "Only System Admins can manage System Information.",
+      "backToSettings": "Back to Settings",
+      "headerTitle": "System Information",
+      "headerSubtitle": "View and update system-level information stored in the database",
+      "statTotalUsers": "Total Users",
+      "statTotalEmployees": "Total Employees",
+      "statTotalApplicants": "Total Applicants",
+      "statTotalAgencies": "Total Agencies",
+      "databaseStatus": "Database Status:",
+      "systemDetailsTitle": "System Details",
+      "systemDetailsDesc": "These values are stored in the database and displayed in the Settings overview",
+      "loading": "Loading…",
+      "labelSystemVersion": "System Version",
+      "labelLastUpdated": "Last Updated",
+      "labelOrganizationName": "Organization Name",
+      "labelContactEmail": "Contact Email",
+      "labelSupportPhone": "Support Phone",
+      "labelWebsite": "Website",
+      "labelAddress": "Address",
+      "savedSuccess": "Saved successfully",
+      "saving": "Saving…",
+      "saveChanges": "Save Changes"
     },
     "transportTypes": {
       "title": "Transportarten",
-      "addButton": "Art hinzufügen"
+      "addButton": "Art hinzufügen",
+      "accessDenied": "Access denied.",
+      "headerTitle": "Transport Types",
+      "headerSubtitle": "Manage the transport types shown in the Driving Experience step",
+      "addCardTitle": "Add New Type",
+      "addCardDesc": "New types will appear as checkboxes in the Transport Types section",
+      "loading": "Loading...",
+      "empty": "No types defined yet.",
+      "saving": "Saving...",
+      "saveChanges": "Save Changes"
     },
     "truckBrands": {
       "title": "LKW-Marken",
-      "addButton": "Marke hinzufügen"
+      "addButton": "Marke hinzufügen",
+      "accessDenied": "Access denied.",
+      "headerTitle": "Truck Brands",
+      "headerSubtitle": "Manage the truck brands shown in the Driving Experience step",
+      "addCardTitle": "Add New Brand",
+      "addCardDesc": "New brands will appear as selectable chips in the Truck Brands section",
+      "loading": "Loading...",
+      "empty": "No brands defined yet.",
+      "saving": "Saving...",
+      "saveChanges": "Save Changes"
     },
     "trailerTypes": {
       "title": "Anhängertypen",
-      "addButton": "Typ hinzufügen"
+      "addButton": "Typ hinzufügen",
+      "accessDenied": "Access denied.",
+      "headerTitle": "Trailer Types",
+      "headerSubtitle": "Manage the trailer types shown in the Driving Experience step",
+      "addCardTitle": "Add New Type",
+      "addCardDesc": "New types will appear as checkboxes in the Trailer Types section",
+      "loading": "Loading...",
+      "empty": "No types defined yet.",
+      "saving": "Saving...",
+      "saveChanges": "Save Changes"
     },
     "vehicleSettings": {
-      "title": "Fahrzeugeinstellungen"
+      "title": "Fahrzeugeinstellungen",
+      "accessDenied": "Access denied.",
+      "loading": "Loading…"
     },
     "transactionTypes": {
       "title": "Transaktionsarten",
-      "addButton": "Art hinzufügen"
+      "addButton": "Art hinzufügen",
+      "headerTitle": "Finance Transaction Types",
+      "headerSubtitle": "Options shown in the \"Transaction Type\" dropdown when creating a financial record. Deactivating a type hides it from the dropdown but keeps existing records intact.",
+      "newTypeButton": "New Type",
+      "loading": "Loading…",
+      "nameLabel": "Name *",
+      "sortOrderLabel": "Sort Order",
+      "sortOrderHelper": "Lower numbers appear first in the dropdown.",
+      "activeLabel": "Active",
+      "activeHelper": "Shown in the dropdown when creating a record.",
+      "saving": "Saving…",
+      "saveChanges": "Save Changes",
+      "createButton": "Create",
+      "cancelButton": "Cancel"
     },
     "workHistoryEventTypes": {
       "title": "Arbeitsverlaufs-Ereignisse",
-      "addButton": "Typ hinzufügen"
+      "addButton": "Typ hinzufügen",
+      "headerTitle": "Work History Event Types",
+      "loading": "Loading…",
+      "valueLabel": "Value *",
+      "valueHelper": "Uppercase, underscore-separated recommended. Used in exports and APIs.",
+      "labelLabel": "Label *",
+      "sortOrderLabel": "Sort Order",
+      "sortOrderHelper": "Lower numbers appear first.",
+      "activeHelper": "Shown in the Contracts tab dropdown."
     },
     "maintenanceTypes": {
       "title": "Wartungsarten",
-      "addButton": "Art hinzufügen"
+      "addButton": "Art hinzufügen",
+      "accessDenied": "Access denied.",
+      "headerTitle": "Maintenance Types",
+      "headerSubtitle": "Configure service types available for vehicle maintenance tracking",
+      "formCardTitleEdit": "Edit Maintenance Type",
+      "formCardTitleAdd": "Add New Maintenance Type",
+      "nameLabel": "Name *",
+      "descriptionLabel": "Description",
+      "intervalDaysLabel": "Default Interval (Days)",
+      "intervalKmLabel": "Default Interval (km)",
+      "intervalModeLabel": "Interval Mode",
+      "modeDays": "Days only",
+      "modeKm": "Kilometers only",
+      "modeBoth": "Whichever comes first (Days & KM)",
+      "intervalModeHelper": "Determines if service is due based on time, mileage, or whichever threshold is reached first.",
+      "saving": "Saving…",
+      "loading": "Loading…",
+      "empty": "No maintenance types defined yet. Create one above."
     }
   },
   "profile": {

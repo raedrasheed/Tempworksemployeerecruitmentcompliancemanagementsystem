@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { settingsApi } from '../../services/api';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -9,6 +10,7 @@ import { toast } from 'sonner';
 import { usePermissions } from '../../hooks/usePermissions';
 
 export function SkillsSettings() {
+  const { t } = useTranslation('pages');
   const { canEdit } = usePermissions();
   const isAdmin = canEdit('settings');
   const [skills, setSkills] = useState<string[]>([]);
@@ -52,7 +54,7 @@ export function SkillsSettings() {
   };
 
   if (!isAdmin) {
-    return <div className="text-center py-16 text-muted-foreground">Access denied.</div>;
+    return <div className="text-center py-16 text-muted-foreground">{t('settings.skills.accessDenied')}</div>;
   }
 
   return (
@@ -62,15 +64,15 @@ export function SkillsSettings() {
           <Link to="/dashboard/settings"><ArrowLeft className="w-5 h-5" /></Link>
         </Button>
         <div>
-          <h1 className="text-2xl font-semibold">Skills List</h1>
-          <p className="text-muted-foreground text-sm mt-0.5">Manage the predefined skills shown in the applicant form</p>
+          <h1 className="text-2xl font-semibold">{t('settings.skills.headerTitle')}</h1>
+          <p className="text-muted-foreground text-sm mt-0.5">{t('settings.skills.headerSubtitle')}</p>
         </div>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Add New Skill</CardTitle>
-          <CardDescription>New skills will appear as options in the applicant Skills section</CardDescription>
+          <CardTitle>{t('settings.skills.addCardTitle')}</CardTitle>
+          <CardDescription>{t('settings.skills.addCardDesc')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex gap-2">
@@ -93,9 +95,9 @@ export function SkillsSettings() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <p className="text-sm text-muted-foreground">Loading...</p>
+            <p className="text-sm text-muted-foreground">{t('settings.skills.loading')}</p>
           ) : skills.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-6 border-2 border-dashed rounded-lg">No skills defined yet.</p>
+            <p className="text-sm text-muted-foreground text-center py-6 border-2 border-dashed rounded-lg">{t('settings.skills.empty')}</p>
           ) : (
             <div className="space-y-2">
               {skills.map(skill => (
@@ -113,7 +115,7 @@ export function SkillsSettings() {
 
       <Button onClick={handleSave} disabled={saving} className="gap-2">
         <Save className="w-4 h-4" />
-        {saving ? 'Saving...' : 'Save Changes'}
+        {saving ? t('settings.skills.saving') : t('settings.skills.saveChanges')}
       </Button>
     </div>
   );

@@ -42,6 +42,7 @@ const INITIAL_FORM: FormData = {
 
 export function MaintenanceTypesSettings() {
   const { t } = useTranslation('common');
+  const { t: tp } = useTranslation('pages');
   const { canEdit } = usePermissions();
   const isAdmin = canEdit('settings');
   const [maintenanceTypes, setMaintenanceTypes] = useState<MaintenanceType[]>([]);
@@ -134,7 +135,7 @@ export function MaintenanceTypesSettings() {
   };
 
   if (!isAdmin) {
-    return <div className="text-center py-16 text-muted-foreground">Access denied.</div>;
+    return <div className="text-center py-16 text-muted-foreground">{tp('settings.maintenanceTypes.accessDenied')}</div>;
   }
 
   return (
@@ -145,10 +146,10 @@ export function MaintenanceTypesSettings() {
         </Button>
         <div>
           <h1 className="text-2xl font-semibold flex items-center gap-2">
-            <Wrench className="w-6 h-6 text-blue-600" /> Maintenance Types
+            <Wrench className="w-6 h-6 text-blue-600" /> {tp('settings.maintenanceTypes.headerTitle')}
           </h1>
           <p className="text-muted-foreground text-sm mt-0.5">
-            Configure service types available for vehicle maintenance tracking
+            {tp('settings.maintenanceTypes.headerSubtitle')}
           </p>
         </div>
       </div>
@@ -157,12 +158,12 @@ export function MaintenanceTypesSettings() {
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">
-            {editingId ? 'Edit Maintenance Type' : 'Add New Maintenance Type'}
+            {editingId ? tp('settings.maintenanceTypes.formCardTitleEdit') : tp('settings.maintenanceTypes.formCardTitleAdd')}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <label className="text-sm font-medium">Name *</label>
+            <label className="text-sm font-medium">{tp('settings.maintenanceTypes.nameLabel')}</label>
             <Input
               placeholder="e.g. Oil Change, Brake Service, Annual Inspection"
               value={form.name}
@@ -172,7 +173,7 @@ export function MaintenanceTypesSettings() {
           </div>
 
           <div>
-            <label className="text-sm font-medium">Description</label>
+            <label className="text-sm font-medium">{tp('settings.maintenanceTypes.descriptionLabel')}</label>
             <Textarea
               placeholder="e.g. Oil and filter change, check fluid levels"
               value={form.description}
@@ -183,7 +184,7 @@ export function MaintenanceTypesSettings() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-sm font-medium">Default Interval (Days)</label>
+              <label className="text-sm font-medium">{tp('settings.maintenanceTypes.intervalDaysLabel')}</label>
               <Input
                 type="number"
                 placeholder="e.g. 365"
@@ -194,7 +195,7 @@ export function MaintenanceTypesSettings() {
               />
             </div>
             <div>
-              <label className="text-sm font-medium">Default Interval (km)</label>
+              <label className="text-sm font-medium">{tp('settings.maintenanceTypes.intervalKmLabel')}</label>
               <Input
                 type="number"
                 placeholder="e.g. 10000"
@@ -207,19 +208,19 @@ export function MaintenanceTypesSettings() {
           </div>
 
           <div>
-            <label className="text-sm font-medium">Interval Mode</label>
+            <label className="text-sm font-medium">{tp('settings.maintenanceTypes.intervalModeLabel')}</label>
             <Select value={form.intervalMode} onValueChange={(v: any) => setForm(prev => ({ ...prev, intervalMode: v }))}>
               <SelectTrigger className="mt-1">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="DAYS">Days only</SelectItem>
-                <SelectItem value="KM">Kilometers only</SelectItem>
-                <SelectItem value="BOTH">Whichever comes first (Days & KM)</SelectItem>
+                <SelectItem value="DAYS">{tp('settings.maintenanceTypes.modeDays')}</SelectItem>
+                <SelectItem value="KM">{tp('settings.maintenanceTypes.modeKm')}</SelectItem>
+                <SelectItem value="BOTH">{tp('settings.maintenanceTypes.modeBoth')}</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground mt-1">
-              Determines if service is due based on time, mileage, or whichever threshold is reached first.
+              {tp('settings.maintenanceTypes.intervalModeHelper')}
             </p>
           </div>
 
@@ -244,9 +245,9 @@ export function MaintenanceTypesSettings() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <p className="text-muted-foreground text-sm">Loading…</p>
+            <p className="text-muted-foreground text-sm">{tp('settings.maintenanceTypes.loading')}</p>
           ) : maintenanceTypes.length === 0 ? (
-            <p className="text-muted-foreground text-sm text-center py-8">No maintenance types defined yet. Create one above.</p>
+            <p className="text-muted-foreground text-sm text-center py-8">{tp('settings.maintenanceTypes.empty')}</p>
           ) : (
             <div className="space-y-2">
               {maintenanceTypes.map((mt) => (

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Save, RefreshCw, Server, Users, Briefcase, UserCheck, Building2 } from 'lucide-react';
 import { usePermissions } from '../../hooks/usePermissions';
 import { API_URL } from '../../services/api';
@@ -38,6 +39,7 @@ async function fetchJson(path: string, token: string, options?: RequestInit) {
 }
 
 export function SystemInformation() {
+  const { t } = useTranslation('pages');
   const { canEdit } = usePermissions();
   const isAdmin = canEdit('settings');
 
@@ -127,8 +129,8 @@ export function SystemInformation() {
       <div className="p-8 flex items-center justify-center min-h-64">
         <div className="text-center">
           <Shield className="w-12 h-12 mx-auto text-red-500 mb-3 opacity-60" />
-          <h2 className="text-lg font-semibold mb-1">Access Denied</h2>
-          <p className="text-muted-foreground text-sm">Only System Admins can manage System Information.</p>
+          <h2 className="text-lg font-semibold mb-1">{t('settings.systemInformation.accessDenied')}</h2>
+          <p className="text-muted-foreground text-sm">{t('settings.systemInformation.accessDeniedBody')}</p>
         </div>
       </div>
     );
@@ -140,12 +142,12 @@ export function SystemInformation() {
         <Link to="/dashboard/settings">
           <Button variant="ghost" size="sm">
             <ArrowLeft className="w-4 h-4 me-2" />
-            Back to Settings
+            {t('settings.systemInformation.backToSettings')}
           </Button>
         </Link>
         <div className="flex-1">
-          <h1 className="text-3xl font-semibold text-foreground">System Information</h1>
-          <p className="text-muted-foreground mt-1">View and update system-level information stored in the database</p>
+          <h1 className="text-3xl font-semibold text-foreground">{t('settings.systemInformation.headerTitle')}</h1>
+          <p className="text-muted-foreground mt-1">{t('settings.systemInformation.headerSubtitle')}</p>
         </div>
       </div>
 
@@ -158,7 +160,7 @@ export function SystemInformation() {
                 <Users className="w-5 h-5 text-blue-600" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Total Users</p>
+                <p className="text-sm text-muted-foreground">{t('settings.systemInformation.statTotalUsers')}</p>
                 <p className="text-2xl font-semibold">
                   {statsLoading ? '…' : (stats?.totalUsers ?? '—')}
                 </p>
@@ -173,7 +175,7 @@ export function SystemInformation() {
                 <Briefcase className="w-5 h-5 text-green-600" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Total Employees</p>
+                <p className="text-sm text-muted-foreground">{t('settings.systemInformation.statTotalEmployees')}</p>
                 <p className="text-2xl font-semibold">
                   {statsLoading ? '…' : (stats?.totalEmployees ?? '—')}
                 </p>
@@ -188,7 +190,7 @@ export function SystemInformation() {
                 <UserCheck className="w-5 h-5 text-purple-600" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Total Applicants</p>
+                <p className="text-sm text-muted-foreground">{t('settings.systemInformation.statTotalApplicants')}</p>
                 <p className="text-2xl font-semibold">
                   {statsLoading ? '…' : (stats?.totalApplicants ?? '—')}
                 </p>
@@ -203,7 +205,7 @@ export function SystemInformation() {
                 <Building2 className="w-5 h-5 text-orange-600" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Total Agencies</p>
+                <p className="text-sm text-muted-foreground">{t('settings.systemInformation.statTotalAgencies')}</p>
                 <p className="text-2xl font-semibold">
                   {statsLoading ? '…' : (stats?.totalAgencies ?? '—')}
                 </p>
@@ -218,7 +220,7 @@ export function SystemInformation() {
         <CardContent className="pt-6">
           <div className="flex items-center gap-3">
             <Server className="w-5 h-5 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">Database Status:</span>
+            <span className="text-sm text-muted-foreground">{t('settings.systemInformation.databaseStatus')}</span>
             <Badge className="bg-green-500 text-white">
               {statsLoading ? 'Checking…' : (stats?.databaseStatus ?? 'Unknown')}
             </Badge>
@@ -232,20 +234,20 @@ export function SystemInformation() {
       {/* Editable Fields */}
       <Card>
         <CardHeader>
-          <CardTitle>System Details</CardTitle>
-          <CardDescription>These values are stored in the database and displayed in the Settings overview</CardDescription>
+          <CardTitle>{t('settings.systemInformation.systemDetailsTitle')}</CardTitle>
+          <CardDescription>{t('settings.systemInformation.systemDetailsDesc')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {error && (
             <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm">{error}</div>
           )}
           {loading ? (
-            <p className="text-muted-foreground text-sm">Loading…</p>
+            <p className="text-muted-foreground text-sm">{t('settings.systemInformation.loading')}</p>
           ) : (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <Label htmlFor="version">System Version</Label>
+                  <Label htmlFor="version">{t('settings.systemInformation.labelSystemVersion')}</Label>
                   <Input
                     id="version"
                     value={form.version}
@@ -254,7 +256,7 @@ export function SystemInformation() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="lastUpdated">Last Updated</Label>
+                  <Label htmlFor="lastUpdated">{t('settings.systemInformation.labelLastUpdated')}</Label>
                   <Input
                     id="lastUpdated"
                     value={form.lastUpdated}
@@ -263,7 +265,7 @@ export function SystemInformation() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="organizationName">Organization Name</Label>
+                  <Label htmlFor="organizationName">{t('settings.systemInformation.labelOrganizationName')}</Label>
                   <Input
                     id="organizationName"
                     value={form.organizationName}
@@ -272,7 +274,7 @@ export function SystemInformation() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="contactEmail">Contact Email</Label>
+                  <Label htmlFor="contactEmail">{t('settings.systemInformation.labelContactEmail')}</Label>
                   <Input
                     id="contactEmail"
                     type="email"
@@ -282,7 +284,7 @@ export function SystemInformation() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="supportPhone">Support Phone</Label>
+                  <Label htmlFor="supportPhone">{t('settings.systemInformation.labelSupportPhone')}</Label>
                   <Input
                     id="supportPhone"
                     value={form.supportPhone}
@@ -291,7 +293,7 @@ export function SystemInformation() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="website">Website</Label>
+                  <Label htmlFor="website">{t('settings.systemInformation.labelWebsite')}</Label>
                   <Input
                     id="website"
                     value={form.website}
@@ -301,7 +303,7 @@ export function SystemInformation() {
                 </div>
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="address">Address</Label>
+                <Label htmlFor="address">{t('settings.systemInformation.labelAddress')}</Label>
                 <Input
                   id="address"
                   value={form.address}
@@ -311,10 +313,10 @@ export function SystemInformation() {
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-4 border-t">
-                {saved && <span className="text-sm text-green-600 font-medium">Saved successfully</span>}
+                {saved && <span className="text-sm text-green-600 font-medium">{t('settings.systemInformation.savedSuccess')}</span>}
                 <Button onClick={handleSave} disabled={saving}>
                   <Save className="w-4 h-4 me-2" />
-                  {saving ? 'Saving…' : 'Save Changes'}
+                  {saving ? t('settings.systemInformation.saving') : t('settings.systemInformation.saveChanges')}
                 </Button>
               </div>
             </>

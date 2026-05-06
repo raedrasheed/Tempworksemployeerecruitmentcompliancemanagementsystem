@@ -61,39 +61,39 @@ export function Settings() {
   const settingsCategories = [
     {
       icon: Briefcase,
-      title: 'Job Categories',
-      description: 'Configure job categories and document requirements',
+      title: t('settings.index.cards.jobCategoriesTitle'),
+      description: t('settings.index.cards.jobCategoriesDesc'),
       path: '/dashboard/settings/job-types',
-      badge: 'New',
+      badge: t('settings.index.cards.newBadge'),
     },
     {
       icon: FileType,
-      title: 'Document Types',
-      description: 'Manage document types and requirements',
+      title: t('settings.index.cards.documentTypesTitle'),
+      description: t('settings.index.cards.documentTypesDesc'),
       path: '/dashboard/settings/document-types',
     },
     {
       icon: DollarSign,
-      title: 'Transaction Types',
-      description: 'Configure the transaction type options shown in the finance ledger',
+      title: t('settings.index.cards.transactionTypesTitle'),
+      description: t('settings.index.cards.transactionTypesDesc'),
       path: '/dashboard/settings/transaction-types',
     },
     {
       icon: Briefcase,
-      title: 'Work History Event Types',
-      description: 'Configure the event types shown in the Employee profile Contracts tab',
+      title: t('settings.index.cards.workHistoryTitle'),
+      description: t('settings.index.cards.workHistoryDesc'),
       path: '/dashboard/settings/work-history-event-types',
     },
     {
       icon: Bell,
-      title: 'Notification Rules',
-      description: 'Configure notification preferences and rules',
+      title: t('settings.index.cards.notificationRulesTitle'),
+      description: t('settings.index.cards.notificationRulesDesc'),
       path: '/dashboard/settings/notifications',
     },
     {
       icon: Shield,
-      title: 'Security Settings',
-      description: 'Manage security and access control settings',
+      title: t('settings.index.cards.securitySettingsTitle'),
+      description: t('settings.index.cards.securitySettingsDesc'),
       path: '/dashboard/settings/security',
     },
   ];
@@ -117,10 +117,10 @@ export function Settings() {
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <CardTitle>Appearance</CardTitle>
-                    <Badge className="bg-primary text-primary-foreground">Theme</Badge>
+                    <CardTitle>{t('settings.index.cards.appearanceTitle')}</CardTitle>
+                    <Badge className="bg-primary text-primary-foreground">{t('settings.index.cards.appearanceBadge')}</Badge>
                   </div>
-                  <CardDescription>Color schemes, brand colors &amp; dark mode</CardDescription>
+                  <CardDescription>{t('settings.index.cards.appearanceDesc')}</CardDescription>
                 </div>
               </div>
             </CardHeader>
@@ -136,10 +136,10 @@ export function Settings() {
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <CardTitle>Manage Workflows</CardTitle>
-                    <Badge className="bg-[#EF4444]">Admin Only</Badge>
+                    <CardTitle>{t('settings.index.cards.manageWorkflowsTitle')}</CardTitle>
+                    <Badge className="bg-[#EF4444]">{t('settings.index.cards.adminOnlyBadge')}</Badge>
                   </div>
-                  <CardDescription>Create and configure recruitment workflows</CardDescription>
+                  <CardDescription>{t('settings.index.cards.manageWorkflowsDesc')}</CardDescription>
                 </div>
               </div>
             </CardHeader>
@@ -183,10 +183,10 @@ export function Settings() {
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <CardTitle className="text-indigo-800">Company Branding</CardTitle>
-                      <Badge className="bg-[#EF4444]">Admin Only</Badge>
+                      <CardTitle className="text-indigo-800">{t('settings.index.cards.brandingTitle')}</CardTitle>
+                      <Badge className="bg-[#EF4444]">{t('settings.index.cards.adminOnlyBadge')}</Badge>
                     </div>
-                    <CardDescription>Company name and logo shown across the platform</CardDescription>
+                    <CardDescription>{t('settings.index.cards.brandingDesc')}</CardDescription>
                   </div>
                 </div>
               </CardHeader>
@@ -205,10 +205,10 @@ export function Settings() {
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <CardTitle className="text-amber-800">Skills List</CardTitle>
-                      <Badge className="bg-[#EF4444]">Admin Only</Badge>
+                      <CardTitle className="text-amber-800">{t('settings.index.cards.skillsTitle')}</CardTitle>
+                      <Badge className="bg-[#EF4444]">{t('settings.index.cards.adminOnlyBadge')}</Badge>
                     </div>
-                    <CardDescription>Manage predefined skills shown in the applicant form</CardDescription>
+                    <CardDescription>{t('settings.index.cards.skillsDesc')}</CardDescription>
                   </div>
                 </div>
               </CardHeader>
@@ -227,10 +227,10 @@ export function Settings() {
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <CardTitle className="text-blue-800">Transport Types</CardTitle>
-                      <Badge className="bg-[#EF4444]">Admin Only</Badge>
+                      <CardTitle className="text-blue-800">{t('settings.index.cards.transportTypesTitle')}</CardTitle>
+                      <Badge className="bg-[#EF4444]">{t('settings.index.cards.adminOnlyBadge')}</Badge>
                     </div>
-                    <CardDescription>Manage transport type options in the applicant form</CardDescription>
+                    <CardDescription>{t('settings.index.cards.transportTypesDesc')}</CardDescription>
                   </div>
                 </div>
               </CardHeader>
@@ -249,10 +249,10 @@ export function Settings() {
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <CardTitle className="text-blue-800">Truck Brands</CardTitle>
-                      <Badge className="bg-[#EF4444]">Admin Only</Badge>
+                      <CardTitle className="text-blue-800">{t('settings.index.cards.truckBrandsTitle')}</CardTitle>
+                      <Badge className="bg-[#EF4444]">{t('settings.index.cards.adminOnlyBadge')}</Badge>
                     </div>
-                    <CardDescription>Manage truck brand options in the applicant form</CardDescription>
+                    <CardDescription>{t('settings.index.cards.truckBrandsDesc')}</CardDescription>
                   </div>
                 </div>
               </CardHeader>
@@ -271,10 +271,10 @@ export function Settings() {
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <CardTitle className="text-blue-800">Trailer Types</CardTitle>
-                      <Badge className="bg-[#EF4444]">Admin Only</Badge>
+                      <CardTitle className="text-blue-800">{t('settings.index.cards.trailerTypesTitle')}</CardTitle>
+                      <Badge className="bg-[#EF4444]">{t('settings.index.cards.adminOnlyBadge')}</Badge>
                     </div>
-                    <CardDescription>Manage trailer type options in the applicant form</CardDescription>
+                    <CardDescription>{t('settings.index.cards.trailerTypesDesc')}</CardDescription>
                   </div>
                 </div>
               </CardHeader>
@@ -293,11 +293,11 @@ export function Settings() {
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <CardTitle className="text-blue-800">Vehicle Settings</CardTitle>
-                      <Badge className="bg-[#EF4444]">Admin Only</Badge>
+                      <CardTitle className="text-blue-800">{t('settings.index.cards.vehicleSettingsTitle')}</CardTitle>
+                      <Badge className="bg-[#EF4444]">{t('settings.index.cards.adminOnlyBadge')}</Badge>
                     </div>
                     <CardDescription>
-                      Central hub for vehicle lookups, maintenance types, service intervals, and vehicle form configuration
+                      {t('settings.index.cards.vehicleSettingsDesc')}
                     </CardDescription>
                   </div>
                 </div>
@@ -317,10 +317,10 @@ export function Settings() {
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <CardTitle className="text-blue-800">Database Backup & Restore</CardTitle>
-                      <Badge className="bg-blue-600">Admin Only</Badge>
+                      <CardTitle className="text-blue-800">{t('settings.index.cards.databaseBackupTitle')}</CardTitle>
+                      <Badge className="bg-blue-600">{t('settings.index.cards.databaseBackupAdminBadge')}</Badge>
                     </div>
-                    <CardDescription>Create, manage, and restore full PostgreSQL backups</CardDescription>
+                    <CardDescription>{t('settings.index.cards.databaseBackupDesc')}</CardDescription>
                   </div>
                 </div>
               </CardHeader>
@@ -339,10 +339,10 @@ export function Settings() {
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <CardTitle className="text-slate-800">System Information</CardTitle>
-                      <Badge className="bg-[#EF4444]">Admin Only</Badge>
+                      <CardTitle className="text-slate-800">{t('settings.index.cards.systemInformationTitle')}</CardTitle>
+                      <Badge className="bg-[#EF4444]">{t('settings.index.cards.adminOnlyBadge')}</Badge>
                     </div>
-                    <CardDescription>Edit version, contact info, and organization details</CardDescription>
+                    <CardDescription>{t('settings.index.cards.systemInformationDesc')}</CardDescription>
                   </div>
                 </div>
               </CardHeader>
@@ -361,10 +361,10 @@ export function Settings() {
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <CardTitle className="text-red-800">Database Cleanup</CardTitle>
-                      <Badge className="bg-red-600">Danger Zone</Badge>
+                      <CardTitle className="text-red-800">{t('settings.index.cards.databaseCleanupTitle')}</CardTitle>
+                      <Badge className="bg-red-600">{t('settings.index.cards.dangerZoneBadge')}</Badge>
                     </div>
-                    <CardDescription>Reset business data while preserving admin accounts</CardDescription>
+                    <CardDescription>{t('settings.index.cards.databaseCleanupDesc')}</CardDescription>
                   </div>
                 </div>
               </CardHeader>
@@ -381,32 +381,32 @@ export function Settings() {
               <Activity className="w-5 h-5 text-[#22C55E]" />
             </div>
             <div>
-              <CardTitle>Log Retention Policy</CardTitle>
-              <CardDescription>Configure how long system logs are stored</CardDescription>
+              <CardTitle>{t('settings.index.logRetention.cardTitle')}</CardTitle>
+              <CardDescription>{t('settings.index.logRetention.cardDesc')}</CardDescription>
             </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
           <div>
-            <Label htmlFor="logRetention">Log Retention Period</Label>
+            <Label htmlFor="logRetention">{t('settings.index.logRetention.periodLabel')}</Label>
             <p className="text-sm text-muted-foreground mt-1 mb-3">
-              System logs older than this period will be automatically deleted
+              {t('settings.index.logRetention.periodHelper')}
             </p>
             <Select defaultValue="90">
               <SelectTrigger id="logRetention" className="max-w-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="30">30 days</SelectItem>
-                <SelectItem value="90">90 days (Recommended)</SelectItem>
-                <SelectItem value="180">180 days</SelectItem>
-                <SelectItem value="365">365 days (1 year)</SelectItem>
+                <SelectItem value="30">{t('settings.index.logRetention.days30')}</SelectItem>
+                <SelectItem value="90">{t('settings.index.logRetention.days90')}</SelectItem>
+                <SelectItem value="180">{t('settings.index.logRetention.days180')}</SelectItem>
+                <SelectItem value="365">{t('settings.index.logRetention.days365')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div className="flex justify-end pt-4 border-t">
-            <Button>Save Log Settings</Button>
+            <Button>{t('settings.index.logRetention.saveButton')}</Button>
           </div>
         </CardContent>
       </Card>
@@ -419,15 +419,15 @@ export function Settings() {
                 <Server className="w-5 h-5 text-slate-600" />
               </div>
               <div>
-                <CardTitle>System Information</CardTitle>
+                <CardTitle>{t('settings.index.sysInfoCard.cardTitle')}</CardTitle>
                 <CardDescription>
-                  {systemInfo?.organizationName ? systemInfo.organizationName : 'Live system data from database'}
+                  {systemInfo?.organizationName ? systemInfo.organizationName : t('settings.index.sysInfoCard.cardDescFallback')}
                 </CardDescription>
               </div>
             </div>
             {canEditSettings && (
               <Link to="/dashboard/settings/system-information">
-                <Button variant="outline" size="sm">Edit</Button>
+                <Button variant="outline" size="sm">{t('settings.index.sysInfoCard.editButton')}</Button>
               </Link>
             )}
           </div>
@@ -435,19 +435,19 @@ export function Settings() {
         <CardContent>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <p className="text-sm text-muted-foreground">System Version</p>
-              <p className="font-medium mt-1">{systemInfo?.version || 'Not set'}</p>
+              <p className="text-sm text-muted-foreground">{t('settings.index.sysInfoCard.systemVersion')}</p>
+              <p className="font-medium mt-1">{systemInfo?.version || t('settings.index.sysInfoCard.notSet')}</p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Last Updated</p>
-              <p className="font-medium mt-1">{systemInfo?.lastUpdated || 'Not set'}</p>
+              <p className="text-sm text-muted-foreground">{t('settings.index.sysInfoCard.lastUpdated')}</p>
+              <p className="font-medium mt-1">{systemInfo?.lastUpdated || t('settings.index.sysInfoCard.notSet')}</p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Database Status</p>
+              <p className="text-sm text-muted-foreground">{t('settings.index.sysInfoCard.databaseStatus')}</p>
               <p className="font-medium mt-1 text-[#22C55E]">{systemStats?.databaseStatus ?? '…'}</p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Total Users</p>
+              <p className="text-sm text-muted-foreground">{t('settings.index.sysInfoCard.totalUsers')}</p>
               <p className="font-medium mt-1">{systemStats?.totalUsers ?? '…'}</p>
             </div>
           </div>

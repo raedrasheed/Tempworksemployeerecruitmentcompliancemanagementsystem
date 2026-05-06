@@ -46,6 +46,8 @@ function looksUserVisible(s) {
   if (/\? ['"]/.test(t)) return false;          // ternary with string literal: "0 ? 'cls' : ..."
   if (/\bas Record\b/.test(t)) return false;    // TypeScript cast: "[c.key]) as Record"
   if (/^\(e: React/.test(t)) return false;      // event handler type signature
+  if (/^& [A-Z]/.test(t)) return false;         // TS intersection type: "& VariantProps"
+  if (/^Number\(/.test(t)) return false;         // JS Number() call expression
   return true;
 }
 

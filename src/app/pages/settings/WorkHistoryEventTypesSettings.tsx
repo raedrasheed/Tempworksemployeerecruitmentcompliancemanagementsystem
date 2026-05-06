@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { settingsApi } from '../../services/api';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -27,6 +28,7 @@ type EventType = {
 };
 
 export function WorkHistoryEventTypesSettings() {
+  const { t: tp } = useTranslation('pages');
   const { canCreate, canEdit, canDelete } = usePermissions();
   const [items, setItems] = useState<EventType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -133,7 +135,7 @@ export function WorkHistoryEventTypesSettings() {
           <Link to="/dashboard/settings"><ArrowLeft className="w-5 h-5" /></Link>
         </Button>
         <div className="flex-1">
-          <h1 className="text-2xl font-semibold">Work History Event Types</h1>
+          <h1 className="text-2xl font-semibold">{tp('settings.workHistoryEventTypes.headerTitle')}</h1>
           <p className="text-muted-foreground text-sm mt-0.5">
             Options shown in the Employee profile → Contracts tab → Add Entry dialog.
             Deactivating a type hides it from the dropdown but keeps historical entries intact.
@@ -170,7 +172,7 @@ export function WorkHistoryEventTypesSettings() {
         </CardHeader>
         <CardContent className="p-0">
           {loading ? (
-            <div className="py-12 text-center text-muted-foreground">Loading…</div>
+            <div className="py-12 text-center text-muted-foreground">{tp('settings.workHistoryEventTypes.loading')}</div>
           ) : items.length === 0 ? (
             <div className="py-12 text-center text-muted-foreground">
               No event types defined. Click <strong>New Event Type</strong> to add one.
@@ -227,17 +229,17 @@ export function WorkHistoryEventTypesSettings() {
           </DialogHeader>
           <div className="space-y-3 py-2">
             <div className="space-y-1">
-              <Label htmlFor="wh-value">Value *</Label>
+              <Label htmlFor="wh-value">{tp('settings.workHistoryEventTypes.valueLabel')}</Label>
               <Input
                 id="wh-value"
                 placeholder="e.g. CONTRACT_EXTENSION"
                 value={form.value}
                 onChange={e => setForm(f => ({ ...f, value: e.target.value }))}
               />
-              <p className="text-xs text-muted-foreground">Uppercase, underscore-separated recommended. Used in exports and APIs.</p>
+              <p className="text-xs text-muted-foreground">{tp('settings.workHistoryEventTypes.valueHelper')}</p>
             </div>
             <div className="space-y-1">
-              <Label htmlFor="wh-label">Label *</Label>
+              <Label htmlFor="wh-label">{tp('settings.workHistoryEventTypes.labelLabel')}</Label>
               <Input
                 id="wh-label"
                 placeholder="e.g. Contract Extension"
@@ -246,19 +248,19 @@ export function WorkHistoryEventTypesSettings() {
               />
             </div>
             <div className="space-y-1">
-              <Label htmlFor="wh-sort">Sort Order</Label>
+              <Label htmlFor="wh-sort">{tp('settings.workHistoryEventTypes.sortOrderLabel')}</Label>
               <Input
                 id="wh-sort"
                 type="number"
                 value={form.sortOrder}
                 onChange={e => setForm(f => ({ ...f, sortOrder: Number(e.target.value) || 0 }))}
               />
-              <p className="text-xs text-muted-foreground">Lower numbers appear first.</p>
+              <p className="text-xs text-muted-foreground">{tp('settings.workHistoryEventTypes.sortOrderHelper')}</p>
             </div>
             <div className="flex items-center justify-between border rounded-lg px-3 py-2">
               <div>
                 <Label htmlFor="wh-active">Active</Label>
-                <p className="text-xs text-muted-foreground">Shown in the Contracts tab dropdown.</p>
+                <p className="text-xs text-muted-foreground">{tp('settings.workHistoryEventTypes.activeHelper')}</p>
               </div>
               <Switch
                 id="wh-active"

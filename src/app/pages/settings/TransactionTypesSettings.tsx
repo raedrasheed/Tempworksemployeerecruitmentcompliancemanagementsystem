@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { settingsApi } from '../../services/api';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -26,6 +27,7 @@ type TxType = {
 };
 
 export function TransactionTypesSettings() {
+  const { t } = useTranslation('pages');
   const { canCreate, canEdit, canDelete } = usePermissions();
   const [items, setItems] = useState<TxType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -147,7 +149,7 @@ export function TransactionTypesSettings() {
           <Link to="/dashboard/settings"><ArrowLeft className="w-5 h-5" /></Link>
         </Button>
         <div className="flex-1">
-          <h1 className="text-2xl font-semibold">Finance Transaction Types</h1>
+          <h1 className="text-2xl font-semibold">{t('settings.transactionTypes.headerTitle')}</h1>
           <p className="text-muted-foreground text-sm mt-0.5">
             Options shown in the "Transaction Type" dropdown when creating a financial record.
             Deactivating a type hides it from the dropdown but keeps existing records intact.
@@ -197,7 +199,7 @@ export function TransactionTypesSettings() {
         </CardHeader>
         <CardContent className="p-0">
           {loading ? (
-            <div className="py-12 text-center text-muted-foreground">Loading…</div>
+            <div className="py-12 text-center text-muted-foreground">{t('settings.transactionTypes.loading')}</div>
           ) : items.length === 0 ? (
             <div className="py-12 text-center text-muted-foreground">
               No transaction types defined. Click <strong>New Type</strong> to add one.
@@ -256,7 +258,7 @@ export function TransactionTypesSettings() {
           </DialogHeader>
           <div className="space-y-3 py-2">
             <div className="space-y-1">
-              <Label htmlFor="tx-name">Name *</Label>
+              <Label htmlFor="tx-name">{t('settings.transactionTypes.nameLabel')}</Label>
               <Input
                 id="tx-name"
                 placeholder="e.g. Relocation Allowance"
@@ -265,19 +267,19 @@ export function TransactionTypesSettings() {
               />
             </div>
             <div className="space-y-1">
-              <Label htmlFor="tx-sort">Sort Order</Label>
+              <Label htmlFor="tx-sort">{t('settings.transactionTypes.sortOrderLabel')}</Label>
               <Input
                 id="tx-sort"
                 type="number"
                 value={form.sortOrder}
                 onChange={e => setForm(f => ({ ...f, sortOrder: Number(e.target.value) || 0 }))}
               />
-              <p className="text-xs text-muted-foreground">Lower numbers appear first in the dropdown.</p>
+              <p className="text-xs text-muted-foreground">{t('settings.transactionTypes.sortOrderHelper')}</p>
             </div>
             <div className="flex items-center justify-between border rounded-lg px-3 py-2">
               <div>
-                <Label htmlFor="tx-active">Active</Label>
-                <p className="text-xs text-muted-foreground">Shown in the dropdown when creating a record.</p>
+                <Label htmlFor="tx-active">{t('settings.transactionTypes.activeLabel')}</Label>
+                <p className="text-xs text-muted-foreground">{t('settings.transactionTypes.activeHelper')}</p>
               </div>
               <Switch
                 id="tx-active"

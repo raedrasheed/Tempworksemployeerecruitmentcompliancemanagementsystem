@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Shield, Lock, Save, Loader2, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
@@ -25,6 +26,7 @@ function findSettingValue(grouped: Record<string, any[]> | null, key: string): s
 }
 
 export function SecuritySettings() {
+  const { t } = useTranslation('pages');
   const [loading, setLoading]               = useState(true);
   const [saving, setSaving]                 = useState(false);
   const [maxAttempts, setMaxAttempts]       = useState<string>(String(DEFAULT_MAX_ATTEMPTS));
@@ -51,14 +53,14 @@ export function SecuritySettings() {
   const handleSaveLockout = async () => {
     const n = parseInt(maxAttempts, 10);
     if (isNaN(n) || n < 1 || n > 20) {
-      toast.error('Please enter a number between 1 and 20');
+      toast.error(t('settings.security.lockoutValidationError'));
       return;
     }
     setSaving(true);
     try {
       await settingsApi.update({ [LOCKOUT_SETTING_KEY]: String(n) });
       setInitialAttempts(String(n));
-      toast.success('Lockout threshold updated');
+      toast.success(t('settings.security.lockoutUpdated'));
     } catch (err: any) {
       toast.error(err?.message || 'Failed to save');
     } finally {
@@ -69,14 +71,14 @@ export function SecuritySettings() {
   const handleSaveIdle = async () => {
     const n = parseInt(idleMinutes, 10);
     if (isNaN(n) || n < 1 || n > 1440) {
-      toast.error('Please enter a number between 1 and 1440 minutes');
+      toast.error(t('settings.security.idleValidationError'));
       return;
     }
     setSavingIdle(true);
     try {
       await settingsApi.update({ [IDLE_SETTING_KEY]: String(n) });
       setInitialIdle(String(n));
-      toast.success('Idle timeout updated. New value applies on next sign-in.');
+      toast.success(t('settings.security.idleUpdated'));
     } catch (err: any) {
       toast.error(err?.message || 'Failed to save');
     } finally {
@@ -94,8 +96,8 @@ export function SecuritySettings() {
           <Link to="/dashboard/settings"><ArrowLeft className="w-5 h-5" /></Link>
         </Button>
         <div>
-          <h1 className="text-3xl font-semibold text-[#0F172A]">Security Settings</h1>
-          <p className="text-muted-foreground mt-1">Manage security and access control</p>
+          <h1 className="text-3xl font-semibold text-[#0F172A]">{t('settings.security.headerTitle')}</h1>
+          <p className="text-muted-foreground mt-1">{t('settings.security.headerSubtitle')}</p>
         </div>
       </div>
 
@@ -103,12 +105,12 @@ export function SecuritySettings() {
         <CardHeader>
           <div className="flex items-center gap-3">
             <Lock className="w-5 h-5 text-[#2563EB]" />
-            <CardTitle>Account Lockout</CardTitle>
+            <CardTitle>{t('settings.security.lockoutCardTitle')}</CardTitle>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2 max-w-sm">
-            <Label htmlFor="max-attempts">Lock account after N failed login attempts</Label>
+            <Label htmlFor="max-attempts">{t('settings.security.lockoutLabel')}</Label>
             <div className="flex items-center gap-3">
               <Input
                 id="max-attempts"
@@ -120,16 +122,15 @@ export function SecuritySettings() {
                 disabled={loading || saving}
                 className="w-28"
               />
-              <span className="text-sm text-muted-foreground">failed attempts</span>
+              <span className="text-sm text-muted-foreground">{t('settings.security.failedAttemptsSuffix')}</span>
             </div>
             <p className="text-xs text-muted-foreground">
-              Locked accounts are automatically released after 30 minutes. An administrator
-              can unlock earlier from the user's edit page.
+              {t('settings.security.lockoutHelper')}
             </p>
           </div>
           <Button onClick={handleSaveLockout} disabled={loading || saving || !dirty}>
             {saving ? <Loader2 className="w-4 h-4 me-2 animate-spin" /> : <Save className="w-4 h-4 me-2" />}
-            Save threshold
+            {t('settings.security.saveThreshold')}
           </Button>
         </CardContent>
       </Card>
@@ -138,12 +139,12 @@ export function SecuritySettings() {
         <CardHeader>
           <div className="flex items-center gap-3">
             <Clock className="w-5 h-5 text-[#2563EB]" />
-            <CardTitle>Session Idle Timeout</CardTitle>
+            <CardTitle>{t('settings.security.idleCardTitle')}</CardTitle>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2 max-w-sm">
-            <Label htmlFor="idle-minutes">Sign users out after N minutes of inactivity</Label>
+            <Label htmlFor="idle-minutes">{t('settings.security.idleLabel')}</Label>
             <div className="flex items-center gap-3">
               <Input
                 id="idle-minutes"
@@ -155,44 +156,42 @@ export function SecuritySettings() {
                 disabled={loading || savingIdle}
                 className="w-28"
               />
-              <span className="text-sm text-muted-foreground">minutes</span>
+              <span className="text-sm text-muted-foreground">{t('settings.security.idleMinutesSuffix')}</span>
             </div>
             <p className="text-xs text-muted-foreground">
-              Applies to every signed-in browser tab. Keyboard, mouse, scroll or
-              touch activity postpones the timer. Users are warned 60 seconds
-              before being signed out.
+              {t('settings.security.idleHelper')}
             </p>
           </div>
           <Button onClick={handleSaveIdle} disabled={loading || savingIdle || !idleDirty}>
             {savingIdle ? <Loader2 className="w-4 h-4 me-2 animate-spin" /> : <Save className="w-4 h-4 me-2" />}
-            Save timeout
+            {t('settings.security.saveTimeout')}
           </Button>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Authentication</CardTitle>
+          <CardTitle>{t('settings.security.authCardTitle')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <Label htmlFor="2fa">Two-Factor Authentication</Label>
-              <p className="text-sm text-muted-foreground">Require 2FA for all users</p>
+              <Label htmlFor="2fa">{t('settings.security.twoFactorLabel')}</Label>
+              <p className="text-sm text-muted-foreground">{t('settings.security.twoFactorHelper')}</p>
             </div>
             <Switch id="2fa" defaultChecked />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="session-timeout">Session Timeout</Label>
+            <Label htmlFor="session-timeout">{t('settings.security.sessionTimeoutLabel')}</Label>
             <Select defaultValue="30">
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="15">15 minutes</SelectItem>
-                <SelectItem value="30">30 minutes</SelectItem>
-                <SelectItem value="60">1 hour</SelectItem>
-                <SelectItem value="120">2 hours</SelectItem>
+                <SelectItem value="15">{t('settings.security.sessionTimeout15')}</SelectItem>
+                <SelectItem value="30">{t('settings.security.sessionTimeout30')}</SelectItem>
+                <SelectItem value="60">{t('settings.security.sessionTimeout60')}</SelectItem>
+                <SelectItem value="120">{t('settings.security.sessionTimeout120')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -201,20 +200,20 @@ export function SecuritySettings() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Access Control</CardTitle>
+          <CardTitle>{t('settings.security.accessControlTitle')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <Label htmlFor="ip-restriction">IP Address Restriction</Label>
-              <p className="text-sm text-muted-foreground">Restrict access by IP address</p>
+              <Label htmlFor="ip-restriction">{t('settings.security.ipRestrictionLabel')}</Label>
+              <p className="text-sm text-muted-foreground">{t('settings.security.ipRestrictionHelper')}</p>
             </div>
             <Switch id="ip-restriction" />
           </div>
           <div className="flex items-center justify-between">
             <div>
-              <Label htmlFor="audit-log">Audit Logging</Label>
-              <p className="text-sm text-muted-foreground">Log all user activities</p>
+              <Label htmlFor="audit-log">{t('settings.security.auditLoggingLabel')}</Label>
+              <p className="text-sm text-muted-foreground">{t('settings.security.auditLoggingHelper')}</p>
             </div>
             <Switch id="audit-log" defaultChecked />
           </div>
@@ -225,7 +224,7 @@ export function SecuritySettings() {
         <CardHeader>
           <div className="flex items-center gap-3">
             <Shield className="w-5 h-5 text-[#2563EB]" />
-            <CardTitle>Security Status</CardTitle>
+            <CardTitle>{t('settings.security.statusCardTitle')}</CardTitle>
           </div>
         </CardHeader>
         <CardContent>

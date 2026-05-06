@@ -14,6 +14,9 @@ import { PhoneInput } from '../../components/ui/PhoneInput';
 import { toast } from 'sonner';
 import { confirm } from '../../components/ui/ConfirmDialog';
 import { apiError } from '../../../i18n/apiError';
+import { useValidationErrors } from '../../../i18n/useValidationErrors';
+import { FieldError } from '../../components/ui/field-error';
+import { ValidationSummary } from '../../components/ui/validation-summary';
 import { usersApi, rolesApi, agenciesApi, authApi, getCurrentUser, resolveAssetUrl } from '../../services/api';
 
 const GENDERS = [
@@ -227,16 +230,21 @@ export function EditUser() {
     );
   }
 
+  const { errors: fieldErrs, setFromError, clearAll: clearFieldErrors, clearError } = useValidationErrors();
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm(prev => ({ ...prev, [e.target.id]: e.target.value }));
+    if (fieldErrs[e.target.id]) clearError(e.target.id);
   };
 
   const handleSelect = (field: string, value: string) => {
     setForm(prev => ({ ...prev, [field]: value }));
+    if (fieldErrs[field]) clearError(field);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    clearFieldErrors();
     if (!form.agencyId) {
       toast.error(t('users.edit.selectAgency'));
       return;
@@ -252,6 +260,7 @@ export function EditUser() {
       toast.success(t('users.edit.updateSuccess'));
       navigate('/dashboard/users');
     } catch (err: any) {
+      setFromError(err);
       toast.error(apiError(err, t('users.edit.updateFailed')));
     } finally {
       setSubmitting(false);
@@ -387,6 +396,8 @@ export function EditUser() {
       <form onSubmit={handleSubmit}>
         <div className="max-w-2xl space-y-6">
 
+          <ValidationSummary errors={fieldErrs} />
+
           {/* Identity */}
           <Card>
             <CardHeader>
@@ -442,20 +453,32 @@ export function EditUser() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="firstName">{t('users.form.firstName')}</Label>
-                  <Input id="firstName" value={form.firstName} onChange={handleChange} required />
+                  <Input id="firstName" value={form.firstName} onChange={handleChange} required
+                    aria-invalid={!!fieldErrs.firstName}
+                    className={fieldErrs.firstName ? 'border-red-500 focus-visible:ring-red-500' : ''} />
+                  <FieldError errors={fieldErrs} name="firstName" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="middleName">{t('users.form.middleName')}</Label>
-                  <Input id="middleName" value={form.middleName} onChange={handleChange} />
+                  <Input id="middleName" value={form.middleName} onChange={handleChange}
+                    aria-invalid={!!fieldErrs.middleName}
+                    className={fieldErrs.middleName ? 'border-red-500 focus-visible:ring-red-500' : ''} />
+                  <FieldError errors={fieldErrs} name="middleName" />
                 </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="lastName">{t('users.form.lastName')}</Label>
-                <Input id="lastName" value={form.lastName} onChange={handleChange} required />
+                <Input id="lastName" value={form.lastName} onChange={handleChange} required
+                  aria-invalid={!!fieldErrs.lastName}
+                  className={fieldErrs.lastName ? 'border-red-500 focus-visible:ring-red-500' : ''} />
+                <FieldError errors={fieldErrs} name="lastName" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email">{t('users.form.email')}</Label>
-                <Input id="email" type="email" value={form.email} onChange={handleChange} required />
+                <Input id="email" type="email" value={form.email} onChange={handleChange} required
+                  aria-invalid={!!fieldErrs.email}
+                  className={fieldErrs.email ? 'border-red-500 focus-visible:ring-red-500' : ''} />
+                <FieldError errors={fieldErrs} name="email" />
               </div>
             </CardContent>
           </Card>

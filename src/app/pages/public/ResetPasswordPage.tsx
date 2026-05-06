@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { authApi, resolveAssetUrl } from '../../services/api';
 import { useBranding } from '../../hooks/useBranding';
 import { LanguageSwitcher } from '../../../i18n/LanguageSwitcher';
+import { apiError } from '../../../i18n/apiError';
 
 type StrengthLabel = 'weak' | 'medium' | 'strong';
 
@@ -80,8 +81,11 @@ export function ResetPasswordPage() {
       setSuccess(true);
       toast.success(t('reset.submitSuccess'));
     } catch (err: any) {
-      const msg = err?.message || t('reset.submitFailed');
-      setError(Array.isArray(msg) ? msg.join(', ') : String(msg));
+      // apiError handles AUTH.* codes (RESET_INVALID, PASSWORD_TOO_SHORT, etc.)
+      // and the new VALIDATION.FAILED envelope by surfacing a localized
+      // top-level summary. Inline per-field rendering isn't useful on a
+      // 2-input form so we keep the existing single-message UI.
+      setError(apiError(err, t('reset.submitFailed')));
       toast.error(t('reset.submitToastFailed'));
     } finally {
       setLoading(false);

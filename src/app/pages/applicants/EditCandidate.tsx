@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { applicantsApi, settingsApi, agenciesApi } from '../../services/api';
-import { apiError } from '../../../i18n/apiError';
+import { apiError, fieldErrors as resolveFieldErrors, isValidationError } from '../../../i18n/apiError';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent } from '../../components/ui/card';
 import { Label } from '../../components/ui/label';
@@ -31,6 +31,7 @@ export function EditCandidate() {
   const [existingPhotoUrl, setExistingPhotoUrl] = useState<string | undefined>();
   const [agencies, setAgencies] = useState<any[]>([]);
   const [agencyId, setAgencyId] = useState<string>('');
+  const [fieldErrs, setFieldErrs] = useState<Record<string, string>>({});
 
   const visibleTabs = useMemo(() => getVisibleTabs(formData), [formData.hasDrivingLicense]);
 
@@ -126,6 +127,7 @@ export function EditCandidate() {
       toast.success(tc('toast.savedSuccessfully'));
     } catch (err: any) {
       if (!err?.message?.includes('photo upload failed')) {
+        if (isValidationError(err)) setFieldErrs(resolveFieldErrors(err));
         toast.error(apiError(err, tc('toast.saveFailed')));
       }
     } finally {
@@ -143,6 +145,7 @@ export function EditCandidate() {
       navigate(`/dashboard/candidates/${id}`);
     } catch (err: any) {
       if (!err?.message?.includes('photo upload failed')) {
+        if (isValidationError(err)) setFieldErrs(resolveFieldErrors(err));
         toast.error(apiError(err, tc('toast.saveFailed')));
       }
     } finally {
@@ -217,6 +220,7 @@ export function EditCandidate() {
             photoFile={photoFile}
             onPhotoChange={setPhotoFile}
             existingPhotoUrl={existingPhotoUrl}
+            fieldErrors={fieldErrs}
           />
 
           <div className="flex justify-between pt-8 border-t mt-8">

@@ -13,6 +13,10 @@ import { CountrySelect } from '../../components/ui/CountrySelect';
 import { PhoneInput } from '../../components/ui/PhoneInput';
 import { toast } from 'sonner';
 import { usersApi, rolesApi, agenciesApi, settingsApi, getCurrentUser } from '../../services/api';
+import { apiError } from '../../../i18n/apiError';
+import { useValidationErrors } from '../../../i18n/useValidationErrors';
+import { FieldError } from '../../components/ui/field-error';
+import { ValidationSummary } from '../../components/ui/validation-summary';
 
 const GENDERS = [
   { value: 'MALE', label: 'Male' },
@@ -46,6 +50,8 @@ export function AddUser() {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
+
+  const { errors: fieldErrs, setFromError, clearAll: clearFieldErrors, clearError } = useValidationErrors();
 
   const [form, setForm] = useState({
     // Identity
@@ -113,14 +119,17 @@ export function AddUser() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm(prev => ({ ...prev, [e.target.id]: e.target.value }));
+    if (fieldErrs[e.target.id]) clearError(e.target.id);
   };
 
   const handleSelect = (field: string, value: string) => {
     setForm(prev => ({ ...prev, [field]: value }));
+    if (fieldErrs[field]) clearError(field);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    clearFieldErrors();
     if (!form.roleId) {
       toast.error(t('users.add.selectRole'));
       return;
@@ -171,7 +180,12 @@ export function AddUser() {
       toast.success(t('users.add.createSuccess'));
       navigate('/dashboard/users');
     } catch (err: any) {
-      toast.error(err?.message || t('users.add.createFailed'));
+      const wasValidation = setFromError(err);
+      if (!wasValidation) {
+        toast.error(apiError(err, t('users.add.createFailed')));
+      } else {
+        toast.error(apiError(err, t('users.add.createFailed')));
+      }
     } finally {
       setSubmitting(false);
     }
@@ -215,6 +229,8 @@ export function AddUser() {
 
       <form onSubmit={handleSubmit}>
         <div className="max-w-2xl space-y-6">
+
+          <ValidationSummary errors={fieldErrs} />
 
           {/* Identity */}
           <Card>
@@ -263,20 +279,32 @@ export function AddUser() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="firstName">{t('users.form.firstName')}</Label>
-                  <Input id="firstName" placeholder="First name" value={form.firstName} onChange={handleChange} required />
+                  <Input id="firstName" placeholder="First name" value={form.firstName} onChange={handleChange} required
+                    aria-invalid={!!fieldErrs.firstName}
+                    className={fieldErrs.firstName ? 'border-red-500 focus-visible:ring-red-500' : ''} />
+                  <FieldError errors={fieldErrs} name="firstName" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="middleName">{t('users.form.middleName')}</Label>
-                  <Input id="middleName" placeholder="Middle name" value={form.middleName} onChange={handleChange} />
+                  <Input id="middleName" placeholder="Middle name" value={form.middleName} onChange={handleChange}
+                    aria-invalid={!!fieldErrs.middleName}
+                    className={fieldErrs.middleName ? 'border-red-500 focus-visible:ring-red-500' : ''} />
+                  <FieldError errors={fieldErrs} name="middleName" />
                 </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="lastName">{t('users.form.lastName')}</Label>
-                <Input id="lastName" placeholder="Last name" value={form.lastName} onChange={handleChange} required />
+                <Input id="lastName" placeholder="Last name" value={form.lastName} onChange={handleChange} required
+                  aria-invalid={!!fieldErrs.lastName}
+                  className={fieldErrs.lastName ? 'border-red-500 focus-visible:ring-red-500' : ''} />
+                <FieldError errors={fieldErrs} name="lastName" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email">{t('users.form.email')}</Label>
-                <Input id="email" type="email" placeholder="user@company.com" value={form.email} onChange={handleChange} required />
+                <Input id="email" type="email" placeholder="user@company.com" value={form.email} onChange={handleChange} required
+                  aria-invalid={!!fieldErrs.email}
+                  className={fieldErrs.email ? 'border-red-500 focus-visible:ring-red-500' : ''} />
+                <FieldError errors={fieldErrs} name="email" />
               </div>
             </CardContent>
           </Card>
@@ -523,9 +551,12 @@ export function AddUser() {
                     placeholder="Minimum 8 characters"
                     value={form.password}
                     onChange={handleChange}
+                    aria-invalid={!!fieldErrs.password}
+                    className={fieldErrs.password ? 'border-red-500 focus-visible:ring-red-500' : ''}
                     required={!sendActivationEmail}
                     minLength={8}
                   />
+                  <FieldError errors={fieldErrs} name="password" />
                 </div>
               )}
             </CardContent>

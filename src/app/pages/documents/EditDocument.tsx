@@ -9,6 +9,9 @@ import { Label } from '../../components/ui/label';
 import { toast } from 'sonner';
 import { documentsApi, settingsApi } from '../../services/api';
 import { apiError } from '../../../i18n/apiError';
+import { useValidationErrors } from '../../../i18n/useValidationErrors';
+import { FieldError } from '../../components/ui/field-error';
+import { ValidationSummary } from '../../components/ui/validation-summary';
 
 export function EditDocument() {
   const { t } = useTranslation('pages');
@@ -18,6 +21,7 @@ export function EditDocument() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [documentTypes, setDocumentTypes] = useState<{ id: string; name: string }[]>([]);
+  const { errors: fieldErrs, setFromError, clearAll: clearFieldErrors } = useValidationErrors();
   const [form, setForm] = useState({
     name: '',
     documentTypeId: '',
@@ -46,6 +50,7 @@ export function EditDocument() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    clearFieldErrors();
     setSubmitting(true);
     try {
       const payload: any = {
@@ -61,6 +66,7 @@ export function EditDocument() {
       toast.success(t('documents.edit.updateSuccess'));
       navigate(`/dashboard/documents/${id}`);
     } catch (err: any) {
+      setFromError(err);
       toast.error(apiError(err, t('documents.edit.updateFailed')));
     } finally {
       setSubmitting(false);
@@ -83,6 +89,7 @@ export function EditDocument() {
 
       <form onSubmit={handleSubmit}>
         <div className="max-w-2xl space-y-6">
+          <ValidationSummary errors={fieldErrs} />
           <Card>
             <CardHeader><CardTitle>{t('documents.edit.infoTitle')}</CardTitle></CardHeader>
             <CardContent className="space-y-4">
@@ -94,7 +101,10 @@ export function EditDocument() {
                   value={form.name}
                   onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))}
                   required
+                  aria-invalid={!!fieldErrs.name}
+                  className={fieldErrs.name ? 'border-red-500 focus-visible:ring-red-500' : ''}
                 />
+                <FieldError errors={fieldErrs} name="name" />
               </div>
 
               <div className="space-y-2">

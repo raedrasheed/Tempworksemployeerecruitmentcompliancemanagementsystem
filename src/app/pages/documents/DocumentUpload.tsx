@@ -10,6 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { toast } from 'sonner';
 import { documentsApi, employeesApi, settingsApi } from '../../services/api';
 import { apiError } from '../../../i18n/apiError';
+import { useValidationErrors } from '../../../i18n/useValidationErrors';
+import { FieldError } from '../../components/ui/field-error';
+import { ValidationSummary } from '../../components/ui/validation-summary';
 
 export function DocumentUpload() {
   const { t } = useTranslation('pages');
@@ -30,6 +33,7 @@ export function DocumentUpload() {
     notes: '',
   });
   const [file, setFile] = useState<File | null>(null);
+  const { errors: fieldErrs, setFromError, clearAll: clearFieldErrors } = useValidationErrors();
 
   useEffect(() => {
     Promise.all([
@@ -44,6 +48,7 @@ export function DocumentUpload() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    clearFieldErrors();
     if (!file) { toast.error(t('documents.upload.fileRequired')); return; }
     if (!form.entityId) { toast.error(t('documents.upload.employeeRequired')); return; }
     if (!form.documentTypeId) { toast.error(t('documents.upload.docTypeRequired')); return; }
@@ -67,6 +72,7 @@ export function DocumentUpload() {
       toast.success(t('documents.upload.uploadSuccess'));
       navigate('/dashboard/documents-compliance');
     } catch (err: any) {
+      setFromError(err);
       toast.error(apiError(err, t('documents.upload.uploadFailed')));
     } finally {
       setSubmitting(false);
@@ -91,6 +97,7 @@ export function DocumentUpload() {
 
       <form onSubmit={handleSubmit}>
         <div className="max-w-2xl space-y-6">
+          <ValidationSummary errors={fieldErrs} />
           <Card>
             <CardHeader><CardTitle>{t('documents.upload.infoCardTitle')}</CardTitle></CardHeader>
             <CardContent className="space-y-4">
@@ -132,7 +139,10 @@ export function DocumentUpload() {
                   placeholder={t('documents.upload.documentNamePh')}
                   value={form.name}
                   onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))}
+                  aria-invalid={!!fieldErrs.name}
+                  className={fieldErrs.name ? 'border-red-500 focus-visible:ring-red-500' : ''}
                 />
+                <FieldError errors={fieldErrs} name="name" />
               </div>
 
               <div className="grid grid-cols-2 gap-4">

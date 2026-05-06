@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { ArrowLeft, ChevronRight, ChevronLeft, UserPlus, ShieldOff, Save, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { confirm } from '../../components/ui/ConfirmDialog';
+import { apiError, fieldErrors as resolveFieldErrors, isValidationError } from '../../../i18n/apiError';
 import { usePermissions } from '../../hooks/usePermissions';
 import { ApplicantFormSteps, EMPTY_FORM, getVisibleTabs, getStepErrors, getStepFieldErrors, StepIndicator, FormSettings, DEFAULT_FORM_SETTINGS, ApplicantFormData } from '../../components/applicants/ApplicantFormSteps';
 
@@ -269,6 +270,7 @@ export function AddApplicant() {
     try {
       await applicationDraftsApi.submitMine(buildPayload());
       setDraftId(null);
+      setFieldErrors({});
       toast.success(tc('toast.savedSuccessfully'));
       // Agency submissions land on the Candidates queue (pending
       // Tempworks approval). Tempworks-staff submissions stay on
@@ -277,7 +279,13 @@ export function AddApplicant() {
       const isAgency = role === 'Agency User' || role === 'Agency Manager';
       navigate(isAgency ? '/dashboard/candidates' : '/dashboard/applicants');
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to create applicant');
+      // Backend validation errors → replace inline field map so step
+      // components highlight the offending inputs. Otherwise keep the
+      // existing toast-style error rendering.
+      if (isValidationError(err)) {
+        setFieldErrors(resolveFieldErrors(err));
+      }
+      toast.error(apiError(err, 'Failed to create applicant'));
     } finally {
       setSubmitting(false);
     }

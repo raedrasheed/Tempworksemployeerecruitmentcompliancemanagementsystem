@@ -15,6 +15,7 @@ import { ApplicantFormSteps, EMPTY_FORM, getVisibleTabs, StepIndicator, FormSett
 
 export function EditApplicant() {
   const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const navigate = useNavigate();
   const { id } = useParams();
   const { canEdit } = usePermissions();
@@ -149,15 +150,15 @@ export function EditApplicant() {
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center h-64 text-muted-foreground">Loading...</div>;
+    return <div className="flex items-center justify-center h-64 text-muted-foreground">{tc('states.loading')}</div>;
   }
 
   if (!canEdit('applicants')) {
     return (
       <div className="flex flex-col items-center justify-center py-24 gap-3 text-muted-foreground">
         <ShieldOff className="w-12 h-12 opacity-30" />
-        <p className="text-lg font-semibold">Access Denied</p>
-        <p className="text-sm">You don't have permission to perform this action.</p>
+        <p className="text-lg font-semibold">{tc('permissions.accessDenied')}</p>
+        <p className="text-sm">{tc('permissions.noPermission')}</p>
       </div>
     );
   }
@@ -172,20 +173,20 @@ export function EditApplicant() {
         </Button>
         <div>
           <h1 className="text-3xl font-semibold">{t('applicants.edit.title')}</h1>
-          <p className="text-muted-foreground mt-1">Update applicant information - ID: {id}</p>
+          <p className="text-muted-foreground mt-1">{t('applicants.editPage.applicantSubtitle', { id })}</p>
         </div>
       </div>
 
       <Card>
         <CardContent className="pt-6 pb-6">
           <div className="max-w-sm">
-            <Label htmlFor="agencyId" className="mb-2 block">Agency <span className="text-muted-foreground font-normal">(optional)</span></Label>
+            <Label htmlFor="agencyId" className="mb-2 block">{t('applicants.addPage.agencyLabel')} <span className="text-muted-foreground font-normal">{t('applicants.addPage.agencyOptional')}</span></Label>
             <Select value={agencyId || 'none'} onValueChange={(v) => setAgencyId(v === 'none' ? '' : v)}>
               <SelectTrigger id="agencyId">
-                <SelectValue placeholder="Select agency..." />
+                <SelectValue placeholder={t('applicants.addPage.selectAgencyPh')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">No Agency</SelectItem>
+                <SelectItem value="none">{t('applicants.addPage.noAgency')}</SelectItem>
                 {agencies.map((a) => (
                   <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
                 ))}

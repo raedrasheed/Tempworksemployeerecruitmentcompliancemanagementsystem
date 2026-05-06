@@ -370,7 +370,7 @@ export function AttendanceList() {
             </Button>
             {showColPicker && (
               <div className="absolute end-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[180px]">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">Toggle columns</p>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">{t('attendance.list.toggleColumns')}</p>
                 <div className="space-y-0.5">
                   {ALL_COLUMNS.map(c => (
                     <button
@@ -386,9 +386,9 @@ export function AttendanceList() {
                   ))}
                 </div>
                 <div className="border-t mt-2 pt-2 flex gap-1.5">
-                  <button onClick={() => { const all = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, true])) as Record<ColKey, boolean>; setVisibleColumns(all); localStorage.setItem('attendance-table-columns', JSON.stringify(all)); }} className="flex-1 text-xs text-center text-blue-600 hover:underline py-0.5">Show all</button>
+                  <button onClick={() => { const all = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, true])) as Record<ColKey, boolean>; setVisibleColumns(all); localStorage.setItem('attendance-table-columns', JSON.stringify(all)); }} className="flex-1 text-xs text-center text-blue-600 hover:underline py-0.5">{t('attendance.list.showAll')}</button>
                   <span className="text-gray-300">|</span>
-                  <button onClick={() => { const none = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, false])) as Record<ColKey, boolean>; setVisibleColumns(none); localStorage.setItem('attendance-table-columns', JSON.stringify(none)); }} className="flex-1 text-xs text-center text-gray-500 hover:underline py-0.5">Hide all</button>
+                  <button onClick={() => { const none = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, false])) as Record<ColKey, boolean>; setVisibleColumns(none); localStorage.setItem('attendance-table-columns', JSON.stringify(none)); }} className="flex-1 text-xs text-center text-gray-500 hover:underline py-0.5">{t('attendance.list.hideAll')}</button>
                 </div>
               </div>
             )}
@@ -577,7 +577,7 @@ export function AttendanceList() {
           ) : sortedEmployees.length === 0 ? (
             <div className="py-16 text-center text-muted-foreground">
               <ClipboardList className="w-10 h-10 mx-auto mb-3 opacity-30" />
-              <p className="font-medium">No employees found</p>
+              <p className="font-medium">{t('attendance.list.noEmployees')}</p>
               <p className="text-sm mt-1">
                 Try adjusting the filters or search term, or turn off "Drivers Only" to show all employees.
               </p>

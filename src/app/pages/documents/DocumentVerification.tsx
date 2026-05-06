@@ -102,7 +102,7 @@ export function DocumentVerification() {
 
   const docTypeCount = [...new Set(documents.map(d => d.documentType?.name).filter(Boolean))].length;
 
-  if (loading) return <div className="p-8 text-muted-foreground">Loading...</div>;
+  if (loading) return <div className="p-8 text-muted-foreground">{t('documents.verification.loading')}</div>;
 
   return (
     <div className="space-y-6">
@@ -121,7 +121,7 @@ export function DocumentVerification() {
         </div>
         {!can('documents', 'verify') && (
           <Badge className="bg-[#FEF3C7] text-[#F59E0B] border-[#F59E0B]">
-            View Only — insufficient permissions to verify
+            {t('documents.verification.viewOnly')}
           </Badge>
         )}
       </div>
@@ -135,7 +135,7 @@ export function DocumentVerification() {
             </div>
             <div>
               <p className="text-2xl font-semibold">{documents.length}</p>
-              <p className="text-sm text-muted-foreground">Awaiting Review</p>
+              <p className="text-sm text-muted-foreground">{t('documents.verification.awaitingReview')}</p>
             </div>
           </CardContent>
         </Card>
@@ -146,7 +146,7 @@ export function DocumentVerification() {
             </div>
             <div>
               <p className="text-2xl font-semibold">{docTypeCount}</p>
-              <p className="text-sm text-muted-foreground">Document Types</p>
+              <p className="text-sm text-muted-foreground">{t('documents.verification.documentTypes')}</p>
             </div>
           </CardContent>
         </Card>
@@ -157,7 +157,7 @@ export function DocumentVerification() {
             </div>
             <div>
               <p className="text-2xl font-semibold">{filtered.length}</p>
-              <p className="text-sm text-muted-foreground">Matching Search</p>
+              <p className="text-sm text-muted-foreground">{t('documents.verification.matchingSearch')}</p>
             </div>
           </CardContent>
         </Card>
@@ -169,7 +169,7 @@ export function DocumentVerification() {
           <div className="relative">
             <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder="Search by document name, type, or driver name..."
+              placeholder={t('documents.verification.searchPh')}
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               className="ps-9"
@@ -187,11 +187,11 @@ export function DocumentVerification() {
           {filtered.length === 0 ? (
             <div className="py-16 text-center">
               <CheckCircle2 className="w-12 h-12 mx-auto mb-4 text-[#22C55E]" />
-              <p className="font-medium text-[#0F172A]">All clear!</p>
+              <p className="font-medium text-[#0F172A]">{t('documents.verification.allClear')}</p>
               <p className="text-sm text-muted-foreground mt-1">
                 {documents.length === 0
-                  ? 'No documents are awaiting verification.'
-                  : 'No documents match your search.'}
+                  ? t('documents.verification.noPending')
+                  : t('documents.verification.noMatches')}
               </p>
             </div>
           ) : (
@@ -199,12 +199,12 @@ export function DocumentVerification() {
               <table className="w-full">
                 <thead className="bg-[#F8FAFC] border-b">
                   <tr>
-                    <th className="text-start p-4 text-sm font-semibold">Document</th>
-                    <th className="text-start p-4 text-sm font-semibold">Type</th>
-                    <th className="text-start p-4 text-sm font-semibold">Employee / Entity</th>
-                    <th className="text-start p-4 text-sm font-semibold">Uploaded By</th>
-                    <th className="text-start p-4 text-sm font-semibold">Expiry Date</th>
-                    <th className="text-start p-4 text-sm font-semibold">Actions</th>
+                    <th className="text-start p-4 text-sm font-semibold">{t('documents.verification.tableHeaders.document')}</th>
+                    <th className="text-start p-4 text-sm font-semibold">{t('documents.verification.tableHeaders.type')}</th>
+                    <th className="text-start p-4 text-sm font-semibold">{t('documents.verification.tableHeaders.entity')}</th>
+                    <th className="text-start p-4 text-sm font-semibold">{t('documents.verification.tableHeaders.uploadedBy')}</th>
+                    <th className="text-start p-4 text-sm font-semibold">{t('documents.verification.tableHeaders.expiryDate')}</th>
+                    <th className="text-start p-4 text-sm font-semibold">{t('documents.verification.tableHeaders.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>

@@ -92,17 +92,17 @@ export function DocumentPreview() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'VERIFIED':      return <Badge className="bg-[#22C55E]">Valid</Badge>;
-      case 'EXPIRING_SOON': return <Badge className="bg-[#F59E0B]">Expiring Soon</Badge>;
-      case 'EXPIRED':       return <Badge className="bg-[#EF4444]">Expired</Badge>;
-      case 'REJECTED':      return <Badge className="bg-[#EF4444]">Rejected</Badge>;
-      case 'PENDING':       return <Badge className="bg-[#64748B]">Pending Review</Badge>;
+      case 'VERIFIED':      return <Badge className="bg-[#22C55E]">{t('documents.preview.statusBadge.valid')}</Badge>;
+      case 'EXPIRING_SOON': return <Badge className="bg-[#F59E0B]">{t('documents.preview.statusBadge.expiringSoon')}</Badge>;
+      case 'EXPIRED':       return <Badge className="bg-[#EF4444]">{t('documents.preview.statusBadge.expired')}</Badge>;
+      case 'REJECTED':      return <Badge className="bg-[#EF4444]">{t('documents.preview.statusBadge.rejected')}</Badge>;
+      case 'PENDING':       return <Badge className="bg-[#64748B]">{t('documents.preview.statusBadge.pending')}</Badge>;
       default:              return <Badge variant="outline">{status}</Badge>;
     }
   };
 
-  if (loading) return <div className="p-8 text-muted-foreground">Loading…</div>;
-  if (!document) return <div className="p-8">Document not found</div>;
+  if (loading) return <div className="p-8 text-muted-foreground">{t('documents.preview.loading')}</div>;
+  if (!document) return <div className="p-8">{t('documents.preview.notFound')}</div>;
 
   const isImage = document.mimeType?.startsWith('image/');
 
@@ -116,7 +116,7 @@ export function DocumentPreview() {
           </Link>
         </Button>
         <div className="flex-1">
-          <h1 className="text-3xl font-semibold text-[#0F172A]">Document Preview</h1>
+          <h1 className="text-3xl font-semibold text-[#0F172A]">{t('documents.preview.pageTitle')}</h1>
           <p className="text-muted-foreground mt-1">
             {document.documentType?.name} — {document.name}
           </p>
@@ -165,11 +165,11 @@ export function DocumentPreview() {
             ) : (
               <div className="text-center">
                 <FileText className="w-24 h-24 mx-auto text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">Preview not available</p>
+                <p className="text-muted-foreground">{t('documents.preview.previewNotAvailable')}</p>
                 <p className="text-sm text-muted-foreground mt-2">{document.name}</p>
                 <Button variant="outline" className="mt-4" asChild>
                   <a href={getFileUrl(document.fileUrl)} target="_blank" rel="noopener noreferrer" download>
-                    <Download className="w-4 h-4 me-2" />Download to view
+                    <Download className="w-4 h-4 me-2" />{t('documents.preview.downloadToView')}
                   </a>
                 </Button>
               </div>
@@ -180,51 +180,51 @@ export function DocumentPreview() {
         {/* Details pane */}
         <div className="space-y-6">
           <Card>
-            <CardHeader><CardTitle>Document Details</CardTitle></CardHeader>
+            <CardHeader><CardTitle>{t('documents.preview.details')}</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <p className="text-sm text-muted-foreground">Name</p>
+                <p className="text-sm text-muted-foreground">{t('documents.preview.name')}</p>
                 <p className="font-medium mt-1">{document.name}</p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Type</p>
+                <p className="text-sm text-muted-foreground">{t('documents.preview.type')}</p>
                 <p className="font-medium mt-1">{document.documentType?.name ?? '—'}</p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Status</p>
+                <p className="text-sm text-muted-foreground">{t('documents.preview.status')}</p>
                 <div className="mt-1">{getStatusBadge(document.status)}</div>
               </div>
               {document.documentNumber && (
                 <div>
-                  <p className="text-sm text-muted-foreground">Document Number</p>
+                  <p className="text-sm text-muted-foreground">{t('documents.preview.documentNumber')}</p>
                   <p className="font-medium mt-1">{document.documentNumber}</p>
                 </div>
               )}
               {document.issuer && (
                 <div>
-                  <p className="text-sm text-muted-foreground">Issuer</p>
+                  <p className="text-sm text-muted-foreground">{t('documents.preview.issuer')}</p>
                   <p className="font-medium mt-1">{document.issuer}</p>
                 </div>
               )}
               {document.issueDate && (
                 <div>
-                  <p className="text-sm text-muted-foreground">Issue Date</p>
+                  <p className="text-sm text-muted-foreground">{t('documents.preview.issueDate')}</p>
                   <p className="font-medium mt-1">{new Date(document.issueDate).toLocaleDateString()}</p>
                 </div>
               )}
               {document.expiryDate && (
                 <div>
-                  <p className="text-sm text-muted-foreground">Expiry Date</p>
+                  <p className="text-sm text-muted-foreground">{t('documents.preview.expiryDate')}</p>
                   <p className="font-medium mt-1">{new Date(document.expiryDate).toLocaleDateString()}</p>
                 </div>
               )}
               <div>
-                <p className="text-sm text-muted-foreground">Uploaded</p>
+                <p className="text-sm text-muted-foreground">{t('documents.preview.uploaded')}</p>
                 <p className="font-medium mt-1">{new Date(document.createdAt).toLocaleDateString()}</p>
               </div>
               {document.uploadedBy && (
                 <div>
-                  <p className="text-sm text-muted-foreground">Uploaded By</p>
+                  <p className="text-sm text-muted-foreground">{t('documents.preview.uploadedBy')}</p>
                   <p className="font-medium mt-1">
                     {document.uploadedBy.firstName} {document.uploadedBy.lastName}
                   </p>
@@ -233,7 +233,7 @@ export function DocumentPreview() {
               {document.verifiedBy && (
                 <div>
                   <p className="text-sm text-muted-foreground">
-                    {document.status === 'REJECTED' ? 'Rejected By' : 'Verified By'}
+                    {document.status === 'REJECTED' ? t('documents.preview.rejectedBy') : t('documents.preview.verifiedBy')}
                   </p>
                   <p className="font-medium mt-1">
                     {document.verifiedBy.firstName} {document.verifiedBy.lastName}

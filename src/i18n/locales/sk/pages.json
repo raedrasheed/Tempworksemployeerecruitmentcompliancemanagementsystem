@@ -283,6 +283,31 @@
       "approvedByLabel": "Approved By",
       "none": "None",
       "notSpecified": "Not specified"
+    },
+    "applicantPdf": {
+      "personalInformation": "Personal Information",
+      "contactDetails": "Contact Details",
+      "permanentAddress": "Permanent Address",
+      "emergencyContact": "Emergency Contact",
+      "identification": "Identification & Legal Status",
+      "nationalIdCard": "National ID Card",
+      "euVisa": "EU Visa",
+      "euResidencePermit": "EU Residence Permit",
+      "euWorkPermit": "EU Work Permit",
+      "drivingLicense": "Driving License",
+      "professionalQualifications": "Professional Qualifications",
+      "workExperience": "Work Experience",
+      "skillsQualifications": "Skills & Qualifications",
+      "computerSkills": "Computer Skills",
+      "softSkills": "Soft Skills",
+      "additionalInformation": "Additional Information",
+      "footer": "TempWorks Europe — Confidential",
+      "dialog": {
+        "title": "Download Application PDF",
+        "description": "Optionally include uploaded documents in the PDF",
+        "uploadedDocuments": "Uploaded Documents",
+        "noUploadedDocuments": "No uploaded documents"
+      }
     }
   },
   "applicants": {
@@ -1660,6 +1685,10 @@
         "rejectAction": "Reject Request",
         "cancel": "Cancel"
       }
+    },
+    "editPage": {
+      "applicantSubtitle": "Update applicant information - ID: {{id}}",
+      "candidateSubtitle": "Update candidate information - ID: {{id}}"
     }
   },
   "agencies": {
@@ -1895,7 +1924,24 @@
       "title": "Overenie dokumentov",
       "pending": "Čakajúce dokumenty ({{count}})",
       "approve": "Schváliť",
-      "reject": "Zamietnuť"
+      "reject": "Zamietnuť",
+      "loading": "Loading…",
+      "viewOnly": "View Only — insufficient permissions to verify",
+      "awaitingReview": "Awaiting Review",
+      "documentTypes": "Document Types",
+      "matchingSearch": "Matching Search",
+      "searchPh": "Search by document name, type, or driver name…",
+      "allClear": "All clear!",
+      "noPending": "No documents are awaiting verification.",
+      "noMatches": "No documents match your search.",
+      "tableHeaders": {
+        "document": "Document",
+        "type": "Type",
+        "entity": "Employee / Entity",
+        "uploadedBy": "Uploaded By",
+        "expiryDate": "Expiry Date",
+        "actions": "Actions"
+      }
     },
     "preview": {
       "title": "Dokument",
@@ -1908,11 +1954,62 @@
       "rejectSuccess": "Document rejected",
       "rejectFailed": "Failed to reject document",
       "deleteSuccess": "Document deleted",
-      "deleteFailed": "Failed to delete document"
+      "deleteFailed": "Failed to delete document",
+      "pageTitle": "Document Preview",
+      "loading": "Loading…",
+      "previewNotAvailable": "Preview not available",
+      "downloadToView": "Download to view",
+      "details": "Document Details",
+      "name": "Name",
+      "type": "Type",
+      "status": "Status",
+      "documentNumber": "Document Number",
+      "issuer": "Issuer",
+      "issueDate": "Issue Date",
+      "expiryDate": "Expiry Date",
+      "uploaded": "Uploaded",
+      "uploadedBy": "Uploaded By",
+      "rejectedBy": "Rejected By",
+      "verifiedBy": "Verified By",
+      "statusBadge": {
+        "valid": "Valid",
+        "expiringSoon": "Expiring Soon",
+        "expired": "Expired",
+        "rejected": "Rejected",
+        "pending": "Pending Review"
+      }
     },
     "upload": {
       "title": "Nahrať dokument",
-      "back": "Späť"
+      "back": "Späť",
+      "subtitle": "Upload a new employee document for verification",
+      "infoCardTitle": "Document Information",
+      "selectEmployee": "Select Employee *",
+      "chooseEmployeePh": "Choose employee",
+      "documentType": "Document Type *",
+      "selectDocTypePh": "Select document type",
+      "documentName": "Document Name *",
+      "documentNamePh": "e.g. Passport John Doe",
+      "issueDate": "Issue Date",
+      "expiryDate": "Expiry Date",
+      "documentNumber": "Document Number",
+      "documentNumberPh": "e.g. AB123456",
+      "issuer": "Issuer",
+      "issuerPh": "e.g. DVLA",
+      "notes": "Notes",
+      "notesPh": "Optional notes",
+      "uploadFile": "Upload File *",
+      "clickOrDrag": "Click to upload or drag and drop",
+      "fileTypesHelp": "PDF, JPG, PNG, DOC up to 10MB",
+      "uploading": "Uploading…",
+      "uploadButton": "Upload Document",
+      "loadFailed": "Failed to load form data",
+      "fileRequired": "Please select a file",
+      "employeeRequired": "Please select an employee",
+      "docTypeRequired": "Please select a document type",
+      "nameRequired": "Please enter a document name",
+      "uploadSuccess": "Document uploaded successfully",
+      "uploadFailed": "Failed to upload document"
     },
     "edit": {
       "title": "Upraviť dokument",
@@ -1941,7 +2038,23 @@
     },
     "employee": {
       "title": "Súlad zamestnanca",
-      "back": "Späť"
+      "back": "Späť",
+      "loading": "Loading…",
+      "notFound": "Employee not found",
+      "headerSuffix": " — Compliance",
+      "subtitle": "Compliance status and document overview",
+      "validDocuments": "Valid Documents",
+      "expiringSoon": "Expiring Soon",
+      "expiredDocuments": "Expired Documents",
+      "documentsCount": "Documents ({{count}})",
+      "noDocuments": "No documents found for this employee.",
+      "expiresPrefix": "Expires: {{date}}",
+      "noExpiry": "No expiry",
+      "statusBadge": {
+        "valid": "Valid",
+        "expired": "Expired",
+        "expiringSoon": "Expiring Soon"
+      }
     }
   },
   "workflow": {
@@ -2389,14 +2502,23 @@
       "title": "Dochádzkové hárky",
       "subtitle": "Mesačná dochádzka na zamestnanca",
       "addButton": "Nový hárok",
-      "empty": "Zatiaľ žiadne hárky."
+      "empty": "Zatiaľ žiadne hárky.",
+      "toggleColumns": "Toggle columns",
+      "showAll": "Show all",
+      "hideAll": "Hide all",
+      "noEmployees": "No employees found"
     },
     "sheet": {
       "title": "Dochádzkový hárok",
       "back": "Späť na dochádzku",
       "save": "Uložiť hárok",
       "lock": "Uzamknúť obdobie",
-      "unlock": "Odomknúť obdobie"
+      "unlock": "Odomknúť obdobie",
+      "checkIn": "Check In",
+      "checkOut": "Check Out",
+      "status": "Status:",
+      "checkInLabel": "Check In:",
+      "checkOutLabel": "Check Out:"
     }
   },
   "reports": {

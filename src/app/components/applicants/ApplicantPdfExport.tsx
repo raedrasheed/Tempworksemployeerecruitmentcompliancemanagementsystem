@@ -6,8 +6,13 @@
 import { useState, useEffect } from 'react';
 import { Document, Page, Text, View, StyleSheet, pdf, Image } from '@react-pdf/renderer';
 import { PDFDocument } from 'pdf-lib';
+import { useTranslation } from 'react-i18next';
 import { FileText, Download, Loader2, X, CheckSquare, Square } from 'lucide-react';
 import { Button } from '../ui/button';
+import i18n from '../../../i18n';
+
+const tp = (k: string, opts?: Record<string, unknown>): string =>
+  i18n.t(`applicants.applicantPdf.${k}`, { ns: 'pages', ...(opts ?? {}) }) as string;
 import { Checkbox } from '../ui/checkbox';
 import { Label } from '../ui/label';
 
@@ -81,7 +86,7 @@ export function ApplicantPDF({ applicant, photoDataUrl }: { applicant: any; phot
 
         {/* Personal */}
         <View style={S.section}>
-          <Text style={S.sectionTitle}>Personal Information</Text>
+          <Text style={S.sectionTitle}>{tp('personalInformation')}</Text>
           <View style={S.grid2}>
             <F label="First Name" value={applicant.firstName} />
             <F label="Last Name" value={applicant.lastName} />
@@ -102,7 +107,7 @@ export function ApplicantPDF({ applicant, photoDataUrl }: { applicant: any; phot
 
         {/* Contact */}
         <View style={S.section}>
-          <Text style={S.sectionTitle}>Contact Details</Text>
+          <Text style={S.sectionTitle}>{tp('contactDetails')}</Text>
           <View style={S.grid2}>
             <F label="Email" value={applicant.email} />
             <F label="Phone" value={applicant.phone} />
@@ -111,7 +116,7 @@ export function ApplicantPDF({ applicant, photoDataUrl }: { applicant: any; phot
             <>
               {ad.homeAddress?.addressLine1 && (
                 <>
-                  <Text style={S.subTitle}>Permanent Address</Text>
+                  <Text style={S.subTitle}>{tp('permanentAddress')}</Text>
                   <View style={S.grid2}>
                     <FF label="Address" value={[ad.homeAddress.addressLine1, ad.homeAddress.addressLine2].filter(Boolean).join(', ')} />
                     <F label="City" value={ad.homeAddress.city} />
@@ -124,7 +129,7 @@ export function ApplicantPDF({ applicant, photoDataUrl }: { applicant: any; phot
           )}
           {ad.emergencyFirstName && (
             <>
-              <Text style={S.subTitle}>Emergency Contact</Text>
+              <Text style={S.subTitle}>{tp('emergencyContact')}</Text>
               <View style={S.grid2}>
                 <F label="Name" value={`${ad.emergencyFirstName} ${ad.emergencyLastName}`} />
                 <F label="Relationship" value={ad.emergencyRelation} />
@@ -137,7 +142,7 @@ export function ApplicantPDF({ applicant, photoDataUrl }: { applicant: any; phot
 
         {/* Identification */}
         <View style={S.section}>
-          <Text style={S.sectionTitle}>Identification & Legal Status</Text>
+          <Text style={S.sectionTitle}>{tp('identification')}</Text>
           <Text style={S.subTitle}>Passport</Text>
           <View style={S.grid2}>
             <F label="Passport Number" value={ad.passportNumber} />
@@ -147,7 +152,7 @@ export function ApplicantPDF({ applicant, photoDataUrl }: { applicant: any; phot
           </View>
           {ad.hasIdCard === 'yes' && (
             <>
-              <Text style={S.subTitle}>National ID Card</Text>
+              <Text style={S.subTitle}>{tp('nationalIdCard')}</Text>
               <View style={S.grid2}>
                 <F label="ID Number" value={ad.idCardNumber} />
                 <F label="Country" value={ad.idCardCountry} />
@@ -157,7 +162,7 @@ export function ApplicantPDF({ applicant, photoDataUrl }: { applicant: any; phot
           )}
           {ad.hasEuVisa === 'yes' && (
             <>
-              <Text style={S.subTitle}>EU Visa</Text>
+              <Text style={S.subTitle}>{tp('euVisa')}</Text>
               <View style={S.grid2}>
                 <F label="Type" value={ad.euVisaType} />
                 <F label="Issuing Country" value={ad.euVisaCountry} />
@@ -169,7 +174,7 @@ export function ApplicantPDF({ applicant, photoDataUrl }: { applicant: any; phot
           )}
           {ad.hasEuResidence === 'yes' && (
             <>
-              <Text style={S.subTitle}>EU Residence Permit</Text>
+              <Text style={S.subTitle}>{tp('euResidencePermit')}</Text>
               <View style={S.grid2}>
                 <F label="Permit Number" value={ad.euResidenceNumber} />
                 <F label="Country" value={ad.euResidenceCountry} />
@@ -179,7 +184,7 @@ export function ApplicantPDF({ applicant, photoDataUrl }: { applicant: any; phot
           )}
           {ad.hasWorkPermit === 'yes' && (
             <>
-              <Text style={S.subTitle}>EU Work Permit</Text>
+              <Text style={S.subTitle}>{tp('euWorkPermit')}</Text>
               <View style={S.grid2}>
                 <F label="Type" value={ad.workPermitType} />
                 <F label="Number" value={ad.workPermitNumber} />
@@ -199,7 +204,7 @@ export function ApplicantPDF({ applicant, photoDataUrl }: { applicant: any; phot
         </View>
 
         <View style={S.footer} fixed>
-          <Text style={S.footerText}>TempWorks Europe — Confidential</Text>
+          <Text style={S.footerText}>{tp('footer')}</Text>
           <Text style={S.footerText} render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`} />
         </View>
       </Page>
@@ -209,7 +214,7 @@ export function ApplicantPDF({ applicant, photoDataUrl }: { applicant: any; phot
         {/* Driving License */}
         {ad.hasDrivingLicense === 'yes' && (
           <View style={S.section}>
-            <Text style={S.sectionTitle}>Driving License</Text>
+            <Text style={S.sectionTitle}>{tp('drivingLicense')}</Text>
             <View style={S.grid2}>
               <F label="License Number" value={ad.licenseNumber} />
               <F label="Issuing Country" value={ad.licenseCountry} />
@@ -226,7 +231,7 @@ export function ApplicantPDF({ applicant, photoDataUrl }: { applicant: any; phot
             )}
             {ad.qualifications?.length > 0 && (
               <>
-                <Text style={S.subTitle}>Professional Qualifications</Text>
+                <Text style={S.subTitle}>{tp('professionalQualifications')}</Text>
                 {ad.qualifications.map((q: any, i: number) => (
                   <View key={i} style={S.entryBox}>
                     <View style={S.grid2}>
@@ -266,7 +271,7 @@ export function ApplicantPDF({ applicant, photoDataUrl }: { applicant: any; phot
         {/* Work History */}
         {ad.workHistory?.length > 0 && (
           <View style={S.section}>
-            <Text style={S.sectionTitle}>Work Experience</Text>
+            <Text style={S.sectionTitle}>{tp('workExperience')}</Text>
             {ad.workHistory.map((w: any, i: number) => (
               <View key={i} style={S.entryBox}>
                 <Text style={S.entryNum}>Position {i + 1}</Text>
@@ -285,7 +290,7 @@ export function ApplicantPDF({ applicant, photoDataUrl }: { applicant: any; phot
         )}
 
         <View style={S.footer} fixed>
-          <Text style={S.footerText}>TempWorks Europe — Confidential</Text>
+          <Text style={S.footerText}>{tp('footer')}</Text>
           <Text style={S.footerText} render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`} />
         </View>
       </Page>
@@ -294,7 +299,7 @@ export function ApplicantPDF({ applicant, photoDataUrl }: { applicant: any; phot
       <Page size="A4" style={S.page}>
         {/* Skills */}
         <View style={S.section}>
-          <Text style={S.sectionTitle}>Skills & Qualifications</Text>
+          <Text style={S.sectionTitle}>{tp('skillsQualifications')}</Text>
           {ad.languages?.length > 0 && (
             <>
               <Text style={S.subTitle}>Languages</Text>
@@ -309,7 +314,7 @@ export function ApplicantPDF({ applicant, photoDataUrl }: { applicant: any; phot
           )}
           {ad.computerSkills?.length > 0 && (
             <>
-              <Text style={S.subTitle}>Computer Skills</Text>
+              <Text style={S.subTitle}>{tp('computerSkills')}</Text>
               <View style={S.badgesRow}>
                 {ad.computerSkills.map((s: string) => <Text key={s} style={S.badge}>{s}</Text>)}
               </View>
@@ -317,7 +322,7 @@ export function ApplicantPDF({ applicant, photoDataUrl }: { applicant: any; phot
           )}
           {ad.softSkills?.length > 0 && (
             <>
-              <Text style={S.subTitle}>Soft Skills</Text>
+              <Text style={S.subTitle}>{tp('softSkills')}</Text>
               <View style={S.badgesRow}>
                 {ad.softSkills.map((s: string) => <Text key={s} style={S.badge}>{s}</Text>)}
               </View>
@@ -332,7 +337,7 @@ export function ApplicantPDF({ applicant, photoDataUrl }: { applicant: any; phot
 
         {/* Additional */}
         <View style={S.section}>
-          <Text style={S.sectionTitle}>Additional Information</Text>
+          <Text style={S.sectionTitle}>{tp('additionalInformation')}</Text>
           <View style={S.grid2}>
             <F label="How Did You Hear" value={ad.howDidYouHear} />
             <F label="Additional Notes" value={ad.additionalNotes} />
@@ -350,7 +355,7 @@ export function ApplicantPDF({ applicant, photoDataUrl }: { applicant: any; phot
         </View>
 
         <View style={S.footer} fixed>
-          <Text style={S.footerText}>TempWorks Europe — Confidential</Text>
+          <Text style={S.footerText}>{tp('footer')}</Text>
           <Text style={S.footerText} render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`} />
         </View>
       </Page>
@@ -425,6 +430,7 @@ interface Props {
 }
 
 export function ApplicantPdfExportButton({ applicant, documents }: Props) {
+  const { t } = useTranslation('pages');
   const [open, setOpen] = useState(false);
   // Pre-select every uploaded document by default so the "Download PDF"
   // button produces a complete bundle on first click. The operator can
@@ -486,8 +492,8 @@ export function ApplicantPdfExportButton({ applicant, documents }: Props) {
             {/* Header */}
             <div className="flex items-center justify-between p-5 border-b">
               <div>
-                <h3 className="font-semibold text-gray-900">Download Application PDF</h3>
-                <p className="text-sm text-gray-500 mt-0.5">Optionally include uploaded documents in the PDF</p>
+                <h3 className="font-semibold text-gray-900">{t('applicants.applicantPdf.dialog.title')}</h3>
+                <p className="text-sm text-gray-500 mt-0.5">{t('applicants.applicantPdf.dialog.description')}</p>
               </div>
               <button onClick={() => setOpen(false)} className="p-1 text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
             </div>
@@ -495,7 +501,7 @@ export function ApplicantPdfExportButton({ applicant, documents }: Props) {
             {/* Document selection */}
             <div className="flex-1 overflow-y-auto p-5 space-y-3">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-700">Uploaded Documents</span>
+                <span className="text-sm font-medium text-gray-700">{t('applicants.applicantPdf.dialog.uploadedDocuments')}</span>
                 <div className="flex gap-3">
                   <button onClick={selectAll} className="text-xs text-blue-600 hover:underline flex items-center gap-1"><CheckSquare className="w-3 h-3" /> All</button>
                   <button onClick={clearAll} className="text-xs text-gray-500 hover:underline flex items-center gap-1"><Square className="w-3 h-3" /> None</button>
@@ -503,7 +509,7 @@ export function ApplicantPdfExportButton({ applicant, documents }: Props) {
               </div>
 
               {documents.length === 0 ? (
-                <p className="text-sm text-gray-400 text-center py-6">No uploaded documents</p>
+                <p className="text-sm text-gray-400 text-center py-6">{t('applicants.applicantPdf.dialog.noUploadedDocuments')}</p>
               ) : (
                 documents.map(doc => (
                   <label key={doc.id} className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${selectedDocs.has(doc.id) ? 'bg-blue-50 border-blue-300' : 'hover:bg-gray-50 border-gray-200'}`}>

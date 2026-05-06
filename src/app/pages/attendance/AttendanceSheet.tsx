@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import {
   ArrowLeft,
   Pencil,
@@ -240,6 +241,7 @@ interface EditForm {
 // ─── Main Component ─────────────────────────────────────────────────────────────
 
 export function AttendanceSheet() {
+  const { t } = useTranslation('pages');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
@@ -604,8 +606,8 @@ export function AttendanceSheet() {
                     <TableHead className="w-24">Date</TableHead>
                     <TableHead className="w-16">Day</TableHead>
                     <TableHead className="w-32">Status</TableHead>
-                    <TableHead className="w-24">Check In</TableHead>
-                    <TableHead className="w-24">Check Out</TableHead>
+                    <TableHead className="w-24">{t('attendance.sheet.checkIn')}</TableHead>
+                    <TableHead className="w-24">{t('attendance.sheet.checkOut')}</TableHead>
                     <TableHead className="w-20">Hours</TableHead>
                     <TableHead>Notes</TableHead>
                     <TableHead className="text-end w-24">Actions</TableHead>
@@ -793,7 +795,7 @@ export function AttendanceSheet() {
             <div className="grid grid-cols-2 gap-3">
               {/* Check In */}
               <div className="space-y-1.5">
-                <Label htmlFor="edit-checkin">Check In</Label>
+                <Label htmlFor="edit-checkin">{t('attendance.sheet.checkIn')}</Label>
                 <Input
                   id="edit-checkin"
                   type="time"
@@ -805,7 +807,7 @@ export function AttendanceSheet() {
 
               {/* Check Out */}
               <div className="space-y-1.5">
-                <Label htmlFor="edit-checkout">Check Out</Label>
+                <Label htmlFor="edit-checkout">{t('attendance.sheet.checkOut')}</Label>
                 <Input
                   id="edit-checkout"
                   type="time"
@@ -894,20 +896,20 @@ export function AttendanceSheet() {
             {deleteRecord && (
               <div className="mt-3 p-3 rounded-md bg-muted/40 text-sm space-y-1">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Status:</span>
+                  <span className="text-muted-foreground">{t('attendance.sheet.status')}</span>
                   <Badge variant="outline" className={`text-xs ${statusColors[deleteRecord.status] ?? ''}`}>
                     {statusLabels[deleteRecord.status] ?? deleteRecord.status}
                   </Badge>
                 </div>
                 {deleteRecord.checkIn && (
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Check In:</span>
+                    <span className="text-muted-foreground">{t('attendance.sheet.checkInLabel')}</span>
                     <span className="font-mono">{deleteRecord.checkIn}</span>
                   </div>
                 )}
                 {deleteRecord.checkOut && (
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Check Out:</span>
+                    <span className="text-muted-foreground">{t('attendance.sheet.checkOutLabel')}</span>
                     <span className="font-mono">{deleteRecord.checkOut}</span>
                   </div>
                 )}

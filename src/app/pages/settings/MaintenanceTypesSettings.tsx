@@ -11,6 +11,7 @@ import {
 } from '../../components/ui/select';
 import { Textarea } from '../../components/ui/textarea';
 import { vehiclesApi } from '../../services/api';
+import { apiError } from '../../../i18n/apiError';
 import { usePermissions } from '../../hooks/usePermissions';
 import { confirm } from '../../components/ui/ConfirmDialog';
 
@@ -61,7 +62,7 @@ export function MaintenanceTypesSettings() {
       const data = await vehiclesApi.listMaintenanceTypes();
       setMaintenanceTypes(data);
     } catch {
-      toast.error('Failed to load maintenance types');
+      toast.error(t('toast.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -69,7 +70,7 @@ export function MaintenanceTypesSettings() {
 
   const handleAdd = async () => {
     if (!form.name.trim()) {
-      toast.error('Name is required');
+      toast.error(t('toast.nameRequired'));
       return;
     }
 
@@ -85,17 +86,17 @@ export function MaintenanceTypesSettings() {
 
       if (editingId) {
         await vehiclesApi.updateMaintenanceType(editingId, payload);
-        toast.success('Maintenance type updated');
+        toast.success(t('toast.savedSuccessfully'));
         setEditingId(null);
       } else {
         await vehiclesApi.createMaintenanceType(payload);
-        toast.success('Maintenance type created');
+        toast.success(t('toast.savedSuccessfully'));
       }
 
       setForm(INITIAL_FORM);
       await loadMaintenanceTypes();
     } catch (err: any) {
-      toast.error(err?.message ?? 'Failed to save');
+      toast.error(apiError(err, t('toast.saveFailed')));
     } finally {
       setSaving(false);
     }
@@ -127,10 +128,10 @@ export function MaintenanceTypesSettings() {
 
     try {
       await vehiclesApi.deleteMaintenanceType(id);
-      toast.success('Maintenance type deleted');
+      toast.success(t('toast.deleted'));
       await loadMaintenanceTypes();
     } catch {
-      toast.error('Failed to delete maintenance type');
+      toast.error(t('toast.deleteFailed'));
     }
   };
 

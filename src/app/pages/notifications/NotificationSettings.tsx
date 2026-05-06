@@ -61,7 +61,7 @@ export function NotificationSettings() {
         }
         setPrefs(prefMap);
       })
-      .catch(() => toast.error('Failed to load notification preferences'))
+      .catch(() => toast.error(t('notifications.toast.loadPrefsFailed')))
       .finally(() => setLoading(false));
   }, []);
 
@@ -81,9 +81,9 @@ export function NotificationSettings() {
     try {
       await notificationsApi.updatePreferences(prefs);
       setDirty(false);
-      toast.success('Notification preferences saved');
+      toast.success(t('notifications.toast.savePrefsSuccess'));
     } catch {
-      toast.error('Failed to save preferences');
+      toast.error(t('notifications.toast.savePrefsFailed'));
     } finally {
       setSaving(false);
     }

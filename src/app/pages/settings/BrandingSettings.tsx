@@ -9,6 +9,7 @@ import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Textarea } from '../../components/ui/textarea';
 import { settingsApi, resolveAssetUrl } from '../../services/api';
+import { apiError } from '../../../i18n/apiError';
 import { invalidateBrandingCache, BRANDING_DEFAULTS } from '../../hooks/useBranding';
 
 interface BrandingForm {
@@ -42,6 +43,7 @@ const EMPTY_FORM: BrandingForm = {
 
 export function BrandingSettings() {
   const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const [form, setForm] = useState<BrandingForm>(EMPTY_FORM);
   const [logoUrl, setLogoUrl] = useState<string | undefined>();
   const [previewUrl, setPreviewUrl] = useState<string | undefined>();
@@ -81,7 +83,7 @@ export function BrandingSettings() {
     setForm(f => ({ ...f, [key]: e.target.value }));
 
   const handleSave = async () => {
-    if (!form.companyName.trim()) { toast.error('Company name is required'); return; }
+    if (!form.companyName.trim()) { toast.error(tc('toast.companyNameRequired')); return; }
     setSaving(true);
     try {
       const payload: Record<string, string> = {};
@@ -90,9 +92,9 @@ export function BrandingSettings() {
       }
       await settingsApi.update(payload);
       invalidateBrandingCache();
-      toast.success('Branding saved');
+      toast.success(tc('toast.savedSuccessfully'));
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to save');
+      toast.error(apiError(err, tc('toast.saveFailed')));
     } finally {
       setSaving(false);
     }
@@ -114,9 +116,9 @@ export function BrandingSettings() {
       setPreviewUrl(undefined);
       setSelectedFile(null);
       invalidateBrandingCache();
-      toast.success('Logo uploaded');
+      toast.success(tc('toast.logoUploaded'));
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to upload logo');
+      toast.error(apiError(err, tc('toast.uploadFailed')));
     } finally {
       setUploading(false);
     }

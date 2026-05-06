@@ -641,7 +641,7 @@ export function UsersList() {
               <Button className="flex-1" onClick={handleBulkImport} disabled={importing || !csvText.trim()}>
                 {importing ? 'Importing...' : 'Import Records'}
               </Button>
-              <Button variant="outline" className="flex-1" onClick={() => { setShowImportModal(false); setCsvText(''); }}>Cancel</Button>
+              <Button variant="outline" className="flex-1" onClick={() => { setShowImportModal(false); setCsvText(''); }}>{tc('actions.cancel')}</Button>
             </div>
           </div>
         </div>

@@ -10,6 +10,7 @@ import { Input } from '../../components/ui/input';
 import { Switch } from '../../components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { settingsApi } from '../../services/api';
+import { apiError } from '../../../i18n/apiError';
 
 const LOCKOUT_SETTING_KEY  = 'MAX_LOGIN_ATTEMPTS';
 const IDLE_SETTING_KEY     = 'SESSION_IDLE_TIMEOUT_MINUTES';
@@ -27,6 +28,7 @@ function findSettingValue(grouped: Record<string, any[]> | null, key: string): s
 
 export function SecuritySettings() {
   const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const [loading, setLoading]               = useState(true);
   const [saving, setSaving]                 = useState(false);
   const [maxAttempts, setMaxAttempts]       = useState<string>(String(DEFAULT_MAX_ATTEMPTS));
@@ -46,7 +48,7 @@ export function SecuritySettings() {
         setIdleMinutes(idle);
         setInitialIdle(idle);
       })
-      .catch(() => toast.error('Failed to load security settings'))
+      .catch(() => toast.error(tc('toast.loadFailed')))
       .finally(() => setLoading(false));
   }, []);
 
@@ -62,7 +64,7 @@ export function SecuritySettings() {
       setInitialAttempts(String(n));
       toast.success(t('settings.security.lockoutUpdated'));
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to save');
+      toast.error(apiError(err, tc('toast.saveFailed')));
     } finally {
       setSaving(false);
     }
@@ -80,7 +82,7 @@ export function SecuritySettings() {
       setInitialIdle(String(n));
       toast.success(t('settings.security.idleUpdated'));
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to save');
+      toast.error(apiError(err, tc('toast.saveFailed')));
     } finally {
       setSavingIdle(false);
     }

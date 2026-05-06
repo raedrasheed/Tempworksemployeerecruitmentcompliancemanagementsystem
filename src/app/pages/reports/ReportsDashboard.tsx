@@ -20,6 +20,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/ta
 import { toast } from 'sonner';
 import { confirm } from '../../components/ui/ConfirmDialog';
 import { reportsApi } from '../../services/api';
+import { apiError } from '../../../i18n/apiError';
 import { usePermissions } from '../../hooks/usePermissions';
 
 const PALETTE = ['#2563EB', '#22C55E', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4', '#EC4899'];
@@ -130,6 +131,7 @@ function PreviewTable({ result, maxRows, startSerial = 1 }: { result: any; maxRo
 // ═════════════════════════════════════════════════════════════════════════════
 export function ReportsDashboard() {
   const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const { canEdit } = usePermissions();
 
   const [kpis, setKpis]           = useState<any>(null);
@@ -192,20 +194,20 @@ export function ReportsDashboard() {
   const refreshList = async () => { const r: any = await reportsApi.list(); setSavedReports(Array.isArray(r) ? r : (r?.data ?? [])); };
 
   const handleSave = async () => {
-    if (!builder.name.trim()) { toast.error('Report name is required'); return; }
-    if (!builder.dataSource)  { toast.error('Select a data source');    return; }
+    if (!builder.name.trim()) { toast.error(tc('toast.reportNameRequired')); return; }
+    if (!builder.dataSource)  { toast.error(tc('toast.selectDataSource'));    return; }
     setSaving(true);
     try {
-      if (editingId) { await reportsApi.update(editingId, buildPayload()); toast.success('Report updated'); }
-      else           { await reportsApi.create(buildPayload());             toast.success('Report saved');   }
+      if (editingId) { await reportsApi.update(editingId, buildPayload()); toast.success(tc('toast.savedSuccessfully')); }
+      else           { await reportsApi.create(buildPayload());             toast.success(tc('toast.savedSuccessfully'));   }
       await refreshList(); resetBuilder();
-    } catch (err: any) { toast.error(err?.message || 'Save failed'); }
+    } catch (err: any) { toast.error(apiError(err, tc('toast.saveFailed'))); }
     finally { setSaving(false); }
   };
 
   const handlePreview = async () => {
-    if (!builder.name.trim()) { toast.error('Give the report a name first'); return; }
-    if (!builder.dataSource)  { toast.error('Select a data source');          return; }
+    if (!builder.name.trim()) { toast.error(tc('toast.giveReportName')); return; }
+    if (!builder.dataSource)  { toast.error(tc('toast.selectDataSource'));          return; }
     setPreviewLoading(true);
     try {
       const pl = buildPayload();
@@ -214,14 +216,14 @@ export function ReportsDashboard() {
       const result = await reportsApi.run(saved.id, { page: 1, limit: 50 });
       setPreviewResult(result);
       await refreshList();
-    } catch (err: any) { toast.error(err?.message || 'Preview failed'); }
+    } catch (err: any) { toast.error(apiError(err, tc('toast.operationFailed'))); }
     finally { setPreviewLoading(false); }
   };
 
   const handleRunReport = async (id: string) => {
     setRunningId(id);
     try { const r = await reportsApi.run(id, { page: 1, limit: 100 }); setRunResult(p => ({ ...p, [id]: r })); }
-    catch (err: any) { toast.error(err?.message || 'Run failed'); }
+    catch (err: any) { toast.error(apiError(err, tc('toast.operationFailed'))); }
     finally { setRunningId(null); }
   };
 
@@ -232,8 +234,8 @@ export function ReportsDashboard() {
       const blob = await reportsApi.export(id, format);
       const ext  = format === 'excel' ? 'xlsx' : format === 'word' ? 'docx' : 'pdf';
       triggerDownload(blob, `${name.replace(/\s+/g, '_')}_${Date.now()}.${ext}`);
-      toast.success(`Downloaded as ${ext.toUpperCase()}`);
-    } catch (err: any) { toast.error(err?.message || 'Export failed'); }
+      toast.success(tc('toast.downloadedAs', { format: ext.toUpperCase() }));
+    } catch (err: any) { toast.error(apiError(err, tc('toast.exportFailed'))); }
     finally { setExporting(p => ({ ...p, [key]: false })); }
   };
 
@@ -243,8 +245,8 @@ export function ReportsDashboard() {
       description: t('common:confirm.deleteReportBody'),
       confirmText: t('common:actions.delete'), tone: 'destructive',
     }))) return;
-    try { await reportsApi.delete(id); setSavedReports(p => p.filter(r => r.id !== id)); if (editingId === id) resetBuilder(); toast.success('Deleted'); }
-    catch (err: any) { toast.error(err?.message || 'Delete failed'); }
+    try { await reportsApi.delete(id); setSavedReports(p => p.filter(r => r.id !== id)); if (editingId === id) resetBuilder(); toast.success(tc('toast.deleted')); }
+    catch (err: any) { toast.error(apiError(err, tc('toast.deleteFailed'))); }
   };
 
   // ─────────────────────────────────────────────────────────────────────────

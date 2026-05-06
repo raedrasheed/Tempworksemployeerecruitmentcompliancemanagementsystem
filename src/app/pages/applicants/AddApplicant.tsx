@@ -92,7 +92,7 @@ export function AddApplicant() {
             prevFilesRef.current = restored;
           }
 
-          toast.info('Resumed your saved draft — finish and submit to create the applicant.');
+          toast.info(t('applicants.toast.draftResumed'));
         })
         .catch(() => { /* no draft, quiet fall-through */ }),
     ]);
@@ -114,7 +114,7 @@ export function AddApplicant() {
             setDraftPhotoUrl(resolveAssetUrl(d.photoUrl));
           }
         })
-        .catch(() => toast.error('Photo upload failed — it won\'t be saved to your draft.'));
+        .catch(() => toast.error(t('applicants.toast.photoUploadFailedDraft')));
     } else if (draftPhotoUrl) {
       setDraftPhotoUrl(null);
       applicationDraftsApi.deletePhoto().catch(() => {});
@@ -159,7 +159,7 @@ export function AddApplicant() {
               : f,
           );
         })
-        .catch(() => toast.error('Document upload failed — it won\'t be saved to your draft.'));
+        .catch(() => toast.error(t('applicants.toast.documentUploadFailedDraft')));
     }
 
     // 2. Removals — items that were in `prev` with a draftDocId but
@@ -227,7 +227,7 @@ export function AddApplicant() {
     try {
       const saved = await applicationDraftsApi.saveMine({ formData });
       setDraftId(saved.id);
-      toast.success('Draft saved — you can come back to this page to continue.');
+      toast.success(t('applicants.toast.draftSaved'));
     } catch (err: any) {
       toast.error(err?.message || 'Failed to save draft');
     } finally {
@@ -269,7 +269,7 @@ export function AddApplicant() {
     try {
       await applicationDraftsApi.submitMine(buildPayload());
       setDraftId(null);
-      toast.success('Applicant created successfully');
+      toast.success(tc('toast.savedSuccessfully'));
       // Agency submissions land on the Candidates queue (pending
       // Tempworks approval). Tempworks-staff submissions stay on
       // the Applicants (Leads) list.

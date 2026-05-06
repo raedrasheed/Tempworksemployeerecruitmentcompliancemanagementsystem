@@ -193,6 +193,7 @@ function triggerZipDownload(blob: Blob, filename: string) {
 
 export function EmployeeDocumentExplorer() {
   const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'employees' | 'applicants'>('employees');
 
@@ -315,7 +316,7 @@ export function EmployeeDocumentExplorer() {
         counts.forEach(c => { map[c.id] = c.count; });
         setApplicantDocCounts(map);
       });
-    }).catch(() => toast.error('Failed to load data'))
+    }).catch(() => toast.error(tc('toast.loadFailed')))
       .finally(() => setLoading(false));
   }, []);
 

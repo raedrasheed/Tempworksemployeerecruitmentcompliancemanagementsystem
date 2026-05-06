@@ -185,7 +185,7 @@ export function DocumentsCompliance() {
       setDocuments(res.data ?? []);
       setMeta(res.meta ?? { total: 0, page: p, limit, totalPages: 1 });
     } catch {
-      toast.error('Failed to load documents');
+      toast.error(tc('toast.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -274,22 +274,22 @@ export function DocumentsCompliance() {
     try {
       const updated = await documentsApi.verify(doc.id, { action: 'VERIFY' });
       setDocuments(prev => prev.map(d => d.id === doc.id ? updated : d));
-      toast.success(`"${doc.name}" approved`);
+      toast.success(tc('toast.approvedNamed', { name: doc.name }));
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to approve document');
+      toast.error(apiError(err, tc('toast.operationFailed')));
     } finally { setVerifying(null); }
   };
 
   const handleReject = async () => {
-    if (!rejectionReason.trim()) { toast.error('A rejection reason is required'); return; }
+    if (!rejectionReason.trim()) { toast.error(tc('toast.rejectionReasonRequired')); return; }
     setVerifying(rejectDialog.docId);
     try {
       const updated = await documentsApi.verify(rejectDialog.docId, { action: 'REJECT', reason: rejectionReason.trim() });
       setDocuments(prev => prev.map(d => d.id === rejectDialog.docId ? updated : d));
-      toast.success(`"${rejectDialog.docName}" rejected`);
+      toast.success(tc('toast.rejectedNamed', { name: rejectDialog.docName }));
       setRejectDialog({ open: false, docId: '', docName: '' });
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to reject document');
+      toast.error(apiError(err, tc('toast.operationFailed')));
     } finally { setVerifying(null); }
   };
 
@@ -325,11 +325,11 @@ export function DocumentsCompliance() {
         issuer:         renewForm.issuer         || undefined,
         notes:          renewForm.notes          || undefined,
       });
-      toast.success(`Renewal created: ${renewed.docId ?? renewed.id}`);
+      toast.success(tc('toast.renewalCreated', { id: renewed.docId ?? renewed.id }));
       setRenewDialog({ open: false, doc: null });
       load(page);
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to create renewal');
+      toast.error(apiError(err, tc('toast.operationFailed')));
     } finally { setRenewing(false); }
   };
 
@@ -602,7 +602,7 @@ export function DocumentsCompliance() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setRejectDialog(s => ({ ...s, open: false }))}>Cancel</Button>
+            <Button variant="outline" onClick={() => setRejectDialog(s => ({ ...s, open: false }))}>{tc('actions.cancel')}</Button>
             <Button className="bg-red-500 hover:bg-red-600 text-white" onClick={handleReject} disabled={!!verifying || !rejectionReason.trim()}>
               <XCircle className="w-4 h-4 me-2" />{verifying ? 'Rejecting…' : 'Confirm Rejection'}
             </Button>
@@ -632,7 +632,7 @@ export function DocumentsCompliance() {
             <div><Label>Notes</Label><Input value={renewForm.notes} onChange={e => setRenewForm(p => ({ ...p, notes: e.target.value }))} /></div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setRenewDialog(s => ({ ...s, open: false }))}>Cancel</Button>
+            <Button variant="outline" onClick={() => setRenewDialog(s => ({ ...s, open: false }))}>{tc('actions.cancel')}</Button>
             <Button onClick={handleRenew} disabled={renewing}>
               <RefreshCw className="w-4 h-4 me-2" />{renewing ? 'Creating…' : 'Create Renewal'}
             </Button>

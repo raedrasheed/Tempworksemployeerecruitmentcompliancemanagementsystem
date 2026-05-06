@@ -431,6 +431,7 @@ interface Props {
 
 export function ApplicantPdfExportButton({ applicant, documents }: Props) {
   const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const [open, setOpen] = useState(false);
   // Pre-select every uploaded document by default so the "Download PDF"
   // button produces a complete bundle on first click. The operator can
@@ -530,7 +531,7 @@ export function ApplicantPdfExportButton({ applicant, documents }: Props) {
                 {selectedDocs.size > 0 ? `${selectedDocs.size} document${selectedDocs.size > 1 ? 's' : ''} will be appended` : 'Application data only'}
               </p>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => setOpen(false)}>Cancel</Button>
+                <Button variant="outline" size="sm" onClick={() => setOpen(false)}>{tc('actions.cancel')}</Button>
                 <Button size="sm" onClick={handleExport} disabled={generating} className="gap-2">
                   {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
                   {generating ? 'Generating…' : 'Download PDF'}

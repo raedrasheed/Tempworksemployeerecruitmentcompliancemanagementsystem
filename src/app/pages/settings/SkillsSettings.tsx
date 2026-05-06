@@ -11,6 +11,7 @@ import { usePermissions } from '../../hooks/usePermissions';
 
 export function SkillsSettings() {
   const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const { canEdit } = usePermissions();
   const isAdmin = canEdit('settings');
   const [skills, setSkills] = useState<string[]>([]);
@@ -45,9 +46,9 @@ export function SkillsSettings() {
     setSaving(true);
     try {
       await settingsApi.update({ 'form.skills': JSON.stringify(skills) });
-      toast.success('Skills list saved');
+      toast.success(tc('toast.savedSuccessfully'));
     } catch {
-      toast.error('Failed to save skills');
+      toast.error(tc('toast.saveFailed'));
     } finally {
       setSaving(false);
     }

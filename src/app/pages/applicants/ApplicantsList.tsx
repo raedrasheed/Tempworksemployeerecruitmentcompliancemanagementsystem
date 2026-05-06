@@ -359,7 +359,7 @@ export function ApplicantsList() {
   // the handler only runs with at least one id.
   const handleExportExcel = () => {
     if (selected.size === 0) {
-      toast.error('Select one or more rows to export');
+      toast.error(tc('toast.selectOneOrMoreToExport'));
       return;
     }
     const token = getAccessToken();
@@ -377,7 +377,7 @@ export function ApplicantsList() {
         document.body.appendChild(a); a.click();
         document.body.removeChild(a); URL.revokeObjectURL(objectUrl);
       })
-      .catch(() => toast.error('Export failed'));
+      .catch(() => toast.error(tc('toast.exportFailed')));
   };
 
   // ── Filters ────────────────────────────────────────────────────────────────
@@ -454,7 +454,7 @@ export function ApplicantsList() {
                   disabled={bulkActionInProgress}
                   onClick={() => {
                     if (selected.size === 0) {
-                      toast.error('Select at least one applicant');
+                      toast.error(t('applicants.toast.selectAtLeastOneApplicant'));
                       return;
                     }
                     setPendingStatus('');
@@ -782,7 +782,7 @@ export function ApplicantsList() {
               disabled={bulkActionInProgress || !pendingStatus}
               onClick={async () => {
                 if (!pendingStatus) {
-                  toast.error('Please select a status');
+                  toast.error(tc('toast.selectStatus'));
                   return;
                 }
                 setStatusModalOpen(false);

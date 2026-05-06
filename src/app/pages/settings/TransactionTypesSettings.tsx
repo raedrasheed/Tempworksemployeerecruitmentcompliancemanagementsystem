@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { settingsApi } from '../../services/api';
+import { apiError } from '../../../i18n/apiError';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
@@ -28,6 +29,7 @@ type TxType = {
 
 export function TransactionTypesSettings() {
   const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const { canCreate, canEdit, canDelete } = usePermissions();
   const [items, setItems] = useState<TxType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,7 +52,7 @@ export function TransactionTypesSettings() {
       const data = await settingsApi.getTransactionTypes(true);
       setItems(data);
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to load transaction types');
+      toast.error(apiError(err, tc('toast.loadFailed')));
     } finally {
       setLoading(false);
     }
@@ -77,7 +79,7 @@ export function TransactionTypesSettings() {
   const handleSave = async () => {
     const trimmed = form.name.trim();
     if (!trimmed) {
-      toast.error('Name is required');
+      toast.error(tc('toast.nameRequired'));
       return;
     }
     setSaving(true);
@@ -89,7 +91,7 @@ export function TransactionTypesSettings() {
           isActive: form.isActive,
         });
         setItems(prev => prev.map(i => i.id === editing.id ? { ...i, ...updated } : i));
-        toast.success('Transaction type updated');
+        toast.success(tc('toast.savedSuccessfully'));
       } else {
         const created = await settingsApi.createTransactionType({
           name: trimmed,
@@ -97,11 +99,11 @@ export function TransactionTypesSettings() {
           isActive: form.isActive,
         });
         setItems(prev => [...prev, created]);
-        toast.success('Transaction type created');
+        toast.success(tc('toast.savedSuccessfully'));
       }
       setDialogOpen(false);
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to save');
+      toast.error(apiError(err, tc('toast.saveFailed')));
     } finally {
       setSaving(false);
     }
@@ -111,9 +113,9 @@ export function TransactionTypesSettings() {
     try {
       const updated = await settingsApi.updateTransactionType(t.id, { isActive: !t.isActive });
       setItems(prev => prev.map(i => i.id === t.id ? { ...i, ...updated } : i));
-      toast.success(t.isActive ? `"${t.name}" hidden from the dropdown` : `"${t.name}" re-enabled`);
+      toast.success(t.isActive ? tc('toast.hiddenFromDropdownNamed', { name: t.name }) : tc('toast.reEnabledNamed', { name: t.name }));
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to update');
+      toast.error(apiError(err, tc('toast.saveFailed')));
     }
   };
 
@@ -125,10 +127,10 @@ export function TransactionTypesSettings() {
       // Soft-delete flips isActive=false — update locally so the row
       // stays visible but renders as inactive.
       setItems(prev => prev.map(i => i.id === deleteTarget.id ? { ...i, isActive: false } : i));
-      toast.success(`"${deleteTarget.name}" deactivated`);
+      toast.success(tc('toast.deactivatedNamed', { name: deleteTarget.name }));
       setDeleteTarget(null);
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to deactivate');
+      toast.error(apiError(err, tc('toast.deleteFailed')));
     } finally {
       setDeleting(false);
     }
@@ -315,7 +317,7 @@ export function TransactionTypesSettings() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleting}>{tc('actions.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               disabled={deleting}

@@ -131,7 +131,7 @@ export function WorkshopsList() {
       const ws = await vehiclesApi.listWorkshops();
       setWorkshops(ws);
     } catch {
-      toast.error('Failed to load workshops');
+      toast.error(tc('toast.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -205,20 +205,20 @@ export function WorkshopsList() {
   };
 
   const handleSave = async () => {
-    if (!form.name.trim()) { toast.error('Workshop name required'); return; }
+    if (!form.name.trim()) { toast.error(tc('toast.nameRequired')); return; }
     setSaving(true);
     try {
       if (editing) {
         await vehiclesApi.updateWorkshop(editing.id, form);
-        toast.success('Workshop updated');
+        toast.success(tc('toast.savedSuccessfully'));
       } else {
         await vehiclesApi.createWorkshop(form);
-        toast.success('Workshop created');
+        toast.success(tc('toast.savedSuccessfully'));
       }
       setDialog(false);
       load();
     } catch {
-      toast.error('Save failed');
+      toast.error(tc('toast.saveFailed'));
     } finally {
       setSaving(false);
     }
@@ -232,10 +232,10 @@ export function WorkshopsList() {
     }))) return;
     try {
       await vehiclesApi.deleteWorkshop(id);
-      toast.success('Workshop deleted');
+      toast.success(tc('toast.deleted'));
       load();
     } catch {
-      toast.error('Delete failed');
+      toast.error(tc('toast.deleteFailed'));
     }
   };
 

@@ -176,7 +176,7 @@ export function PermissionsMatrix() {
             <table className="w-full min-w-[1200px] text-sm">
               <thead className="bg-[#F8FAFC] border-b sticky top-0 z-10">
                 <tr>
-                  <th className="text-start p-4 font-semibold sticky left-0 bg-[#F8FAFC] z-20 min-w-[220px]">{t('roles.matrix.moduleAction')}</th>
+                  <th className="text-start p-4 font-semibold sticky start-0 bg-[#F8FAFC] z-20 min-w-[220px]">{t('roles.matrix.moduleAction')}</th>
                   {orderedRoles.map(role => (
                     <th key={role.id} className="p-2 text-center font-semibold">
                       <Badge variant="outline" style={{ borderColor: ROLE_COLOR[role.name] ?? '#64748B', color: ROLE_COLOR[role.name] ?? '#64748B' }}>
@@ -197,7 +197,7 @@ export function PermissionsMatrix() {
                     {mods.map(mod => (
                       <>
                         <tr key={`mod-${mod}`} className="bg-white">
-                          <td className="p-3 sticky left-0 bg-white border-t">
+                          <td className="p-3 sticky start-0 bg-white border-t">
                             <div className="flex items-center gap-2">
                               <Shield className="w-4 h-4 text-muted-foreground" />
                               <span className="font-semibold">{humanizeModule(mod)}</span>
@@ -210,7 +210,7 @@ export function PermissionsMatrix() {
                           const permName = `${mod}:${action}`;
                           return (
                             <tr key={permName} className="border-t hover:bg-[#F8FAFC]">
-                              <td className="p-2 ps-10 sticky left-0 bg-white">
+                              <td className="p-2 ps-10 sticky start-0 bg-white">
                                 <span className="text-xs capitalize text-[#334155]">{humanizeAction(action)}</span>
                                 <span className="ms-2 text-[10px] text-muted-foreground font-mono">{permName}</span>
                               </td>

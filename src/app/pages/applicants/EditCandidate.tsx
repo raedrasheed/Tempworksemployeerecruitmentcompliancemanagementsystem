@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { applicantsApi, settingsApi, agenciesApi } from '../../services/api';
+import { apiError } from '../../../i18n/apiError';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent } from '../../components/ui/card';
 import { Label } from '../../components/ui/label';
@@ -59,7 +60,7 @@ export function EditCandidate() {
       setAgencyId(applicant.agencyId || '');
       if (applicant.photoUrl) setExistingPhotoUrl(applicant.photoUrl.startsWith('http') ? applicant.photoUrl : `${API_BASE}${applicant.photoUrl}`);
     }).catch(() => {
-      toast.error('Failed to load applicant data');
+      toast.error(t('applicants.toast.loadFailed'));
     }).finally(() => setLoading(false));
   }, [id]);
 
@@ -111,7 +112,7 @@ export function EditCandidate() {
       setExistingPhotoUrl(resolvedUrl);
       setPhotoFile(null);
     } catch (photoErr: any) {
-      toast.error(`Profile saved but photo upload failed: ${photoErr?.message ?? 'Unknown error'}`);
+      toast.error(t('applicants.toast.savedButPhotoFailed', { error: photoErr?.message ?? tc('toast.errorGeneric') }));
       throw photoErr;
     }
   };
@@ -122,10 +123,10 @@ export function EditCandidate() {
     try {
       await applicantsApi.update(id, buildPayload());
       await uploadPhotoIfNeeded();
-      toast.success('Candidate updated successfully');
+      toast.success(tc('toast.savedSuccessfully'));
     } catch (err: any) {
       if (!err?.message?.includes('photo upload failed')) {
-        toast.error(err?.message || 'Failed to update applicant');
+        toast.error(apiError(err, tc('toast.saveFailed')));
       }
     } finally {
       setSubmitting(false);
@@ -138,11 +139,11 @@ export function EditCandidate() {
     try {
       await applicantsApi.update(id, buildPayload());
       await uploadPhotoIfNeeded();
-      toast.success('Candidate updated successfully');
+      toast.success(tc('toast.savedSuccessfully'));
       navigate(`/dashboard/candidates/${id}`);
     } catch (err: any) {
       if (!err?.message?.includes('photo upload failed')) {
-        toast.error(err?.message || 'Failed to update applicant');
+        toast.error(apiError(err, tc('toast.saveFailed')));
       }
     } finally {
       setSubmitting(false);

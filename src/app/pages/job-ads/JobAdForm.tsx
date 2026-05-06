@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Save, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import { jobAdsApi, settingsApi } from '../../services/api';
+import { apiError } from '../../../i18n/apiError';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
@@ -41,6 +42,7 @@ const EMPTY_FORM = {
 
 export function JobAdForm() {
   const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const isEdit = Boolean(id);
@@ -87,7 +89,7 @@ export function JobAdForm() {
         });
         setRequiredDocuments(Array.isArray(ad.requiredDocuments) ? ad.requiredDocuments : []);
       }).catch(() => {
-        toast.error('Failed to load job ad');
+        toast.error(tc('toast.loadFailed'));
         navigate('/dashboard/job-ads');
       }).finally(() => setLoading(false));
     }
@@ -98,9 +100,9 @@ export function JobAdForm() {
 
   const handleSave = async (publishNow = false) => {
     setSubmitAttempted(true);
-    if (!form.title.trim())       return toast.error('Title is required');
-    if (!form.category.trim())    return toast.error('Category is required');
-    if (!form.description.trim()) return toast.error('Description is required');
+    if (!form.title.trim())       return toast.error(tc('toast.titleRequired'));
+    if (!form.category.trim())    return toast.error(tc('toast.categoryRequired'));
+    if (!form.description.trim()) return toast.error(tc('toast.descriptionRequired'));
     if (!form.city.trim()) {
       toast.error(t('jobAds.form.cityRequired'));
       cityInputRef.current?.focus();
@@ -126,10 +128,10 @@ export function JobAdForm() {
 
       if (isEdit && id) {
         await jobAdsApi.update(id, payload);
-        toast.success('Job ad updated');
+        toast.success(tc('toast.savedSuccessfully'));
       } else {
         await jobAdsApi.create(payload);
-        toast.success(publishNow ? 'Job ad published' : 'Job ad created as draft');
+        toast.success(publishNow ? tc('toast.published') : tc('toast.savedSuccessfully'));
       }
       navigate('/dashboard/job-ads');
     } catch (err: any) {

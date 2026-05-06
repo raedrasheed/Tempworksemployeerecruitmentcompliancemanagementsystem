@@ -31,6 +31,7 @@ function ApproveModal({
   onDone: () => void;
 }) {
   const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const [decision, setDecision] = useState<'APPROVED' | 'REJECTED'>('APPROVED');
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
@@ -106,7 +107,7 @@ function ApproveModal({
         {error && <p className="text-sm text-destructive mb-3">{error}</p>}
 
         <div className="flex gap-3">
-          <Button variant="outline" className="flex-1" onClick={onClose} disabled={saving}>Cancel</Button>
+          <Button variant="outline" className="flex-1" onClick={onClose} disabled={saving}>{tc('actions.cancel')}</Button>
           <Button
             className={`flex-1 ${decision === 'REJECTED' && person.personType !== 'EMPLOYEE' ? 'bg-red-600 hover:bg-red-700' : ''}`}
             onClick={submit}

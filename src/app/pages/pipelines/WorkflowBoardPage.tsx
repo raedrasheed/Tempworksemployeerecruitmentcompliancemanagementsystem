@@ -26,6 +26,7 @@ import { Progress } from '../../components/ui/progress';
 
 function NoteModal({ progressId, onClose }: { progressId: string; onClose: () => void }) {
   const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const [content, setContent] = useState('');
   const [isPrivate, setIsPrivate] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -60,7 +61,7 @@ function NoteModal({ progressId, onClose }: { progressId: string; onClose: () =>
             <span className="text-foreground">{t('pipelines.board.privateNote')}</span>
           </label>
           <div className="flex gap-2">
-            <button type="button" onClick={onClose} className="flex-1 border border-border rounded-lg px-3 py-2 text-sm hover:bg-muted transition-colors">Cancel</button>
+            <button type="button" onClick={onClose} className="flex-1 border border-border rounded-lg px-3 py-2 text-sm hover:bg-muted transition-colors">{tc('actions.cancel')}</button>
             <button type="submit" disabled={saving || !content.trim()} className="flex-1 bg-primary text-primary-foreground rounded-lg px-3 py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors">
               {saving ? 'Saving...' : t('pipelines.board.addNote')}
             </button>
@@ -75,6 +76,7 @@ function NoteModal({ progressId, onClose }: { progressId: string; onClose: () =>
 
 function AdvanceModal({ assignmentId, workflow, onClose, onAdvanced }: { assignmentId: string; workflow: any; onClose: () => void; onAdvanced: () => void }) {
   const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const [selectedStageId, setSelectedStageId] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -107,7 +109,7 @@ function AdvanceModal({ assignmentId, workflow, onClose, onAdvanced }: { assignm
             ))}
           </div>
           <div className="flex gap-2">
-            <button type="button" onClick={onClose} className="flex-1 border border-border rounded-lg px-3 py-2 text-sm hover:bg-muted transition-colors">Cancel</button>
+            <button type="button" onClick={onClose} className="flex-1 border border-border rounded-lg px-3 py-2 text-sm hover:bg-muted transition-colors">{tc('actions.cancel')}</button>
             <button type="submit" disabled={saving || !selectedStageId} className="flex-1 bg-primary text-primary-foreground rounded-lg px-3 py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors">
               {saving ? 'Advancing...' : 'Advance'}
             </button>
@@ -168,7 +170,7 @@ function AssignModal({ workflow, onClose, onAssigned }: { workflow: any; onClose
             />
           </div>
           <div className="flex gap-2">
-            <button type="button" onClick={onClose} className="flex-1 border border-border rounded-lg px-3 py-2 text-sm hover:bg-muted transition-colors">Cancel</button>
+            <button type="button" onClick={onClose} className="flex-1 border border-border rounded-lg px-3 py-2 text-sm hover:bg-muted transition-colors">{tc('actions.cancel')}</button>
             <button type="submit" disabled={saving} className="flex-1 bg-primary text-primary-foreground rounded-lg px-3 py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors">
               {saving ? 'Assigning...' : 'Assign'}
             </button>

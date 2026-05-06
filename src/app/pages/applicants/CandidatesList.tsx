@@ -353,7 +353,7 @@ export function CandidatesList() {
   const [pdfExporting, setPdfExporting] = useState(false);
   const handleBulkPdfExport = async () => {
     if (selected.size === 0) {
-      toast.error('Select at least one candidate');
+      toast.error(t('applicants.toast.selectAtLeastOneCandidate'));
       return;
     }
     setPdfExporting(true);
@@ -363,7 +363,7 @@ export function CandidatesList() {
       const full = await Promise.all(ids.map(id => applicantsApi.get(id).catch(() => null)));
       const records = full.filter(Boolean) as any[];
       if (records.length === 0) {
-        toast.error('Failed to load selected candidates', { id: tid });
+        toast.error(t('applicants.toast.loadSelectedFailed'), { id: tid });
         return;
       }
       const today = new Date().toISOString().slice(0, 10);
@@ -388,9 +388,9 @@ export function CandidatesList() {
           toast.loading(`Generating PDFs... ${done}/${total}`, { id: tid });
         },
       });
-      toast.success(`Exported ${records.length} PDF${records.length > 1 ? 's' : ''}`, { id: tid });
+      toast.success(tc('toast.exportedCount', { count: records.length }), { id: tid });
     } catch (err: any) {
-      toast.error(err?.message || 'PDF export failed', { id: tid });
+      toast.error(apiError(err, tc('toast.exportFailed_pdf')), { id: tid });
     } finally {
       setPdfExporting(false);
     }
@@ -400,7 +400,7 @@ export function CandidatesList() {
   // Streams the backend's .xlsx for the currently selected rows only.
   const handleExportExcel = () => {
     if (selected.size === 0) {
-      toast.error('Select one or more rows to export');
+      toast.error(tc('toast.selectOneOrMoreToExport'));
       return;
     }
     const token = getAccessToken();
@@ -418,7 +418,7 @@ export function CandidatesList() {
         document.body.appendChild(a); a.click();
         document.body.removeChild(a); URL.revokeObjectURL(objectUrl);
       })
-      .catch(() => toast.error('Export failed'));
+      .catch(() => toast.error(tc('toast.exportFailed')));
   };
 
   // ── Filters ────────────────────────────────────────────────────────────────
@@ -483,7 +483,7 @@ export function CandidatesList() {
                   disabled={bulkActionInProgress}
                   onClick={() => {
                     if (selected.size === 0) {
-                      toast.error('Select at least one candidate');
+                      toast.error(t('applicants.toast.selectAtLeastOneCandidate'));
                       return;
                     }
                     setPendingStatus('');
@@ -496,7 +496,7 @@ export function CandidatesList() {
                   disabled={bulkActionInProgress}
                   onClick={async () => {
                     if (selected.size === 0) {
-                      toast.error('Select at least one candidate');
+                      toast.error(t('applicants.toast.selectAtLeastOneCandidate'));
                       return;
                     }
                     // Lazy-load the workflows list the first time
@@ -519,7 +519,7 @@ export function CandidatesList() {
                   disabled={bulkActionInProgress}
                   onClick={() => {
                     if (selected.size === 0) {
-                      toast.error('Select at least one candidate');
+                      toast.error(t('applicants.toast.selectAtLeastOneCandidate'));
                       return;
                     }
                     setBulkConvertAgencyId('');
@@ -847,7 +847,7 @@ export function CandidatesList() {
               disabled={bulkActionInProgress || !pendingStatus}
               onClick={async () => {
                 if (!pendingStatus) {
-                  toast.error('Please select a status');
+                  toast.error(tc('toast.selectStatus'));
                   return;
                 }
                 setStatusModalOpen(false);
@@ -900,7 +900,7 @@ export function CandidatesList() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowBulkConvertDialog(false)} disabled={bulkActionInProgress}>Cancel</Button>
+            <Button variant="outline" onClick={() => setShowBulkConvertDialog(false)} disabled={bulkActionInProgress}>{tc('actions.cancel')}</Button>
             <Button
               className="bg-[#22C55E] hover:bg-[#16a34a] text-white"
               disabled={bulkActionInProgress}
@@ -964,7 +964,7 @@ export function CandidatesList() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowBulkWorkflowDialog(false)} disabled={bulkWorkflowInFlight}>Cancel</Button>
+            <Button variant="outline" onClick={() => setShowBulkWorkflowDialog(false)} disabled={bulkWorkflowInFlight}>{tc('actions.cancel')}</Button>
             <Button
               disabled={bulkWorkflowInFlight || !bulkWorkflowId}
               onClick={handleBulkAssignWorkflow}

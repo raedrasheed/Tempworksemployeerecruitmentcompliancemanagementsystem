@@ -526,6 +526,17 @@
     }
   },
   "applicants": {
+    "toast": {
+      "draftResumed": "Resumed your saved draft — finish and submit to create the applicant.",
+      "photoUploadFailedDraft": "Photo upload failed — it won't be saved to your draft.",
+      "documentUploadFailedDraft": "Document upload failed — it won't be saved to your draft.",
+      "draftSaved": "Draft saved — you can come back to this page to continue.",
+      "loadFailed": "Failed to load applicant data",
+      "savedButPhotoFailed": "Profile saved but photo upload failed: {{error}}",
+      "selectAtLeastOneApplicant": "Select at least one applicant",
+      "selectAtLeastOneCandidate": "Select at least one candidate",
+      "loadSelectedFailed": "Failed to load selected candidates"
+    },
     "applicationView": {
       "empty": "No structured application data was captured for this profile.",
       "submittedBy": "Full application submitted by",
@@ -2465,7 +2476,8 @@
       "stageName": "Stage Name",
       "stageColor": "Stage Color",
       "addStage": "Add Stage",
-      "dragToReorder": "Drag and Drop to Reorder"
+      "dragToReorder": "Drag and Drop to Reorder",
+      "savedStub": "Workflow configuration saved"
     }
   },
   "pipelines": {
@@ -3073,6 +3085,19 @@
     }
   },
   "attendance": {
+    "toast": {
+      "recordSaved": "Attendance record saved",
+      "recordUpdated": "Attendance record updated",
+      "recordDeleted": "Attendance record deleted",
+      "added": "Attendance added",
+      "updated": "Attendance updated",
+      "noDays": "No days to fill.",
+      "filledDays": "Filled {{count}} day(s) as {{label}}",
+      "sheetExported": "Attendance sheet exported successfully",
+      "bulkApplied": "Applied: {{created}} new · {{updated}} updated · {{lockedCount}} locked · {{skipped}} skipped · {{errors}} errors",
+      "periodUnlocked": "{{month}} {{year}} unlocked",
+      "periodLocked": "{{month}} {{year}} locked"
+    },
     "list": {
       "title": "Attendance Sheets",
       "subtitle": "Monthly attendance per employee",
@@ -3162,6 +3187,16 @@
       "title": "Notification Settings",
       "subtitle": "Choose which notifications you receive",
       "save": "Save Preferences"
+    },
+    "toast": {
+      "loadFailed": "Failed to load notifications",
+      "markReadFailed": "Failed to mark as read",
+      "markAllReadSuccess": "All notifications marked as read",
+      "markAllReadFailed": "Failed to mark all as read",
+      "deleteFailed": "Failed to delete notification",
+      "loadPrefsFailed": "Failed to load notification preferences",
+      "savePrefsSuccess": "Notification preferences saved",
+      "savePrefsFailed": "Failed to save preferences"
     }
   },
   "users": {

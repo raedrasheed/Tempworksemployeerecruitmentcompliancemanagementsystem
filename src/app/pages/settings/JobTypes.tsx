@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
+import { apiError } from '../../../i18n/apiError';
 import { usePermissions } from '../../hooks/usePermissions';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -74,6 +75,7 @@ const DOCUMENT_OPTIONS = [
 
 export function JobTypes() {
   const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const { canCreate, canEdit, canDelete } = usePermissions();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
@@ -105,7 +107,7 @@ export function JobTypes() {
       const data = await settingsApi.getJobTypes();
       setJobTypes(data);
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to load job categories');
+      toast.error(apiError(err, tc('toast.loadFailed')));
     } finally {
       setLoading(false);
     }
@@ -157,15 +159,15 @@ export function JobTypes() {
       if (editingJobType) {
         const updated = await settingsApi.updateJobType(editingJobType.id, payload);
         setJobTypes((prev) => prev.map((jt) => (jt.id === editingJobType.id ? { ...jt, ...updated } : jt)));
-        toast.success('Job type updated successfully');
+        toast.success(tc('toast.savedSuccessfully'));
       } else {
         const created = await settingsApi.createJobType(payload);
         setJobTypes((prev) => [...prev, created]);
-        toast.success('Job type created successfully');
+        toast.success(tc('toast.savedSuccessfully'));
       }
       setIsDialogOpen(false);
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to save job category');
+      toast.error(apiError(err, tc('toast.saveFailed')));
     } finally {
       setSaving(false);
     }
@@ -176,10 +178,10 @@ export function JobTypes() {
       const updated = await settingsApi.updateJobType(jobType.id, { isActive: !jobType.isActive });
       setJobTypes((prev) => prev.map((jt) => (jt.id === jobType.id ? { ...jt, ...updated } : jt)));
       toast.success(
-        !jobType.isActive ? `"${jobType.name}" activated` : `"${jobType.name}" deactivated`,
+        !jobType.isActive ? tc('toast.activatedNamed', { name: jobType.name }) : tc('toast.deactivatedNamed', { name: jobType.name }),
       );
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to update job category');
+      toast.error(apiError(err, tc('toast.saveFailed')));
     }
   }
 
@@ -189,10 +191,10 @@ export function JobTypes() {
     try {
       await settingsApi.deleteJobType(deleteTarget.id);
       setJobTypes((prev) => prev.filter((jt) => jt.id !== deleteTarget.id));
-      toast.success(`"${deleteTarget.name}" deactivated successfully`);
+      toast.success(tc('toast.deactivatedSuccessfullyNamed', { name: deleteTarget.name }));
       setDeleteTarget(null);
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to deactivate job category');
+      toast.error(apiError(err, tc('toast.deleteFailed')));
     } finally {
       setDeleting(false);
     }
@@ -481,7 +483,7 @@ export function JobTypes() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleting}>{tc('actions.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               disabled={deleting}

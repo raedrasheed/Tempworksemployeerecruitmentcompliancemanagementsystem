@@ -13,6 +13,7 @@ const DEFAULTS = ['Curtain Sider', 'Reefer', 'Tanker', 'Container', 'Walking Flo
 
 export function TrailerTypesSettings() {
   const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const { canEdit } = usePermissions();
   const isAdmin = canEdit('settings');
   const [items, setItems] = useState<string[]>([]);
@@ -45,9 +46,9 @@ export function TrailerTypesSettings() {
     setSaving(true);
     try {
       await settingsApi.update({ 'form.trailerTypes': JSON.stringify(items) });
-      toast.success('Trailer Types saved');
+      toast.success(tc('toast.savedSuccessfully'));
     } catch {
-      toast.error('Failed to save');
+      toast.error(tc('toast.saveFailed'));
     } finally {
       setSaving(false);
     }

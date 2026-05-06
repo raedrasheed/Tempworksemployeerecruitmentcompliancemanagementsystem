@@ -18,6 +18,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { apiError } from '../../../i18n/apiError';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
@@ -118,6 +119,8 @@ function BulkFillModal({
   records,
   onSuccess,
 }: BulkFillModalProps) {
+  const { t: tp } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const [status, setStatus] = useState('PRESENT');
   const [overwrite, setOverwrite] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -129,7 +132,7 @@ function BulkFillModal({
 
   const handleBulkFill = async () => {
     if (targetDays.length === 0) {
-      toast.info('No days to fill.');
+      toast.info(tp('attendance.toast.noDays'));
       return;
     }
     setSaving(true);
@@ -143,11 +146,11 @@ function BulkFillModal({
           }),
         ),
       );
-      toast.success(`Filled ${targetDays.length} day(s) as ${statusLabels[status]}`);
+      toast.success(tp('attendance.toast.filledDays', { count: targetDays.length, label: statusLabels[status] }));
       onSuccess();
       onClose();
     } catch (err: any) {
-      toast.error(err?.message || 'Bulk fill failed');
+      toast.error(apiError(err, tc('toast.operationFailed')));
     } finally {
       setSaving(false);
     }
@@ -242,6 +245,7 @@ interface EditForm {
 
 export function AttendanceSheet() {
   const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
@@ -370,20 +374,20 @@ export function AttendanceSheet() {
 
       if (editRecord?.id) {
         await attendanceApi.update(editRecord.id, payload);
-        toast.success('Attendance record updated');
+        toast.success(t('attendance.toast.recordUpdated'));
       } else {
         await attendanceApi.upsert({
           employeeId: id,
           date: editDate,
           ...payload,
         });
-        toast.success('Attendance record saved');
+        toast.success(t('attendance.toast.recordSaved'));
       }
 
       setShowEditModal(false);
       fetchData();
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to save attendance record');
+      toast.error(apiError(err, tc('toast.saveFailed')));
     } finally {
       setSaving(false);
     }
@@ -394,12 +398,12 @@ export function AttendanceSheet() {
     setDeleting(true);
     try {
       await attendanceApi.delete(deleteRecord.id);
-      toast.success('Attendance record deleted');
+      toast.success(t('attendance.toast.recordDeleted'));
       setShowDeleteModal(false);
       setDeleteRecord(null);
       fetchData();
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to delete attendance record');
+      toast.error(apiError(err, tc('toast.deleteFailed')));
     } finally {
       setDeleting(false);
     }

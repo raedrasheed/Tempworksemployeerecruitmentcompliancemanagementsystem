@@ -11,6 +11,7 @@ import { Switch } from '../../components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { toast } from 'sonner';
 import { settingsApi } from '../../services/api';
+import { apiError } from '../../../i18n/apiError';
 
 const CATEGORY_LABELS: Record<string, string> = {
   identity: 'Identity',
@@ -25,6 +26,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 export function DocumentTypeNew() {
   const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const navigate = useNavigate();
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
@@ -73,10 +75,10 @@ export function DocumentTypeNew() {
           : undefined,
         isActive: true,
       });
-      toast.success('Document type created successfully');
+      toast.success(tc('toast.savedSuccessfully'));
       navigate('/dashboard/settings/document-types');
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to create document type');
+      toast.error(apiError(err, tc('toast.saveFailed')));
     } finally {
       setSaving(false);
     }

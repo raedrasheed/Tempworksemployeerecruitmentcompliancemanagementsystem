@@ -179,7 +179,7 @@ export function NotificationCenter() {
       setTotal(res?.meta?.total ?? 0);
       setUnreadCount(countRes?.count ?? 0);
     } catch {
-      toast.error('Failed to load notifications');
+      toast.error(t('notifications.toast.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -193,7 +193,7 @@ export function NotificationCenter() {
       setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true, readAt: new Date().toISOString() } : n));
       setUnreadCount(c => Math.max(0, c - 1));
     } catch {
-      toast.error('Failed to mark as read');
+      toast.error(t('notifications.toast.markReadFailed'));
     }
   };
 
@@ -205,7 +205,7 @@ export function NotificationCenter() {
       setTotal(t => t - 1);
       if (wasUnread) setUnreadCount(c => Math.max(0, c - 1));
     } catch {
-      toast.error('Failed to delete notification');
+      toast.error(t('notifications.toast.deleteFailed'));
     }
   };
 
@@ -215,9 +215,9 @@ export function NotificationCenter() {
       await notificationsApi.markAllRead();
       setNotifications(prev => prev.map(n => ({ ...n, isRead: true, readAt: new Date().toISOString() })));
       setUnreadCount(0);
-      toast.success('All notifications marked as read');
+      toast.success(t('notifications.toast.markAllReadSuccess'));
     } catch {
-      toast.error('Failed to mark all as read');
+      toast.error(t('notifications.toast.markAllReadFailed'));
     } finally {
       setMarkingAll(false);
     }

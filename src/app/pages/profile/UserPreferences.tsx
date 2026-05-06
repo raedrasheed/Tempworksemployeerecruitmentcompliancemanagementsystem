@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Separator } from '../../components/ui/separator';
 import { toast } from 'sonner';
 import { usersApi } from '../../services/api';
+import { apiError } from '../../../i18n/apiError';
 
 const LANGUAGE_OPTIONS = [
   'English', 'Arabic', 'Polish', 'German', 'French',
@@ -35,6 +36,7 @@ const NOTIFICATION_OPTIONS = [
 
 export function UserPreferences() {
   const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
@@ -71,7 +73,7 @@ export function UserPreferences() {
           ...((user.notificationPrefs ?? user.notificationPreferences) ?? {}),
         }));
       })
-      .catch(() => toast.error('Failed to load preferences'))
+      .catch(() => toast.error(tc('toast.loadFailed')))
       .finally(() => setLoading(false));
   }, []);
 
@@ -96,9 +98,9 @@ export function UserPreferences() {
           ...((updated.notificationPrefs ?? updated.notificationPreferences) ?? {}),
         }));
       }
-      toast.success('Preferences saved successfully');
+      toast.success(tc('toast.savedSuccessfully'));
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to save preferences');
+      toast.error(apiError(err, tc('toast.saveFailed')));
     } finally {
       setSaving(false);
     }

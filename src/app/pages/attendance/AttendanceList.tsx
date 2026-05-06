@@ -17,6 +17,7 @@ import {
   Check,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { apiError } from '../../../i18n/apiError';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -138,6 +139,7 @@ function SortHead({
 
 export function AttendanceList() {
   const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const navigate = useNavigate();
   const { canCreate } = usePermissions();
 
@@ -324,10 +326,10 @@ export function AttendanceList() {
       a.download = `attendance-${MONTH_NAMES[exportMonth - 1].toLowerCase()}-${exportYear}.xlsx`;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success('Attendance sheet exported successfully');
+      toast.success(t('attendance.toast.sheetExported'));
       setShowExportModal(false);
     } catch (err: any) {
-      toast.error(err?.message || 'Export failed');
+      toast.error(apiError(err, tc('toast.exportFailed')));
     } finally {
       setExporting(false);
     }

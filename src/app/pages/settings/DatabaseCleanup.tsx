@@ -12,6 +12,7 @@ import { Badge } from '../../components/ui/badge';
 import { Label } from '../../components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
 import { recycleBinApi } from '../../services/api';
+import { apiError } from '../../../i18n/apiError';
 import { usePermissions } from '../../hooks/usePermissions';
 import { toast } from 'sonner';
 
@@ -45,6 +46,7 @@ const CONFIRM_PHRASE = 'CLEAN DATABASE';
 
 export function DatabaseCleanup() {
   const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const navigate = useNavigate();
   const { canDelete } = usePermissions();
   const isAdmin = canDelete('settings');
@@ -81,7 +83,7 @@ export function DatabaseCleanup() {
       setPreview(data);
       setShowPreview(true);
     } catch {
-      toast.error('Failed to load cleanup preview');
+      toast.error(tc('toast.loadFailed'));
     } finally {
       setPreviewLoading(false);
     }
@@ -95,11 +97,11 @@ export function DatabaseCleanup() {
 
   const executeCleanup = async () => {
     if (confirmPhrase !== CONFIRM_PHRASE) {
-      toast.error(`You must type exactly: ${CONFIRM_PHRASE}`);
+      toast.error(tc('toast.typeExactly', { phrase: CONFIRM_PHRASE }));
       return;
     }
     if (!secondConfirm) {
-      toast.error('Please check the second confirmation checkbox');
+      toast.error(tc('toast.secondConfirmationRequired'));
       return;
     }
 
@@ -108,9 +110,9 @@ export function DatabaseCleanup() {
       const res = await recycleBinApi.cleanupExecute({ confirmPhrase, reason, clearAuditLogs });
       setResult(res);
       setShowConfirmDialog(false);
-      toast.success('Database cleanup completed successfully');
+      toast.success(tc('toast.savedSuccessfully'));
     } catch (e: any) {
-      toast.error(e?.message ?? 'Cleanup failed');
+      toast.error(apiError(e, tc('toast.operationFailed')));
     } finally {
       setExecuting(false);
     }

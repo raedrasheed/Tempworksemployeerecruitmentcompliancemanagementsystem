@@ -21,6 +21,7 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '../ui/dialog';
 import { toast } from 'sonner';
+import { apiError } from '../../../i18n/apiError';
 import { confirm } from '../ui/ConfirmDialog';
 import {
   Plus, Save, X, FileText, Paperclip, Trash2, Download, Edit2, CheckCircle2,
@@ -175,8 +176,8 @@ export function WorkHistoryTimeline({ employeeId, canWrite }: Props) {
   };
 
   const handleSave = async () => {
-    if (!form.date)      { toast.error('Date is required'); return; }
-    if (!form.eventType) { toast.error('Event type is required'); return; }
+    if (!form.date)      { toast.error(tc('toast.dateRequired')); return; }
+    if (!form.eventType) { toast.error(tc('toast.eventTypeRequired')); return; }
     setSaving(true);
     try {
       const payload = {
@@ -187,15 +188,15 @@ export function WorkHistoryTimeline({ employeeId, canWrite }: Props) {
       };
       if (editingId) {
         await employeeWorkHistoryApi.update(employeeId, editingId, payload);
-        toast.success('Entry updated');
+        toast.success(tc('toast.entryUpdated'));
       } else {
         await employeeWorkHistoryApi.create(employeeId, payload);
-        toast.success('Entry added');
+        toast.success(tc('toast.entryAdded'));
       }
       setOpen(false);
       load();
     } catch (err: any) {
-      toast.error(err?.message || 'Save failed');
+      toast.error(apiError(err, tc('toast.saveFailed')));
     } finally {
       setSaving(false);
     }
@@ -211,10 +212,10 @@ export function WorkHistoryTimeline({ employeeId, canWrite }: Props) {
     if (!ok) return;
     try {
       await employeeWorkHistoryApi.delete(employeeId, entry.id);
-      toast.success('Entry deleted');
+      toast.success(tc('toast.entryDeleted'));
       load();
     } catch (err: any) {
-      toast.error(err?.message || 'Delete failed');
+      toast.error(apiError(err, tc('toast.deleteFailed')));
     }
   };
 
@@ -224,10 +225,10 @@ export function WorkHistoryTimeline({ employeeId, canWrite }: Props) {
       const fd = new FormData();
       fd.append('file', file);
       await employeeWorkHistoryApi.addAttachment(employeeId, entryId, fd);
-      toast.success('Attachment uploaded');
+      toast.success(tc('toast.attachmentUploaded'));
       load();
     } catch (err: any) {
-      toast.error(err?.message || 'Upload failed');
+      toast.error(apiError(err, tc('toast.uploadFailed')));
     } finally {
       setUploadingId(null);
     }
@@ -243,10 +244,10 @@ export function WorkHistoryTimeline({ employeeId, canWrite }: Props) {
     if (!ok) return;
     try {
       await employeeWorkHistoryApi.removeAttachment(employeeId, entryId, attachmentId);
-      toast.success('Attachment removed');
+      toast.success(tc('toast.attachmentRemoved'));
       load();
     } catch (err: any) {
-      toast.error(err?.message || 'Remove failed');
+      toast.error(apiError(err, tc('toast.deleteFailed')));
     }
   };
 

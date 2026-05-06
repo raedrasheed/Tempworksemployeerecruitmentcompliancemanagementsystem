@@ -21,6 +21,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '../../components/ui/table';
 import { backupApi } from '../../services/api';
+import { apiError } from '../../../i18n/apiError';
 import { usePermissions } from '../../hooks/usePermissions';
 import { toast } from 'sonner';
 
@@ -85,6 +86,7 @@ function fmt(iso?: string | null): string {
 
 export function DatabaseBackup() {
   const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const navigate = useNavigate();
   const { canEdit } = usePermissions();
   const isAdmin  = canEdit('settings');
@@ -129,7 +131,7 @@ export function DatabaseBackup() {
       setTotal(res?.meta?.total ?? 0);
       setTotalPages(res?.meta?.totalPages ?? 1);
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to load backups');
+      toast.error(apiError(err, tc('toast.loadFailed')));
     } finally {
       setLoading(false);
     }
@@ -163,13 +165,13 @@ export function DatabaseBackup() {
     setCreating(true);
     try {
       await backupApi.create({ notes: createNotes || undefined });
-      toast.success('Backup created successfully');
+      toast.success(tc('toast.created'));
       setShowCreate(false);
       setCreateNotes('');
       fetchBackups();
       fetchStatus();
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to create backup');
+      toast.error(apiError(err, tc('toast.saveFailed')));
     } finally {
       setCreating(false);
     }
@@ -180,9 +182,9 @@ export function DatabaseBackup() {
   const handleDownload = async (b: Backup) => {
     try {
       await backupApi.download(b.id, b.fileName);
-      toast.success('Download started');
+      toast.success(tc('toast.downloadStarted'));
     } catch (err: any) {
-      toast.error(err?.message || 'Download failed');
+      toast.error(apiError(err, tc('toast.exportFailed')));
     }
   };
 
@@ -193,11 +195,11 @@ export function DatabaseBackup() {
     setDeleting(true);
     try {
       await backupApi.delete(deleteTarget.id);
-      toast.success('Backup deleted');
+      toast.success(tc('toast.deleted'));
       setDeleteTarget(null);
       fetchBackups();
     } catch (err: any) {
-      toast.error(err?.message || 'Delete failed');
+      toast.error(apiError(err, tc('toast.deleteFailed')));
     } finally {
       setDeleting(false);
     }
@@ -217,7 +219,7 @@ export function DatabaseBackup() {
       const data = await backupApi.preview(b.id);
       setPreview(data);
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to load preview');
+      toast.error(apiError(err, tc('toast.loadFailed')));
       setShowRestore(false);
     } finally {
       setPreviewLoading(false);
@@ -227,7 +229,7 @@ export function DatabaseBackup() {
   const handleRestore = async () => {
     if (!preview) return;
     if (confirmPhrase !== RESTORE_CONFIRM) {
-      toast.error(`Type exactly: ${RESTORE_CONFIRM}`);
+      toast.error(tc('toast.typeExactly', { phrase: RESTORE_CONFIRM }));
       return;
     }
     setRestoring(true);
@@ -239,10 +241,10 @@ export function DatabaseBackup() {
         skipSafetyBackup: skipSafety,
       });
       setRestoreResult(result);
-      toast.success('Restore completed successfully');
+      toast.success(tc('toast.savedSuccessfully'));
       fetchBackups();
     } catch (err: any) {
-      toast.error(err?.message || 'Restore failed');
+      toast.error(apiError(err, tc('toast.operationFailed')));
     } finally {
       setRestoring(false);
     }

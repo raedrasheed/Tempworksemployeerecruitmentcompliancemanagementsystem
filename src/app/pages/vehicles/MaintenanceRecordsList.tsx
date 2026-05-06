@@ -92,7 +92,7 @@ export function MaintenanceRecordsList() {
       setTotalPages(recordsRes.totalPages ?? 1);
       setWorkshops(workshopsRes ?? []);
     } catch {
-      toast.error('Failed to load maintenance records');
+      toast.error(tc('toast.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -121,10 +121,10 @@ export function MaintenanceRecordsList() {
     }))) return;
     try {
       await vehiclesApi.deleteMaintenance(id);
-      toast.success('Maintenance record deleted');
+      toast.success(tc('toast.deleted'));
       load();
     } catch {
-      toast.error('Delete failed');
+      toast.error(tc('toast.deleteFailed'));
     }
   };
 
@@ -168,9 +168,9 @@ export function MaintenanceRecordsList() {
       const blob = await vehiclesApi.exportMaintenanceExcel(buildExportParams(scope));
       const date = new Date().toISOString().split('T')[0];
       downloadBlob(blob, `maintenance-records-${date}.xlsx`);
-      toast.success('Excel export downloaded');
+      toast.success(tc('toast.exportComplete_excel'));
     } catch {
-      toast.error('Excel export failed');
+      toast.error(tc('toast.exportFailed_excel'));
     } finally {
       setExporting(false);
     }
@@ -183,9 +183,9 @@ export function MaintenanceRecordsList() {
       const blob = await vehiclesApi.exportMaintenancePdf(buildExportParams(scope));
       const date = new Date().toISOString().split('T')[0];
       downloadBlob(blob, `maintenance-records-${date}.pdf`);
-      toast.success('PDF export downloaded');
+      toast.success(tc('toast.exportComplete_pdf'));
     } catch {
-      toast.error('PDF export failed');
+      toast.error(tc('toast.exportFailed_pdf'));
     } finally {
       setExporting(false);
     }

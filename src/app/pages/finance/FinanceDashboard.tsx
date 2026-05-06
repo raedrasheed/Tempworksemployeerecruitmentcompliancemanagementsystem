@@ -115,6 +115,7 @@ const DEFAULT_FILTERS = {
 
 export function FinanceDashboard() {
   const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const navigate = useNavigate();
   const currentUser = getCurrentUser();
 
@@ -191,7 +192,7 @@ export function FinanceDashboard() {
       const emp = items.reduce((a, r) => a + Number(r.employeeOrAgencyPaidAmount ?? 0), 0);
       setTotals({ disbursed: d, deducted: ded, balance: d - ded, empAgency: emp });
     } catch {
-      toast.error('Failed to load financial records');
+      toast.error(tc('toast.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -236,7 +237,7 @@ export function FinanceDashboard() {
       a.download = `financial-records-${new Date().toISOString().slice(0, 10)}.xlsx`;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success('Export started');
+      toast.success(tc('toast.exportStarted'));
     } catch (err: any) {
       toast.error(err?.message || 'Export failed');
     } finally {

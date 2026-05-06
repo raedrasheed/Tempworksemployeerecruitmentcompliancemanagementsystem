@@ -117,7 +117,7 @@ export function MaintenanceTypesList() {
   const load = useCallback(async () => {
     setLoading(true);
     try { setTypes(await vehiclesApi.listMaintenanceTypes()); }
-    catch { toast.error('Failed to load maintenance types'); }
+    catch { toast.error(t('toast.loadFailed')); }
     finally { setLoading(false); }
   }, []);
 
@@ -136,7 +136,7 @@ export function MaintenanceTypesList() {
   };
 
   const handleSave = async () => {
-    if (!form.name.trim()) { toast.error('Name required'); return; }
+    if (!form.name.trim()) { toast.error(t('toast.nameRequired')); return; }
     setSaving(true);
     try {
       const data: any = {
@@ -147,14 +147,14 @@ export function MaintenanceTypesList() {
       };
       if (editing) {
         await vehiclesApi.updateMaintenanceType(editing.id, data);
-        toast.success('Updated');
+        toast.success(t('toast.updated'));
       } else {
         await vehiclesApi.createMaintenanceType(data);
-        toast.success('Created');
+        toast.success(t('toast.created'));
       }
       setDialog(false);
       load();
-    } catch { toast.error('Save failed'); }
+    } catch { toast.error(t('toast.saveFailed')); }
     finally { setSaving(false); }
   };
 
@@ -165,8 +165,8 @@ export function MaintenanceTypesList() {
       confirmText: t('confirm.deactivateConfirm'),
       tone: 'destructive',
     }))) return;
-    try { await vehiclesApi.deleteMaintenanceType(id); toast.success('Deactivated'); load(); }
-    catch { toast.error('Failed'); }
+    try { await vehiclesApi.deleteMaintenanceType(id); toast.success(t('toast.deleted')); load(); }
+    catch { toast.error(t('toast.deleteFailed')); }
   };
 
   const set = (k: keyof MForm, v: string) => setForm((f) => ({ ...f, [k]: v }));

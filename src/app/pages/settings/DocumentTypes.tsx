@@ -17,6 +17,7 @@ import {
   AlertDialogTitle,
 } from '../../components/ui/alert-dialog';
 import { settingsApi } from '../../services/api';
+import { apiError } from '../../../i18n/apiError';
 import { toast } from 'sonner';
 
 interface DocumentType {
@@ -31,6 +32,7 @@ interface DocumentType {
 
 export function DocumentTypes() {
   const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const navigate = useNavigate();
   const { canCreate, canEdit, canDelete } = usePermissions();
   const [documentTypes, setDocumentTypes] = useState<DocumentType[]>([]);
@@ -47,7 +49,7 @@ export function DocumentTypes() {
       const data = await settingsApi.getDocumentTypes();
       setDocumentTypes(data);
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to load document types');
+      toast.error(apiError(err, tc('toast.loadFailed')));
     } finally {
       setLoading(false);
     }
@@ -58,11 +60,11 @@ export function DocumentTypes() {
     setDeleting(true);
     try {
       await settingsApi.deleteDocumentType(deleteTarget.id);
-      toast.success(`"${deleteTarget.name}" deactivated successfully`);
+      toast.success(tc('toast.deactivatedSuccessfullyNamed', { name: deleteTarget.name }));
       setDocumentTypes((prev) => prev.filter((d) => d.id !== deleteTarget.id));
       setDeleteTarget(null);
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to delete document type');
+      toast.error(apiError(err, tc('toast.deleteFailed')));
     } finally {
       setDeleting(false);
     }

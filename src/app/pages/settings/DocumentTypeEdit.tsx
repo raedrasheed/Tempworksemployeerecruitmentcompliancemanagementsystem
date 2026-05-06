@@ -11,6 +11,7 @@ import { Switch } from '../../components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { toast } from 'sonner';
 import { settingsApi } from '../../services/api';
+import { apiError } from '../../../i18n/apiError';
 
 const CATEGORY_LABELS: Record<string, string> = {
   identity: 'Identity',
@@ -29,6 +30,7 @@ function toCategoryKey(category: string): string {
 
 export function DocumentTypeEdit() {
   const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const navigate = useNavigate();
   const { id } = useParams();
   const [loading, setLoading] = useState(true);
@@ -70,7 +72,7 @@ export function DocumentTypeEdit() {
         setDocumentCount(dt._count?.documents ?? 0);
       })
       .catch((err: any) => {
-        toast.error(err?.message || 'Failed to load document type');
+        toast.error(apiError(err, tc('toast.loadFailed')));
         navigate('/dashboard/settings/document-types');
       })
       .finally(() => setLoading(false));
@@ -90,10 +92,10 @@ export function DocumentTypeEdit() {
           ? parseInt(formData.expiryWarningDays, 10)
           : undefined,
       });
-      toast.success('Document type updated successfully');
+      toast.success(tc('toast.savedSuccessfully'));
       navigate(`/dashboard/settings/document-types/${id}`);
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to update document type');
+      toast.error(apiError(err, tc('toast.saveFailed')));
     } finally {
       setSaving(false);
     }

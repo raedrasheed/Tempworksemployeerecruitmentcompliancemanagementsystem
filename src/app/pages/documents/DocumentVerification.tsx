@@ -15,10 +15,12 @@ import {
 } from '../../components/ui/dialog';
 import { toast } from 'sonner';
 import { documentsApi, employeesApi } from '../../services/api';
+import { apiError } from '../../../i18n/apiError';
 import { usePermissions } from '../../hooks/usePermissions';
 
 export function DocumentVerification() {
   const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const { can } = usePermissions();
   const navigate = useNavigate();
   const [documents, setDocuments]     = useState<any[]>([]);
@@ -38,7 +40,7 @@ export function DocumentVerification() {
         const all: any[] = res?.data ?? [];
         setDocuments(all.filter(d => d.status === 'PENDING'));
       })
-      .catch(() => toast.error('Failed to load documents'));
+      .catch(() => toast.error(tc('toast.loadFailed')));
 
     const loadEmps = employeesApi.list({ limit: 500 })
       .then((res: any) => {
@@ -56,9 +58,9 @@ export function DocumentVerification() {
     try {
       await documentsApi.verify(doc.id, { action: 'VERIFY' });
       setDocuments(prev => prev.filter(d => d.id !== doc.id));
-      toast.success(`"${doc.name}" approved`);
+      toast.success(tc('toast.approvedNamed', { name: doc.name }));
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to approve document');
+      toast.error(apiError(err, tc('toast.operationFailed')));
     } finally {
       setVerifying(null);
     }
@@ -71,7 +73,7 @@ export function DocumentVerification() {
 
   const handleReject = async () => {
     if (!rejectionReason.trim()) {
-      toast.error('A rejection reason is required');
+      toast.error(tc('toast.rejectionReasonRequired'));
       return;
     }
     setVerifying(rejectDialog.docId);
@@ -81,10 +83,10 @@ export function DocumentVerification() {
         reason: rejectionReason.trim(),
       });
       setDocuments(prev => prev.filter(d => d.id !== rejectDialog.docId));
-      toast.success(`"${rejectDialog.docName}" rejected`);
+      toast.success(tc('toast.rejectedNamed', { name: rejectDialog.docName }));
       setRejectDialog({ open: false, docId: '', docName: '' });
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to reject document');
+      toast.error(apiError(err, tc('toast.operationFailed')));
     } finally {
       setVerifying(null);
     }

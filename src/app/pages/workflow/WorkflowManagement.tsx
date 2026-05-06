@@ -8,6 +8,7 @@ import { Badge } from '../../components/ui/badge';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../../components/ui/dialog';
+import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { usePermissions } from '../../hooks/usePermissions';
 
@@ -203,7 +204,7 @@ export function WorkflowManagement() {
         </div>
         <div className="flex items-center gap-3">
           {canEdit('workflow') && (
-            <Button variant="outline" onClick={() => alert('Workflow configuration saved')}>
+            <Button variant="outline" onClick={() => toast.success(tp('workflow.management.savedStub'))}>
               <Save className="w-4 h-4 me-2" />
               {t('saveChanges')}
             </Button>

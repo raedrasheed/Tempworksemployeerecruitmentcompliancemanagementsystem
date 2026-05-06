@@ -11,6 +11,7 @@ import { Badge } from '../../components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Textarea } from '../../components/ui/textarea';
 import { settingsApi, vehiclesApi } from '../../services/api';
+import { apiError } from '../../../i18n/apiError';
 import { usePermissions } from '../../hooks/usePermissions';
 import { confirm } from '../../components/ui/ConfirmDialog';
 
@@ -113,12 +114,13 @@ function LookupListEditor({
   canEdit:  boolean;
 }) {
   const [draft, setDraft] = useState('');
+  const { t: tCommon } = useTranslation('common');
 
   const add = () => {
     const trimmed = draft.trim();
     if (!trimmed) return;
     if (values.some((v) => v.toLowerCase() === trimmed.toLowerCase())) {
-      toast.error('This value already exists');
+      toast.error(tCommon('toast.valueAlreadyExists'));
       return;
     }
     onChange([...values, trimmed]);
@@ -207,7 +209,7 @@ function MaintenanceTypesEditor({
 
   const handleSave = async () => {
     if (!form.name.trim()) {
-      toast.error('Name is required');
+      toast.error(t('toast.nameRequired'));
       return;
     }
 
@@ -223,15 +225,15 @@ function MaintenanceTypesEditor({
     try {
       if (editingId) {
         await onUpdate(editingId, payload);
-        toast.success('Maintenance type updated');
+        toast.success(t('toast.savedSuccessfully'));
       } else {
         await onAdd(payload);
-        toast.success('Maintenance type created');
+        toast.success(t('toast.savedSuccessfully'));
       }
       setForm(INITIAL_MT_FORM);
       setEditingId(null);
     } catch (err: any) {
-      toast.error(err?.message ?? 'Failed to save');
+      toast.error(apiError(err, t('toast.saveFailed')));
     }
   };
 
@@ -261,9 +263,9 @@ function MaintenanceTypesEditor({
 
     try {
       await onDelete(id);
-      toast.success('Maintenance type deleted');
+      toast.success(t('toast.deleted'));
     } catch {
-      toast.error('Failed to delete maintenance type');
+      toast.error(t('toast.deleteFailed'));
     }
   };
 
@@ -413,6 +415,7 @@ function MaintenanceTypesEditor({
 
 export function VehicleSettings() {
   const { t: tv } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const { canEdit } = usePermissions();
   const isAdmin = canEdit('settings');
   const [data, setData] = useState<Record<LookupKey, string[]> | null>(null);
@@ -436,7 +439,7 @@ export function VehicleSettings() {
         setOriginal(JSON.parse(JSON.stringify(safe)));
         setMaintenanceTypes(mtypes);
       })
-      .catch(() => toast.error('Failed to load vehicle settings'))
+      .catch(() => toast.error(tc('toast.loadFailed')))
       .finally(() => setLoading(false));
   };
 
@@ -466,10 +469,10 @@ export function VehicleSettings() {
       for (const key of dirtyKeys) {
         await settingsApi.updateVehicleSetting(key, data[key]);
       }
-      toast.success(`Saved ${dirtyKeys.length} list${dirtyKeys.length === 1 ? '' : 's'}`);
+      toast.success(tc('toast.savedListsCount', { count: dirtyKeys.length }));
       setOriginal(JSON.parse(JSON.stringify(data)));
     } catch (err: any) {
-      toast.error(err?.message ?? 'Failed to save settings');
+      toast.error(apiError(err, tc('toast.saveFailed')));
     } finally {
       setSaving(false);
     }

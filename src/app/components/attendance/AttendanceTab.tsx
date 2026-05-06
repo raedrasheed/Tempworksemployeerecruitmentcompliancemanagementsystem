@@ -20,6 +20,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { attendanceApi } from '../../services/api';
+import { apiError } from '../../../i18n/apiError';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -99,6 +100,7 @@ interface Props {
 
 export function AttendanceTab({ employeeId, employeeName, canWrite, canLock = false }: Props) {
   const { t: tc } = useTranslation('common');
+  const { t: tp } = useTranslation('pages');
   const now = new Date();
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year,  setYear]  = useState(now.getFullYear());
@@ -201,7 +203,7 @@ export function AttendanceTab({ employeeId, employeeName, canWrite, canLock = fa
   };
 
   const handleSave = async () => {
-    if (!form.date) { toast.error('Pick a date'); return; }
+    if (!form.date) { toast.error(tc('toast.pickDate')); return; }
     setSaving(true);
     try {
       await attendanceApi.upsert({
@@ -214,11 +216,11 @@ export function AttendanceTab({ employeeId, employeeName, canWrite, canLock = fa
         breakOut: form.breakOut || undefined,
         notes:    form.notes    || undefined,
       });
-      toast.success(editingDate ? 'Attendance updated' : 'Attendance added');
+      toast.success(editingDate ? tp('attendance.toast.updated') : tp('attendance.toast.added'));
       setDialogOpen(false);
       load();
     } catch (err: any) {
-      toast.error(err?.message || 'Save failed');
+      toast.error(apiError(err, tc('toast.saveFailed')));
     } finally {
       setSaving(false);
     }
@@ -227,15 +229,15 @@ export function AttendanceTab({ employeeId, employeeName, canWrite, canLock = fa
   const handleDelete = async (recordId: string) => {
     try {
       await attendanceApi.delete(recordId);
-      toast.success('Row deleted');
+      toast.success(tc('toast.rowDeleted'));
       load();
     } catch (err: any) {
-      toast.error(err?.message || 'Delete failed');
+      toast.error(apiError(err, tc('toast.deleteFailed')));
     }
   };
 
   const handleBulkApply = async () => {
-    if (!bulkForm.dateFrom || !bulkForm.dateTo) { toast.error('Set a date range'); return; }
+    if (!bulkForm.dateFrom || !bulkForm.dateTo) { toast.error(tc('toast.setDateRange')); return; }
     setBulkSaving(true);
     try {
       const res = await attendanceApi.bulkApply({
@@ -252,11 +254,17 @@ export function AttendanceTab({ employeeId, employeeName, canWrite, canLock = fa
         skipWeekends: bulkForm.skipWeekends,
       });
       const s = res?.summary ?? {};
-      toast.success(`Applied: ${s.created ?? 0} new · ${s.updated ?? 0} updated · ${s.skipped_locked ?? 0} locked · ${s.skipped_existing ?? 0} skipped · ${s.errors ?? 0} errors`);
+      toast.success(tp('attendance.toast.bulkApplied', {
+        created: s.created ?? 0,
+        updated: s.updated ?? 0,
+        lockedCount: s.skipped_locked ?? 0,
+        skipped: s.skipped_existing ?? 0,
+        errors: s.errors ?? 0,
+      }));
       setBulkOpen(false);
       load();
     } catch (err: any) {
-      toast.error(err?.message || 'Bulk apply failed');
+      toast.error(apiError(err, tc('toast.operationFailed')));
     } finally {
       setBulkSaving(false);
     }
@@ -274,7 +282,7 @@ export function AttendanceTab({ employeeId, employeeName, canWrite, canLock = fa
       a.click();
       URL.revokeObjectURL(url);
     } catch (err: any) {
-      toast.error(err?.message || 'Export failed');
+      toast.error(apiError(err, tc('toast.exportFailed')));
     }
   };
 
@@ -282,14 +290,14 @@ export function AttendanceTab({ employeeId, employeeName, canWrite, canLock = fa
     try {
       if (currentPeriodLock) {
         await attendanceApi.unlockPeriod(currentPeriodLock.id);
-        toast.success(`${monthOptions()[month - 1].label} ${year} unlocked`);
+        toast.success(tp('attendance.toast.periodUnlocked', { month: monthOptions()[month - 1].label, year }));
       } else {
         await attendanceApi.lockPeriod({ year, month });
-        toast.success(`${monthOptions()[month - 1].label} ${year} locked`);
+        toast.success(tp('attendance.toast.periodLocked', { month: monthOptions()[month - 1].label, year }));
       }
       load();
     } catch (err: any) {
-      toast.error(err?.message || 'Lock operation failed');
+      toast.error(apiError(err, tc('toast.operationFailed')));
     }
   };
 
@@ -500,7 +508,7 @@ export function AttendanceTab({ employeeId, employeeName, canWrite, canLock = fa
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}><X className="w-4 h-4 me-2" />Cancel</Button>
+            <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}><X className="w-4 h-4 me-2" />{tc('actions.cancel')}</Button>
             <Button onClick={handleSave} disabled={saving}><Save className="w-4 h-4 me-2" />{saving ? 'Saving…' : 'Save'}</Button>
           </DialogFooter>
         </DialogContent>
@@ -559,7 +567,7 @@ export function AttendanceTab({ employeeId, employeeName, canWrite, canLock = fa
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setBulkOpen(false)} disabled={bulkSaving}><X className="w-4 h-4 me-2" />Cancel</Button>
+            <Button variant="outline" onClick={() => setBulkOpen(false)} disabled={bulkSaving}><X className="w-4 h-4 me-2" />{tc('actions.cancel')}</Button>
             <Button onClick={handleBulkApply} disabled={bulkSaving}><Layers className="w-4 h-4 me-2" />{bulkSaving ? 'Applying…' : 'Apply'}</Button>
           </DialogFooter>
         </DialogContent>

@@ -80,6 +80,7 @@ function EntityBadge({ entityType }: { entityType: string }) {
 
 export function DeletedRecords() {
   const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const { canView } = usePermissions();
 
   if (!canView('recycle-bin')) {
@@ -144,7 +145,7 @@ export function DeletedRecords() {
       setTotal(res.meta?.total ?? 0);
       setTotalPages(res.meta?.totalPages ?? 1);
     } catch {
-      toast.error('Failed to load deleted records');
+      toast.error(tc('toast.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -168,7 +169,7 @@ export function DeletedRecords() {
       const data = await recycleBinApi.getRelated(rec.entityType, rec.id);
       setRelatedData(data);
     } catch {
-      toast.error('Failed to load related data');
+      toast.error(tc('toast.loadFailed'));
     } finally {
       setRelatedLoading(false);
     }
@@ -189,7 +190,10 @@ export function DeletedRecords() {
         withRelated: restoreWithRelated,
       });
       toast.success(
-        `Restored ${ENTITY_LABELS[restoreTarget.entityType]?.label ?? restoreTarget.entityType}: ${restoreTarget.displayName}` +
+        tc('toast.restoredEntityNamed', {
+          entity: ENTITY_LABELS[restoreTarget.entityType]?.label ?? restoreTarget.entityType,
+          name: restoreTarget.displayName,
+        }) +
         (result.restored ? ` (${Object.entries(result.restored).filter(([, v]) => (v as number) > 0).map(([k, v]) => `${v} ${k}`).join(', ')})` : '')
       );
       if (result.warnings?.length) {
@@ -212,7 +216,7 @@ export function DeletedRecords() {
     setHardDeleteLoading(true);
     try {
       await recycleBinApi.hardDelete(hardDeleteTarget.entityType, hardDeleteTarget.id, {});
-      toast.success(`Permanently deleted: ${hardDeleteTarget.displayName}`);
+      toast.success(tc('toast.permanentlyDeletedNamed', { name: hardDeleteTarget.displayName }));
       setShowHardDeleteDialog(false);
       setHardDeleteTarget(null);
       fetchRecords();
@@ -476,7 +480,7 @@ export function DeletedRecords() {
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowRestoreDialog(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setShowRestoreDialog(false)}>{tc('actions.cancel')}</Button>
             <Button onClick={executeRestore} disabled={restoreLoading}>
               {restoreLoading ? 'Restoring…' : (
                 <><RotateCcw className="w-4 h-4 me-2" />Restore</>

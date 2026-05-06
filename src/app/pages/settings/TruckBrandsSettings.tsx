@@ -13,6 +13,7 @@ const DEFAULTS = ['Volvo', 'Scania', 'DAF', 'MAN', 'Mercedes-Benz', 'Iveco'];
 
 export function TruckBrandsSettings() {
   const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const { canEdit } = usePermissions();
   const isAdmin = canEdit('settings');
   const [items, setItems] = useState<string[]>([]);
@@ -45,9 +46,9 @@ export function TruckBrandsSettings() {
     setSaving(true);
     try {
       await settingsApi.update({ 'form.truckBrands': JSON.stringify(items) });
-      toast.success('Truck Brands saved');
+      toast.success(tc('toast.savedSuccessfully'));
     } catch {
-      toast.error('Failed to save');
+      toast.error(tc('toast.saveFailed'));
     } finally {
       setSaving(false);
     }

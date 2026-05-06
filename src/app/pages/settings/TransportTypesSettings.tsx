@@ -13,6 +13,7 @@ const DEFAULTS = ['International', 'Domestic', 'Bilateral', 'Cabotage', 'Hazardo
 
 export function TransportTypesSettings() {
   const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const { canEdit } = usePermissions();
   const isAdmin = canEdit('settings');
   const [items, setItems] = useState<string[]>([]);
@@ -45,9 +46,9 @@ export function TransportTypesSettings() {
     setSaving(true);
     try {
       await settingsApi.update({ 'form.transportTypes': JSON.stringify(items) });
-      toast.success('Transport Types saved');
+      toast.success(tc('toast.savedSuccessfully'));
     } catch {
-      toast.error('Failed to save');
+      toast.error(tc('toast.saveFailed'));
     } finally {
       setSaving(false);
     }

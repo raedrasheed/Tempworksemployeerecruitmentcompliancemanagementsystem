@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { applicantsApi, agenciesApi, settingsApi, documentsApi, workflowApi } from '../../services/api';
+import { applicantsApi, agenciesApi, settingsApi, documentsApi, workflowApi, resolveAssetUrl } from '../../services/api';
 import { apiError } from '../../../i18n/apiError';
 import { usePermissions } from '../../hooks/usePermissions';
 import { getCurrentUser, getAccessToken } from '../../services/api';
@@ -711,7 +711,7 @@ export function CandidatesList() {
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-full overflow-hidden bg-blue-100 flex items-center justify-center shrink-0">
                           {applicant.photoUrl
-                            ? <img src={`${(import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1').replace('/api/v1', '')}${applicant.photoUrl}`} alt={applicant.firstName} className="w-full h-full object-cover" />
+                            ? <img src={resolveAssetUrl(applicant.photoUrl)} alt={applicant.firstName} className="w-full h-full object-cover" />
                             : <span className="text-blue-600 text-sm font-semibold">{applicant.firstName?.[0]}{applicant.lastName?.[0]}</span>}
                         </div>
                         <div>

@@ -26,11 +26,22 @@
  * Idempotent — only touches rows with docId IS NULL.
  */
 import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { Pool } from 'pg';
 import * as dotenv from 'dotenv';
+import { resolvePoolSsl } from './pg-ssl';
 
 dotenv.config();
 
-const prisma = new PrismaClient();
+const DATABASE_URL = process.env.DATABASE_URL;
+if (!DATABASE_URL) {
+  console.error('❌  DATABASE_URL environment variable is not set.');
+  process.exit(1);
+}
+
+const pool = new Pool({ connectionString: DATABASE_URL, ssl: resolvePoolSsl(DATABASE_URL) });
+const adapter = new PrismaPg(pool);
+const prisma = new PrismaClient({ adapter } as any);
 
 function fallback(uuid: string): string {
   return uuid.replace(/-/g, '').slice(0, 8).toUpperCase();

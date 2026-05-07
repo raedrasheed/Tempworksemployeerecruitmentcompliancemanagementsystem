@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import {
   Wrench, Pencil, Trash2, ArrowLeft, RefreshCw, Search, Filter, Download,
   FileSpreadsheet, FileText, ChevronDown,
@@ -21,21 +22,26 @@ import { usePermissions } from '../../hooks/usePermissions';
 
 const MAINTENANCE_STATUSES = ['SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'];
 
-function statusBadge(status: string) {
-  const map: Record<string, string> = {
-    SCHEDULED: 'bg-blue-100 text-blue-800',
-    IN_PROGRESS: 'bg-yellow-100 text-yellow-800',
-    COMPLETED: 'bg-green-100 text-green-800',
-    CANCELLED: 'bg-gray-100 text-gray-600',
-  };
+const STATUS_COLORS: Record<string, string> = {
+  SCHEDULED: 'bg-blue-100 text-blue-800',
+  IN_PROGRESS: 'bg-yellow-100 text-yellow-800',
+  COMPLETED: 'bg-green-100 text-green-800',
+  CANCELLED: 'bg-gray-100 text-gray-600',
+};
+
+function StatusBadge({ status, tEnums }: { status: string; tEnums: (k: string, opts?: any) => string }) {
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${map[status] ?? 'bg-gray-100 text-gray-700'}`}>
-      {status.replace('_', ' ')}
+    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${STATUS_COLORS[status] ?? 'bg-gray-100 text-gray-700'}`}>
+      {tEnums(`maintenanceStatus.${status}`, { defaultValue: status.replace('_', ' ') })}
     </span>
   );
 }
 
 export function MaintenanceRecordsList() {
+  const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
+  const { t: tEnums } = useTranslation('enums');
+  const tMR = (key: string, opts?: any) => t(`vehicles.maintenanceRecords.${key}`, opts);
   const navigate = useNavigate();
   const { canCreate } = usePermissions();
   const canWrite = canCreate('vehicles');
@@ -89,7 +95,7 @@ export function MaintenanceRecordsList() {
       setTotalPages(recordsRes.totalPages ?? 1);
       setWorkshops(workshopsRes ?? []);
     } catch {
-      toast.error('Failed to load maintenance records');
+      toast.error(tc('toast.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -112,16 +118,16 @@ export function MaintenanceRecordsList() {
 
   const handleDelete = async (id: string) => {
     if (!(await confirm({
-      title: 'Delete maintenance record?',
-      description: 'This record will be permanently removed.',
-      confirmText: 'Delete', tone: 'destructive',
+      title: t('common:confirm.deleteMaintenanceRecordTitle'),
+      description: t('common:confirm.deleteMaintenanceRecordBody'),
+      confirmText: t('common:actions.delete'), tone: 'destructive',
     }))) return;
     try {
       await vehiclesApi.deleteMaintenance(id);
-      toast.success('Maintenance record deleted');
+      toast.success(tc('toast.deleted'));
       load();
     } catch {
-      toast.error('Delete failed');
+      toast.error(tc('toast.deleteFailed'));
     }
   };
 
@@ -165,9 +171,9 @@ export function MaintenanceRecordsList() {
       const blob = await vehiclesApi.exportMaintenanceExcel(buildExportParams(scope));
       const date = new Date().toISOString().split('T')[0];
       downloadBlob(blob, `maintenance-records-${date}.xlsx`);
-      toast.success('Excel export downloaded');
+      toast.success(tc('toast.exportComplete_excel'));
     } catch {
-      toast.error('Excel export failed');
+      toast.error(tc('toast.exportFailed_excel'));
     } finally {
       setExporting(false);
     }
@@ -180,9 +186,9 @@ export function MaintenanceRecordsList() {
       const blob = await vehiclesApi.exportMaintenancePdf(buildExportParams(scope));
       const date = new Date().toISOString().split('T')[0];
       downloadBlob(blob, `maintenance-records-${date}.pdf`);
-      toast.success('PDF export downloaded');
+      toast.success(tc('toast.exportComplete_pdf'));
     } catch {
-      toast.error('PDF export failed');
+      toast.error(tc('toast.exportFailed_pdf'));
     } finally {
       setExporting(false);
     }
@@ -228,18 +234,18 @@ export function MaintenanceRecordsList() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard/vehicles')}>
-            <ArrowLeft className="w-4 h-4 mr-1" /> Back
+            <ArrowLeft className="w-4 h-4 me-1" /> {tMR('back')}
           </Button>
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2">
-              <Wrench className="w-6 h-6" /> Maintenance Records
+              <Wrench className="w-6 h-6" /> {t('vehicles.maintenanceRecords.title')}
             </h1>
-            <p className="text-sm text-muted-foreground">Service logs and maintenance history</p>
+            <p className="text-sm text-muted-foreground">{t('vehicles.maintenanceRecords.subtitle')}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={load}>
-            <RefreshCw className="w-4 h-4 mr-2" /> Refresh
+            <RefreshCw className="w-4 h-4 me-2" /> {tMR('refresh')}
           </Button>
 
           {/* Export dropdown */}
@@ -249,47 +255,47 @@ export function MaintenanceRecordsList() {
               onClick={() => setExportOpen((o) => !o)}
               disabled={exporting}
             >
-              <Download className="w-4 h-4 mr-2" />
-              {exporting ? 'Exporting…' : 'Export'}
-              <ChevronDown className="w-4 h-4 ml-1" />
+              <Download className="w-4 h-4 me-2" />
+              {exporting ? tMR('exporting') : tMR('export')}
+              <ChevronDown className="w-4 h-4 ms-1" />
             </Button>
             {exportOpen && (
-              <div className="absolute right-0 mt-1 w-64 bg-popover border rounded-md shadow-lg z-50 py-1">
+              <div className="absolute end-0 mt-1 w-64 bg-popover border rounded-md shadow-lg z-50 py-1">
                 <div className="px-3 py-2 text-xs font-medium text-muted-foreground border-b">
-                  Excel (.xlsx)
+                  {tMR('excelHeader')}
                 </div>
                 <button
-                  className="w-full text-left px-3 py-2 text-sm hover:bg-accent flex items-center gap-2"
+                  className="w-full text-start px-3 py-2 text-sm hover:bg-accent flex items-center gap-2"
                   onClick={() => handleExportExcel('all')}
                 >
                   <FileSpreadsheet className="w-4 h-4 text-green-600" />
-                  All filtered records ({total})
+                  {tMR('allFiltered', { count: total })}
                 </button>
                 <button
-                  className="w-full text-left px-3 py-2 text-sm hover:bg-accent flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full text-start px-3 py-2 text-sm hover:bg-accent flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   onClick={() => handleExportExcel('selected')}
                   disabled={selected.size === 0}
                 >
                   <FileSpreadsheet className="w-4 h-4 text-green-600" />
-                  Selected only ({selected.size})
+                  {tMR('selectedOnly', { count: selected.size })}
                 </button>
                 <div className="px-3 py-2 text-xs font-medium text-muted-foreground border-b border-t">
-                  PDF (.pdf)
+                  {tMR('pdfHeader')}
                 </div>
                 <button
-                  className="w-full text-left px-3 py-2 text-sm hover:bg-accent flex items-center gap-2"
+                  className="w-full text-start px-3 py-2 text-sm hover:bg-accent flex items-center gap-2"
                   onClick={() => handleExportPdf('all')}
                 >
                   <FileText className="w-4 h-4 text-red-600" />
-                  All filtered records ({total})
+                  {tMR('allFiltered', { count: total })}
                 </button>
                 <button
-                  className="w-full text-left px-3 py-2 text-sm hover:bg-accent flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full text-start px-3 py-2 text-sm hover:bg-accent flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   onClick={() => handleExportPdf('selected')}
                   disabled={selected.size === 0}
                 >
                   <FileText className="w-4 h-4 text-red-600" />
-                  Selected only ({selected.size})
+                  {tMR('selectedOnly', { count: selected.size })}
                 </button>
               </div>
             )}
@@ -302,39 +308,39 @@ export function MaintenanceRecordsList() {
         <CardContent className="p-4 space-y-3">
           <div className="flex items-center gap-2">
             <Filter className="w-4 h-4 text-muted-foreground" />
-            <span className="text-sm font-medium">Filters</span>
+            <span className="text-sm font-medium">{tc('filters.filtersLabel')}</span>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
             <div className="space-y-1">
-              <Label className="text-xs">Search</Label>
+              <Label className="text-xs">{tc('actions.search')}</Label>
               <div className="relative">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute start-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Vehicle, type, workshop..."
+                  placeholder={tMR('searchPh')}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="pl-8"
+                  className="ps-8"
                 />
               </div>
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Status</Label>
+              <Label className="text-xs">{tMR('statusLabel')}</Label>
               <Select value={statusFilter || 'all'} onValueChange={(v) => { setStatusFilter(v === 'all' ? '' : v); setPage(1); }}>
-                <SelectTrigger><SelectValue placeholder="All" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={tMR('statusFilterPh')} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="all">{tMR('filterAllStatuses')}</SelectItem>
                   {MAINTENANCE_STATUSES.map((s) => (
-                    <SelectItem key={s} value={s}>{s.replace('_', ' ')}</SelectItem>
+                    <SelectItem key={s} value={s}>{tEnums(`maintenanceStatus.${s}`, { defaultValue: s.replace('_', ' ') })}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Workshop</Label>
+              <Label className="text-xs">{tMR('workshopLabel')}</Label>
               <Select value={workshopFilter || 'all'} onValueChange={(v) => { setWorkshopFilter(v === 'all' ? '' : v); setPage(1); }}>
-                <SelectTrigger><SelectValue placeholder="All" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={tMR('workshopFilterPh')} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Workshops</SelectItem>
+                  <SelectItem value="all">{tMR('filterAllWorkshops')}</SelectItem>
                   {workshops.map((w: any) => (
                     <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>
                   ))}
@@ -342,30 +348,30 @@ export function MaintenanceRecordsList() {
               </Select>
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Date From</Label>
+              <Label className="text-xs">{t('vehicles.maintenanceRecords.dateFrom')}</Label>
               <Input type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setPage(1); }} />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Date To</Label>
+              <Label className="text-xs">{t('vehicles.maintenanceRecords.dateTo')}</Label>
               <Input type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setPage(1); }} />
             </div>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-xs text-muted-foreground">
-              Showing {filteredRecords.length} of {total} records
+              {tMR('showing', { count: total, shown: filteredRecords.length, total })}
               {selected.size > 0 && (
-                <span className="ml-2 font-medium text-foreground">
-                  · {selected.size} selected
+                <span className="ms-2 font-medium text-foreground">
+                  {tMR('selectedCount', { count: selected.size })}
                 </span>
               )}
             </span>
             <div className="flex items-center gap-2">
               {selected.size > 0 && (
                 <Button variant="ghost" size="sm" onClick={() => setSelected(new Set())}>
-                  Clear Selection
+                  {tMR('clearSelection')}
                 </Button>
               )}
-              <Button variant="ghost" size="sm" onClick={clearFilters}>Clear Filters</Button>
+              <Button variant="ghost" size="sm" onClick={clearFilters}>{tMR('clearFilters')}</Button>
             </div>
           </div>
         </CardContent>
@@ -385,28 +391,28 @@ export function MaintenanceRecordsList() {
                     onChange={toggleSelectAll}
                   />
                 </TableHead>
-                <TableHead>Vehicle</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Workshop</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Scheduled</TableHead>
-                <TableHead>Completed</TableHead>
-                <TableHead>Mileage</TableHead>
-                <TableHead className="text-right">Cost</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>{tMR('cols.vehicle')}</TableHead>
+                <TableHead>{tMR('cols.type')}</TableHead>
+                <TableHead>{tMR('cols.workshop')}</TableHead>
+                <TableHead>{tMR('cols.status')}</TableHead>
+                <TableHead>{tMR('cols.scheduled')}</TableHead>
+                <TableHead>{tMR('cols.completed')}</TableHead>
+                <TableHead>{tMR('cols.mileage')}</TableHead>
+                <TableHead className="text-end">{tMR('cols.cost')}</TableHead>
+                <TableHead className="text-end">{tMR('cols.actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
                   <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
-                    Loading...
+                    {tc('states.loading')}
                   </TableCell>
                 </TableRow>
               ) : filteredRecords.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
-                    No maintenance records found
+                    {t('vehicles.maintenanceRecords.empty')}
                   </TableCell>
                 </TableRow>
               ) : filteredRecords.map((rec: any) => (
@@ -431,12 +437,12 @@ export function MaintenanceRecordsList() {
                   </TableCell>
                   <TableCell>{rec.maintenanceType?.name ?? '—'}</TableCell>
                   <TableCell>{rec.workshop?.name ?? '—'}</TableCell>
-                  <TableCell>{statusBadge(rec.status)}</TableCell>
+                  <TableCell><StatusBadge status={rec.status} tEnums={tEnums} /></TableCell>
                   <TableCell className="text-sm">{formatDate(rec.scheduledDate)}</TableCell>
                   <TableCell className="text-sm">{formatDate(rec.completedDate)}</TableCell>
-                  <TableCell className="text-sm">{rec.mileageAtService ? `${rec.mileageAtService.toLocaleString()} km` : '—'}</TableCell>
-                  <TableCell className="text-right text-sm">{formatCurrency(rec.cost)}</TableCell>
-                  <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                  <TableCell className="text-sm">{rec.mileageAtService ? tMR('kmSuffix', { count: rec.mileageAtService }) : '—'}</TableCell>
+                  <TableCell className="text-end text-sm">{formatCurrency(rec.cost)}</TableCell>
+                  <TableCell className="text-end" onClick={(e) => e.stopPropagation()}>
                     <Button
                       size="sm"
                       variant="ghost"
@@ -470,16 +476,16 @@ export function MaintenanceRecordsList() {
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
           >
-            Previous
+            {tMR('previous')}
           </Button>
-          <span className="text-sm text-muted-foreground">Page {page} of {totalPages}</span>
+          <span className="text-sm text-muted-foreground">{tMR('pageOf', { page, totalPages })}</span>
           <Button
             variant="outline"
             size="sm"
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page === totalPages}
           >
-            Next
+            {tMR('next')}
           </Button>
         </div>
       )}

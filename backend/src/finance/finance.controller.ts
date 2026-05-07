@@ -1,13 +1,12 @@
 import {
   Controller, Get, Post, Body, Patch, Param, Delete,
   Query, UseGuards, HttpCode, HttpStatus, UseInterceptors,
-  UploadedFile, BadRequestException, Res,
+  UploadedFile, BadRequestException, Res, Headers,
 } from '@nestjs/common';
+import { resolveAcceptLanguage } from '../common/i18n/server-translate';
 import { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
-import { v4 as uuidv4 } from 'uuid';
+import { memoryUpload, DOCUMENT_MIME } from '../common/storage/multer.config';
 import {
   ApiTags, ApiOperation, ApiResponse, ApiBearerAuth,
   ApiParam, ApiConsumes, ApiBody,
@@ -28,20 +27,6 @@ import {
   TRANSACTION_TYPES, PAYMENT_METHODS,
   FINANCIAL_RECORD_STATUSES, COMMON_CURRENCIES,
 } from './constants';
-
-const multerStorage = diskStorage({
-  destination: process.env.UPLOAD_DEST || './uploads',
-  filename: (_req, file, cb) => {
-    const uniqueSuffix = `${uuidv4()}${extname(file.originalname)}`;
-    cb(null, uniqueSuffix);
-  },
-});
-
-const allowedMimetypes = [
-  'application/pdf', 'image/jpeg', 'image/jpg', 'image/png',
-  'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-];
 
 @ApiTags('Finance')
 @ApiBearerAuth('access-token')
@@ -82,8 +67,12 @@ export class FinanceController {
   @Get('export')
   @Roles(...FINANCE_EXPORT_ROLES)
   @ApiOperation({ summary: 'Export financial records as Excel (.xlsx)' })
-  async exportExcel(@Query() filter: FilterFinancialRecordsDto, @Res() res: Response) {
-    const buffer = await this.financeService.exportExcel(filter);
+  async exportExcel(
+    @Query() filter: FilterFinancialRecordsDto,
+    @Res() res: Response,
+    @Headers('accept-language') acceptLanguage?: string,
+  ) {
+    const buffer = await this.financeService.exportExcel(filter, resolveAcceptLanguage(acceptLanguage));
     const filename = `financial-records-${new Date().toISOString().slice(0, 10)}.xlsx`;
     res.set({
       'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -232,18 +221,10 @@ export class FinanceController {
       properties: { file: { type: 'string', format: 'binary' } },
     },
   })
-  @UseInterceptors(
-    FileInterceptor('file', {
-      storage: multerStorage,
-      fileFilter: (_req, file, cb) => {
-        if (!allowedMimetypes.includes(file.mimetype)) {
-          return cb(new BadRequestException(`File type ${file.mimetype} not allowed`), false);
-        }
-        cb(null, true);
-      },
-      limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
-    }),
-  )
+  @UseInterceptors(FileInterceptor('file', memoryUpload({
+    mimeTypes: DOCUMENT_MIME,
+    maxBytes: 10 * 1024 * 1024,
+  })))
   addAttachment(
     @Param('id') id: string,
     @UploadedFile() file: Express.Multer.File,

@@ -33,12 +33,16 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       },
     });
     if (!user) {
-      throw new UnauthorizedException('User not found');
+      throw new UnauthorizedException({ code: 'AUTH.USER_NOT_FOUND', message: 'User not found' });
     }
     if (user.status !== 'ACTIVE') {
       // Any non-ACTIVE status (INACTIVE, SUSPENDED, PENDING, TERMINATED)
       // immediately terminates the session — no need to wait for next login.
-      throw new UnauthorizedException(`Account is ${user.status.toLowerCase()}`);
+      throw new UnauthorizedException({
+        code: 'AUTH.ACCOUNT_STATUS',
+        message: `Account is ${user.status.toLowerCase()}`,
+        params: { status: user.status.toLowerCase() },
+      });
     }
     return {
       id: user.id,

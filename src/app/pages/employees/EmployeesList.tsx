@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Link } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { Plus, Search, Download, Eye, Edit, Trash2, RefreshCw, ArrowUp, ArrowDown, ArrowUpDown, X, Columns2, Check, FileText, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { confirm } from '../../components/ui/ConfirmDialog';
@@ -15,6 +16,7 @@ import {
 } from '../../components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { employeesApi, agenciesApi, getAccessToken, documentsApi } from '../../services/api';
+import { apiError } from '../../../i18n/apiError';
 import { usePermissions } from '../../hooks/usePermissions';
 
 const STATUSES = ['ACTIVE', 'PENDING', 'ONBOARDING', 'INACTIVE', 'SUSPENDED', 'ON_LEAVE'];
@@ -35,13 +37,13 @@ type SortOrder = 'asc' | 'desc';
 // ── Column visibility ────────────────────────────────────────────────────────
 type ColKey = 'contact' | 'nationality' | 'license' | 'experience' | 'agency' | 'status';
 
-const ALL_COLUMNS: { key: ColKey; label: string }[] = [
-  { key: 'contact',     label: 'Contact' },
-  { key: 'nationality', label: 'Citizenship' },
-  { key: 'license',     label: 'ID / License' },
-  { key: 'experience',  label: 'Experience' },
-  { key: 'agency',      label: 'Agency' },
-  { key: 'status',      label: 'Status' },
+const ALL_COLUMNS: { key: ColKey; labelKey: string }[] = [
+  { key: 'contact',     labelKey: 'employees.list.cols.contact' },
+  { key: 'nationality', labelKey: 'employees.list.cols.nationality' },
+  { key: 'license',     labelKey: 'employees.list.cols.license' },
+  { key: 'experience',  labelKey: 'employees.list.cols.experience' },
+  { key: 'agency',      labelKey: 'employees.list.cols.agency' },
+  { key: 'status',      labelKey: 'employees.list.cols.status' },
 ];
 
 const DEFAULT_VISIBLE: Record<ColKey, boolean> = {
@@ -77,6 +79,9 @@ function SortableHead({ label, field, sortBy, sortOrder, onSort }: {
 
 export function EmployeesList() {
   const { canCreate, canEdit, canDelete } = usePermissions();
+  const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
+  const { t: tEnums } = useTranslation('enums');
 
   // ── Column visibility ──────────────────────────────────────────────────────
   const [visibleColumns, setVisibleColumns] = useState<Record<ColKey, boolean>>(loadVisibleColumns);
@@ -201,17 +206,17 @@ export function EmployeesList() {
   // ── Delete ─────────────────────────────────────────────────────────────────
   const handleDelete = async (employee: any) => {
     if (!(await confirm({
-      title: 'Delete employee?',
-      description: `"${employee.firstName} ${employee.lastName}" will be permanently removed. This cannot be undone.`,
-      confirmText: 'Delete', tone: 'destructive',
+      title: t('employees.list.deleteTitle'),
+      description: t('employees.list.deleteBody', { name: `${employee.firstName} ${employee.lastName}` }),
+      confirmText: tc('actions.delete'), tone: 'destructive',
     }))) return;
     try {
       await employeesApi.delete(employee.id);
       setEmployees(prev => prev.filter(e => e.id !== employee.id));
       setTotalEmployees(prev => prev - 1);
-      toast.success('Employee deleted successfully');
+      toast.success(t('employees.list.deleteSuccess'));
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to delete employee');
+      toast.error(apiError(err, t('employees.list.deleteFailed')));
     }
   };
 
@@ -219,17 +224,17 @@ export function EmployeesList() {
   const [pdfExporting, setPdfExporting] = useState(false);
   const handleBulkPdfExport = async () => {
     if (selected.size === 0) {
-      toast.error('Select at least one employee');
+      toast.error(t('employees.list.selectAtLeastOne'));
       return;
     }
     setPdfExporting(true);
-    const tid = toast.loading(`Preparing ${selected.size} PDF${selected.size > 1 ? 's' : ''}...`);
+    const tid = toast.loading(t('employees.list.preparingPdfs', { count: selected.size }));
     try {
       const ids = [...selected];
       const full = await Promise.all(ids.map(id => employeesApi.get(id).catch(() => null)));
       const records = full.filter(Boolean) as any[];
       if (records.length === 0) {
-        toast.error('Failed to load selected employees', { id: tid });
+        toast.error(t('employees.list.loadSelectedFailed'), { id: tid });
         return;
       }
       const today = new Date().toISOString().slice(0, 10);
@@ -249,12 +254,12 @@ export function EmployeesList() {
           return `Employee_${name}_${num}.pdf`;
         },
         onProgress: (done, total) => {
-          toast.loading(`Generating PDFs... ${done}/${total}`, { id: tid });
+          toast.loading(t('employees.list.generatingPdfs', { done, total }), { id: tid });
         },
       });
-      toast.success(`Exported ${records.length} PDF${records.length > 1 ? 's' : ''}`, { id: tid });
+      toast.success(t('employees.list.exportedCount', { count: records.length }), { id: tid });
     } catch (err: any) {
-      toast.error(err?.message || 'PDF export failed', { id: tid });
+      toast.error(apiError(err, t('employees.list.pdfFailed')), { id: tid });
     } finally {
       setPdfExporting(false);
     }
@@ -267,7 +272,7 @@ export function EmployeesList() {
   // stays disabled until at least one row is ticked.
   const handleExportExcel = () => {
     if (selected.size === 0) {
-      toast.error('Select one or more rows to export');
+      toast.error(t('employees.list.selectToExport'));
       return;
     }
     const token = getAccessToken();
@@ -285,7 +290,7 @@ export function EmployeesList() {
         document.body.appendChild(a); a.click();
         document.body.removeChild(a); URL.revokeObjectURL(objectUrl);
       })
-      .catch(() => toast.error('Export failed'));
+      .catch(() => toast.error(t('employees.list.exportFailed')));
   };
 
   // ── Filters ────────────────────────────────────────────────────────────────
@@ -321,13 +326,13 @@ export function EmployeesList() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-semibold text-[#0F172A]">Employees</h1>
-          <p className="text-muted-foreground mt-1">Manage and track all employees in the system</p>
+          <h1 className="text-3xl font-semibold text-[#0F172A]">{t('employees.list.title')}</h1>
+          <p className="text-muted-foreground mt-1">{t('employees.list.subtitle')}</p>
         </div>
         {canCreate('employees') && (
           <Button asChild>
             <Link to="/dashboard/employees/add">
-              <Plus className="w-4 h-4 mr-2" />Add Employee
+              <Plus className="w-4 h-4 me-2" />{t('employees.list.addButton')}
             </Link>
           </Button>
         )}
@@ -336,19 +341,19 @@ export function EmployeesList() {
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Total</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">{t('employees.list.stats.total')}</CardTitle></CardHeader>
           <CardContent><div className="text-2xl font-bold text-[#0F172A]">{totalEmployees}</div></CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Active</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">{t('employees.list.stats.active')}</CardTitle></CardHeader>
           <CardContent><div className="text-2xl font-bold text-green-600">{activeCount}</div></CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Onboarding</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">{t('employees.list.stats.onboarding')}</CardTitle></CardHeader>
           <CardContent><div className="text-2xl font-bold text-blue-600">{onboardingCount}</div></CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Pending</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">{t('employees.list.stats.pending')}</CardTitle></CardHeader>
           <CardContent><div className="text-2xl font-bold text-amber-600">{pendingCount}</div></CardContent>
         </Card>
       </div>
@@ -360,51 +365,51 @@ export function EmployeesList() {
             {/* Row 1 */}
             <div className="flex flex-wrap items-center gap-3">
               <div className="flex-1 min-w-48 relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input placeholder="Search by name, email, citizenship..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10" />
+                <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input placeholder={t('employees.list.search')} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="ps-10" />
               </div>
 
               <Select value={statusFilter || '__all__'} onValueChange={v => setStatusFilter(v === '__all__' ? '' : v)}>
-                <SelectTrigger className="w-40"><SelectValue placeholder="All Statuses" /></SelectTrigger>
+                <SelectTrigger className="w-40"><SelectValue placeholder={t('employees.list.filters.allStatuses')} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__all__">All Statuses</SelectItem>
-                  {STATUSES.map(s => <SelectItem key={s} value={s}>{s.replace(/_/g, ' ')}</SelectItem>)}
+                  <SelectItem value="__all__">{t('employees.list.filters.allStatuses')}</SelectItem>
+                  {STATUSES.map(s => <SelectItem key={s} value={s}>{tEnums(`employeeStatus.${s}`, { defaultValue: s.replace(/_/g, ' ') })}</SelectItem>)}
                 </SelectContent>
               </Select>
 
               {agencies.length > 0 && (
                 <Select value={agencyFilter || '__all__'} onValueChange={v => setAgencyFilter(v === '__all__' ? '' : v)}>
-                  <SelectTrigger className="w-44"><SelectValue placeholder="All Agencies" /></SelectTrigger>
+                  <SelectTrigger className="w-44"><SelectValue placeholder={t('employees.list.filters.allAgencies')} /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__all__">All Agencies</SelectItem>
+                    <SelectItem value="__all__">{t('employees.list.filters.allAgencies')}</SelectItem>
                     {agencies.map((a: any) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
               )}
 
               <Button variant="outline" size="sm" onClick={fetchEmployees} disabled={loading}>
-                <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />Refresh
+                <RefreshCw className={`w-4 h-4 me-1 ${loading ? 'animate-spin' : ''}`} />{t('employees.list.refresh')}
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleExportExcel}
                 disabled={selected.size === 0}
-                title={selected.size === 0 ? 'Select one or more rows to export' : undefined}
+                title={selected.size === 0 ? t('employees.list.exportExcelTitle') : undefined}
               >
-                <Download className="w-4 h-4 mr-2" />Export to Excel ({selected.size})
+                <Download className="w-4 h-4 me-2" />{t('employees.list.exportToExcel')} ({selected.size})
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleBulkPdfExport}
                 disabled={selected.size === 0 || pdfExporting}
-                title={selected.size === 0 ? 'Select one or more rows to export as PDFs' : undefined}
+                title={selected.size === 0 ? t('employees.list.exportPdfsTitle') : undefined}
               >
                 {pdfExporting
-                  ? <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  : <FileText className="w-4 h-4 mr-2" />}
-                Export PDFs ({selected.size})
+                  ? <Loader2 className="w-4 h-4 me-2 animate-spin" />
+                  : <FileText className="w-4 h-4 me-2" />}
+                {t('employees.list.exportPdfs')} ({selected.size})
               </Button>
 
               {/* Column picker */}
@@ -414,35 +419,35 @@ export function EmployeesList() {
                   onClick={() => setShowColPicker(v => !v)}
                   className={showColPicker ? 'border-blue-500 text-blue-600' : ''}
                 >
-                  <Columns2 className="w-4 h-4 mr-1.5" />Columns
+                  <Columns2 className="w-4 h-4 me-1.5" />{t('employees.list.columnsButton')}
                   {ALL_COLUMNS.filter(c => !visibleColumns[c.key]).length > 0 && (
-                    <span className="ml-1.5 bg-blue-600 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
+                    <span className="ms-1.5 bg-blue-600 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
                       {ALL_COLUMNS.filter(c => !visibleColumns[c.key]).length}
                     </span>
                   )}
                 </Button>
 
                 {showColPicker && (
-                  <div className="absolute right-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[180px]">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">Toggle columns</p>
+                  <div className="absolute end-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[180px]">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">{t('employees.list.toggleColumns')}</p>
                     <div className="space-y-0.5">
                       {ALL_COLUMNS.map(c => (
                         <button
                           key={c.key}
                           onClick={() => toggleColumn(c.key)}
-                          className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-gray-50 text-sm text-left"
+                          className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-gray-50 text-sm text-start"
                         >
                           <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${visibleColumns[c.key] ? 'bg-blue-600 border-blue-600' : 'border-gray-300'}`}>
                             {visibleColumns[c.key] && <Check className="w-2.5 h-2.5 text-white" />}
                           </span>
-                          {c.label}
+                          {t(c.labelKey)}
                         </button>
                       ))}
                     </div>
                     <div className="border-t mt-2 pt-2 flex gap-1.5">
-                      <button onClick={() => { const all = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, true])) as Record<ColKey, boolean>; setVisibleColumns(all); localStorage.setItem('employees-table-columns', JSON.stringify(all)); }} className="flex-1 text-xs text-center text-blue-600 hover:underline py-0.5">Show all</button>
+                      <button onClick={() => { const all = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, true])) as Record<ColKey, boolean>; setVisibleColumns(all); localStorage.setItem('employees-table-columns', JSON.stringify(all)); }} className="flex-1 text-xs text-center text-blue-600 hover:underline py-0.5">{t('employees.list.showAll')}</button>
                       <span className="text-gray-300">|</span>
-                      <button onClick={() => { const none = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, false])) as Record<ColKey, boolean>; setVisibleColumns(none); localStorage.setItem('employees-table-columns', JSON.stringify(none)); }} className="flex-1 text-xs text-center text-gray-500 hover:underline py-0.5">Hide all</button>
+                      <button onClick={() => { const none = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, false])) as Record<ColKey, boolean>; setVisibleColumns(none); localStorage.setItem('employees-table-columns', JSON.stringify(none)); }} className="flex-1 text-xs text-center text-gray-500 hover:underline py-0.5">{t('employees.list.hideAll')}</button>
                     </div>
                   </div>
                 )}
@@ -452,23 +457,23 @@ export function EmployeesList() {
             {/* Row 2 */}
             <div className="flex flex-wrap items-center gap-3">
               <Select value={nationalityFilter || '__all__'} onValueChange={v => setNationalityFilter(v === '__all__' ? '' : v)}>
-                <SelectTrigger className="w-44"><SelectValue placeholder="All Citizenships" /></SelectTrigger>
+                <SelectTrigger className="w-44"><SelectValue placeholder={t('employees.list.filters.allCitizenships')} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__all__">All Citizenships</SelectItem>
+                  <SelectItem value="__all__">{t('employees.list.filters.allCitizenships')}</SelectItem>
                   {nationalityOptions.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
                 </SelectContent>
               </Select>
 
               <div className="flex items-center gap-1.5">
-                <span className="text-xs text-muted-foreground whitespace-nowrap">Joined from</span>
+                <span className="text-xs text-muted-foreground whitespace-nowrap">{t('employees.list.filters.joinedFrom')}</span>
                 <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="w-36 text-sm" />
-                <span className="text-xs text-muted-foreground">to</span>
+                <span className="text-xs text-muted-foreground">{t('employees.list.filters.to')}</span>
                 <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="w-36 text-sm" />
               </div>
 
               {hasActiveFilters && (
                 <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground hover:text-foreground">
-                  <X className="w-3.5 h-3.5 mr-1" />Clear filters
+                  <X className="w-3.5 h-3.5 me-1" />{t('employees.list.clearFilters')}
                 </Button>
               )}
             </div>
@@ -482,28 +487,28 @@ export function EmployeesList() {
                     <Checkbox
                       checked={allVisibleSelected ? true : someVisibleSelected ? 'indeterminate' : false}
                       onCheckedChange={toggleSelectAllVisible}
-                      aria-label="Select all visible rows"
+                      aria-label={t('employees.list.selectAllAria')}
                     />
                   </TableHead>
-                  <SortableHead label="Employee"    field="firstName"       sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />
-                  {col('contact')     && <SortableHead label="Contact"      field="email"           sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
-                  {col('nationality') && <SortableHead label="Citizenship"  field="nationality"     sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
-                  {col('license')     && <SortableHead label="ID / License" field="licenseNumber"   sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
-                  {col('experience')  && <SortableHead label="Experience"   field="yearsExperience" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
-                  {col('agency')      && <SortableHead label="Agency"       field="agency"          sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
-                  {col('status')      && <SortableHead label="Status"       field="status"          sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
-                  <TableHead className="text-right">Actions</TableHead>
+                  <SortableHead label={t('employees.list.tableHeaders.employee')}    field="firstName"       sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />
+                  {col('contact')     && <SortableHead label={t('employees.list.tableHeaders.contact')}      field="email"           sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  {col('nationality') && <SortableHead label={t('employees.list.tableHeaders.citizenship')}  field="nationality"     sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  {col('license')     && <SortableHead label={t('employees.list.tableHeaders.license')}      field="licenseNumber"   sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  {col('experience')  && <SortableHead label={t('employees.list.tableHeaders.experience')}   field="yearsExperience" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  {col('agency')      && <SortableHead label={t('employees.list.tableHeaders.agency')}       field="agency"          sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  {col('status')      && <SortableHead label={t('employees.list.tableHeaders.status')}       field="status"          sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  <TableHead className="text-end">{t('employees.list.tableHeaders.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading && (
                   <TableRow>
-                    <TableCell colSpan={colSpan} className="text-center py-8 text-muted-foreground">Loading...</TableCell>
+                    <TableCell colSpan={colSpan} className="text-center py-8 text-muted-foreground">{t('employees.list.loading')}</TableCell>
                   </TableRow>
                 )}
                 {!loading && displayData.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={colSpan} className="text-center py-12 text-muted-foreground">No employees found matching your criteria.</TableCell>
+                    <TableCell colSpan={colSpan} className="text-center py-12 text-muted-foreground">{t('employees.list.emptyFiltered')}</TableCell>
                   </TableRow>
                 )}
                 {!loading && displayData.map(driver => (
@@ -512,7 +517,7 @@ export function EmployeesList() {
                       <Checkbox
                         checked={selected.has(driver.id)}
                         onCheckedChange={() => toggleSelect(driver.id)}
-                        aria-label={`Select ${driver.firstName ?? ''} ${driver.lastName ?? ''}`}
+                        aria-label={t('employees.list.selectRowAria', { name: `${driver.firstName ?? ''} ${driver.lastName ?? ''}`.trim() })}
                       />
                     </TableCell>
                     <TableCell>
@@ -548,7 +553,7 @@ export function EmployeesList() {
                     )}
                     {col('experience') && (
                       <TableCell className="text-sm">
-                        {driver.yearsExperience != null ? `${driver.yearsExperience} yrs` : '—'}
+                        {driver.yearsExperience != null ? t('employees.list.yearsValue', { count: Number(driver.yearsExperience) }) : '—'}
                       </TableCell>
                     )}
                     {col('agency') && (
@@ -557,24 +562,24 @@ export function EmployeesList() {
                           ? <span className="text-sm">{driver.agency.name ?? driver.agencyName}</span>
                           : driver.agencyName
                             ? <span className="text-sm">{driver.agencyName}</span>
-                            : <span className="text-sm text-muted-foreground">Direct</span>}
+                            : <span className="text-sm text-muted-foreground">{t('employees.list.direct')}</span>}
                       </TableCell>
                     )}
                     {col('status') && (
                       <TableCell>
                         <Badge className={getStatusColor(driver.status)}>
-                          {driver.status?.replace(/_/g, ' ').toLowerCase()}
+                          {driver.status ? tEnums(`employeeStatus.${driver.status}`, { defaultValue: driver.status.replace(/_/g, ' ').toLowerCase() }) : ''}
                         </Badge>
                       </TableCell>
                     )}
-                    <TableCell className="text-right">
+                    <TableCell className="text-end">
                       <div className="flex items-center justify-end gap-1">
                         <Button variant="ghost" size="sm" asChild>
-                          <Link to={`/dashboard/employees/${driver.id}`}><Eye className="w-4 h-4 mr-1" />View</Link>
+                          <Link to={`/dashboard/employees/${driver.id}`}><Eye className="w-4 h-4 me-1" />{t('employees.list.actions.view')}</Link>
                         </Button>
                         {canEdit('employees') && (
                           <Button variant="ghost" size="sm" asChild>
-                            <Link to={`/dashboard/employees/${driver.id}/edit`}><Edit className="w-4 h-4 mr-1" />Edit</Link>
+                            <Link to={`/dashboard/employees/${driver.id}/edit`}><Edit className="w-4 h-4 me-1" />{t('employees.list.actions.edit')}</Link>
                           </Button>
                         )}
                         {canDelete('employees') && (
@@ -592,7 +597,8 @@ export function EmployeesList() {
 
           <div className="mt-4">
             <p className="text-sm text-muted-foreground">
-              Showing {displayData.length} of {totalEmployees} employees
+              {t('employees.list.showingCount', { count: totalEmployees, shown: displayData.length, total: totalEmployees })}
+              {selected.size > 0 && t('employees.list.selectedSuffix', { count: selected.size })}
             </p>
           </div>
         </CardContent>

@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
@@ -9,6 +10,7 @@ import { usePermissions } from '../../hooks/usePermissions';
 export function ComplianceAlerts() {
   const { canEdit } = usePermissions();
   const navigate = useNavigate();
+  const { t } = useTranslation('pages');
 
   return (
     <div className="space-y-6">
@@ -17,14 +19,14 @@ export function ComplianceAlerts() {
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <h1 className="text-3xl font-semibold text-[#0F172A]">Compliance Alerts</h1>
+          <h1 className="text-3xl font-semibold text-[#0F172A]">{t('compliance.alerts.title')}</h1>
         </div>
-        <p className="text-muted-foreground mt-1">Review and manage compliance notifications</p>
+        <p className="text-muted-foreground mt-1">{t('compliance.alerts.subtitle', { defaultValue: '' })}</p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Active Alerts</CardTitle>
+          <CardTitle>{t('compliance.alerts.active')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">

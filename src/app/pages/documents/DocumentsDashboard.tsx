@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { Upload, FileCheck, AlertTriangle, Clock, Eye } from 'lucide-react';
 import { usePermissions } from '../../hooks/usePermissions';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
@@ -12,13 +13,15 @@ import { documentsApi } from '../../services/api';
 
 export function DocumentsDashboard() {
   const { canCreate } = usePermissions();
+  const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const [documents, setDocuments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     documentsApi.list({ limit: 200 })
       .then((res: any) => setDocuments(res?.data ?? []))
-      .catch(() => toast.error('Failed to load documents'))
+      .catch(() => toast.error(t('documents.dashboard.loadFailed')))
       .finally(() => setLoading(false));
   }, []);
 
@@ -41,20 +44,20 @@ export function DocumentsDashboard() {
 
   const categories = [...new Set(documents.map(d => d.documentType?.name).filter(Boolean))].slice(0, 4);
 
-  if (loading) return <div className="p-8 text-muted-foreground">Loading...</div>;
+  if (loading) return <div className="p-8 text-muted-foreground">{tc('states.loading')}</div>;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-semibold text-[#0F172A]">Documents</h1>
-          <p className="text-muted-foreground mt-1">Manage driver documents and compliance materials</p>
+          <h1 className="text-3xl font-semibold text-[#0F172A]">{t('documents.dashboard.title')}</h1>
+          <p className="text-muted-foreground mt-1">{t('documents.dashboard.subtitle')}</p>
         </div>
         {canCreate('documents') && (
           <Button asChild>
             <Link to="/dashboard/documents/upload">
-              <Upload className="w-4 h-4 mr-2" />
-              Upload Document
+              <Upload className="w-4 h-4 me-2" />
+              {t('documents.dashboard.uploadButton')}
             </Link>
           </Button>
         )}
@@ -63,7 +66,7 @@ export function DocumentsDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Documents</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t('documents.dashboard.totalDocuments')}</CardTitle>
             <FileCheck className="w-4 h-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -73,7 +76,7 @@ export function DocumentsDashboard() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Valid</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t('documents.dashboard.valid')}</CardTitle>
             <FileCheck className="w-4 h-4 text-[#22C55E]" />
           </CardHeader>
           <CardContent>
@@ -83,7 +86,7 @@ export function DocumentsDashboard() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Expiring Soon</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t('documents.dashboard.expiringSoon')}</CardTitle>
             <AlertTriangle className="w-4 h-4 text-[#F59E0B]" />
           </CardHeader>
           <CardContent>
@@ -93,7 +96,7 @@ export function DocumentsDashboard() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Pending Review</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t('documents.dashboard.pendingReview')}</CardTitle>
             <Clock className="w-4 h-4 text-[#2563EB]" />
           </CardHeader>
           <CardContent>
@@ -105,7 +108,7 @@ export function DocumentsDashboard() {
       {categories.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Document Categories</CardTitle>
+            <CardTitle>{t('documents.dashboard.documentCategories')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -116,7 +119,7 @@ export function DocumentsDashboard() {
                   <div key={category} className="space-y-2">
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground">{category}</span>
-                      <span className="font-medium">{count} document{count !== 1 ? 's' : ''}</span>
+                      <span className="font-medium">{t('documents.dashboard.categoryCount', { count })}</span>
                     </div>
                     <Progress value={pct} className="h-2" />
                   </div>
@@ -129,26 +132,26 @@ export function DocumentsDashboard() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Recent Documents</CardTitle>
+          <CardTitle>{t('documents.dashboard.recentDocuments')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="border rounded-lg">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Document Name</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Uploaded</TableHead>
-                  <TableHead>Expiry Date</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead>{t('documents.dashboard.tableHeaders.documentName')}</TableHead>
+                  <TableHead>{t('documents.dashboard.tableHeaders.type')}</TableHead>
+                  <TableHead>{t('documents.dashboard.tableHeaders.uploaded')}</TableHead>
+                  <TableHead>{t('documents.dashboard.tableHeaders.expiryDate')}</TableHead>
+                  <TableHead>{t('documents.dashboard.tableHeaders.status')}</TableHead>
+                  <TableHead className="text-end">{t('documents.dashboard.tableHeaders.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {documents.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="p-8 text-center text-muted-foreground">
-                      No documents found. <Link to="/dashboard/documents/upload" className="text-[#2563EB] hover:underline">Upload one</Link>.
+                      {t('documents.dashboard.noDocuments')} <Link to="/dashboard/documents/upload" className="text-[#2563EB] hover:underline">{t('documents.dashboard.uploadOne')}</Link>.
                     </TableCell>
                   </TableRow>
                 ) : documents.slice(0, 20).map((doc) => (
@@ -162,11 +165,11 @@ export function DocumentsDashboard() {
                         {doc.status}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-end">
                       <Button variant="ghost" size="sm" asChild>
                         <Link to={`/dashboard/documents/${doc.id}`}>
-                          <Eye className="w-4 h-4 mr-2" />
-                          View
+                          <Eye className="w-4 h-4 me-2" />
+                          {tc('actions.view')}
                         </Link>
                       </Button>
                     </TableCell>

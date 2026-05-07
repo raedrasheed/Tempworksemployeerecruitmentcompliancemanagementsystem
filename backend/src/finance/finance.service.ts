@@ -4,14 +4,14 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { NOTIF_EVENTS } from '../notifications/notification-events';
+import { tServer, ServerLocale } from '../common/i18n/server-translate';
 import { CreateFinancialRecordDto } from './dto/create-financial-record.dto';
 import { UpdateFinancialRecordDto } from './dto/update-financial-record.dto';
 import { UpdateStatusDto } from './dto/update-status.dto';
 import { FilterFinancialRecordsDto } from './dto/filter-financial-records.dto';
 import { PaginatedResponse } from '../common/dto/pagination-response.dto';
+import { StorageService } from '../common/storage/storage.service';
 import * as ExcelJS from 'exceljs';
-import { join, extname } from 'path';
-import { promises as fs } from 'fs';
 
 // Roles that receive financial notifications
 const FINANCE_ROLES = ['System Admin', 'Finance', 'HR Manager'];
@@ -25,6 +25,7 @@ export class FinanceService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
+    private readonly storage: StorageService,
   ) {}
 
   // ── Prisma include helpers ───────────────────────────────────────────────────
@@ -327,14 +328,25 @@ export class FinanceService {
 
     // ── Notification ─────────────────────────────────────────────────────────
     const entityName = await this.resolveEntityNameForNotif(dto.entityType, dto.entityId);
+    const amountSuffix = dto.companyDisbursedAmount
+      ? ` — ${dto.currency ?? 'EUR'} ${dto.companyDisbursedAmount}`
+      : '';
     this.notifications.notifyUsersByRoles(
       FINANCE_ROLES,
       NOTIF_EVENTS.FINANCIAL_RECORD_CREATED,
       'New Financial Record Added',
-      `A new financial record was added for ${entityName}: ${dto.transactionType}` +
-        (dto.companyDisbursedAmount ? ` — ${dto.currency ?? 'EUR'} ${dto.companyDisbursedAmount}` : ''),
+      `A new financial record was added for ${entityName}: ${dto.transactionType}${amountSuffix}`,
       dto.entityType,
       dto.entityId,
+      {
+        titleKey: 'events.financeRecordCreated.title',
+        messageKey: 'events.financeRecordCreated.body',
+        params: {
+          entityName,
+          transactionType: dto.transactionType,
+          amountSuffix,
+        },
+      },
     ).catch(e => this.logger.error('Notification error (create):', e));
 
     // Check high balance after creation
@@ -384,6 +396,11 @@ export class FinanceService {
       `A financial record was updated for ${entityName}.`,
       existing.entityType,
       existing.entityId,
+      {
+        titleKey: 'events.financeRecordUpdated.title',
+        messageKey: 'events.financeRecordUpdated.body',
+        params: { entityName },
+      },
     ).catch(e => this.logger.error('Notification error (update):', e));
 
     return updated;
@@ -405,6 +422,11 @@ export class FinanceService {
       `A financial record was deleted for ${entityName}.`,
       existing.entityType,
       existing.entityId,
+      {
+        titleKey: 'events.financeRecordDeleted.title',
+        messageKey: 'events.financeRecordDeleted.body',
+        params: { entityName },
+      },
     ).catch(e => this.logger.error('Notification error (delete):', e));
 
     return { message: 'Financial record deleted' };
@@ -450,14 +472,19 @@ export class FinanceService {
     if (dto.status === 'DEDUCTED') {
       const entityName = await this.resolveEntityNameForNotif(record.entityType, record.entityId);
       const amount = dto.deductionAmount ?? record.companyDisbursedAmount;
+      const amountSuffix = amount ? ` (${record.currency} ${amount})` : '';
       this.notifications.notifyUsersByRoles(
         FINANCE_ROLES,
         NOTIF_EVENTS.FINANCIAL_RECORD_DEDUCTED,
         'Record Marked for Deduction',
-        `A financial record for ${entityName} has been marked as deducted` +
-          (amount ? ` (${record.currency} ${amount})` : '') + '.',
+        `A financial record for ${entityName} has been marked as deducted${amountSuffix}.`,
         record.entityType,
         record.entityId,
+        {
+          titleKey: 'events.financeRecordDeducted.title',
+          messageKey: 'events.financeRecordDeducted.body',
+          params: { entityName, amountSuffix },
+        },
       ).catch(e => this.logger.error('Notification error (deduct):', e));
     }
 
@@ -534,13 +561,19 @@ export class FinanceService {
 
     if (nextStatus === 'DEDUCTED') {
       const entityName = await this.resolveEntityNameForNotif(record.entityType, record.entityId);
+      const amountStr = newSum.toFixed(2);
       this.notifications.notifyUsersByRoles(
         FINANCE_ROLES,
         NOTIF_EVENTS.FINANCIAL_RECORD_DEDUCTED,
         'Record Fully Deducted',
-        `A financial record for ${entityName} has been fully deducted (${record.currency} ${newSum.toFixed(2)}).`,
+        `A financial record for ${entityName} has been fully deducted (${record.currency} ${amountStr}).`,
         record.entityType,
         record.entityId,
+        {
+          titleKey: 'events.financeRecordFullyDeducted.title',
+          messageKey: 'events.financeRecordFullyDeducted.body',
+          params: { entityName, currency: record.currency, amount: amountStr },
+        },
       ).catch(e => this.logger.error('Notification error (deduct):', e));
     }
 
@@ -600,22 +633,18 @@ export class FinanceService {
   ) {
     await this.findOne(recordId);
 
-    const ts = Date.now();
-    const ext = extname(file.originalname);
-    const safeName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
-    const folder = join(file.destination, 'financial', recordId);
-    const filename = `${ts}_${safeName}${ext === safeName.slice(-ext.length) ? '' : ext}`;
-
-    await fs.mkdir(folder, { recursive: true });
-    await fs.rename(file.path, join(folder, filename));
-
-    const fileUrl = `/uploads/financial/${recordId}/${filename}`;
+    const upload = await this.storage.uploadFile(file.buffer, {
+      keyPrefix: `finance/${recordId}/attachments`,
+      contentType: file.mimetype,
+      originalName: file.originalname,
+      inline: file.mimetype === 'application/pdf' || file.mimetype.startsWith('image/'),
+    });
 
     const attachment = await this.prisma.financialRecordAttachment.create({
       data: {
         financialRecordId: recordId,
         name: file.originalname,
-        fileUrl,
+        fileUrl: upload.url,
         mimeType: file.mimetype,
         fileSize: file.size,
         uploadedById,
@@ -644,6 +673,10 @@ export class FinanceService {
       where: { id: attachmentId }, data: { deletedAt: new Date() },
     });
 
+    if ((att as any).fileUrl) {
+      await this.storage.deleteFileByUrlOrKey((att as any).fileUrl);
+    }
+
     await this.auditLog(actorId, 'FINANCIAL_ATTACHMENT_REMOVED', recordId, {
       attachmentId, name: att.name,
     });
@@ -653,7 +686,7 @@ export class FinanceService {
 
   // ── Excel Export ─────────────────────────────────────────────────────────────
 
-  async exportExcel(filter: FilterFinancialRecordsDto): Promise<Buffer> {
+  async exportExcel(filter: FilterFinancialRecordsDto, locale: ServerLocale = 'en'): Promise<Buffer> {
     // Fetch all matching records (no pagination)
     const { data: records } = (await this.findAll({
       ...filter, limit: 100000, page: 1,
@@ -663,7 +696,8 @@ export class FinanceService {
     workbook.creator  = 'TempWorks Finance Module';
     workbook.created  = new Date();
 
-    const sheet = workbook.addWorksheet('Financial Records', {
+    const col = (key: string) => tServer(`finance.columns.${key}`, {}, locale, 'exports');
+    const sheet = workbook.addWorksheet(tServer('finance.sheetName', {}, locale, 'exports'), {
       views: [{ state: 'frozen', ySplit: 1 }],
     });
 
@@ -672,27 +706,27 @@ export class FinanceService {
     // sidecar (total + count + last date/ref), with the full breakdown
     // living on a second "Deductions" sheet built below.
     sheet.columns = [
-      { header: 'Record ID',                key: 'id',               width: 18 },
-      { header: 'Name',                     key: 'entityName',       width: 24 },
-      { header: 'Stage At Creation',        key: 'stageAtCreation',  width: 14 },
-      { header: 'Entity Type',              key: 'entityType',       width: 12 },
-      { header: 'Entity ID',               key: 'entityId',          width: 18 },
-      { header: 'Transaction Date & Time',  key: 'transactionDate',  width: 22 },
-      { header: 'Transaction Type',         key: 'transactionType',  width: 24 },
-      { header: 'Description',             key: 'description',       width: 30 },
-      { header: 'Currency',                key: 'currency',           width: 10 },
-      { header: 'Company Disbursed (€)',   key: 'companyDisbursed',  width: 20 },
-      { header: 'Employee/Agency Paid (€)',key: 'empAgency',         width: 22 },
-      { header: 'Payment Method',          key: 'paymentMethod',     width: 16 },
-      { header: 'Paid By',                 key: 'paidBy',            width: 20 },
-      { header: 'Status',                  key: 'status',            width: 12 },
-      { header: 'Total Deducted (€)',      key: 'deductionAmount',   width: 20 },
-      { header: 'Remaining (€)',           key: 'remaining',         width: 16 },
-      { header: 'Deductions #',            key: 'deductionCount',    width: 12 },
-      { header: 'Last Deduction Date',     key: 'deductionDate',     width: 18 },
-      { header: 'Last Payroll Ref',        key: 'payrollReference',  width: 20 },
-      { header: 'Notes',                   key: 'notes',             width: 30 },
-      { header: 'Created At',             key: 'createdAt',          width: 16 },
+      { header: col('id'),                 key: 'id',               width: 18 },
+      { header: col('entityName'),         key: 'entityName',       width: 24 },
+      { header: col('stageAtCreation'),    key: 'stageAtCreation',  width: 14 },
+      { header: col('entityType'),         key: 'entityType',       width: 12 },
+      { header: col('entityId'),           key: 'entityId',         width: 18 },
+      { header: col('transactionDate'),    key: 'transactionDate',  width: 22 },
+      { header: col('transactionType'),    key: 'transactionType',  width: 24 },
+      { header: col('description'),        key: 'description',      width: 30 },
+      { header: col('currency'),           key: 'currency',         width: 10 },
+      { header: col('companyDisbursed'),   key: 'companyDisbursed', width: 20 },
+      { header: col('empAgency'),          key: 'empAgency',        width: 22 },
+      { header: col('paymentMethod'),      key: 'paymentMethod',    width: 16 },
+      { header: col('paidBy'),             key: 'paidBy',           width: 20 },
+      { header: col('status'),             key: 'status',           width: 12 },
+      { header: col('deductionAmount'),    key: 'deductionAmount',  width: 20 },
+      { header: col('remaining'),          key: 'remaining',        width: 16 },
+      { header: col('deductionCount'),     key: 'deductionCount',   width: 12 },
+      { header: col('deductionDate'),      key: 'deductionDate',    width: 18 },
+      { header: col('payrollReference'),   key: 'payrollReference', width: 20 },
+      { header: col('notes'),              key: 'notes',            width: 30 },
+      { header: col('createdAt'),          key: 'createdAt',        width: 16 },
     ];
 
     // Header styling
@@ -804,22 +838,23 @@ export class FinanceService {
     // ── Deductions sheet ─────────────────────────────────────────────────────
     // One line per partial deduction so finance can pivot / filter /
     // reconcile against payroll runs directly in Excel.
-    const dedSheet = workbook.addWorksheet('Deductions', {
+    const dedCol = (key: string) => tServer(`finance.deductionColumns.${key}`, {}, locale, 'exports');
+    const dedSheet = workbook.addWorksheet(tServer('finance.deductionsSheetName', {}, locale, 'exports'), {
       views: [{ state: 'frozen', ySplit: 1 }],
     });
     dedSheet.columns = [
-      { header: 'Deduction ID',        key: 'id',                width: 38 },
-      { header: 'Record ID',           key: 'recordId',          width: 38 },
-      { header: 'Name',                key: 'entityName',        width: 24 },
-      { header: 'Transaction Type',    key: 'transactionType',   width: 24 },
-      { header: 'Transaction Desc',    key: 'description',       width: 30 },
-      { header: 'Currency',            key: 'currency',          width: 10 },
-      { header: 'Deduction Amount',    key: 'amount',            width: 18 },
-      { header: 'Deduction Date',      key: 'deductionDate',     width: 16 },
-      { header: 'Payroll Reference',   key: 'payrollReference',  width: 20 },
-      { header: 'Notes',               key: 'notes',             width: 30 },
-      { header: 'Logged By',           key: 'loggedBy',          width: 22 },
-      { header: 'Logged At',           key: 'loggedAt',          width: 18 },
+      { header: dedCol('id'),                key: 'id',                width: 38 },
+      { header: dedCol('recordId'),          key: 'recordId',          width: 38 },
+      { header: dedCol('entityName'),        key: 'entityName',        width: 24 },
+      { header: dedCol('transactionType'),   key: 'transactionType',   width: 24 },
+      { header: dedCol('description'),       key: 'description',       width: 30 },
+      { header: dedCol('currency'),          key: 'currency',          width: 10 },
+      { header: dedCol('amount'),            key: 'amount',            width: 18 },
+      { header: dedCol('deductionDate'),     key: 'deductionDate',     width: 16 },
+      { header: dedCol('payrollReference'),  key: 'payrollReference',  width: 20 },
+      { header: dedCol('notes'),             key: 'notes',             width: 30 },
+      { header: dedCol('loggedBy'),          key: 'loggedBy',          width: 22 },
+      { header: dedCol('loggedAt'),          key: 'loggedAt',          width: 18 },
     ];
     dedSheet.getRow(1).eachCell((cell) => {
       cell.font      = { bold: true, color: { argb: 'FFFFFFFF' } };
@@ -1042,14 +1077,19 @@ export class FinanceService {
     if (alreadySent) return;
 
     const entityName = await this.resolveEntityNameForNotif(entityType, entityId);
+    const amountStr = totals.currentBalance.toFixed(2);
     await this.notifications.notifyUsersByRoles(
       FINANCE_ROLES,
       NOTIF_EVENTS.FINANCIAL_HIGH_BALANCE,
       'High Balance Alert',
-      `Outstanding balance for ${entityName} has reached ${totals.currentBalance.toFixed(2)} EUR` +
-        ` (threshold: ${threshold} EUR).`,
+      `Outstanding balance for ${entityName} has reached ${amountStr} EUR (threshold: ${threshold} EUR).`,
       entityType,
       entityId,
+      {
+        titleKey: 'events.financeHighBalance.title',
+        messageKey: 'events.financeHighBalance.body',
+        params: { entityName, amount: amountStr, threshold },
+      },
     );
   }
 

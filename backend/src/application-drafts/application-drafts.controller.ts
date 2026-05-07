@@ -3,9 +3,7 @@ import {
   UploadedFile, UseGuards, UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
-import { v4 as uuidv4 } from 'uuid';
+import { memoryUpload, IMAGE_MIME, DOCUMENT_MIME } from '../common/storage/multer.config';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -18,21 +16,6 @@ import { SubmitDraftDto } from './dto/submit-draft.dto';
 
 const ROLES_THAT_CREATE_APPLICANTS = [
   'System Admin', 'HR Manager', 'Recruiter', 'Agency Manager', 'Agency User',
-];
-
-// Files land in the same `./uploads` root the rest of the app uses.
-// The service moves them into /uploads/drafts/<draftId>/photo|docs so
-// they're easy to purge when the draft is discarded.
-const uploadStorage = diskStorage({
-  destination: process.env.UPLOAD_DEST || './uploads',
-  filename: (_req, file, cb) => cb(null, `${uuidv4()}${extname(file.originalname)}`),
-});
-
-const IMAGE_MIME = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-const DOC_MIME = [
-  'application/pdf', 'image/jpeg', 'image/jpg', 'image/png',
-  'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
 ];
 
 @ApiTags('Application Drafts')
@@ -92,16 +75,10 @@ export class ApplicationDraftsController {
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Attach / replace the draft\'s profile photo.' })
   @ApiBody({ schema: { type: 'object', properties: { file: { type: 'string', format: 'binary' } } } })
-  @UseInterceptors(FileInterceptor('file', {
-    storage: uploadStorage,
-    limits: { fileSize: 5 * 1024 * 1024 },
-    fileFilter: (_req, file, cb) => {
-      if (!IMAGE_MIME.includes(file.mimetype)) {
-        return cb(new BadRequestException('Only JPEG, PNG or WebP images are allowed'), false);
-      }
-      cb(null, true);
-    },
-  }))
+  @UseInterceptors(FileInterceptor('file', memoryUpload({
+    mimeTypes: IMAGE_MIME,
+    maxBytes: 5 * 1024 * 1024,
+  })))
   uploadPhoto(@CurrentUser('id') userId: string, @UploadedFile() file: Express.Multer.File) {
     if (!file) throw new BadRequestException('No photo file provided');
     return this.service.uploadPhoto(userId, file);
@@ -131,16 +108,10 @@ export class ApplicationDraftsController {
       },
     },
   })
-  @UseInterceptors(FileInterceptor('file', {
-    storage: uploadStorage,
-    limits: { fileSize: parseInt(process.env.MAX_FILE_SIZE || '10485760') },
-    fileFilter: (_req, file, cb) => {
-      if (!DOC_MIME.includes(file.mimetype)) {
-        return cb(new BadRequestException(`File type ${file.mimetype} not allowed`), false);
-      }
-      cb(null, true);
-    },
-  }))
+  @UseInterceptors(FileInterceptor('file', memoryUpload({
+    mimeTypes: DOCUMENT_MIME,
+    maxBytes: parseInt(process.env.MAX_FILE_SIZE || '10485760'),
+  })))
   uploadDocument(
     @CurrentUser('id') userId: string,
     @UploadedFile() file: Express.Multer.File,

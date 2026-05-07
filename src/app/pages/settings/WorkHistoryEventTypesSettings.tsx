@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { settingsApi } from '../../services/api';
+import { apiError } from '../../../i18n/apiError';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
@@ -27,6 +29,8 @@ type EventType = {
 };
 
 export function WorkHistoryEventTypesSettings() {
+  const { t: tp } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const { canCreate, canEdit, canDelete } = usePermissions();
   const [items, setItems] = useState<EventType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,7 +51,7 @@ export function WorkHistoryEventTypesSettings() {
       const data = await settingsApi.getWorkHistoryEventTypes(true);
       setItems(data);
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to load event types');
+      toast.error(apiError(err, tc('toast.loadFailed')));
     } finally {
       setLoading(false);
     }
@@ -70,8 +74,8 @@ export function WorkHistoryEventTypesSettings() {
   const handleSave = async () => {
     const value = form.value.trim();
     const label = form.label.trim();
-    if (!value) { toast.error('Value is required'); return; }
-    if (!label) { toast.error('Label is required'); return; }
+    if (!value) { toast.error(tc('toast.valueRequired')); return; }
+    if (!label) { toast.error(tc('toast.labelRequired')); return; }
     setSaving(true);
     try {
       if (editing) {
@@ -79,17 +83,17 @@ export function WorkHistoryEventTypesSettings() {
           value, label, sortOrder: form.sortOrder, isActive: form.isActive,
         });
         setItems(prev => prev.map(i => i.id === editing.id ? { ...i, ...updated } : i));
-        toast.success('Event type updated');
+        toast.success(tc('toast.savedSuccessfully'));
       } else {
         const created = await settingsApi.createWorkHistoryEventType({
           value, label, sortOrder: form.sortOrder, isActive: form.isActive,
         });
         setItems(prev => [...prev, created]);
-        toast.success('Event type created');
+        toast.success(tc('toast.savedSuccessfully'));
       }
       setDialogOpen(false);
     } catch (err: any) {
-      toast.error(err?.message || 'Save failed');
+      toast.error(apiError(err, tc('toast.saveFailed')));
     } finally {
       setSaving(false);
     }
@@ -99,9 +103,9 @@ export function WorkHistoryEventTypesSettings() {
     try {
       const updated = await settingsApi.updateWorkHistoryEventType(t.id, { isActive: !t.isActive });
       setItems(prev => prev.map(i => i.id === t.id ? { ...i, ...updated } : i));
-      toast.success(t.isActive ? `"${t.label}" hidden from the dropdown` : `"${t.label}" re-enabled`);
+      toast.success(t.isActive ? tc('toast.hiddenFromDropdownNamed', { name: t.label }) : tc('toast.reEnabledNamed', { name: t.label }));
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to update');
+      toast.error(apiError(err, tc('toast.saveFailed')));
     }
   };
 
@@ -111,10 +115,10 @@ export function WorkHistoryEventTypesSettings() {
     try {
       await settingsApi.deleteWorkHistoryEventType(deleteTarget.id);
       setItems(prev => prev.map(i => i.id === deleteTarget.id ? { ...i, isActive: false } : i));
-      toast.success(`"${deleteTarget.label}" deactivated`);
+      toast.success(tc('toast.deactivatedNamed', { name: deleteTarget.label }));
       setDeleteTarget(null);
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to deactivate');
+      toast.error(apiError(err, tc('toast.deleteFailed')));
     } finally {
       setDeleting(false);
     }
@@ -133,7 +137,7 @@ export function WorkHistoryEventTypesSettings() {
           <Link to="/dashboard/settings"><ArrowLeft className="w-5 h-5" /></Link>
         </Button>
         <div className="flex-1">
-          <h1 className="text-2xl font-semibold">Work History Event Types</h1>
+          <h1 className="text-2xl font-semibold">{tp('settings.workHistoryEventTypes.headerTitle')}</h1>
           <p className="text-muted-foreground text-sm mt-0.5">
             Options shown in the Employee profile → Contracts tab → Add Entry dialog.
             Deactivating a type hides it from the dropdown but keeps historical entries intact.
@@ -141,7 +145,7 @@ export function WorkHistoryEventTypesSettings() {
         </div>
         {canCreate('settings') && (
           <Button className="bg-[#2563EB] hover:bg-[#1d4ed8]" onClick={openCreate}>
-            <Plus className="w-4 h-4 mr-2" />New Event Type
+            <Plus className="w-4 h-4 me-2" />New Event Type
           </Button>
         )}
       </div>
@@ -170,7 +174,7 @@ export function WorkHistoryEventTypesSettings() {
         </CardHeader>
         <CardContent className="p-0">
           {loading ? (
-            <div className="py-12 text-center text-muted-foreground">Loading…</div>
+            <div className="py-12 text-center text-muted-foreground">{tp('settings.workHistoryEventTypes.loading')}</div>
           ) : items.length === 0 ? (
             <div className="py-12 text-center text-muted-foreground">
               No event types defined. Click <strong>New Event Type</strong> to add one.
@@ -179,7 +183,7 @@ export function WorkHistoryEventTypesSettings() {
             <ul className="divide-y">
               {sorted.map(t => (
                 <li key={t.id} className="flex items-center gap-3 px-4 py-3">
-                  <span className="font-mono text-xs text-muted-foreground w-10 text-right">{t.sortOrder}</span>
+                  <span className="font-mono text-xs text-muted-foreground w-10 text-end">{t.sortOrder}</span>
                   <div className={`flex-1 ${t.isActive ? '' : 'opacity-60'}`}>
                     <p className={`text-sm font-medium ${t.isActive ? '' : 'line-through'}`}>{t.label}</p>
                     <p className="text-xs text-muted-foreground font-mono">{t.value}</p>
@@ -192,13 +196,13 @@ export function WorkHistoryEventTypesSettings() {
                   </Badge>
                   {canEdit('settings') && (
                     <Button variant="outline" size="sm" onClick={() => handleToggleActive(t)}>
-                      {t.isActive ? <XCircle className="w-4 h-4 mr-1" /> : <CheckCircle className="w-4 h-4 mr-1" />}
+                      {t.isActive ? <XCircle className="w-4 h-4 me-1" /> : <CheckCircle className="w-4 h-4 me-1" />}
                       {t.isActive ? 'Deactivate' : 'Activate'}
                     </Button>
                   )}
                   {canEdit('settings') && (
                     <Button variant="outline" size="sm" onClick={() => openEdit(t)}>
-                      <Pencil className="w-4 h-4 mr-1" />Edit
+                      <Pencil className="w-4 h-4 me-1" />Edit
                     </Button>
                   )}
                   {canDelete('settings') && t.isActive && (
@@ -227,17 +231,17 @@ export function WorkHistoryEventTypesSettings() {
           </DialogHeader>
           <div className="space-y-3 py-2">
             <div className="space-y-1">
-              <Label htmlFor="wh-value">Value *</Label>
+              <Label htmlFor="wh-value">{tp('settings.workHistoryEventTypes.valueLabel')}</Label>
               <Input
                 id="wh-value"
                 placeholder="e.g. CONTRACT_EXTENSION"
                 value={form.value}
                 onChange={e => setForm(f => ({ ...f, value: e.target.value }))}
               />
-              <p className="text-xs text-muted-foreground">Uppercase, underscore-separated recommended. Used in exports and APIs.</p>
+              <p className="text-xs text-muted-foreground">{tp('settings.workHistoryEventTypes.valueHelper')}</p>
             </div>
             <div className="space-y-1">
-              <Label htmlFor="wh-label">Label *</Label>
+              <Label htmlFor="wh-label">{tp('settings.workHistoryEventTypes.labelLabel')}</Label>
               <Input
                 id="wh-label"
                 placeholder="e.g. Contract Extension"
@@ -246,19 +250,19 @@ export function WorkHistoryEventTypesSettings() {
               />
             </div>
             <div className="space-y-1">
-              <Label htmlFor="wh-sort">Sort Order</Label>
+              <Label htmlFor="wh-sort">{tp('settings.workHistoryEventTypes.sortOrderLabel')}</Label>
               <Input
                 id="wh-sort"
                 type="number"
                 value={form.sortOrder}
                 onChange={e => setForm(f => ({ ...f, sortOrder: Number(e.target.value) || 0 }))}
               />
-              <p className="text-xs text-muted-foreground">Lower numbers appear first.</p>
+              <p className="text-xs text-muted-foreground">{tp('settings.workHistoryEventTypes.sortOrderHelper')}</p>
             </div>
             <div className="flex items-center justify-between border rounded-lg px-3 py-2">
               <div>
                 <Label htmlFor="wh-active">Active</Label>
-                <p className="text-xs text-muted-foreground">Shown in the Contracts tab dropdown.</p>
+                <p className="text-xs text-muted-foreground">{tp('settings.workHistoryEventTypes.activeHelper')}</p>
               </div>
               <Switch
                 id="wh-active"
@@ -269,10 +273,10 @@ export function WorkHistoryEventTypesSettings() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}>
-              <X className="w-4 h-4 mr-2" />Cancel
+              <X className="w-4 h-4 me-2" />Cancel
             </Button>
             <Button className="bg-[#2563EB] hover:bg-[#1d4ed8]" onClick={handleSave} disabled={saving || !form.value.trim() || !form.label.trim()}>
-              <Save className="w-4 h-4 mr-2" />{saving ? 'Saving…' : editing ? 'Save Changes' : 'Create'}
+              <Save className="w-4 h-4 me-2" />{saving ? 'Saving…' : editing ? 'Save Changes' : 'Create'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -287,7 +291,7 @@ export function WorkHistoryEventTypesSettings() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleting}>{tc('actions.cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} disabled={deleting} className="bg-red-600 hover:bg-red-700">
               {deleting ? 'Deactivating…' : 'Deactivate'}
             </AlertDialogAction>

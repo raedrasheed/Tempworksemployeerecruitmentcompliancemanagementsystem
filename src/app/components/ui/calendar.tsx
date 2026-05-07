@@ -3,9 +3,20 @@
 import * as React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { DayPicker } from "react-day-picker";
+import { ar, de, ru, sk, tr, enUS, type Locale } from "date-fns/locale";
 
 import { cn } from "./utils";
 import { buttonVariants } from "./button";
+import { useLanguage } from "../../../i18n/LanguageContext";
+
+const DATE_FNS_LOCALES: Record<string, Locale> = {
+  en: enUS,
+  sk,
+  de,
+  ru,
+  ar,
+  tr,
+};
 
 function Calendar({
   className,
@@ -13,8 +24,12 @@ function Calendar({
   showOutsideDays = true,
   ...props
 }: React.ComponentProps<typeof DayPicker>) {
+  const { locale, dir } = useLanguage();
+  const dpLocale = DATE_FNS_LOCALES[locale] ?? enUS;
   return (
     <DayPicker
+      locale={dpLocale}
+      dir={dir}
       showOutsideDays={showOutsideDays}
       className={cn("p-3", className)}
       classNames={{
@@ -27,17 +42,17 @@ function Calendar({
           buttonVariants({ variant: "outline" }),
           "size-7 bg-transparent p-0 opacity-50 hover:opacity-100",
         ),
-        nav_button_previous: "absolute left-1",
-        nav_button_next: "absolute right-1",
+        nav_button_previous: "absolute start-1",
+        nav_button_next: "absolute end-1",
         table: "w-full border-collapse space-x-1",
         head_row: "flex",
         head_cell:
           "text-muted-foreground rounded-md w-8 font-normal text-[0.8rem]",
         row: "flex w-full mt-2",
         cell: cn(
-          "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 [&:has([aria-selected])]:bg-accent [&:has([aria-selected].day-range-end)]:rounded-r-md",
+          "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 [&:has([aria-selected])]:bg-accent [&:has([aria-selected].day-range-end)]:rounded-e-md",
           props.mode === "range"
-            ? "[&:has(>.day-range-end)]:rounded-r-md [&:has(>.day-range-start)]:rounded-l-md first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md"
+            ? "[&:has(>.day-range-end)]:rounded-e-md [&:has(>.day-range-start)]:rounded-s-md first:[&:has([aria-selected])]:rounded-s-md last:[&:has([aria-selected])]:rounded-e-md"
             : "[&:has([aria-selected])]:rounded-md",
         ),
         day: cn(
@@ -61,10 +76,10 @@ function Calendar({
       }}
       components={{
         IconLeft: ({ className, ...props }) => (
-          <ChevronLeft className={cn("size-4", className)} {...props} />
+          <ChevronLeft className={cn("size-4 rtl:rotate-180", className)} {...props} />
         ),
         IconRight: ({ className, ...props }) => (
-          <ChevronRight className={cn("size-4", className)} {...props} />
+          <ChevronRight className={cn("size-4 rtl:rotate-180", className)} {...props} />
         ),
       }}
       {...props}

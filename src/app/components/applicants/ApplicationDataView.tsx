@@ -12,12 +12,17 @@
  * everything.
  */
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import {
   User, Phone, MapPin, Shield, CreditCard, Briefcase, Award,
   Globe, GraduationCap, Star, Info, FileText, Heart,
 } from 'lucide-react';
+import i18n from '../../../i18n';
+
+const tv = (key: string, opts?: Record<string, unknown>): string =>
+  i18n.t(`applicants.applicationView.${key}`, { ns: 'pages', ...(opts ?? {}) }) as string;
 
 // ── Field helpers ────────────────────────────────────────────────────────────
 
@@ -33,10 +38,10 @@ function Field({ label, value }: { label: string; value?: ReactNode }) {
   );
 }
 
-const yn = (v: any) => v === 'yes' || v === true ? 'Yes' : v === 'no' || v === false ? 'No' : undefined;
+const yn = (v: any) => v === 'yes' || v === true ? tv('yes') : v === 'no' || v === false ? tv('no') : undefined;
 const joinSpace = (...parts: any[]) => parts.filter(Boolean).join(' ').trim();
 const joinComma = (...parts: any[]) => parts.filter(Boolean).join(', ');
-const expiry = (date?: string, noExpiry?: boolean) => noExpiry ? 'No Expiry' : (date || undefined);
+const expiry = (date?: string, noExpiry?: boolean) => noExpiry ? tv('labels.noExpiry') : (date || undefined);
 const asArray = (v: any): any[] => Array.isArray(v) ? v : [];
 
 // ── Section wrapper ──────────────────────────────────────────────────────────
@@ -76,13 +81,14 @@ interface Props {
 }
 
 export function ApplicationDataView({ applicationData, fullName }: Props) {
+  const { t } = useTranslation('pages');
   const ad = applicationData ?? {};
 
   if (!applicationData || Object.keys(ad).length === 0) {
     return (
       <Card>
         <CardContent className="py-10 text-center text-muted-foreground text-sm">
-          No structured application data was captured for this profile.
+          {t('applicants.applicationView.empty')}
         </CardContent>
       </Card>
     );
@@ -105,57 +111,57 @@ export function ApplicationDataView({ applicationData, fullName }: Props) {
     <div className="space-y-6">
       {fullName && (
         <div className="text-sm text-muted-foreground">
-          Full application submitted by <span className="font-medium text-foreground">{fullName}</span>
+          {t('applicants.applicationView.submittedBy')} <span className="font-medium text-foreground">{fullName}</span>
         </div>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* ── Personal ───────────────────────────────────────────── */}
-        <Section title="Personal" icon={User} span>
+        <Section title={t('applicants.applicationView.sections.personal')} icon={User} span>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <Field label="First Name" value={ad.firstName} />
-            <Field label="Middle Name" value={ad.middleName} />
-            <Field label="Last Name" value={ad.lastName} />
-            <Field label="Date of Birth" value={ad.dateOfBirth} />
-            <Field label="Gender" value={ad.gender} />
-            <Field label="Citizenship" value={ad.citizenship} />
+            <Field label={t('applicants.applicationView.labels.firstName')} value={ad.firstName} />
+            <Field label={t('applicants.applicationView.labels.middleName')} value={ad.middleName} />
+            <Field label={t('applicants.applicationView.labels.lastName')} value={ad.lastName} />
+            <Field label={t('applicants.applicationView.labels.dateOfBirth')} value={ad.dateOfBirth} />
+            <Field label={t('applicants.applicationView.labels.gender')} value={ad.gender} />
+            <Field label={t('applicants.applicationView.labels.citizenship')} value={ad.citizenship} />
             {otherCitizenships.length > 0 && (
               <div className="col-span-2 md:col-span-3">
-                <p className="text-xs text-muted-foreground">Other Citizenships</p>
+                <p className="text-xs text-muted-foreground">{t('applicants.applicationView.labels.otherCitizenships')}</p>
                 <div className="flex flex-wrap gap-1.5 mt-1">
                   {otherCitizenships.map((c: string) => <Badge key={c} variant="outline">{c}</Badge>)}
                 </div>
               </div>
             )}
-            <Field label="Country of Birth" value={ad.countryOfBirth} />
-            <Field label="City of Birth" value={ad.cityOfBirth} />
-            <Field label="Job Category" value={ad.jobTypeId ? undefined : undefined /* resolved elsewhere */} />
+            <Field label={t('applicants.applicationView.labels.countryOfBirth')} value={ad.countryOfBirth} />
+            <Field label={t('applicants.applicationView.labels.cityOfBirth')} value={ad.cityOfBirth} />
+            <Field label={t('applicants.applicationView.labels.jobCategory')} value={ad.jobTypeId ? undefined : undefined /* resolved elsewhere */} />
           </div>
         </Section>
 
         {/* ── Addresses ─────────────────────────────────────────── */}
         {hasAny(ad.homeAddress?.line1, ad.homeAddress?.city, ad.currentAddress?.line1) && (
-          <Section title="Addresses" icon={MapPin} span>
+          <Section title={t('applicants.applicationView.sections.addresses')} icon={MapPin} span>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Permanent Address</p>
-                <Field label="Street" value={joinComma(ad.homeAddress?.line1, ad.homeAddress?.line2)} />
-                <Field label="City" value={ad.homeAddress?.city} />
-                <Field label="Postal Code" value={ad.homeAddress?.postalCode} />
-                <Field label="Country" value={ad.homeAddress?.country} />
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('applicants.applicationView.subsections.permanentAddress')}</p>
+                <Field label={t('applicants.applicationView.labels.street')} value={joinComma(ad.homeAddress?.line1, ad.homeAddress?.line2)} />
+                <Field label={t('applicants.applicationView.labels.city')} value={ad.homeAddress?.city} />
+                <Field label={t('applicants.applicationView.labels.postalCode')} value={ad.homeAddress?.postalCode} />
+                <Field label={t('applicants.applicationView.labels.country')} value={ad.homeAddress?.country} />
               </div>
               <div className="space-y-2">
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Current Address {ad.sameAsHomeAddress && <span className="text-[10px] font-normal normal-case">(same as permanent)</span>}
+                  {t('applicants.applicationView.subsections.currentAddress')} {ad.sameAsHomeAddress && <span className="text-[10px] font-normal normal-case">{t('applicants.applicationView.subsections.sameAsPermanentInline')}</span>}
                 </p>
                 {ad.sameAsHomeAddress ? (
-                  <p className="text-sm text-muted-foreground italic">Same as permanent address</p>
+                  <p className="text-sm text-muted-foreground italic">{t('applicants.applicationView.subsections.sameAsPermanent')}</p>
                 ) : (
                   <>
-                    <Field label="Street" value={joinComma(ad.currentAddress?.line1, ad.currentAddress?.line2)} />
-                    <Field label="City" value={ad.currentAddress?.city} />
-                    <Field label="Postal Code" value={ad.currentAddress?.postalCode} />
-                    <Field label="Country" value={ad.currentAddress?.country} />
+                    <Field label={t('applicants.applicationView.labels.street')} value={joinComma(ad.currentAddress?.line1, ad.currentAddress?.line2)} />
+                    <Field label={t('applicants.applicationView.labels.city')} value={ad.currentAddress?.city} />
+                    <Field label={t('applicants.applicationView.labels.postalCode')} value={ad.currentAddress?.postalCode} />
+                    <Field label={t('applicants.applicationView.labels.country')} value={ad.currentAddress?.country} />
                   </>
                 )}
               </div>
@@ -163,12 +169,12 @@ export function ApplicationDataView({ applicationData, fullName }: Props) {
 
             {ad.livedAbroadRecently === 'yes' && (
               <div className="mt-6 pt-4 border-t space-y-2">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Lived Abroad (last 12 months)</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('applicants.applicationView.subsections.livedAbroad')}</p>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <Field label="Country" value={ad.abroadCountry} />
-                  <Field label="From" value={ad.abroadDateFrom} />
-                  <Field label="To" value={ad.abroadDateTo} />
-                  <Field label="Address" value={joinComma(ad.abroadAddress?.line1, ad.abroadAddress?.city, ad.abroadAddress?.country)} />
+                  <Field label={t('applicants.applicationView.labels.country')} value={ad.abroadCountry} />
+                  <Field label={t('applicants.applicationView.labels.from')} value={ad.abroadDateFrom} />
+                  <Field label={t('applicants.applicationView.labels.to')} value={ad.abroadDateTo} />
+                  <Field label={t('applicants.applicationView.labels.address')} value={joinComma(ad.abroadAddress?.line1, ad.abroadAddress?.city, ad.abroadAddress?.country)} />
                 </div>
               </div>
             )}
@@ -176,100 +182,100 @@ export function ApplicationDataView({ applicationData, fullName }: Props) {
         )}
 
         {/* ── Contact & Communications ─────────────────────────── */}
-        <Section title="Contact & Communications" icon={Phone} span>
+        <Section title={t('applicants.applicationView.sections.contact')} icon={Phone} span>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <Field label="Email" value={ad.email} />
-            <Field label="Phone" value={joinSpace(ad.phoneCode, ad.phone)} />
+            <Field label={t('applicants.applicationView.labels.email')} value={ad.email} />
+            <Field label={t('applicants.applicationView.labels.phone')} value={joinSpace(ad.phoneCode, ad.phone)} />
             <Field
-              label="WhatsApp"
+              label={t('applicants.applicationView.labels.whatsapp')}
               value={ad.phoneIsWhatsApp
-                ? `${joinSpace(ad.phoneCode, ad.phone)} (same as phone)`
+                ? `${joinSpace(ad.phoneCode, ad.phone)} ${t('applicants.applicationView.labels.sameAsPhone')}`
                 : joinSpace(ad.whatsappCode, ad.whatsapp)}
             />
-            <Field label="Emergency Contact" value={joinSpace(ad.emergencyFirstName, ad.emergencyLastName)} />
-            <Field label="Relationship" value={ad.emergencyRelation} />
-            <Field label="Emergency Phone" value={joinSpace(ad.emergencyPhoneCode, ad.emergencyPhone)} />
-            <Field label="Emergency Email" value={ad.emergencyEmail} />
+            <Field label={t('applicants.applicationView.labels.emergencyContact')} value={joinSpace(ad.emergencyFirstName, ad.emergencyLastName)} />
+            <Field label={t('applicants.applicationView.labels.relationship')} value={ad.emergencyRelation} />
+            <Field label={t('applicants.applicationView.labels.emergencyPhone')} value={joinSpace(ad.emergencyPhoneCode, ad.emergencyPhone)} />
+            <Field label={t('applicants.applicationView.labels.emergencyEmail')} value={ad.emergencyEmail} />
           </div>
         </Section>
 
         {/* ── Identification & Legal ───────────────────────────── */}
-        <Section title="Identification & Legal" icon={Shield} span>
+        <Section title={t('applicants.applicationView.sections.idLegal')} icon={Shield} span>
           <div className="space-y-5">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Passport</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">{t('applicants.applicationView.subsections.passport')}</p>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Field label="Number" value={ad.passportNumber} />
-                <Field label="Issuing Country" value={ad.passportCountry} />
-                <Field label="Issue Date" value={ad.passportIssueDate} />
-                <Field label="Expiry" value={expiry(ad.passportExpiryDate, ad.passportNoExpiry)} />
+                <Field label={t('applicants.applicationView.labels.number')} value={ad.passportNumber} />
+                <Field label={t('applicants.applicationView.labels.issuingCountry')} value={ad.passportCountry} />
+                <Field label={t('applicants.applicationView.labels.issueDate')} value={ad.passportIssueDate} />
+                <Field label={t('applicants.applicationView.labels.expiry')} value={expiry(ad.passportExpiryDate, ad.passportNoExpiry)} />
               </div>
             </div>
 
             {ad.hasIdCard === 'yes' && (
               <div className="pt-3 border-t">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">National ID Card</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">{t('applicants.applicationView.subsections.nationalIdCard')}</p>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  <Field label="Number" value={ad.idCardNumber} />
-                  <Field label="Country" value={ad.idCardCountry} />
-                  <Field label="Expiry" value={expiry(ad.idCardExpiryDate, ad.idCardNoExpiry)} />
+                  <Field label={t('applicants.applicationView.labels.number')} value={ad.idCardNumber} />
+                  <Field label={t('applicants.applicationView.labels.country')} value={ad.idCardCountry} />
+                  <Field label={t('applicants.applicationView.labels.expiry')} value={expiry(ad.idCardExpiryDate, ad.idCardNoExpiry)} />
                 </div>
               </div>
             )}
 
             {ad.hasEuVisa === 'yes' && (
               <div className="pt-3 border-t">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">EU Visa</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">{t('applicants.applicationView.subsections.euVisa')}</p>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <Field label="Type" value={ad.euVisaType} />
-                  <Field label="Country" value={ad.euVisaCountry} />
-                  <Field label="Number" value={ad.euVisaNumber} />
-                  <Field label="Expiry" value={expiry(ad.euVisaExpiryDate, ad.euVisaNoExpiry)} />
-                  {ad.purposeOfIssue && <div className="col-span-2 md:col-span-4"><Field label="Purpose of Issue" value={ad.purposeOfIssue} /></div>}
+                  <Field label={t('applicants.applicationView.labels.type')} value={ad.euVisaType} />
+                  <Field label={t('applicants.applicationView.labels.country')} value={ad.euVisaCountry} />
+                  <Field label={t('applicants.applicationView.labels.number')} value={ad.euVisaNumber} />
+                  <Field label={t('applicants.applicationView.labels.expiry')} value={expiry(ad.euVisaExpiryDate, ad.euVisaNoExpiry)} />
+                  {ad.purposeOfIssue && <div className="col-span-2 md:col-span-4"><Field label={t('applicants.applicationView.labels.purposeOfIssue')} value={ad.purposeOfIssue} /></div>}
                 </div>
               </div>
             )}
 
             {ad.hasEuResidence === 'yes' && (
               <div className="pt-3 border-t">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">EU Residence</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">{t('applicants.applicationView.subsections.euResidence')}</p>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <Field label="Type" value={ad.euResidenceType} />
-                  <Field label="Number" value={ad.euResidenceNumber} />
-                  <Field label="Country" value={ad.euResidenceCountry} />
-                  <Field label="City" value={ad.euResidenceCity} />
-                  <Field label="Issue Date" value={ad.euResidenceIssueDate} />
-                  <Field label="Expiry" value={expiry(ad.euResidenceExpiryDate, ad.euResidenceNoExpiry)} />
+                  <Field label={t('applicants.applicationView.labels.type')} value={ad.euResidenceType} />
+                  <Field label={t('applicants.applicationView.labels.number')} value={ad.euResidenceNumber} />
+                  <Field label={t('applicants.applicationView.labels.country')} value={ad.euResidenceCountry} />
+                  <Field label={t('applicants.applicationView.labels.city')} value={ad.euResidenceCity} />
+                  <Field label={t('applicants.applicationView.labels.issueDate')} value={ad.euResidenceIssueDate} />
+                  <Field label={t('applicants.applicationView.labels.expiry')} value={expiry(ad.euResidenceExpiryDate, ad.euResidenceNoExpiry)} />
                 </div>
               </div>
             )}
 
             {ad.hasWorkPermit === 'yes' && (
               <div className="pt-3 border-t">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">EU Work Permit</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">{t('applicants.applicationView.subsections.euWorkPermit')}</p>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <Field label="Type" value={ad.workPermitType} />
-                  <Field label="Number" value={ad.workPermitNumber} />
-                  <Field label="Country" value={ad.workPermitCountry} />
-                  <Field label="Issue Date" value={ad.workPermitIssueDate} />
-                  <Field label="Expiry" value={expiry(ad.workPermitExpiryDate, ad.workPermitNoExpiry)} />
+                  <Field label={t('applicants.applicationView.labels.type')} value={ad.workPermitType} />
+                  <Field label={t('applicants.applicationView.labels.number')} value={ad.workPermitNumber} />
+                  <Field label={t('applicants.applicationView.labels.country')} value={ad.workPermitCountry} />
+                  <Field label={t('applicants.applicationView.labels.issueDate')} value={ad.workPermitIssueDate} />
+                  <Field label={t('applicants.applicationView.labels.expiry')} value={expiry(ad.workPermitExpiryDate, ad.workPermitNoExpiry)} />
                 </div>
               </div>
             )}
 
             {(hasAny(yn(ad.hasHomeCriminalRecord), yn(ad.hasEuCriminalRecord))) && (
               <div className="pt-3 border-t">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Criminal Records</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">{t('applicants.applicationView.subsections.criminalRecords')}</p>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  <Field label="Home Country Record" value={yn(ad.hasHomeCriminalRecord)} />
+                  <Field label={t('applicants.applicationView.labels.homeRecord')} value={yn(ad.hasHomeCriminalRecord)} />
                   {ad.hasHomeCriminalRecord === 'yes' && <>
-                    <Field label="Date of Issue" value={ad.homeCriminalRecordDate} />
-                    <Field label="Country of Issue" value={ad.homeCriminalRecordCountry} />
+                    <Field label={t('applicants.applicationView.labels.dateOfIssue')} value={ad.homeCriminalRecordDate} />
+                    <Field label={t('applicants.applicationView.labels.countryOfIssue')} value={ad.homeCriminalRecordCountry} />
                   </>}
-                  <Field label="EU Record" value={yn(ad.hasEuCriminalRecord)} />
+                  <Field label={t('applicants.applicationView.labels.euRecord')} value={yn(ad.hasEuCriminalRecord)} />
                   {ad.hasEuCriminalRecord === 'yes' && <>
-                    <Field label="Date of Issue" value={ad.euCriminalRecordDate} />
-                    <Field label="Country of Issue" value={ad.euCriminalRecordCountry} />
+                    <Field label={t('applicants.applicationView.labels.dateOfIssue')} value={ad.euCriminalRecordDate} />
+                    <Field label={t('applicants.applicationView.labels.countryOfIssue')} value={ad.euCriminalRecordCountry} />
                   </>}
                 </div>
               </div>
@@ -279,18 +285,18 @@ export function ApplicationDataView({ applicationData, fullName }: Props) {
 
         {/* ── Driving Licence ──────────────────────────────────── */}
         {ad.hasDrivingLicense === 'yes' && (
-          <Section title="Driving Licence" icon={CreditCard}>
+          <Section title={t('applicants.applicationView.sections.drivingLicence')} icon={CreditCard}>
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-4">
-                <Field label="Number" value={ad.licenseNumber} />
-                <Field label="Issuing Country" value={ad.licenseCountry} />
-                <Field label="First Issue Date" value={ad.licenseFirstIssueDate} />
-                <Field label="Issue Date" value={ad.licenseIssueDate} />
-                <Field label="Expiry" value={expiry(ad.licenseExpiryDate, ad.licenseNoExpiry)} />
+                <Field label={t('applicants.applicationView.labels.number')} value={ad.licenseNumber} />
+                <Field label={t('applicants.applicationView.labels.issuingCountry')} value={ad.licenseCountry} />
+                <Field label={t('applicants.applicationView.labels.firstIssueDate')} value={ad.licenseFirstIssueDate} />
+                <Field label={t('applicants.applicationView.labels.issueDate')} value={ad.licenseIssueDate} />
+                <Field label={t('applicants.applicationView.labels.expiry')} value={expiry(ad.licenseExpiryDate, ad.licenseNoExpiry)} />
               </div>
               {licenseCategories.length > 0 && (
                 <div className="pt-2 border-t">
-                  <p className="text-xs text-muted-foreground mb-1">Categories</p>
+                  <p className="text-xs text-muted-foreground mb-1">{t('applicants.applicationView.labels.categories')}</p>
                   <div className="flex flex-wrap gap-1.5">
                     {licenseCategories.map((c: string) => <Badge key={c} variant="outline">{c}</Badge>)}
                   </div>
@@ -298,12 +304,12 @@ export function ApplicationDataView({ applicationData, fullName }: Props) {
               )}
               {qualifications.length > 0 && (
                 <div className="pt-2 border-t space-y-2">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Professional Qualifications</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('applicants.applicationView.subsections.professionalQualifications')}</p>
                   {qualifications.map((q: any, i: number) => (
                     <div key={q.id ?? i} className="p-3 border rounded-md space-y-1">
-                      <p className="text-sm font-medium">{q.type || 'Qualification'}{q.number ? ` · ${q.number}` : ''}</p>
+                      <p className="text-sm font-medium">{q.type || t('applicants.applicationView.labels.qualification')}{q.number ? ` · ${q.number}` : ''}</p>
                       <p className="text-xs text-muted-foreground">
-                        {joinComma(q.country, q.issueDate && `Issued ${q.issueDate}`, expiry(q.expiryDate, q.noExpiry) && `Expires ${expiry(q.expiryDate, q.noExpiry)}`)}
+                        {joinComma(q.country, q.issueDate && t('applicants.applicationView.labels.issuedPrefix', { date: q.issueDate }), expiry(q.expiryDate, q.noExpiry) && t('applicants.applicationView.labels.expiresPrefix', { date: expiry(q.expiryDate, q.noExpiry) }))}
                       </p>
                     </div>
                   ))}
@@ -315,56 +321,56 @@ export function ApplicationDataView({ applicationData, fullName }: Props) {
 
         {/* ── Driving Experience ───────────────────────────────── */}
         {hasAny(ad.drivingExpType, ad.euExpYears, ad.domesticExpYears) && (
-          <Section title="Driving Experience" icon={Briefcase}>
+          <Section title={t('applicants.applicationView.sections.drivingExperience')} icon={Briefcase}>
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-4">
-                <Field label="Experience Type" value={ad.drivingExpType} />
-                <Field label="Gearbox" value={ad.gearboxType} />
+                <Field label={t('applicants.applicationView.labels.experienceType')} value={ad.drivingExpType} />
+                <Field label={t('applicants.applicationView.labels.gearbox')} value={ad.gearboxType} />
                 {(ad.drivingExpType === 'eu' || ad.drivingExpType === 'both') && <>
-                  <Field label="EU Years" value={ad.euExpYears} />
-                  <Field label="EU Total KM" value={ad.euExpKm} />
-                  <Field label="EU Countries" value={ad.euExpCountries} />
+                  <Field label={t('applicants.applicationView.labels.euYears')} value={ad.euExpYears} />
+                  <Field label={t('applicants.applicationView.labels.euTotalKm')} value={ad.euExpKm} />
+                  <Field label={t('applicants.applicationView.labels.euCountries')} value={ad.euExpCountries} />
                 </>}
                 {(ad.drivingExpType === 'domestic' || ad.drivingExpType === 'both') && <>
-                  <Field label="Domestic Years" value={ad.domesticExpYears} />
-                  <Field label="Domestic KM" value={ad.domesticExpKm} />
-                  <Field label="Domestic Country" value={ad.domesticExpCountry} />
+                  <Field label={t('applicants.applicationView.labels.domesticYears')} value={ad.domesticExpYears} />
+                  <Field label={t('applicants.applicationView.labels.domesticKm')} value={ad.domesticExpKm} />
+                  <Field label={t('applicants.applicationView.labels.domesticCountry')} value={ad.domesticExpCountry} />
                 </>}
-                <Field label="Traffic Accidents (3 yrs)" value={yn(ad.trafficAccidents)} />
+                <Field label={t('applicants.applicationView.labels.trafficAccidents3yr')} value={yn(ad.trafficAccidents)} />
               </div>
               {ad.trafficAccidents === 'yes' && ad.accidentDescription && (
-                <Field label="Accident Description" value={ad.accidentDescription} />
+                <Field label={t('applicants.applicationView.labels.accidentDescription')} value={ad.accidentDescription} />
               )}
               {transportTypes.length > 0 && (
                 <div className="pt-2 border-t">
-                  <p className="text-xs text-muted-foreground mb-1">Transport Types</p>
-                  <div className="flex flex-wrap gap-1.5">{transportTypes.map((t: string) => <Badge key={t} variant="outline">{t}</Badge>)}</div>
+                  <p className="text-xs text-muted-foreground mb-1">{t('applicants.applicationView.labels.transportTypes')}</p>
+                  <div className="flex flex-wrap gap-1.5">{transportTypes.map((tt: string) => <Badge key={tt} variant="outline">{tt}</Badge>)}</div>
                 </div>
               )}
               {truckBrands.length > 0 && (
                 <div>
-                  <p className="text-xs text-muted-foreground mb-1">Truck Brands</p>
-                  <div className="flex flex-wrap gap-1.5">{truckBrands.map((t: string) => <Badge key={t} variant="outline">{t}</Badge>)}</div>
-                  {ad.otherBrand && <p className="text-xs text-muted-foreground mt-1">Other: {ad.otherBrand}</p>}
+                  <p className="text-xs text-muted-foreground mb-1">{t('applicants.applicationView.labels.truckBrands')}</p>
+                  <div className="flex flex-wrap gap-1.5">{truckBrands.map((tt: string) => <Badge key={tt} variant="outline">{tt}</Badge>)}</div>
+                  {ad.otherBrand && <p className="text-xs text-muted-foreground mt-1">{t('applicants.applicationView.labels.otherPrefix', { name: ad.otherBrand })}</p>}
                 </div>
               )}
               {trailerTypes.length > 0 && (
                 <div>
-                  <p className="text-xs text-muted-foreground mb-1">Trailer Types</p>
-                  <div className="flex flex-wrap gap-1.5">{trailerTypes.map((t: string) => <Badge key={t} variant="outline">{t}</Badge>)}</div>
-                  {ad.mostUsedTrailer && <p className="text-xs text-muted-foreground mt-1">Most used: {ad.mostUsedTrailer}</p>}
+                  <p className="text-xs text-muted-foreground mb-1">{t('applicants.applicationView.labels.trailerTypes')}</p>
+                  <div className="flex flex-wrap gap-1.5">{trailerTypes.map((tt: string) => <Badge key={tt} variant="outline">{tt}</Badge>)}</div>
+                  {ad.mostUsedTrailer && <p className="text-xs text-muted-foreground mt-1">{t('applicants.applicationView.labels.mostUsedPrefix', { name: ad.mostUsedTrailer })}</p>}
                 </div>
               )}
               {gpsSystems.length > 0 && (
                 <div>
-                  <p className="text-xs text-muted-foreground mb-1">GPS Systems</p>
-                  <div className="flex flex-wrap gap-1.5">{gpsSystems.map((t: string) => <Badge key={t} variant="outline">{t}</Badge>)}</div>
+                  <p className="text-xs text-muted-foreground mb-1">{t('applicants.applicationView.labels.gpsSystems')}</p>
+                  <div className="flex flex-wrap gap-1.5">{gpsSystems.map((tt: string) => <Badge key={tt} variant="outline">{tt}</Badge>)}</div>
                 </div>
               )}
               {workRegime.length > 0 && (
                 <div>
-                  <p className="text-xs text-muted-foreground mb-1">Work Regime</p>
-                  <div className="flex flex-wrap gap-1.5">{workRegime.map((t: string) => <Badge key={t} variant="outline">{t}</Badge>)}</div>
+                  <p className="text-xs text-muted-foreground mb-1">{t('applicants.applicationView.labels.workRegime')}</p>
+                  <div className="flex flex-wrap gap-1.5">{workRegime.map((tt: string) => <Badge key={tt} variant="outline">{tt}</Badge>)}</div>
                 </div>
               )}
             </div>
@@ -373,18 +379,18 @@ export function ApplicationDataView({ applicationData, fullName }: Props) {
 
         {/* ── Education ────────────────────────────────────────── */}
         {educations.length > 0 && (
-          <Section title="Education" icon={GraduationCap} span>
+          <Section title={t('applicants.applicationView.sections.education')} icon={GraduationCap} span>
             <div className="space-y-3">
               {educations.map((e: any, i: number) => (
                 <div key={e.id ?? i} className="p-3 border rounded-md">
-                  <p className="text-sm font-semibold">{e.level || e.degree || 'Education'} — {e.institution || ''}</p>
+                  <p className="text-sm font-semibold">{e.level || e.degree || t('applicants.applicationView.labels.education')} — {e.institution || ''}</p>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-2">
-                    <Field label="Field of Study" value={e.fieldOfStudy} />
-                    <Field label="Country" value={e.country} />
-                    <Field label="Start Date" value={e.startDate} />
-                    <Field label="End Date" value={e.current || e.ongoing ? 'Ongoing' : e.endDate} />
+                    <Field label={t('applicants.applicationView.labels.fieldOfStudy')} value={e.fieldOfStudy} />
+                    <Field label={t('applicants.applicationView.labels.country')} value={e.country} />
+                    <Field label={t('applicants.applicationView.labels.startDate')} value={e.startDate} />
+                    <Field label={t('applicants.applicationView.labels.endDate')} value={e.current || e.ongoing ? t('applicants.applicationView.labels.ongoing') : e.endDate} />
                   </div>
-                  {e.degree && e.level !== e.degree && <Field label="Degree / Certificate" value={e.degree} />}
+                  {e.degree && e.level !== e.degree && <Field label={t('applicants.applicationView.labels.degreeCertificate')} value={e.degree} />}
                 </div>
               ))}
             </div>
@@ -393,33 +399,33 @@ export function ApplicationDataView({ applicationData, fullName }: Props) {
 
         {/* ── Work History ─────────────────────────────────────── */}
         {workHistory.length > 0 && (
-          <Section title="Work Experience" icon={Briefcase} span>
+          <Section title={t('applicants.applicationView.sections.workExperience')} icon={Briefcase} span>
             <div className="space-y-3">
               {workHistory.map((w: any, i: number) => (
                 <div key={w.id ?? i} className="p-3 border rounded-md">
-                  <p className="text-sm font-semibold">{w.jobTitle || 'Position'} — {w.company || ''}</p>
+                  <p className="text-sm font-semibold">{w.jobTitle || t('applicants.applicationView.labels.position')} — {w.company || ''}</p>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-2">
-                    <Field label="Country" value={w.country} />
-                    <Field label="Start" value={w.startDate} />
-                    <Field label="End" value={w.current ? 'Current' : w.endDate} />
-                    <Field label="Company Phone" value={joinSpace(w.companyPhoneCode, w.companyPhone)} />
+                    <Field label={t('applicants.applicationView.labels.country')} value={w.country} />
+                    <Field label={t('applicants.applicationView.labels.start')} value={w.startDate} />
+                    <Field label={t('applicants.applicationView.labels.end')} value={w.current ? t('applicants.applicationView.labels.current') : w.endDate} />
+                    <Field label={t('applicants.applicationView.labels.companyPhone')} value={joinSpace(w.companyPhoneCode, w.companyPhone)} />
                   </div>
                   {w.responsibilities && (
                     <div className="mt-2">
-                      <p className="text-xs text-muted-foreground">Responsibilities</p>
+                      <p className="text-xs text-muted-foreground">{t('applicants.applicationView.labels.responsibilities')}</p>
                       <p className="text-sm whitespace-pre-wrap">{w.responsibilities}</p>
                     </div>
                   )}
                   {w.reasonForLeaving && (
-                    <Field label="Reason for Leaving" value={w.reasonForLeaving} />
+                    <Field label={t('applicants.applicationView.labels.reasonForLeaving')} value={w.reasonForLeaving} />
                   )}
                   {(w.referenceName || w.referencePhone || w.referenceEmail) && (
                     <div className="mt-2 pt-2 border-t">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Reference</p>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">{t('applicants.applicationView.subsections.reference')}</p>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        <Field label="Name" value={w.referenceName} />
-                        <Field label="Phone" value={joinSpace(w.referencePhoneCode, w.referencePhone)} />
-                        <Field label="Email" value={w.referenceEmail} />
+                        <Field label={t('applicants.applicationView.labels.name')} value={w.referenceName} />
+                        <Field label={t('applicants.applicationView.labels.phone')} value={joinSpace(w.referencePhoneCode, w.referencePhone)} />
+                        <Field label={t('applicants.applicationView.labels.email')} value={w.referenceEmail} />
                       </div>
                     </div>
                   )}
@@ -431,23 +437,23 @@ export function ApplicationDataView({ applicationData, fullName }: Props) {
 
         {/* ── Languages ────────────────────────────────────────── */}
         {languages.length > 0 && (
-          <Section title="Languages" icon={Globe}>
+          <Section title={t('applicants.applicationView.sections.languages')} icon={Globe}>
             <div className="space-y-2">
               {languages.map((l: any, i: number) => (
                 <div key={l.id ?? i} className="flex items-center justify-between p-2 border rounded">
                   <div>
-                    <p className="text-sm font-medium">{l.language}{l.motherTongue ? ' (Mother Tongue)' : ''}</p>
+                    <p className="text-sm font-medium">{l.language}{l.motherTongue ? t('applicants.applicationView.labels.motherTongue') : ''}</p>
                     <p className="text-xs text-muted-foreground">
                       {joinComma(
-                        l.speakingLevel && `Speaking: ${l.speakingLevel}`,
-                        l.readingLevel && `Reading: ${l.readingLevel}`,
-                        l.writingLevel && `Writing: ${l.writingLevel}`,
-                        l.listeningLevel && `Listening: ${l.listeningLevel}`,
+                        l.speakingLevel && t('applicants.applicationView.labels.speakingPrefix', { level: l.speakingLevel }),
+                        l.readingLevel && t('applicants.applicationView.labels.readingPrefix', { level: l.readingLevel }),
+                        l.writingLevel && t('applicants.applicationView.labels.writingPrefix', { level: l.writingLevel }),
+                        l.listeningLevel && t('applicants.applicationView.labels.listeningPrefix', { level: l.listeningLevel }),
                         l.proficiency,
                       )}
                     </p>
                   </div>
-                  {l.hasCertificate && <Badge variant="outline">Certificate</Badge>}
+                  {l.hasCertificate && <Badge variant="outline">{t('applicants.applicationView.labels.certificate')}</Badge>}
                 </div>
               ))}
             </div>
@@ -456,7 +462,7 @@ export function ApplicationDataView({ applicationData, fullName }: Props) {
 
         {/* ── Skills ───────────────────────────────────────────── */}
         {skills.length > 0 && (
-          <Section title="Skills" icon={Star}>
+          <Section title={t('applicants.applicationView.sections.skills')} icon={Star}>
             <div className="flex flex-wrap gap-2">
               {skills.map((s: any, i: number) => (
                 <Badge key={s.id ?? i} variant="outline" className="text-sm">
@@ -469,17 +475,17 @@ export function ApplicationDataView({ applicationData, fullName }: Props) {
 
         {/* ── First Aid & Tools ────────────────────────────────── */}
         {hasAny(yn(ad.hasFirstAid), ad.toolsDescription) && (
-          <Section title="First Aid & Tools" icon={Heart}>
+          <Section title={t('applicants.applicationView.sections.firstAidTools')} icon={Heart}>
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-4">
-                <Field label="First Aid Certificate" value={yn(ad.hasFirstAid)} />
+                <Field label={t('applicants.applicationView.labels.firstAidCert')} value={yn(ad.hasFirstAid)} />
                 {ad.hasFirstAid === 'yes' && (
-                  <Field label="Expiry" value={expiry(ad.firstAidExpiry, ad.firstAidNoExpiry)} />
+                  <Field label={t('applicants.applicationView.labels.expiry')} value={expiry(ad.firstAidExpiry, ad.firstAidNoExpiry)} />
                 )}
               </div>
               {ad.toolsDescription && (
                 <div>
-                  <p className="text-xs text-muted-foreground">Tools & Equipment</p>
+                  <p className="text-xs text-muted-foreground">{t('applicants.applicationView.labels.toolsEquipment')}</p>
                   <p className="text-sm whitespace-pre-wrap">{ad.toolsDescription}</p>
                 </div>
               )}
@@ -488,34 +494,34 @@ export function ApplicationDataView({ applicationData, fullName }: Props) {
         )}
 
         {/* ── Work Preferences ─────────────────────────────────── */}
-        <Section title="Work Preferences" icon={Award}>
+        <Section title={t('applicants.applicationView.sections.workPreferences')} icon={Award}>
           <div className="grid grid-cols-2 gap-4">
-            <Field label="Preferred Start Date" value={ad.preferredStartDate} />
-            <Field label="Availability" value={ad.availability} />
-            <Field label="Willing to Relocate" value={yn(ad.willingToRelocate)} />
-            <Field label="Preferred Locations" value={ad.preferredLocations} />
-            <Field label="Weekend Driving" value={yn(ad.weekendDriving)} />
-            <Field label="Night Driving" value={yn(ad.nightDriving)} />
-            <Field label="Salary Expectation" value={ad.salaryExpectation} />
-            <Field label="How Did You Hear" value={ad.howDidYouHear} />
+            <Field label={t('applicants.applicationView.labels.preferredStartDate')} value={ad.preferredStartDate} />
+            <Field label={t('applicants.applicationView.labels.availability')} value={ad.availability} />
+            <Field label={t('applicants.applicationView.labels.willingToRelocate')} value={yn(ad.willingToRelocate)} />
+            <Field label={t('applicants.applicationView.labels.preferredLocations')} value={ad.preferredLocations} />
+            <Field label={t('applicants.applicationView.labels.weekendDriving')} value={yn(ad.weekendDriving)} />
+            <Field label={t('applicants.applicationView.labels.nightDriving')} value={yn(ad.nightDriving)} />
+            <Field label={t('applicants.applicationView.labels.salaryExpectation')} value={ad.salaryExpectation} />
+            <Field label={t('applicants.applicationView.labels.howDidYouHear')} value={ad.howDidYouHear} />
           </div>
         </Section>
 
         {/* ── Additional Notes ─────────────────────────────────── */}
         {ad.additionalNotes && (
-          <Section title="Additional Notes" icon={Info} span>
+          <Section title={t('applicants.applicationView.sections.additionalNotes')} icon={Info} span>
             <p className="text-sm whitespace-pre-wrap">{ad.additionalNotes}</p>
           </Section>
         )}
 
         {/* ── Declarations ─────────────────────────────────────── */}
         {hasAny(ad.declarationAccepted, ad.agreeDataProcessing, ad.agreeBackground, ad.agreeDataSharing) && (
-          <Section title="Declarations & Consent" icon={FileText} span>
+          <Section title={t('applicants.applicationView.sections.declarations')} icon={FileText} span>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <Field label="Truthful information" value={ad.declarationAccepted ? '✓ Agreed' : '✗ Not agreed'} />
-              <Field label="Data processing consent" value={ad.agreeDataProcessing ? '✓ Agreed' : '✗ Not agreed'} />
-              <Field label="Background declaration" value={ad.agreeBackground ? '✓ Agreed' : '✗ Not agreed'} />
-              <Field label="Data sharing with partners" value={ad.agreeDataSharing ? '✓ Agreed' : '✗ Not agreed'} />
+              <Field label={t('applicants.applicationView.labels.truthfulInfo')} value={ad.declarationAccepted ? t('applicants.applicationView.labels.agreed') : t('applicants.applicationView.labels.notAgreed')} />
+              <Field label={t('applicants.applicationView.labels.dataProcessingConsent')} value={ad.agreeDataProcessing ? t('applicants.applicationView.labels.agreed') : t('applicants.applicationView.labels.notAgreed')} />
+              <Field label={t('applicants.applicationView.labels.backgroundDeclaration')} value={ad.agreeBackground ? t('applicants.applicationView.labels.agreed') : t('applicants.applicationView.labels.notAgreed')} />
+              <Field label={t('applicants.applicationView.labels.dataSharing')} value={ad.agreeDataSharing ? t('applicants.applicationView.labels.agreed') : t('applicants.applicationView.labels.notAgreed')} />
             </div>
           </Section>
         )}

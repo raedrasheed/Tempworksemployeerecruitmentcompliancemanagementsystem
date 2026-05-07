@@ -1,13 +1,12 @@
 import {
   Controller, Get, Post, Body, Patch, Param, Delete,
-  Query, UseGuards, HttpCode, HttpStatus, Res, UseInterceptors, UploadedFile, BadRequestException,
+  Query, UseGuards, HttpCode, HttpStatus, Res, UseInterceptors, UploadedFile, BadRequestException, Headers,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam, ApiConsumes } from '@nestjs/swagger';
 import { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
-import { v4 as uuidv4 } from 'uuid';
+import { resolveAcceptLanguage } from '../common/i18n/server-translate';
+import { memoryUpload, IMAGE_MIME } from '../common/storage/multer.config';
 import { ApplicantsService } from './applicants.service';
 import { CreateApplicantDto } from './dto/create-applicant.dto';
 import { UpdateApplicantDto } from './dto/update-applicant.dto';
@@ -21,11 +20,6 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { RequirePermission } from '../auth/decorators/require-permission.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Public } from '../auth/decorators/public.decorator';
-
-const photoStorage = diskStorage({
-  destination: process.env.UPLOAD_DEST || './uploads',
-  filename: (_req, file, cb) => cb(null, `${uuidv4()}${extname(file.originalname)}`),
-});
 
 @ApiTags('Applicants')
 @ApiBearerAuth('access-token')
@@ -86,18 +80,12 @@ export class ApplicantsController {
   @Roles('System Admin', 'HR Manager', 'Recruiter', 'Agency Manager')
   @ApiOperation({ summary: 'Upload or replace applicant photo' })
   @ApiConsumes('multipart/form-data')
-  @UseInterceptors(FileInterceptor('photo', {
-    storage: photoStorage,
-    fileFilter: (_req, file, cb) => {
-      if (!['image/jpeg', 'image/jpg', 'image/png', 'image/webp'].includes(file.mimetype)) {
-        return cb(new BadRequestException('Only JPEG, PNG, and WebP images are allowed'), false);
-      }
-      cb(null, true);
-    },
-    limits: { fileSize: 5 * 1024 * 1024 },
-  }))
+  @UseInterceptors(FileInterceptor('photo', memoryUpload({
+    mimeTypes: IMAGE_MIME,
+    maxBytes: 5 * 1024 * 1024,
+  })))
   uploadPhoto(@Param('id') id: string, @UploadedFile() file: Express.Multer.File) {
-    if (!file) throw new BadRequestException('No photo file provided');
+    if (!file) throw new BadRequestException({ code: 'GENERIC.FILE_REQUIRED', message: 'No photo file provided' });
     return this.applicantsService.uploadPhoto(id, file);
   }
 
@@ -246,6 +234,7 @@ export class ApplicantsController {
     @Query() filter: FilterApplicantsDto & { ids?: string },
     @CurrentUser() user: any,
     @Res() res: Response,
+    @Headers('accept-language') acceptLanguage?: string,
   ) {
     const rawIds = (filter as any).ids;
     const idList: string[] | undefined = Array.isArray(rawIds)
@@ -259,6 +248,7 @@ export class ApplicantsController {
       cleanFilter,
       { role: user?.role, agencyId: user?.agencyId, agencyIsSystem: user?.agencyIsSystem },
       idList,
+      resolveAcceptLanguage(acceptLanguage),
     );
     res.setHeader(
       'Content-Type',

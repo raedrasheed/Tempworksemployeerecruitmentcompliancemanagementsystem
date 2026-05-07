@@ -17,6 +17,7 @@
  *  only diff at each call site is adding `await` and passing an object.
  */
 import { useLayoutEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -77,6 +78,7 @@ export function confirm(options: ConfirmOptions = {}): Promise<boolean> {
 
 /** Mount once at the app root, alongside <Toaster />. */
 export function ConfirmDialogHost() {
+  const { t } = useTranslation('ui');
   const [pending, setPending] = useState<PendingState | null>(null);
   const resolvedRef = useRef(false);
 
@@ -109,14 +111,14 @@ export function ConfirmDialogHost() {
     >
       <AlertDialogContent className="z-[100]">
         <AlertDialogHeader>
-          <AlertDialogTitle>{pending?.title ?? 'Are you sure?'}</AlertDialogTitle>
+          <AlertDialogTitle>{pending?.title ?? t('confirmDialog.title')}</AlertDialogTitle>
           <AlertDialogDescription>
             {pending?.description ?? ''}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel onClick={() => close(false)}>
-            {pending?.cancelText ?? 'Cancel'}
+            {pending?.cancelText ?? t('confirmDialog.cancel')}
           </AlertDialogCancel>
           <AlertDialogAction
             onClick={() => close(true)}
@@ -124,7 +126,7 @@ export function ConfirmDialogHost() {
               ? 'bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20'
               : undefined}
           >
-            {pending?.confirmText ?? 'Confirm'}
+            {pending?.confirmText ?? t('confirmDialog.confirm')}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

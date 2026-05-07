@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { Plus, Edit, Trash2, GripVertical, Save, FileText, CheckCircle, AlertCircle, ShieldOff, ArrowLeft } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -7,6 +8,7 @@ import { Badge } from '../../components/ui/badge';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../../components/ui/dialog';
+import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { usePermissions } from '../../hooks/usePermissions';
 
@@ -112,6 +114,8 @@ const initialStages: WorkflowStage[] = [
 ];
 
 export function WorkflowManagement() {
+  const { t } = useTranslation('common');
+  const { t: tp } = useTranslation('pages');
   const { canEdit } = usePermissions();
   const navigate = useNavigate();
   const [stages, setStages] = useState<WorkflowStage[]>(initialStages);
@@ -146,9 +150,9 @@ export function WorkflowManagement() {
 
   const handleDeleteStage = async (stageId: string) => {
     if (await confirm({
-      title: 'Delete stage?',
-      description: 'This stage will be permanently removed.',
-      confirmText: 'Delete', tone: 'destructive',
+      title: t('confirm.deleteStageTitle'),
+      description: t('confirm.deleteStageBodyGeneric'),
+      confirmText: t('actions.delete'), tone: 'destructive',
     })) {
       setStages(stages.filter(s => s.id !== stageId));
     }
@@ -194,23 +198,23 @@ export function WorkflowManagement() {
             <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
               <ArrowLeft className="w-5 h-5" />
             </Button>
-            <h1 className="text-3xl font-semibold text-[#0F172A]">Workflow Management</h1>
+            <h1 className="text-3xl font-semibold text-[#0F172A]">{tp('workflow.management.title')}</h1>
           </div>
-          <p className="text-muted-foreground mt-1">Configure recruitment workflow stages and requirements</p>
+          <p className="text-muted-foreground mt-1">{tp('workflow.management.subtitle')}</p>
         </div>
         <div className="flex items-center gap-3">
           {canEdit('workflow') && (
-            <Button variant="outline" onClick={() => alert('Workflow configuration saved')}>
-              <Save className="w-4 h-4 mr-2" />
-              Save Changes
+            <Button variant="outline" onClick={() => toast.success(tp('workflow.management.savedStub'))}>
+              <Save className="w-4 h-4 me-2" />
+              {t('saveChanges')}
             </Button>
           )}
           {canEdit('workflow') && (
           <Dialog open={isAddStageOpen} onOpenChange={setIsAddStageOpen}>
             <DialogTrigger asChild>
               <Button>
-                <Plus className="w-4 h-4 mr-2" />
-                Add Stage
+                <Plus className="w-4 h-4 me-2" />
+                {tp('workflow.management.addStage')}
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[500px]">
@@ -219,7 +223,7 @@ export function WorkflowManagement() {
               </DialogHeader>
               <div className="space-y-4 pt-4">
                 <div>
-                  <Label htmlFor="stageName">Stage Name</Label>
+                  <Label htmlFor="stageName">{tp('workflow.management.stageName')}</Label>
                   <Input
                     id="stageName"
                     placeholder="e.g., Background Check"
@@ -239,7 +243,7 @@ export function WorkflowManagement() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="stageColor">Stage Color</Label>
+                  <Label htmlFor="stageColor">{tp('workflow.management.stageColor')}</Label>
                   <Select value={newStageColor} onValueChange={setNewStageColor}>
                     <SelectTrigger id="stageColor" className="mt-1.5">
                       <SelectValue />
@@ -260,7 +264,7 @@ export function WorkflowManagement() {
                   <Button variant="outline" onClick={() => setIsAddStageOpen(false)}>
                     Cancel
                   </Button>
-                  <Button onClick={handleAddStage}>Add Stage</Button>
+                  <Button onClick={handleAddStage}>{tp('workflow.management.addStage')}</Button>
                 </div>
               </div>
             </DialogContent>
@@ -275,7 +279,7 @@ export function WorkflowManagement() {
           <div className="flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-[#2563EB] mt-0.5" />
             <div>
-              <p className="font-medium text-[#2563EB]">Drag and Drop to Reorder</p>
+              <p className="font-medium text-[#2563EB]">{tp('workflow.management.dragToReorder')}</p>
               <p className="text-sm text-muted-foreground mt-1">
                 Use the drag handle to reorder workflow stages. Changes will be reflected across the entire system.
               </p>
@@ -344,7 +348,7 @@ export function WorkflowManagement() {
                       variant="outline"
                       onClick={() => openRequirementsEditor(stage)}
                     >
-                      <Edit className="w-4 h-4 mr-1" />
+                      <Edit className="w-4 h-4 me-1" />
                       Edit Requirements
                     </Button>
                   )}
@@ -384,7 +388,7 @@ export function WorkflowManagement() {
                     </div>
                   ))}
                   <Button size="sm" variant="outline">
-                    <Plus className="w-4 h-4 mr-1" />
+                    <Plus className="w-4 h-4 me-1" />
                     Add Document
                   </Button>
                 </div>
@@ -402,7 +406,7 @@ export function WorkflowManagement() {
                     </div>
                   ))}
                   <Button size="sm" variant="outline">
-                    <Plus className="w-4 h-4 mr-1" />
+                    <Plus className="w-4 h-4 me-1" />
                     Add Action
                   </Button>
                 </div>
@@ -420,7 +424,7 @@ export function WorkflowManagement() {
                     </div>
                   ))}
                   <Button size="sm" variant="outline">
-                    <Plus className="w-4 h-4 mr-1" />
+                    <Plus className="w-4 h-4 me-1" />
                     Add Approval
                   </Button>
                 </div>

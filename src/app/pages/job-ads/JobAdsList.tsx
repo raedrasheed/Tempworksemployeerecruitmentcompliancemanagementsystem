@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate, Link } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import {
   Plus, Search, ExternalLink, Edit2, Trash2,
   MapPin, Eye, Archive,
@@ -9,6 +10,7 @@ import {
 import { toast } from 'sonner';
 import { confirm } from '../../components/ui/ConfirmDialog';
 import { jobAdsApi, settingsApi, getCurrentUser } from '../../services/api';
+import { apiError } from '../../../i18n/apiError';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import {
@@ -29,17 +31,17 @@ type ColKey =
   | 'title' | 'category' | 'city' | 'country' | 'contractType'
   | 'status' | 'applicants' | 'createdAt' | 'updatedAt' | 'slug';
 
-const ALL_COLUMNS: { key: ColKey; label: string }[] = [
-  { key: 'title',        label: 'Title' },
-  { key: 'category',     label: 'Category' },
-  { key: 'city',         label: 'City' },
-  { key: 'country',      label: 'Country' },
-  { key: 'contractType', label: 'Contract' },
-  { key: 'status',       label: 'Status' },
-  { key: 'applicants',   label: 'Applicants' },
-  { key: 'createdAt',    label: 'Created' },
-  { key: 'updatedAt',    label: 'Updated' },
-  { key: 'slug',         label: 'Slug' },
+const ALL_COLUMNS: { key: ColKey; labelKey: string }[] = [
+  { key: 'title',        labelKey: 'jobAds.list.cols.title' },
+  { key: 'category',     labelKey: 'jobAds.list.cols.category' },
+  { key: 'city',         labelKey: 'jobAds.list.cols.city' },
+  { key: 'country',      labelKey: 'jobAds.list.cols.country' },
+  { key: 'contractType', labelKey: 'jobAds.list.cols.contractType' },
+  { key: 'status',       labelKey: 'jobAds.list.cols.status' },
+  { key: 'applicants',   labelKey: 'jobAds.list.cols.applicants' },
+  { key: 'createdAt',    labelKey: 'jobAds.list.cols.createdAt' },
+  { key: 'updatedAt',    labelKey: 'jobAds.list.cols.updatedAt' },
+  { key: 'slug',         labelKey: 'jobAds.list.cols.slug' },
 ];
 
 const DEFAULT_VISIBLE: Record<ColKey, boolean> = {
@@ -64,6 +66,8 @@ type SortField = ColKey;
 type SortOrder = 'asc' | 'desc';
 
 export function JobAdsList() {
+  const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const navigate = useNavigate();
   const currentUser = getCurrentUser();
   const canWrite = WRITE_ROLES.includes(currentUser?.role ?? '');
@@ -136,11 +140,11 @@ export function JobAdsList() {
       setAds(res.data ?? []);
       setMeta(res.meta ?? { total: 0, page: 1, limit, totalPages: 1 });
     } catch {
-      toast.error('Failed to load job ads');
+      toast.error(t('jobAds.list.loadFailed'));
     } finally {
       setLoading(false);
     }
-  }, [search, statusFilter, categoryFilter, countryFilter]);
+  }, [search, statusFilter, categoryFilter, countryFilter, t]);
 
   useEffect(() => {
     settingsApi.getJobTypes()
@@ -160,26 +164,26 @@ export function JobAdsList() {
 
   const handleDelete = async (id: string, title: string) => {
     if (!(await confirm({
-      title: 'Delete job ad?',
-      description: `"${title}" will be permanently removed. This cannot be undone.`,
-      confirmText: 'Delete', tone: 'destructive',
+      title: t('jobAds.list.deleteTitle'),
+      description: t('jobAds.list.deleteBody', { title }),
+      confirmText: tc('actions.delete'), tone: 'destructive',
     }))) return;
     try {
       await jobAdsApi.delete(id);
-      toast.success('Job ad deleted');
+      toast.success(t('jobAds.list.deleteSuccess'));
       load(page);
-    } catch {
-      toast.error('Failed to delete job ad');
+    } catch (err: any) {
+      toast.error(apiError(err, t('jobAds.list.deleteFailed')));
     }
   };
 
   const handleQuickStatus = async (id: string, newStatus: string) => {
     try {
       await jobAdsApi.update(id, { status: newStatus });
-      toast.success(`Moved to ${newStatus}`);
+      toast.success(t('jobAds.list.statusMoved', { status: newStatus }));
       load(page);
-    } catch {
-      toast.error('Failed to update status');
+    } catch (err: any) {
+      toast.error(apiError(err, t('jobAds.list.statusFailed')));
     }
   };
 
@@ -240,7 +244,7 @@ export function JobAdsList() {
   const SortableHead = ({ label, field, className }: { label: string; field: SortField; className?: string }) => {
     const active = sortBy === field;
     return (
-      <th className={`px-4 py-3 text-left font-medium text-muted-foreground ${className ?? ''}`}>
+      <th className={`px-4 py-3 text-start font-medium text-muted-foreground ${className ?? ''}`}>
         <button onClick={() => handleSort(field)} className="flex items-center gap-1 hover:text-foreground group">
           {label}
           {active
@@ -256,20 +260,20 @@ export function JobAdsList() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Job Ads</h1>
+          <h1 className="text-2xl font-bold text-foreground">{t('jobAds.list.title')}</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Manage published and draft job advertisements
+            {t('jobAds.list.subtitle')}
           </p>
         </div>
         {canWrite && (
           <div className="flex items-center gap-2">
             <Link to="/jobs" target="_blank">
               <Button variant="outline" size="sm" className="gap-2">
-                <ExternalLink className="w-4 h-4" /> View Public Page
+                <ExternalLink className="w-4 h-4" /> {t('jobAds.list.subtitle', { defaultValue: 'View Public Page' })}
               </Button>
             </Link>
             <Button onClick={() => navigate('/dashboard/job-ads/new')} className="gap-2">
-              <Plus className="w-4 h-4" /> New Job Ad
+              <Plus className="w-4 h-4" /> {t('jobAds.list.addButton')}
             </Button>
           </div>
         )}
@@ -280,12 +284,12 @@ export function JobAdsList() {
         <CardContent className="p-4 space-y-3">
           <div className="flex flex-wrap gap-3 items-center">
             <div className="flex-1 min-w-[200px] relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 placeholder="Search title, city, country…"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="pl-9"
+                className="ps-9"
               />
             </div>
             <Select
@@ -293,10 +297,10 @@ export function JobAdsList() {
               onValueChange={v => setStatusFilter(v === '__all__' ? '' : v)}
             >
               <SelectTrigger className="w-36">
-                <SelectValue placeholder="All Statuses" />
+                <SelectValue placeholder={t('jobAds.list.allStatuses')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="__all__">All Statuses</SelectItem>
+                <SelectItem value="__all__">{t('jobAds.list.allStatuses')}</SelectItem>
                 <SelectItem value="DRAFT">Draft</SelectItem>
                 <SelectItem value="PUBLISHED">Published</SelectItem>
                 <SelectItem value="ARCHIVED">Archived</SelectItem>
@@ -307,10 +311,10 @@ export function JobAdsList() {
               onValueChange={v => setCategoryFilter(v === '__all__' ? '' : v)}
             >
               <SelectTrigger className="w-48">
-                <SelectValue placeholder="All Categories" />
+                <SelectValue placeholder={t('jobAds.list.allCategories')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="__all__">All Categories</SelectItem>
+                <SelectItem value="__all__">{t('jobAds.list.allCategories')}</SelectItem>
                 {categories.map(c => (
                   <SelectItem key={c} value={c}>{c}</SelectItem>
                 ))}
@@ -321,10 +325,10 @@ export function JobAdsList() {
               onValueChange={v => setCountryFilter(v === '__all__' ? '' : v)}
             >
               <SelectTrigger className="w-40">
-                <SelectValue placeholder="All Countries" />
+                <SelectValue placeholder={t('jobAds.list.allCountries')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="__all__">All Countries</SelectItem>
+                <SelectItem value="__all__">{t('jobAds.list.allCountries')}</SelectItem>
                 {countryOptions.map(c => (
                   <SelectItem key={c} value={c}>{c}</SelectItem>
                 ))}
@@ -343,10 +347,10 @@ export function JobAdsList() {
               onValueChange={v => setContractFilter(v === '__all__' ? '' : v)}
             >
               <SelectTrigger className="w-44">
-                <SelectValue placeholder="All Contracts" />
+                <SelectValue placeholder={t('jobAds.list.allContracts')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="__all__">All Contracts</SelectItem>
+                <SelectItem value="__all__">{t('jobAds.list.allContracts')}</SelectItem>
                 {contractOptions.map(c => (
                   <SelectItem key={c} value={c}>{c}</SelectItem>
                 ))}
@@ -361,45 +365,45 @@ export function JobAdsList() {
               className="w-36"
             />
             <div className="flex items-center gap-1">
-              <span className="text-xs text-muted-foreground whitespace-nowrap">Created from</span>
+              <span className="text-xs text-muted-foreground whitespace-nowrap">{t('jobAds.list.createdFrom')}</span>
               <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="w-36" />
               <span className="text-xs text-muted-foreground">to</span>
               <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="w-36" />
             </div>
             {hasAnyFilters && (
               <Button variant="ghost" size="sm" onClick={clearAllFilters}>
-                <X className="w-3 h-3 mr-1" />Clear filters
+                <X className="w-3 h-3 me-1" />Clear filters
               </Button>
             )}
 
             {/* Column picker */}
-            <div className="relative ml-auto" ref={colPickerRef}>
+            <div className="relative ms-auto" ref={colPickerRef}>
               <Button
                 variant="outline" size="sm"
                 onClick={() => setShowColPicker(v => !v)}
                 className={showColPicker ? 'border-primary text-primary' : ''}
               >
-                <Columns2 className="w-4 h-4 mr-1.5" />Columns
+                <Columns2 className="w-4 h-4 me-1.5" />Columns
                 {hiddenCount > 0 && (
-                  <span className="ml-1.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
+                  <span className="ms-1.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
                     {hiddenCount}
                   </span>
                 )}
               </Button>
               {showColPicker && (
-                <div className="absolute right-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[200px]">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">Toggle columns</p>
+                <div className="absolute end-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[200px]">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">{t('jobAds.list.toggleColumns')}</p>
                   <div className="space-y-0.5 max-h-72 overflow-y-auto">
                     {ALL_COLUMNS.map(c => (
                       <button
                         key={c.key}
                         onClick={() => toggleColumn(c.key)}
-                        className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-gray-50 text-sm text-left"
+                        className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-gray-50 text-sm text-start"
                       >
                         <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${visibleColumns[c.key] ? 'bg-primary border-primary' : 'border-gray-300'}`}>
                           {visibleColumns[c.key] && <Check className="w-2.5 h-2.5 text-primary-foreground" />}
                         </span>
-                        {c.label}
+                        {t(c.labelKey)}
                       </button>
                     ))}
                   </div>
@@ -411,7 +415,7 @@ export function JobAdsList() {
                         localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
                       }}
                       className="flex-1 text-xs text-center text-primary hover:underline py-0.5"
-                    >Show all</button>
+                    >{t('jobAds.list.showAll')}</button>
                     <span className="text-gray-300">|</span>
                     <button
                       onClick={() => {
@@ -443,7 +447,7 @@ export function JobAdsList() {
               {col('createdAt')    && <SortableHead label="Created"    field="createdAt" />}
               {col('updatedAt')    && <SortableHead label="Updated"    field="updatedAt" />}
               {col('slug')         && <SortableHead label="Slug"       field="slug" />}
-              <th className="px-4 py-3 text-right font-medium text-muted-foreground">Actions</th>
+              <th className="px-4 py-3 text-end font-medium text-muted-foreground">Actions</th>
             </tr>
           </thead>
           <tbody>

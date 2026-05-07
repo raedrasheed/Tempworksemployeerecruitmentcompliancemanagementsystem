@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { StorageService } from '../common/storage/storage.service';
 import { AuditLogService } from '../logs/audit-log.service';
 import { BatchUpdateSettingsDto } from './dto/update-settings.dto';
 import { CreateJobTypeDto } from './dto/create-job-type.dto';
@@ -11,6 +12,7 @@ export class SettingsService {
   constructor(
     private prisma: PrismaService,
     private auditLog: AuditLogService,
+    private storage: StorageService,
   ) {}
 
   async getPublicFormSettings(): Promise<Record<string, any>> {
@@ -151,14 +153,27 @@ export class SettingsService {
   }
 
   async uploadLogo(file: Express.Multer.File, userId: string) {
-    const logoUrl = `/uploads/${file.filename}`;
+    const previous = await this.prisma.systemSetting.findUnique({ where: { key: 'branding.logoUrl' } });
+
+    const upload = await this.storage.uploadFile(file.buffer, {
+      keyPrefix: 'settings/branding',
+      contentType: file.mimetype,
+      originalName: file.originalname,
+      inline: true,
+    });
+
     await this.prisma.systemSetting.upsert({
       where: { key: 'branding.logoUrl' },
-      update: { value: logoUrl, updatedById: userId },
-      create: { key: 'branding.logoUrl', value: logoUrl, category: 'branding', description: 'Company logo URL', isPublic: true, updatedById: userId },
+      update: { value: upload.url, updatedById: userId },
+      create: { key: 'branding.logoUrl', value: upload.url, category: 'branding', description: 'Company logo URL', isPublic: true, updatedById: userId },
     });
-    await this.auditLog.log({ userId, action: 'UPDATE', entity: 'Settings', entityId: 'branding.logoUrl', changes: { logoUrl } });
-    return { logoUrl };
+
+    if (previous?.value && previous.value !== upload.url) {
+      await this.storage.deleteFileByUrlOrKey(previous.value);
+    }
+
+    await this.auditLog.log({ userId, action: 'UPDATE', entity: 'Settings', entityId: 'branding.logoUrl', changes: { logoUrl: upload.url } });
+    return { logoUrl: upload.url };
   }
 
   // ─── Job Types ──────────────────────────────────────────────────────────────

@@ -1,4 +1,5 @@
 import { Link } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -6,6 +7,7 @@ import { Badge } from '../../components/ui/badge';
 import { workflowStages } from '../../data/mockData';
 
 export function WorkflowSettings() {
+  const { t } = useTranslation('pages');
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -13,8 +15,8 @@ export function WorkflowSettings() {
           <Link to="/dashboard/settings"><ArrowLeft className="w-5 h-5" /></Link>
         </Button>
         <div>
-          <h1 className="text-3xl font-semibold text-[#0F172A]">Workflow Configuration</h1>
-          <p className="text-muted-foreground mt-1">Configure recruitment workflow stages</p>
+          <h1 className="text-3xl font-semibold text-[#0F172A]">{t('settings.workflowConfiguration.title')}</h1>
+          <p className="text-muted-foreground mt-1">{t('settings.workflowConfiguration.subtitle')}</p>
         </div>
       </div>
 

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, ShieldOff } from 'lucide-react';
 import { usePermissions } from '../../hooks/usePermissions';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
@@ -9,12 +10,19 @@ import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { toast } from 'sonner';
 import { employeesApi, agenciesApi } from '../../services/api';
+import { apiError } from '../../../i18n/apiError';
+import { useValidationErrors } from '../../../i18n/useValidationErrors';
+import { FieldError } from '../../components/ui/field-error';
+import { ValidationSummary } from '../../components/ui/validation-summary';
 
 export function AddEmployee() {
+  const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const navigate = useNavigate();
   const { canCreate } = usePermissions();
   const [agencies, setAgencies] = useState<any[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const { errors: fieldErrs, setFromError, clearAll: clearFieldErrors, clearError } = useValidationErrors();
   const [form, setForm] = useState({
     firstName: '', lastName: '', email: '', phone: '',
     nationality: '', dateOfBirth: '',
@@ -31,11 +39,14 @@ export function AddEmployee() {
       .catch(() => {});
   }, []);
 
-  const set = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
+  const set = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm(prev => ({ ...prev, [field]: e.target.value }));
+    if (fieldErrs[field]) clearError(field);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    clearFieldErrors();
     setSubmitting(true);
     try {
       const payload: any = {
@@ -60,10 +71,11 @@ export function AddEmployee() {
       if (form.notes) payload.notes = form.notes;
 
       const created = await employeesApi.create(payload);
-      toast.success('Employee added successfully');
+      toast.success(t('employees.add.addSuccess'));
       navigate(`/dashboard/employees/${created.id}`);
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to add employee');
+      setFromError(err);
+      toast.error(apiError(err, t('employees.add.addFailed')));
     } finally {
       setSubmitting(false);
     }
@@ -73,8 +85,8 @@ export function AddEmployee() {
     return (
       <div className="flex flex-col items-center justify-center py-24 gap-3 text-muted-foreground">
         <ShieldOff className="w-12 h-12 opacity-30" />
-        <p className="text-lg font-semibold text-[#0F172A]">Access Denied</p>
-        <p className="text-sm">You don't have permission to perform this action.</p>
+        <p className="text-lg font-semibold text-[#0F172A]">{tc('permissions.accessDenied')}</p>
+        <p className="text-sm">{tc('permissions.noPermission')}</p>
       </div>
     );
   }
@@ -86,96 +98,109 @@ export function AddEmployee() {
           <Link to="/dashboard/employees"><ArrowLeft className="w-5 h-5" /></Link>
         </Button>
         <div>
-          <h1 className="text-3xl font-semibold text-[#0F172A]">Add New Employee</h1>
-          <p className="text-muted-foreground mt-1">Enter employee information to create a new profile</p>
+          <h1 className="text-3xl font-semibold text-[#0F172A]">{t('employees.add.title')}</h1>
+          <p className="text-muted-foreground mt-1">{t('employees.add.subtitle')}</p>
         </div>
       </div>
 
       <form onSubmit={handleSubmit}>
+        <ValidationSummary errors={fieldErrs} className="mb-4" />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
 
             <Card>
-              <CardHeader><CardTitle>Personal Information</CardTitle></CardHeader>
+              <CardHeader><CardTitle>{t('employees.add.personalInfoTitle')}</CardTitle></CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="firstName">First Name *</Label>
-                    <Input id="firstName" placeholder="First name" value={form.firstName} onChange={set('firstName')} required />
+                    <Label htmlFor="firstName">{t('employees.add.firstName')}</Label>
+                    <Input id="firstName" placeholder={t('employees.add.firstNamePh')} value={form.firstName} onChange={set('firstName')} required
+                      aria-invalid={!!fieldErrs.firstName}
+                      className={fieldErrs.firstName ? 'border-red-500 focus-visible:ring-red-500' : ''} />
+                    <FieldError errors={fieldErrs} name="firstName" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="lastName">Last Name *</Label>
-                    <Input id="lastName" placeholder="Last name" value={form.lastName} onChange={set('lastName')} required />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email *</Label>
-                    <Input id="email" type="email" placeholder="employee@email.com" value={form.email} onChange={set('email')} required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Phone *</Label>
-                    <Input id="phone" type="tel" placeholder="+48 123 456 789" value={form.phone} onChange={set('phone')} required />
+                    <Label htmlFor="lastName">{t('employees.add.lastName')}</Label>
+                    <Input id="lastName" placeholder={t('employees.add.lastNamePh')} value={form.lastName} onChange={set('lastName')} required
+                      aria-invalid={!!fieldErrs.lastName}
+                      className={fieldErrs.lastName ? 'border-red-500 focus-visible:ring-red-500' : ''} />
+                    <FieldError errors={fieldErrs} name="lastName" />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="dateOfBirth">Date of Birth *</Label>
+                    <Label htmlFor="email">{t('employees.add.email')}</Label>
+                    <Input id="email" type="email" placeholder={t('employees.add.emailPh')} value={form.email} onChange={set('email')} required
+                      aria-invalid={!!fieldErrs.email}
+                      className={fieldErrs.email ? 'border-red-500 focus-visible:ring-red-500' : ''} />
+                    <FieldError errors={fieldErrs} name="email" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">{t('employees.add.phone')}</Label>
+                    <Input id="phone" type="tel" placeholder={t('employees.add.phonePh')} value={form.phone} onChange={set('phone')} required
+                      aria-invalid={!!fieldErrs.phone}
+                      className={fieldErrs.phone ? 'border-red-500 focus-visible:ring-red-500' : ''} />
+                    <FieldError errors={fieldErrs} name="phone" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="dateOfBirth">{t('employees.add.dateOfBirth')}</Label>
                     <Input id="dateOfBirth" type="date" value={form.dateOfBirth} onChange={set('dateOfBirth')} required />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="nationality">Citizenship *</Label>
-                    <Input id="nationality" placeholder="e.g. Poland" value={form.nationality} onChange={set('nationality')} required />
+                    <Label htmlFor="nationality">{t('employees.add.citizenship')}</Label>
+                    <Input id="nationality" placeholder={t('employees.add.citizenshipPh')} value={form.nationality} onChange={set('nationality')} required />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="emergencyContact">Emergency Contact</Label>
-                    <Input id="emergencyContact" placeholder="Contact name" value={form.emergencyContact} onChange={set('emergencyContact')} />
+                    <Label htmlFor="emergencyContact">{t('employees.add.emergencyContact')}</Label>
+                    <Input id="emergencyContact" placeholder={t('employees.add.emergencyContactPh')} value={form.emergencyContact} onChange={set('emergencyContact')} />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="emergencyPhone">Emergency Phone</Label>
-                    <Input id="emergencyPhone" type="tel" placeholder="+48 000 000 000" value={form.emergencyPhone} onChange={set('emergencyPhone')} />
+                    <Label htmlFor="emergencyPhone">{t('employees.add.emergencyPhone')}</Label>
+                    <Input id="emergencyPhone" type="tel" placeholder={t('employees.add.emergencyPhonePh')} value={form.emergencyPhone} onChange={set('emergencyPhone')} />
                   </div>
                 </div>
               </CardContent>
             </Card>
 
             <Card>
-              <CardHeader><CardTitle>Address Information</CardTitle></CardHeader>
+              <CardHeader><CardTitle>{t('employees.add.addressInfoTitle')}</CardTitle></CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="addressLine1">Street Address *</Label>
-                  <Input id="addressLine1" placeholder="Street address" value={form.addressLine1} onChange={set('addressLine1')} required />
+                  <Label htmlFor="addressLine1">{t('employees.add.streetAddress')}</Label>
+                  <Input id="addressLine1" placeholder={t('employees.add.streetAddressPh')} value={form.addressLine1} onChange={set('addressLine1')} required />
                 </div>
                 <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="city">City *</Label>
-                    <Input id="city" placeholder="City" value={form.city} onChange={set('city')} required />
+                    <Label htmlFor="city">{t('employees.add.city')}</Label>
+                    <Input id="city" placeholder={t('employees.add.cityPh')} value={form.city} onChange={set('city')} required />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="postalCode">Postal Code *</Label>
-                    <Input id="postalCode" placeholder="00-000" value={form.postalCode} onChange={set('postalCode')} required />
+                    <Label htmlFor="postalCode">{t('employees.add.postalCode')}</Label>
+                    <Input id="postalCode" placeholder={t('employees.add.postalCodePh')} value={form.postalCode} onChange={set('postalCode')} required />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="country">Country *</Label>
-                    <Input id="country" placeholder="Country" value={form.country} onChange={set('country')} required />
+                    <Label htmlFor="country">{t('employees.add.country')}</Label>
+                    <Input id="country" placeholder={t('employees.add.countryPh')} value={form.country} onChange={set('country')} required />
                   </div>
                 </div>
               </CardContent>
             </Card>
 
             <Card>
-              <CardHeader><CardTitle>Professional Information</CardTitle></CardHeader>
+              <CardHeader><CardTitle>{t('employees.add.professionalInfoTitle')}</CardTitle></CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="agencyId">Recruitment Agency</Label>
+                  <Label htmlFor="agencyId">{t('employees.add.agency')}</Label>
                   <Select value={form.agencyId} onValueChange={val => setForm(prev => ({ ...prev, agencyId: val === '__none__' ? '' : val }))}>
                     <SelectTrigger id="agencyId">
-                      <SelectValue placeholder="Select agency or leave blank for direct hire" />
+                      <SelectValue placeholder={t('employees.add.agencyPh')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="__none__">Direct hire (no agency)</SelectItem>
+                      <SelectItem value="__none__">{t('employees.add.directHire')}</SelectItem>
                       {agencies.map(a => (
                         <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
                       ))}
@@ -184,21 +209,21 @@ export function AddEmployee() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="licenseNumber">License Number</Label>
-                    <Input id="licenseNumber" placeholder="e.g. PL-12345-CE" value={form.licenseNumber} onChange={set('licenseNumber')} />
+                    <Label htmlFor="licenseNumber">{t('employees.add.licenseNumber')}</Label>
+                    <Input id="licenseNumber" placeholder={t('employees.add.licenseNumberPh')} value={form.licenseNumber} onChange={set('licenseNumber')} />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="licenseCategory">License Category</Label>
-                    <Input id="licenseCategory" placeholder="e.g. CE, C, B" value={form.licenseCategory} onChange={set('licenseCategory')} />
+                    <Label htmlFor="licenseCategory">{t('employees.add.licenseCategory')}</Label>
+                    <Input id="licenseCategory" placeholder={t('employees.add.licenseCategoryPh')} value={form.licenseCategory} onChange={set('licenseCategory')} />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="yearsExperience">Years of Experience</Label>
+                  <Label htmlFor="yearsExperience">{t('employees.add.yearsExperience')}</Label>
                   <Input id="yearsExperience" type="number" min="0" placeholder="0" value={form.yearsExperience} onChange={set('yearsExperience')} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="notes">Notes</Label>
-                  <Input id="notes" placeholder="Optional notes" value={form.notes} onChange={set('notes')} />
+                  <Label htmlFor="notes">{t('employees.add.notes')}</Label>
+                  <Input id="notes" placeholder={t('employees.add.notesPh')} value={form.notes} onChange={set('notes')} />
                 </div>
               </CardContent>
             </Card>
@@ -207,18 +232,18 @@ export function AddEmployee() {
 
           <div className="space-y-6">
             <Card>
-              <CardHeader><CardTitle>Status & Classification</CardTitle></CardHeader>
+              <CardHeader><CardTitle>{t('employees.add.statusTitle')}</CardTitle></CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="status">Initial Status *</Label>
+                  <Label htmlFor="status">{t('employees.add.initialStatus')}</Label>
                   <Select value={form.status} onValueChange={val => setForm(prev => ({ ...prev, status: val }))}>
                     <SelectTrigger id="status"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="PENDING">Pending</SelectItem>
-                      <SelectItem value="ONBOARDING">Onboarding</SelectItem>
-                      <SelectItem value="ACTIVE">Active</SelectItem>
-                      <SelectItem value="INACTIVE">Inactive</SelectItem>
-                      <SelectItem value="ON_LEAVE">On Leave</SelectItem>
+                      <SelectItem value="PENDING">{t('employees.add.statusOptions.pending')}</SelectItem>
+                      <SelectItem value="ONBOARDING">{t('employees.add.statusOptions.onboarding')}</SelectItem>
+                      <SelectItem value="ACTIVE">{t('employees.add.statusOptions.active')}</SelectItem>
+                      <SelectItem value="INACTIVE">{t('employees.add.statusOptions.inactive')}</SelectItem>
+                      <SelectItem value="ON_LEAVE">{t('employees.add.statusOptions.onLeave')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -226,23 +251,23 @@ export function AddEmployee() {
             </Card>
 
             <Card className="bg-[#EFF6FF] border-[#2563EB]">
-              <CardHeader><CardTitle className="text-sm">Next Steps</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-sm">{t('employees.add.nextStepsTitle')}</CardTitle></CardHeader>
               <CardContent>
                 <ul className="text-sm space-y-2 text-muted-foreground">
-                  <li>• Upload required documents</li>
-                  <li>• Verify employee credentials</li>
-                  <li>• Assign to workflow stage</li>
-                  <li>• Begin compliance tracking</li>
+                  <li>• {t('employees.add.nextSteps1')}</li>
+                  <li>• {t('employees.add.nextSteps2')}</li>
+                  <li>• {t('employees.add.nextSteps3')}</li>
+                  <li>• {t('employees.add.nextSteps4')}</li>
                 </ul>
               </CardContent>
             </Card>
 
             <div className="flex flex-col gap-3">
               <Button type="submit" className="w-full" disabled={submitting}>
-                {submitting ? 'Adding...' : 'Add Employee'}
+                {submitting ? t('employees.add.adding') : t('employees.add.addButton')}
               </Button>
               <Button type="button" variant="outline" className="w-full" asChild>
-                <Link to="/dashboard/employees">Cancel</Link>
+                <Link to="/dashboard/employees">{tc('actions.cancel')}</Link>
               </Button>
             </div>
           </div>

@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { applicantsApi, agenciesApi, settingsApi, documentsApi, workflowApi } from '../../services/api';
+import { apiError } from '../../../i18n/apiError';
 import { usePermissions } from '../../hooks/usePermissions';
 import { getCurrentUser, getAccessToken } from '../../services/api';
 import { Link } from 'react-router';
@@ -47,17 +49,17 @@ type ColKey =
   | 'contact' | 'nationality' | 'appliedPosition' | 'passportNumber'
   | 'age' | 'gender' | 'agency' | 'tier' | 'applied' | 'status';
 
-const ALL_COLUMNS: { key: ColKey; label: string }[] = [
-  { key: 'contact',         label: 'Contact' },
-  { key: 'nationality',     label: 'Citizenship' },
-  { key: 'appliedPosition', label: 'Applied Position' },
-  { key: 'passportNumber',  label: 'Passport Number' },
-  { key: 'age',             label: 'Age' },
-  { key: 'gender',          label: 'Gender' },
-  { key: 'agency',          label: 'Agency' },
-  { key: 'tier',            label: 'Tier' },
-  { key: 'applied',         label: 'Applied' },
-  { key: 'status',          label: 'Status' },
+const ALL_COLUMNS: { key: ColKey; labelKey: string }[] = [
+  { key: 'contact',         labelKey: 'applicants.list.cols.contact' },
+  { key: 'nationality',     labelKey: 'applicants.list.cols.nationality' },
+  { key: 'appliedPosition', labelKey: 'applicants.list.cols.appliedPosition' },
+  { key: 'passportNumber',  labelKey: 'applicants.list.cols.passportNumber' },
+  { key: 'age',             labelKey: 'applicants.list.cols.age' },
+  { key: 'gender',          labelKey: 'applicants.list.cols.gender' },
+  { key: 'agency',          labelKey: 'applicants.list.cols.agency' },
+  { key: 'tier',            labelKey: 'applicants.list.cols.tier' },
+  { key: 'applied',         labelKey: 'applicants.list.cols.applied' },
+  { key: 'status',          labelKey: 'applicants.list.cols.status' },
 ];
 
 const DEFAULT_VISIBLE: Record<ColKey, boolean> = {
@@ -85,15 +87,9 @@ function readPassportNumber(a: any): string {
   return typeof raw === 'string' ? raw.trim() : '';
 }
 
-function formatGender(g: string | null | undefined): string {
+function formatGender(g: string | null | undefined, tEnums: (k: string, opts?: any) => string): string {
   if (!g) return '';
-  switch (g) {
-    case 'MALE': return 'Male';
-    case 'FEMALE': return 'Female';
-    case 'OTHER': return 'Other';
-    case 'PREFER_NOT_TO_SAY': return 'Prefer not to say';
-    default: return g;
-  }
+  return tEnums(`gender.${g}`, { defaultValue: g });
 }
 
 function loadVisibleColumns(): Record<ColKey, boolean> {
@@ -124,6 +120,9 @@ function SortableHead({ label, field, sortBy, sortOrder, onSort }: {
 
 export function CandidatesList() {
   const { canCreate, canEdit, canDelete } = usePermissions();
+  const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
+  const { t: tEnums } = useTranslation('enums');
   const currentUser = getCurrentUser();
   const isAgencyUser = currentUser?.role === 'Agency User' || currentUser?.role === 'Agency Manager';
 
@@ -253,18 +252,18 @@ export function CandidatesList() {
   // ── Delete ─────────────────────────────────────────────────────────────────
   const handleDelete = async (applicant: any) => {
     if (!(await confirm({
-      title: 'Delete candidate?',
-      description: `"${applicant.firstName} ${applicant.lastName}" will be permanently removed.`,
-      confirmText: 'Delete', tone: 'destructive',
+      title: t('applicants.candidates.deleteTitle'),
+      description: t('applicants.candidates.deleteBody', { name: `${applicant.firstName} ${applicant.lastName}` }),
+      confirmText: tc('actions.delete'), tone: 'destructive',
     }))) return;
     try {
       await applicantsApi.delete(applicant.id);
       setCandidatesData(prev => prev.filter(a => a.id !== applicant.id));
       setTotalCandidates(prev => prev - 1);
       setSelected(prev => { const n = new Set(prev); n.delete(applicant.id); return n; });
-      toast.success('Candidate deleted');
+      toast.success(t('applicants.candidates.deleteSuccess'));
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to delete candidate');
+      toast.error(apiError(err, t('applicants.candidates.deleteFailed')));
     }
   };
 
@@ -277,12 +276,12 @@ export function CandidatesList() {
 
   // ── Bulk actions ───────────────────────────────────────────────────────────
   const handleBulkAction = async (action: string, value?: string, agencyId?: string) => {
-    if (selected.size === 0) { toast.error('Select at least one candidate'); return; }
+    if (selected.size === 0) { toast.error(t('applicants.candidates.selectAtLeastOne')); return; }
     setBulkActionInProgress(true);
     try {
       const result = await applicantsApi.bulkAction({ ids: [...selected], action, value, agencyId });
       const failed = result.results?.filter((r: any) => !r.success) ?? [];
-      if (failed.length === 0) toast.success(`Bulk action applied to ${selected.size} candidate(s)`);
+      if (failed.length === 0) toast.success(t('applicants.candidates.bulkAppliedCount', { count: selected.size }));
       else toast.warning(
         `Applied to ${selected.size - failed.length}, failed for ${failed.length}` +
           (failed[0]?.error ? ` (first error: ${failed[0].error})` : ''),
@@ -290,7 +289,7 @@ export function CandidatesList() {
       setSelected(new Set());
       await fetchCandidates();
     } catch (err: any) {
-      toast.error(err?.message || 'Bulk action failed');
+      toast.error(apiError(err, t('applicants.candidates.bulkActionFailed')));
     } finally {
       setBulkActionInProgress(false);
     }
@@ -314,8 +313,8 @@ export function CandidatesList() {
   const [bulkWorkflowInFlight, setBulkWorkflowInFlight] = useState(false);
 
   const handleBulkAssignWorkflow = async () => {
-    if (!bulkWorkflowId) { toast.error('Pick a workflow'); return; }
-    if (selected.size === 0) { toast.error('Select at least one candidate'); return; }
+    if (!bulkWorkflowId) { toast.error(t('applicants.candidates.pickWorkflow')); return; }
+    if (selected.size === 0) { toast.error(t('applicants.candidates.selectAtLeastOne')); return; }
     setBulkWorkflowInFlight(true);
     try {
       const res = await workflowApi.assignCandidatesBulk({
@@ -332,7 +331,7 @@ export function CandidatesList() {
         s.errors ? `${s.errors} errors` : null,
       ].filter(Boolean).join(' · ');
       if ((s.errors ?? 0) > 0 || (s.forbidden ?? 0) > 0) toast.warning(bits);
-      else toast.success(bits || 'Done');
+      else toast.success(bits || t('applicants.candidates.done'));
       setShowBulkWorkflowDialog(false);
       setBulkWorkflowId('');
       setBulkWorkflowNotes('');
@@ -349,7 +348,7 @@ export function CandidatesList() {
   const [pdfExporting, setPdfExporting] = useState(false);
   const handleBulkPdfExport = async () => {
     if (selected.size === 0) {
-      toast.error('Select at least one candidate');
+      toast.error(t('applicants.toast.selectAtLeastOneCandidate'));
       return;
     }
     setPdfExporting(true);
@@ -359,7 +358,7 @@ export function CandidatesList() {
       const full = await Promise.all(ids.map(id => applicantsApi.get(id).catch(() => null)));
       const records = full.filter(Boolean) as any[];
       if (records.length === 0) {
-        toast.error('Failed to load selected candidates', { id: tid });
+        toast.error(t('applicants.toast.loadSelectedFailed'), { id: tid });
         return;
       }
       const today = new Date().toISOString().slice(0, 10);
@@ -384,9 +383,9 @@ export function CandidatesList() {
           toast.loading(`Generating PDFs... ${done}/${total}`, { id: tid });
         },
       });
-      toast.success(`Exported ${records.length} PDF${records.length > 1 ? 's' : ''}`, { id: tid });
+      toast.success(tc('toast.exportedCount', { count: records.length }), { id: tid });
     } catch (err: any) {
-      toast.error(err?.message || 'PDF export failed', { id: tid });
+      toast.error(apiError(err, tc('toast.exportFailed_pdf')), { id: tid });
     } finally {
       setPdfExporting(false);
     }
@@ -396,7 +395,7 @@ export function CandidatesList() {
   // Streams the backend's .xlsx for the currently selected rows only.
   const handleExportExcel = () => {
     if (selected.size === 0) {
-      toast.error('Select one or more rows to export');
+      toast.error(tc('toast.selectOneOrMoreToExport'));
       return;
     }
     const token = getAccessToken();
@@ -414,7 +413,7 @@ export function CandidatesList() {
         document.body.appendChild(a); a.click();
         document.body.removeChild(a); URL.revokeObjectURL(objectUrl);
       })
-      .catch(() => toast.error('Export failed'));
+      .catch(() => toast.error(tc('toast.exportFailed')));
   };
 
   // ── Filters ────────────────────────────────────────────────────────────────
@@ -437,13 +436,13 @@ export function CandidatesList() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-semibold text-[#0F172A]">Candidates</h1>
-          <p className="text-muted-foreground mt-1">Manage candidates and convert to employees</p>
+          <h1 className="text-3xl font-semibold text-[#0F172A]">{t('applicants.candidates.title')}</h1>
+          <p className="text-muted-foreground mt-1">{t('applicants.candidates.subtitle')}</p>
         </div>
         {canCreate('applicants') && (
           <Button asChild>
             <Link to="/dashboard/applicants/add">
-              <Plus className="w-4 h-4 mr-2" />Add Applicant
+              <Plus className="w-4 h-4 me-2" />{t('applicants.list.addButton')}
             </Link>
           </Button>
         )}
@@ -452,15 +451,15 @@ export function CandidatesList() {
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Total</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">{t('applicants.candidates.total')}</CardTitle></CardHeader>
           <CardContent><div className="text-2xl font-bold text-[#0F172A]">{totalCandidates}</div></CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Candidates</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">{t('applicants.candidates.candidatesCard')}</CardTitle></CardHeader>
           <CardContent><div className="text-2xl font-bold text-emerald-600">{candidates.length}</div></CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Accepted / Onboarding</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">{t('applicants.candidates.acceptedOnboarding')}</CardTitle></CardHeader>
           <CardContent><div className="text-2xl font-bold text-green-600">{acceptedCount}</div></CardContent>
         </Card>
       </div>
@@ -468,31 +467,31 @@ export function CandidatesList() {
       {/* Bulk action toolbar */}
       {selected.size > 0 && (
         <div className="flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-lg px-4 py-2">
-          <span className="text-sm font-medium text-blue-800">{selected.size} selected</span>
-          <div className="flex gap-2 ml-auto">
+          <span className="text-sm font-medium text-blue-800">{t('applicants.candidates.selected', { count: selected.size })}</span>
+          <div className="flex gap-2 ms-auto">
             {!isAgencyUser && (
               <>
-                <Button variant="outline" size="sm" disabled={bulkActionInProgress} onClick={() => handleBulkAction('STATUS_CHANGE', 'ACCEPTED')}>Mark Accepted</Button>
+                <Button variant="outline" size="sm" disabled={bulkActionInProgress} onClick={() => handleBulkAction('STATUS_CHANGE', 'ACCEPTED')}>{t('applicants.candidates.markAccepted')}</Button>
                 <Button
                   variant="outline"
                   size="sm"
                   disabled={bulkActionInProgress}
                   onClick={() => {
                     if (selected.size === 0) {
-                      toast.error('Select at least one candidate');
+                      toast.error(t('applicants.toast.selectAtLeastOneCandidate'));
                       return;
                     }
                     setPendingStatus('');
                     setStatusModalOpen(true);
                   }}
-                >Change Status</Button>
+                >{t('applicants.candidates.changeStatus')}</Button>
                 <Button
                   variant="outline"
                   size="sm"
                   disabled={bulkActionInProgress}
                   onClick={async () => {
                     if (selected.size === 0) {
-                      toast.error('Select at least one candidate');
+                      toast.error(t('applicants.toast.selectAtLeastOneCandidate'));
                       return;
                     }
                     // Lazy-load the workflows list the first time
@@ -508,33 +507,33 @@ export function CandidatesList() {
                     setBulkWorkflowNotes('');
                     setShowBulkWorkflowDialog(true);
                   }}
-                >Connect to Workflow</Button>
+                >{t('applicants.candidates.connectToWorkflow')}</Button>
                 <Button
                   size="sm"
                   className="bg-[#22C55E] hover:bg-[#16a34a] text-white"
                   disabled={bulkActionInProgress}
                   onClick={() => {
                     if (selected.size === 0) {
-                      toast.error('Select at least one candidate');
+                      toast.error(t('applicants.toast.selectAtLeastOneCandidate'));
                       return;
                     }
                     setBulkConvertAgencyId('');
                     setShowBulkConvertDialog(true);
                   }}
-                >Convert to Employees</Button>
+                >{t('applicants.candidates.convertToEmployees')}</Button>
               </>
             )}
             <Button variant="outline" size="sm" className="text-red-600" disabled={bulkActionInProgress} onClick={async () => {
               if (selected.size === 0) return;
               if (await confirm({
-                title: 'Delete selected candidates?',
-                description: `${selected.size} candidate(s) will be permanently removed.`,
-                confirmText: 'Delete', tone: 'destructive',
+                title: t('applicants.candidates.deleteSelectedTitle'),
+                description: t('applicants.candidates.deleteSelectedBody', { count: selected.size }),
+                confirmText: tc('actions.delete'), tone: 'destructive',
               })) handleBulkAction('DELETE');
             }}>
-              <Trash2 className="w-3 h-3 mr-1" />Delete Selected
+              <Trash2 className="w-3 h-3 me-1" />{t('applicants.candidates.deleteSelected')}
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => setSelected(new Set())}>Clear</Button>
+            <Button variant="ghost" size="sm" onClick={() => setSelected(new Set())}>{t('applicants.candidates.clear')}</Button>
           </div>
         </div>
       )}
@@ -547,51 +546,51 @@ export function CandidatesList() {
             {/* Row 1 */}
             <div className="flex flex-wrap items-center gap-3">
               <div className="flex-1 min-w-48 relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input placeholder="Search name, email, ID..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10" />
+                <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input placeholder={t('applicants.candidates.searchPh')} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="ps-10" />
               </div>
 
               <Select value={statusFilter || '__all__'} onValueChange={v => setStatusFilter(v === '__all__' ? '' : v)}>
-                <SelectTrigger className="w-40"><SelectValue placeholder="All Statuses" /></SelectTrigger>
+                <SelectTrigger className="w-40"><SelectValue placeholder={t('applicants.candidates.allStatuses')} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__all__">All Statuses</SelectItem>
-                  {STATUSES.map(s => <SelectItem key={s} value={s}>{s.replace(/_/g, ' ')}</SelectItem>)}
+                  <SelectItem value="__all__">{t('applicants.candidates.allStatuses')}</SelectItem>
+                  {STATUSES.map(s => <SelectItem key={s} value={s}>{tEnums(`applicantStatus.${s}`, { defaultValue: s.replace(/_/g, ' ') })}</SelectItem>)}
                 </SelectContent>
               </Select>
 
               {!isAgencyUser && agencies.length > 0 && (
                 <Select value={agencyFilter || '__all__'} onValueChange={v => setAgencyFilter(v === '__all__' ? '' : v)}>
-                  <SelectTrigger className="w-44"><SelectValue placeholder="All Agencies" /></SelectTrigger>
+                  <SelectTrigger className="w-44"><SelectValue placeholder={t('applicants.candidates.allAgencies')} /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__all__">All Agencies</SelectItem>
+                    <SelectItem value="__all__">{t('applicants.candidates.allAgencies')}</SelectItem>
                     {agencies.map((a: any) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
               )}
 
               <Button variant="outline" size="sm" onClick={fetchCandidates} disabled={loading}>
-                <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />Refresh
+                <RefreshCw className={`w-4 h-4 me-1 ${loading ? 'animate-spin' : ''}`} />{tc('actions.refresh')}
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleExportExcel}
                 disabled={selected.size === 0}
-                title={selected.size === 0 ? 'Select one or more rows to export' : undefined}
+                title={selected.size === 0 ? t('applicants.candidates.exportExcelTitle') : undefined}
               >
-                <Download className="w-4 h-4 mr-2" />Export to Excel ({selected.size})
+                <Download className="w-4 h-4 me-2" />{t('applicants.candidates.exportToExcel')} ({selected.size})
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleBulkPdfExport}
                 disabled={selected.size === 0 || pdfExporting}
-                title={selected.size === 0 ? 'Select one or more rows to export as PDFs' : undefined}
+                title={selected.size === 0 ? t('applicants.candidates.exportPdfsTitle') : undefined}
               >
                 {pdfExporting
-                  ? <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  : <FileText className="w-4 h-4 mr-2" />}
-                Export PDFs ({selected.size})
+                  ? <Loader2 className="w-4 h-4 me-2 animate-spin" />
+                  : <FileText className="w-4 h-4 me-2" />}
+                {t('applicants.candidates.exportPdfs')} ({selected.size})
               </Button>
 
               {/* Column picker */}
@@ -601,35 +600,35 @@ export function CandidatesList() {
                   onClick={() => setShowColPicker(v => !v)}
                   className={showColPicker ? 'border-blue-500 text-blue-600' : ''}
                 >
-                  <Columns2 className="w-4 h-4 mr-1.5" />Columns
+                  <Columns2 className="w-4 h-4 me-1.5" />{t('applicants.candidates.columns')}
                   {ALL_COLUMNS.filter(c => !visibleColumns[c.key]).length > 0 && (
-                    <span className="ml-1.5 bg-blue-600 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
+                    <span className="ms-1.5 bg-blue-600 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
                       {ALL_COLUMNS.filter(c => !visibleColumns[c.key]).length}
                     </span>
                   )}
                 </Button>
 
                 {showColPicker && (
-                  <div className="absolute right-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[180px]">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">Toggle columns</p>
+                  <div className="absolute end-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[180px]">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">{t('applicants.candidates.toggleColumns')}</p>
                     <div className="space-y-0.5">
                       {ALL_COLUMNS.filter(c => !(c.key === 'tier' && isAgencyUser)).map(c => (
                         <button
                           key={c.key}
                           onClick={() => toggleColumn(c.key)}
-                          className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-gray-50 text-sm text-left"
+                          className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-gray-50 text-sm text-start"
                         >
                           <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${visibleColumns[c.key] ? 'bg-blue-600 border-blue-600' : 'border-gray-300'}`}>
                             {visibleColumns[c.key] && <Check className="w-2.5 h-2.5 text-white" />}
                           </span>
-                          {c.label}
+                          {t(c.labelKey)}
                         </button>
                       ))}
                     </div>
                     <div className="border-t mt-2 pt-2 flex gap-1.5">
-                      <button onClick={() => { const all = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, true])) as Record<ColKey, boolean>; setVisibleColumns(all); localStorage.setItem('candidates-table-columns-v3', JSON.stringify(all)); }} className="flex-1 text-xs text-center text-blue-600 hover:underline py-0.5">Show all</button>
+                      <button onClick={() => { const all = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, true])) as Record<ColKey, boolean>; setVisibleColumns(all); localStorage.setItem('candidates-table-columns-v3', JSON.stringify(all)); }} className="flex-1 text-xs text-center text-blue-600 hover:underline py-0.5">{t('applicants.candidates.showAll')}</button>
                       <span className="text-gray-300">|</span>
-                      <button onClick={() => { const none = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, false])) as Record<ColKey, boolean>; setVisibleColumns(none); localStorage.setItem('candidates-table-columns-v3', JSON.stringify(none)); }} className="flex-1 text-xs text-center text-gray-500 hover:underline py-0.5">Hide all</button>
+                      <button onClick={() => { const none = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, false])) as Record<ColKey, boolean>; setVisibleColumns(none); localStorage.setItem('candidates-table-columns-v3', JSON.stringify(none)); }} className="flex-1 text-xs text-center text-gray-500 hover:underline py-0.5">{t('applicants.candidates.hideAll')}</button>
                     </div>
                   </div>
                 )}
@@ -639,33 +638,33 @@ export function CandidatesList() {
             {/* Row 2 */}
             <div className="flex flex-wrap items-center gap-3">
               <Select value={nationalityFilter || '__all__'} onValueChange={v => setNationalityFilter(v === '__all__' ? '' : v)}>
-                <SelectTrigger className="w-44"><SelectValue placeholder="All Citizenships" /></SelectTrigger>
+                <SelectTrigger className="w-44"><SelectValue placeholder={t('applicants.candidates.allCitizenships')} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__all__">All Citizenships</SelectItem>
+                  <SelectItem value="__all__">{t('applicants.candidates.allCitizenships')}</SelectItem>
                   {nationalityOptions.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
                 </SelectContent>
               </Select>
 
               {jobTypes.length > 0 && (
                 <Select value={jobTypeFilter || '__all__'} onValueChange={v => setJobTypeFilter(v === '__all__' ? '' : v)}>
-                  <SelectTrigger className="w-48"><SelectValue placeholder="All Job Categories" /></SelectTrigger>
+                  <SelectTrigger className="w-48"><SelectValue placeholder={t('applicants.candidates.allJobCategories')} /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__all__">All Job Categories</SelectItem>
-                    {jobTypes.map((jt: any) => <SelectItem key={jt.id} value={jt.id}>{jt.name}</SelectItem>)}
+                    <SelectItem value="__all__">{t('applicants.candidates.allJobCategories')}</SelectItem>
+                    {jobTypes.map((jt: any) => <SelectItem key={jt.id} value={jt.id}>{tEnums(`jobCategory.${jt.name}`, { defaultValue: jt.name })}</SelectItem>)}
                   </SelectContent>
                 </Select>
               )}
 
               <div className="flex items-center gap-1.5">
-                <span className="text-xs text-muted-foreground whitespace-nowrap">Applied from</span>
+                <span className="text-xs text-muted-foreground whitespace-nowrap">{t('applicants.candidates.appliedFrom')}</span>
                 <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="w-36 text-sm" />
-                <span className="text-xs text-muted-foreground">to</span>
+                <span className="text-xs text-muted-foreground">{t('applicants.candidates.appliedTo')}</span>
                 <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="w-36 text-sm" />
               </div>
 
               {hasActiveFilters && (
                 <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground hover:text-foreground">
-                  <X className="w-3.5 h-3.5 mr-1" />Clear filters
+                  <X className="w-3.5 h-3.5 me-1" />{t('applicants.candidates.clearFilters')}
                 </Button>
               )}
             </div>
@@ -678,29 +677,29 @@ export function CandidatesList() {
                   <TableHead className="w-10">
                     <Checkbox checked={displayData.length > 0 && selected.size === displayData.length} onCheckedChange={toggleSelectAll} />
                   </TableHead>
-                  <SortableHead label="Candidate"    field="firstName"   sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />
-                  {col('contact')     && <SortableHead label="Contact"      field="email"       sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
-                  {col('nationality') && <SortableHead label="Citizenship"  field="nationality" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
-                  {col('appliedPosition') && <TableHead>Applied Position</TableHead>}
-                  {col('passportNumber')  && <TableHead>Passport Number</TableHead>}
-                  {col('age')             && <TableHead>Age</TableHead>}
-                  {col('gender')          && <TableHead>Gender</TableHead>}
-                  {col('agency')      && <SortableHead label="Agency"       field="agency"      sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
-                  {col('tier') && !isAgencyUser && <SortableHead label="Tier" field="tier" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
-                  {col('applied')     && <SortableHead label="Applied"      field="createdAt"   sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
-                  {col('status')      && <SortableHead label="Status"       field="status"      sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
-                  <TableHead className="text-right">Actions</TableHead>
+                  <SortableHead label={t('applicants.candidates.tableHeaders.candidate')}    field="firstName"   sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />
+                  {col('contact')     && <SortableHead label={t('applicants.candidates.tableHeaders.contact')}      field="email"       sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  {col('nationality') && <SortableHead label={t('applicants.candidates.tableHeaders.citizenship')}  field="nationality" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  {col('appliedPosition') && <TableHead>{t('applicants.candidates.tableHeaders.appliedPosition')}</TableHead>}
+                  {col('passportNumber')  && <TableHead>{t('applicants.candidates.tableHeaders.passportNumber')}</TableHead>}
+                  {col('age')             && <TableHead>{t('applicants.candidates.tableHeaders.age')}</TableHead>}
+                  {col('gender')          && <TableHead>{t('applicants.candidates.tableHeaders.gender')}</TableHead>}
+                  {col('agency')      && <SortableHead label={t('applicants.candidates.tableHeaders.agency')}       field="agency"      sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  {col('tier') && !isAgencyUser && <SortableHead label={t('applicants.list.tableHeaders.tier')} field="tier" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  {col('applied')     && <SortableHead label={t('applicants.candidates.tableHeaders.applied')}      field="createdAt"   sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  {col('status')      && <SortableHead label={t('applicants.candidates.tableHeaders.status')}       field="status"      sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  <TableHead className="text-end">{t('applicants.candidates.tableHeaders.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading && (
                   <TableRow>
-                    <TableCell colSpan={colSpan} className="text-center py-8 text-muted-foreground">Loading...</TableCell>
+                    <TableCell colSpan={colSpan} className="text-center py-8 text-muted-foreground">{t('applicants.candidates.loading')}</TableCell>
                   </TableRow>
                 )}
                 {!loading && displayData.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={colSpan} className="text-center py-12 text-muted-foreground">No candidates found matching your criteria.</TableCell>
+                    <TableCell colSpan={colSpan} className="text-center py-12 text-muted-foreground">{t('applicants.candidates.emptyFiltered')}</TableCell>
                   </TableRow>
                 )}
                 {!loading && displayData.map(applicant => (
@@ -722,7 +721,7 @@ export function CandidatesList() {
                               ? <span className="text-purple-600">{applicant.candidateNumber}</span>
                               : applicant.leadNumber
                                 ? <span className="text-blue-600">{applicant.leadNumber}</span>
-                                : <span className="italic opacity-60">Legacy</span>}
+                                : <span className="italic opacity-60">{t('applicants.candidates.legacy')}</span>}
                           </div>
                         </div>
                       </div>
@@ -740,7 +739,7 @@ export function CandidatesList() {
                       <TableCell>
                         {applicant.jobAd?.title
                           ? <span className="text-sm">{applicant.jobAd.title}</span>
-                          : <Badge variant="outline" className="text-[10px] font-semibold tracking-wide">GENERAL</Badge>}
+                          : <Badge variant="outline" className="text-[10px] font-semibold tracking-wide">{t('applicants.candidates.generalBadge')}</Badge>}
                       </TableCell>
                     )}
                     {col('passportNumber') && (
@@ -755,7 +754,7 @@ export function CandidatesList() {
                     )}
                     {col('gender') && (
                       <TableCell className="text-sm">
-                        {formatGender(applicant.gender) || <span className="text-muted-foreground">—</span>}
+                        {formatGender(applicant.gender, tEnums) || <span className="text-muted-foreground">—</span>}
                       </TableCell>
                     )}
                     {col('agency') && (
@@ -767,7 +766,7 @@ export function CandidatesList() {
                     )}
                     {col('tier') && !isAgencyUser && (
                       <TableCell>
-                        <Badge className={getTierColor(applicant.tier)}>{applicant.tier}</Badge>
+                        <Badge className={getTierColor(applicant.tier)}>{tEnums(`applicantTier.${applicant.tier}`, { defaultValue: applicant.tier })}</Badge>
                       </TableCell>
                     )}
                     {col('applied') && (
@@ -777,18 +776,18 @@ export function CandidatesList() {
                     )}
                     {col('status') && (
                       <TableCell>
-                        <Badge className={getStatusColor(applicant.status)}>{applicant.status?.replace(/_/g, ' ')}</Badge>
+                        <Badge className={getStatusColor(applicant.status)}>{applicant.status ? tEnums(`applicantStatus.${applicant.status}`, { defaultValue: applicant.status.replace(/_/g, ' ') }) : ''}</Badge>
                       </TableCell>
                     )}
-                    <TableCell className="text-right">
+                    <TableCell className="text-end">
                       <div className="flex items-center justify-end gap-1">
                         <Button variant="ghost" size="sm" asChild>
-                          <Link to={`/dashboard/candidates/${applicant.id}`}><Eye className="w-4 h-4 mr-1" />View</Link>
+                          <Link to={`/dashboard/candidates/${applicant.id}`}><Eye className="w-4 h-4 me-1" />{t('applicants.candidates.viewAction')}</Link>
                         </Button>
                         <WhatsAppButton phone={applicant.phone} size="icon" />
                         {canEdit('applicants') && (
                           <Button variant="ghost" size="sm" asChild>
-                            <Link to={`/dashboard/candidates/${applicant.id}/edit`}><Edit className="w-4 h-4 mr-1" />Edit</Link>
+                            <Link to={`/dashboard/candidates/${applicant.id}/edit`}><Edit className="w-4 h-4 me-1" />{t('applicants.candidates.editAction')}</Link>
                           </Button>
                         )}
                         {canDelete('applicants') && (
@@ -806,8 +805,8 @@ export function CandidatesList() {
 
           <div className="mt-4">
             <p className="text-sm text-muted-foreground">
-              Showing {displayData.length} of {totalCandidates} candidates
-              {selected.size > 0 && ` · ${selected.size} selected`}
+              {t('applicants.candidates.showingCount', { count: totalCandidates, shown: displayData.length, total: totalCandidates })}
+              {selected.size > 0 && t('applicants.candidates.selectedSuffix', { count: selected.size })}
             </p>
           </div>
         </CardContent>
@@ -820,30 +819,30 @@ export function CandidatesList() {
       }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Change status</DialogTitle>
+            <DialogTitle>{t('applicants.candidates.statusDialog.title')}</DialogTitle>
             <DialogDescription>
-              Select a new status for {selected.size} selected candidate{selected.size === 1 ? '' : 's'}.
+              {t('applicants.candidates.statusDialog.description', { count: selected.size })}
             </DialogDescription>
           </DialogHeader>
           <div className="py-2">
             <Select value={pendingStatus} onValueChange={setPendingStatus}>
-              <SelectTrigger><SelectValue placeholder="Choose a status..." /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder={t('applicants.candidates.statusDialog.pickStatus')} /></SelectTrigger>
               <SelectContent>
                 {STATUSES.map(s => (
-                  <SelectItem key={s} value={s}>{s.replace(/_/g, ' ')}</SelectItem>
+                  <SelectItem key={s} value={s}>{tEnums(`applicantStatus.${s}`, { defaultValue: s.replace(/_/g, ' ') })}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setStatusModalOpen(false)} disabled={bulkActionInProgress}>
-              Cancel
+              {t('applicants.candidates.cancel')}
             </Button>
             <Button
               disabled={bulkActionInProgress || !pendingStatus}
               onClick={async () => {
                 if (!pendingStatus) {
-                  toast.error('Please select a status');
+                  toast.error(tc('toast.selectStatus'));
                   return;
                 }
                 setStatusModalOpen(false);
@@ -852,7 +851,7 @@ export function CandidatesList() {
                 await handleBulkAction('STATUS_CHANGE', next);
               }}
             >
-              Apply
+              {t('applicants.candidates.statusDialog.apply')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -867,23 +866,21 @@ export function CandidatesList() {
       <Dialog open={showBulkConvertDialog} onOpenChange={(o) => !o && setShowBulkConvertDialog(false)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Convert {selected.size} Candidate{selected.size === 1 ? '' : 's'} to Employee{selected.size === 1 ? '' : 's'}</DialogTitle>
+            <DialogTitle>{t('applicants.candidates.convertDialog.title', { count: selected.size })}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <p className="text-sm text-muted-foreground">
-              Each selected candidate becomes an employee. Address, licence and emergency contact are
-              taken from the candidate's application — any row missing a mandatory address field is
-              skipped and reported back so you can convert it individually.
+              {t('applicants.candidates.convertDialog.body')}
             </p>
             <div className="space-y-1.5">
-              <Label htmlFor="bulk-convert-agency" className="text-sm">Responsible Agency (optional)</Label>
+              <Label htmlFor="bulk-convert-agency" className="text-sm">{t('applicants.candidates.workflowDialog.responsibleAgencyOptional')}</Label>
               <Select value={bulkConvertAgencyId || '__keep__'} onValueChange={(v) => setBulkConvertAgencyId(v === '__keep__' ? '' : v)}>
                 <SelectTrigger id="bulk-convert-agency">
-                  <SelectValue placeholder="Keep each candidate's current agency" />
+                  <SelectValue placeholder={t('applicants.candidates.workflowDialog.keepCurrent')} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__keep__">
-                    <span className="text-muted-foreground">Keep each candidate's current agency</span>
+                    <span className="text-muted-foreground">{t('applicants.candidates.workflowDialog.keepCurrent')}</span>
                   </SelectItem>
                   {agencies.map((a: any) => (
                     <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
@@ -891,12 +888,12 @@ export function CandidatesList() {
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                When an agency is picked here, every selected candidate is reassigned to it before conversion.
+                {t('applicants.candidates.convertDialog.reassignNote')}
               </p>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowBulkConvertDialog(false)} disabled={bulkActionInProgress}>Cancel</Button>
+            <Button variant="outline" onClick={() => setShowBulkConvertDialog(false)} disabled={bulkActionInProgress}>{tc('actions.cancel')}</Button>
             <Button
               className="bg-[#22C55E] hover:bg-[#16a34a] text-white"
               disabled={bulkActionInProgress}
@@ -905,7 +902,7 @@ export function CandidatesList() {
                 await handleBulkAction('CONVERT_TO_EMPLOYEE', undefined, bulkConvertAgencyId || undefined);
               }}
             >
-              Convert
+              {t('applicants.candidates.convertDialog.convertAction')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -919,20 +916,19 @@ export function CandidatesList() {
       <Dialog open={showBulkWorkflowDialog} onOpenChange={(o) => !o && setShowBulkWorkflowDialog(false)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Connect {selected.size} Candidate{selected.size === 1 ? '' : 's'} to a Workflow</DialogTitle>
+            <DialogTitle>{t('applicants.candidates.workflowDialog.title', { count: selected.size })}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <p className="text-sm text-muted-foreground">
-              Every selected candidate will be placed on Stage 1 of the chosen workflow with status
-              <strong className="text-foreground"> In Progress</strong>. Candidates already on the same
-              workflow are skipped; reassignment to a different workflow is a System-Admin-only action
-              and will be blocked for others.
+              {t('applicants.candidates.workflowDialog.body')}
+              <strong className="text-foreground"> {t('applicants.candidates.workflowDialog.inProgress')}</strong>
+              {t('applicants.candidates.workflowDialog.bodyContinuation')}
             </p>
             <div className="space-y-1.5">
-              <Label htmlFor="bulk-workflow" className="text-sm">Workflow *</Label>
+              <Label htmlFor="bulk-workflow" className="text-sm">{t('applicants.candidates.workflowDialog.workflowRequired')}</Label>
               <Select value={bulkWorkflowId} onValueChange={setBulkWorkflowId}>
                 <SelectTrigger id="bulk-workflow">
-                  <SelectValue placeholder={allWorkflows.length === 0 ? 'No workflows available' : 'Pick a workflow…'} />
+                  <SelectValue placeholder={allWorkflows.length === 0 ? t('applicants.candidates.workflowDialog.noWorkflows') : t('applicants.candidates.workflowDialog.pickWorkflow')} />
                 </SelectTrigger>
                 <SelectContent>
                   {allWorkflows.map((w: any) => (
@@ -940,8 +936,8 @@ export function CandidatesList() {
                       <span className="flex items-center gap-2">
                         <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: w.color ?? '#6366F1' }} />
                         <span>{w.name}</span>
-                        <span className={`ml-1 text-[10px] px-1.5 py-0.5 rounded border ${w.isPublic ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-slate-700 border-slate-200'}`}>
-                          {w.isPublic ? 'Public' : 'Private'}
+                        <span className={`ms-1 text-[10px] px-1.5 py-0.5 rounded border ${w.isPublic ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-slate-700 border-slate-200'}`}>
+                          {w.isPublic ? t('applicants.candidates.workflowDialog.isPublic') : t('applicants.candidates.workflowDialog.isPrivate')}
                         </span>
                       </span>
                     </SelectItem>
@@ -950,22 +946,22 @@ export function CandidatesList() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="bulk-workflow-notes" className="text-sm">Notes <span className="text-muted-foreground text-xs">(optional)</span></Label>
+              <Label htmlFor="bulk-workflow-notes" className="text-sm">{t('applicants.candidates.workflowDialog.notes')} <span className="text-muted-foreground text-xs">{t('applicants.candidates.workflowDialog.optionalLabel')}</span></Label>
               <Input
                 id="bulk-workflow-notes"
-                placeholder="Context / reason — saved to the assignment audit trail"
+                placeholder={t('applicants.candidates.workflowDialog.notesPlaceholder')}
                 value={bulkWorkflowNotes}
                 onChange={(e) => setBulkWorkflowNotes(e.target.value)}
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowBulkWorkflowDialog(false)} disabled={bulkWorkflowInFlight}>Cancel</Button>
+            <Button variant="outline" onClick={() => setShowBulkWorkflowDialog(false)} disabled={bulkWorkflowInFlight}>{tc('actions.cancel')}</Button>
             <Button
               disabled={bulkWorkflowInFlight || !bulkWorkflowId}
               onClick={handleBulkAssignWorkflow}
             >
-              {bulkWorkflowInFlight ? 'Assigning…' : 'Connect'}
+              {bulkWorkflowInFlight ? t('applicants.candidates.workflowDialog.assigning') : t('applicants.candidates.workflowDialog.connectAction')}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import {
   Search, CheckCircle2, XCircle, FileText, Eye, Clock, ShieldCheck, ArrowLeft,
 } from 'lucide-react';
@@ -14,9 +15,12 @@ import {
 } from '../../components/ui/dialog';
 import { toast } from 'sonner';
 import { documentsApi, employeesApi } from '../../services/api';
+import { apiError } from '../../../i18n/apiError';
 import { usePermissions } from '../../hooks/usePermissions';
 
 export function DocumentVerification() {
+  const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const { can } = usePermissions();
   const navigate = useNavigate();
   const [documents, setDocuments]     = useState<any[]>([]);
@@ -36,7 +40,7 @@ export function DocumentVerification() {
         const all: any[] = res?.data ?? [];
         setDocuments(all.filter(d => d.status === 'PENDING'));
       })
-      .catch(() => toast.error('Failed to load documents'));
+      .catch(() => toast.error(tc('toast.loadFailed')));
 
     const loadEmps = employeesApi.list({ limit: 500 })
       .then((res: any) => {
@@ -54,9 +58,9 @@ export function DocumentVerification() {
     try {
       await documentsApi.verify(doc.id, { action: 'VERIFY' });
       setDocuments(prev => prev.filter(d => d.id !== doc.id));
-      toast.success(`"${doc.name}" approved`);
+      toast.success(tc('toast.approvedNamed', { name: doc.name }));
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to approve document');
+      toast.error(apiError(err, tc('toast.operationFailed')));
     } finally {
       setVerifying(null);
     }
@@ -69,7 +73,7 @@ export function DocumentVerification() {
 
   const handleReject = async () => {
     if (!rejectionReason.trim()) {
-      toast.error('A rejection reason is required');
+      toast.error(tc('toast.rejectionReasonRequired'));
       return;
     }
     setVerifying(rejectDialog.docId);
@@ -79,10 +83,10 @@ export function DocumentVerification() {
         reason: rejectionReason.trim(),
       });
       setDocuments(prev => prev.filter(d => d.id !== rejectDialog.docId));
-      toast.success(`"${rejectDialog.docName}" rejected`);
+      toast.success(tc('toast.rejectedNamed', { name: rejectDialog.docName }));
       setRejectDialog({ open: false, docId: '', docName: '' });
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to reject document');
+      toast.error(apiError(err, tc('toast.operationFailed')));
     } finally {
       setVerifying(null);
     }
@@ -100,7 +104,7 @@ export function DocumentVerification() {
 
   const docTypeCount = [...new Set(documents.map(d => d.documentType?.name).filter(Boolean))].length;
 
-  if (loading) return <div className="p-8 text-muted-foreground">Loading...</div>;
+  if (loading) return <div className="p-8 text-muted-foreground">{t('documents.verification.loading')}</div>;
 
   return (
     <div className="space-y-6">
@@ -111,15 +115,15 @@ export function DocumentVerification() {
             <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
               <ArrowLeft className="w-5 h-5" />
             </Button>
-            <h1 className="text-3xl font-semibold text-[#0F172A]">Document Verification</h1>
+            <h1 className="text-3xl font-semibold text-[#0F172A]">{t('documents.verification.title')}</h1>
           </div>
           <p className="text-muted-foreground mt-1">
-            Review and approve pending driver documents
+            {t('documents.dashboard.subtitle')}
           </p>
         </div>
         {!can('documents', 'verify') && (
           <Badge className="bg-[#FEF3C7] text-[#F59E0B] border-[#F59E0B]">
-            View Only — insufficient permissions to verify
+            {t('documents.verification.viewOnly')}
           </Badge>
         )}
       </div>
@@ -133,7 +137,7 @@ export function DocumentVerification() {
             </div>
             <div>
               <p className="text-2xl font-semibold">{documents.length}</p>
-              <p className="text-sm text-muted-foreground">Awaiting Review</p>
+              <p className="text-sm text-muted-foreground">{t('documents.verification.awaitingReview')}</p>
             </div>
           </CardContent>
         </Card>
@@ -144,7 +148,7 @@ export function DocumentVerification() {
             </div>
             <div>
               <p className="text-2xl font-semibold">{docTypeCount}</p>
-              <p className="text-sm text-muted-foreground">Document Types</p>
+              <p className="text-sm text-muted-foreground">{t('documents.verification.documentTypes')}</p>
             </div>
           </CardContent>
         </Card>
@@ -155,7 +159,7 @@ export function DocumentVerification() {
             </div>
             <div>
               <p className="text-2xl font-semibold">{filtered.length}</p>
-              <p className="text-sm text-muted-foreground">Matching Search</p>
+              <p className="text-sm text-muted-foreground">{t('documents.verification.matchingSearch')}</p>
             </div>
           </CardContent>
         </Card>
@@ -165,12 +169,12 @@ export function DocumentVerification() {
       <Card>
         <CardContent className="p-4">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder="Search by document name, type, or driver name..."
+              placeholder={t('documents.verification.searchPh')}
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="pl-9"
+              className="ps-9"
             />
           </div>
         </CardContent>
@@ -179,17 +183,17 @@ export function DocumentVerification() {
       {/* Verification Queue */}
       <Card>
         <CardHeader>
-          <CardTitle>Pending Documents ({filtered.length})</CardTitle>
+          <CardTitle>{t('documents.verification.pending', { count: filtered.length })}</CardTitle>
         </CardHeader>
         <CardContent>
           {filtered.length === 0 ? (
             <div className="py-16 text-center">
               <CheckCircle2 className="w-12 h-12 mx-auto mb-4 text-[#22C55E]" />
-              <p className="font-medium text-[#0F172A]">All clear!</p>
+              <p className="font-medium text-[#0F172A]">{t('documents.verification.allClear')}</p>
               <p className="text-sm text-muted-foreground mt-1">
                 {documents.length === 0
-                  ? 'No documents are awaiting verification.'
-                  : 'No documents match your search.'}
+                  ? t('documents.verification.noPending')
+                  : t('documents.verification.noMatches')}
               </p>
             </div>
           ) : (
@@ -197,12 +201,12 @@ export function DocumentVerification() {
               <table className="w-full">
                 <thead className="bg-[#F8FAFC] border-b">
                   <tr>
-                    <th className="text-left p-4 text-sm font-semibold">Document</th>
-                    <th className="text-left p-4 text-sm font-semibold">Type</th>
-                    <th className="text-left p-4 text-sm font-semibold">Employee / Entity</th>
-                    <th className="text-left p-4 text-sm font-semibold">Uploaded By</th>
-                    <th className="text-left p-4 text-sm font-semibold">Expiry Date</th>
-                    <th className="text-left p-4 text-sm font-semibold">Actions</th>
+                    <th className="text-start p-4 text-sm font-semibold">{t('documents.verification.tableHeaders.document')}</th>
+                    <th className="text-start p-4 text-sm font-semibold">{t('documents.verification.tableHeaders.type')}</th>
+                    <th className="text-start p-4 text-sm font-semibold">{t('documents.verification.tableHeaders.entity')}</th>
+                    <th className="text-start p-4 text-sm font-semibold">{t('documents.verification.tableHeaders.uploadedBy')}</th>
+                    <th className="text-start p-4 text-sm font-semibold">{t('documents.verification.tableHeaders.expiryDate')}</th>
+                    <th className="text-start p-4 text-sm font-semibold">{t('documents.verification.tableHeaders.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -256,7 +260,7 @@ export function DocumentVerification() {
                                 onClick={() => handleApprove(doc)}
                                 disabled={verifying === doc.id}
                               >
-                                <CheckCircle2 className="w-4 h-4 mr-1" />
+                                <CheckCircle2 className="w-4 h-4 me-1" />
                                 {verifying === doc.id ? '…' : 'Approve'}
                               </Button>
                               <Button
@@ -266,7 +270,7 @@ export function DocumentVerification() {
                                 onClick={() => openRejectDialog(doc)}
                                 disabled={verifying === doc.id}
                               >
-                                <XCircle className="w-4 h-4 mr-1" />
+                                <XCircle className="w-4 h-4 me-1" />
                                 Reject
                               </Button>
                             </>
@@ -321,7 +325,7 @@ export function DocumentVerification() {
               onClick={handleReject}
               disabled={!!verifying || !rejectionReason.trim()}
             >
-              <XCircle className="w-4 h-4 mr-2" />
+              <XCircle className="w-4 h-4 me-2" />
               {verifying ? 'Rejecting…' : 'Confirm Rejection'}
             </Button>
           </DialogFooter>

@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { workflowApi } from '../../services/api';
+import { apiError } from '../../../i18n/apiError';
 import {
   ArrowLeft,
   Layers,
@@ -23,6 +25,8 @@ import { Progress } from '../../components/ui/progress';
 // ─── Add Note Modal ───────────────────────────────────────────────────────────
 
 function NoteModal({ progressId, onClose }: { progressId: string; onClose: () => void }) {
+  const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const [content, setContent] = useState('');
   const [isPrivate, setIsPrivate] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -42,7 +46,7 @@ function NoteModal({ progressId, onClose }: { progressId: string; onClose: () =>
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <div className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-sm mx-4 p-5">
-        <h3 className="text-base font-semibold text-foreground mb-3">Add Note</h3>
+        <h3 className="text-base font-semibold text-foreground mb-3">{t('pipelines.board.addNote')}</h3>
         <form onSubmit={handleSubmit} className="space-y-3">
           <textarea
             className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
@@ -54,12 +58,12 @@ function NoteModal({ progressId, onClose }: { progressId: string; onClose: () =>
           />
           <label className="flex items-center gap-2 text-sm cursor-pointer">
             <input type="checkbox" checked={isPrivate} onChange={(e) => setIsPrivate(e.target.checked)} className="rounded" />
-            <span className="text-foreground">Private note (only visible to admins)</span>
+            <span className="text-foreground">{t('pipelines.board.privateNote')}</span>
           </label>
           <div className="flex gap-2">
-            <button type="button" onClick={onClose} className="flex-1 border border-border rounded-lg px-3 py-2 text-sm hover:bg-muted transition-colors">Cancel</button>
+            <button type="button" onClick={onClose} className="flex-1 border border-border rounded-lg px-3 py-2 text-sm hover:bg-muted transition-colors">{tc('actions.cancel')}</button>
             <button type="submit" disabled={saving || !content.trim()} className="flex-1 bg-primary text-primary-foreground rounded-lg px-3 py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors">
-              {saving ? 'Saving...' : 'Add Note'}
+              {saving ? 'Saving...' : t('pipelines.board.addNote')}
             </button>
           </div>
         </form>
@@ -71,6 +75,8 @@ function NoteModal({ progressId, onClose }: { progressId: string; onClose: () =>
 // ─── Advance Stage Modal ──────────────────────────────────────────────────────
 
 function AdvanceModal({ assignmentId, workflow, onClose, onAdvanced }: { assignmentId: string; workflow: any; onClose: () => void; onAdvanced: () => void }) {
+  const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const [selectedStageId, setSelectedStageId] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -90,7 +96,7 @@ function AdvanceModal({ assignmentId, workflow, onClose, onAdvanced }: { assignm
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <div className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-sm mx-4 p-5">
-        <h3 className="text-base font-semibold text-foreground mb-3">Advance to Stage</h3>
+        <h3 className="text-base font-semibold text-foreground mb-3">{t('pipelines.board.advanceToStage')}</h3>
         <form onSubmit={handleSubmit} className="space-y-3">
           <div className="space-y-1.5">
             {workflow?.stages?.map((s: any) => (
@@ -98,12 +104,12 @@ function AdvanceModal({ assignmentId, workflow, onClose, onAdvanced }: { assignm
                 <input type="radio" name="stage" value={s.id} checked={selectedStageId === s.id} onChange={() => setSelectedStageId(s.id)} className="sr-only" />
                 <div className="w-2.5 h-2.5 rounded-full" style={{ background: s.color }} />
                 <span className="text-sm text-foreground">{s.name}</span>
-                {selectedStageId === s.id && <CheckCircle2 className="w-4 h-4 ml-auto" style={{ color: s.color }} />}
+                {selectedStageId === s.id && <CheckCircle2 className="w-4 h-4 ms-auto" style={{ color: s.color }} />}
               </label>
             ))}
           </div>
           <div className="flex gap-2">
-            <button type="button" onClick={onClose} className="flex-1 border border-border rounded-lg px-3 py-2 text-sm hover:bg-muted transition-colors">Cancel</button>
+            <button type="button" onClick={onClose} className="flex-1 border border-border rounded-lg px-3 py-2 text-sm hover:bg-muted transition-colors">{tc('actions.cancel')}</button>
             <button type="submit" disabled={saving || !selectedStageId} className="flex-1 bg-primary text-primary-foreground rounded-lg px-3 py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors">
               {saving ? 'Advancing...' : 'Advance'}
             </button>
@@ -117,6 +123,8 @@ function AdvanceModal({ assignmentId, workflow, onClose, onAdvanced }: { assignm
 // ─── Assign Candidate Modal ───────────────────────────────────────────────────
 
 function AssignModal({ workflow, onClose, onAssigned }: { workflow: any; onClose: () => void; onAssigned: () => void }) {
+  const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const [candidateId, setCandidateId] = useState('');
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
@@ -124,14 +132,14 @@ function AssignModal({ workflow, onClose, onAssigned }: { workflow: any; onClose
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!candidateId.trim()) { setError('Candidate ID is required'); return; }
+    if (!candidateId.trim()) { setError(tc('form.fieldRequired')); return; }
     setSaving(true);
     try {
       await workflowApi.assignCandidate({ candidateId, workflowId: workflow.id, notes: notes || undefined });
       onAssigned();
       onClose();
     } catch (err: any) {
-      setError(err.message || 'Assignment failed');
+      setError(apiError(err, t('pipelines.errors.assignmentFailed')));
     } finally {
       setSaving(false);
     }
@@ -140,11 +148,11 @@ function AssignModal({ workflow, onClose, onAssigned }: { workflow: any; onClose
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <div className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-sm mx-4 p-5">
-        <h3 className="text-base font-semibold text-foreground mb-3">Assign Candidate to Workflow</h3>
+        <h3 className="text-base font-semibold text-foreground mb-3">{t('pipelines.board.assignCandidate')}</h3>
         {error && <p className="text-sm text-destructive mb-3">{error}</p>}
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1">Candidate ID *</label>
+            <label className="block text-sm font-medium text-foreground mb-1">{t('pipelines.board.candidateIdRequired')}</label>
             <input
               className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
               value={candidateId}
@@ -153,7 +161,7 @@ function AssignModal({ workflow, onClose, onAssigned }: { workflow: any; onClose
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1">Notes (optional)</label>
+            <label className="block text-sm font-medium text-foreground mb-1">{t('pipelines.board.notesOptional')}</label>
             <input
               className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
               value={notes}
@@ -162,7 +170,7 @@ function AssignModal({ workflow, onClose, onAssigned }: { workflow: any; onClose
             />
           </div>
           <div className="flex gap-2">
-            <button type="button" onClick={onClose} className="flex-1 border border-border rounded-lg px-3 py-2 text-sm hover:bg-muted transition-colors">Cancel</button>
+            <button type="button" onClick={onClose} className="flex-1 border border-border rounded-lg px-3 py-2 text-sm hover:bg-muted transition-colors">{tc('actions.cancel')}</button>
             <button type="submit" disabled={saving} className="flex-1 bg-primary text-primary-foreground rounded-lg px-3 py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors">
               {saving ? 'Assigning...' : 'Assign'}
             </button>
@@ -186,7 +194,7 @@ function StageCard({ col, totalStages, totalActive }: { col: any; totalStages: n
     <Card className="relative hover:shadow-md transition-shadow">
       <CardContent className="p-5">
         {/* Active count badge */}
-        <div className="absolute top-4 right-4">
+        <div className="absolute top-4 end-4">
           <Badge
             className="rounded-full w-7 h-7 flex items-center justify-center p-0 text-white text-xs font-semibold"
             style={{ backgroundColor: stageColor }}
@@ -196,7 +204,7 @@ function StageCard({ col, totalStages, totalActive }: { col: any; totalStages: n
         </div>
 
         {/* Stage name */}
-        <h3 className="font-semibold text-[#0F172A] mb-4 pr-8">{stage.name}</h3>
+        <h3 className="font-semibold text-[#0F172A] mb-4 pe-8">{stage.name}</h3>
 
         {/* Progress bar */}
         <div className="space-y-2 mb-3">
@@ -233,6 +241,7 @@ function StageCard({ col, totalStages, totalActive }: { col: any; totalStages: n
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export function WorkflowBoardPage() {
+  const { t } = useTranslation('pages');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [board, setBoard]   = useState<any>(null);
@@ -256,11 +265,11 @@ export function WorkflowBoardPage() {
       setBoard(boardData);
       setStats(statsData);
     } catch (err: any) {
-      setError(err.message || 'Failed to load workflow');
+      setError(apiError(err, t('pipelines.errors.loadWorkflowFailed')));
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [id, t]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -321,7 +330,7 @@ export function WorkflowBoardPage() {
 
         <div className="flex items-center gap-2 flex-wrap">
           {/* Stats */}
-          <div className="flex items-center gap-4 text-sm text-muted-foreground mr-2">
+          <div className="flex items-center gap-4 text-sm text-muted-foreground me-2">
             <span className="flex items-center gap-1.5">
               <BarChart2 className="w-4 h-4" />
               <strong className="text-foreground">{totalActive}</strong> active
@@ -369,8 +378,8 @@ export function WorkflowBoardPage() {
       {columns.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <Layers className="w-16 h-16 text-muted-foreground/30 mb-4" />
-          <h3 className="text-lg font-medium text-foreground mb-2">No stages configured</h3>
-          <p className="text-sm text-muted-foreground mb-4">Add stages to this workflow from the settings page.</p>
+          <h3 className="text-lg font-medium text-foreground mb-2">{t('pipelines.board.noStagesConfigured')}</h3>
+          <p className="text-sm text-muted-foreground mb-4">{t('pipelines.board.noStagesBody')}</p>
           <Link
             to={`/dashboard/settings/workflows/${id}`}
             className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"

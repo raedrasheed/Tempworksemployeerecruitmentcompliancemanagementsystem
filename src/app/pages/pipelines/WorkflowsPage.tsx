@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { workflowApi, usersApi } from '../../services/api';
 import { confirm } from '../../components/ui/ConfirmDialog';
 import { toast } from 'sonner';
+import { apiError } from '../../../i18n/apiError';
 import {
   Layers,
   Plus,
@@ -51,7 +53,7 @@ function WorkflowCard({
       onClick={onSelect}
     >
       {/* Color stripe */}
-      <div className="absolute top-0 left-0 right-0 h-1 rounded-t-xl" style={{ background: workflow.color }} />
+      <div className="absolute top-0 start-0 end-0 h-1 rounded-t-xl" style={{ background: workflow.color }} />
 
       <div className="flex items-start justify-between mt-1">
         <div className="flex-1 min-w-0">
@@ -86,7 +88,7 @@ function WorkflowCard({
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-1 ml-3" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-1 ms-3" onClick={(e) => e.stopPropagation()}>
           {/* Configure button — always visible on hover */}
           <button
             onClick={onConfigure}
@@ -105,7 +107,7 @@ function WorkflowCard({
               <MoreVertical className="w-4 h-4" />
             </button>
             {menuOpen && (
-              <div className="absolute right-0 mt-1 w-40 bg-popover border border-border rounded-lg shadow-lg z-10 py-1" onMouseLeave={() => setMenuOpen(false)}>
+              <div className="absolute end-0 mt-1 w-40 bg-popover border border-border rounded-lg shadow-lg z-10 py-1" onMouseLeave={() => setMenuOpen(false)}>
                 <button
                   onClick={() => { setMenuOpen(false); onConfigure(); }}
                   className="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted"
@@ -190,6 +192,8 @@ function WorkflowCard({
 // ─── Create workflow modal ─────────────────────────────────────────────────
 
 function CreateWorkflowModal({ onClose, onCreated }: { onClose: () => void; onCreated: (id: string) => void }) {
+  const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const [form, setForm] = useState({ name: '', description: '', isDefault: false, isPublic: true, color: '#2563EB' });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -198,14 +202,14 @@ function CreateWorkflowModal({ onClose, onCreated }: { onClose: () => void; onCr
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name.trim()) { setError('Name is required'); return; }
+    if (!form.name.trim()) { setError(tc('form.fieldRequired')); return; }
     setSaving(true);
     try {
       const created = await workflowApi.create(form);
       onCreated(created.id);
       onClose();
     } catch (err: any) {
-      setError(err.message || 'Failed to create workflow');
+      setError(apiError(err, t('pipelines.errors.createFailed')));
     } finally {
       setSaving(false);
     }
@@ -214,12 +218,12 @@ function CreateWorkflowModal({ onClose, onCreated }: { onClose: () => void; onCr
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <div className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-md mx-4 p-6">
-        <h2 className="text-lg font-semibold text-foreground mb-1">New Workflow</h2>
-        <p className="text-sm text-muted-foreground mb-4">After creation you'll be taken to configure its stages.</p>
+        <h2 className="text-lg font-semibold text-foreground mb-1">{t('pipelines.list.newWorkflowTitle')}</h2>
+        <p className="text-sm text-muted-foreground mb-4">{t('pipelines.list.newWorkflowBody')}</p>
         {error && <p className="text-sm text-destructive mb-3">{error}</p>}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1">Name *</label>
+            <label className="block text-sm font-medium text-foreground mb-1">{t('pipelines.list.nameRequired')}</label>
             <input
               className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
               value={form.name}
@@ -255,11 +259,11 @@ function CreateWorkflowModal({ onClose, onCreated }: { onClose: () => void; onCr
           <div className="flex items-center gap-4">
             <label className="flex items-center gap-2 cursor-pointer text-sm">
               <input type="checkbox" checked={form.isDefault} onChange={(e) => setForm({ ...form, isDefault: e.target.checked })} className="rounded" />
-              <span className="text-foreground">Set as default workflow</span>
+              <span className="text-foreground">{t('pipelines.list.setAsDefault')}</span>
             </label>
           </div>
           <div className="flex gap-3 pt-2">
-            <button type="button" onClick={onClose} className="flex-1 border border-border rounded-lg px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors">Cancel</button>
+            <button type="button" onClick={onClose} className="flex-1 border border-border rounded-lg px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors">{tc('actions.cancel')}</button>
             <button type="submit" disabled={saving} className="flex-1 bg-primary text-primary-foreground rounded-lg px-4 py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors">
               {saving ? 'Creating...' : 'Create & Configure'}
             </button>
@@ -274,6 +278,7 @@ function CreateWorkflowModal({ onClose, onCreated }: { onClose: () => void; onCr
 
 export function WorkflowsPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation('pages');
   const [workflows, setWorkflows] = useState<any[]>([]);
   const [statsMap, setStatsMap] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
@@ -297,7 +302,7 @@ export function WorkflowsPage() {
       });
       setStatsMap(map);
     } catch (err: any) {
-      setError(err.message || 'Failed to load workflows');
+      setError(apiError(err, t('pipelines.errors.loadWorkflowsFailed')));
     } finally {
       setLoading(false);
     }
@@ -311,24 +316,24 @@ export function WorkflowsPage() {
 
   const handleCopy = async (workflow: any) => {
     if (!(await confirm({
-      title: 'Duplicate workflow?',
-      description: `A copy of "${workflow.name}" will be created with all its stages, required documents, assigned users, and access list. It will not carry over any in-flight candidate or employee assignments.`,
-      confirmText: 'Duplicate',
+      title: t('pipelines.confirm.duplicateTitle'),
+      description: t('pipelines.confirm.duplicateBody', { name: workflow.name }),
+      confirmText: t('pipelines.confirm.duplicateConfirm'),
     }))) return;
     try {
       const copied = await workflowApi.copy(workflow.id);
-      toast.success(`Created "${copied.name}"`);
+      toast.success(t('pipelines.toast.duplicated', { name: copied.name }));
       load();
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to duplicate workflow');
+      toast.error(apiError(err, t('pipelines.errors.duplicateFailed')));
     }
   };
 
   const handleDelete = async (id: string) => {
     if (!(await confirm({
-      title: 'Delete workflow?',
-      description: 'This workflow will be permanently removed. This cannot be undone.',
-      confirmText: 'Delete', tone: 'destructive',
+      title: t('common:confirm.deleteWorkflowTitle'),
+      description: t('common:confirm.deleteWorkflowBody'),
+      confirmText: t('common:actions.delete'), tone: 'destructive',
     }))) return;
     try { await workflowApi.delete(id); load(); } catch {}
   };
@@ -344,10 +349,10 @@ export function WorkflowsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <Layers className="w-6 h-6 text-primary" /> Workflows
+            <Layers className="w-6 h-6 text-primary" /> {t('pipelines.list.title')}
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Recruitment workflows — each has its own stages, requirements, and candidate workflow.
+            {t('pipelines.list.subtitle')}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -361,7 +366,7 @@ export function WorkflowsPage() {
             onClick={() => setShowCreate(true)}
             className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
           >
-            <Plus className="w-4 h-4" /> New Workflow
+            <Plus className="w-4 h-4" /> {t('pipelines.list.addButton')}
           </button>
         </div>
       </div>
@@ -383,8 +388,8 @@ export function WorkflowsPage() {
       ) : workflows.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <Layers className="w-16 h-16 text-muted-foreground/30 mb-4" />
-          <h3 className="text-lg font-medium text-foreground mb-2">No workflows yet</h3>
-          <p className="text-sm text-muted-foreground mb-6">Create your first recruitment workflow to start managing candidate progress.</p>
+          <h3 className="text-lg font-medium text-foreground mb-2">{t('pipelines.list.noWorkflowsTitle')}</h3>
+          <p className="text-sm text-muted-foreground mb-6">{t('pipelines.list.noWorkflowsBody')}</p>
           <button
             onClick={() => setShowCreate(true)}
             className="flex items-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
@@ -440,6 +445,7 @@ function ManageAccessModal({
   workflow: any;
   onClose: () => void;
 }) {
+  const { t } = useTranslation('pages');
   const [access, setAccess] = useState<any[]>([]);
   const [users, setUsers]   = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -457,7 +463,7 @@ function ManageAccessModal({
       setAccess(Array.isArray(list) ? list : []);
       setUsers(allUsers);
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to load access list');
+      toast.error(apiError(err, t('pipelines.errors.loadAccessFailed')));
     } finally {
       setLoading(false);
     }
@@ -477,11 +483,11 @@ function ManageAccessModal({
     setAdding(true);
     try {
       await workflowApi.addAccessUser(workflow.id, selectedUserId);
-      toast.success('Access granted');
+      toast.success(t('pipelines.toast.accessGranted'));
       setSelectedUserId('');
       load();
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to grant access');
+      toast.error(apiError(err, t('pipelines.errors.grantFailed')));
     } finally {
       setAdding(false);
     }
@@ -489,18 +495,18 @@ function ManageAccessModal({
 
   const handleRemove = async (userId: string, name: string) => {
     const ok = await confirm({
-      title: 'Revoke access?',
-      description: `${name} will no longer be able to use "${workflow.name}".`,
-      confirmText: 'Revoke',
+      title: t('pipelines.confirm.revokeTitle'),
+      description: t('pipelines.confirm.revokeBody', { name, workflow: workflow.name }),
+      confirmText: t('pipelines.confirm.revokeConfirm'),
       tone: 'destructive',
     });
     if (!ok) return;
     try {
       await workflowApi.removeAccessUser(workflow.id, userId);
-      toast.success('Access revoked');
+      toast.success(t('pipelines.toast.accessRevoked'));
       load();
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to revoke access');
+      toast.error(apiError(err, t('pipelines.errors.revokeFailed')));
     }
   };
 
@@ -511,7 +517,7 @@ function ManageAccessModal({
           <div className="flex items-center gap-2 min-w-0">
             <Lock className="w-5 h-5 text-slate-600 shrink-0" />
             <div className="min-w-0">
-              <h3 className="font-semibold text-base truncate">Manage Access</h3>
+              <h3 className="font-semibold text-base truncate">{t('pipelines.list.manageAccess')}</h3>
               <p className="text-xs text-muted-foreground truncate">
                 Users allowed to use <strong className="text-foreground">{workflow.name}</strong>
               </p>
@@ -525,7 +531,7 @@ function ManageAccessModal({
 
         {/* Add user row */}
         <div className="p-5 border-b space-y-2">
-          <label className="text-xs font-medium text-muted-foreground">Add user</label>
+          <label className="text-xs font-medium text-muted-foreground">{t('pipelines.list.addUser')}</label>
           <input
             type="text"
             placeholder="Search users by name or email…"
@@ -554,7 +560,7 @@ function ManageAccessModal({
               disabled={!selectedUserId || adding}
               className="px-3 py-2 rounded-md bg-primary text-primary-foreground text-sm disabled:opacity-50"
             >
-              <Plus className="w-4 h-4 inline mr-1" />{adding ? 'Adding…' : 'Add'}
+              <Plus className="w-4 h-4 inline me-1" />{adding ? 'Adding…' : 'Add'}
             </button>
           </div>
         </div>

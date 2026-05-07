@@ -1,8 +1,9 @@
 import {
   Controller, Get, Post, Put, Delete, Body, Param, Query,
-  UseGuards, HttpCode, HttpStatus, Res,
+  UseGuards, HttpCode, HttpStatus, Res, Headers,
 } from '@nestjs/common';
 import { Response } from 'express';
+import { resolveAcceptLanguage } from '../common/i18n/server-translate';
 import {
   ApiTags, ApiOperation, ApiBearerAuth, ApiParam, ApiBody,
 } from '@nestjs/swagger';
@@ -101,8 +102,9 @@ export class ReportsController {
     @Param('id') id: string,
     @Body() dto: ExportReportDto,
     @Res() res: Response,
+    @Headers('accept-language') acceptLanguage?: string,
   ) {
-    const { buffer, mimeType, filename } = await this.reportsService.export(id, dto.format);
+    const { buffer, mimeType, filename } = await this.reportsService.export(id, dto.format, resolveAcceptLanguage(acceptLanguage));
     res.setHeader('Content-Type', mimeType);
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Content-Length', buffer.length);

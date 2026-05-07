@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import {
   Plus, Edit, Eye, Search, Trash2, Upload, Download, Copy, Check,
   ArrowUp, ArrowDown, ArrowUpDown, X, Columns2, RefreshCw,
@@ -11,7 +12,8 @@ import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
-import { usersApi, getCurrentUser, BACKEND_URL } from '../../services/api';
+import { usersApi, getCurrentUser, resolveAssetUrl } from '../../services/api';
+import { apiError } from '../../../i18n/apiError';
 import { toast } from 'sonner';
 import { confirm } from '../../components/ui/ConfirmDialog';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -33,12 +35,12 @@ function parseCsvText(text: string): any[] {
 // ── Column visibility ────────────────────────────────────────────────────────
 type ColKey = 'email' | 'role' | 'agency' | 'status' | 'lastLogin';
 
-const ALL_COLUMNS: { key: ColKey; label: string }[] = [
-  { key: 'email',     label: 'Email' },
-  { key: 'role',      label: 'Role' },
-  { key: 'agency',    label: 'Agency' },
-  { key: 'status',    label: 'Status' },
-  { key: 'lastLogin', label: 'Last Login' },
+const ALL_COLUMNS: { key: ColKey; labelKey: string }[] = [
+  { key: 'email',     labelKey: 'users.list.cols.email' },
+  { key: 'role',      labelKey: 'users.list.cols.role' },
+  { key: 'agency',    labelKey: 'users.list.cols.agency' },
+  { key: 'status',    labelKey: 'users.list.cols.status' },
+  { key: 'lastLogin', labelKey: 'users.list.cols.lastLogin' },
 ];
 
 const DEFAULT_VISIBLE: Record<ColKey, boolean> = {
@@ -73,6 +75,8 @@ function SortableHead({ label, field, sortBy, sortOrder, onSort, className }: {
 }
 
 export function UsersList() {
+  const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const { canCreate, canView, canEdit, canDelete } = usePermissions();
   const currentUser = getCurrentUser();
   const isTempworksAdmin = currentUser?.role === 'System Admin' || currentUser?.role === 'HR Manager';
@@ -240,15 +244,15 @@ export function UsersList() {
 
   const handleDelete = async (user: any) => {
     if (!(await confirm({
-      title: 'Delete user?',
-      description: `${user.firstName} ${user.lastName} will be permanently removed. This action cannot be undone.`,
-      confirmText: 'Delete', tone: 'destructive',
+      title: t('users.list.deleteTitle'),
+      description: t('users.list.deleteBody', { name: `${user.firstName} ${user.lastName}` }),
+      confirmText: tc('actions.delete'), tone: 'destructive',
     }))) return;
     try {
       await usersApi.delete(user.id);
       setUsers(prev => prev.filter(u => u.id !== user.id));
-      toast.success('User deleted successfully');
-    } catch (err: any) { toast.error(err?.message || 'Failed to delete user'); }
+      toast.success(t('users.list.deleteSuccess'));
+    } catch (err: any) { toast.error(apiError(err, t('users.list.deleteFailed'))); }
   };
 
   // ── Tempworks-admin approval ──────────────────────────────────────────────
@@ -261,26 +265,26 @@ export function UsersList() {
     setApproveBusy(user.id);
     try {
       await usersApi.approveAgencyUser(user.id);
-      toast.success('User approved');
+      toast.success(t('users.list.approveSuccess'));
       reload();
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to approve user');
+      toast.error(apiError(err, t('users.list.approveFailed')));
     } finally {
       setApproveBusy(null);
     }
   };
 
   const handleBulkImport = async () => {
-    if (!csvText.trim()) { toast.error('Please paste CSV data first'); return; }
+    if (!csvText.trim()) { toast.error(t('users.list.csvEmpty')); return; }
     const records = parseCsvText(csvText);
-    if (records.length === 0) { toast.error('No valid records found. Ensure CSV has a header row.'); return; }
+    if (records.length === 0) { toast.error(t('users.list.csvNoRecords')); return; }
     setImporting(true);
     try {
       await usersApi.bulkImport(records);
-      toast.success(`${records.length} record(s) imported successfully`);
+      toast.success(t('users.list.csvImported', { count: records.length }));
       setShowImportModal(false); setCsvText('');
       reload();
-    } catch (err: any) { toast.error(err?.message || 'Bulk import failed'); }
+    } catch (err: any) { toast.error(apiError(err, t('users.list.bulkImportFailed'))); }
     finally { setImporting(false); }
   };
 
@@ -291,7 +295,7 @@ export function UsersList() {
       setActivationLink(res.url);
       setActivationLinkUser(`${user.firstName} ${user.lastName}`);
       setLinkCopied(false);
-    } catch (err: any) { toast.error(err?.message || 'Failed to generate activation link'); }
+    } catch (err: any) { toast.error(err?.message || t('users.list.activationLinkFailed')); }
     finally { setLoadingLink(null); }
   };
 
@@ -299,7 +303,7 @@ export function UsersList() {
     if (!activationLink) return;
     navigator.clipboard.writeText(activationLink).then(() => {
       setLinkCopied(true);
-      toast.success('Activation link copied to clipboard');
+      toast.success(t('users.list.activationLinkCopied'));
       setTimeout(() => setLinkCopied(false), 3000);
     });
   };
@@ -307,7 +311,7 @@ export function UsersList() {
   const handleExport = async () => {
     try {
       const data = await usersApi.bulkExport();
-      if (!Array.isArray(data) || data.length === 0) { toast.info('No data to export'); return; }
+      if (!Array.isArray(data) || data.length === 0) { toast.info(t('users.list.noDataToExport')); return; }
       const headers = Object.keys(data[0]).join(',');
       const rows = data.map(row => Object.values(row).map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(','));
       const csv = [headers, ...rows].join('\n');
@@ -316,8 +320,8 @@ export function UsersList() {
       const a = document.createElement('a');
       a.href = url; a.download = `users-export-${new Date().toISOString().slice(0, 10)}.csv`;
       a.click(); URL.revokeObjectURL(url);
-      toast.success('Export downloaded');
-    } catch (err: any) { toast.error(err?.message || 'Export failed'); }
+      toast.success(t('users.list.exportDownloaded'));
+    } catch (err: any) { toast.error(err?.message || tc('toast.exportFailed')); }
   };
 
   const hiddenCount = ALL_COLUMNS.filter(c => !visibleColumns[c.key]).length;
@@ -328,26 +332,26 @@ export function UsersList() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-semibold text-[#0F172A]">User Management</h1>
-          <p className="text-muted-foreground mt-1">Manage system users and permissions</p>
+          <h1 className="text-3xl font-semibold text-[#0F172A]">{t('users.list.title')}</h1>
+          <p className="text-muted-foreground mt-1">{t('users.list.subtitle')}</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={reload} disabled={loading}>
-            <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-4 h-4 me-1 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
           <Button variant="outline" size="sm" onClick={handleExport}>
-            <Download className="w-4 h-4 mr-2" />Export
+            <Download className="w-4 h-4 me-2" />Export
           </Button>
           {canCreate('users') && (
             <Button variant="outline" size="sm" onClick={() => setShowImportModal(true)}>
-              <Upload className="w-4 h-4 mr-2" />Bulk Import
+              <Upload className="w-4 h-4 me-2" />Bulk Import
             </Button>
           )}
           {canCreate('users') && (
             <Button asChild>
               <Link to="/dashboard/users/add">
-                <Plus className="w-4 h-4 mr-2" />Add User
+                <Plus className="w-4 h-4 me-2" />Add User
               </Link>
             </Button>
           )}
@@ -360,12 +364,12 @@ export function UsersList() {
           {/* Row 1: search (full width, so the icon can't get pushed out of
               place by wrapping filter pills) */}
           <div className="relative w-full">
-            <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder="Search name, email, role, agency, phone, dept…"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="pl-9 w-full"
+              className="ps-9 w-full"
             />
           </div>
 
@@ -373,27 +377,27 @@ export function UsersList() {
           <div className="flex flex-wrap gap-3 items-center">
             {roleOptions.length > 0 && (
               <Select value={roleFilter || '__all__'} onValueChange={v => setRoleFilter(v === '__all__' ? '' : v)}>
-                <SelectTrigger className="w-44"><SelectValue placeholder="All Roles" /></SelectTrigger>
+                <SelectTrigger className="w-44"><SelectValue placeholder={t('users.list.filterAllRoles')} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__all__">All Roles</SelectItem>
+                  <SelectItem value="__all__">{t('users.list.filterAllRoles')}</SelectItem>
                   {roleOptions.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
                 </SelectContent>
               </Select>
             )}
 
             <Select value={statusFilter || '__all__'} onValueChange={v => setStatusFilter(v === '__all__' ? '' : v)}>
-              <SelectTrigger className="w-40"><SelectValue placeholder="All Statuses" /></SelectTrigger>
+              <SelectTrigger className="w-40"><SelectValue placeholder={t('users.list.filterAllStatuses')} /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="__all__">All Statuses</SelectItem>
+                <SelectItem value="__all__">{t('users.list.filterAllStatuses')}</SelectItem>
                 {STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
               </SelectContent>
             </Select>
 
             {agencyOptions.length > 0 && (
               <Select value={agencyFilter || '__all__'} onValueChange={v => setAgencyFilter(v === '__all__' ? '' : v)}>
-                <SelectTrigger className="w-44"><SelectValue placeholder="All Agencies" /></SelectTrigger>
+                <SelectTrigger className="w-44"><SelectValue placeholder={t('users.list.filterAllAgencies')} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__all__">All Agencies</SelectItem>
+                  <SelectItem value="__all__">{t('users.list.filterAllAgencies')}</SelectItem>
                   {agencyOptions.map(a => <SelectItem key={a} value={a}>{a}</SelectItem>)}
                 </SelectContent>
               </Select>
@@ -401,9 +405,9 @@ export function UsersList() {
 
             {departmentOptions.length > 0 && (
               <Select value={departmentFilter || '__all__'} onValueChange={v => setDepartmentFilter(v === '__all__' ? '' : v)}>
-                <SelectTrigger className="w-44"><SelectValue placeholder="All Departments" /></SelectTrigger>
+                <SelectTrigger className="w-44"><SelectValue placeholder={t('users.list.filterAllDepts')} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__all__">All Departments</SelectItem>
+                  <SelectItem value="__all__">{t('users.list.filterAllDepts')}</SelectItem>
                   {departmentOptions.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
                 </SelectContent>
               </Select>
@@ -411,9 +415,9 @@ export function UsersList() {
 
             {countryOptions.length > 0 && (
               <Select value={countryFilter || '__all__'} onValueChange={v => setCountryFilter(v === '__all__' ? '' : v)}>
-                <SelectTrigger className="w-40"><SelectValue placeholder="All Countries" /></SelectTrigger>
+                <SelectTrigger className="w-40"><SelectValue placeholder={t('users.list.filterAllCountries')} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__all__">All Countries</SelectItem>
+                  <SelectItem value="__all__">{t('users.list.filterAllCountries')}</SelectItem>
                   {countryOptions.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                 </SelectContent>
               </Select>
@@ -421,41 +425,41 @@ export function UsersList() {
 
             {hasActiveFilters && (
               <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground hover:text-foreground">
-                <X className="w-3.5 h-3.5 mr-1" />Clear filters
+                <X className="w-3.5 h-3.5 me-1" />Clear filters
               </Button>
             )}
 
             {/* Column picker */}
-            <div className="relative ml-auto" ref={colPickerRef}>
+            <div className="relative ms-auto" ref={colPickerRef}>
               <Button
                 variant="outline" size="sm"
                 onClick={() => setShowColPicker(v => !v)}
                 className={showColPicker ? 'border-blue-500 text-blue-600' : ''}
               >
-                <Columns2 className="w-4 h-4 mr-1.5" />Columns
+                <Columns2 className="w-4 h-4 me-1.5" />Columns
                 {hiddenCount > 0 && (
-                  <span className="ml-1.5 bg-blue-600 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
+                  <span className="ms-1.5 bg-blue-600 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
                     {hiddenCount}
                   </span>
                 )}
               </Button>
               {showColPicker && (
-                <div className="absolute right-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[180px]">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">Toggle columns</p>
+                <div className="absolute end-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[180px]">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">{t('users.list.toggleCols')}</p>
                   <div className="space-y-0.5">
                     {ALL_COLUMNS.map(c => (
-                      <button key={c.key} onClick={() => toggleColumn(c.key)} className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-gray-50 text-sm text-left">
+                      <button key={c.key} onClick={() => toggleColumn(c.key)} className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-gray-50 text-sm text-start">
                         <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${visibleColumns[c.key] ? 'bg-blue-600 border-blue-600' : 'border-gray-300'}`}>
                           {visibleColumns[c.key] && <Check className="w-2.5 h-2.5 text-white" />}
                         </span>
-                        {c.label}
+                        {t(c.labelKey)}
                       </button>
                     ))}
                   </div>
                   <div className="border-t mt-2 pt-2 flex gap-1.5">
-                    <button onClick={() => { const all = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, true])) as Record<ColKey, boolean>; setVisibleColumns(all); localStorage.setItem('users-table-columns', JSON.stringify(all)); }} className="flex-1 text-xs text-center text-blue-600 hover:underline py-0.5">Show all</button>
+                    <button onClick={() => { const all = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, true])) as Record<ColKey, boolean>; setVisibleColumns(all); localStorage.setItem('users-table-columns', JSON.stringify(all)); }} className="flex-1 text-xs text-center text-blue-600 hover:underline py-0.5">{t('users.list.showAll')}</button>
                     <span className="text-gray-300">|</span>
-                    <button onClick={() => { const none = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, false])) as Record<ColKey, boolean>; setVisibleColumns(none); localStorage.setItem('users-table-columns', JSON.stringify(none)); }} className="flex-1 text-xs text-center text-gray-500 hover:underline py-0.5">Hide all</button>
+                    <button onClick={() => { const none = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, false])) as Record<ColKey, boolean>; setVisibleColumns(none); localStorage.setItem('users-table-columns', JSON.stringify(none)); }} className="flex-1 text-xs text-center text-gray-500 hover:underline py-0.5">{t('users.list.hideAll')}</button>
                   </div>
                 </div>
               )}
@@ -478,14 +482,14 @@ export function UsersList() {
                   {col('agency')    && <SortableHead label="Agency"     field="agency"    sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
                   {col('status')    && <SortableHead label="Status"     field="status"    sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
                   {col('lastLogin') && <SortableHead label="Last Login" field="lastLogin" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="text-end">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
-                  <TableRow><TableCell colSpan={colSpan} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={colSpan} className="text-center py-8 text-muted-foreground">{tc('states.loading')}</TableCell></TableRow>
                 ) : displayUsers.length === 0 ? (
-                  <TableRow><TableCell colSpan={colSpan} className="text-center py-8 text-muted-foreground">No users found</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={colSpan} className="text-center py-8 text-muted-foreground">{t('users.list.empty')}</TableCell></TableRow>
                 ) : displayUsers.map(user => (
                   <TableRow key={user.id}>
                     <TableCell>
@@ -494,7 +498,7 @@ export function UsersList() {
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <img
-                          src={user.photoUrl ? `${BACKEND_URL}${user.photoUrl}` : `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.firstName}`}
+                          src={user.photoUrl ? resolveAssetUrl(user.photoUrl) : `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.firstName}`}
                           alt={`${user.firstName} ${user.lastName}`}
                           className="w-8 h-8 rounded-full object-cover flex-shrink-0"
                         />
@@ -529,17 +533,17 @@ export function UsersList() {
                         {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString() : '—'}
                       </TableCell>
                     )}
-                    <TableCell className="text-right">
+                    <TableCell className="text-end">
                       <div className="flex items-center justify-end gap-1">
                         {canEdit('users') && (user.status === 'PENDING' || user.status === 'INACTIVE') && (
                           <Button variant="ghost" size="sm" onClick={() => handleGetActivationLink(user)} disabled={loadingLink === user.id} className="text-amber-600 hover:text-amber-700 hover:bg-amber-50 text-xs" title="Get activation link">
-                            <Copy className="w-3.5 h-3.5 mr-1" />
+                            <Copy className="w-3.5 h-3.5 me-1" />
                             {loadingLink === user.id ? '...' : 'Activation Link'}
                           </Button>
                         )}
                         {/* Approval pill (pending only) */}
                         {user.approvalStatus === 'PENDING_APPROVAL' && (
-                          <Badge variant="outline" className="text-[10px] border-amber-300 text-amber-700 bg-amber-50">Pending approval</Badge>
+                          <Badge variant="outline" className="text-[10px] border-amber-300 text-amber-700 bg-amber-50">{t('users.list.pendingApproval')}</Badge>
                         )}
                         {isTempworksAdmin && user.approvalStatus === 'PENDING_APPROVAL' && (
                           <Button
@@ -559,12 +563,12 @@ export function UsersList() {
                             view and this row would be redundant). */}
                         {mayViewRow(user) && !mayEditRow(user) && (
                           <Button variant="ghost" size="sm" asChild>
-                            <Link to={`/dashboard/users/${user.id}/edit`}><Eye className="w-4 h-4 mr-1" />View</Link>
+                            <Link to={`/dashboard/users/${user.id}/edit`}><Eye className="w-4 h-4 me-1" />View</Link>
                           </Button>
                         )}
                         {mayEditRow(user) && (
                           <Button variant="ghost" size="sm" asChild>
-                            <Link to={`/dashboard/users/${user.id}/edit`}><Edit className="w-4 h-4 mr-1" />Edit</Link>
+                            <Link to={`/dashboard/users/${user.id}/edit`}><Edit className="w-4 h-4 me-1" />Edit</Link>
                           </Button>
                         )}
                         {mayDeleteRow(user) && (
@@ -590,7 +594,7 @@ export function UsersList() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-lg space-y-4 p-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-[#0F172A]">Activation Link</h2>
+              <h2 className="text-xl font-semibold text-[#0F172A]">{t('users.list.activationLinkTitle')}</h2>
               <Button variant="ghost" size="sm" onClick={() => setActivationLink(null)}>✕</Button>
             </div>
             <p className="text-sm text-muted-foreground">
@@ -599,7 +603,7 @@ export function UsersList() {
             <div className="bg-gray-50 border rounded-md p-3 break-all text-sm font-mono text-gray-700">{activationLink}</div>
             <div className="flex gap-3 pt-1">
               <Button className="flex-1" onClick={handleCopyLink}>
-                {linkCopied ? <Check className="w-4 h-4 mr-2 text-green-400" /> : <Copy className="w-4 h-4 mr-2" />}
+                {linkCopied ? <Check className="w-4 h-4 me-2 text-green-400" /> : <Copy className="w-4 h-4 me-2" />}
                 {linkCopied ? 'Copied!' : 'Copy Link'}
               </Button>
               <Button variant="outline" className="flex-1" onClick={() => setActivationLink(null)}>Close</Button>
@@ -613,7 +617,7 @@ export function UsersList() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl space-y-4 p-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-[#0F172A]">Bulk Import Users</h2>
+              <h2 className="text-xl font-semibold text-[#0F172A]">{t('users.list.bulkImportTitle')}</h2>
               <Button variant="ghost" size="sm" onClick={() => { setShowImportModal(false); setCsvText(''); }}>✕</Button>
             </div>
             <p className="text-sm text-muted-foreground">
@@ -621,7 +625,7 @@ export function UsersList() {
               (e.g. <code className="bg-gray-100 px-1 rounded text-xs">firstName,lastName,email,roleId,agencyId</code>).
             </p>
             <div className="space-y-2">
-              <Label htmlFor="csvInput">CSV Data</Label>
+              <Label htmlFor="csvInput">{t('users.list.csvDataLabel')}</Label>
               <textarea
                 id="csvInput" rows={10}
                 className="w-full border rounded-md p-3 text-sm font-mono resize-y focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
@@ -637,7 +641,7 @@ export function UsersList() {
               <Button className="flex-1" onClick={handleBulkImport} disabled={importing || !csvText.trim()}>
                 {importing ? 'Importing...' : 'Import Records'}
               </Button>
-              <Button variant="outline" className="flex-1" onClick={() => { setShowImportModal(false); setCsvText(''); }}>Cancel</Button>
+              <Button variant="outline" className="flex-1" onClick={() => { setShowImportModal(false); setCsvText(''); }}>{tc('actions.cancel')}</Button>
             </div>
           </div>
         </div>

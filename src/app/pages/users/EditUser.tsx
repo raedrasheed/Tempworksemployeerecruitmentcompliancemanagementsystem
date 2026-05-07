@@ -1,4 +1,5 @@
 import { Link, useNavigate, useParams } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, ShieldOff, Unlock, RefreshCw, Mail, Camera, X } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -12,7 +13,11 @@ import { CountrySelect } from '../../components/ui/CountrySelect';
 import { PhoneInput } from '../../components/ui/PhoneInput';
 import { toast } from 'sonner';
 import { confirm } from '../../components/ui/ConfirmDialog';
-import { usersApi, rolesApi, agenciesApi, authApi, getCurrentUser, BACKEND_URL } from '../../services/api';
+import { apiError } from '../../../i18n/apiError';
+import { useValidationErrors } from '../../../i18n/useValidationErrors';
+import { FieldError } from '../../components/ui/field-error';
+import { ValidationSummary } from '../../components/ui/validation-summary';
+import { usersApi, rolesApi, agenciesApi, authApi, getCurrentUser, resolveAssetUrl } from '../../services/api';
 
 const GENDERS = [
   { value: 'MALE', label: 'Male' },
@@ -87,6 +92,8 @@ function getStatusStyle(status: string): StatusStyle {
 }
 
 export function EditUser() {
+  const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const { canEdit } = usePermissions();
   const { id } = useParams();
   const navigate = useNavigate();
@@ -202,39 +209,44 @@ export function EditUser() {
       if (typeof patch.allowManagerView === 'boolean') setAllowManagerView(patch.allowManagerView);
       if (typeof patch.allowManagerEdit === 'boolean') setAllowManagerEdit(patch.allowManagerEdit);
       if (typeof patch.allowManagerDelete === 'boolean') setAllowManagerDelete(patch.allowManagerDelete);
-      toast.success('Agency Manager permissions updated');
+      toast.success(t('users.edit.permissionsUpdated'));
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to update permissions');
+      toast.error(apiError(err, t('users.edit.permissionsFailed')));
     } finally {
       setSavingOverride(false);
     }
   };
 
-  if (loading) return <div className="p-8 text-muted-foreground">Loading...</div>;
-  if (notFound) return <div className="p-8">User not found</div>;
+  if (loading) return <div className="p-8 text-muted-foreground">{tc('states.loading')}</div>;
+  if (notFound) return <div className="p-8">{t('users.edit.notFound', { defaultValue: 'User not found' })}</div>;
 
   if (!canEdit('users')) {
     return (
       <div className="flex flex-col items-center justify-center py-24 gap-3 text-muted-foreground">
         <ShieldOff className="w-12 h-12 opacity-30" />
-        <p className="text-lg font-semibold text-[#0F172A]">Access Denied</p>
-        <p className="text-sm">You don't have permission to perform this action.</p>
+        <p className="text-lg font-semibold text-[#0F172A]">{tc('permissions.accessDenied')}</p>
+        <p className="text-sm">{tc('permissions.noPermission')}</p>
       </div>
     );
   }
 
+  const { errors: fieldErrs, setFromError, clearAll: clearFieldErrors, clearError } = useValidationErrors();
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm(prev => ({ ...prev, [e.target.id]: e.target.value }));
+    if (fieldErrs[e.target.id]) clearError(e.target.id);
   };
 
   const handleSelect = (field: string, value: string) => {
     setForm(prev => ({ ...prev, [field]: value }));
+    if (fieldErrs[field]) clearError(field);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    clearFieldErrors();
     if (!form.agencyId) {
-      toast.error('Please select an agency');
+      toast.error(t('users.edit.selectAgency'));
       return;
     }
     setSubmitting(true);
@@ -245,10 +257,11 @@ export function EditUser() {
         try { await usersApi.uploadPhoto(id!, photoFile); }
         finally { setUploadingPhoto(false); }
       }
-      toast.success('User updated successfully');
+      toast.success(t('users.edit.updateSuccess'));
       navigate('/dashboard/users');
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to update user');
+      setFromError(err);
+      toast.error(apiError(err, t('users.edit.updateFailed')));
     } finally {
       setSubmitting(false);
     }
@@ -258,32 +271,32 @@ export function EditUser() {
     try {
       await usersApi.unlockUser(id!);
       setLockedAt(null);
-      toast.success('Account unlocked successfully');
+      toast.success(t('users.edit.unlockSuccess'));
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to unlock account');
+      toast.error(apiError(err, t('users.edit.unlockFailed')));
     }
   };
 
   const handleResetPassword = async () => {
     if (!(await confirm({
-      title: 'Send password reset email?',
-      description: 'A password reset email will be sent to this user.',
-      confirmText: 'Send email',
+      title: t('users.edit.resetTitle'),
+      description: t('users.edit.resetBody'),
+      confirmText: t('users.edit.resetConfirm'),
     }))) return;
     try {
       await authApi.adminResetPassword(id!);
-      toast.success('Password reset email sent successfully');
+      toast.success(t('users.edit.resetSuccess'));
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to send password reset');
+      toast.error(apiError(err, t('users.edit.resetFailed')));
     }
   };
 
   const handleResendActivation = async () => {
     try {
       await authApi.resendActivation(id!);
-      toast.success('Activation email resent successfully');
+      toast.success(t('users.edit.activationResent'));
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to resend activation email');
+      toast.error(apiError(err, t('users.edit.activationFailed')));
     }
   };
 
@@ -294,8 +307,8 @@ export function EditUser() {
           <Link to="/dashboard/users"><ArrowLeft className="w-5 h-5" /></Link>
         </Button>
         <div>
-          <h1 className="text-3xl font-semibold text-[#0F172A]">Edit User</h1>
-          <p className="text-muted-foreground mt-1">Update user information</p>
+          <h1 className="text-3xl font-semibold text-[#0F172A]">{t('users.edit.title')}</h1>
+          <p className="text-muted-foreground mt-1">{t('users.edit.subtitle')}</p>
         </div>
       </div>
 
@@ -307,14 +320,14 @@ export function EditUser() {
             <div className="flex items-center gap-3 min-w-0">
               <span className={`w-2.5 h-2.5 rounded-full ${style.dot}`} />
               <div className="min-w-0">
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">Account Status</p>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">{t('users.edit.accountStatus')}</p>
                 <Badge className={`${style.badge} mt-1`}>{style.label}</Badge>
               </div>
             </div>
             <p className="text-sm text-muted-foreground flex-1 min-w-[200px]">{style.description}</p>
             {isAdminOrHR && (
               <div className="space-y-1">
-                <Label htmlFor="status-select" className="text-xs">Change status</Label>
+                <Label htmlFor="status-select" className="text-xs">{t('users.edit.changeStatus')}</Label>
                 <Select value={form.status} onValueChange={val => handleSelect('status', val)}>
                   <SelectTrigger id="status-select" className={`w-44 font-medium ${style.badge} hover:opacity-90`}>
                     <SelectValue />
@@ -353,7 +366,7 @@ export function EditUser() {
               onClick={handleUnlockAccount}
               className="border-amber-400 text-amber-700 hover:bg-amber-100 shrink-0"
             >
-              <Unlock className="w-4 h-4 mr-1" />
+              <Unlock className="w-4 h-4 me-1" />
               Unlock
             </Button>
           </div>
@@ -364,7 +377,7 @@ export function EditUser() {
           size="sm"
           onClick={handleResetPassword}
         >
-          <RefreshCw className="w-4 h-4 mr-2" />
+          <RefreshCw className="w-4 h-4 me-2" />
           Reset Password
         </Button>
         {(userStatus === 'PENDING' || form.status === 'PENDING') && (
@@ -374,7 +387,7 @@ export function EditUser() {
             size="sm"
             onClick={handleResendActivation}
           >
-            <Mail className="w-4 h-4 mr-2" />
+            <Mail className="w-4 h-4 me-2" />
             Resend Activation
           </Button>
         )}
@@ -382,6 +395,8 @@ export function EditUser() {
 
       <form onSubmit={handleSubmit}>
         <div className="max-w-2xl space-y-6">
+
+          <ValidationSummary errors={fieldErrs} />
 
           {/* Identity */}
           <Card>
@@ -395,17 +410,17 @@ export function EditUser() {
                   {photoPreview ? (
                     <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
                   ) : existingPhotoUrl ? (
-                    <img src={`${BACKEND_URL}${existingPhotoUrl}`} alt="Photo" className="w-full h-full object-cover" />
+                    <img src={resolveAssetUrl(existingPhotoUrl)} alt="Photo" className="w-full h-full object-cover" />
                   ) : (
                     <Camera className="w-7 h-7 text-gray-400" />
                   )}
                 </div>
                 <div className="space-y-1">
-                  <p className="text-sm font-medium">Profile Photo</p>
-                  <p className="text-xs text-muted-foreground">JPG, PNG or GIF · max 5 MB</p>
+                  <p className="text-sm font-medium">{t('users.form.photoLabel')}</p>
+                  <p className="text-xs text-muted-foreground">{t('users.form.photoHint')}</p>
                   <div className="flex gap-2">
                     <Button type="button" variant="outline" size="sm" onClick={() => photoInputRef.current?.click()} disabled={uploadingPhoto}>
-                      <Camera className="w-3.5 h-3.5 mr-1" />
+                      <Camera className="w-3.5 h-3.5 me-1" />
                       {photoPreview || existingPhotoUrl ? 'Change' : 'Upload'}
                     </Button>
                     {(photoPreview || existingPhotoUrl) && (
@@ -437,21 +452,33 @@ export function EditUser() {
               )}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="firstName">First Name *</Label>
-                  <Input id="firstName" value={form.firstName} onChange={handleChange} required />
+                  <Label htmlFor="firstName">{t('users.form.firstName')}</Label>
+                  <Input id="firstName" value={form.firstName} onChange={handleChange} required
+                    aria-invalid={!!fieldErrs.firstName}
+                    className={fieldErrs.firstName ? 'border-red-500 focus-visible:ring-red-500' : ''} />
+                  <FieldError errors={fieldErrs} name="firstName" />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="middleName">Middle Name</Label>
-                  <Input id="middleName" value={form.middleName} onChange={handleChange} />
+                  <Label htmlFor="middleName">{t('users.form.middleName')}</Label>
+                  <Input id="middleName" value={form.middleName} onChange={handleChange}
+                    aria-invalid={!!fieldErrs.middleName}
+                    className={fieldErrs.middleName ? 'border-red-500 focus-visible:ring-red-500' : ''} />
+                  <FieldError errors={fieldErrs} name="middleName" />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="lastName">Last Name *</Label>
-                <Input id="lastName" value={form.lastName} onChange={handleChange} required />
+                <Label htmlFor="lastName">{t('users.form.lastName')}</Label>
+                <Input id="lastName" value={form.lastName} onChange={handleChange} required
+                  aria-invalid={!!fieldErrs.lastName}
+                  className={fieldErrs.lastName ? 'border-red-500 focus-visible:ring-red-500' : ''} />
+                <FieldError errors={fieldErrs} name="lastName" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email">Email *</Label>
-                <Input id="email" type="email" value={form.email} onChange={handleChange} required />
+                <Label htmlFor="email">{t('users.form.email')}</Label>
+                <Input id="email" type="email" value={form.email} onChange={handleChange} required
+                  aria-invalid={!!fieldErrs.email}
+                  className={fieldErrs.email ? 'border-red-500 focus-visible:ring-red-500' : ''} />
+                <FieldError errors={fieldErrs} name="email" />
               </div>
             </CardContent>
           </Card>
@@ -508,7 +535,7 @@ export function EditUser() {
               )}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="jobTitle">Job Title</Label>
+                  <Label htmlFor="jobTitle">{t('users.form.jobTitle')}</Label>
                   {isAdminOrHR ? (
                     <Input id="jobTitle" value={form.jobTitle} onChange={handleChange} />
                   ) : (
@@ -525,7 +552,7 @@ export function EditUser() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="startDate">Start Date</Label>
+                <Label htmlFor="startDate">{t('users.form.startDate')}</Label>
                 {isAdminOrHR ? (
                   <Input id="startDate" type="date" value={form.startDate} onChange={handleChange} />
                 ) : (
@@ -543,7 +570,7 @@ export function EditUser() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="dateOfBirth">Date of Birth</Label>
+                  <Label htmlFor="dateOfBirth">{t('users.form.dateOfBirth')}</Label>
                   <Input id="dateOfBirth" type="date" value={form.dateOfBirth} onChange={handleChange} />
                 </div>
                 <div className="space-y-2">
@@ -588,11 +615,11 @@ export function EditUser() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="addressLine1">Address Line 1</Label>
+                <Label htmlFor="addressLine1">{t('users.form.addressLine1')}</Label>
                 <Input id="addressLine1" placeholder="Street address" value={form.addressLine1} onChange={handleChange} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="addressLine2">Address Line 2</Label>
+                <Label htmlFor="addressLine2">{t('users.form.addressLine2')}</Label>
                 <Input id="addressLine2" placeholder="Apartment, suite, etc." value={form.addressLine2} onChange={handleChange} />
               </div>
               <div className="grid grid-cols-3 gap-4">
@@ -608,7 +635,7 @@ export function EditUser() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="postalCode">Postal Code</Label>
+                  <Label htmlFor="postalCode">{t('users.form.postalCode')}</Label>
                   <Input id="postalCode" placeholder="Post code" value={form.postalCode} onChange={handleChange} />
                 </div>
               </div>
@@ -674,8 +701,8 @@ export function EditUser() {
                     onChange={e => handleManagerOverride({ allowManagerView: e.target.checked })}
                   />
                   <div>
-                    <div className="font-medium text-sm text-[#0F172A]">Allow Agency Manager to view this user</div>
-                    <p className="text-xs text-muted-foreground">When on, the owning agency's users can open this approved user's profile; off hides them from the list entirely.</p>
+                    <div className="font-medium text-sm text-[#0F172A]">{t('users.edit.allowView')}</div>
+                    <p className="text-xs text-muted-foreground">{t('users.edit.allowViewHelper')}</p>
                   </div>
                 </label>
                 <label className="flex items-start gap-3 cursor-pointer">
@@ -687,8 +714,8 @@ export function EditUser() {
                     onChange={e => handleManagerOverride({ allowManagerEdit: e.target.checked })}
                   />
                   <div>
-                    <div className="font-medium text-sm text-[#0F172A]">Allow Agency Manager to edit this user</div>
-                    <p className="text-xs text-muted-foreground">When on, the Agency Manager can update profile fields for this approved user.</p>
+                    <div className="font-medium text-sm text-[#0F172A]">{t('users.edit.allowEdit')}</div>
+                    <p className="text-xs text-muted-foreground">{t('users.edit.allowEditHelper')}</p>
                   </div>
                 </label>
                 <label className="flex items-start gap-3 cursor-pointer">
@@ -700,8 +727,8 @@ export function EditUser() {
                     onChange={e => handleManagerOverride({ allowManagerDelete: e.target.checked })}
                   />
                   <div>
-                    <div className="font-medium text-sm text-[#0F172A]">Allow Agency Manager to delete this user</div>
-                    <p className="text-xs text-muted-foreground">When on, the Agency Manager can soft-delete this approved user.</p>
+                    <div className="font-medium text-sm text-[#0F172A]">{t('users.edit.allowDelete')}</div>
+                    <p className="text-xs text-muted-foreground">{t('users.edit.allowDeleteHelper')}</p>
                   </div>
                 </label>
               </CardContent>
@@ -710,10 +737,10 @@ export function EditUser() {
 
           <div className="flex gap-3">
             <Button type="submit" className="flex-1" disabled={submitting}>
-              {submitting ? 'Saving...' : 'Save Changes'}
+              {submitting ? tc('states.saving') : tc('actions.saveChanges')}
             </Button>
             <Button type="button" variant="outline" className="flex-1" asChild>
-              <Link to="/dashboard/users">Cancel</Link>
+              <Link to="/dashboard/users">{tc('actions.cancel')}</Link>
             </Button>
           </div>
         </div>

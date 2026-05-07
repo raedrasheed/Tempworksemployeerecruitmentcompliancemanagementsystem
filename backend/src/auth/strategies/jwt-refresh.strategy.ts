@@ -22,10 +22,14 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
       select: { id: true, status: true, refreshToken: true },
     });
     if (!user || !user.refreshToken) {
-      throw new UnauthorizedException('Access denied');
+      throw new UnauthorizedException({ code: 'AUTH.ACCESS_DENIED', message: 'Access denied' });
     }
     if (user.status !== 'ACTIVE') {
-      throw new UnauthorizedException(`Account is ${user.status.toLowerCase()}`);
+      throw new UnauthorizedException({
+        code: 'AUTH.ACCOUNT_STATUS',
+        message: `Account is ${user.status.toLowerCase()}`,
+        params: { status: user.status.toLowerCase() },
+      });
     }
     return { ...payload, refreshToken };
   }

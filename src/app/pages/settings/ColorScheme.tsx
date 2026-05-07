@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { Check, Palette, Moon, Sun, Monitor, ArrowLeft } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
@@ -42,7 +43,7 @@ function DarkSchemeCard({ scheme, selected, onSelect }: {
     <button
       onClick={onSelect}
       className={cn(
-        'relative flex flex-col rounded-xl border-2 overflow-hidden transition-all hover:scale-[1.02] text-left',
+        'relative flex flex-col rounded-xl border-2 overflow-hidden transition-all hover:scale-[1.02] text-start',
         selected
           ? 'border-primary shadow-lg shadow-primary/20'
           : 'border-border hover:border-muted-foreground/40',
@@ -94,7 +95,7 @@ function LightSchemeCard({ scheme, selected, onSelect }: {
     <button
       onClick={onSelect}
       className={cn(
-        'relative flex flex-col rounded-xl border-2 overflow-hidden transition-all hover:scale-[1.02] text-left',
+        'relative flex flex-col rounded-xl border-2 overflow-hidden transition-all hover:scale-[1.02] text-start',
         selected
           ? 'border-primary shadow-lg shadow-primary/20'
           : 'border-border hover:border-muted-foreground/40',
@@ -193,7 +194,7 @@ function ThemePreview({ brand, isDark, dark, light }: {
             {[0, 1, 2, 3].map(i => (
               <div key={i} className="rounded-lg p-1.5 flex flex-col gap-1" style={{ backgroundColor: cardBg }}>
                 <div className="h-1.5 rounded-full w-3/4" style={{ backgroundColor: accent }} />
-                <div className="h-2 rounded font-bold text-[7px] flex items-center pl-0.5" style={{ color: textColor }}>
+                <div className="h-2 rounded font-bold text-[7px] flex items-center ps-0.5" style={{ color: textColor }}>
                   {i % 2 === 0 ? '1,240' : '98.2%'}
                 </div>
               </div>
@@ -207,6 +208,7 @@ function ThemePreview({ brand, isDark, dark, light }: {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export function ColorScheme() {
+  const { t } = useTranslation('pages');
   const { isDark, toggleDark, brandScheme, setBrandScheme, darkScheme, setDarkScheme, lightScheme, setLightScheme } = useTheme();
   const navigate = useNavigate();
 
@@ -217,9 +219,9 @@ export function ColorScheme() {
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <h1 className="text-2xl font-semibold text-foreground">Appearance & Color Scheme</h1>
+          <h1 className="text-2xl font-semibold text-foreground">{t('settings.colorScheme.headerTitle')}</h1>
         </div>
-        <p className="text-muted-foreground mt-1">Customize the visual theme for the entire application</p>
+        <p className="text-muted-foreground mt-1">{t('settings.colorScheme.headerSubtitle')}</p>
       </div>
 
       {/* Mode toggle */}

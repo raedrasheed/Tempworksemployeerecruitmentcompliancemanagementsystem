@@ -10,6 +10,7 @@ import {
   TextRun, HeadingLevel, WidthType,
 } from 'docx';
 import { PrismaService } from '../prisma/prisma.service';
+import { tServer, ServerLocale } from '../common/i18n/server-translate';
 import {
   CreateReportDto, UpdateReportDto, RunReportDto, ExportFormat,
   ReportFilterDto, ReportColumnDto, ReportSortingDto,
@@ -749,13 +750,13 @@ export class ReportsService {
 
   // ── Export ────────────────────────────────────────────────────────────────
 
-  async export(id: string, format: ExportFormat): Promise<{ buffer: Buffer; mimeType: string; filename: string }> {
+  async export(id: string, format: ExportFormat, locale: ServerLocale = 'en'): Promise<{ buffer: Buffer; mimeType: string; filename: string }> {
     const report = await this.findOne(id);
     const { columns, rows } = await this.executeReport(report, { page: 1, limit: 50000 });
     switch (format) {
-      case ExportFormat.EXCEL: return this.toExcel(report, columns, rows);
-      case ExportFormat.PDF:   return this.toPdf(report, columns, rows);
-      case ExportFormat.WORD:  return this.toWord(report, columns, rows);
+      case ExportFormat.EXCEL: return this.toExcel(report, columns, rows, locale);
+      case ExportFormat.PDF:   return this.toPdf(report, columns, rows, locale);
+      case ExportFormat.WORD:  return this.toWord(report, columns, rows, locale);
       default: throw new BadRequestException(`Unsupported format: ${format}`);
     }
   }
@@ -958,11 +959,15 @@ export class ReportsService {
 
   // ── Excel ─────────────────────────────────────────────────────────────────
 
-  private async toExcel(report: any, columns: any[], rows: any[]): Promise<{ buffer: Buffer; mimeType: string; filename: string }> {
+  private async toExcel(report: any, columns: any[], rows: any[], locale: ServerLocale = 'en'): Promise<{ buffer: Buffer; mimeType: string; filename: string }> {
     const wb = new ExcelJS.Workbook();
     wb.creator = 'TempWorks';
     wb.created = new Date();
-    const ws = wb.addWorksheet(report.name.substring(0, 31));
+    // Use the user-authored report name verbatim — that's user-authored
+    // content, not a translatable label. Fall back to a localized
+    // placeholder only when the report has no name.
+    const sheetName = (report.name || tServer('reports.fallbackTitle', {}, locale, 'exports')).substring(0, 31);
+    const ws = wb.addWorksheet(sheetName);
 
     // Title (columns.length data cols + 1 serial col)
     const lastCol = String.fromCharCode(64 + Math.max(columns.length + 1, 2));
@@ -972,7 +977,7 @@ export class ReportsService {
     titleCell.font  = { bold: true, size: 14, color: { argb: 'FF0F172A' } };
     titleCell.alignment = { horizontal: 'center' };
 
-    ws.getCell('A2').value = `Generated: ${new Date().toLocaleString()}`;
+    ws.getCell('A2').value = `${tServer('common.exportedAt', {}, locale, 'exports')}: ${new Date().toLocaleString()}`;
     ws.getCell('A2').font  = { italic: true, size: 9, color: { argb: 'FF64748B' } };
     if (report.description) {
       ws.getCell('A3').value = report.description;
@@ -983,7 +988,7 @@ export class ReportsService {
     const headerRow = ws.getRow(5);
     headerRow.height = 22;
     const noCell = headerRow.getCell(1);
-    noCell.value = '#';
+    noCell.value = tServer('reports.rowNumber', {}, locale, 'exports');
     noCell.font  = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10 };
     noCell.fill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } };
     noCell.alignment = { horizontal: 'center', vertical: 'middle' };
@@ -1026,7 +1031,7 @@ export class ReportsService {
 
   // ── PDF ───────────────────────────────────────────────────────────────────
 
-  private toPdf(report: any, columns: any[], rows: any[]): Promise<{ buffer: Buffer; mimeType: string; filename: string }> {
+  private toPdf(report: any, columns: any[], rows: any[], locale: ServerLocale = 'en'): Promise<{ buffer: Buffer; mimeType: string; filename: string }> {
     return new Promise((resolve, reject) => {
       const doc    = new PDFDocument({ margin: 36, size: 'A4', layout: 'landscape' } as any);
       const chunks: Buffer[] = [];
@@ -1034,8 +1039,13 @@ export class ReportsService {
       doc.on('end', () => resolve({ buffer: Buffer.concat(chunks), mimeType: 'application/pdf', filename: `${this.safeFilename(report.name)}.pdf` }));
       doc.on('error', reject);
 
-      doc.fontSize(16).font('Helvetica-Bold').fillColor('#0F172A').text(report.name, { align: 'center' });
-      doc.fontSize(9).font('Helvetica').fillColor('#64748B').text(`Generated: ${new Date().toLocaleString()}  |  ${rows.length} records`, { align: 'center' });
+      // Title is the user-authored report.name — render verbatim.
+      // The "Generated: <ts> | N records" subtitle uses localized
+      // labels (`common.generatedAt`, `common.recordsSuffix`).
+      const generatedLabel = tServer('common.generatedAt', {}, locale, 'exports');
+      const recordsLabel   = tServer('common.recordsSuffix', {}, locale, 'exports');
+      doc.fontSize(16).font('Helvetica-Bold').fillColor('#0F172A').text(report.name || tServer('reports.fallbackTitle', {}, locale, 'exports'), { align: 'center' });
+      doc.fontSize(9).font('Helvetica').fillColor('#64748B').text(`${generatedLabel}: ${new Date().toLocaleString()}  |  ${rows.length} ${recordsLabel}`, { align: 'center' });
       if (report.description) doc.fontSize(9).fillColor('#94A3B8').text(report.description, { align: 'center' });
       doc.moveDown(0.6);
 
@@ -1051,8 +1061,9 @@ export class ReportsService {
       // Header
       doc.rect(startX, y, tblW, hdrH).fill('#2563EB');
       doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(7.5);
-      doc.text('#', startX + 3, y + 6, { width: snW - 6, ellipsis: true });
+      doc.text(tServer('reports.rowNumber', {}, locale, 'exports'), startX + 3, y + 6, { width: snW - 6, ellipsis: true });
       columns.forEach((col, i) => {
+        // col.label is user-authored — render as-is.
         doc.text(col.label, startX + snW + i * colW + 3, y + 6, { width: colW - 6, ellipsis: true });
       });
       y += hdrH;
@@ -1071,16 +1082,19 @@ export class ReportsService {
         y += rowH;
       });
 
-      doc.fillColor('#94A3B8').fontSize(8).text(`TempWorks — ${report.name}`, 36, (doc as any).page.height - 20, { align: 'center' });
+      // Footer brand prefix is localizable; report.name is user content.
+      const brand = tServer('common.footerBrand', {}, locale, 'exports');
+      doc.fillColor('#94A3B8').fontSize(8).text(`${brand} — ${report.name || ''}`.trim().replace(/—\s*$/, ''), 36, (doc as any).page.height - 20, { align: 'center' });
       doc.end();
     });
   }
 
   // ── Word ──────────────────────────────────────────────────────────────────
 
-  private async toWord(report: any, columns: any[], rows: any[]): Promise<{ buffer: Buffer; mimeType: string; filename: string }> {
+  private async toWord(report: any, columns: any[], rows: any[], locale: ServerLocale = 'en'): Promise<{ buffer: Buffer; mimeType: string; filename: string }> {
+    const rowNumLabel = tServer('reports.rowNumber', {}, locale, 'exports');
     const snHeaderCell = new TableCell({
-      children: [new Paragraph({ children: [new TextRun({ text: '#', bold: true, color: 'FFFFFF', size: 20 })], spacing: { before: 80, after: 80 } })],
+      children: [new Paragraph({ children: [new TextRun({ text: rowNumLabel, bold: true, color: 'FFFFFF', size: 20 })], spacing: { before: 80, after: 80 } })],
       shading: { fill: '2563EB' },
       margins: { top: 80, bottom: 80, left: 120, right: 120 },
     });
@@ -1115,11 +1129,14 @@ export class ReportsService {
       }),
     );
 
+    const generatedLabel = tServer('common.generatedAt', {}, locale, 'exports');
+    const recordsLabel   = tServer('common.recordsSuffix', {}, locale, 'exports');
+    const heading        = report.name || tServer('reports.fallbackTitle', {}, locale, 'exports');
     const docObj = new Document({
       sections: [{
         children: [
-          new Paragraph({ text: report.name, heading: HeadingLevel.HEADING_1 }),
-          new Paragraph({ children: [new TextRun({ text: `Generated: ${new Date().toLocaleString()}  |  ${rows.length} records`, color: '64748B', italics: true, size: 18 })] }),
+          new Paragraph({ text: heading, heading: HeadingLevel.HEADING_1 }),
+          new Paragraph({ children: [new TextRun({ text: `${generatedLabel}: ${new Date().toLocaleString()}  |  ${rows.length} ${recordsLabel}`, color: '64748B', italics: true, size: 18 })] }),
           ...(report.description ? [new Paragraph({ children: [new TextRun({ text: report.description, color: '94A3B8', size: 18 })] })] : []),
           new Paragraph({ text: '' }),
           new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: [new TableRow({ children: headerCells, tableHeader: true }), ...dataRows] }),

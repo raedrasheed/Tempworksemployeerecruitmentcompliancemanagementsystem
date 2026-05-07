@@ -18,7 +18,9 @@
  *    when the displayed month is locked
  */
 import { useState, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { attendanceApi } from '../../services/api';
+import { apiError } from '../../../i18n/apiError';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -97,6 +99,8 @@ interface Props {
 }
 
 export function AttendanceTab({ employeeId, employeeName, canWrite, canLock = false }: Props) {
+  const { t: tc } = useTranslation('common');
+  const { t: tp } = useTranslation('pages');
   const now = new Date();
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year,  setYear]  = useState(now.getFullYear());
@@ -199,7 +203,7 @@ export function AttendanceTab({ employeeId, employeeName, canWrite, canLock = fa
   };
 
   const handleSave = async () => {
-    if (!form.date) { toast.error('Pick a date'); return; }
+    if (!form.date) { toast.error(tc('toast.pickDate')); return; }
     setSaving(true);
     try {
       await attendanceApi.upsert({
@@ -212,11 +216,11 @@ export function AttendanceTab({ employeeId, employeeName, canWrite, canLock = fa
         breakOut: form.breakOut || undefined,
         notes:    form.notes    || undefined,
       });
-      toast.success(editingDate ? 'Attendance updated' : 'Attendance added');
+      toast.success(editingDate ? tp('attendance.toast.updated') : tp('attendance.toast.added'));
       setDialogOpen(false);
       load();
     } catch (err: any) {
-      toast.error(err?.message || 'Save failed');
+      toast.error(apiError(err, tc('toast.saveFailed')));
     } finally {
       setSaving(false);
     }
@@ -225,15 +229,15 @@ export function AttendanceTab({ employeeId, employeeName, canWrite, canLock = fa
   const handleDelete = async (recordId: string) => {
     try {
       await attendanceApi.delete(recordId);
-      toast.success('Row deleted');
+      toast.success(tc('toast.rowDeleted'));
       load();
     } catch (err: any) {
-      toast.error(err?.message || 'Delete failed');
+      toast.error(apiError(err, tc('toast.deleteFailed')));
     }
   };
 
   const handleBulkApply = async () => {
-    if (!bulkForm.dateFrom || !bulkForm.dateTo) { toast.error('Set a date range'); return; }
+    if (!bulkForm.dateFrom || !bulkForm.dateTo) { toast.error(tc('toast.setDateRange')); return; }
     setBulkSaving(true);
     try {
       const res = await attendanceApi.bulkApply({
@@ -250,11 +254,17 @@ export function AttendanceTab({ employeeId, employeeName, canWrite, canLock = fa
         skipWeekends: bulkForm.skipWeekends,
       });
       const s = res?.summary ?? {};
-      toast.success(`Applied: ${s.created ?? 0} new · ${s.updated ?? 0} updated · ${s.skipped_locked ?? 0} locked · ${s.skipped_existing ?? 0} skipped · ${s.errors ?? 0} errors`);
+      toast.success(tp('attendance.toast.bulkApplied', {
+        created: s.created ?? 0,
+        updated: s.updated ?? 0,
+        lockedCount: s.skipped_locked ?? 0,
+        skipped: s.skipped_existing ?? 0,
+        errors: s.errors ?? 0,
+      }));
       setBulkOpen(false);
       load();
     } catch (err: any) {
-      toast.error(err?.message || 'Bulk apply failed');
+      toast.error(apiError(err, tc('toast.operationFailed')));
     } finally {
       setBulkSaving(false);
     }
@@ -272,7 +282,7 @@ export function AttendanceTab({ employeeId, employeeName, canWrite, canLock = fa
       a.click();
       URL.revokeObjectURL(url);
     } catch (err: any) {
-      toast.error(err?.message || 'Export failed');
+      toast.error(apiError(err, tc('toast.exportFailed')));
     }
   };
 
@@ -280,14 +290,14 @@ export function AttendanceTab({ employeeId, employeeName, canWrite, canLock = fa
     try {
       if (currentPeriodLock) {
         await attendanceApi.unlockPeriod(currentPeriodLock.id);
-        toast.success(`${monthOptions()[month - 1].label} ${year} unlocked`);
+        toast.success(tp('attendance.toast.periodUnlocked', { month: monthOptions()[month - 1].label, year }));
       } else {
         await attendanceApi.lockPeriod({ year, month });
-        toast.success(`${monthOptions()[month - 1].label} ${year} locked`);
+        toast.success(tp('attendance.toast.periodLocked', { month: monthOptions()[month - 1].label, year }));
       }
       load();
     } catch (err: any) {
-      toast.error(err?.message || 'Lock operation failed');
+      toast.error(apiError(err, tc('toast.operationFailed')));
     }
   };
 
@@ -306,8 +316,8 @@ export function AttendanceTab({ employeeId, employeeName, canWrite, canLock = fa
             <CardTitle className="flex items-center gap-2">
               <CalendarIcon className="w-5 h-5" />Attendance &amp; Time Sheets
               {currentPeriodLock && (
-                <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 ml-2">
-                  <Lock className="w-3 h-3 mr-1" />Locked
+                <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 ms-2">
+                  <Lock className="w-3 h-3 me-1" />Locked
                 </Badge>
               )}
             </CardTitle>
@@ -325,21 +335,21 @@ export function AttendanceTab({ employeeId, employeeName, canWrite, canLock = fa
                 </SelectContent>
               </Select>
               <Button variant="outline" size="sm" onClick={handleExport}>
-                <Download className="w-4 h-4 mr-1" />Export
+                <Download className="w-4 h-4 me-1" />Export
               </Button>
               {canWrite && (
                 <Button size="sm" variant="outline" onClick={() => setBulkOpen(true)} disabled={!effectiveCanWrite}>
-                  <Layers className="w-4 h-4 mr-1" />Bulk Entry
+                  <Layers className="w-4 h-4 me-1" />Bulk Entry
                 </Button>
               )}
               {canWrite && (
                 <Button size="sm" onClick={() => openNew()} disabled={!effectiveCanWrite}>
-                  <Plus className="w-4 h-4 mr-1" />Add Day
+                  <Plus className="w-4 h-4 me-1" />Add Day
                 </Button>
               )}
               {canLock && (
                 <Button size="sm" variant={currentPeriodLock ? 'outline' : 'outline'} onClick={handleLockToggle}>
-                  <Lock className="w-4 h-4 mr-1" />{currentPeriodLock ? 'Unlock Month' : 'Lock Month'}
+                  <Lock className="w-4 h-4 me-1" />{currentPeriodLock ? 'Unlock Month' : 'Lock Month'}
                 </Button>
               )}
             </div>
@@ -376,21 +386,21 @@ export function AttendanceTab({ employeeId, employeeName, canWrite, canLock = fa
             <table className="w-full text-sm">
               <thead className="bg-muted/40 text-muted-foreground">
                 <tr>
-                  <th className="text-left px-3 py-2 font-medium w-16">Day</th>
-                  <th className="text-left px-3 py-2 font-medium">Date</th>
-                  <th className="text-left px-3 py-2 font-medium">Status</th>
-                  <th className="text-left px-3 py-2 font-medium">Check-in</th>
-                  <th className="text-left px-3 py-2 font-medium">Check-out</th>
-                  <th className="text-left px-3 py-2 font-medium">Break-in</th>
-                  <th className="text-left px-3 py-2 font-medium">Break-out</th>
-                  <th className="text-right px-3 py-2 font-medium">Total</th>
-                  <th className="text-left px-3 py-2 font-medium">Notes</th>
+                  <th className="text-start px-3 py-2 font-medium w-16">Day</th>
+                  <th className="text-start px-3 py-2 font-medium">Date</th>
+                  <th className="text-start px-3 py-2 font-medium">Status</th>
+                  <th className="text-start px-3 py-2 font-medium">Check-in</th>
+                  <th className="text-start px-3 py-2 font-medium">Check-out</th>
+                  <th className="text-start px-3 py-2 font-medium">Break-in</th>
+                  <th className="text-start px-3 py-2 font-medium">Break-out</th>
+                  <th className="text-end px-3 py-2 font-medium">Total</th>
+                  <th className="text-start px-3 py-2 font-medium">Notes</th>
                   <th className="px-3 py-2 w-24" />
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={10} className="p-6 text-center text-muted-foreground">Loading…</td></tr>
+                  <tr><td colSpan={10} className="p-6 text-center text-muted-foreground">{tc('states.loading')}</td></tr>
                 ) : (
                   allDays.map(d => {
                     const rec = byDay.get(d);
@@ -402,7 +412,7 @@ export function AttendanceTab({ employeeId, employeeName, canWrite, canLock = fa
                         <td className="px-3 py-1.5 text-muted-foreground">{d}</td>
                         <td className="px-3 py-1.5">
                           {dateStr}
-                          {isWeekend && <span className="text-xs text-muted-foreground ml-1">· {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dateObj.getUTCDay()]}</span>}
+                          {isWeekend && <span className="text-xs text-muted-foreground ms-1">· {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dateObj.getUTCDay()]}</span>}
                         </td>
                         <td className="px-3 py-1.5">
                           {rec ? (
@@ -417,9 +427,9 @@ export function AttendanceTab({ employeeId, employeeName, canWrite, canLock = fa
                         <td className="px-3 py-1.5 font-mono">{rec?.checkOut ?? '—'}</td>
                         <td className="px-3 py-1.5 font-mono">{rec?.breakIn  ?? '—'}</td>
                         <td className="px-3 py-1.5 font-mono">{rec?.breakOut ?? '—'}</td>
-                        <td className="px-3 py-1.5 text-right font-medium">{formatHours(rec?.workingHours)}</td>
+                        <td className="px-3 py-1.5 text-end font-medium">{formatHours(rec?.workingHours)}</td>
                         <td className="px-3 py-1.5 text-muted-foreground truncate max-w-xs">{rec?.notes ?? ''}</td>
-                        <td className="px-3 py-1.5 text-right whitespace-nowrap">
+                        <td className="px-3 py-1.5 text-end whitespace-nowrap">
                           {canWrite && effectiveCanWrite && (
                             <>
                               <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => openNew(dateStr)}>
@@ -498,8 +508,8 @@ export function AttendanceTab({ employeeId, employeeName, canWrite, canLock = fa
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}><X className="w-4 h-4 mr-2" />Cancel</Button>
-            <Button onClick={handleSave} disabled={saving}><Save className="w-4 h-4 mr-2" />{saving ? 'Saving…' : 'Save'}</Button>
+            <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}><X className="w-4 h-4 me-2" />{tc('actions.cancel')}</Button>
+            <Button onClick={handleSave} disabled={saving}><Save className="w-4 h-4 me-2" />{saving ? 'Saving…' : 'Save'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -557,8 +567,8 @@ export function AttendanceTab({ employeeId, employeeName, canWrite, canLock = fa
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setBulkOpen(false)} disabled={bulkSaving}><X className="w-4 h-4 mr-2" />Cancel</Button>
-            <Button onClick={handleBulkApply} disabled={bulkSaving}><Layers className="w-4 h-4 mr-2" />{bulkSaving ? 'Applying…' : 'Apply'}</Button>
+            <Button variant="outline" onClick={() => setBulkOpen(false)} disabled={bulkSaving}><X className="w-4 h-4 me-2" />{tc('actions.cancel')}</Button>
+            <Button onClick={handleBulkApply} disabled={bulkSaving}><Layers className="w-4 h-4 me-2" />{bulkSaving ? 'Applying…' : 'Apply'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

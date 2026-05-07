@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import {
   ArrowLeft,
   Pencil,
@@ -17,6 +18,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { apiError } from '../../../i18n/apiError';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
@@ -117,6 +119,8 @@ function BulkFillModal({
   records,
   onSuccess,
 }: BulkFillModalProps) {
+  const { t: tp } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const [status, setStatus] = useState('PRESENT');
   const [overwrite, setOverwrite] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -128,7 +132,7 @@ function BulkFillModal({
 
   const handleBulkFill = async () => {
     if (targetDays.length === 0) {
-      toast.info('No days to fill.');
+      toast.info(tp('attendance.toast.noDays'));
       return;
     }
     setSaving(true);
@@ -142,11 +146,11 @@ function BulkFillModal({
           }),
         ),
       );
-      toast.success(`Filled ${targetDays.length} day(s) as ${statusLabels[status]}`);
+      toast.success(tp('attendance.toast.filledDays', { count: targetDays.length, label: statusLabels[status] }));
       onSuccess();
       onClose();
     } catch (err: any) {
-      toast.error(err?.message || 'Bulk fill failed');
+      toast.error(apiError(err, tc('toast.operationFailed')));
     } finally {
       setSaving(false);
     }
@@ -240,6 +244,8 @@ interface EditForm {
 // ─── Main Component ─────────────────────────────────────────────────────────────
 
 export function AttendanceSheet() {
+  const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
@@ -368,20 +374,20 @@ export function AttendanceSheet() {
 
       if (editRecord?.id) {
         await attendanceApi.update(editRecord.id, payload);
-        toast.success('Attendance record updated');
+        toast.success(t('attendance.toast.recordUpdated'));
       } else {
         await attendanceApi.upsert({
           employeeId: id,
           date: editDate,
           ...payload,
         });
-        toast.success('Attendance record saved');
+        toast.success(t('attendance.toast.recordSaved'));
       }
 
       setShowEditModal(false);
       fetchData();
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to save attendance record');
+      toast.error(apiError(err, tc('toast.saveFailed')));
     } finally {
       setSaving(false);
     }
@@ -392,12 +398,12 @@ export function AttendanceSheet() {
     setDeleting(true);
     try {
       await attendanceApi.delete(deleteRecord.id);
-      toast.success('Attendance record deleted');
+      toast.success(t('attendance.toast.recordDeleted'));
       setShowDeleteModal(false);
       setDeleteRecord(null);
       fetchData();
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to delete attendance record');
+      toast.error(apiError(err, tc('toast.deleteFailed')));
     } finally {
       setDeleting(false);
     }
@@ -430,9 +436,9 @@ export function AttendanceSheet() {
           variant="ghost"
           size="sm"
           onClick={() => navigate('/dashboard/attendance')}
-          className="text-muted-foreground hover:text-foreground -ml-2"
+          className="text-muted-foreground hover:text-foreground -ms-2"
         >
-          <ArrowLeft className="w-4 h-4 mr-1" />
+          <ArrowLeft className="w-4 h-4 me-1" />
           Back to Attendance Sheets
         </Button>
       </div>
@@ -524,7 +530,7 @@ export function AttendanceSheet() {
                   size="sm"
                   onClick={() => setShowBulkFill(true)}
                 >
-                  <ClipboardList className="w-4 h-4 mr-1" />
+                  <ClipboardList className="w-4 h-4 me-1" />
                   Fill Month
                 </Button>
                 <Button
@@ -604,11 +610,11 @@ export function AttendanceSheet() {
                     <TableHead className="w-24">Date</TableHead>
                     <TableHead className="w-16">Day</TableHead>
                     <TableHead className="w-32">Status</TableHead>
-                    <TableHead className="w-24">Check In</TableHead>
-                    <TableHead className="w-24">Check Out</TableHead>
+                    <TableHead className="w-24">{t('attendance.sheet.checkIn')}</TableHead>
+                    <TableHead className="w-24">{t('attendance.sheet.checkOut')}</TableHead>
                     <TableHead className="w-20">Hours</TableHead>
                     <TableHead>Notes</TableHead>
-                    <TableHead className="text-right w-24">Actions</TableHead>
+                    <TableHead className="text-end w-24">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -640,7 +646,7 @@ export function AttendanceSheet() {
                             {day.dayName}
                           </span>
                           {isWeekend && (
-                            <span className="ml-1 text-xs text-muted-foreground opacity-60">
+                            <span className="ms-1 text-xs text-muted-foreground opacity-60">
                               ·
                             </span>
                           )}
@@ -696,7 +702,7 @@ export function AttendanceSheet() {
                         </TableCell>
 
                         {/* Actions */}
-                        <TableCell className="text-right">
+                        <TableCell className="text-end">
                           <div className="flex items-center justify-end gap-1">
                             {record ? (
                               <>
@@ -706,7 +712,7 @@ export function AttendanceSheet() {
                                   onClick={() => openEditModal(record, day.date)}
                                   className="h-7 px-2"
                                 >
-                                  <Pencil className="w-3.5 h-3.5 mr-1" />
+                                  <Pencil className="w-3.5 h-3.5 me-1" />
                                   Edit
                                 </Button>
                                 <Button
@@ -725,7 +731,7 @@ export function AttendanceSheet() {
                                 onClick={() => openEditModal(null, day.date)}
                                 className="h-7 px-2 text-muted-foreground hover:text-foreground"
                               >
-                                <Plus className="w-3.5 h-3.5 mr-1" />
+                                <Plus className="w-3.5 h-3.5 me-1" />
                                 Add
                               </Button>
                             )}
@@ -793,7 +799,7 @@ export function AttendanceSheet() {
             <div className="grid grid-cols-2 gap-3">
               {/* Check In */}
               <div className="space-y-1.5">
-                <Label htmlFor="edit-checkin">Check In</Label>
+                <Label htmlFor="edit-checkin">{t('attendance.sheet.checkIn')}</Label>
                 <Input
                   id="edit-checkin"
                   type="time"
@@ -805,7 +811,7 @@ export function AttendanceSheet() {
 
               {/* Check Out */}
               <div className="space-y-1.5">
-                <Label htmlFor="edit-checkout">Check Out</Label>
+                <Label htmlFor="edit-checkout">{t('attendance.sheet.checkOut')}</Label>
                 <Input
                   id="edit-checkout"
                   type="time"
@@ -820,7 +826,7 @@ export function AttendanceSheet() {
             <div className="space-y-1.5">
               <Label htmlFor="edit-hours">
                 Working Hours
-                <span className="text-xs text-muted-foreground ml-2">
+                <span className="text-xs text-muted-foreground ms-2">
                   (auto-calculated from check in/out)
                 </span>
               </Label>
@@ -894,20 +900,20 @@ export function AttendanceSheet() {
             {deleteRecord && (
               <div className="mt-3 p-3 rounded-md bg-muted/40 text-sm space-y-1">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Status:</span>
+                  <span className="text-muted-foreground">{t('attendance.sheet.status')}</span>
                   <Badge variant="outline" className={`text-xs ${statusColors[deleteRecord.status] ?? ''}`}>
                     {statusLabels[deleteRecord.status] ?? deleteRecord.status}
                   </Badge>
                 </div>
                 {deleteRecord.checkIn && (
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Check In:</span>
+                    <span className="text-muted-foreground">{t('attendance.sheet.checkInLabel')}</span>
                     <span className="font-mono">{deleteRecord.checkIn}</span>
                   </div>
                 )}
                 {deleteRecord.checkOut && (
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Check Out:</span>
+                    <span className="text-muted-foreground">{t('attendance.sheet.checkOutLabel')}</span>
                     <span className="font-mono">{deleteRecord.checkOut}</span>
                   </div>
                 )}
@@ -919,7 +925,7 @@ export function AttendanceSheet() {
               Cancel
             </Button>
             <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
-              <Trash2 className="w-4 h-4 mr-1" />
+              <Trash2 className="w-4 h-4 me-1" />
               {deleting ? 'Deleting…' : 'Delete Record'}
             </Button>
           </DialogFooter>

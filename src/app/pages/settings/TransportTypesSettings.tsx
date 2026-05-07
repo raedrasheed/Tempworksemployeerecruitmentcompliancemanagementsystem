@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { settingsApi } from '../../services/api';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -11,6 +12,8 @@ import { usePermissions } from '../../hooks/usePermissions';
 const DEFAULTS = ['International', 'Domestic', 'Bilateral', 'Cabotage', 'Hazardous', 'Refrigerated'];
 
 export function TransportTypesSettings() {
+  const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const { canEdit } = usePermissions();
   const isAdmin = canEdit('settings');
   const [items, setItems] = useState<string[]>([]);
@@ -43,15 +46,15 @@ export function TransportTypesSettings() {
     setSaving(true);
     try {
       await settingsApi.update({ 'form.transportTypes': JSON.stringify(items) });
-      toast.success('Transport Types saved');
+      toast.success(tc('toast.savedSuccessfully'));
     } catch {
-      toast.error('Failed to save');
+      toast.error(tc('toast.saveFailed'));
     } finally {
       setSaving(false);
     }
   };
 
-  if (!isAdmin) return <div className="text-center py-16 text-muted-foreground">Access denied.</div>;
+  if (!isAdmin) return <div className="text-center py-16 text-muted-foreground">{t('settings.transportTypes.accessDenied')}</div>;
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -60,15 +63,15 @@ export function TransportTypesSettings() {
           <Link to="/dashboard/settings"><ArrowLeft className="w-5 h-5" /></Link>
         </Button>
         <div>
-          <h1 className="text-2xl font-semibold">Transport Types</h1>
-          <p className="text-muted-foreground text-sm mt-0.5">Manage the transport types shown in the Driving Experience step</p>
+          <h1 className="text-2xl font-semibold">{t('settings.transportTypes.headerTitle')}</h1>
+          <p className="text-muted-foreground text-sm mt-0.5">{t('settings.transportTypes.headerSubtitle')}</p>
         </div>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Add New Type</CardTitle>
-          <CardDescription>New types will appear as checkboxes in the Transport Types section</CardDescription>
+          <CardTitle>{t('settings.transportTypes.addCardTitle')}</CardTitle>
+          <CardDescription>{t('settings.transportTypes.addCardDesc')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex gap-2">
@@ -87,9 +90,9 @@ export function TransportTypesSettings() {
         <CardHeader><CardTitle>Current Types ({items.length})</CardTitle></CardHeader>
         <CardContent>
           {loading ? (
-            <p className="text-sm text-muted-foreground">Loading...</p>
+            <p className="text-sm text-muted-foreground">{t('settings.transportTypes.loading')}</p>
           ) : items.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-6 border-2 border-dashed rounded-lg">No types defined yet.</p>
+            <p className="text-sm text-muted-foreground text-center py-6 border-2 border-dashed rounded-lg">{t('settings.transportTypes.empty')}</p>
           ) : (
             <div className="space-y-2">
               {items.map(item => (
@@ -107,7 +110,7 @@ export function TransportTypesSettings() {
 
       <Button onClick={handleSave} disabled={saving} className="gap-2">
         <Save className="w-4 h-4" />
-        {saving ? 'Saving...' : 'Save Changes'}
+        {saving ? t('settings.transportTypes.saving') : t('settings.transportTypes.saveChanges')}
       </Button>
     </div>
   );

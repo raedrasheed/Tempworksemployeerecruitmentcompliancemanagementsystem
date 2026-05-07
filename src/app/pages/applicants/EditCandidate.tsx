@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { applicantsApi, settingsApi, agenciesApi } from '../../services/api';
+import { apiError, fieldErrors as resolveFieldErrors, isValidationError } from '../../../i18n/apiError';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent } from '../../components/ui/card';
 import { Label } from '../../components/ui/label';
@@ -13,6 +15,8 @@ const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1'
 import { ApplicantFormSteps, EMPTY_FORM, getVisibleTabs, StepIndicator, FormSettings, DEFAULT_FORM_SETTINGS, ApplicantFormData } from '../../components/applicants/ApplicantFormSteps';
 
 export function EditCandidate() {
+  const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const navigate = useNavigate();
   const { id } = useParams();
   const { canEdit } = usePermissions();
@@ -27,6 +31,7 @@ export function EditCandidate() {
   const [existingPhotoUrl, setExistingPhotoUrl] = useState<string | undefined>();
   const [agencies, setAgencies] = useState<any[]>([]);
   const [agencyId, setAgencyId] = useState<string>('');
+  const [fieldErrs, setFieldErrs] = useState<Record<string, string>>({});
 
   const visibleTabs = useMemo(() => getVisibleTabs(formData), [formData.hasDrivingLicense]);
 
@@ -56,7 +61,7 @@ export function EditCandidate() {
       setAgencyId(applicant.agencyId || '');
       if (applicant.photoUrl) setExistingPhotoUrl(applicant.photoUrl.startsWith('http') ? applicant.photoUrl : `${API_BASE}${applicant.photoUrl}`);
     }).catch(() => {
-      toast.error('Failed to load applicant data');
+      toast.error(t('applicants.toast.loadFailed'));
     }).finally(() => setLoading(false));
   }, [id]);
 
@@ -108,7 +113,7 @@ export function EditCandidate() {
       setExistingPhotoUrl(resolvedUrl);
       setPhotoFile(null);
     } catch (photoErr: any) {
-      toast.error(`Profile saved but photo upload failed: ${photoErr?.message ?? 'Unknown error'}`);
+      toast.error(t('applicants.toast.savedButPhotoFailed', { error: photoErr?.message ?? tc('toast.errorGeneric') }));
       throw photoErr;
     }
   };
@@ -119,10 +124,11 @@ export function EditCandidate() {
     try {
       await applicantsApi.update(id, buildPayload());
       await uploadPhotoIfNeeded();
-      toast.success('Candidate updated successfully');
+      toast.success(tc('toast.savedSuccessfully'));
     } catch (err: any) {
       if (!err?.message?.includes('photo upload failed')) {
-        toast.error(err?.message || 'Failed to update applicant');
+        if (isValidationError(err)) setFieldErrs(resolveFieldErrors(err));
+        toast.error(apiError(err, tc('toast.saveFailed')));
       }
     } finally {
       setSubmitting(false);
@@ -135,11 +141,12 @@ export function EditCandidate() {
     try {
       await applicantsApi.update(id, buildPayload());
       await uploadPhotoIfNeeded();
-      toast.success('Candidate updated successfully');
+      toast.success(tc('toast.savedSuccessfully'));
       navigate(`/dashboard/candidates/${id}`);
     } catch (err: any) {
       if (!err?.message?.includes('photo upload failed')) {
-        toast.error(err?.message || 'Failed to update applicant');
+        if (isValidationError(err)) setFieldErrs(resolveFieldErrors(err));
+        toast.error(apiError(err, tc('toast.saveFailed')));
       }
     } finally {
       setSubmitting(false);
@@ -147,15 +154,15 @@ export function EditCandidate() {
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center h-64 text-muted-foreground">Loading...</div>;
+    return <div className="flex items-center justify-center h-64 text-muted-foreground">{tc('states.loading')}</div>;
   }
 
   if (!canEdit('applicants')) {
     return (
       <div className="flex flex-col items-center justify-center py-24 gap-3 text-muted-foreground">
         <ShieldOff className="w-12 h-12 opacity-30" />
-        <p className="text-lg font-semibold">Access Denied</p>
-        <p className="text-sm">You don't have permission to perform this action.</p>
+        <p className="text-lg font-semibold">{tc('permissions.accessDenied')}</p>
+        <p className="text-sm">{tc('permissions.noPermission')}</p>
       </div>
     );
   }
@@ -169,21 +176,21 @@ export function EditCandidate() {
           </Link>
         </Button>
         <div>
-          <h1 className="text-3xl font-semibold">Edit Candidate</h1>
-          <p className="text-muted-foreground mt-1">Update applicant information - ID: {id}</p>
+          <h1 className="text-3xl font-semibold">{t('applicants.edit.title')}</h1>
+          <p className="text-muted-foreground mt-1">{t('applicants.editPage.candidateSubtitle', { id })}</p>
         </div>
       </div>
 
       <Card>
         <CardContent className="pt-6 pb-6">
           <div className="max-w-sm">
-            <Label htmlFor="agencyId" className="mb-2 block">Agency <span className="text-muted-foreground font-normal">(optional)</span></Label>
+            <Label htmlFor="agencyId" className="mb-2 block">{t('applicants.addPage.agencyLabel')} <span className="text-muted-foreground font-normal">{t('applicants.addPage.agencyOptional')}</span></Label>
             <Select value={agencyId || 'none'} onValueChange={(v) => setAgencyId(v === 'none' ? '' : v)}>
               <SelectTrigger id="agencyId">
-                <SelectValue placeholder="Select agency..." />
+                <SelectValue placeholder={t('applicants.addPage.selectAgencyPh')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">No Agency</SelectItem>
+                <SelectItem value="none">{t('applicants.addPage.noAgency')}</SelectItem>
                 {agencies.map((a) => (
                   <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
                 ))}
@@ -213,6 +220,7 @@ export function EditCandidate() {
             photoFile={photoFile}
             onPhotoChange={setPhotoFile}
             existingPhotoUrl={existingPhotoUrl}
+            fieldErrors={fieldErrs}
           />
 
           <div className="flex justify-between pt-8 border-t mt-8">

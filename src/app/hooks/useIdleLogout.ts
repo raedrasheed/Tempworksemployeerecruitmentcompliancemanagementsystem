@@ -15,6 +15,7 @@
 import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
+import i18n from '../../i18n';
 import { authApi } from '../services/api';
 
 const ACTIVITY_KEY   = 'last-activity-ts';
@@ -61,14 +62,14 @@ export function useIdleLogout(timeoutMinutes: number | null | undefined) {
         // Stop reacting to further ticks / events before we navigate.
         localStorage.removeItem(ACTIVITY_KEY);
         try { await authApi.logout(); } catch { /* already gone */ }
-        toast.warning('You were signed out after a period of inactivity.');
+        toast.warning(i18n.t('toast.idleSignedOut', { ns: 'common' }));
         navigate('/login', { replace: true });
         return;
       }
 
       if (!warnedRef.current && idleMs >= timeoutMs - WARN_BEFORE_MS) {
         warnedRef.current = true;
-        toast.warning('You will be signed out in one minute due to inactivity. Move the mouse or press a key to stay signed in.');
+        toast.warning(i18n.t('toast.idleWarning', { ns: 'common' }));
       }
     }, 15_000);
 

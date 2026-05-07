@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslation } from "react-i18next";
 import useEmblaCarousel, {
   type UseEmblaCarouselType,
 } from "embla-carousel-react";
@@ -144,7 +145,7 @@ function CarouselContent({ className, ...props }: React.ComponentProps<"div">) {
       <div
         className={cn(
           "flex",
-          orientation === "horizontal" ? "-ml-4" : "-mt-4 flex-col",
+          orientation === "horizontal" ? "-ms-4" : "-mt-4 flex-col",
           className,
         )}
         {...props}
@@ -163,7 +164,7 @@ function CarouselItem({ className, ...props }: React.ComponentProps<"div">) {
       data-slot="carousel-item"
       className={cn(
         "min-w-0 shrink-0 grow-0 basis-full",
-        orientation === "horizontal" ? "pl-4" : "pt-4",
+        orientation === "horizontal" ? "ps-4" : "pt-4",
         className,
       )}
       {...props}
@@ -177,6 +178,7 @@ function CarouselPrevious({
   size = "icon",
   ...props
 }: React.ComponentProps<typeof Button>) {
+  const { t } = useTranslation("ui");
   const { orientation, scrollPrev, canScrollPrev } = useCarousel();
 
   return (
@@ -196,7 +198,7 @@ function CarouselPrevious({
       {...props}
     >
       <ArrowLeft />
-      <span className="sr-only">Previous slide</span>
+      <span className="sr-only">{t("carousel.previous")}</span>
     </Button>
   );
 }
@@ -207,6 +209,7 @@ function CarouselNext({
   size = "icon",
   ...props
 }: React.ComponentProps<typeof Button>) {
+  const { t } = useTranslation("ui");
   const { orientation, scrollNext, canScrollNext } = useCarousel();
 
   return (
@@ -226,7 +229,7 @@ function CarouselNext({
       {...props}
     >
       <ArrowRight />
-      <span className="sr-only">Next slide</span>
+      <span className="sr-only">{t("carousel.next")}</span>
     </Button>
   );
 }

@@ -3,6 +3,8 @@ import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { PrismaModule } from './prisma/prisma.module';
+import { StorageModule } from './common/storage/storage.module';
+import { I18nModule } from './common/i18n/i18n.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { RolesModule } from './roles/roles.module';
@@ -31,7 +33,9 @@ import { EmailModule } from './email/email.module';
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
+    I18nModule,
     PrismaModule,
+    StorageModule,
     EmailModule,
     AuthModule,
     UsersModule,

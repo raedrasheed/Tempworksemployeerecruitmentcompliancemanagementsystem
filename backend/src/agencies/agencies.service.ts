@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, ConflictException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { StorageService } from '../common/storage/storage.service';
 import { CreateAgencyDto } from './dto/create-agency.dto';
 import { UpdateAgencyDto } from './dto/update-agency.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
@@ -7,7 +8,10 @@ import { PaginatedResponse } from '../common/dto/pagination-response.dto';
 
 @Injectable()
 export class AgenciesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private storage: StorageService,
+  ) {}
 
   private get include() {
     return { _count: { select: { users: true, employees: true } } };
@@ -165,19 +169,29 @@ export class AgenciesService {
   }
 
   async uploadLogo(id: string, file: Express.Multer.File, actorId?: string) {
-    await this.findOne(id);
+    const existing = await this.findOne(id);
     if (!file) throw new BadRequestException('No logo file provided');
-    // Files land under uploads/; the public URL follows the same `/uploads/<file>`
-    // convention used by employee/applicant photo uploads.
-    const logoUrl = `/uploads/${file.filename}`;
+
+    const upload = await this.storage.uploadFile(file.buffer, {
+      keyPrefix: `agencies/${id}/logos`,
+      contentType: file.mimetype,
+      originalName: file.originalname,
+      inline: true,
+    });
+
     const agency = await this.prisma.agency.update({
       where: { id },
-      data: { logoUrl },
+      data: { logoUrl: upload.url },
       include: this.include,
     });
+
+    if ((existing as any)?.logoUrl && (existing as any).logoUrl !== upload.url) {
+      await this.storage.deleteFileByUrlOrKey((existing as any).logoUrl);
+    }
+
     if (actorId) {
       await this.prisma.auditLog.create({
-        data: { userId: actorId, action: 'UPDATE_LOGO', entity: 'Agency', entityId: id, changes: { logoUrl } as any },
+        data: { userId: actorId, action: 'UPDATE_LOGO', entity: 'Agency', entityId: id, changes: { logoUrl: upload.url } as any },
       });
     }
     return agency;

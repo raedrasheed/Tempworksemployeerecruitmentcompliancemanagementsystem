@@ -5,8 +5,9 @@ import { Toaster } from './components/ui/sonner';
 import { ConfirmDialogHost } from './components/ui/ConfirmDialog';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { LanguageProvider } from '../i18n/LanguageContext';
 import { useBranding } from './hooks/useBranding';
-import { BACKEND_URL } from './services/api';
+import { resolveAssetUrl } from './services/api';
 
 function FaviconSync() {
   const branding = useBranding();
@@ -14,7 +15,7 @@ function FaviconSync() {
   useEffect(() => {
     const { logoUrl } = branding;
     if (!logoUrl) return;
-    const href = logoUrl.startsWith('http') ? logoUrl : `${BACKEND_URL}${logoUrl}`;
+    const href = resolveAssetUrl(logoUrl);
     const link = document.getElementById('favicon') as HTMLLinkElement | null;
     if (link) link.href = href;
   }, [branding.logoUrl]);
@@ -25,12 +26,14 @@ function FaviconSync() {
 export default function App() {
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <FaviconSync />
-        <RouterProvider router={router} />
-        <Toaster />
-        <ConfirmDialogHost />
-      </AuthProvider>
+      <LanguageProvider>
+        <AuthProvider>
+          <FaviconSync />
+          <RouterProvider router={router} />
+          <Toaster />
+          <ConfirmDialogHost />
+        </AuthProvider>
+      </LanguageProvider>
     </ThemeProvider>
   );
 }

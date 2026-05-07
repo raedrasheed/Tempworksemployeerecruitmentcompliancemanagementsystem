@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Plus, Trash2, Save, Truck, Edit2, X, Wrench } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '../../components/ui/button';
@@ -10,6 +11,7 @@ import { Badge } from '../../components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Textarea } from '../../components/ui/textarea';
 import { settingsApi, vehiclesApi } from '../../services/api';
+import { apiError } from '../../../i18n/apiError';
 import { usePermissions } from '../../hooks/usePermissions';
 import { confirm } from '../../components/ui/ConfirmDialog';
 
@@ -112,12 +114,13 @@ function LookupListEditor({
   canEdit:  boolean;
 }) {
   const [draft, setDraft] = useState('');
+  const { t: tCommon } = useTranslation('common');
 
   const add = () => {
     const trimmed = draft.trim();
     if (!trimmed) return;
     if (values.some((v) => v.toLowerCase() === trimmed.toLowerCase())) {
-      toast.error('This value already exists');
+      toast.error(tCommon('toast.valueAlreadyExists'));
       return;
     }
     onChange([...values, trimmed]);
@@ -199,12 +202,14 @@ function MaintenanceTypesEditor({
   saving: boolean;
   canEdit: boolean;
 }) {
+  const { t } = useTranslation('common');
+  const { t: tp } = useTranslation('pages');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<MaintenanceTypeForm>(INITIAL_MT_FORM);
 
   const handleSave = async () => {
     if (!form.name.trim()) {
-      toast.error('Name is required');
+      toast.error(t('toast.nameRequired'));
       return;
     }
 
@@ -220,15 +225,15 @@ function MaintenanceTypesEditor({
     try {
       if (editingId) {
         await onUpdate(editingId, payload);
-        toast.success('Maintenance type updated');
+        toast.success(t('toast.savedSuccessfully'));
       } else {
         await onAdd(payload);
-        toast.success('Maintenance type created');
+        toast.success(t('toast.savedSuccessfully'));
       }
       setForm(INITIAL_MT_FORM);
       setEditingId(null);
     } catch (err: any) {
-      toast.error(err?.message ?? 'Failed to save');
+      toast.error(apiError(err, t('toast.saveFailed')));
     }
   };
 
@@ -250,17 +255,17 @@ function MaintenanceTypesEditor({
 
   const handleDelete = async (id: string, name: string) => {
     if (!(await confirm({
-      title: 'Delete maintenance type?',
-      description: `"${name}" will be deleted. Existing records using this type will not be affected.`,
-      confirmText: 'Delete',
+      title: t('confirm.deleteMaintenanceTypeTitle'),
+      description: t('confirm.deleteMaintenanceTypeBodyNamed', { name }),
+      confirmText: t('actions.delete'),
       tone: 'destructive',
     }))) return;
 
     try {
       await onDelete(id);
-      toast.success('Maintenance type deleted');
+      toast.success(t('toast.deleted'));
     } catch {
-      toast.error('Failed to delete maintenance type');
+      toast.error(t('toast.deleteFailed'));
     }
   };
 
@@ -276,7 +281,7 @@ function MaintenanceTypesEditor({
           <h3 className="text-sm font-semibold mb-4">{editingId ? 'Edit' : 'Add'} Maintenance Type</h3>
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-medium">Name *</label>
+              <label className="text-sm font-medium">{tp('settings.maintenanceTypes.nameLabel')}</label>
               <Input
                 placeholder="e.g. Oil Change, Brake Service, Annual Inspection"
                 value={form.name}
@@ -299,7 +304,7 @@ function MaintenanceTypesEditor({
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium">Default Interval (Days)</label>
+                <label className="text-sm font-medium">{tp('settings.maintenanceTypes.intervalDaysLabel')}</label>
                 <Input
                   type="number"
                   placeholder="e.g. 365"
@@ -311,7 +316,7 @@ function MaintenanceTypesEditor({
                 />
               </div>
               <div>
-                <label className="text-sm font-medium">Default Interval (km)</label>
+                <label className="text-sm font-medium">{tp('settings.maintenanceTypes.intervalKmLabel')}</label>
                 <Input
                   type="number"
                   placeholder="e.g. 10000"
@@ -325,19 +330,19 @@ function MaintenanceTypesEditor({
             </div>
 
             <div>
-              <label className="text-sm font-medium">Interval Mode</label>
+              <label className="text-sm font-medium">{tp('settings.maintenanceTypes.intervalModeLabel')}</label>
               <Select value={form.intervalMode} onValueChange={(v: any) => setForm(prev => ({ ...prev, intervalMode: v }))}>
                 <SelectTrigger className="mt-1" disabled={!canEdit}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="DAYS">Days only</SelectItem>
-                  <SelectItem value="KM">Kilometers only</SelectItem>
-                  <SelectItem value="BOTH">Whichever comes first (Days & KM)</SelectItem>
+                  <SelectItem value="DAYS">{tp('settings.maintenanceTypes.modeDays')}</SelectItem>
+                  <SelectItem value="KM">{tp('settings.maintenanceTypes.modeKm')}</SelectItem>
+                  <SelectItem value="BOTH">{tp('settings.maintenanceTypes.modeBoth')}</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground mt-1">
-                Determines if service is due based on time, mileage, or whichever threshold is reached first.
+                {tp('settings.maintenanceTypes.intervalModeHelper')}
               </p>
             </div>
 
@@ -357,7 +362,7 @@ function MaintenanceTypesEditor({
 
         {/* List Section */}
         {types.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-8">No maintenance types defined yet. Create one above.</p>
+          <p className="text-sm text-muted-foreground text-center py-8">{tp('settings.maintenanceTypes.empty')}</p>
         ) : (
           <div className="space-y-2">
             {types.map((mt) => (
@@ -409,6 +414,8 @@ function MaintenanceTypesEditor({
 }
 
 export function VehicleSettings() {
+  const { t: tv } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const { canEdit } = usePermissions();
   const isAdmin = canEdit('settings');
   const [data, setData] = useState<Record<LookupKey, string[]> | null>(null);
@@ -432,7 +439,7 @@ export function VehicleSettings() {
         setOriginal(JSON.parse(JSON.stringify(safe)));
         setMaintenanceTypes(mtypes);
       })
-      .catch(() => toast.error('Failed to load vehicle settings'))
+      .catch(() => toast.error(tc('toast.loadFailed')))
       .finally(() => setLoading(false));
   };
 
@@ -462,17 +469,17 @@ export function VehicleSettings() {
       for (const key of dirtyKeys) {
         await settingsApi.updateVehicleSetting(key, data[key]);
       }
-      toast.success(`Saved ${dirtyKeys.length} list${dirtyKeys.length === 1 ? '' : 's'}`);
+      toast.success(tc('toast.savedListsCount', { count: dirtyKeys.length }));
       setOriginal(JSON.parse(JSON.stringify(data)));
     } catch (err: any) {
-      toast.error(err?.message ?? 'Failed to save settings');
+      toast.error(apiError(err, tc('toast.saveFailed')));
     } finally {
       setSaving(false);
     }
   };
 
   if (!isAdmin) {
-    return <div className="text-center py-16 text-muted-foreground">Access denied.</div>;
+    return <div className="text-center py-16 text-muted-foreground">{tv('settings.vehicleSettings.accessDenied')}</div>;
   }
 
   return (
@@ -484,7 +491,7 @@ export function VehicleSettings() {
           </Button>
           <div>
             <h1 className="text-2xl font-semibold flex items-center gap-2">
-              <Truck className="w-6 h-6 text-blue-600" /> Vehicle Settings
+              <Truck className="w-6 h-6 text-blue-600" /> {tv('settings.vehicleSettings.title')}
             </h1>
             <p className="text-muted-foreground text-sm mt-0.5">
               Centralised configuration for every editable list shown on the vehicle form
@@ -498,7 +505,7 @@ export function VehicleSettings() {
       </div>
 
       {loading || !data ? (
-        <p className="text-sm text-muted-foreground">Loading…</p>
+        <p className="text-sm text-muted-foreground">{tv('settings.vehicleSettings.loading')}</p>
       ) : (
         <Tabs defaultValue="common" className="w-full">
           <TabsList className="flex flex-wrap gap-1">

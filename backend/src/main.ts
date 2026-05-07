@@ -1,5 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Catch, ArgumentsHost, ExceptionFilter, HttpException, HttpStatus, Logger } from '@nestjs/common';
+import { I18nExceptionFilter } from './common/i18n/i18n-exception.filter';
+import { validationExceptionFactory } from './common/errors/validation-exception.factory';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import * as express from 'express';
@@ -572,6 +574,13 @@ async function runStartupMigrations() {
     } else {
       logger.log('documents — no phantom profile-photo rows found');
     }
+
+    // Phase 4 i18n: per-locale translation overrides on user-editable label tables.
+    // Idempotent — adds nullable JSONB columns if missing.
+    await client.query(`ALTER TABLE "document_types"  ADD COLUMN IF NOT EXISTS "translations" JSONB`);
+    await client.query(`ALTER TABLE "job_types"       ADD COLUMN IF NOT EXISTS "translations" JSONB`);
+    await client.query(`ALTER TABLE "workflow_stages" ADD COLUMN IF NOT EXISTS "translations" JSONB`);
+    logger.log('i18n — translations columns ensured on document_types, job_types, workflow_stages');
   } catch (err: any) {
     logger.error('Startup migration error: ' + (err?.message ?? err));
   } finally {
@@ -643,22 +652,33 @@ async function bootstrap() {
   // Global prefix
   app.setGlobalPrefix('api/v1');
 
-  // Global exception logging
-  app.useGlobalFilters(new AllExceptionsFilter());
+  // Global exception logging — emits a uniform { code, message, params }
+  // envelope so the frontend can render a localized error.
+  app.useGlobalFilters(new I18nExceptionFilter());
 
-  // Global validation
+  // Global validation. The custom `exceptionFactory` produces a coded
+  // envelope `{ code: 'VALIDATION.FAILED', fields: [...] }` that the
+  // I18nExceptionFilter forwards verbatim, so the frontend can render
+  // inline form errors per field with stable codes.
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
       forbidNonWhitelisted: false,
       transform: true,
       transformOptions: { enableImplicitConversion: true },
+      exceptionFactory: validationExceptionFactory,
     }),
   );
 
-  // Serve uploaded files
-  // Ensure upload directories exist (safe on all OSes)
-  mkdirSync(join(process.cwd(), 'uploads', 'avatars'), { recursive: true });
+  // Serve uploaded files (BACKWARD COMPAT)
+  // New uploads go to DigitalOcean Spaces (see common/storage/storage.service.ts).
+  // The local `/uploads` route is kept so historical DB rows that still
+  // reference `/uploads/<file>` continue to render. Once those rows are
+  // migrated to Spaces, this block can be removed alongside the local
+  // driver. Avatars subfolder is preserved for the same legacy reason.
+  if ((process.env.UPLOAD_STORAGE_DRIVER || 'local') !== 'spaces') {
+    mkdirSync(join(process.cwd(), 'uploads', 'avatars'), { recursive: true });
+  }
   app.use('/uploads', express.static(join(process.cwd(), 'uploads')));
 
   // Swagger

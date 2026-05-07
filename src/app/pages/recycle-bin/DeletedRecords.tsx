@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Search, RefreshCw, RotateCcw, Eye, Trash2, Shield,
   ChevronLeft, ChevronRight, Users, FileText, Building2, Briefcase,
@@ -78,6 +79,8 @@ function EntityBadge({ entityType }: { entityType: string }) {
 // ── Main Component ────────────────────────────────────────────────────────────
 
 export function DeletedRecords() {
+  const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const { canView } = usePermissions();
 
   if (!canView('recycle-bin')) {
@@ -85,8 +88,8 @@ export function DeletedRecords() {
       <div className="p-8 flex items-center justify-center min-h-64">
         <div className="text-center">
           <Shield className="w-12 h-12 mx-auto text-red-500 mb-3 opacity-60" />
-          <h2 className="text-lg font-semibold mb-1">Access Denied</h2>
-          <p className="text-muted-foreground text-sm">Only System Admins, HR Managers, and Compliance Officers can access Deleted Records.</p>
+          <h2 className="text-lg font-semibold mb-1">{t('recycleBin.list.accessDenied')}</h2>
+          <p className="text-muted-foreground text-sm">{t('recycleBin.list.accessDeniedBody')}</p>
         </div>
       </div>
     );
@@ -142,7 +145,7 @@ export function DeletedRecords() {
       setTotal(res.meta?.total ?? 0);
       setTotalPages(res.meta?.totalPages ?? 1);
     } catch {
-      toast.error('Failed to load deleted records');
+      toast.error(tc('toast.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -166,7 +169,7 @@ export function DeletedRecords() {
       const data = await recycleBinApi.getRelated(rec.entityType, rec.id);
       setRelatedData(data);
     } catch {
-      toast.error('Failed to load related data');
+      toast.error(tc('toast.loadFailed'));
     } finally {
       setRelatedLoading(false);
     }
@@ -187,7 +190,10 @@ export function DeletedRecords() {
         withRelated: restoreWithRelated,
       });
       toast.success(
-        `Restored ${ENTITY_LABELS[restoreTarget.entityType]?.label ?? restoreTarget.entityType}: ${restoreTarget.displayName}` +
+        tc('toast.restoredEntityNamed', {
+          entity: ENTITY_LABELS[restoreTarget.entityType]?.label ?? restoreTarget.entityType,
+          name: restoreTarget.displayName,
+        }) +
         (result.restored ? ` (${Object.entries(result.restored).filter(([, v]) => (v as number) > 0).map(([k, v]) => `${v} ${k}`).join(', ')})` : '')
       );
       if (result.warnings?.length) {
@@ -210,7 +216,7 @@ export function DeletedRecords() {
     setHardDeleteLoading(true);
     try {
       await recycleBinApi.hardDelete(hardDeleteTarget.entityType, hardDeleteTarget.id, {});
-      toast.success(`Permanently deleted: ${hardDeleteTarget.displayName}`);
+      toast.success(tc('toast.permanentlyDeletedNamed', { name: hardDeleteTarget.displayName }));
       setShowHardDeleteDialog(false);
       setHardDeleteTarget(null);
       fetchRecords();
@@ -229,13 +235,13 @@ export function DeletedRecords() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Deleted Records</h1>
+          <h1 className="text-2xl font-bold">{t('recycleBin.list.title')}</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            View, restore, or permanently delete soft-deleted records across the system.
+            {t('recycleBin.list.subtitle')}
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={() => { fetchRecords(); fetchCounts(); }}>
-          <RefreshCw className="w-4 h-4 mr-2" />
+          <RefreshCw className="w-4 h-4 me-2" />
           Refresh
         </Button>
       </div>
@@ -263,21 +269,21 @@ export function DeletedRecords() {
           <div className="flex flex-wrap gap-3">
             <div className="flex-1 min-w-48">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   placeholder="Search by name, email, ID…"
                   value={search}
                   onChange={e => { setSearch(e.target.value); setPage(1); }}
-                  className="pl-9"
+                  className="ps-9"
                 />
               </div>
             </div>
             <Select value={entityType} onValueChange={v => { setEntityType(v); setPage(1); }}>
               <SelectTrigger className="w-44">
-                <SelectValue placeholder="All Types" />
+                <SelectValue placeholder={t('recycleBin.list.allTypes')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="__all__">All Types</SelectItem>
+                <SelectItem value="__all__">{t('recycleBin.list.allTypes')}</SelectItem>
                 {Object.entries(ENTITY_LABELS).map(([key, meta]) => (
                   <SelectItem key={key} value={key}>{meta.label}</SelectItem>
                 ))}
@@ -288,12 +294,12 @@ export function DeletedRecords() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="desc">Newest first</SelectItem>
-                <SelectItem value="asc">Oldest first</SelectItem>
+                <SelectItem value="desc">{t('recycleBin.list.newestFirst')}</SelectItem>
+                <SelectItem value="asc">{t('recycleBin.list.oldestFirst')}</SelectItem>
               </SelectContent>
             </Select>
             <div className="flex items-center gap-2">
-              <Label className="text-xs text-muted-foreground whitespace-nowrap">Deleted from</Label>
+              <Label className="text-xs text-muted-foreground whitespace-nowrap">{t('recycleBin.list.deletedFrom')}</Label>
               <Input type="date" value={deletedFrom} onChange={e => { setDeletedFrom(e.target.value); setPage(1); }} className="w-36" />
             </div>
             <div className="flex items-center gap-2">
@@ -316,18 +322,18 @@ export function DeletedRecords() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-muted/40">
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Type</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Name / ID</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Business ID</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Deleted At</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Reason</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Related</th>
-                  <th className="px-4 py-3 text-right font-medium text-muted-foreground">Actions</th>
+                  <th className="px-4 py-3 text-start font-medium text-muted-foreground">Type</th>
+                  <th className="px-4 py-3 text-start font-medium text-muted-foreground">{t('recycleBin.list.nameOrId')}</th>
+                  <th className="px-4 py-3 text-start font-medium text-muted-foreground">{t('recycleBin.list.businessId')}</th>
+                  <th className="px-4 py-3 text-start font-medium text-muted-foreground">{t('recycleBin.list.deletedAt')}</th>
+                  <th className="px-4 py-3 text-start font-medium text-muted-foreground">Reason</th>
+                  <th className="px-4 py-3 text-start font-medium text-muted-foreground">Related</th>
+                  <th className="px-4 py-3 text-end font-medium text-muted-foreground">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">Loading…</td></tr>
+                  <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">{t('recycleBin.list.loading')}</td></tr>
                 ) : records.length === 0 ? (
                   <tr><td colSpan={7} className="px-4 py-12 text-center text-muted-foreground">
                     <RotateCcw className="w-8 h-8 mx-auto mb-2 opacity-30" />
@@ -373,8 +379,8 @@ export function DeletedRecords() {
                         )}
                         {rec.canRestoreWithRelated && rec.relatedDeletedCount > 0 && (
                           <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700 hover:bg-blue-50" onClick={() => openRestore(rec, true)} title="Restore with related records">
-                            <RotateCcw className="w-4 h-4 mr-1" />
-                            <span className="text-xs">+related</span>
+                            <RotateCcw className="w-4 h-4 me-1" />
+                            <span className="text-xs">{t('recycleBin.list.related')}</span>
                           </Button>
                         )}
                         {rec.canHardDelete && (
@@ -419,7 +425,7 @@ export function DeletedRecords() {
             </DialogDescription>
           </DialogHeader>
           {relatedLoading ? (
-            <div className="py-8 text-center text-muted-foreground">Loading…</div>
+            <div className="py-8 text-center text-muted-foreground">{t('recycleBin.list.loading')}</div>
           ) : relatedData ? (
             <div className="space-y-4">
               {Object.entries(relatedData.summary).map(([type, count]) => (
@@ -434,7 +440,7 @@ export function DeletedRecords() {
                     <div key={r.id} className="flex items-center justify-between p-2 border rounded text-sm">
                       <div>
                         <EntityBadge entityType={r.entityType} />
-                        <span className="ml-2">{r.displayName}</span>
+                        <span className="ms-2">{r.displayName}</span>
                       </div>
                       <span className="text-xs text-muted-foreground">{formatDate(r.deletedAt)}</span>
                     </div>
@@ -447,7 +453,7 @@ export function DeletedRecords() {
             <Button variant="outline" onClick={() => setShowRelatedDialog(false)}>Close</Button>
             {selectedRecord?.canRestoreWithRelated && (
               <Button onClick={() => { setShowRelatedDialog(false); openRestore(selectedRecord!, true); }}>
-                <RotateCcw className="w-4 h-4 mr-2" />
+                <RotateCcw className="w-4 h-4 me-2" />
                 Restore with Related
               </Button>
             )}
@@ -474,10 +480,10 @@ export function DeletedRecords() {
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowRestoreDialog(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setShowRestoreDialog(false)}>{tc('actions.cancel')}</Button>
             <Button onClick={executeRestore} disabled={restoreLoading}>
               {restoreLoading ? 'Restoring…' : (
-                <><RotateCcw className="w-4 h-4 mr-2" />Restore</>
+                <><RotateCcw className="w-4 h-4 me-2" />Restore</>
               )}
             </Button>
           </DialogFooter>

@@ -1,13 +1,14 @@
 import {
   Controller, Get, Post, Body, Patch, Param, Delete,
   Query, UseGuards, HttpCode, HttpStatus,
-  UseInterceptors, UploadedFile, BadRequestException,
+  UseInterceptors, UploadedFile, BadRequestException, Req,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiQuery, ApiConsumes } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
+import type { Request } from 'express';
+import { memoryUpload, LOGO_IMAGE_MIME } from '../common/storage/multer.config';
 import { SettingsService } from './settings.service';
+import { I18nService } from '../common/i18n/i18n.service';
 import { BatchUpdateSettingsDto } from './dto/update-settings.dto';
 import { CreateJobTypeDto } from './dto/create-job-type.dto';
 import { CreateDocumentTypeDto } from './dto/create-document-type.dto';
@@ -23,7 +24,10 @@ import { Public } from '../auth/decorators/public.decorator';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('settings')
 export class SettingsController {
-  constructor(private readonly settingsService: SettingsService) {}
+  constructor(
+    private readonly settingsService: SettingsService,
+    private readonly i18n: I18nService,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'Get system settings (grouped by category)' })
@@ -71,7 +75,15 @@ export class SettingsController {
   @Public()
   @Get('job-types')
   @ApiOperation({ summary: 'Get all active job types' })
-  findJobTypes() { return this.settingsService.findJobTypes(); }
+  async findJobTypes(@Req() req: Request) {
+    const rows = await this.settingsService.findJobTypes();
+    const locale = this.i18n.resolve(req);
+    return rows.map((r: any) => ({
+      ...r,
+      name: I18nService.localized(r, locale, 'name'),
+      description: I18nService.localized(r, locale, 'description'),
+    }));
+  }
 
   @Post('job-types')
   @Roles('System Admin', 'HR Manager')
@@ -182,7 +194,15 @@ export class SettingsController {
   // Document Types
   @Get('document-types')
   @ApiOperation({ summary: 'Get all active document types' })
-  findDocumentTypes() { return this.settingsService.findDocumentTypes(); }
+  async findDocumentTypes(@Req() req: Request) {
+    const rows = await this.settingsService.findDocumentTypes();
+    const locale = this.i18n.resolve(req);
+    return rows.map((r: any) => ({
+      ...r,
+      name: I18nService.localized(r, locale, 'name'),
+      description: I18nService.localized(r, locale, 'description'),
+    }));
+  }
 
   @Get('document-types/:id')
   @ApiOperation({ summary: 'Get a document type by ID' })
@@ -261,13 +281,11 @@ export class SettingsController {
   @Roles('System Admin')
   @ApiOperation({ summary: 'Upload company logo' })
   @ApiConsumes('multipart/form-data')
-  @UseInterceptors(FileInterceptor('logo', {
-    storage: diskStorage({
-      destination: process.env.UPLOAD_DEST || './uploads',
-      filename: (_req, file, cb) => cb(null, `logo-${Date.now()}${extname(file.originalname)}`),
-    }),
-    limits: { fileSize: 2 * 1024 * 1024 },
-  }))
+  // SVG is excluded — see common/storage/multer.config.ts.
+  @UseInterceptors(FileInterceptor('logo', memoryUpload({
+    mimeTypes: LOGO_IMAGE_MIME,
+    maxBytes: 2 * 1024 * 1024,
+  })))
   uploadLogo(@UploadedFile() file: Express.Multer.File, @CurrentUser() user: any) {
     if (!file) throw new BadRequestException('No logo file provided');
     return this.settingsService.uploadLogo(file, user.id);

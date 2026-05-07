@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { settingsApi } from '../../services/api';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -11,6 +12,8 @@ import { usePermissions } from '../../hooks/usePermissions';
 const DEFAULTS = ['Volvo', 'Scania', 'DAF', 'MAN', 'Mercedes-Benz', 'Iveco'];
 
 export function TruckBrandsSettings() {
+  const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const { canEdit } = usePermissions();
   const isAdmin = canEdit('settings');
   const [items, setItems] = useState<string[]>([]);
@@ -43,15 +46,15 @@ export function TruckBrandsSettings() {
     setSaving(true);
     try {
       await settingsApi.update({ 'form.truckBrands': JSON.stringify(items) });
-      toast.success('Truck Brands saved');
+      toast.success(tc('toast.savedSuccessfully'));
     } catch {
-      toast.error('Failed to save');
+      toast.error(tc('toast.saveFailed'));
     } finally {
       setSaving(false);
     }
   };
 
-  if (!isAdmin) return <div className="text-center py-16 text-muted-foreground">Access denied.</div>;
+  if (!isAdmin) return <div className="text-center py-16 text-muted-foreground">{t('settings.truckBrands.accessDenied')}</div>;
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -60,15 +63,15 @@ export function TruckBrandsSettings() {
           <Link to="/dashboard/settings"><ArrowLeft className="w-5 h-5" /></Link>
         </Button>
         <div>
-          <h1 className="text-2xl font-semibold">Truck Brands</h1>
-          <p className="text-muted-foreground text-sm mt-0.5">Manage the truck brands shown in the Driving Experience step</p>
+          <h1 className="text-2xl font-semibold">{t('settings.truckBrands.headerTitle')}</h1>
+          <p className="text-muted-foreground text-sm mt-0.5">{t('settings.truckBrands.headerSubtitle')}</p>
         </div>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Add New Brand</CardTitle>
-          <CardDescription>New brands will appear as selectable chips in the Truck Brands section</CardDescription>
+          <CardTitle>{t('settings.truckBrands.addCardTitle')}</CardTitle>
+          <CardDescription>{t('settings.truckBrands.addCardDesc')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex gap-2">
@@ -87,9 +90,9 @@ export function TruckBrandsSettings() {
         <CardHeader><CardTitle>Current Brands ({items.length})</CardTitle></CardHeader>
         <CardContent>
           {loading ? (
-            <p className="text-sm text-muted-foreground">Loading...</p>
+            <p className="text-sm text-muted-foreground">{t('settings.truckBrands.loading')}</p>
           ) : items.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-6 border-2 border-dashed rounded-lg">No brands defined yet.</p>
+            <p className="text-sm text-muted-foreground text-center py-6 border-2 border-dashed rounded-lg">{t('settings.truckBrands.empty')}</p>
           ) : (
             <div className="space-y-2">
               {items.map(item => (
@@ -107,7 +110,7 @@ export function TruckBrandsSettings() {
 
       <Button onClick={handleSave} disabled={saving} className="gap-2">
         <Save className="w-4 h-4" />
-        {saving ? 'Saving...' : 'Save Changes'}
+        {saving ? t('settings.truckBrands.saving') : t('settings.truckBrands.saveChanges')}
       </Button>
     </div>
   );

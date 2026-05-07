@@ -14,6 +14,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Link, useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import {
   Download, Search, Filter, X, TrendingUp, TrendingDown,
   Wallet, DollarSign, ChevronUp, ChevronDown, RefreshCw,
@@ -27,21 +28,18 @@ import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { toast } from 'sonner';
 import { financeApi, getCurrentUser } from '../../services/api';
+import { formatCurrency, formatDate } from '../../../i18n/formatters';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function fmt(amount: number | undefined | null, currency = 'EUR') {
   if (amount == null || isNaN(Number(amount))) return '—';
-  return new Intl.NumberFormat('en-IE', {
-    style: 'currency',
-    currency: currency || 'EUR',
-    minimumFractionDigits: 2,
-  }).format(Number(amount));
+  return formatCurrency(Number(amount), currency || 'EUR', { minimumFractionDigits: 2 });
 }
 
 function fmtDate(date: string) {
   if (!date) return '—';
-  return new Date(date).toLocaleDateString('en-IE', { day: '2-digit', month: 'short', year: 'numeric' });
+  return formatDate(date, { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 // ─── Column visibility ────────────────────────────────────────────────────────
@@ -51,19 +49,19 @@ type ColKey =
   | 'disbursed' | 'empAgency' | 'deducted' | 'currency' | 'status'
   | 'payrollRef' | 'createdAt';
 
-const ALL_COLUMNS: { key: ColKey; label: string }[] = [
-  { key: 'date',        label: 'Date' },
-  { key: 'person',      label: 'Person' },
-  { key: 'paidBy',      label: 'Paid By' },
-  { key: 'type',        label: 'Type' },
-  { key: 'description', label: 'Description' },
-  { key: 'disbursed',   label: 'Credit (↑)' },
-  { key: 'empAgency',   label: 'Emp/Agency' },
-  { key: 'deducted',    label: 'Debit (↓)' },
-  { key: 'currency',    label: 'Currency' },
-  { key: 'status',      label: 'Status' },
-  { key: 'payrollRef',  label: 'Payroll Ref' },
-  { key: 'createdAt',   label: 'Created' },
+const ALL_COLUMNS: { key: ColKey; labelKey: string }[] = [
+  { key: 'date',        labelKey: 'finance.list.cols.date' },
+  { key: 'person',      labelKey: 'finance.list.cols.person' },
+  { key: 'paidBy',      labelKey: 'finance.list.cols.paidBy' },
+  { key: 'type',        labelKey: 'finance.list.cols.type' },
+  { key: 'description', labelKey: 'finance.list.cols.description' },
+  { key: 'disbursed',   labelKey: 'finance.list.cols.disbursed' },
+  { key: 'empAgency',   labelKey: 'finance.list.cols.empAgency' },
+  { key: 'deducted',    labelKey: 'finance.list.cols.deducted' },
+  { key: 'currency',    labelKey: 'finance.list.cols.currency' },
+  { key: 'status',      labelKey: 'finance.list.cols.status' },
+  { key: 'payrollRef',  labelKey: 'finance.list.cols.payrollRef' },
+  { key: 'createdAt',   labelKey: 'finance.list.cols.createdAt' },
 ];
 
 const DEFAULT_VISIBLE: Record<ColKey, boolean> = {
@@ -116,6 +114,8 @@ const DEFAULT_FILTERS = {
 };
 
 export function FinanceDashboard() {
+  const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const navigate = useNavigate();
   const currentUser = getCurrentUser();
 
@@ -192,7 +192,7 @@ export function FinanceDashboard() {
       const emp = items.reduce((a, r) => a + Number(r.employeeOrAgencyPaidAmount ?? 0), 0);
       setTotals({ disbursed: d, deducted: ded, balance: d - ded, empAgency: emp });
     } catch {
-      toast.error('Failed to load financial records');
+      toast.error(tc('toast.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -237,7 +237,7 @@ export function FinanceDashboard() {
       a.download = `financial-records-${new Date().toISOString().slice(0, 10)}.xlsx`;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success('Export started');
+      toast.success(tc('toast.exportStarted'));
     } catch (err: any) {
       toast.error(err?.message || 'Export failed');
     } finally {
@@ -315,9 +315,9 @@ export function FinanceDashboard() {
   if (!allowed) {
     return (
       <div className="p-8 text-center">
-        <p className="text-muted-foreground">You do not have permission to access the Finance Dashboard.</p>
+        <p className="text-muted-foreground">{t('finance.dashboard.noPermission')}</p>
         <Button asChild className="mt-4" variant="outline">
-          <Link to="/dashboard">Back to Dashboard</Link>
+          <Link to="/dashboard">{t('finance.dashboard.backToDashboard')}</Link>
         </Button>
       </div>
     );
@@ -354,18 +354,18 @@ export function FinanceDashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-semibold text-[#0F172A] flex items-center gap-3">
-            <DollarSign className="w-8 h-8 text-emerald-600" />Finance Dashboard
+            <DollarSign className="w-8 h-8 text-emerald-600" />{t('finance.page.title')}
           </h1>
           <p className="text-muted-foreground mt-1">
-            Global view of all company disbursements and payroll deductions
+            {t('finance.page.subtitle')}
           </p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={() => load()} disabled={loading}>
-            <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />Refresh
+            <RefreshCw className={`w-4 h-4 me-1 ${loading ? 'animate-spin' : ''}`} />Refresh
           </Button>
           <Button variant="outline" size="sm" onClick={() => setShowFilters(v => !v)}>
-            <Filter className="w-4 h-4 mr-1" />{showFilters ? 'Hide Filters' : 'Filters'}
+            <Filter className="w-4 h-4 me-1" />{showFilters ? 'Hide Filters' : 'Filters'}
           </Button>
 
           {/* Column picker */}
@@ -375,27 +375,27 @@ export function FinanceDashboard() {
               onClick={() => setShowColPicker(v => !v)}
               className={showColPicker ? 'border-primary text-primary' : ''}
             >
-              <Columns2 className="w-4 h-4 mr-1" />Columns
+              <Columns2 className="w-4 h-4 me-1" />Columns
               {hiddenCount > 0 && (
-                <span className="ml-1.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
+                <span className="ms-1.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
                   {hiddenCount}
                 </span>
               )}
             </Button>
             {showColPicker && (
-              <div className="absolute right-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[200px]">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">Toggle columns</p>
+              <div className="absolute end-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[200px]">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">{t('finance.dashboard.toggleColumns')}</p>
                 <div className="space-y-0.5 max-h-72 overflow-y-auto">
                   {ALL_COLUMNS.map(c => (
                     <button
                       key={c.key}
                       onClick={() => toggleColumn(c.key)}
-                      className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-gray-50 text-sm text-left"
+                      className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-gray-50 text-sm text-start"
                     >
                       <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${visibleColumns[c.key] ? 'bg-primary border-primary' : 'border-gray-300'}`}>
                         {visibleColumns[c.key] && <Check className="w-2.5 h-2.5 text-primary-foreground" />}
                       </span>
-                      {c.label}
+                      {t(c.labelKey)}
                     </button>
                   ))}
                 </div>
@@ -407,7 +407,7 @@ export function FinanceDashboard() {
                       localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
                     }}
                     className="flex-1 text-xs text-center text-primary hover:underline py-0.5"
-                  >Show all</button>
+                  >{t('finance.dashboard.showAll')}</button>
                   <span className="text-gray-300">|</span>
                   <button
                     onClick={() => {
@@ -423,7 +423,7 @@ export function FinanceDashboard() {
 
           {canExport && (
             <Button size="sm" onClick={handleExport} disabled={exporting}>
-              <Download className="w-4 h-4 mr-1" />{exporting ? 'Exporting…' : 'Export Excel'}
+              <Download className="w-4 h-4 me-1" />{exporting ? 'Exporting…' : 'Export Excel'}
             </Button>
           )}
         </div>
@@ -438,7 +438,7 @@ export function FinanceDashboard() {
                 <TrendingUp className="w-4 h-4 text-blue-600" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wide">Total Disbursed</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('finance.dashboard.totalDisbursed')}</p>
                 <p className="text-xl font-bold text-blue-700">{fmt(totals.disbursed)}</p>
                 <p className="text-xs text-muted-foreground">{meta?.total ?? records.length} records</p>
               </div>
@@ -452,7 +452,7 @@ export function FinanceDashboard() {
                 <TrendingDown className="w-4 h-4 text-amber-600" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wide">Total Deducted</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('finance.dashboard.totalDeducted')}</p>
                 <p className="text-xl font-bold text-amber-700">{fmt(totals.deducted)}</p>
               </div>
             </div>
@@ -465,7 +465,7 @@ export function FinanceDashboard() {
                 <Wallet className="w-4 h-4 text-emerald-600" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wide">Current Balance</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('finance.dashboard.currentBalance')}</p>
                 <p className={`text-xl font-bold ${totals.balance > 0 ? 'text-emerald-700' : 'text-slate-600'}`}>
                   {fmt(totals.balance)}
                 </p>
@@ -480,9 +480,9 @@ export function FinanceDashboard() {
                 <DollarSign className="w-4 h-4 text-slate-600" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wide">Emp / Agency Paid</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('finance.dashboard.empAgencyPaid')}</p>
                 <p className="text-xl font-bold text-slate-600">{fmt(totals.empAgency)}</p>
-                <p className="text-xs text-muted-foreground">informational only</p>
+                <p className="text-xs text-muted-foreground">{t('finance.dashboard.informationalOnly')}</p>
               </div>
             </div>
           </CardContent>
@@ -497,9 +497,9 @@ export function FinanceDashboard() {
               <div className="space-y-1 md:col-span-2">
                 <Label className="text-xs">Search</Label>
                 <div className="relative">
-                  <Search className="absolute left-2.5 top-2.5 w-4 h-4 text-muted-foreground" />
+                  <Search className="absolute start-2.5 top-2.5 w-4 h-4 text-muted-foreground" />
                   <Input
-                    className="pl-8"
+                    className="ps-8"
                     placeholder="Description, payroll ref, name…"
                     value={filters.search}
                     onChange={e => setFilter('search', e.target.value)}
@@ -507,7 +507,7 @@ export function FinanceDashboard() {
                 </div>
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Person Type</Label>
+                <Label className="text-xs">{t('finance.dashboard.personType')}</Label>
                 <Select value={filters.entityType || '__all__'} onValueChange={v => setFilter('entityType', v === '__all__' ? '' : v)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -522,18 +522,18 @@ export function FinanceDashboard() {
                 <Select value={filters.status || '__all__'} onValueChange={v => setFilter('status', v === '__all__' ? '' : v)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__all__">All Statuses</SelectItem>
+                    <SelectItem value="__all__">{t('finance.dashboard.allStatuses')}</SelectItem>
                     <SelectItem value="PENDING">Pending</SelectItem>
                     <SelectItem value="DEDUCTED">Deducted</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Transaction Type</Label>
+                <Label className="text-xs">{t('finance.dashboard.transactionType')}</Label>
                 <Select value={filters.transactionType || '__all__'} onValueChange={v => setFilter('transactionType', v === '__all__' ? '' : v)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__all__">All Types</SelectItem>
+                    <SelectItem value="__all__">{t('finance.dashboard.allTypes')}</SelectItem>
                     {(constants?.transactionTypes ?? []).map((t: string) => (
                       <SelectItem key={t} value={t}>{t}</SelectItem>
                     ))}
@@ -545,7 +545,7 @@ export function FinanceDashboard() {
                 <Select value={filters.currency || '__all__'} onValueChange={v => setFilter('currency', v === '__all__' ? '' : v)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__all__">All Currencies</SelectItem>
+                    <SelectItem value="__all__">{t('finance.dashboard.allCurrencies')}</SelectItem>
                     {(constants?.currencies ?? []).map((c: string) => (
                       <SelectItem key={c} value={c}>{c}</SelectItem>
                     ))}
@@ -553,7 +553,7 @@ export function FinanceDashboard() {
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Date From</Label>
+                <Label className="text-xs">{t('finance.dashboard.dateFrom')}</Label>
                 <Input
                   type="date"
                   value={filters.dateFrom}
@@ -561,7 +561,7 @@ export function FinanceDashboard() {
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Date To</Label>
+                <Label className="text-xs">{t('finance.dashboard.dateTo')}</Label>
                 <Input
                   type="date"
                   value={filters.dateTo}
@@ -571,7 +571,7 @@ export function FinanceDashboard() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
               <div className="space-y-1">
-                <Label className="text-xs">Paid By</Label>
+                <Label className="text-xs">{t('finance.dashboard.paidBy')}</Label>
                 <Input
                   placeholder="Name contains…"
                   value={filters.paidByFilter}
@@ -579,7 +579,7 @@ export function FinanceDashboard() {
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Min Disbursed</Label>
+                <Label className="text-xs">{t('finance.dashboard.minDisbursed')}</Label>
                 <Input
                   type="number"
                   min={0}
@@ -590,7 +590,7 @@ export function FinanceDashboard() {
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Max Disbursed</Label>
+                <Label className="text-xs">{t('finance.dashboard.maxDisbursed')}</Label>
                 <Input
                   type="number"
                   min={0}
@@ -603,7 +603,7 @@ export function FinanceDashboard() {
             </div>
             <div className="flex justify-end">
               <Button size="sm" variant="ghost" onClick={resetFilters} className="text-muted-foreground">
-                <X className="w-4 h-4 mr-1" />Clear Filters
+                <X className="w-4 h-4 me-1" />Clear Filters
               </Button>
             </div>
           </CardContent>
@@ -616,7 +616,7 @@ export function FinanceDashboard() {
           <Filter className="w-3 h-3" />
           <span>Extra client-side filters active</span>
           <Button size="sm" variant="ghost" className="h-6 text-xs" onClick={() => setFilters(f => ({ ...f, paidByFilter: '', minAmount: '', maxAmount: '' }))}>
-            <X className="w-3 h-3 mr-1" />Clear
+            <X className="w-3 h-3 me-1" />Clear
           </Button>
         </div>
       )}
@@ -625,7 +625,7 @@ export function FinanceDashboard() {
       <Card>
         <CardContent className="p-0">
           {loading ? (
-            <div className="py-12 text-center text-muted-foreground">Loading…</div>
+            <div className="py-12 text-center text-muted-foreground">{t('finance.dashboard.loading')}</div>
           ) : displayRecords.length === 0 ? (
             <div className="py-12 text-center text-muted-foreground">
               <Wallet className="w-10 h-10 mx-auto mb-3 opacity-30" />
@@ -648,7 +648,7 @@ export function FinanceDashboard() {
                     {col('status')      && <SortHead label="Status"      field="status" align="center" />}
                     {col('payrollRef')  && <SortHead label="Payroll Ref" field="payrollReference" />}
                     {col('createdAt')   && <SortHead label="Created"     field="createdAt" />}
-                    <th className="text-right px-4 py-3 font-medium text-muted-foreground">Profile</th>
+                    <th className="text-end px-4 py-3 font-medium text-muted-foreground">Profile</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -695,19 +695,19 @@ export function FinanceDashboard() {
                         </td>
                       )}
                       {col('disbursed') && (
-                        <td className="px-4 py-3 text-right font-semibold text-blue-700 whitespace-nowrap">
+                        <td className="px-4 py-3 text-end font-semibold text-blue-700 whitespace-nowrap">
                           {fmt(rec.companyDisbursedAmount, rec.currency)}
                         </td>
                       )}
                       {col('empAgency') && (
-                        <td className="px-4 py-3 text-right text-slate-500 text-xs whitespace-nowrap">
+                        <td className="px-4 py-3 text-end text-slate-500 text-xs whitespace-nowrap">
                           {Number(rec.employeeOrAgencyPaidAmount) > 0
                             ? fmt(rec.employeeOrAgencyPaidAmount, rec.currency)
                             : '—'}
                         </td>
                       )}
                       {col('deducted') && (
-                        <td className="px-4 py-3 text-right font-semibold text-amber-700 whitespace-nowrap">
+                        <td className="px-4 py-3 text-end font-semibold text-amber-700 whitespace-nowrap">
                           {rec.deductionAmount != null && Number(rec.deductionAmount) > 0
                             ? fmt(rec.deductionAmount, rec.currency)
                             : <span className="text-muted-foreground font-normal">—</span>}
@@ -720,11 +720,11 @@ export function FinanceDashboard() {
                         <td className="px-4 py-3 text-center">
                           {rec.status === 'DEDUCTED' ? (
                             <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-xs">
-                              <CheckCircle className="w-3 h-3 mr-1" />Deducted
+                              <CheckCircle className="w-3 h-3 me-1" />Deducted
                             </Badge>
                           ) : (
                             <Badge className="bg-amber-50 text-amber-700 border-amber-200 text-xs">
-                              <Clock className="w-3 h-3 mr-1" />Pending
+                              <Clock className="w-3 h-3 me-1" />Pending
                             </Badge>
                           )}
                         </td>
@@ -737,7 +737,7 @@ export function FinanceDashboard() {
                           {rec.createdAt ? fmtDate(rec.createdAt) : '—'}
                         </td>
                       )}
-                      <td className="px-4 py-3 text-right">
+                      <td className="px-4 py-3 text-end">
                         <Button
                           size="icon" variant="ghost"
                           className="h-7 w-7"
@@ -754,8 +754,8 @@ export function FinanceDashboard() {
                 <tfoot>
                   <tr className="bg-muted/10">
                     <td colSpan={visibleCount + 1} className="px-4 py-2 text-xs text-muted-foreground">
-                      <span className="text-blue-600 font-medium">Credit (↑)</span> = company disbursed &nbsp;·&nbsp;
-                      <span className="text-amber-600 font-medium">Debit (↓)</span> = payroll deduction &nbsp;·&nbsp;
+                      <span className="text-blue-600 font-medium">{t('finance.dashboard.credit')}</span> = company disbursed &nbsp;·&nbsp;
+                      <span className="text-amber-600 font-medium">{t('finance.dashboard.debit')}</span> = payroll deduction &nbsp;·&nbsp;
                       <span className="text-slate-500">Emp/Agency</span> = paid by employee/agency (informational, excluded from balance)
                     </td>
                   </tr>

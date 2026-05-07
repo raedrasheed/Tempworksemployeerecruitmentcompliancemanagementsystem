@@ -1,12 +1,11 @@
 import {
   Controller, Get, Post, Patch, Delete, Body, Param, Query,
   UseGuards, HttpCode, HttpStatus, Res, Request,
-  UseInterceptors, UploadedFile, BadRequestException,
+  UseInterceptors, UploadedFile, BadRequestException, Headers,
 } from '@nestjs/common';
+import { resolveAcceptLanguage } from '../common/i18n/server-translate';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
-import { v4 as uuidv4 } from 'uuid';
+import { memoryUpload, DOCUMENT_MIME } from '../common/storage/multer.config';
 import { Response } from 'express';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
 import { VehiclesService } from './vehicles.service';
@@ -67,8 +66,12 @@ export class VehiclesController {
   @Get('export/excel')
   @Roles(...EXPORT_ROLES)
   @ApiOperation({ summary: 'Export vehicle list as Excel' })
-  async exportExcel(@Query() dto: ExportVehiclesDto, @Res() res: Response) {
-    const buffer = await this.vehiclesService.exportVehicles(dto);
+  async exportExcel(
+    @Query() dto: ExportVehiclesDto,
+    @Res() res: Response,
+    @Headers('accept-language') acceptLanguage?: string,
+  ) {
+    const buffer = await this.vehiclesService.exportVehicles(dto, resolveAcceptLanguage(acceptLanguage));
     res.set({
       'Content-Type':        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'Content-Disposition': `attachment; filename="vehicles-${new Date().toISOString().split('T')[0]}.xlsx"`,
@@ -122,9 +125,10 @@ export class VehiclesController {
     @Query() dto: FilterMaintenanceDto,
     @Query('recordIds') recordIds: string | string[] | undefined,
     @Res() res: Response,
+    @Headers('accept-language') acceptLanguage?: string,
   ) {
     const ids = !recordIds ? undefined : Array.isArray(recordIds) ? recordIds : recordIds.split(',').filter(Boolean);
-    const buffer = await this.vehiclesService.exportMaintenanceRecordsExcel(dto, ids);
+    const buffer = await this.vehiclesService.exportMaintenanceRecordsExcel(dto, ids, resolveAcceptLanguage(acceptLanguage));
     res.set({
       'Content-Type':        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'Content-Disposition': `attachment; filename="maintenance-records-${new Date().toISOString().split('T')[0]}.xlsx"`,
@@ -140,9 +144,10 @@ export class VehiclesController {
     @Query() dto: FilterMaintenanceDto,
     @Query('recordIds') recordIds: string | string[] | undefined,
     @Res() res: Response,
+    @Headers('accept-language') acceptLanguage?: string,
   ) {
     const ids = !recordIds ? undefined : Array.isArray(recordIds) ? recordIds : recordIds.split(',').filter(Boolean);
-    const buffer = await this.vehiclesService.exportMaintenanceRecordsPdf(dto, ids);
+    const buffer = await this.vehiclesService.exportMaintenanceRecordsPdf(dto, ids, resolveAcceptLanguage(acceptLanguage));
     res.set({
       'Content-Type':        'application/pdf',
       'Content-Disposition': `attachment; filename="maintenance-records-${new Date().toISOString().split('T')[0]}.pdf"`,
@@ -182,15 +187,11 @@ export class VehiclesController {
 
   @Post('maintenance/records/:id/attachments')
   @Roles(...WRITE_ROLES)
-  @UseInterceptors(FileInterceptor('file', {
-    storage: diskStorage({
-      destination: 'uploads/maintenance',
-      filename: (req, file, cb) => {
-        const randomName = `${uuidv4()}${extname(file.originalname)}`;
-        cb(null, randomName);
-      },
-    }),
-  }))
+  // SECURITY-FIX: previously had no fileFilter and no limits.
+  @UseInterceptors(FileInterceptor('file', memoryUpload({
+    mimeTypes: DOCUMENT_MIME,
+    maxBytes: 10 * 1024 * 1024,
+  })))
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Upload an attachment (invoice, receipt, etc.) to a maintenance record' })
   uploadMaintenanceAttachment(
@@ -199,13 +200,9 @@ export class VehiclesController {
     @Request() req: any,
   ) {
     if (!file) throw new BadRequestException('No file uploaded');
-    const fileUrl = `/uploads/maintenance/${file.filename}`;
     return this.vehiclesService.addMaintenanceAttachment(
       recordId,
-      file.originalname,
-      fileUrl,
-      file.size,
-      file.mimetype,
+      file,
       req.body.documentType,
       req.user?.id,
     );
@@ -323,15 +320,10 @@ export class VehiclesController {
   @Roles(...WRITE_ROLES)
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Add a document (with optional file upload) to a vehicle' })
-  @UseInterceptors(
-    FileInterceptor('file', {
-      storage: diskStorage({
-        destination: process.env.UPLOAD_DEST || './uploads',
-        filename: (_req, file, cb) => cb(null, `${uuidv4()}${extname(file.originalname)}`),
-      }),
-      limits: { fileSize: 20 * 1024 * 1024 }, // 20 MB
-    }),
-  )
+  @UseInterceptors(FileInterceptor('file', memoryUpload({
+    mimeTypes: DOCUMENT_MIME,
+    maxBytes: 20 * 1024 * 1024,
+  })))
   addDocument(
     @Param('vehicleId') vehicleId: string,
     @Body() dto: CreateVehicleDocumentDto,

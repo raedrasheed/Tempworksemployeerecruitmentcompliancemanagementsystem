@@ -278,5 +278,17 @@
   "workshopStatus": {
     "ACTIVE": "Aktiv",
     "INACTIVE": "Inaktiv"
+  },
+  "documentCompliance": {
+    "COMPLIANT": "Konform",
+    "AT_RISK": "Risiko",
+    "NON_COMPLIANT": "Nicht konform",
+    "PENDING": "Ausstehend"
+  },
+  "entityType": {
+    "APPLICANT": "Bewerber",
+    "EMPLOYEE": "Mitarbeiter",
+    "VEHICLE": "Fahrzeug",
+    "AGENCY": "Agentur"
   }
 }

@@ -26,19 +26,22 @@ import { usePermissions } from '../../hooks/usePermissions';
 const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1').replace('/api/v1', '');
 const getFileUrl = (fileUrl: string) => `${API_BASE}${fileUrl}`;
 
-const STATUS_OPTIONS = [
-  { value: 'PENDING',       label: 'Pending Verification' },
-  { value: 'VERIFIED',      label: 'Valid / Verified' },
-  { value: 'REJECTED',      label: 'Rejected' },
-  { value: 'EXPIRED',       label: 'Expired' },
-  { value: 'EXPIRING_SOON', label: 'Expiring Soon' },
+// `labelKey` is resolved against `documents.compliance.statusOptions.<KEY>`
+// at render time. Keeping value as the canonical enum string preserves the
+// API contract; only the dropdown label is translated.
+const STATUS_OPTIONS: { value: string; labelKey: string }[] = [
+  { value: 'PENDING',       labelKey: 'PENDING' },
+  { value: 'VERIFIED',      labelKey: 'VERIFIED' },
+  { value: 'REJECTED',      labelKey: 'REJECTED' },
+  { value: 'EXPIRED',       labelKey: 'EXPIRED' },
+  { value: 'EXPIRING_SOON', labelKey: 'EXPIRING_SOON' },
 ];
 
-const COMPLIANCE_OPTIONS = [
-  { value: 'COMPLIANT',     label: 'Compliant' },
-  { value: 'AT_RISK',       label: 'At Risk' },
-  { value: 'NON_COMPLIANT', label: 'Non-Compliant' },
-  { value: 'PENDING',       label: 'Pending' },
+const COMPLIANCE_OPTIONS: { value: string; labelKey: string }[] = [
+  { value: 'COMPLIANT',     labelKey: 'COMPLIANT' },
+  { value: 'AT_RISK',       labelKey: 'AT_RISK' },
+  { value: 'NON_COMPLIANT', labelKey: 'NON_COMPLIANT' },
+  { value: 'PENDING',       labelKey: 'PENDING' },
 ];
 
 // ── Sorting ─────────────────────────────────────────────────────────────────
@@ -94,6 +97,8 @@ function loadVisibleColumns(): Record<ColKey, boolean> {
 export function DocumentsCompliance() {
   const { t } = useTranslation('pages');
   const { t: tc } = useTranslation('common');
+  const { t: tEnums } = useTranslation('enums');
+  const tDC = (key: string, opts?: any) => t(`documents.compliance.${key}`, opts);
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { canCreate, canEdit, canDelete, can } = usePermissions();
@@ -343,11 +348,7 @@ export function DocumentsCompliance() {
       REJECTED: 'bg-red-100 text-red-700',
       PENDING: 'bg-gray-100 text-gray-700',
     };
-    const labels: Record<string, string> = {
-      VERIFIED: 'Valid', EXPIRING_SOON: 'Expiring Soon',
-      EXPIRED: 'Expired', REJECTED: 'Rejected', PENDING: 'Pending',
-    };
-    return <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${map[status] ?? 'bg-gray-100 text-gray-700'}`}>{labels[status] ?? status}</span>;
+    return <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${map[status] ?? 'bg-gray-100 text-gray-700'}`}>{tEnums(`documentStatus.${status}`, { defaultValue: status })}</span>;
   };
 
   const getComplianceBadge = (status: string) => {
@@ -396,7 +397,7 @@ export function DocumentsCompliance() {
         {canCreate('documents') && (
           <Button asChild>
             <Link to="/dashboard/documents/upload">
-              <Upload className="w-4 h-4 me-2" />Upload Document
+              <Upload className="w-4 h-4 me-2" />{tDC('uploadDocument')}
             </Link>
           </Button>
         )}
@@ -405,12 +406,12 @@ export function DocumentsCompliance() {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { icon: <CheckCircle className="w-6 h-6 text-emerald-500" />, bg: 'bg-emerald-50', count: validDocs,    label: 'Valid Documents',      filter: 'VERIFIED' },
-          { icon: <Clock       className="w-6 h-6 text-amber-500"  />, bg: 'bg-amber-50',   count: expiringDocs, label: 'Expiring Soon',         filter: 'EXPIRING_SOON' },
-          { icon: <AlertTriangle className="w-6 h-6 text-red-500" />, bg: 'bg-red-50',      count: expiredDocs,  label: 'Expired',               filter: 'EXPIRED' },
-          { icon: <FileText    className="w-6 h-6 text-gray-500"  />, bg: 'bg-gray-50',     count: pendingDocs,  label: 'Pending Verification',  filter: 'PENDING' },
-        ].map(({ icon, bg, count, label, filter }) => (
-          <Card key={label} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setStatusFilter(f => f === filter ? '' : filter)}>
+          { key: 'valid',     icon: <CheckCircle className="w-6 h-6 text-emerald-500" />, bg: 'bg-emerald-50', count: validDocs,    label: tDC('statsValid'),         filter: 'VERIFIED' },
+          { key: 'expiring',  icon: <Clock       className="w-6 h-6 text-amber-500"  />, bg: 'bg-amber-50',   count: expiringDocs, label: tDC('statsExpiringSoon'),  filter: 'EXPIRING_SOON' },
+          { key: 'expired',   icon: <AlertTriangle className="w-6 h-6 text-red-500" />, bg: 'bg-red-50',      count: expiredDocs,  label: tDC('statsExpired'),       filter: 'EXPIRED' },
+          { key: 'pending',   icon: <FileText    className="w-6 h-6 text-gray-500"  />, bg: 'bg-gray-50',     count: pendingDocs,  label: tDC('statsPending'),       filter: 'PENDING' },
+        ].map(({ key, icon, bg, count, label, filter }) => (
+          <Card key={key} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setStatusFilter(f => f === filter ? '' : filter)}>
             <CardContent className="p-5">
               <div className="flex items-center gap-3">
                 <div className={`w-11 h-11 rounded-lg ${bg} flex items-center justify-center flex-shrink-0`}>{icon}</div>
@@ -429,10 +430,10 @@ export function DocumentsCompliance() {
             <div className="flex-1">
               <p className="font-medium text-amber-700">{t('documents.compliance.complianceAlerts')}</p>
               <p className="text-sm text-muted-foreground mt-0.5">
-                {expiredDocs} expired · {expiringDocs} expiring soon. Immediate action required.
+                {tDC('alertCombined', { expired: expiredDocs, expiring: expiringDocs })}
               </p>
             </div>
-            <Button size="sm" variant="outline" onClick={() => setStatusFilter('EXPIRING_SOON')}>View</Button>
+            <Button size="sm" variant="outline" onClick={() => setStatusFilter('EXPIRING_SOON')}>{tDC('viewAction')}</Button>
           </CardContent>
         </Card>
       )}
@@ -444,7 +445,7 @@ export function DocumentsCompliance() {
             <CardTitle className="text-base flex items-center gap-2"><Filter className="w-4 h-4" /> {t('documents.compliance.filterTitle')}</CardTitle>
             {hasFilters && (
               <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground">
-                <X className="w-3 h-3 me-1" /> Clear filters
+                <X className="w-3 h-3 me-1" /> {tDC('clearFilters')}
               </Button>
             )}
           </div>
@@ -455,7 +456,7 @@ export function DocumentsCompliance() {
             <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Search name, doc number, business ID, issuer…"
+                placeholder={tDC('searchPh')}
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 className="ps-9"
@@ -464,8 +465,8 @@ export function DocumentsCompliance() {
             <Select value={statusFilter || '__all__'} onValueChange={v => setStatusFilter(v === '__all__' ? '' : v)}>
               <SelectTrigger className="w-44"><SelectValue placeholder={t('documents.compliance.allStatuses')} /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="__all__">{t('documents.compliance.allStatuses')}</SelectItem>
-                {STATUS_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                <SelectItem value="__all__">{tDC('allStatuses')}</SelectItem>
+                {STATUS_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{tDC(`statusOptions.${o.labelKey}`)}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select value={typeFilter || '__all__'} onValueChange={v => setTypeFilter(v === '__all__' ? '' : v)}>
@@ -478,34 +479,34 @@ export function DocumentsCompliance() {
             <Select value={entityTypeF || '__all__'} onValueChange={v => setEntityTypeF(v === '__all__' ? '' : v)}>
               <SelectTrigger className="w-36"><SelectValue placeholder={t('documents.compliance.allEntities')} /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="__all__">{t('documents.compliance.allEntities')}</SelectItem>
-                <SelectItem value="APPLICANT">Applicants</SelectItem>
-                <SelectItem value="EMPLOYEE">Employees</SelectItem>
+                <SelectItem value="__all__">{tDC('allEntities')}</SelectItem>
+                <SelectItem value="APPLICANT">{tEnums('entityType.APPLICANT')}</SelectItem>
+                <SelectItem value="EMPLOYEE">{tEnums('entityType.EMPLOYEE')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
           {/* Row 2: docId + docNumber + owner + verifier + compliance */}
           <div className="flex flex-wrap gap-2">
             <Input
-              placeholder="Doc ID (e.g. DOCC2026…)"
+              placeholder={tDC('docIdPh')}
               value={docIdFilter}
               onChange={e => setDocIdFilter(e.target.value)}
               className="w-52"
             />
             <Input
-              placeholder="Physical doc number"
+              placeholder={tDC('docNumPh')}
               value={docNumFilter}
               onChange={e => setDocNumFilter(e.target.value)}
               className="w-44"
             />
             <Input
-              placeholder="Owner name / ID"
+              placeholder={tDC('ownerPh')}
               value={ownerFilter}
               onChange={e => setOwnerFilter(e.target.value)}
               className="w-44"
             />
             <Input
-              placeholder="Verified by"
+              placeholder={tDC('verifierPh')}
               value={verifierFilter}
               onChange={e => setVerifierFilter(e.target.value)}
               className="w-40"
@@ -513,23 +514,23 @@ export function DocumentsCompliance() {
             <Select value={complianceFilter || '__all__'} onValueChange={v => setComplianceFilter(v === '__all__' ? '' : v)}>
               <SelectTrigger className="w-40"><SelectValue placeholder={t('documents.compliance.allCompliance')} /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="__all__">{t('documents.compliance.allCompliance')}</SelectItem>
-                {COMPLIANCE_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                <SelectItem value="__all__">{tDC('allCompliance')}</SelectItem>
+                {COMPLIANCE_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{tDC(`complianceOptions.${o.labelKey}`)}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
           {/* Row 3: expiry range + issue range + column picker */}
           <div className="flex flex-wrap items-center gap-2">
             <div className="flex items-center gap-1">
-              <span className="text-xs text-muted-foreground whitespace-nowrap">{t('documents.compliance.expiryFrom')}</span>
+              <span className="text-xs text-muted-foreground whitespace-nowrap">{tDC('expiryFrom')}</span>
               <Input type="date" value={expFrom} onChange={e => setExpFrom(e.target.value)} className="w-36" />
-              <span className="text-xs text-muted-foreground">to</span>
+              <span className="text-xs text-muted-foreground">{tDC('expiryToLabel')}</span>
               <Input type="date" value={expTo} onChange={e => setExpTo(e.target.value)} className="w-36" />
             </div>
             <div className="flex items-center gap-1">
-              <span className="text-xs text-muted-foreground whitespace-nowrap">{t('documents.compliance.issueFrom')}</span>
+              <span className="text-xs text-muted-foreground whitespace-nowrap">{tDC('issueFrom')}</span>
               <Input type="date" value={issueFrom} onChange={e => setIssueFrom(e.target.value)} className="w-36" />
-              <span className="text-xs text-muted-foreground">to</span>
+              <span className="text-xs text-muted-foreground">{tDC('issueToLabel')}</span>
               <Input type="date" value={issueTo} onChange={e => setIssueTo(e.target.value)} className="w-36" />
             </div>
 
@@ -540,7 +541,7 @@ export function DocumentsCompliance() {
                 onClick={() => setShowColPicker(v => !v)}
                 className={showColPicker ? 'border-primary text-primary' : ''}
               >
-                <Columns2 className="w-4 h-4 me-1.5" />Columns
+                <Columns2 className="w-4 h-4 me-1.5" />{tDC('columnsButton')}
                 {hiddenCount > 0 && (
                   <span className="ms-1.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
                     {hiddenCount}
@@ -581,7 +582,7 @@ export function DocumentsCompliance() {
                         localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_VISIBLE));
                       }}
                       className="flex-1 text-xs text-center text-gray-500 hover:underline py-0.5"
-                    >Reset</button>
+                    >{tDC('reset')}</button>
                   </div>
                 </div>
               )}
@@ -593,18 +594,18 @@ export function DocumentsCompliance() {
       {/* Reject dialog */}
       <Dialog open={rejectDialog.open} onOpenChange={open => !open && setRejectDialog(s => ({ ...s, open: false }))}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Reject Document</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{tDC('rejectDialog.title')}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
-            <p className="text-sm text-muted-foreground">{t('documents.compliance.rejecting')} <span className="font-medium text-foreground">{rejectDialog.docName}</span></p>
+            <p className="text-sm text-muted-foreground">{tDC('rejecting')} <span className="font-medium text-foreground">{rejectDialog.docName}</span></p>
             <div className="space-y-2">
-              <Label htmlFor="reject-reason">{t('documents.compliance.rejectionReason')} <span className="text-destructive">*</span></Label>
-              <Textarea id="reject-reason" placeholder="Explain why this document is being rejected…" value={rejectionReason} onChange={e => setRejectionReason(e.target.value)} rows={4} />
+              <Label htmlFor="reject-reason">{tDC('rejectionReason')} <span className="text-destructive">*</span></Label>
+              <Textarea id="reject-reason" placeholder={tDC('rejectDialog.reasonPh')} value={rejectionReason} onChange={e => setRejectionReason(e.target.value)} rows={4} />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setRejectDialog(s => ({ ...s, open: false }))}>{tc('actions.cancel')}</Button>
             <Button className="bg-red-500 hover:bg-red-600 text-white" onClick={handleReject} disabled={!!verifying || !rejectionReason.trim()}>
-              <XCircle className="w-4 h-4 me-2" />{verifying ? 'Rejecting…' : 'Confirm Rejection'}
+              <XCircle className="w-4 h-4 me-2" />{verifying ? tDC('rejectDialog.rejecting') : tDC('rejectDialog.confirmAction')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -613,28 +614,27 @@ export function DocumentsCompliance() {
       {/* Renew dialog */}
       <Dialog open={renewDialog.open} onOpenChange={open => !open && setRenewDialog(s => ({ ...s, open: false }))}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>Renew Document</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{tDC('renewDialog.title')}</DialogTitle></DialogHeader>
           <p className="text-sm text-muted-foreground -mt-2">
-            Creates a new PENDING document linked to <span className="font-medium text-foreground">{renewDialog.doc?.docId ?? renewDialog.doc?.name}</span>.
-            The original document record is preserved.
+            {tDC('renewDialog.bodyPrefix')}<span className="font-medium text-foreground">{renewDialog.doc?.docId ?? renewDialog.doc?.name}</span>{tDC('renewDialog.bodySuffix')}
           </p>
           <div className="space-y-3">
-            <div><Label>Name</Label><Input value={renewForm.name} onChange={e => setRenewForm(p => ({ ...p, name: e.target.value }))} /></div>
+            <div><Label>{tDC('renewDialog.nameLabel')}</Label><Input value={renewForm.name} onChange={e => setRenewForm(p => ({ ...p, name: e.target.value }))} /></div>
             <div className="grid grid-cols-2 gap-2">
-              <div><Label>Issue Date</Label><Input type="date" value={renewForm.issueDate} onChange={e => setRenewForm(p => ({ ...p, issueDate: e.target.value }))} /></div>
-              <div><Label>Expiry Date</Label><Input type="date" value={renewForm.expiryDate} onChange={e => setRenewForm(p => ({ ...p, expiryDate: e.target.value }))} /></div>
+              <div><Label>{tDC('renewDialog.issueDateLabel')}</Label><Input type="date" value={renewForm.issueDate} onChange={e => setRenewForm(p => ({ ...p, issueDate: e.target.value }))} /></div>
+              <div><Label>{tDC('renewDialog.expiryDateLabel')}</Label><Input type="date" value={renewForm.expiryDate} onChange={e => setRenewForm(p => ({ ...p, expiryDate: e.target.value }))} /></div>
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <div><Label>Document Number</Label><Input value={renewForm.documentNumber} onChange={e => setRenewForm(p => ({ ...p, documentNumber: e.target.value }))} /></div>
-              <div><Label>Issue Country</Label><Input value={renewForm.issueCountry} onChange={e => setRenewForm(p => ({ ...p, issueCountry: e.target.value }))} /></div>
+              <div><Label>{tDC('renewDialog.docNumberLabel')}</Label><Input value={renewForm.documentNumber} onChange={e => setRenewForm(p => ({ ...p, documentNumber: e.target.value }))} /></div>
+              <div><Label>{tDC('renewDialog.issueCountryLabel')}</Label><Input value={renewForm.issueCountry} onChange={e => setRenewForm(p => ({ ...p, issueCountry: e.target.value }))} /></div>
             </div>
-            <div><Label>Issuer</Label><Input value={renewForm.issuer} onChange={e => setRenewForm(p => ({ ...p, issuer: e.target.value }))} /></div>
-            <div><Label>Notes</Label><Input value={renewForm.notes} onChange={e => setRenewForm(p => ({ ...p, notes: e.target.value }))} /></div>
+            <div><Label>{tDC('renewDialog.issuerLabel')}</Label><Input value={renewForm.issuer} onChange={e => setRenewForm(p => ({ ...p, issuer: e.target.value }))} /></div>
+            <div><Label>{tDC('renewDialog.notesLabel')}</Label><Input value={renewForm.notes} onChange={e => setRenewForm(p => ({ ...p, notes: e.target.value }))} /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setRenewDialog(s => ({ ...s, open: false }))}>{tc('actions.cancel')}</Button>
             <Button onClick={handleRenew} disabled={renewing}>
-              <RefreshCw className="w-4 h-4 me-2" />{renewing ? 'Creating…' : 'Create Renewal'}
+              <RefreshCw className="w-4 h-4 me-2" />{renewing ? tDC('renewDialog.creating') : tDC('renewDialog.createAction')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -644,10 +644,10 @@ export function DocumentsCompliance() {
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-base">Documents ({meta.total})</CardTitle>
+            <CardTitle className="text-base">{tDC('documentsCount', { count: meta.total })}</CardTitle>
             {meta.totalPages > 1 && (
               <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                <span>Page {meta.page} of {meta.totalPages}</span>
+                <span>{tDC('pageOf', { page: meta.page, totalPages: meta.totalPages })}</span>
                 <Button variant="ghost" size="sm" disabled={page <= 1} onClick={() => handlePage(page - 1)}><ChevronLeft className="w-4 h-4" /></Button>
                 <Button variant="ghost" size="sm" disabled={page >= meta.totalPages} onClick={() => handlePage(page + 1)}><ChevronRight className="w-4 h-4" /></Button>
               </div>
@@ -659,19 +659,19 @@ export function DocumentsCompliance() {
             <Table>
               <TableHeader className="bg-muted/40">
                 <TableRow>
-                  {col('docId')          && <SortableHead label="Doc ID"       field="docId" />}
-                  {col('owner')          && <SortableHead label="Owner"        field="ownerName" />}
-                  {col('document')       && <SortableHead label="Document"     field="name" />}
-                  {col('type')           && <SortableHead label="Type"         field="typeName" />}
-                  {col('status')         && <SortableHead label="Status"       field="status" />}
-                  {col('expiry')         && <SortableHead label="Expiry Date"  field="expiryDate" />}
-                  {col('verifiedBy')     && <SortableHead label="Verified by"  field="verifiedAt" />}
-                  {col('compliance')     && <SortableHead label="Compliance"   field="status" />}
-                  {col('createdAt')      && <SortableHead label="Upload Date"  field="createdAt" />}
-                  {col('documentNumber') && <SortableHead label="Doc Number"   field="documentNumber" />}
-                  {col('issueDate')      && <SortableHead label="Issue Date"   field="issueDate" />}
-                  {col('entityType')     && <SortableHead label="Entity Type"  field="ownerName" />}
-                  <TableHead className="text-end">Actions</TableHead>
+                  {col('docId')          && <SortableHead label={t('documents.list.cols.docId')}          field="docId" />}
+                  {col('owner')          && <SortableHead label={t('documents.list.cols.owner')}          field="ownerName" />}
+                  {col('document')       && <SortableHead label={t('documents.list.cols.document')}       field="name" />}
+                  {col('type')           && <SortableHead label={t('documents.list.cols.type')}           field="typeName" />}
+                  {col('status')         && <SortableHead label={t('documents.list.cols.status')}         field="status" />}
+                  {col('expiry')         && <SortableHead label={t('documents.list.cols.expiry')}         field="expiryDate" />}
+                  {col('verifiedBy')     && <SortableHead label={t('documents.list.cols.verifiedBy')}     field="verifiedAt" />}
+                  {col('compliance')     && <SortableHead label={t('documents.list.cols.compliance')}     field="status" />}
+                  {col('createdAt')      && <SortableHead label={t('documents.list.cols.createdAt')}      field="createdAt" />}
+                  {col('documentNumber') && <SortableHead label={t('documents.list.cols.documentNumber')} field="documentNumber" />}
+                  {col('issueDate')      && <SortableHead label={t('documents.list.cols.issueDate')}      field="issueDate" />}
+                  {col('entityType')     && <SortableHead label={t('documents.list.cols.entityType')}     field="ownerName" />}
+                  <TableHead className="text-end">{tDC('actionsHeader')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -711,7 +711,7 @@ export function DocumentsCompliance() {
                               <span className="text-xs text-muted-foreground font-mono">{doc.ownerSystemId}</span>
                             )}
                             <span className={`text-xs px-1.5 py-0.5 rounded w-fit font-medium ${doc.entityType === 'APPLICANT' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
-                              {doc.entityType === 'APPLICANT' ? 'Applicant' : 'Employee'}
+                              {tEnums(`entityType.${doc.entityType}`, { defaultValue: doc.entityType })}
                             </span>
                           </div>
                         </TableCell>
@@ -740,10 +740,10 @@ export function DocumentsCompliance() {
                           {doc.expiryDate
                             ? <>
                                 <p className="text-sm">{new Date(doc.expiryDate).toLocaleDateString()}</p>
-                                {daysLeft !== null && daysLeft > 0  && <p className="text-xs text-muted-foreground">{daysLeft}d left</p>}
-                                {daysLeft !== null && daysLeft <= 0 && <p className="text-xs text-red-500">{Math.abs(daysLeft)}d ago</p>}
+                                {daysLeft !== null && daysLeft > 0  && <p className="text-xs text-muted-foreground">{tDC('daysLeft', { count: daysLeft })}</p>}
+                                {daysLeft !== null && daysLeft <= 0 && <p className="text-xs text-red-500">{tDC('daysAgo', { count: Math.abs(daysLeft) })}</p>}
                               </>
-                            : <span className="text-muted-foreground text-xs">N/A</span>}
+                            : <span className="text-muted-foreground text-xs">{tDC('naAbbreviation')}</span>}
                         </TableCell>
                       )}
                       {col('verifiedBy') && (
@@ -784,16 +784,16 @@ export function DocumentsCompliance() {
                           {doc.status === 'PENDING' && can('documents', 'verify') && (
                             <>
                               <Button size="sm" className="bg-emerald-500 hover:bg-emerald-600 text-white h-7 px-2" onClick={() => handleApprove(doc)} disabled={verifying === doc.id}>
-                                <CheckCircle2 className="w-3 h-3 me-1" />{verifying === doc.id ? '…' : 'Approve'}
+                                <CheckCircle2 className="w-3 h-3 me-1" />{verifying === doc.id ? '…' : tDC('approve')}
                               </Button>
                               <Button size="sm" variant="outline" className="text-red-500 border-red-300 hover:bg-red-50 h-7 px-2" onClick={() => { setRejectDialog({ open: true, docId: doc.id, docName: doc.name }); setRejectionReason(''); }} disabled={verifying === doc.id}>
-                                <XCircle className="w-3 h-3 me-1" />Reject
+                                <XCircle className="w-3 h-3 me-1" />{tDC('reject')}
                               </Button>
                             </>
                           )}
                           {(doc.status === 'EXPIRED' || doc.status === 'EXPIRING_SOON' || doc.status === 'VERIFIED') && canCreate('documents') && (
                             <Button size="sm" variant="outline" className="h-7 px-2" onClick={() => openRenewDialog(doc)}>
-                              <RefreshCw className="w-3 h-3 me-1" />Renew
+                              <RefreshCw className="w-3 h-3 me-1" />{tDC('renew')}
                             </Button>
                           )}
                           <Button size="sm" variant="ghost" className="h-7 w-7 p-0" asChild>
@@ -822,10 +822,10 @@ export function DocumentsCompliance() {
           {/* Pagination footer */}
           {meta.totalPages > 1 && (
             <div className="px-4 py-3 border-t flex items-center justify-between text-sm text-muted-foreground">
-              <span>{meta.total} documents · Page {meta.page} of {meta.totalPages}</span>
+              <span>{tDC('paginationFooter', { total: meta.total, page: meta.page, totalPages: meta.totalPages })}</span>
               <div className="flex gap-1">
-                <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => handlePage(page - 1)}><ChevronLeft className="w-4 h-4" /> Prev</Button>
-                <Button variant="outline" size="sm" disabled={page >= meta.totalPages} onClick={() => handlePage(page + 1)}>Next <ChevronRight className="w-4 h-4" /></Button>
+                <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => handlePage(page - 1)}><ChevronLeft className="w-4 h-4" /> {tDC('prev')}</Button>
+                <Button variant="outline" size="sm" disabled={page >= meta.totalPages} onClick={() => handlePage(page + 1)}>{tDC('next')} <ChevronRight className="w-4 h-4" /></Button>
               </div>
             </div>
           )}

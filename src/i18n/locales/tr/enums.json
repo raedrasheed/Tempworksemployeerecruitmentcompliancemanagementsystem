@@ -278,5 +278,17 @@
   "workshopStatus": {
     "ACTIVE": "Aktif",
     "INACTIVE": "Pasif"
+  },
+  "documentCompliance": {
+    "COMPLIANT": "Uygun",
+    "AT_RISK": "Riskli",
+    "NON_COMPLIANT": "Uygun Değil",
+    "PENDING": "Beklemede"
+  },
+  "entityType": {
+    "APPLICANT": "Aday Adayı",
+    "EMPLOYEE": "Çalışan",
+    "VEHICLE": "Araç",
+    "AGENCY": "Ajans"
   }
 }

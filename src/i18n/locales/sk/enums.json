@@ -278,5 +278,17 @@
   "workshopStatus": {
     "ACTIVE": "Aktívna",
     "INACTIVE": "Neaktívna"
+  },
+  "documentCompliance": {
+    "COMPLIANT": "V súlade",
+    "AT_RISK": "Riziko",
+    "NON_COMPLIANT": "Mimo súladu",
+    "PENDING": "Čakajúce"
+  },
+  "entityType": {
+    "APPLICANT": "Uchádzač",
+    "EMPLOYEE": "Zamestnanec",
+    "VEHICLE": "Vozidlo",
+    "AGENCY": "Agentúra"
   }
 }

@@ -278,5 +278,17 @@
   "workshopStatus": {
     "ACTIVE": "نشطة",
     "INACTIVE": "غير نشطة"
+  },
+  "documentCompliance": {
+    "COMPLIANT": "متوافق",
+    "AT_RISK": "تحت الخطر",
+    "NON_COMPLIANT": "غير متوافق",
+    "PENDING": "قيد الانتظار"
+  },
+  "entityType": {
+    "APPLICANT": "متقدم",
+    "EMPLOYEE": "موظف",
+    "VEHICLE": "مركبة",
+    "AGENCY": "وكالة"
   }
 }

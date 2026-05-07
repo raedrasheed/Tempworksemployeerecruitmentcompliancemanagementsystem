@@ -278,5 +278,17 @@
   "workshopStatus": {
     "ACTIVE": "Активна",
     "INACTIVE": "Неактивна"
+  },
+  "documentCompliance": {
+    "COMPLIANT": "Соответствует",
+    "AT_RISK": "Под угрозой",
+    "NON_COMPLIANT": "Не соответствует",
+    "PENDING": "Ожидает"
+  },
+  "entityType": {
+    "APPLICANT": "Кандидат",
+    "EMPLOYEE": "Сотрудник",
+    "VEHICLE": "ТС",
+    "AGENCY": "Агентство"
   }
 }

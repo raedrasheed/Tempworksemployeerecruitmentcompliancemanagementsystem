@@ -586,7 +586,7 @@ export function CandidateProfile() {
           {/* Promote Lead → Candidate */}
           {canEdit('applicants') && applicantData?.tier === 'LEAD' && (
             <Button variant="outline" className="text-emerald-700 border-emerald-300" onClick={() => setShowConvertLeadDialog(true)}>
-              <TrendingUp className="w-4 h-4 me-2" />Promote to Candidate
+              <TrendingUp className="w-4 h-4 me-2" />{t('pages:applicants.profile.promoteToCandidate')}
             </Button>
           )}
           {/* Convert Candidate → Employee */}

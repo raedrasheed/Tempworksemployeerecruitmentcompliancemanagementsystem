@@ -2712,7 +2712,7 @@ ${d.drivingExpType ? section(S('drivingExpSection'), `<div class="grid">
 </div>`) : ''}
 ${d.education.length > 0 ? section(S('educationSection'), d.education.map(e => `<div class="entry"><div class="entry-title">${e.level || S('degree')} — ${e.institution || ''}</div>${field(S('field'), e.fieldOfStudy)}${field(S('country'), e.country)}${field(S('period'), [e.startDate, e.current ? S('present') : e.endDate].filter(Boolean).join(' – '))}</div>`).join('')) : ''}
 ${d.workHistory.length > 0 ? section(S('workSection'), d.workHistory.map(w => `<div class="entry"><div class="entry-title">${w.jobTitle || S('position')} — ${w.company || ''}</div>${field(S('country'), w.country)}${field(S('period'), [w.startDate, w.current ? S('present') : w.endDate].filter(Boolean).join(' – '))}${field(S('reasonForLeaving'), w.reasonForLeaving)}${field(S('reference'), w.referenceName ? `${w.referenceName} | ${w.referencePhone} | ${w.referenceEmail}` : '')}</div>`).join('')) : ''}
-${d.languages.length > 0 ? section(S('languagesSection'), d.languages.map(l => `<div class="entry"><div class="entry-title">${enumLabel('language', l.language) || l.language}${l.motherTongue ? ` (${S('motherTongue')})` : ''}</div>${field(S('speaking'), enumLabel('proficiency', l.speakingLevel) || l.speakingLevel)}${field(S('reading'), enumLabel('proficiency', l.readingLevel) || l.readingLevel)}${field(S('writing'), enumLabel('proficiency', l.writingLevel) || l.writingLevel)}${field(S('listening'), enumLabel('proficiency', l.listeningLevel) || l.listeningLevel)}</div>`).join('')) : ''}
+${d.languages.length > 0 ? section(S('languagesSection'), d.languages.map(l => `<div class="entry"><div class="entry-title">${enumLabel('language', l.language) || l.language}${l.motherTongue ? ` (${S('motherTongue')})` : ''}</div>${l.motherTongue ? '' : `${field(S('speaking'), enumLabel('proficiency', l.speakingLevel) || l.speakingLevel)}${field(S('reading'), enumLabel('proficiency', l.readingLevel) || l.readingLevel)}${field(S('writing'), enumLabel('proficiency', l.writingLevel) || l.writingLevel)}${field(S('listening'), enumLabel('proficiency', l.listeningLevel) || l.listeningLevel)}`}</div>`).join('')) : ''}
 ${d.skills.length > 0 ? section(S('skillsSection'), `<div class="grid">${d.skills.map(s => field(s.skill, (enumLabel('skillLevel', s.level) || s.level) || '—')).join('')}</div>`) : ''}
 ${section(S('additionalSection'), `<div class="grid">
   ${field(S('preferredStartDate'), d.preferredStartDate)}${field(S('availability'), d.availability)}
@@ -2919,12 +2919,34 @@ function Step11Review({ d, u, settings, photoFile, existingPhotoUrl, uploadedFil
       {d.languages.length > 0 && (
         <ReviewSection title={t('applicants.form.step11.languagesSection')}>
           <div className="grid md:grid-cols-2 gap-3">
-            {d.languages.map(l => (
-              <div key={l.id} className="p-3 bg-gray-50 rounded-lg">
-                <p className="text-sm font-semibold text-gray-900">{enumLabel('language', l.language) || l.language}{l.motherTongue ? ` (${t('applicants.form.step11.phRefBadgeMother')})` : ''}</p>
-                <p className="text-xs text-gray-500 mt-0.5">{t('applicants.form.step11.speakingPrefix')}: {enumLabel('proficiency', l.speakingLevel) || '—'} · {t('applicants.form.step11.readingPrefix')}: {enumLabel('proficiency', l.readingLevel) || '—'} · {t('applicants.form.step11.writingPrefix')}: {enumLabel('proficiency', l.writingLevel) || '—'} · {t('applicants.form.step11.listeningPrefix')}: {enumLabel('proficiency', l.listeningLevel) || '—'}</p>
-              </div>
-            ))}
+            {d.languages.map(l => {
+              // Mother-tongue speakers don't rate themselves on the CEFR scale,
+              // so suppress the per-skill line entirely. For all other languages,
+              // only render the skills that actually have a level set.
+              const skills = l.motherTongue
+                ? []
+                : ([
+                    ['speakingPrefix', l.speakingLevel],
+                    ['readingPrefix',  l.readingLevel],
+                    ['writingPrefix',  l.writingLevel],
+                    ['listeningPrefix', l.listeningLevel],
+                  ] as const).filter(([, lvl]) => !!lvl);
+              return (
+                <div key={l.id} className="p-3 bg-gray-50 rounded-lg">
+                  <p className="text-sm font-semibold text-gray-900">{enumLabel('language', l.language) || l.language}{l.motherTongue ? ` (${t('applicants.form.step11.phRefBadgeMother')})` : ''}</p>
+                  {skills.length > 0 && (
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {skills.map(([prefix, lvl], idx) => (
+                        <span key={prefix}>
+                          {idx > 0 ? ' · ' : ''}
+                          {t(`applicants.form.step11.${prefix}`)}: {enumLabel('proficiency', lvl) || lvl}
+                        </span>
+                      ))}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </ReviewSection>
       )}

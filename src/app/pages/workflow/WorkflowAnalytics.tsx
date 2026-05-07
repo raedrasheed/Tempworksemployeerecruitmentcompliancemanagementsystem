@@ -78,10 +78,10 @@ export function WorkflowAnalytics() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">{t('workflow.analytics.avgTimeLabel')}</p>
-                <p className="text-3xl font-semibold text-[#0F172A] mt-1">45 days</p>
+                <p className="text-3xl font-semibold text-[#0F172A] mt-1">{t('workflow.analytics.avgTimeValue')}</p>
                 <div className="flex items-center gap-1 mt-2">
                   <TrendingDown className="w-4 h-4 text-[#22C55E]" />
-                  <span className="text-sm text-[#22C55E]">-8% vs last month</span>
+                  <span className="text-sm text-[#22C55E]">{t('workflow.analytics.avgTimeTrend')}</span>
                 </div>
               </div>
               <div className="w-12 h-12 rounded-lg bg-[#EFF6FF] flex items-center justify-center">
@@ -96,10 +96,10 @@ export function WorkflowAnalytics() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">{t('workflow.analytics.completionRateLabel')}</p>
-                <p className="text-3xl font-semibold text-[#0F172A] mt-1">51%</p>
+                <p className="text-3xl font-semibold text-[#0F172A] mt-1">{t('workflow.analytics.completionRateValue')}</p>
                 <div className="flex items-center gap-1 mt-2">
                   <TrendingUp className="w-4 h-4 text-[#22C55E]" />
-                  <span className="text-sm text-[#22C55E]">+5% vs last month</span>
+                  <span className="text-sm text-[#22C55E]">{t('workflow.analytics.completionRateTrend')}</span>
                 </div>
               </div>
               <div className="w-12 h-12 rounded-lg bg-[#F0FDF4] flex items-center justify-center">
@@ -114,10 +114,10 @@ export function WorkflowAnalytics() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">{t('workflow.analytics.slaBreachesLabel')}</p>
-                <p className="text-3xl font-semibold text-[#0F172A] mt-1">12</p>
+                <p className="text-3xl font-semibold text-[#0F172A] mt-1">{t('workflow.analytics.slaBreachesValue')}</p>
                 <div className="flex items-center gap-1 mt-2">
                   <TrendingUp className="w-4 h-4 text-[#EF4444]" />
-                  <span className="text-sm text-[#EF4444]">+3 vs last month</span>
+                  <span className="text-sm text-[#EF4444]">{t('workflow.analytics.slaBreachesTrend')}</span>
                 </div>
               </div>
               <div className="w-12 h-12 rounded-lg bg-[#FEE2E2] flex items-center justify-center">
@@ -132,10 +132,10 @@ export function WorkflowAnalytics() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">{t('workflow.analytics.activeInWorkflow')}</p>
-                <p className="text-3xl font-semibold text-[#0F172A] mt-1">101</p>
+                <p className="text-3xl font-semibold text-[#0F172A] mt-1">{t('workflow.analytics.activeValue')}</p>
                 <div className="flex items-center gap-1 mt-2">
                   <TrendingUp className="w-4 h-4 text-[#2563EB]" />
-                  <span className="text-sm text-[#2563EB]">+12 vs last month</span>
+                  <span className="text-sm text-[#2563EB]">{t('workflow.analytics.activeTrend')}</span>
                 </div>
               </div>
               <div className="w-12 h-12 rounded-lg bg-[#EFF6FF] flex items-center justify-center">

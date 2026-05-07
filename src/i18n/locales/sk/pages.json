@@ -2516,7 +2516,15 @@
       "insightsCardTitle": "Insights & Recommendations",
       "insight1Title": "Work Permit Processing Delays",
       "insight2Title": "Document Verification Improvement",
-      "insight3Title": "High Drop-off at Visa Stage"
+      "insight3Title": "High Drop-off at Visa Stage",
+      "avgTimeValue": "45 dní",
+      "avgTimeTrend": "-8 % oproti minulému mesiacu",
+      "completionRateValue": "51 %",
+      "completionRateTrend": "+5 % oproti minulému mesiacu",
+      "slaBreachesValue": "12",
+      "slaBreachesTrend": "+3 oproti minulému mesiacu",
+      "activeValue": "101",
+      "activeTrend": "+12 oproti minulému mesiacu"
     },
     "management": {
       "title": "Riadenie pracovného postupu",

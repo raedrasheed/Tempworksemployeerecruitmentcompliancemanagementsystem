@@ -2502,7 +2502,15 @@
       "insightsCardTitle": "Insights & Recommendations",
       "insight1Title": "Work Permit Processing Delays",
       "insight2Title": "Document Verification Improvement",
-      "insight3Title": "High Drop-off at Visa Stage"
+      "insight3Title": "High Drop-off at Visa Stage",
+      "avgTimeValue": "45 gün",
+      "avgTimeTrend": "Geçen aya göre -%8",
+      "completionRateValue": "%51",
+      "completionRateTrend": "Geçen aya göre +%5",
+      "slaBreachesValue": "12",
+      "slaBreachesTrend": "Geçen aya göre +3",
+      "activeValue": "101",
+      "activeTrend": "Geçen aya göre +12"
     },
     "management": {
       "title": "İş Akışı Yönetimi",

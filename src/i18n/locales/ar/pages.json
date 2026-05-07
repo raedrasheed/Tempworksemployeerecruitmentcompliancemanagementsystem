@@ -2530,7 +2530,15 @@
       "insightsCardTitle": "Insights & Recommendations",
       "insight1Title": "Work Permit Processing Delays",
       "insight2Title": "Document Verification Improvement",
-      "insight3Title": "High Drop-off at Visa Stage"
+      "insight3Title": "High Drop-off at Visa Stage",
+      "avgTimeValue": "45 يومًا",
+      "avgTimeTrend": "-8% مقارنة بالشهر الماضي",
+      "completionRateValue": "51%",
+      "completionRateTrend": "+5% مقارنة بالشهر الماضي",
+      "slaBreachesValue": "12",
+      "slaBreachesTrend": "+3 مقارنة بالشهر الماضي",
+      "activeValue": "101",
+      "activeTrend": "+12 مقارنة بالشهر الماضي"
     },
     "management": {
       "title": "إدارة سير العمل",

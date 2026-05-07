@@ -2519,7 +2519,15 @@
       "insightsCardTitle": "Insights & Recommendations",
       "insight1Title": "Work Permit Processing Delays",
       "insight2Title": "Document Verification Improvement",
-      "insight3Title": "High Drop-off at Visa Stage"
+      "insight3Title": "High Drop-off at Visa Stage",
+      "avgTimeValue": "45 days",
+      "avgTimeTrend": "-8% vs last month",
+      "completionRateValue": "51%",
+      "completionRateTrend": "+5% vs last month",
+      "slaBreachesValue": "12",
+      "slaBreachesTrend": "+3 vs last month",
+      "activeValue": "101",
+      "activeTrend": "+12 vs last month"
     },
     "management": {
       "title": "Workflow Management",

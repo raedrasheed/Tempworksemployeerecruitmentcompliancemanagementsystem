@@ -17,7 +17,24 @@ import { usePermissions } from '../../hooks/usePermissions';
 import { apiError } from '../../../i18n/apiError';
 
 const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1').replace('/api/v1', '');
-const getFileUrl = (fileUrl: string) => /^https?:\/\//i.test(fileUrl) ? fileUrl : `${API_BASE}${fileUrl}`;
+/**
+ * Build a fetchable URL from whatever shape the DB has.
+ *  - Already-absolute URLs are returned as-is.
+ *  - Legacy malformed values like
+ *      "https://api.example.comhttps://spaces.example.com/foo.jpg"
+ *    (an older bug saved API_BASE + absolute URL into the DB) are
+ *    repaired by stripping everything before the second protocol.
+ *  - Bare paths get the API base prepended.
+ */
+const getFileUrl = (fileUrl: string) => {
+  if (!fileUrl) return '';
+  // Repair legacy double-prefix rows.
+  const dbl = fileUrl.search(/https?:\/\/.*?(https?:\/\/)/);
+  if (dbl !== -1) {
+    return fileUrl.slice(fileUrl.indexOf('http', 1));
+  }
+  return /^https?:\/\//i.test(fileUrl) ? fileUrl : `${API_BASE}${fileUrl}`;
+};
 
 export function DocumentPreview() {
   const { t } = useTranslation('pages');

@@ -72,6 +72,23 @@ export class DocumentsController {
     return this.documentsService.findOne(id);
   }
 
+  // ── File proxy ─────────────────────────────────────────────────────────────
+  // Streams the document bytes from storage (Spaces / disk) through the API
+  // origin. The browser cannot fetch Spaces URLs directly because the bucket
+  // has no CORS headers; this same-origin proxy unblocks the front-end PDF
+  // bundler and any other client that needs to read raw bytes.
+
+  @Get(':id/file')
+  @Roles('System Admin', 'HR Manager', 'Compliance Officer', 'Recruiter', 'Finance', 'Read Only')
+  @ApiOperation({ summary: 'Stream the document file bytes (CORS-safe proxy)' })
+  async streamFile(@Param('id') id: string, @Res() res: Response) {
+    const { buffer, mimeType, name } = await this.documentsService.readDocumentBytes(id);
+    res.setHeader('Content-Type', mimeType || 'application/octet-stream');
+    res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(name)}"`);
+    res.setHeader('Content-Length', buffer.length);
+    res.end(buffer);
+  }
+
   // ── Bulk download ──────────────────────────────────────────────────────────
 
   @Post('bulk-download')

@@ -195,6 +195,22 @@ export class DocumentsService {
     return doc;
   }
 
+  /**
+   * Reads a single document's bytes for the same-origin file proxy.
+   * Uses the same fetch path as the bulk-download archive so URL repair
+   * and legacy `/uploads/...` handling stay in one place.
+   */
+  async readDocumentBytes(id: string): Promise<{ buffer: Buffer; mimeType: string; name: string }> {
+    const doc = await this.prisma.document.findUnique({
+      where: { id, deletedAt: null },
+      select: { id: true, name: true, fileUrl: true, mimeType: true },
+    });
+    if (!doc) throw new NotFoundException({ code: 'DOCUMENT.NOT_FOUND', message: `Document ${id} not found`, params: { id } });
+    if (!doc.fileUrl) throw new NotFoundException({ code: 'DOCUMENT.FILE_MISSING', message: 'Document has no file', params: { id } });
+    const buffer = await this.fetchDocumentBuffer(doc.fileUrl);
+    return { buffer, mimeType: doc.mimeType ?? 'application/octet-stream', name: doc.name ?? 'document' };
+  }
+
   async findByEntity(entityType: string, entityId: string, pagination: PaginationDto) {
     const { page = 1, limit = 50 } = pagination;
     const skip  = (Number(page) - 1) * Number(limit);

@@ -562,11 +562,13 @@ export const applicantsApi = {
 export const publicApplicationApi = {
   getFormSettings: () => apiFetch<Record<string, any>>('/settings/public/form'),
 
-  /** Fetches active job categories without requiring auth (public endpoint). */
+  /** Fetches active job categories without requiring auth (public endpoint).
+   *  Routed through `apiFetch` so the active UI locale is forwarded via
+   *  `Accept-Language`; the backend then returns localized `name`/`description`
+   *  fields when the JobType row has a stored translation. */
   getJobCategories: () =>
-    fetch(`${API_URL}/settings/job-types`)
-      .then(res => res.ok ? res.json() : [])
-      .catch(() => []) as Promise<{ id: string; name: string }[]>,
+    apiFetch<{ id: string; name: string }[]>('/settings/job-types')
+      .catch(() => []),
 
   submit: (data: any) =>
     apiFetch<any>('/applicants/public/submit', {

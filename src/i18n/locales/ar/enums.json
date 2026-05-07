@@ -210,5 +210,24 @@
     "Intermediate": "Intermediate",
     "Advanced": "Advanced",
     "Expert": "Expert"
+  },
+  "jobCategory": {
+    "Flatbed Driver": "سائق شاحنة مسطحة",
+    "Forklift Operator": "مشغّل رافعة شوكية",
+    "HGV Driver Class 1": "سائق شاحنة ثقيلة – الفئة 1",
+    "HGV Driver Class 2": "سائق شاحنة ثقيلة – الفئة 2",
+    "LGV Driver": "سائق شاحنة خفيفة",
+    "Multi-Drop Driver": "سائق توصيل متعدد المحطات",
+    "Tanker Driver": "سائق صهريج",
+    "Transport Manager": "مدير نقل",
+    "Van Driver": "سائق فان",
+    "Warehouse Operative": "عامل مستودع",
+    "Bus Driver": "سائق حافلة",
+    "Coach Driver": "سائق حافلة سياحية",
+    "Courier Driver": "سائق توصيل سريع",
+    "Delivery Driver": "سائق توصيل",
+    "Taxi Driver": "سائق سيارة أجرة",
+    "Crane Operator": "مشغّل رافعة",
+    "Logistics Coordinator": "منسّق لوجستيات"
   }
 }

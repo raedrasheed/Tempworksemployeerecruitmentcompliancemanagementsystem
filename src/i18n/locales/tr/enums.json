@@ -210,5 +210,24 @@
     "Intermediate": "Intermediate",
     "Advanced": "Advanced",
     "Expert": "Expert"
+  },
+  "jobCategory": {
+    "Flatbed Driver": "Açık Kasa Şoförü",
+    "Forklift Operator": "Forklift Operatörü",
+    "HGV Driver Class 1": "Ağır Vasıta Şoförü – Sınıf 1",
+    "HGV Driver Class 2": "Ağır Vasıta Şoförü – Sınıf 2",
+    "LGV Driver": "Hafif Ticari Araç Şoförü",
+    "Multi-Drop Driver": "Çoklu Dağıtım Şoförü",
+    "Tanker Driver": "Tanker Şoförü",
+    "Transport Manager": "Nakliye Yöneticisi",
+    "Van Driver": "Panelvan Şoförü",
+    "Warehouse Operative": "Depo Görevlisi",
+    "Bus Driver": "Otobüs Şoförü",
+    "Coach Driver": "Otokar Şoförü",
+    "Courier Driver": "Kurye Şoförü",
+    "Delivery Driver": "Dağıtım Şoförü",
+    "Taxi Driver": "Taksi Şoförü",
+    "Crane Operator": "Vinç Operatörü",
+    "Logistics Coordinator": "Lojistik Koordinatörü"
   }
 }

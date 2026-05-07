@@ -210,5 +210,24 @@
     "Intermediate": "Intermediate",
     "Advanced": "Advanced",
     "Expert": "Expert"
+  },
+  "jobCategory": {
+    "Flatbed Driver": "Vodič valníka",
+    "Forklift Operator": "Vodič vysokozdvižného vozíka",
+    "HGV Driver Class 1": "Vodič nákladného vozidla – trieda 1",
+    "HGV Driver Class 2": "Vodič nákladného vozidla – trieda 2",
+    "LGV Driver": "Vodič ľahkého úžitkového vozidla",
+    "Multi-Drop Driver": "Rozvozový vodič",
+    "Tanker Driver": "Vodič cisterny",
+    "Transport Manager": "Manažér dopravy",
+    "Van Driver": "Vodič dodávky",
+    "Warehouse Operative": "Skladový pracovník",
+    "Bus Driver": "Vodič autobusu",
+    "Coach Driver": "Vodič diaľkového autobusu",
+    "Courier Driver": "Kuriér",
+    "Delivery Driver": "Vodič rozvozu",
+    "Taxi Driver": "Taxikár",
+    "Crane Operator": "Žeriavnik",
+    "Logistics Coordinator": "Koordinátor logistiky"
   }
 }

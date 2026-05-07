@@ -210,5 +210,24 @@
     "Intermediate": "Intermediate",
     "Advanced": "Advanced",
     "Expert": "Expert"
+  },
+  "jobCategory": {
+    "Flatbed Driver": "Водитель бортового грузовика",
+    "Forklift Operator": "Оператор погрузчика",
+    "HGV Driver Class 1": "Водитель грузового автомобиля 1-го класса",
+    "HGV Driver Class 2": "Водитель грузового автомобиля 2-го класса",
+    "LGV Driver": "Водитель лёгкого грузовика",
+    "Multi-Drop Driver": "Водитель развозной доставки",
+    "Tanker Driver": "Водитель автоцистерны",
+    "Transport Manager": "Руководитель транспортного отдела",
+    "Van Driver": "Водитель фургона",
+    "Warehouse Operative": "Работник склада",
+    "Bus Driver": "Водитель автобуса",
+    "Coach Driver": "Водитель туристического автобуса",
+    "Courier Driver": "Курьер",
+    "Delivery Driver": "Водитель-доставщик",
+    "Taxi Driver": "Водитель такси",
+    "Crane Operator": "Крановщик",
+    "Logistics Coordinator": "Координатор логистики"
   }
 }

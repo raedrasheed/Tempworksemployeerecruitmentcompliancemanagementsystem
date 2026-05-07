@@ -15,7 +15,7 @@ const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY as string;
 export function PublicEmployeeApplication() {
   const branding = useBranding();
   const navigate = useNavigate();
-  const { t } = useTranslation('public');
+  const { t, i18n } = useTranslation('public');
   const [searchParams] = useSearchParams();
   const jobAdId = searchParams.get('jobAdId') || undefined;
   const jobSlug = searchParams.get('jobSlug') || undefined;
@@ -46,24 +46,29 @@ export function PublicEmployeeApplication() {
 
   const visibleTabs = useMemo(() => getVisibleTabs(formData), [formData.hasDrivingLicense]);
 
+  // Re-fetch job categories when the UI language changes so the backend can
+  // return localized `name`/`description` for the active locale (Accept-Language
+  // is forwarded by `apiFetch`). The `jobCategory` URL-param match still
+  // operates on the canonical English name returned alongside any localization.
   useEffect(() => {
-    Promise.all([
-      publicApplicationApi.getJobCategories().then((types) => {
-        setJobTypes(types);
-        if (jobCategory) {
-          const match = types.find((t) => t.name === jobCategory);
-          if (match) setFormData(prev => ({ ...prev, jobTypeId: match.id }));
-        }
-      }),
-      publicApplicationApi.getFormSettings().then((raw: any) => {
-        if (!raw || typeof raw !== 'object') return;
-        const parsed: Record<string, any> = {};
-        for (const [k, v] of Object.entries(raw)) {
-          parsed[k.replace(/^form\./, '')] = v;
-        }
-        setSettings(prev => ({ ...prev, ...parsed }));
-      }).catch(() => {}),
-    ]);
+    publicApplicationApi.getJobCategories().then((types) => {
+      setJobTypes(types);
+      if (jobCategory) {
+        const match = types.find((t) => t.name === jobCategory);
+        if (match) setFormData(prev => ({ ...prev, jobTypeId: match.id }));
+      }
+    });
+  }, [i18n.language, jobCategory]);
+
+  useEffect(() => {
+    publicApplicationApi.getFormSettings().then((raw: any) => {
+      if (!raw || typeof raw !== 'object') return;
+      const parsed: Record<string, any> = {};
+      for (const [k, v] of Object.entries(raw)) {
+        parsed[k.replace(/^form\./, '')] = v;
+      }
+      setSettings(prev => ({ ...prev, ...parsed }));
+    }).catch(() => {});
   }, []);
 
   // Fetch authoritative required documents from the job ad API.

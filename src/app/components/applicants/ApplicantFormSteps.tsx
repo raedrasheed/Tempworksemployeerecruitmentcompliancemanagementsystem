@@ -907,6 +907,20 @@ function InlineDocUpload({ label, sectionKey, uploadedFiles, onFilesChange }: {
 
 // ── Step Components ───────────────────────────────────────────────────────────
 
+/** Resolve a JobType's display name in the active UI locale.
+ *
+ *  Lookup order:
+ *  1. The catalog entry `enums.jobCategory.<canonical-en-name>` (covers the
+ *     standard driver-industry roles shipped in the catalog).
+ *  2. Fall back to whatever name the API returned — which is already
+ *     localized when the JobType row in the DB has a stored translation,
+ *     and otherwise the canonical English name. This keeps admin-created
+ *     custom categories (e.g. "test", or any agency-specific role) rendering
+ *     correctly even when the catalog has no entry. */
+function localizeJobCategoryName(name: string, tEnums: ReturnType<typeof useTranslation>['t']): string {
+  return tEnums(`jobCategory.${name}`, { defaultValue: name });
+}
+
 function Step1Personal({ d, u, jobTypes, photoFile, onPhotoChange, existingPhotoUrl, jobAdTitle }: {
   d: ApplicantFormData;
   u: (fn: (p: ApplicantFormData) => ApplicantFormData) => void;
@@ -917,6 +931,7 @@ function Step1Personal({ d, u, jobTypes, photoFile, onPhotoChange, existingPhoto
   jobAdTitle?: string;
 }) {
   const { t } = useTranslation('pages');
+  const { t: tEnums } = useTranslation('enums');
   const set = (field: keyof ApplicantFormData) => (value: any) => u(prev => ({ ...prev, [field]: value }));
 
   // Build preview URL: newly selected file takes priority over existing URL
@@ -941,7 +956,7 @@ function Step1Personal({ d, u, jobTypes, photoFile, onPhotoChange, existingPhoto
                 <SelectValue placeholder={jobTypes.length === 0 ? t('applicants.form.step1.loadingCategories') : t('applicants.form.step1.jobCategoryPh')} />
               </SelectTrigger>
               <SelectContent>
-                {jobTypes.map(jt => <SelectItem key={jt.id} value={jt.id}>{jt.name}</SelectItem>)}
+                {jobTypes.map(jt => <SelectItem key={jt.id} value={jt.id}>{localizeJobCategoryName(jt.name, tEnums)}</SelectItem>)}
               </SelectContent>
             </Select>
           </>

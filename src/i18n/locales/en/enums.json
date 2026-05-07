@@ -210,5 +210,24 @@
     "Intermediate": "Intermediate",
     "Advanced": "Advanced",
     "Expert": "Expert"
+  },
+  "jobCategory": {
+    "Flatbed Driver": "Flatbed Driver",
+    "Forklift Operator": "Forklift Operator",
+    "HGV Driver Class 1": "HGV Driver Class 1",
+    "HGV Driver Class 2": "HGV Driver Class 2",
+    "LGV Driver": "LGV Driver",
+    "Multi-Drop Driver": "Multi-Drop Driver",
+    "Tanker Driver": "Tanker Driver",
+    "Transport Manager": "Transport Manager",
+    "Van Driver": "Van Driver",
+    "Warehouse Operative": "Warehouse Operative",
+    "Bus Driver": "Bus Driver",
+    "Coach Driver": "Coach Driver",
+    "Courier Driver": "Courier Driver",
+    "Delivery Driver": "Delivery Driver",
+    "Taxi Driver": "Taxi Driver",
+    "Crane Operator": "Crane Operator",
+    "Logistics Coordinator": "Logistics Coordinator"
   }
 }

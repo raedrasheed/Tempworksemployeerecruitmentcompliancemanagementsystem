@@ -36,6 +36,10 @@ Font.register({
   fonts: [
     { src: `${FONT_BASE}/NotoSansArabic-Regular.ttf`, fontWeight: 'normal' },
     { src: `${FONT_BASE}/NotoSansArabic-Bold.ttf`, fontWeight: 'bold' },
+    // Arabic has no italic tradition — alias italic to the upright
+    // faces so any `fontStyle: italic` in the stylesheet resolves.
+    { src: `${FONT_BASE}/NotoSansArabic-Regular.ttf`, fontWeight: 'normal', fontStyle: 'italic' },
+    { src: `${FONT_BASE}/NotoSansArabic-Bold.ttf`, fontWeight: 'bold', fontStyle: 'italic' },
   ],
 });
 // Disable hyphenation — react-pdf otherwise inserts hyphens inside

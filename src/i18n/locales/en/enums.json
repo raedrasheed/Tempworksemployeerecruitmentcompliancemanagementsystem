@@ -229,5 +229,15 @@
     "Taxi Driver": "Taxi Driver",
     "Crane Operator": "Crane Operator",
     "Logistics Coordinator": "Logistics Coordinator"
+  },
+  "familyRelation": {
+    "Spouse": "Spouse",
+    "Partner": "Partner",
+    "Parent": "Parent",
+    "Child": "Child",
+    "Sibling": "Sibling",
+    "Friend": "Friend",
+    "Colleague": "Colleague",
+    "Other": "Other"
   }
 }

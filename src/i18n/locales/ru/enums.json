@@ -229,5 +229,15 @@
     "Taxi Driver": "Водитель такси",
     "Crane Operator": "Крановщик",
     "Logistics Coordinator": "Координатор логистики"
+  },
+  "familyRelation": {
+    "Spouse": "Супруг(а)",
+    "Partner": "Партнёр",
+    "Parent": "Родитель",
+    "Child": "Ребёнок",
+    "Sibling": "Брат/сестра",
+    "Friend": "Друг/подруга",
+    "Colleague": "Коллега",
+    "Other": "Другое"
   }
 }

@@ -1150,6 +1150,7 @@ function Step1Personal({ d, u, jobTypes, photoFile, onPhotoChange, existingPhoto
 
 function Step2Contact({ d, u, settings }: { d: ApplicantFormData; u: (fn: (p: ApplicantFormData) => ApplicantFormData) => void; settings: FormSettings }) {
   const { t } = useTranslation('pages');
+  const { t: tEnums } = useTranslation('enums');
   const set = (field: keyof ApplicantFormData) => (value: any) => u(prev => ({ ...prev, [field]: value }));
   const [touched, setTouched] = useState({ email: false, emailConfirm: false, emergencyEmail: false });
   const touch = (field: 'email' | 'emailConfirm' | 'emergencyEmail') => () => setTouched(t => ({ ...t, [field]: true }));
@@ -1268,7 +1269,7 @@ function Step2Contact({ d, u, settings }: { d: ApplicantFormData; u: (fn: (p: Ap
             <Select value={d.emergencyRelation} onValueChange={set('emergencyRelation')}>
               <SelectTrigger><SelectValue placeholder={t('applicants.form.step2.emergencyRelationPh')} /></SelectTrigger>
               <SelectContent>
-                {(settings.familyRelations ?? []).map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                {(settings.familyRelations ?? []).map(r => <SelectItem key={r} value={r}>{tEnums(`familyRelation.${r}`, { defaultValue: r })}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>

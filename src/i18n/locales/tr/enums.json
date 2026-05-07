@@ -229,5 +229,15 @@
     "Taxi Driver": "Taksi Şoförü",
     "Crane Operator": "Vinç Operatörü",
     "Logistics Coordinator": "Lojistik Koordinatörü"
+  },
+  "familyRelation": {
+    "Spouse": "Eş",
+    "Partner": "Partner",
+    "Parent": "Ebeveyn",
+    "Child": "Çocuk",
+    "Sibling": "Kardeş",
+    "Friend": "Arkadaş",
+    "Colleague": "Meslektaş",
+    "Other": "Diğer"
   }
 }

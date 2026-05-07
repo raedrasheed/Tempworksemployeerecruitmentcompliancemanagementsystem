@@ -229,5 +229,15 @@
     "Taxi Driver": "Taxikár",
     "Crane Operator": "Žeriavnik",
     "Logistics Coordinator": "Koordinátor logistiky"
+  },
+  "familyRelation": {
+    "Spouse": "Manžel/ka",
+    "Partner": "Partner/ka",
+    "Parent": "Rodič",
+    "Child": "Dieťa",
+    "Sibling": "Súrodenec",
+    "Friend": "Priateľ/ka",
+    "Colleague": "Kolega/Kolegyňa",
+    "Other": "Iné"
   }
 }

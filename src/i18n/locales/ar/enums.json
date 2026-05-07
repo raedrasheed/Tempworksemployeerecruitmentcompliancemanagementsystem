@@ -229,5 +229,15 @@
     "Taxi Driver": "سائق سيارة أجرة",
     "Crane Operator": "مشغّل رافعة",
     "Logistics Coordinator": "منسّق لوجستيات"
+  },
+  "familyRelation": {
+    "Spouse": "الزوج/الزوجة",
+    "Partner": "الشريك/الشريكة",
+    "Parent": "والد/والدة",
+    "Child": "ابن/ابنة",
+    "Sibling": "شقيق/شقيقة",
+    "Friend": "صديق",
+    "Colleague": "زميل",
+    "Other": "أخرى"
   }
 }

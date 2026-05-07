@@ -175,7 +175,13 @@ function sortBy<T>(data: T[], key: keyof T | ((x: T) => any), order: SortOrder):
 }
 
 const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1').replace('/api/v1', '');
-const getFileUrl = (fileUrl: string) => /^https?:\/\//i.test(fileUrl) ? fileUrl : `${API_BASE}${fileUrl}`;
+const getFileUrl = (fileUrl: string) => {
+  if (!fileUrl) return '';
+  if (fileUrl.search(/https?:\/\/.*?(https?:\/\/)/) !== -1) {
+    return fileUrl.slice(fileUrl.indexOf('http', 1));
+  }
+  return /^https?:\/\//i.test(fileUrl) ? fileUrl : `${API_BASE}${fileUrl}`;
+};
 
 const employeeColumns: Column[] = [
   { id: 'name', label: 'Employee Name', type: 'text' },

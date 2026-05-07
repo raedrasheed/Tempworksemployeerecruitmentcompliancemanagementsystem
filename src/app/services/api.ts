@@ -18,6 +18,13 @@ export const BACKEND_URL = API_URL.startsWith('http') ? API_URL.replace('/api/v1
  */
 export function resolveAssetUrl(url: string | null | undefined): string {
   if (!url) return '';
+  // Defensive: repair legacy malformed values where an older buggy
+  // version persisted "<BACKEND_URL><absoluteUrl>" into the DB. If
+  // the value contains a second protocol prefix, return everything
+  // from that second prefix onward.
+  if (url.search(/https?:\/\/.*?(https?:\/\/)/) !== -1) {
+    return url.slice(url.indexOf('http', 1));
+  }
   if (/^https?:\/\//i.test(url) || url.startsWith('data:') || url.startsWith('blob:')) {
     return url;
   }

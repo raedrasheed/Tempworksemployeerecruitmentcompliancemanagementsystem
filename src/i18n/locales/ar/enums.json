@@ -239,5 +239,13 @@
     "Friend": "صديق",
     "Colleague": "زميل",
     "Other": "أخرى"
+  },
+  "drivingQualification": {
+    "Tachograph Card": "بطاقة التاكوغراف",
+    "C95 / CPC Card": "بطاقة C95 / CPC",
+    "ADR Certificate": "شهادة ADR",
+    "Medical Certificate": "الشهادة الطبية",
+    "DVLA Check": "فحص DVLA",
+    "Transport Manager CPC": "CPC مدير النقل"
   }
 }

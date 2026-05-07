@@ -239,5 +239,13 @@
     "Friend": "Priateľ/ka",
     "Colleague": "Kolega/Kolegyňa",
     "Other": "Iné"
+  },
+  "drivingQualification": {
+    "Tachograph Card": "Karta tachografu",
+    "C95 / CPC Card": "Karta KKV (C95 / CPC)",
+    "ADR Certificate": "Osvedčenie ADR",
+    "Medical Certificate": "Lekárske osvedčenie",
+    "DVLA Check": "Kontrola DVLA",
+    "Transport Manager CPC": "CPC manažéra dopravy"
   }
 }

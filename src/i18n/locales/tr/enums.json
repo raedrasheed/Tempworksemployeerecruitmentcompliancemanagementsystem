@@ -239,5 +239,13 @@
     "Friend": "Arkadaş",
     "Colleague": "Meslektaş",
     "Other": "Diğer"
+  },
+  "drivingQualification": {
+    "Tachograph Card": "Takograf Kartı",
+    "C95 / CPC Card": "C95 / CPC Kartı",
+    "ADR Certificate": "ADR Sertifikası",
+    "Medical Certificate": "Sağlık Raporu",
+    "DVLA Check": "DVLA Kontrolü",
+    "Transport Manager CPC": "Nakliye Yöneticisi CPC"
   }
 }

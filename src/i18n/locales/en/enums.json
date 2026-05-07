@@ -239,5 +239,13 @@
     "Friend": "Friend",
     "Colleague": "Colleague",
     "Other": "Other"
+  },
+  "drivingQualification": {
+    "Tachograph Card": "Tachograph Card",
+    "C95 / CPC Card": "C95 / CPC Card",
+    "ADR Certificate": "ADR Certificate",
+    "Medical Certificate": "Medical Certificate",
+    "DVLA Check": "DVLA Check",
+    "Transport Manager CPC": "Transport Manager CPC"
   }
 }

@@ -239,5 +239,13 @@
     "Friend": "Друг/подруга",
     "Colleague": "Коллега",
     "Other": "Другое"
+  },
+  "drivingQualification": {
+    "Tachograph Card": "Карта тахографа",
+    "C95 / CPC Card": "Карта C95 / CPC",
+    "ADR Certificate": "Свидетельство ADR",
+    "Medical Certificate": "Медицинская справка",
+    "DVLA Check": "Проверка DVLA",
+    "Transport Manager CPC": "CPC менеджера по транспорту"
   }
 }

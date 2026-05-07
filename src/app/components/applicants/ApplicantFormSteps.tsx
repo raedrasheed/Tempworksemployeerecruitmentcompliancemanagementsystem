@@ -1568,6 +1568,7 @@ function Step3Identification({ d, u, settings, uploadedFiles, onFilesChange, req
 
 function Step4DrivingLicense({ d, u, settings, uploadedFiles, onFilesChange, requiredDocuments = [], fieldErrors }: { d: ApplicantFormData; u: (fn: (p: ApplicantFormData) => ApplicantFormData) => void; settings: FormSettings; uploadedFiles: UploadedFileItem[]; onFilesChange: (files: UploadedFileItem[]) => void; requiredDocuments?: string[]; fieldErrors?: Record<string, string> }) {
   const { t } = useTranslation('pages');
+  const { t: tEnums } = useTranslation('enums');
   const set = (field: keyof ApplicantFormData) => (value: any) => u(prev => ({ ...prev, [field]: value }));
   const dlDocName = requiredDocuments.find(n => n.toLowerCase().includes('driving'));
   const dlSectionKey = dlDocName ? `required:${dlDocName}` : 'drivingLicense';
@@ -1704,7 +1705,7 @@ function Step4DrivingLicense({ d, u, settings, uploadedFiles, onFilesChange, req
                     <Select value={q.type} onValueChange={v => updateQual(q.id, 'type', v)}>
                       <SelectTrigger><SelectValue placeholder={t('applicants.form.step4.qualificationTypePh')} /></SelectTrigger>
                       <SelectContent>
-                        {(settings.drivingQualifications ?? []).map(tp => <SelectItem key={tp} value={tp}>{tp}</SelectItem>)}
+                        {(settings.drivingQualifications ?? []).map(tp => <SelectItem key={tp} value={tp}>{tEnums(`drivingQualification.${tp}`, { defaultValue: tp })}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>

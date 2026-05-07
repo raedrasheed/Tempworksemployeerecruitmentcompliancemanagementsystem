@@ -239,5 +239,13 @@
     "Friend": "Freund/in",
     "Colleague": "Kollege/Kollegin",
     "Other": "Sonstige"
+  },
+  "drivingQualification": {
+    "Tachograph Card": "Tachografenkarte",
+    "C95 / CPC Card": "C95 / CPC-Karte (BKrFQG)",
+    "ADR Certificate": "ADR-Bescheinigung",
+    "Medical Certificate": "Ärztliches Attest",
+    "DVLA Check": "DVLA-Auskunft",
+    "Transport Manager CPC": "CPC Verkehrsleiter"
   }
 }

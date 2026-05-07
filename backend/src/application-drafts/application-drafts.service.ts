@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../common/storage/storage.service';
@@ -35,6 +35,8 @@ interface DraftDoc {
  */
 @Injectable()
 export class ApplicationDraftsService {
+  private readonly logger = new Logger(ApplicationDraftsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly applicants: ApplicantsService,
@@ -211,20 +213,54 @@ export class ApplicationDraftsService {
       }
 
       // Materialise each draft-uploaded file as a Document row pointing
-      // at the same storage URL. Resolve a DocumentType by name, falling
-      // back to "Other" so the insert never fails on a typo.
+      // at the same storage URL. Resolve a DocumentType by name, with a
+      // generous matching strategy so localized UI labels don't fall
+      // through the cracks (the InlineDocUpload widget passes the i18n
+      // string in `typeName` — e.g. "رفع رخصة القيادة"). Falls back to
+      // "Other", auto-creating that row if it doesn't exist on this
+      // tenant so the migration never silently drops files.
       const docs: DraftDoc[] = Array.isArray(draft.documents) ? draft.documents : [];
       if (docs.length > 0) {
-        const fallback = await (this.prisma as any).documentType.findFirst({
-          where: { OR: [{ name: 'Other' }, { name: { equals: 'Other', mode: 'insensitive' } }] },
-        });
+        const fallback = await this.resolveOrCreateOtherType();
+
+        // Hints: section keys → canonical DocumentType names.
+        const sectionToTypeName: Record<string, string> = {
+          drivingLicense: 'Driving License',
+          passport: 'Passport',
+          idCard: 'National ID Card',
+          euVisa: 'EU Visa',
+          euResidence: 'EU Residence',
+          euWorkPermit: 'EU Work Permit',
+          workPermit: 'EU Work Permit',
+          homeCriminalRecord: 'Criminal Record',
+          euCriminalRecord: 'Criminal Record',
+          firstAid: 'First Aid Certificate',
+        };
+
+        let migrated = 0;
+        let skipped = 0;
         for (const d of docs) {
           try {
-            let docType = await (this.prisma as any).documentType.findFirst({
-              where: { name: { equals: d.typeName, mode: 'insensitive' } },
-            });
+            const sectionHint = d.sectionKey?.startsWith('required:')
+              ? d.sectionKey.slice('required:'.length)
+              : sectionToTypeName[d.sectionKey ?? ''];
+
+            const candidates = [d.typeName, sectionHint].filter(Boolean) as string[];
+
+            let docType: any = null;
+            for (const candidate of candidates) {
+              docType = await (this.prisma as any).documentType.findFirst({
+                where: { name: { equals: candidate, mode: 'insensitive' } },
+              });
+              if (docType) break;
+            }
             if (!docType) docType = fallback;
-            if (!docType) continue;
+            if (!docType) {
+              this.logger.warn(`submitMine: no DocumentType resolvable for draft doc id=${d.id} typeName="${d.typeName}" — skipping.`);
+              skipped++;
+              continue;
+            }
+
             await (this.prisma as any).document.create({
               data: {
                 name: d.name,
@@ -238,8 +274,18 @@ export class ApplicationDraftsService {
                 uploadedById: user.id,
               },
             });
-          } catch { /* best-effort; keep going on one bad row */ }
+            migrated++;
+          } catch (err: any) {
+            // Don't let one bad row block the rest — but actually log
+            // it so production failures are diagnosable.
+            this.logger.error(
+              `submitMine: failed to materialise draft doc id=${d.id} typeName="${d.typeName}": ${err?.message ?? err}`,
+              err?.stack,
+            );
+            skipped++;
+          }
         }
+        this.logger.log(`submitMine: applicant=${applicant.id} migrated=${migrated} skipped=${skipped} total=${docs.length}`);
       }
 
       await (this.prisma as any).applicationDraft.deleteMany({
@@ -270,5 +316,29 @@ export class ApplicationDraftsService {
     if (draft.photoUrl) await this.storage.deleteFileByUrlOrKey(draft.photoUrl);
     const docs: DraftDoc[] = Array.isArray(draft.documents) ? draft.documents : [];
     for (const d of docs) await this.storage.deleteFileByUrlOrKey(d.url);
+  }
+
+  /**
+   * Find the catch-all "Other" DocumentType, creating it if missing so
+   * draft-document migration never silently drops a file just because
+   * the seed didn't run on this tenant.
+   */
+  private async resolveOrCreateOtherType(): Promise<any> {
+    try {
+      const existing = await (this.prisma as any).documentType.findFirst({
+        where: { name: { equals: 'Other', mode: 'insensitive' } },
+      });
+      if (existing) return existing;
+      return await (this.prisma as any).documentType.create({
+        data: {
+          name: 'Other',
+          category: 'OTHER',
+          isActive: true,
+        },
+      });
+    } catch (err: any) {
+      this.logger.warn(`resolveOrCreateOtherType: ${err?.message ?? err}`);
+      return null;
+    }
   }
 }

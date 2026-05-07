@@ -1,7 +1,7 @@
 /**
  * DocumentIdService — centralised business document-ID generation.
  *
- * Format:  DOC{PersonNumber}{TypeCode}{SEQ:3}
+ * Format:  DOC{PersonNumber}{TypeCode}{SEQ:3}{Timestamp}
  *
  * PersonNumber:
  *   APPLICANT → candidateNumber ?? leadNumber ?? first-8-of-UUID
@@ -13,10 +13,14 @@
  * SEQ: 3-digit zero-padded count of non-deleted docs for the same
  *      (entityId, documentTypeId) pair AFTER the new record is counted.
  *
+ * Timestamp: Date.now() (ms since epoch) — guarantees uniqueness even
+ *            against a same-second retry after a unique-index collision.
+ *
  * Concurrency: the generation runs inside the Prisma $transaction that also
  * creates the Document row. If two concurrent requests somehow produce the
- * same ID (e.g. both see count=0), Postgres' unique index on `docId`
- * will reject one, causing the outer service to retry with SEQ+1.
+ * same prefix (e.g. both see count=0), the timestamp suffix differentiates
+ * them; in the very rare case where they collide on both, Postgres' unique
+ * index on `docId` will reject one and the outer service retries.
  */
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
@@ -47,7 +51,8 @@ export class DocumentIdService {
     ]);
 
     const seq = String(existingCount + 1).padStart(3, '0');
-    return `DOC${personNumber}${typeCode}${seq}`;
+    const ts  = String(Date.now());
+    return `DOC${personNumber}${typeCode}${seq}${ts}`;
   }
 
   private async resolvePersonNumber(

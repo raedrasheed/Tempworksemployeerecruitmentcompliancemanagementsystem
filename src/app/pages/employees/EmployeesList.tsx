@@ -81,6 +81,7 @@ export function EmployeesList() {
   const { canCreate, canEdit, canDelete } = usePermissions();
   const { t } = useTranslation('pages');
   const { t: tc } = useTranslation('common');
+  const { t: tEnums } = useTranslation('enums');
 
   // ── Column visibility ──────────────────────────────────────────────────────
   const [visibleColumns, setVisibleColumns] = useState<Record<ColKey, boolean>>(loadVisibleColumns);
@@ -227,7 +228,7 @@ export function EmployeesList() {
       return;
     }
     setPdfExporting(true);
-    const tid = toast.loading(`Preparing ${selected.size} PDF${selected.size > 1 ? 's' : ''}...`);
+    const tid = toast.loading(t('employees.list.preparingPdfs', { count: selected.size }));
     try {
       const ids = [...selected];
       const full = await Promise.all(ids.map(id => employeesApi.get(id).catch(() => null)));
@@ -253,7 +254,7 @@ export function EmployeesList() {
           return `Employee_${name}_${num}.pdf`;
         },
         onProgress: (done, total) => {
-          toast.loading(`Generating PDFs... ${done}/${total}`, { id: tid });
+          toast.loading(t('employees.list.generatingPdfs', { done, total }), { id: tid });
         },
       });
       toast.success(t('employees.list.exportedCount', { count: records.length }), { id: tid });
@@ -372,7 +373,7 @@ export function EmployeesList() {
                 <SelectTrigger className="w-40"><SelectValue placeholder={t('employees.list.filters.allStatuses')} /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__all__">{t('employees.list.filters.allStatuses')}</SelectItem>
-                  {STATUSES.map(s => <SelectItem key={s} value={s}>{s.replace(/_/g, ' ')}</SelectItem>)}
+                  {STATUSES.map(s => <SelectItem key={s} value={s}>{tEnums(`employeeStatus.${s}`, { defaultValue: s.replace(/_/g, ' ') })}</SelectItem>)}
                 </SelectContent>
               </Select>
 
@@ -387,28 +388,28 @@ export function EmployeesList() {
               )}
 
               <Button variant="outline" size="sm" onClick={fetchEmployees} disabled={loading}>
-                <RefreshCw className={`w-4 h-4 me-1 ${loading ? 'animate-spin' : ''}`} />Refresh
+                <RefreshCw className={`w-4 h-4 me-1 ${loading ? 'animate-spin' : ''}`} />{t('employees.list.refresh')}
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleExportExcel}
                 disabled={selected.size === 0}
-                title={selected.size === 0 ? 'Select one or more rows to export' : undefined}
+                title={selected.size === 0 ? t('employees.list.exportExcelTitle') : undefined}
               >
-                <Download className="w-4 h-4 me-2" />Export to Excel ({selected.size})
+                <Download className="w-4 h-4 me-2" />{t('employees.list.exportToExcel')} ({selected.size})
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleBulkPdfExport}
                 disabled={selected.size === 0 || pdfExporting}
-                title={selected.size === 0 ? 'Select one or more rows to export as PDFs' : undefined}
+                title={selected.size === 0 ? t('employees.list.exportPdfsTitle') : undefined}
               >
                 {pdfExporting
                   ? <Loader2 className="w-4 h-4 me-2 animate-spin" />
                   : <FileText className="w-4 h-4 me-2" />}
-                Export PDFs ({selected.size})
+                {t('employees.list.exportPdfs')} ({selected.size})
               </Button>
 
               {/* Column picker */}
@@ -418,7 +419,7 @@ export function EmployeesList() {
                   onClick={() => setShowColPicker(v => !v)}
                   className={showColPicker ? 'border-blue-500 text-blue-600' : ''}
                 >
-                  <Columns2 className="w-4 h-4 me-1.5" />Columns
+                  <Columns2 className="w-4 h-4 me-1.5" />{t('employees.list.columnsButton')}
                   {ALL_COLUMNS.filter(c => !visibleColumns[c.key]).length > 0 && (
                     <span className="ms-1.5 bg-blue-600 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
                       {ALL_COLUMNS.filter(c => !visibleColumns[c.key]).length}
@@ -466,13 +467,13 @@ export function EmployeesList() {
               <div className="flex items-center gap-1.5">
                 <span className="text-xs text-muted-foreground whitespace-nowrap">{t('employees.list.filters.joinedFrom')}</span>
                 <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="w-36 text-sm" />
-                <span className="text-xs text-muted-foreground">to</span>
+                <span className="text-xs text-muted-foreground">{t('employees.list.filters.to')}</span>
                 <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="w-36 text-sm" />
               </div>
 
               {hasActiveFilters && (
                 <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground hover:text-foreground">
-                  <X className="w-3.5 h-3.5 me-1" />Clear filters
+                  <X className="w-3.5 h-3.5 me-1" />{t('employees.list.clearFilters')}
                 </Button>
               )}
             </div>
@@ -486,17 +487,17 @@ export function EmployeesList() {
                     <Checkbox
                       checked={allVisibleSelected ? true : someVisibleSelected ? 'indeterminate' : false}
                       onCheckedChange={toggleSelectAllVisible}
-                      aria-label="Select all visible rows"
+                      aria-label={t('employees.list.selectAllAria')}
                     />
                   </TableHead>
-                  <SortableHead label="Employee"    field="firstName"       sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />
-                  {col('contact')     && <SortableHead label="Contact"      field="email"           sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
-                  {col('nationality') && <SortableHead label="Citizenship"  field="nationality"     sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
-                  {col('license')     && <SortableHead label="ID / License" field="licenseNumber"   sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
-                  {col('experience')  && <SortableHead label="Experience"   field="yearsExperience" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
-                  {col('agency')      && <SortableHead label="Agency"       field="agency"          sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
-                  {col('status')      && <SortableHead label="Status"       field="status"          sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
-                  <TableHead className="text-end">Actions</TableHead>
+                  <SortableHead label={t('employees.list.tableHeaders.employee')}    field="firstName"       sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />
+                  {col('contact')     && <SortableHead label={t('employees.list.tableHeaders.contact')}      field="email"           sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  {col('nationality') && <SortableHead label={t('employees.list.tableHeaders.citizenship')}  field="nationality"     sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  {col('license')     && <SortableHead label={t('employees.list.tableHeaders.license')}      field="licenseNumber"   sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  {col('experience')  && <SortableHead label={t('employees.list.tableHeaders.experience')}   field="yearsExperience" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  {col('agency')      && <SortableHead label={t('employees.list.tableHeaders.agency')}       field="agency"          sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  {col('status')      && <SortableHead label={t('employees.list.tableHeaders.status')}       field="status"          sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  <TableHead className="text-end">{t('employees.list.tableHeaders.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -516,7 +517,7 @@ export function EmployeesList() {
                       <Checkbox
                         checked={selected.has(driver.id)}
                         onCheckedChange={() => toggleSelect(driver.id)}
-                        aria-label={`Select ${driver.firstName ?? ''} ${driver.lastName ?? ''}`}
+                        aria-label={t('employees.list.selectRowAria', { name: `${driver.firstName ?? ''} ${driver.lastName ?? ''}`.trim() })}
                       />
                     </TableCell>
                     <TableCell>
@@ -552,7 +553,7 @@ export function EmployeesList() {
                     )}
                     {col('experience') && (
                       <TableCell className="text-sm">
-                        {driver.yearsExperience != null ? `${driver.yearsExperience} yrs` : '—'}
+                        {driver.yearsExperience != null ? t('employees.list.yearsValue', { count: Number(driver.yearsExperience) }) : '—'}
                       </TableCell>
                     )}
                     {col('agency') && (
@@ -561,24 +562,24 @@ export function EmployeesList() {
                           ? <span className="text-sm">{driver.agency.name ?? driver.agencyName}</span>
                           : driver.agencyName
                             ? <span className="text-sm">{driver.agencyName}</span>
-                            : <span className="text-sm text-muted-foreground">Direct</span>}
+                            : <span className="text-sm text-muted-foreground">{t('employees.list.direct')}</span>}
                       </TableCell>
                     )}
                     {col('status') && (
                       <TableCell>
                         <Badge className={getStatusColor(driver.status)}>
-                          {driver.status?.replace(/_/g, ' ').toLowerCase()}
+                          {driver.status ? tEnums(`employeeStatus.${driver.status}`, { defaultValue: driver.status.replace(/_/g, ' ').toLowerCase() }) : ''}
                         </Badge>
                       </TableCell>
                     )}
                     <TableCell className="text-end">
                       <div className="flex items-center justify-end gap-1">
                         <Button variant="ghost" size="sm" asChild>
-                          <Link to={`/dashboard/employees/${driver.id}`}><Eye className="w-4 h-4 me-1" />View</Link>
+                          <Link to={`/dashboard/employees/${driver.id}`}><Eye className="w-4 h-4 me-1" />{t('employees.list.actions.view')}</Link>
                         </Button>
                         {canEdit('employees') && (
                           <Button variant="ghost" size="sm" asChild>
-                            <Link to={`/dashboard/employees/${driver.id}/edit`}><Edit className="w-4 h-4 me-1" />Edit</Link>
+                            <Link to={`/dashboard/employees/${driver.id}/edit`}><Edit className="w-4 h-4 me-1" />{t('employees.list.actions.edit')}</Link>
                           </Button>
                         )}
                         {canDelete('employees') && (
@@ -596,7 +597,8 @@ export function EmployeesList() {
 
           <div className="mt-4">
             <p className="text-sm text-muted-foreground">
-              Showing {displayData.length} of {totalEmployees} employees
+              {t('employees.list.showingCount', { count: totalEmployees, shown: displayData.length, total: totalEmployees })}
+              {selected.size > 0 && t('employees.list.selectedSuffix', { count: selected.size })}
             </p>
           </div>
         </CardContent>

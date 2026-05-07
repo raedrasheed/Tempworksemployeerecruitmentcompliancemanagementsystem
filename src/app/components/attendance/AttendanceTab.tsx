@@ -54,18 +54,12 @@ const STATUS_STYLE: Record<AnyStatus, string> = {
   HOLIDAY:  'bg-slate-100 text-slate-700 border-slate-200',
 };
 
-const STATUS_LABEL: Record<AnyStatus, string> = {
-  PRESENT: 'Present', ABSENT: 'Absent', OFF: 'Off', VACATION: 'Vacation', SICK: 'Sick',
-  LATE: 'Late', ON_LEAVE: 'On Leave', HALF_DAY: 'Half Day', HOLIDAY: 'Holiday',
-};
+const STATUS_KEYS: AnyStatus[] = ['PRESENT', 'ABSENT', 'OFF', 'VACATION', 'SICK', 'LATE', 'ON_LEAVE', 'HALF_DAY', 'HOLIDAY'];
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
-function monthOptions() {
-  return [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December',
-  ].map((label, i) => ({ value: i + 1, label }));
+function monthOptionsRaw() {
+  return Array.from({ length: 12 }, (_, i) => ({ value: i + 1 }));
 }
 
 function yearOptions() {
@@ -150,7 +144,7 @@ export function AttendanceTab({ employeeId, employeeName, canWrite, canLock = fa
       setRecords(Array.isArray(att?.records) ? att.records : []);
       setLockedPeriods(Array.isArray(locks) ? locks : []);
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to load attendance');
+      toast.error(err?.message || tp('attendance.tab.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -290,10 +284,10 @@ export function AttendanceTab({ employeeId, employeeName, canWrite, canLock = fa
     try {
       if (currentPeriodLock) {
         await attendanceApi.unlockPeriod(currentPeriodLock.id);
-        toast.success(tp('attendance.toast.periodUnlocked', { month: monthOptions()[month - 1].label, year }));
+        toast.success(tp('attendance.toast.periodUnlocked', { month: tp(`attendance.tab.months.${month}`), year }));
       } else {
         await attendanceApi.lockPeriod({ year, month });
-        toast.success(tp('attendance.toast.periodLocked', { month: monthOptions()[month - 1].label, year }));
+        toast.success(tp('attendance.toast.periodLocked', { month: tp(`attendance.tab.months.${month}`), year }));
       }
       load();
     } catch (err: any) {
@@ -314,10 +308,10 @@ export function AttendanceTab({ employeeId, employeeName, canWrite, canLock = fa
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between flex-wrap gap-3">
             <CardTitle className="flex items-center gap-2">
-              <CalendarIcon className="w-5 h-5" />Attendance &amp; Time Sheets
+              <CalendarIcon className="w-5 h-5" />{tp('attendance.tab.title')}
               {currentPeriodLock && (
                 <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 ms-2">
-                  <Lock className="w-3 h-3 me-1" />Locked
+                  <Lock className="w-3 h-3 me-1" />{tp('attendance.tab.lockedBadge')}
                 </Badge>
               )}
             </CardTitle>
@@ -325,7 +319,7 @@ export function AttendanceTab({ employeeId, employeeName, canWrite, canLock = fa
               <Select value={String(month)} onValueChange={v => setMonth(Number(v))}>
                 <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {monthOptions().map(o => <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>)}
+                  {monthOptionsRaw().map(o => <SelectItem key={o.value} value={String(o.value)}>{tp(`attendance.tab.months.${o.value}`)}</SelectItem>)}
                 </SelectContent>
               </Select>
               <Select value={String(year)} onValueChange={v => setYear(Number(v))}>
@@ -335,21 +329,21 @@ export function AttendanceTab({ employeeId, employeeName, canWrite, canLock = fa
                 </SelectContent>
               </Select>
               <Button variant="outline" size="sm" onClick={handleExport}>
-                <Download className="w-4 h-4 me-1" />Export
+                <Download className="w-4 h-4 me-1" />{tp('attendance.tab.export')}
               </Button>
               {canWrite && (
                 <Button size="sm" variant="outline" onClick={() => setBulkOpen(true)} disabled={!effectiveCanWrite}>
-                  <Layers className="w-4 h-4 me-1" />Bulk Entry
+                  <Layers className="w-4 h-4 me-1" />{tp('attendance.tab.bulkEntry')}
                 </Button>
               )}
               {canWrite && (
                 <Button size="sm" onClick={() => openNew()} disabled={!effectiveCanWrite}>
-                  <Plus className="w-4 h-4 me-1" />Add Day
+                  <Plus className="w-4 h-4 me-1" />{tp('attendance.tab.addDay')}
                 </Button>
               )}
               {canLock && (
                 <Button size="sm" variant={currentPeriodLock ? 'outline' : 'outline'} onClick={handleLockToggle}>
-                  <Lock className="w-4 h-4 me-1" />{currentPeriodLock ? 'Unlock Month' : 'Lock Month'}
+                  <Lock className="w-4 h-4 me-1" />{currentPeriodLock ? tp('attendance.tab.unlockMonth') : tp('attendance.tab.lockMonth')}
                 </Button>
               )}
             </div>
@@ -360,9 +354,9 @@ export function AttendanceTab({ employeeId, employeeName, canWrite, canLock = fa
             <div className="flex items-start gap-2 rounded border border-red-200 bg-red-50 p-3 text-sm text-red-700">
               <Info className="w-4 h-4 mt-0.5 shrink-0" />
               <div>
-                <strong>This month is locked.</strong> Attendance records cannot be created, edited, or deleted until the lock is removed.
+                <strong>{tp('attendance.tab.lockedNotice')}</strong> {tp('attendance.tab.lockedNoticeBody')}
                 {currentPeriodLock.lockedBy && (
-                  <> Locked by {currentPeriodLock.lockedBy.firstName} {currentPeriodLock.lockedBy.lastName}.</>
+                  <> {tp('attendance.tab.lockedBy', { name: `${currentPeriodLock.lockedBy.firstName} ${currentPeriodLock.lockedBy.lastName}` })}</>
                 )}
               </div>
             </div>
@@ -372,11 +366,11 @@ export function AttendanceTab({ employeeId, employeeName, canWrite, canLock = fa
 
       {/* Summary */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <SummaryTile label="Working Hours" value={formatHours(summary.worked)} tone="emerald" />
-        <SummaryTile label="Vacation" value={formatHours(summary.vacation)} tone="blue" />
-        <SummaryTile label="Absence" value={formatHours(summary.absent)} tone="red" />
-        <SummaryTile label="Sick" value={formatHours(summary.sick)} tone="violet" />
-        <SummaryTile label="Off days" value={String(summary.off)} tone="slate" />
+        <SummaryTile label={tp('attendance.tab.summaryWorking')} value={formatHours(summary.worked)} tone="emerald" />
+        <SummaryTile label={tp('attendance.tab.summaryVacation')} value={formatHours(summary.vacation)} tone="blue" />
+        <SummaryTile label={tp('attendance.tab.summaryAbsence')} value={formatHours(summary.absent)} tone="red" />
+        <SummaryTile label={tp('attendance.tab.summarySick')} value={formatHours(summary.sick)} tone="violet" />
+        <SummaryTile label={tp('attendance.tab.summaryOff')} value={String(summary.off)} tone="slate" />
       </div>
 
       {/* Daily table */}
@@ -386,15 +380,15 @@ export function AttendanceTab({ employeeId, employeeName, canWrite, canLock = fa
             <table className="w-full text-sm">
               <thead className="bg-muted/40 text-muted-foreground">
                 <tr>
-                  <th className="text-start px-3 py-2 font-medium w-16">Day</th>
-                  <th className="text-start px-3 py-2 font-medium">Date</th>
-                  <th className="text-start px-3 py-2 font-medium">Status</th>
-                  <th className="text-start px-3 py-2 font-medium">Check-in</th>
-                  <th className="text-start px-3 py-2 font-medium">Check-out</th>
-                  <th className="text-start px-3 py-2 font-medium">Break-in</th>
-                  <th className="text-start px-3 py-2 font-medium">Break-out</th>
-                  <th className="text-end px-3 py-2 font-medium">Total</th>
-                  <th className="text-start px-3 py-2 font-medium">Notes</th>
+                  <th className="text-start px-3 py-2 font-medium w-16">{tp('attendance.tab.colDay')}</th>
+                  <th className="text-start px-3 py-2 font-medium">{tp('attendance.tab.colDate')}</th>
+                  <th className="text-start px-3 py-2 font-medium">{tp('attendance.tab.colStatus')}</th>
+                  <th className="text-start px-3 py-2 font-medium">{tp('attendance.tab.colCheckIn')}</th>
+                  <th className="text-start px-3 py-2 font-medium">{tp('attendance.tab.colCheckOut')}</th>
+                  <th className="text-start px-3 py-2 font-medium">{tp('attendance.tab.colBreakIn')}</th>
+                  <th className="text-start px-3 py-2 font-medium">{tp('attendance.tab.colBreakOut')}</th>
+                  <th className="text-end px-3 py-2 font-medium">{tp('attendance.tab.colTotal')}</th>
+                  <th className="text-start px-3 py-2 font-medium">{tp('attendance.tab.colNotes')}</th>
                   <th className="px-3 py-2 w-24" />
                 </tr>
               </thead>
@@ -412,12 +406,12 @@ export function AttendanceTab({ employeeId, employeeName, canWrite, canLock = fa
                         <td className="px-3 py-1.5 text-muted-foreground">{d}</td>
                         <td className="px-3 py-1.5">
                           {dateStr}
-                          {isWeekend && <span className="text-xs text-muted-foreground ms-1">· {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dateObj.getUTCDay()]}</span>}
+                          {isWeekend && <span className="text-xs text-muted-foreground ms-1">· {tp(`attendance.tab.weekdays.${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dateObj.getUTCDay()]}`)}</span>}
                         </td>
                         <td className="px-3 py-1.5">
                           {rec ? (
                             <Badge variant="outline" className={STATUS_STYLE[rec.status as AnyStatus] ?? ''}>
-                              {STATUS_LABEL[rec.status as AnyStatus] ?? rec.status}
+                              {tp(`attendance.tab.statuses.${rec.status}`, { defaultValue: rec.status })}
                             </Badge>
                           ) : (
                             <span className="text-xs text-muted-foreground italic">—</span>
@@ -433,7 +427,7 @@ export function AttendanceTab({ employeeId, employeeName, canWrite, canLock = fa
                           {canWrite && effectiveCanWrite && (
                             <>
                               <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => openNew(dateStr)}>
-                                {rec ? 'Edit' : 'Add'}
+                                {rec ? tp('attendance.tab.edit') : tp('attendance.tab.add')}
                               </Button>
                               {rec && (
                                 <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-red-500" onClick={() => handleDelete(rec.id)}>
@@ -457,23 +451,23 @@ export function AttendanceTab({ employeeId, employeeName, canWrite, canLock = fa
       <Dialog open={dialogOpen} onOpenChange={(o) => !saving && setDialogOpen(o)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{editingDate ? 'Edit Attendance' : 'Add Attendance'}</DialogTitle>
+            <DialogTitle>{editingDate ? tp('attendance.tab.editTitle') : tp('attendance.tab.addTitle')}</DialogTitle>
             <DialogDescription>
-              Total Hours = (Check-out − Check-in) − (Break-out − Break-in). Off / Vacation / Sick / Absent rows record zero working hours.
+              {tp('attendance.tab.dialogIntro')}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs">Date</Label>
+                <Label className="text-xs">{tp('attendance.tab.labelDate')}</Label>
                 <Input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} disabled={!!editingDate} />
               </div>
               <div>
-                <Label className="text-xs">Status</Label>
+                <Label className="text-xs">{tp('attendance.tab.labelStatus')}</Label>
                 <Select value={form.status} onValueChange={(v) => setForm(f => ({ ...f, status: v as Status }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {ATTENDANCE_STATUSES.map(s => <SelectItem key={s} value={s}>{STATUS_LABEL[s]}</SelectItem>)}
+                    {ATTENDANCE_STATUSES.map(s => <SelectItem key={s} value={s}>{tp(`attendance.tab.statuses.${s}`)}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -482,34 +476,34 @@ export function AttendanceTab({ employeeId, employeeName, canWrite, canLock = fa
               <>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label className="text-xs">Check-in</Label>
+                    <Label className="text-xs">{tp('attendance.tab.labelCheckIn')}</Label>
                     <Input type="time" value={form.checkIn} onChange={e => setForm(f => ({ ...f, checkIn: e.target.value }))} />
                   </div>
                   <div>
-                    <Label className="text-xs">Check-out</Label>
+                    <Label className="text-xs">{tp('attendance.tab.labelCheckOut')}</Label>
                     <Input type="time" value={form.checkOut} onChange={e => setForm(f => ({ ...f, checkOut: e.target.value }))} />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label className="text-xs">Break-in</Label>
+                    <Label className="text-xs">{tp('attendance.tab.labelBreakIn')}</Label>
                     <Input type="time" value={form.breakIn} onChange={e => setForm(f => ({ ...f, breakIn: e.target.value }))} />
                   </div>
                   <div>
-                    <Label className="text-xs">Break-out</Label>
+                    <Label className="text-xs">{tp('attendance.tab.labelBreakOut')}</Label>
                     <Input type="time" value={form.breakOut} onChange={e => setForm(f => ({ ...f, breakOut: e.target.value }))} />
                   </div>
                 </div>
               </>
             )}
             <div>
-              <Label className="text-xs">Notes</Label>
-              <Input value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Optional" />
+              <Label className="text-xs">{tp('attendance.tab.labelNotes')}</Label>
+              <Input value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder={tp('attendance.tab.notesPh')} />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}><X className="w-4 h-4 me-2" />{tc('actions.cancel')}</Button>
-            <Button onClick={handleSave} disabled={saving}><Save className="w-4 h-4 me-2" />{saving ? 'Saving…' : 'Save'}</Button>
+            <Button onClick={handleSave} disabled={saving}><Save className="w-4 h-4 me-2" />{saving ? tp('attendance.tab.saving') : tp('attendance.tab.save')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -518,57 +512,57 @@ export function AttendanceTab({ employeeId, employeeName, canWrite, canLock = fa
       <Dialog open={bulkOpen} onOpenChange={(o) => !bulkSaving && setBulkOpen(o)}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Bulk Entry</DialogTitle>
+            <DialogTitle>{tp('attendance.tab.bulkTitle')}</DialogTitle>
             <DialogDescription>
-              Apply the same status + times to every date in the range. Locked-month dates are automatically skipped.
+              {tp('attendance.tab.bulkIntro')}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs">From</Label>
+                <Label className="text-xs">{tp('attendance.tab.labelFrom')}</Label>
                 <Input type="date" value={bulkForm.dateFrom} onChange={e => setBulkForm(f => ({ ...f, dateFrom: e.target.value }))} />
               </div>
               <div>
-                <Label className="text-xs">To</Label>
+                <Label className="text-xs">{tp('attendance.tab.labelTo')}</Label>
                 <Input type="date" value={bulkForm.dateTo} onChange={e => setBulkForm(f => ({ ...f, dateTo: e.target.value }))} />
               </div>
             </div>
             <div>
-              <Label className="text-xs">Status</Label>
+              <Label className="text-xs">{tp('attendance.tab.labelStatus')}</Label>
               <Select value={bulkForm.status} onValueChange={(v) => setBulkForm(f => ({ ...f, status: v as Status }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {ATTENDANCE_STATUSES.map(s => <SelectItem key={s} value={s}>{STATUS_LABEL[s]}</SelectItem>)}
+                  {ATTENDANCE_STATUSES.map(s => <SelectItem key={s} value={s}>{tp(`attendance.tab.statuses.${s}`)}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             {bulkForm.status === 'PRESENT' && (
               <div className="grid grid-cols-2 gap-3">
-                <div><Label className="text-xs">Check-in</Label> <Input type="time" value={bulkForm.checkIn} onChange={e => setBulkForm(f => ({ ...f, checkIn: e.target.value }))} /></div>
-                <div><Label className="text-xs">Check-out</Label><Input type="time" value={bulkForm.checkOut} onChange={e => setBulkForm(f => ({ ...f, checkOut: e.target.value }))} /></div>
-                <div><Label className="text-xs">Break-in</Label> <Input type="time" value={bulkForm.breakIn} onChange={e => setBulkForm(f => ({ ...f, breakIn: e.target.value }))} /></div>
-                <div><Label className="text-xs">Break-out</Label><Input type="time" value={bulkForm.breakOut} onChange={e => setBulkForm(f => ({ ...f, breakOut: e.target.value }))} /></div>
+                <div><Label className="text-xs">{tp('attendance.tab.labelCheckIn')}</Label> <Input type="time" value={bulkForm.checkIn} onChange={e => setBulkForm(f => ({ ...f, checkIn: e.target.value }))} /></div>
+                <div><Label className="text-xs">{tp('attendance.tab.labelCheckOut')}</Label><Input type="time" value={bulkForm.checkOut} onChange={e => setBulkForm(f => ({ ...f, checkOut: e.target.value }))} /></div>
+                <div><Label className="text-xs">{tp('attendance.tab.labelBreakIn')}</Label> <Input type="time" value={bulkForm.breakIn} onChange={e => setBulkForm(f => ({ ...f, breakIn: e.target.value }))} /></div>
+                <div><Label className="text-xs">{tp('attendance.tab.labelBreakOut')}</Label><Input type="time" value={bulkForm.breakOut} onChange={e => setBulkForm(f => ({ ...f, breakOut: e.target.value }))} /></div>
               </div>
             )}
             <div>
-              <Label className="text-xs">Notes</Label>
-              <Input value={bulkForm.notes} onChange={e => setBulkForm(f => ({ ...f, notes: e.target.value }))} placeholder="Optional" />
+              <Label className="text-xs">{tp('attendance.tab.labelNotes')}</Label>
+              <Input value={bulkForm.notes} onChange={e => setBulkForm(f => ({ ...f, notes: e.target.value }))} placeholder={tp('attendance.tab.notesPh')} />
             </div>
             <div className="space-y-2 pt-1">
               <label className="flex items-center gap-2 text-sm cursor-pointer">
                 <Checkbox checked={bulkForm.overwriteExisting} onCheckedChange={c => setBulkForm(f => ({ ...f, overwriteExisting: !!c }))} />
-                Overwrite existing rows in range
+                {tp('attendance.tab.overwriteExisting')}
               </label>
               <label className="flex items-center gap-2 text-sm cursor-pointer">
                 <Checkbox checked={bulkForm.skipWeekends} onCheckedChange={c => setBulkForm(f => ({ ...f, skipWeekends: !!c }))} />
-                Skip Saturdays &amp; Sundays
+                {tp('attendance.tab.skipWeekends')}
               </label>
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setBulkOpen(false)} disabled={bulkSaving}><X className="w-4 h-4 me-2" />{tc('actions.cancel')}</Button>
-            <Button onClick={handleBulkApply} disabled={bulkSaving}><Layers className="w-4 h-4 me-2" />{bulkSaving ? 'Applying…' : 'Apply'}</Button>
+            <Button onClick={handleBulkApply} disabled={bulkSaving}><Layers className="w-4 h-4 me-2" />{bulkSaving ? tp('attendance.tab.applying') : tp('attendance.tab.apply')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

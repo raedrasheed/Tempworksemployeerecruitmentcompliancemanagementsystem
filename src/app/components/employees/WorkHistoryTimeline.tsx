@@ -106,7 +106,7 @@ export function WorkHistoryTimeline({ employeeId, canWrite }: Props) {
       const list = await employeeWorkHistoryApi.list(employeeId);
       setEntries(Array.isArray(list) ? list : []);
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to load work history');
+      toast.error(err?.message || t('employees.workHistory.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -258,10 +258,10 @@ export function WorkHistoryTimeline({ employeeId, canWrite }: Props) {
       <CardHeader className="flex flex-row items-center justify-between pb-3">
         <div>
           <CardTitle className="flex items-center gap-2">
-            <FileText className="w-5 h-5" />Work History
+            <FileText className="w-5 h-5" />{t('employees.workHistory.title')}
           </CardTitle>
           <p className="text-sm text-muted-foreground mt-1">
-            Post-hire contract timeline — new contracts, probation, leave, termination. Separate from Workflow history.
+            {t('employees.workHistory.subtitle')}
           </p>
         </div>
         {canWrite && (
@@ -323,7 +323,7 @@ export function WorkHistoryTimeline({ employeeId, canWrite }: Props) {
                                   <button
                                     onClick={() => handleRemoveAttachment(entry.id, att.id, att.name)}
                                     className="text-red-400 hover:text-red-600"
-                                    aria-label="Remove attachment"
+                                    aria-label={t('employees.workHistory.removeAttachment')}
                                   >
                                     <X className="w-3 h-3" />
                                   </button>
@@ -337,7 +337,7 @@ export function WorkHistoryTimeline({ employeeId, canWrite }: Props) {
                       {canWrite && (
                         <div className="flex items-center gap-1 shrink-0">
                           {/* Attach file — hidden native input driven by the paperclip icon. */}
-                          <label className="inline-flex items-center justify-center h-7 w-7 rounded hover:bg-muted cursor-pointer" title="Attach file">
+                          <label className="inline-flex items-center justify-center h-7 w-7 rounded hover:bg-muted cursor-pointer" title={t('employees.workHistory.attachFile')}>
                             <Paperclip className="w-3.5 h-3.5" />
                             <input
                               type="file"
@@ -351,10 +351,10 @@ export function WorkHistoryTimeline({ employeeId, canWrite }: Props) {
                               }}
                             />
                           </label>
-                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(entry)} title="Edit">
+                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(entry)} title={t('employees.workHistory.edit')}>
                             <Edit2 className="w-3.5 h-3.5" />
                           </Button>
-                          <Button size="icon" variant="ghost" className="h-7 w-7 text-red-500" onClick={() => handleDelete(entry)} title="Delete">
+                          <Button size="icon" variant="ghost" className="h-7 w-7 text-red-500" onClick={() => handleDelete(entry)} title={t('employees.workHistory.delete')}>
                             <Trash2 className="w-3.5 h-3.5" />
                           </Button>
                         </div>

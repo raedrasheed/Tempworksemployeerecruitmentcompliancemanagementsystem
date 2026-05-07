@@ -790,7 +790,7 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
                                           <Button
                                             size="icon" variant="ghost"
                                             className="h-6 w-6 text-red-500 shrink-0"
-                                            title="Remove deduction"
+                                            title={t('finance.tab.actionTitles.removeDeduction')}
                                             onClick={() => handleRemoveDeduction(d.id)}
                                           >
                                             <Trash2 className="w-3 h-3" />

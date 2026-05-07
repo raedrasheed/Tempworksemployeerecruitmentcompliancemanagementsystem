@@ -4,7 +4,7 @@
  *
  * Format mirrors document-id.service.ts exactly:
  *
- *   DOC{PersonNumber}{TypeCode}{SEQ:3}
+ *   DOC{PersonNumber}{TypeCode}{SEQ:3}{Timestamp}
  *
  *   PersonNumber:
  *     APPLICANT → candidateNumber ?? leadNumber ?? first-8-of-UUID
@@ -16,6 +16,10 @@
  *   SEQ: per-(entityId, documentTypeId) running counter, starting from
  *        1 and skipping over docIds already in use so re-runs are
  *        idempotent.
+ *
+ *   Timestamp: original row `createdAt` in ms since epoch (not Date.now())
+ *              so backfilled IDs are deterministic and re-runs of the
+ *              same row would produce the same value.
  *
  * Run with:
  *   npx ts-node prisma/backfill-document-ids.ts
@@ -135,9 +139,10 @@ async function main(): Promise<void> {
 
     let seq = existing + 1;
     for (const doc of docs) {
+      const ts = String(new Date(doc.createdAt).getTime());
       // Find the next free SEQ — Postgres' unique index on docId is
       // the source of truth, but we precompute to minimise wasted writes.
-      let candidate = `DOC${personNumber}${typeCode}${String(seq).padStart(3, '0')}`;
+      let candidate = `DOC${personNumber}${typeCode}${String(seq).padStart(3, '0')}${ts}`;
 
       // Defensive loop in case any candidate already exists (e.g. a
       // partial earlier run).
@@ -154,7 +159,7 @@ async function main(): Promise<void> {
           if (err?.code === 'P2002') {
             // unique-constraint violation — bump SEQ and try again.
             seq++;
-            candidate = `DOC${personNumber}${typeCode}${String(seq).padStart(3, '0')}`;
+            candidate = `DOC${personNumber}${typeCode}${String(seq).padStart(3, '0')}${ts}`;
             attempt++;
             continue;
           }

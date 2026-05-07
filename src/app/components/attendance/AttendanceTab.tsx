@@ -94,7 +94,8 @@ interface Props {
 
 export function AttendanceTab({ employeeId, employeeName, canWrite, canLock = false }: Props) {
   const { t: tc } = useTranslation('common');
-  const { t: tp } = useTranslation('pages');
+  const { t: tp, i18n } = useTranslation('pages');
+  const dir = i18n.dir();
   const now = new Date();
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year,  setYear]  = useState(now.getFullYear());
@@ -302,7 +303,7 @@ export function AttendanceTab({ employeeId, employeeName, canWrite, canLock = fa
   for (let d = 1; d <= dim; d++) allDays.push(d);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" dir={dir}>
       {/* Toolbar */}
       <Card>
         <CardHeader className="pb-3">
@@ -376,8 +377,8 @@ export function AttendanceTab({ employeeId, employeeName, canWrite, canLock = fa
       {/* Daily table */}
       <Card>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto" dir={dir}>
+            <table className="w-full text-sm" dir={dir}>
               <thead className="bg-muted/40 text-muted-foreground">
                 <tr>
                   <th className="text-start px-3 py-2 font-medium w-16">{tp('attendance.tab.colDay')}</th>

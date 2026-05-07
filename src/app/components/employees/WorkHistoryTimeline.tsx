@@ -79,8 +79,9 @@ interface Props {
 }
 
 export function WorkHistoryTimeline({ employeeId, canWrite }: Props) {
-  const { t } = useTranslation('pages');
+  const { t, i18n } = useTranslation('pages');
   const { t: tc } = useTranslation('common');
+  const dir = i18n.dir();
   const [entries, setEntries]  = useState<any[]>([]);
   const [loading, setLoading]  = useState(true);
   const [users,   setUsers]    = useState<any[]>([]);
@@ -254,7 +255,7 @@ export function WorkHistoryTimeline({ employeeId, canWrite }: Props) {
   const userOptions = useMemo(() => users.filter((u: any) => !u.deletedAt), [users]);
 
   return (
-    <Card>
+    <Card dir={dir}>
       <CardHeader className="flex flex-row items-center justify-between pb-3">
         <div>
           <CardTitle className="flex items-center gap-2">

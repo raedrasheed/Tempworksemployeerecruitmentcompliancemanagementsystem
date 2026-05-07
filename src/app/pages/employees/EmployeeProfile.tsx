@@ -28,7 +28,8 @@ export function EmployeeProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { canEdit, canDelete } = usePermissions();
-  const { t } = useTranslation(['pages', 'common']);
+  const { t, i18n } = useTranslation(['pages', 'common']);
+  const dir = i18n.dir();
   const currentUser = getCurrentUser();
   const isFinanceOrAdmin = currentUser?.role === 'System Admin' || currentUser?.role === 'HR Manager' || currentUser?.role === 'Finance';
   const [employee, setEmployee] = useState<any>(null);
@@ -387,7 +388,7 @@ export function EmployeeProfile() {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="overview" className="space-y-6">
+      <Tabs defaultValue="overview" className="space-y-6" dir={dir}>
         <TabsList>
           <TabsTrigger value="overview">{t('pages:employees.profile.tabs.overview')}</TabsTrigger>
           <TabsTrigger value="application">{t('pages:employees.profile.tabs.application')}</TabsTrigger>

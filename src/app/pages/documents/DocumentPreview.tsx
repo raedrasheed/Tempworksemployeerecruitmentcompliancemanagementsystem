@@ -182,6 +182,12 @@ export function DocumentPreview() {
           <Card>
             <CardHeader><CardTitle>{t('documents.preview.details')}</CardTitle></CardHeader>
             <CardContent className="space-y-4">
+              {document.docId && (
+                <div>
+                  <p className="text-sm text-muted-foreground">{t('documents.preview.docId', { defaultValue: 'Document ID' })}</p>
+                  <p className="font-mono font-semibold mt-1 text-[#2563EB]">{document.docId}</p>
+                </div>
+              )}
               <div>
                 <p className="text-sm text-muted-foreground">{t('documents.preview.name')}</p>
                 <p className="font-medium mt-1">{document.name}</p>

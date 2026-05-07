@@ -2,9 +2,16 @@
  * Applicant PDF Export
  * Generates a structured PDF of the applicant application data and
  * optionally merges selected uploaded documents into the same file.
+ *
+ * Arabic support: @react-pdf/renderer's bundled Helvetica has no
+ * Arabic glyphs, so we register Noto Sans Arabic from jsDelivr's
+ * fontsource CDN (Open Font License) and switch to it whenever the
+ * active i18n locale is RTL. fontkit (used internally by react-pdf)
+ * applies the OpenType GSUB shaping tables, so the rendered glyphs
+ * include initial / medial / final / isolated forms automatically.
  */
 import { useState, useEffect } from 'react';
-import { Document, Page, Text, View, StyleSheet, pdf, Image } from '@react-pdf/renderer';
+import { Document, Page, Text, View, StyleSheet, pdf, Image, Font } from '@react-pdf/renderer';
 import { PDFDocument } from 'pdf-lib';
 import { useTranslation } from 'react-i18next';
 import { FileText, Download, Loader2, X, CheckSquare, Square } from 'lucide-react';
@@ -18,19 +25,43 @@ import { Label } from '../ui/label';
 
 const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1').replace('/api/v1', '');
 
-// ── PDF Styles ────────────────────────────────────────────────────────────────
+// ── Font registration (Arabic + Latin) ────────────────────────────────────────
+// Registered once on first import. Subsequent imports/HMR no-op because
+// react-pdf de-dupes families by name.
+Font.register({
+  family: 'NotoSansArabic',
+  fonts: [
+    { src: 'https://cdn.jsdelivr.net/fontsource/fonts/noto-sans-arabic@latest/arabic-400-normal.ttf', fontWeight: 'normal' },
+    { src: 'https://cdn.jsdelivr.net/fontsource/fonts/noto-sans-arabic@latest/arabic-700-normal.ttf', fontWeight: 'bold' },
+  ],
+});
+// Disable hyphenation — react-pdf otherwise inserts hyphens inside
+// Arabic words, breaking the shaping mid-glyph.
+Font.registerHyphenationCallback((w: string) => [w]);
 
-const S = StyleSheet.create({
-  page: { fontFamily: 'Helvetica', fontSize: 9, padding: 36, color: '#1a1a2e', backgroundColor: '#fff' },
+// Resolve current locale's direction lazily so a language change
+// before opening the dialog uses the new direction.
+const isRtl = (): boolean => i18n.dir() === 'rtl';
+const baseFontFamily = (): string => (isRtl() ? 'NotoSansArabic' : 'Helvetica');
+const boldFontFamily = (): string => (isRtl() ? 'NotoSansArabic' : 'Helvetica-Bold');
+
+// ── PDF Styles ────────────────────────────────────────────────────────────────
+// Style sheet is built lazily per export so it picks up the locale at
+// the time the PDF is generated (not at module load).
+const buildStyles = () => {
+  const rtl = isRtl();
+  const align = rtl ? ('right' as const) : ('left' as const);
+  return StyleSheet.create({
+  page: { fontFamily: baseFontFamily(), fontSize: 9, padding: 36, color: '#1a1a2e', backgroundColor: '#fff', textAlign: align },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, paddingBottom: 12, borderBottom: '2pt solid #2563EB' },
   headerLeft: { flex: 1 },
   headerPhoto: { width: 64, height: 64, borderRadius: 32, border: '2pt solid #2563EB', objectFit: 'cover' },
-  appTitle: { fontSize: 18, fontFamily: 'Helvetica-Bold', color: '#2563EB', marginBottom: 2 },
+  appTitle: { fontSize: 18, fontFamily: boldFontFamily(), color: '#2563EB', marginBottom: 2 },
   appSubtitle: { fontSize: 9, color: '#64748b' },
   appDate: { fontSize: 8, color: '#94a3b8', marginTop: 4 },
   section: { marginBottom: 14 },
-  sectionTitle: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#2563EB', marginBottom: 6, paddingBottom: 3, borderBottom: '1pt solid #dbeafe' },
-  subTitle: { fontSize: 9, fontFamily: 'Helvetica-Bold', color: '#374151', marginTop: 6, marginBottom: 3 },
+  sectionTitle: { fontSize: 11, fontFamily: boldFontFamily(), color: '#2563EB', marginBottom: 6, paddingBottom: 3, borderBottom: '1pt solid #dbeafe' },
+  subTitle: { fontSize: 9, fontFamily: boldFontFamily(), color: '#374151', marginTop: 6, marginBottom: 3 },
   grid2: { flexDirection: 'row', flexWrap: 'wrap', gap: 0 },
   field: { width: '50%', marginBottom: 5, paddingRight: 8 },
   fieldFull: { width: '100%', marginBottom: 5 },
@@ -40,10 +71,16 @@ const S = StyleSheet.create({
   badge: { backgroundColor: '#dbeafe', color: '#1d4ed8', fontSize: 7, paddingHorizontal: 5, paddingVertical: 2, borderRadius: 3, marginRight: 3, marginBottom: 3 },
   badgesRow: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 2 },
   entryBox: { border: '1pt solid #e2e8f0', borderRadius: 4, padding: 8, marginBottom: 6 },
-  entryNum: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: '#64748b', marginBottom: 4 },
+  entryNum: { fontSize: 8, fontFamily: boldFontFamily(), color: '#64748b', marginBottom: 4 },
   footer: { position: 'absolute', bottom: 20, left: 36, right: 36, flexDirection: 'row', justifyContent: 'space-between', borderTop: '1pt solid #e2e8f0', paddingTop: 6 },
   footerText: { fontSize: 7, color: '#94a3b8' },
-});
+  });
+};
+
+// Convenience: a default snapshot used by the module-level F/FF helpers.
+// The component body re-builds it per render so live language switches
+// don't need a page reload.
+let S = buildStyles();
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -69,6 +106,9 @@ const yn = (v: string | boolean | undefined) =>
 export function ApplicantPDF({ applicant, photoDataUrl }: { applicant: any; photoDataUrl?: string }) {
   const ad = applicant.applicationData ?? {};
   const now = new Date().toLocaleDateString('en-GB');
+  // Refresh the module-level `S` snapshot at render time so a language
+  // switch is picked up without reloading the page.
+  S = buildStyles();
 
   return (
     <Document title={`${applicant.fullName} — Application`}>

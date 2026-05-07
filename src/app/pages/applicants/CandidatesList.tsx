@@ -87,15 +87,9 @@ function readPassportNumber(a: any): string {
   return typeof raw === 'string' ? raw.trim() : '';
 }
 
-function formatGender(g: string | null | undefined): string {
+function formatGender(g: string | null | undefined, tEnums: (k: string, opts?: any) => string): string {
   if (!g) return '';
-  switch (g) {
-    case 'MALE': return 'Male';
-    case 'FEMALE': return 'Female';
-    case 'OTHER': return 'Other';
-    case 'PREFER_NOT_TO_SAY': return 'Prefer not to say';
-    default: return g;
-  }
+  return tEnums(`gender.${g}`, { defaultValue: g });
 }
 
 function loadVisibleColumns(): Record<ColKey, boolean> {
@@ -128,6 +122,7 @@ export function CandidatesList() {
   const { canCreate, canEdit, canDelete } = usePermissions();
   const { t } = useTranslation('pages');
   const { t: tc } = useTranslation('common');
+  const { t: tEnums } = useTranslation('enums');
   const currentUser = getCurrentUser();
   const isAgencyUser = currentUser?.role === 'Agency User' || currentUser?.role === 'Agency Manager';
 
@@ -456,11 +451,11 @@ export function CandidatesList() {
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Total</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">{t('applicants.candidates.total')}</CardTitle></CardHeader>
           <CardContent><div className="text-2xl font-bold text-[#0F172A]">{totalCandidates}</div></CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Candidates</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">{t('applicants.candidates.candidatesCard')}</CardTitle></CardHeader>
           <CardContent><div className="text-2xl font-bold text-emerald-600">{candidates.length}</div></CardContent>
         </Card>
         <Card>
@@ -559,7 +554,7 @@ export function CandidatesList() {
                 <SelectTrigger className="w-40"><SelectValue placeholder={t('applicants.candidates.allStatuses')} /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__all__">{t('applicants.candidates.allStatuses')}</SelectItem>
-                  {STATUSES.map(s => <SelectItem key={s} value={s}>{s.replace(/_/g, ' ')}</SelectItem>)}
+                  {STATUSES.map(s => <SelectItem key={s} value={s}>{tEnums(`applicantStatus.${s}`, { defaultValue: s.replace(/_/g, ' ') })}</SelectItem>)}
                 </SelectContent>
               </Select>
 
@@ -655,7 +650,7 @@ export function CandidatesList() {
                   <SelectTrigger className="w-48"><SelectValue placeholder={t('applicants.candidates.allJobCategories')} /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__all__">{t('applicants.candidates.allJobCategories')}</SelectItem>
-                    {jobTypes.map((jt: any) => <SelectItem key={jt.id} value={jt.id}>{jt.name}</SelectItem>)}
+                    {jobTypes.map((jt: any) => <SelectItem key={jt.id} value={jt.id}>{tEnums(`jobCategory.${jt.name}`, { defaultValue: jt.name })}</SelectItem>)}
                   </SelectContent>
                 </Select>
               )}
@@ -726,7 +721,7 @@ export function CandidatesList() {
                               ? <span className="text-purple-600">{applicant.candidateNumber}</span>
                               : applicant.leadNumber
                                 ? <span className="text-blue-600">{applicant.leadNumber}</span>
-                                : <span className="italic opacity-60">Legacy</span>}
+                                : <span className="italic opacity-60">{t('applicants.candidates.legacy')}</span>}
                           </div>
                         </div>
                       </div>
@@ -744,7 +739,7 @@ export function CandidatesList() {
                       <TableCell>
                         {applicant.jobAd?.title
                           ? <span className="text-sm">{applicant.jobAd.title}</span>
-                          : <Badge variant="outline" className="text-[10px] font-semibold tracking-wide">GENERAL</Badge>}
+                          : <Badge variant="outline" className="text-[10px] font-semibold tracking-wide">{t('applicants.candidates.generalBadge')}</Badge>}
                       </TableCell>
                     )}
                     {col('passportNumber') && (
@@ -759,7 +754,7 @@ export function CandidatesList() {
                     )}
                     {col('gender') && (
                       <TableCell className="text-sm">
-                        {formatGender(applicant.gender) || <span className="text-muted-foreground">—</span>}
+                        {formatGender(applicant.gender, tEnums) || <span className="text-muted-foreground">—</span>}
                       </TableCell>
                     )}
                     {col('agency') && (
@@ -771,7 +766,7 @@ export function CandidatesList() {
                     )}
                     {col('tier') && !isAgencyUser && (
                       <TableCell>
-                        <Badge className={getTierColor(applicant.tier)}>{applicant.tier}</Badge>
+                        <Badge className={getTierColor(applicant.tier)}>{tEnums(`applicantTier.${applicant.tier}`, { defaultValue: applicant.tier })}</Badge>
                       </TableCell>
                     )}
                     {col('applied') && (
@@ -781,18 +776,18 @@ export function CandidatesList() {
                     )}
                     {col('status') && (
                       <TableCell>
-                        <Badge className={getStatusColor(applicant.status)}>{applicant.status?.replace(/_/g, ' ')}</Badge>
+                        <Badge className={getStatusColor(applicant.status)}>{applicant.status ? tEnums(`applicantStatus.${applicant.status}`, { defaultValue: applicant.status.replace(/_/g, ' ') }) : ''}</Badge>
                       </TableCell>
                     )}
                     <TableCell className="text-end">
                       <div className="flex items-center justify-end gap-1">
                         <Button variant="ghost" size="sm" asChild>
-                          <Link to={`/dashboard/candidates/${applicant.id}`}><Eye className="w-4 h-4 me-1" />View</Link>
+                          <Link to={`/dashboard/candidates/${applicant.id}`}><Eye className="w-4 h-4 me-1" />{t('applicants.candidates.viewAction')}</Link>
                         </Button>
                         <WhatsAppButton phone={applicant.phone} size="icon" />
                         {canEdit('applicants') && (
                           <Button variant="ghost" size="sm" asChild>
-                            <Link to={`/dashboard/candidates/${applicant.id}/edit`}><Edit className="w-4 h-4 me-1" />Edit</Link>
+                            <Link to={`/dashboard/candidates/${applicant.id}/edit`}><Edit className="w-4 h-4 me-1" />{t('applicants.candidates.editAction')}</Link>
                           </Button>
                         )}
                         {canDelete('applicants') && (
@@ -810,8 +805,8 @@ export function CandidatesList() {
 
           <div className="mt-4">
             <p className="text-sm text-muted-foreground">
-              Showing {displayData.length} of {totalCandidates} candidates
-              {selected.size > 0 && ` · ${selected.size} selected`}
+              {t('applicants.candidates.showingCount', { count: totalCandidates, shown: displayData.length, total: totalCandidates })}
+              {selected.size > 0 && t('applicants.candidates.selectedSuffix', { count: selected.size })}
             </p>
           </div>
         </CardContent>
@@ -824,24 +819,24 @@ export function CandidatesList() {
       }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Change status</DialogTitle>
+            <DialogTitle>{t('applicants.candidates.statusDialog.title')}</DialogTitle>
             <DialogDescription>
-              Select a new status for {selected.size} selected candidate{selected.size === 1 ? '' : 's'}.
+              {t('applicants.candidates.statusDialog.description', { count: selected.size })}
             </DialogDescription>
           </DialogHeader>
           <div className="py-2">
             <Select value={pendingStatus} onValueChange={setPendingStatus}>
-              <SelectTrigger><SelectValue placeholder="Choose a status..." /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder={t('applicants.candidates.statusDialog.pickStatus')} /></SelectTrigger>
               <SelectContent>
                 {STATUSES.map(s => (
-                  <SelectItem key={s} value={s}>{s.replace(/_/g, ' ')}</SelectItem>
+                  <SelectItem key={s} value={s}>{tEnums(`applicantStatus.${s}`, { defaultValue: s.replace(/_/g, ' ') })}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setStatusModalOpen(false)} disabled={bulkActionInProgress}>
-              Cancel
+              {t('applicants.candidates.cancel')}
             </Button>
             <Button
               disabled={bulkActionInProgress || !pendingStatus}
@@ -856,7 +851,7 @@ export function CandidatesList() {
                 await handleBulkAction('STATUS_CHANGE', next);
               }}
             >
-              Apply
+              {t('applicants.candidates.statusDialog.apply')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -871,13 +866,11 @@ export function CandidatesList() {
       <Dialog open={showBulkConvertDialog} onOpenChange={(o) => !o && setShowBulkConvertDialog(false)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Convert {selected.size} Candidate{selected.size === 1 ? '' : 's'} to Employee{selected.size === 1 ? '' : 's'}</DialogTitle>
+            <DialogTitle>{t('applicants.candidates.convertDialog.title', { count: selected.size })}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <p className="text-sm text-muted-foreground">
-              Each selected candidate becomes an employee. Address, licence and emergency contact are
-              taken from the candidate's application — any row missing a mandatory address field is
-              skipped and reported back so you can convert it individually.
+              {t('applicants.candidates.convertDialog.body')}
             </p>
             <div className="space-y-1.5">
               <Label htmlFor="bulk-convert-agency" className="text-sm">{t('applicants.candidates.workflowDialog.responsibleAgencyOptional')}</Label>
@@ -895,7 +888,7 @@ export function CandidatesList() {
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                When an agency is picked here, every selected candidate is reassigned to it before conversion.
+                {t('applicants.candidates.convertDialog.reassignNote')}
               </p>
             </div>
           </div>
@@ -909,7 +902,7 @@ export function CandidatesList() {
                 await handleBulkAction('CONVERT_TO_EMPLOYEE', undefined, bulkConvertAgencyId || undefined);
               }}
             >
-              Convert
+              {t('applicants.candidates.convertDialog.convertAction')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -927,16 +920,15 @@ export function CandidatesList() {
           </DialogHeader>
           <div className="space-y-4 py-2">
             <p className="text-sm text-muted-foreground">
-              Every selected candidate will be placed on Stage 1 of the chosen workflow with status
-              <strong className="text-foreground"> {t('applicants.candidates.workflowDialog.inProgress')}</strong>. Candidates already on the same
-              workflow are skipped; reassignment to a different workflow is a System-Admin-only action
-              and will be blocked for others.
+              {t('applicants.candidates.workflowDialog.body')}
+              <strong className="text-foreground"> {t('applicants.candidates.workflowDialog.inProgress')}</strong>
+              {t('applicants.candidates.workflowDialog.bodyContinuation')}
             </p>
             <div className="space-y-1.5">
               <Label htmlFor="bulk-workflow" className="text-sm">{t('applicants.candidates.workflowDialog.workflowRequired')}</Label>
               <Select value={bulkWorkflowId} onValueChange={setBulkWorkflowId}>
                 <SelectTrigger id="bulk-workflow">
-                  <SelectValue placeholder={allWorkflows.length === 0 ? 'No workflows available' : 'Pick a workflow…'} />
+                  <SelectValue placeholder={allWorkflows.length === 0 ? t('applicants.candidates.workflowDialog.noWorkflows') : t('applicants.candidates.workflowDialog.pickWorkflow')} />
                 </SelectTrigger>
                 <SelectContent>
                   {allWorkflows.map((w: any) => (
@@ -945,7 +937,7 @@ export function CandidatesList() {
                         <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: w.color ?? '#6366F1' }} />
                         <span>{w.name}</span>
                         <span className={`ms-1 text-[10px] px-1.5 py-0.5 rounded border ${w.isPublic ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-slate-700 border-slate-200'}`}>
-                          {w.isPublic ? 'Public' : 'Private'}
+                          {w.isPublic ? t('applicants.candidates.workflowDialog.isPublic') : t('applicants.candidates.workflowDialog.isPrivate')}
                         </span>
                       </span>
                     </SelectItem>
@@ -957,7 +949,7 @@ export function CandidatesList() {
               <Label htmlFor="bulk-workflow-notes" className="text-sm">{t('applicants.candidates.workflowDialog.notes')} <span className="text-muted-foreground text-xs">{t('applicants.candidates.workflowDialog.optionalLabel')}</span></Label>
               <Input
                 id="bulk-workflow-notes"
-                placeholder="Context / reason — saved to the assignment audit trail"
+                placeholder={t('applicants.candidates.workflowDialog.notesPlaceholder')}
                 value={bulkWorkflowNotes}
                 onChange={(e) => setBulkWorkflowNotes(e.target.value)}
               />
@@ -969,7 +961,7 @@ export function CandidatesList() {
               disabled={bulkWorkflowInFlight || !bulkWorkflowId}
               onClick={handleBulkAssignWorkflow}
             >
-              {bulkWorkflowInFlight ? 'Assigning…' : 'Connect'}
+              {bulkWorkflowInFlight ? t('applicants.candidates.workflowDialog.assigning') : t('applicants.candidates.workflowDialog.connectAction')}
             </Button>
           </DialogFooter>
         </DialogContent>

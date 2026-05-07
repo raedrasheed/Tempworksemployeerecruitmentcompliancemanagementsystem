@@ -259,5 +259,24 @@
     "Doctoral Degree": "Докторская степень",
     "Professional Certification": "Профессиональный сертификат",
     "Other": "Другое"
+  },
+  "vehicleStatus": {
+    "ACTIVE": "Активно",
+    "INACTIVE": "Неактивно",
+    "IN_MAINTENANCE": "На обслуживании",
+    "SCRAPPED": "Списано"
+  },
+  "vehicleType": {
+    "TRUCK": "Грузовик",
+    "CAR": "Автомобиль",
+    "VAN": "Фургон",
+    "TANKER": "Автоцистерна",
+    "TRAILER": "Прицеп",
+    "REFRIGERATED_TRAILER": "Рефрижератор",
+    "SPECIALTY": "Спецтехника"
+  },
+  "workshopStatus": {
+    "ACTIVE": "Активна",
+    "INACTIVE": "Неактивна"
   }
 }

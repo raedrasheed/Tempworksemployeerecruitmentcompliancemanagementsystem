@@ -259,5 +259,24 @@
     "Doctoral Degree": "دكتوراه",
     "Professional Certification": "شهادة مهنية",
     "Other": "أخرى"
+  },
+  "vehicleStatus": {
+    "ACTIVE": "نشطة",
+    "INACTIVE": "غير نشطة",
+    "IN_MAINTENANCE": "في الصيانة",
+    "SCRAPPED": "تم إخراجها"
+  },
+  "vehicleType": {
+    "TRUCK": "شاحنة",
+    "CAR": "سيارة",
+    "VAN": "فان",
+    "TANKER": "صهريج",
+    "TRAILER": "مقطورة",
+    "REFRIGERATED_TRAILER": "مقطورة مبردة",
+    "SPECIALTY": "مركبة خاصة"
+  },
+  "workshopStatus": {
+    "ACTIVE": "نشطة",
+    "INACTIVE": "غير نشطة"
   }
 }

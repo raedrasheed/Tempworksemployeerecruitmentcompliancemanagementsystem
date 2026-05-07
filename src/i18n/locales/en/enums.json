@@ -259,5 +259,24 @@
     "Doctoral Degree": "Doctoral Degree",
     "Professional Certification": "Professional Certification",
     "Other": "Other"
+  },
+  "vehicleStatus": {
+    "ACTIVE": "Active",
+    "INACTIVE": "Inactive",
+    "IN_MAINTENANCE": "In Maintenance",
+    "SCRAPPED": "Scrapped"
+  },
+  "vehicleType": {
+    "TRUCK": "Truck",
+    "CAR": "Car",
+    "VAN": "Van",
+    "TANKER": "Tanker",
+    "TRAILER": "Trailer",
+    "REFRIGERATED_TRAILER": "Refrigerated Trailer",
+    "SPECIALTY": "Specialty"
+  },
+  "workshopStatus": {
+    "ACTIVE": "Active",
+    "INACTIVE": "Inactive"
   }
 }

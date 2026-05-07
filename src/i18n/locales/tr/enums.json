@@ -259,5 +259,24 @@
     "Doctoral Degree": "Doktora",
     "Professional Certification": "Mesleki Sertifika",
     "Other": "Diğer"
+  },
+  "vehicleStatus": {
+    "ACTIVE": "Aktif",
+    "INACTIVE": "Pasif",
+    "IN_MAINTENANCE": "Bakımda",
+    "SCRAPPED": "Hurdaya Ayrıldı"
+  },
+  "vehicleType": {
+    "TRUCK": "Kamyon",
+    "CAR": "Otomobil",
+    "VAN": "Kamyonet",
+    "TANKER": "Tanker",
+    "TRAILER": "Römork",
+    "REFRIGERATED_TRAILER": "Soğuk Hava Römorku",
+    "SPECIALTY": "Özel Araç"
+  },
+  "workshopStatus": {
+    "ACTIVE": "Aktif",
+    "INACTIVE": "Pasif"
   }
 }

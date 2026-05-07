@@ -259,5 +259,24 @@
     "Doctoral Degree": "Doktorský titul",
     "Professional Certification": "Odborné osvedčenie",
     "Other": "Iné"
+  },
+  "vehicleStatus": {
+    "ACTIVE": "Aktívne",
+    "INACTIVE": "Neaktívne",
+    "IN_MAINTENANCE": "V údržbe",
+    "SCRAPPED": "Vyradené"
+  },
+  "vehicleType": {
+    "TRUCK": "Nákladné vozidlo",
+    "CAR": "Auto",
+    "VAN": "Dodávka",
+    "TANKER": "Cisterna",
+    "TRAILER": "Náves",
+    "REFRIGERATED_TRAILER": "Chladiarenský náves",
+    "SPECIALTY": "Špeciálne"
+  },
+  "workshopStatus": {
+    "ACTIVE": "Aktívna",
+    "INACTIVE": "Neaktívna"
   }
 }

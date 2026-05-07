@@ -259,5 +259,24 @@
     "Doctoral Degree": "Promotion",
     "Professional Certification": "Berufszertifikat",
     "Other": "Sonstige"
+  },
+  "vehicleStatus": {
+    "ACTIVE": "Aktiv",
+    "INACTIVE": "Inaktiv",
+    "IN_MAINTENANCE": "In Wartung",
+    "SCRAPPED": "Verschrottet"
+  },
+  "vehicleType": {
+    "TRUCK": "LKW",
+    "CAR": "PKW",
+    "VAN": "Transporter",
+    "TANKER": "Tankwagen",
+    "TRAILER": "Anhänger",
+    "REFRIGERATED_TRAILER": "Kühlanhänger",
+    "SPECIALTY": "Sonderfahrzeug"
+  },
+  "workshopStatus": {
+    "ACTIVE": "Aktiv",
+    "INACTIVE": "Inaktiv"
   }
 }

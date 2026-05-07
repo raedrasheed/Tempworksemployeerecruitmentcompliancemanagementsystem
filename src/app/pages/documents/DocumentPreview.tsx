@@ -17,7 +17,7 @@ import { usePermissions } from '../../hooks/usePermissions';
 import { apiError } from '../../../i18n/apiError';
 
 const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1').replace('/api/v1', '');
-const getFileUrl = (fileUrl: string) => `${API_BASE}${fileUrl}`;
+const getFileUrl = (fileUrl: string) => /^https?:\/\//i.test(fileUrl) ? fileUrl : `${API_BASE}${fileUrl}`;
 
 export function DocumentPreview() {
   const { t } = useTranslation('pages');

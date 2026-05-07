@@ -1265,7 +1265,7 @@ export function CandidateProfile() {
                           {enumLabel('documentStatus', doc.status)}
                         </Badge>
                         <a
-                          href={`${API_BASE}${doc.fileUrl}`}
+                          href={`${doc.fileUrl?.startsWith('http') ? '' : API_BASE}${doc.fileUrl}`}
                           target="_blank" rel="noopener noreferrer"
                           className="inline-flex items-center gap-1 text-sm px-2 py-1 rounded hover:bg-muted transition-colors"
                           title={t('pages:applicants.profile.documentsTab.downloadTitle')}

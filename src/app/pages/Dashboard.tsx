@@ -441,7 +441,7 @@ export function Dashboard() {
                           <div className="w-9 h-9 rounded-full overflow-hidden bg-blue-100 flex items-center justify-center shrink-0">
                             {emp.photoUrl
                               ? <img
-                                  src={`${API_BASE}${emp.photoUrl}`}
+                                  src={emp.photoUrl?.startsWith('http') ? emp.photoUrl : `${API_BASE}${emp.photoUrl}`}
                                   alt={emp.firstName}
                                   className="w-full h-full object-cover"
                                 />

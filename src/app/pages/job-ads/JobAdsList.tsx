@@ -269,7 +269,7 @@ export function JobAdsList() {
           <div className="flex items-center gap-2">
             <Link to="/jobs" target="_blank">
               <Button variant="outline" size="sm" className="gap-2">
-                <ExternalLink className="w-4 h-4" /> {t('jobAds.list.subtitle', { defaultValue: 'View Public Page' })}
+                <ExternalLink className="w-4 h-4" /> {t('jobAds.list.viewPublicPage')}
               </Button>
             </Link>
             <Button onClick={() => navigate('/dashboard/job-ads/new')} className="gap-2">
@@ -286,7 +286,7 @@ export function JobAdsList() {
             <div className="flex-1 min-w-[200px] relative">
               <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Search title, city, country…"
+                placeholder={t('jobAds.list.searchPh')}
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 className="ps-9"
@@ -301,9 +301,9 @@ export function JobAdsList() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="__all__">{t('jobAds.list.allStatuses')}</SelectItem>
-                <SelectItem value="DRAFT">Draft</SelectItem>
-                <SelectItem value="PUBLISHED">Published</SelectItem>
-                <SelectItem value="ARCHIVED">Archived</SelectItem>
+                <SelectItem value="DRAFT">{t('jobAds.list.draft')}</SelectItem>
+                <SelectItem value="PUBLISHED">{t('jobAds.list.published')}</SelectItem>
+                <SelectItem value="ARCHIVED">{t('jobAds.list.archived')}</SelectItem>
               </SelectContent>
             </Select>
             <Select
@@ -337,7 +337,7 @@ export function JobAdsList() {
           </div>
           <div className="flex flex-wrap gap-2 items-center">
             <Input
-              placeholder="City contains…"
+              placeholder={t('jobAds.list.cityContains')}
               value={cityFilter}
               onChange={e => setCityFilter(e.target.value)}
               className="w-44"
@@ -359,7 +359,7 @@ export function JobAdsList() {
             <Input
               type="number"
               min={0}
-              placeholder="Min applicants"
+              placeholder={t('jobAds.list.minApplicants')}
               value={minApplicants}
               onChange={e => setMinApplicants(e.target.value)}
               className="w-36"
@@ -367,12 +367,12 @@ export function JobAdsList() {
             <div className="flex items-center gap-1">
               <span className="text-xs text-muted-foreground whitespace-nowrap">{t('jobAds.list.createdFrom')}</span>
               <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="w-36" />
-              <span className="text-xs text-muted-foreground">to</span>
+              <span className="text-xs text-muted-foreground">{t('jobAds.list.createdTo')}</span>
               <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="w-36" />
             </div>
             {hasAnyFilters && (
               <Button variant="ghost" size="sm" onClick={clearAllFilters}>
-                <X className="w-3 h-3 me-1" />Clear filters
+                <X className="w-3 h-3 me-1" />{t('jobAds.list.clearFilters')}
               </Button>
             )}
 
@@ -383,7 +383,7 @@ export function JobAdsList() {
                 onClick={() => setShowColPicker(v => !v)}
                 className={showColPicker ? 'border-primary text-primary' : ''}
               >
-                <Columns2 className="w-4 h-4 me-1.5" />Columns
+                <Columns2 className="w-4 h-4 me-1.5" />{t('jobAds.list.columns')}
                 {hiddenCount > 0 && (
                   <span className="ms-1.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
                     {hiddenCount}
@@ -423,7 +423,7 @@ export function JobAdsList() {
                         localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_VISIBLE));
                       }}
                       className="flex-1 text-xs text-center text-gray-500 hover:underline py-0.5"
-                    >Reset</button>
+                    >{t('jobAds.list.reset')}</button>
                   </div>
                 </div>
               )}
@@ -437,36 +437,36 @@ export function JobAdsList() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b bg-muted/40">
-              {col('title')        && <SortableHead label="Title"      field="title" />}
-              {col('category')     && <SortableHead label="Category"   field="category" />}
-              {col('city')         && <SortableHead label="City"       field="city" />}
-              {col('country')      && <SortableHead label="Country"    field="country" />}
-              {col('contractType') && <SortableHead label="Contract"   field="contractType" />}
-              {col('status')       && <SortableHead label="Status"     field="status" />}
-              {col('applicants')   && <SortableHead label="Applicants" field="applicants" />}
-              {col('createdAt')    && <SortableHead label="Created"    field="createdAt" />}
-              {col('updatedAt')    && <SortableHead label="Updated"    field="updatedAt" />}
-              {col('slug')         && <SortableHead label="Slug"       field="slug" />}
-              <th className="px-4 py-3 text-end font-medium text-muted-foreground">Actions</th>
+              {col('title')        && <SortableHead label={t('jobAds.list.cols.title')}        field="title" />}
+              {col('category')     && <SortableHead label={t('jobAds.list.cols.category')}     field="category" />}
+              {col('city')         && <SortableHead label={t('jobAds.list.cols.city')}         field="city" />}
+              {col('country')      && <SortableHead label={t('jobAds.list.cols.country')}      field="country" />}
+              {col('contractType') && <SortableHead label={t('jobAds.list.cols.contractType')} field="contractType" />}
+              {col('status')       && <SortableHead label={t('jobAds.list.cols.status')}       field="status" />}
+              {col('applicants')   && <SortableHead label={t('jobAds.list.cols.applicants')}   field="applicants" />}
+              {col('createdAt')    && <SortableHead label={t('jobAds.list.cols.createdAt')}    field="createdAt" />}
+              {col('updatedAt')    && <SortableHead label={t('jobAds.list.cols.updatedAt')}    field="updatedAt" />}
+              {col('slug')         && <SortableHead label={t('jobAds.list.cols.slug')}         field="slug" />}
+              <th className="px-4 py-3 text-end font-medium text-muted-foreground">{t('jobAds.list.actionsHeader')}</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
                 <td colSpan={visibleCount + 1} className="px-4 py-8 text-center text-muted-foreground">
-                  Loading…
+                  {t('jobAds.list.loading')}
                 </td>
               </tr>
             ) : displayAds.length === 0 ? (
               <tr>
                 <td colSpan={visibleCount + 1} className="px-4 py-8 text-center text-muted-foreground">
-                  No job ads found.{' '}
+                  {t('jobAds.list.emptyShort')}{' '}
                   {canWrite && (
                     <button
                       onClick={() => navigate('/dashboard/job-ads/new')}
                       className="text-primary underline"
                     >
-                      Create the first one.
+                      {t('jobAds.list.createFirst')}
                     </button>
                   )}
                 </td>
@@ -492,7 +492,10 @@ export function JobAdsList() {
                   {col('status') && (
                     <td className="px-4 py-3">
                       <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[ad.status] ?? ''}`}>
-                        {ad.status}
+                        {ad.status === 'DRAFT' ? t('jobAds.list.draft')
+                          : ad.status === 'PUBLISHED' ? t('jobAds.list.published')
+                          : ad.status === 'ARCHIVED' ? t('jobAds.list.archived')
+                          : ad.status}
                       </span>
                     </td>
                   )}
@@ -505,7 +508,7 @@ export function JobAdsList() {
                       {canWrite && ad.status === 'DRAFT' && (
                         <button
                           onClick={() => handleQuickStatus(ad.id, 'PUBLISHED')}
-                          title="Publish"
+                          title={t('jobAds.list.publish')}
                           className="p-1.5 rounded hover:bg-emerald-50 text-emerald-600 transition-colors"
                         >
                           <Eye className="w-4 h-4" />
@@ -514,7 +517,7 @@ export function JobAdsList() {
                       {canWrite && ad.status === 'PUBLISHED' && (
                         <button
                           onClick={() => handleQuickStatus(ad.id, 'ARCHIVED')}
-                          title="Archive"
+                          title={t('jobAds.list.archive')}
                           className="p-1.5 rounded hover:bg-orange-50 text-orange-500 transition-colors"
                         >
                           <Archive className="w-4 h-4" />
@@ -523,7 +526,7 @@ export function JobAdsList() {
                       {canWrite && (
                         <button
                           onClick={() => navigate(`/dashboard/job-ads/${ad.id}/edit`)}
-                          title="Edit"
+                          title={t('jobAds.list.edit')}
                           className="p-1.5 rounded hover:bg-muted text-muted-foreground transition-colors"
                         >
                           <Edit2 className="w-4 h-4" />
@@ -532,7 +535,7 @@ export function JobAdsList() {
                       {canWrite && (
                         <button
                           onClick={() => handleDelete(ad.id, ad.title)}
-                          title="Delete"
+                          title={t('jobAds.list.delete')}
                           className="p-1.5 rounded hover:bg-red-50 text-red-500 transition-colors"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -550,8 +553,8 @@ export function JobAdsList() {
                 <td colSpan={visibleCount + 1} className="px-4 py-3">
                   <div className="flex items-center justify-between text-sm text-muted-foreground">
                     <span>
-                      {meta.total} job ad{meta.total !== 1 ? 's' : ''}
-                      {' · '}Page {meta.page} of {meta.totalPages}
+                      {t('jobAds.list.footerCount', { count: meta.total })}
+                      {' · '}{t('jobAds.list.footerPage', { page: meta.page, totalPages: meta.totalPages })}
                     </span>
                     <div className="flex items-center gap-1">
                       <Button

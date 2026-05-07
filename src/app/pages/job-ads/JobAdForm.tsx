@@ -165,10 +165,10 @@ export function JobAdForm() {
         </Button>
         <div>
           <h1 className="text-2xl font-bold text-foreground">
-            {isEdit ? 'Edit Job Ad' : 'New Job Ad'}
+            {isEdit ? t('jobAds.form.editTitle') : t('jobAds.form.addTitle')}
           </h1>
           <p className="text-sm text-muted-foreground">
-            {isEdit ? 'Update the job advertisement details' : 'Create a new job advertisement'}
+            {isEdit ? t('jobAds.form.editSubtitle') : t('jobAds.form.addSubtitle')}
           </p>
         </div>
       </div>
@@ -182,11 +182,11 @@ export function JobAdForm() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label>Title <span className="text-destructive">*</span></Label>
+            <Label>{t('jobAds.form.title')} <span className="text-destructive">*</span></Label>
             <Input
               value={form.title}
               onChange={set('title')}
-              placeholder="e.g. Truck Driver – CE Licence Required"
+              placeholder={t('jobAds.form.titlePh')}
               aria-invalid={!!fieldErrs.title}
               className={fieldErrs.title ? 'border-red-500 focus-visible:ring-red-500' : ''}
             />
@@ -194,11 +194,11 @@ export function JobAdForm() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <Label>Category <span className="text-destructive">*</span></Label>
+              <Label>{t('jobAds.form.category')} <span className="text-destructive">*</span></Label>
               <Select value={form.category} onValueChange={v => { setForm(p => ({ ...p, category: v })); if (fieldErrs.category) clearError('category'); }}>
                 <SelectTrigger aria-invalid={!!fieldErrs.category}
                   className={fieldErrs.category ? 'border-red-500 focus-visible:ring-red-500' : ''}>
-                  <SelectValue placeholder="Select category" />
+                  <SelectValue placeholder={t('jobAds.form.categoryPh')} />
                 </SelectTrigger>
                 <SelectContent>
                   {categories.map(c => (
@@ -209,7 +209,7 @@ export function JobAdForm() {
               <FieldError errors={fieldErrs} name="category" />
             </div>
             <div>
-              <Label>Contract Type</Label>
+              <Label>{t('jobAds.form.contractType')}</Label>
               <Select value={form.contractType} onValueChange={v => setForm(p => ({ ...p, contractType: v }))}>
                 <SelectTrigger>
                   <SelectValue />
@@ -224,13 +224,13 @@ export function JobAdForm() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="city">City <span className="text-destructive">*</span></Label>
+              <Label htmlFor="city">{t('jobAds.form.city')} <span className="text-destructive">*</span></Label>
               <Input
                 id="city"
                 ref={cityInputRef}
                 value={form.city}
                 onChange={set('city')}
-                placeholder="e.g. Warsaw"
+                placeholder={t('jobAds.form.cityPh')}
                 required
                 aria-required="true"
                 aria-invalid={(submitAttempted && !form.city.trim()) || !!fieldErrs.city}
@@ -242,11 +242,11 @@ export function JobAdForm() {
               <FieldError errors={fieldErrs} name="city" />
             </div>
             <div>
-              <Label>Country <span className="text-destructive">*</span></Label>
+              <Label>{t('jobAds.form.country')} <span className="text-destructive">*</span></Label>
               <CountrySelect
                 value={form.country}
                 onChange={v => { setForm(p => ({ ...p, country: v })); if (fieldErrs.country) clearError('country'); }}
-                placeholder="Select country"
+                placeholder={t('jobAds.form.countryPh')}
                 required
               />
               {submitAttempted && !form.country.trim() && (
@@ -264,12 +264,12 @@ export function JobAdForm() {
           <CardTitle className="text-base">{t('jobAds.form.jobDescription')}</CardTitle>
         </CardHeader>
         <CardContent>
-          <Label>Description <span className="text-destructive">*</span></Label>
+          <Label>{t('jobAds.form.description')} <span className="text-destructive">*</span></Label>
           <textarea
             value={form.description}
             onChange={set('description')}
             rows={10}
-            placeholder="Describe the role, requirements, responsibilities, and benefits…"
+            placeholder={t('jobAds.form.descriptionPh')}
             aria-invalid={!!fieldErrs.description}
             className={`mt-1.5 w-full rounded-md border bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-y ${
               fieldErrs.description ? 'border-red-500 focus-visible:ring-red-500' : 'border-input'
@@ -287,25 +287,25 @@ export function JobAdForm() {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <Label>Min Salary</Label>
+              <Label>{t('jobAds.form.minSalary')}</Label>
               <Input
                 type="number" min="0"
                 value={form.salaryMin}
                 onChange={set('salaryMin')}
-                placeholder="e.g. 2500"
+                placeholder={t('jobAds.form.minSalaryPh')}
               />
             </div>
             <div>
-              <Label>Max Salary</Label>
+              <Label>{t('jobAds.form.maxSalary')}</Label>
               <Input
                 type="number" min="0"
                 value={form.salaryMax}
                 onChange={set('salaryMax')}
-                placeholder="e.g. 3500"
+                placeholder={t('jobAds.form.maxSalaryPh')}
               />
             </div>
             <div>
-              <Label>Currency</Label>
+              <Label>{t('jobAds.form.currency')}</Label>
               <Select value={form.currency} onValueChange={v => setForm(p => ({ ...p, currency: v }))}>
                 <SelectTrigger>
                   <SelectValue />
@@ -319,14 +319,19 @@ export function JobAdForm() {
             </div>
           </div>
           <div>
-            <Label>Status</Label>
+            <Label>{t('jobAds.form.status')}</Label>
             <Select value={form.status} onValueChange={v => setForm(p => ({ ...p, status: v }))}>
               <SelectTrigger className="w-48">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {constants.statuses.map(s => (
-                  <SelectItem key={s} value={s}>{s}</SelectItem>
+                  <SelectItem key={s} value={s}>
+                    {s === 'DRAFT' ? t('jobAds.list.draft')
+                      : s === 'PUBLISHED' ? t('jobAds.list.published')
+                      : s === 'ARCHIVED' ? t('jobAds.list.archived')
+                      : s}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -341,8 +346,7 @@ export function JobAdForm() {
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-sm text-muted-foreground">
-            Select the documents that applicants must upload when applying for this position.
-            They will not be able to submit without uploading all checked documents.
+            {t('jobAds.form.requiredDocsHelp')}
           </p>
           {docTypes.length === 0 && (
             <p className="text-sm text-muted-foreground italic">{t('jobAds.form.loadingDocTypes')}</p>
@@ -364,7 +368,7 @@ export function JobAdForm() {
           </div>
           {requiredDocuments.length > 0 && (
             <p className="text-xs text-blue-600 font-medium">
-              {requiredDocuments.length} document{requiredDocuments.length !== 1 ? 's' : ''} required: {requiredDocuments.join(', ')}
+              {t('jobAds.form.docsRequired', { count: requiredDocuments.length, list: requiredDocuments.join(', ') })}
             </p>
           )}
         </CardContent>
@@ -373,7 +377,7 @@ export function JobAdForm() {
       {/* Actions */}
       <div className="flex items-center justify-between pt-2">
         <Button variant="outline" onClick={() => navigate('/dashboard/job-ads')}>
-          Cancel
+          {t('jobAds.form.cancel')}
         </Button>
         <div className="flex items-center gap-2">
           <Button
@@ -382,7 +386,7 @@ export function JobAdForm() {
             disabled={saving}
           >
             <Save className="w-4 h-4 me-2" />
-            Save as Draft
+            {t('jobAds.form.saveAsDraft')}
           </Button>
           {form.status !== 'PUBLISHED' && (
             <Button
@@ -391,7 +395,7 @@ export function JobAdForm() {
               className="bg-emerald-600 hover:bg-emerald-700 text-white"
             >
               <Eye className="w-4 h-4 me-2" />
-              {isEdit ? 'Save & Publish' : 'Create & Publish'}
+              {isEdit ? t('jobAds.form.savePublish') : t('jobAds.form.createPublish')}
             </Button>
           )}
           {form.status === 'PUBLISHED' && (
@@ -400,7 +404,7 @@ export function JobAdForm() {
               disabled={saving}
             >
               <Save className="w-4 h-4 me-2" />
-              Save Changes
+              {t('jobAds.form.saveChanges')}
             </Button>
           )}
         </div>

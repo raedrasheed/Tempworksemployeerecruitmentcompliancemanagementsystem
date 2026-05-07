@@ -406,7 +406,12 @@ export function getStepErrors(
   requiredDocuments?: string[],
 ): string[] {
   const errors: string[] = [];
-  const hasFile = (key: string) => uploadedFiles.some(f => f.sectionKey === key && f.file);
+  // A file counts as present if (a) the user just picked one (f.file) OR
+  // (b) it was already persisted to the draft / server in a previous
+  // session (savedName / url present). Without the second branch the
+  // form falsely reports "please upload" after a draft is reopened.
+  const hasFile = (key: string) =>
+    uploadedFiles.some(f => f.sectionKey === key && (!!f.file || !!f.savedName || !!f.url));
   const validEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
   /** Push an error if both dates are set and issue >= expiry. Skips the
@@ -602,7 +607,7 @@ export function getStepErrors(
   // ── Tab 10: Documents ─────────────────────────────────────────────────────
   if (actualTab === 10 && requiredDocuments && requiredDocuments.length > 0) {
     for (const docName of requiredDocuments) {
-      if (!uploadedFiles.some(f => f.sectionKey === `required:${docName}` && f.file))
+      if (!hasFile(`required:${docName}`))
         errors.push(tf('validation.requiredDocByName', { name: docName }));
     }
   }

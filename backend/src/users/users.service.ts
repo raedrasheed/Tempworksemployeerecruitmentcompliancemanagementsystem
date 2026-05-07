@@ -189,15 +189,15 @@ export class UsersService {
         agency: { select: { id: true, name: true, country: true } },
       },
     });
-    if (!user) throw new NotFoundException('User not found');
+    if (!user) throw new NotFoundException({ code: 'USER.NOT_FOUND', message: 'User not found' });
 
     // Agency Managers can only view users inside their own agency
     if (callerRole === 'Agency Manager' && user.agencyId !== callerAgencyId) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException({ code: 'USER.NOT_FOUND', message: 'User not found' });
     }
 
     if (callerRole !== 'System Admin' && (user as any).role?.name === 'System Admin') {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException({ code: 'USER.NOT_FOUND', message: 'User not found' });
     }
 
     // External-tenant caller viewing an APPROVED agency user needs the
@@ -210,7 +210,7 @@ export class UsersService {
       const approval = (user as any).approvalStatus;
       const allowView = (user as any).allowManagerView;
       if (approval === 'APPROVED' && allowView === false) {
-        throw new NotFoundException('User not found');
+        throw new NotFoundException({ code: 'USER.NOT_FOUND', message: 'User not found' });
       }
     }
 
@@ -225,12 +225,12 @@ export class UsersService {
     if (callerRole !== 'System Admin' && dto.roleId) {
       const roleName = await this.getRoleName(dto.roleId);
       if (roleName === 'System Admin') {
-        throw new ForbiddenException('Only System Admins can create System Admin users');
+        throw new ForbiddenException({ code: 'USER.SYSTEM_ADMIN_ONLY_CREATE', message: 'Only System Admins can create System Admin users' });
       }
     }
 
     if (callerRole === 'Agency Manager') {
-      if (!callerAgencyId) throw new ForbiddenException('Agency Manager has no agency assigned');
+      if (!callerAgencyId) throw new ForbiddenException({ code: 'USER.AGENCY_NOT_ASSIGNED', message: 'Agency Manager has no agency assigned' });
       // Force the new user into the caller's agency — payload-supplied
       // agencyId is ignored so a manager can't seed another tenant.
       dto.agencyId = callerAgencyId;
@@ -241,7 +241,7 @@ export class UsersService {
       // state.
       const agencyUserRole = await this.prisma.role.findFirst({ where: { name: 'Agency User' } });
       if (!agencyUserRole) {
-        throw new ForbiddenException('"Agency User" role is not configured. Contact a System Administrator.');
+        throw new ForbiddenException({ code: 'USER.AGENCY_ROLE_MISSING', message: '"Agency User" role is not configured. Contact a System Administrator.' });
       }
       dto.roleId = agencyUserRole.id;
 
@@ -250,13 +250,17 @@ export class UsersService {
       const maxUsers = (agency as any)?.maxUsersPerAgency ?? 10;
       const currentCount = await this.prisma.user.count({ where: { agencyId: callerAgencyId, deletedAt: null } });
       if (currentCount >= maxUsers) {
-        throw new ForbiddenException(`Agency has reached the maximum user limit of ${maxUsers}. Contact a System Administrator to increase the limit.`);
+        throw new ForbiddenException({
+          code: 'USER.AGENCY_MAX_USERS',
+          message: `Agency has reached the maximum user limit of ${maxUsers}. Contact a System Administrator to increase the limit.`,
+          params: { maxUsers },
+        });
       }
     }
 
     const normalizedEmail = dto.email.trim().toLowerCase();
     const existing = await this.prisma.user.findFirst({ where: { email: normalizedEmail } });
-    if (existing) throw new ConflictException('User with this email already exists');
+    if (existing) throw new ConflictException({ code: 'USER.EMAIL_EXISTS', message: 'User with this email already exists' });
 
     // Generate user number
     const userNumber = await this.getNextUserNumber();
@@ -362,13 +366,13 @@ export class UsersService {
     const existing = await this.findOne(id, callerRole);
 
     if (callerRole !== 'System Admin' && existing.role?.name === 'System Admin') {
-      throw new ForbiddenException('Only System Admins can edit System Admin users');
+      throw new ForbiddenException({ code: 'USER.SYSTEM_ADMIN_ONLY_EDIT', message: 'Only System Admins can edit System Admin users' });
     }
 
     if (callerRole !== 'System Admin' && dto.roleId) {
       const roleName = await this.getRoleName(dto.roleId);
       if (roleName === 'System Admin') {
-        throw new ForbiddenException('Only System Admins can assign the System Admin role');
+        throw new ForbiddenException({ code: 'USER.SYSTEM_ADMIN_ONLY_ASSIGN', message: 'Only System Admins can assign the System Admin role' });
       }
     }
 
@@ -384,7 +388,7 @@ export class UsersService {
       const approval = (existing as any).approvalStatus;
       const allow    = (existing as any).allowManagerEdit;
       if (approval === 'APPROVED' && !allow) {
-        throw new ForbiddenException('This user has been approved by Tempworks. Ask a System Administrator to enable edits for this user.');
+        throw new ForbiddenException({ code: 'USER.PROFILE_LOCKED_EDIT', message: 'This user has been approved by Tempworks. Ask a System Administrator to enable edits for this user.' });
       }
     }
 
@@ -510,7 +514,7 @@ export class UsersService {
       where: { id: userId },
       select: { photoUrl: true },
     });
-    if (!existing) throw new NotFoundException('User not found');
+    if (!existing) throw new NotFoundException({ code: 'USER.NOT_FOUND', message: 'User not found' });
 
     const upload = await this.storage.uploadFile(file.buffer, {
       keyPrefix: `users/${userId}/avatars`,
@@ -546,7 +550,7 @@ export class UsersService {
   // ---------------------------------------------------------------------------
   async unlockUser(userId: string, actorId?: string) {
     const existing = await this.prisma.user.findFirst({ where: { id: userId, deletedAt: null } });
-    if (!existing) throw new NotFoundException('User not found');
+    if (!existing) throw new NotFoundException({ code: 'USER.NOT_FOUND', message: 'User not found' });
 
     const user = await this.prisma.user.update({
       where: { id: userId },
@@ -571,7 +575,7 @@ export class UsersService {
   // ---------------------------------------------------------------------------
   async setPermissionOverride(userId: string, permission: string, granted: boolean, actorId?: string) {
     const user = await this.prisma.user.findFirst({ where: { id: userId, deletedAt: null } });
-    if (!user) throw new NotFoundException('User not found');
+    if (!user) throw new NotFoundException({ code: 'USER.NOT_FOUND', message: 'User not found' });
 
     const override = await this.prisma.agencyUserPermission.upsert({
       where: { userId_permission: { userId, permission } },
@@ -592,14 +596,14 @@ export class UsersService {
 
   async removePermissionOverride(userId: string, permission: string, actorId?: string) {
     const user = await this.prisma.user.findFirst({ where: { id: userId, deletedAt: null } });
-    if (!user) throw new NotFoundException('User not found');
+    if (!user) throw new NotFoundException({ code: 'USER.NOT_FOUND', message: 'User not found' });
 
     try {
       await this.prisma.agencyUserPermission.delete({
         where: { userId_permission: { userId, permission } },
       });
     } catch {
-      throw new NotFoundException('Permission override not found');
+      throw new NotFoundException({ code: 'USER.PERMISSION_OVERRIDE_NOT_FOUND', message: 'Permission override not found' });
     }
 
     await this.auditLog.log({
@@ -621,7 +625,7 @@ export class UsersService {
         permissionOverrides: true,
       },
     });
-    if (!user) throw new NotFoundException('User not found');
+    if (!user) throw new NotFoundException({ code: 'USER.NOT_FOUND', message: 'User not found' });
 
     const rolePermissions = (user as any).role?.permissions?.map((rp: any) => ({
       permission: rp.permission?.name,
@@ -645,7 +649,7 @@ export class UsersService {
     const existing = await this.findOne(id, callerRole);
 
     if (callerRole !== 'System Admin' && existing.role?.name === 'System Admin') {
-      throw new ForbiddenException('Only System Admins can delete System Admin users');
+      throw new ForbiddenException({ code: 'USER.SYSTEM_ADMIN_ONLY_DELETE', message: 'Only System Admins can delete System Admin users' });
     }
 
     // Any caller sitting in a non-system tenant agency is subject to
@@ -658,7 +662,7 @@ export class UsersService {
       const approval = (existing as any).approvalStatus;
       const allow    = (existing as any).allowManagerDelete;
       if (approval === 'APPROVED' && !allow) {
-        throw new ForbiddenException('This user has been approved by Tempworks. Ask a System Administrator to enable deletion for this user.');
+        throw new ForbiddenException({ code: 'USER.PROFILE_LOCKED_DELETE', message: 'This user has been approved by Tempworks. Ask a System Administrator to enable deletion for this user.' });
       }
     }
 
@@ -752,7 +756,7 @@ export class UsersService {
     const where: any = { deletedAt: null };
 
     if (callerRole === 'Agency Manager') {
-      if (!callerAgencyId) throw new ForbiddenException('Agency Manager has no agency assigned');
+      if (!callerAgencyId) throw new ForbiddenException({ code: 'USER.AGENCY_NOT_ASSIGNED', message: 'Agency Manager has no agency assigned' });
       where.agencyId = callerAgencyId;
     } else if (callerRole !== 'System Admin') {
       where.AND = [{ role: { name: { not: 'System Admin' } } }];
@@ -790,7 +794,7 @@ export class UsersService {
   // ---------------------------------------------------------------------------
   async approveAgencyUser(id: string, actorId?: string) {
     const existing = await this.prisma.user.findFirst({ where: { id, deletedAt: null } });
-    if (!existing) throw new NotFoundException('User not found');
+    if (!existing) throw new NotFoundException({ code: 'USER.NOT_FOUND', message: 'User not found' });
     const user = await this.prisma.user.update({
       where: { id },
       data: {
@@ -814,7 +818,7 @@ export class UsersService {
     actorId?: string,
   ) {
     const existing = await this.prisma.user.findFirst({ where: { id, deletedAt: null } });
-    if (!existing) throw new NotFoundException('User not found');
+    if (!existing) throw new NotFoundException({ code: 'USER.NOT_FOUND', message: 'User not found' });
     const data: any = {};
     if (typeof flags.allowManagerView === 'boolean')   data.allowManagerView   = flags.allowManagerView;
     if (typeof flags.allowManagerEdit === 'boolean')   data.allowManagerEdit   = flags.allowManagerEdit;
@@ -835,10 +839,10 @@ export class UsersService {
     const user = await this.prisma.user.findFirst({
       where: { id: userId, deletedAt: null },
     });
-    if (!user) throw new NotFoundException('User not found');
+    if (!user) throw new NotFoundException({ code: 'USER.NOT_FOUND', message: 'User not found' });
 
     if (user.status !== 'PENDING' && user.status !== 'INACTIVE') {
-      throw new BadRequestException('Activation link is only available for PENDING or INACTIVE accounts');
+      throw new BadRequestException({ code: 'AUTH.ACCOUNT_STATUS', message: 'Activation link is only available for PENDING or INACTIVE accounts' });
     }
 
     // Invalidate old unused tokens and generate a fresh one

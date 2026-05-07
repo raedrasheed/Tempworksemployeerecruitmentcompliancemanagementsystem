@@ -4,6 +4,7 @@ import {
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
+import { tServer, ServerLocale } from '../common/i18n/server-translate';
 import { CreateApplicantDto } from './dto/create-applicant.dto';
 import { UpdateApplicantDto } from './dto/update-applicant.dto';
 import { ConvertToEmployeeDto } from './dto/convert-to-employee.dto';
@@ -97,14 +98,14 @@ export class ApplicantsService {
       where: { id, deletedAt: null },
       include: this.includeWithRelations,
     });
-    if (!applicant) throw new NotFoundException(`Applicant ${id} not found`);
+    if (!applicant) throw new NotFoundException({ code: 'APPLICANT.NOT_FOUND', message: `Applicant ${id} not found`, params: { id } });
 
     // External tenants are scoped to their own agency — both tiers
     // (Leads and Candidates) are accessible as long as the row
     // belongs to the caller's agency.
     if (actor && this.isExternalActor(actor)) {
       if (actor.agencyId && applicant.agencyId && applicant.agencyId !== actor.agencyId) {
-        throw new ForbiddenException('Access denied');
+        throw new ForbiddenException({ code: 'AUTH.ACCESS_DENIED', message: 'Access denied' });
       }
     }
 
@@ -183,13 +184,13 @@ export class ApplicantsService {
     // Agency User/Manager can only edit candidates in their own agency
     if (actor && this.isExternalActor(actor)) {
       if (actor.agencyId && existing.agencyId !== actor.agencyId) {
-        throw new ForbiddenException('You can only edit candidates in your own agency');
+        throw new ForbiddenException({ code: 'APPLICANT.AGENCY_SCOPE', message: 'You can only edit candidates in your own agency' });
       }
     }
 
     if (dto.email && dto.email !== existing.email) {
       const dup = await this.prisma.applicant.findFirst({ where: { email: dto.email, NOT: { id } } });
-      if (dup) throw new ConflictException('Email already in use');
+      if (dup) throw new ConflictException({ code: 'APPLICANT.EMAIL_IN_USE', message: 'Email already in use' });
     }
     const updateData: any = { ...dto };
     if (dto.dateOfBirth) updateData.dateOfBirth = new Date(dto.dateOfBirth);
@@ -223,7 +224,7 @@ export class ApplicantsService {
       where: { id },
       select: { firstName: true, lastName: true, photoUrl: true },
     });
-    if (!applicant) throw new NotFoundException('Applicant not found');
+    if (!applicant) throw new NotFoundException({ code: 'APPLICANT.NOT_FOUND', message: 'Applicant not found' });
 
     const upload = await this.storage.uploadFile(file.buffer, {
       keyPrefix: `applicants/${id}/photos`,
@@ -270,7 +271,7 @@ export class ApplicantsService {
 
   async remove(id: string, actorId?: string, actor?: { role: string; agencyId?: string; agencyIsSystem?: boolean }) {
     if (actor && actor.role === 'Agency User') {
-      throw new ForbiddenException('Agency users cannot directly delete candidates. Please submit a delete request.');
+      throw new ForbiddenException({ code: 'APPLICANT.AGENCY_DELETE_REQUEST_REQUIRED', message: 'Agency users cannot directly delete candidates. Please submit a delete request.' });
     }
     await this.findOne(id);
     await this.prisma.applicant.update({ where: { id }, data: { deletedAt: new Date() } });
@@ -285,7 +286,7 @@ export class ApplicantsService {
     const secretKey = process.env.RECAPTCHA_SECRET_KEY;
     if (secretKey) {
       if (!dto.recaptchaToken) {
-        throw new BadRequestException('reCAPTCHA verification required');
+        throw new BadRequestException({ code: 'APPLICANT.CAPTCHA_REQUIRED', message: 'reCAPTCHA verification required' });
       }
       const verifyRes = await fetch('https://www.google.com/recaptcha/api/siteverify', {
         method: 'POST',
@@ -294,7 +295,7 @@ export class ApplicantsService {
       });
       const verifyData = await verifyRes.json() as { success: boolean; 'error-codes'?: string[] };
       if (!verifyData.success) {
-        throw new BadRequestException('reCAPTCHA verification failed. Please try again.');
+        throw new BadRequestException({ code: 'APPLICANT.CAPTCHA_FAILED', message: 'reCAPTCHA verification failed. Please try again.' });
       }
     }
 
@@ -359,11 +360,11 @@ export class ApplicantsService {
     // Cannot move an agency-submitted candidate into the workflow until
     // Tempworks has approved them.
     if ((applicant as any).approvalStatus === 'PENDING_APPROVAL' && stageId) {
-      throw new BadRequestException('This candidate is pending Tempworks approval and cannot enter the workflow yet');
+      throw new BadRequestException({ code: 'APPLICANT.PENDING_APPROVAL_WORKFLOW', message: 'This candidate is pending Tempworks approval and cannot enter the workflow yet' });
     }
     if (stageId) {
       const stage = await this.prisma.stageTemplate.findUnique({ where: { id: stageId } });
-      if (!stage) throw new NotFoundException('Workflow stage not found');
+      if (!stage) throw new NotFoundException({ code: 'WORKFLOW.STAGE_NOT_FOUND', message: 'Workflow stage not found' });
     }
     const updated = await this.prisma.applicant.update({
       where: { id },
@@ -414,12 +415,12 @@ export class ApplicantsService {
   async convertLeadToCandidate(id: string, dto: ConvertLeadDto, actorId?: string) {
     const applicant = await this.findOne(id);
     if (applicant.tier === 'CANDIDATE') {
-      throw new ConflictException('Applicant is already a Candidate');
+      throw new ConflictException({ code: 'APPLICANT.ALREADY_CANDIDATE', message: 'Applicant is already a Candidate' });
     }
 
     // Guard: candidateNumber should never already be set (double-conversion protection)
     if ((applicant as any).candidateNumber) {
-      throw new ConflictException('A Candidate identifier has already been assigned to this applicant');
+      throw new ConflictException({ code: 'APPLICANT.CANDIDATE_ID_ASSIGNED', message: 'A Candidate identifier has already been assigned to this applicant' });
     }
 
     // Resolve target agency: use provided agencyId, or system default, or keep existing
@@ -490,13 +491,13 @@ export class ApplicantsService {
 
   async reassignAgency(id: string, dto: AssignAgencyDto, actorId?: string, actor?: { role: string; agencyId?: string; agencyIsSystem?: boolean }) {
     if (actor && this.isExternalActor(actor)) {
-      throw new ForbiddenException('Agency users cannot change a candidate\'s agency.');
+      throw new ForbiddenException({ code: 'APPLICANT.AGENCY_CHANGE_FORBIDDEN', message: 'Agency users cannot change a candidate\'s agency.' });
     }
 
     const applicant = await this.findOne(id);
 
     const newAgency = await this.prisma.agency.findUnique({ where: { id: dto.agencyId } });
-    if (!newAgency) throw new NotFoundException('Agency not found');
+    if (!newAgency) throw new NotFoundException({ code: 'AGENCY.NOT_FOUND', message: 'Agency not found' });
 
     const prevAgencyId = applicant.agencyId;
 
@@ -547,7 +548,7 @@ export class ApplicantsService {
   async upsertFinancialProfile(id: string, dto: UpsertFinancialProfileDto, actorId?: string) {
     const applicant = await this.findOne(id);
     if (applicant.tier !== 'CANDIDATE') {
-      throw new ForbiddenException('Financial profile is only available for Candidates');
+      throw new ForbiddenException({ code: 'APPLICANT.FINANCE_CANDIDATE_ONLY', message: 'Financial profile is only available for Candidates' });
     }
 
     const data: any = { ...dto };
@@ -763,6 +764,7 @@ export class ApplicantsService {
     filter: FilterApplicantsDto,
     actor?: { role: string; agencyId?: string; agencyIsSystem?: boolean },
     ids?: string[],
+    locale: ServerLocale = 'en',
   ): Promise<Buffer> {
     let items: any[];
     if (ids && ids.length > 0) {
@@ -785,32 +787,34 @@ export class ApplicantsService {
     workbook.creator = 'TempWorks';
     workbook.created = new Date();
 
-    const sheet = workbook.addWorksheet('Applicants', {
-      views: [{ state: 'frozen', ySplit: 1 }],
-    });
+    const col = (key: string) => tServer(`applicants.columns.${key}`, {}, locale, 'exports');
+    const sheet = workbook.addWorksheet(
+      tServer('applicants.sheetName', {}, locale, 'exports'),
+      { views: [{ state: 'frozen', ySplit: 1 }] },
+    );
 
     sheet.columns = [
-      { header: 'ID',                   key: 'id',                  width: 36 },
-      { header: 'Lead Number',          key: 'leadNumber',          width: 18 },
-      { header: 'Candidate Number',     key: 'candidateNumber',     width: 18 },
-      { header: 'Tier',                 key: 'tier',                width: 12 },
-      { header: 'First Name',           key: 'firstName',           width: 16 },
-      { header: 'Last Name',            key: 'lastName',            width: 16 },
-      { header: 'Email',                key: 'email',               width: 28 },
-      { header: 'Phone',                key: 'phone',               width: 18 },
-      { header: 'Citizenship',          key: 'citizenship',         width: 16 },
-      { header: 'Status',               key: 'status',              width: 14 },
-      { header: 'Job Type',             key: 'jobType',             width: 22 },
-      { header: 'Agency',               key: 'agency',              width: 22 },
-      { header: 'Residency Status',     key: 'residencyStatus',     width: 18 },
-      { header: 'Has NI',               key: 'hasNi',               width: 10 },
-      { header: 'NI Number',            key: 'niNumber',            width: 16 },
-      { header: 'Has Work Auth',        key: 'hasWorkAuth',         width: 14 },
-      { header: 'Work Auth Type',       key: 'workAuthType',        width: 20 },
-      { header: 'Availability',         key: 'availability',        width: 16 },
-      { header: 'Salary Expectation',   key: 'salaryExpectation',   width: 18 },
-      { header: 'Preferred Start Date', key: 'preferredStartDate',  width: 18, style: { numFmt: 'yyyy-mm-dd' } },
-      { header: 'Created At',           key: 'createdAt',           width: 18, style: { numFmt: 'yyyy-mm-dd' } },
+      { header: col('id'),                 key: 'id',                  width: 36 },
+      { header: col('leadNumber'),         key: 'leadNumber',          width: 18 },
+      { header: col('candidateNumber'),    key: 'candidateNumber',     width: 18 },
+      { header: col('tier'),               key: 'tier',                width: 12 },
+      { header: col('firstName'),          key: 'firstName',           width: 16 },
+      { header: col('lastName'),           key: 'lastName',            width: 16 },
+      { header: col('email'),              key: 'email',               width: 28 },
+      { header: col('phone'),              key: 'phone',               width: 18 },
+      { header: col('citizenship'),        key: 'citizenship',         width: 16 },
+      { header: col('status'),             key: 'status',              width: 14 },
+      { header: col('jobType'),            key: 'jobType',             width: 22 },
+      { header: col('agency'),             key: 'agency',              width: 22 },
+      { header: col('residencyStatus'),    key: 'residencyStatus',     width: 18 },
+      { header: col('hasNi'),              key: 'hasNi',               width: 10 },
+      { header: col('niNumber'),           key: 'niNumber',            width: 16 },
+      { header: col('hasWorkAuth'),        key: 'hasWorkAuth',         width: 14 },
+      { header: col('workAuthType'),       key: 'workAuthType',        width: 20 },
+      { header: col('availability'),       key: 'availability',        width: 16 },
+      { header: col('salaryExpectation'),  key: 'salaryExpectation',   width: 18 },
+      { header: col('preferredStartDate'), key: 'preferredStartDate',  width: 18, style: { numFmt: 'yyyy-mm-dd' } },
+      { header: col('createdAt'),          key: 'createdAt',           width: 18, style: { numFmt: 'yyyy-mm-dd' } },
     ];
 
     sheet.getRow(1).eachCell((cell) => {
@@ -862,26 +866,26 @@ export class ApplicantsService {
     // reach a candidate belonging to another tenant.
     const isAgencySideRole = actor?.role === 'Agency User' || actor?.role === 'Agency Manager';
     if (isAgencySideRole) {
-      throw new ForbiddenException('Agency users cannot convert candidates to employees.');
+      throw new ForbiddenException({ code: 'APPLICANT.AGENCY_CONVERT_FORBIDDEN', message: 'Agency users cannot convert candidates to employees.' });
     }
 
     const applicant = await this.findOne(id, actor);
 
     if (applicant.tier !== 'CANDIDATE') {
-      throw new ForbiddenException('Only Candidates can be converted to employees. Convert the Lead to a Candidate first.');
+      throw new ForbiddenException({ code: 'APPLICANT.CONVERT_REQUIRES_CANDIDATE', message: 'Only Candidates can be converted to employees. Convert the Lead to a Candidate first.' });
     }
     if ((applicant as any).approvalStatus === 'PENDING_APPROVAL') {
-      throw new ForbiddenException('This candidate is pending Tempworks approval and cannot be converted yet.');
+      throw new ForbiddenException({ code: 'APPLICANT.PENDING_APPROVAL_CONVERT', message: 'This candidate is pending Tempworks approval and cannot be converted yet.' });
     }
     if ((applicant as any).approvalStatus === 'REJECTED') {
-      throw new ForbiddenException('This candidate was rejected and cannot be converted.');
+      throw new ForbiddenException({ code: 'APPLICANT.REJECTED_CANNOT_CONVERT', message: 'This candidate was rejected and cannot be converted.' });
     }
 
     const existing = await this.prisma.employee.findFirst({
       where: { email: applicant.email, deletedAt: null },
     });
     if (existing) {
-      throw new ConflictException(`An employee with email ${applicant.email} already exists`);
+      throw new ConflictException({ code: 'EMPLOYEE.EMAIL_EXISTS', message: `An employee with email ${applicant.email} already exists`, params: { email: applicant.email } });
     }
 
     const stages = await this.prisma.stageTemplate.findMany({
@@ -997,13 +1001,13 @@ export class ApplicantsService {
 
   async requestDelete(candidateId: string, reason: string, requestedById: string) {
     const applicant = await this.prisma.applicant.findFirst({ where: { id: candidateId, deletedAt: null } });
-    if (!applicant) throw new NotFoundException('Candidate not found');
+    if (!applicant) throw new NotFoundException({ code: 'APPLICANT.NOT_FOUND', message: 'Candidate not found' });
 
     // Check no pending request already exists
     const existing = await this.prisma.candidateDeleteRequest.findFirst({
       where: { candidateId, status: 'PENDING' },
     });
-    if (existing) throw new BadRequestException('A delete request for this candidate is already pending review.');
+    if (existing) throw new BadRequestException({ code: 'APPLICANT.DELETE_REQUEST_PENDING', message: 'A delete request for this candidate is already pending review.' });
 
     const request = await this.prisma.candidateDeleteRequest.create({
       data: { candidateId, requestedById, reason, status: 'PENDING' },
@@ -1042,8 +1046,8 @@ export class ApplicantsService {
       where: { id: requestId },
       include: { applicant: true },
     });
-    if (!request) throw new NotFoundException('Delete request not found');
-    if (request.status !== 'PENDING') throw new BadRequestException('This request has already been reviewed.');
+    if (!request) throw new NotFoundException({ code: 'APPLICANT.DELETE_REQUEST_NOT_FOUND', message: 'Delete request not found' });
+    if (request.status !== 'PENDING') throw new BadRequestException({ code: 'APPLICANT.DELETE_REQUEST_REVIEWED', message: 'This request has already been reviewed.' });
 
     await this.prisma.candidateDeleteRequest.update({
       where: { id: requestId },

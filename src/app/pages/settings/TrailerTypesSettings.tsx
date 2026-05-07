@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { settingsApi } from '../../services/api';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -11,6 +12,8 @@ import { usePermissions } from '../../hooks/usePermissions';
 const DEFAULTS = ['Curtain Sider', 'Reefer', 'Tanker', 'Container', 'Walking Floor', 'Lowdeck', 'Mega', 'Swap Body'];
 
 export function TrailerTypesSettings() {
+  const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const { canEdit } = usePermissions();
   const isAdmin = canEdit('settings');
   const [items, setItems] = useState<string[]>([]);
@@ -43,15 +46,15 @@ export function TrailerTypesSettings() {
     setSaving(true);
     try {
       await settingsApi.update({ 'form.trailerTypes': JSON.stringify(items) });
-      toast.success('Trailer Types saved');
+      toast.success(tc('toast.savedSuccessfully'));
     } catch {
-      toast.error('Failed to save');
+      toast.error(tc('toast.saveFailed'));
     } finally {
       setSaving(false);
     }
   };
 
-  if (!isAdmin) return <div className="text-center py-16 text-muted-foreground">Access denied.</div>;
+  if (!isAdmin) return <div className="text-center py-16 text-muted-foreground">{t('settings.trailerTypes.accessDenied')}</div>;
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -60,15 +63,15 @@ export function TrailerTypesSettings() {
           <Link to="/dashboard/settings"><ArrowLeft className="w-5 h-5" /></Link>
         </Button>
         <div>
-          <h1 className="text-2xl font-semibold">Trailer Types</h1>
-          <p className="text-muted-foreground text-sm mt-0.5">Manage the trailer types shown in the Driving Experience step</p>
+          <h1 className="text-2xl font-semibold">{t('settings.trailerTypes.headerTitle')}</h1>
+          <p className="text-muted-foreground text-sm mt-0.5">{t('settings.trailerTypes.headerSubtitle')}</p>
         </div>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Add New Type</CardTitle>
-          <CardDescription>New types will appear as checkboxes in the Trailer Types section</CardDescription>
+          <CardTitle>{t('settings.trailerTypes.addCardTitle')}</CardTitle>
+          <CardDescription>{t('settings.trailerTypes.addCardDesc')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex gap-2">
@@ -87,9 +90,9 @@ export function TrailerTypesSettings() {
         <CardHeader><CardTitle>Current Types ({items.length})</CardTitle></CardHeader>
         <CardContent>
           {loading ? (
-            <p className="text-sm text-muted-foreground">Loading...</p>
+            <p className="text-sm text-muted-foreground">{t('settings.trailerTypes.loading')}</p>
           ) : items.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-6 border-2 border-dashed rounded-lg">No types defined yet.</p>
+            <p className="text-sm text-muted-foreground text-center py-6 border-2 border-dashed rounded-lg">{t('settings.trailerTypes.empty')}</p>
           ) : (
             <div className="space-y-2">
               {items.map(item => (
@@ -107,7 +110,7 @@ export function TrailerTypesSettings() {
 
       <Button onClick={handleSave} disabled={saving} className="gap-2">
         <Save className="w-4 h-4" />
-        {saving ? 'Saving...' : 'Save Changes'}
+        {saving ? t('settings.trailerTypes.saving') : t('settings.trailerTypes.saveChanges')}
       </Button>
     </div>
   );

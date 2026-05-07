@@ -75,7 +75,7 @@ export class WorkflowService {
       where: { employeeId_stageId: { employeeId, stageId } },
       include: { stage: true },
     });
-    if (!workflowEntry) throw new NotFoundException('Workflow stage not found for this employee');
+    if (!workflowEntry) throw new NotFoundException({ code: 'WORKFLOW.STAGE_NOT_FOUND_FOR_EMPLOYEE', message: 'Workflow stage not found for this employee' });
 
     const updateData: any = {
       status: dto.status,
@@ -111,10 +111,10 @@ export class WorkflowService {
 
   async setEmployeeCurrentStage(employeeId: string, stageId: string, updatedById?: string) {
     const employee = await this.prisma.employee.findUnique({ where: { id: employeeId, deletedAt: null } });
-    if (!employee) throw new NotFoundException('Employee not found');
+    if (!employee) throw new NotFoundException({ code: 'EMPLOYEE.NOT_FOUND', message: 'Employee not found' });
 
     const stage = await this.prisma.stageTemplate.findUnique({ where: { id: stageId } });
-    if (!stage) throw new NotFoundException('Workflow stage not found');
+    if (!stage) throw new NotFoundException({ code: 'WORKFLOW.STAGE_NOT_FOUND', message: 'Workflow stage not found' });
 
     // Complete any currently IN_PROGRESS stages
     await this.prisma.employeeStage.updateMany({
@@ -158,7 +158,7 @@ export class WorkflowService {
         },
       },
     });
-    if (!employee) throw new NotFoundException(`Employee ${employeeId} not found`);
+    if (!employee) throw new NotFoundException({ code: 'EMPLOYEE.NOT_FOUND', message: `Employee ${employeeId} not found`, params: { id: employeeId } });
     return {
       employee: { id: employee.id, firstName: employee.firstName, lastName: employee.lastName, status: employee.status },
       timeline: employee.employeeStages,
@@ -167,7 +167,7 @@ export class WorkflowService {
 
   async getStageDetails(stageId: string) {
     const stage = await this.prisma.stageTemplate.findUnique({ where: { id: stageId } });
-    if (!stage) throw new NotFoundException('Stage not found');
+    if (!stage) throw new NotFoundException({ code: 'WORKFLOW.STAGE_NOT_FOUND', message: 'Stage not found' });
 
     const [applicants, employeeStages] = await Promise.all([
       this.prisma.applicant.findMany({
@@ -244,7 +244,7 @@ export class WorkflowService {
 
   async createWorkPermit(dto: CreateWorkPermitDto, createdById?: string) {
     const employee = await this.prisma.employee.findUnique({ where: { id: dto.employeeId } });
-    if (!employee) throw new NotFoundException('Employee not found');
+    if (!employee) throw new NotFoundException({ code: 'EMPLOYEE.NOT_FOUND', message: 'Employee not found' });
     const permit = await this.prisma.workPermit.create({
       data: {
         ...dto,
@@ -265,7 +265,7 @@ export class WorkflowService {
 
   async updateWorkPermit(id: string, dto: Partial<CreateWorkPermitDto>, updatedById?: string) {
     const permit = await this.prisma.workPermit.findUnique({ where: { id } });
-    if (!permit) throw new NotFoundException('Work permit not found');
+    if (!permit) throw new NotFoundException({ code: 'WORKFLOW.WORK_PERMIT_NOT_FOUND', message: 'Work permit not found' });
     const updateData: any = { ...dto };
     if (dto.applicationDate) updateData.applicationDate = new Date(dto.applicationDate);
     if (dto.approvalDate) updateData.approvalDate = new Date(dto.approvalDate);
@@ -306,7 +306,7 @@ export class WorkflowService {
 
   async updateVisa(id: string, dto: Partial<CreateVisaDto>, updatedById?: string) {
     const visa = await this.prisma.visa.findUnique({ where: { id } });
-    if (!visa) throw new NotFoundException('Visa not found');
+    if (!visa) throw new NotFoundException({ code: 'WORKFLOW.VISA_NOT_FOUND', message: 'Visa not found' });
     const updateData: any = { ...dto };
     if (dto.applicationDate) updateData.applicationDate = new Date(dto.applicationDate);
     if (dto.appointmentDate) updateData.appointmentDate = new Date(dto.appointmentDate);

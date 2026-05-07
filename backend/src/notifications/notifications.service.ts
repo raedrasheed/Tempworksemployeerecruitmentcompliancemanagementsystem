@@ -2,13 +2,49 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationType } from '@prisma/client';
 import { EVENT_TO_TYPE, NotifEventKey } from './notification-events';
+import { tServer, ServerLocale } from '../common/i18n/server-translate';
 
 @Injectable()
 export class NotificationsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /// Get notifications for a user with pagination
-  async getUserNotifications(userId: string, skip = 0, take = 20) {
+  /**
+   * Translate a stored notification row into the active locale.
+   *
+   * Lookup order per field:
+   *   1. `tServer(<key>, params, locale)` when `titleKey`/`messageKey`
+   *      is set AND the catalog has a matching entry
+   *   2. the stored English `title`/`message` (always populated)
+   *
+   * `tServer()` already falls back through (locale → en → verbatim key),
+   * so a brand-new producer key with no catalog entry yet shows the key
+   * string in dev — making missing translations easy to spot — without
+   * losing the legacy English message that the reader returns alongside.
+   */
+  private translateRow<T extends { title: string; message: string; titleKey: string | null; messageKey: string | null; params: any }>(
+    row: T,
+    locale: ServerLocale,
+  ): T {
+    const params = (row.params && typeof row.params === 'object' ? row.params : {}) as Record<string, unknown>;
+    const translatedTitle = row.titleKey
+      ? tServer(row.titleKey, params, locale, 'notifications')
+      : null;
+    const translatedMessage = row.messageKey
+      ? tServer(row.messageKey, params, locale, 'notifications')
+      : null;
+    return {
+      ...row,
+      // Replace the field with the translated value when available.
+      // Crucially we never overwrite when the key is null — legacy rows
+      // (where titleKey is null) keep the original English text intact.
+      title: translatedTitle && translatedTitle !== row.titleKey ? translatedTitle : row.title,
+      message: translatedMessage && translatedMessage !== row.messageKey ? translatedMessage : row.message,
+    };
+  }
+
+  /// Get notifications for a user with pagination.
+  /// `locale` is the resolved `Accept-Language` value; defaults to 'en'.
+  async getUserNotifications(userId: string, skip = 0, take = 20, locale: ServerLocale = 'en') {
     const [notifications, total] = await Promise.all([
       this.prisma.notification.findMany({
         where: { userId, deletedAt: null },
@@ -20,7 +56,7 @@ export class NotificationsService {
         where: { userId, deletedAt: null },
       }),
     ]);
-    return { data: notifications, total };
+    return { data: notifications.map(n => this.translateRow(n as any, locale)), total };
   }
 
   /// Get unread notification count for a user
@@ -132,8 +168,18 @@ export class NotificationsService {
             await this.prisma.notification.create({
               data: {
                 userId: manager.id,
+                // Pre-rendered English (legacy fallback for old clients).
                 title: `${vehicle.registrationNumber}: ${check.label} Expiring Soon`,
                 message: `${check.label} expires in ${daysUntil} days`,
+                // i18n metadata: reader resolves these against the active
+                // locale and falls back to `title`/`message` when missing.
+                titleKey: 'events.vehicleCheckExpiring.title',
+                messageKey: 'events.vehicleCheckExpiring.body',
+                params: {
+                  registrationNumber: vehicle.registrationNumber,
+                  checkLabel: check.label,
+                  daysUntilDue: daysUntil,
+                },
                 type: check.type as NotificationType,
                 channel: 'in_app',
                 relatedEntity: 'Vehicle',
@@ -215,6 +261,12 @@ export class NotificationsService {
                 userId: manager.id,
                 title: `${vehicle.registrationNumber}: Service Due Soon`,
                 message: `Service due in ${kmRemaining} km`,
+                titleKey: 'events.vehicleServiceDueKm.title',
+                messageKey: 'events.vehicleServiceDueKm.body',
+                params: {
+                  registrationNumber: vehicle.registrationNumber,
+                  kmRemaining,
+                },
                 type: 'VEHICLE_SERVICE_DUE',
                 channel: 'in_app',
                 relatedEntity: 'Vehicle',
@@ -279,6 +331,11 @@ export class NotificationsService {
               userId: manager.id,
               title: `🚨 ${vehicle.registrationNumber}: Compliance Overdue`,
               message: 'Vehicle has expired compliance. Service immediately.',
+              titleKey: 'events.vehicleComplianceOverdue.title',
+              messageKey: 'events.vehicleComplianceOverdue.body',
+              params: {
+                registrationNumber: vehicle.registrationNumber,
+              },
               type: 'VEHICLE_SERVICE_OVERDUE',
               channel: 'in_app',
               relatedEntity: 'Vehicle',
@@ -348,6 +405,14 @@ export class NotificationsService {
                 userId: manager.id,
                 title: `${record.vehicle.registrationNumber}: Scheduled Maintenance`,
                 message: `${record.maintenanceType?.name ?? 'Maintenance'} scheduled in ${daysUntil} days at ${record.workshop?.name ?? 'workshop'}`,
+                titleKey: 'events.vehicleScheduledMaintenance.title',
+                messageKey: 'events.vehicleScheduledMaintenance.body',
+                params: {
+                  registrationNumber: record.vehicle.registrationNumber,
+                  maintenanceTypeName: record.maintenanceType?.name ?? 'Maintenance',
+                  daysUntil,
+                  workshopName: record.workshop?.name ?? 'workshop',
+                },
                 type: 'VEHICLE_SERVICE_DUE',
                 channel: 'in_app',
                 relatedEntity: 'MaintenanceRecord',
@@ -380,8 +445,22 @@ export class NotificationsService {
     }
   }
 
-  /// Notify uploader and users with specific roles
-  async notifyUploaderAndRoles(uploaderId: string, roles: string[], eventKey: NotifEventKey, title: string, message: string, relatedEntity?: string, relatedEntityId?: string): Promise<void> {
+  /// Notify uploader and users with specific roles.
+  ///
+  /// `i18n` is optional — pass `{ titleKey, messageKey?, params? }` to
+  /// have the reader render translations against the requester's locale.
+  /// When omitted, the existing English `title`/`message` flow is used
+  /// unchanged (backward compatible with all current callers).
+  async notifyUploaderAndRoles(
+    uploaderId: string,
+    roles: string[],
+    eventKey: NotifEventKey,
+    title: string,
+    message: string,
+    relatedEntity?: string,
+    relatedEntityId?: string,
+    i18n?: { titleKey?: string; messageKey?: string; params?: Record<string, unknown> },
+  ): Promise<void> {
     const userIds = new Set<string>();
 
     if (uploaderId) userIds.add(uploaderId);
@@ -405,6 +484,9 @@ export class NotificationsService {
           userId,
           title,
           message,
+          titleKey:   i18n?.titleKey   ?? null,
+          messageKey: i18n?.messageKey ?? null,
+          params:     (i18n?.params ?? null) as any,
           type,
           channel: 'in_app',
           relatedEntity: relatedEntity || 'Document',
@@ -414,8 +496,19 @@ export class NotificationsService {
     }
   }
 
-  /// Notify users with specific roles
-  async notifyUsersByRoles(roles: string[], eventKey: NotifEventKey, title: string, message: string, relatedEntity?: string, relatedEntityId?: string): Promise<void> {
+  /// Notify users with specific roles.
+  ///
+  /// Same `i18n` opt-in as `notifyUploaderAndRoles` — see that doc for
+  /// fallback semantics.
+  async notifyUsersByRoles(
+    roles: string[],
+    eventKey: NotifEventKey,
+    title: string,
+    message: string,
+    relatedEntity?: string,
+    relatedEntityId?: string,
+    i18n?: { titleKey?: string; messageKey?: string; params?: Record<string, unknown> },
+  ): Promise<void> {
     const users = await this.prisma.user.findMany({
       where: {
         role: { name: { in: roles } },
@@ -432,6 +525,9 @@ export class NotificationsService {
           userId: user.id,
           title,
           message,
+          titleKey:   i18n?.titleKey   ?? null,
+          messageKey: i18n?.messageKey ?? null,
+          params:     (i18n?.params ?? null) as any,
           type,
           channel: 'in_app',
           relatedEntity,

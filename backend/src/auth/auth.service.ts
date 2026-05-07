@@ -70,7 +70,7 @@ export class AuthService {
         changes: { reason: 'User not found' },
         ipAddress,
       });
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException({ code: 'AUTH.INVALID_CREDENTIALS', message: 'Invalid credentials' });
     }
 
     // Agency scope check — return generic error to prevent enumeration
@@ -84,7 +84,7 @@ export class AuthService {
         changes: { reason: 'Agency mismatch' },
         ipAddress,
       });
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException({ code: 'AUTH.INVALID_CREDENTIALS', message: 'Invalid credentials' });
     }
 
     // Check lockout
@@ -92,9 +92,10 @@ export class AuthService {
       const lockoutDurationMs = 30 * 60 * 1000; // 30 minutes
       const unlockTime = new Date(user.lockedAt.getTime() + lockoutDurationMs);
       if (new Date() < unlockTime) {
-        throw new UnauthorizedException(
-          'Account is temporarily locked. Please try again later.',
-        );
+        throw new UnauthorizedException({
+          code: 'AUTH.ACCOUNT_LOCKED',
+          message: 'Account is temporarily locked. Please try again later.',
+        });
       }
       // Lockout period has passed — clear the lock
       await this.prisma.user.update({
@@ -116,7 +117,7 @@ export class AuthService {
         updateData.lockedAt = new Date();
         // Fire-and-forget email — never block login flow
         this.emailService
-          .sendAccountLockedEmail(user.email, `${user.firstName} ${user.lastName}`)
+          .sendAccountLockedEmail(user.email, `${user.firstName} ${user.lastName}`, user.preferredLanguage as any)
           .catch(() => undefined);
         await this.auditLog.log({
           userId: user.id,
@@ -141,7 +142,7 @@ export class AuthService {
         ipAddress,
       });
 
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException({ code: 'AUTH.INVALID_CREDENTIALS', message: 'Invalid credentials' });
     }
 
     // Password correct — reset failure counters
@@ -153,19 +154,25 @@ export class AuthService {
     // Status checks (after password validation to avoid status enumeration via timing)
     switch (user.status) {
       case 'PENDING':
-        throw new UnauthorizedException(
-          'Account not yet activated. Please check your email.',
-        );
+        throw new UnauthorizedException({
+          code: 'AUTH.ACCOUNT_PENDING',
+          message: 'Account not yet activated. Please check your email.',
+        });
       case 'INACTIVE':
-        throw new UnauthorizedException(
-          'Account is inactive. Please contact your administrator.',
-        );
+        throw new UnauthorizedException({
+          code: 'AUTH.ACCOUNT_INACTIVE',
+          message: 'Account is inactive. Please contact your administrator.',
+        });
       case 'SUSPENDED':
-        throw new UnauthorizedException(
-          'Account is suspended. Please contact your administrator.',
-        );
+        throw new UnauthorizedException({
+          code: 'AUTH.ACCOUNT_SUSPENDED',
+          message: 'Account is suspended. Please contact your administrator.',
+        });
       case 'TERMINATED':
-        throw new UnauthorizedException('Account has been terminated.');
+        throw new UnauthorizedException({
+          code: 'AUTH.ACCOUNT_TERMINATED',
+          message: 'Account has been terminated.',
+        });
     }
 
     // Password expiry check
@@ -185,6 +192,7 @@ export class AuthService {
           challenge.code,
           10,
           { ipAddress },
+          user.preferredLanguage as any,
         )
         .catch(() => undefined);
 
@@ -249,14 +257,14 @@ export class AuthService {
       include: { user: { include: { role: true, agency: true } } },
     });
     if (!record || record.consumedAt || record.expiresAt < new Date()) {
-      throw new UnauthorizedException('Verification code is invalid or has expired');
+      throw new UnauthorizedException({ code: 'AUTH.TWO_FACTOR_INVALID', message: 'Verification code is invalid or has expired' });
     }
     if (record.attempts >= 5) {
       await this.prisma.twoFactorChallenge.update({
         where: { id: record.id },
         data: { consumedAt: new Date() },
       });
-      throw new UnauthorizedException('Too many attempts. Please sign in again.');
+      throw new UnauthorizedException({ code: 'AUTH.TWO_FACTOR_TOO_MANY_ATTEMPTS', message: 'Too many attempts. Please sign in again.' });
     }
 
     const valid = await bcrypt.compare(code.trim(), record.codeHash);
@@ -273,7 +281,7 @@ export class AuthService {
         entityId: record.userId,
         ipAddress,
       });
-      throw new UnauthorizedException('Invalid verification code');
+      throw new UnauthorizedException({ code: 'AUTH.TWO_FACTOR_INVALID', message: 'Invalid verification code' });
     }
 
     await this.prisma.twoFactorChallenge.update({
@@ -283,7 +291,7 @@ export class AuthService {
 
     const user = record.user;
     if (!user || user.status !== 'ACTIVE') {
-      throw new UnauthorizedException('Account is not active');
+      throw new UnauthorizedException({ code: 'AUTH.ACCOUNT_INACTIVE', message: 'Account is not active' });
     }
 
     const passwordExpired = !!user.passwordExpiresAt && user.passwordExpiresAt < new Date();
@@ -306,7 +314,7 @@ export class AuthService {
       include: { user: true },
     });
     if (!record || record.consumedAt || record.expiresAt < new Date()) {
-      throw new UnauthorizedException('Verification session expired. Please sign in again.');
+      throw new UnauthorizedException({ code: 'AUTH.TWO_FACTOR_EXPIRED', message: 'Verification session expired. Please sign in again.' });
     }
     const { challenge, expiresAt } = await this.createTwoFactorChallenge(record.userId, ipAddress);
     this.emailService
@@ -316,6 +324,7 @@ export class AuthService {
         challenge.code,
         10,
         { ipAddress },
+        (record.user as any).preferredLanguage,
       )
       .catch(() => undefined);
     return { challengeId: challenge.id, expiresAt };
@@ -368,7 +377,7 @@ export class AuthService {
   // ---------------------------------------------------------------------------
   async setTwoFactorEnabled(userId: string, enabled: boolean, ipAddress?: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new UnauthorizedException();
+    if (!user) throw new UnauthorizedException({ code: 'AUTH.USER_NOT_FOUND', message: 'User not found' });
     await this.prisma.user.update({
       where: { id: userId },
       data: { twoFactorEnabled: enabled },
@@ -416,12 +425,12 @@ export class AuthService {
     });
 
     if (!user || !user.refreshToken) {
-      throw new UnauthorizedException('Access denied');
+      throw new UnauthorizedException({ code: 'AUTH.ACCESS_DENIED', message: 'Access denied' });
     }
 
     const tokenMatches = await bcrypt.compare(refreshToken, user.refreshToken);
     if (!tokenMatches) {
-      throw new UnauthorizedException('Access denied');
+      throw new UnauthorizedException({ code: 'AUTH.ACCESS_DENIED', message: 'Access denied' });
     }
 
     const tokens = await this.generateTokens(user.id, user.email, user.role.name);
@@ -444,7 +453,7 @@ export class AuthService {
     ipAddress?: string,
   ) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new UnauthorizedException();
+    if (!user) throw new UnauthorizedException({ code: 'AUTH.USER_NOT_FOUND', message: 'User not found' });
 
     const isValid = await bcrypt.compare(currentPassword, user.passwordHash);
     if (!isValid) {
@@ -457,7 +466,7 @@ export class AuthService {
         changes: { reason: 'Current password incorrect' },
         ipAddress,
       });
-      throw new BadRequestException('Current password is incorrect');
+      throw new BadRequestException({ code: 'AUTH.CURRENT_PASSWORD_INCORRECT', message: 'Current password is incorrect' });
     }
 
     this.validatePasswordStrength(newPassword);
@@ -503,7 +512,7 @@ export class AuthService {
         agency: true,
       },
     });
-    if (!user) throw new UnauthorizedException();
+    if (!user) throw new UnauthorizedException({ code: 'AUTH.USER_NOT_FOUND', message: 'User not found' });
 
     // Merge role defaults with any agency-wide permission overrides applied
     // by Tempworks admins. `allow=true` adds a permission; `allow=false`
@@ -564,7 +573,7 @@ export class AuthService {
     });
 
     if (!activationToken) {
-      throw new BadRequestException('Activation link is invalid or has expired');
+      throw new BadRequestException({ code: 'AUTH.ACTIVATION_INVALID', message: 'Activation link is invalid or has expired' });
     }
 
     this.validatePasswordStrength(password);
@@ -684,7 +693,7 @@ export class AuthService {
     const user = await this.prisma.user.findFirst({
       where: { id: userId, deletedAt: null },
     });
-    if (!user) throw new NotFoundException('User not found');
+    if (!user) throw new NotFoundException({ code: 'USER.NOT_FOUND', message: 'User not found' });
 
     const frontendUrl = this.config.get<string>('FRONTEND_URL', 'http://localhost:3000');
 
@@ -737,7 +746,7 @@ export class AuthService {
     });
 
     if (!resetToken) {
-      throw new BadRequestException('Reset link is invalid or has expired');
+      throw new BadRequestException({ code: 'AUTH.RESET_INVALID', message: 'Reset link is invalid or has expired' });
     }
 
     this.validatePasswordStrength(newPassword);
@@ -803,12 +812,14 @@ export class AuthService {
     const user = await this.prisma.user.findFirst({
       where: { id: userId, deletedAt: null },
     });
-    if (!user) throw new NotFoundException('User not found');
+    if (!user) throw new NotFoundException({ code: 'USER.NOT_FOUND', message: 'User not found' });
 
     if (user.status !== 'PENDING' && user.status !== 'INACTIVE') {
-      throw new BadRequestException(
-        'Activation email can only be resent for PENDING or INACTIVE accounts',
-      );
+      throw new BadRequestException({
+        code: 'AUTH.ACCOUNT_STATUS',
+        message: 'Activation email can only be resent for PENDING or INACTIVE accounts',
+        params: { status: user.status },
+      });
     }
 
     // Invalidate existing unused activation tokens
@@ -859,21 +870,22 @@ export class AuthService {
   // ---------------------------------------------------------------------------
   private validatePasswordStrength(password: string): void {
     if (password.length < 8) {
-      throw new BadRequestException('Password must be at least 8 characters long');
+      throw new BadRequestException({ code: 'AUTH.PASSWORD_TOO_SHORT', message: 'Password must be at least 8 characters long', params: { min: 8 } });
     }
     if (!/[A-Z]/.test(password)) {
-      throw new BadRequestException('Password must contain at least one uppercase letter');
+      throw new BadRequestException({ code: 'AUTH.PASSWORD_NEEDS_UPPERCASE', message: 'Password must contain at least one uppercase letter' });
     }
     if (!/[a-z]/.test(password)) {
-      throw new BadRequestException('Password must contain at least one lowercase letter');
+      throw new BadRequestException({ code: 'AUTH.PASSWORD_NEEDS_LOWERCASE', message: 'Password must contain at least one lowercase letter' });
     }
     if (!/[0-9]/.test(password)) {
-      throw new BadRequestException('Password must contain at least one digit');
+      throw new BadRequestException({ code: 'AUTH.PASSWORD_NEEDS_DIGIT', message: 'Password must contain at least one digit' });
     }
     if (!/[!@#$%^&*()_+\-=\[\]{}|;':",./<>?]/.test(password)) {
-      throw new BadRequestException(
-        "Password must contain at least one special character (!@#$%^&*()_+-=[]{}|;':\",./<>?)",
-      );
+      throw new BadRequestException({
+        code: 'AUTH.PASSWORD_NEEDS_SPECIAL',
+        message: "Password must contain at least one special character (!@#$%^&*()_+-=[]{}|;':\",./<>?)",
+      });
     }
   }
 

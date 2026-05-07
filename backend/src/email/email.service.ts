@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as https from 'https';
+import { tEmail, interpolate, type EmailLocale } from './email-i18n';
 
 @Injectable()
 export class EmailService {
@@ -29,17 +30,16 @@ export class EmailService {
   // Public send methods
   // ---------------------------------------------------------------------------
 
-  async sendActivationEmail(to: string, name: string, token: string, frontendUrl?: string): Promise<void> {
+  async sendActivationEmail(to: string, name: string, token: string, frontendUrl?: string, locale?: EmailLocale): Promise<void> {
     const url = `${frontendUrl ?? this.frontendUrl}/activate?token=${token}`;
-    await this.sendMail(to, 'Activate Your TempWorks Account', this.buildActivationTemplate(name, url));
+    const t = tEmail(locale, 'activation');
+    await this.sendMail(to, interpolate(t.subject, { name }), this.buildActivationTemplate(name, url, locale));
   }
 
-  async sendPasswordResetEmail(to: string, name: string, token: string, frontendUrl?: string, isAdminInitiated = false): Promise<void> {
+  async sendPasswordResetEmail(to: string, name: string, token: string, frontendUrl?: string, isAdminInitiated = false, locale?: EmailLocale): Promise<void> {
     const url = `${frontendUrl ?? this.frontendUrl}/reset-password?token=${token}`;
-    const subject = isAdminInitiated
-      ? 'Your TempWorks Password Has Been Reset by an Administrator'
-      : 'Reset Your TempWorks Password';
-    await this.sendMail(to, subject, this.buildPasswordResetTemplate(name, url, isAdminInitiated));
+    const t = tEmail(locale, isAdminInitiated ? 'passwordResetAdmin' : 'passwordReset');
+    await this.sendMail(to, interpolate(t.subject, { name }), this.buildPasswordResetTemplate(name, url, isAdminInitiated, locale));
   }
 
   async sendTwoFactorCode(
@@ -48,11 +48,13 @@ export class EmailService {
     code: string,
     expiresInMinutes = 10,
     context: { ipAddress?: string } = {},
+    locale?: EmailLocale,
   ): Promise<void> {
+    const t = tEmail(locale, 'twoFactor');
     await this.sendMail(
       to,
-      'Your TempWorks Verification Code',
-      this.buildTwoFactorTemplate(name, code, expiresInMinutes, context),
+      interpolate(t.subject, { name }),
+      this.buildTwoFactorTemplate(name, code, expiresInMinutes, context, locale),
     );
   }
 
@@ -61,30 +63,36 @@ export class EmailService {
     name: string,
     context: { changedAt?: Date; ipAddress?: string; initiator?: 'self' | 'reset' | 'admin' } = {},
     frontendUrl?: string,
+    locale?: EmailLocale,
   ): Promise<void> {
     const loginUrl = `${frontendUrl ?? this.frontendUrl}/login`;
+    const t = tEmail(locale, 'passwordChanged');
     await this.sendMail(
       to,
-      'Your TempWorks Password Was Changed',
-      this.buildPasswordChangedTemplate(name, loginUrl, context),
+      interpolate(t.subject, { name }),
+      this.buildPasswordChangedTemplate(name, loginUrl, context, locale),
     );
   }
 
-  async sendPasswordExpiredNotification(to: string, name: string, frontendUrl?: string): Promise<void> {
+  async sendPasswordExpiredNotification(to: string, name: string, frontendUrl?: string, locale?: EmailLocale): Promise<void> {
     const url = `${frontendUrl ?? this.frontendUrl}/login`;
-    await this.sendMail(to, 'Your TempWorks Password Has Expired', this.buildPasswordExpiredTemplate(name, url));
+    const t = tEmail(locale, 'passwordExpired');
+    await this.sendMail(to, interpolate(t.subject, { name }), this.buildPasswordExpiredTemplate(name, url, locale));
   }
 
-  async sendAccountLockedEmail(to: string, name: string): Promise<void> {
-    await this.sendMail(to, 'Your TempWorks Account Has Been Temporarily Locked', this.buildAccountLockedTemplate(name));
+  async sendAccountLockedEmail(to: string, name: string, locale?: EmailLocale): Promise<void> {
+    const t = tEmail(locale, 'accountLocked');
+    await this.sendMail(to, interpolate(t.subject, { name }), this.buildAccountLockedTemplate(name, locale));
   }
 
-  async sendWelcomeEmail(to: string, name: string): Promise<void> {
-    await this.sendMail(to, 'Welcome to TempWorks!', this.buildWelcomeTemplate(name));
+  async sendWelcomeEmail(to: string, name: string, locale?: EmailLocale): Promise<void> {
+    const t = tEmail(locale, 'welcome');
+    await this.sendMail(to, interpolate(t.subject, { name }), this.buildWelcomeTemplate(name, locale));
   }
 
-  async sendApplicationConfirmation(to: string, name: string, reference: string, appData: Record<string, any>): Promise<void> {
-    await this.sendMail(to, `Application Received – Reference ${reference}`, this.buildApplicationConfirmationTemplate(name, reference, appData));
+  async sendApplicationConfirmation(to: string, name: string, reference: string, appData: Record<string, any>, locale?: EmailLocale): Promise<void> {
+    const t = tEmail(locale, 'applicationConfirmation');
+    await this.sendMail(to, interpolate(t.subject, { name, reference }), this.buildApplicationConfirmationTemplate(name, reference, appData, locale));
   }
 
   async sendNotificationEmail(
@@ -93,8 +101,9 @@ export class EmailService {
     title: string,
     message: string,
     eventType?: string,
+    locale?: EmailLocale,
   ): Promise<void> {
-    await this.sendMail(to, title, this.buildNotificationTemplate(name, title, message, eventType));
+    await this.sendMail(to, title, this.buildNotificationTemplate(name, title, message, eventType, locale));
   }
 
   // ---------------------------------------------------------------------------
@@ -155,9 +164,11 @@ export class EmailService {
   // HTML Templates
   // ---------------------------------------------------------------------------
 
-  private baseTemplate(title: string, body: string): string {
+  private baseTemplate(title: string, body: string, locale?: EmailLocale): string {
+    const lc = locale ?? 'en';
+    const dir = lc === 'ar' ? 'rtl' : 'ltr';
     return `<!DOCTYPE html>
-<html lang="en">
+<html lang="${lc}" dir="${dir}">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -170,8 +181,7 @@ export class EmailService {
     </div>
     <div style="padding:32px;line-height:1.6;">${body}</div>
     <div style="background:#f4f6f9;padding:20px 32px;font-size:12px;color:#666;text-align:center;">
-      &copy; ${new Date().getFullYear()} TempWorks. Automated message — do not reply.<br/>
-      If you did not request this, contact your administrator.
+      &copy; ${new Date().getFullYear()} TempWorks
     </div>
   </div>
 </body>
@@ -186,30 +196,30 @@ export class EmailService {
     return `<p style="background:#fff8e1;border-left:4px solid #f59e0b;padding:12px 16px;margin:16px 0;border-radius:4px;font-size:13px;">${text}</p>`;
   }
 
-  private buildActivationTemplate(name: string, url: string): string {
-    return this.baseTemplate('Activate Your Account', `
-      <p style="margin:0 0 16px;">Hello <strong>${this.escape(name)}</strong>,</p>
-      <p style="margin:0 0 16px;">Welcome to TempWorks! Your account has been created and is ready to activate.</p>
-      <p style="margin:0 0 16px;">Click the button below to set your password and activate your account:</p>
-      ${this.btn('Activate My Account', url)}
-      ${this.notice('This link expires in <strong>60 minutes</strong>. Contact your admin to resend if it expires.')}
-      <p style="margin:16px 0 8px;">If the button doesn't work, copy this link into your browser:</p>
+  private buildActivationTemplate(name: string, url: string, locale?: EmailLocale): string {
+    const t = tEmail(locale, 'activation');
+    return this.baseTemplate(t.heading ?? 'Activate Your Account', `
+      <p style="margin:0 0 16px;">${interpolate(t.greeting ?? 'Hi {{name}},', { name: `<strong>${this.escape(name)}</strong>` })}</p>
+      <p style="margin:0 0 16px;">${t.intro ?? ''}</p>
+      ${this.btn(t.buttonLabel ?? 'Activate Account', url)}
+      <p style="margin:16px 0 8px;">${t.fallbackLinkLabel ?? ''}</p>
       <p style="word-break:break-all;font-size:13px;"><a href="${url}" style="color:#1a56db;">${url}</a></p>
-    `);
+      <p style="margin:16px 0 0;color:#6b7280;font-size:13px;">${t.outro ?? ''}</p>
+      <p style="margin:24px 0 0;color:#6b7280;font-size:13px;">${t.signoff ?? ''}</p>
+    `, locale);
   }
 
-  private buildPasswordResetTemplate(name: string, url: string, isAdminInitiated: boolean): string {
-    const intro = isAdminInitiated
-      ? 'An administrator has initiated a password reset for your account.'
-      : 'We received a request to reset your TempWorks password.';
-    return this.baseTemplate('Reset Your Password', `
-      <p style="margin:0 0 16px;">Hello <strong>${this.escape(name)}</strong>,</p>
-      <p style="margin:0 0 16px;">${intro}</p>
-      ${this.btn('Reset My Password', url)}
-      ${this.notice('This link expires in <strong>60 minutes</strong>.')}
-      <p style="margin:16px 0 8px;">If you didn't request this, ignore this email or contact your admin.</p>
+  private buildPasswordResetTemplate(name: string, url: string, isAdminInitiated: boolean, locale?: EmailLocale): string {
+    const t = tEmail(locale, isAdminInitiated ? 'passwordResetAdmin' : 'passwordReset');
+    return this.baseTemplate(t.heading ?? 'Reset Your Password', `
+      <p style="margin:0 0 16px;">${interpolate(t.greeting ?? 'Hi {{name}},', { name: `<strong>${this.escape(name)}</strong>` })}</p>
+      <p style="margin:0 0 16px;">${t.intro ?? ''}</p>
+      ${this.btn(t.buttonLabel ?? 'Reset Password', url)}
+      <p style="margin:16px 0 8px;">${t.fallbackLinkLabel ?? ''}</p>
       <p style="word-break:break-all;font-size:13px;"><a href="${url}" style="color:#1a56db;">${url}</a></p>
-    `);
+      <p style="margin:16px 0 0;color:#6b7280;font-size:13px;">${t.outro ?? ''}</p>
+      <p style="margin:24px 0 0;color:#6b7280;font-size:13px;">${t.signoff ?? ''}</p>
+    `, locale);
   }
 
   private buildTwoFactorTemplate(
@@ -217,70 +227,74 @@ export class EmailService {
     code: string,
     expiresInMinutes: number,
     context: { ipAddress?: string },
+    locale?: EmailLocale,
   ): string {
+    const t = tEmail(locale, 'twoFactor');
     const ip = context.ipAddress ? this.escape(context.ipAddress) : 'Unknown';
-    return this.baseTemplate('Your Verification Code', `
-      <p style="margin:0 0 16px;">Hello <strong>${this.escape(name)}</strong>,</p>
-      <p style="margin:0 0 16px;">Use the verification code below to finish signing in. This code was requested from IP <strong>${ip}</strong>.</p>
+    return this.baseTemplate(t.heading ?? 'Verification Code', `
+      <p style="margin:0 0 16px;">${interpolate(t.greeting ?? 'Hi {{name}},', { name: `<strong>${this.escape(name)}</strong>` })}</p>
+      <p style="margin:0 0 16px;">${interpolate(t.intro ?? '', { minutes: expiresInMinutes })}</p>
       <div style="margin:20px 0;padding:18px 24px;background:#f0f5ff;border:1px solid #c7d7ff;border-radius:8px;text-align:center;">
         <div style="font-family:Consolas,Menlo,monospace;font-size:32px;letter-spacing:10px;color:#1a56db;font-weight:700;">${this.escape(code)}</div>
       </div>
-      ${this.notice(`This code expires in <strong>${expiresInMinutes} minutes</strong>. Do not share it with anyone.`)}
-      <p style="margin:16px 0 0;">If you did not try to sign in, ignore this email and consider changing your password.</p>
-    `);
+      <p style="margin:8px 0 0;color:#6b7280;font-size:13px;">IP: ${ip}</p>
+      <p style="margin:16px 0 0;color:#6b7280;font-size:13px;">${t.outro ?? ''}</p>
+      <p style="margin:24px 0 0;color:#6b7280;font-size:13px;">${t.signoff ?? ''}</p>
+    `, locale);
   }
 
   private buildPasswordChangedTemplate(
     name: string,
     loginUrl: string,
     context: { changedAt?: Date; ipAddress?: string; initiator?: 'self' | 'reset' | 'admin' },
+    locale?: EmailLocale,
   ): string {
+    const t = tEmail(locale, 'passwordChanged');
     const when = (context.changedAt ?? new Date()).toUTCString();
     const ip = context.ipAddress ? this.escape(context.ipAddress) : 'Unknown';
-    const initiatorLabel =
-      context.initiator === 'reset' ? 'a password reset link'
-      : context.initiator === 'admin' ? 'an administrator'
-      : 'your account';
-    return this.baseTemplate('Password Changed', `
-      <p style="margin:0 0 16px;">Hello <strong>${this.escape(name)}</strong>,</p>
-      <p style="margin:0 0 16px;">Your TempWorks password was changed successfully via ${initiatorLabel}.</p>
+    return this.baseTemplate(t.heading ?? 'Password Changed', `
+      <p style="margin:0 0 16px;">${interpolate(t.greeting ?? 'Hi {{name}},', { name: `<strong>${this.escape(name)}</strong>` })}</p>
+      <p style="margin:0 0 16px;">${t.intro ?? ''}</p>
       <table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:13px;">
-        <tr><td style="padding:6px 12px;color:#6b7280;white-space:nowrap;">Changed at</td><td style="padding:6px 12px;color:#111827;">${when}</td></tr>
-        <tr><td style="padding:6px 12px;color:#6b7280;white-space:nowrap;">IP address</td><td style="padding:6px 12px;color:#111827;">${ip}</td></tr>
+        <tr><td style="padding:6px 12px;color:#6b7280;white-space:nowrap;">${when}</td></tr>
+        <tr><td style="padding:6px 12px;color:#6b7280;white-space:nowrap;">IP: ${ip}</td></tr>
       </table>
-      <p style="margin:16px 0;">For security, all other active sessions have been signed out. Please log in again with your new password.</p>
-      ${this.btn('Log In', loginUrl)}
-      ${this.notice('If you did <strong>not</strong> make this change, contact your administrator immediately — your account may be compromised.')}
-    `);
+      ${this.btn(t.buttonLabel ?? 'Sign in', loginUrl)}
+      <p style="margin:16px 0 0;color:#6b7280;font-size:13px;">${t.outro ?? ''}</p>
+      <p style="margin:24px 0 0;color:#6b7280;font-size:13px;">${t.signoff ?? ''}</p>
+    `, locale);
   }
 
-  private buildPasswordExpiredTemplate(name: string, url: string): string {
-    return this.baseTemplate('Password Expired', `
-      <p style="margin:0 0 16px;">Hello <strong>${this.escape(name)}</strong>,</p>
-      <p style="margin:0 0 16px;">Your TempWorks password has expired. Please log in and set a new one.</p>
-      ${this.btn('Go to Login', url)}
-      ${this.notice('Passwords expire every 30 days. Please choose a strong, unique password.')}
-    `);
+  private buildPasswordExpiredTemplate(name: string, url: string, locale?: EmailLocale): string {
+    const t = tEmail(locale, 'passwordExpired');
+    return this.baseTemplate(t.heading ?? 'Password Expired', `
+      <p style="margin:0 0 16px;">${interpolate(t.greeting ?? 'Hi {{name}},', { name: `<strong>${this.escape(name)}</strong>` })}</p>
+      <p style="margin:0 0 16px;">${t.intro ?? ''}</p>
+      ${this.btn(t.buttonLabel ?? 'Sign in', url)}
+      <p style="margin:24px 0 0;color:#6b7280;font-size:13px;">${t.signoff ?? ''}</p>
+    `, locale);
   }
 
-  private buildAccountLockedTemplate(name: string): string {
-    return this.baseTemplate('Account Temporarily Locked', `
-      <p style="margin:0 0 16px;">Hello <strong>${this.escape(name)}</strong>,</p>
-      <p style="margin:0 0 16px;">Your TempWorks account has been <strong>temporarily locked</strong> due to multiple failed login attempts.</p>
-      ${this.notice('It will automatically unlock after <strong>30 minutes</strong>.')}
-      <p style="margin:0 0 16px;">If you did not attempt to log in, contact your administrator immediately.</p>
-    `);
+  private buildAccountLockedTemplate(name: string, locale?: EmailLocale): string {
+    const t = tEmail(locale, 'accountLocked');
+    return this.baseTemplate(t.heading ?? 'Account Locked', `
+      <p style="margin:0 0 16px;">${interpolate(t.greeting ?? 'Hi {{name}},', { name: `<strong>${this.escape(name)}</strong>` })}</p>
+      <p style="margin:0 0 16px;">${t.intro ?? ''}</p>
+      <p style="margin:16px 0 0;color:#6b7280;font-size:13px;">${t.outro ?? ''}</p>
+      <p style="margin:24px 0 0;color:#6b7280;font-size:13px;">${t.signoff ?? ''}</p>
+    `, locale);
   }
 
-  private buildWelcomeTemplate(name: string): string {
-    return this.baseTemplate('Welcome to TempWorks', `
-      <p>Hello <strong>${this.escape(name)}</strong>,</p>
-      <p>Welcome to <strong>TempWorks</strong>! Your account is now active.</p>
-      <p>Log in with your email and the password you set during activation.</p>
-    `);
+  private buildWelcomeTemplate(name: string, locale?: EmailLocale): string {
+    const t = tEmail(locale, 'welcome');
+    return this.baseTemplate(t.heading ?? 'Welcome', `
+      <p>${interpolate(t.greeting ?? 'Hi {{name}},', { name: `<strong>${this.escape(name)}</strong>` })}</p>
+      <p>${t.intro ?? ''}</p>
+      <p style="margin:24px 0 0;color:#6b7280;font-size:13px;">${t.signoff ?? ''}</p>
+    `, locale);
   }
 
-  private buildNotificationTemplate(name: string, title: string, message: string, eventType?: string): string {
+  private buildNotificationTemplate(name: string, title: string, message: string, eventType?: string, locale?: EmailLocale): string {
     const iconMap: Record<string, string> = {
       DOCUMENT_EXPIRING_SOON:   '⚠️',
       DOCUMENT_EXPIRED:         '🔴',
@@ -292,20 +306,17 @@ export class EmailService {
       FINANCIAL_HIGH_BALANCE:   '⚡',
     };
     const icon = eventType ? (iconMap[eventType] ?? '🔔') : '🔔';
+    const t = tEmail(locale, 'notification');
     return this.baseTemplate(title, `
-      <p>Hello <strong>${this.escape(name)}</strong>,</p>
+      <p>${interpolate(t.greeting ?? 'Hi {{name}},', { name: `<strong>${this.escape(name)}</strong>` })}</p>
       <p style="font-size:28px;margin:0 0 16px;">${icon}</p>
       <p><strong>${this.escape(title)}</strong></p>
       <p>${this.escape(message)}</p>
-      <hr style="border:none;border-top:1px solid #e5e7eb;margin:20px 0;" />
-      <p style="font-size:12px;color:#888;">
-        You received this because you have email notifications enabled for this event type.<br/>
-        Manage your preferences in TempWorks under <strong>Notifications → Settings</strong>.
-      </p>
-    `);
+      <p style="margin:24px 0 0;color:#6b7280;font-size:13px;">${t.signoff ?? ''}</p>
+    `, locale);
   }
 
-  private buildApplicationConfirmationTemplate(name: string, reference: string, d: Record<string, any>): string {
+  private buildApplicationConfirmationTemplate(name: string, reference: string, d: Record<string, any>, locale?: EmailLocale): string {
     const row = (label: string, value: string | undefined | null) =>
       value ? `<tr><td style="padding:6px 12px;color:#6b7280;font-size:13px;white-space:nowrap;vertical-align:top;">${this.escape(label)}</td><td style="padding:6px 12px;font-size:13px;color:#111827;">${this.escape(String(value))}</td></tr>` : '';
 
@@ -355,16 +366,17 @@ export class EmailService {
       row('Willing to Relocate', d.willingToRelocate ? 'Yes' : 'No'),
     ].join(''));
 
-    return this.baseTemplate('Application Received', `
-      <p>Dear <strong>${this.escape(name)}</strong>,</p>
-      <p>Thank you for submitting your application. We have received it successfully and our team will review it shortly.</p>
+    const t = tEmail(locale, 'applicationConfirmation');
+    return this.baseTemplate(t.heading ?? 'Application Received', `
+      <p>${interpolate(t.greeting ?? 'Hi {{name}},', { name: `<strong>${this.escape(name)}</strong>` })}</p>
+      <p>${interpolate(t.intro ?? '', { reference: this.escape(reference) })}</p>
       <div style="background:#f0f9ff;border-left:4px solid #1a56db;padding:12px 16px;border-radius:4px;margin:16px 0;">
-        <p style="margin:0;font-size:13px;color:#1e40af;">Your application reference number: <strong style="font-size:16px;">${this.escape(reference)}</strong></p>
+        <p style="margin:0;font-size:13px;color:#1e40af;"><strong style="font-size:16px;">${this.escape(reference)}</strong></p>
       </div>
-      <p>Below is a summary of the information you submitted:</p>
       ${personal}${contact}${driving}${edu}${work}${langs}${skills}${additional}
-      <p style="margin-top:24px;">If you have any questions, please do not hesitate to contact us.</p>
-    `);
+      <p style="margin:16px 0 0;color:#6b7280;font-size:13px;">${t.outro ?? ''}</p>
+      <p style="margin:24px 0 0;color:#6b7280;font-size:13px;">${t.signoff ?? ''}</p>
+    `, locale);
   }
 
   private escape(str: string): string {

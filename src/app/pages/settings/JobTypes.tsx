@@ -1,5 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
+import { apiError } from '../../../i18n/apiError';
+import { useValidationErrors } from '../../../i18n/useValidationErrors';
+import { FieldError } from '../../components/ui/field-error';
+import { ValidationSummary } from '../../components/ui/validation-summary';
 import { usePermissions } from '../../hooks/usePermissions';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -72,6 +77,8 @@ const DOCUMENT_OPTIONS = [
 ];
 
 export function JobTypes() {
+  const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const { canCreate, canEdit, canDelete } = usePermissions();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
@@ -92,6 +99,7 @@ export function JobTypes() {
   // Delete confirm
   const [deleteTarget, setDeleteTarget] = useState<JobType | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const { errors: fieldErrs, setFromError, clearAll: clearFieldErrors, clearError } = useValidationErrors();
 
   useEffect(() => {
     loadJobTypes();
@@ -103,7 +111,7 @@ export function JobTypes() {
       const data = await settingsApi.getJobTypes();
       setJobTypes(data);
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to load job categories');
+      toast.error(apiError(err, tc('toast.loadFailed')));
     } finally {
       setLoading(false);
     }
@@ -143,6 +151,7 @@ export function JobTypes() {
 
   async function handleSave() {
     if (!formData.name.trim()) return;
+    clearFieldErrors();
     setSaving(true);
     try {
       const payload = {
@@ -155,15 +164,16 @@ export function JobTypes() {
       if (editingJobType) {
         const updated = await settingsApi.updateJobType(editingJobType.id, payload);
         setJobTypes((prev) => prev.map((jt) => (jt.id === editingJobType.id ? { ...jt, ...updated } : jt)));
-        toast.success('Job type updated successfully');
+        toast.success(tc('toast.savedSuccessfully'));
       } else {
         const created = await settingsApi.createJobType(payload);
         setJobTypes((prev) => [...prev, created]);
-        toast.success('Job type created successfully');
+        toast.success(tc('toast.savedSuccessfully'));
       }
       setIsDialogOpen(false);
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to save job category');
+      setFromError(err);
+      toast.error(apiError(err, tc('toast.saveFailed')));
     } finally {
       setSaving(false);
     }
@@ -174,10 +184,10 @@ export function JobTypes() {
       const updated = await settingsApi.updateJobType(jobType.id, { isActive: !jobType.isActive });
       setJobTypes((prev) => prev.map((jt) => (jt.id === jobType.id ? { ...jt, ...updated } : jt)));
       toast.success(
-        !jobType.isActive ? `"${jobType.name}" activated` : `"${jobType.name}" deactivated`,
+        !jobType.isActive ? tc('toast.activatedNamed', { name: jobType.name }) : tc('toast.deactivatedNamed', { name: jobType.name }),
       );
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to update job category');
+      toast.error(apiError(err, tc('toast.saveFailed')));
     }
   }
 
@@ -187,10 +197,10 @@ export function JobTypes() {
     try {
       await settingsApi.deleteJobType(deleteTarget.id);
       setJobTypes((prev) => prev.filter((jt) => jt.id !== deleteTarget.id));
-      toast.success(`"${deleteTarget.name}" deactivated successfully`);
+      toast.success(tc('toast.deactivatedSuccessfullyNamed', { name: deleteTarget.name }));
       setDeleteTarget(null);
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to deactivate job category');
+      toast.error(apiError(err, tc('toast.deleteFailed')));
     } finally {
       setDeleting(false);
     }
@@ -208,10 +218,10 @@ export function JobTypes() {
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <h1 className="text-3xl font-bold text-[#0F172A]">Job Categories Configuration</h1>
+          <h1 className="text-3xl font-bold text-[#0F172A]">{t('settings.jobTypes.headerTitle')}</h1>
         </div>
         <p className="text-muted-foreground">
-          Manage job categories and their document requirements for employee recruitment
+          {t('settings.jobTypes.headerSubtitle')}
         </p>
       </div>
 
@@ -221,7 +231,7 @@ export function JobTypes() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Total Job Categories</p>
+                <p className="text-sm text-muted-foreground mb-1">{t('settings.jobTypes.statTotal')}</p>
                 <p className="text-2xl font-bold">{loading ? '—' : jobTypes.length}</p>
               </div>
               <Briefcase className="w-8 h-8 text-[#2563EB]" />
@@ -233,7 +243,7 @@ export function JobTypes() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Active Types</p>
+                <p className="text-sm text-muted-foreground mb-1">{t('settings.jobTypes.statActive')}</p>
                 <p className="text-2xl font-bold text-[#22C55E]">{loading ? '—' : totalActive}</p>
               </div>
               <CheckCircle className="w-8 h-8 text-[#22C55E]" />
@@ -245,7 +255,7 @@ export function JobTypes() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Inactive Types</p>
+                <p className="text-sm text-muted-foreground mb-1">{t('settings.jobTypes.statInactive')}</p>
                 <p className="text-2xl font-bold text-muted-foreground">{loading ? '—' : totalInactive}</p>
               </div>
               <XCircle className="w-8 h-8 text-muted-foreground" />
@@ -257,7 +267,7 @@ export function JobTypes() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Total Applicants</p>
+                <p className="text-sm text-muted-foreground mb-1">{t('settings.jobTypes.statApplicants')}</p>
                 <p className="text-2xl font-bold">{loading ? '—' : totalApplicants}</p>
               </div>
               <Briefcase className="w-8 h-8 text-[#F59E0B]" />
@@ -269,18 +279,18 @@ export function JobTypes() {
       {/* Search + Add */}
       <div className="flex items-center gap-4">
         <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             placeholder="Search job categories..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
+            className="ps-10"
           />
         </div>
 
         {canCreate('settings') && (
           <Button className="bg-[#2563EB] hover:bg-[#1d4ed8]" onClick={openCreateDialog}>
-            <Plus className="w-4 h-4 mr-2" />
+            <Plus className="w-4 h-4 me-2" />
             Add Job Category
           </Button>
         )}
@@ -288,7 +298,7 @@ export function JobTypes() {
 
       {/* Job Categories List */}
       {loading ? (
-        <div className="py-12 text-center text-muted-foreground">Loading job categories...</div>
+        <div className="py-12 text-center text-muted-foreground">{t('settings.jobTypes.loading')}</div>
       ) : (
         <div className="space-y-4">
           {filteredJobTypes.map((jobType) => {
@@ -317,7 +327,7 @@ export function JobTypes() {
 
                       {jobType.requiredDocuments?.length > 0 && (
                         <div className="space-y-1 mb-3">
-                          <p className="text-sm font-medium">Required Documents:</p>
+                          <p className="text-sm font-medium">{t('settings.jobTypes.requiredDocuments')}</p>
                           <div className="flex flex-wrap gap-2">
                             {jobType.requiredDocuments.map((doc) => (
                               <Badge key={doc} variant="outline" className="bg-[#F8FAFC]">
@@ -333,17 +343,17 @@ export function JobTypes() {
                       </p>
                     </div>
 
-                    <div className="flex items-center gap-2 ml-4">
+                    <div className="flex items-center gap-2 ms-4">
                       {canEdit('settings') && (
                         <Button variant="outline" size="sm" onClick={() => handleToggleActive(jobType)}>
                           {jobType.isActive ? (
                             <>
-                              <XCircle className="w-4 h-4 mr-1" />
+                              <XCircle className="w-4 h-4 me-1" />
                               Deactivate
                             </>
                           ) : (
                             <>
-                              <CheckCircle className="w-4 h-4 mr-1" />
+                              <CheckCircle className="w-4 h-4 me-1" />
                               Activate
                             </>
                           )}
@@ -351,7 +361,7 @@ export function JobTypes() {
                       )}
                       {canEdit('settings') && (
                         <Button variant="outline" size="sm" onClick={() => openEditDialog(jobType)}>
-                          <Pencil className="w-4 h-4 mr-1" />
+                          <Pencil className="w-4 h-4 me-1" />
                           Edit
                         </Button>
                       )}
@@ -362,7 +372,7 @@ export function JobTypes() {
                           className="text-red-600 hover:text-red-700 hover:bg-red-50"
                           onClick={() => setDeleteTarget(jobType)}
                         >
-                          <Trash2 className="w-4 h-4 mr-1" />
+                          <Trash2 className="w-4 h-4 me-1" />
                           Delete
                         </Button>
                       )}
@@ -395,14 +405,18 @@ export function JobTypes() {
           </DialogHeader>
 
           <div className="space-y-4 py-4">
+            <ValidationSummary errors={fieldErrs} />
             <div className="space-y-2">
-              <Label htmlFor="jt-name">Job Category Name *</Label>
+              <Label htmlFor="jt-name">{t('settings.jobTypes.dialogNameRequired')}</Label>
               <Input
                 id="jt-name"
                 placeholder="e.g., Truck Driver"
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={(e) => { setFormData({ ...formData, name: e.target.value }); if (fieldErrs.name) clearError('name'); }}
+                aria-invalid={!!fieldErrs.name}
+                className={fieldErrs.name ? 'border-red-500 focus-visible:ring-red-500' : ''}
               />
+              <FieldError errors={fieldErrs} name="name" />
             </div>
 
             <div className="space-y-2">
@@ -417,8 +431,8 @@ export function JobTypes() {
 
             <div className="flex items-center justify-between p-4 border rounded-lg">
               <div>
-                <Label htmlFor="jt-isActive">Active Status</Label>
-                <p className="text-sm text-muted-foreground">Allow new applications for this job category</p>
+                <Label htmlFor="jt-isActive">{t('settings.jobTypes.activeStatus')}</Label>
+                <p className="text-sm text-muted-foreground">{t('settings.jobTypes.activeStatusHelper')}</p>
               </div>
               <Switch
                 id="jt-isActive"
@@ -453,7 +467,7 @@ export function JobTypes() {
 
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={saving}>
-              <X className="w-4 h-4 mr-2" />
+              <X className="w-4 h-4 me-2" />
               Cancel
             </Button>
             <Button
@@ -461,7 +475,7 @@ export function JobTypes() {
               onClick={handleSave}
               disabled={!formData.name.trim() || saving}
             >
-              <Save className="w-4 h-4 mr-2" />
+              <Save className="w-4 h-4 me-2" />
               {saving ? 'Saving...' : editingJobType ? 'Update' : 'Create'}
             </Button>
           </div>
@@ -479,7 +493,7 @@ export function JobTypes() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleting}>{tc('actions.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               disabled={deleting}

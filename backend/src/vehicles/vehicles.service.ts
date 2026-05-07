@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../common/storage/storage.service';
+import { tServer, ServerLocale } from '../common/i18n/server-translate';
 import * as ExcelJS from 'exceljs';
 const PDFDocument = require('pdfkit') as typeof import('pdfkit');
 import {
@@ -735,7 +736,7 @@ export class VehiclesService {
 
   // ── Export ───────────────────────────────────────────────────────────────────
 
-  async exportVehicles(dto: ExportVehiclesDto): Promise<Buffer> {
+  async exportVehicles(dto: ExportVehiclesDto, locale: ServerLocale = 'en'): Promise<Buffer> {
     const where: any = { deletedAt: null };
     if (dto.type)   where.type   = dto.type;
     if (dto.status) where.status = dto.status;
@@ -755,13 +756,18 @@ export class VehiclesService {
     });
 
     const workbook  = new ExcelJS.Workbook();
-    const sheet     = workbook.addWorksheet('Vehicles', { views: [{ state: 'frozen', ySplit: 1 }] });
+    const col = (key: string) => tServer(`vehicles.columns.${key}`, {}, locale, 'exports');
+    const sheet     = workbook.addWorksheet(
+      tServer('vehicles.sheetName', {}, locale, 'exports'),
+      { views: [{ state: 'frozen', ySplit: 1 }] },
+    );
 
     const headerFill: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A5F' } };
     const headers = [
-      'Registration', 'Type', 'Make', 'Model', 'Year', 'Status', 'Fuel Type',
-      'Mileage (km)', 'Current Driver', 'MOT Expiry', 'Tax Expiry', 'Insurance Expiry',
-      'Agency', 'VIN',
+      col('registration'), col('type'), col('make'), col('model'), col('year'),
+      col('status'), col('fuelType'), col('mileageKm'), col('currentDriver'),
+      col('motExpiry'), col('taxExpiry'), col('insuranceExpiry'),
+      col('agency'), col('vin'),
     ];
 
     sheet.columns = headers.map((h) => ({ header: h, width: 18 }));
@@ -850,18 +856,22 @@ export class VehiclesService {
     });
   }
 
-  async exportMaintenanceRecordsExcel(dto: FilterMaintenanceDto, recordIds?: string[]): Promise<Buffer> {
+  async exportMaintenanceRecordsExcel(dto: FilterMaintenanceDto, recordIds?: string[], locale: ServerLocale = 'en'): Promise<Buffer> {
     const records = await this.fetchMaintenanceForExport(dto, recordIds);
 
     const workbook = new ExcelJS.Workbook();
-    const sheet    = workbook.addWorksheet('Maintenance Records', { views: [{ state: 'frozen', ySplit: 1 }] });
+    const mcol = (key: string) => tServer(`vehicles.maintenanceColumns.${key}`, {}, locale, 'exports');
+    const sheet    = workbook.addWorksheet(
+      tServer('vehicles.maintenanceSheetName', {}, locale, 'exports'),
+      { views: [{ state: 'frozen', ySplit: 1 }] },
+    );
 
     const headerFill: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A5F' } };
     const headers = [
-      'Vehicle', 'Make/Model', 'Type', 'Workshop', 'Status',
-      'Scheduled', 'Completed', 'Mileage (km)', 'Next Service Date',
-      'Next Service Mileage', 'Labor Cost', 'Parts Cost', 'Total Cost',
-      'Technician', 'Invoice #', 'Description', 'Notes',
+      mcol('vehicle'), mcol('makeModel'), mcol('maintenanceType'), mcol('workshop'), mcol('status'),
+      mcol('scheduled'), mcol('completed'), mcol('mileageKm'), mcol('nextServiceDate'),
+      mcol('nextServiceMileage'), mcol('laborCost'), mcol('partsCost'), mcol('totalCost'),
+      mcol('technician'), mcol('invoiceNumber'), mcol('description'), mcol('notes'),
     ];
 
     sheet.columns = headers.map((h, i) => ({
@@ -911,7 +921,7 @@ export class VehiclesService {
     return workbook.xlsx.writeBuffer() as unknown as Promise<Buffer>;
   }
 
-  async exportMaintenanceRecordsPdf(dto: FilterMaintenanceDto, recordIds?: string[]): Promise<Buffer> {
+  async exportMaintenanceRecordsPdf(dto: FilterMaintenanceDto, recordIds?: string[], locale: ServerLocale = 'en'): Promise<Buffer> {
     const records = await this.fetchMaintenanceForExport(dto, recordIds);
 
     return new Promise((resolve, reject) => {
@@ -921,24 +931,27 @@ export class VehiclesService {
       doc.on('end', () => resolve(Buffer.concat(chunks)));
       doc.on('error', reject);
 
-      // Title
+      // Title + subtitle (localized)
+      const generatedLabel = tServer('common.generatedAt', {}, locale, 'exports');
+      const recordsLabel   = tServer('common.recordsSuffix', {}, locale, 'exports');
+      const mcol = (k: string) => tServer(`vehicles.maintenancePdfColumns.${k}`, {}, locale, 'exports');
       doc.fontSize(16).font('Helvetica-Bold').fillColor('#0F172A')
-        .text('Maintenance Records', { align: 'center' });
+        .text(tServer('vehicles.maintenancePdfTitle', {}, locale, 'exports'), { align: 'center' });
       doc.fontSize(9).font('Helvetica').fillColor('#64748B')
-        .text(`Generated: ${new Date().toLocaleString()}  |  ${records.length} records`, { align: 'center' });
+        .text(`${generatedLabel}: ${new Date().toLocaleString()}  |  ${records.length} ${recordsLabel}`, { align: 'center' });
       doc.moveDown(0.6);
 
       const columns = [
-        { label: 'Vehicle',    key: 'vehicle',     width: 70 },
-        { label: 'Type',       key: 'type',        width: 80 },
-        { label: 'Workshop',   key: 'workshop',    width: 90 },
-        { label: 'Status',     key: 'status',      width: 70 },
-        { label: 'Scheduled',  key: 'scheduled',   width: 65 },
-        { label: 'Completed',  key: 'completed',   width: 65 },
-        { label: 'Mileage',    key: 'mileage',     width: 60 },
-        { label: 'Cost',       key: 'cost',        width: 60 },
-        { label: 'Technician', key: 'technician',  width: 80 },
-        { label: 'Invoice',    key: 'invoice',     width: 70 },
+        { label: mcol('vehicle'),    key: 'vehicle',     width: 70 },
+        { label: mcol('type'),       key: 'type',        width: 80 },
+        { label: mcol('workshop'),   key: 'workshop',    width: 90 },
+        { label: mcol('status'),     key: 'status',      width: 70 },
+        { label: mcol('scheduled'),  key: 'scheduled',   width: 65 },
+        { label: mcol('completed'),  key: 'completed',   width: 65 },
+        { label: mcol('mileage'),    key: 'mileage',     width: 60 },
+        { label: mcol('cost'),       key: 'cost',        width: 60 },
+        { label: mcol('technician'), key: 'technician',  width: 80 },
+        { label: mcol('invoice'),    key: 'invoice',     width: 70 },
       ];
 
       const tblW   = columns.reduce((s, c) => s + c.width, 0);
@@ -1002,7 +1015,7 @@ export class VehiclesService {
 
       // Footer
       doc.fillColor('#94A3B8').fontSize(8)
-        .text('TempWorks — Maintenance Records', 36, (doc as any).page.height - 24, { align: 'center' });
+        .text(tServer('vehicles.maintenancePdfFooter', {}, locale, 'exports'), 36, (doc as any).page.height - 24, { align: 'center' });
       doc.end();
     });
   }

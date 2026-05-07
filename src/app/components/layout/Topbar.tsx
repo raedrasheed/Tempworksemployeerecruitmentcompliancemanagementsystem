@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { Search, Bell, Settings, User, Lock, Globe, Moon, Sun, LogOut, ChevronDown, Eye, EyeOff, CheckCircle, X, Palette, CheckCheck, FileText, DollarSign, AlertTriangle, Info, Building2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { Search, Bell, Settings, User, Lock, Moon, Sun, LogOut, ChevronDown, Eye, EyeOff, CheckCircle, X, Palette, CheckCheck, FileText, DollarSign, AlertTriangle, Info, Building2 } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
+import { apiError } from '../../../i18n/apiError';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -22,6 +24,7 @@ import {
 import { authApi, getCurrentUser, setCurrentUser, notificationsApi, resolveAssetUrl, type AuthUser } from '../../services/api';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { toast } from 'sonner';
+import { LanguageSwitcher } from '../../../i18n/LanguageSwitcher';
 
 // ── Notification bell dropdown ────────────────────────────────────────────────
 
@@ -43,14 +46,17 @@ function notifDotColor(type: string) {
   }
 }
 
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const m = Math.floor(diff / 60000);
-  if (m < 1)  return 'just now';
-  if (m < 60) return `${m}m ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  return `${Math.floor(h / 24)}d ago`;
+function useTimeAgo() {
+  const { t } = useTranslation('nav');
+  return (dateStr: string): string => {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const m = Math.floor(diff / 60000);
+    if (m < 1)  return t('topbar.timeJustNow');
+    if (m < 60) return t('topbar.timeMinutesAgo', { count: m });
+    const h = Math.floor(m / 60);
+    if (h < 24) return t('topbar.timeHoursAgo', { count: h });
+    return t('topbar.timeDaysAgo', { count: Math.floor(h / 24) });
+  };
 }
 
 function NotificationBell({
@@ -61,6 +67,8 @@ function NotificationBell({
   onCountChange: (n: number) => void;
 }) {
   const navigate = useNavigate();
+  const { t } = useTranslation('nav');
+  const timeAgo = useTimeAgo();
   const [open, setOpen]           = useState(false);
   const [items, setItems]         = useState<any[]>([]);
   const [loading, setLoading]     = useState(false);
@@ -108,7 +116,7 @@ function NotificationBell({
       setItems(prev => prev.map(n => ({ ...n, isRead: true })));
       onCountChange(0);
     } catch {
-      toast.error('Failed to mark all as read');
+      toast.error(t('topbar.markAllReadFailed'));
     } finally {
       setMarkingAll(false);
     }
@@ -138,21 +146,21 @@ function NotificationBell({
       >
         <Bell className="w-5 h-5" />
         {unreadCount > 0 && (
-          <Badge className="absolute -top-1 -right-1 w-5 h-5 flex items-center justify-center p-0 bg-destructive text-destructive-foreground text-xs">
+          <Badge className="absolute -top-1 -end-1 w-5 h-5 flex items-center justify-center p-0 bg-destructive text-destructive-foreground text-xs">
             {unreadCount > 99 ? '99+' : unreadCount}
           </Badge>
         )}
       </Button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-96 bg-card border border-border rounded-xl shadow-xl z-50 overflow-hidden">
+        <div className="absolute end-0 top-full mt-2 w-96 bg-card border border-border rounded-xl shadow-xl z-50 overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-border">
             <div className="flex items-center gap-2">
-              <span className="font-semibold text-sm">Notifications</span>
+              <span className="font-semibold text-sm">{t('topbar.notifications')}</span>
               {unreadCount > 0 && (
                 <Badge className="h-5 text-xs bg-destructive text-destructive-foreground">
-                  {unreadCount} unread
+                  {t('topbar.unread', { count: unreadCount })}
                 </Badge>
               )}
             </div>
@@ -161,11 +169,11 @@ function NotificationBell({
                 <button
                   onClick={handleMarkAllRead}
                   disabled={markingAll}
-                  title="Mark all as read"
+                  title={t('topbar.markAllRead')}
                   className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground px-2 py-1 rounded hover:bg-accent transition-colors"
                 >
                   <CheckCheck className="w-3.5 h-3.5" />
-                  {markingAll ? 'Marking…' : 'Mark all read'}
+                  {markingAll ? t('topbar.markAllReading') : t('topbar.markAllRead')}
                 </button>
               )}
             </div>
@@ -186,14 +194,14 @@ function NotificationBell({
             ) : items.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-10 gap-2 text-muted-foreground">
                 <Bell className="w-8 h-8 opacity-25" />
-                <p className="text-sm">You're all caught up!</p>
+                <p className="text-sm">{t('topbar.allCaughtUp')}</p>
               </div>
             ) : (
               items.map(n => (
                 <button
                   key={n.id}
                   onClick={() => handleClickItem(n)}
-                  className={`w-full text-left flex items-start gap-3 px-4 py-3 hover:bg-accent transition-colors ${
+                  className={`w-full text-start flex items-start gap-3 px-4 py-3 hover:bg-accent transition-colors ${
                     !n.isRead ? 'bg-blue-50 dark:bg-blue-950/20' : ''
                   }`}
                 >
@@ -224,7 +232,7 @@ function NotificationBell({
               onClick={() => setOpen(false)}
               className="text-xs text-primary hover:underline font-medium"
             >
-              View all notifications →
+              {t('topbar.viewAllNotifications')}
             </Link>
           </div>
         </div>
@@ -234,6 +242,7 @@ function NotificationBell({
 }
 
 function ChangePasswordDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { t } = useTranslation('nav');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -253,12 +262,12 @@ function ChangePasswordDialog({ open, onClose }: { open: boolean; onClose: () =>
   })();
 
   const strengthLabel = strength < 25
-    ? { text: 'Weak',   textColor: 'text-red-500',   barColor: 'bg-red-500' }
+    ? { text: t('changePassword.strengthWeak'),   textColor: 'text-red-500',   barColor: 'bg-red-500' }
     : strength < 50
-    ? { text: 'Fair',   textColor: 'text-amber-500', barColor: 'bg-amber-500' }
+    ? { text: t('changePassword.strengthFair'),   textColor: 'text-amber-500', barColor: 'bg-amber-500' }
     : strength < 75
-    ? { text: 'Good',   textColor: 'text-blue-500',  barColor: 'bg-blue-500' }
-    : { text: 'Strong', textColor: 'text-green-500', barColor: 'bg-green-500' };
+    ? { text: t('changePassword.strengthGood'),   textColor: 'text-blue-500',  barColor: 'bg-blue-500' }
+    : { text: t('changePassword.strengthStrong'), textColor: 'text-green-500', barColor: 'bg-green-500' };
 
   const handleClose = () => {
     setCurrentPassword('');
@@ -269,20 +278,17 @@ function ChangePasswordDialog({ open, onClose }: { open: boolean; onClose: () =>
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentPassword) { toast.error('Enter your current password'); return; }
-    if (newPassword.length < 8) { toast.error('New password must be at least 8 characters'); return; }
-    if (newPassword !== confirmPassword) { toast.error('Passwords do not match'); return; }
+    if (!currentPassword) { toast.error(t('changePassword.errorEnterCurrent')); return; }
+    if (newPassword.length < 8) { toast.error(t('changePassword.errorMinLength')); return; }
+    if (newPassword !== confirmPassword) { toast.error(t('changePassword.errorMismatch')); return; }
 
     setLoading(true);
     try {
       await authApi.changePassword(currentPassword, newPassword);
-      toast.success('Password changed successfully');
+      toast.success(t('changePassword.successToast'));
       handleClose();
     } catch (err: any) {
-      const msg = Array.isArray(err?.message)
-        ? err.message.join(', ')
-        : (err?.message || 'Failed to change password');
-      toast.error(msg);
+      toast.error(apiError(err, t('changePassword.errorGeneric')));
     } finally {
       setLoading(false);
     }
@@ -292,23 +298,23 @@ function ChangePasswordDialog({ open, onClose }: { open: boolean; onClose: () =>
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Change Password</DialogTitle>
+          <DialogTitle>{t('changePassword.title')}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 mt-2">
           {/* Current Password */}
           <div className="space-y-1.5">
-            <Label>Current Password</Label>
+            <Label>{t('changePassword.currentLabel')}</Label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Lock className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 type={showCurrent ? 'text' : 'password'}
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
-                className="pl-10 pr-10"
-                placeholder="Enter current password"
+                className="ps-10 pe-10"
+                placeholder={t('changePassword.currentPlaceholder')}
               />
               <button type="button" onClick={() => setShowCurrent(!showCurrent)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                className="absolute end-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                 {showCurrent ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
@@ -316,24 +322,24 @@ function ChangePasswordDialog({ open, onClose }: { open: boolean; onClose: () =>
 
           {/* New Password */}
           <div className="space-y-1.5">
-            <Label>New Password</Label>
+            <Label>{t('changePassword.newLabel')}</Label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Lock className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 type={showNew ? 'text' : 'password'}
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                className="pl-10 pr-10"
-                placeholder="Enter new password"
+                className="ps-10 pe-10"
+                placeholder={t('changePassword.newPlaceholder')}
               />
               <button type="button" onClick={() => setShowNew(!showNew)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                className="absolute end-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                 {showNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
             {newPassword && (
               <div className="flex items-center justify-between text-xs mt-1">
-                <div className="flex gap-1 flex-1 mr-3">
+                <div className="flex gap-1 flex-1 me-3">
                   {[25, 50, 75, 100].map((threshold) => (
                     <div key={threshold}
                       className={`h-1 flex-1 rounded-full ${strength >= threshold ? strengthLabel.barColor : 'bg-muted'}`}
@@ -347,26 +353,26 @@ function ChangePasswordDialog({ open, onClose }: { open: boolean; onClose: () =>
 
           {/* Confirm Password */}
           <div className="space-y-1.5">
-            <Label>Confirm New Password</Label>
+            <Label>{t('changePassword.confirmLabel')}</Label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Lock className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 type={showConfirm ? 'text' : 'password'}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="pl-10 pr-10"
-                placeholder="Confirm new password"
+                className="ps-10 pe-10"
+                placeholder={t('changePassword.confirmPlaceholder')}
               />
               <button type="button" onClick={() => setShowConfirm(!showConfirm)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                className="absolute end-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                 {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
             {confirmPassword && (
               <div className="flex items-center gap-1.5 text-xs mt-1">
                 {newPassword === confirmPassword
-                  ? <><CheckCircle className="w-3.5 h-3.5 text-green-500" /><span className="text-green-500">Passwords match</span></>
-                  : <><X className="w-3.5 h-3.5 text-red-500" /><span className="text-red-500">Passwords do not match</span></>
+                  ? <><CheckCircle className="w-3.5 h-3.5 text-green-500" /><span className="text-green-500">{t('changePassword.passwordsMatch')}</span></>
+                  : <><X className="w-3.5 h-3.5 text-red-500" /><span className="text-red-500">{t('changePassword.passwordsDoNotMatch')}</span></>
                 }
               </div>
             )}
@@ -374,10 +380,10 @@ function ChangePasswordDialog({ open, onClose }: { open: boolean; onClose: () =>
 
           <div className="flex gap-3 pt-2">
             <Button type="submit" className="flex-1" disabled={loading}>
-              {loading ? 'Updating...' : 'Update Password'}
+              {loading ? t('changePassword.submitting') : t('changePassword.submit')}
             </Button>
             <Button type="button" variant="outline" onClick={handleClose} disabled={loading}>
-              Cancel
+              {t('changePassword.cancel')}
             </Button>
           </div>
         </form>
@@ -390,6 +396,7 @@ export function Topbar() {
   const navigate = useNavigate();
   const { isDark, toggleDark } = useTheme();
   const { user: ctxUser, updateUser } = useAuthContext();
+  const { t } = useTranslation('nav');
   const [unreadCount, setUnreadCount] = useState(0);
   const [liveUser, setLiveUser] = useState<AuthUser | null>(ctxUser ?? getCurrentUser());
   const [showChangePassword, setShowChangePassword] = useState(false);
@@ -426,8 +433,8 @@ export function Topbar() {
     navigate('/login');
   };
 
-  const displayName = liveUser ? `${liveUser.firstName} ${liveUser.lastName}` : 'User';
-  const displayRole = liveUser?.role || 'Staff';
+  const displayName = liveUser ? `${liveUser.firstName} ${liveUser.lastName}` : t('topbar.profile');
+  const displayRole = liveUser?.role || '';
   const displayEmail = liveUser?.email || '';
   const avatar = liveUser?.photoUrl
     ? resolveAssetUrl(liveUser.photoUrl)
@@ -437,10 +444,10 @@ export function Topbar() {
     <header className="h-16 bg-card border-b border-border px-6 flex items-center gap-4">
       <div className="flex-1 max-w-2xl">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Search employees, applications, documents..."
-            className="pl-10 bg-muted border-0"
+            placeholder={t('topbar.search')}
+            className="ps-10 bg-muted border-0"
           />
         </div>
       </div>
@@ -452,6 +459,8 @@ export function Topbar() {
           <Settings className="w-5 h-5" />
         </Button>
 
+        <LanguageSwitcher />
+
         <div className="w-px h-8 bg-border" />
 
         {/* User Dropdown Menu */}
@@ -459,7 +468,7 @@ export function Topbar() {
           <DropdownMenuTrigger asChild>
             <button className="flex items-center gap-3 hover:bg-accent rounded-lg px-2 py-1.5 transition-colors">
               <img src={avatar} alt={displayName} className="w-8 h-8 rounded-full" />
-              <div className="text-left">
+              <div className="text-start">
                 <p className="text-sm font-medium text-foreground">{displayName}</p>
                 <p className="text-xs text-muted-foreground">{displayRole}</p>
               </div>
@@ -485,7 +494,7 @@ export function Topbar() {
             <DropdownMenuItem asChild>
               <Link to="/dashboard/profile" className="cursor-pointer">
                 <User className="w-4 h-4" />
-                <span>Profile</span>
+                <span>{t('topbar.profile')}</span>
               </Link>
             </DropdownMenuItem>
 
@@ -493,40 +502,35 @@ export function Topbar() {
               <DropdownMenuItem asChild>
                 <Link to="/dashboard/my-agency" className="cursor-pointer">
                   <Building2 className="w-4 h-4" />
-                  <span>Agency Profile</span>
+                  <span>{t('topbar.agencyProfile')}</span>
                 </Link>
               </DropdownMenuItem>
             )}
 
             <DropdownMenuItem onClick={() => setShowChangePassword(true)} className="cursor-pointer">
               <Lock className="w-4 h-4" />
-              <span>Change Password</span>
+              <span>{t('topbar.changePassword')}</span>
             </DropdownMenuItem>
 
             <DropdownMenuSeparator />
 
             <DropdownMenuItem onClick={toggleDark}>
               {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-              <span>Theme: {isDark ? 'Dark' : 'Light'}</span>
+              <span>{isDark ? t('topbar.themeDark') : t('topbar.themeLight')}</span>
             </DropdownMenuItem>
 
             <DropdownMenuItem asChild>
               <Link to="/dashboard/settings/color-scheme" className="cursor-pointer">
                 <Palette className="w-4 h-4" />
-                <span>Color Scheme</span>
+                <span>{t('topbar.colorScheme')}</span>
               </Link>
-            </DropdownMenuItem>
-
-            <DropdownMenuItem>
-              <Globe className="w-4 h-4" />
-              <span>Language: English</span>
             </DropdownMenuItem>
 
             <DropdownMenuSeparator />
 
             <DropdownMenuItem onClick={handleLogout} variant="destructive">
               <LogOut className="w-4 h-4" />
-              <span>Logout</span>
+              <span>{t('topbar.logout')}</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

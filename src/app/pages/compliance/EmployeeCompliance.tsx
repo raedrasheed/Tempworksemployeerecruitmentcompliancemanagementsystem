@@ -1,5 +1,6 @@
 import { Link, useParams } from 'react-router';
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, FileCheck, AlertTriangle, CheckCircle2, Clock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -7,6 +8,7 @@ import { Badge } from '../../components/ui/badge';
 import { employeesApi } from '../../services/api';
 
 export function EmployeeCompliance() {
+  const { t } = useTranslation('pages');
   const { id } = useParams();
   const [employee, setEmployee] = useState<any>(null);
   const [documents, setDocuments] = useState<any[]>([]);
@@ -27,8 +29,8 @@ export function EmployeeCompliance() {
       .finally(() => setLoading(false));
   }, [id]);
 
-  if (loading) return <div className="p-8 text-muted-foreground">Loading...</div>;
-  if (notFound || !employee) return <div className="p-8">Employee not found</div>;
+  if (loading) return <div className="p-8 text-muted-foreground">{t('compliance.employee.loading')}</div>;
+  if (notFound || !employee) return <div className="p-8">{t('compliance.employee.notFound')}</div>;
 
   const getDocStatusIcon = (status: string) => {
     switch (status) {
@@ -41,9 +43,9 @@ export function EmployeeCompliance() {
 
   const getDocStatusBadge = (status: string) => {
     switch (status) {
-      case 'VALID': return <Badge className="bg-[#22C55E]">Valid</Badge>;
-      case 'EXPIRED': return <Badge className="bg-[#EF4444]">Expired</Badge>;
-      case 'EXPIRING_SOON': return <Badge className="bg-[#F59E0B]">Expiring Soon</Badge>;
+      case 'VALID': return <Badge className="bg-[#22C55E]">{t('compliance.employee.statusBadge.valid')}</Badge>;
+      case 'EXPIRED': return <Badge className="bg-[#EF4444]">{t('compliance.employee.statusBadge.expired')}</Badge>;
+      case 'EXPIRING_SOON': return <Badge className="bg-[#F59E0B]">{t('compliance.employee.statusBadge.expiringSoon')}</Badge>;
       default: return <Badge variant="outline">{status}</Badge>;
     }
   };
@@ -56,9 +58,9 @@ export function EmployeeCompliance() {
         </Button>
         <div>
           <h1 className="text-3xl font-semibold text-[#0F172A]">
-            {employee.firstName} {employee.lastName} — Compliance
+            {employee.firstName} {employee.lastName}{t('compliance.employee.headerSuffix')}
           </h1>
-          <p className="text-muted-foreground mt-1">Compliance status and document overview</p>
+          <p className="text-muted-foreground mt-1">{t('compliance.employee.subtitle')}</p>
         </div>
       </div>
 
@@ -70,7 +72,7 @@ export function EmployeeCompliance() {
               <CheckCircle2 className="w-8 h-8 text-[#22C55E]" />
               <div>
                 <p className="text-2xl font-semibold">{compliance.validDocuments ?? 0}</p>
-                <p className="text-sm text-muted-foreground">Valid Documents</p>
+                <p className="text-sm text-muted-foreground">{t('compliance.employee.validDocuments')}</p>
               </div>
             </CardContent>
           </Card>
@@ -79,7 +81,7 @@ export function EmployeeCompliance() {
               <Clock className="w-8 h-8 text-[#F59E0B]" />
               <div>
                 <p className="text-2xl font-semibold">{compliance.expiringSoon ?? 0}</p>
-                <p className="text-sm text-muted-foreground">Expiring Soon</p>
+                <p className="text-sm text-muted-foreground">{t('compliance.employee.expiringSoon')}</p>
               </div>
             </CardContent>
           </Card>
@@ -88,7 +90,7 @@ export function EmployeeCompliance() {
               <AlertTriangle className="w-8 h-8 text-[#EF4444]" />
               <div>
                 <p className="text-2xl font-semibold">{compliance.expiredDocuments ?? 0}</p>
-                <p className="text-sm text-muted-foreground">Expired Documents</p>
+                <p className="text-sm text-muted-foreground">{t('compliance.employee.expiredDocuments')}</p>
               </div>
             </CardContent>
           </Card>
@@ -98,11 +100,11 @@ export function EmployeeCompliance() {
       {/* Documents */}
       <Card>
         <CardHeader>
-          <CardTitle>Documents ({documents.length})</CardTitle>
+          <CardTitle>{t('compliance.employee.documentsCount', { count: documents.length })}</CardTitle>
         </CardHeader>
         <CardContent>
           {documents.length === 0 ? (
-            <p className="text-muted-foreground">No documents found for this employee.</p>
+            <p className="text-muted-foreground">{t('compliance.employee.noDocuments')}</p>
           ) : (
             <div className="space-y-3">
               {documents.map((doc: any) => (
@@ -112,7 +114,7 @@ export function EmployeeCompliance() {
                     <div>
                       <p className="font-medium">{doc.type}</p>
                       <p className="text-sm text-muted-foreground">
-                        {doc.expiryDate ? `Expires: ${new Date(doc.expiryDate).toLocaleDateString()}` : 'No expiry'}
+                        {doc.expiryDate ? t('compliance.employee.expiresPrefix', { date: new Date(doc.expiryDate).toLocaleDateString() }) : t('compliance.employee.noExpiry')}
                       </p>
                     </div>
                   </div>

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Filter, X, Plus, Save, ChevronDown } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -62,6 +63,7 @@ export function FilterSystem({
   onLoadPreset,
   onDeletePreset,
 }: FilterSystemProps) {
+  const { t } = useTranslation('common');
   const [isOpen, setIsOpen] = useState(false);
   const [searchColumn, setSearchColumn] = useState('');
   const [showSaveDialog, setShowSaveDialog] = useState(false);
@@ -71,34 +73,34 @@ export function FilterSystem({
     switch (type) {
       case 'text':
         return [
-          { value: 'contains', label: 'Contains' },
-          { value: 'equals', label: 'Equals' },
-          { value: 'startsWith', label: 'Starts with' },
-          { value: 'endsWith', label: 'Ends with' },
+          { value: 'contains', label: t('filters.operator.contains') },
+          { value: 'equals', label: t('filters.operator.equals') },
+          { value: 'startsWith', label: t('filters.operator.startsWith') },
+          { value: 'endsWith', label: t('filters.operator.endsWith') },
         ];
       case 'number':
         return [
           { value: 'equals', label: '=' },
-          { value: 'greaterThan', label: '>' },
-          { value: 'lessThan', label: '<' },
-          { value: 'greaterThanOrEqual', label: '>=' },
-          { value: 'lessThanOrEqual', label: '<=' },
-          { value: 'between', label: 'Between' },
+          { value: 'greaterThan', label: t('filters.operator.greaterThan') },
+          { value: 'lessThan', label: t('filters.operator.lessThan') },
+          { value: 'greaterThanOrEqual', label: t('filters.operator.greaterThanOrEqual') },
+          { value: 'lessThanOrEqual', label: t('filters.operator.lessThanOrEqual') },
+          { value: 'between', label: t('filters.operator.between') },
         ];
       case 'date':
         return [
-          { value: 'before', label: 'Before' },
-          { value: 'after', label: 'After' },
-          { value: 'between', label: 'Between' },
+          { value: 'before', label: t('filters.operator.before') },
+          { value: 'after', label: t('filters.operator.after') },
+          { value: 'between', label: t('filters.operator.between') },
         ];
       case 'enum':
         return [
-          { value: 'equals', label: 'Equals' },
-          { value: 'notEquals', label: 'Not Equals' },
-          { value: 'in', label: 'In List' },
+          { value: 'equals', label: t('filters.operator.equals') },
+          { value: 'notEquals', label: t('filters.operator.notEquals') },
+          { value: 'in', label: t('filters.operator.in') },
         ];
       case 'boolean':
-        return [{ value: 'equals', label: 'Is' }];
+        return [{ value: 'equals', label: t('filters.operator.is') }];
       default:
         return [];
     }
@@ -162,7 +164,7 @@ export function FilterSystem({
     }
     const column = columns.find((c) => c.id === filter.columnId);
     if (column?.type === 'boolean') {
-      return filter.value ? 'Yes' : 'No';
+      return filter.value ? t('actions.yes') : t('actions.no');
     }
     return filter.value;
   };
@@ -176,9 +178,9 @@ export function FilterSystem({
         className="gap-2"
       >
         <Filter className="w-4 h-4" />
-        Filters
+        {t('filters.filtersLabel')}
         {activeFilters.length > 0 && (
-          <Badge className="ml-1 bg-[#2563EB] text-white">
+          <Badge className="ms-1 bg-[#2563EB] text-white">
             {activeFilters.length}
           </Badge>
         )}
@@ -187,11 +189,11 @@ export function FilterSystem({
 
       {/* Filter Dropdown */}
       {isOpen && (
-        <Card className="absolute top-full left-0 mt-2 w-[600px] max-h-[600px] overflow-auto z-50 shadow-lg">
+        <Card className="absolute top-full start-0 mt-2 w-[600px] max-h-[600px] overflow-auto z-50 shadow-lg">
           <CardContent className="p-4 space-y-4">
             {/* Header */}
             <div className="flex items-center justify-between pb-3 border-b">
-              <h3 className="font-semibold text-[#0F172A]">Filter Rules</h3>
+              <h3 className="font-semibold text-[#0F172A]">{t('filters.rulesTitle')}</h3>
               <Button variant="ghost" size="sm" onClick={() => setIsOpen(false)}>
                 <X className="w-4 h-4" />
               </Button>
@@ -200,7 +202,7 @@ export function FilterSystem({
             {/* Saved Presets */}
             {savedPresets.length > 0 && (
               <div className="space-y-2">
-                <Label className="text-sm text-muted-foreground">Saved Filters</Label>
+                <Label className="text-sm text-muted-foreground">{t('filters.savedFilters')}</Label>
                 <div className="flex flex-wrap gap-2">
                   {savedPresets.map((preset) => (
                     <div
@@ -227,9 +229,9 @@ export function FilterSystem({
 
             {/* Search Columns */}
             <div className="space-y-2">
-              <Label className="text-sm text-muted-foreground">Search Columns</Label>
+              <Label className="text-sm text-muted-foreground">{t('filters.searchColumns')}</Label>
               <Input
-                placeholder="Search column name..."
+                placeholder={t('filters.searchColumnPh')}
                 value={searchColumn}
                 onChange={(e) => setSearchColumn(e.target.value)}
               />
@@ -238,21 +240,21 @@ export function FilterSystem({
             {/* Filter Logic Toggle */}
             {activeFilters.length > 1 && onLogicChange && (
               <div className="flex items-center gap-2">
-                <Label className="text-sm text-muted-foreground">Logic:</Label>
+                <Label className="text-sm text-muted-foreground">{t('filters.logic')}:</Label>
                 <div className="flex gap-1">
                   <Button
                     size="sm"
                     variant={filterLogic === 'AND' ? 'default' : 'outline'}
                     onClick={() => onLogicChange('AND')}
                   >
-                    AND
+                    {t('filters.and')}
                   </Button>
                   <Button
                     size="sm"
                     variant={filterLogic === 'OR' ? 'default' : 'outline'}
                     onClick={() => onLogicChange('OR')}
                   >
-                    OR
+                    {t('filters.or')}
                   </Button>
                 </div>
               </div>
@@ -268,7 +270,7 @@ export function FilterSystem({
                   <div key={filter.id} className="space-y-2">
                     {index > 0 && (
                       <div className="text-xs font-medium text-muted-foreground text-center">
-                        {filterLogic}
+                        {filterLogic === 'AND' ? t('filters.and') : t('filters.or')}
                       </div>
                     )}
                     <FilterRuleBuilder
@@ -290,7 +292,7 @@ export function FilterSystem({
               className="w-full gap-2"
             >
               <Plus className="w-4 h-4" />
-              Add Filter
+              {t('filters.addFilter')}
             </Button>
 
             {/* Actions */}
@@ -303,7 +305,7 @@ export function FilterSystem({
                     onClick={clearAllFilters}
                     className="text-red-600"
                   >
-                    Clear All
+                    {t('actions.clearAll')}
                   </Button>
                   {onSavePreset && (
                     <Button
@@ -313,7 +315,7 @@ export function FilterSystem({
                       className="gap-2"
                     >
                       <Save className="w-4 h-4" />
-                      Save Preset
+                      {t('filters.savePreset')}
                     </Button>
                   )}
                 </>
@@ -321,9 +323,9 @@ export function FilterSystem({
               <Button
                 size="sm"
                 onClick={() => setIsOpen(false)}
-                className="ml-auto"
+                className="ms-auto"
               >
-                Apply
+                {t('actions.apply')}
               </Button>
             </div>
           </CardContent>
@@ -335,25 +337,25 @@ export function FilterSystem({
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <Card className="w-full max-w-md">
             <CardContent className="p-6 space-y-4">
-              <h3 className="text-lg font-semibold">Save Filter Preset</h3>
+              <h3 className="text-lg font-semibold">{t('filters.savePresetTitle')}</h3>
               <div className="space-y-2">
-                <Label>Preset Name</Label>
+                <Label>{t('filters.presetName')}</Label>
                 <Input
-                  placeholder="e.g., Senior Drivers EU"
+                  placeholder={t('filters.presetNamePh')}
                   value={presetName}
                   onChange={(e) => setPresetName(e.target.value)}
                 />
               </div>
               <div className="flex gap-2">
                 <Button onClick={handleSavePreset} className="flex-1">
-                  Save
+                  {t('actions.save')}
                 </Button>
                 <Button
                   variant="outline"
                   onClick={() => setShowSaveDialog(false)}
                   className="flex-1"
                 >
-                  Cancel
+                  {t('actions.cancel')}
                 </Button>
               </div>
             </CardContent>
@@ -375,7 +377,7 @@ export function FilterSystem({
               <span className="font-semibold">{formatFilterValue(filter)}</span>
               <button
                 onClick={() => removeFilter(filter.id)}
-                className="ml-1 hover:text-red-600"
+                className="ms-1 hover:text-red-600"
               >
                 <X className="w-3 h-3" />
               </button>
@@ -411,6 +413,7 @@ function FilterRuleBuilder({
   onRemove,
   getOperatorsForType,
 }: FilterRuleBuilderProps) {
+  const { t } = useTranslation('common');
   const column = columns.find((c) => c.id === rule.columnId);
   const operators = column ? getOperatorsForType(column.type) : [];
 
@@ -464,7 +467,7 @@ function FilterRuleBuilder({
       {column?.type === 'enum' ? (
         <Select value={rule.value} onValueChange={(value) => onUpdate({ value })}>
           <SelectTrigger className="flex-1 bg-white">
-            <SelectValue placeholder="Select value" />
+            <SelectValue placeholder={t('filters.selectValue')} />
           </SelectTrigger>
           <SelectContent>
             {column.options?.map((option) => (
@@ -483,8 +486,8 @@ function FilterRuleBuilder({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="true">Yes</SelectItem>
-            <SelectItem value="false">No</SelectItem>
+            <SelectItem value="true">{t('actions.yes')}</SelectItem>
+            <SelectItem value="false">{t('actions.no')}</SelectItem>
           </SelectContent>
         </Select>
       ) : column?.type === 'date' ? (
@@ -497,7 +500,7 @@ function FilterRuleBuilder({
           />
           {rule.operator === 'between' && (
             <>
-              <span className="text-sm text-muted-foreground">and</span>
+              <span className="text-sm text-muted-foreground">{t('filters.valueAnd')}</span>
               <Input
                 type="date"
                 value={rule.value2 || ''}
@@ -514,17 +517,17 @@ function FilterRuleBuilder({
             value={rule.value}
             onChange={(e) => onUpdate({ value: e.target.value })}
             className="flex-1 bg-white"
-            placeholder="Value"
+            placeholder={t('filters.valuePh')}
           />
           {rule.operator === 'between' && (
             <>
-              <span className="text-sm text-muted-foreground">and</span>
+              <span className="text-sm text-muted-foreground">{t('filters.valueAnd')}</span>
               <Input
                 type="number"
                 value={rule.value2 || ''}
                 onChange={(e) => onUpdate({ value2: e.target.value })}
                 className="flex-1 bg-white"
-                placeholder="Value"
+                placeholder={t('filters.valuePh')}
               />
             </>
           )}

@@ -1,5 +1,6 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, UseInterceptors, UploadedFile, BadRequestException, Res } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, UseInterceptors, UploadedFile, BadRequestException, Res, Headers } from '@nestjs/common';
 import { Response } from 'express';
+import { resolveAcceptLanguage } from '../common/i18n/server-translate';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryUpload, IMAGE_MIME } from '../common/storage/multer.config';
@@ -44,6 +45,7 @@ export class EmployeesController {
     @Query() query: PaginationDto & { agencyId?: string; status?: string; nationality?: string; ids?: string },
     @CurrentUser() user: any,
     @Res() res: Response,
+    @Headers('accept-language') acceptLanguage?: string,
   ) {
     const rawIds = (query as any).ids;
     const idList: string[] | undefined = Array.isArray(rawIds)
@@ -57,6 +59,7 @@ export class EmployeesController {
       cleanQuery,
       { role: user?.role, agencyId: user?.agencyId, agencyIsSystem: user?.agencyIsSystem },
       idList,
+      resolveAcceptLanguage(acceptLanguage),
     );
     res.setHeader(
       'Content-Type',

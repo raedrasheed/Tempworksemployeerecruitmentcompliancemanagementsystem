@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { Plus, Edit, Trash2, Shield, Users, Lock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -19,6 +20,7 @@ import { rolesApi } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
 
 export function RolesList() {
+  const { t } = useTranslation('pages');
   const { canCreate, canEdit, canDelete } = usePermissions();
   const [roles, setRoles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,7 +30,7 @@ export function RolesList() {
   useEffect(() => {
     rolesApi.list()
       .then((data) => setRoles(Array.isArray(data) ? data : []))
-      .catch(() => { setRoles([]); toast.error('Failed to load roles'); })
+      .catch(() => { setRoles([]); toast.error(t('roles.list.loadFailed')); })
       .finally(() => setLoading(false));
   }, []);
 
@@ -38,9 +40,9 @@ export function RolesList() {
     try {
       await rolesApi.delete(deleteTarget.id);
       setRoles(prev => prev.filter(r => r.id !== deleteTarget.id));
-      toast.success(`Role "${deleteTarget.name}" deleted`);
+      toast.success(t('roles.list.deleteSuccess', { name: deleteTarget.name }));
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to delete role');
+      toast.error(err?.message || t('roles.list.deleteFailed'));
     } finally {
       setDeleting(false);
       setDeleteTarget(null);
@@ -59,27 +61,27 @@ export function RolesList() {
 
   const totalUsers = roles.reduce((sum, r) => sum + (r._count?.users ?? 0), 0);
 
-  if (loading) return <div className="p-8 text-muted-foreground">Loading roles...</div>;
+  if (loading) return <div className="p-8 text-muted-foreground">{t('roles.list.loading')}</div>;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-semibold text-[#0F172A]">Roles & Permissions</h1>
-          <p className="text-muted-foreground mt-1">Manage system roles and access control</p>
+          <h1 className="text-3xl font-semibold text-[#0F172A]">{t('roles.list.title')}</h1>
+          <p className="text-muted-foreground mt-1">{t('roles.list.subtitle')}</p>
         </div>
         <div className="flex items-center gap-3">
           <Button variant="outline" asChild>
             <Link to="/dashboard/roles/permissions-matrix">
-              <Lock className="w-4 h-4 mr-2" />
-              Permissions Matrix
+              <Lock className="w-4 h-4 me-2" />
+              {t('roles.list.permissionsMatrix')}
             </Link>
           </Button>
           {canCreate('roles') && (
             <Button asChild>
               <Link to="/dashboard/roles/create">
-                <Plus className="w-4 h-4 mr-2" />
-                Create Role
+                <Plus className="w-4 h-4 me-2" />
+                {t('roles.list.addButton')}
               </Link>
             </Button>
           )}
@@ -96,7 +98,7 @@ export function RolesList() {
               </div>
               <div>
                 <p className="text-2xl font-semibold">{roles.length}</p>
-                <p className="text-sm text-muted-foreground">Total Roles</p>
+                <p className="text-sm text-muted-foreground">{t('roles.list.totalRoles')}</p>
               </div>
             </div>
           </CardContent>
@@ -110,7 +112,7 @@ export function RolesList() {
               </div>
               <div>
                 <p className="text-2xl font-semibold">{totalUsers}</p>
-                <p className="text-sm text-muted-foreground">Total Users</p>
+                <p className="text-sm text-muted-foreground">{t('roles.list.totalUsers')}</p>
               </div>
             </div>
           </CardContent>
@@ -124,7 +126,7 @@ export function RolesList() {
               </div>
               <div>
                 <p className="text-2xl font-semibold">{roles.filter(r => r.isSystem).length}</p>
-                <p className="text-sm text-muted-foreground">System Roles</p>
+                <p className="text-sm text-muted-foreground">{t('roles.list.systemRoles')}</p>
               </div>
             </div>
           </CardContent>
@@ -138,7 +140,7 @@ export function RolesList() {
               </div>
               <div>
                 <p className="text-2xl font-semibold">{roles.filter(r => !r.isSystem).length}</p>
-                <p className="text-sm text-muted-foreground">Custom Roles</p>
+                <p className="text-sm text-muted-foreground">{t('roles.list.customRoles')}</p>
               </div>
             </div>
           </CardContent>
@@ -148,11 +150,11 @@ export function RolesList() {
       {/* Roles List */}
       <Card>
         <CardHeader>
-          <CardTitle>All Roles</CardTitle>
+          <CardTitle>{t('roles.list.allRoles')}</CardTitle>
         </CardHeader>
         <CardContent>
           {roles.length === 0 ? (
-            <p className="text-muted-foreground text-sm py-4 text-center">No roles found.</p>
+            <p className="text-muted-foreground text-sm py-4 text-center">{t('roles.list.noRolesFound')}</p>
           ) : (
             <div className="space-y-3">
               {roles.map((role) => {
@@ -171,43 +173,43 @@ export function RolesList() {
                           <h3 className="font-semibold text-[#0F172A]">{role.name}</h3>
                           {role.isSystem && (
                             <Badge variant="outline" className="bg-[#FEF3C7] text-[#F59E0B] border-[#F59E0B]">
-                              System Role
+                              {t('roles.list.systemRoleBadge')}
                             </Badge>
                           )}
                           <Badge variant="outline">
-                            <Users className="w-3 h-3 mr-1" />
-                            {role._count?.users ?? 0} users
+                            <Users className="w-3 h-3 me-1" />
+                            {t('roles.list.usersCount', { count: role._count?.users ?? 0 })}
                           </Badge>
                         </div>
                         <p className="text-sm text-muted-foreground mb-3">{role.description || '—'}</p>
 
                         <div className="grid grid-cols-4 gap-4 text-sm">
                           <div>
-                            <p className="text-xs text-muted-foreground">View</p>
-                            <p className="font-medium">{counts.view} modules</p>
+                            <p className="text-xs text-muted-foreground">{t('roles.list.permView')}</p>
+                            <p className="font-medium">{t('roles.list.modulesCount', { count: counts.view })}</p>
                           </div>
                           <div>
-                            <p className="text-xs text-muted-foreground">Create</p>
-                            <p className="font-medium">{counts.create} modules</p>
+                            <p className="text-xs text-muted-foreground">{t('roles.list.permCreate')}</p>
+                            <p className="font-medium">{t('roles.list.modulesCount', { count: counts.create })}</p>
                           </div>
                           <div>
-                            <p className="text-xs text-muted-foreground">Edit</p>
-                            <p className="font-medium">{counts.edit} modules</p>
+                            <p className="text-xs text-muted-foreground">{t('roles.list.permEdit')}</p>
+                            <p className="font-medium">{t('roles.list.modulesCount', { count: counts.edit })}</p>
                           </div>
                           <div>
-                            <p className="text-xs text-muted-foreground">Delete</p>
-                            <p className="font-medium">{counts.delete} modules</p>
+                            <p className="text-xs text-muted-foreground">{t('roles.list.permDelete')}</p>
+                            <p className="font-medium">{t('roles.list.modulesCount', { count: counts.delete })}</p>
                           </div>
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 ml-4">
+                    <div className="flex items-center gap-2 ms-4">
                       {canEdit('roles') && (
                         <Button size="sm" variant="outline" asChild>
                           <Link to={`/dashboard/roles/${role.id}/edit`}>
-                            <Edit className="w-4 h-4 mr-1" />
-                            Edit
+                            <Edit className="w-4 h-4 me-1" />
+                            {t('roles.list.edit')}
                           </Link>
                         </Button>
                       )}
@@ -233,19 +235,19 @@ export function RolesList() {
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Role</AlertDialogTitle>
+            <AlertDialogTitle>{t('roles.list.deleteRoleTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete <strong>{deleteTarget?.name}</strong>? This action cannot be undone. Users assigned to this role will need to be reassigned.
+              <span dangerouslySetInnerHTML={{ __html: t('roles.list.deleteRoleBody', { name: deleteTarget?.name ?? '' }) }} />
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleting}>{t('roles.list.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               disabled={deleting}
               className="bg-[#EF4444] hover:bg-[#DC2626]"
             >
-              {deleting ? 'Deleting...' : 'Delete Role'}
+              {deleting ? t('roles.list.deleting') : t('roles.list.deleteRole')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

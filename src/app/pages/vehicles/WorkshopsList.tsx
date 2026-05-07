@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import {
   Plus, Wrench, Pencil, Trash2, X, Save, ArrowLeft, RefreshCw,
   ArrowUp, ArrowDown, ArrowUpDown, Columns2, Check,
@@ -20,6 +21,10 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '../../components/ui/table';
 import { vehiclesApi } from '../../services/api';
+import { apiError } from '../../../i18n/apiError';
+import { useValidationErrors } from '../../../i18n/useValidationErrors';
+import { FieldError } from '../../components/ui/field-error';
+import { ValidationSummary } from '../../components/ui/validation-summary';
 import { usePermissions } from '../../hooks/usePermissions';
 
 type Workshop = {
@@ -53,12 +58,12 @@ function SortableHead({ label, field, sortBy, sortOrder, onSort, className }: {
 
 type ColKey = 'contact' | 'phone' | 'email' | 'city' | 'country';
 
-const ALL_COLUMNS: { key: ColKey; label: string }[] = [
-  { key: 'contact', label: 'Contact' },
-  { key: 'phone',   label: 'Phone' },
-  { key: 'email',   label: 'Email' },
-  { key: 'city',    label: 'City' },
-  { key: 'country', label: 'Country' },
+const ALL_COLUMNS: { key: ColKey; labelKey: string }[] = [
+  { key: 'contact', labelKey: 'vehicles.workshops.list.cols.contact' },
+  { key: 'phone',   labelKey: 'vehicles.workshops.list.cols.phone' },
+  { key: 'email',   labelKey: 'vehicles.workshops.list.cols.email' },
+  { key: 'city',    labelKey: 'vehicles.workshops.list.cols.city' },
+  { key: 'country', labelKey: 'vehicles.workshops.list.cols.country' },
 ];
 
 const DEFAULT_VISIBLE: Record<ColKey, boolean> = {
@@ -79,6 +84,8 @@ export function WorkshopsList() {
   const { canCreate } = usePermissions();
   const canWrite = canCreate('vehicles');
   const navigate = useNavigate();
+  const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
 
   const [workshops, setWorkshops] = useState<Workshop[]>([]);
   const [loading, setLoading]     = useState(true);
@@ -100,6 +107,7 @@ export function WorkshopsList() {
   // column visibility
   const [visibleCols, setVisibleCols]   = useState<Record<ColKey, boolean>>(loadVisibleColumns);
   const [showColPicker, setShowColPicker] = useState(false);
+  const { errors: fieldErrs, setFromError, clearAll: clearFieldErrors, clearError } = useValidationErrors();
   const colPickerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -128,7 +136,7 @@ export function WorkshopsList() {
       const ws = await vehiclesApi.listWorkshops();
       setWorkshops(ws);
     } catch {
-      toast.error('Failed to load workshops');
+      toast.error(tc('toast.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -202,20 +210,22 @@ export function WorkshopsList() {
   };
 
   const handleSave = async () => {
-    if (!form.name.trim()) { toast.error('Workshop name required'); return; }
+    if (!form.name.trim()) { toast.error(tc('toast.nameRequired')); return; }
+    clearFieldErrors();
     setSaving(true);
     try {
       if (editing) {
         await vehiclesApi.updateWorkshop(editing.id, form);
-        toast.success('Workshop updated');
+        toast.success(tc('toast.savedSuccessfully'));
       } else {
         await vehiclesApi.createWorkshop(form);
-        toast.success('Workshop created');
+        toast.success(tc('toast.savedSuccessfully'));
       }
       setDialog(false);
       load();
-    } catch {
-      toast.error('Save failed');
+    } catch (err: any) {
+      setFromError(err);
+      toast.error(apiError(err, tc('toast.saveFailed')));
     } finally {
       setSaving(false);
     }
@@ -223,20 +233,23 @@ export function WorkshopsList() {
 
   const handleDelete = async (id: string) => {
     if (!(await confirm({
-      title: 'Delete workshop?',
-      description: 'This workshop will be permanently removed.',
-      confirmText: 'Delete', tone: 'destructive',
+      title: t('common:confirm.deleteWorkshopTitle'),
+      description: t('common:confirm.deleteWorkshopBody'),
+      confirmText: t('common:actions.delete'), tone: 'destructive',
     }))) return;
     try {
       await vehiclesApi.deleteWorkshop(id);
-      toast.success('Workshop deleted');
+      toast.success(tc('toast.deleted'));
       load();
     } catch {
-      toast.error('Delete failed');
+      toast.error(tc('toast.deleteFailed'));
     }
   };
 
-  const setField = (key: keyof WForm, value: string) => setForm((f) => ({ ...f, [key]: value }));
+  const setField = (key: keyof WForm, value: string) => {
+    setForm((f) => ({ ...f, [key]: value }));
+    if (fieldErrs[key as string]) clearError(key as string);
+  };
 
   return (
     <div className="p-6 space-y-6">
@@ -249,18 +262,18 @@ export function WorkshopsList() {
             </Button>
             <h1 className="text-2xl font-bold flex items-center gap-2">
               <Wrench className="w-6 h-6 text-primary" />
-              Workshop Register
+              {t('vehicles.workshops.title')}
             </h1>
           </div>
-          <p className="text-sm text-muted-foreground mt-1">Manage garages and service centres used for vehicle maintenance</p>
+          <p className="text-sm text-muted-foreground mt-1">{t('vehicles.workshops.subtitle')}</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={load} disabled={loading}>
-            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} /> Refresh
+            <RefreshCw className={`w-4 h-4 me-2 ${loading ? 'animate-spin' : ''}`} /> {t('vehicles.workshops.refresh')}
           </Button>
           {canWrite && (
             <Button size="sm" onClick={openNew}>
-              <Plus className="w-4 h-4 mr-2" /> Add Workshop
+              <Plus className="w-4 h-4 me-2" /> {t('vehicles.workshops.addButton')}
             </Button>
           )}
         </div>
@@ -269,47 +282,47 @@ export function WorkshopsList() {
       {/* filters */}
       <div className="flex flex-wrap gap-2 items-center">
         <Input
-          placeholder="Search name, contact, phone, email…"
+          placeholder={t('vehicles.workshops.searchPh')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="w-64"
         />
         <Select value={cityFilter || '__all__'} onValueChange={(v) => setCityFilter(v === '__all__' ? '' : v)}>
-          <SelectTrigger className="w-36"><SelectValue placeholder="City" /></SelectTrigger>
+          <SelectTrigger className="w-36"><SelectValue placeholder={t('vehicles.workshops.cityPlaceholder')} /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="__all__">All Cities</SelectItem>
+            <SelectItem value="__all__">{t('vehicles.workshops.filterAllCities')}</SelectItem>
             {cityOptions.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={countryFilter || '__all__'} onValueChange={(v) => setCountryFilter(v === '__all__' ? '' : v)}>
-          <SelectTrigger className="w-36"><SelectValue placeholder="Country" /></SelectTrigger>
+          <SelectTrigger className="w-36"><SelectValue placeholder={t('vehicles.workshops.countryPlaceholder')} /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="__all__">All Countries</SelectItem>
+            <SelectItem value="__all__">{t('vehicles.workshops.filterAllCountries')}</SelectItem>
             {countryOptions.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={statusFilter || '__all__'} onValueChange={(v) => setStatusFilter(v === '__all__' ? '' : v)}>
-          <SelectTrigger className="w-32"><SelectValue placeholder="Status" /></SelectTrigger>
+          <SelectTrigger className="w-32"><SelectValue placeholder={t('vehicles.workshops.statusPlaceholder')} /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="__all__">All Status</SelectItem>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="inactive">Inactive</SelectItem>
+            <SelectItem value="__all__">{t('vehicles.workshops.filterAllStatuses')}</SelectItem>
+            <SelectItem value="active">{t('vehicles.workshops.statusActive')}</SelectItem>
+            <SelectItem value="inactive">{t('vehicles.workshops.statusInactive')}</SelectItem>
           </SelectContent>
         </Select>
         {hasFilters && (
           <Button variant="ghost" size="sm" onClick={clearFilters}>
-            <X className="w-3.5 h-3.5 mr-1" /> Clear
+            <X className="w-3.5 h-3.5 me-1" /> {t('vehicles.workshops.clear')}
           </Button>
         )}
 
         {/* column picker */}
-        <div className="relative ml-auto" ref={colPickerRef}>
+        <div className="relative ms-auto" ref={colPickerRef}>
           <Button variant="outline" size="sm" onClick={() => setShowColPicker((v) => !v)}>
-            <Columns2 className="w-4 h-4 mr-2" /> Columns
+            <Columns2 className="w-4 h-4 me-2" /> {t('vehicles.workshops.columnsButton')}
           </Button>
           {showColPicker && (
-            <div className="absolute right-0 top-full mt-1 z-50 bg-popover border rounded-md shadow-md p-2 w-44">
-              {ALL_COLUMNS.map(({ key, label }) => (
+            <div className="absolute end-0 top-full mt-1 z-50 bg-popover border rounded-md shadow-md p-2 w-44">
+              {ALL_COLUMNS.map(({ key, labelKey }) => (
                 <button
                   key={key}
                   className="flex items-center gap-2 w-full px-2 py-1.5 text-sm rounded hover:bg-muted"
@@ -318,7 +331,7 @@ export function WorkshopsList() {
                   <span className={`w-4 h-4 border rounded flex items-center justify-center ${col(key) ? 'bg-primary border-primary' : 'border-input'}`}>
                     {col(key) && <Check className="w-3 h-3 text-primary-foreground" />}
                   </span>
-                  {label}
+                  {t(labelKey)}
                 </button>
               ))}
             </div>
@@ -331,27 +344,27 @@ export function WorkshopsList() {
           <Table>
             <TableHeader>
               <TableRow>
-                <SortableHead label="Name" field="name" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />
-                {col('contact') && <SortableHead label="Contact" field="contact" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
-                {col('phone')   && <SortableHead label="Phone"   field="phone"   sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
-                {col('email')   && <SortableHead label="Email"   field="email"   sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
-                {col('city')    && <SortableHead label="City"    field="city"    sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
-                {col('country') && <SortableHead label="Country" field="country" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
-                {canWrite && <TableHead className="text-right">Actions</TableHead>}
+                <SortableHead label={t('vehicles.workshops.nameHeader')}     field="name"    sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />
+                {col('contact') && <SortableHead label={t('vehicles.workshops.list.cols.contact')} field="contact" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                {col('phone')   && <SortableHead label={t('vehicles.workshops.list.cols.phone')}   field="phone"   sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                {col('email')   && <SortableHead label={t('vehicles.workshops.list.cols.email')}   field="email"   sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                {col('city')    && <SortableHead label={t('vehicles.workshops.list.cols.city')}    field="city"    sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                {col('country') && <SortableHead label={t('vehicles.workshops.list.cols.country')} field="country" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                {canWrite && <TableHead className="text-end">{t('vehicles.workshops.actionsHeader')}</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={visibleCount} className="text-center py-8 text-muted-foreground">Loading…</TableCell></TableRow>
+                <TableRow><TableCell colSpan={visibleCount} className="text-center py-8 text-muted-foreground">{tc('states.loading')}</TableCell></TableRow>
               ) : displayWorkshops.length === 0 ? (
                 <TableRow><TableCell colSpan={visibleCount} className="text-center py-8 text-muted-foreground">
-                  {hasFilters ? 'No workshops match the current filters' : 'No workshops registered yet'}
+                  {hasFilters ? t('vehicles.workshops.emptyFiltered') : t('vehicles.workshops.empty')}
                 </TableCell></TableRow>
               ) : displayWorkshops.map((w) => (
                 <TableRow key={w.id} className={!w.isActive ? 'opacity-60' : ''}>
                   <TableCell className="font-medium">
                     {w.name}
-                    {!w.isActive && <span className="ml-2 text-xs text-muted-foreground">(inactive)</span>}
+                    {!w.isActive && <span className="ms-2 text-xs text-muted-foreground">{t('vehicles.workshops.inactive')}</span>}
                   </TableCell>
                   {col('contact') && <TableCell className="text-sm">{w.contactName ?? '—'}</TableCell>}
                   {col('phone')   && <TableCell className="text-sm">{w.phone ?? '—'}</TableCell>}
@@ -359,7 +372,7 @@ export function WorkshopsList() {
                   {col('city')    && <TableCell className="text-sm">{w.city ?? '—'}</TableCell>}
                   {col('country') && <TableCell className="text-sm">{w.country ?? '—'}</TableCell>}
                   {canWrite && (
-                    <TableCell className="text-right space-x-1">
+                    <TableCell className="text-end space-x-1">
                       <Button size="sm" variant="ghost" onClick={() => openEdit(w)}><Pencil className="w-4 h-4" /></Button>
                       <Button size="sm" variant="ghost" onClick={() => handleDelete(w.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
                     </TableCell>
@@ -374,49 +387,53 @@ export function WorkshopsList() {
       <Dialog open={dialog} onOpenChange={setDialog}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>{editing ? 'Edit Workshop' : 'Add Workshop'}</DialogTitle>
+            <DialogTitle>{editing ? t('vehicles.workshops.dialog.editTitle') : t('vehicles.workshops.dialog.addTitle')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
+            <ValidationSummary errors={fieldErrs} />
             <div className="space-y-1">
-              <Label>Workshop Name *</Label>
-              <Input value={form.name} onChange={(e) => setField('name', e.target.value)} placeholder="e.g. City Truck Services Ltd" />
+              <Label>{t('vehicles.workshops.form.name')}</Label>
+              <Input value={form.name} onChange={(e) => setField('name', e.target.value)} placeholder={t('vehicles.workshops.form.namePh')}
+                aria-invalid={!!fieldErrs.name}
+                className={fieldErrs.name ? 'border-red-500 focus-visible:ring-red-500' : ''} />
+              <FieldError errors={fieldErrs} name="name" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label>Contact Person</Label>
-                <Input value={form.contactName} onChange={(e) => setField('contactName', e.target.value)} placeholder="Name" />
+                <Label>{t('vehicles.workshops.form.contact')}</Label>
+                <Input value={form.contactName} onChange={(e) => setField('contactName', e.target.value)} placeholder={t('vehicles.workshops.form.contactPh')} />
               </div>
               <div className="space-y-1">
-                <Label>Phone</Label>
-                <Input value={form.phone} onChange={(e) => setField('phone', e.target.value)} placeholder="+44 ..." />
+                <Label>{t('vehicles.workshops.form.phone')}</Label>
+                <Input value={form.phone} onChange={(e) => setField('phone', e.target.value)} placeholder={t('vehicles.workshops.form.phonePh')} />
               </div>
               <div className="col-span-2 space-y-1">
-                <Label>Email</Label>
-                <Input type="email" value={form.email} onChange={(e) => setField('email', e.target.value)} placeholder="service@example.com" />
+                <Label>{t('vehicles.workshops.form.email')}</Label>
+                <Input type="email" value={form.email} onChange={(e) => setField('email', e.target.value)} placeholder={t('vehicles.workshops.form.emailPh')} />
               </div>
               <div className="col-span-2 space-y-1">
-                <Label>Address</Label>
-                <Input value={form.address} onChange={(e) => setField('address', e.target.value)} placeholder="Street address" />
+                <Label>{t('vehicles.workshops.form.address')}</Label>
+                <Input value={form.address} onChange={(e) => setField('address', e.target.value)} placeholder={t('vehicles.workshops.form.addressPh')} />
               </div>
               <div className="space-y-1">
-                <Label>City</Label>
-                <Input value={form.city} onChange={(e) => setField('city', e.target.value)} placeholder="City" />
+                <Label>{t('vehicles.workshops.form.city')}</Label>
+                <Input value={form.city} onChange={(e) => setField('city', e.target.value)} placeholder={t('vehicles.workshops.form.cityPh')} />
               </div>
               <div className="space-y-1">
-                <Label>Country</Label>
-                <Input value={form.country} onChange={(e) => setField('country', e.target.value)} placeholder="UK" />
+                <Label>{t('vehicles.workshops.form.country')}</Label>
+                <Input value={form.country} onChange={(e) => setField('country', e.target.value)} placeholder={t('vehicles.workshops.form.countryPh')} />
               </div>
               <div className="col-span-2 space-y-1">
-                <Label>Notes</Label>
-                <Input value={form.notes} onChange={(e) => setField('notes', e.target.value)} placeholder="Additional info" />
+                <Label>{t('vehicles.workshops.form.notes')}</Label>
+                <Input value={form.notes} onChange={(e) => setField('notes', e.target.value)} placeholder={t('vehicles.workshops.form.notesPh')} />
               </div>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialog(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setDialog(false)}>{tc('actions.cancel')}</Button>
             <Button onClick={handleSave} disabled={saving}>
-              <Save className="w-4 h-4 mr-2" />
-              {saving ? 'Saving…' : editing ? 'Save Changes' : 'Create Workshop'}
+              <Save className="w-4 h-4 me-2" />
+              {saving ? tc('states.saving') : editing ? tc('actions.saveChanges') : tc('actions.create')}
             </Button>
           </DialogFooter>
         </DialogContent>

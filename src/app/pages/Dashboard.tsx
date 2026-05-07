@@ -1,5 +1,6 @@
 import { Link } from 'react-router';
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Users, FileCheck, Clock, AlertTriangle, TrendingUp,
   CheckCircle2, ArrowUp, ArrowDown, Minus, Activity,
@@ -11,6 +12,8 @@ import { Button } from '../components/ui/button';
 import { Progress } from '../components/ui/progress';
 import { dashboardApi, getCurrentUser } from '../services/api';
 import { usePermissions } from '../hooks/usePermissions';
+import { enumLabel } from '../../i18n/enumLabel';
+import { formatDate } from '../../i18n/formatters';
 
 const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1').replace('/api/v1', '');
 
@@ -38,42 +41,49 @@ function activityColor(action: string) {
   return 'bg-amber-500';
 }
 
-function activityLabel(action: string, entity: string) {
-  const a = action?.toUpperCase() ?? '';
-  const e = entity ? entity.charAt(0).toUpperCase() + entity.slice(1).toLowerCase() : '';
-  if (a === 'UPLOAD')  return `${e} uploaded`;
-  if (a === 'VERIFY')  return `${e} verified`;
-  if (a === 'REJECT')  return `${e} rejected`;
-  if (a === 'CREATE')  return `${e} created`;
-  if (a === 'UPDATE')  return `${e} updated`;
-  if (a === 'DELETE')  return `${e} deleted`;
-  if (a === 'RENEW')   return `${e} renewed`;
-  if (a === 'CONVERT') return `${e} converted`;
-  return `${e} ${action?.toLowerCase() ?? ''}`.trim();
+function useActivityLabel() {
+  const { t } = useTranslation('dashboard');
+  return (action: string, entity: string): string => {
+    const a = action?.toUpperCase() ?? '';
+    const e = entity ? entity.charAt(0).toUpperCase() + entity.slice(1).toLowerCase() : '';
+    if (a === 'UPLOAD')  return t('recentActivity.uploaded',  { entity: e });
+    if (a === 'VERIFY')  return t('recentActivity.verified',  { entity: e });
+    if (a === 'REJECT')  return t('recentActivity.rejected',  { entity: e });
+    if (a === 'CREATE')  return t('recentActivity.created',   { entity: e });
+    if (a === 'UPDATE')  return t('recentActivity.updated',   { entity: e });
+    if (a === 'DELETE')  return t('recentActivity.deleted',   { entity: e });
+    if (a === 'RENEW')   return t('recentActivity.renewed',   { entity: e });
+    if (a === 'CONVERT') return t('recentActivity.converted', { entity: e });
+    return t('recentActivity.fallback', { entity: e, action: action?.toLowerCase() ?? '' });
+  };
 }
 
-function timeAgo(dateStr: string) {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const m = Math.floor(diff / 60000);
-  if (m < 1)  return 'just now';
-  if (m < 60) return `${m}m ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  return `${Math.floor(h / 24)}d ago`;
+function useTimeAgo() {
+  const { t } = useTranslation('dashboard');
+  return (dateStr: string): string => {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const m = Math.floor(diff / 60000);
+    if (m < 1)  return t('timeAgo.justNow');
+    if (m < 60) return t('timeAgo.minutesAgo', { count: m });
+    const h = Math.floor(m / 60);
+    if (h < 24) return t('timeAgo.hoursAgo', { count: h });
+    return t('timeAgo.daysAgo', { count: Math.floor(h / 24) });
+  };
 }
 
-// Map workflow stage names to the 4 required display categories
-const STAGE_KEYWORDS: { label: string; keywords: string[] }[] = [
-  { label: 'Document Verification', keywords: ['document', 'verification', 'doc'] },
-  { label: 'Work Permit',           keywords: ['permit', 'work permit'] },
-  { label: 'Visa',                  keywords: ['visa'] },
-  { label: 'Onboarding',            keywords: ['onboard', 'onboarding', 'deployment'] },
+// Map workflow stage names to the 4 required display categories. The `id` is
+// stable; the user-facing label is resolved via t() at render time.
+const STAGE_KEYWORDS: { id: 'documentVerification' | 'workPermit' | 'visa' | 'onboarding'; keywords: string[] }[] = [
+  { id: 'documentVerification', keywords: ['document', 'verification', 'doc'] },
+  { id: 'workPermit',           keywords: ['permit', 'work permit'] },
+  { id: 'visa',                 keywords: ['visa'] },
+  { id: 'onboarding',           keywords: ['onboard', 'onboarding', 'deployment'] },
 ];
 
 function matchStageToCategory(stageName: string) {
   const lower = stageName.toLowerCase();
   for (const cat of STAGE_KEYWORDS) {
-    if (cat.keywords.some(k => lower.includes(k))) return cat.label;
+    if (cat.keywords.some(k => lower.includes(k))) return cat.id;
   }
   return null;
 }
@@ -81,6 +91,9 @@ function matchStageToCategory(stageName: string) {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function Dashboard() {
+  const { t } = useTranslation('dashboard');
+  const activityLabel = useActivityLabel();
+  const timeAgo = useTimeAgo();
   const currentUser = getCurrentUser();
   const isAgencyUser = currentUser?.role === 'Agency User' || currentUser?.role === 'Agency Manager';
   const applicantsPath = '/dashboard/applicants';
@@ -135,9 +148,9 @@ export function Dashboard() {
 
   // Aggregate workflow into the 4 required categories
   const workflowSummary = STAGE_KEYWORDS.map(cat => {
-    const matching = workflowStages.filter(s => matchStageToCategory(s.name) === cat.label);
+    const matching = workflowStages.filter(s => matchStageToCategory(s.name) === cat.id);
     const count    = matching.reduce((sum, s) => sum + (s.count ?? 0), 0);
-    return { label: cat.label, count };
+    return { id: cat.id, label: t(`workflow.${cat.id}`), count };
   });
   const workflowTotal = workflowSummary.reduce((s, c) => s + c.count, 0);
 
@@ -152,20 +165,22 @@ export function Dashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-semibold text-[#0F172A]">Dashboard</h1>
+          <h1 className="text-3xl font-semibold text-[#0F172A]">{t('title')}</h1>
           <p className="text-muted-foreground mt-1">
-            Welcome back, {currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : 'User'}
+            {t('welcomeBack', {
+              name: currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : t('user'),
+            })}
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={() => load(true)} disabled={refreshing}>
-          <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-          Refresh
+          <RefreshCw className={`w-4 h-4 me-2 ${refreshing ? 'animate-spin' : ''}`} />
+          {t('refresh')}
         </Button>
       </div>
 
       {error && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          Failed to load dashboard data. <button className="underline" onClick={() => load()}>Retry</button>
+          {t('loadFailed')} <button className="underline" onClick={() => load()}>{t('retry')}</button>
         </div>
       )}
 
@@ -175,17 +190,17 @@ export function Dashboard() {
         <Link to="/dashboard/employees" className="group">
           <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total Employees</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">{t('kpi.totalEmployees')}</CardTitle>
               <Users className="w-4 h-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               {loading ? <Skeleton /> : <div className="text-3xl font-bold text-[#0F172A]">{totalEmp}</div>}
               <div className="flex items-center gap-1 mt-1 text-xs">
                 {deltaThisMonth > 0
-                  ? <><ArrowUp className="w-3 h-3 text-emerald-500" /><span className="text-emerald-600 font-medium">+{deltaThisMonth}</span><span className="text-muted-foreground ml-1">this month</span></>
+                  ? <><ArrowUp className="w-3 h-3 text-emerald-500" /><span className="text-emerald-600 font-medium">+{deltaThisMonth}</span><span className="text-muted-foreground ms-1">{t('kpi.thisMonth')}</span></>
                   : deltaThisMonth < 0
-                  ? <><ArrowDown className="w-3 h-3 text-red-500" /><span className="text-red-600 font-medium">{deltaThisMonth}</span><span className="text-muted-foreground ml-1">this month</span></>
-                  : <><Minus className="w-3 h-3 text-muted-foreground" /><span className="text-muted-foreground">No change this month</span></>
+                  ? <><ArrowDown className="w-3 h-3 text-red-500" /><span className="text-red-600 font-medium">{deltaThisMonth}</span><span className="text-muted-foreground ms-1">{t('kpi.thisMonth')}</span></>
+                  : <><Minus className="w-3 h-3 text-muted-foreground" /><span className="text-muted-foreground">{t('kpi.noChangeThisMonth')}</span></>
                 }
               </div>
             </CardContent>
@@ -196,17 +211,17 @@ export function Dashboard() {
         <Link to="/dashboard/employees?status=ACTIVE" className="group">
           <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Active Employees</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">{t('kpi.activeEmployees')}</CardTitle>
               <CheckCircle2 className="w-4 h-4 text-emerald-500" />
             </CardHeader>
             <CardContent>
               {loading ? <Skeleton /> : <div className="text-3xl font-bold text-[#0F172A]">{activeEmp}</div>}
               <div className="flex items-center gap-1 mt-1 text-xs">
                 <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />
-                <span className="text-emerald-600 font-medium">Active</span>
+                <span className="text-emerald-600 font-medium">{t('kpi.active')}</span>
                 {totalEmp > 0 && !loading && (
-                  <span className="text-muted-foreground ml-1">
-                    ({((activeEmp / totalEmp) * 100).toFixed(0)}% of total)
+                  <span className="text-muted-foreground ms-1">
+                    {t('kpi.ofTotal', { percent: ((activeEmp / totalEmp) * 100).toFixed(0) })}
                   </span>
                 )}
               </div>
@@ -218,15 +233,15 @@ export function Dashboard() {
         <Link to={`${applicantsPath}?status=NEW`} className="group">
           <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Pending Applications</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">{t('kpi.pendingApplications')}</CardTitle>
               <Clock className="w-4 h-4 text-amber-500" />
             </CardHeader>
             <CardContent>
               {loading ? <Skeleton /> : <div className="text-3xl font-bold text-[#0F172A]">{pendingApps}</div>}
               <div className="flex items-center gap-1 mt-1 text-xs">
                 {pendingApps > 0
-                  ? <><span className="inline-flex items-center gap-1 bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full font-medium">{pendingApps} need review</span></>
-                  : <span className="text-muted-foreground">All reviewed</span>
+                  ? <><span className="inline-flex items-center gap-1 bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full font-medium">{t('kpi.needReview', { count: pendingApps })}</span></>
+                  : <span className="text-muted-foreground">{t('kpi.allReviewed')}</span>
                 }
               </div>
             </CardContent>
@@ -237,7 +252,7 @@ export function Dashboard() {
         <Link to="/dashboard/documents-compliance?status=EXPIRING_SOON" className="group">
           <Card className={`hover:shadow-md transition-shadow cursor-pointer h-full ${expiringSoon > 0 ? 'border-amber-300' : ''}`}>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Expiring Documents</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">{t('kpi.expiringDocuments')}</CardTitle>
               <AlertTriangle className={`w-4 h-4 ${expiringSoon > 0 ? 'text-amber-500' : 'text-muted-foreground'}`} />
             </CardHeader>
             <CardContent>
@@ -247,8 +262,8 @@ export function Dashboard() {
               }
               <div className="mt-1 text-xs">
                 {expiringSoon > 0
-                  ? <span className="text-amber-600 font-medium">Within 60 days — action needed</span>
-                  : <span className="text-muted-foreground">Within 60 days</span>
+                  ? <span className="text-amber-600 font-medium">{t('kpi.within60DaysAction')}</span>
+                  : <span className="text-muted-foreground">{t('kpi.within60Days')}</span>
                 }
               </div>
             </CardContent>
@@ -263,26 +278,26 @@ export function Dashboard() {
             <div>
               <CardTitle className="flex items-center gap-2 text-[#0F172A]">
                 <Users className="w-5 h-5 text-[#2563EB]" />
-                Applicants Overview
+                {t('applicants.title')}
               </CardTitle>
-              <CardDescription>Job applicants by current status</CardDescription>
+              <CardDescription>{t('applicants.subtitle')}</CardDescription>
             </div>
             <Button asChild size="sm">
-              <Link to={applicantsPath}>{isAgencyUser ? 'View All Candidates' : 'View All Applicants'}</Link>
+              <Link to={applicantsPath}>{isAgencyUser ? t('applicants.viewAllCandidates') : t('applicants.viewAllApplicants')}</Link>
             </Button>
           </div>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
             {[
-              { label: 'Total',             value: totalApps,            color: 'text-[#0F172A]',  link: applicantsPath },
-              { label: 'New / Unreviewed',  value: appStatus('NEW'),      color: 'text-blue-600',   link: `${applicantsPath}?status=NEW` },
-              { label: 'Screening',         value: appStatus('SCREENING'),color: 'text-amber-600',  link: `${applicantsPath}?status=SCREENING` },
-              { label: 'Interview',         value: appStatus('INTERVIEW'),color: 'text-purple-600', link: `${applicantsPath}?status=INTERVIEW` },
-              { label: 'Offer Made',        value: appStatus('OFFER'),    color: 'text-indigo-600', link: `${applicantsPath}?status=OFFER` },
-              { label: 'Accepted',          value: appStatus('ACCEPTED'), color: 'text-emerald-600',link: `${applicantsPath}?status=ACCEPTED` },
-            ].map(({ label, value, color, link }) => (
-              <Link key={label} to={link}>
+              { key: 'total',         label: t('applicants.total'),         value: totalApps,             color: 'text-[#0F172A]',  link: applicantsPath },
+              { key: 'newUnreviewed', label: t('applicants.newUnreviewed'), value: appStatus('NEW'),      color: 'text-blue-600',   link: `${applicantsPath}?status=NEW` },
+              { key: 'screening',     label: t('applicants.screening'),     value: appStatus('SCREENING'),color: 'text-amber-600',  link: `${applicantsPath}?status=SCREENING` },
+              { key: 'interview',     label: t('applicants.interview'),     value: appStatus('INTERVIEW'),color: 'text-purple-600', link: `${applicantsPath}?status=INTERVIEW` },
+              { key: 'offerMade',     label: t('applicants.offerMade'),     value: appStatus('OFFER'),    color: 'text-indigo-600', link: `${applicantsPath}?status=OFFER` },
+              { key: 'accepted',      label: t('applicants.accepted'),      value: appStatus('ACCEPTED'), color: 'text-emerald-600',link: `${applicantsPath}?status=ACCEPTED` },
+            ].map(({ key, label, value, color, link }) => (
+              <Link key={key} to={link}>
                 <div className="text-center p-3 bg-white rounded-lg hover:shadow-sm transition-shadow cursor-pointer">
                   {loading
                     ? <div className="h-7 w-10 bg-muted animate-pulse rounded mx-auto" />
@@ -303,11 +318,11 @@ export function Dashboard() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>Recruitment Workflow</CardTitle>
-                <CardDescription>Current stage distribution of employees in the recruitment process</CardDescription>
+                <CardTitle>{t('workflow.title')}</CardTitle>
+                <CardDescription>{t('workflow.subtitle')}</CardDescription>
               </div>
               <Button asChild variant="ghost" size="sm">
-                <Link to="/dashboard/workflows">View Workflow <ChevronRight className="w-3 h-3 ml-1" /></Link>
+                <Link to="/dashboard/workflows">{t('workflow.viewWorkflow')} <ChevronRight className="w-3 h-3 ms-1 rtl:rotate-180" /></Link>
               </Button>
             </div>
           </CardHeader>
@@ -320,14 +335,14 @@ export function Dashboard() {
                   </div>
                 ))
               : workflowStages.length === 0
-              ? <p className="text-sm text-muted-foreground py-4 text-center">No active workflow stages configured.</p>
-              : workflowSummary.map(({ label, count }) => {
+              ? <p className="text-sm text-muted-foreground py-4 text-center">{t('workflow.noStages')}</p>
+              : workflowSummary.map(({ id, label, count }) => {
                   const pct = workflowTotal > 0 ? Math.round((count / workflowTotal) * 100) : 0;
                   return (
-                    <div key={label} className="space-y-1.5">
+                    <div key={id} className="space-y-1.5">
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">{label}</span>
-                        <span className="font-medium">{count} employee{count !== 1 ? 's' : ''}</span>
+                        <span className="font-medium">{t('workflow.employees', { count })}</span>
                       </div>
                       <Progress value={pct} className="h-2" />
                     </div>
@@ -339,15 +354,15 @@ export function Dashboard() {
               <div className="grid grid-cols-2 gap-4 text-center">
                 <div>
                   <div className="text-2xl font-semibold text-[#2563EB]">
-                    {loading ? '—' : avgDays !== null ? `${avgDays}d` : '—'}
+                    {loading ? '—' : avgDays !== null ? t('workflow.daysSuffix', { count: avgDays }) : '—'}
                   </div>
-                  <div className="text-xs text-muted-foreground mt-1">Avg. Processing Days</div>
+                  <div className="text-xs text-muted-foreground mt-1">{t('workflow.avgProcessingDays')}</div>
                 </div>
                 <div>
                   <div className="text-2xl font-semibold text-emerald-600">
                     {loading ? '—' : approvalRate !== null ? `${approvalRate}%` : '—'}
                   </div>
-                  <div className="text-xs text-muted-foreground mt-1">Approval Rate</div>
+                  <div className="text-xs text-muted-foreground mt-1">{t('workflow.approvalRate')}</div>
                 </div>
               </div>
             </div>
@@ -359,9 +374,9 @@ export function Dashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Activity className="w-4 h-4 text-muted-foreground" />
-              Recent Activity
+              {t('recentActivity.title')}
             </CardTitle>
-            <CardDescription>Latest system events</CardDescription>
+            <CardDescription>{t('recentActivity.subtitle')}</CardDescription>
           </CardHeader>
           <CardContent>
             {loading
@@ -369,7 +384,7 @@ export function Dashboard() {
                   {[1,2,3,4].map(i => <div key={i} className="h-12 bg-muted animate-pulse rounded" />)}
                 </div>
               : recentActivity.length === 0
-              ? <p className="text-sm text-muted-foreground py-4 text-center">No recent activity.</p>
+              ? <p className="text-sm text-muted-foreground py-4 text-center">{t('recentActivity.empty')}</p>
               : <div className="space-y-3">
                   {recentActivity.map((item: any) => (
                     <div key={item.id} className="flex gap-3">
@@ -379,7 +394,7 @@ export function Dashboard() {
                           {activityLabel(item.action, item.entity)}
                         </p>
                         <p className="text-xs text-muted-foreground truncate">
-                          {item.userEmail ?? 'System'}
+                          {item.userEmail ?? t('recentActivity.system')}
                         </p>
                         <p className="text-xs text-muted-foreground">
                           {timeAgo(item.createdAt)}
@@ -390,7 +405,7 @@ export function Dashboard() {
                 </div>
             }
             <Button variant="outline" className="w-full mt-4" size="sm" asChild>
-              <Link to="/dashboard/logs">View All Activity</Link>
+              <Link to="/dashboard/logs">{t('recentActivity.viewAll')}</Link>
             </Button>
           </CardContent>
         </Card>
@@ -403,11 +418,11 @@ export function Dashboard() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>Recent Employees</CardTitle>
-                <CardDescription>Latest registrations</CardDescription>
+                <CardTitle>{t('recentEmployees.title')}</CardTitle>
+                <CardDescription>{t('recentEmployees.subtitle')}</CardDescription>
               </div>
               <Button asChild variant="ghost" size="sm">
-                <Link to="/dashboard/employees">View All <ChevronRight className="w-3 h-3 ml-1" /></Link>
+                <Link to="/dashboard/employees">{t('recentEmployees.viewAll')} <ChevronRight className="w-3 h-3 ms-1 rtl:rotate-180" /></Link>
               </Button>
             </div>
           </CardHeader>
@@ -417,7 +432,7 @@ export function Dashboard() {
                   {[1,2,3].map(i => <div key={i} className="h-14 bg-muted animate-pulse rounded" />)}
                 </div>
               : recentEmps.length === 0
-              ? <div className="text-center py-8 text-muted-foreground text-sm">No employees registered yet.</div>
+              ? <div className="text-center py-8 text-muted-foreground text-sm">{t('recentEmployees.empty')}</div>
               : <div className="space-y-2">
                   {recentEmps.map((emp: any) => (
                     <Link key={emp.id} to={`/dashboard/employees/${emp.id}`}>
@@ -443,12 +458,12 @@ export function Dashboard() {
                               {emp.employeeNumber ?? '—'}
                             </p>
                             <p className="text-xs text-muted-foreground">
-                              {emp.createdAt ? new Date(emp.createdAt).toLocaleDateString() : '—'}
+                              {emp.createdAt ? formatDate(emp.createdAt) : '—'}
                             </p>
                           </div>
                         </div>
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${getStatusColor(emp.status)}`}>
-                          {emp.status}
+                          {enumLabel('employeeStatus', emp.status)}
                         </span>
                       </div>
                     </Link>
@@ -465,14 +480,14 @@ export function Dashboard() {
               <div>
                 <CardTitle className="flex items-center gap-2">
                   <FileX className={`w-4 h-4 ${expiredUnrenewed > 0 ? 'text-red-500' : 'text-muted-foreground'}`} />
-                  Expired Documents
+                  {t('expiredDocuments.title')}
                 </CardTitle>
                 <CardDescription>
-                  {loading ? '…' : `${expiredUnrenewed} expired with no renewal`}
+                  {loading ? t('expiredDocuments.subtitleLoading') : t('expiredDocuments.subtitleCount', { count: expiredUnrenewed })}
                 </CardDescription>
               </div>
               <Button asChild variant="ghost" size="sm">
-                <Link to="/dashboard/documents-compliance">View All <ChevronRight className="w-3 h-3 ml-1" /></Link>
+                <Link to="/dashboard/documents-compliance">{t('expiredDocuments.viewAll')} <ChevronRight className="w-3 h-3 ms-1 rtl:rotate-180" /></Link>
               </Button>
             </div>
           </CardHeader>
@@ -483,7 +498,7 @@ export function Dashboard() {
                 </div>
               : expiredDocs.length === 0
               ? <div className="text-center py-8 text-muted-foreground text-sm">
-                  {expiredUnrenewed === 0 ? 'No expired documents without renewals.' : 'Showing 0 of 0 expired documents.'}
+                  {expiredUnrenewed === 0 ? t('expiredDocuments.emptyZero') : t('expiredDocuments.emptyOther')}
                 </div>
               : <div className="space-y-2">
                   {expiredDocs.map((doc: any) => {
@@ -500,12 +515,12 @@ export function Dashboard() {
                             </p>
                             {expDate && (
                               <p className="text-xs text-red-500">
-                                Expired {expDate.toLocaleDateString()} ({daysAgo}d ago)
+                                {t('expiredDocuments.expiredOn', { date: formatDate(expDate), days: daysAgo })}
                               </p>
                             )}
                           </div>
-                          <Badge variant="outline" className="bg-red-50 text-red-600 border-red-300 ml-2 shrink-0">
-                            Expired
+                          <Badge variant="outline" className="bg-red-50 text-red-600 border-red-300 ms-2 shrink-0">
+                            {t('expiredDocuments.expiredBadge')}
                           </Badge>
                         </div>
                       </Link>
@@ -513,8 +528,8 @@ export function Dashboard() {
                   })}
                   {expiredUnrenewed > 5 && (
                     <p className="text-xs text-muted-foreground text-center pt-1">
-                      +{expiredUnrenewed - 5} more —{' '}
-                      <Link to="/dashboard/documents-compliance" className="underline">view all</Link>
+                      {t('expiredDocuments.more', { count: expiredUnrenewed - 5 })}{' '}
+                      <Link to="/dashboard/documents-compliance" className="underline">{t('expiredDocuments.moreLink')}</Link>
                     </p>
                   )}
                 </div>
@@ -528,9 +543,9 @@ export function Dashboard() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Zap className="w-4 h-4 text-muted-foreground" />
-            Quick Actions
+            {t('quickActions.title')}
           </CardTitle>
-          <CardDescription>Shortcuts to common tasks</CardDescription>
+          <CardDescription>{t('quickActions.subtitle')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -538,7 +553,7 @@ export function Dashboard() {
               <Button variant="outline" className="h-auto flex-col gap-2 p-4 hover:bg-blue-50 hover:border-blue-300" asChild>
                 <Link to="/dashboard/employees/add">
                   <UserPlus className="w-6 h-6 text-blue-600" />
-                  <span className="text-sm">Add Employee</span>
+                  <span className="text-sm">{t('quickActions.addEmployee')}</span>
                 </Link>
               </Button>
             )}
@@ -546,7 +561,7 @@ export function Dashboard() {
               <Button variant="outline" className="h-auto flex-col gap-2 p-4 hover:bg-emerald-50 hover:border-emerald-300" asChild>
                 <Link to="/dashboard/documents/upload">
                   <FileCheck className="w-6 h-6 text-emerald-600" />
-                  <span className="text-sm">Upload Document</span>
+                  <span className="text-sm">{t('quickActions.uploadDocument')}</span>
                 </Link>
               </Button>
             )}
@@ -554,7 +569,7 @@ export function Dashboard() {
               <Button variant="outline" className="h-auto flex-col gap-2 p-4 hover:bg-purple-50 hover:border-purple-300" asChild>
                 <Link to="/dashboard/workflows">
                   <TrendingUp className="w-6 h-6 text-purple-600" />
-                  <span className="text-sm">View Workflow</span>
+                  <span className="text-sm">{t('quickActions.viewWorkflow')}</span>
                 </Link>
               </Button>
             )}
@@ -562,7 +577,7 @@ export function Dashboard() {
               <Button variant="outline" className="h-auto flex-col gap-2 p-4 hover:bg-amber-50 hover:border-amber-300" asChild>
                 <Link to="/dashboard/reports">
                   <BarChart3 className="w-6 h-6 text-amber-600" />
-                  <span className="text-sm">Reports</span>
+                  <span className="text-sm">{t('quickActions.reports')}</span>
                 </Link>
               </Button>
             )}

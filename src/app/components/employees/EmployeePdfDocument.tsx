@@ -5,6 +5,10 @@
  */
 import { Document, Page, Text, View, StyleSheet, Image, pdf } from '@react-pdf/renderer';
 import { PDFDocument } from 'pdf-lib';
+import i18n from '../../../i18n';
+
+const tp = (k: string, opts?: Record<string, unknown>): string =>
+  i18n.t(`employees.pdf.${k}`, { ns: 'pages', ...(opts ?? {}) }) as string;
 
 const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1').replace('/api/v1', '');
 
@@ -69,7 +73,7 @@ export function EmployeePDF({ employee, photoDataUrl }: { employee: any; photoDa
         </View>
 
         <View style={S.section}>
-          <Text style={S.sectionTitle}>Personal Information</Text>
+          <Text style={S.sectionTitle}>{tp('personalInformation')}</Text>
           <View style={S.grid2}>
             <F label="First Name" value={e.firstName} />
             <F label="Last Name" value={e.lastName} />
@@ -84,7 +88,7 @@ export function EmployeePDF({ employee, photoDataUrl }: { employee: any; photoDa
         </View>
 
         <View style={S.section}>
-          <Text style={S.sectionTitle}>Contact Details</Text>
+          <Text style={S.sectionTitle}>{tp('contactDetails')}</Text>
           <View style={S.grid2}>
             <F label="Email" value={e.email} />
             <F label="Phone" value={e.phone} />
@@ -102,7 +106,7 @@ export function EmployeePDF({ employee, photoDataUrl }: { employee: any; photoDa
           )}
           {(e.emergencyContact || e.emergencyPhone) && (
             <>
-              <Text style={S.subTitle}>Emergency Contact</Text>
+              <Text style={S.subTitle}>{tp('emergencyContact')}</Text>
               <View style={S.grid2}>
                 <F label="Name" value={e.emergencyContact} />
                 <F label="Phone" value={e.emergencyPhone} />
@@ -124,7 +128,7 @@ export function EmployeePDF({ employee, photoDataUrl }: { employee: any; photoDa
         </View>
 
         <View style={S.footer} fixed>
-          <Text style={S.footerText}>TempWorks Europe — Confidential</Text>
+          <Text style={S.footerText}>{tp('footer')}</Text>
           <Text
             style={S.footerText}
             render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`}

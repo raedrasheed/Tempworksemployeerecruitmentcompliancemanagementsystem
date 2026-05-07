@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Download, FileText, CheckCircle2, XCircle, Edit, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -13,11 +14,14 @@ import { toast } from 'sonner';
 import { confirm } from '../../components/ui/ConfirmDialog';
 import { documentsApi } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
+import { apiError } from '../../../i18n/apiError';
 
 const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1').replace('/api/v1', '');
 const getFileUrl = (fileUrl: string) => `${API_BASE}${fileUrl}`;
 
 export function DocumentPreview() {
+  const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const { id } = useParams();
   const navigate = useNavigate();
   const { canEdit, canDelete, can } = usePermissions();
@@ -33,7 +37,7 @@ export function DocumentPreview() {
   useEffect(() => {
     documentsApi.get(id!)
       .then(setDocument)
-      .catch(() => toast.error('Document not found'))
+      .catch(() => toast.error(t('documents.preview.notFound')))
       .finally(() => setLoading(false));
   }, [id]);
 
@@ -42,9 +46,9 @@ export function DocumentPreview() {
     try {
       const updated = await documentsApi.verify(id!, { action: 'VERIFY' });
       setDocument(updated);
-      toast.success('Document approved');
+      toast.success(t('documents.preview.approveSuccess'));
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to approve document');
+      toast.error(apiError(err, t('documents.preview.approveFailed')));
     } finally {
       setVerifying(false);
     }
@@ -52,7 +56,7 @@ export function DocumentPreview() {
 
   const handleReject = async () => {
     if (!rejectionReason.trim()) {
-      toast.error('A rejection reason is required');
+      toast.error(t('documents.preview.rejectionRequired'));
       return;
     }
     setVerifying(true);
@@ -62,10 +66,10 @@ export function DocumentPreview() {
         reason: rejectionReason.trim(),
       });
       setDocument(updated);
-      toast.success('Document rejected');
+      toast.success(t('documents.preview.rejectSuccess'));
       setRejectOpen(false);
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to reject document');
+      toast.error(apiError(err, t('documents.preview.rejectFailed')));
     } finally {
       setVerifying(false);
     }
@@ -73,32 +77,32 @@ export function DocumentPreview() {
 
   const handleDelete = async () => {
     if (!(await confirm({
-      title: 'Delete document?',
-      description: 'This document will be permanently removed. This cannot be undone.',
-      confirmText: 'Delete', tone: 'destructive',
+      title: tc('confirm.deleteDocumentTitle'),
+      description: tc('confirm.deleteDocumentBodyDefault'),
+      confirmText: tc('actions.delete'), tone: 'destructive',
     }))) return;
     try {
       await documentsApi.delete(id!);
-      toast.success('Document deleted');
+      toast.success(t('documents.preview.deleteSuccess'));
       navigate('/dashboard/documents-compliance');
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to delete document');
+      toast.error(apiError(err, t('documents.preview.deleteFailed')));
     }
   };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'VERIFIED':      return <Badge className="bg-[#22C55E]">Valid</Badge>;
-      case 'EXPIRING_SOON': return <Badge className="bg-[#F59E0B]">Expiring Soon</Badge>;
-      case 'EXPIRED':       return <Badge className="bg-[#EF4444]">Expired</Badge>;
-      case 'REJECTED':      return <Badge className="bg-[#EF4444]">Rejected</Badge>;
-      case 'PENDING':       return <Badge className="bg-[#64748B]">Pending Review</Badge>;
+      case 'VERIFIED':      return <Badge className="bg-[#22C55E]">{t('documents.preview.statusBadge.valid')}</Badge>;
+      case 'EXPIRING_SOON': return <Badge className="bg-[#F59E0B]">{t('documents.preview.statusBadge.expiringSoon')}</Badge>;
+      case 'EXPIRED':       return <Badge className="bg-[#EF4444]">{t('documents.preview.statusBadge.expired')}</Badge>;
+      case 'REJECTED':      return <Badge className="bg-[#EF4444]">{t('documents.preview.statusBadge.rejected')}</Badge>;
+      case 'PENDING':       return <Badge className="bg-[#64748B]">{t('documents.preview.statusBadge.pending')}</Badge>;
       default:              return <Badge variant="outline">{status}</Badge>;
     }
   };
 
-  if (loading) return <div className="p-8 text-muted-foreground">Loading…</div>;
-  if (!document) return <div className="p-8">Document not found</div>;
+  if (loading) return <div className="p-8 text-muted-foreground">{t('documents.preview.loading')}</div>;
+  if (!document) return <div className="p-8">{t('documents.preview.notFound')}</div>;
 
   const isImage = document.mimeType?.startsWith('image/');
 
@@ -112,7 +116,7 @@ export function DocumentPreview() {
           </Link>
         </Button>
         <div className="flex-1">
-          <h1 className="text-3xl font-semibold text-[#0F172A]">Document Preview</h1>
+          <h1 className="text-3xl font-semibold text-[#0F172A]">{t('documents.preview.pageTitle')}</h1>
           <p className="text-muted-foreground mt-1">
             {document.documentType?.name} — {document.name}
           </p>
@@ -121,13 +125,13 @@ export function DocumentPreview() {
           {canEdit('documents') && (
             <Button variant="outline" asChild>
               <Link to={`/dashboard/documents/${id}/edit`}>
-                <Edit className="w-4 h-4 mr-2" />Edit
+                <Edit className="w-4 h-4 me-2" />Edit
               </Link>
             </Button>
           )}
           <Button variant="outline" asChild>
             <a href={getFileUrl(document.fileUrl)} target="_blank" rel="noopener noreferrer" download>
-              <Download className="w-4 h-4 mr-2" />Download
+              <Download className="w-4 h-4 me-2" />Download
             </a>
           </Button>
           {canDelete('documents') && (
@@ -136,7 +140,7 @@ export function DocumentPreview() {
               className="text-[#EF4444] border-[#EF4444]"
               onClick={handleDelete}
             >
-              <Trash2 className="w-4 h-4 mr-2" />Delete
+              <Trash2 className="w-4 h-4 me-2" />Delete
             </Button>
           )}
         </div>
@@ -161,11 +165,11 @@ export function DocumentPreview() {
             ) : (
               <div className="text-center">
                 <FileText className="w-24 h-24 mx-auto text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">Preview not available</p>
+                <p className="text-muted-foreground">{t('documents.preview.previewNotAvailable')}</p>
                 <p className="text-sm text-muted-foreground mt-2">{document.name}</p>
                 <Button variant="outline" className="mt-4" asChild>
                   <a href={getFileUrl(document.fileUrl)} target="_blank" rel="noopener noreferrer" download>
-                    <Download className="w-4 h-4 mr-2" />Download to view
+                    <Download className="w-4 h-4 me-2" />{t('documents.preview.downloadToView')}
                   </a>
                 </Button>
               </div>
@@ -176,51 +180,51 @@ export function DocumentPreview() {
         {/* Details pane */}
         <div className="space-y-6">
           <Card>
-            <CardHeader><CardTitle>Document Details</CardTitle></CardHeader>
+            <CardHeader><CardTitle>{t('documents.preview.details')}</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <p className="text-sm text-muted-foreground">Name</p>
+                <p className="text-sm text-muted-foreground">{t('documents.preview.name')}</p>
                 <p className="font-medium mt-1">{document.name}</p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Type</p>
+                <p className="text-sm text-muted-foreground">{t('documents.preview.type')}</p>
                 <p className="font-medium mt-1">{document.documentType?.name ?? '—'}</p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Status</p>
+                <p className="text-sm text-muted-foreground">{t('documents.preview.status')}</p>
                 <div className="mt-1">{getStatusBadge(document.status)}</div>
               </div>
               {document.documentNumber && (
                 <div>
-                  <p className="text-sm text-muted-foreground">Document Number</p>
+                  <p className="text-sm text-muted-foreground">{t('documents.preview.documentNumber')}</p>
                   <p className="font-medium mt-1">{document.documentNumber}</p>
                 </div>
               )}
               {document.issuer && (
                 <div>
-                  <p className="text-sm text-muted-foreground">Issuer</p>
+                  <p className="text-sm text-muted-foreground">{t('documents.preview.issuer')}</p>
                   <p className="font-medium mt-1">{document.issuer}</p>
                 </div>
               )}
               {document.issueDate && (
                 <div>
-                  <p className="text-sm text-muted-foreground">Issue Date</p>
+                  <p className="text-sm text-muted-foreground">{t('documents.preview.issueDate')}</p>
                   <p className="font-medium mt-1">{new Date(document.issueDate).toLocaleDateString()}</p>
                 </div>
               )}
               {document.expiryDate && (
                 <div>
-                  <p className="text-sm text-muted-foreground">Expiry Date</p>
+                  <p className="text-sm text-muted-foreground">{t('documents.preview.expiryDate')}</p>
                   <p className="font-medium mt-1">{new Date(document.expiryDate).toLocaleDateString()}</p>
                 </div>
               )}
               <div>
-                <p className="text-sm text-muted-foreground">Uploaded</p>
+                <p className="text-sm text-muted-foreground">{t('documents.preview.uploaded')}</p>
                 <p className="font-medium mt-1">{new Date(document.createdAt).toLocaleDateString()}</p>
               </div>
               {document.uploadedBy && (
                 <div>
-                  <p className="text-sm text-muted-foreground">Uploaded By</p>
+                  <p className="text-sm text-muted-foreground">{t('documents.preview.uploadedBy')}</p>
                   <p className="font-medium mt-1">
                     {document.uploadedBy.firstName} {document.uploadedBy.lastName}
                   </p>
@@ -229,7 +233,7 @@ export function DocumentPreview() {
               {document.verifiedBy && (
                 <div>
                   <p className="text-sm text-muted-foreground">
-                    {document.status === 'REJECTED' ? 'Rejected By' : 'Verified By'}
+                    {document.status === 'REJECTED' ? t('documents.preview.rejectedBy') : t('documents.preview.verifiedBy')}
                   </p>
                   <p className="font-medium mt-1">
                     {document.verifiedBy.firstName} {document.verifiedBy.lastName}
@@ -258,7 +262,7 @@ export function DocumentPreview() {
                 onClick={handleApprove}
                 disabled={verifying}
               >
-                <CheckCircle2 className="w-4 h-4 mr-2" />
+                <CheckCircle2 className="w-4 h-4 me-2" />
                 {verifying ? 'Processing…' : 'Approve Document'}
               </Button>
               <Button
@@ -267,7 +271,7 @@ export function DocumentPreview() {
                 onClick={() => { setRejectionReason(''); setRejectOpen(true); }}
                 disabled={verifying}
               >
-                <XCircle className="w-4 h-4 mr-2" />
+                <XCircle className="w-4 h-4 me-2" />
                 Reject Document
               </Button>
             </div>
@@ -308,7 +312,7 @@ export function DocumentPreview() {
               onClick={handleReject}
               disabled={verifying || !rejectionReason.trim()}
             >
-              <XCircle className="w-4 h-4 mr-2" />
+              <XCircle className="w-4 h-4 me-2" />
               {verifying ? 'Rejecting…' : 'Confirm Rejection'}
             </Button>
           </DialogFooter>

@@ -1,8 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Save, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import { jobAdsApi, settingsApi } from '../../services/api';
+import { apiError } from '../../../i18n/apiError';
+import { useValidationErrors } from '../../../i18n/useValidationErrors';
+import { FieldError } from '../../components/ui/field-error';
+import { ValidationSummary } from '../../components/ui/validation-summary';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
@@ -39,9 +44,13 @@ const EMPTY_FORM = {
 };
 
 export function JobAdForm() {
+  const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const isEdit = Boolean(id);
+
+  const { errors: fieldErrs, setFromError, clearAll: clearFieldErrors, clearError } = useValidationErrors();
 
   const [form, setForm] = useState(EMPTY_FORM);
   const [constants, setConstants] = useState<Constants>(DEFAULT_CONSTANTS);
@@ -85,26 +94,29 @@ export function JobAdForm() {
         });
         setRequiredDocuments(Array.isArray(ad.requiredDocuments) ? ad.requiredDocuments : []);
       }).catch(() => {
-        toast.error('Failed to load job ad');
+        toast.error(tc('toast.loadFailed'));
         navigate('/dashboard/job-ads');
       }).finally(() => setLoading(false));
     }
   }, [id]);
 
-  const set = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+  const set = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm(prev => ({ ...prev, [field]: e.target.value }));
+    if (fieldErrs[field]) clearError(field);
+  };
 
   const handleSave = async (publishNow = false) => {
     setSubmitAttempted(true);
-    if (!form.title.trim())       return toast.error('Title is required');
-    if (!form.category.trim())    return toast.error('Category is required');
-    if (!form.description.trim()) return toast.error('Description is required');
+    clearFieldErrors();
+    if (!form.title.trim())       return toast.error(tc('toast.titleRequired'));
+    if (!form.category.trim())    return toast.error(tc('toast.categoryRequired'));
+    if (!form.description.trim()) return toast.error(tc('toast.descriptionRequired'));
     if (!form.city.trim()) {
-      toast.error('City is required');
+      toast.error(t('jobAds.form.cityRequired'));
       cityInputRef.current?.focus();
       return;
     }
-    if (!form.country.trim())     return toast.error('Country is required');
+    if (!form.country.trim())     return toast.error(t('jobAds.form.countryRequired'));
 
     setSaving(true);
     try {
@@ -124,14 +136,15 @@ export function JobAdForm() {
 
       if (isEdit && id) {
         await jobAdsApi.update(id, payload);
-        toast.success('Job ad updated');
+        toast.success(tc('toast.savedSuccessfully'));
       } else {
         await jobAdsApi.create(payload);
-        toast.success(publishNow ? 'Job ad published' : 'Job ad created as draft');
+        toast.success(publishNow ? tc('toast.published') : tc('toast.savedSuccessfully'));
       }
       navigate('/dashboard/job-ads');
     } catch (err: any) {
-      toast.error(err?.message ?? 'Failed to save job ad');
+      setFromError(err);
+      toast.error(apiError(err, tc('toast.saveFailed')));
     } finally {
       setSaving(false);
     }
@@ -139,7 +152,7 @@ export function JobAdForm() {
 
   if (loading) {
     return (
-      <div className="p-6 text-center text-muted-foreground">Loading…</div>
+      <div className="p-6 text-center text-muted-foreground">{t('jobAds.form.loading')}</div>
     );
   }
 
@@ -160,10 +173,12 @@ export function JobAdForm() {
         </div>
       </div>
 
+      <ValidationSummary errors={fieldErrs} />
+
       {/* Basic Info */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Basic Information</CardTitle>
+          <CardTitle className="text-base">{t('jobAds.form.basicInfo')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
@@ -172,13 +187,17 @@ export function JobAdForm() {
               value={form.title}
               onChange={set('title')}
               placeholder="e.g. Truck Driver – CE Licence Required"
+              aria-invalid={!!fieldErrs.title}
+              className={fieldErrs.title ? 'border-red-500 focus-visible:ring-red-500' : ''}
             />
+            <FieldError errors={fieldErrs} name="title" />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label>Category <span className="text-destructive">*</span></Label>
-              <Select value={form.category} onValueChange={v => setForm(p => ({ ...p, category: v }))}>
-                <SelectTrigger>
+              <Select value={form.category} onValueChange={v => { setForm(p => ({ ...p, category: v })); if (fieldErrs.category) clearError('category'); }}>
+                <SelectTrigger aria-invalid={!!fieldErrs.category}
+                  className={fieldErrs.category ? 'border-red-500 focus-visible:ring-red-500' : ''}>
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
@@ -187,6 +206,7 @@ export function JobAdForm() {
                   ))}
                 </SelectContent>
               </Select>
+              <FieldError errors={fieldErrs} name="category" />
             </div>
             <div>
               <Label>Contract Type</Label>
@@ -213,24 +233,26 @@ export function JobAdForm() {
                 placeholder="e.g. Warsaw"
                 required
                 aria-required="true"
-                aria-invalid={submitAttempted && !form.city.trim()}
-                className={submitAttempted && !form.city.trim() ? 'border-destructive focus-visible:ring-destructive' : ''}
+                aria-invalid={(submitAttempted && !form.city.trim()) || !!fieldErrs.city}
+                className={(submitAttempted && !form.city.trim()) || fieldErrs.city ? 'border-destructive focus-visible:ring-destructive' : ''}
               />
               {submitAttempted && !form.city.trim() && (
-                <p className="text-xs text-destructive mt-1">City is required</p>
+                <p className="text-xs text-destructive mt-1">{t('jobAds.form.cityRequired')}</p>
               )}
+              <FieldError errors={fieldErrs} name="city" />
             </div>
             <div>
               <Label>Country <span className="text-destructive">*</span></Label>
               <CountrySelect
                 value={form.country}
-                onChange={v => setForm(p => ({ ...p, country: v }))}
+                onChange={v => { setForm(p => ({ ...p, country: v })); if (fieldErrs.country) clearError('country'); }}
                 placeholder="Select country"
                 required
               />
               {submitAttempted && !form.country.trim() && (
-                <p className="text-xs text-destructive mt-1">Country is required</p>
+                <p className="text-xs text-destructive mt-1">{t('jobAds.form.countryRequired')}</p>
               )}
+              <FieldError errors={fieldErrs} name="country" />
             </div>
           </div>
         </CardContent>
@@ -239,7 +261,7 @@ export function JobAdForm() {
       {/* Description */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Job Description</CardTitle>
+          <CardTitle className="text-base">{t('jobAds.form.jobDescription')}</CardTitle>
         </CardHeader>
         <CardContent>
           <Label>Description <span className="text-destructive">*</span></Label>
@@ -248,15 +270,19 @@ export function JobAdForm() {
             onChange={set('description')}
             rows={10}
             placeholder="Describe the role, requirements, responsibilities, and benefits…"
-            className="mt-1.5 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-y"
+            aria-invalid={!!fieldErrs.description}
+            className={`mt-1.5 w-full rounded-md border bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-y ${
+              fieldErrs.description ? 'border-red-500 focus-visible:ring-red-500' : 'border-input'
+            }`}
           />
+          <FieldError errors={fieldErrs} name="description" />
         </CardContent>
       </Card>
 
       {/* Salary & Status */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Salary & Status</CardTitle>
+          <CardTitle className="text-base">{t('jobAds.form.salaryStatus')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-3 gap-4">
@@ -311,7 +337,7 @@ export function JobAdForm() {
       {/* Required Documents */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Required Documents</CardTitle>
+          <CardTitle className="text-base">{t('jobAds.form.requiredDocuments')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-sm text-muted-foreground">
@@ -319,7 +345,7 @@ export function JobAdForm() {
             They will not be able to submit without uploading all checked documents.
           </p>
           {docTypes.length === 0 && (
-            <p className="text-sm text-muted-foreground italic">Loading document types…</p>
+            <p className="text-sm text-muted-foreground italic">{t('jobAds.form.loadingDocTypes')}</p>
           )}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {docTypes.map(name => (
@@ -355,7 +381,7 @@ export function JobAdForm() {
             onClick={() => handleSave(false)}
             disabled={saving}
           >
-            <Save className="w-4 h-4 mr-2" />
+            <Save className="w-4 h-4 me-2" />
             Save as Draft
           </Button>
           {form.status !== 'PUBLISHED' && (
@@ -364,7 +390,7 @@ export function JobAdForm() {
               disabled={saving}
               className="bg-emerald-600 hover:bg-emerald-700 text-white"
             >
-              <Eye className="w-4 h-4 mr-2" />
+              <Eye className="w-4 h-4 me-2" />
               {isEdit ? 'Save & Publish' : 'Create & Publish'}
             </Button>
           )}
@@ -373,7 +399,7 @@ export function JobAdForm() {
               onClick={() => handleSave(false)}
               disabled={saving}
             >
-              <Save className="w-4 h-4 mr-2" />
+              <Save className="w-4 h-4 me-2" />
               Save Changes
             </Button>
           )}

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Upload, FileText } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -8,8 +9,14 @@ import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { toast } from 'sonner';
 import { documentsApi, employeesApi, settingsApi } from '../../services/api';
+import { apiError } from '../../../i18n/apiError';
+import { useValidationErrors } from '../../../i18n/useValidationErrors';
+import { FieldError } from '../../components/ui/field-error';
+import { ValidationSummary } from '../../components/ui/validation-summary';
 
 export function DocumentUpload() {
+  const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const navigate = useNavigate();
   const [employees, setEmployees] = useState<any[]>([]);
   const [docTypes, setDocTypes] = useState<any[]>([]);
@@ -26,6 +33,7 @@ export function DocumentUpload() {
     notes: '',
   });
   const [file, setFile] = useState<File | null>(null);
+  const { errors: fieldErrs, setFromError, clearAll: clearFieldErrors } = useValidationErrors();
 
   useEffect(() => {
     Promise.all([
@@ -34,16 +42,17 @@ export function DocumentUpload() {
     ]).then(([empResult, types]) => {
       setEmployees((empResult as any)?.data ?? []);
       setDocTypes(Array.isArray(types) ? types : []);
-    }).catch(() => toast.error('Failed to load form data'))
+    }).catch(() => toast.error(t('documents.upload.loadFailed')))
       .finally(() => setLoading(false));
-  }, []);
+  }, [t]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!file) { toast.error('Please select a file'); return; }
-    if (!form.entityId) { toast.error('Please select an employee'); return; }
-    if (!form.documentTypeId) { toast.error('Please select a document type'); return; }
-    if (!form.name.trim()) { toast.error('Please enter a document name'); return; }
+    clearFieldErrors();
+    if (!file) { toast.error(t('documents.upload.fileRequired')); return; }
+    if (!form.entityId) { toast.error(t('documents.upload.employeeRequired')); return; }
+    if (!form.documentTypeId) { toast.error(t('documents.upload.docTypeRequired')); return; }
+    if (!form.name.trim()) { toast.error(t('documents.upload.nameRequired')); return; }
 
     setSubmitting(true);
     try {
@@ -60,16 +69,17 @@ export function DocumentUpload() {
       if (form.notes) formData.append('notes', form.notes);
 
       await documentsApi.upload(formData);
-      toast.success('Document uploaded successfully');
+      toast.success(t('documents.upload.uploadSuccess'));
       navigate('/dashboard/documents-compliance');
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to upload document');
+      setFromError(err);
+      toast.error(apiError(err, t('documents.upload.uploadFailed')));
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (loading) return <div className="p-8 text-muted-foreground">Loading...</div>;
+  if (loading) return <div className="p-8 text-muted-foreground">{tc('states.loading')}</div>;
 
   return (
     <div className="space-y-6">
@@ -80,22 +90,23 @@ export function DocumentUpload() {
           </Link>
         </Button>
         <div>
-          <h1 className="text-3xl font-semibold text-[#0F172A]">Upload Document</h1>
-          <p className="text-muted-foreground mt-1">Upload a new employee document for verification</p>
+          <h1 className="text-3xl font-semibold text-[#0F172A]">{t('documents.upload.title')}</h1>
+          <p className="text-muted-foreground mt-1">{t('documents.upload.subtitle')}</p>
         </div>
       </div>
 
       <form onSubmit={handleSubmit}>
         <div className="max-w-2xl space-y-6">
+          <ValidationSummary errors={fieldErrs} />
           <Card>
-            <CardHeader><CardTitle>Document Information</CardTitle></CardHeader>
+            <CardHeader><CardTitle>{t('documents.upload.infoCardTitle')}</CardTitle></CardHeader>
             <CardContent className="space-y-4">
 
               <div className="space-y-2">
-                <Label htmlFor="employee">Select Employee *</Label>
+                <Label htmlFor="employee">{t('documents.upload.selectEmployee')}</Label>
                 <Select value={form.entityId} onValueChange={val => setForm(prev => ({ ...prev, entityId: val }))}>
                   <SelectTrigger id="employee">
-                    <SelectValue placeholder="Choose employee" />
+                    <SelectValue placeholder={t('documents.upload.chooseEmployeePh')} />
                   </SelectTrigger>
                   <SelectContent>
                     {employees.map(emp => (
@@ -108,10 +119,10 @@ export function DocumentUpload() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="docType">Document Type *</Label>
+                <Label htmlFor="docType">{t('documents.upload.documentType')}</Label>
                 <Select value={form.documentTypeId} onValueChange={val => setForm(prev => ({ ...prev, documentTypeId: val }))}>
                   <SelectTrigger id="docType">
-                    <SelectValue placeholder="Select document type" />
+                    <SelectValue placeholder={t('documents.upload.selectDocTypePh')} />
                   </SelectTrigger>
                   <SelectContent>
                     {docTypes.map(dt => (
@@ -122,49 +133,52 @@ export function DocumentUpload() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="name">Document Name *</Label>
+                <Label htmlFor="name">{t('documents.upload.documentName')}</Label>
                 <Input
                   id="name"
-                  placeholder="e.g. Passport John Doe"
+                  placeholder={t('documents.upload.documentNamePh')}
                   value={form.name}
                   onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))}
+                  aria-invalid={!!fieldErrs.name}
+                  className={fieldErrs.name ? 'border-red-500 focus-visible:ring-red-500' : ''}
                 />
+                <FieldError errors={fieldErrs} name="name" />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="issueDate">Issue Date</Label>
+                  <Label htmlFor="issueDate">{t('documents.upload.issueDate')}</Label>
                   <Input id="issueDate" type="date" value={form.issueDate} onChange={e => setForm(prev => ({ ...prev, issueDate: e.target.value }))} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="expiryDate">Expiry Date</Label>
+                  <Label htmlFor="expiryDate">{t('documents.upload.expiryDate')}</Label>
                   <Input id="expiryDate" type="date" value={form.expiryDate} onChange={e => setForm(prev => ({ ...prev, expiryDate: e.target.value }))} />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="documentNumber">Document Number</Label>
-                  <Input id="documentNumber" placeholder="e.g. AB123456" value={form.documentNumber} onChange={e => setForm(prev => ({ ...prev, documentNumber: e.target.value }))} />
+                  <Label htmlFor="documentNumber">{t('documents.upload.documentNumber')}</Label>
+                  <Input id="documentNumber" placeholder={t('documents.upload.documentNumberPh')} value={form.documentNumber} onChange={e => setForm(prev => ({ ...prev, documentNumber: e.target.value }))} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="issuer">Issuer</Label>
-                  <Input id="issuer" placeholder="e.g. DVLA" value={form.issuer} onChange={e => setForm(prev => ({ ...prev, issuer: e.target.value }))} />
+                  <Label htmlFor="issuer">{t('documents.upload.issuer')}</Label>
+                  <Input id="issuer" placeholder={t('documents.upload.issuerPh')} value={form.issuer} onChange={e => setForm(prev => ({ ...prev, issuer: e.target.value }))} />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="notes">Notes</Label>
-                <Input id="notes" placeholder="Optional notes" value={form.notes} onChange={e => setForm(prev => ({ ...prev, notes: e.target.value }))} />
+                <Label htmlFor="notes">{t('documents.upload.notes')}</Label>
+                <Input id="notes" placeholder={t('documents.upload.notesPh')} value={form.notes} onChange={e => setForm(prev => ({ ...prev, notes: e.target.value }))} />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="file">Upload File *</Label>
+                <Label htmlFor="file">{t('documents.upload.uploadFile')}</Label>
                 <div className="border-2 border-dashed rounded-lg p-8 text-center hover:border-[#2563EB] transition-colors">
                   {file ? (
                     <div className="flex items-center justify-center gap-3">
                       <FileText className="w-8 h-8 text-[#2563EB]" />
-                      <div className="text-left">
+                      <div className="text-start">
                         <p className="font-medium">{file.name}</p>
                         <p className="text-sm text-muted-foreground">{(file.size / 1024).toFixed(1)} KB</p>
                       </div>
@@ -172,8 +186,8 @@ export function DocumentUpload() {
                   ) : (
                     <>
                       <Upload className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                      <p className="text-sm text-muted-foreground mb-2">Click to upload or drag and drop</p>
-                      <p className="text-xs text-muted-foreground">PDF, JPG, PNG, DOC up to 10MB</p>
+                      <p className="text-sm text-muted-foreground mb-2">{t('documents.upload.clickOrDrag')}</p>
+                      <p className="text-xs text-muted-foreground">{t('documents.upload.fileTypesHelp')}</p>
                     </>
                   )}
                   <Input
@@ -191,11 +205,11 @@ export function DocumentUpload() {
 
           <div className="flex gap-3">
             <Button type="submit" className="flex-1" disabled={submitting}>
-              <Upload className="w-4 h-4 mr-2" />
-              {submitting ? 'Uploading...' : 'Upload Document'}
+              <Upload className="w-4 h-4 me-2" />
+              {submitting ? t('documents.upload.uploading') : t('documents.upload.uploadButton')}
             </Button>
             <Button type="button" variant="outline" className="flex-1" asChild>
-              <Link to="/dashboard/documents-compliance">Cancel</Link>
+              <Link to="/dashboard/documents-compliance">{tc('actions.cancel')}</Link>
             </Button>
           </div>
         </div>

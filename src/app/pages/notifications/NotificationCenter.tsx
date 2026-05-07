@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import {
   Bell, BellOff, Check, CheckCheck, Trash2, Filter, RefreshCw,
   FileText, DollarSign, AlertTriangle, Info, Settings, ChevronDown, X,
@@ -113,7 +114,7 @@ function NotificationRow({
       </div>
 
       {/* Actions (show on hover) */}
-      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-1" onClick={e => e.stopPropagation()}>
+      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ms-1" onClick={e => e.stopPropagation()}>
         {!n.isRead && (
           <button
             title="Mark as read"
@@ -138,6 +139,7 @@ function NotificationRow({
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function NotificationCenter() {
+  const { t } = useTranslation('pages');
   const [notifications, setNotifications] = useState<any[]>([]);
   const [total, setTotal]     = useState(0);
   const [page, setPage]       = useState(1);
@@ -177,7 +179,7 @@ export function NotificationCenter() {
       setTotal(res?.meta?.total ?? 0);
       setUnreadCount(countRes?.count ?? 0);
     } catch {
-      toast.error('Failed to load notifications');
+      toast.error(t('notifications.toast.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -191,7 +193,7 @@ export function NotificationCenter() {
       setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true, readAt: new Date().toISOString() } : n));
       setUnreadCount(c => Math.max(0, c - 1));
     } catch {
-      toast.error('Failed to mark as read');
+      toast.error(t('notifications.toast.markReadFailed'));
     }
   };
 
@@ -203,7 +205,7 @@ export function NotificationCenter() {
       setTotal(t => t - 1);
       if (wasUnread) setUnreadCount(c => Math.max(0, c - 1));
     } catch {
-      toast.error('Failed to delete notification');
+      toast.error(t('notifications.toast.deleteFailed'));
     }
   };
 
@@ -213,9 +215,9 @@ export function NotificationCenter() {
       await notificationsApi.markAllRead();
       setNotifications(prev => prev.map(n => ({ ...n, isRead: true, readAt: new Date().toISOString() })));
       setUnreadCount(0);
-      toast.success('All notifications marked as read');
+      toast.success(t('notifications.toast.markAllReadSuccess'));
     } catch {
-      toast.error('Failed to mark all as read');
+      toast.error(t('notifications.toast.markAllReadFailed'));
     } finally {
       setMarkingAll(false);
     }
@@ -238,7 +240,7 @@ export function NotificationCenter() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-semibold text-[#0F172A]">Notifications</h1>
+          <h1 className="text-3xl font-semibold text-[#0F172A]">{t('notifications.center.title')}</h1>
           <p className="text-muted-foreground mt-1">
             {unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'} · {total} total
           </p>
@@ -246,7 +248,7 @@ export function NotificationCenter() {
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" asChild>
             <Link to="/dashboard/notifications/settings">
-              <Settings className="w-4 h-4 mr-2" />
+              <Settings className="w-4 h-4 me-2" />
               Settings
             </Link>
           </Button>
@@ -256,12 +258,12 @@ export function NotificationCenter() {
             onClick={() => setShowFilters(v => !v)}
             className={hasActiveFilters ? 'border-blue-500 text-blue-600' : ''}
           >
-            <Filter className="w-4 h-4 mr-2" />
-            Filters {hasActiveFilters && <Badge className="ml-1 h-4 text-xs bg-blue-500">{[filterIsRead !== 'all', filterType !== 'all', filterEventType !== 'all', !!filterDateFrom, !!filterDateTo].filter(Boolean).length}</Badge>}
+            <Filter className="w-4 h-4 me-2" />
+            Filters {hasActiveFilters && <Badge className="ms-1 h-4 text-xs bg-blue-500">{[filterIsRead !== 'all', filterType !== 'all', filterEventType !== 'all', !!filterDateFrom, !!filterDateTo].filter(Boolean).length}</Badge>}
           </Button>
           {unreadCount > 0 && (
             <Button size="sm" onClick={handleMarkAllRead} disabled={markingAll}>
-              <CheckCheck className="w-4 h-4 mr-2" />
+              <CheckCheck className="w-4 h-4 me-2" />
               {markingAll ? 'Marking…' : 'Mark All Read'}
             </Button>
           )}
@@ -281,9 +283,9 @@ export function NotificationCenter() {
                 <Select value={filterIsRead} onValueChange={v => { setFilterIsRead(v); setPage(1); }}>
                   <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All</SelectItem>
-                    <SelectItem value="unread">Unread only</SelectItem>
-                    <SelectItem value="read">Read only</SelectItem>
+                    <SelectItem value="all">{t('notifications.center.filters.all')}</SelectItem>
+                    <SelectItem value="unread">{t('notifications.center.unreadOnly')}</SelectItem>
+                    <SelectItem value="read">{t('notifications.center.readOnly')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -292,7 +294,7 @@ export function NotificationCenter() {
                 <Select value={filterType} onValueChange={v => { setFilterType(v); setPage(1); }}>
                   <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All types</SelectItem>
+                    <SelectItem value="all">{t('notifications.center.allTypes')}</SelectItem>
                     <SelectItem value="DOCUMENT_EXPIRY">Document</SelectItem>
                     <SelectItem value="FINANCIAL">Financial</SelectItem>
                     <SelectItem value="WARNING">Warning</SelectItem>
@@ -306,30 +308,30 @@ export function NotificationCenter() {
                 <Select value={filterEventType} onValueChange={v => { setFilterEventType(v); setPage(1); }}>
                   <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All events</SelectItem>
-                    <SelectItem value="DOCUMENT_UPLOADED">Doc Uploaded</SelectItem>
-                    <SelectItem value="DOCUMENT_EXPIRING_SOON">Doc Expiring</SelectItem>
-                    <SelectItem value="DOCUMENT_EXPIRED">Doc Expired</SelectItem>
-                    <SelectItem value="FINANCIAL_RECORD_CREATED">Finance Added</SelectItem>
-                    <SelectItem value="FINANCIAL_RECORD_UPDATED">Finance Updated</SelectItem>
-                    <SelectItem value="FINANCIAL_RECORD_DELETED">Finance Deleted</SelectItem>
+                    <SelectItem value="all">{t('notifications.center.allEvents')}</SelectItem>
+                    <SelectItem value="DOCUMENT_UPLOADED">{t('notifications.center.docUploaded')}</SelectItem>
+                    <SelectItem value="DOCUMENT_EXPIRING_SOON">{t('notifications.center.docExpiring')}</SelectItem>
+                    <SelectItem value="DOCUMENT_EXPIRED">{t('notifications.center.docExpired')}</SelectItem>
+                    <SelectItem value="FINANCIAL_RECORD_CREATED">{t('notifications.center.financeAdded')}</SelectItem>
+                    <SelectItem value="FINANCIAL_RECORD_UPDATED">{t('notifications.center.financeUpdated')}</SelectItem>
+                    <SelectItem value="FINANCIAL_RECORD_DELETED">{t('notifications.center.financeDeleted')}</SelectItem>
                     <SelectItem value="FINANCIAL_RECORD_DEDUCTED">Deduction</SelectItem>
-                    <SelectItem value="FINANCIAL_HIGH_BALANCE">High Balance</SelectItem>
+                    <SelectItem value="FINANCIAL_HIGH_BALANCE">{t('notifications.center.highBalance')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs">Date from</Label>
+                <Label className="text-xs">{t('notifications.center.dateFrom')}</Label>
                 <Input type="date" className="h-8 text-sm" value={filterDateFrom} onChange={e => { setFilterDateFrom(e.target.value); setPage(1); }} />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs">Date to</Label>
+                <Label className="text-xs">{t('notifications.center.dateTo')}</Label>
                 <Input type="date" className="h-8 text-sm" value={filterDateTo} onChange={e => { setFilterDateTo(e.target.value); setPage(1); }} />
               </div>
               {hasActiveFilters && (
                 <div className="flex items-end">
                   <Button variant="ghost" size="sm" onClick={handleResetFilters} className="h-8 text-muted-foreground">
-                    <X className="w-3 h-3 mr-1" /> Reset
+                    <X className="w-3 h-3 me-1" /> Reset
                   </Button>
                 </div>
               )}
@@ -347,7 +349,7 @@ export function NotificationCenter() {
         ) : notifications.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3 text-muted-foreground">
             <BellOff className="w-12 h-12 opacity-30" />
-            <p className="text-lg font-medium">No notifications</p>
+            <p className="text-lg font-medium">{t('notifications.center.noNotifications')}</p>
             <p className="text-sm">
               {hasActiveFilters ? 'No results for the current filters.' : 'You\'re all caught up!'}
             </p>

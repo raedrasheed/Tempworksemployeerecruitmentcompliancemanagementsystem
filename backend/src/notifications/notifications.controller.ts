@@ -1,6 +1,7 @@
-import { Controller, Get, Patch, Param, Body, UseGuards, Request, Query } from '@nestjs/common';
+import { Controller, Get, Patch, Param, Body, UseGuards, Request, Query, Headers } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { NotificationsService } from './notifications.service';
+import { resolveAcceptLanguage } from '../common/i18n/server-translate';
 
 @Controller('notifications')
 @UseGuards(JwtAuthGuard)
@@ -8,8 +9,14 @@ export class NotificationsController {
   constructor(private readonly notificationsService: NotificationsService) {}
 
   @Get()
-  async getNotifications(@Request() req: any, @Query('skip') skip = '0', @Query('take') take = '20') {
-    return this.notificationsService.getUserNotifications(req.user.id, parseInt(skip), parseInt(take));
+  async getNotifications(
+    @Request() req: any,
+    @Query('skip') skip = '0',
+    @Query('take') take = '20',
+    @Headers('accept-language') acceptLanguage?: string,
+  ) {
+    const locale = resolveAcceptLanguage(acceptLanguage);
+    return this.notificationsService.getUserNotifications(req.user.id, parseInt(skip), parseInt(take), locale);
   }
 
   @Get('unread-count')

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Save, Truck } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
@@ -12,6 +13,11 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '../../components/ui/select';
 import { vehiclesApi, settingsApi } from '../../services/api';
+import { apiError } from '../../../i18n/apiError';
+import { useValidationErrors } from '../../../i18n/useValidationErrors';
+import { FieldError } from '../../components/ui/field-error';
+import { ValidationSummary } from '../../components/ui/validation-summary';
+import { enumLabel } from '../../../i18n/enumLabel';
 
 type VehicleLookups = Record<string, string[]>;
 
@@ -110,25 +116,23 @@ const EMPTY: FormData = {
   equipmentDescription: '',
 };
 
-function typeSpecificFields(type: string) {
-  return isTruckLike(type) || isTankerLike(type) || isVanLike(type) || isCarLike(type) || isRefrigeratedLike(type) || isSpecialtyLike(type);
-}
-
 export function VehicleForm() {
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
+  const { t } = useTranslation(['pages', 'common']);
   const isEdit = Boolean(id);
 
   const [form, setForm] = useState<FormData>(EMPTY);
   const [lookups, setLookups] = useState<VehicleLookups | null>(null);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(isEdit);
+  const { errors: fieldErrs, setFromError, clearAll: clearFieldErrors, clearError } = useValidationErrors();
 
   useEffect(() => {
     settingsApi.getVehicleSettings()
       .then((data) => setLookups(data))
-      .catch(() => toast.error('Failed to load vehicle settings'));
-  }, []);
+      .catch((err) => toast.error(apiError(err, t('pages:vehicles.form.toast.settingsLoadFailed'))));
+  }, [t]);
 
   useEffect(() => {
     if (!isEdit) return;
@@ -193,19 +197,21 @@ export function VehicleForm() {
         atpCertificateExpiry: v.atpCertificateExpiry ? v.atpCertificateExpiry.split('T')[0] : '',
         equipmentDescription: v.equipmentDescription ?? '',
       });
-    }).catch(() => toast.error('Failed to load vehicle')).finally(() => setLoading(false));
-  }, [id, isEdit]);
+    }).catch((err) => toast.error(apiError(err, t('pages:vehicles.form.toast.loadFailed')))).finally(() => setLoading(false));
+  }, [id, isEdit, t]);
 
   const set = (key: keyof FormData, value: string | boolean) => {
     setForm((f) => ({ ...f, [key]: value }));
+    if (fieldErrs[key as string]) clearError(key as string);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.registrationNumber.trim()) { toast.error('Registration number is required'); return; }
-    if (!form.type) { toast.error('Vehicle type is required'); return; }
-    if (!form.make.trim()) { toast.error('Make is required'); return; }
-    if (!form.model.trim()) { toast.error('Model is required'); return; }
+    clearFieldErrors();
+    if (!form.registrationNumber.trim()) { toast.error(t('pages:vehicles.form.validation.registrationRequired')); return; }
+    if (!form.type) { toast.error(t('pages:vehicles.form.validation.typeRequired')); return; }
+    if (!form.make.trim()) { toast.error(t('pages:vehicles.form.validation.makeRequired')); return; }
+    if (!form.model.trim()) { toast.error(t('pages:vehicles.form.validation.modelRequired')); return; }
 
     setSaving(true);
     try {
@@ -272,131 +278,144 @@ export function VehicleForm() {
 
       if (isEdit) {
         await vehiclesApi.update(id!, payload);
-        toast.success('Vehicle updated');
+        toast.success(t('pages:vehicles.form.toast.updated'));
       } else {
         const created = await vehiclesApi.create(payload);
-        toast.success('Vehicle created');
+        toast.success(t('pages:vehicles.form.toast.created'));
         navigate(`/dashboard/vehicles/${created.id}`);
         return;
       }
       navigate(`/dashboard/vehicles/${id}`);
     } catch (err: any) {
-      toast.error(err?.message ?? 'Save failed');
+      setFromError(err);
+      toast.error(apiError(err, t('pages:vehicles.form.toast.saveFailed')));
     } finally {
       setSaving(false);
     }
   };
 
-  if (loading) return <div className="p-6 text-muted-foreground">Loading…</div>;
+  if (loading) return <div className="p-6 text-muted-foreground">{t('common:states.loading')}</div>;
+
+  const notSpecified = t('pages:vehicles.form.fields.notSpecified');
 
   return (
     <div className="p-6 max-w-3xl mx-auto space-y-6">
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
-          <ArrowLeft className="w-4 h-4 mr-1" /> Back
+          <ArrowLeft className="w-4 h-4 me-1 rtl:rotate-180" /> {t('common:actions.back')}
         </Button>
         <div>
           <h1 className="text-xl font-bold flex items-center gap-2">
             <Truck className="w-5 h-5 text-primary" />
-            {isEdit ? 'Edit Vehicle' : 'Add Vehicle'}
+            {isEdit ? t('pages:vehicles.form.editTitle') : t('pages:vehicles.form.addTitle')}
           </h1>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        <ValidationSummary errors={fieldErrs} />
         {/* Vehicle Details */}
         <Card>
-          <CardHeader><CardTitle className="text-base">Vehicle Details</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base">{t('pages:vehicles.form.sections.details')}</CardTitle></CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1">
-              <Label>Registration Number *</Label>
-              <Input value={form.registrationNumber} onChange={(e) => set('registrationNumber', e.target.value.toUpperCase())} placeholder="e.g. AB12 CDE" />
+              <Label>{t('pages:vehicles.form.fields.registrationNumber')} *</Label>
+              <Input value={form.registrationNumber} onChange={(e) => set('registrationNumber', e.target.value.toUpperCase())} placeholder={t('pages:vehicles.form.fields.registrationNumberPh')}
+                aria-invalid={!!fieldErrs.registrationNumber}
+                className={fieldErrs.registrationNumber ? 'border-red-500 focus-visible:ring-red-500' : ''} />
+              <FieldError errors={fieldErrs} name="registrationNumber" />
             </div>
             <div className="space-y-1">
-              <Label>License Plate</Label>
-              <Input value={form.licensePlate} onChange={(e) => set('licensePlate', e.target.value)} placeholder="e.g. AB12CDE" />
+              <Label>{t('pages:vehicles.form.fields.licensePlate')}</Label>
+              <Input value={form.licensePlate} onChange={(e) => set('licensePlate', e.target.value)} placeholder={t('pages:vehicles.form.fields.licensePlatePh')} />
             </div>
             <div className="space-y-1">
-              <Label>Vehicle Type *</Label>
+              <Label>{t('pages:vehicles.form.fields.vehicleType')} *</Label>
               <Select value={form.type || 'none'} onValueChange={(v) => set('type', v === 'none' ? '' : v)}>
-                <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={t('pages:vehicles.form.fields.vehicleTypePh')} /></SelectTrigger>
                 <SelectContent>
-                  {lookups?.vehicleTypes?.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                  {lookups?.vehicleTypes?.map((tp) => <SelectItem key={tp} value={tp}>{tp}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1">
-              <Label>Status</Label>
+              <Label>{t('pages:vehicles.form.fields.status')}</Label>
               <Select value={form.status || 'ACTIVE'} onValueChange={(v) => set('status', v)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {lookups?.statuses?.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  {lookups?.statuses?.map((s) => <SelectItem key={s} value={s}>{enumLabel('maintenanceStatus', s) || s}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1">
-              <Label>Make *</Label>
-              <Input value={form.make} onChange={(e) => set('make', e.target.value)} placeholder="e.g. Volvo" />
+              <Label>{t('pages:vehicles.form.fields.make')} *</Label>
+              <Input value={form.make} onChange={(e) => set('make', e.target.value)} placeholder={t('pages:vehicles.form.fields.makePh')}
+                aria-invalid={!!fieldErrs.make}
+                className={fieldErrs.make ? 'border-red-500 focus-visible:ring-red-500' : ''} />
+              <FieldError errors={fieldErrs} name="make" />
             </div>
             <div className="space-y-1">
-              <Label>Model *</Label>
-              <Input value={form.model} onChange={(e) => set('model', e.target.value)} placeholder="e.g. FH16" />
+              <Label>{t('pages:vehicles.form.fields.model')} *</Label>
+              <Input value={form.model} onChange={(e) => set('model', e.target.value)} placeholder={t('pages:vehicles.form.fields.modelPh')}
+                aria-invalid={!!fieldErrs.model}
+                className={fieldErrs.model ? 'border-red-500 focus-visible:ring-red-500' : ''} />
+              <FieldError errors={fieldErrs} name="model" />
             </div>
             <div className="space-y-1">
-              <Label>Year</Label>
-              <Input type="number" value={form.year} onChange={(e) => set('year', e.target.value)} placeholder="e.g. 2022" min={1950} max={2100} />
+              <Label>{t('pages:vehicles.form.fields.year')}</Label>
+              <Input type="number" value={form.year} onChange={(e) => set('year', e.target.value)} placeholder={t('pages:vehicles.form.fields.yearPh')} min={1950} max={2100} />
             </div>
             <div className="space-y-1">
-              <Label>Color</Label>
-              <Input value={form.color} onChange={(e) => set('color', e.target.value)} placeholder="e.g. White" />
+              <Label>{t('pages:vehicles.form.fields.color')}</Label>
+              <Input value={form.color} onChange={(e) => set('color', e.target.value)} placeholder={t('pages:vehicles.form.fields.colorPh')} />
             </div>
             <div className="space-y-1">
-              <Label>VIN</Label>
-              <Input value={form.vin} onChange={(e) => set('vin', e.target.value.toUpperCase())} placeholder="Vehicle Identification Number" />
+              <Label>{t('pages:vehicles.form.fields.vin')}</Label>
+              <Input value={form.vin} onChange={(e) => set('vin', e.target.value.toUpperCase())} placeholder={t('pages:vehicles.form.fields.vinPh')} />
             </div>
             <div className="space-y-1">
-              <Label>Fuel Type</Label>
+              <Label>{t('pages:vehicles.form.fields.fuelType')}</Label>
               <Select value={form.fuelType || 'none'} onValueChange={(v) => set('fuelType', v === 'none' ? '' : v)}>
-                <SelectTrigger><SelectValue placeholder="Select fuel type" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={t('pages:vehicles.form.fields.fuelTypePh')} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Not specified</SelectItem>
-                  {lookups?.fuelTypes?.map((f) => <SelectItem key={f} value={f}>{f}</SelectItem>)}
+                  <SelectItem value="none">{notSpecified}</SelectItem>
+                  {lookups?.fuelTypes?.map((f) => <SelectItem key={f} value={f}>{enumLabel('fuelType', f) || f}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1">
-              <Label>Fuel Capacity (litres)</Label>
-              <Input type="number" step="0.1" value={form.fuelCapacity} onChange={(e) => set('fuelCapacity', e.target.value)} placeholder="e.g. 200" />
+              <Label>{t('pages:vehicles.form.fields.fuelCapacity')}</Label>
+              <Input type="number" step="0.1" value={form.fuelCapacity} onChange={(e) => set('fuelCapacity', e.target.value)} placeholder={t('pages:vehicles.form.fields.fuelCapacityPh')} />
             </div>
             <div className="space-y-1">
-              <Label>Current Mileage (km)</Label>
-              <Input type="number" value={form.currentMileage} onChange={(e) => set('currentMileage', e.target.value)} placeholder="0" min={0} />
+              <Label>{t('pages:vehicles.form.fields.currentMileage')}</Label>
+              <Input type="number" value={form.currentMileage} onChange={(e) => set('currentMileage', e.target.value)} placeholder={t('pages:vehicles.form.fields.currentMileagePh')} min={0} />
             </div>
             <div className="col-span-full space-y-1">
-              <Label>Notes</Label>
-              <Textarea value={form.notes} onChange={(e) => set('notes', e.target.value)} placeholder="Additional notes" rows={3} />
+              <Label>{t('pages:vehicles.form.fields.notes')}</Label>
+              <Textarea value={form.notes} onChange={(e) => set('notes', e.target.value)} placeholder={t('pages:vehicles.form.fields.notesPh')} rows={3} />
             </div>
           </CardContent>
         </Card>
 
         {/* Compliance Dates */}
         <Card>
-          <CardHeader><CardTitle className="text-base">Compliance & Registration Dates</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base">{t('pages:vehicles.form.sections.compliance')}</CardTitle></CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1">
-              <Label>MOT Expiry</Label>
+              <Label>{t('pages:vehicles.form.fields.motExpiry')}</Label>
               <Input type="date" value={form.motExpiryDate} onChange={(e) => set('motExpiryDate', e.target.value)} />
             </div>
             <div className="space-y-1">
-              <Label>Tax Expiry</Label>
+              <Label>{t('pages:vehicles.form.fields.taxExpiry')}</Label>
               <Input type="date" value={form.taxExpiryDate} onChange={(e) => set('taxExpiryDate', e.target.value)} />
             </div>
             <div className="space-y-1">
-              <Label>Registration Expiry</Label>
+              <Label>{t('pages:vehicles.form.fields.registrationExpiry')}</Label>
               <Input type="date" value={form.registrationExpiryDate} onChange={(e) => set('registrationExpiryDate', e.target.value)} />
             </div>
             <div className="space-y-1">
-              <Label>Insurance Expiry</Label>
+              <Label>{t('pages:vehicles.form.fields.insuranceExpiry')}</Label>
               <Input type="date" value={form.insuranceExpiryDate} onChange={(e) => set('insuranceExpiryDate', e.target.value)} />
             </div>
           </CardContent>
@@ -404,59 +423,59 @@ export function VehicleForm() {
 
         {/* Purchase Information */}
         <Card>
-          <CardHeader><CardTitle className="text-base">Purchase Information</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base">{t('pages:vehicles.form.sections.purchase')}</CardTitle></CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1">
-              <Label>Purchase Order</Label>
-              <Input value={form.purchaseOrder} onChange={(e) => set('purchaseOrder', e.target.value)} placeholder="e.g. PO-2024-001" />
+              <Label>{t('pages:vehicles.form.fields.purchaseOrder')}</Label>
+              <Input value={form.purchaseOrder} onChange={(e) => set('purchaseOrder', e.target.value)} placeholder={t('pages:vehicles.form.fields.purchaseOrderPh')} />
             </div>
             <div className="space-y-1">
-              <Label>Purchase Date</Label>
+              <Label>{t('pages:vehicles.form.fields.purchaseDate')}</Label>
               <Input type="date" value={form.purchaseDate} onChange={(e) => set('purchaseDate', e.target.value)} />
             </div>
             <div className="space-y-1">
-              <Label>Purchase Cost</Label>
-              <Input type="number" step="0.01" value={form.purchaseCost} onChange={(e) => set('purchaseCost', e.target.value)} placeholder="e.g. 50000.00" />
+              <Label>{t('pages:vehicles.form.fields.purchaseCost')}</Label>
+              <Input type="number" step="0.01" value={form.purchaseCost} onChange={(e) => set('purchaseCost', e.target.value)} placeholder={t('pages:vehicles.form.fields.purchaseCostPh')} />
             </div>
             <div className="space-y-1">
-              <Label>Purchase Contract</Label>
-              <Input value={form.purchaseContract} onChange={(e) => set('purchaseContract', e.target.value)} placeholder="e.g. CON-2024-001" />
+              <Label>{t('pages:vehicles.form.fields.purchaseContract')}</Label>
+              <Input value={form.purchaseContract} onChange={(e) => set('purchaseContract', e.target.value)} placeholder={t('pages:vehicles.form.fields.purchaseContractPh')} />
             </div>
             <div className="space-y-1">
-              <Label>Vendor Name</Label>
-              <Input value={form.vendorName} onChange={(e) => set('vendorName', e.target.value)} placeholder="e.g. ABC Vehicle Dealers" />
+              <Label>{t('pages:vehicles.form.fields.vendorName')}</Label>
+              <Input value={form.vendorName} onChange={(e) => set('vendorName', e.target.value)} placeholder={t('pages:vehicles.form.fields.vendorNamePh')} />
             </div>
             <div className="col-span-full space-y-1">
-              <Label>Vendor Address</Label>
-              <Textarea value={form.vendorAddress} onChange={(e) => set('vendorAddress', e.target.value)} placeholder="Full vendor address" rows={2} />
+              <Label>{t('pages:vehicles.form.fields.vendorAddress')}</Label>
+              <Textarea value={form.vendorAddress} onChange={(e) => set('vendorAddress', e.target.value)} placeholder={t('pages:vehicles.form.fields.vendorAddressPh')} rows={2} />
             </div>
           </CardContent>
         </Card>
 
         {/* Insurance Information */}
         <Card>
-          <CardHeader><CardTitle className="text-base">Insurance Information</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base">{t('pages:vehicles.form.sections.insurance')}</CardTitle></CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1">
-              <Label>Policy Number</Label>
-              <Input value={form.insurancePolicyNumber} onChange={(e) => set('insurancePolicyNumber', e.target.value)} placeholder="e.g. POL-2024-001" />
+              <Label>{t('pages:vehicles.form.fields.policyNumber')}</Label>
+              <Input value={form.insurancePolicyNumber} onChange={(e) => set('insurancePolicyNumber', e.target.value)} placeholder={t('pages:vehicles.form.fields.policyNumberPh')} />
             </div>
             <div className="space-y-1">
-              <Label>Insurance Company</Label>
-              <Input value={form.insuranceCompany} onChange={(e) => set('insuranceCompany', e.target.value)} placeholder="e.g. ABC Insurance" />
+              <Label>{t('pages:vehicles.form.fields.insuranceCompany')}</Label>
+              <Input value={form.insuranceCompany} onChange={(e) => set('insuranceCompany', e.target.value)} placeholder={t('pages:vehicles.form.fields.insuranceCompanyPh')} />
             </div>
             <div className="space-y-1">
-              <Label>Insurance Type</Label>
+              <Label>{t('pages:vehicles.form.fields.insuranceTypeLabel')}</Label>
               <Select value={form.insuranceType || 'none'} onValueChange={(v) => set('insuranceType', v === 'none' ? '' : v)}>
-                <SelectTrigger><SelectValue placeholder="Select insurance type" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={t('pages:vehicles.form.fields.insuranceTypePh')} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Not specified</SelectItem>
-                  {lookups?.insuranceTypes?.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                  <SelectItem value="none">{notSpecified}</SelectItem>
+                  {lookups?.insuranceTypes?.map((tp) => <SelectItem key={tp} value={tp}>{tp}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1">
-              <Label>Insurance Start Date</Label>
+              <Label>{t('pages:vehicles.form.fields.insuranceStartDate')}</Label>
               <Input type="date" value={form.insuranceStartDate} onChange={(e) => set('insuranceStartDate', e.target.value)} />
             </div>
           </CardContent>
@@ -465,78 +484,78 @@ export function VehicleForm() {
         {/* Truck & Trailer Specifications */}
         {(isTruckLike(form.type) || isRefrigeratedLike(form.type)) && (
           <Card>
-            <CardHeader><CardTitle className="text-base">Truck & Trailer Specifications</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base">{t('pages:vehicles.form.sections.truck')}</CardTitle></CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <Label>Gross Weight (tonnes)</Label>
-                <Input type="number" step="0.1" value={form.grossWeight} onChange={(e) => set('grossWeight', e.target.value)} placeholder="e.g. 44" />
+                <Label>{t('pages:vehicles.form.fields.grossWeight')}</Label>
+                <Input type="number" step="0.1" value={form.grossWeight} onChange={(e) => set('grossWeight', e.target.value)} placeholder={t('pages:vehicles.form.fields.grossWeightPh')} />
               </div>
               <div className="space-y-1">
-                <Label>Payload Capacity (tonnes)</Label>
-                <Input type="number" step="0.1" value={form.payloadCapacity} onChange={(e) => set('payloadCapacity', e.target.value)} placeholder="e.g. 26" />
+                <Label>{t('pages:vehicles.form.fields.payloadCapacity')}</Label>
+                <Input type="number" step="0.1" value={form.payloadCapacity} onChange={(e) => set('payloadCapacity', e.target.value)} placeholder={t('pages:vehicles.form.fields.payloadCapacityPh')} />
               </div>
               <div className="space-y-1">
-                <Label>Tare Weight (tonnes)</Label>
-                <Input type="number" step="0.1" value={form.tareWeight} onChange={(e) => set('tareWeight', e.target.value)} placeholder="e.g. 18" />
+                <Label>{t('pages:vehicles.form.fields.tareWeight')}</Label>
+                <Input type="number" step="0.1" value={form.tareWeight} onChange={(e) => set('tareWeight', e.target.value)} placeholder={t('pages:vehicles.form.fields.tareWeightPh')} />
               </div>
               <div className="space-y-1">
-                <Label>Number of Axles</Label>
-                <Input type="number" value={form.numberOfAxles} onChange={(e) => set('numberOfAxles', e.target.value)} placeholder="e.g. 5" min={1} max={12} />
+                <Label>{t('pages:vehicles.form.fields.numberOfAxles')}</Label>
+                <Input type="number" value={form.numberOfAxles} onChange={(e) => set('numberOfAxles', e.target.value)} placeholder={t('pages:vehicles.form.fields.numberOfAxlesPh')} min={1} max={12} />
               </div>
               <div className="space-y-1">
-                <Label>Body Type</Label>
+                <Label>{t('pages:vehicles.form.fields.bodyType')}</Label>
                 <Select value={form.bodyType || 'none'} onValueChange={(v) => set('bodyType', v === 'none' ? '' : v)}>
-                  <SelectTrigger><SelectValue placeholder="Select body type" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder={t('pages:vehicles.form.fields.bodyTypePh')} /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">Not specified</SelectItem>
-                    {lookups?.bodyTypes?.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                    <SelectItem value="none">{notSpecified}</SelectItem>
+                    {lookups?.bodyTypes?.map((tp) => <SelectItem key={tp} value={tp}>{tp}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label>Hitch Type</Label>
+                <Label>{t('pages:vehicles.form.fields.hitchType')}</Label>
                 <Select value={form.hitchType || 'none'} onValueChange={(v) => set('hitchType', v === 'none' ? '' : v)}>
-                  <SelectTrigger><SelectValue placeholder="Select hitch type" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder={t('pages:vehicles.form.fields.hitchTypePh')} /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">Not specified</SelectItem>
-                    {lookups?.hitchTypes?.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                    <SelectItem value="none">{notSpecified}</SelectItem>
+                    {lookups?.hitchTypes?.map((tp) => <SelectItem key={tp} value={tp}>{tp}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label>Length (m)</Label>
-                <Input type="number" step="0.1" value={form.lengthM} onChange={(e) => set('lengthM', e.target.value)} placeholder="e.g. 13.6" />
+                <Label>{t('pages:vehicles.form.fields.lengthM')}</Label>
+                <Input type="number" step="0.1" value={form.lengthM} onChange={(e) => set('lengthM', e.target.value)} placeholder={t('pages:vehicles.form.fields.lengthMPh')} />
               </div>
               <div className="space-y-1">
-                <Label>Width (m)</Label>
-                <Input type="number" step="0.1" value={form.widthM} onChange={(e) => set('widthM', e.target.value)} placeholder="e.g. 2.5" />
+                <Label>{t('pages:vehicles.form.fields.widthM')}</Label>
+                <Input type="number" step="0.1" value={form.widthM} onChange={(e) => set('widthM', e.target.value)} placeholder={t('pages:vehicles.form.fields.widthMPh')} />
               </div>
               <div className="space-y-1">
-                <Label>Height (m)</Label>
-                <Input type="number" step="0.1" value={form.heightM} onChange={(e) => set('heightM', e.target.value)} placeholder="e.g. 2.5" />
+                <Label>{t('pages:vehicles.form.fields.heightM')}</Label>
+                <Input type="number" step="0.1" value={form.heightM} onChange={(e) => set('heightM', e.target.value)} placeholder={t('pages:vehicles.form.fields.heightMPh')} />
               </div>
               <div className="space-y-1">
-                <Label>Euro Emission Class</Label>
+                <Label>{t('pages:vehicles.form.fields.euroEmission')}</Label>
                 <Select value={form.euroEmissionClass || 'none'} onValueChange={(v) => set('euroEmissionClass', v === 'none' ? '' : v)}>
-                  <SelectTrigger><SelectValue placeholder="Select emission class" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder={t('pages:vehicles.form.fields.euroEmissionPh')} /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">Not specified</SelectItem>
+                    <SelectItem value="none">{notSpecified}</SelectItem>
                     {lookups?.euroEmissionClasses?.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label>Tachograph Serial</Label>
-                <Input value={form.tachographSerial} onChange={(e) => set('tachographSerial', e.target.value)} placeholder="e.g. VD0123456789" />
+                <Label>{t('pages:vehicles.form.fields.tachographSerial')}</Label>
+                <Input value={form.tachographSerial} onChange={(e) => set('tachographSerial', e.target.value)} placeholder={t('pages:vehicles.form.fields.tachographSerialPh')} />
               </div>
               <div className="space-y-1">
-                <Label>Tachograph Calibration Expiry</Label>
+                <Label>{t('pages:vehicles.form.fields.tachographCalibrationExpiry')}</Label>
                 <Input type="date" value={form.tachographCalibrationExpiry} onChange={(e) => set('tachographCalibrationExpiry', e.target.value)} />
               </div>
               {(/trailer/i.test(form.type) || isRefrigeratedLike(form.type)) && (
                 <div className="space-y-1">
-                  <Label>Trailer Length (m)</Label>
-                  <Input type="number" step="0.1" value={form.trailerLength} onChange={(e) => set('trailerLength', e.target.value)} placeholder="e.g. 13.6" />
+                  <Label>{t('pages:vehicles.form.fields.trailerLength')}</Label>
+                  <Input type="number" step="0.1" value={form.trailerLength} onChange={(e) => set('trailerLength', e.target.value)} placeholder={t('pages:vehicles.form.fields.trailerLengthPh')} />
                 </div>
               )}
             </CardContent>
@@ -546,19 +565,19 @@ export function VehicleForm() {
         {/* Van Specifications */}
         {isVanLike(form.type) && (
           <Card>
-            <CardHeader><CardTitle className="text-base">Van Specifications</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base">{t('pages:vehicles.form.sections.van')}</CardTitle></CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <Label>Seating Capacity</Label>
-                <Input type="number" value={form.seatingCapacity} onChange={(e) => set('seatingCapacity', e.target.value)} placeholder="e.g. 5" min={1} max={20} />
+                <Label>{t('pages:vehicles.form.fields.seatingCapacity')}</Label>
+                <Input type="number" value={form.seatingCapacity} onChange={(e) => set('seatingCapacity', e.target.value)} placeholder={t('pages:vehicles.form.fields.seatingCapacityPh')} min={1} max={20} />
               </div>
               <div className="space-y-1">
-                <Label>Load Volume (m³)</Label>
-                <Input type="number" step="0.1" value={form.loadVolume} onChange={(e) => set('loadVolume', e.target.value)} placeholder="e.g. 15.5" />
+                <Label>{t('pages:vehicles.form.fields.loadVolume')}</Label>
+                <Input type="number" step="0.1" value={form.loadVolume} onChange={(e) => set('loadVolume', e.target.value)} placeholder={t('pages:vehicles.form.fields.loadVolumePh')} />
               </div>
               <div className="flex items-center gap-2 pt-6">
                 <Checkbox checked={form.partitionFitted} onCheckedChange={(v) => set('partitionFitted', !!v)} id="partition" />
-                <Label htmlFor="partition" className="font-normal cursor-pointer">Partition Fitted</Label>
+                <Label htmlFor="partition" className="font-normal cursor-pointer">{t('pages:vehicles.form.fields.partitionFitted')}</Label>
               </div>
             </CardContent>
           </Card>
@@ -567,24 +586,24 @@ export function VehicleForm() {
         {/* Car Specifications */}
         {isCarLike(form.type) && (
           <Card>
-            <CardHeader><CardTitle className="text-base">Car Specifications</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base">{t('pages:vehicles.form.sections.car')}</CardTitle></CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <Label>VIN Sub-type</Label>
+                <Label>{t('pages:vehicles.form.fields.vinSubType')}</Label>
                 <Select value={form.vinSubType || 'none'} onValueChange={(v) => set('vinSubType', v === 'none' ? '' : v)}>
-                  <SelectTrigger><SelectValue placeholder="Select VIN sub-type" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder={t('pages:vehicles.form.fields.vinSubTypePh')} /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">Not specified</SelectItem>
-                    {lookups?.vinSubTypes?.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                    <SelectItem value="none">{notSpecified}</SelectItem>
+                    {lookups?.vinSubTypes?.map((tp) => <SelectItem key={tp} value={tp}>{tp}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label>Insurance Group</Label>
+                <Label>{t('pages:vehicles.form.fields.insuranceGroup')}</Label>
                 <Select value={form.insuranceGroup || 'none'} onValueChange={(v) => set('insuranceGroup', v === 'none' ? '' : v)}>
-                  <SelectTrigger><SelectValue placeholder="Select insurance group" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder={t('pages:vehicles.form.fields.insuranceGroupPh')} /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">Not specified</SelectItem>
+                    <SelectItem value="none">{notSpecified}</SelectItem>
                     {lookups?.insuranceGroups?.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}
                   </SelectContent>
                 </Select>
@@ -596,42 +615,42 @@ export function VehicleForm() {
         {/* Tanker Specifications */}
         {isTankerLike(form.type) && (
           <Card>
-            <CardHeader><CardTitle className="text-base">Tanker Specifications</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base">{t('pages:vehicles.form.sections.tanker')}</CardTitle></CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <Label>Tanker Capacity (litres)</Label>
-                <Input type="number" value={form.tankerCapacity} onChange={(e) => set('tankerCapacity', e.target.value)} placeholder="e.g. 30000" />
+                <Label>{t('pages:vehicles.form.fields.tankerCapacity')}</Label>
+                <Input type="number" value={form.tankerCapacity} onChange={(e) => set('tankerCapacity', e.target.value)} placeholder={t('pages:vehicles.form.fields.tankerCapacityPh')} />
               </div>
               <div className="space-y-1">
-                <Label>Tank Material</Label>
+                <Label>{t('pages:vehicles.form.fields.tankMaterial')}</Label>
                 <Select value={form.tankMaterial || 'none'} onValueChange={(v) => set('tankMaterial', v === 'none' ? '' : v)}>
-                  <SelectTrigger><SelectValue placeholder="Select tank material" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder={t('pages:vehicles.form.fields.tankMaterialPh')} /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">Not specified</SelectItem>
+                    <SelectItem value="none">{notSpecified}</SelectItem>
                     {lookups?.tankMaterials?.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label>ADR Class</Label>
+                <Label>{t('pages:vehicles.form.fields.adrClass')}</Label>
                 <Select value={form.adrClass || 'none'} onValueChange={(v) => set('adrClass', v === 'none' ? '' : v)}>
-                  <SelectTrigger><SelectValue placeholder="Select ADR class" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder={t('pages:vehicles.form.fields.adrClassPh')} /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">Not specified</SelectItem>
+                    <SelectItem value="none">{notSpecified}</SelectItem>
                     {lookups?.adrClasses?.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label>UN Numbers</Label>
-                <Input value={form.unNumbers} onChange={(e) => set('unNumbers', e.target.value)} placeholder="e.g. 1223, 1250" />
+                <Label>{t('pages:vehicles.form.fields.unNumbers')}</Label>
+                <Input value={form.unNumbers} onChange={(e) => set('unNumbers', e.target.value)} placeholder={t('pages:vehicles.form.fields.unNumbersPh')} />
               </div>
               <div className="space-y-1">
-                <Label>Last Pressure Test Date</Label>
+                <Label>{t('pages:vehicles.form.fields.lastPressureTest')}</Label>
                 <Input type="date" value={form.lastPressureTestDate} onChange={(e) => set('lastPressureTestDate', e.target.value)} />
               </div>
               <div className="space-y-1">
-                <Label>Next Pressure Test Date</Label>
+                <Label>{t('pages:vehicles.form.fields.nextPressureTest')}</Label>
                 <Input type="date" value={form.nextPressureTestDate} onChange={(e) => set('nextPressureTestDate', e.target.value)} />
               </div>
             </CardContent>
@@ -641,30 +660,30 @@ export function VehicleForm() {
         {/* Refrigerated Trailer Specifications */}
         {isRefrigeratedLike(form.type) && (
           <Card>
-            <CardHeader><CardTitle className="text-base">Refrigerated Trailer Specifications</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base">{t('pages:vehicles.form.sections.refrigerated')}</CardTitle></CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <Label>Refrigeration Unit</Label>
-                <Input value={form.refrigerationUnit} onChange={(e) => set('refrigerationUnit', e.target.value)} placeholder="e.g. Thermo King" />
+                <Label>{t('pages:vehicles.form.fields.refrigerationUnit')}</Label>
+                <Input value={form.refrigerationUnit} onChange={(e) => set('refrigerationUnit', e.target.value)} placeholder={t('pages:vehicles.form.fields.refrigerationUnitPh')} />
               </div>
               <div className="space-y-1">
-                <Label>Refrigeration Model</Label>
-                <Input value={form.refrigerationModel} onChange={(e) => set('refrigerationModel', e.target.value)} placeholder="e.g. T-1200R" />
+                <Label>{t('pages:vehicles.form.fields.refrigerationModel')}</Label>
+                <Input value={form.refrigerationModel} onChange={(e) => set('refrigerationModel', e.target.value)} placeholder={t('pages:vehicles.form.fields.refrigerationModelPh')} />
               </div>
               <div className="space-y-1">
-                <Label>Min Temperature (°C)</Label>
-                <Input type="number" step="0.1" value={form.tempMin} onChange={(e) => set('tempMin', e.target.value)} placeholder="e.g. -25" />
+                <Label>{t('pages:vehicles.form.fields.tempMin')}</Label>
+                <Input type="number" step="0.1" value={form.tempMin} onChange={(e) => set('tempMin', e.target.value)} placeholder={t('pages:vehicles.form.fields.tempMinPh')} />
               </div>
               <div className="space-y-1">
-                <Label>Max Temperature (°C)</Label>
-                <Input type="number" step="0.1" value={form.tempMax} onChange={(e) => set('tempMax', e.target.value)} placeholder="e.g. 10" />
+                <Label>{t('pages:vehicles.form.fields.tempMax')}</Label>
+                <Input type="number" step="0.1" value={form.tempMax} onChange={(e) => set('tempMax', e.target.value)} placeholder={t('pages:vehicles.form.fields.tempMaxPh')} />
               </div>
               <div className="space-y-1">
-                <Label>ATP Certificate Number</Label>
-                <Input value={form.atpCertificateNumber} onChange={(e) => set('atpCertificateNumber', e.target.value)} placeholder="e.g. ATP-2024-001" />
+                <Label>{t('pages:vehicles.form.fields.atpCertificateNumber')}</Label>
+                <Input value={form.atpCertificateNumber} onChange={(e) => set('atpCertificateNumber', e.target.value)} placeholder={t('pages:vehicles.form.fields.atpCertificateNumberPh')} />
               </div>
               <div className="space-y-1">
-                <Label>ATP Certificate Expiry</Label>
+                <Label>{t('pages:vehicles.form.fields.atpCertificateExpiry')}</Label>
                 <Input type="date" value={form.atpCertificateExpiry} onChange={(e) => set('atpCertificateExpiry', e.target.value)} />
               </div>
             </CardContent>
@@ -674,21 +693,21 @@ export function VehicleForm() {
         {/* Specialty Equipment */}
         {isSpecialtyLike(form.type) && (
           <Card>
-            <CardHeader><CardTitle className="text-base">Specialty Equipment</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base">{t('pages:vehicles.form.sections.specialty')}</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-1">
-                <Label>Equipment Description</Label>
-                <Textarea value={form.equipmentDescription} onChange={(e) => set('equipmentDescription', e.target.value)} placeholder="Describe any special equipment or modifications" rows={4} />
+                <Label>{t('pages:vehicles.form.fields.equipmentDescription')}</Label>
+                <Textarea value={form.equipmentDescription} onChange={(e) => set('equipmentDescription', e.target.value)} placeholder={t('pages:vehicles.form.fields.equipmentDescriptionPh')} rows={4} />
               </div>
             </CardContent>
           </Card>
         )}
 
         <div className="flex gap-3 justify-end">
-          <Button type="button" variant="outline" onClick={() => navigate(-1)}>Cancel</Button>
+          <Button type="button" variant="outline" onClick={() => navigate(-1)}>{t('common:actions.cancel')}</Button>
           <Button type="submit" disabled={saving}>
-            <Save className="w-4 h-4 mr-2" />
-            {saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Create Vehicle'}
+            <Save className="w-4 h-4 me-2" />
+            {saving ? t('common:states.saving') : isEdit ? t('pages:vehicles.form.saveChanges') : t('pages:vehicles.form.createButton')}
           </Button>
         </div>
       </form>

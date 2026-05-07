@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -7,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { mockDrivers } from '../../data/mockData';
 
 export function VisaTracking() {
+  const { t } = useTranslation('pages');
   const navigate = useNavigate();
   const visaDrivers = mockDrivers.filter(d =>
     d.currentStage === 'visa_application' || d.currentStage === 'visa_approved' || d.currentStage === 'embassy_appointment'
@@ -19,9 +21,9 @@ export function VisaTracking() {
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <h1 className="text-3xl font-semibold text-[#0F172A]">Visa Tracking</h1>
+          <h1 className="text-3xl font-semibold text-[#0F172A]">{t('workflow.visas.title')}</h1>
         </div>
-        <p className="text-muted-foreground mt-1">Monitor visa applications and embassy appointments</p>
+        <p className="text-muted-foreground mt-1">{t('workflow.visas.subtitle')}</p>
       </div>
 
       <Card>

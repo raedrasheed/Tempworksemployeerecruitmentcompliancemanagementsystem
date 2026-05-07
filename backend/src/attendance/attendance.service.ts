@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PaginatedResponse } from '../common/dto/pagination-response.dto';
+import { tServer, ServerLocale } from '../common/i18n/server-translate';
 import * as ExcelJS from 'exceljs';
 import {
   FilterAttendanceEmployeesDto,
@@ -696,7 +697,7 @@ export class AttendanceService {
     return `${h}:${String(m).padStart(2, '0')}`;
   }
 
-  async exportExcel(dto: ExportAttendanceDto): Promise<Buffer> {
+  async exportExcel(dto: ExportAttendanceDto, locale: ServerLocale = 'en'): Promise<Buffer> {
     const month = Number(dto.month);
     const year  = Number(dto.year);
 
@@ -773,27 +774,31 @@ export class AttendanceService {
       return Buffer.from(buffer);
     }
 
-    const summarySheet = workbook.addWorksheet('Attendance Summary', {
-      views: [{ state: 'frozen', xSplit: 3, ySplit: 1 }],
-    });
+    // Localize fixed UI labels via the shared exports catalog. Day-number
+    // headers (1..N) stay numeric — they're language-neutral.
+    const col = (key: string) => tServer(`attendance.columns.${key}`, {}, locale, 'exports');
+    const summarySheet = workbook.addWorksheet(
+      tServer('attendance.summarySheetName', {}, locale, 'exports'),
+      { views: [{ state: 'frozen', xSplit: 3, ySplit: 1 }] },
+    );
 
     // Build columns
     const summaryColumns: Partial<ExcelJS.Column>[] = [
-      { header: 'Driver Name',       key: 'name',            width: 24 },
-      { header: 'Employee ID',       key: 'employeeNumber',  width: 14 },
-      { header: 'License Category',  key: 'licenseCategory', width: 16 },
+      { header: col('driverName'),     key: 'name',            width: 24 },
+      { header: col('employeeNumber'), key: 'employeeNumber',  width: 14 },
+      { header: col('licenseCategory'), key: 'licenseCategory', width: 16 },
     ];
     for (let d = 1; d <= daysInMonth; d++) {
       summaryColumns.push({ header: String(d), key: `day_${d}`, width: 5 });
     }
     summaryColumns.push(
-      { header: 'Present',    key: 'present',      width: 9  },
-      { header: 'Absent',     key: 'absent',       width: 9  },
-      { header: 'Late',       key: 'late',         width: 7  },
-      { header: 'On Leave',   key: 'onLeave',      width: 9  },
-      { header: 'Half Day',   key: 'halfDay',      width: 9  },
-      { header: 'Holiday',    key: 'holiday',      width: 9  },
-      { header: 'Total Hrs',  key: 'totalHours',   width: 10 },
+      { header: col('present'),    key: 'present',      width: 9  },
+      { header: col('absent'),     key: 'absent',       width: 9  },
+      { header: col('late'),       key: 'late',         width: 7  },
+      { header: col('onLeave'),    key: 'onLeave',      width: 9  },
+      { header: col('halfDay'),    key: 'halfDay',      width: 9  },
+      { header: col('holiday'),    key: 'holiday',      width: 9  },
+      { header: col('totalHours'), key: 'totalHours',   width: 10 },
     );
     summarySheet.columns = summaryColumns;
 
@@ -887,18 +892,19 @@ export class AttendanceService {
 
     if (dto.employeeId && employees.length === 1) {
       const emp = employees[0];
-      const detailSheet = workbook.addWorksheet('Timesheet Detail', {
-        views: [{ state: 'frozen', ySplit: 1 }],
-      });
+      const detailSheet = workbook.addWorksheet(
+        tServer('attendance.detailSheetName', {}, locale, 'exports'),
+        { views: [{ state: 'frozen', ySplit: 1 }] },
+      );
 
       detailSheet.columns = [
-        { header: 'Date',         key: 'date',         width: 14 },
-        { header: 'Day',          key: 'day',          width: 12 },
-        { header: 'Status',       key: 'status',       width: 12 },
-        { header: 'Check In',     key: 'checkIn',      width: 10 },
-        { header: 'Check Out',    key: 'checkOut',     width: 10 },
-        { header: 'Hours',        key: 'hours',        width: 10 },
-        { header: 'Notes',        key: 'notes',        width: 30 },
+        { header: col('date'),     key: 'date',     width: 14 },
+        { header: col('day'),      key: 'day',      width: 12 },
+        { header: col('status'),   key: 'status',   width: 12 },
+        { header: col('checkIn'),  key: 'checkIn',  width: 10 },
+        { header: col('checkOut'), key: 'checkOut', width: 10 },
+        { header: col('hours'),    key: 'hours',    width: 10 },
+        { header: col('notes'),    key: 'notes',    width: 30 },
       ];
 
       // Header styling

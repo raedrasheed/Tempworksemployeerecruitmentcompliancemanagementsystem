@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { Link, useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { applicationDraftsApi, settingsApi, agenciesApi, getCurrentUser, resolveAssetUrl } from '../../services/api';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent } from '../../components/ui/card';
@@ -8,10 +9,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { ArrowLeft, ChevronRight, ChevronLeft, UserPlus, ShieldOff, Save, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { confirm } from '../../components/ui/ConfirmDialog';
+import { apiError, fieldErrors as resolveFieldErrors, isValidationError } from '../../../i18n/apiError';
 import { usePermissions } from '../../hooks/usePermissions';
 import { ApplicantFormSteps, EMPTY_FORM, getVisibleTabs, getStepErrors, getStepFieldErrors, StepIndicator, FormSettings, DEFAULT_FORM_SETTINGS, ApplicantFormData } from '../../components/applicants/ApplicantFormSteps';
 
 export function AddApplicant() {
+  const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const navigate = useNavigate();
   const { canCreate } = usePermissions();
   const [currentStep, setCurrentStep] = useState(1);
@@ -89,7 +93,7 @@ export function AddApplicant() {
             prevFilesRef.current = restored;
           }
 
-          toast.info('Resumed your saved draft — finish and submit to create the applicant.');
+          toast.info(t('applicants.toast.draftResumed'));
         })
         .catch(() => { /* no draft, quiet fall-through */ }),
     ]);
@@ -111,7 +115,7 @@ export function AddApplicant() {
             setDraftPhotoUrl(resolveAssetUrl(d.photoUrl));
           }
         })
-        .catch(() => toast.error('Photo upload failed — it won\'t be saved to your draft.'));
+        .catch(() => toast.error(t('applicants.toast.photoUploadFailedDraft')));
     } else if (draftPhotoUrl) {
       setDraftPhotoUrl(null);
       applicationDraftsApi.deletePhoto().catch(() => {});
@@ -156,7 +160,7 @@ export function AddApplicant() {
               : f,
           );
         })
-        .catch(() => toast.error('Document upload failed — it won\'t be saved to your draft.'));
+        .catch(() => toast.error(t('applicants.toast.documentUploadFailedDraft')));
     }
 
     // 2. Removals — items that were in `prev` with a draftDocId but
@@ -224,7 +228,7 @@ export function AddApplicant() {
     try {
       const saved = await applicationDraftsApi.saveMine({ formData });
       setDraftId(saved.id);
-      toast.success('Draft saved — you can come back to this page to continue.');
+      toast.success(t('applicants.toast.draftSaved'));
     } catch (err: any) {
       toast.error(err?.message || 'Failed to save draft');
     } finally {
@@ -237,9 +241,9 @@ export function AddApplicant() {
   // progress.
   const handleDiscardDraft = async () => {
     const ok = await confirm({
-      title: 'Discard saved draft?',
-      description: 'Your saved progress will be deleted and the form reset. This cannot be undone.',
-      confirmText: 'Discard',
+      title: t('applicants.addPage.discardTitle'),
+      description: t('applicants.addPage.discardBody'),
+      confirmText: t('applicants.addPage.discardConfirm'),
       tone: 'destructive',
     });
     if (!ok) return;
@@ -251,7 +255,7 @@ export function AddApplicant() {
       setPhotoFile(null);
       setCurrentStep(1);
       setDraftId(null);
-      toast.success('Draft discarded.');
+      toast.success(t('applicants.addPage.discardSuccess'));
     } catch (err: any) {
       toast.error(err?.message || 'Failed to discard draft');
     }
@@ -266,7 +270,8 @@ export function AddApplicant() {
     try {
       await applicationDraftsApi.submitMine(buildPayload());
       setDraftId(null);
-      toast.success('Applicant created successfully');
+      setFieldErrors({});
+      toast.success(tc('toast.savedSuccessfully'));
       // Agency submissions land on the Candidates queue (pending
       // Tempworks approval). Tempworks-staff submissions stay on
       // the Applicants (Leads) list.
@@ -274,7 +279,13 @@ export function AddApplicant() {
       const isAgency = role === 'Agency User' || role === 'Agency Manager';
       navigate(isAgency ? '/dashboard/candidates' : '/dashboard/applicants');
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to create applicant');
+      // Backend validation errors → replace inline field map so step
+      // components highlight the offending inputs. Otherwise keep the
+      // existing toast-style error rendering.
+      if (isValidationError(err)) {
+        setFieldErrors(resolveFieldErrors(err));
+      }
+      toast.error(apiError(err, 'Failed to create applicant'));
     } finally {
       setSubmitting(false);
     }
@@ -284,8 +295,8 @@ export function AddApplicant() {
     return (
       <div className="flex flex-col items-center justify-center py-24 gap-3 text-muted-foreground">
         <ShieldOff className="w-12 h-12 opacity-30" />
-        <p className="text-lg font-semibold">Access Denied</p>
-        <p className="text-sm">You don't have permission to perform this action.</p>
+        <p className="text-lg font-semibold">{tc('permissions.accessDenied')}</p>
+        <p className="text-sm">{tc('permissions.noPermission')}</p>
       </div>
     );
   }
@@ -299,17 +310,17 @@ export function AddApplicant() {
           </Link>
         </Button>
         <div className="flex-1">
-          <h1 className="text-3xl font-semibold">New Applicant</h1>
+          <h1 className="text-3xl font-semibold">{t('applicants.add.title')}</h1>
           <p className="text-muted-foreground mt-1">
             {draftId
-              ? 'Continuing your saved draft — no applicant has been created yet.'
-              : 'Driver Application Form'}
+              ? t('applicants.addPage.draftSubtitle')
+              : t('applicants.addPage.formSubtitle')}
           </p>
         </div>
         {draftId && (
           <Button variant="outline" size="sm" onClick={handleDiscardDraft} className="gap-2 text-red-600 hover:text-red-700">
             <Trash2 className="w-4 h-4" />
-            Discard draft
+            {t('applicants.addPage.discardButton')}
           </Button>
         )}
       </div>
@@ -317,13 +328,13 @@ export function AddApplicant() {
       <Card>
         <CardContent className="pt-6 pb-6">
           <div className="max-w-sm">
-            <Label htmlFor="agencyId" className="mb-2 block">Agency <span className="text-muted-foreground font-normal">(optional)</span></Label>
+            <Label htmlFor="agencyId" className="mb-2 block">{t('applicants.addPage.agencyLabel')} <span className="text-muted-foreground font-normal">{t('applicants.addPage.agencyOptional')}</span></Label>
             <Select value={agencyId} onValueChange={setAgencyId}>
               <SelectTrigger id="agencyId">
-                <SelectValue placeholder="Select agency..." />
+                <SelectValue placeholder={t('applicants.addPage.selectAgencyPh')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">No Agency</SelectItem>
+                <SelectItem value="none">{t('applicants.addPage.noAgency')}</SelectItem>
                 {agencies.map((a) => (
                   <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
                 ))}
@@ -364,7 +375,7 @@ export function AddApplicant() {
               </Button>
             ) : <div />}
 
-            <div className="flex flex-wrap items-center gap-2 ml-auto">
+            <div className="flex flex-wrap items-center gap-2 ms-auto">
               {/* Save for Later — partial persistence, no Applicant
                   row. Available at every step (including step 1). */}
               <Button

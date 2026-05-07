@@ -1,11 +1,16 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import {
   Plus, Settings, Pencil, Trash2, Save, ArrowLeft, Search,
   ArrowUp, ArrowDown, ArrowUpDown, Columns2, Check, X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { confirm } from '../../components/ui/ConfirmDialog';
+import { apiError } from '../../../i18n/apiError';
+import { useValidationErrors } from '../../../i18n/useValidationErrors';
+import { FieldError } from '../../components/ui/field-error';
+import { ValidationSummary } from '../../components/ui/validation-summary';
 import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -30,12 +35,12 @@ const EMPTY_FORM: MForm = { name: '', description: '', defaultIntervalDays: '', 
 
 // ── Column visibility ───────────────────────────────────────────────────────
 type ColKey = 'name' | 'description' | 'days' | 'km' | 'active';
-const ALL_COLUMNS: { key: ColKey; label: string }[] = [
-  { key: 'name',        label: 'Name' },
-  { key: 'description', label: 'Description' },
-  { key: 'days',        label: 'Interval (Days)' },
-  { key: 'km',          label: 'Interval (km)' },
-  { key: 'active',      label: 'Status' },
+const ALL_COLUMNS: { key: ColKey; labelKey: string }[] = [
+  { key: 'name',        labelKey: 'vehicles.maintTypes.list.cols.name' },
+  { key: 'description', labelKey: 'vehicles.maintTypes.list.cols.description' },
+  { key: 'days',        labelKey: 'vehicles.maintTypes.list.cols.days' },
+  { key: 'km',          labelKey: 'vehicles.maintTypes.list.cols.km' },
+  { key: 'active',      labelKey: 'vehicles.maintTypes.list.cols.active' },
 ];
 const DEFAULT_VISIBLE: Record<ColKey, boolean> = {
   name: true, description: true, days: true, km: true,
@@ -56,6 +61,8 @@ type SortField = ColKey;
 type SortOrder = 'asc' | 'desc';
 
 export function MaintenanceTypesList() {
+  const { t } = useTranslation('common');
+  const { t: tp } = useTranslation('pages');
   const { canCreate } = usePermissions();
   const canWrite = canCreate('vehicles');
   const navigate = useNavigate();
@@ -114,7 +121,7 @@ export function MaintenanceTypesList() {
   const load = useCallback(async () => {
     setLoading(true);
     try { setTypes(await vehiclesApi.listMaintenanceTypes()); }
-    catch { toast.error('Failed to load maintenance types'); }
+    catch { toast.error(t('toast.loadFailed')); }
     finally { setLoading(false); }
   }, []);
 
@@ -133,7 +140,8 @@ export function MaintenanceTypesList() {
   };
 
   const handleSave = async () => {
-    if (!form.name.trim()) { toast.error('Name required'); return; }
+    if (!form.name.trim()) { toast.error(t('toast.nameRequired')); return; }
+    clearFieldErrors();
     setSaving(true);
     try {
       const data: any = {
@@ -144,29 +152,36 @@ export function MaintenanceTypesList() {
       };
       if (editing) {
         await vehiclesApi.updateMaintenanceType(editing.id, data);
-        toast.success('Updated');
+        toast.success(t('toast.updated'));
       } else {
         await vehiclesApi.createMaintenanceType(data);
-        toast.success('Created');
+        toast.success(t('toast.created'));
       }
       setDialog(false);
       load();
-    } catch { toast.error('Save failed'); }
+    } catch (err: any) {
+      setFromError(err);
+      toast.error(apiError(err, t('toast.saveFailed')));
+    }
     finally { setSaving(false); }
   };
 
   const handleDelete = async (id: string) => {
     if (!(await confirm({
-      title: 'Deactivate maintenance type?',
-      description: 'This maintenance type will be marked inactive and hidden from future selections.',
-      confirmText: 'Deactivate',
+      title: t('confirm.deactivateMaintenanceTypeTitle'),
+      description: t('confirm.deactivateMaintenanceTypeBody'),
+      confirmText: t('confirm.deactivateConfirm'),
       tone: 'destructive',
     }))) return;
-    try { await vehiclesApi.deleteMaintenanceType(id); toast.success('Deactivated'); load(); }
-    catch { toast.error('Failed'); }
+    try { await vehiclesApi.deleteMaintenanceType(id); toast.success(t('toast.deleted')); load(); }
+    catch { toast.error(t('toast.deleteFailed')); }
   };
 
-  const set = (k: keyof MForm, v: string) => setForm((f) => ({ ...f, [k]: v }));
+  const { errors: fieldErrs, setFromError, clearAll: clearFieldErrors, clearError } = useValidationErrors();
+  const set = (k: keyof MForm, v: string) => {
+    setForm((f) => ({ ...f, [k]: v }));
+    if (fieldErrs[k as string]) clearError(k as string);
+  };
 
   const displayTypes = useMemo(() => {
     const q = search.toLowerCase();
@@ -233,11 +248,11 @@ export function MaintenanceTypesList() {
               Maintenance Types
             </h1>
           </div>
-          <p className="text-sm text-muted-foreground mt-1">Configure service types and default intervals</p>
+          <p className="text-sm text-muted-foreground mt-1">{tp('vehicles.maintTypes.subtitle')}</p>
         </div>
         {canWrite && (
           <Button size="sm" onClick={openNew}>
-            <Plus className="w-4 h-4 mr-2" /> Add Type
+            <Plus className="w-4 h-4 me-2" /> Add Type
           </Button>
         )}
       </div>
@@ -247,51 +262,51 @@ export function MaintenanceTypesList() {
         <CardContent className="p-4 space-y-3">
           <div className="flex flex-wrap items-center gap-2">
             <div className="relative flex-1 min-w-[220px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 placeholder="Search name or description…"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="pl-9"
+                className="ps-9"
               />
             </div>
             <Select value={activeFilter} onValueChange={v => setActiveFilter(v as any)}>
               <SelectTrigger className="w-40"><SelectValue placeholder="All" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="all">{tp('vehicles.maintTypes.filterAllStatuses')}</SelectItem>
                 <SelectItem value="active">Active</SelectItem>
                 <SelectItem value="inactive">Inactive</SelectItem>
               </SelectContent>
             </Select>
 
             {/* Column picker */}
-            <div className="relative ml-auto" ref={colPickerRef}>
+            <div className="relative ms-auto" ref={colPickerRef}>
               <Button
                 variant="outline" size="sm"
                 onClick={() => setShowColPicker(v => !v)}
                 className={showColPicker ? 'border-primary text-primary' : ''}
               >
-                <Columns2 className="w-4 h-4 mr-1.5" />Columns
+                <Columns2 className="w-4 h-4 me-1.5" />Columns
                 {hiddenCount > 0 && (
-                  <span className="ml-1.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
+                  <span className="ms-1.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
                     {hiddenCount}
                   </span>
                 )}
               </Button>
               {showColPicker && (
-                <div className="absolute right-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[200px]">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">Toggle columns</p>
+                <div className="absolute end-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[200px]">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">{tp('vehicles.maintTypes.toggleCols')}</p>
                   <div className="space-y-0.5 max-h-72 overflow-y-auto">
                     {ALL_COLUMNS.map(c => (
                       <button
                         key={c.key}
                         onClick={() => toggleColumn(c.key)}
-                        className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-gray-50 text-sm text-left"
+                        className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-gray-50 text-sm text-start"
                       >
                         <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${visibleColumns[c.key] ? 'bg-primary border-primary' : 'border-gray-300'}`}>
                           {visibleColumns[c.key] && <Check className="w-2.5 h-2.5 text-primary-foreground" />}
                         </span>
-                        {c.label}
+                        {tp(c.labelKey)}
                       </button>
                     ))}
                   </div>
@@ -303,7 +318,7 @@ export function MaintenanceTypesList() {
                         localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
                       }}
                       className="flex-1 text-xs text-center text-primary hover:underline py-0.5"
-                    >Show all</button>
+                    >{tp('vehicles.maintTypes.showAll')}</button>
                     <span className="text-gray-300">|</span>
                     <button
                       onClick={() => {
@@ -332,7 +347,7 @@ export function MaintenanceTypesList() {
             </div>
             {hasFilters && (
               <Button variant="ghost" size="sm" onClick={clearFilters}>
-                <X className="w-3 h-3 mr-1" />Clear filters
+                <X className="w-3 h-3 me-1" />Clear filters
               </Button>
             )}
           </div>
@@ -349,14 +364,14 @@ export function MaintenanceTypesList() {
                 {col('days')        && <SortableHead label="Interval (Days)" field="days" />}
                 {col('km')          && <SortableHead label="Interval (km)"   field="km" />}
                 {col('active')      && <SortableHead label="Status"          field="active" />}
-                {canWrite && <TableHead className="text-right">Actions</TableHead>}
+                {canWrite && <TableHead className="text-end">Actions</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={visibleCount + (canWrite ? 1 : 0)} className="text-center py-8 text-muted-foreground">Loading…</TableCell></TableRow>
+                <TableRow><TableCell colSpan={visibleCount + (canWrite ? 1 : 0)} className="text-center py-8 text-muted-foreground">{t('states.loading')}</TableCell></TableRow>
               ) : displayTypes.length === 0 ? (
-                <TableRow><TableCell colSpan={visibleCount + (canWrite ? 1 : 0)} className="text-center py-8 text-muted-foreground">No maintenance types found</TableCell></TableRow>
+                <TableRow><TableCell colSpan={visibleCount + (canWrite ? 1 : 0)} className="text-center py-8 text-muted-foreground">{tp('vehicles.maintTypes.empty')}</TableCell></TableRow>
               ) : displayTypes.map((t) => (
                 <TableRow key={t.id}>
                   {col('name')        && <TableCell className="font-medium">{t.name}</TableCell>}
@@ -371,7 +386,7 @@ export function MaintenanceTypesList() {
                     </TableCell>
                   )}
                   {canWrite && (
-                    <TableCell className="text-right space-x-1">
+                    <TableCell className="text-end space-x-1">
                       <Button size="sm" variant="ghost" onClick={() => openEdit(t)}><Pencil className="w-4 h-4" /></Button>
                       <Button size="sm" variant="ghost" onClick={() => handleDelete(t.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
                     </TableCell>
@@ -387,9 +402,13 @@ export function MaintenanceTypesList() {
         <DialogContent>
           <DialogHeader><DialogTitle>{editing ? 'Edit Maintenance Type' : 'Add Maintenance Type'}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
+            <ValidationSummary errors={fieldErrs} />
             <div className="space-y-1">
               <Label>Name *</Label>
-              <Input value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="e.g. Oil Change" />
+              <Input value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="e.g. Oil Change"
+                aria-invalid={!!fieldErrs.name}
+                className={fieldErrs.name ? 'border-red-500 focus-visible:ring-red-500' : ''} />
+              <FieldError errors={fieldErrs} name="name" />
             </div>
             <div className="space-y-1">
               <Label>Description</Label>
@@ -407,10 +426,10 @@ export function MaintenanceTypesList() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialog(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setDialog(false)}>{t('actions.cancel')}</Button>
             <Button onClick={handleSave} disabled={saving}>
-              <Save className="w-4 h-4 mr-2" />
-              {saving ? 'Saving…' : editing ? 'Save Changes' : 'Create'}
+              <Save className="w-4 h-4 me-2" />
+              {saving ? t('states.saving') : editing ? t('actions.saveChanges') : t('actions.create')}
             </Button>
           </DialogFooter>
         </DialogContent>

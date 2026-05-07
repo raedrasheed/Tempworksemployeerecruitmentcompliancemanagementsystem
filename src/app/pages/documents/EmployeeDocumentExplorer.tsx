@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef, type RefObject } from 'react';
 import { useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import {
   Download, Search, FileArchive, FileDown, ArrowLeft,
   ArrowUp, ArrowDown, ArrowUpDown, Columns2, Check, X,
@@ -17,38 +18,40 @@ import { FilterSystem, Column, FilterRule, FilterPreset } from '../../components
 type SortOrder = 'asc' | 'desc';
 
 // ── Column definitions per table ──
+// `labelKey` is resolved at render time via t(`documents.explorer.cols.<key>`)
+// so the picker stays in sync with the active UI language.
 type EmpColKey = 'name' | 'nationality' | 'agency' | 'status' | 'documents';
-const EMP_COLUMNS: { key: EmpColKey; label: string }[] = [
-  { key: 'name',        label: 'Employee Name' },
-  { key: 'nationality', label: 'Citizenship' },
-  { key: 'agency',      label: 'Agency' },
-  { key: 'status',      label: 'Status' },
-  { key: 'documents',   label: 'Documents' },
+const EMP_COLUMNS: { key: EmpColKey; labelKey: string }[] = [
+  { key: 'name',        labelKey: 'employeeName' },
+  { key: 'nationality', labelKey: 'citizenship' },
+  { key: 'agency',      labelKey: 'agency' },
+  { key: 'status',      labelKey: 'status' },
+  { key: 'documents',   labelKey: 'documents' },
 ];
 const EMP_DEFAULT: Record<EmpColKey, boolean> = { name: true, nationality: true, agency: true, status: true, documents: true };
 const EMP_STORAGE = 'docexplorer-employees-columns';
 
 type AppColKey = 'name' | 'nationality' | 'status' | 'documents';
-const APP_COLUMNS: { key: AppColKey; label: string }[] = [
-  { key: 'name',        label: 'Applicant Name' },
-  { key: 'nationality', label: 'Citizenship' },
-  { key: 'status',      label: 'Status' },
-  { key: 'documents',   label: 'Documents' },
+const APP_COLUMNS: { key: AppColKey; labelKey: string }[] = [
+  { key: 'name',        labelKey: 'applicantName' },
+  { key: 'nationality', labelKey: 'citizenship' },
+  { key: 'status',      labelKey: 'status' },
+  { key: 'documents',   labelKey: 'documents' },
 ];
 const APP_DEFAULT: Record<AppColKey, boolean> = { name: true, nationality: true, status: true, documents: true };
 const APP_STORAGE = 'docexplorer-applicants-columns';
 
 type DocColKey = 'owner' | 'name' | 'type' | 'status' | 'expiry' | 'docId' | 'documentNumber' | 'uploadDate' | 'fileSize';
-const DOC_COLUMNS: { key: DocColKey; label: string }[] = [
-  { key: 'owner',          label: 'Owner' },
-  { key: 'name',           label: 'Document Name' },
-  { key: 'type',           label: 'Document Type' },
-  { key: 'status',         label: 'Status' },
-  { key: 'expiry',         label: 'Expiry Date' },
-  { key: 'docId',          label: 'Doc ID' },
-  { key: 'documentNumber', label: 'Doc Number' },
-  { key: 'uploadDate',     label: 'Upload Date' },
-  { key: 'fileSize',       label: 'File Size' },
+const DOC_COLUMNS: { key: DocColKey; labelKey: string }[] = [
+  { key: 'owner',          labelKey: 'owner' },
+  { key: 'name',           labelKey: 'documentName' },
+  { key: 'type',           labelKey: 'documentType' },
+  { key: 'status',         labelKey: 'status' },
+  { key: 'expiry',         labelKey: 'expiryDate' },
+  { key: 'docId',          labelKey: 'docId' },
+  { key: 'documentNumber', labelKey: 'docNumber' },
+  { key: 'uploadDate',     labelKey: 'uploadDate' },
+  { key: 'fileSize',       labelKey: 'fileSize' },
 ];
 const DOC_DEFAULT: Record<DocColKey, boolean> = {
   owner: true, name: true, type: true, status: true, expiry: true,
@@ -85,12 +88,13 @@ function useClickOutside(ref: RefObject<HTMLElement | null>, enabled: boolean, o
 function ColumnPicker<K extends string>({
   columns, visible, setVisible, storageKey, defaults,
 }: {
-  columns: { key: K; label: string }[];
+  columns: { key: K; labelKey: string }[];
   visible: Record<K, boolean>;
   setVisible: (v: Record<K, boolean>) => void;
   storageKey: string;
   defaults: Record<K, boolean>;
 }) {
+  const { t } = useTranslation('pages');
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useClickOutside(ref, open, () => setOpen(false));
@@ -103,27 +107,27 @@ function ColumnPicker<K extends string>({
         onClick={() => setOpen(v => !v)}
         className={open ? 'border-primary text-primary' : ''}
       >
-        <Columns2 className="w-4 h-4 mr-1.5" />Columns
+        <Columns2 className="w-4 h-4 me-1.5" />{t('documents.explorer.columnsButton')}
         {hiddenCount > 0 && (
-          <span className="ml-1.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
+          <span className="ms-1.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
             {hiddenCount}
           </span>
         )}
       </Button>
       {open && (
-        <div className="absolute right-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[200px]">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">Toggle columns</p>
+        <div className="absolute end-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[200px]">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">{t('documents.explorer.toggleColumns')}</p>
           <div className="space-y-0.5 max-h-72 overflow-y-auto">
             {columns.map(c => (
               <button
                 key={c.key}
                 onClick={() => set({ ...visible, [c.key]: !visible[c.key] })}
-                className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-gray-50 text-sm text-left"
+                className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-gray-50 text-sm text-start"
               >
                 <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${visible[c.key] ? 'bg-primary border-primary' : 'border-gray-300'}`}>
                   {visible[c.key] && <Check className="w-2.5 h-2.5 text-primary-foreground" />}
                 </span>
-                {c.label}
+                {t(`documents.explorer.cols.${c.labelKey}`)}
               </button>
             ))}
           </div>
@@ -131,12 +135,12 @@ function ColumnPicker<K extends string>({
             <button
               onClick={() => set(Object.fromEntries(columns.map(c => [c.key, true])) as Record<K, boolean>)}
               className="flex-1 text-xs text-center text-primary hover:underline py-0.5"
-            >Show all</button>
+            >{t('documents.explorer.showAll')}</button>
             <span className="text-gray-300">|</span>
             <button
               onClick={() => set(defaults)}
               className="flex-1 text-xs text-center text-gray-500 hover:underline py-0.5"
-            >Reset</button>
+            >{t('documents.explorer.reset')}</button>
           </div>
         </div>
       )}
@@ -150,7 +154,7 @@ function SortableTh<F extends string>({
   label: string; field: F; sortBy: F; sortOrder: SortOrder; onSort: (f: F) => void; className?: string;
 }) {
   return (
-    <th className={`text-left p-4 font-semibold text-sm ${className ?? ''}`}>
+    <th className={`text-start p-4 font-semibold text-sm ${className ?? ''}`}>
       <button onClick={() => onSort(field)} className="flex items-center gap-1 hover:text-foreground group">
         {label}
         <SortIcon active={sortBy === field} order={sortOrder} />
@@ -190,6 +194,10 @@ function triggerZipDownload(blob: Blob, filename: string) {
 }
 
 export function EmployeeDocumentExplorer() {
+  const { t } = useTranslation('pages');
+  const { t: tEnums } = useTranslation('enums');
+  const tDX = (key: string, opts?: any) => t(`documents.explorer.${key}`, opts);
+  const { t: tc } = useTranslation('common');
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'employees' | 'applicants'>('employees');
 
@@ -312,7 +320,7 @@ export function EmployeeDocumentExplorer() {
         counts.forEach(c => { map[c.id] = c.count; });
         setApplicantDocCounts(map);
       });
-    }).catch(() => toast.error('Failed to load data'))
+    }).catch(() => toast.error(tc('toast.loadFailed')))
       .finally(() => setLoading(false));
   }, []);
 
@@ -495,11 +503,11 @@ export function EmployeeDocumentExplorer() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'VERIFIED':      return <Badge variant="outline" className="bg-[#F0FDF4] text-[#22C55E] border-[#22C55E]">Valid</Badge>;
-      case 'EXPIRING_SOON': return <Badge variant="outline" className="bg-[#FEF3C7] text-[#F59E0B] border-[#F59E0B]">Expiring Soon</Badge>;
-      case 'EXPIRED':       return <Badge variant="outline" className="bg-[#FEE2E2] text-[#EF4444] border-[#EF4444]">Expired</Badge>;
-      case 'REJECTED':      return <Badge variant="outline" className="bg-[#FEE2E2] text-[#EF4444] border-[#EF4444]">Rejected</Badge>;
-      default:              return <Badge variant="outline" className="bg-[#F8FAFC] text-[#64748B] border-[#E2E8F0]">Pending</Badge>;
+      case 'VERIFIED':      return <Badge variant="outline" className="bg-[#F0FDF4] text-[#22C55E] border-[#22C55E]">{t('documents.preview.statusBadge.valid')}</Badge>;
+      case 'EXPIRING_SOON': return <Badge variant="outline" className="bg-[#FEF3C7] text-[#F59E0B] border-[#F59E0B]">{t('documents.explorer.expiringSoon')}</Badge>;
+      case 'EXPIRED':       return <Badge variant="outline" className="bg-[#FEE2E2] text-[#EF4444] border-[#EF4444]">{t('documents.preview.statusBadge.expired')}</Badge>;
+      case 'REJECTED':      return <Badge variant="outline" className="bg-[#FEE2E2] text-[#EF4444] border-[#EF4444]">{t('documents.preview.statusBadge.rejected')}</Badge>;
+      default:              return <Badge variant="outline" className="bg-[#F8FAFC] text-[#64748B] border-[#E2E8F0]">{t('documents.preview.statusBadge.pending')}</Badge>;
     }
   };
 
@@ -577,7 +585,7 @@ export function EmployeeDocumentExplorer() {
     }
   };
 
-  if (loading) return <div className="p-8 text-muted-foreground">Loading...</div>;
+  if (loading) return <div className="p-8 text-muted-foreground">{t('documents.explorer.loading')}</div>;
 
   return (
     <div className="space-y-6">
@@ -586,9 +594,9 @@ export function EmployeeDocumentExplorer() {
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <h1 className="text-3xl font-semibold text-[#0F172A]">Document Explorer</h1>
+          <h1 className="text-3xl font-semibold text-[#0F172A]">{t('documents.explorer.title')}</h1>
         </div>
-        <p className="text-muted-foreground mt-1">Search employees and applicants to view and download their documents</p>
+        <p className="text-muted-foreground mt-1">{t('documents.explorer.searchTitle')}</p>
       </div>
 
       {/* Tab toggle */}
@@ -597,13 +605,13 @@ export function EmployeeDocumentExplorer() {
           onClick={() => setActiveTab('employees')}
           className={`px-5 py-2.5 text-sm font-medium border-b-2 transition-colors ${activeTab === 'employees' ? 'border-[#2563EB] text-[#2563EB]' : 'border-transparent text-muted-foreground hover:text-gray-700'}`}
         >
-          Employees
+          {tDX('employeesTab')}
         </button>
         <button
           onClick={() => setActiveTab('applicants')}
           className={`px-5 py-2.5 text-sm font-medium border-b-2 transition-colors ${activeTab === 'applicants' ? 'border-[#7C3AED] text-[#7C3AED]' : 'border-transparent text-muted-foreground hover:text-gray-700'}`}
         >
-          Applicants
+          {tDX('applicantsTab')}
         </button>
       </div>
 
@@ -611,51 +619,51 @@ export function EmployeeDocumentExplorer() {
       {activeTab === 'employees' && <>
       {/* Filters */}
       <Card>
-        <CardHeader><CardTitle>Search & Filter Employees</CardTitle></CardHeader>
+        <CardHeader><CardTitle>{tDX('searchEmployeesTitle')}</CardTitle></CardHeader>
         <CardContent>
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               <div className="relative md:col-span-2">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search by name or email..."
+                  placeholder={tDX('searchEmployeesPh')}
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  className="pl-9"
+                  className="ps-9"
                 />
               </div>
               <Select value={nationalityFilter} onValueChange={setNationalityFilter}>
-                <SelectTrigger><SelectValue placeholder="Citizenship" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={tDX('citizenshipPh')} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Citizenships</SelectItem>
+                  <SelectItem value="all">{tDX('allCitizenships')}</SelectItem>
                   {nationalities.map(nat => (
                     <SelectItem key={nat} value={nat}>{nat}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               <Select value={agencyFilter} onValueChange={setAgencyFilter}>
-                <SelectTrigger><SelectValue placeholder="Agency" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={tDX('agencyPh')} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Agencies</SelectItem>
+                  <SelectItem value="all">{tDX('allAgencies')}</SelectItem>
                   {agencies.map(a => (
                     <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={tDX('statusPh')} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="ACTIVE">Active</SelectItem>
-                  <SelectItem value="PENDING">Pending</SelectItem>
-                  <SelectItem value="INACTIVE">Inactive</SelectItem>
-                  <SelectItem value="SUSPENDED">Suspended</SelectItem>
+                  <SelectItem value="all">{tDX('allStatus')}</SelectItem>
+                  <SelectItem value="ACTIVE">{tEnums('employeeStatus.ACTIVE')}</SelectItem>
+                  <SelectItem value="PENDING">{tEnums('employeeStatus.PENDING')}</SelectItem>
+                  <SelectItem value="INACTIVE">{tEnums('employeeStatus.INACTIVE')}</SelectItem>
+                  <SelectItem value="SUSPENDED">{tEnums('employeeStatus.SUSPENDED')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="flex flex-wrap gap-3 items-center">
               <Input
-                placeholder="Email contains…"
+                placeholder={tDX('emailContainsPh')}
                 value={empEmailFilter}
                 onChange={e => setEmpEmailFilter(e.target.value)}
                 className="w-56"
@@ -663,14 +671,14 @@ export function EmployeeDocumentExplorer() {
               <Input
                 type="number"
                 min={0}
-                placeholder="Min docs"
+                placeholder={tDX('minDocsPh')}
                 value={empMinDocs}
                 onChange={e => setEmpMinDocs(e.target.value)}
                 className="w-32"
               />
               {(empEmailFilter || empMinDocs) && (
                 <Button variant="ghost" size="sm" onClick={() => { setEmpEmailFilter(''); setEmpMinDocs(''); }}>
-                  <X className="w-3 h-3 mr-1" />Clear extras
+                  <X className="w-3 h-3 me-1" />{tDX('clearExtras')}
                 </Button>
               )}
             </div>
@@ -693,9 +701,9 @@ export function EmployeeDocumentExplorer() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Employees ({filteredEmployees.length})</CardTitle>
+            <CardTitle>{tDX('employeesCount', { count: filteredEmployees.length })}</CardTitle>
             <div className="flex items-center gap-2">
-              <Badge variant="outline">{selectedEmployees.length} selected</Badge>
+              <Badge variant="outline">{tDX('selectedSuffix', { count: selectedEmployees.length })}</Badge>
               <ColumnPicker
                 columns={EMP_COLUMNS}
                 visible={empCols}
@@ -711,22 +719,22 @@ export function EmployeeDocumentExplorer() {
             <table className="w-full">
               <thead className="bg-[#F8FAFC] border-b">
                 <tr>
-                  <th className="text-left p-4 w-12">
+                  <th className="text-start p-4 w-12">
                     <Checkbox
                       checked={selectedEmployees.length === filteredEmployees.length && filteredEmployees.length > 0}
                       onCheckedChange={toggleAllEmployees}
                     />
                   </th>
-                  {empCols.name        && <SortableTh label="Employee Name" field="name"        sortBy={empSortBy} sortOrder={empSortOrder} onSort={handleEmpSort} />}
-                  {empCols.nationality && <SortableTh label="Citizenship"   field="nationality" sortBy={empSortBy} sortOrder={empSortOrder} onSort={handleEmpSort} />}
-                  {empCols.agency      && <SortableTh label="Agency"        field="agency"      sortBy={empSortBy} sortOrder={empSortOrder} onSort={handleEmpSort} />}
-                  {empCols.status      && <SortableTh label="Status"        field="status"      sortBy={empSortBy} sortOrder={empSortOrder} onSort={handleEmpSort} />}
-                  {empCols.documents   && <SortableTh label="Documents"     field="documents"   sortBy={empSortBy} sortOrder={empSortOrder} onSort={handleEmpSort} />}
+                  {empCols.name        && <SortableTh label={tDX('cols.employeeName')} field="name"        sortBy={empSortBy} sortOrder={empSortOrder} onSort={handleEmpSort} />}
+                  {empCols.nationality && <SortableTh label={tDX('cols.citizenship')}  field="nationality" sortBy={empSortBy} sortOrder={empSortOrder} onSort={handleEmpSort} />}
+                  {empCols.agency      && <SortableTh label={tDX('cols.agency')}       field="agency"      sortBy={empSortBy} sortOrder={empSortOrder} onSort={handleEmpSort} />}
+                  {empCols.status      && <SortableTh label={tDX('cols.status')}       field="status"      sortBy={empSortBy} sortOrder={empSortOrder} onSort={handleEmpSort} />}
+                  {empCols.documents   && <SortableTh label={tDX('cols.documents')}    field="documents"   sortBy={empSortBy} sortOrder={empSortOrder} onSort={handleEmpSort} />}
                 </tr>
               </thead>
               <tbody>
                 {filteredEmployees.length === 0 ? (
-                  <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">No employees found</td></tr>
+                  <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">{t('documents.explorer.noEmployees')}</td></tr>
                 ) : filteredEmployees.map(emp => {
                   const isSelected = selectedEmployees.includes(emp.id);
                   return (
@@ -763,13 +771,13 @@ export function EmployeeDocumentExplorer() {
                             emp.status === 'ACTIVE' ? 'bg-[#22C55E]' :
                             emp.status === 'PENDING' ? 'bg-[#F59E0B]' : 'bg-gray-500'
                           }>
-                            {emp.status?.toLowerCase()}
+                            {emp.status ? tEnums(`employeeStatus.${emp.status}`, { defaultValue: emp.status.toLowerCase() }) : ''}
                           </Badge>
                         </td>
                       )}
                       {empCols.documents && (
                         <td className="p-4">
-                          <Badge variant="outline">{docCounts[emp.id] ?? 0} docs</Badge>
+                          <Badge variant="outline">{tDX('docsBadge', { count: docCounts[emp.id] ?? 0 })}</Badge>
                         </td>
                       )}
                     </tr>
@@ -788,12 +796,12 @@ export function EmployeeDocumentExplorer() {
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle>
-                  {selectedEmployees.length === 1 ? 'Employee Documents' : `Documents from ${selectedEmployees.length} Employees`}
+                  {selectedEmployees.length === 1 ? tDX('employeeDocuments') : tDX('docsFromEmployees', { count: selectedEmployees.length })}
                 </CardTitle>
-                <p className="text-sm text-muted-foreground mt-1">{allSelectedDocs.length} total documents</p>
+                <p className="text-sm text-muted-foreground mt-1">{tDX('totalDocuments', { count: allSelectedDocs.length })}</p>
               </div>
               <div className="flex items-center gap-2">
-                <Badge variant="outline">{selectedDocuments.length} selected</Badge>
+                <Badge variant="outline">{tDX('selectedSuffix', { count: selectedDocuments.length })}</Badge>
                 <Button
                   variant="outline"
                   disabled={selectedDocuments.length === 0 || downloading}
@@ -803,14 +811,14 @@ export function EmployeeDocumentExplorer() {
                       const blob = await documentsApi.bulkDownload(selectedDocuments);
                       triggerZipDownload(blob, `selected_documents_${Date.now()}.zip`);
                     } catch (err: any) {
-                      toast.error(err?.message || 'Download failed');
+                      toast.error(err?.message || tDX('downloadFailed'));
                     } finally {
                       setDownloading(false);
                     }
                   }}
                 >
-                  <FileDown className="w-4 h-4 mr-2" />
-                  {downloading ? 'Preparing…' : 'Download Selected'}
+                  <FileDown className="w-4 h-4 me-2" />
+                  {downloading ? tDX('downloading') : tDX('downloadSelected')}
                 </Button>
                 <Button
                   disabled={allSelectedDocs.length === 0 || downloading}
@@ -821,14 +829,14 @@ export function EmployeeDocumentExplorer() {
                       const blob = await documentsApi.bulkDownload(ids);
                       triggerZipDownload(blob, `all_documents_${Date.now()}.zip`);
                     } catch (err: any) {
-                      toast.error(err?.message || 'Download failed');
+                      toast.error(err?.message || tDX('downloadFailed'));
                     } finally {
                       setDownloading(false);
                     }
                   }}
                 >
-                  <FileArchive className="w-4 h-4 mr-2" />
-                  {downloading ? 'Preparing…' : 'Download All'}
+                  <FileArchive className="w-4 h-4 me-2" />
+                  {downloading ? tDX('downloading') : tDX('downloadAll')}
                 </Button>
               </div>
             </div>
@@ -837,35 +845,35 @@ export function EmployeeDocumentExplorer() {
             {/* Document filters */}
             <div className="flex flex-wrap gap-2 items-center">
               <div className="relative flex-1 min-w-[220px]">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search documents by name, number, ID…"
+                  placeholder={tDX('docsSearchPh')}
                   value={empDocsSearch}
                   onChange={e => setEmpDocsSearch(e.target.value)}
-                  className="pl-9"
+                  className="ps-9"
                 />
               </div>
               <Select value={empDocsStatusFilter} onValueChange={setEmpDocsStatusFilter}>
-                <SelectTrigger className="w-44"><SelectValue placeholder="All Statuses" /></SelectTrigger>
+                <SelectTrigger className="w-44"><SelectValue placeholder={tDX('allStatuses')} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="PENDING">Pending</SelectItem>
-                  <SelectItem value="VERIFIED">Valid</SelectItem>
-                  <SelectItem value="EXPIRING_SOON">Expiring Soon</SelectItem>
-                  <SelectItem value="EXPIRED">Expired</SelectItem>
-                  <SelectItem value="REJECTED">Rejected</SelectItem>
+                  <SelectItem value="all">{tDX('allStatuses')}</SelectItem>
+                  <SelectItem value="PENDING">{tEnums('documentStatus.PENDING')}</SelectItem>
+                  <SelectItem value="VERIFIED">{tEnums('documentStatus.VERIFIED')}</SelectItem>
+                  <SelectItem value="EXPIRING_SOON">{tEnums('documentStatus.EXPIRING_SOON')}</SelectItem>
+                  <SelectItem value="EXPIRED">{tEnums('documentStatus.EXPIRED')}</SelectItem>
+                  <SelectItem value="REJECTED">{tEnums('documentStatus.REJECTED')}</SelectItem>
                 </SelectContent>
               </Select>
               <Input
-                placeholder="Type contains…"
+                placeholder={tDX('typeContainsPh')}
                 value={empDocsTypeFilter}
                 onChange={e => setEmpDocsTypeFilter(e.target.value)}
                 className="w-44"
               />
               <div className="flex items-center gap-1">
-                <span className="text-xs text-muted-foreground whitespace-nowrap">Expiry from</span>
+                <span className="text-xs text-muted-foreground whitespace-nowrap">{tDX('expiryFrom')}</span>
                 <Input type="date" value={empDocsExpFrom} onChange={e => setEmpDocsExpFrom(e.target.value)} className="w-36" />
-                <span className="text-xs text-muted-foreground">to</span>
+                <span className="text-xs text-muted-foreground">{tDX('expiryTo')}</span>
                 <Input type="date" value={empDocsExpTo} onChange={e => setEmpDocsExpTo(e.target.value)} className="w-36" />
               </div>
               {(empDocsSearch || empDocsStatusFilter !== 'all' || empDocsTypeFilter || empDocsExpFrom || empDocsExpTo) && (
@@ -873,10 +881,10 @@ export function EmployeeDocumentExplorer() {
                   setEmpDocsSearch(''); setEmpDocsStatusFilter('all'); setEmpDocsTypeFilter('');
                   setEmpDocsExpFrom(''); setEmpDocsExpTo('');
                 }}>
-                  <X className="w-3 h-3 mr-1" />Clear
+                  <X className="w-3 h-3 me-1" />{tDX('clear')}
                 </Button>
               )}
-              <div className="ml-auto">
+              <div className="ms-auto">
                 <ColumnPicker
                   columns={DOC_COLUMNS}
                   visible={empDocsCols}
@@ -891,29 +899,29 @@ export function EmployeeDocumentExplorer() {
               <table className="w-full">
                 <thead className="bg-[#F8FAFC] border-b">
                   <tr>
-                    <th className="text-left p-4 w-12">
+                    <th className="text-start p-4 w-12">
                       <Checkbox
                         checked={selectedDocuments.length === displayEmpDocs.length && displayEmpDocs.length > 0}
                         onCheckedChange={toggleAllDocuments}
                       />
                     </th>
                     {empDocsCols.owner && selectedEmployees.length > 1 && (
-                      <SortableTh label="Employee" field="owner" sortBy={empDocsSortBy} sortOrder={empDocsSortOrder} onSort={handleEmpDocsSort} />
+                      <SortableTh label={tDX('cols.employee')} field="owner" sortBy={empDocsSortBy} sortOrder={empDocsSortOrder} onSort={handleEmpDocsSort} />
                     )}
-                    {empDocsCols.name           && <SortableTh label="Document Name" field="name"           sortBy={empDocsSortBy} sortOrder={empDocsSortOrder} onSort={handleEmpDocsSort} />}
-                    {empDocsCols.type           && <SortableTh label="Document Type" field="type"           sortBy={empDocsSortBy} sortOrder={empDocsSortOrder} onSort={handleEmpDocsSort} />}
-                    {empDocsCols.status         && <SortableTh label="Status"        field="status"         sortBy={empDocsSortBy} sortOrder={empDocsSortOrder} onSort={handleEmpDocsSort} />}
-                    {empDocsCols.expiry         && <SortableTh label="Expiry Date"   field="expiry"         sortBy={empDocsSortBy} sortOrder={empDocsSortOrder} onSort={handleEmpDocsSort} />}
-                    {empDocsCols.docId          && <SortableTh label="Doc ID"        field="docId"          sortBy={empDocsSortBy} sortOrder={empDocsSortOrder} onSort={handleEmpDocsSort} />}
-                    {empDocsCols.documentNumber && <SortableTh label="Doc Number"    field="documentNumber" sortBy={empDocsSortBy} sortOrder={empDocsSortOrder} onSort={handleEmpDocsSort} />}
-                    {empDocsCols.uploadDate     && <SortableTh label="Upload Date"   field="uploadDate"     sortBy={empDocsSortBy} sortOrder={empDocsSortOrder} onSort={handleEmpDocsSort} />}
-                    {empDocsCols.fileSize       && <SortableTh label="File Size"     field="fileSize"       sortBy={empDocsSortBy} sortOrder={empDocsSortOrder} onSort={handleEmpDocsSort} />}
-                    <th className="text-left p-4 font-semibold text-sm">Action</th>
+                    {empDocsCols.name           && <SortableTh label={tDX('cols.documentName')} field="name"           sortBy={empDocsSortBy} sortOrder={empDocsSortOrder} onSort={handleEmpDocsSort} />}
+                    {empDocsCols.type           && <SortableTh label={tDX('cols.documentType')} field="type"           sortBy={empDocsSortBy} sortOrder={empDocsSortOrder} onSort={handleEmpDocsSort} />}
+                    {empDocsCols.status         && <SortableTh label={tDX('cols.status')}       field="status"         sortBy={empDocsSortBy} sortOrder={empDocsSortOrder} onSort={handleEmpDocsSort} />}
+                    {empDocsCols.expiry         && <SortableTh label={tDX('cols.expiryDate')}   field="expiry"         sortBy={empDocsSortBy} sortOrder={empDocsSortOrder} onSort={handleEmpDocsSort} />}
+                    {empDocsCols.docId          && <SortableTh label={tDX('cols.docId')}        field="docId"          sortBy={empDocsSortBy} sortOrder={empDocsSortOrder} onSort={handleEmpDocsSort} />}
+                    {empDocsCols.documentNumber && <SortableTh label={tDX('cols.docNumber')}    field="documentNumber" sortBy={empDocsSortBy} sortOrder={empDocsSortOrder} onSort={handleEmpDocsSort} />}
+                    {empDocsCols.uploadDate     && <SortableTh label={tDX('cols.uploadDate')}   field="uploadDate"     sortBy={empDocsSortBy} sortOrder={empDocsSortOrder} onSort={handleEmpDocsSort} />}
+                    {empDocsCols.fileSize       && <SortableTh label={tDX('cols.fileSize')}     field="fileSize"       sortBy={empDocsSortBy} sortOrder={empDocsSortOrder} onSort={handleEmpDocsSort} />}
+                    <th className="text-start p-4 font-semibold text-sm">{tDX('actionHeader')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {displayEmpDocs.length === 0 ? (
-                    <tr><td colSpan={12} className="p-8 text-center text-muted-foreground">No documents found for selected employees</td></tr>
+                    <tr><td colSpan={12} className="p-8 text-center text-muted-foreground">{t('documents.explorer.noDocsForEmployees')}</td></tr>
                   ) : displayEmpDocs.map(doc => {
                     const isSelected = selectedDocuments.includes(doc.id);
                     const emp = employees.find(e => e.id === doc.entityId);
@@ -938,11 +946,11 @@ export function EmployeeDocumentExplorer() {
                         {empDocsCols.docId          && <td className="p-4"><code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono">{doc.docId ?? '—'}</code></td>}
                         {empDocsCols.documentNumber && <td className="p-4 text-sm font-mono">{doc.documentNumber ?? '-'}</td>}
                         {empDocsCols.uploadDate     && <td className="p-4 text-sm">{doc.createdAt ? new Date(doc.createdAt).toLocaleDateString() : '-'}</td>}
-                        {empDocsCols.fileSize       && <td className="p-4 text-sm text-muted-foreground">{doc.fileSize != null ? `${(doc.fileSize / 1024).toFixed(1)} KB` : '-'}</td>}
+                        {empDocsCols.fileSize       && <td className="p-4 text-sm text-muted-foreground">{doc.fileSize != null ? tDX('fileSizeKb', { kb: (doc.fileSize / 1024).toFixed(1) }) : '-'}</td>}
                         <td className="p-4">
                           <Button size="sm" variant="ghost" asChild>
                             <a href={getFileUrl(doc.fileUrl)} target="_blank" rel="noopener noreferrer" download>
-                              <Download className="w-4 h-4 mr-1" />Download
+                              <Download className="w-4 h-4 me-1" />{tDX('downloadAction')}
                             </a>
                           </Button>
                         </td>
@@ -962,9 +970,9 @@ export function EmployeeDocumentExplorer() {
             <div className="w-16 h-16 rounded-full bg-[#F8FAFC] flex items-center justify-center mx-auto mb-4">
               <FileArchive className="w-8 h-8 text-muted-foreground" />
             </div>
-            <h3 className="font-semibold text-lg mb-2">No Employees Selected</h3>
+            <h3 className="font-semibold text-lg mb-2">{tDX('noEmployeesSelected')}</h3>
             <p className="text-muted-foreground">
-              Select one or more employees from the table above to view and download their documents
+              {tDX('selectEmployeesHint')}
             </p>
           </CardContent>
         </Card>
@@ -975,32 +983,32 @@ export function EmployeeDocumentExplorer() {
       {activeTab === 'applicants' && <>
         {/* Applicant search */}
         <Card>
-          <CardHeader><CardTitle>Search & Filter Applicants</CardTitle></CardHeader>
+          <CardHeader><CardTitle>{tDX('searchApplicantsTitle')}</CardTitle></CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="relative md:col-span-2">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search by name or email..."
+                  placeholder={tDX('searchApplicantsPh')}
                   value={appSearchQuery}
                   onChange={e => setAppSearchQuery(e.target.value)}
-                  className="pl-9"
+                  className="ps-9"
                 />
               </div>
               <Select value={appStatusFilter} onValueChange={setAppStatusFilter}>
-                <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={tDX('statusPh')} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="ACTIVE">Active</SelectItem>
-                  <SelectItem value="PENDING">Pending</SelectItem>
-                  <SelectItem value="HIRED">Hired</SelectItem>
-                  <SelectItem value="REJECTED">Rejected</SelectItem>
+                  <SelectItem value="all">{tDX('allStatus')}</SelectItem>
+                  <SelectItem value="ACTIVE">{tEnums('applicantStatus.ACCEPTED', { defaultValue: 'Active' })}</SelectItem>
+                  <SelectItem value="PENDING">{tEnums('applicantStatus.NEW', { defaultValue: 'Pending' })}</SelectItem>
+                  <SelectItem value="HIRED">{tEnums('applicantStatus.HIRED')}</SelectItem>
+                  <SelectItem value="REJECTED">{tEnums('applicantStatus.REJECTED')}</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={appNationalityFilter} onValueChange={setAppNationalityFilter}>
-                <SelectTrigger><SelectValue placeholder="Citizenship" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={tDX('citizenshipPh')} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Citizenships</SelectItem>
+                  <SelectItem value="all">{tDX('allCitizenships')}</SelectItem>
                   {applicantNationalities.map(nat => (
                     <SelectItem key={nat} value={nat}>{nat}</SelectItem>
                   ))}
@@ -1009,7 +1017,7 @@ export function EmployeeDocumentExplorer() {
             </div>
             <div className="flex flex-wrap gap-3 items-center">
               <Input
-                placeholder="Email contains…"
+                placeholder={tDX('emailContainsPh')}
                 value={appEmailFilter}
                 onChange={e => setAppEmailFilter(e.target.value)}
                 className="w-56"
@@ -1017,7 +1025,7 @@ export function EmployeeDocumentExplorer() {
               <Input
                 type="number"
                 min={0}
-                placeholder="Min docs"
+                placeholder={tDX('minDocsPh')}
                 value={appMinDocs}
                 onChange={e => setAppMinDocs(e.target.value)}
                 className="w-32"
@@ -1026,7 +1034,7 @@ export function EmployeeDocumentExplorer() {
                 <Button variant="ghost" size="sm" onClick={() => {
                   setAppEmailFilter(''); setAppMinDocs(''); setAppNationalityFilter('all');
                 }}>
-                  <X className="w-3 h-3 mr-1" />Clear extras
+                  <X className="w-3 h-3 me-1" />{tDX('clearExtras')}
                 </Button>
               )}
             </div>
@@ -1037,9 +1045,9 @@ export function EmployeeDocumentExplorer() {
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle>Applicants ({filteredApplicants.length})</CardTitle>
+              <CardTitle>{tDX('applicantsCount', { count: filteredApplicants.length })}</CardTitle>
               <div className="flex items-center gap-2">
-                <Badge variant="outline">{selectedApplicants.length} selected</Badge>
+                <Badge variant="outline">{tDX('selectedSuffix', { count: selectedApplicants.length })}</Badge>
                 <ColumnPicker
                   columns={APP_COLUMNS}
                   visible={appCols}
@@ -1055,21 +1063,21 @@ export function EmployeeDocumentExplorer() {
               <table className="w-full">
                 <thead className="bg-[#F8FAFC] border-b">
                   <tr>
-                    <th className="text-left p-4 w-12">
+                    <th className="text-start p-4 w-12">
                       <Checkbox
                         checked={selectedApplicants.length === filteredApplicants.length && filteredApplicants.length > 0}
                         onCheckedChange={toggleAllApplicants}
                       />
                     </th>
-                    {appCols.name        && <SortableTh label="Applicant Name" field="name"        sortBy={appSortBy} sortOrder={appSortOrder} onSort={handleAppSort} />}
-                    {appCols.nationality && <SortableTh label="Citizenship"    field="nationality" sortBy={appSortBy} sortOrder={appSortOrder} onSort={handleAppSort} />}
-                    {appCols.status      && <SortableTh label="Status"         field="status"      sortBy={appSortBy} sortOrder={appSortOrder} onSort={handleAppSort} />}
-                    {appCols.documents   && <SortableTh label="Documents"      field="documents"   sortBy={appSortBy} sortOrder={appSortOrder} onSort={handleAppSort} />}
+                    {appCols.name        && <SortableTh label={tDX('cols.applicantName')} field="name"        sortBy={appSortBy} sortOrder={appSortOrder} onSort={handleAppSort} />}
+                    {appCols.nationality && <SortableTh label={tDX('cols.citizenship')}   field="nationality" sortBy={appSortBy} sortOrder={appSortOrder} onSort={handleAppSort} />}
+                    {appCols.status      && <SortableTh label={tDX('cols.status')}        field="status"      sortBy={appSortBy} sortOrder={appSortOrder} onSort={handleAppSort} />}
+                    {appCols.documents   && <SortableTh label={tDX('cols.documents')}     field="documents"   sortBy={appSortBy} sortOrder={appSortOrder} onSort={handleAppSort} />}
                   </tr>
                 </thead>
                 <tbody>
                   {filteredApplicants.length === 0 ? (
-                    <tr><td colSpan={5} className="p-8 text-center text-muted-foreground">No applicants found</td></tr>
+                    <tr><td colSpan={5} className="p-8 text-center text-muted-foreground">{t('documents.explorer.noApplicants')}</td></tr>
                   ) : filteredApplicants.map(app => {
                     const isSelected = selectedApplicants.includes(app.id);
                     return (
@@ -1106,13 +1114,13 @@ export function EmployeeDocumentExplorer() {
                               app.status === 'PENDING' ? 'bg-[#F59E0B]' :
                               app.status === 'REJECTED' ? 'bg-[#EF4444]' : 'bg-gray-500'
                             }>
-                              {app.status?.toLowerCase()}
+                              {app.status ? tEnums(`applicantStatus.${app.status}`, { defaultValue: app.status.toLowerCase() }) : ''}
                             </Badge>
                           </td>
                         )}
                         {appCols.documents && (
                           <td className="p-4">
-                            <Badge variant="outline">{applicantDocCounts[app.id] ?? 0} docs</Badge>
+                            <Badge variant="outline">{tDX('docsBadge', { count: applicantDocCounts[app.id] ?? 0 })}</Badge>
                           </td>
                         )}
                       </tr>
@@ -1131,12 +1139,12 @@ export function EmployeeDocumentExplorer() {
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle>
-                    {selectedApplicants.length === 1 ? 'Applicant Documents' : `Documents from ${selectedApplicants.length} Applicants`}
+                    {selectedApplicants.length === 1 ? tDX('applicantDocuments') : tDX('docsFromApplicants', { count: selectedApplicants.length })}
                   </CardTitle>
-                  <p className="text-sm text-muted-foreground mt-1">{allSelectedAppDocs.length} total documents</p>
+                  <p className="text-sm text-muted-foreground mt-1">{tDX('totalDocuments', { count: allSelectedAppDocs.length })}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge variant="outline">{selectedApplicantDocs.length} selected</Badge>
+                  <Badge variant="outline">{tDX('selectedSuffix', { count: selectedApplicantDocs.length })}</Badge>
                   <Button
                     variant="outline"
                     disabled={selectedApplicantDocs.length === 0 || downloading}
@@ -1146,14 +1154,14 @@ export function EmployeeDocumentExplorer() {
                         const blob = await documentsApi.bulkDownload(selectedApplicantDocs);
                         triggerZipDownload(blob, `selected_applicant_documents_${Date.now()}.zip`);
                       } catch (err: any) {
-                        toast.error(err?.message || 'Download failed');
+                        toast.error(err?.message || tDX('downloadFailed'));
                       } finally {
                         setDownloading(false);
                       }
                     }}
                   >
-                    <FileDown className="w-4 h-4 mr-2" />
-                    {downloading ? 'Preparing…' : 'Download Selected'}
+                    <FileDown className="w-4 h-4 me-2" />
+                    {downloading ? tDX('downloading') : tDX('downloadSelected')}
                   </Button>
                   <Button
                     disabled={allSelectedAppDocs.length === 0 || downloading}
@@ -1164,14 +1172,14 @@ export function EmployeeDocumentExplorer() {
                         const blob = await documentsApi.bulkDownload(ids);
                         triggerZipDownload(blob, `all_applicant_documents_${Date.now()}.zip`);
                       } catch (err: any) {
-                        toast.error(err?.message || 'Download failed');
+                        toast.error(err?.message || tDX('downloadFailed'));
                       } finally {
                         setDownloading(false);
                       }
                     }}
                   >
-                    <FileArchive className="w-4 h-4 mr-2" />
-                    {downloading ? 'Preparing…' : 'Download All'}
+                    <FileArchive className="w-4 h-4 me-2" />
+                    {downloading ? tDX('downloading') : tDX('downloadAll')}
                   </Button>
                 </div>
               </div>
@@ -1180,35 +1188,35 @@ export function EmployeeDocumentExplorer() {
               {/* Document filters */}
               <div className="flex flex-wrap gap-2 items-center">
                 <div className="relative flex-1 min-w-[220px]">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
-                    placeholder="Search documents by name, number, ID…"
+                    placeholder={tDX('docsSearchPh')}
                     value={appDocsSearch}
                     onChange={e => setAppDocsSearch(e.target.value)}
-                    className="pl-9"
+                    className="ps-9"
                   />
                 </div>
                 <Select value={appDocsStatusFilter} onValueChange={setAppDocsStatusFilter}>
-                  <SelectTrigger className="w-44"><SelectValue placeholder="All Statuses" /></SelectTrigger>
+                  <SelectTrigger className="w-44"><SelectValue placeholder={tDX('allStatuses')} /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Statuses</SelectItem>
-                    <SelectItem value="PENDING">Pending</SelectItem>
-                    <SelectItem value="VERIFIED">Valid</SelectItem>
-                    <SelectItem value="EXPIRING_SOON">Expiring Soon</SelectItem>
-                    <SelectItem value="EXPIRED">Expired</SelectItem>
-                    <SelectItem value="REJECTED">Rejected</SelectItem>
+                    <SelectItem value="all">{tDX('allStatuses')}</SelectItem>
+                    <SelectItem value="PENDING">{tEnums('documentStatus.PENDING')}</SelectItem>
+                    <SelectItem value="VERIFIED">{tEnums('documentStatus.VERIFIED')}</SelectItem>
+                    <SelectItem value="EXPIRING_SOON">{tEnums('documentStatus.EXPIRING_SOON')}</SelectItem>
+                    <SelectItem value="EXPIRED">{tEnums('documentStatus.EXPIRED')}</SelectItem>
+                    <SelectItem value="REJECTED">{tEnums('documentStatus.REJECTED')}</SelectItem>
                   </SelectContent>
                 </Select>
                 <Input
-                  placeholder="Type contains…"
+                  placeholder={tDX('typeContainsPh')}
                   value={appDocsTypeFilter}
                   onChange={e => setAppDocsTypeFilter(e.target.value)}
                   className="w-44"
                 />
                 <div className="flex items-center gap-1">
-                  <span className="text-xs text-muted-foreground whitespace-nowrap">Expiry from</span>
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">{tDX('expiryFrom')}</span>
                   <Input type="date" value={appDocsExpFrom} onChange={e => setAppDocsExpFrom(e.target.value)} className="w-36" />
-                  <span className="text-xs text-muted-foreground">to</span>
+                  <span className="text-xs text-muted-foreground">{tDX('expiryTo')}</span>
                   <Input type="date" value={appDocsExpTo} onChange={e => setAppDocsExpTo(e.target.value)} className="w-36" />
                 </div>
                 {(appDocsSearch || appDocsStatusFilter !== 'all' || appDocsTypeFilter || appDocsExpFrom || appDocsExpTo) && (
@@ -1216,10 +1224,10 @@ export function EmployeeDocumentExplorer() {
                     setAppDocsSearch(''); setAppDocsStatusFilter('all'); setAppDocsTypeFilter('');
                     setAppDocsExpFrom(''); setAppDocsExpTo('');
                   }}>
-                    <X className="w-3 h-3 mr-1" />Clear
+                    <X className="w-3 h-3 me-1" />{tDX('clear')}
                   </Button>
                 )}
-                <div className="ml-auto">
+                <div className="ms-auto">
                   <ColumnPicker
                     columns={DOC_COLUMNS}
                     visible={appDocsCols}
@@ -1234,29 +1242,29 @@ export function EmployeeDocumentExplorer() {
                 <table className="w-full">
                   <thead className="bg-[#F8FAFC] border-b">
                     <tr>
-                      <th className="text-left p-4 w-12">
+                      <th className="text-start p-4 w-12">
                         <Checkbox
                           checked={selectedApplicantDocs.length === displayAppDocs.length && displayAppDocs.length > 0}
                           onCheckedChange={toggleAllApplicantDocs}
                         />
                       </th>
                       {appDocsCols.owner && selectedApplicants.length > 1 && (
-                        <SortableTh label="Applicant" field="owner" sortBy={appDocsSortBy} sortOrder={appDocsSortOrder} onSort={handleAppDocsSort} />
+                        <SortableTh label={tDX('cols.applicant')} field="owner" sortBy={appDocsSortBy} sortOrder={appDocsSortOrder} onSort={handleAppDocsSort} />
                       )}
-                      {appDocsCols.name           && <SortableTh label="Document Name" field="name"           sortBy={appDocsSortBy} sortOrder={appDocsSortOrder} onSort={handleAppDocsSort} />}
-                      {appDocsCols.type           && <SortableTh label="Document Type" field="type"           sortBy={appDocsSortBy} sortOrder={appDocsSortOrder} onSort={handleAppDocsSort} />}
-                      {appDocsCols.status         && <SortableTh label="Status"        field="status"         sortBy={appDocsSortBy} sortOrder={appDocsSortOrder} onSort={handleAppDocsSort} />}
-                      {appDocsCols.expiry         && <SortableTh label="Expiry Date"   field="expiry"         sortBy={appDocsSortBy} sortOrder={appDocsSortOrder} onSort={handleAppDocsSort} />}
-                      {appDocsCols.docId          && <SortableTh label="Doc ID"        field="docId"          sortBy={appDocsSortBy} sortOrder={appDocsSortOrder} onSort={handleAppDocsSort} />}
-                      {appDocsCols.documentNumber && <SortableTh label="Doc Number"    field="documentNumber" sortBy={appDocsSortBy} sortOrder={appDocsSortOrder} onSort={handleAppDocsSort} />}
-                      {appDocsCols.uploadDate     && <SortableTh label="Upload Date"   field="uploadDate"     sortBy={appDocsSortBy} sortOrder={appDocsSortOrder} onSort={handleAppDocsSort} />}
-                      {appDocsCols.fileSize       && <SortableTh label="File Size"     field="fileSize"       sortBy={appDocsSortBy} sortOrder={appDocsSortOrder} onSort={handleAppDocsSort} />}
-                      <th className="text-left p-4 font-semibold text-sm">Action</th>
+                      {appDocsCols.name           && <SortableTh label={tDX('cols.documentName')} field="name"           sortBy={appDocsSortBy} sortOrder={appDocsSortOrder} onSort={handleAppDocsSort} />}
+                      {appDocsCols.type           && <SortableTh label={tDX('cols.documentType')} field="type"           sortBy={appDocsSortBy} sortOrder={appDocsSortOrder} onSort={handleAppDocsSort} />}
+                      {appDocsCols.status         && <SortableTh label={tDX('cols.status')}       field="status"         sortBy={appDocsSortBy} sortOrder={appDocsSortOrder} onSort={handleAppDocsSort} />}
+                      {appDocsCols.expiry         && <SortableTh label={tDX('cols.expiryDate')}   field="expiry"         sortBy={appDocsSortBy} sortOrder={appDocsSortOrder} onSort={handleAppDocsSort} />}
+                      {appDocsCols.docId          && <SortableTh label={tDX('cols.docId')}        field="docId"          sortBy={appDocsSortBy} sortOrder={appDocsSortOrder} onSort={handleAppDocsSort} />}
+                      {appDocsCols.documentNumber && <SortableTh label={tDX('cols.docNumber')}    field="documentNumber" sortBy={appDocsSortBy} sortOrder={appDocsSortOrder} onSort={handleAppDocsSort} />}
+                      {appDocsCols.uploadDate     && <SortableTh label={tDX('cols.uploadDate')}   field="uploadDate"     sortBy={appDocsSortBy} sortOrder={appDocsSortOrder} onSort={handleAppDocsSort} />}
+                      {appDocsCols.fileSize       && <SortableTh label={tDX('cols.fileSize')}     field="fileSize"       sortBy={appDocsSortBy} sortOrder={appDocsSortOrder} onSort={handleAppDocsSort} />}
+                      <th className="text-start p-4 font-semibold text-sm">{tDX('actionHeader')}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {displayAppDocs.length === 0 ? (
-                      <tr><td colSpan={12} className="p-8 text-center text-muted-foreground">No documents found for selected applicants</td></tr>
+                      <tr><td colSpan={12} className="p-8 text-center text-muted-foreground">{t('documents.explorer.noDocsForApplicants')}</td></tr>
                     ) : displayAppDocs.map(doc => {
                       const isSelected = selectedApplicantDocs.includes(doc.id);
                       const app = applicants.find(a => a.id === doc.entityId);
@@ -1281,11 +1289,11 @@ export function EmployeeDocumentExplorer() {
                           {appDocsCols.docId          && <td className="p-4"><code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono">{doc.docId ?? '—'}</code></td>}
                           {appDocsCols.documentNumber && <td className="p-4 text-sm font-mono">{doc.documentNumber ?? '-'}</td>}
                           {appDocsCols.uploadDate     && <td className="p-4 text-sm">{doc.createdAt ? new Date(doc.createdAt).toLocaleDateString() : '-'}</td>}
-                          {appDocsCols.fileSize       && <td className="p-4 text-sm text-muted-foreground">{doc.fileSize != null ? `${(doc.fileSize / 1024).toFixed(1)} KB` : '-'}</td>}
+                          {appDocsCols.fileSize       && <td className="p-4 text-sm text-muted-foreground">{doc.fileSize != null ? tDX('fileSizeKb', { kb: (doc.fileSize / 1024).toFixed(1) }) : '-'}</td>}
                           <td className="p-4">
                             <Button size="sm" variant="ghost" asChild>
                               <a href={getFileUrl(doc.fileUrl)} target="_blank" rel="noopener noreferrer" download>
-                                <Download className="w-4 h-4 mr-1" />Download
+                                <Download className="w-4 h-4 me-1" />{tDX('downloadAction')}
                               </a>
                             </Button>
                           </td>
@@ -1305,9 +1313,9 @@ export function EmployeeDocumentExplorer() {
               <div className="w-16 h-16 rounded-full bg-[#F8FAFC] flex items-center justify-center mx-auto mb-4">
                 <FileArchive className="w-8 h-8 text-muted-foreground" />
               </div>
-              <h3 className="font-semibold text-lg mb-2">No Applicants Selected</h3>
+              <h3 className="font-semibold text-lg mb-2">{tDX('noApplicantsSelected')}</h3>
               <p className="text-muted-foreground">
-                Select one or more applicants from the table above to view and download their documents
+                {tDX('selectApplicantsHint')}
               </p>
             </CardContent>
           </Card>

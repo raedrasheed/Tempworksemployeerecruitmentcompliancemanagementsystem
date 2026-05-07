@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -8,6 +9,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Separator } from '../../components/ui/separator';
 import { toast } from 'sonner';
 import { usersApi } from '../../services/api';
+import { apiError } from '../../../i18n/apiError';
+
+const LANGUAGE_OPTIONS = [
+  'English', 'Arabic', 'Polish', 'German', 'French',
+  'Spanish', 'Italian', 'Romanian', 'Ukrainian',
+] as const;
+
+const TIMEZONE_OPTIONS = [
+  'UTC',
+  'Europe/London', 'Europe/Warsaw', 'Europe/Berlin', 'Europe/Paris',
+  'Europe/Madrid', 'Europe/Rome', 'Europe/Bucharest', 'Europe/Kiev',
+  'America/New_York', 'America/Chicago', 'America/Los_Angeles',
+  'Asia/Dubai', 'Asia/Riyadh',
+] as const;
 
 const NOTIFICATION_OPTIONS = [
   { key: 'emailNotifications', label: 'Email notifications', description: 'Receive notifications via email' },
@@ -20,6 +35,8 @@ const NOTIFICATION_OPTIONS = [
 ];
 
 export function UserPreferences() {
+  const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
@@ -56,7 +73,7 @@ export function UserPreferences() {
           ...((user.notificationPrefs ?? user.notificationPreferences) ?? {}),
         }));
       })
-      .catch(() => toast.error('Failed to load preferences'))
+      .catch(() => toast.error(tc('toast.loadFailed')))
       .finally(() => setLoading(false));
   }, []);
 
@@ -81,9 +98,9 @@ export function UserPreferences() {
           ...((updated.notificationPrefs ?? updated.notificationPreferences) ?? {}),
         }));
       }
-      toast.success('Preferences saved successfully');
+      toast.success(tc('toast.savedSuccessfully'));
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to save preferences');
+      toast.error(apiError(err, tc('toast.saveFailed')));
     } finally {
       setSaving(false);
     }
@@ -104,8 +121,8 @@ export function UserPreferences() {
           <Link to="/dashboard/profile"><ArrowLeft className="w-5 h-5" /></Link>
         </Button>
         <div>
-          <h1 className="text-3xl font-semibold text-[#0F172A]">Preferences</h1>
-          <p className="text-muted-foreground mt-1">Manage your language, timezone, and notification settings</p>
+          <h1 className="text-3xl font-semibold text-[#0F172A]">{t('profile.preferences.title')}</h1>
+          <p className="text-muted-foreground mt-1">{t('profile.preferences.subtitle')}</p>
         </div>
       </div>
 
@@ -117,46 +134,29 @@ export function UserPreferences() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label>Preferred Language</Label>
+                <Label>{t('profile.preferences.language')}</Label>
                 <Select value={form.preferredLanguage} onValueChange={val => setForm(prev => ({ ...prev, preferredLanguage: val }))}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select language" />
+                    <SelectValue placeholder={t('profile.preferences.languagePh')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="English">English</SelectItem>
-                    <SelectItem value="Arabic">Arabic (العربية)</SelectItem>
-                    <SelectItem value="Polish">Polish (Polski)</SelectItem>
-                    <SelectItem value="German">German (Deutsch)</SelectItem>
-                    <SelectItem value="French">French (Français)</SelectItem>
-                    <SelectItem value="Spanish">Spanish (Español)</SelectItem>
-                    <SelectItem value="Italian">Italian (Italiano)</SelectItem>
-                    <SelectItem value="Romanian">Romanian (Română)</SelectItem>
-                    <SelectItem value="Ukrainian">Ukrainian (Українська)</SelectItem>
+                    {LANGUAGE_OPTIONS.map(code => (
+                      <SelectItem key={code} value={code}>{t(`profile.preferences.languages.${code}`)}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
-                <Label>Time Zone</Label>
+                <Label>{t('profile.preferences.timezone')}</Label>
                 <Select value={form.timeZone} onValueChange={val => setForm(prev => ({ ...prev, timeZone: val }))}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select timezone" />
+                    <SelectValue placeholder={t('profile.preferences.timezonePh')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="UTC">UTC (Coordinated Universal Time)</SelectItem>
-                    <SelectItem value="Europe/London">London (GMT/BST)</SelectItem>
-                    <SelectItem value="Europe/Warsaw">Warsaw (CET/CEST)</SelectItem>
-                    <SelectItem value="Europe/Berlin">Berlin (CET/CEST)</SelectItem>
-                    <SelectItem value="Europe/Paris">Paris (CET/CEST)</SelectItem>
-                    <SelectItem value="Europe/Madrid">Madrid (CET/CEST)</SelectItem>
-                    <SelectItem value="Europe/Rome">Rome (CET/CEST)</SelectItem>
-                    <SelectItem value="Europe/Bucharest">Bucharest (EET/EEST)</SelectItem>
-                    <SelectItem value="Europe/Kiev">Kyiv (EET/EEST)</SelectItem>
-                    <SelectItem value="America/New_York">New York (ET)</SelectItem>
-                    <SelectItem value="America/Chicago">Chicago (CT)</SelectItem>
-                    <SelectItem value="America/Los_Angeles">Los Angeles (PT)</SelectItem>
-                    <SelectItem value="Asia/Dubai">Dubai (GST)</SelectItem>
-                    <SelectItem value="Asia/Riyadh">Riyadh (AST)</SelectItem>
+                    {TIMEZONE_OPTIONS.map(tz => (
+                      <SelectItem key={tz} value={tz}>{t(`profile.preferences.timezones.${tz}`)}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -165,11 +165,11 @@ export function UserPreferences() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Notification Preferences</CardTitle>
+              <CardTitle>{t('profile.preferences.notificationPreferences')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <h4 className="text-sm font-medium text-[#0F172A] mb-3">Channels</h4>
+                <h4 className="text-sm font-medium text-[#0F172A] mb-3">{t('profile.preferences.channels')}</h4>
                 {NOTIFICATION_OPTIONS.slice(0, 2).map(({ key, label, description }) => (
                   <div key={key} className="flex items-start gap-3 mb-3">
                     <input
@@ -188,7 +188,7 @@ export function UserPreferences() {
               </div>
               <Separator />
               <div>
-                <h4 className="text-sm font-medium text-[#0F172A] mb-3">Notification Types</h4>
+                <h4 className="text-sm font-medium text-[#0F172A] mb-3">{t('profile.preferences.notificationTypes')}</h4>
                 {NOTIFICATION_OPTIONS.slice(2).map(({ key, label, description }) => (
                   <div key={key} className="flex items-start gap-3 mb-3">
                     <input
@@ -210,10 +210,10 @@ export function UserPreferences() {
 
           <div className="flex gap-3">
             <Button type="submit" className="flex-1 bg-[#2563EB] hover:bg-[#1d4ed8]" disabled={saving}>
-              {saving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving...</> : 'Save Preferences'}
+              {saving ? <><Loader2 className="w-4 h-4 me-2 animate-spin" />{t('profile.preferences.saving')}</> : t('profile.preferences.save')}
             </Button>
             <Button type="button" variant="outline" className="flex-1" asChild>
-              <Link to="/dashboard/profile">Cancel</Link>
+              <Link to="/dashboard/profile">{t('profile.preferences.cancel')}</Link>
             </Button>
           </div>
         </div>

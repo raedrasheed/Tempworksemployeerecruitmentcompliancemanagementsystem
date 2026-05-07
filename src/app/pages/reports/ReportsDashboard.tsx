@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   BarChart3, TrendingUp, Users, FileCheck, Plus, Play, Download,
   Trash2, Edit3, FileSpreadsheet, FileText, File, AlertTriangle,
@@ -19,6 +20,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/ta
 import { toast } from 'sonner';
 import { confirm } from '../../components/ui/ConfirmDialog';
 import { reportsApi } from '../../services/api';
+import { apiError } from '../../../i18n/apiError';
 import { usePermissions } from '../../hooks/usePermissions';
 
 const PALETTE = ['#2563EB', '#22C55E', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4', '#EC4899'];
@@ -94,27 +96,28 @@ function fmtCell(value: any, type?: string): string {
 
 // ─── Preview Table ─────────────────────────────────────────────────────────────
 function PreviewTable({ result, maxRows, startSerial = 1 }: { result: any; maxRows?: number; startSerial?: number }) {
+  const { t } = useTranslation('pages');
   const cols: any[] = result.columns ?? [];
   const rows: any[] = (result.rows ?? []).slice(0, maxRows ?? 9999);
-  if (!cols.length) return <p className="p-4 text-sm text-muted-foreground">No columns selected.</p>;
+  if (!cols.length) return <p className="p-4 text-sm text-muted-foreground">{t('reports.dashboard.noColumnsSelected')}</p>;
   return (
     <table className="w-full text-sm">
       <thead className="bg-[#F8FAFC] border-b">
         <tr>
-          <th className="text-center p-3 font-semibold text-xs whitespace-nowrap border-r w-10 text-muted-foreground">#</th>
+          <th className="text-center p-3 font-semibold text-xs whitespace-nowrap border-e w-10 text-muted-foreground">#</th>
           {cols.map((c: any) => (
-            <th key={c.key} className="text-left p-3 font-semibold text-xs whitespace-nowrap border-r last:border-r-0">{c.label}</th>
+            <th key={c.key} className="text-start p-3 font-semibold text-xs whitespace-nowrap border-e last:border-e-0">{c.label}</th>
           ))}
         </tr>
       </thead>
       <tbody>
         {rows.length === 0 ? (
-          <tr><td colSpan={cols.length + 1} className="p-6 text-center text-muted-foreground">No data returned</td></tr>
+          <tr><td colSpan={cols.length + 1} className="p-6 text-center text-muted-foreground">{t('reports.dashboard.noDataReturned')}</td></tr>
         ) : rows.map((row: any, ri: number) => (
           <tr key={ri} className={`border-b ${ri % 2 === 1 ? 'bg-[#F8FAFC]' : ''} hover:bg-[#EFF6FF] transition-colors`}>
-            <td className="p-3 border-r text-xs text-center text-muted-foreground tabular-nums w-10">{startSerial + ri}</td>
+            <td className="p-3 border-e text-xs text-center text-muted-foreground tabular-nums w-10">{startSerial + ri}</td>
             {cols.map((c: any) => (
-              <td key={c.key} className="p-3 border-r last:border-r-0 text-xs max-w-[180px] truncate">
+              <td key={c.key} className="p-3 border-e last:border-e-0 text-xs max-w-[180px] truncate">
                 {fmtCell(row[c.key], c.type)}
               </td>
             ))}
@@ -127,6 +130,8 @@ function PreviewTable({ result, maxRows, startSerial = 1 }: { result: any; maxRo
 
 // ═════════════════════════════════════════════════════════════════════════════
 export function ReportsDashboard() {
+  const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const { canEdit } = usePermissions();
 
   const [kpis, setKpis]           = useState<any>(null);
@@ -189,20 +194,20 @@ export function ReportsDashboard() {
   const refreshList = async () => { const r: any = await reportsApi.list(); setSavedReports(Array.isArray(r) ? r : (r?.data ?? [])); };
 
   const handleSave = async () => {
-    if (!builder.name.trim()) { toast.error('Report name is required'); return; }
-    if (!builder.dataSource)  { toast.error('Select a data source');    return; }
+    if (!builder.name.trim()) { toast.error(tc('toast.reportNameRequired')); return; }
+    if (!builder.dataSource)  { toast.error(tc('toast.selectDataSource'));    return; }
     setSaving(true);
     try {
-      if (editingId) { await reportsApi.update(editingId, buildPayload()); toast.success('Report updated'); }
-      else           { await reportsApi.create(buildPayload());             toast.success('Report saved');   }
+      if (editingId) { await reportsApi.update(editingId, buildPayload()); toast.success(tc('toast.savedSuccessfully')); }
+      else           { await reportsApi.create(buildPayload());             toast.success(tc('toast.savedSuccessfully'));   }
       await refreshList(); resetBuilder();
-    } catch (err: any) { toast.error(err?.message || 'Save failed'); }
+    } catch (err: any) { toast.error(apiError(err, tc('toast.saveFailed'))); }
     finally { setSaving(false); }
   };
 
   const handlePreview = async () => {
-    if (!builder.name.trim()) { toast.error('Give the report a name first'); return; }
-    if (!builder.dataSource)  { toast.error('Select a data source');          return; }
+    if (!builder.name.trim()) { toast.error(tc('toast.giveReportName')); return; }
+    if (!builder.dataSource)  { toast.error(tc('toast.selectDataSource'));          return; }
     setPreviewLoading(true);
     try {
       const pl = buildPayload();
@@ -211,14 +216,14 @@ export function ReportsDashboard() {
       const result = await reportsApi.run(saved.id, { page: 1, limit: 50 });
       setPreviewResult(result);
       await refreshList();
-    } catch (err: any) { toast.error(err?.message || 'Preview failed'); }
+    } catch (err: any) { toast.error(apiError(err, tc('toast.operationFailed'))); }
     finally { setPreviewLoading(false); }
   };
 
   const handleRunReport = async (id: string) => {
     setRunningId(id);
     try { const r = await reportsApi.run(id, { page: 1, limit: 100 }); setRunResult(p => ({ ...p, [id]: r })); }
-    catch (err: any) { toast.error(err?.message || 'Run failed'); }
+    catch (err: any) { toast.error(apiError(err, tc('toast.operationFailed'))); }
     finally { setRunningId(null); }
   };
 
@@ -229,36 +234,36 @@ export function ReportsDashboard() {
       const blob = await reportsApi.export(id, format);
       const ext  = format === 'excel' ? 'xlsx' : format === 'word' ? 'docx' : 'pdf';
       triggerDownload(blob, `${name.replace(/\s+/g, '_')}_${Date.now()}.${ext}`);
-      toast.success(`Downloaded as ${ext.toUpperCase()}`);
-    } catch (err: any) { toast.error(err?.message || 'Export failed'); }
+      toast.success(tc('toast.downloadedAs', { format: ext.toUpperCase() }));
+    } catch (err: any) { toast.error(apiError(err, tc('toast.exportFailed'))); }
     finally { setExporting(p => ({ ...p, [key]: false })); }
   };
 
   const handleDelete = async (id: string) => {
     if (!(await confirm({
-      title: 'Delete report?',
-      description: 'This report will be permanently removed.',
-      confirmText: 'Delete', tone: 'destructive',
+      title: t('common:confirm.deleteReportTitle'),
+      description: t('common:confirm.deleteReportBody'),
+      confirmText: t('common:actions.delete'), tone: 'destructive',
     }))) return;
-    try { await reportsApi.delete(id); setSavedReports(p => p.filter(r => r.id !== id)); if (editingId === id) resetBuilder(); toast.success('Deleted'); }
-    catch (err: any) { toast.error(err?.message || 'Delete failed'); }
+    try { await reportsApi.delete(id); setSavedReports(p => p.filter(r => r.id !== id)); if (editingId === id) resetBuilder(); toast.success(tc('toast.deleted')); }
+    catch (err: any) { toast.error(apiError(err, tc('toast.deleteFailed'))); }
   };
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-semibold text-[#0F172A]">Reports & Analytics</h1>
-        <p className="text-muted-foreground mt-1">Dynamic report builder with Excel, PDF, and Word export</p>
+        <h1 className="text-3xl font-semibold text-[#0F172A]">{t('reports.dashboard.title')}</h1>
+        <p className="text-muted-foreground mt-1">{t('reports.dashboard.subtitle')}</p>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="w-full grid grid-cols-3 mb-2">
-          <TabsTrigger value="dashboard"><BarChart3 className="w-4 h-4 mr-2" />Dashboard</TabsTrigger>
-          <TabsTrigger value="builder"><Plus className="w-4 h-4 mr-2" />Report Builder</TabsTrigger>
+          <TabsTrigger value="dashboard"><BarChart3 className="w-4 h-4 me-2" />Dashboard</TabsTrigger>
+          <TabsTrigger value="builder"><Plus className="w-4 h-4 me-2" />{t('reports.dashboard.reportBuilder')}</TabsTrigger>
           <TabsTrigger value="saved">
-            <Database className="w-4 h-4 mr-2" />Saved Reports
-            {savedReports.length > 0 && <Badge className="ml-2 bg-[#2563EB] text-white text-xs px-1.5">{savedReports.length}</Badge>}
+            <Database className="w-4 h-4 me-2" />Saved Reports
+            {savedReports.length > 0 && <Badge className="ms-2 bg-[#2563EB] text-white text-xs px-1.5">{savedReports.length}</Badge>}
           </TabsTrigger>
         </TabsList>
 
@@ -273,7 +278,7 @@ export function ReportsDashboard() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
-              <CardHeader><CardTitle className="text-base">Employees by Status</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-base">{t('reports.dashboard.employeesByStatus')}</CardTitle></CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={260}>
                   <BarChart data={kpis?.employees?.byStatus ?? []} barSize={40}>
@@ -289,7 +294,7 @@ export function ReportsDashboard() {
               </CardContent>
             </Card>
             <Card>
-              <CardHeader><CardTitle className="text-base">Applicants by Status</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-base">{t('reports.dashboard.applicantsByStatus')}</CardTitle></CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={260}>
                   <PieChart>
@@ -309,9 +314,9 @@ export function ReportsDashboard() {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="font-semibold text-lg">{editingId ? 'Edit Report' : 'New Report'}</h2>
-              <p className="text-sm text-muted-foreground">Select a source, pick columns, add filters, define sorting</p>
+              <p className="text-sm text-muted-foreground">{t('reports.dashboard.builderHelp')}</p>
             </div>
-            {editingId && <Button variant="outline" size="sm" onClick={resetBuilder}>New / Clear</Button>}
+            {editingId && <Button variant="outline" size="sm" onClick={resetBuilder}>{t('reports.dashboard.newClear')}</Button>}
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
@@ -320,7 +325,7 @@ export function ReportsDashboard() {
 
               {/* Info */}
               <Card>
-                <CardHeader><CardTitle className="text-sm flex items-center gap-2"><Database className="w-4 h-4 text-[#2563EB]" />Report Info</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="text-sm flex items-center gap-2"><Database className="w-4 h-4 text-[#2563EB]" />{t('reports.dashboard.reportInfo')}</CardTitle></CardHeader>
                 <CardContent className="space-y-3">
                   <div>
                     <Label>Name *</Label>
@@ -337,7 +342,7 @@ export function ReportsDashboard() {
                       <SelectContent>
                         {dataSources.some((ds: any) => ds.group === 'single') && (
                           <>
-                            <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Single Table</div>
+                            <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t('reports.dashboard.singleTable')}</div>
                             {dataSources.filter((ds: any) => ds.group === 'single').map((ds: any) => (
                               <SelectItem key={ds.key} value={ds.key}>
                                 <div className="flex items-center gap-2">
@@ -350,7 +355,7 @@ export function ReportsDashboard() {
                         )}
                         {dataSources.some((ds: any) => ds.group === 'combined') && (
                           <>
-                            <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide border-t mt-1 pt-2">Combined (Multi-Table)</div>
+                            <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide border-t mt-1 pt-2">{t('reports.dashboard.combinedMultiTable')}</div>
                             {dataSources.filter((ds: any) => ds.group === 'combined').map((ds: any) => (
                               <SelectItem key={ds.key} value={ds.key}>
                                 <div className="flex items-center gap-2">
@@ -370,7 +375,7 @@ export function ReportsDashboard() {
                       return (
                         <div className="mt-2 flex items-center gap-1.5 text-xs text-[#8B5CF6]">
                           <Link2 className="w-3 h-3" />
-                          <span className="font-medium">Joining:</span>
+                          <span className="font-medium">{t('reports.dashboard.joining')}</span>
                           {(sel.tables as string[]).map((t: string, i: number) => (
                             <span key={t}>
                               {i > 0 && <span className="text-muted-foreground mx-0.5">+</span>}
@@ -388,7 +393,7 @@ export function ReportsDashboard() {
               {builder.dataSource && (
                 <Card>
                   <CardHeader><CardTitle className="text-sm flex items-center gap-2"><Layers className="w-4 h-4 text-[#8B5CF6]" />Columns</CardTitle></CardHeader>
-                  <CardContent className="space-y-2 max-h-80 overflow-y-auto pr-1">
+                  <CardContent className="space-y-2 max-h-80 overflow-y-auto pe-1">
                     {sourceFields.map((f: any) => {
                       const col = builder.columns.find((c: any) => c.columnName === f.key);
                       return (
@@ -399,7 +404,7 @@ export function ReportsDashboard() {
                             <Badge variant="outline" className="text-xs px-1.5">{f.type}</Badge>
                           </div>
                           {col && (
-                            <div className="pl-6 space-y-2">
+                            <div className="ps-6 space-y-2">
                               <Input className="h-7 text-xs" placeholder="Display name" value={col.displayName} onChange={e => updateColumn(f.key, { displayName: e.target.value })} />
                               <div className="flex gap-3">
                                 <label className="flex items-center gap-1 text-xs cursor-pointer">
@@ -469,7 +474,7 @@ export function ReportsDashboard() {
                     </Select>
                   </CardHeader>
                   <CardContent className="space-y-2">
-                    {builder.sorting.length === 0 && <p className="text-xs text-muted-foreground">No sort rules</p>}
+                    {builder.sorting.length === 0 && <p className="text-xs text-muted-foreground">{t('reports.dashboard.noSortRules')}</p>}
                     {builder.sorting.map((s: any, i) => (
                       <div key={i} className="flex items-center gap-2">
                         <span className="text-xs flex-1 truncate font-medium">{s.columnName}</span>
@@ -492,10 +497,10 @@ export function ReportsDashboard() {
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle className="text-sm flex items-center gap-2"><Filter className="w-4 h-4 text-[#06B6D4]" />Filters <Badge variant="outline">{builder.filters.length}</Badge></CardTitle>
-                    <Button size="sm" variant="outline" onClick={addFilter}><Plus className="w-3.5 h-3.5 mr-1" />Add Filter</Button>
+                    <Button size="sm" variant="outline" onClick={addFilter}><Plus className="w-3.5 h-3.5 me-1" />{t('reports.dashboard.addFilter')}</Button>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    {builder.filters.length === 0 && <p className="text-sm text-muted-foreground">No filters — all rows will be included.</p>}
+                    {builder.filters.length === 0 && <p className="text-sm text-muted-foreground">{t('reports.dashboard.noFiltersBody')}</p>}
                     {builder.filters.map((f: any, i: number) => (
                       <div key={f.id ?? i} className="border rounded-lg p-3 grid grid-cols-2 sm:grid-cols-4 gap-2 items-end">
                         <div>
@@ -520,7 +525,7 @@ export function ReportsDashboard() {
                         )}
                         {f.operator === 'between' ? (
                           <div>
-                            <Label className="text-xs">Value (to)</Label>
+                            <Label className="text-xs">{t('reports.dashboard.valueTo')}</Label>
                             <Input className="h-8 text-xs mt-0.5" placeholder="end" value={f.value2 ?? ''} onChange={e => updateFilter(i, { value2: e.target.value })} />
                           </div>
                         ) : (
@@ -544,11 +549,11 @@ export function ReportsDashboard() {
               {/* Action buttons */}
               <div className="flex flex-wrap gap-3">
                 <Button onClick={handlePreview} disabled={previewLoading} className="bg-[#2563EB] hover:bg-[#1D4ED8]">
-                  {previewLoading ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Play className="w-4 h-4 mr-2" />}
+                  {previewLoading ? <RefreshCw className="w-4 h-4 me-2 animate-spin" /> : <Play className="w-4 h-4 me-2" />}
                   {previewLoading ? 'Running preview…' : 'Preview (50 rows)'}
                 </Button>
                 <Button onClick={handleSave} disabled={saving} variant="outline">
-                  {saving ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : null}
+                  {saving ? <RefreshCw className="w-4 h-4 me-2 animate-spin" /> : null}
                   {saving ? 'Saving…' : editingId ? 'Update Report' : 'Save Report'}
                 </Button>
                 {editingId && (['excel', 'pdf', 'word'] as const).map(fmt => (
@@ -575,13 +580,13 @@ export function ReportsDashboard() {
         {/* ── SAVED REPORTS ─────────────────────────────────────────── */}
         <TabsContent value="saved" className="space-y-4">
           {reportsLoading ? (
-            <div className="p-8 text-center text-muted-foreground">Loading saved reports…</div>
+            <div className="p-8 text-center text-muted-foreground">{t('reports.dashboard.loadingSavedReports')}</div>
           ) : savedReports.length === 0 ? (
             <Card>
               <CardContent className="p-12 text-center">
                 <Database className="w-12 h-12 mx-auto mb-3 text-muted-foreground opacity-40" />
-                <h3 className="font-semibold mb-1">No saved reports yet</h3>
-                <p className="text-sm text-muted-foreground">Use the Report Builder tab to create and save your first report.</p>
+                <h3 className="font-semibold mb-1">{t('reports.dashboard.noSavedReportsTitle')}</h3>
+                <p className="text-sm text-muted-foreground">{t('reports.dashboard.noSavedReportsBody')}</p>
               </CardContent>
             </Card>
           ) : savedReports.map(report => (
@@ -615,13 +620,13 @@ export function ReportsDashboard() {
                   </div>
                   <div className="flex items-center gap-1 flex-wrap">
                     <Button size="sm" variant="outline" onClick={() => handleRunReport(report.id)} disabled={runningId === report.id}>
-                      {runningId === report.id ? <RefreshCw className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Play className="w-3.5 h-3.5 mr-1" />}
+                      {runningId === report.id ? <RefreshCw className="w-3.5 h-3.5 me-1 animate-spin" /> : <Play className="w-3.5 h-3.5 me-1" />}
                       Run
                     </Button>
                     {canEdit('reports') && (
                       <>
                         <Button size="sm" variant="outline" onClick={() => loadIntoBuilder(report)}>
-                          <Edit3 className="w-3.5 h-3.5 mr-1" />Edit
+                          <Edit3 className="w-3.5 h-3.5 me-1" />Edit
                         </Button>
                         {(['excel', 'pdf', 'word'] as const).map(fmt => (
                           <Button key={fmt} size="sm" variant="ghost" title={`Export as ${fmt}`} disabled={!!exporting[`${report.id}-${fmt}`]} onClick={() => handleExport(report.id, fmt, report.name)}>

@@ -66,7 +66,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Refresh access token' })
   async refresh(@Body() dto: RefreshTokenDto) {
     const decoded = this.jwtService.decode(dto.refreshToken) as any;
-    if (!decoded?.sub) throw new UnauthorizedException('Invalid refresh token');
+    if (!decoded?.sub) throw new UnauthorizedException({ code: 'AUTH.INVALID_REFRESH_TOKEN', message: 'Invalid refresh token' });
     return this.authService.refreshTokens(decoded.sub, dto.refreshToken);
   }
 

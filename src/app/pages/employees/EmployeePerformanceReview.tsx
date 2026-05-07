@@ -1,4 +1,5 @@
 import { Link, useParams } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Star, TrendingUp, TrendingDown, Award, AlertTriangle, ThumbsUp } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -158,6 +159,7 @@ const ratingTrendData = mockPerformanceReviews.reverse().map(review => ({
 }));
 
 export function EmployeePerformanceReview() {
+  const { t } = useTranslation('pages');
   const { id } = useParams();
   const driver = mockDrivers.find(d => d.id === id);
   
@@ -178,7 +180,7 @@ export function EmployeePerformanceReview() {
           </Link>
         </Button>
         <div className="flex-1">
-          <h1 className="text-3xl font-semibold text-[#0F172A]">Performance Reviews</h1>
+          <h1 className="text-3xl font-semibold text-[#0F172A]">{t('employees.performance.performanceReviewsTitle')}</h1>
           <p className="text-muted-foreground mt-1">{driver.firstName} {driver.lastName} • Comprehensive performance evaluations and ratings</p>
         </div>
         <Button>Schedule Review</Button>
@@ -194,7 +196,7 @@ export function EmployeePerformanceReview() {
               </div>
               <div>
                 <p className="text-2xl font-semibold">{latestReview.overallRating}</p>
-                <p className="text-sm text-muted-foreground">Latest Rating</p>
+                <p className="text-sm text-muted-foreground">{t('employees.performance.latestRating')}</p>
               </div>
             </div>
           </CardContent>
@@ -208,7 +210,7 @@ export function EmployeePerformanceReview() {
               </div>
               <div>
                 <p className="text-2xl font-semibold">{avgRating}</p>
-                <p className="text-sm text-muted-foreground">Avg Rating</p>
+                <p className="text-sm text-muted-foreground">{t('employees.performance.avgRating')}</p>
               </div>
             </div>
           </CardContent>
@@ -222,7 +224,7 @@ export function EmployeePerformanceReview() {
               </div>
               <div>
                 <p className="text-2xl font-semibold">{latestReview.onTimeDelivery}%</p>
-                <p className="text-sm text-muted-foreground">On-Time Rate</p>
+                <p className="text-sm text-muted-foreground">{t('employees.performance.onTimeRate')}</p>
               </div>
             </div>
           </CardContent>
@@ -236,7 +238,7 @@ export function EmployeePerformanceReview() {
               </div>
               <div>
                 <p className="text-2xl font-semibold">{totalIncidents}</p>
-                <p className="text-sm text-muted-foreground">Total Incidents</p>
+                <p className="text-sm text-muted-foreground">{t('employees.performance.totalIncidents')}</p>
               </div>
             </div>
           </CardContent>
@@ -248,7 +250,7 @@ export function EmployeePerformanceReview() {
         <Card>
           <CardHeader>
             <CardTitle>Performance Categories</CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">Current vs Previous quarter comparison</p>
+            <p className="text-sm text-muted-foreground mt-1">{t('employees.performance.comparisonHelp')}</p>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={350}>
@@ -268,7 +270,7 @@ export function EmployeePerformanceReview() {
         <Card>
           <CardHeader>
             <CardTitle>Performance Trend</CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">Overall rating over time</p>
+            <p className="text-sm text-muted-foreground mt-1">{t('employees.performance.trendHelp')}</p>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={350}>
@@ -293,7 +295,7 @@ export function EmployeePerformanceReview() {
               <CardTitle>Latest Performance Review - {latestReview.period}</CardTitle>
               <p className="text-sm text-muted-foreground mt-1">Reviewed on {latestReview.reviewDate} by {latestReview.reviewer}</p>
             </div>
-            <div className="text-right">
+            <div className="text-end">
               <div className="flex items-center gap-2">
                 <Star className="w-6 h-6 text-[#F59E0B] fill-[#F59E0B]" />
                 <span className="text-3xl font-semibold">{latestReview.overallRating}</span>
@@ -304,7 +306,7 @@ export function EmployeePerformanceReview() {
         <CardContent className="space-y-6">
           {/* Category Ratings */}
           <div>
-            <h3 className="font-semibold mb-4">Category Ratings</h3>
+            <h3 className="font-semibold mb-4">{t('employees.performance.categoryRatings')}</h3>
             <div className="space-y-3">
               {Object.entries(latestReview.categories).map(([category, rating]) => (
                 <div key={category}>
@@ -355,7 +357,7 @@ export function EmployeePerformanceReview() {
 
           {/* Reviewer Feedback */}
           <div>
-            <h3 className="font-semibold mb-3">Reviewer Feedback</h3>
+            <h3 className="font-semibold mb-3">{t('employees.performance.reviewerFeedback')}</h3>
             <div className="bg-[#F8FAFC] p-4 rounded-lg border">
               <p className="text-sm leading-relaxed">{latestReview.feedback}</p>
             </div>
@@ -387,11 +389,11 @@ export function EmployeePerformanceReview() {
                     
                     <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t">
                       <div>
-                        <p className="text-xs text-muted-foreground">Safety Rating</p>
+                        <p className="text-xs text-muted-foreground">{t('employees.performance.safetyRating')}</p>
                         <p className="font-semibold">{review.categories.safety}/5</p>
                       </div>
                       <div>
-                        <p className="text-xs text-muted-foreground">On-Time Delivery</p>
+                        <p className="text-xs text-muted-foreground">{t('employees.performance.onTimeDelivery')}</p>
                         <p className="font-semibold">{review.onTimeDelivery}%</p>
                       </div>
                       <div>
@@ -400,7 +402,7 @@ export function EmployeePerformanceReview() {
                       </div>
                     </div>
                   </div>
-                  <Button size="sm" variant="outline">View Full Review</Button>
+                  <Button size="sm" variant="outline">{t('employees.performance.viewFullReview')}</Button>
                 </div>
               </div>
             ))}

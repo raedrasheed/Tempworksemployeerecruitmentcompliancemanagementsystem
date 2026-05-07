@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Plus, Eye, Edit, Trash2, ShieldOff } from 'lucide-react';
 import { usePermissions } from '../../hooks/usePermissions';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
@@ -16,6 +17,7 @@ import {
   AlertDialogTitle,
 } from '../../components/ui/alert-dialog';
 import { settingsApi } from '../../services/api';
+import { apiError } from '../../../i18n/apiError';
 import { toast } from 'sonner';
 
 interface DocumentType {
@@ -29,6 +31,8 @@ interface DocumentType {
 }
 
 export function DocumentTypes() {
+  const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const navigate = useNavigate();
   const { canCreate, canEdit, canDelete } = usePermissions();
   const [documentTypes, setDocumentTypes] = useState<DocumentType[]>([]);
@@ -45,7 +49,7 @@ export function DocumentTypes() {
       const data = await settingsApi.getDocumentTypes();
       setDocumentTypes(data);
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to load document types');
+      toast.error(apiError(err, tc('toast.loadFailed')));
     } finally {
       setLoading(false);
     }
@@ -56,11 +60,11 @@ export function DocumentTypes() {
     setDeleting(true);
     try {
       await settingsApi.deleteDocumentType(deleteTarget.id);
-      toast.success(`"${deleteTarget.name}" deactivated successfully`);
+      toast.success(tc('toast.deactivatedSuccessfullyNamed', { name: deleteTarget.name }));
       setDocumentTypes((prev) => prev.filter((d) => d.id !== deleteTarget.id));
       setDeleteTarget(null);
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to delete document type');
+      toast.error(apiError(err, tc('toast.deleteFailed')));
     } finally {
       setDeleting(false);
     }
@@ -75,14 +79,14 @@ export function DocumentTypes() {
           <Link to="/dashboard/settings"><ArrowLeft className="w-5 h-5" /></Link>
         </Button>
         <div className="flex-1">
-          <h1 className="text-3xl font-semibold text-[#0F172A]">Document Types</h1>
-          <p className="text-muted-foreground mt-1">Manage document types and requirements</p>
+          <h1 className="text-3xl font-semibold text-[#0F172A]">{t('settings.documentTypes.list')}</h1>
+          <p className="text-muted-foreground mt-1">{t('settings.documentTypes.headerSubtitle')}</p>
         </div>
         {canCreate('settings') && (
           <Button asChild>
             <Link to="/dashboard/settings/document-types/new">
-              <Plus className="w-4 h-4 mr-2" />
-              Add Document Type
+              <Plus className="w-4 h-4 me-2" />
+              {t('settings.documentTypes.addDocumentType')}
             </Link>
           </Button>
         )}
@@ -93,41 +97,41 @@ export function DocumentTypes() {
         <Card>
           <CardContent className="pt-6">
             <div className="text-2xl font-semibold">{documentTypes.length}</div>
-            <p className="text-sm text-muted-foreground">Total Document Types</p>
+            <p className="text-sm text-muted-foreground">{t('settings.documentTypes.statTotal')}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
             <div className="text-2xl font-semibold">{documentTypes.filter((d) => d.required).length}</div>
-            <p className="text-sm text-muted-foreground">Required Types</p>
+            <p className="text-sm text-muted-foreground">{t('settings.documentTypes.statRequired')}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
             <div className="text-2xl font-semibold">{documentTypes.filter((d) => d.trackExpiry).length}</div>
-            <p className="text-sm text-muted-foreground">With Expiry Tracking</p>
+            <p className="text-sm text-muted-foreground">{t('settings.documentTypes.statExpiry')}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
             <div className="text-2xl font-semibold">{totalDocuments}</div>
-            <p className="text-sm text-muted-foreground">Total Documents</p>
+            <p className="text-sm text-muted-foreground">{t('settings.documentTypes.statDocuments')}</p>
           </CardContent>
         </Card>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Document Type Configuration</CardTitle>
+          <CardTitle>{t('settings.documentTypes.listCardTitle')}</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="py-12 text-center text-muted-foreground">Loading document types...</div>
+            <div className="py-12 text-center text-muted-foreground">{t('settings.documentTypes.loading')}</div>
           ) : documentTypes.length === 0 ? (
             <div className="py-12 text-center text-muted-foreground">
-              No document types found.{' '}
+              {t('settings.documentTypes.emptyState')}{' '}
               <Link to="/dashboard/settings/document-types/new" className="text-[#2563EB] underline">
-                Add one
+                {t('settings.documentTypes.emptyAddLink')}
               </Link>
             </div>
           ) : (
@@ -135,11 +139,11 @@ export function DocumentTypes() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left py-3 px-4 font-medium text-sm text-muted-foreground">Document Type</th>
-                    <th className="text-left py-3 px-4 font-medium text-sm text-muted-foreground">Category</th>
-                    <th className="text-left py-3 px-4 font-medium text-sm text-muted-foreground">Status</th>
-                    <th className="text-left py-3 px-4 font-medium text-sm text-muted-foreground">Uploads</th>
-                    <th className="text-left py-3 px-4 font-medium text-sm text-muted-foreground">Actions</th>
+                    <th className="text-start py-3 px-4 font-medium text-sm text-muted-foreground">{t('settings.documentTypes.colDocumentType')}</th>
+                    <th className="text-start py-3 px-4 font-medium text-sm text-muted-foreground">{t('settings.documentTypes.colCategory')}</th>
+                    <th className="text-start py-3 px-4 font-medium text-sm text-muted-foreground">{t('settings.documentTypes.colStatus')}</th>
+                    <th className="text-start py-3 px-4 font-medium text-sm text-muted-foreground">{t('settings.documentTypes.colUploads')}</th>
+                    <th className="text-start py-3 px-4 font-medium text-sm text-muted-foreground">{t('settings.documentTypes.colActions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -158,7 +162,7 @@ export function DocumentTypes() {
                         <div className="flex flex-wrap gap-2">
                           {docType.required && <Badge variant="outline">Required</Badge>}
                           {docType.trackExpiry && (
-                            <Badge variant="outline" className="bg-[#EFF6FF]">Expiry Tracking</Badge>
+                            <Badge variant="outline" className="bg-[#EFF6FF]">{t('settings.documentTypes.expiryTrackingBadge')}</Badge>
                           )}
                         </div>
                       </td>
@@ -204,20 +208,19 @@ export function DocumentTypes() {
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Deactivate Document Type</AlertDialogTitle>
+            <AlertDialogTitle>{t('settings.documentTypes.deactivateTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to deactivate <strong>{deleteTarget?.name}</strong>? It will no longer appear in
-              document type lists, but existing documents will not be affected.
+              {t('settings.documentTypes.deactivateDesc', { name: deleteTarget?.name ?? '' })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleting}>{t('settings.documentTypes.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               disabled={deleting}
               className="bg-red-600 hover:bg-red-700"
             >
-              {deleting ? 'Deactivating...' : 'Deactivate'}
+              {deleting ? t('settings.documentTypes.deactivating') : t('settings.documentTypes.deactivateAction')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

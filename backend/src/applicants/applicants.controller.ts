@@ -1,10 +1,11 @@
 import {
   Controller, Get, Post, Body, Patch, Param, Delete,
-  Query, UseGuards, HttpCode, HttpStatus, Res, UseInterceptors, UploadedFile, BadRequestException,
+  Query, UseGuards, HttpCode, HttpStatus, Res, UseInterceptors, UploadedFile, BadRequestException, Headers,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam, ApiConsumes } from '@nestjs/swagger';
 import { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { resolveAcceptLanguage } from '../common/i18n/server-translate';
 import { memoryUpload, IMAGE_MIME } from '../common/storage/multer.config';
 import { ApplicantsService } from './applicants.service';
 import { CreateApplicantDto } from './dto/create-applicant.dto';
@@ -84,7 +85,7 @@ export class ApplicantsController {
     maxBytes: 5 * 1024 * 1024,
   })))
   uploadPhoto(@Param('id') id: string, @UploadedFile() file: Express.Multer.File) {
-    if (!file) throw new BadRequestException('No photo file provided');
+    if (!file) throw new BadRequestException({ code: 'GENERIC.FILE_REQUIRED', message: 'No photo file provided' });
     return this.applicantsService.uploadPhoto(id, file);
   }
 
@@ -233,6 +234,7 @@ export class ApplicantsController {
     @Query() filter: FilterApplicantsDto & { ids?: string },
     @CurrentUser() user: any,
     @Res() res: Response,
+    @Headers('accept-language') acceptLanguage?: string,
   ) {
     const rawIds = (filter as any).ids;
     const idList: string[] | undefined = Array.isArray(rawIds)
@@ -246,6 +248,7 @@ export class ApplicantsController {
       cleanFilter,
       { role: user?.role, agencyId: user?.agencyId, agencyIsSystem: user?.agencyIsSystem },
       idList,
+      resolveAcceptLanguage(acceptLanguage),
     );
     res.setHeader(
       'Content-Type',

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { RefreshCw } from 'lucide-react';
 
 interface SimpleCaptchaProps {
@@ -80,6 +81,7 @@ function drawCaptcha(canvas: HTMLCanvasElement, challenge: Challenge) {
 }
 
 export function SimpleCaptcha({ onVerify }: SimpleCaptchaProps) {
+  const { t } = useTranslation('ui');
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [challenge, setChallenge] = useState<Challenge>(generateChallenge);
   const [input, setInput] = useState('');
@@ -127,8 +129,8 @@ export function SimpleCaptcha({ onVerify }: SimpleCaptchaProps) {
           type="button"
           onClick={refresh}
           className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-          title="New challenge"
-          aria-label="Refresh CAPTCHA"
+          title={t('captcha.newChallenge')}
+          aria-label={t('captcha.refreshAria')}
         >
           <RefreshCw className="w-4 h-4" />
         </button>
@@ -138,7 +140,7 @@ export function SimpleCaptcha({ onVerify }: SimpleCaptchaProps) {
           type="number"
           value={input}
           onChange={(e) => handleChange(e.target.value)}
-          placeholder="Enter the answer"
+          placeholder={t('captcha.answerPlaceholder')}
           className={`w-40 px-3 py-2 border-2 rounded-lg text-sm font-medium outline-none transition-colors
             ${status === 'correct' ? 'border-green-500 bg-green-50 text-green-800' : ''}
             ${status === 'wrong' ? 'border-red-400 bg-red-50 text-red-700' : ''}
@@ -150,11 +152,11 @@ export function SimpleCaptcha({ onVerify }: SimpleCaptchaProps) {
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
             </svg>
-            Verified
+            {t('captcha.verified')}
           </span>
         )}
         {status === 'wrong' && input !== '' && (
-          <span className="text-red-500 text-sm">Incorrect, try again</span>
+          <span className="text-red-500 text-sm">{t('captcha.incorrect')}</span>
         )}
       </div>
     </div>

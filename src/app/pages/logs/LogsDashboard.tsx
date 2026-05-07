@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Search, Download, Trash2, RefreshCw, FileText, Users, Activity, Shield,
   AlertTriangle, ChevronLeft, ChevronRight,
@@ -62,16 +63,16 @@ type ColKey =
   | 'timestamp' | 'user' | 'userEmail' | 'action' | 'entity'
   | 'entityId' | 'changes' | 'ipAddress' | 'userAgent';
 
-const ALL_COLUMNS: { key: ColKey; label: string }[] = [
-  { key: 'timestamp', label: 'Timestamp' },
-  { key: 'user',      label: 'User' },
-  { key: 'userEmail', label: 'Email' },
-  { key: 'action',    label: 'Action' },
-  { key: 'entity',    label: 'Module' },
-  { key: 'entityId',  label: 'Entity ID' },
-  { key: 'changes',   label: 'Changes' },
-  { key: 'ipAddress', label: 'IP Address' },
-  { key: 'userAgent', label: 'User Agent' },
+const ALL_COLUMNS: { key: ColKey; labelKey: string }[] = [
+  { key: 'timestamp', labelKey: 'logs.list.cols.timestamp' },
+  { key: 'user',      labelKey: 'logs.list.cols.user' },
+  { key: 'userEmail', labelKey: 'logs.list.cols.userEmail' },
+  { key: 'action',    labelKey: 'logs.list.cols.action' },
+  { key: 'entity',    labelKey: 'logs.list.cols.entity' },
+  { key: 'entityId',  labelKey: 'logs.list.cols.entityId' },
+  { key: 'changes',   labelKey: 'logs.list.cols.changes' },
+  { key: 'ipAddress', labelKey: 'logs.list.cols.ipAddress' },
+  { key: 'userAgent', labelKey: 'logs.list.cols.userAgent' },
 ];
 
 const DEFAULT_VISIBLE: Record<ColKey, boolean> = {
@@ -97,6 +98,7 @@ type SortOrder = 'asc' | 'desc';
 
 // ─── component ───────────────────────────────────────────────────────────────
 export function LogsDashboard() {
+  const { t } = useTranslation('pages');
   const { user: currentUser } = useAuthContext();
   const isAdmin = currentUser?.role === 'System Admin';
 
@@ -310,7 +312,7 @@ export function LogsDashboard() {
   const SortableHead = ({ label, field }: { label: string; field: SortField }) => {
     const active = sortBy === field;
     return (
-      <th className="text-left px-4 py-3 font-medium text-muted-foreground">
+      <th className="text-start px-4 py-3 font-medium text-muted-foreground">
         <button onClick={() => handleSort(field)} className="flex items-center gap-1 hover:text-foreground group">
           {label}
           {active
@@ -326,16 +328,16 @@ export function LogsDashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">System Logs</h1>
-          <p className="text-muted-foreground mt-1">Full audit trail of all system activity</p>
+          <h1 className="text-2xl font-semibold text-foreground">{t('logs.dashboard.title')}</h1>
+          <p className="text-muted-foreground mt-1">{t('logs.dashboard.subtitle')}</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => { fetchLogs(); fetchStats(); }}>
-            <RefreshCw className="w-4 h-4 mr-1.5" />
+            <RefreshCw className="w-4 h-4 me-1.5" />
             Refresh
           </Button>
           <Button variant="outline" size="sm" onClick={() => exportToCsv(displayLogs)} disabled={displayLogs.length === 0}>
-            <Download className="w-4 h-4 mr-1.5" />
+            <Download className="w-4 h-4 me-1.5" />
             Export CSV
           </Button>
           {/* Column picker */}
@@ -345,27 +347,27 @@ export function LogsDashboard() {
               onClick={() => setShowColPicker(v => !v)}
               className={showColPicker ? 'border-primary text-primary' : ''}
             >
-              <Columns2 className="w-4 h-4 mr-1.5" />Columns
+              <Columns2 className="w-4 h-4 me-1.5" />Columns
               {hiddenCount > 0 && (
-                <span className="ml-1.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
+                <span className="ms-1.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
                   {hiddenCount}
                 </span>
               )}
             </Button>
             {showColPicker && (
-              <div className="absolute right-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[200px]">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">Toggle columns</p>
+              <div className="absolute end-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[200px]">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">{t('logs.dashboard.toggleColumns')}</p>
                 <div className="space-y-0.5 max-h-72 overflow-y-auto">
                   {ALL_COLUMNS.map(c => (
                     <button
                       key={c.key}
                       onClick={() => toggleColumn(c.key)}
-                      className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-gray-50 text-sm text-left"
+                      className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-gray-50 text-sm text-start"
                     >
                       <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${visibleColumns[c.key] ? 'bg-primary border-primary' : 'border-gray-300'}`}>
                         {visibleColumns[c.key] && <Check className="w-2.5 h-2.5 text-primary-foreground" />}
                       </span>
-                      {c.label}
+                      {t(c.labelKey)}
                     </button>
                   ))}
                 </div>
@@ -377,7 +379,7 @@ export function LogsDashboard() {
                       localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
                     }}
                     className="flex-1 text-xs text-center text-primary hover:underline py-0.5"
-                  >Show all</button>
+                  >{t('logs.dashboard.showAll')}</button>
                   <span className="text-gray-300">|</span>
                   <button
                     onClick={() => {
@@ -397,7 +399,7 @@ export function LogsDashboard() {
               className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
               onClick={() => setClearOpen(true)}
             >
-              <Trash2 className="w-4 h-4 mr-1.5" />
+              <Trash2 className="w-4 h-4 me-1.5" />
               Clear Logs
             </Button>
           )}
@@ -449,7 +451,7 @@ export function LogsDashboard() {
         <div className="grid grid-cols-2 gap-4">
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold">Activity by Module</CardTitle>
+              <CardTitle className="text-sm font-semibold">{t('logs.dashboard.activityByModule')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
@@ -464,7 +466,7 @@ export function LogsDashboard() {
           </Card>
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold">Activity by Action</CardTitle>
+              <CardTitle className="text-sm font-semibold">{t('logs.dashboard.activityByAction')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
@@ -485,46 +487,46 @@ export function LogsDashboard() {
         <CardContent className="p-4 space-y-3">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 placeholder="Search by action, entity, email…"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="pl-9"
+                className="ps-9"
               />
             </div>
             <Select value={dateRange} onValueChange={setDateRange}>
               <SelectTrigger><SelectValue placeholder="Date Range" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Time</SelectItem>
+                <SelectItem value="all">{t('logs.dashboard.allTime')}</SelectItem>
                 <SelectItem value="today">Today</SelectItem>
-                <SelectItem value="week">Last 7 Days</SelectItem>
-                <SelectItem value="month">Last 30 Days</SelectItem>
-                <SelectItem value="quarter">Last 90 Days</SelectItem>
-                <SelectItem value="custom">Custom Range…</SelectItem>
+                <SelectItem value="week">{t('logs.dashboard.last7Days')}</SelectItem>
+                <SelectItem value="month">{t('logs.dashboard.last30Days')}</SelectItem>
+                <SelectItem value="quarter">{t('logs.dashboard.last90Days')}</SelectItem>
+                <SelectItem value="custom">{t('logs.dashboard.customRange')}</SelectItem>
               </SelectContent>
             </Select>
             <Select value={entityFilter} onValueChange={setEntityFilter}>
-              <SelectTrigger><SelectValue placeholder="Module / Entity" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder={t('logs.dashboard.moduleEntity')} /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Modules</SelectItem>
+                <SelectItem value="all">{t('logs.dashboard.allModules')}</SelectItem>
                 {knownEntities.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select value={actionFilter} onValueChange={setActionFilter}>
               <SelectTrigger><SelectValue placeholder="Action" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Actions</SelectItem>
+                <SelectItem value="all">{t('logs.dashboard.allActions')}</SelectItem>
                 <SelectItem value="CREATE">Create</SelectItem>
                 <SelectItem value="UPDATE">Update</SelectItem>
                 <SelectItem value="DELETE">Delete</SelectItem>
                 <SelectItem value="LOGIN">Login</SelectItem>
                 <SelectItem value="LOGOUT">Logout</SelectItem>
-                <SelectItem value="LOGIN_FAILED">Login Failed</SelectItem>
+                <SelectItem value="LOGIN_FAILED">{t('logs.dashboard.loginFailed')}</SelectItem>
                 <SelectItem value="UPLOAD">Upload</SelectItem>
                 <SelectItem value="VERIFY">Verify</SelectItem>
-                <SelectItem value="CHANGE_PASSWORD">Change Password</SelectItem>
-                <SelectItem value="STAGE_CHANGE">Stage Change</SelectItem>
+                <SelectItem value="CHANGE_PASSWORD">{t('logs.dashboard.changePassword')}</SelectItem>
+                <SelectItem value="STAGE_CHANGE">{t('logs.dashboard.stageChange')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -532,7 +534,7 @@ export function LogsDashboard() {
           {/* Custom date range inputs – only when 'custom' is selected */}
           {dateRange === 'custom' && (
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs text-muted-foreground whitespace-nowrap">Custom from</span>
+              <span className="text-xs text-muted-foreground whitespace-nowrap">{t('logs.dashboard.customFrom')}</span>
               <Input type="date" value={customFrom} onChange={e => setCustomFrom(e.target.value)} className="w-40" />
               <span className="text-xs text-muted-foreground">to</span>
               <Input type="date" value={customTo} onChange={e => setCustomTo(e.target.value)} className="w-40" />
@@ -561,7 +563,7 @@ export function LogsDashboard() {
             />
             {hasExtraFilters && (
               <Button variant="ghost" size="sm" onClick={clearExtraFilters}>
-                <X className="w-3 h-3 mr-1" />Clear extras
+                <X className="w-3 h-3 me-1" />Clear extras
               </Button>
             )}
           </div>
@@ -573,7 +575,7 @@ export function LogsDashboard() {
         <CardHeader className="pb-3 flex flex-row items-center justify-between">
           <CardTitle className="text-base">
             Activity Logs
-            <span className="ml-2 text-sm font-normal text-muted-foreground">
+            <span className="ms-2 text-sm font-normal text-muted-foreground">
               {loading ? 'Loading…' : `${total.toLocaleString()} entries`}
             </span>
           </CardTitle>
@@ -715,26 +717,26 @@ export function LogsDashboard() {
             <div className="space-y-4 py-2">
               <div className="flex items-start gap-3 p-3 rounded-lg bg-destructive/10 border border-destructive/30">
                 <AlertTriangle className="w-5 h-5 text-destructive mt-0.5 shrink-0" />
-                <p className="text-sm text-destructive">This action is irreversible and cannot be undone.</p>
+                <p className="text-sm text-destructive">{t('logs.dashboard.irreversible')}</p>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label htmlFor="clearFrom">From Date</Label>
+                  <Label htmlFor="clearFrom">{t('logs.dashboard.fromDate')}</Label>
                   <Input id="clearFrom" type="date" value={clearFrom} onChange={e => setClearFrom(e.target.value)} />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="clearTo">To Date</Label>
+                  <Label htmlFor="clearTo">{t('logs.dashboard.toDate')}</Label>
                   <Input id="clearTo" type="date" value={clearTo} onChange={e => setClearTo(e.target.value)} />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="clearEntity">Module / Entity (optional)</Label>
+                <Label htmlFor="clearEntity">{t('logs.dashboard.moduleEntity')}</Label>
                 <Select value={clearEntity || 'all'} onValueChange={v => setClearEntity(v === 'all' ? '' : v)}>
-                  <SelectTrigger id="clearEntity"><SelectValue placeholder="All modules" /></SelectTrigger>
+                  <SelectTrigger id="clearEntity"><SelectValue placeholder={t('logs.dashboard.allModulesPh')} /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All modules</SelectItem>
+                    <SelectItem value="all">{t('logs.dashboard.allModulesPh')}</SelectItem>
                     {knownEntities.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
                   </SelectContent>
                 </Select>

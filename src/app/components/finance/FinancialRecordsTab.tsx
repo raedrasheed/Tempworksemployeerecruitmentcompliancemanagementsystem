@@ -17,6 +17,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Plus, Edit2, Trash2, ChevronDown, ChevronUp, Upload, X,
   FileText, Download, TrendingUp, TrendingDown, Wallet,
@@ -30,6 +31,11 @@ import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { toast } from 'sonner';
 import { financeApi, usersApi, getAccessToken } from '../../services/api';
+import { formatCurrency, formatDate, formatDateTime, formatNumber } from '../../../i18n/formatters';
+import { apiError } from '../../../i18n/apiError';
+import { useValidationErrors } from '../../../i18n/useValidationErrors';
+import { FieldError } from '../ui/field-error';
+import { ValidationSummary } from '../ui/validation-summary';
 
 const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1').replace('/api/v1', '');
 
@@ -125,16 +131,12 @@ const EMPTY_STATUS_FORM = {
 
 function fmt(amount: number | undefined | null, currency = 'EUR') {
   if (amount == null || isNaN(Number(amount))) return '—';
-  return new Intl.NumberFormat('en-IE', {
-    style: 'currency',
-    currency: currency || 'EUR',
-    minimumFractionDigits: 2,
-  }).format(Number(amount));
+  return formatCurrency(Number(amount), currency || 'EUR', { minimumFractionDigits: 2 });
 }
 
 function fmtDate(date: string) {
   if (!date) return '—';
-  return new Date(date).toLocaleDateString('en-IE', { day: '2-digit', month: 'short', year: 'numeric' });
+  return formatDate(date, { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 /** Date + HH:MM on a single line. Used where the clock time matters
@@ -145,10 +147,8 @@ function fmtDateTime(date: string) {
   if (!date) return '—';
   const d = new Date(date);
   const hasTime = d.getUTCHours() !== 0 || d.getUTCMinutes() !== 0;
-  const datePart = d.toLocaleDateString('en-IE', { day: '2-digit', month: 'short', year: 'numeric' });
-  if (!hasTime) return datePart;
-  const timePart = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  return `${datePart} ${timePart}`;
+  if (!hasTime) return fmtDate(date);
+  return formatDateTime(d, { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -164,6 +164,7 @@ interface Props {
 }
 
 export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite, canChangeStatus }: Props) {
+  const { t } = useTranslation('pages');
   const [records, setRecords] = useState<FinancialRecord[]>([]);
   const [totals, setTotals] = useState<Totals | null>(null);
   const [constants, setConstants] = useState<Constants | null>(null);
@@ -196,6 +197,7 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
   const [editRecord, setEditRecord] = useState<FinancialRecord | null>(null);
   const [form, setForm] = useState<Record<string, any>>({ ...EMPTY_FORM });
   const [saving, setSaving] = useState(false);
+  const { errors: fieldErrs, setFromError, clearAll: clearFieldErrors, clearError } = useValidationErrors();
 
   // Status modal
   const [showStatusModal, setShowStatusModal] = useState(false);
@@ -232,11 +234,11 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
       setRecords(items);
       setTotals(tots as Totals);
     } catch {
-      toast.error('Failed to load financial records');
+      toast.error(t('finance.tab.toast.loadFailed'));
     } finally {
       setLoading(false);
     }
-  }, [entityType, entityId]);
+  }, [entityType, entityId, t]);
 
   useEffect(() => { loadRecords(); }, [loadRecords]);
 
@@ -302,10 +304,11 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
   const closeModal = () => { setShowModal(false); setEditRecord(null); setPendingFiles([]); };
 
   const handleSave = async () => {
-    if (!form.transactionType) { toast.error('Please select a transaction type'); return; }
-    if (!form.transactionDate) { toast.error('Please enter a transaction date'); return; }
+    clearFieldErrors();
+    if (!form.transactionType) { toast.error(t('finance.tab.toast.txTypeRequired')); return; }
+    if (!form.transactionDate) { toast.error(t('finance.tab.toast.txDateRequired')); return; }
     if (form.companyDisbursedAmount === '' || Number(form.companyDisbursedAmount) < 0) {
-      toast.error('Please enter a valid company disbursed amount (≥ 0)');
+      toast.error(t('finance.tab.toast.amountRequired'));
       return;
     }
     setSaving(true);
@@ -332,11 +335,11 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
       if (editRecord) {
         await financeApi.update(editRecord.id, payload);
         savedId = editRecord.id;
-        toast.success('Record updated');
+        toast.success(t('finance.tab.toast.recordUpdated'));
       } else {
         const created = await financeApi.create(payload) as any;
         savedId = created.id;
-        toast.success('Record created');
+        toast.success(t('finance.tab.toast.recordCreated'));
       }
 
       // Upload any pending files queued inside the modal
@@ -348,7 +351,7 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
             return financeApi.addAttachment(savedId, fd);
           }),
         );
-        if (pendingFiles.length > 0) toast.success(`${pendingFiles.length} attachment(s) uploaded`);
+        if (pendingFiles.length > 0) toast.success(t('finance.tab.toast.attachmentsUploaded', { count: pendingFiles.length }));
       }
 
       closeModal();
@@ -358,7 +361,8 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
       // the operator sees the new audit entry without collapsing first.
       if (expandedId) loadHistoryFor(expandedId, true);
     } catch (err: any) {
-      toast.error(err?.message || 'Save failed');
+      setFromError(err);
+      toast.error(apiError(err, t('finance.tab.toast.saveFailed')));
     } finally {
       setSaving(false);
     }
@@ -386,14 +390,14 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
     if (!statusRecord) return;
     const amount = Number(statusForm.deductionAmount);
     if (!amount || amount <= 0) {
-      toast.error('Deduction amount must be greater than 0');
+      toast.error(t('finance.tab.toast.deductionGtZero'));
       return;
     }
     const alreadyDeducted = (statusRecord.deductions ?? []).reduce((s, d) => s + Number(d.amount ?? 0), 0)
       || Number(statusRecord.deductionAmount ?? 0);
     const remaining = Number(statusRecord.companyDisbursedAmount) - alreadyDeducted;
     if (amount > remaining + 0.005) {
-      toast.error(`Deduction cannot exceed the remaining balance (${remaining.toFixed(2)})`);
+      toast.error(t('finance.tab.toast.deductionMaxRemaining', { remaining: remaining.toFixed(2) }));
       return;
     }
     setSavingStatus(true);
@@ -406,8 +410,8 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
         payrollReference: statusForm.payrollReference || undefined,
       });
       toast.success(Math.abs(amount - remaining) < 0.005
-        ? 'Deduction added — transaction fully deducted'
-        : 'Partial deduction added');
+        ? t('finance.tab.toast.fullyDeducted')
+        : t('finance.tab.toast.partialDeduction'));
       setShowStatusModal(false);
       invalidateHistory();
       loadRecords();
@@ -415,7 +419,7 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
       // the operator sees the new audit entry without collapsing first.
       if (expandedId) loadHistoryFor(expandedId, true);
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to add deduction');
+      toast.error(apiError(err, t('finance.tab.toast.deductionAddFailed')));
     } finally {
       setSavingStatus(false);
     }
@@ -424,14 +428,14 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
   const handleRemoveDeduction = async (deductionId: string) => {
     try {
       await financeApi.removeDeduction(deductionId);
-      toast.success('Deduction removed');
+      toast.success(t('finance.tab.toast.deductionRemoved'));
       invalidateHistory();
       loadRecords();
       // If the row is still expanded, eagerly refresh its timeline so
       // the operator sees the new audit entry without collapsing first.
       if (expandedId) loadHistoryFor(expandedId, true);
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to remove deduction');
+      toast.error(apiError(err, t('finance.tab.toast.deductionRemoveFailed')));
     }
   };
 
@@ -441,14 +445,14 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
     setDeletingId(id);
     try {
       await financeApi.delete(id);
-      toast.success('Record deleted');
+      toast.success(t('finance.tab.toast.recordDeleted'));
       invalidateHistory();
       loadRecords();
       // If the row is still expanded, eagerly refresh its timeline so
       // the operator sees the new audit entry without collapsing first.
       if (expandedId) loadHistoryFor(expandedId, true);
     } catch (err: any) {
-      toast.error(err?.message || 'Delete failed');
+      toast.error(apiError(err, t('finance.tab.toast.deleteFailed')));
     } finally {
       setDeletingId(null);
     }
@@ -457,13 +461,13 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
   // ── Attachment upload ───────────────────────────────────────────────────────
 
   const handleAttach = async (recordId: string) => {
-    if (!attachFile) { toast.error('Please select a file'); return; }
+    if (!attachFile) { toast.error(t('finance.tab.toast.fileRequired')); return; }
     setUploadingAttachment(true);
     try {
       const fd = new FormData();
       fd.append('file', attachFile);
       await financeApi.addAttachment(recordId, fd);
-      toast.success('Attachment uploaded');
+      toast.success(t('finance.tab.toast.attachmentUploaded'));
       setAttachingId(null);
       setAttachFile(null);
       invalidateHistory();
@@ -472,7 +476,7 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
       // the operator sees the new audit entry without collapsing first.
       if (expandedId) loadHistoryFor(expandedId, true);
     } catch (err: any) {
-      toast.error(err?.message || 'Upload failed');
+      toast.error(apiError(err, t('finance.tab.toast.uploadFailed')));
     } finally {
       setUploadingAttachment(false);
     }
@@ -481,14 +485,14 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
   const handleRemoveAttachment = async (recordId: string, attachmentId: string) => {
     try {
       await financeApi.removeAttachment(recordId, attachmentId);
-      toast.success('Attachment removed');
+      toast.success(t('finance.tab.toast.attachmentRemoved'));
       invalidateHistory();
       loadRecords();
       // If the row is still expanded, eagerly refresh its timeline so
       // the operator sees the new audit entry without collapsing first.
       if (expandedId) loadHistoryFor(expandedId, true);
     } catch (err: any) {
-      toast.error(err?.message || 'Remove failed');
+      toast.error(apiError(err, t('finance.tab.toast.removeFailed')));
     }
   };
 
@@ -517,7 +521,7 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
       a.click();
       URL.revokeObjectURL(url);
     } catch (err: any) {
-      toast.error(err?.message || 'Export failed');
+      toast.error(apiError(err, t('finance.tab.toast.exportFailed')));
     }
   };
 
@@ -527,7 +531,7 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
     return (
       <Card>
         <CardContent className="py-12 text-center text-muted-foreground">
-          Loading financial records…
+          {t('finance.tab.loading')}
         </CardContent>
       </Card>
     );
@@ -540,16 +544,16 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
       {/* Header actions */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <h3 className="font-semibold text-lg">Transaction Ledger</h3>
-          <Badge variant="outline" className="text-xs">{records.length} record{records.length !== 1 ? 's' : ''}</Badge>
+          <h3 className="font-semibold text-lg">{t('finance.tab.ledgerTitle')}</h3>
+          <Badge variant="outline" className="text-xs">{t('finance.tab.recordCount', { count: records.length })}</Badge>
         </div>
         <div className="flex gap-2">
           <Button size="sm" variant="outline" onClick={handleExport}>
-            <Download className="w-4 h-4 mr-1" />Export Excel
+            <Download className="w-4 h-4 me-1" />{t('finance.tab.exportExcel')}
           </Button>
           {canWrite && (
             <Button size="sm" onClick={openAdd}>
-              <Plus className="w-4 h-4 mr-1" />Add Transaction
+              <Plus className="w-4 h-4 me-1" />{t('finance.tab.addTransaction')}
             </Button>
           )}
         </div>
@@ -565,7 +569,7 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
                   <TrendingUp className="w-4 h-4 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Total Disbursed</p>
+                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">{t('finance.tab.totalDisbursed')}</p>
                   <p className="text-xl font-bold text-blue-700">{fmt(totals.totalDisbursed, currency)}</p>
                 </div>
               </div>
@@ -578,7 +582,7 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
                   <TrendingDown className="w-4 h-4 text-amber-600" />
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Total Deducted</p>
+                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">{t('finance.tab.totalDeducted')}</p>
                   <p className="text-xl font-bold text-amber-700">{fmt(totals.totalDeducted, currency)}</p>
                 </div>
               </div>
@@ -591,7 +595,7 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
                   <Wallet className={`w-4 h-4 text-${totals.currentBalance > 0 ? 'emerald' : 'slate'}-600`} />
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Current Balance</p>
+                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">{t('finance.tab.currentBalance')}</p>
                   <p className={`text-xl font-bold text-${totals.currentBalance > 0 ? 'emerald' : 'slate'}-700`}>
                     {fmt(totals.currentBalance, currency)}
                   </p>
@@ -608,10 +612,10 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
           {records.length === 0 ? (
             <div className="py-12 text-center">
               <Wallet className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
-              <p className="text-muted-foreground text-sm">No financial records yet.</p>
+              <p className="text-muted-foreground text-sm">{t('finance.tab.empty')}</p>
               {canWrite && (
                 <Button size="sm" className="mt-3" onClick={openAdd}>
-                  <Plus className="w-4 h-4 mr-1" />Add First Transaction
+                  <Plus className="w-4 h-4 me-1" />{t('finance.tab.addFirstTransaction')}
                 </Button>
               )}
             </div>
@@ -620,16 +624,16 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/40">
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Date</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Type</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Description</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Stage</th>
-                    <th className="text-right px-4 py-3 font-medium text-blue-600 whitespace-nowrap">Credit (↑)</th>
-                    <th className="text-right px-4 py-3 font-medium text-slate-500 whitespace-nowrap">Emp/Agency</th>
-                    <th className="text-right px-4 py-3 font-medium text-amber-600 whitespace-nowrap">Debit (↓)</th>
-                    <th className="text-right px-4 py-3 font-medium text-emerald-700 whitespace-nowrap">Balance</th>
-                    <th className="text-center px-4 py-3 font-medium text-muted-foreground">Status</th>
-                    <th className="text-right px-4 py-3 font-medium text-muted-foreground">Actions</th>
+                    <th className="text-start px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">{t('finance.tab.columns.date')}</th>
+                    <th className="text-start px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">{t('finance.tab.columns.type')}</th>
+                    <th className="text-start px-4 py-3 font-medium text-muted-foreground">{t('finance.tab.columns.description')}</th>
+                    <th className="text-start px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">{t('finance.tab.columns.stage')}</th>
+                    <th className="text-end px-4 py-3 font-medium text-blue-600 whitespace-nowrap">{t('finance.tab.columns.credit')}</th>
+                    <th className="text-end px-4 py-3 font-medium text-slate-500 whitespace-nowrap">{t('finance.tab.columns.empAgency')}</th>
+                    <th className="text-end px-4 py-3 font-medium text-amber-600 whitespace-nowrap">{t('finance.tab.columns.debit')}</th>
+                    <th className="text-end px-4 py-3 font-medium text-emerald-700 whitespace-nowrap">{t('finance.tab.columns.balance')}</th>
+                    <th className="text-center px-4 py-3 font-medium text-muted-foreground">{t('finance.tab.columns.status')}</th>
+                    <th className="text-end px-4 py-3 font-medium text-muted-foreground">{t('finance.tab.columns.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -669,22 +673,22 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
                             </span>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-right font-semibold text-blue-700 whitespace-nowrap">
+                        <td className="px-4 py-3 text-end font-semibold text-blue-700 whitespace-nowrap">
                           {Number(rec.companyDisbursedAmount) > 0
                             ? fmt(rec.companyDisbursedAmount, rec.currency)
                             : <span className="text-muted-foreground font-normal">—</span>}
                         </td>
-                        <td className="px-4 py-3 text-right text-slate-500 whitespace-nowrap text-xs">
+                        <td className="px-4 py-3 text-end text-slate-500 whitespace-nowrap text-xs">
                           {Number(rec.employeeOrAgencyPaidAmount) > 0
                             ? fmt(rec.employeeOrAgencyPaidAmount, rec.currency)
                             : '—'}
                         </td>
-                        <td className="px-4 py-3 text-right font-semibold text-amber-700 whitespace-nowrap">
+                        <td className="px-4 py-3 text-end font-semibold text-amber-700 whitespace-nowrap">
                           {rec.deductionAmount != null && Number(rec.deductionAmount) > 0
                             ? fmt(rec.deductionAmount, rec.currency)
                             : <span className="text-muted-foreground font-normal">—</span>}
                         </td>
-                        <td className="px-4 py-3 text-right font-bold whitespace-nowrap">
+                        <td className="px-4 py-3 text-end font-bold whitespace-nowrap">
                           <span className={rec.runningBalance > 0 ? 'text-emerald-700' : rec.runningBalance < 0 ? 'text-red-600' : 'text-slate-500'}>
                             {fmt(rec.runningBalance, rec.currency)}
                           </span>
@@ -692,7 +696,7 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
                         <td className="px-4 py-3 text-center">
                           <StatusBadge status={rec.status} />
                         </td>
-                        <td className="px-4 py-3 text-right" onClick={e => e.stopPropagation()}>
+                        <td className="px-4 py-3 text-end" onClick={e => e.stopPropagation()}>
                           <div className="flex items-center justify-end gap-1">
                             {expandedId === rec.id
                               ? <ChevronUp className="w-4 h-4 text-muted-foreground" />
@@ -702,7 +706,7 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
                                 <Button
                                   size="icon" variant="ghost"
                                   className="h-7 w-7"
-                                  title="Edit"
+                                  title={t('finance.tab.actionTitles.edit')}
                                   onClick={() => openEdit(rec)}
                                 >
                                   <Edit2 className="w-3.5 h-3.5" />
@@ -711,7 +715,7 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
                                   <Button
                                     size="icon" variant="ghost"
                                     className="h-7 w-7 text-amber-600"
-                                    title={rec.status === 'PARTIAL' ? 'Add another deduction' : 'Add first deduction'}
+                                    title={rec.status === 'PARTIAL' ? t('finance.tab.actionTitles.addAnotherDeduction') : t('finance.tab.actionTitles.addFirstDeduction')}
                                     onClick={() => openStatus(rec)}
                                   >
                                     <CheckCircle className="w-3.5 h-3.5" />
@@ -720,7 +724,7 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
                                 <Button
                                   size="icon" variant="ghost"
                                   className="h-7 w-7 text-red-500"
-                                  title="Delete"
+                                  title={t('finance.tab.actionTitles.delete')}
                                   disabled={deletingId === rec.id}
                                   onClick={() => handleDelete(rec.id)}
                                 >
@@ -738,17 +742,17 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
                           <td colSpan={10} className="px-6 py-4">
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                               <div className="space-y-2">
-                                <p className="font-medium text-xs text-muted-foreground uppercase tracking-wide">Transaction Details</p>
+                                <p className="font-medium text-xs text-muted-foreground uppercase tracking-wide">{t('finance.tab.expanded.transactionDetails')}</p>
                                 {/* Description = customer-facing line shown in the
                                     row above (truncated there). We repeat it in full
                                     here because long descriptions get clipped in the
                                     narrow Description column. */}
-                                <InfoItem label="Description" value={rec.description || '—'} />
-                                {rec.paymentMethod && <InfoItem label="Payment Method" value={rec.paymentMethod} />}
-                                {rec.paidByName && <InfoItem label="Paid By" value={rec.paidByName} />}
-                                {rec.paidByUser && <InfoItem label="Recorded By" value={`${rec.paidByUser.firstName} ${rec.paidByUser.lastName}`} />}
-                                <InfoItem label="Currency" value={rec.currency} />
-                                {rec.notes && <InfoItem label="Internal Notes" value={rec.notes} />}
+                                <InfoItem label={t('finance.tab.expanded.description')} value={rec.description || '—'} />
+                                {rec.paymentMethod && <InfoItem label={t('finance.tab.expanded.paymentMethod')} value={rec.paymentMethod} />}
+                                {rec.paidByName && <InfoItem label={t('finance.tab.expanded.paidBy')} value={rec.paidByName} />}
+                                {rec.paidByUser && <InfoItem label={t('finance.tab.expanded.recordedBy')} value={`${rec.paidByUser.firstName} ${rec.paidByUser.lastName}`} />}
+                                <InfoItem label={t('finance.tab.expanded.currency')} value={rec.currency} />
+                                {rec.notes && <InfoItem label={t('finance.tab.expanded.internalNotes')} value={rec.notes} />}
                               </div>
                               {/* Deductions — the record can carry any
                                   number of partial payroll deductions.
@@ -757,7 +761,7 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
                               <div className="space-y-2">
                                 <div className="flex items-center justify-between">
                                   <p className="font-medium text-xs text-muted-foreground uppercase tracking-wide">
-                                    Deductions ({rec.deductions?.length ?? 0})
+                                    {t('finance.tab.expanded.deductions', { count: rec.deductions?.length ?? 0 })}
                                   </p>
                                   {(() => {
                                     const sum = (rec.deductions ?? []).reduce((s, d) => s + Number(d.amount ?? 0), 0)
@@ -806,7 +810,7 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
                                     className="w-full text-xs mt-1"
                                     onClick={() => openStatus(rec)}
                                   >
-                                    <CheckCircle className="w-3 h-3 mr-1" />
+                                    <CheckCircle className="w-3 h-3 me-1" />
                                     {rec.status === 'PARTIAL' ? 'Add another deduction' : 'Add first deduction'}
                                   </Button>
                                 )}
@@ -868,7 +872,7 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
                                     className="w-full text-xs"
                                     onClick={() => setAttachingId(rec.id)}
                                   >
-                                    <Paperclip className="w-3 h-3 mr-1" />Attach File
+                                    <Paperclip className="w-3 h-3 me-1" />Attach File
                                   </Button>
                                 ) : null}
                               </div>
@@ -881,12 +885,12 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
                                 the first time the row is expanded. */}
                             <div className="mt-6 pt-4 border-t">
                               <p className="font-medium text-xs text-muted-foreground uppercase tracking-wide mb-2">
-                                Change History
+                                {t('finance.tab.history.title')}
                               </p>
                               {historyLoading[rec.id] ? (
-                                <p className="text-xs text-muted-foreground italic">Loading history…</p>
+                                <p className="text-xs text-muted-foreground italic">{t('finance.tab.history.loading')}</p>
                               ) : (history[rec.id]?.length ?? 0) === 0 ? (
-                                <p className="text-xs text-muted-foreground italic">No recorded changes yet.</p>
+                                <p className="text-xs text-muted-foreground italic">{t('finance.tab.history.empty')}</p>
                               ) : (
                                 <div className="space-y-1.5">
                                   {history[rec.id]!.map((h: any) => (
@@ -908,11 +912,11 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
                     <tr className="bg-muted/30 border-t-2 font-semibold">
                       {/* Label spans Date, Type, Description, Stage so the
                           first monetary cell lines up with Credit (↑). */}
-                      <td colSpan={4} className="px-4 py-3 text-sm font-semibold">Totals</td>
-                      <td className="px-4 py-3 text-right text-blue-700">{fmt(totals.totalDisbursed, currency)}</td>
-                      <td className="px-4 py-3 text-right text-slate-500 text-xs">{fmt(totals.totalEmpAgency, currency)}</td>
-                      <td className="px-4 py-3 text-right text-amber-700">{fmt(totals.totalDeducted, currency)}</td>
-                      <td className="px-4 py-3 text-right">
+                      <td colSpan={4} className="px-4 py-3 text-sm font-semibold">{t('finance.tab.totals')}</td>
+                      <td className="px-4 py-3 text-end text-blue-700">{fmt(totals.totalDisbursed, currency)}</td>
+                      <td className="px-4 py-3 text-end text-slate-500 text-xs">{fmt(totals.totalEmpAgency, currency)}</td>
+                      <td className="px-4 py-3 text-end text-amber-700">{fmt(totals.totalDeducted, currency)}</td>
+                      <td className="px-4 py-3 text-end">
                         <span className={`font-bold ${totals.currentBalance > 0 ? 'text-emerald-700' : totals.currentBalance < 0 ? 'text-red-600' : 'text-slate-500'}`}>
                           {fmt(totals.currentBalance, currency)}
                         </span>
@@ -922,10 +926,10 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
                     </tr>
                     <tr className="bg-muted/10">
                       <td colSpan={10} className="px-4 py-2 text-xs text-muted-foreground">
-                        <span className="text-blue-600 font-medium">Credit (↑)</span> = company disbursed amount &nbsp;·&nbsp;
-                        <span className="text-amber-600 font-medium">Debit (↓)</span> = payroll deduction &nbsp;·&nbsp;
-                        <span className="text-slate-500">Emp/Agency</span> = paid by employee/agency (informational, excluded from balance) &nbsp;·&nbsp;
-                        <span className="text-emerald-700 font-medium">Balance</span> = cumulative credit − debit
+                        <span className="text-blue-600 font-medium">{t('finance.tab.footerLegend.creditDef')}</span>{t('finance.tab.footerLegend.creditDescr')} &nbsp;·&nbsp;
+                        <span className="text-amber-600 font-medium">{t('finance.tab.footerLegend.debitDef')}</span>{t('finance.tab.footerLegend.debitDescr')} &nbsp;·&nbsp;
+                        <span className="text-slate-500">{t('finance.tab.footerLegend.empAgency')}</span>{t('finance.tab.footerLegend.empAgencyDescr')} &nbsp;·&nbsp;
+                        <span className="text-emerald-700 font-medium">{t('finance.tab.footerLegend.balance')}</span>{t('finance.tab.footerLegend.balanceDescr')}
                       </td>
                     </tr>
                   </tfoot>
@@ -942,17 +946,18 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
           <Card className="max-w-2xl w-full my-6">
             <CardHeader className="flex flex-row items-center justify-between pb-3">
               <CardTitle className="text-lg">
-                {editRecord ? 'Edit Transaction' : 'New Transaction'}
+                {editRecord ? t('finance.tab.modal.editTitle') : t('finance.tab.modal.newTitle')}
               </CardTitle>
               <Button size="icon" variant="ghost" onClick={closeModal}>
                 <X className="w-4 h-4" />
               </Button>
             </CardHeader>
             <CardContent className="space-y-4">
+              <ValidationSummary errors={fieldErrs} />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Date */}
                 <div className="space-y-1">
-                  <Label className="text-xs">Transaction Date & Time *</Label>
+                  <Label className="text-xs">{t('finance.tab.modal.transactionDate')}</Label>
                   <Input
                     type="datetime-local"
                     value={form.transactionDate}
@@ -961,7 +966,7 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
                 </div>
                 {/* Currency */}
                 <div className="space-y-1">
-                  <Label className="text-xs">Currency</Label>
+                  <Label className="text-xs">{t('finance.tab.modal.currency')}</Label>
                   <Select value={form.currency} onValueChange={v => setForm(f => ({ ...f, currency: v }))}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -973,31 +978,31 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
                 </div>
                 {/* Transaction type */}
                 <div className="space-y-1 md:col-span-2">
-                  <Label className="text-xs">Transaction Type *</Label>
+                  <Label className="text-xs">{t('finance.tab.modal.transactionType')}</Label>
                   <Select value={form.transactionType} onValueChange={v => setForm(f => ({ ...f, transactionType: v }))}>
-                    <SelectTrigger><SelectValue placeholder="Select type…" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder={t('finance.tab.modal.selectTypePh')} /></SelectTrigger>
                     <SelectContent>
-                      {(constants?.transactionTypes ?? []).map(t => (
-                        <SelectItem key={t} value={t}>{t}</SelectItem>
+                      {(constants?.transactionTypes ?? []).map(tt => (
+                        <SelectItem key={tt} value={tt}>{tt}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
                 {/* Description — short summary shown on the table row. */}
                 <div className="space-y-1 md:col-span-2">
-                  <Label className="text-xs">Description</Label>
+                  <Label className="text-xs">{t('finance.tab.modal.description')}</Label>
                   <Input
-                    placeholder="Short summary shown on the ledger row (e.g. 'Q1 visa fee')"
+                    placeholder={t('finance.tab.modal.descriptionPh')}
                     value={form.description}
                     onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                   />
                   <p className="text-[11px] text-muted-foreground">
-                    Brief line visible in the transaction table and expand panel.
+                    {t('finance.tab.modal.descriptionHelp')}
                   </p>
                 </div>
                 {/* Company disbursed (Credit) */}
                 <div className="space-y-1">
-                  <Label className="text-xs text-blue-700">Company Disbursed Amount (Credit) *</Label>
+                  <Label className="text-xs text-blue-700">{t('finance.tab.modal.creditAmount')}</Label>
                   <Input
                     type="number"
                     min="0"
@@ -1013,15 +1018,15 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
                   />
                   <p className="text-xs text-muted-foreground">
                     {editRecord?.status === 'DEDUCTED'
-                      ? 'Locked — this transaction has already been fully deducted through payroll.'
+                      ? t('finance.tab.modal.creditLockedDeducted')
                       : editRecord?.status === 'PARTIAL'
-                        ? 'Locked — at least one partial deduction is already recorded. Remove the deductions first to change the disbursed amount.'
-                        : 'Amount paid BY the company TO/FOR the person'}
+                        ? t('finance.tab.modal.creditLockedPartial')
+                        : t('finance.tab.modal.creditHelp')}
                   </p>
                 </div>
                 {/* Employee/agency paid (informational) */}
                 <div className="space-y-1">
-                  <Label className="text-xs text-slate-500">Employee / Agency Paid (informational)</Label>
+                  <Label className="text-xs text-slate-500">{t('finance.tab.modal.empAgencyAmount')}</Label>
                   <Input
                     type="number"
                     min="0"
@@ -1033,8 +1038,8 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
                   />
                   <p className="text-xs text-muted-foreground">
                     {editRecord?.status === 'DEDUCTED' || editRecord?.status === 'PARTIAL'
-                      ? 'Locked — part of a deducted transaction.'
-                      : 'Not included in balance — reconciliation only'}
+                      ? t('finance.tab.modal.empAgencyLocked')
+                      : t('finance.tab.modal.empAgencyHelp')}
                   </p>
                 </div>
 
@@ -1043,7 +1048,7 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
                     to reopen the status dialog. */}
                 {editRecord?.status === 'DEDUCTED' && (
                   <div className="space-y-1 md:col-span-2">
-                    <Label className="text-xs text-amber-700">Deducted Amount (Debit) — locked</Label>
+                    <Label className="text-xs text-amber-700">{t('finance.tab.modal.deductedAmountLocked')}</Label>
                     <Input
                       type="number"
                       value={editRecord.deductionAmount ?? ''}
@@ -1051,19 +1056,19 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
                       disabled
                     />
                     <p className="text-xs text-muted-foreground">
-                      Recorded on {editRecord.deductionDate ? fmtDate(editRecord.deductionDate) : '—'}.
-                      {editRecord.payrollReference ? ` Payroll ref: ${editRecord.payrollReference}.` : ''}
-                      {' '}To correct a mistake, ask an admin to revert the status to Pending first.
+                      {t('finance.tab.modal.deductedRecordedOn', { date: editRecord.deductionDate ? fmtDate(editRecord.deductionDate) : '—' })}
+                      {editRecord.payrollReference ? t('finance.tab.modal.deductedPayrollRef', { ref: editRecord.payrollReference }) : ''}
+                      {t('finance.tab.modal.deductedHelpAdmin')}
                     </p>
                   </div>
                 )}
                 {/* Payment method */}
                 <div className="space-y-1">
-                  <Label className="text-xs">Payment Method</Label>
+                  <Label className="text-xs">{t('finance.tab.modal.paymentMethod')}</Label>
                   <Select value={form.paymentMethod || '__none__'} onValueChange={v => setForm(f => ({ ...f, paymentMethod: v === '__none__' ? '' : v }))}>
-                    <SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder={t('finance.tab.modal.selectPh')} /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="__none__">— Not specified —</SelectItem>
+                      <SelectItem value="__none__">{t('finance.tab.modal.notSpecified')}</SelectItem>
                       {(constants?.paymentMethods ?? []).map(m => (
                         <SelectItem key={m} value={m}>{m}</SelectItem>
                       ))}
@@ -1072,7 +1077,7 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
                 </div>
                 {/* Paid by — staff dropdown */}
                 <div className="space-y-1">
-                  <Label className="text-xs">Paid By (staff)</Label>
+                  <Label className="text-xs">{t('finance.tab.modal.paidByStaff')}</Label>
                   <Select
                     value={form.paidById || '__none__'}
                     onValueChange={v => {
@@ -1084,9 +1089,9 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
                       }
                     }}
                   >
-                    <SelectTrigger><SelectValue placeholder="Select staff…" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder={t('finance.tab.modal.selectStaffPh')} /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="__none__">— Not specified —</SelectItem>
+                      <SelectItem value="__none__">{t('finance.tab.modal.notSpecified')}</SelectItem>
                       {staffList.map(s => (
                         <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                       ))}
@@ -1099,14 +1104,14 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
                 {/* Notes — private, long-form context visible only in
                     the expanded panel (not the ledger row). */}
                 <div className="space-y-1">
-                  <Label className="text-xs">Internal Notes</Label>
+                  <Label className="text-xs">{t('finance.tab.modal.internalNotes')}</Label>
                   <Input
-                    placeholder="Context / reasoning for the finance team"
+                    placeholder={t('finance.tab.modal.internalNotesPh')}
                     value={form.notes}
                     onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
                   />
                   <p className="text-[11px] text-muted-foreground">
-                    Longer internal-only context, shown only when the row is expanded.
+                    {t('finance.tab.modal.internalNotesHelp')}
                   </p>
                 </div>
               </div>
@@ -1116,14 +1121,14 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
                 <div className="flex items-center justify-between">
                   <Label className="text-xs font-medium flex items-center gap-1.5">
                     <Paperclip className="w-3.5 h-3.5" />
-                    Attached Documents
+                    {t('finance.tab.modal.attachedDocs')}
                     {pendingFiles.length > 0 && (
-                      <Badge variant="outline" className="text-xs ml-1">{pendingFiles.length} queued</Badge>
+                      <Badge variant="outline" className="text-xs ms-1">{t('finance.tab.modal.queued', { count: pendingFiles.length })}</Badge>
                     )}
                   </Label>
                   <label className="cursor-pointer">
                     <span className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium">
-                      <Plus className="w-3.5 h-3.5" />Add file
+                      <Plus className="w-3.5 h-3.5" />{t('finance.tab.modal.addFile')}
                     </span>
                     <input
                       type="file"
@@ -1175,16 +1180,16 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
                   </div>
                 )}
                 {pendingFiles.length === 0 && (!editRecord || (editRecord.attachments ?? []).length === 0) && (
-                  <p className="text-xs text-muted-foreground">No files attached. Click "Add file" to attach receipts, invoices, or proof documents.</p>
+                  <p className="text-xs text-muted-foreground">{t('finance.tab.modal.noFilesAttached')}</p>
                 )}
               </div>
 
               <div className="flex gap-3 pt-2 border-t">
                 <Button className="flex-1" onClick={handleSave} disabled={saving}>
-                  {saving ? 'Saving…' : editRecord ? 'Save Changes' : 'Create Record'}
+                  {saving ? t('finance.tab.modal.saving') : editRecord ? t('finance.tab.modal.saveChanges') : t('finance.tab.modal.createRecord')}
                 </Button>
                 <Button variant="outline" className="flex-1" onClick={closeModal} disabled={saving}>
-                  Cancel
+                  {t('finance.tab.modal.cancel')}
                 </Button>
               </div>
             </CardContent>
@@ -1208,7 +1213,7 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
             <CardHeader className="flex flex-row items-center justify-between pb-3">
               <CardTitle className="text-lg flex items-center gap-2">
                 <CheckCircle className="w-5 h-5 text-amber-600" />
-                {isAdditional ? 'Add Another Deduction' : 'Add Deduction'}
+                {isAdditional ? t('finance.tab.statusModal.addAnotherTitle') : t('finance.tab.statusModal.addTitle')}
               </CardTitle>
               <Button size="icon" variant="ghost" onClick={() => setShowStatusModal(false)}>
                 <X className="w-4 h-4" />
@@ -1216,19 +1221,19 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="rounded-lg bg-muted/40 p-3 text-sm space-y-1">
-                <p><span className="text-muted-foreground">Transaction:</span> <span className="font-medium">{statusRecord.transactionType}</span></p>
-                <p><span className="text-muted-foreground">Original Amount:</span> <span className="font-medium text-blue-700">{fmt(disbursed, statusRecord.currency)}</span></p>
+                <p><span className="text-muted-foreground">{t('finance.tab.statusModal.transaction')}</span> <span className="font-medium">{statusRecord.transactionType}</span></p>
+                <p><span className="text-muted-foreground">{t('finance.tab.statusModal.originalAmount')}</span> <span className="font-medium text-blue-700">{fmt(disbursed, statusRecord.currency)}</span></p>
                 {isAdditional && (
                   <>
-                    <p><span className="text-muted-foreground">Already Deducted:</span> <span className="font-medium text-amber-700">{fmt(alreadyDeducted, statusRecord.currency)}</span></p>
-                    <p><span className="text-muted-foreground">Remaining:</span> <span className="font-medium text-emerald-700">{fmt(remaining, statusRecord.currency)}</span></p>
+                    <p><span className="text-muted-foreground">{t('finance.tab.statusModal.alreadyDeducted')}</span> <span className="font-medium text-amber-700">{fmt(alreadyDeducted, statusRecord.currency)}</span></p>
+                    <p><span className="text-muted-foreground">{t('finance.tab.statusModal.remaining')}</span> <span className="font-medium text-emerald-700">{fmt(remaining, statusRecord.currency)}</span></p>
                   </>
                 )}
-                {statusRecord.description && <p><span className="text-muted-foreground">Description:</span> {statusRecord.description}</p>}
+                {statusRecord.description && <p><span className="text-muted-foreground">{t('finance.tab.statusModal.description')}</span> {statusRecord.description}</p>}
               </div>
               <div className="space-y-3">
                 <div className="space-y-1">
-                  <Label className="text-xs text-amber-700">Deduction Amount *</Label>
+                  <Label className="text-xs text-amber-700">{t('finance.tab.statusModal.deductionAmount')}</Label>
                   <Input
                     type="number"
                     min="0.01"
@@ -1237,10 +1242,10 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
                     value={statusForm.deductionAmount}
                     onChange={e => setStatusForm(f => ({ ...f, deductionAmount: e.target.value }))}
                   />
-                  <p className="text-xs text-muted-foreground">Must be ≤ {fmt(remaining, statusRecord.currency)} (the remaining balance)</p>
+                  <p className="text-xs text-muted-foreground">{t('finance.tab.statusModal.deductionAmountHelp', { remaining: fmt(remaining, statusRecord.currency) })}</p>
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs">Deduction Date</Label>
+                  <Label className="text-xs">{t('finance.tab.statusModal.deductionDate')}</Label>
                   <Input
                     type="date"
                     value={statusForm.deductionDate}
@@ -1248,9 +1253,9 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs">Payroll Reference</Label>
+                  <Label className="text-xs">{t('finance.tab.statusModal.payrollReference')}</Label>
                   <Input
-                    placeholder="e.g. PAY-2026-04"
+                    placeholder={t('finance.tab.statusModal.payrollReferencePh')}
                     value={statusForm.payrollReference}
                     onChange={e => setStatusForm(f => ({ ...f, payrollReference: e.target.value }))}
                   />
@@ -1262,10 +1267,10 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
                   onClick={handleSaveStatus}
                   disabled={savingStatus}
                 >
-                  {savingStatus ? 'Saving…' : 'Confirm Deduction'}
+                  {savingStatus ? t('finance.tab.statusModal.saving') : t('finance.tab.statusModal.confirm')}
                 </Button>
                 <Button variant="outline" className="flex-1" onClick={() => setShowStatusModal(false)} disabled={savingStatus}>
-                  Cancel
+                  {t('finance.tab.statusModal.cancel')}
                 </Button>
               </div>
             </CardContent>
@@ -1280,23 +1285,24 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: string }) {
+  const { t } = useTranslation('pages');
   if (status === 'DEDUCTED') {
     return (
       <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 font-medium text-xs">
-        <CheckCircle className="w-3 h-3 mr-1" />Deducted
+        <CheckCircle className="w-3 h-3 me-1" />{t('finance.tab.statusBadge.deducted')}
       </Badge>
     );
   }
   if (status === 'PARTIAL') {
     return (
       <Badge className="bg-blue-100 text-blue-800 border-blue-200 font-medium text-xs">
-        <Clock className="w-3 h-3 mr-1" />Partial
+        <Clock className="w-3 h-3 me-1" />{t('finance.tab.statusBadge.partial')}
       </Badge>
     );
   }
   return (
     <Badge className="bg-amber-50 text-amber-700 border-amber-200 font-medium text-xs">
-      <Clock className="w-3 h-3 mr-1" />Pending
+      <Clock className="w-3 h-3 me-1" />{t('finance.tab.statusBadge.pending')}
     </Badge>
   );
 }
@@ -1313,21 +1319,22 @@ function InfoItem({ label, value }: { label: string; value: string }) {
 // Renders one audit-log entry as a compact two-line card. Accepts the
 // currency so monetary diffs can be rendered with the right formatting.
 function HistoryEntry({ entry, currency }: { entry: any; currency: string }) {
+  const { t } = useTranslation('pages');
   const when = new Date(entry.createdAt);
-  const stamp = `${when.toLocaleDateString()} ${when.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-  const who = entry.user?.name || entry.user?.email || entry.userEmail || 'System';
+  const stamp = formatDateTime(when, { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const who = entry.user?.name || entry.user?.email || entry.userEmail || t('finance.tab.history.systemUser');
 
   // Map backend action codes into friendly verbs + tone classes so the
   // panel reads like a timeline rather than a raw log.
   const META: Record<string, { label: string; tone: string }> = {
-    FINANCIAL_RECORD_CREATED:            { label: 'Created transaction',       tone: 'text-blue-700 bg-blue-50 border-blue-200' },
-    FINANCIAL_RECORD_UPDATED:            { label: 'Updated fields',            tone: 'text-slate-700 bg-slate-50 border-slate-200' },
-    FINANCIAL_RECORD_STATUS_CHANGED:     { label: 'Changed status',            tone: 'text-amber-700 bg-amber-50 border-amber-200' },
-    FINANCIAL_RECORD_DEDUCTION_ADDED:    { label: 'Added deduction',           tone: 'text-emerald-700 bg-emerald-50 border-emerald-200' },
-    FINANCIAL_RECORD_DEDUCTION_REMOVED:  { label: 'Removed deduction',         tone: 'text-red-700 bg-red-50 border-red-200' },
-    FINANCIAL_ATTACHMENT_ADDED:          { label: 'Attached file',             tone: 'text-indigo-700 bg-indigo-50 border-indigo-200' },
-    FINANCIAL_ATTACHMENT_REMOVED:        { label: 'Removed attachment',        tone: 'text-red-700 bg-red-50 border-red-200' },
-    FINANCIAL_RECORD_DELETED:            { label: 'Deleted transaction',       tone: 'text-red-700 bg-red-50 border-red-200' },
+    FINANCIAL_RECORD_CREATED:            { label: t('finance.tab.history.createdTransaction'),    tone: 'text-blue-700 bg-blue-50 border-blue-200' },
+    FINANCIAL_RECORD_UPDATED:            { label: t('finance.tab.history.updatedFields'),         tone: 'text-slate-700 bg-slate-50 border-slate-200' },
+    FINANCIAL_RECORD_STATUS_CHANGED:     { label: t('finance.tab.history.changedStatus'),         tone: 'text-amber-700 bg-amber-50 border-amber-200' },
+    FINANCIAL_RECORD_DEDUCTION_ADDED:    { label: t('finance.tab.history.addedDeduction'),        tone: 'text-emerald-700 bg-emerald-50 border-emerald-200' },
+    FINANCIAL_RECORD_DEDUCTION_REMOVED:  { label: t('finance.tab.history.removedDeduction'),      tone: 'text-red-700 bg-red-50 border-red-200' },
+    FINANCIAL_ATTACHMENT_ADDED:          { label: t('finance.tab.history.attachedFile'),          tone: 'text-indigo-700 bg-indigo-50 border-indigo-200' },
+    FINANCIAL_ATTACHMENT_REMOVED:        { label: t('finance.tab.history.removedAttachment'),     tone: 'text-red-700 bg-red-50 border-red-200' },
+    FINANCIAL_RECORD_DELETED:            { label: t('finance.tab.history.deletedTransaction'),    tone: 'text-red-700 bg-red-50 border-red-200' },
   };
   const meta = META[entry.action] ?? { label: entry.action, tone: 'text-slate-700 bg-slate-50 border-slate-200' };
   const changes = entry.changes ?? {};
@@ -1336,7 +1343,7 @@ function HistoryEntry({ entry, currency }: { entry: any; currency: string }) {
   const fmtCurrency = (v: any) => {
     const n = Number(v);
     if (Number.isFinite(n)) {
-      try { return `${currency} ${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`; }
+      try { return `${currency} ${formatNumber(n, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`; }
       catch { return `${currency} ${n.toFixed(2)}`; }
     }
     return String(v);
@@ -1391,7 +1398,7 @@ function HistoryEntry({ entry, currency }: { entry: any; currency: string }) {
           <p className="text-[11px] text-muted-foreground break-words">{parts.join(' · ')}</p>
         )}
       </div>
-      <div className="text-right shrink-0">
+      <div className="text-end shrink-0">
         <p className="font-medium">{who}</p>
         <p className="text-[11px] text-muted-foreground">{stamp}</p>
       </div>

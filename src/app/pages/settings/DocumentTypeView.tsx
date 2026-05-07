@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Edit, Trash2, FileText } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -16,6 +17,7 @@ import {
   AlertDialogTitle,
 } from '../../components/ui/alert-dialog';
 import { settingsApi } from '../../services/api';
+import { apiError } from '../../../i18n/apiError';
 import { toast } from 'sonner';
 
 interface DocumentType {
@@ -33,6 +35,8 @@ interface DocumentType {
 }
 
 export function DocumentTypeView() {
+  const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const { id } = useParams();
   const navigate = useNavigate();
   const [docType, setDocType] = useState<DocumentType | null>(null);
@@ -45,7 +49,7 @@ export function DocumentTypeView() {
     settingsApi.getDocumentType(id)
       .then((data: any) => setDocType(data))
       .catch((err: any) => {
-        toast.error(err?.message || 'Failed to load document type');
+        toast.error(apiError(err, tc('toast.loadFailed')));
         navigate('/dashboard/settings/document-types');
       })
       .finally(() => setLoading(false));
@@ -56,10 +60,10 @@ export function DocumentTypeView() {
     setDeleting(true);
     try {
       await settingsApi.deleteDocumentType(docType.id);
-      toast.success(`"${docType.name}" deactivated successfully`);
+      toast.success(tc('toast.deactivatedSuccessfullyNamed', { name: docType.name }));
       navigate('/dashboard/settings/document-types');
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to deactivate document type');
+      toast.error(apiError(err, tc('toast.deleteFailed')));
       setDeleting(false);
       setShowDeleteDialog(false);
     }
@@ -68,7 +72,7 @@ export function DocumentTypeView() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-24 text-muted-foreground">
-        Loading document type...
+        {t('settings.documentTypes.view.loading')}
       </div>
     );
   }
@@ -95,8 +99,8 @@ export function DocumentTypeView() {
         <div className="flex items-center gap-3">
           <Button variant="outline" asChild>
             <Link to={`/dashboard/settings/document-types/${id}/edit`}>
-              <Edit className="w-4 h-4 mr-2" />
-              Edit
+              <Edit className="w-4 h-4 me-2" />
+              {t('settings.documentTypes.view.editButton')}
             </Link>
           </Button>
           <Button
@@ -104,8 +108,8 @@ export function DocumentTypeView() {
             className="text-red-600 hover:text-red-700 hover:bg-red-50"
             onClick={() => setShowDeleteDialog(true)}
           >
-            <Trash2 className="w-4 h-4 mr-2" />
-            Deactivate
+            <Trash2 className="w-4 h-4 me-2" />
+            {t('settings.documentTypes.view.deactivateButton')}
           </Button>
         </div>
       </div>
@@ -115,9 +119,9 @@ export function DocumentTypeView() {
         <Badge className={docType.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}>
           {docType.isActive ? 'Active' : 'Inactive'}
         </Badge>
-        {docType.required && <Badge variant="outline">Required Document</Badge>}
+        {docType.required && <Badge variant="outline">{t('settings.documentTypes.view.badgeRequired')}</Badge>}
         {docType.trackExpiry && (
-          <Badge variant="outline" className="bg-[#EFF6FF]">Expiry Tracking Enabled</Badge>
+          <Badge variant="outline" className="bg-[#EFF6FF]">{t('settings.documentTypes.view.badgeExpiryEnabled')}</Badge>
         )}
       </div>
 
@@ -131,7 +135,7 @@ export function DocumentTypeView() {
               </div>
               <div>
                 <p className="text-2xl font-semibold">{totalUploads}</p>
-                <p className="text-sm text-muted-foreground">Total Uploads</p>
+                <p className="text-sm text-muted-foreground">{t('settings.documentTypes.view.totalUploads')}</p>
               </div>
             </div>
           </CardContent>
@@ -146,7 +150,7 @@ export function DocumentTypeView() {
                 </div>
                 <div>
                   <p className="text-2xl font-semibold">{docType.renewalPeriodDays}</p>
-                  <p className="text-sm text-muted-foreground">Days Warning Before Expiry</p>
+                  <p className="text-sm text-muted-foreground">{t('settings.documentTypes.view.daysWarning')}</p>
                 </div>
               </div>
             </CardContent>
@@ -157,8 +161,8 @@ export function DocumentTypeView() {
       {/* Tabs */}
       <Tabs defaultValue="details" className="space-y-6">
         <TabsList>
-          <TabsTrigger value="details">Details</TabsTrigger>
-          <TabsTrigger value="settings">Settings</TabsTrigger>
+          <TabsTrigger value="details">{t('settings.documentTypes.view.tabDetails')}</TabsTrigger>
+          <TabsTrigger value="settings">{t('settings.documentTypes.view.tabSettings')}</TabsTrigger>
         </TabsList>
 
         {/* Details Tab */}
@@ -167,27 +171,27 @@ export function DocumentTypeView() {
             {/* Basic Information */}
             <Card>
               <CardHeader>
-                <CardTitle>Basic Information</CardTitle>
+                <CardTitle>{t('settings.documentTypes.view.basicInformation')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <p className="text-sm text-muted-foreground mb-1">Document Type Name</p>
+                  <p className="text-sm text-muted-foreground mb-1">{t('settings.documentTypes.view.documentTypeName')}</p>
                   <p className="font-medium">{docType.name}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground mb-1">Category</p>
+                  <p className="text-sm text-muted-foreground mb-1">{t('settings.documentTypes.view.category')}</p>
                   <p className="font-medium">{docType.category}</p>
                 </div>
                 {docType.description && (
                   <div>
-                    <p className="text-sm text-muted-foreground mb-1">Description</p>
+                    <p className="text-sm text-muted-foreground mb-1">{t('settings.documentTypes.view.description')}</p>
                     <p className="font-medium">{docType.description}</p>
                   </div>
                 )}
                 <div>
-                  <p className="text-sm text-muted-foreground mb-1">Status</p>
+                  <p className="text-sm text-muted-foreground mb-1">{t('settings.documentTypes.view.status')}</p>
                   <Badge className={docType.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}>
-                    {docType.isActive ? 'Active' : 'Inactive'}
+                    {docType.isActive ? t('settings.documentTypes.view.active') : t('settings.documentTypes.view.inactive')}
                   </Badge>
                 </div>
               </CardContent>
@@ -196,25 +200,25 @@ export function DocumentTypeView() {
             {/* Configuration */}
             <Card>
               <CardHeader>
-                <CardTitle>Configuration</CardTitle>
+                <CardTitle>{t('settings.documentTypes.view.configuration')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Required Document</span>
+                  <span className="text-sm text-muted-foreground">{t('settings.documentTypes.view.badgeRequired')}</span>
                   <Badge variant={docType.required ? 'default' : 'outline'}>
-                    {docType.required ? 'Yes' : 'No'}
+                    {docType.required ? t('settings.documentTypes.view.yes') : t('settings.documentTypes.view.no')}
                   </Badge>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Expiry Tracking</span>
+                  <span className="text-sm text-muted-foreground">{t('settings.documentTypes.view.expiryTracking')}</span>
                   <Badge variant={docType.trackExpiry ? 'default' : 'outline'}>
-                    {docType.trackExpiry ? 'Enabled' : 'Disabled'}
+                    {docType.trackExpiry ? t('settings.documentTypes.view.expiryEnabled') : t('settings.documentTypes.view.expiryDisabled')}
                   </Badge>
                 </div>
                 {docType.trackExpiry && docType.renewalPeriodDays && (
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Warning Period</span>
-                    <span className="font-medium">{docType.renewalPeriodDays} days</span>
+                    <span className="text-sm text-muted-foreground">{t('settings.documentTypes.view.warningPeriod')}</span>
+                    <span className="font-medium">{docType.renewalPeriodDays} {t('settings.documentTypes.view.days')}</span>
                   </div>
                 )}
               </CardContent>
@@ -224,15 +228,15 @@ export function DocumentTypeView() {
           {/* Metadata */}
           <Card>
             <CardHeader>
-              <CardTitle>Metadata</CardTitle>
+              <CardTitle>{t('settings.documentTypes.view.metadata')}</CardTitle>
             </CardHeader>
             <CardContent className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Created On</p>
+                <p className="text-sm text-muted-foreground mb-1">{t('settings.documentTypes.view.createdOn')}</p>
                 <p className="font-medium">{new Date(docType.createdAt).toLocaleDateString()}</p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Last Updated</p>
+                <p className="text-sm text-muted-foreground mb-1">{t('settings.documentTypes.view.lastUpdated')}</p>
                 <p className="font-medium">{new Date(docType.updatedAt).toLocaleDateString()}</p>
               </div>
             </CardContent>
@@ -243,58 +247,58 @@ export function DocumentTypeView() {
         <TabsContent value="settings">
           <Card>
             <CardHeader>
-              <CardTitle>Document Type Settings</CardTitle>
+              <CardTitle>{t('settings.documentTypes.view.docTypeSettings')}</CardTitle>
               <p className="text-sm text-muted-foreground mt-1">
-                Comprehensive configuration and requirements for this document type
+                {t('settings.documentTypes.view.settingsSubtitle')}
               </p>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 gap-6">
                 <div className="p-4 border rounded-lg">
-                  <h3 className="font-semibold mb-3">Basic Settings</h3>
+                  <h3 className="font-semibold mb-3">{t('settings.documentTypes.view.basicSettings')}</h3>
                   <div className="space-y-3 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Document Type:</span>
+                      <span className="text-muted-foreground">{t('settings.documentTypes.view.documentTypeLabel')}</span>
                       <span className="font-medium">{docType.name}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Category:</span>
+                      <span className="text-muted-foreground">{t('settings.documentTypes.view.categoryLabel')}</span>
                       <span className="font-medium">{docType.category}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Status:</span>
+                      <span className="text-muted-foreground">{t('settings.documentTypes.view.statusLabel')}</span>
                       <Badge className={docType.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}>
-                        {docType.isActive ? 'Active' : 'Inactive'}
+                        {docType.isActive ? t('settings.documentTypes.view.active') : t('settings.documentTypes.view.inactive')}
                       </Badge>
                     </div>
                   </div>
                 </div>
 
                 <div className="p-4 border rounded-lg">
-                  <h3 className="font-semibold mb-3">Requirements</h3>
+                  <h3 className="font-semibold mb-3">{t('settings.documentTypes.view.requirements')}</h3>
                   <div className="space-y-3 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Required:</span>
-                      <span className="font-medium">{docType.required ? 'Yes' : 'No'}</span>
+                      <span className="text-muted-foreground">{t('settings.documentTypes.view.requiredLabel')}</span>
+                      <span className="font-medium">{docType.required ? t('settings.documentTypes.view.yes') : t('settings.documentTypes.view.no')}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Total Uploads:</span>
+                      <span className="text-muted-foreground">{t('settings.documentTypes.view.totalUploadsLabel')}</span>
                       <span className="font-medium">{totalUploads}</span>
                     </div>
                   </div>
                 </div>
 
                 <div className="p-4 border rounded-lg">
-                  <h3 className="font-semibold mb-3">Expiry Settings</h3>
+                  <h3 className="font-semibold mb-3">{t('settings.documentTypes.view.expirySettingsCard')}</h3>
                   <div className="space-y-3 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Tracking:</span>
-                      <span className="font-medium">{docType.trackExpiry ? 'Enabled' : 'Disabled'}</span>
+                      <span className="text-muted-foreground">{t('settings.documentTypes.view.trackingLabel')}</span>
+                      <span className="font-medium">{docType.trackExpiry ? t('settings.documentTypes.view.expiryEnabled') : t('settings.documentTypes.view.expiryDisabled')}</span>
                     </div>
                     {docType.trackExpiry && docType.renewalPeriodDays && (
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Warning Period:</span>
-                        <span className="font-medium">{docType.renewalPeriodDays} days</span>
+                        <span className="text-muted-foreground">{t('settings.documentTypes.view.warningPeriodLabel')}</span>
+                        <span className="font-medium">{docType.renewalPeriodDays} {t('settings.documentTypes.view.days')}</span>
                       </div>
                     )}
                   </div>
@@ -309,20 +313,19 @@ export function DocumentTypeView() {
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Deactivate Document Type</AlertDialogTitle>
+            <AlertDialogTitle>{t('settings.documentTypes.view.deactivateTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to deactivate <strong>{docType.name}</strong>? It will no longer appear in
-              document type lists, but existing documents will not be affected.
+              {t('settings.documentTypes.view.deactivateDesc', { name: docType.name })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleting}>{t('settings.documentTypes.view.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               disabled={deleting}
               className="bg-red-600 hover:bg-red-700"
             >
-              {deleting ? 'Deactivating...' : 'Deactivate'}
+              {deleting ? t('settings.documentTypes.view.deactivating') : t('settings.documentTypes.view.deactivateButton')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import {
   Plus, Eye, Edit, Trash2, Search,
   ArrowUp, ArrowDown, ArrowUpDown, Columns2, Check, X,
@@ -13,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { toast } from 'sonner';
 import { confirm } from '../../components/ui/ConfirmDialog';
 import { agenciesApi } from '../../services/api';
+import { apiError } from '../../../i18n/apiError';
 import { FilterSystem, Column, FilterRule, FilterPreset } from '../../components/filters/FilterSystem';
 import { usePermissions } from '../../hooks/usePermissions';
 
@@ -26,14 +28,14 @@ const agencyColumns: Column[] = [
 
 // ── Column visibility ───────────────────────────────────────────────────────
 type ColKey = 'name' | 'country' | 'contactPerson' | 'email' | 'phone' | 'status' | 'createdAt';
-const ALL_COLUMNS: { key: ColKey; label: string }[] = [
-  { key: 'name',          label: 'Agency Name' },
-  { key: 'country',       label: 'Country' },
-  { key: 'contactPerson', label: 'Contact Person' },
-  { key: 'email',         label: 'Email' },
-  { key: 'phone',         label: 'Phone' },
-  { key: 'status',        label: 'Status' },
-  { key: 'createdAt',     label: 'Created' },
+const ALL_COLUMNS: { key: ColKey; labelKey: string }[] = [
+  { key: 'name',          labelKey: 'agencies.list.cols.name' },
+  { key: 'country',       labelKey: 'agencies.list.cols.country' },
+  { key: 'contactPerson', labelKey: 'agencies.list.cols.contactPerson' },
+  { key: 'email',         labelKey: 'agencies.list.cols.email' },
+  { key: 'phone',         labelKey: 'agencies.list.cols.phone' },
+  { key: 'status',        labelKey: 'agencies.list.cols.status' },
+  { key: 'createdAt',     labelKey: 'agencies.list.cols.createdAt' },
 ];
 const DEFAULT_VISIBLE: Record<ColKey, boolean> = {
   name: true, country: true, contactPerson: true, email: true, phone: true, status: true,
@@ -65,6 +67,8 @@ const getStatusBadge = (status: string) => {
 
 export function AgenciesList() {
   const { canCreate, canEdit, canDelete } = usePermissions();
+  const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const [agencies, setAgencies] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -117,16 +121,16 @@ export function AgenciesList() {
 
   const handleDelete = async (agency: any) => {
     if (!(await confirm({
-      title: 'Delete agency?',
-      description: `"${agency.name}" and its data will be permanently removed. This action cannot be undone.`,
-      confirmText: 'Delete', tone: 'destructive',
+      title: t('agencies.list.deleteTitle'),
+      description: t('agencies.list.deleteBody', { name: agency.name }),
+      confirmText: tc('actions.delete'), tone: 'destructive',
     }))) return;
     try {
       await agenciesApi.delete(agency.id);
       setAgencies(prev => prev.filter(a => a.id !== agency.id));
-      toast.success('Agency deleted successfully');
+      toast.success(t('agencies.list.deleteSuccess'));
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to delete agency');
+      toast.error(apiError(err, t('agencies.list.deleteFailed')));
     }
   };
 
@@ -223,14 +227,14 @@ export function AgenciesList() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-semibold text-[#0F172A]">Agencies</h1>
-          <p className="text-muted-foreground mt-1">Manage recruitment agency partnerships</p>
+          <h1 className="text-3xl font-semibold text-[#0F172A]">{t('agencies.list.title')}</h1>
+          <p className="text-muted-foreground mt-1">{t('agencies.list.subtitle')}</p>
         </div>
         {canCreate('agencies') && (
           <Button asChild>
             <Link to="/dashboard/agencies/add">
-              <Plus className="w-4 h-4 mr-2" />
-              Add Agency
+              <Plus className="w-4 h-4 me-2" />
+              {t('agencies.list.addButton')}
             </Link>
           </Button>
         )}
@@ -240,31 +244,31 @@ export function AgenciesList() {
         <CardContent className="p-4 space-y-3">
           <div className="flex flex-wrap gap-3 items-center">
             <div className="relative flex-1 min-w-[220px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Search agencies..."
+                placeholder={t('agencies.list.search')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
+                className="ps-9"
               />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-44">
-                <SelectValue placeholder="Filter by status" />
+                <SelectValue placeholder={t('agencies.list.allStatus')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="ACTIVE">Active</SelectItem>
-                <SelectItem value="INACTIVE">Inactive</SelectItem>
-                <SelectItem value="SUSPENDED">Suspended</SelectItem>
+                <SelectItem value="all">{t('agencies.list.allStatus')}</SelectItem>
+                <SelectItem value="ACTIVE">{tc('filters.active')}</SelectItem>
+                <SelectItem value="INACTIVE">{tc('filters.inactive')}</SelectItem>
+                <SelectItem value="SUSPENDED">{t('agencies.add.suspended', { defaultValue: 'Suspended' })}</SelectItem>
               </SelectContent>
             </Select>
             <Select value={countryFilter} onValueChange={setCountryFilter}>
               <SelectTrigger className="w-44">
-                <SelectValue placeholder="Filter by country" />
+                <SelectValue placeholder={t('agencies.list.allCountries')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Countries</SelectItem>
+                <SelectItem value="all">{t('agencies.list.allCountries')}</SelectItem>
                 {countryOptions.map(c => (
                   <SelectItem key={c} value={c}>{c}</SelectItem>
                 ))}
@@ -302,43 +306,43 @@ export function AgenciesList() {
               className="w-44"
             />
             <div className="flex items-center gap-1">
-              <span className="text-xs text-muted-foreground whitespace-nowrap">Created from</span>
+              <span className="text-xs text-muted-foreground whitespace-nowrap">{t('agencies.list.createdFrom')}</span>
               <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="w-36" />
-              <span className="text-xs text-muted-foreground">to</span>
+              <span className="text-xs text-muted-foreground">{t('agencies.list.createdTo')}</span>
               <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="w-36" />
             </div>
             {hasExtraFilters && (
               <Button variant="ghost" size="sm" onClick={clearExtraFilters}>
-                <X className="w-3 h-3 mr-1" />Clear
+                <X className="w-3 h-3 me-1" />{tc('actions.clearAll')}
               </Button>
             )}
-            <div className="ml-auto relative" ref={colPickerRef}>
+            <div className="ms-auto relative" ref={colPickerRef}>
               <Button
                 variant="outline" size="sm"
                 onClick={() => setShowColPicker(v => !v)}
                 className={showColPicker ? 'border-primary text-primary' : ''}
               >
-                <Columns2 className="w-4 h-4 mr-1.5" />Columns
+                <Columns2 className="w-4 h-4 me-1.5" />{t('agencies.list.columns')}
                 {hiddenCount > 0 && (
-                  <span className="ml-1.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
+                  <span className="ms-1.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
                     {hiddenCount}
                   </span>
                 )}
               </Button>
               {showColPicker && (
-                <div className="absolute right-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[200px]">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">Toggle columns</p>
+                <div className="absolute end-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[200px]">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">{t('agencies.list.toggleColumns')}</p>
                   <div className="space-y-0.5 max-h-72 overflow-y-auto">
                     {ALL_COLUMNS.map(c => (
                       <button
                         key={c.key}
                         onClick={() => toggleColumn(c.key)}
-                        className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-gray-50 text-sm text-left"
+                        className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-gray-50 text-sm text-start"
                       >
                         <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${visibleColumns[c.key] ? 'bg-primary border-primary' : 'border-gray-300'}`}>
                           {visibleColumns[c.key] && <Check className="w-2.5 h-2.5 text-primary-foreground" />}
                         </span>
-                        {c.label}
+                        {t(c.labelKey)}
                       </button>
                     ))}
                   </div>
@@ -350,7 +354,7 @@ export function AgenciesList() {
                         localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
                       }}
                       className="flex-1 text-xs text-center text-primary hover:underline py-0.5"
-                    >Show all</button>
+                    >{t('agencies.list.showAll')}</button>
                     <span className="text-gray-300">|</span>
                     <button
                       onClick={() => {
@@ -373,21 +377,21 @@ export function AgenciesList() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  {col('name')          && <SortableHead label="Agency Name"    field="name" />}
-                  {col('country')       && <SortableHead label="Country"        field="country" />}
-                  {col('contactPerson') && <SortableHead label="Contact Person" field="contactPerson" />}
-                  {col('email')         && <SortableHead label="Email"          field="email" />}
-                  {col('phone')         && <SortableHead label="Phone"          field="phone" />}
-                  {col('status')        && <SortableHead label="Status"         field="status" />}
-                  {col('createdAt')     && <SortableHead label="Created"        field="createdAt" />}
-                  <TableHead className="text-right">Actions</TableHead>
+                  {col('name')          && <SortableHead label={t('agencies.list.tableHeaders.agency')}    field="name" />}
+                  {col('country')       && <SortableHead label={t('agencies.list.tableHeaders.country')}        field="country" />}
+                  {col('contactPerson') && <SortableHead label={t('agencies.list.tableHeaders.contact')} field="contactPerson" />}
+                  {col('email')         && <SortableHead label={t('agencies.list.tableHeaders.email')}          field="email" />}
+                  {col('phone')         && <SortableHead label={t('agencies.list.tableHeaders.phone')}          field="phone" />}
+                  {col('status')        && <SortableHead label={t('agencies.list.tableHeaders.status')}         field="status" />}
+                  {col('createdAt')     && <SortableHead label={t('agencies.list.tableHeaders.created')}        field="createdAt" />}
+                  <TableHead className="text-end">{t('agencies.list.tableHeaders.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
-                  <TableRow><TableCell colSpan={visibleCount + 1} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={visibleCount + 1} className="text-center py-8 text-muted-foreground">{t('agencies.list.loading')}</TableCell></TableRow>
                 ) : displayAgencies.length === 0 ? (
-                  <TableRow><TableCell colSpan={visibleCount + 1} className="text-center py-8 text-muted-foreground">No agencies found</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={visibleCount + 1} className="text-center py-8 text-muted-foreground">{t('agencies.list.emptyShort')}</TableCell></TableRow>
                 ) : displayAgencies.map((agency) => (
                   <TableRow key={agency.id}>
                     {col('name')          && <TableCell className="font-medium">{agency.name}</TableCell>}
@@ -397,12 +401,12 @@ export function AgenciesList() {
                     {col('phone')         && <TableCell className="text-sm text-muted-foreground">{agency.phone ?? '—'}</TableCell>}
                     {col('status')        && <TableCell>{getStatusBadge(agency.status)}</TableCell>}
                     {col('createdAt')     && <TableCell className="text-sm text-muted-foreground">{agency.createdAt ? new Date(agency.createdAt).toLocaleDateString() : '—'}</TableCell>}
-                    <TableCell className="text-right">
+                    <TableCell className="text-end">
                       <div className="flex items-center justify-end gap-1">
                         <Button variant="ghost" size="sm" asChild>
                           <Link to={`/dashboard/agencies/${agency.id}`}>
-                            <Eye className="w-4 h-4 mr-1" />
-                            View
+                            <Eye className="w-4 h-4 me-1" />
+                            {tc('actions.view')}
                           </Link>
                         </Button>
                         {canEdit('agencies') && (

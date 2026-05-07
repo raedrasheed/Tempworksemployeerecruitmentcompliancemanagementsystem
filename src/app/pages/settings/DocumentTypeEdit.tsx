@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Save, Info } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -10,6 +11,7 @@ import { Switch } from '../../components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { toast } from 'sonner';
 import { settingsApi } from '../../services/api';
+import { apiError } from '../../../i18n/apiError';
 
 const CATEGORY_LABELS: Record<string, string> = {
   identity: 'Identity',
@@ -27,6 +29,8 @@ function toCategoryKey(category: string): string {
 }
 
 export function DocumentTypeEdit() {
+  const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const navigate = useNavigate();
   const { id } = useParams();
   const [loading, setLoading] = useState(true);
@@ -68,7 +72,7 @@ export function DocumentTypeEdit() {
         setDocumentCount(dt._count?.documents ?? 0);
       })
       .catch((err: any) => {
-        toast.error(err?.message || 'Failed to load document type');
+        toast.error(apiError(err, tc('toast.loadFailed')));
         navigate('/dashboard/settings/document-types');
       })
       .finally(() => setLoading(false));
@@ -88,10 +92,10 @@ export function DocumentTypeEdit() {
           ? parseInt(formData.expiryWarningDays, 10)
           : undefined,
       });
-      toast.success('Document type updated successfully');
+      toast.success(tc('toast.savedSuccessfully'));
       navigate(`/dashboard/settings/document-types/${id}`);
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to update document type');
+      toast.error(apiError(err, tc('toast.saveFailed')));
     } finally {
       setSaving(false);
     }
@@ -121,8 +125,8 @@ export function DocumentTypeEdit() {
           </Link>
         </Button>
         <div className="flex-1">
-          <h1 className="text-3xl font-semibold text-[#0F172A]">Edit Document Type</h1>
-          <p className="text-muted-foreground mt-1">Update document type configuration</p>
+          <h1 className="text-3xl font-semibold text-[#0F172A]">{t('settings.documentTypes.editTitle')}</h1>
+          <p className="text-muted-foreground mt-1">{t('settings.documentTypes.edit.subtitle')}</p>
         </div>
       </div>
 
@@ -133,14 +137,14 @@ export function DocumentTypeEdit() {
             {/* Basic Information */}
             <Card>
               <CardHeader>
-                <CardTitle>Basic Information</CardTitle>
+                <CardTitle>{t('settings.documentTypes.edit.basicInformation')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Document Type Name *</Label>
+                  <Label htmlFor="name">{t('settings.documentTypes.edit.nameRequired')}</Label>
                   <Input
                     id="name"
-                    placeholder="e.g., Passport, Driving License, Work Permit"
+                    placeholder={t('settings.documentTypes.edit.namePlaceholder')}
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     required
@@ -148,10 +152,10 @@ export function DocumentTypeEdit() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
+                  <Label htmlFor="description">{t('settings.documentTypes.edit.description')}</Label>
                   <Textarea
                     id="description"
-                    placeholder="Describe the purpose and requirements of this document type..."
+                    placeholder={t('settings.documentTypes.edit.descriptionPlaceholder')}
                     rows={3}
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -159,24 +163,24 @@ export function DocumentTypeEdit() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="category">Category *</Label>
+                  <Label htmlFor="category">{t('settings.documentTypes.edit.categoryRequired')}</Label>
                   <Select
                     value={formData.category}
                     onValueChange={(value) => setFormData({ ...formData, category: value })}
                     required
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
+                      <SelectValue placeholder={t('settings.documentTypes.edit.selectCategory')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="identity">Identity Documents</SelectItem>
-                      <SelectItem value="license">Licenses & Certifications</SelectItem>
-                      <SelectItem value="medical">Medical & Health</SelectItem>
-                      <SelectItem value="legal">Legal & Immigration</SelectItem>
-                      <SelectItem value="employment">Employment Documents</SelectItem>
-                      <SelectItem value="insurance">Insurance & Coverage</SelectItem>
-                      <SelectItem value="training">Training & Education</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
+                      <SelectItem value="identity">{t('settings.documentTypes.edit.catIdentity')}</SelectItem>
+                      <SelectItem value="license">{t('settings.documentTypes.edit.catLicense')}</SelectItem>
+                      <SelectItem value="medical">{t('settings.documentTypes.edit.catMedical')}</SelectItem>
+                      <SelectItem value="legal">{t('settings.documentTypes.edit.catLegal')}</SelectItem>
+                      <SelectItem value="employment">{t('settings.documentTypes.edit.catEmployment')}</SelectItem>
+                      <SelectItem value="insurance">{t('settings.documentTypes.edit.catInsurance')}</SelectItem>
+                      <SelectItem value="training">{t('settings.documentTypes.edit.catTraining')}</SelectItem>
+                      <SelectItem value="other">{t('settings.documentTypes.edit.catOther')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -186,14 +190,14 @@ export function DocumentTypeEdit() {
             {/* Document Settings */}
             <Card>
               <CardHeader>
-                <CardTitle>Document Settings</CardTitle>
+                <CardTitle>{t('settings.documentTypes.edit.documentSettings')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label htmlFor="required">Required Document</Label>
+                    <Label htmlFor="required">{t('settings.documentTypes.edit.requiredDocument')}</Label>
                     <p className="text-sm text-muted-foreground">
-                      This document must be submitted by all employees
+                      {t('settings.documentTypes.edit.requiredHelper')}
                     </p>
                   </div>
                   <Switch
@@ -205,9 +209,9 @@ export function DocumentTypeEdit() {
 
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label htmlFor="expiryTracking">Expiry Date Tracking</Label>
+                    <Label htmlFor="expiryTracking">{t('settings.documentTypes.edit.expiryTracking')}</Label>
                     <p className="text-sm text-muted-foreground">
-                      Track expiration dates and send renewal reminders
+                      {t('settings.documentTypes.edit.expiryHelper')}
                     </p>
                   </div>
                   <Switch
@@ -218,8 +222,8 @@ export function DocumentTypeEdit() {
                 </div>
 
                 {formData.expiryTracking && (
-                  <div className="space-y-2 pl-4 border-l-2 border-[#2563EB]">
-                    <Label htmlFor="expiryWarningDays">Warning Period (Days Before Expiry)</Label>
+                  <div className="space-y-2 ps-4 border-s-2 border-[#2563EB]">
+                    <Label htmlFor="expiryWarningDays">{t('settings.documentTypes.edit.warningPeriod')}</Label>
                     <Input
                       id="expiryWarningDays"
                       type="number"
@@ -233,9 +237,9 @@ export function DocumentTypeEdit() {
 
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label htmlFor="allowMultiple">Allow Multiple Uploads</Label>
+                    <Label htmlFor="allowMultiple">{t('settings.documentTypes.edit.allowMultiple')}</Label>
                     <p className="text-sm text-muted-foreground">
-                      Employees can upload multiple files for this document type
+                      {t('settings.documentTypes.edit.allowMultipleHelper')}
                     </p>
                   </div>
                   <Switch
@@ -247,9 +251,9 @@ export function DocumentTypeEdit() {
 
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label htmlFor="verificationRequired">Verification Required</Label>
+                    <Label htmlFor="verificationRequired">{t('settings.documentTypes.edit.verificationRequired')}</Label>
                     <p className="text-sm text-muted-foreground">
-                      Document must be verified by an administrator
+                      {t('settings.documentTypes.edit.verificationHelper')}
                     </p>
                   </div>
                   <Switch
@@ -264,11 +268,11 @@ export function DocumentTypeEdit() {
             {/* File Upload Settings */}
             <Card>
               <CardHeader>
-                <CardTitle>File Upload Settings</CardTitle>
+                <CardTitle>{t('settings.documentTypes.edit.fileUploadSettings')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Allowed File Formats</Label>
+                  <Label>{t('settings.documentTypes.edit.allowedFileFormats')}</Label>
                   <div className="flex flex-wrap gap-2">
                     {fileFormats.map((format) => (
                       <Button
@@ -283,12 +287,12 @@ export function DocumentTypeEdit() {
                     ))}
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Selected: {selectedFormats.length > 0 ? selectedFormats.join(', ') : 'None'}
+                    {selectedFormats.length > 0 ? selectedFormats.join(', ') : t('settings.documentTypes.edit.noneSelected')}
                   </p>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="maxFileSize">Maximum File Size (MB)</Label>
+                  <Label htmlFor="maxFileSize">{t('settings.documentTypes.edit.maxFileSizeMb')}</Label>
                   <Input
                     id="maxFileSize"
                     type="number"
@@ -305,20 +309,20 @@ export function DocumentTypeEdit() {
             {/* Validation Rules */}
             <Card>
               <CardHeader>
-                <CardTitle>Validation Rules (Optional)</CardTitle>
+                <CardTitle>{t('settings.documentTypes.edit.validationRulesOptional')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  <Label htmlFor="validationRules">Custom Validation Rules</Label>
+                  <Label htmlFor="validationRules">{t('settings.documentTypes.edit.customValidationRules')}</Label>
                   <Textarea
                     id="validationRules"
-                    placeholder="Enter any specific validation requirements or rules for this document type..."
+                    placeholder={t('settings.documentTypes.edit.validationExample')}
                     rows={4}
                     value={formData.validationRules}
                     onChange={(e) => setFormData({ ...formData, validationRules: e.target.value })}
                   />
                   <p className="text-sm text-muted-foreground">
-                    Example: Must be issued within the last 6 months, Must contain specific fields, etc.
+                    {t('settings.documentTypes.edit.validationExample')}
                   </p>
                 </div>
               </CardContent>
@@ -330,30 +334,30 @@ export function DocumentTypeEdit() {
             {/* Summary Card */}
             <Card className="bg-gradient-to-br from-[#EFF6FF] to-white border-[#2563EB]">
               <CardHeader>
-                <CardTitle className="text-sm">Configuration Summary</CardTitle>
+                <CardTitle className="text-sm">{t('settings.documentTypes.edit.configSummary')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Status:</span>
-                    <span className="font-medium">{formData.required ? 'Required' : 'Optional'}</span>
+                    <span className="text-muted-foreground">{t('settings.documentTypes.edit.statusLabel')}</span>
+                    <span className="font-medium">{formData.required ? t('settings.documentTypes.edit.statusRequired') : t('settings.documentTypes.edit.statusOptional')}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Expiry Tracking:</span>
-                    <span className="font-medium">{formData.expiryTracking ? 'Enabled' : 'Disabled'}</span>
+                    <span className="text-muted-foreground">{t('settings.documentTypes.edit.expiryTrackingLabel')}</span>
+                    <span className="font-medium">{formData.expiryTracking ? t('settings.documentTypes.edit.expiryEnabled') : t('settings.documentTypes.edit.expiryDisabled')}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Verification:</span>
+                    <span className="text-muted-foreground">{t('settings.documentTypes.edit.verificationLabel')}</span>
                     <span className="font-medium">
-                      {formData.verificationRequired ? 'Required' : 'Not Required'}
+                      {formData.verificationRequired ? t('settings.documentTypes.edit.statusRequired') : t('settings.documentTypes.edit.verificationNotRequired')}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Multiple Files:</span>
-                    <span className="font-medium">{formData.allowMultiple ? 'Allowed' : 'Single File'}</span>
+                    <span className="text-muted-foreground">{t('settings.documentTypes.edit.multipleFilesLabel')}</span>
+                    <span className="font-medium">{formData.allowMultiple ? t('settings.documentTypes.edit.allowed') : t('settings.documentTypes.edit.singleFile')}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Max Size:</span>
+                    <span className="text-muted-foreground">{t('settings.documentTypes.edit.maxSizeLabel')}</span>
                     <span className="font-medium">{formData.maxFileSize || '10'} MB</span>
                   </div>
                 </div>
@@ -365,14 +369,14 @@ export function DocumentTypeEdit() {
               <CardHeader>
                 <CardTitle className="text-sm flex items-center gap-2">
                   <Info className="w-4 h-4" />
-                  Important Notice
+                  {t('settings.documentTypes.edit.importantNotice')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <ul className="text-sm space-y-2 text-muted-foreground">
-                  <li>• Changes will affect existing documents of this type</li>
-                  <li>• Making a required document optional may affect compliance</li>
-                  <li>• Expiry tracking changes apply to all future notifications</li>
+                  <li>• {t('settings.documentTypes.edit.notice1')}</li>
+                  <li>• {t('settings.documentTypes.edit.notice2')}</li>
+                  <li>• {t('settings.documentTypes.edit.notice3')}</li>
                 </ul>
               </CardContent>
             </Card>
@@ -380,11 +384,11 @@ export function DocumentTypeEdit() {
             {/* Usage Stats */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm">Current Usage</CardTitle>
+                <CardTitle className="text-sm">{t('settings.documentTypes.edit.currentUsage')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Total Uploads:</span>
+                  <span className="text-muted-foreground">{t('settings.documentTypes.edit.totalUploads')}</span>
                   <span className="font-semibold">{documentCount}</span>
                 </div>
               </CardContent>
@@ -393,11 +397,11 @@ export function DocumentTypeEdit() {
             {/* Actions */}
             <div className="space-y-3">
               <Button type="submit" className="w-full" size="lg" disabled={saving}>
-                <Save className="w-4 h-4 mr-2" />
-                {saving ? 'Saving...' : 'Save Changes'}
+                <Save className="w-4 h-4 me-2" />
+                {saving ? t('settings.documentTypes.edit.saving') : t('settings.documentTypes.edit.saveChanges')}
               </Button>
               <Button type="button" variant="outline" className="w-full" asChild>
-                <Link to={`/dashboard/settings/document-types/${id}`}>Cancel</Link>
+                <Link to={`/dashboard/settings/document-types/${id}`}>{t('settings.documentTypes.edit.cancel')}</Link>
               </Button>
             </div>
           </div>

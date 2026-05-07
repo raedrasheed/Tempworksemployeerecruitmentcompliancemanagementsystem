@@ -9,6 +9,7 @@
  * see the latest contract event at the top of the list.
  */
 import { useEffect, useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { employeeWorkHistoryApi, usersApi, settingsApi } from '../../services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
@@ -20,6 +21,7 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '../ui/dialog';
 import { toast } from 'sonner';
+import { apiError } from '../../../i18n/apiError';
 import { confirm } from '../ui/ConfirmDialog';
 import {
   Plus, Save, X, FileText, Paperclip, Trash2, Download, Edit2, CheckCircle2,
@@ -77,6 +79,8 @@ interface Props {
 }
 
 export function WorkHistoryTimeline({ employeeId, canWrite }: Props) {
+  const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const [entries, setEntries]  = useState<any[]>([]);
   const [loading, setLoading]  = useState(true);
   const [users,   setUsers]    = useState<any[]>([]);
@@ -172,8 +176,8 @@ export function WorkHistoryTimeline({ employeeId, canWrite }: Props) {
   };
 
   const handleSave = async () => {
-    if (!form.date)      { toast.error('Date is required'); return; }
-    if (!form.eventType) { toast.error('Event type is required'); return; }
+    if (!form.date)      { toast.error(tc('toast.dateRequired')); return; }
+    if (!form.eventType) { toast.error(tc('toast.eventTypeRequired')); return; }
     setSaving(true);
     try {
       const payload = {
@@ -184,15 +188,15 @@ export function WorkHistoryTimeline({ employeeId, canWrite }: Props) {
       };
       if (editingId) {
         await employeeWorkHistoryApi.update(employeeId, editingId, payload);
-        toast.success('Entry updated');
+        toast.success(tc('toast.entryUpdated'));
       } else {
         await employeeWorkHistoryApi.create(employeeId, payload);
-        toast.success('Entry added');
+        toast.success(tc('toast.entryAdded'));
       }
       setOpen(false);
       load();
     } catch (err: any) {
-      toast.error(err?.message || 'Save failed');
+      toast.error(apiError(err, tc('toast.saveFailed')));
     } finally {
       setSaving(false);
     }
@@ -200,18 +204,18 @@ export function WorkHistoryTimeline({ employeeId, canWrite }: Props) {
 
   const handleDelete = async (entry: any) => {
     const ok = await confirm({
-      title: 'Delete work history entry?',
-      description: `"${resolveMeta(entry.eventType).label}" on ${formatDate(entry.date)} will be removed.`,
-      confirmText: 'Delete',
+      title: t('common:confirm.deleteWorkHistoryTitle'),
+      description: t('common:confirm.deleteWorkHistoryBody', { label: resolveMeta(entry.eventType).label, date: formatDate(entry.date) }),
+      confirmText: t('common:actions.delete'),
       tone: 'destructive',
     });
     if (!ok) return;
     try {
       await employeeWorkHistoryApi.delete(employeeId, entry.id);
-      toast.success('Entry deleted');
+      toast.success(tc('toast.entryDeleted'));
       load();
     } catch (err: any) {
-      toast.error(err?.message || 'Delete failed');
+      toast.error(apiError(err, tc('toast.deleteFailed')));
     }
   };
 
@@ -221,10 +225,10 @@ export function WorkHistoryTimeline({ employeeId, canWrite }: Props) {
       const fd = new FormData();
       fd.append('file', file);
       await employeeWorkHistoryApi.addAttachment(employeeId, entryId, fd);
-      toast.success('Attachment uploaded');
+      toast.success(tc('toast.attachmentUploaded'));
       load();
     } catch (err: any) {
-      toast.error(err?.message || 'Upload failed');
+      toast.error(apiError(err, tc('toast.uploadFailed')));
     } finally {
       setUploadingId(null);
     }
@@ -232,18 +236,18 @@ export function WorkHistoryTimeline({ employeeId, canWrite }: Props) {
 
   const handleRemoveAttachment = async (entryId: string, attachmentId: string, name: string) => {
     const ok = await confirm({
-      title: 'Remove attachment?',
-      description: `"${name}" will be removed from this entry.`,
-      confirmText: 'Remove',
+      title: t('common:confirm.removeAttachmentTitle'),
+      description: t('common:confirm.deleteDocumentBodyNamed', { name }),
+      confirmText: t('common:actions.remove'),
       tone: 'destructive',
     });
     if (!ok) return;
     try {
       await employeeWorkHistoryApi.removeAttachment(employeeId, entryId, attachmentId);
-      toast.success('Attachment removed');
+      toast.success(tc('toast.attachmentRemoved'));
       load();
     } catch (err: any) {
-      toast.error(err?.message || 'Remove failed');
+      toast.error(apiError(err, tc('toast.deleteFailed')));
     }
   };
 
@@ -262,31 +266,31 @@ export function WorkHistoryTimeline({ employeeId, canWrite }: Props) {
         </div>
         {canWrite && (
           <Button size="sm" onClick={openCreate}>
-            <Plus className="w-4 h-4 mr-1" />Add Entry
+            <Plus className="w-4 h-4 me-1" />{t('employees.workHistoryTimeline.addEntry')}
           </Button>
         )}
       </CardHeader>
       <CardContent>
         {loading ? (
-          <p className="py-8 text-center text-muted-foreground text-sm">Loading…</p>
+          <p className="py-8 text-center text-muted-foreground text-sm">{tc('states.loading')}</p>
         ) : entries.length === 0 ? (
           <div className="py-10 text-center text-muted-foreground text-sm">
-            No work history yet. {canWrite && 'Add the first contract event to start the timeline.'}
+            {t('employees.workHistoryTimeline.empty')} {canWrite && t('employees.workHistoryTimeline.emptyHint')}
           </div>
         ) : (
-          <ol className="relative border-l-2 border-muted/60 ml-2 space-y-5">
+          <ol className="relative border-s-2 border-muted/60 ms-2 space-y-5">
             {entries.map((entry: any) => {
               const meta = resolveMeta(entry.eventType);
               const Icon = meta.icon;
               return (
-                <li key={entry.id} className="pl-5 relative">
-                  <span className={`absolute -left-[9px] top-1 w-4 h-4 rounded-full border-2 border-background ${TONE_DOT[meta.tone]}`} />
+                <li key={entry.id} className="ps-5 relative">
+                  <span className={`absolute -start-[9px] top-1 w-4 h-4 rounded-full border-2 border-background ${TONE_DOT[meta.tone]}`} />
                   <div className="rounded-lg border bg-card p-3">
                     <div className="flex items-start justify-between gap-3 flex-wrap">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <Badge variant="outline" className={TONE_CLASS[meta.tone]}>
-                            <Icon className="w-3 h-3 mr-1" />{meta.label}
+                            <Icon className="w-3 h-3 me-1" />{meta.label}
                           </Badge>
                           <span className="text-sm font-medium">{formatDate(entry.date)}</span>
                         </div>
@@ -295,10 +299,10 @@ export function WorkHistoryTimeline({ employeeId, canWrite }: Props) {
                         )}
                         <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground flex-wrap">
                           {entry.createdBy && (
-                            <span>Created by <strong className="text-foreground">{fullName(entry.createdBy)}</strong></span>
+                            <span>{t('employees.workHistoryTimeline.createdBy')} <strong className="text-foreground">{fullName(entry.createdBy)}</strong></span>
                           )}
                           {entry.approvedBy && (
-                            <span>Approved by <strong className="text-foreground">{fullName(entry.approvedBy)}</strong></span>
+                            <span>{t('employees.workHistoryTimeline.approvedBy')} <strong className="text-foreground">{fullName(entry.approvedBy)}</strong></span>
                           )}
                           <span>· {formatDate(entry.createdAt)}</span>
                         </div>
@@ -368,23 +372,23 @@ export function WorkHistoryTimeline({ employeeId, canWrite }: Props) {
       <Dialog open={open} onOpenChange={(o) => !saving && setOpen(o)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{editingId ? 'Edit Work History Entry' : 'Add Work History Entry'}</DialogTitle>
-            <DialogDescription>Post-hire contract event. Attachments can be added after saving.</DialogDescription>
+            <DialogTitle>{editingId ? t('employees.workHistoryTimeline.editTitle') : t('employees.workHistoryTimeline.addTitle')}</DialogTitle>
+            <DialogDescription>{t('employees.workHistoryTimeline.dialogIntro')}</DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label htmlFor="wh-date" className="text-xs">Date *</Label>
+                <Label htmlFor="wh-date" className="text-xs">{t('employees.workHistoryTimeline.date')}</Label>
                 <Input id="wh-date" type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
               </div>
               <div>
-                <Label className="text-xs">Event Type *</Label>
+                <Label className="text-xs">{t('employees.workHistoryTimeline.eventType')}</Label>
                 <Select value={form.eventType} onValueChange={(v) => setForm(f => ({ ...f, eventType: v as EventTypeValue }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {eventTypes.length === 0 ? (
                       <SelectItem value="__empty__" disabled>
-                        <span className="text-muted-foreground italic">No event types configured — add some in Settings → Work History Event Types</span>
+                        <span className="text-muted-foreground italic">{t('employees.workHistoryTimeline.noEventTypes')}</span>
                       </SelectItem>
                     ) : (
                       eventTypes.map(e => <SelectItem key={e.value} value={e.value}>{e.label}</SelectItem>)
@@ -394,20 +398,20 @@ export function WorkHistoryTimeline({ employeeId, canWrite }: Props) {
               </div>
             </div>
             <div>
-              <Label htmlFor="wh-desc" className="text-xs">Description</Label>
+              <Label htmlFor="wh-desc" className="text-xs">{t('employees.workHistoryTimeline.description')}</Label>
               <Input
                 id="wh-desc"
                 value={form.description}
                 onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                placeholder="Optional — context, salary, reason, etc."
+                placeholder={t('employees.workHistoryTimeline.descriptionPh')}
               />
             </div>
             <div>
-              <Label className="text-xs">Approved By</Label>
+              <Label className="text-xs">{t('employees.workHistoryTimeline.approvedByLabel')}</Label>
               <Select value={form.approvedById || '__none__'} onValueChange={(v) => setForm(f => ({ ...f, approvedById: v === '__none__' ? '' : v }))}>
-                <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={t('employees.workHistoryTimeline.none')} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__none__"><span className="text-muted-foreground">Not specified</span></SelectItem>
+                  <SelectItem value="__none__"><span className="text-muted-foreground">{t('employees.workHistoryTimeline.notSpecified')}</span></SelectItem>
                   {userOptions.map((u: any) => (
                     <SelectItem key={u.id} value={u.id}>{fullName(u) || u.email}</SelectItem>
                   ))}
@@ -416,8 +420,8 @@ export function WorkHistoryTimeline({ employeeId, canWrite }: Props) {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}><X className="w-4 h-4 mr-2" />Cancel</Button>
-            <Button onClick={handleSave} disabled={saving}><Save className="w-4 h-4 mr-2" />{saving ? 'Saving…' : 'Save'}</Button>
+            <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}><X className="w-4 h-4 me-2" />{tc('actions.cancel')}</Button>
+            <Button onClick={handleSave} disabled={saving}><Save className="w-4 h-4 me-2" />{saving ? tc('states.saving') : tc('actions.save')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

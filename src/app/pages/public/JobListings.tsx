@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import {
   Search, MapPin, Briefcase, Clock, ChevronLeft, ChevronRight,
   ArrowRight, Filter, X, LayoutGrid, List,
@@ -11,6 +12,9 @@ import { Input } from '../../components/ui/input';
 import { CountrySelect } from '../../components/ui/CountrySelect';
 import { Badge } from '../../components/ui/badge';
 import { Card, CardContent } from '../../components/ui/card';
+import { LanguageSwitcher } from '../../../i18n/LanguageSwitcher';
+import { formatDate, formatNumber } from '../../../i18n/formatters';
+import { enumLabel } from '../../../i18n/enumLabel';
 
 const CONTRACT_TYPE_COLORS: Record<string, string> = {
   'Full-time':  'bg-blue-100 text-blue-700',
@@ -21,16 +25,22 @@ const CONTRACT_TYPE_COLORS: Record<string, string> = {
   'Seasonal':   'bg-teal-100 text-teal-700',
 };
 
-function formatSalary(min: any, max: any, currency: string): string {
-  if (!min && !max) return '';
-  const fmt = (n: number) => n.toLocaleString();
-  if (min && max) return `${currency} ${fmt(Number(min))} – ${fmt(Number(max))}`;
-  if (min) return `from ${currency} ${fmt(Number(min))}`;
-  return `up to ${currency} ${fmt(Number(max))}`;
+function useFormatSalary() {
+  const { t } = useTranslation('public');
+  return (min: any, max: any, currency: string): string => {
+    if (!min && !max) return '';
+    const minStr = min ? formatNumber(Number(min)) : '';
+    const maxStr = max ? formatNumber(Number(max)) : '';
+    if (min && max) return t('jobs.salaryRange', { currency, min: minStr, max: maxStr });
+    if (min)        return t('jobs.salaryFrom',  { currency, min: minStr });
+    return            t('jobs.salaryUpTo',       { currency, max: maxStr });
+  };
 }
 
 export function JobListings() {
   const branding = useBranding();
+  const { t } = useTranslation(['public', 'common']);
+  const formatSalary = useFormatSalary();
   const [jobs, setJobs]     = useState<any[]>([]);
   const [meta, setMeta]     = useState({ total: 0, page: 1, limit: 20, totalPages: 1 });
   const [loading, setLoading] = useState(true);
@@ -59,7 +69,7 @@ export function JobListings() {
       setJobs(res.data ?? []);
       setMeta(res.meta ?? { total: 0, page: 1, limit, totalPages: 1 });
     } catch {
-      setError('Unable to load job listings. Please try again later.');
+      setError(t('jobs.loadError'));
     } finally {
       setLoading(false);
     }
@@ -99,15 +109,16 @@ export function JobListings() {
             </div>
             <div>
               <span className="text-xl font-bold text-[#0F172A]">{branding.companyName}</span>
-              <p className="text-xs text-muted-foreground">Current Job Openings</p>
+              <p className="text-xs text-muted-foreground">{t('jobs.headerTagline')}</p>
             </div>
           </Link>
           <div className="flex items-center gap-3">
+            <LanguageSwitcher />
             <Link to="/#contact">
-              <Button variant="outline" size="sm">Contact Us</Button>
+              <Button variant="outline" size="sm">{t('jobs.headerContact')}</Button>
             </Link>
             <Link to="/apply">
-              <Button size="sm">Apply Now</Button>
+              <Button size="sm">{t('jobs.headerApply')}</Button>
             </Link>
           </div>
         </div>
@@ -116,20 +127,20 @@ export function JobListings() {
       {/* Hero */}
       <div className="bg-[#0F172A] text-white py-14">
         <div className="container mx-auto px-4 text-center">
-          <h1 className="text-4xl font-bold mb-3">Current Job Openings</h1>
+          <h1 className="text-4xl font-bold mb-3">{t('jobs.heroTitle')}</h1>
           <p className="text-blue-200 text-lg max-w-2xl mx-auto mb-8">
-            Browse our latest opportunities and start your journey with {branding.companyName}.
+            {t('jobs.heroSubtitle', { company: branding.companyName })}
           </p>
           {/* Search bar */}
           <div className="max-w-xl mx-auto flex gap-2">
             <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
                 type="text"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                placeholder="Search job title, location…"
-                className="w-full pl-10 pr-4 py-3 rounded-lg text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder={t('jobs.searchPlaceholder')}
+                className="w-full ps-10 pe-4 py-3 rounded-lg text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </div>
@@ -144,7 +155,7 @@ export function JobListings() {
               <CardContent className="p-4 space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="font-semibold text-sm text-foreground flex items-center gap-2">
-                    <Filter className="w-4 h-4" /> Filters
+                    <Filter className="w-4 h-4" /> {t('jobs.filters')}
                   </span>
                   {hasFilters && (
                     <button
@@ -154,30 +165,30 @@ export function JobListings() {
                       }}
                       className="text-xs text-muted-foreground hover:text-destructive flex items-center gap-1"
                     >
-                      <X className="w-3 h-3" /> Clear all
+                      <X className="w-3 h-3" /> {t('common:actions.clearAll')}
                     </button>
                   )}
                 </div>
 
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Country</label>
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('jobs.country')}</label>
                   <div className="mt-1.5">
                     <CountrySelect
                       value={countryFilter}
                       onChange={setCountryFilter}
-                      placeholder="All Countries"
+                      placeholder={t('jobs.allCountries')}
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Category</label>
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('jobs.category')}</label>
                   <select
                     value={categoryFilter}
                     onChange={e => setCategoryFilter(e.target.value)}
                     className="mt-1.5 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                   >
-                    <option value="">All Categories</option>
+                    <option value="">{t('jobs.allCategories')}</option>
                     {categories.map(c => (
                       <option key={c} value={c}>{c}</option>
                     ))}
@@ -185,15 +196,15 @@ export function JobListings() {
                 </div>
 
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Contract Type</label>
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('jobs.contractType')}</label>
                   <select
                     value={contractFilter}
                     onChange={e => setContractFilter(e.target.value)}
                     className="mt-1.5 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                   >
-                    <option value="">All Types</option>
+                    <option value="">{t('jobs.allTypes')}</option>
                     {['Full-time','Part-time','Contract','Temporary','Internship','Seasonal'].map(c => (
-                      <option key={c} value={c}>{c}</option>
+                      <option key={c} value={c}>{enumLabel('contractType', c)}</option>
                     ))}
                   </select>
                 </div>
@@ -206,19 +217,19 @@ export function JobListings() {
             {/* Result count + view toggle */}
             <div className="mb-4 flex items-center justify-between">
               <span className="text-sm text-muted-foreground">
-                {loading ? 'Loading…' : `${meta.total} job${meta.total !== 1 ? 's' : ''} found`}
+                {loading ? t('common:states.loading') : t('jobs.found', { count: meta.total })}
               </span>
               <div className="flex items-center gap-1 border rounded-md p-0.5 bg-white">
                 <button
                   onClick={() => setViewMode('grid')}
-                  title="Grid view"
+                  title={t('jobs.gridView')}
                   className={`p-1.5 rounded transition-colors ${viewMode === 'grid' ? 'bg-primary text-white' : 'text-muted-foreground hover:text-foreground'}`}
                 >
                   <LayoutGrid className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => setViewMode('list')}
-                  title="List view"
+                  title={t('jobs.listView')}
                   className={`p-1.5 rounded transition-colors ${viewMode === 'list' ? 'bg-primary text-white' : 'text-muted-foreground hover:text-foreground'}`}
                 >
                   <List className="w-4 h-4" />
@@ -235,8 +246,8 @@ export function JobListings() {
             {!loading && !error && jobs.length === 0 && (
               <div className="text-center py-16 text-muted-foreground">
                 <Briefcase className="w-12 h-12 mx-auto mb-4 opacity-30" />
-                <p className="text-lg font-medium">No job openings found</p>
-                <p className="text-sm mt-1">Try adjusting your search or filters.</p>
+                <p className="text-lg font-medium">{t('jobs.noJobs')}</p>
+                <p className="text-sm mt-1">{t('jobs.noJobsHint')}</p>
               </div>
             )}
 
@@ -250,7 +261,7 @@ export function JobListings() {
                         <CardContent className="p-5 flex flex-col h-full">
                           <div className="flex items-start justify-between mb-3">
                             <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${CONTRACT_TYPE_COLORS[job.contractType] ?? 'bg-gray-100 text-gray-700'}`}>
-                              {job.contractType}
+                              {enumLabel('contractType', job.contractType)}
                             </span>
                             <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
                           </div>
@@ -272,7 +283,7 @@ export function JobListings() {
                             {job.publishedAt && (
                               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                                 <Clock className="w-3.5 h-3.5" />
-                                Posted {new Date(job.publishedAt).toLocaleDateString()}
+                                {t('jobs.posted', { date: formatDate(job.publishedAt) })}
                               </div>
                             )}
                           </div>
@@ -293,7 +304,7 @@ export function JobListings() {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
                               <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${CONTRACT_TYPE_COLORS[job.contractType] ?? 'bg-gray-100 text-gray-700'}`}>
-                                {job.contractType}
+                                {enumLabel('contractType', job.contractType)}
                               </span>
                               <span className="text-xs text-muted-foreground">{job.category}</span>
                             </div>
@@ -315,7 +326,7 @@ export function JobListings() {
                             {job.publishedAt && (
                               <span className="flex items-center gap-1">
                                 <Clock className="w-3.5 h-3.5" />
-                                {new Date(job.publishedAt).toLocaleDateString()}
+                                {formatDate(job.publishedAt)}
                               </span>
                             )}
                           </div>
@@ -336,17 +347,17 @@ export function JobListings() {
                   disabled={page <= 1}
                   onClick={() => handlePage(page - 1)}
                 >
-                  <ChevronLeft className="w-4 h-4" /> Previous
+                  <ChevronLeft className="w-4 h-4 rtl:rotate-180" /> {t('jobs.previous')}
                 </Button>
                 <span className="text-sm text-muted-foreground px-4">
-                  Page {page} of {meta.totalPages}
+                  {t('jobs.pageOf', { current: page, total: meta.totalPages })}
                 </span>
                 <Button
                   variant="outline" size="sm"
                   disabled={page >= meta.totalPages}
                   onClick={() => handlePage(page + 1)}
                 >
-                  Next <ChevronRight className="w-4 h-4" />
+                  {t('jobs.next')} <ChevronRight className="w-4 h-4 rtl:rotate-180" />
                 </Button>
               </div>
             )}
@@ -357,10 +368,10 @@ export function JobListings() {
       {/* Footer CTA */}
       <div className="bg-[#2563EB] text-white py-12 mt-10">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="text-2xl font-bold mb-3">Don't see the right role?</h2>
-          <p className="text-blue-100 mb-6">Submit a general application and we'll contact you when a matching position opens.</p>
+          <h2 className="text-2xl font-bold mb-3">{t('jobs.ctaTitle')}</h2>
+          <p className="text-blue-100 mb-6">{t('jobs.ctaBody')}</p>
           <Link to="/apply">
-            <Button variant="secondary" size="lg">Submit General Application</Button>
+            <Button variant="secondary" size="lg">{t('jobs.ctaButton')}</Button>
           </Link>
         </div>
       </div>

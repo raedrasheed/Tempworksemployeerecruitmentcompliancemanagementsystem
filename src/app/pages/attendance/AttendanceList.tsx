@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import {
   Search,
   Download,
@@ -16,6 +17,7 @@ import {
   Check,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { apiError } from '../../../i18n/apiError';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -49,25 +51,29 @@ import { usePermissions } from '../../hooks/usePermissions';
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
-const MONTH_NAMES = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
+// Canonical month keys — translation keys live under
+// `attendance.list.months.<key>` (and `attendance.list.exportDialog`).
+const MONTH_KEYS = [
+  'january', 'february', 'march', 'april', 'may', 'june',
+  'july', 'august', 'september', 'october', 'november', 'december',
+] as const;
 
 const YEARS = Array.from({ length: 11 }, (_, i) => 2020 + i);
 
-const STATUS_OPTIONS = [
-  { value: '',         label: 'All Statuses' },
-  { value: 'PRESENT',  label: 'Present' },
-  { value: 'ABSENT',   label: 'Absent' },
-  { value: 'OFF',      label: 'Off' },
-  { value: 'VACATION', label: 'Vacation' },
-  { value: 'SICK',     label: 'Sick' },
-  // Legacy values still surfaced so old rows remain filterable.
-  { value: 'LATE',     label: 'Late (legacy)' },
-  { value: 'ON_LEAVE', label: 'On Leave (legacy)' },
-  { value: 'HALF_DAY', label: 'Half Day (legacy)' },
-  { value: 'HOLIDAY',  label: 'Holiday (legacy)' },
+// Status filter options — `labelKey` is resolved against
+// `attendance.list.statusOptions.<key>` at render time. Legacy values
+// remain in the list so historic rows stay filterable.
+const STATUS_OPTIONS: { value: string; labelKey: string }[] = [
+  { value: '',         labelKey: 'allStatuses' },
+  { value: 'PRESENT',  labelKey: 'present' },
+  { value: 'ABSENT',   labelKey: 'absent' },
+  { value: 'OFF',      labelKey: 'off' },
+  { value: 'VACATION', labelKey: 'vacation' },
+  { value: 'SICK',     labelKey: 'sick' },
+  { value: 'LATE',     labelKey: 'lateLegacy' },
+  { value: 'ON_LEAVE', labelKey: 'onLeaveLegacy' },
+  { value: 'HALF_DAY', labelKey: 'halfDayLegacy' },
+  { value: 'HOLIDAY',  labelKey: 'holidayLegacy' },
 ];
 
 const statusColors: Record<string, string> = {
@@ -87,15 +93,15 @@ const statusColors: Record<string, string> = {
 
 type ColKey = 'employeeId' | 'license' | 'agency' | 'present' | 'absent' | 'late' | 'onLeave' | 'totalDays';
 
-const ALL_COLUMNS: { key: ColKey; label: string }[] = [
-  { key: 'employeeId', label: 'Employee ID' },
-  { key: 'license',    label: 'License' },
-  { key: 'agency',     label: 'Agency' },
-  { key: 'present',    label: 'Present' },
-  { key: 'absent',     label: 'Absent' },
-  { key: 'late',       label: 'Late' },
-  { key: 'onLeave',    label: 'On Leave' },
-  { key: 'totalDays',  label: 'Total Days' },
+const ALL_COLUMNS: { key: ColKey; labelKey: string }[] = [
+  { key: 'employeeId', labelKey: 'attendance.list.cols.employeeId' },
+  { key: 'license',    labelKey: 'attendance.list.cols.license' },
+  { key: 'agency',     labelKey: 'attendance.list.cols.agency' },
+  { key: 'present',    labelKey: 'attendance.list.cols.present' },
+  { key: 'absent',     labelKey: 'attendance.list.cols.absent' },
+  { key: 'late',       labelKey: 'attendance.list.cols.late' },
+  { key: 'onLeave',    labelKey: 'attendance.list.cols.onLeave' },
+  { key: 'totalDays',  labelKey: 'attendance.list.cols.totalDays' },
 ];
 
 const DEFAULT_VISIBLE: Record<ColKey, boolean> = {
@@ -136,6 +142,8 @@ function SortHead({
 // ─── Main Component ─────────────────────────────────────────────────────────────
 
 export function AttendanceList() {
+  const { t } = useTranslation('pages');
+  const { t: tc } = useTranslation('common');
   const navigate = useNavigate();
   const { canCreate } = usePermissions();
 
@@ -208,7 +216,7 @@ export function AttendanceList() {
       setTotal(result?.meta?.total ?? 0);
       setTotalPages(result?.meta?.totalPages ?? 1);
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to load attendance data');
+      toast.error(err?.message || t('attendance.list.loadFailed'));
       setEmployees([]);
     } finally {
       setLoading(false);
@@ -319,13 +327,15 @@ export function AttendanceList() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `attendance-${MONTH_NAMES[exportMonth - 1].toLowerCase()}-${exportYear}.xlsx`;
+      // Filename stays in English (canonical month key) so it sorts
+      // predictably and isn't affected by the user's UI locale.
+      a.download = `attendance-${MONTH_KEYS[exportMonth - 1]}-${exportYear}.xlsx`;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success('Attendance sheet exported successfully');
+      toast.success(t('attendance.toast.sheetExported'));
       setShowExportModal(false);
     } catch (err: any) {
-      toast.error(err?.message || 'Export failed');
+      toast.error(apiError(err, tc('toast.exportFailed')));
     } finally {
       setExporting(false);
     }
@@ -340,16 +350,16 @@ export function AttendanceList() {
         <div>
           <h1 className="text-3xl font-semibold text-[#0F172A] flex items-center gap-3">
             <ClipboardList className="w-8 h-8 text-blue-600" />
-            Attendance Sheets
+            {t('attendance.list.title')}
           </h1>
           <p className="text-muted-foreground mt-1">
-            Track and manage attendance for all employees
+            {t('attendance.list.subtitle')}
           </p>
         </div>
         <div className="flex gap-2 items-center">
           <Button variant="outline" size="sm" onClick={() => fetchEmployees()} disabled={loading}>
-            <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
+            <RefreshCw className={`w-4 h-4 me-1 ${loading ? 'animate-spin' : ''}`} />
+            {t('attendance.list.refresh')}
           </Button>
 
           {/* Column picker */}
@@ -359,42 +369,42 @@ export function AttendanceList() {
               onClick={() => setShowColPicker(v => !v)}
               className={showColPicker ? 'border-blue-500 text-blue-600' : ''}
             >
-              <Columns2 className="w-4 h-4 mr-1.5" />Columns
+              <Columns2 className="w-4 h-4 me-1.5" />{t('attendance.list.columnsButton')}
               {ALL_COLUMNS.filter(c => !visibleColumns[c.key]).length > 0 && (
-                <span className="ml-1.5 bg-blue-600 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
+                <span className="ms-1.5 bg-blue-600 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
                   {ALL_COLUMNS.filter(c => !visibleColumns[c.key]).length}
                 </span>
               )}
             </Button>
             {showColPicker && (
-              <div className="absolute right-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[180px]">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">Toggle columns</p>
+              <div className="absolute end-0 top-full mt-1.5 z-50 bg-white border rounded-lg shadow-lg p-3 min-w-[180px]">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">{t('attendance.list.toggleColumns')}</p>
                 <div className="space-y-0.5">
                   {ALL_COLUMNS.map(c => (
                     <button
                       key={c.key}
                       onClick={() => toggleColumn(c.key)}
-                      className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-gray-50 text-sm text-left"
+                      className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-gray-50 text-sm text-start"
                     >
                       <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${visibleColumns[c.key] ? 'bg-blue-600 border-blue-600' : 'border-gray-300'}`}>
                         {visibleColumns[c.key] && <Check className="w-2.5 h-2.5 text-white" />}
                       </span>
-                      {c.label}
+                      {t(c.labelKey)}
                     </button>
                   ))}
                 </div>
                 <div className="border-t mt-2 pt-2 flex gap-1.5">
-                  <button onClick={() => { const all = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, true])) as Record<ColKey, boolean>; setVisibleColumns(all); localStorage.setItem('attendance-table-columns', JSON.stringify(all)); }} className="flex-1 text-xs text-center text-blue-600 hover:underline py-0.5">Show all</button>
+                  <button onClick={() => { const all = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, true])) as Record<ColKey, boolean>; setVisibleColumns(all); localStorage.setItem('attendance-table-columns', JSON.stringify(all)); }} className="flex-1 text-xs text-center text-blue-600 hover:underline py-0.5">{t('attendance.list.showAll')}</button>
                   <span className="text-gray-300">|</span>
-                  <button onClick={() => { const none = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, false])) as Record<ColKey, boolean>; setVisibleColumns(none); localStorage.setItem('attendance-table-columns', JSON.stringify(none)); }} className="flex-1 text-xs text-center text-gray-500 hover:underline py-0.5">Hide all</button>
+                  <button onClick={() => { const none = Object.fromEntries(ALL_COLUMNS.map(c => [c.key, false])) as Record<ColKey, boolean>; setVisibleColumns(none); localStorage.setItem('attendance-table-columns', JSON.stringify(none)); }} className="flex-1 text-xs text-center text-gray-500 hover:underline py-0.5">{t('attendance.list.hideAll')}</button>
                 </div>
               </div>
             )}
           </div>
 
           <Button size="sm" onClick={() => setShowExportModal(true)}>
-            <Download className="w-4 h-4 mr-1" />
-            Export Excel
+            <Download className="w-4 h-4 me-1" />
+            {t('attendance.list.exportExcel')}
           </Button>
         </div>
       </div>
@@ -409,7 +419,7 @@ export function AttendanceList() {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground uppercase tracking-wide">
-                  Total Employees
+                  {t('attendance.list.statsTotalEmployees')}
                 </p>
                 <p className="text-2xl font-bold text-blue-700">{totalDriversCount}</p>
               </div>
@@ -425,7 +435,7 @@ export function AttendanceList() {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground uppercase tracking-wide">
-                  Present Today
+                  {t('attendance.list.statsPresentToday')}
                 </p>
                 <p className="text-2xl font-bold text-green-700">{presentToday}</p>
               </div>
@@ -441,7 +451,7 @@ export function AttendanceList() {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground uppercase tracking-wide">
-                  Absent Today
+                  {t('attendance.list.statsAbsentToday')}
                 </p>
                 <p className="text-2xl font-bold text-red-700">{absentToday}</p>
               </div>
@@ -457,7 +467,7 @@ export function AttendanceList() {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground uppercase tracking-wide">
-                  On Leave Today
+                  {t('attendance.list.statsOnLeaveToday')}
                 </p>
                 <p className="text-2xl font-bold text-purple-700">{onLeaveToday}</p>
               </div>
@@ -472,18 +482,18 @@ export function AttendanceList() {
           <div className="flex flex-wrap items-end gap-3">
             {/* Search */}
             <div className="flex-1 min-w-[200px] relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Search by employee name..."
+                placeholder={t('attendance.list.searchPh')}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-10"
+                className="ps-10"
               />
             </div>
 
             {/* Month selector */}
             <div className="space-y-1 min-w-[140px]">
-              <Label className="text-xs text-muted-foreground">Month</Label>
+              <Label className="text-xs text-muted-foreground">{t('attendance.list.monthLabel')}</Label>
               <Select
                 value={String(selectedMonth)}
                 onValueChange={(v) => setSelectedMonth(Number(v))}
@@ -492,9 +502,9 @@ export function AttendanceList() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {MONTH_NAMES.map((name, i) => (
+                  {MONTH_KEYS.map((key, i) => (
                     <SelectItem key={i + 1} value={String(i + 1)}>
-                      {name}
+                      {t(`attendance.list.months.${key}`)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -503,7 +513,7 @@ export function AttendanceList() {
 
             {/* Year selector */}
             <div className="space-y-1 min-w-[100px]">
-              <Label className="text-xs text-muted-foreground">Year</Label>
+              <Label className="text-xs text-muted-foreground">{t('attendance.list.yearLabel')}</Label>
               <Select
                 value={String(selectedYear)}
                 onValueChange={(v) => setSelectedYear(Number(v))}
@@ -523,7 +533,7 @@ export function AttendanceList() {
 
             {/* Status filter */}
             <div className="space-y-1 min-w-[150px]">
-              <Label className="text-xs text-muted-foreground">Status</Label>
+              <Label className="text-xs text-muted-foreground">{t('attendance.list.statusLabel')}</Label>
               <Select
                 value={statusFilter || '__all__'}
                 onValueChange={(v) => setStatusFilter(v === '__all__' ? '' : v)}
@@ -534,7 +544,7 @@ export function AttendanceList() {
                 <SelectContent>
                   {STATUS_OPTIONS.map((opt) => (
                     <SelectItem key={opt.value || '__all__'} value={opt.value || '__all__'}>
-                      {opt.label}
+                      {t(`attendance.list.statusOptions.${opt.labelKey}`)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -549,15 +559,15 @@ export function AttendanceList() {
                 onCheckedChange={setDriversOnly}
               />
               <Label htmlFor="drivers-only" className="text-sm cursor-pointer">
-                Drivers Only (License)
+                {t('attendance.list.driversOnlyLabel')}
               </Label>
             </div>
 
             {/* Clear filters */}
             {hasFilters && (
               <Button variant="ghost" size="sm" onClick={clearFilters} className="self-end">
-                <X className="w-4 h-4 mr-1" />
-                Clear
+                <X className="w-4 h-4 me-1" />
+                {t('attendance.list.clear')}
               </Button>
             )}
           </div>
@@ -570,18 +580,18 @@ export function AttendanceList() {
           {loading ? (
             <div className="py-16 text-center text-muted-foreground">
               <RefreshCw className="w-8 h-8 mx-auto mb-3 animate-spin opacity-40" />
-              <p>Loading attendance data…</p>
+              <p>{t('attendance.list.loadingData')}</p>
             </div>
           ) : sortedEmployees.length === 0 ? (
             <div className="py-16 text-center text-muted-foreground">
               <ClipboardList className="w-10 h-10 mx-auto mb-3 opacity-30" />
-              <p className="font-medium">No employees found</p>
+              <p className="font-medium">{t('attendance.list.noEmployees')}</p>
               <p className="text-sm mt-1">
-                Try adjusting the filters or search term, or turn off "Drivers Only" to show all employees.
+                {t('attendance.list.emptyHint')}
               </p>
               {hasFilters && (
                 <Button variant="outline" size="sm" className="mt-4" onClick={clearFilters}>
-                  Clear Filters
+                  {t('attendance.list.clearFiltersAction')}
                 </Button>
               )}
             </div>
@@ -591,16 +601,16 @@ export function AttendanceList() {
                 <TableHeader>
                   <TableRow className="bg-muted/40">
                     <TableHead className="w-10 text-center">#</TableHead>
-                    <SortHead col="name"       label="Employee"     sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />
-                    {col('employeeId') && <SortHead col="employeeId" label="Employee ID" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
-                    {col('license')    && <SortHead col="license"    label="License"     sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
-                    {col('agency')     && <SortHead col="agency"     label="Agency"      sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
-                    {col('present')    && <SortHead col="present"    label="Present"     sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} className="text-center" />}
-                    {col('absent')     && <SortHead col="absent"     label="Absent"      sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} className="text-center" />}
-                    {col('late')       && <SortHead col="late"       label="Late"        sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} className="text-center" />}
-                    {col('onLeave')    && <SortHead col="onLeave"    label="On Leave"    sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} className="text-center" />}
-                    {col('totalDays')  && <SortHead col="totalDays"  label="Total Days"  sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} className="text-center" />}
-                    <TableHead className="text-right">Actions</TableHead>
+                    <SortHead col="name"       label={t('attendance.list.employeeHeader')} sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />
+                    {col('employeeId') && <SortHead col="employeeId" label={t('attendance.list.cols.employeeId')} sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                    {col('license')    && <SortHead col="license"    label={t('attendance.list.cols.license')}    sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                    {col('agency')     && <SortHead col="agency"     label={t('attendance.list.cols.agency')}     sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                    {col('present')    && <SortHead col="present"    label={t('attendance.list.cols.present')}    sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} className="text-center" />}
+                    {col('absent')     && <SortHead col="absent"     label={t('attendance.list.cols.absent')}     sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} className="text-center" />}
+                    {col('late')       && <SortHead col="late"       label={t('attendance.list.cols.late')}       sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} className="text-center" />}
+                    {col('onLeave')    && <SortHead col="onLeave"    label={t('attendance.list.cols.onLeave')}    sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} className="text-center" />}
+                    {col('totalDays')  && <SortHead col="totalDays"  label={t('attendance.list.cols.totalDays')}  sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} className="text-center" />}
+                    <TableHead className="text-end">{t('attendance.list.actionsHeader')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -663,7 +673,7 @@ export function AttendanceList() {
                         {col('agency') && (
                           <TableCell className="text-sm">
                             {emp.agency?.name ?? emp.agencyName ?? (
-                              <span className="text-muted-foreground">Direct</span>
+                              <span className="text-muted-foreground">{t('attendance.list.direct')}</span>
                             )}
                           </TableCell>
                         )}
@@ -708,14 +718,14 @@ export function AttendanceList() {
                           </TableCell>
                         )}
 
-                        <TableCell className="text-right">
+                        <TableCell className="text-end">
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => navigate(`/dashboard/attendance/${emp.id}`)}
                           >
-                            <Eye className="w-4 h-4 mr-1" />
-                            View Timesheet
+                            <Eye className="w-4 h-4 me-1" />
+                            {t('attendance.list.viewTimesheet')}
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -732,7 +742,7 @@ export function AttendanceList() {
       {!loading && totalPages > 1 && (
         <div className="flex items-center justify-between text-sm">
           <p className="text-muted-foreground">
-            Page {page} of {totalPages} · {total} employees total
+            {t('attendance.list.paginationLabel', { page, totalPages, total })}
           </p>
           <div className="flex gap-2">
             <Button
@@ -741,7 +751,7 @@ export function AttendanceList() {
               disabled={page <= 1}
               onClick={() => setPage((p) => p - 1)}
             >
-              Previous
+              {t('attendance.list.previous')}
             </Button>
             <Button
               size="sm"
@@ -749,7 +759,7 @@ export function AttendanceList() {
               disabled={page >= totalPages}
               onClick={() => setPage((p) => p + 1)}
             >
-              Next
+              {t('attendance.list.next')}
             </Button>
           </div>
         </div>
@@ -757,7 +767,7 @@ export function AttendanceList() {
 
       {!loading && totalPages <= 1 && (
         <p className="text-sm text-muted-foreground">
-          Showing {sortedEmployees.length} of {total} employees
+          {t('attendance.list.showingOf', { count: total, shown: sortedEmployees.length, total })}
         </p>
       )}
 
@@ -767,13 +777,13 @@ export function AttendanceList() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Download className="w-5 h-5 text-blue-600" />
-              Export Attendance Sheet
+              {t('attendance.list.exportDialog.title')}
             </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
-              <Label>Month</Label>
+              <Label>{t('attendance.list.monthLabel')}</Label>
               <Select
                 value={String(exportMonth)}
                 onValueChange={(v) => setExportMonth(Number(v))}
@@ -782,9 +792,9 @@ export function AttendanceList() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {MONTH_NAMES.map((name, i) => (
+                  {MONTH_KEYS.map((key, i) => (
                     <SelectItem key={i + 1} value={String(i + 1)}>
-                      {name}
+                      {t(`attendance.list.months.${key}`)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -792,7 +802,7 @@ export function AttendanceList() {
             </div>
 
             <div className="space-y-1.5">
-              <Label>Year</Label>
+              <Label>{t('attendance.list.yearLabel')}</Label>
               <Select
                 value={String(exportYear)}
                 onValueChange={(v) => setExportYear(Number(v))}
@@ -817,26 +827,27 @@ export function AttendanceList() {
                 onCheckedChange={setExportDriversOnly}
               />
               <Label htmlFor="export-drivers-only" className="cursor-pointer">
-                Drivers Only (License)
+                {t('attendance.list.exportDialog.driversOnlyLabel')}
               </Label>
             </div>
 
             <p className="text-xs text-muted-foreground">
-              Exporting attendance for{' '}
-              <strong>
-                {MONTH_NAMES[exportMonth - 1]} {exportYear}
-              </strong>
-              {exportDriversOnly ? ' (drivers with license only)' : ' (all employees)'}.
+              {t(
+                exportDriversOnly
+                  ? 'attendance.list.exportDialog.summaryDriversOnly'
+                  : 'attendance.list.exportDialog.summaryAllEmployees',
+                { period: `${t(`attendance.list.months.${MONTH_KEYS[exportMonth - 1]}`)} ${exportYear}` }
+              )}
             </p>
           </div>
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowExportModal(false)} disabled={exporting}>
-              Cancel
+              {t('attendance.list.exportDialog.cancel')}
             </Button>
             <Button onClick={handleExport} disabled={exporting}>
-              <Download className="w-4 h-4 mr-1" />
-              {exporting ? 'Exporting…' : 'Export Excel'}
+              <Download className="w-4 h-4 me-1" />
+              {exporting ? t('attendance.list.exportDialog.exporting') : t('attendance.list.exportDialog.exportAction')}
             </Button>
           </DialogFooter>
         </DialogContent>

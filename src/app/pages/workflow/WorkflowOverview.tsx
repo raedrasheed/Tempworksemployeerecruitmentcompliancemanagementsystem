@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
@@ -9,6 +10,7 @@ import { employeeWorkflowApi } from '../../services/api';
 
 export function WorkflowOverview() {
   const navigate = useNavigate();
+  const { t } = useTranslation('pages');
   const [stages, setStages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -30,20 +32,20 @@ export function WorkflowOverview() {
             <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
               <ArrowLeft className="w-5 h-5" />
             </Button>
-            <h1 className="text-3xl font-semibold text-[#0F172A]">Workflow Overview</h1>
+            <h1 className="text-3xl font-semibold text-[#0F172A]">{t('workflow.overview.title')}</h1>
           </div>
-          <p className="text-muted-foreground mt-1">Track recruitment workflow and driver progression</p>
+          <p className="text-muted-foreground mt-1">{t('workflow.overview.subtitle')}</p>
         </div>
         <div className="flex items-center gap-3">
           <Button variant="outline" asChild>
             <Link to="/dashboard/workflow/timeline">
-              <Clock className="w-4 h-4 mr-2" />
+              <Clock className="w-4 h-4 me-2" />
               Activity Timeline
             </Link>
           </Button>
           <Button asChild>
             <Link to="/dashboard/workflow/analytics">
-              <BarChart3 className="w-4 h-4 mr-2" />
+              <BarChart3 className="w-4 h-4 me-2" />
               Analytics
             </Link>
           </Button>
@@ -75,7 +77,7 @@ export function WorkflowOverview() {
               <Card key={stage.id} className="relative hover:shadow-md transition-shadow">
                 <CardContent className="p-5">
                   {/* Count Badge */}
-                  <div className="absolute top-4 right-4">
+                  <div className="absolute top-4 end-4">
                     <Badge
                       className="rounded-full w-7 h-7 flex items-center justify-center p-0 text-white"
                       style={{ backgroundColor: stageColor }}
@@ -85,7 +87,7 @@ export function WorkflowOverview() {
                   </div>
 
                   {/* Stage Name */}
-                  <h3 className="font-semibold text-[#0F172A] mb-4 pr-8">{stage.name}</h3>
+                  <h3 className="font-semibold text-[#0F172A] mb-4 pe-8">{stage.name}</h3>
 
                   {/* Progress */}
                   <div className="space-y-2 mb-3">

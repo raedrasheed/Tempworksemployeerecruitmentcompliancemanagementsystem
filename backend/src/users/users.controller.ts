@@ -138,7 +138,7 @@ export class UsersController {
     @UploadedFile() file: Express.Multer.File,
     @CurrentUser('id') actorId: string,
   ) {
-    if (!file) throw new BadRequestException('No file uploaded');
+    if (!file) throw new BadRequestException({ code: 'GENERIC.FILE_REQUIRED', message: 'No file uploaded' });
     return this.usersService.uploadPhoto(actorId, file, actorId);
   }
 
@@ -156,7 +156,7 @@ export class UsersController {
     @UploadedFile() file: Express.Multer.File,
     @CurrentUser('id') actorId: string,
   ) {
-    if (!file) throw new BadRequestException('No file uploaded');
+    if (!file) throw new BadRequestException({ code: 'GENERIC.FILE_REQUIRED', message: 'No file uploaded' });
     return this.usersService.uploadPhoto(id, file, actorId);
   }
 

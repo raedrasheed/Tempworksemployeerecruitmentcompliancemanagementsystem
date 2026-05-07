@@ -2,14 +2,17 @@
 
 import { useTheme } from "next-themes";
 import { Toaster as Sonner, ToasterProps } from "sonner";
+import { useLanguage } from "../../../i18n/LanguageContext";
 
 const Toaster = ({ ...props }: ToasterProps) => {
   const { theme = "system" } = useTheme();
+  const { dir } = useLanguage();
 
   return (
     <Sonner
       theme={theme as ToasterProps["theme"]}
       className="toaster group"
+      dir={dir}
       style={
         {
           "--normal-bg": "var(--popover)",

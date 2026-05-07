@@ -164,7 +164,7 @@ export class RecycleBinService {
       applicants, employees, users, agencies, documents,
       docTypes, jobAds, financialRecords, roles, notifications, reports,
       vehicles, vehicleDocs, maintenanceRecords, maintenanceTypes, workshops,
-    ] = await Promise.all([
+    ] = (await Promise.all([
       safeList(this.getDeletedApplicants(filter, 50)),
       safeList(this.getDeletedEmployees(filter, 50)),
       safeList(this.getDeletedUsers(filter, 50)),
@@ -181,7 +181,7 @@ export class RecycleBinService {
       safeList(this.getDeletedMaintenanceRecords(filter, 50)),
       safeList(this.getDeletedMaintenanceTypes(filter, 50)),
       safeList(this.getDeletedWorkshops(filter, 50)),
-    ]);
+    ])) as DeletedRecord[][];
 
     records = [
       ...applicants, ...employees, ...users, ...agencies, ...documents,

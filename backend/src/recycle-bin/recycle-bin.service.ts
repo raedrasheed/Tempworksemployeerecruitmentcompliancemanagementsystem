@@ -151,28 +151,36 @@ export class RecycleBinService {
       return this.findByEntityType(entityType, filter);
     }
 
-    // All entity types — load up to 50 per type and combine
+    // All entity types — load up to 50 per type and combine. Each
+    // helper is wrapped so a missing table/column (P2021 / P2022)
+    // on a partially-migrated environment falls back to an empty
+    // list for that entity type instead of failing the listing.
+    const safeList = <T>(p: Promise<T[]>): Promise<T[]> =>
+      p.catch((err: any) => {
+        if (this.isMissingSchemaError(err)) return [] as T[];
+        throw err;
+      });
     const [
       applicants, employees, users, agencies, documents,
       docTypes, jobAds, financialRecords, roles, notifications, reports,
       vehicles, vehicleDocs, maintenanceRecords, maintenanceTypes, workshops,
     ] = await Promise.all([
-      this.getDeletedApplicants(filter, 50),
-      this.getDeletedEmployees(filter, 50),
-      this.getDeletedUsers(filter, 50),
-      this.getDeletedAgencies(filter, 50),
-      this.getDeletedDocuments(filter, 50),
-      this.getDeletedDocumentTypes(filter, 50),
-      this.getDeletedJobAds(filter, 50),
-      this.getDeletedFinancialRecords(filter, 50),
-      this.getDeletedRoles(filter, 50),
-      this.getDeletedNotifications(filter, 50),
-      this.getDeletedReports(filter, 50),
-      this.getDeletedVehicles(filter, 50),
-      this.getDeletedVehicleDocuments(filter, 50),
-      this.getDeletedMaintenanceRecords(filter, 50),
-      this.getDeletedMaintenanceTypes(filter, 50),
-      this.getDeletedWorkshops(filter, 50),
+      safeList(this.getDeletedApplicants(filter, 50)),
+      safeList(this.getDeletedEmployees(filter, 50)),
+      safeList(this.getDeletedUsers(filter, 50)),
+      safeList(this.getDeletedAgencies(filter, 50)),
+      safeList(this.getDeletedDocuments(filter, 50)),
+      safeList(this.getDeletedDocumentTypes(filter, 50)),
+      safeList(this.getDeletedJobAds(filter, 50)),
+      safeList(this.getDeletedFinancialRecords(filter, 50)),
+      safeList(this.getDeletedRoles(filter, 50)),
+      safeList(this.getDeletedNotifications(filter, 50)),
+      safeList(this.getDeletedReports(filter, 50)),
+      safeList(this.getDeletedVehicles(filter, 50)),
+      safeList(this.getDeletedVehicleDocuments(filter, 50)),
+      safeList(this.getDeletedMaintenanceRecords(filter, 50)),
+      safeList(this.getDeletedMaintenanceTypes(filter, 50)),
+      safeList(this.getDeletedWorkshops(filter, 50)),
     ]);
 
     records = [
@@ -194,27 +202,35 @@ export class RecycleBinService {
   }
 
   async getEntityCounts(): Promise<Record<string, number>> {
+    // Each count is wrapped so that a missing table/column on a fresh
+    // deploy (Prisma P2021/P2022) reports zero instead of crashing the
+    // whole listing.
+    const safeCount = (q: Promise<number>) =>
+      q.catch((err: any) => {
+        if (this.isMissingSchemaError(err)) return 0;
+        throw err;
+      });
     const [
       applicants, employees, users, agencies, documents,
       docTypes, jobAds, financialRecords, roles, notifications, reports,
       vehicles, vehicleDocs, maintenanceRecords, maintenanceTypes, workshops,
     ] = await Promise.all([
-      this.prisma.applicant.count({ where: { deletedAt: { not: null } } }),
-      this.prisma.employee.count({ where: { deletedAt: { not: null } } }),
-      this.prisma.user.count({ where: { deletedAt: { not: null } } }),
-      this.prisma.agency.count({ where: { deletedAt: { not: null } } }),
-      this.prisma.document.count({ where: { deletedAt: { not: null } } }),
-      this.prisma.documentType.count({ where: { deletedAt: { not: null } } }),
-      this.prisma.jobAd.count({ where: { deletedAt: { not: null } } }),
-      this.prisma.financialRecord.count({ where: { deletedAt: { not: null } } }),
-      this.prisma.role.count({ where: { deletedAt: { not: null } } }),
-      this.prisma.notification.count({ where: { deletedAt: { not: null } } }),
-      this.prisma.report.count({ where: { deletedAt: { not: null } } }),
-      this.prisma.vehicle.count({ where: { deletedAt: { not: null } } }),
-      (this.prisma as any).vehicleDocument.count({ where: { deletedAt: { not: null } } }),
-      (this.prisma as any).maintenanceRecord.count({ where: { deletedAt: { not: null } } }),
-      (this.prisma as any).maintenanceType.count({ where: { deletedAt: { not: null } } }),
-      (this.prisma as any).workshop.count({ where: { deletedAt: { not: null } } }),
+      safeCount(this.prisma.applicant.count({ where: { deletedAt: { not: null } } })),
+      safeCount(this.prisma.employee.count({ where: { deletedAt: { not: null } } })),
+      safeCount(this.prisma.user.count({ where: { deletedAt: { not: null } } })),
+      safeCount(this.prisma.agency.count({ where: { deletedAt: { not: null } } })),
+      safeCount(this.prisma.document.count({ where: { deletedAt: { not: null } } })),
+      safeCount(this.prisma.documentType.count({ where: { deletedAt: { not: null } } })),
+      safeCount(this.prisma.jobAd.count({ where: { deletedAt: { not: null } } })),
+      safeCount(this.prisma.financialRecord.count({ where: { deletedAt: { not: null } } })),
+      safeCount(this.prisma.role.count({ where: { deletedAt: { not: null } } })),
+      safeCount(this.prisma.notification.count({ where: { deletedAt: { not: null } } })),
+      safeCount(this.prisma.report.count({ where: { deletedAt: { not: null } } })),
+      safeCount(this.prisma.vehicle.count({ where: { deletedAt: { not: null } } })),
+      safeCount((this.prisma as any).vehicleDocument.count({ where: { deletedAt: { not: null } } })),
+      safeCount((this.prisma as any).maintenanceRecord.count({ where: { deletedAt: { not: null } } })),
+      safeCount((this.prisma as any).maintenanceType.count({ where: { deletedAt: { not: null } } })),
+      safeCount((this.prisma as any).workshop.count({ where: { deletedAt: { not: null } } })),
     ]);
 
     return {
@@ -679,16 +695,34 @@ export class RecycleBinService {
     return rs.map(r => this.mapNotification(r));
   }
 
+  /** True for Prisma errors that mean "table or column not present yet". */
+  private isMissingSchemaError(error: any): boolean {
+    if (!error) return false;
+    if (error.code === 'P2021' || error.code === 'P2022') return true;
+    const msg = String(error.message ?? '');
+    return msg.includes('does not exist');
+  }
+
   private async getDeletedVehicles(f: ListDeletedDto, max: number) {
-    const where = this.buildVehicleWhere(f);
-    const rs = await this.prisma.vehicle.findMany({ where, orderBy: { deletedAt: 'desc' }, take: max });
-    return rs.map(r => this.mapVehicle(r));
+    try {
+      const where = this.buildVehicleWhere(f);
+      const rs = await this.prisma.vehicle.findMany({ where, orderBy: { deletedAt: 'desc' }, take: max });
+      return rs.map(r => this.mapVehicle(r));
+    } catch (error: any) {
+      if (this.isMissingSchemaError(error)) return [];
+      throw error;
+    }
   }
 
   private async getDeletedVehicleDocuments(f: ListDeletedDto, max: number) {
-    const where = this.buildVehicleDocWhere(f);
-    const rs = await (this.prisma as any).vehicleDocument.findMany({ where, orderBy: { deletedAt: 'desc' }, take: max });
-    return rs.map((r: any) => this.mapVehicleDocument(r));
+    try {
+      const where = this.buildVehicleDocWhere(f);
+      const rs = await (this.prisma as any).vehicleDocument.findMany({ where, orderBy: { deletedAt: 'desc' }, take: max });
+      return rs.map((r: any) => this.mapVehicleDocument(r));
+    } catch (error: any) {
+      if (this.isMissingSchemaError(error)) return [];
+      throw error;
+    }
   }
 
   private async getDeletedMaintenanceRecords(f: ListDeletedDto, max: number) {
@@ -697,10 +731,7 @@ export class RecycleBinService {
       const rs = await (this.prisma as any).maintenanceRecord.findMany({ where, orderBy: { deletedAt: 'desc' }, take: max });
       return rs.map((r: any) => this.mapMaintenanceRecord(r));
     } catch (error: any) {
-      // If the table doesn't exist yet, return empty array gracefully
-      if (error?.code === 'P2021' || error?.message?.includes('does not exist')) {
-        return [];
-      }
+      if (this.isMissingSchemaError(error)) return [];
       throw error;
     }
   }
@@ -711,18 +742,20 @@ export class RecycleBinService {
       const rs = await (this.prisma as any).maintenanceType.findMany({ where, orderBy: { deletedAt: 'desc' }, take: max });
       return rs.map((r: any) => this.mapMaintenanceType(r));
     } catch (error: any) {
-      // If the table doesn't exist yet, return empty array gracefully
-      if (error?.code === 'P2021' || error?.message?.includes('does not exist')) {
-        return [];
-      }
+      if (this.isMissingSchemaError(error)) return [];
       throw error;
     }
   }
 
   private async getDeletedWorkshops(f: ListDeletedDto, max: number) {
-    const where = this.buildWorkshopWhere(f);
-    const rs = await (this.prisma as any).workshop.findMany({ where, orderBy: { deletedAt: 'desc' }, take: max });
-    return rs.map((r: any) => this.mapWorkshop(r));
+    try {
+      const where = this.buildWorkshopWhere(f);
+      const rs = await (this.prisma as any).workshop.findMany({ where, orderBy: { deletedAt: 'desc' }, take: max });
+      return rs.map((r: any) => this.mapWorkshop(r));
+    } catch (error: any) {
+      if (this.isMissingSchemaError(error)) return [];
+      throw error;
+    }
   }
 
   // ── WHERE clause builders ───────────────────────────────────────────────────

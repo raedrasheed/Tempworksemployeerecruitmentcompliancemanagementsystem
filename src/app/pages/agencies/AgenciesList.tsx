@@ -56,19 +56,24 @@ function loadVisibleColumns(): Record<ColKey, boolean> {
 type SortField = ColKey;
 type SortOrder = 'asc' | 'desc';
 
-const getStatusBadge = (status: string) => {
-  switch (status) {
-    case 'ACTIVE': return <Badge className="bg-[#22C55E]">Active</Badge>;
-    case 'INACTIVE': return <Badge className="bg-gray-500">Inactive</Badge>;
-    case 'SUSPENDED': return <Badge className="bg-[#EF4444]">Suspended</Badge>;
-    default: return <Badge variant="outline">{status}</Badge>;
-  }
+const useStatusBadge = () => {
+  const { t: tc } = useTranslation('common');
+  const { t } = useTranslation('pages');
+  return (status: string) => {
+    switch (status) {
+      case 'ACTIVE': return <Badge className="bg-[#22C55E]">{tc('filters.active')}</Badge>;
+      case 'INACTIVE': return <Badge className="bg-gray-500">{tc('filters.inactive')}</Badge>;
+      case 'SUSPENDED': return <Badge className="bg-[#EF4444]">{t('agencies.add.suspended', { defaultValue: 'Suspended' })}</Badge>;
+      default: return <Badge variant="outline">{status}</Badge>;
+    }
+  };
 };
 
 export function AgenciesList() {
   const { canCreate, canEdit, canDelete } = usePermissions();
   const { t } = useTranslation('pages');
   const { t: tc } = useTranslation('common');
+  const getStatusBadge = useStatusBadge();
   const [agencies, setAgencies] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -288,19 +293,19 @@ export function AgenciesList() {
           </div>
           <div className="flex flex-wrap gap-2 items-center">
             <Input
-              placeholder="Contact person contains…"
+              placeholder={t('agencies.list.contactContains')}
               value={contactFilter}
               onChange={e => setContactFilter(e.target.value)}
               className="w-52"
             />
             <Input
-              placeholder="Email contains…"
+              placeholder={t('agencies.list.emailContains')}
               value={emailFilter}
               onChange={e => setEmailFilter(e.target.value)}
               className="w-48"
             />
             <Input
-              placeholder="Phone contains…"
+              placeholder={t('agencies.list.phoneContains')}
               value={phoneFilter}
               onChange={e => setPhoneFilter(e.target.value)}
               className="w-44"
@@ -362,7 +367,7 @@ export function AgenciesList() {
                         localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_VISIBLE));
                       }}
                       className="flex-1 text-xs text-center text-gray-500 hover:underline py-0.5"
-                    >Reset</button>
+                    >{t('agencies.list.reset')}</button>
                   </div>
                 </div>
               )}

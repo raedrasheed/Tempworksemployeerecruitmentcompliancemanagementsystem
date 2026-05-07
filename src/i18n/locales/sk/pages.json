@@ -2081,7 +2081,11 @@
         "phone": "Phone",
         "status": "Status",
         "createdAt": "Created"
-      }
+      },
+      "contactContains": "Contact person contains…",
+      "emailContains": "Email contains…",
+      "phoneContains": "Phone contains…",
+      "reset": "Reset"
     },
     "profile": {
       "title": "Profil agentúry",
@@ -2187,7 +2191,8 @@
         "logoUploadFailed": "Agency created but logo upload failed: {{error}}",
         "addSuccess": "Agency added successfully",
         "addFailed": "Failed to add agency"
-      }
+      },
+      "suspended": "Suspended"
     },
     "edit": {
       "title": "Upraviť agentúru",

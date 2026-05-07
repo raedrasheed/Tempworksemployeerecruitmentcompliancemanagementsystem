@@ -45,6 +45,7 @@ function WorkflowCard({
   onDelete: () => void;
   onManageAccess: () => void;
 }) {
+  const { t } = useTranslation('pages');
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
@@ -60,24 +61,21 @@ function WorkflowCard({
           <div className="flex items-center gap-2 mb-1">
             {workflow.isDefault && (
               <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200">
-                <Star className="w-2.5 h-2.5" /> Default
+                <Star className="w-2.5 h-2.5" /> {t('pipelines.list.default')}
               </span>
             )}
             {workflow.status === 'ARCHIVED' && (
               <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-500 border border-slate-200">
-                <Archive className="w-2.5 h-2.5" /> Archived
+                <Archive className="w-2.5 h-2.5" /> {t('pipelines.list.archived')}
               </span>
             )}
-            {/* Visibility chip — Public workflows are available to any
-                tenant; Private workflows are restricted to the users
-                listed in accessUsers. */}
             {workflow.isPublic ? (
               <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-                <Globe className="w-2.5 h-2.5" /> Public
+                <Globe className="w-2.5 h-2.5" /> {t('pipelines.list.public')}
               </span>
             ) : (
               <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-50 text-slate-700 border border-slate-200">
-                <Lock className="w-2.5 h-2.5" /> Private
+                <Lock className="w-2.5 h-2.5" /> {t('pipelines.list.private')}
               </span>
             )}
           </div>
@@ -92,7 +90,7 @@ function WorkflowCard({
           {/* Configure button — always visible on hover */}
           <button
             onClick={onConfigure}
-            title="Configure stages"
+            title={t('pipelines.list.configureStagesTitle')}
             className="p-1.5 rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity"
           >
             <Settings2 className="w-4 h-4" />
@@ -112,33 +110,33 @@ function WorkflowCard({
                   onClick={() => { setMenuOpen(false); onConfigure(); }}
                   className="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted"
                 >
-                  <Settings2 className="w-3.5 h-3.5" /> Configure
+                  <Settings2 className="w-3.5 h-3.5" /> {t('pipelines.list.configure')}
                 </button>
                 {!workflow.isPublic && (
                   <button
                     onClick={() => { setMenuOpen(false); onManageAccess(); }}
                     className="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted"
                   >
-                    <Lock className="w-3.5 h-3.5" /> Manage Access
+                    <Lock className="w-3.5 h-3.5" /> {t('pipelines.list.manageAccess')}
                   </button>
                 )}
                 <button
                   onClick={() => { setMenuOpen(false); onCopy(); }}
                   className="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted"
                 >
-                  <Copy className="w-3.5 h-3.5" /> Duplicate
+                  <Copy className="w-3.5 h-3.5" /> {t('pipelines.list.duplicate')}
                 </button>
                 <button
                   onClick={() => { setMenuOpen(false); onArchive(); }}
                   className="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted"
                 >
-                  <Archive className="w-3.5 h-3.5" /> Archive
+                  <Archive className="w-3.5 h-3.5" /> {t('pipelines.list.archive')}
                 </button>
                 <button
                   onClick={() => { setMenuOpen(false); onDelete(); }}
                   className="w-full flex items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-destructive/10"
                 >
-                  <Trash2 className="w-3.5 h-3.5" /> Delete
+                  <Trash2 className="w-3.5 h-3.5" /> {t('pipelines.list.delete')}
                 </button>
               </div>
             )}
@@ -159,31 +157,31 @@ function WorkflowCard({
         ))}
         {(workflow.stages?.length ?? 0) > 5 && (
           <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-medium bg-muted text-muted-foreground">
-            +{workflow.stages.length - 5} more
+            {t('pipelines.list.stagesMore', { count: workflow.stages.length - 5 })}
           </span>
         )}
         {(workflow.stages?.length ?? 0) === 0 && (
           <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-medium bg-muted text-muted-foreground italic">
-            No stages — click Configure to add
+            {t('pipelines.list.noStagesYet')}
           </span>
         )}
       </div>
 
       {/* Stats row */}
       <div className="mt-4 pt-4 border-t border-border flex items-center gap-4 text-xs text-muted-foreground">
-        <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" /> {stats?.totalActive ?? workflow._count?.assignments ?? 0} active</span>
-        <span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5" /> {stats?.totalCompleted ?? 0} completed</span>
+        <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" /> {t('pipelines.list.activeCount', { count: stats?.totalActive ?? workflow._count?.assignments ?? 0 })}</span>
+        <span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5" /> {t('pipelines.list.completedCount', { count: stats?.totalCompleted ?? 0 })}</span>
         {(stats?.flaggedCount ?? 0) > 0 && (
-          <span className="flex items-center gap-1 text-amber-600"><Flag className="w-3.5 h-3.5" /> {stats.flaggedCount} flagged</span>
+          <span className="flex items-center gap-1 text-amber-600"><Flag className="w-3.5 h-3.5" /> {t('pipelines.list.flaggedCount', { count: stats.flaggedCount })}</span>
         )}
         {(stats?.slaBreached ?? 0) > 0 && (
-          <span className="flex items-center gap-1 text-red-600"><AlertTriangle className="w-3.5 h-3.5" /> {stats.slaBreached} SLA</span>
+          <span className="flex items-center gap-1 text-red-600"><AlertTriangle className="w-3.5 h-3.5" /> {t('pipelines.list.slaBreachedCount', { count: stats.slaBreached })}</span>
         )}
       </div>
 
       {/* Open board CTA */}
       <div className="mt-3 flex items-center gap-1 text-xs text-primary font-medium opacity-0 group-hover:opacity-100 transition-opacity">
-        Open Board <ChevronRight className="w-3.5 h-3.5" />
+        {t('pipelines.list.openBoard')} <ChevronRight className="w-3.5 h-3.5" />
       </div>
     </div>
   );
@@ -228,22 +226,22 @@ function CreateWorkflowModal({ onClose, onCreated }: { onClose: () => void; onCr
               className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-              placeholder="e.g. UK Driver Standard Onboarding"
+              placeholder={t('pipelines.list.namePlaceholder')}
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1">Description</label>
+            <label className="block text-sm font-medium text-foreground mb-1">{t('pipelines.list.description')}</label>
             <textarea
               className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
               rows={3}
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
-              placeholder="Optional description..."
+              placeholder={t('pipelines.list.descriptionPlaceholder')}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-foreground mb-2">Color</label>
+            <label className="block text-sm font-medium text-foreground mb-2">{t('pipelines.list.color')}</label>
             <div className="flex gap-2 flex-wrap">
               {colors.map((c) => (
                 <button
@@ -265,7 +263,7 @@ function CreateWorkflowModal({ onClose, onCreated }: { onClose: () => void; onCr
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose} className="flex-1 border border-border rounded-lg px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors">{tc('actions.cancel')}</button>
             <button type="submit" disabled={saving} className="flex-1 bg-primary text-primary-foreground rounded-lg px-4 py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors">
-              {saving ? 'Creating...' : 'Create & Configure'}
+              {saving ? t('pipelines.list.creating') : t('pipelines.list.createAndConfigure')}
             </button>
           </div>
         </form>
@@ -357,7 +355,7 @@ export function WorkflowsPage() {
         </div>
         <div className="flex items-center gap-2">
           <button onClick={() => setShowArchived(!showArchived)} className={`text-sm px-3 py-1.5 rounded-lg border transition-colors ${showArchived ? 'bg-muted text-foreground border-border' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>
-            {showArchived ? 'Hide Archived' : 'Show Archived'}
+            {showArchived ? t('pipelines.list.hideArchived') : t('pipelines.list.showArchived')}
           </button>
           <button onClick={load} className="p-2 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
             <RefreshCw className="w-4 h-4" />
@@ -394,7 +392,7 @@ export function WorkflowsPage() {
             onClick={() => setShowCreate(true)}
             className="flex items-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
           >
-            <Plus className="w-4 h-4" /> Create Workflow
+            <Plus className="w-4 h-4" /> {t('pipelines.list.createWorkflow')}
           </button>
         </div>
       ) : (
@@ -519,7 +517,7 @@ function ManageAccessModal({
             <div className="min-w-0">
               <h3 className="font-semibold text-base truncate">{t('pipelines.list.manageAccess')}</h3>
               <p className="text-xs text-muted-foreground truncate">
-                Users allowed to use <strong className="text-foreground">{workflow.name}</strong>
+                {t('pipelines.list.usersAllowedTo')} <strong className="text-foreground">{workflow.name}</strong>
               </p>
             </div>
           </div>
@@ -534,7 +532,7 @@ function ManageAccessModal({
           <label className="text-xs font-medium text-muted-foreground">{t('pipelines.list.addUser')}</label>
           <input
             type="text"
-            placeholder="Search users by name or email…"
+            placeholder={t('pipelines.list.searchUsersPlaceholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full px-3 py-2 rounded-md border bg-background text-sm"
@@ -546,7 +544,7 @@ function ManageAccessModal({
               onChange={(e) => setSelectedUserId(e.target.value)}
             >
               <option value="">
-                {candidates.length === 0 ? 'No matching users' : 'Select a user…'}
+                {candidates.length === 0 ? t('pipelines.list.noMatchingUsers') : t('pipelines.list.selectUserPlaceholder')}
               </option>
               {candidates.slice(0, 100).map((u: any) => (
                 <option key={u.id} value={u.id}>
@@ -560,7 +558,7 @@ function ManageAccessModal({
               disabled={!selectedUserId || adding}
               className="px-3 py-2 rounded-md bg-primary text-primary-foreground text-sm disabled:opacity-50"
             >
-              <Plus className="w-4 h-4 inline me-1" />{adding ? 'Adding…' : 'Add'}
+              <Plus className="w-4 h-4 inline me-1" />{adding ? t('pipelines.list.adding') : t('pipelines.list.add')}
             </button>
           </div>
         </div>
@@ -568,11 +566,11 @@ function ManageAccessModal({
         {/* Current access list */}
         <div className="p-5 flex-1 overflow-y-auto">
           <p className="text-xs font-medium text-muted-foreground mb-2">
-            {loading ? 'Loading…' : `Current access (${access.length})`}
+            {loading ? t('pipelines.list.loading') : t('pipelines.list.currentAccess', { count: access.length })}
           </p>
           {!loading && access.length === 0 ? (
             <div className="text-sm text-muted-foreground italic py-4 text-center">
-              No users have access yet. Add users above so they can assign candidates to this workflow.
+              {t('pipelines.list.noAccessYet')}
             </div>
           ) : (
             <ul className="divide-y">
@@ -586,12 +584,12 @@ function ManageAccessModal({
                       {a.user?.email && <p className="text-xs text-muted-foreground truncate">{a.user.email}</p>}
                     </div>
                     <span className="text-[11px] text-muted-foreground whitespace-nowrap">
-                      Granted {new Date(a.grantedAt).toLocaleDateString()}
+                      {t('pipelines.list.grantedOn', { date: new Date(a.grantedAt).toLocaleDateString() })}
                     </span>
                     <button
                       onClick={() => handleRemove(a.userId, name)}
                       className="p-1.5 rounded-md text-red-400 hover:text-red-600 hover:bg-red-50"
-                      title="Revoke access"
+                      title={t('pipelines.list.revokeAccess')}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -604,7 +602,7 @@ function ManageAccessModal({
 
         <div className="p-4 border-t flex justify-end">
           <button onClick={onClose} className="px-3 py-2 rounded-md border text-sm hover:bg-muted">
-            Close
+            {t('pipelines.list.close')}
           </button>
         </div>
       </div>

@@ -65,7 +65,7 @@ function ApproveModal({
         </div>
 
         <p className="text-sm text-muted-foreground mb-5">
-          Submitting approval for <span className="font-medium text-foreground">{person.firstName} {person.lastName}</span>
+          {t('pipelines.stage.submittingApprovalFor')} <span className="font-medium text-foreground">{person.firstName} {person.lastName}</span>
         </p>
 
         {person.personType !== 'EMPLOYEE' && (
@@ -78,7 +78,7 @@ function ApproveModal({
                   : 'border-border text-muted-foreground hover:bg-muted'
               }`}
             >
-              <ThumbsUp className="w-4 h-4" /> Approve
+              <ThumbsUp className="w-4 h-4" /> {t('pipelines.stage.approve')}
             </button>
             <button
               onClick={() => setDecision('REJECTED')}
@@ -88,7 +88,7 @@ function ApproveModal({
                   : 'border-border text-muted-foreground hover:bg-muted'
               }`}
             >
-              <ThumbsDown className="w-4 h-4" /> Reject
+              <ThumbsDown className="w-4 h-4" /> {t('pipelines.stage.reject')}
             </button>
           </div>
         )}
@@ -98,7 +98,7 @@ function ApproveModal({
           <textarea
             className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
             rows={3}
-            placeholder="Add any notes or reasons..."
+            placeholder={t('pipelines.stage.approvalNotesPlaceholder')}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
           />
@@ -113,7 +113,7 @@ function ApproveModal({
             onClick={submit}
             disabled={saving}
           >
-            {saving ? 'Submitting...' : person.personType === 'EMPLOYEE' ? 'Approve' : decision === 'APPROVED' ? 'Approve' : 'Reject'}
+            {saving ? t('pipelines.stage.submitting') : person.personType === 'EMPLOYEE' ? t('pipelines.stage.approve') : decision === 'APPROVED' ? t('pipelines.stage.approve') : t('pipelines.stage.reject')}
           </Button>
         </div>
       </div>
@@ -217,7 +217,7 @@ function CandidateCardCorridor({
           <textarea
             className="flex-1 border border-border rounded-lg px-3 py-2 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
             rows={2}
-            placeholder="Add a quick note about this candidate..."
+            placeholder={t('pipelines.stage.addQuickNotePlaceholder')}
             value={quickNote}
             onChange={(e) => setQuickNote(e.target.value)}
           />
@@ -226,7 +226,7 @@ function CandidateCardCorridor({
             disabled={!quickNote.trim() || savingNote}
             className="self-end"
           >
-            {savingNote ? 'Adding...' : 'Add'}
+            {savingNote ? t('pipelines.stage.addingNote') : t('pipelines.stage.addBtn')}
           </Button>
         </div>
       </div>
@@ -242,15 +242,15 @@ function CandidateCardCorridor({
           {getDocStatusIcon(candidate.documentStatus)}
           <span className="font-medium">
             {candidate.documentStatus === 'APPROVED'
-              ? 'Approved'
+              ? t('pipelines.stage.approved')
               : candidate.documentStatus === 'PENDING_REVIEW'
-              ? 'Pending Review'
+              ? t('pipelines.stage.pendingReview')
               : candidate.documentStatus === 'REJECTED'
-              ? 'Rejected'
-              : 'Not Started'}
+              ? t('pipelines.stage.rejected')
+              : t('pipelines.stage.notStarted')}
           </span>
           <span className="text-sm ms-auto">
-            {candidate.requiredDocsUploaded} / {candidate.requiredDocsTotal} documents
+            {t('pipelines.stage.docsCount', { uploaded: candidate.requiredDocsUploaded, total: candidate.requiredDocsTotal })}
           </span>
         </div>
       </div>
@@ -268,12 +268,12 @@ function CandidateCardCorridor({
               className="rounded border-border"
             />
             <label htmlFor={`flag-${candidate.progressId}`} className="text-sm text-foreground ms-2">
-              Flag this candidate
+              {t('pipelines.stage.flagThisCandidate')}
             </label>
             {flagged && (
               <input
                 type="text"
-                placeholder="Reason for flagging..."
+                placeholder={t('pipelines.stage.flagReasonPlaceholder')}
                 value={flagReason}
                 onChange={(e) => setFlagReason(e.target.value)}
                 className="w-full mt-2 border border-border rounded-lg px-3 py-2 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
@@ -286,7 +286,7 @@ function CandidateCardCorridor({
             disabled={togglingFlag}
             className={flagged ? 'border-amber-500 text-amber-600' : ''}
           >
-            {togglingFlag ? 'Saving...' : flagged ? 'Unflag' : 'Flag'}
+            {togglingFlag ? t('pipelines.stage.saving') : flagged ? t('pipelines.stage.unflag') : t('pipelines.stage.flag')}
           </Button>
         </div>
       </div>
@@ -301,7 +301,7 @@ function CandidateCardCorridor({
         >
           <Button className="w-full" variant="outline">
             <Eye className="w-4 h-4 me-2" />
-            View Full Profile (New Tab)
+            {t('pipelines.stage.viewFullProfile')}
           </Button>
         </a>
         <Button
@@ -309,7 +309,7 @@ function CandidateCardCorridor({
           className="bg-emerald-600 hover:bg-emerald-700"
         >
           <ThumbsUp className="w-4 h-4 me-2" />
-          Approve
+          {t('pipelines.stage.approve')}
         </Button>
       </div>
     </div>
@@ -463,7 +463,7 @@ export function WorkflowStageDetailsPage() {
         <div>
           <h1 className="text-3xl font-semibold text-[#0F172A]">{stage.name}</h1>
           <p className="text-muted-foreground mt-1">
-            Stage {stage.order} of {totalStages}
+            {t('pipelines.stage.stageOf', { order: stage.order, total: totalStages })}
             {stage.description ? ` • ${stage.description}` : ''}
           </p>
         </div>
@@ -481,7 +481,7 @@ export function WorkflowStageDetailsPage() {
                 <p className="text-3xl font-semibold text-[#0F172A]">{stats.total}</p>
                 <p className="text-sm text-muted-foreground mt-1">{t('pipelines.stage.totalInStage')}</p>
                 <p className="text-xs text-muted-foreground">
-                  {stats.employeesCount} employees · {stats.candidatesCount} applicants
+                  {t('pipelines.stage.totalSubtitle', { employees: stats.employeesCount, candidates: stats.candidatesCount })}
                 </p>
               </div>
             </div>
@@ -523,8 +523,8 @@ export function WorkflowStageDetailsPage() {
                 <TrendingUp className="w-6 h-6 text-[#22C55E]" />
               </div>
               <div>
-                <p className="text-3xl font-semibold text-[#0F172A]">Stage {stage.order}</p>
-                <p className="text-sm text-muted-foreground mt-1">of {totalStages} total</p>
+                <p className="text-3xl font-semibold text-[#0F172A]">{t('pipelines.stage.stageNumber', { order: stage.order })}</p>
+                <p className="text-sm text-muted-foreground mt-1">{t('pipelines.stage.ofTotal', { total: totalStages })}</p>
               </div>
             </div>
           </CardContent>
@@ -544,7 +544,7 @@ export function WorkflowStageDetailsPage() {
                     <p className="font-medium text-[#0F172A]">{rd.documentType?.name ?? rd.documentTypeId}</p>
                   </div>
                   <Badge variant="outline" className="border-[#2563EB] text-[#2563EB]">
-                    Document
+                    {t('pipelines.stage.documentBadge')}
                   </Badge>
                 </div>
               ))}
@@ -557,7 +557,7 @@ export function WorkflowStageDetailsPage() {
                     </div>
                     <div>
                       <p className="font-medium text-[#0F172A]">
-                        {au.user ? `${au.user.firstName} ${au.user.lastName}` : 'User'}
+                        {au.user ? `${au.user.firstName} ${au.user.lastName}` : t('pipelines.list.add')}
                       </p>
                       <p className="text-xs text-muted-foreground">{au.role}</p>
                     </div>
@@ -577,15 +577,15 @@ export function WorkflowStageDetailsPage() {
         <CardContent className="p-6">
           <div className="mb-6 space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="font-semibold text-lg">Candidates in {stage.name}</h2>
-              <div className="text-sm text-muted-foreground">{filtered.length} results</div>
+              <h2 className="font-semibold text-lg">{t('pipelines.stage.candidatesIn', { stage: stage.name })}</h2>
+              <div className="text-sm text-muted-foreground">{t('pipelines.stage.resultsCount', { count: filtered.length })}</div>
             </div>
 
             {/* Search */}
             <div className="relative">
               <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Search by name, email, or application ID..."
+                placeholder={t('pipelines.stage.searchPlaceholder')}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="ps-9"
@@ -596,26 +596,26 @@ export function WorkflowStageDetailsPage() {
             <div className="flex gap-3">
               <Select value={filterDeadline} onValueChange={setFilterDeadline}>
                 <SelectTrigger className="w-40">
-                  <SelectValue placeholder="Deadline Status" />
+                  <SelectValue placeholder={t('pipelines.stage.deadlineStatus')} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">{t('pipelines.stage.allDeadlines')}</SelectItem>
                   <SelectItem value="ON_TIME">{t('pipelines.stage.onTime')}</SelectItem>
-                  <SelectItem value="WARNING">Warning</SelectItem>
-                  <SelectItem value="OVERDUE">Overdue</SelectItem>
+                  <SelectItem value="WARNING">{t('pipelines.stage.warning')}</SelectItem>
+                  <SelectItem value="OVERDUE">{t('pipelines.stage.overdue')}</SelectItem>
                   <SelectItem value="NO_DEADLINE">{t('pipelines.stage.noDeadline')}</SelectItem>
                 </SelectContent>
               </Select>
 
               <Select value={filterDocStatus} onValueChange={setFilterDocStatus}>
                 <SelectTrigger className="w-40">
-                  <SelectValue placeholder="Doc Status" />
+                  <SelectValue placeholder={t('pipelines.stage.docStatus')} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">{t('pipelines.stage.allDocs')}</SelectItem>
-                  <SelectItem value="APPROVED">Approved</SelectItem>
+                  <SelectItem value="APPROVED">{t('pipelines.stage.approved')}</SelectItem>
                   <SelectItem value="PENDING_REVIEW">{t('pipelines.stage.pendingReview')}</SelectItem>
-                  <SelectItem value="REJECTED">Rejected</SelectItem>
+                  <SelectItem value="REJECTED">{t('pipelines.stage.rejected')}</SelectItem>
                   <SelectItem value="NOT_STARTED">{t('pipelines.stage.notStarted')}</SelectItem>
                 </SelectContent>
               </Select>
@@ -627,10 +627,10 @@ export function WorkflowStageDetailsPage() {
             <div className="text-center py-12">
               <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
               <p className="text-lg font-medium">
-                {(people ?? []).length === 0 ? 'No one in this stage' : 'No results found'}
+                {(people ?? []).length === 0 ? t('pipelines.stage.noOneInStage') : t('pipelines.stage.noResultsFound')}
               </p>
               <p className="text-sm text-muted-foreground mt-1">
-                {(people ?? []).length === 0 ? 'People will appear here when assigned to this stage.' : 'Try a different filter or search term.'}
+                {(people ?? []).length === 0 ? t('pipelines.stage.peopleAppearHere') : t('pipelines.stage.tryDifferent')}
               </p>
             </div>
           ) : (
@@ -642,7 +642,7 @@ export function WorkflowStageDetailsPage() {
                     onClick={() => toggleSort('name')}
                     className="flex items-center gap-2 font-semibold text-sm text-foreground hover:text-primary"
                   >
-                    Name {sortBy === 'name' && (sortDir === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />)}
+                    {t('pipelines.stage.name')} {sortBy === 'name' && (sortDir === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />)}
                   </button>
                 </div>
                 <div className="col-span-1">
@@ -650,7 +650,7 @@ export function WorkflowStageDetailsPage() {
                     onClick={() => toggleSort('applicationId')}
                     className="flex items-center gap-2 font-semibold text-sm text-foreground hover:text-primary"
                   >
-                    ID {sortBy === 'applicationId' && (sortDir === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />)}
+                    {t('pipelines.stage.id')} {sortBy === 'applicationId' && (sortDir === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />)}
                   </button>
                 </div>
                 <div className="col-span-1">
@@ -658,7 +658,7 @@ export function WorkflowStageDetailsPage() {
                     onClick={() => toggleSort('daysInStage')}
                     className="flex items-center gap-2 font-semibold text-sm text-foreground hover:text-primary"
                   >
-                    Days {sortBy === 'daysInStage' && (sortDir === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />)}
+                    {t('pipelines.stage.days')} {sortBy === 'daysInStage' && (sortDir === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />)}
                   </button>
                 </div>
                 <div className="col-span-1">
@@ -666,7 +666,7 @@ export function WorkflowStageDetailsPage() {
                     onClick={() => toggleSort('docCompletion')}
                     className="flex items-center gap-2 font-semibold text-sm text-foreground hover:text-primary"
                   >
-                    Docs {sortBy === 'docCompletion' && (sortDir === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />)}
+                    {t('pipelines.stage.docs')} {sortBy === 'docCompletion' && (sortDir === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />)}
                   </button>
                 </div>
                 <div className="col-span-1">
@@ -674,14 +674,14 @@ export function WorkflowStageDetailsPage() {
                     onClick={() => toggleSort('deadline')}
                     className="flex items-center gap-2 font-semibold text-sm text-foreground hover:text-primary"
                   >
-                    Deadline {sortBy === 'deadline' && (sortDir === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />)}
+                    {t('pipelines.stage.deadline')} {sortBy === 'deadline' && (sortDir === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />)}
                   </button>
                 </div>
                 <div className="col-span-2">
-                  <div className="font-semibold text-sm text-foreground">Status</div>
+                  <div className="font-semibold text-sm text-foreground">{t('pipelines.stage.status')}</div>
                 </div>
                 <div className="col-span-3 text-end">
-                  <div className="font-semibold text-sm text-foreground">Actions</div>
+                  <div className="font-semibold text-sm text-foreground">{t('pipelines.stage.actions')}</div>
                 </div>
               </div>
 
@@ -711,7 +711,7 @@ export function WorkflowStageDetailsPage() {
                     </div>
 
                     <div className="col-span-1 flex items-center">
-                      <span className="text-sm text-foreground font-medium">{item.daysInStage}d</span>
+                      <span className="text-sm text-foreground font-medium">{t('pipelines.stage.daysSuffix', { days: item.daysInStage })}</span>
                     </div>
 
                     <div className="col-span-1 flex items-center">
@@ -723,19 +723,19 @@ export function WorkflowStageDetailsPage() {
                     <div className="col-span-1 flex items-center">
                       <Badge className={`text-xs ${getDeadlineColor(item.deadlineStatus)}`}>
                         {item.deadlineStatus === 'ON_TIME'
-                          ? 'On Time'
+                          ? t('pipelines.stage.onTime')
                           : item.deadlineStatus === 'WARNING'
-                          ? 'Warning'
+                          ? t('pipelines.stage.warning')
                           : item.deadlineStatus === 'OVERDUE'
-                          ? 'Overdue'
-                          : 'No Deadline'}
+                          ? t('pipelines.stage.overdue')
+                          : t('pipelines.stage.noDeadline')}
                       </Badge>
                     </div>
 
                     <div className="col-span-2 flex items-center gap-2">
                       {item.flagged && (
                         <Badge variant="outline" className="border-amber-500 text-amber-600 bg-amber-50">
-                          <Flag className="w-3 h-3 me-1" /> Flagged
+                          <Flag className="w-3 h-3 me-1" /> {t('pipelines.stage.flaggedBadge')}
                         </Badge>
                       )}
                       {item.latestApproval && (
@@ -760,7 +760,7 @@ export function WorkflowStageDetailsPage() {
                           setApprovePerson(item);
                         }}
                       >
-                        <ThumbsUp className="w-3.5 h-3.5 me-1" /> Approve
+                        <ThumbsUp className="w-3.5 h-3.5 me-1" /> {t('pipelines.stage.approve')}
                       </Button>
                       <Button
                         size="sm"

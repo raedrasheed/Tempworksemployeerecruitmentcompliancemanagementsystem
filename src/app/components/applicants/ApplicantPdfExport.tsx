@@ -484,7 +484,7 @@ export function ApplicantPdfExportButton({ applicant, documents }: Props) {
     <>
       <Button variant="outline" size="sm" onClick={() => setOpen(true)} className="gap-2">
         <Download className="w-4 h-4" />
-        Download PDF
+        {tc('actions.downloadPdf')}
       </Button>
 
       {open && (
@@ -534,7 +534,7 @@ export function ApplicantPdfExportButton({ applicant, documents }: Props) {
                 <Button variant="outline" size="sm" onClick={() => setOpen(false)}>{tc('actions.cancel')}</Button>
                 <Button size="sm" onClick={handleExport} disabled={generating} className="gap-2">
                   {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                  {generating ? 'Generating…' : 'Download PDF'}
+                  {generating ? tc('actions.generating') : tc('actions.downloadPdf')}
                 </Button>
               </div>
             </div>

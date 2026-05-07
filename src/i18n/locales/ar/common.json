@@ -45,7 +45,10 @@
     "more": "المزيد",
     "saveAdd": "حفظ وإضافة",
     "openFullPage": "فتح صفحة كاملة",
-    "openInNewTab": "فتح في علامة تبويب جديدة"
+    "openInNewTab": "فتح في علامة تبويب جديدة",
+    "downloadPdf": "تنزيل PDF",
+    "generating": "جارٍ الإنشاء…",
+    "convertToEmployee": "تحويل إلى موظف"
   },
   "states": {
     "loading": "جارٍ التحميل…",

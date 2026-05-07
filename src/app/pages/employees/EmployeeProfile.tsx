@@ -708,7 +708,7 @@ export function EmployeeProfile() {
                           {enumLabel('documentStatus', doc.status)}
                         </Badge>
                         <Button variant="ghost" size="sm" asChild>
-                          <a href={`${API_BASE}${doc.fileUrl}`} target="_blank" rel="noopener noreferrer" download>
+                          <a href={`${doc.fileUrl?.startsWith('http') ? '' : API_BASE}${doc.fileUrl}`} target="_blank" rel="noopener noreferrer" download>
                             <Download className="w-4 h-4 me-1" />{t('pages:employees.profile.documents.download')}
                           </a>
                         </Button>

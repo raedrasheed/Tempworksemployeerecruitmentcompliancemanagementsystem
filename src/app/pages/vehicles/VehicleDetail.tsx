@@ -581,7 +581,7 @@ export function VehicleDetail() {
                     <div className="flex items-center justify-end gap-1">
                       {doc.fileUrl && (
                         <a
-                          href={`${(import.meta.env.VITE_API_URL as string | undefined)?.replace('/api/v1', '') ?? 'http://localhost:3000'}${doc.fileUrl}`}
+                          href={doc.fileUrl?.startsWith('http') ? doc.fileUrl : `${(import.meta.env.VITE_API_URL as string | undefined)?.replace('/api/v1', '') ?? 'http://localhost:3000'}${doc.fileUrl}`}
                           target="_blank"
                           rel="noreferrer"
                           download={doc.fileName ?? undefined}

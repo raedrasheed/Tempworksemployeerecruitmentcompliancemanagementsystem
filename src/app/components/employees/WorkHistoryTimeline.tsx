@@ -314,10 +314,10 @@ export function WorkHistoryTimeline({ employeeId, canWrite }: Props) {
                             {entry.attachments.map((att: any) => (
                               <div key={att.id} className="flex items-center gap-1.5 px-2 py-1 border rounded bg-muted/30 text-xs">
                                 <Paperclip className="w-3 h-3 text-muted-foreground" />
-                                <a href={`${API_BASE}${att.fileUrl}`} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline truncate max-w-[14rem]">
+                                <a href={`${att.fileUrl?.startsWith('http') ? '' : API_BASE}${att.fileUrl}`} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline truncate max-w-[14rem]">
                                   {att.name}
                                 </a>
-                                <a href={`${API_BASE}${att.fileUrl}`} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-foreground">
+                                <a href={`${att.fileUrl?.startsWith('http') ? '' : API_BASE}${att.fileUrl}`} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-foreground">
                                   <Download className="w-3 h-3" />
                                 </a>
                                 {canWrite && (

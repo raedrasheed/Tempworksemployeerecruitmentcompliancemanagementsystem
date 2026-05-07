@@ -825,7 +825,7 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
                                     <div className="flex items-center gap-2 min-w-0">
                                       <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
                                       <a
-                                        href={`${API_BASE}${att.fileUrl}`}
+                                        href={`${att.fileUrl?.startsWith('http') ? '' : API_BASE}${att.fileUrl}`}
                                         target="_blank"
                                         rel="noreferrer"
                                         className="text-xs text-blue-600 hover:underline truncate"
@@ -1151,7 +1151,7 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
                       <div key={att.id} className="flex items-center justify-between gap-2 p-2 border rounded bg-muted/20 text-xs">
                         <div className="flex items-center gap-2 min-w-0">
                           <FileText className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                          <a href={`${API_BASE}${att.fileUrl}`} target="_blank" rel="noreferrer"
+                          <a href={`${att.fileUrl?.startsWith('http') ? '' : API_BASE}${att.fileUrl}`} target="_blank" rel="noreferrer"
                             className="text-blue-600 hover:underline truncate">{att.name}</a>
                         </div>
                         <Button size="icon" variant="ghost" className="h-5 w-5 text-red-400 shrink-0"

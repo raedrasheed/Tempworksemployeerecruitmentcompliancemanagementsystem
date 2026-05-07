@@ -375,7 +375,7 @@ export async function buildApplicantPdfBlob(applicant: any, documents: any[] = [
   let photoDataUrl: string | undefined;
   if (applicant.photoUrl) {
     try {
-      const res = await fetch(`${API_BASE}${applicant.photoUrl}`);
+      const res = await fetch(applicant.photoUrl?.startsWith('http') ? applicant.photoUrl : `${API_BASE}${applicant.photoUrl}`);
       const blob = await res.blob();
       photoDataUrl = await new Promise<string>(resolve => {
         const r = new FileReader();
@@ -398,7 +398,7 @@ export async function buildApplicantPdfBlob(applicant: any, documents: any[] = [
 
   for (const doc of documents) {
     try {
-      const res = await fetch(`${API_BASE}${doc.fileUrl}`);
+      const res = await fetch(`${doc.fileUrl?.startsWith('http') ? '' : API_BASE}${doc.fileUrl}`);
       const bytes = await res.arrayBuffer();
       const mime = doc.mimeType ?? '';
       if (mime === 'application/pdf') {

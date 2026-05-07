@@ -24,7 +24,7 @@ import { apiError } from '../../../i18n/apiError';
 import { usePermissions } from '../../hooks/usePermissions';
 
 const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1').replace('/api/v1', '');
-const getFileUrl = (fileUrl: string) => `${API_BASE}${fileUrl}`;
+const getFileUrl = (fileUrl: string) => /^https?:\/\//i.test(fileUrl) ? fileUrl : `${API_BASE}${fileUrl}`;
 
 // `labelKey` is resolved against `documents.compliance.statusOptions.<KEY>`
 // at render time. Keeping value as the canonical enum string preserves the

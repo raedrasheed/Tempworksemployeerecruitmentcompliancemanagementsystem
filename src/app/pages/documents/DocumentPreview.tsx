@@ -17,7 +17,7 @@ import { usePermissions } from '../../hooks/usePermissions';
 import { apiError } from '../../../i18n/apiError';
 
 const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1').replace('/api/v1', '');
-const getFileUrl = (fileUrl: string) => `${API_BASE}${fileUrl}`;
+const getFileUrl = (fileUrl: string) => /^https?:\/\//i.test(fileUrl) ? fileUrl : `${API_BASE}${fileUrl}`;
 
 export function DocumentPreview() {
   const { t } = useTranslation('pages');
@@ -182,6 +182,12 @@ export function DocumentPreview() {
           <Card>
             <CardHeader><CardTitle>{t('documents.preview.details')}</CardTitle></CardHeader>
             <CardContent className="space-y-4">
+              {document.docId && (
+                <div>
+                  <p className="text-sm text-muted-foreground">{t('documents.preview.docId', { defaultValue: 'Document ID' })}</p>
+                  <p className="font-mono font-semibold mt-1 text-[#2563EB]">{document.docId}</p>
+                </div>
+              )}
               <div>
                 <p className="text-sm text-muted-foreground">{t('documents.preview.name')}</p>
                 <p className="font-medium mt-1">{document.name}</p>

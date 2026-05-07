@@ -22,7 +22,8 @@
     "PENDING": "Beklemede",
     "ONBOARDING": "İşe Alma",
     "TERMINATED": "Sonlandırıldı",
-    "ON_LEAVE": "İzinli"
+    "ON_LEAVE": "İzinli",
+    "SUSPENDED": "Askıya Alındı"
   },
   "applicantStatus": {
     "NEW": "Yeni",
@@ -32,7 +33,8 @@
     "ACCEPTED": "Kabul Edildi",
     "REJECTED": "Reddedildi",
     "WITHDRAWN": "Geri Çekildi",
-    "ONBOARDING": "İşe Alma"
+    "ONBOARDING": "İşe Alma",
+    "HIRED": "İşe Alındı"
   },
   "applicantTier": {
     "LEAD": "Aday Adayı",

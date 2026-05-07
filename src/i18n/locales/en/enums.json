@@ -22,7 +22,8 @@
     "PENDING": "Pending",
     "ONBOARDING": "Onboarding",
     "TERMINATED": "Terminated",
-    "ON_LEAVE": "On Leave"
+    "ON_LEAVE": "On Leave",
+    "SUSPENDED": "Suspended"
   },
   "applicantStatus": {
     "NEW": "New",
@@ -32,7 +33,8 @@
     "ACCEPTED": "Accepted",
     "REJECTED": "Rejected",
     "WITHDRAWN": "Withdrawn",
-    "ONBOARDING": "Onboarding"
+    "ONBOARDING": "Onboarding",
+    "HIRED": "Hired"
   },
   "applicantTier": {
     "LEAD": "Lead",

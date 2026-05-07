@@ -22,7 +22,8 @@
     "PENDING": "Ожидание",
     "ONBOARDING": "Адаптация",
     "TERMINATED": "Завершён",
-    "ON_LEAVE": "В отпуске"
+    "ON_LEAVE": "В отпуске",
+    "SUSPENDED": "Приостановлен"
   },
   "applicantStatus": {
     "NEW": "Новый",
@@ -32,7 +33,8 @@
     "ACCEPTED": "Принято",
     "REJECTED": "Отклонено",
     "WITHDRAWN": "Отозвано",
-    "ONBOARDING": "Адаптация"
+    "ONBOARDING": "Адаптация",
+    "HIRED": "Принят"
   },
   "applicantTier": {
     "LEAD": "Лид",

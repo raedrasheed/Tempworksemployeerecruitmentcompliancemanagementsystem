@@ -928,57 +928,57 @@
       "noIdentifierLegacy": "No identifier (legacy record)",
       "wasLeadPrefix": "(was {{leadNumber}})",
       "header": {
-        "email": "Email",
-        "phone": "Phone",
-        "citizenship": "Citizenship",
-        "applied": "Applied"
+        "email": "البريد الإلكتروني",
+        "phone": "الهاتف",
+        "citizenship": "الجنسية",
+        "applied": "تاريخ التقديم"
       },
       "emergency": {
-        "sectionTitle": "Family / Emergency Contact",
-        "name": "Name",
-        "relationship": "Relationship",
-        "phone": "Phone",
-        "email": "Email"
+        "sectionTitle": "جهة الاتصال للطوارئ / الأسرة",
+        "name": "الاسم",
+        "relationship": "صلة القرابة",
+        "phone": "الهاتف",
+        "email": "البريد الإلكتروني"
       },
       "quickNav": {
-        "travel": "Travel & Residence",
-        "driving": "Driving Licence & Experience",
-        "education": "Education",
-        "workExperience": "Work Experience"
+        "travel": "السفر والإقامة",
+        "driving": "رخصة القيادة والخبرة",
+        "education": "التعليم",
+        "workExperience": "الخبرة العملية"
       },
       "personal": {
-        "title": "Personal Information",
-        "fullName": "Full Name",
-        "dateOfBirth": "Date of Birth",
-        "citizenship": "Citizenship",
-        "licenseNumber": "License Number",
-        "licenseCategory": "License Category",
-        "yearsEUExperience": "Years EU Experience",
-        "permanentAddress": "Permanent Address",
-        "countryOfResidence": "Country of Residence",
-        "currentCountry": "Current Country",
-        "appliedPosition": "Applied Position",
-        "preferredStartDate": "Preferred Start Date",
-        "howTheyHeard": "How They Heard",
-        "general": "GENERAL"
+        "title": "المعلومات الشخصية",
+        "fullName": "الاسم الكامل",
+        "dateOfBirth": "تاريخ الميلاد",
+        "citizenship": "الجنسية",
+        "licenseNumber": "رقم الرخصة",
+        "licenseCategory": "فئة الرخصة",
+        "yearsEUExperience": "سنوات الخبرة في الاتحاد الأوروبي",
+        "permanentAddress": "العنوان الدائم",
+        "countryOfResidence": "دولة الإقامة",
+        "currentCountry": "الدولة الحالية",
+        "appliedPosition": "الوظيفة المتقدم لها",
+        "preferredStartDate": "تاريخ البدء المفضل",
+        "howTheyHeard": "كيف سمع عنا",
+        "general": "عام"
       },
       "stats": {
-        "title": "Quick Stats",
-        "documents": "Documents",
-        "validDocs": "Valid Docs",
-        "expiringSoon": "Expiring Soon"
+        "title": "إحصائيات سريعة",
+        "documents": "الوثائق",
+        "validDocs": "الوثائق الصالحة",
+        "expiringSoon": "قاربت على الانتهاء"
       },
       "lifecycle": {
-        "title": "Lifecycle Identifiers",
-        "leadId": "Lead ID",
-        "candidateId": "Candidate ID",
-        "createdBy": "Created By",
-        "createdLabel": "Created: {{date}}",
-        "convertedLabel": "Converted: {{date}}",
-        "notAssignedLegacy": "Not assigned (legacy)",
-        "notYetConverted": "Not yet converted",
-        "selfApplied": "Self-applied via public form",
-        "unknownLegacy": "Unknown (legacy record)"
+        "title": "المعرفات",
+        "leadId": "معرف العميل المحتمل",
+        "candidateId": "معرف المرشح",
+        "createdBy": "أنشأ بواسطة",
+        "createdLabel": "تم الإنشاء في {{date}}",
+        "convertedLabel": "تم التحويل في {{date}}",
+        "notAssignedLegacy": "غير معين (سجل قديم)",
+        "notYetConverted": "لم يتم التحويل بعد",
+        "selfApplied": "تقديم ذاتي عبر النموذج العام",
+        "unknownLegacy": "غير معروف (سجل قديم)"
       },
       "agency": {
         "title": "Agency",

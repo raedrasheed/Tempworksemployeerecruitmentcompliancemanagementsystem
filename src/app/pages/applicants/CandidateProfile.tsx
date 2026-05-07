@@ -54,7 +54,8 @@ export function CandidateProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { canEdit, canDelete, can } = usePermissions();
-  const { t } = useTranslation(['pages', 'common']);
+  const { t, i18n } = useTranslation(['pages', 'common']);
+  const dir = i18n.dir();
   const currentUser = getCurrentUser();
   const isFinanceOrAdmin = currentUser?.role === 'System Admin' || currentUser?.role === 'HR Manager' || currentUser?.role === 'Finance';
   const [applicantData, setApplicantData] = useState<any>(null);
@@ -774,7 +775,7 @@ export function CandidateProfile() {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="overview" className="space-y-6">
+      <Tabs defaultValue="overview" className="space-y-6" dir={dir}>
         <TabsList>
           <TabsTrigger value="overview">{t('pages:applicants.profile.tabs.overview')}</TabsTrigger>
           <TabsTrigger value="application">{t('pages:applicants.profile.tabs.application')}</TabsTrigger>

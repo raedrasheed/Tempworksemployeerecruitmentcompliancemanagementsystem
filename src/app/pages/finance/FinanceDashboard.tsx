@@ -362,10 +362,10 @@ export function FinanceDashboard() {
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={() => load()} disabled={loading}>
-            <RefreshCw className={`w-4 h-4 me-1 ${loading ? 'animate-spin' : ''}`} />Refresh
+            <RefreshCw className={`w-4 h-4 me-1 ${loading ? 'animate-spin' : ''}`} />{t('finance.dashboard.refresh')}
           </Button>
           <Button variant="outline" size="sm" onClick={() => setShowFilters(v => !v)}>
-            <Filter className="w-4 h-4 me-1" />{showFilters ? 'Hide Filters' : 'Filters'}
+            <Filter className="w-4 h-4 me-1" />{showFilters ? t('finance.dashboard.hideFilters') : t('finance.dashboard.filters')}
           </Button>
 
           {/* Column picker */}
@@ -375,7 +375,7 @@ export function FinanceDashboard() {
               onClick={() => setShowColPicker(v => !v)}
               className={showColPicker ? 'border-primary text-primary' : ''}
             >
-              <Columns2 className="w-4 h-4 me-1" />Columns
+              <Columns2 className="w-4 h-4 me-1" />{t('finance.dashboard.columns')}
               {hiddenCount > 0 && (
                 <span className="ms-1.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
                   {hiddenCount}
@@ -415,7 +415,7 @@ export function FinanceDashboard() {
                       localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_VISIBLE));
                     }}
                     className="flex-1 text-xs text-center text-gray-500 hover:underline py-0.5"
-                  >Reset</button>
+                  >{t('finance.dashboard.reset')}</button>
                 </div>
               </div>
             )}
@@ -423,7 +423,7 @@ export function FinanceDashboard() {
 
           {canExport && (
             <Button size="sm" onClick={handleExport} disabled={exporting}>
-              <Download className="w-4 h-4 me-1" />{exporting ? 'Exporting…' : 'Export Excel'}
+              <Download className="w-4 h-4 me-1" />{exporting ? t('finance.dashboard.exporting') : t('finance.dashboard.exportExcel')}
             </Button>
           )}
         </div>
@@ -440,7 +440,7 @@ export function FinanceDashboard() {
               <div>
                 <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('finance.dashboard.totalDisbursed')}</p>
                 <p className="text-xl font-bold text-blue-700">{fmt(totals.disbursed)}</p>
-                <p className="text-xs text-muted-foreground">{meta?.total ?? records.length} records</p>
+                <p className="text-xs text-muted-foreground">{t('finance.dashboard.recordsCount', { count: meta?.total ?? records.length })}</p>
               </div>
             </div>
           </CardContent>
@@ -495,12 +495,12 @@ export function FinanceDashboard() {
           <CardContent className="pt-4 pb-4 space-y-3">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
               <div className="space-y-1 md:col-span-2">
-                <Label className="text-xs">Search</Label>
+                <Label className="text-xs">{t('finance.dashboard.search')}</Label>
                 <div className="relative">
                   <Search className="absolute start-2.5 top-2.5 w-4 h-4 text-muted-foreground" />
                   <Input
                     className="ps-8"
-                    placeholder="Description, payroll ref, name…"
+                    placeholder={t('finance.dashboard.searchPh')}
                     value={filters.search}
                     onChange={e => setFilter('search', e.target.value)}
                   />
@@ -511,20 +511,20 @@ export function FinanceDashboard() {
                 <Select value={filters.entityType || '__all__'} onValueChange={v => setFilter('entityType', v === '__all__' ? '' : v)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__all__">All</SelectItem>
-                    <SelectItem value="APPLICANT">Candidates</SelectItem>
-                    <SelectItem value="EMPLOYEE">Employees</SelectItem>
+                    <SelectItem value="__all__">{t('finance.dashboard.all')}</SelectItem>
+                    <SelectItem value="APPLICANT">{t('finance.dashboard.candidates')}</SelectItem>
+                    <SelectItem value="EMPLOYEE">{t('finance.dashboard.employees')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Status</Label>
+                <Label className="text-xs">{t('finance.dashboard.status')}</Label>
                 <Select value={filters.status || '__all__'} onValueChange={v => setFilter('status', v === '__all__' ? '' : v)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__all__">{t('finance.dashboard.allStatuses')}</SelectItem>
-                    <SelectItem value="PENDING">Pending</SelectItem>
-                    <SelectItem value="DEDUCTED">Deducted</SelectItem>
+                    <SelectItem value="PENDING">{t('finance.dashboard.pending')}</SelectItem>
+                    <SelectItem value="DEDUCTED">{t('finance.dashboard.deducted')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -541,7 +541,7 @@ export function FinanceDashboard() {
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Currency</Label>
+                <Label className="text-xs">{t('finance.dashboard.currency')}</Label>
                 <Select value={filters.currency || '__all__'} onValueChange={v => setFilter('currency', v === '__all__' ? '' : v)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -573,7 +573,7 @@ export function FinanceDashboard() {
               <div className="space-y-1">
                 <Label className="text-xs">{t('finance.dashboard.paidBy')}</Label>
                 <Input
-                  placeholder="Name contains…"
+                  placeholder={t('finance.dashboard.nameContains')}
                   value={filters.paidByFilter}
                   onChange={e => setFilter('paidByFilter', e.target.value)}
                 />
@@ -603,7 +603,7 @@ export function FinanceDashboard() {
             </div>
             <div className="flex justify-end">
               <Button size="sm" variant="ghost" onClick={resetFilters} className="text-muted-foreground">
-                <X className="w-4 h-4 me-1" />Clear Filters
+                <X className="w-4 h-4 me-1" />{t('finance.dashboard.clearFilters')}
               </Button>
             </div>
           </CardContent>
@@ -614,9 +614,9 @@ export function FinanceDashboard() {
       {!showFilters && hasExtraFilters && (
         <div className="text-xs text-muted-foreground flex items-center gap-2">
           <Filter className="w-3 h-3" />
-          <span>Extra client-side filters active</span>
+          <span>{t('finance.dashboard.extraFiltersActive')}</span>
           <Button size="sm" variant="ghost" className="h-6 text-xs" onClick={() => setFilters(f => ({ ...f, paidByFilter: '', minAmount: '', maxAmount: '' }))}>
-            <X className="w-3 h-3 me-1" />Clear
+            <X className="w-3 h-3 me-1" />{t('finance.dashboard.clear')}
           </Button>
         </div>
       )}
@@ -629,26 +629,26 @@ export function FinanceDashboard() {
           ) : displayRecords.length === 0 ? (
             <div className="py-12 text-center text-muted-foreground">
               <Wallet className="w-10 h-10 mx-auto mb-3 opacity-30" />
-              <p>No financial records found matching the current filters.</p>
+              <p>{t('finance.dashboard.noRecordsFiltered')}</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/40">
-                    {col('date')        && <SortHead label="Date"        field="transactionDate" />}
-                    {col('person')      && <SortHead label="Person"      field="person" />}
-                    {col('paidBy')      && <SortHead label="Paid By"     field="paidBy" />}
-                    {col('type')        && <SortHead label="Type"        field="transactionType" />}
-                    {col('description') && <SortHead label="Description" field="description" />}
-                    {col('disbursed')   && <SortHead label="Credit (↑)"  field="companyDisbursedAmount" align="right" className="text-blue-600" />}
-                    {col('empAgency')   && <SortHead label="Emp/Agency"  field="employeeOrAgencyPaidAmount" align="right" className="text-slate-500" />}
-                    {col('deducted')    && <SortHead label="Debit (↓)"   field="deductionAmount" align="right" className="text-amber-600" />}
-                    {col('currency')    && <SortHead label="Currency"    field="currency" />}
-                    {col('status')      && <SortHead label="Status"      field="status" align="center" />}
-                    {col('payrollRef')  && <SortHead label="Payroll Ref" field="payrollReference" />}
-                    {col('createdAt')   && <SortHead label="Created"     field="createdAt" />}
-                    <th className="text-end px-4 py-3 font-medium text-muted-foreground">Profile</th>
+                    {col('date')        && <SortHead label={t('finance.dashboard.tableHeaders.date')}        field="transactionDate" />}
+                    {col('person')      && <SortHead label={t('finance.dashboard.tableHeaders.person')}      field="person" />}
+                    {col('paidBy')      && <SortHead label={t('finance.dashboard.tableHeaders.paidBy')}     field="paidBy" />}
+                    {col('type')        && <SortHead label={t('finance.dashboard.tableHeaders.type')}        field="transactionType" />}
+                    {col('description') && <SortHead label={t('finance.dashboard.tableHeaders.description')} field="description" />}
+                    {col('disbursed')   && <SortHead label={t('finance.dashboard.tableHeaders.credit')}  field="companyDisbursedAmount" align="right" className="text-blue-600" />}
+                    {col('empAgency')   && <SortHead label={t('finance.dashboard.tableHeaders.empAgency')}  field="employeeOrAgencyPaidAmount" align="right" className="text-slate-500" />}
+                    {col('deducted')    && <SortHead label={t('finance.dashboard.tableHeaders.debit')}   field="deductionAmount" align="right" className="text-amber-600" />}
+                    {col('currency')    && <SortHead label={t('finance.dashboard.tableHeaders.currency')}    field="currency" />}
+                    {col('status')      && <SortHead label={t('finance.dashboard.tableHeaders.status')}      field="status" align="center" />}
+                    {col('payrollRef')  && <SortHead label={t('finance.dashboard.tableHeaders.payrollRef')} field="payrollReference" />}
+                    {col('createdAt')   && <SortHead label={t('finance.dashboard.tableHeaders.created')}     field="createdAt" />}
+                    <th className="text-end px-4 py-3 font-medium text-muted-foreground">{t('finance.dashboard.tableHeaders.profile')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -673,7 +673,7 @@ export function FinanceDashboard() {
                               ? 'bg-purple-50 text-purple-700 border-purple-200'
                               : 'bg-blue-50 text-blue-700 border-blue-200'}`}
                           >
-                            {rec.entityType === 'EMPLOYEE' ? 'Employee' : 'Candidate'}
+                            {rec.entityType === 'EMPLOYEE' ? t('finance.dashboard.employee') : t('finance.dashboard.candidate')}
                           </Badge>
                         </td>
                       )}
@@ -720,11 +720,11 @@ export function FinanceDashboard() {
                         <td className="px-4 py-3 text-center">
                           {rec.status === 'DEDUCTED' ? (
                             <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-xs">
-                              <CheckCircle className="w-3 h-3 me-1" />Deducted
+                              <CheckCircle className="w-3 h-3 me-1" />{t('finance.dashboard.deducted')}
                             </Badge>
                           ) : (
                             <Badge className="bg-amber-50 text-amber-700 border-amber-200 text-xs">
-                              <Clock className="w-3 h-3 me-1" />Pending
+                              <Clock className="w-3 h-3 me-1" />{t('finance.dashboard.pending')}
                             </Badge>
                           )}
                         </td>
@@ -741,7 +741,7 @@ export function FinanceDashboard() {
                         <Button
                           size="icon" variant="ghost"
                           className="h-7 w-7"
-                          title="Open profile"
+                          title={t('finance.dashboard.openProfile')}
                           onClick={() => navigateToProfile(rec)}
                         >
                           <ExternalLink className="w-3.5 h-3.5" />
@@ -754,9 +754,9 @@ export function FinanceDashboard() {
                 <tfoot>
                   <tr className="bg-muted/10">
                     <td colSpan={visibleCount + 1} className="px-4 py-2 text-xs text-muted-foreground">
-                      <span className="text-blue-600 font-medium">{t('finance.dashboard.credit')}</span> = company disbursed &nbsp;·&nbsp;
-                      <span className="text-amber-600 font-medium">{t('finance.dashboard.debit')}</span> = payroll deduction &nbsp;·&nbsp;
-                      <span className="text-slate-500">Emp/Agency</span> = paid by employee/agency (informational, excluded from balance)
+                      <span className="text-blue-600 font-medium">{t('finance.dashboard.credit')}</span>{t('finance.dashboard.footerCreditDescr')} &nbsp;·&nbsp;
+                      <span className="text-amber-600 font-medium">{t('finance.dashboard.debit')}</span>{t('finance.dashboard.footerDebitDescr')} &nbsp;·&nbsp;
+                      <span className="text-slate-500">{t('finance.dashboard.footerEmpAgency')}</span>{t('finance.dashboard.footerEmpAgencyDescr')}
                     </td>
                   </tr>
                 </tfoot>
@@ -770,7 +770,7 @@ export function FinanceDashboard() {
       {meta && meta.totalPages > 1 && (
         <div className="flex items-center justify-between text-sm">
           <p className="text-muted-foreground">
-            Page {meta.page} of {meta.totalPages} · {meta.total} records total
+            {t('finance.dashboard.pagination', { page: meta.page, totalPages: meta.totalPages, total: meta.total })}
           </p>
           <div className="flex gap-2">
             <Button
@@ -778,14 +778,14 @@ export function FinanceDashboard() {
               disabled={filters.page <= 1}
               onClick={() => setFilter('page', filters.page - 1)}
             >
-              Previous
+              {t('finance.dashboard.previous')}
             </Button>
             <Button
               size="sm" variant="outline"
               disabled={filters.page >= meta.totalPages}
               onClick={() => setFilter('page', filters.page + 1)}
             >
-              Next
+              {t('finance.dashboard.next')}
             </Button>
           </div>
         </div>

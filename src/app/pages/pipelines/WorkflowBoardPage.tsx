@@ -53,7 +53,7 @@ function NoteModal({ progressId, onClose }: { progressId: string; onClose: () =>
             rows={4}
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            placeholder="Write a note..."
+            placeholder={t('pipelines.board.noteWritePlaceholder')}
             autoFocus
           />
           <label className="flex items-center gap-2 text-sm cursor-pointer">
@@ -63,7 +63,7 @@ function NoteModal({ progressId, onClose }: { progressId: string; onClose: () =>
           <div className="flex gap-2">
             <button type="button" onClick={onClose} className="flex-1 border border-border rounded-lg px-3 py-2 text-sm hover:bg-muted transition-colors">{tc('actions.cancel')}</button>
             <button type="submit" disabled={saving || !content.trim()} className="flex-1 bg-primary text-primary-foreground rounded-lg px-3 py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors">
-              {saving ? 'Saving...' : t('pipelines.board.addNote')}
+              {saving ? t('pipelines.board.saving') : t('pipelines.board.addNote')}
             </button>
           </div>
         </form>
@@ -111,7 +111,7 @@ function AdvanceModal({ assignmentId, workflow, onClose, onAdvanced }: { assignm
           <div className="flex gap-2">
             <button type="button" onClick={onClose} className="flex-1 border border-border rounded-lg px-3 py-2 text-sm hover:bg-muted transition-colors">{tc('actions.cancel')}</button>
             <button type="submit" disabled={saving || !selectedStageId} className="flex-1 bg-primary text-primary-foreground rounded-lg px-3 py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors">
-              {saving ? 'Advancing...' : 'Advance'}
+              {saving ? t('pipelines.board.advancing') : t('pipelines.board.advance')}
             </button>
           </div>
         </form>
@@ -157,7 +157,7 @@ function AssignModal({ workflow, onClose, onAssigned }: { workflow: any; onClose
               className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
               value={candidateId}
               onChange={(e) => setCandidateId(e.target.value)}
-              placeholder="Paste candidate UUID..."
+              placeholder={t('pipelines.board.candidateIdPlaceholder')}
             />
           </div>
           <div>
@@ -166,13 +166,13 @@ function AssignModal({ workflow, onClose, onAssigned }: { workflow: any; onClose
               className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="e.g. Referred by agency..."
+              placeholder={t('pipelines.board.notesPlaceholder')}
             />
           </div>
           <div className="flex gap-2">
             <button type="button" onClick={onClose} className="flex-1 border border-border rounded-lg px-3 py-2 text-sm hover:bg-muted transition-colors">{tc('actions.cancel')}</button>
             <button type="submit" disabled={saving} className="flex-1 bg-primary text-primary-foreground rounded-lg px-3 py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors">
-              {saving ? 'Assigning...' : 'Assign'}
+              {saving ? t('pipelines.board.assigning') : t('pipelines.board.assign')}
             </button>
           </div>
         </form>
@@ -184,6 +184,7 @@ function AssignModal({ workflow, onClose, onAssigned }: { workflow: any; onClose
 // ─── Stage Grid Card ──────────────────────────────────────────────────────────
 
 function StageCard({ col, totalStages, totalActive }: { col: any; totalStages: number; totalActive: number }) {
+  const { t } = useTranslation('pages');
   const stage       = col.stage;
   const activeCount = col.count ?? 0;
   const stageColor  = stage.color || '#2563EB';
@@ -209,7 +210,7 @@ function StageCard({ col, totalStages, totalActive }: { col: any; totalStages: n
         {/* Progress bar */}
         <div className="space-y-2 mb-3">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Progress</span>
+            <span className="text-muted-foreground">{t('pipelines.board.progress')}</span>
             <span className="font-medium">{progress}%</span>
           </div>
           <Progress value={progress} className="h-1.5" />
@@ -218,10 +219,10 @@ function StageCard({ col, totalStages, totalActive }: { col: any; totalStages: n
         {/* Stage position + candidate count */}
         <div className="flex items-center justify-between mb-4">
           <p className="text-sm text-muted-foreground">
-            Stage {stage.order} of {totalStages}
+            {t('pipelines.board.stageOf', { order: stage.order, total: totalStages })}
           </p>
           <p className="text-xs text-muted-foreground">
-            {activeCount} active
+            {t('pipelines.board.activeCount', { count: activeCount })}
           </p>
         </div>
 
@@ -230,7 +231,7 @@ function StageCard({ col, totalStages, totalActive }: { col: any; totalStages: n
           to={`/dashboard/workflows/stage/${stage.id}`}
           className="text-sm text-[#2563EB] hover:text-[#1d4ed8] flex items-center gap-1 font-medium"
         >
-          View Details
+          {t('pipelines.board.viewDetails')}
           <ChevronRight className="w-4 h-4" />
         </Link>
       </CardContent>
@@ -319,7 +320,7 @@ export function WorkflowBoardPage() {
               <div className="w-3 h-3 rounded-full" style={{ background: workflowData?.color ?? '#2563EB' }} />
               <h1 className="text-2xl font-semibold text-[#0F172A]">{workflowData?.name}</h1>
               {workflowData?.isDefault && (
-                <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200">Default</span>
+                <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200">{t('pipelines.board.default')}</span>
               )}
             </div>
             {workflowData?.description && (
@@ -333,22 +334,22 @@ export function WorkflowBoardPage() {
           <div className="flex items-center gap-4 text-sm text-muted-foreground me-2">
             <span className="flex items-center gap-1.5">
               <BarChart2 className="w-4 h-4" />
-              <strong className="text-foreground">{totalActive}</strong> active
+              <strong className="text-foreground">{totalActive}</strong> {t('pipelines.board.active')}
             </span>
             <span className="flex items-center gap-1.5">
               <CheckCircle2 className="w-4 h-4" />
-              <strong className="text-foreground">{totalCompleted}</strong> completed
+              <strong className="text-foreground">{totalCompleted}</strong> {t('pipelines.board.completed')}
             </span>
             {stats?.flaggedCount > 0 && (
               <span className="flex items-center gap-1.5 text-amber-600">
                 <Flag className="w-4 h-4" />
-                <strong>{stats.flaggedCount}</strong> flagged
+                <strong>{stats.flaggedCount}</strong> {t('pipelines.board.flagged')}
               </span>
             )}
             {stats?.slaBreached > 0 && (
               <span className="flex items-center gap-1.5 text-red-600">
                 <AlertTriangle className="w-4 h-4" />
-                <strong>{stats.slaBreached}</strong> SLA breached
+                <strong>{stats.slaBreached}</strong> {t('pipelines.board.slaBreached')}
               </span>
             )}
           </div>
@@ -369,7 +370,7 @@ export function WorkflowBoardPage() {
             onClick={() => setShowAssign(true)}
             className="flex items-center gap-1.5 bg-primary text-primary-foreground px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
           >
-            <Plus className="w-4 h-4" /> Assign Candidate
+            <Plus className="w-4 h-4" /> {t('pipelines.board.assignCandidateButton')}
           </button>
         </div>
       </div>
@@ -384,7 +385,7 @@ export function WorkflowBoardPage() {
             to={`/dashboard/settings/workflows/${id}`}
             className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
           >
-            <Settings2 className="w-4 h-4" /> Workflow Settings
+            <Settings2 className="w-4 h-4" /> {t('pipelines.board.workflowSettings')}
           </Link>
         </div>
       ) : (

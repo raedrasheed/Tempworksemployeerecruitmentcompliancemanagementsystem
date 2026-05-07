@@ -54,7 +54,8 @@ export function ApplicantProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { canEdit, canDelete, can } = usePermissions();
-  const { t } = useTranslation(['pages', 'common']);
+  const { t, i18n } = useTranslation(['pages', 'common']);
+  const dir = i18n.dir();
   const currentUser = getCurrentUser();
   const isFinanceOrAdmin = currentUser?.role === 'System Admin' || currentUser?.role === 'HR Manager' || currentUser?.role === 'Finance';
   const isAgencyUser = currentUser?.role === 'Agency User' || currentUser?.role === 'Agency Manager';
@@ -808,7 +809,7 @@ export function ApplicantProfile() {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="overview" className="space-y-6">
+      <Tabs defaultValue="overview" className="space-y-6" dir={dir}>
         <TabsList>
           <TabsTrigger value="overview">{t('pages:applicants.profile.tabs.overview')}</TabsTrigger>
           <TabsTrigger value="application">{t('pages:applicants.profile.tabs.application')}</TabsTrigger>

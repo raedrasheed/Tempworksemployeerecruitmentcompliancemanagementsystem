@@ -620,7 +620,7 @@ export function ApplicantProfile() {
                 setShowConvertLeadDialog(true);
               }}
             >
-              <TrendingUp className="w-4 h-4 me-2" />Promote to Candidate
+              <TrendingUp className="w-4 h-4 me-2" />{t('pages:applicants.profile.promoteToCandidate')}
             </Button>
           )}
           {/* Convert Candidate → Employee */}

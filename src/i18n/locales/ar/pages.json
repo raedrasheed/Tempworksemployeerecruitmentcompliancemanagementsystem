@@ -4283,15 +4283,15 @@
     },
     "list": {
       "cols": {
-        "timestamp": "Timestamp",
-        "user": "User",
-        "userEmail": "Email",
-        "action": "Action",
-        "entity": "Module",
-        "entityId": "Entity ID",
-        "changes": "Changes",
-        "ipAddress": "IP Address",
-        "userAgent": "User Agent"
+        "timestamp": "الطابع الزمني",
+        "user": "المستخدم",
+        "userEmail": "البريد الإلكتروني",
+        "action": "الإجراء",
+        "entity": "الوحدة",
+        "entityId": "معرف الكيان",
+        "changes": "التغييرات",
+        "ipAddress": "عنوان IP",
+        "userAgent": "وكيل المستخدم"
       }
     }
   },

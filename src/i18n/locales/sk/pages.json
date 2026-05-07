@@ -4244,14 +4244,14 @@
     },
     "list": {
       "cols": {
-        "timestamp": "Timestamp",
-        "user": "User",
-        "userEmail": "Email",
-        "action": "Action",
-        "entity": "Module",
-        "entityId": "Entity ID",
-        "changes": "Changes",
-        "ipAddress": "IP Address",
+        "timestamp": "Časová značka",
+        "user": "Používateľ",
+        "userEmail": "E-mail",
+        "action": "Akcia",
+        "entity": "Modul",
+        "entityId": "ID entity",
+        "changes": "Zmeny",
+        "ipAddress": "IP adresa",
         "userAgent": "User Agent"
       }
     }

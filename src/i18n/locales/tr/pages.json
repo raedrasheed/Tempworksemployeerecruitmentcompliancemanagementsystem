@@ -4199,14 +4199,14 @@
     },
     "list": {
       "cols": {
-        "timestamp": "Timestamp",
-        "user": "User",
-        "userEmail": "Email",
-        "action": "Action",
-        "entity": "Module",
-        "entityId": "Entity ID",
-        "changes": "Changes",
-        "ipAddress": "IP Address",
+        "timestamp": "Zaman damgası",
+        "user": "Kullanıcı",
+        "userEmail": "E-posta",
+        "action": "Eylem",
+        "entity": "Modül",
+        "entityId": "Varlık ID",
+        "changes": "Değişiklikler",
+        "ipAddress": "IP Adresi",
         "userAgent": "User Agent"
       }
     }

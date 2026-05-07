@@ -4199,14 +4199,14 @@
     },
     "list": {
       "cols": {
-        "timestamp": "Timestamp",
-        "user": "User",
-        "userEmail": "Email",
-        "action": "Action",
-        "entity": "Module",
-        "entityId": "Entity ID",
-        "changes": "Changes",
-        "ipAddress": "IP Address",
+        "timestamp": "Zeitstempel",
+        "user": "Benutzer",
+        "userEmail": "E-Mail",
+        "action": "Aktion",
+        "entity": "Modul",
+        "entityId": "Entitäts-ID",
+        "changes": "Änderungen",
+        "ipAddress": "IP-Adresse",
         "userAgent": "User Agent"
       }
     }

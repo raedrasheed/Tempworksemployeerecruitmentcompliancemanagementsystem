@@ -4247,14 +4247,14 @@
     },
     "list": {
       "cols": {
-        "timestamp": "Timestamp",
-        "user": "User",
+        "timestamp": "Время",
+        "user": "Пользователь",
         "userEmail": "Email",
-        "action": "Action",
-        "entity": "Module",
-        "entityId": "Entity ID",
-        "changes": "Changes",
-        "ipAddress": "IP Address",
+        "action": "Действие",
+        "entity": "Модуль",
+        "entityId": "ID сущности",
+        "changes": "Изменения",
+        "ipAddress": "IP-адрес",
         "userAgent": "User Agent"
       }
     }

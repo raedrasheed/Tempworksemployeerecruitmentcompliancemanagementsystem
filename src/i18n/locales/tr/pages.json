@@ -605,6 +605,29 @@
         "tier": "Tier",
         "applied": "Applied",
         "status": "Status"
+      },
+      "total": "Toplam",
+      "leads": "Aday Adayları",
+      "generalBadge": "Genel",
+      "viewAction": "Görüntüle",
+      "editAction": "Düzenle",
+      "cancel": "İptal",
+      "showingCount_one": "{{total}} aday adayından {{shown}} tanesi gösteriliyor",
+      "showingCount_other": "{{total}} aday adayından {{shown}} tanesi gösteriliyor",
+      "selectedSuffix_one": " · {{count}} seçildi",
+      "selectedSuffix_other": " · {{count}} seçildi",
+      "preparingPdfs_one": "{{count}} PDF hazırlanıyor…",
+      "preparingPdfs_other": "{{count}} PDF hazırlanıyor…",
+      "generatingPdfs": "PDF'ler oluşturuluyor… {{done}}/{{total}}",
+      "pdfExportFailed": "PDF dışa aktarımı başarısız",
+      "bulkPartialFailure": "{{ok}} kayda uygulandı, {{failed}} kayıt için başarısız",
+      "bulkPartialFailureWithDetail": "{{ok}} kayda uygulandı, {{failed}} kayıt için başarısız (ilk hata: {{error}})",
+      "statusDialog": {
+        "title": "Durumu değiştir",
+        "description_one": "Seçilen {{count}} aday adayı için yeni bir durum seçin.",
+        "description_other": "Seçilen {{count}} aday adayı için yeni bir durum seçin.",
+        "pickStatus": "Bir durum seçin…",
+        "apply": "Uygula"
       }
     },
     "candidates": {

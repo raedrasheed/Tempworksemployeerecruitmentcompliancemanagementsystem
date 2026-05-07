@@ -87,15 +87,9 @@ function readPassportNumber(a: any): string {
   return typeof raw === 'string' ? raw.trim() : '';
 }
 
-function formatGender(g: string | null | undefined): string {
+function formatGender(g: string | null | undefined, tEnums: (k: string, opts?: any) => string): string {
   if (!g) return '';
-  switch (g) {
-    case 'MALE': return 'Male';
-    case 'FEMALE': return 'Female';
-    case 'OTHER': return 'Other';
-    case 'PREFER_NOT_TO_SAY': return 'Prefer not to say';
-    default: return g;
-  }
+  return tEnums(`gender.${g}`, { defaultValue: g });
 }
 
 function loadVisibleColumns(): Record<ColKey, boolean> {
@@ -128,6 +122,7 @@ export function ApplicantsList() {
   const { canCreate, canEdit, canDelete } = usePermissions();
   const { t } = useTranslation('pages');
   const { t: tc } = useTranslation('common');
+  const { t: tEnums } = useTranslation('enums');
   const currentUser = getCurrentUser();
   const isAgencyUser = currentUser?.role === 'Agency User' || currentUser?.role === 'Agency Manager';
 
@@ -288,8 +283,9 @@ export function ApplicantsList() {
       const failed = result.results?.filter((r: any) => !r.success) ?? [];
       if (failed.length === 0) toast.success(t('applicants.list.bulkAppliedCount', { count: selected.size }));
       else toast.warning(
-        `Applied to ${selected.size - failed.length}, failed for ${failed.length}` +
-          (failed[0]?.error ? ` (first error: ${failed[0].error})` : ''),
+        failed[0]?.error
+          ? t('applicants.list.bulkPartialFailureWithDetail', { ok: selected.size - failed.length, failed: failed.length, error: failed[0].error })
+          : t('applicants.list.bulkPartialFailure', { ok: selected.size - failed.length, failed: failed.length }),
       );
       setSelected(new Set());
       await fetchApplicants();
@@ -314,7 +310,7 @@ export function ApplicantsList() {
       return;
     }
     setPdfExporting(true);
-    const tid = toast.loading(`Preparing ${selected.size} PDF${selected.size > 1 ? 's' : ''}...`);
+    const tid = toast.loading(t('applicants.list.preparingPdfs', { count: selected.size }));
     try {
       const ids = [...selected];
       const full = await Promise.all(ids.map(id => applicantsApi.get(id).catch(() => null)));
@@ -342,12 +338,12 @@ export function ApplicantsList() {
           return `Lead_${name}_${num}.pdf`;
         },
         onProgress: (done, total) => {
-          toast.loading(`Generating PDFs... ${done}/${total}`, { id: tid });
+          toast.loading(t('applicants.list.generatingPdfs', { done, total }), { id: tid });
         },
       });
       toast.success(t('applicants.list.exportedCount', { count: records.length }), { id: tid });
     } catch (err: any) {
-      toast.error(err?.message || 'PDF export failed', { id: tid });
+      toast.error(err?.message || t('applicants.list.pdfExportFailed'), { id: tid });
     } finally {
       setPdfExporting(false);
     }
@@ -416,12 +412,12 @@ export function ApplicantsList() {
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Total</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">{t('applicants.list.total')}</CardTitle></CardHeader>
           <CardContent><div className="text-2xl font-bold text-[#0F172A]">{totalApplicants}</div></CardContent>
         </Card>
         {!isAgencyUser && (
           <Card>
-            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Leads</CardTitle></CardHeader>
+            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">{t('applicants.list.leads')}</CardTitle></CardHeader>
             <CardContent><div className="text-2xl font-bold text-amber-600">{leads.length}</div></CardContent>
           </Card>
         )}
@@ -494,7 +490,7 @@ export function ApplicantsList() {
                 <SelectTrigger className="w-40"><SelectValue placeholder={t('applicants.list.allStatuses')} /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__all__">{t('applicants.list.allStatuses')}</SelectItem>
-                  {STATUSES.map(s => <SelectItem key={s} value={s}>{s.replace(/_/g, ' ')}</SelectItem>)}
+                  {STATUSES.map(s => <SelectItem key={s} value={s}>{tEnums(`applicantStatus.${s}`, { defaultValue: s.replace(/_/g, ' ') })}</SelectItem>)}
                 </SelectContent>
               </Select>
 
@@ -590,7 +586,7 @@ export function ApplicantsList() {
                   <SelectTrigger className="w-48"><SelectValue placeholder={t('applicants.list.allJobCategories')} /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__all__">{t('applicants.list.allJobCategories')}</SelectItem>
-                    {jobTypes.map((jt: any) => <SelectItem key={jt.id} value={jt.id}>{jt.name}</SelectItem>)}
+                    {jobTypes.map((jt: any) => <SelectItem key={jt.id} value={jt.id}>{tEnums(`jobCategory.${jt.name}`, { defaultValue: jt.name })}</SelectItem>)}
                   </SelectContent>
                 </Select>
               )}
@@ -679,7 +675,7 @@ export function ApplicantsList() {
                       <TableCell>
                         {applicant.jobAd?.title
                           ? <span className="text-sm">{applicant.jobAd.title}</span>
-                          : <Badge variant="outline" className="text-[10px] font-semibold tracking-wide">GENERAL</Badge>}
+                          : <Badge variant="outline" className="text-[10px] font-semibold tracking-wide">{t('applicants.list.generalBadge')}</Badge>}
                       </TableCell>
                     )}
                     {col('passportNumber') && (
@@ -694,7 +690,7 @@ export function ApplicantsList() {
                     )}
                     {col('gender') && (
                       <TableCell className="text-sm">
-                        {formatGender(applicant.gender) || <span className="text-muted-foreground">—</span>}
+                        {formatGender(applicant.gender, tEnums) || <span className="text-muted-foreground">—</span>}
                       </TableCell>
                     )}
                     {col('agency') && (
@@ -706,7 +702,7 @@ export function ApplicantsList() {
                     )}
                     {col('tier') && !isAgencyUser && (
                       <TableCell>
-                        <Badge className={getTierColor(applicant.tier)}>{applicant.tier}</Badge>
+                        <Badge className={getTierColor(applicant.tier)}>{tEnums(`applicantTier.${applicant.tier}`, { defaultValue: applicant.tier })}</Badge>
                       </TableCell>
                     )}
                     {col('applied') && (
@@ -716,18 +712,18 @@ export function ApplicantsList() {
                     )}
                     {col('status') && (
                       <TableCell>
-                        <Badge className={getStatusColor(applicant.status)}>{applicant.status?.replace(/_/g, ' ')}</Badge>
+                        <Badge className={getStatusColor(applicant.status)}>{applicant.status ? tEnums(`applicantStatus.${applicant.status}`, { defaultValue: applicant.status.replace(/_/g, ' ') }) : ''}</Badge>
                       </TableCell>
                     )}
                     <TableCell className="text-end">
                       <div className="flex items-center justify-end gap-1">
                         <Button variant="ghost" size="sm" asChild>
-                          <Link to={`/dashboard/applicants/${applicant.id}`}><Eye className="w-4 h-4 me-1" />View</Link>
+                          <Link to={`/dashboard/applicants/${applicant.id}`}><Eye className="w-4 h-4 me-1" />{t('applicants.list.viewAction')}</Link>
                         </Button>
                         <WhatsAppButton phone={applicant.phone} size="icon" />
                         {canEdit('applicants') && (
                           <Button variant="ghost" size="sm" asChild>
-                            <Link to={`/dashboard/applicants/${applicant.id}/edit`}><Edit className="w-4 h-4 me-1" />Edit</Link>
+                            <Link to={`/dashboard/applicants/${applicant.id}/edit`}><Edit className="w-4 h-4 me-1" />{t('applicants.list.editAction')}</Link>
                           </Button>
                         )}
                         {canDelete('applicants') && (
@@ -745,8 +741,8 @@ export function ApplicantsList() {
 
           <div className="mt-4">
             <p className="text-sm text-muted-foreground">
-              Showing {displayData.length} of {totalApplicants} applicants
-              {selected.size > 0 && ` · ${selected.size} selected`}
+              {t('applicants.list.showingCount', { count: totalApplicants, shown: displayData.length, total: totalApplicants })}
+              {selected.size > 0 && t('applicants.list.selectedSuffix', { count: selected.size })}
             </p>
           </div>
         </CardContent>
@@ -759,24 +755,24 @@ export function ApplicantsList() {
       }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Change status</DialogTitle>
+            <DialogTitle>{t('applicants.list.statusDialog.title')}</DialogTitle>
             <DialogDescription>
-              Select a new status for {selected.size} selected applicant{selected.size === 1 ? '' : 's'}.
+              {t('applicants.list.statusDialog.description', { count: selected.size })}
             </DialogDescription>
           </DialogHeader>
           <div className="py-2">
             <Select value={pendingStatus} onValueChange={setPendingStatus}>
-              <SelectTrigger><SelectValue placeholder="Choose a status..." /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder={t('applicants.list.statusDialog.pickStatus')} /></SelectTrigger>
               <SelectContent>
                 {STATUSES.map(s => (
-                  <SelectItem key={s} value={s}>{s.replace(/_/g, ' ')}</SelectItem>
+                  <SelectItem key={s} value={s}>{tEnums(`applicantStatus.${s}`, { defaultValue: s.replace(/_/g, ' ') })}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setStatusModalOpen(false)} disabled={bulkActionInProgress}>
-              Cancel
+              {t('applicants.list.cancel')}
             </Button>
             <Button
               disabled={bulkActionInProgress || !pendingStatus}
@@ -791,7 +787,7 @@ export function ApplicantsList() {
                 await handleBulkAction('STATUS_CHANGE', next);
               }}
             >
-              Apply
+              {t('applicants.list.statusDialog.apply')}
             </Button>
           </DialogFooter>
         </DialogContent>

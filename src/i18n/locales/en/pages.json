@@ -749,6 +749,29 @@
         "tier": "Tier",
         "applied": "Applied",
         "status": "Status"
+      },
+      "total": "Total",
+      "leads": "Leads",
+      "generalBadge": "General",
+      "viewAction": "View",
+      "editAction": "Edit",
+      "cancel": "Cancel",
+      "showingCount_one": "Showing {{shown}} of {{total}} applicant",
+      "showingCount_other": "Showing {{shown}} of {{total}} applicants",
+      "selectedSuffix_one": " · {{count}} selected",
+      "selectedSuffix_other": " · {{count}} selected",
+      "preparingPdfs_one": "Preparing {{count}} PDF…",
+      "preparingPdfs_other": "Preparing {{count}} PDFs…",
+      "generatingPdfs": "Generating PDFs… {{done}}/{{total}}",
+      "pdfExportFailed": "PDF export failed",
+      "bulkPartialFailure": "Applied to {{ok}}, failed for {{failed}}",
+      "bulkPartialFailureWithDetail": "Applied to {{ok}}, failed for {{failed}} (first error: {{error}})",
+      "statusDialog": {
+        "title": "Change status",
+        "description_one": "Select a new status for {{count}} selected applicant.",
+        "description_other": "Select a new status for {{count}} selected applicants.",
+        "pickStatus": "Choose a status…",
+        "apply": "Apply"
       }
     },
     "addPage": {

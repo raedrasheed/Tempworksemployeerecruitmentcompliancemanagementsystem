@@ -605,6 +605,29 @@
         "tier": "Tier",
         "applied": "Applied",
         "status": "Status"
+      },
+      "total": "Gesamt",
+      "leads": "Leads",
+      "generalBadge": "Allgemein",
+      "viewAction": "Anzeigen",
+      "editAction": "Bearbeiten",
+      "cancel": "Abbrechen",
+      "showingCount_one": "{{shown}} von {{total}} Bewerber wird angezeigt",
+      "showingCount_other": "{{shown}} von {{total}} Bewerbern werden angezeigt",
+      "selectedSuffix_one": " · {{count}} ausgewählt",
+      "selectedSuffix_other": " · {{count}} ausgewählt",
+      "preparingPdfs_one": "{{count}} PDF wird vorbereitet…",
+      "preparingPdfs_other": "{{count}} PDFs werden vorbereitet…",
+      "generatingPdfs": "PDFs werden erstellt… {{done}}/{{total}}",
+      "pdfExportFailed": "PDF-Export fehlgeschlagen",
+      "bulkPartialFailure": "Angewendet auf {{ok}}, fehlgeschlagen bei {{failed}}",
+      "bulkPartialFailureWithDetail": "Angewendet auf {{ok}}, fehlgeschlagen bei {{failed}} (erster Fehler: {{error}})",
+      "statusDialog": {
+        "title": "Status ändern",
+        "description_one": "Wählen Sie einen neuen Status für {{count}} ausgewählten Bewerber.",
+        "description_other": "Wählen Sie einen neuen Status für {{count}} ausgewählte Bewerber.",
+        "pickStatus": "Status auswählen…",
+        "apply": "Übernehmen"
       }
     },
     "candidates": {

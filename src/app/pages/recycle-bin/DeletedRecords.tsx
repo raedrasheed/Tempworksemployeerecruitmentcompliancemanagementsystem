@@ -42,24 +42,26 @@ interface RelatedData {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const ENTITY_LABELS: Record<string, { label: string; icon: any; color: string }> = {
-  APPLICANT:        { label: 'Applicant',        icon: UserCheck,  color: 'bg-blue-100 text-blue-800' },
-  EMPLOYEE:         { label: 'Employee',          icon: Users,      color: 'bg-green-100 text-green-800' },
-  USER:             { label: 'User',              icon: Shield,     color: 'bg-purple-100 text-purple-800' },
-  AGENCY:           { label: 'Agency',            icon: Building2,  color: 'bg-orange-100 text-orange-800' },
-  DOCUMENT:         { label: 'Document',          icon: FileText,   color: 'bg-cyan-100 text-cyan-800' },
-  DOCUMENT_TYPE:    { label: 'Document Type',     icon: FolderOpen, color: 'bg-teal-100 text-teal-800' },
-  JOB_AD:           { label: 'Job Ad',            icon: Briefcase,  color: 'bg-yellow-100 text-yellow-800' },
-  FINANCIAL_RECORD: { label: 'Financial Record',  icon: DollarSign, color: 'bg-emerald-100 text-emerald-800' },
-  ROLE:             { label: 'Role',              icon: Shield,     color: 'bg-indigo-100 text-indigo-800' },
-  NOTIFICATION:        { label: 'Notification',        icon: Bell,      color: 'bg-gray-100 text-gray-800' },
-  REPORT:              { label: 'Report',               icon: BarChart3, color: 'bg-pink-100 text-pink-800' },
-  VEHICLE:             { label: 'Vehicle',              icon: Truck,     color: 'bg-sky-100 text-sky-800' },
-  VEHICLE_DOCUMENT:    { label: 'Vehicle Document',     icon: FileText,  color: 'bg-blue-100 text-blue-800' },
-  MAINTENANCE_RECORD:  { label: 'Maintenance Record',   icon: Wrench,    color: 'bg-amber-100 text-amber-800' },
-  MAINTENANCE_TYPE:    { label: 'Maintenance Type',     icon: Wrench,    color: 'bg-orange-100 text-orange-800' },
-  WORKSHOP:            { label: 'Workshop',             icon: Building2, color: 'bg-slate-100 text-slate-800' },
+const ENTITY_META: Record<string, { icon: any; color: string }> = {
+  APPLICANT:        { icon: UserCheck,  color: 'bg-blue-100 text-blue-800' },
+  EMPLOYEE:         { icon: Users,      color: 'bg-green-100 text-green-800' },
+  USER:             { icon: Shield,     color: 'bg-purple-100 text-purple-800' },
+  AGENCY:           { icon: Building2,  color: 'bg-orange-100 text-orange-800' },
+  DOCUMENT:         { icon: FileText,   color: 'bg-cyan-100 text-cyan-800' },
+  DOCUMENT_TYPE:    { icon: FolderOpen, color: 'bg-teal-100 text-teal-800' },
+  JOB_AD:           { icon: Briefcase,  color: 'bg-yellow-100 text-yellow-800' },
+  FINANCIAL_RECORD: { icon: DollarSign, color: 'bg-emerald-100 text-emerald-800' },
+  ROLE:             { icon: Shield,     color: 'bg-indigo-100 text-indigo-800' },
+  NOTIFICATION:     { icon: Bell,       color: 'bg-gray-100 text-gray-800' },
+  REPORT:           { icon: BarChart3,  color: 'bg-pink-100 text-pink-800' },
+  VEHICLE:          { icon: Truck,      color: 'bg-sky-100 text-sky-800' },
+  VEHICLE_DOCUMENT: { icon: FileText,   color: 'bg-blue-100 text-blue-800' },
+  MAINTENANCE_RECORD: { icon: Wrench,   color: 'bg-amber-100 text-amber-800' },
+  MAINTENANCE_TYPE: { icon: Wrench,     color: 'bg-orange-100 text-orange-800' },
+  WORKSHOP:         { icon: Building2,  color: 'bg-slate-100 text-slate-800' },
 };
+
+const ENTITY_KEYS = Object.keys(ENTITY_META);
 
 function formatDate(iso: string) {
   if (!iso) return '—';
@@ -67,11 +69,13 @@ function formatDate(iso: string) {
 }
 
 function EntityBadge({ entityType }: { entityType: string }) {
-  const meta = ENTITY_LABELS[entityType] ?? { label: entityType, icon: FileText, color: 'bg-gray-100 text-gray-800' };
+  const { t } = useTranslation('pages');
+  const meta = ENTITY_META[entityType] ?? { icon: FileText, color: 'bg-gray-100 text-gray-800' };
+  const label = t(`recycleBin.list.entityLabels.${entityType}`, { defaultValue: entityType });
   return (
     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${meta.color}`}>
       <meta.icon className="w-3 h-3" />
-      {meta.label}
+      {label}
     </span>
   );
 }
@@ -191,7 +195,7 @@ export function DeletedRecords() {
       });
       toast.success(
         tc('toast.restoredEntityNamed', {
-          entity: ENTITY_LABELS[restoreTarget.entityType]?.label ?? restoreTarget.entityType,
+          entity: t(`recycleBin.list.entityLabels.${restoreTarget.entityType}`, { defaultValue: restoreTarget.entityType }),
           name: restoreTarget.displayName,
         }) +
         (result.restored ? ` (${Object.entries(result.restored).filter(([, v]) => (v as number) > 0).map(([k, v]) => `${v} ${k}`).join(', ')})` : '')
@@ -204,7 +208,7 @@ export function DeletedRecords() {
       fetchRecords();
       fetchCounts();
     } catch (e: any) {
-      toast.error(e?.message ?? 'Restore failed');
+      toast.error(e?.message ?? t('recycleBin.list.restoreFailed'));
     } finally {
       setRestoreLoading(false);
     }
@@ -222,7 +226,7 @@ export function DeletedRecords() {
       fetchRecords();
       fetchCounts();
     } catch (e: any) {
-      toast.error(e?.message ?? 'Delete failed');
+      toast.error(e?.message ?? t('recycleBin.list.deleteFailed'));
     } finally {
       setHardDeleteLoading(false);
     }
@@ -242,25 +246,28 @@ export function DeletedRecords() {
         </div>
         <Button variant="outline" size="sm" onClick={() => { fetchRecords(); fetchCounts(); }}>
           <RefreshCw className="w-4 h-4 me-2" />
-          Refresh
+          {t('recycleBin.list.refresh')}
         </Button>
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-        {Object.entries(ENTITY_LABELS).filter(([key]) => (counts[key] ?? 0) > 0 || counts.total > 0).map(([key, meta]) => (
-          <Card
-            key={key}
-            className={`cursor-pointer transition-all hover:shadow-md ${entityType === key ? 'ring-2 ring-primary' : ''}`}
-            onClick={() => { setEntityType(entityType === key ? '__all__' : key); setPage(1); }}
-          >
-            <CardContent className="p-3 text-center">
-              <meta.icon className="w-5 h-5 mx-auto mb-1 text-muted-foreground" />
-              <div className="text-xl font-bold">{counts[key] ?? 0}</div>
-              <div className="text-xs text-muted-foreground">{meta.label}</div>
-            </CardContent>
-          </Card>
-        ))}
+        {ENTITY_KEYS.filter((key) => (counts[key] ?? 0) > 0 || counts.total > 0).map((key) => {
+          const meta = ENTITY_META[key];
+          return (
+            <Card
+              key={key}
+              className={`cursor-pointer transition-all hover:shadow-md ${entityType === key ? 'ring-2 ring-primary' : ''}`}
+              onClick={() => { setEntityType(entityType === key ? '__all__' : key); setPage(1); }}
+            >
+              <CardContent className="p-3 text-center">
+                <meta.icon className="w-5 h-5 mx-auto mb-1 text-muted-foreground" />
+                <div className="text-xl font-bold">{counts[key] ?? 0}</div>
+                <div className="text-xs text-muted-foreground">{t(`recycleBin.list.entityLabels.${key}`)}</div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
       {/* Filters */}
@@ -271,7 +278,7 @@ export function DeletedRecords() {
               <div className="relative">
                 <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search by name, email, ID…"
+                  placeholder={t('recycleBin.list.searchPh')}
                   value={search}
                   onChange={e => { setSearch(e.target.value); setPage(1); }}
                   className="ps-9"
@@ -284,8 +291,8 @@ export function DeletedRecords() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="__all__">{t('recycleBin.list.allTypes')}</SelectItem>
-                {Object.entries(ENTITY_LABELS).map(([key, meta]) => (
-                  <SelectItem key={key} value={key}>{meta.label}</SelectItem>
+                {ENTITY_KEYS.map((key) => (
+                  <SelectItem key={key} value={key}>{t(`recycleBin.list.entityLabels.${key}`)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -303,7 +310,7 @@ export function DeletedRecords() {
               <Input type="date" value={deletedFrom} onChange={e => { setDeletedFrom(e.target.value); setPage(1); }} className="w-36" />
             </div>
             <div className="flex items-center gap-2">
-              <Label className="text-xs text-muted-foreground">to</Label>
+              <Label className="text-xs text-muted-foreground">{t('recycleBin.list.deletedTo')}</Label>
               <Input type="date" value={deletedTo} onChange={e => { setDeletedTo(e.target.value); setPage(1); }} className="w-36" />
             </div>
           </div>
@@ -314,7 +321,7 @@ export function DeletedRecords() {
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-base">
-            {loading ? 'Loading…' : `${total} deleted record${total !== 1 ? 's' : ''}`}
+            {loading ? t('recycleBin.list.loading') : t('recycleBin.list.deletedRecord', { count: total })}
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
@@ -322,13 +329,13 @@ export function DeletedRecords() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-muted/40">
-                  <th className="px-4 py-3 text-start font-medium text-muted-foreground">Type</th>
+                  <th className="px-4 py-3 text-start font-medium text-muted-foreground">{t('recycleBin.list.type')}</th>
                   <th className="px-4 py-3 text-start font-medium text-muted-foreground">{t('recycleBin.list.nameOrId')}</th>
                   <th className="px-4 py-3 text-start font-medium text-muted-foreground">{t('recycleBin.list.businessId')}</th>
                   <th className="px-4 py-3 text-start font-medium text-muted-foreground">{t('recycleBin.list.deletedAt')}</th>
-                  <th className="px-4 py-3 text-start font-medium text-muted-foreground">Reason</th>
-                  <th className="px-4 py-3 text-start font-medium text-muted-foreground">Related</th>
-                  <th className="px-4 py-3 text-end font-medium text-muted-foreground">Actions</th>
+                  <th className="px-4 py-3 text-start font-medium text-muted-foreground">{t('recycleBin.list.reason')}</th>
+                  <th className="px-4 py-3 text-start font-medium text-muted-foreground">{t('recycleBin.list.relatedHeader')}</th>
+                  <th className="px-4 py-3 text-end font-medium text-muted-foreground">{t('recycleBin.list.actionsHeader')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -337,7 +344,7 @@ export function DeletedRecords() {
                 ) : records.length === 0 ? (
                   <tr><td colSpan={7} className="px-4 py-12 text-center text-muted-foreground">
                     <RotateCcw className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                    No deleted records found
+                    {t('recycleBin.list.noRecords')}
                   </td></tr>
                 ) : records.map(rec => (
                   <tr key={`${rec.entityType}-${rec.id}`} className="border-b hover:bg-muted/30 transition-colors">
@@ -361,30 +368,30 @@ export function DeletedRecords() {
                           onClick={() => openRelated(rec)}
                           className="text-xs text-primary hover:underline"
                         >
-                          {rec.relatedDeletedCount} related
+                          {t('recycleBin.list.relatedCount', { count: rec.relatedDeletedCount })}
                         </button>
                       ) : <span className="text-xs text-muted-foreground">—</span>}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
                         {rec.relatedDeletedCount > 0 && (
-                          <Button variant="ghost" size="sm" onClick={() => openRelated(rec)} title="View related deleted data">
+                          <Button variant="ghost" size="sm" onClick={() => openRelated(rec)} title={t('recycleBin.list.viewRelatedTooltip')}>
                             <Eye className="w-4 h-4" />
                           </Button>
                         )}
                         {rec.canRestore && (
-                          <Button variant="ghost" size="sm" className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50" onClick={() => openRestore(rec, false)} title="Restore">
+                          <Button variant="ghost" size="sm" className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50" onClick={() => openRestore(rec, false)} title={t('recycleBin.list.restoreTooltip')}>
                             <RotateCcw className="w-4 h-4" />
                           </Button>
                         )}
                         {rec.canRestoreWithRelated && rec.relatedDeletedCount > 0 && (
-                          <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700 hover:bg-blue-50" onClick={() => openRestore(rec, true)} title="Restore with related records">
+                          <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700 hover:bg-blue-50" onClick={() => openRestore(rec, true)} title={t('recycleBin.list.restoreWithRelatedTooltip')}>
                             <RotateCcw className="w-4 h-4 me-1" />
                             <span className="text-xs">{t('recycleBin.list.related')}</span>
                           </Button>
                         )}
                         {rec.canHardDelete && (
-                          <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => { setHardDeleteTarget(rec); setShowHardDeleteDialog(true); }} title="Permanently delete">
+                          <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => { setHardDeleteTarget(rec); setShowHardDeleteDialog(true); }} title={t('recycleBin.list.hardDeleteTooltip')}>
                             <Trash2 className="w-4 h-4" />
                           </Button>
                         )}
@@ -400,7 +407,7 @@ export function DeletedRecords() {
           {totalPages > 1 && (
             <div className="flex items-center justify-between px-4 py-3 border-t">
               <div className="text-sm text-muted-foreground">
-                Page {page} of {totalPages} ({total} records)
+                {t('recycleBin.list.pageOf', { page, totalPages, total })}
               </div>
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage(p => p - 1)}>
@@ -419,9 +426,9 @@ export function DeletedRecords() {
       <Dialog open={showRelatedDialog} onOpenChange={setShowRelatedDialog}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Related Deleted Records</DialogTitle>
-            <DialogDescription>
-              Soft-deleted records associated with: <strong>{selectedRecord?.displayName}</strong>
+            <DialogTitle>{t('recycleBin.list.viewRelatedTitle')}</DialogTitle>
+            <DialogDescription asChild>
+              <span dangerouslySetInnerHTML={{ __html: t('recycleBin.list.viewRelatedSubtitle', { name: selectedRecord?.displayName ?? '' }) }} />
             </DialogDescription>
           </DialogHeader>
           {relatedLoading ? (
@@ -450,11 +457,11 @@ export function DeletedRecords() {
             </div>
           ) : null}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowRelatedDialog(false)}>Close</Button>
+            <Button variant="outline" onClick={() => setShowRelatedDialog(false)}>{t('recycleBin.list.close')}</Button>
             {selectedRecord?.canRestoreWithRelated && (
               <Button onClick={() => { setShowRelatedDialog(false); openRestore(selectedRecord!, true); }}>
                 <RotateCcw className="w-4 h-4 me-2" />
-                Restore with Related
+                {t('recycleBin.list.restoreWithRelatedBtn')}
               </Button>
             )}
           </DialogFooter>
@@ -466,24 +473,23 @@ export function DeletedRecords() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {restoreWithRelated ? 'Restore with Related Records' : 'Restore Record'}
+              {restoreWithRelated ? t('recycleBin.list.restoreWithRelatedTitle') : t('recycleBin.list.restoreTitle')}
             </DialogTitle>
             <DialogDescription>
               {restoreWithRelated
-                ? `This will restore "${restoreTarget?.displayName}" and all its soft-deleted related records.`
-                : `This will restore "${restoreTarget?.displayName}" only.`}
+                ? t('recycleBin.list.restoreWithRelatedSubtitle', { name: restoreTarget?.displayName ?? '' })
+                : t('recycleBin.list.restoreSubtitle', { name: restoreTarget?.displayName ?? '' })}
             </DialogDescription>
           </DialogHeader>
           {restoreWithRelated && (
-            <div className="p-3 bg-blue-50 border border-blue-200 rounded text-sm text-blue-800">
-              <strong>Note:</strong> Related records (documents, financial records, attachments) deleted at the same time will also be restored.
-            </div>
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded text-sm text-blue-800"
+              dangerouslySetInnerHTML={{ __html: t('recycleBin.list.restoreNote') }} />
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowRestoreDialog(false)}>{tc('actions.cancel')}</Button>
             <Button onClick={executeRestore} disabled={restoreLoading}>
-              {restoreLoading ? 'Restoring…' : (
-                <><RotateCcw className="w-4 h-4 me-2" />Restore</>
+              {restoreLoading ? t('recycleBin.list.restoring') : (
+                <><RotateCcw className="w-4 h-4 me-2" />{t('recycleBin.list.restoreBtn')}</>
               )}
             </Button>
           </DialogFooter>
@@ -496,18 +502,18 @@ export function DeletedRecords() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-destructive">
               <Trash2 className="w-5 h-5" />
-              Permanently Delete
+              {t('recycleBin.list.hardDeleteHeader')}
             </DialogTitle>
-            <DialogDescription>
-              Are you sure you want to permanently delete <strong>{hardDeleteTarget?.displayName}</strong>? This cannot be undone.
+            <DialogDescription asChild>
+              <span dangerouslySetInnerHTML={{ __html: t('recycleBin.list.hardDeleteBody', { name: hardDeleteTarget?.displayName ?? '' }) }} />
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => { setShowHardDeleteDialog(false); setHardDeleteTarget(null); }}>
-              Cancel
+              {t('recycleBin.list.cancel')}
             </Button>
             <Button variant="destructive" disabled={hardDeleteLoading} onClick={executeHardDelete}>
-              {hardDeleteLoading ? 'Deleting…' : 'Delete Permanently'}
+              {hardDeleteLoading ? t('recycleBin.list.deleting') : t('recycleBin.list.deletePermanently')}
             </Button>
           </DialogFooter>
         </DialogContent>

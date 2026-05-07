@@ -334,11 +334,11 @@ export function LogsDashboard() {
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => { fetchLogs(); fetchStats(); }}>
             <RefreshCw className="w-4 h-4 me-1.5" />
-            Refresh
+            {t('logs.dashboard.refresh')}
           </Button>
           <Button variant="outline" size="sm" onClick={() => exportToCsv(displayLogs)} disabled={displayLogs.length === 0}>
             <Download className="w-4 h-4 me-1.5" />
-            Export CSV
+            {t('logs.dashboard.exportCsv')}
           </Button>
           {/* Column picker */}
           <div className="relative" ref={colPickerRef}>
@@ -347,7 +347,7 @@ export function LogsDashboard() {
               onClick={() => setShowColPicker(v => !v)}
               className={showColPicker ? 'border-primary text-primary' : ''}
             >
-              <Columns2 className="w-4 h-4 me-1.5" />Columns
+              <Columns2 className="w-4 h-4 me-1.5" />{t('logs.dashboard.columns')}
               {hiddenCount > 0 && (
                 <span className="ms-1.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
                   {hiddenCount}
@@ -387,7 +387,7 @@ export function LogsDashboard() {
                       localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_VISIBLE));
                     }}
                     className="flex-1 text-xs text-center text-gray-500 hover:underline py-0.5"
-                  >Reset</button>
+                  >{t('logs.dashboard.reset')}</button>
                 </div>
               </div>
             )}
@@ -400,7 +400,7 @@ export function LogsDashboard() {
               onClick={() => setClearOpen(true)}
             >
               <Trash2 className="w-4 h-4 me-1.5" />
-              Clear Logs
+              {t('logs.dashboard.clearLogs')}
             </Button>
           )}
         </div>
@@ -410,22 +410,22 @@ export function LogsDashboard() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
           {
-            icon: FileText, label: 'Total Logs',
+            icon: FileText, label: t('logs.dashboard.totalLogs'),
             value: statsLoading ? '…' : (stats?.total ?? 0).toLocaleString(),
             color: 'text-primary', bg: 'bg-primary/10',
           },
           {
-            icon: Activity, label: 'Last 24 hours',
+            icon: Activity, label: t('logs.dashboard.last24h'),
             value: statsLoading ? '…' : (stats?.last24hCount ?? 0).toLocaleString(),
             color: 'text-emerald-600', bg: 'bg-emerald-100 dark:bg-emerald-900/30',
           },
           {
-            icon: Shield, label: 'Last 7 days',
+            icon: Shield, label: t('logs.dashboard.last7d'),
             value: statsLoading ? '…' : (stats?.last7dCount ?? 0).toLocaleString(),
             color: 'text-amber-600', bg: 'bg-amber-100 dark:bg-amber-900/30',
           },
           {
-            icon: Users, label: 'Top Modules',
+            icon: Users, label: t('logs.dashboard.topModules'),
             value: statsLoading ? '…' : (stats?.byEntity?.length ?? 0).toLocaleString(),
             color: 'text-violet-600', bg: 'bg-violet-100 dark:bg-violet-900/30',
           },
@@ -489,17 +489,17 @@ export function LogsDashboard() {
             <div className="relative">
               <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Search by action, entity, email…"
+                placeholder={t('logs.dashboard.searchPh')}
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 className="ps-9"
               />
             </div>
             <Select value={dateRange} onValueChange={setDateRange}>
-              <SelectTrigger><SelectValue placeholder="Date Range" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder={t('logs.dashboard.dateRange')} /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">{t('logs.dashboard.allTime')}</SelectItem>
-                <SelectItem value="today">Today</SelectItem>
+                <SelectItem value="today">{t('logs.dashboard.today')}</SelectItem>
                 <SelectItem value="week">{t('logs.dashboard.last7Days')}</SelectItem>
                 <SelectItem value="month">{t('logs.dashboard.last30Days')}</SelectItem>
                 <SelectItem value="quarter">{t('logs.dashboard.last90Days')}</SelectItem>
@@ -514,17 +514,17 @@ export function LogsDashboard() {
               </SelectContent>
             </Select>
             <Select value={actionFilter} onValueChange={setActionFilter}>
-              <SelectTrigger><SelectValue placeholder="Action" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder={t('logs.dashboard.action')} /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">{t('logs.dashboard.allActions')}</SelectItem>
-                <SelectItem value="CREATE">Create</SelectItem>
-                <SelectItem value="UPDATE">Update</SelectItem>
-                <SelectItem value="DELETE">Delete</SelectItem>
-                <SelectItem value="LOGIN">Login</SelectItem>
-                <SelectItem value="LOGOUT">Logout</SelectItem>
+                <SelectItem value="CREATE">{t('logs.dashboard.create')}</SelectItem>
+                <SelectItem value="UPDATE">{t('logs.dashboard.update')}</SelectItem>
+                <SelectItem value="DELETE">{t('logs.dashboard.delete')}</SelectItem>
+                <SelectItem value="LOGIN">{t('logs.dashboard.login')}</SelectItem>
+                <SelectItem value="LOGOUT">{t('logs.dashboard.logout')}</SelectItem>
                 <SelectItem value="LOGIN_FAILED">{t('logs.dashboard.loginFailed')}</SelectItem>
-                <SelectItem value="UPLOAD">Upload</SelectItem>
-                <SelectItem value="VERIFY">Verify</SelectItem>
+                <SelectItem value="UPLOAD">{t('logs.dashboard.upload')}</SelectItem>
+                <SelectItem value="VERIFY">{t('logs.dashboard.verify')}</SelectItem>
                 <SelectItem value="CHANGE_PASSWORD">{t('logs.dashboard.changePassword')}</SelectItem>
                 <SelectItem value="STAGE_CHANGE">{t('logs.dashboard.stageChange')}</SelectItem>
               </SelectContent>
@@ -536,7 +536,7 @@ export function LogsDashboard() {
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs text-muted-foreground whitespace-nowrap">{t('logs.dashboard.customFrom')}</span>
               <Input type="date" value={customFrom} onChange={e => setCustomFrom(e.target.value)} className="w-40" />
-              <span className="text-xs text-muted-foreground">to</span>
+              <span className="text-xs text-muted-foreground">{t('logs.dashboard.customTo')}</span>
               <Input type="date" value={customTo} onChange={e => setCustomTo(e.target.value)} className="w-40" />
             </div>
           )}
@@ -544,26 +544,26 @@ export function LogsDashboard() {
           {/* Extra client-side filters */}
           <div className="flex flex-wrap items-center gap-2">
             <Input
-              placeholder="User (name or email) contains…"
+              placeholder={t('logs.dashboard.userContains')}
               value={userFilter}
               onChange={e => setUserFilter(e.target.value)}
               className="w-64"
             />
             <Input
-              placeholder="IP address contains…"
+              placeholder={t('logs.dashboard.ipContains')}
               value={ipFilter}
               onChange={e => setIpFilter(e.target.value)}
               className="w-48"
             />
             <Input
-              placeholder="Entity ID contains…"
+              placeholder={t('logs.dashboard.entityIdContains')}
               value={entityIdFilter}
               onChange={e => setEntityIdFilter(e.target.value)}
               className="w-56"
             />
             {hasExtraFilters && (
               <Button variant="ghost" size="sm" onClick={clearExtraFilters}>
-                <X className="w-3 h-3 me-1" />Clear extras
+                <X className="w-3 h-3 me-1" />{t('logs.dashboard.clearExtras')}
               </Button>
             )}
           </div>
@@ -574,9 +574,9 @@ export function LogsDashboard() {
       <Card>
         <CardHeader className="pb-3 flex flex-row items-center justify-between">
           <CardTitle className="text-base">
-            Activity Logs
+            {t('logs.dashboard.activityLogs')}
             <span className="ms-2 text-sm font-normal text-muted-foreground">
-              {loading ? 'Loading…' : `${total.toLocaleString()} entries`}
+              {loading ? t('logs.dashboard.loading') : t('logs.dashboard.entries', { count: total })}
             </span>
           </CardTitle>
           {totalPages > 1 && (
@@ -584,7 +584,7 @@ export function LogsDashboard() {
               <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
                 <ChevronLeft className="w-4 h-4" />
               </Button>
-              <span className="text-muted-foreground">Page {page} / {totalPages}</span>
+              <span className="text-muted-foreground">{t('logs.dashboard.pageOf', { page, totalPages })}</span>
               <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
                 <ChevronRight className="w-4 h-4" />
               </Button>
@@ -596,15 +596,15 @@ export function LogsDashboard() {
             <table className="w-full min-w-[900px] text-sm">
               <thead className="bg-muted/50 border-b">
                 <tr>
-                  {col('timestamp') && <SortableHead label="Timestamp" field="timestamp" />}
-                  {col('user')      && <SortableHead label="User"      field="user" />}
-                  {col('userEmail') && <SortableHead label="Email"     field="userEmail" />}
-                  {col('action')    && <SortableHead label="Action"    field="action" />}
-                  {col('entity')    && <SortableHead label="Module"    field="entity" />}
-                  {col('entityId')  && <SortableHead label="Entity ID" field="entityId" />}
-                  {col('changes')   && <SortableHead label="Changes"   field="changes" />}
-                  {col('ipAddress') && <SortableHead label="IP Address" field="ipAddress" />}
-                  {col('userAgent') && <SortableHead label="User Agent" field="userAgent" />}
+                  {col('timestamp') && <SortableHead label={t('logs.list.cols.timestamp')} field="timestamp" />}
+                  {col('user')      && <SortableHead label={t('logs.list.cols.user')}      field="user" />}
+                  {col('userEmail') && <SortableHead label={t('logs.list.cols.userEmail')} field="userEmail" />}
+                  {col('action')    && <SortableHead label={t('logs.list.cols.action')}    field="action" />}
+                  {col('entity')    && <SortableHead label={t('logs.list.cols.entity')}    field="entity" />}
+                  {col('entityId')  && <SortableHead label={t('logs.list.cols.entityId')}  field="entityId" />}
+                  {col('changes')   && <SortableHead label={t('logs.list.cols.changes')}   field="changes" />}
+                  {col('ipAddress') && <SortableHead label={t('logs.list.cols.ipAddress')} field="ipAddress" />}
+                  {col('userAgent') && <SortableHead label={t('logs.list.cols.userAgent')} field="userAgent" />}
                 </tr>
               </thead>
               <tbody>
@@ -621,7 +621,7 @@ export function LogsDashboard() {
                 ) : displayLogs.length === 0 ? (
                   <tr>
                     <td colSpan={visibleCount} className="px-4 py-12 text-center text-muted-foreground">
-                      No log entries found matching the current filters
+                      {t('logs.dashboard.noEntriesFound')}
                     </td>
                   </tr>
                 ) : (
@@ -686,17 +686,17 @@ export function LogsDashboard() {
           {totalPages > 1 && (
             <div className="flex items-center justify-between px-4 py-3 border-t">
               <p className="text-sm text-muted-foreground">
-                Showing {(page - 1) * limit + 1}–{Math.min(page * limit, total)} of {total.toLocaleString()}
+                {t('logs.dashboard.showingRange', { from: (page - 1) * limit + 1, to: Math.min(page * limit, total), total })}
               </p>
               <div className="flex gap-1">
-                <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(1)}>First</Button>
+                <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(1)}>{t('logs.dashboard.first')}</Button>
                 <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
                   <ChevronLeft className="w-4 h-4" />
                 </Button>
                 <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
                   <ChevronRight className="w-4 h-4" />
                 </Button>
-                <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(totalPages)}>Last</Button>
+                <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(totalPages)}>{t('logs.dashboard.last')}</Button>
               </div>
             </div>
           )}
@@ -708,9 +708,9 @@ export function LogsDashboard() {
         <Dialog open={clearOpen} onOpenChange={setClearOpen}>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>Clear Audit Logs</DialogTitle>
+              <DialogTitle>{t('logs.dashboard.clearLogsTitle')}</DialogTitle>
               <DialogDescription>
-                Permanently delete log entries. Leave date fields empty to clear all logs.
+                {t('logs.dashboard.clearLogsBody')}
               </DialogDescription>
             </DialogHeader>
 
@@ -744,21 +744,21 @@ export function LogsDashboard() {
 
               <p className="text-xs text-muted-foreground">
                 {!clearFrom && !clearTo && !clearEntity
-                  ? 'All log entries will be permanently deleted.'
-                  : `Logs matching the selected filters will be deleted.`}
+                  ? t('logs.dashboard.clearLogsAllSummary')
+                  : t('logs.dashboard.clearLogsFilteredSummary')}
               </p>
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => setClearOpen(false)} disabled={clearing}>
-                Cancel
+                {t('logs.dashboard.cancel')}
               </Button>
               <Button
                 variant="destructive"
                 onClick={handleClearLogs}
                 disabled={clearing}
               >
-                {clearing ? 'Deleting…' : 'Delete Logs'}
+                {clearing ? t('logs.dashboard.deleting') : t('logs.dashboard.deleteLogs')}
               </Button>
             </div>
           </DialogContent>

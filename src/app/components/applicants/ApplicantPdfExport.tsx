@@ -24,6 +24,7 @@ import { Checkbox } from '../ui/checkbox';
 import { Label } from '../ui/label';
 
 const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1').replace('/api/v1', '');
+const API_URL  = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1');
 
 // ── Font registration (Arabic + Latin) ────────────────────────────────────────
 // Registered once on first import. Subsequent imports/HMR no-op because
@@ -443,11 +444,18 @@ export async function buildApplicantPdfBlob(applicant: any, documents: any[] = [
   const appPages = await mergedPdf.copyPages(appPdfDoc, appPdfDoc.getPageIndices());
   appPages.forEach(p => mergedPdf.addPage(p));
 
+  // Route through the same-origin proxy: Spaces URLs are blocked by CORS
+  // when fetched from the dashboard origin, so direct fetch silently
+  // failed and the supporting docs never made it into the merged PDF.
+  const token = localStorage.getItem('access_token');
   for (const doc of documents) {
     try {
-      const res = await fetch(`${doc.fileUrl?.startsWith('http') ? '' : API_BASE}${doc.fileUrl}`);
+      const res = await fetch(`${API_URL}/documents/${doc.id}/file`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const bytes = await res.arrayBuffer();
-      const mime = doc.mimeType ?? '';
+      const mime = doc.mimeType ?? res.headers.get('content-type') ?? '';
       if (mime === 'application/pdf') {
         const docPdf = await PDFDocument.load(bytes, { ignoreEncryption: true });
         const pages = await mergedPdf.copyPages(docPdf, docPdf.getPageIndices());
@@ -459,9 +467,10 @@ export async function buildApplicantPdfBlob(applicant: any, documents: any[] = [
         page.drawImage(img, { x: (595 - width) / 2, y: (842 - height) / 2, width, height });
       }
       // docx / unknown types are silently skipped — pdf-lib can't embed them.
-    } catch {
+    } catch (e) {
       // Any single-doc failure should never abort the whole export —
       // the operator still gets every other doc + the application.
+      console.warn(`[pdf-export] failed to merge document ${doc.id} (${doc.name}):`, e);
     }
   }
 

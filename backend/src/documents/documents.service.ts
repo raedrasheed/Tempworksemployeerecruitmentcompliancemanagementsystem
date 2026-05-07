@@ -232,6 +232,7 @@ export class DocumentsService {
     entityId: string,
     name: string,
     documentTypeName: string,
+    sectionKey?: string,
   ) {
     // Profile photo short-circuit ─────────────────────────────────────────
     // The public /apply form uploads the applicant's profile photo via
@@ -253,11 +254,40 @@ export class DocumentsService {
       return { id: null, photoUrl: upload.url, name, mimeType: file.mimetype, fileSize: file.size };
     }
 
-    // Resolve document type (exact → contains → substring → first-available)
-    let docType = await this.prisma.documentType.findFirst({
-      where: { name: { equals: documentTypeName, mode: 'insensitive' } },
-    });
-    if (!docType) {
+    // Section-key → canonical DocumentType-name hints. The public form
+    // upload widgets pass language-agnostic section keys, which we
+    // resolve here BEFORE the documentTypeName so a localized label
+    // like "رفع جواز السفر" can never get mis-classified as "the first
+    // DocumentType in the DB".
+    const sectionToTypeName: Record<string, string> = {
+      drivingLicense: 'Driving License',
+      passport: 'Passport',
+      idCard: 'National ID Card',
+      euVisa: 'EU Visa',
+      euResidence: 'EU Residence',
+      euWorkPermit: 'EU Work Permit',
+      workPermit: 'EU Work Permit',
+      homeCriminalRecord: 'Criminal Record',
+      euCriminalRecord: 'Criminal Record',
+      firstAid: 'First Aid Certificate',
+    };
+    const sectionHint = sectionKey?.startsWith('required:')
+      ? sectionKey.slice('required:'.length)
+      : sectionToTypeName[sectionKey ?? ''];
+
+    const findByName = (n: string) =>
+      this.prisma.documentType.findFirst({ where: { name: { equals: n, mode: 'insensitive' } } });
+
+    let docType: any = null;
+
+    // Try the section hint first (stable, language-agnostic).
+    if (sectionHint) docType = await findByName(sectionHint);
+
+    // Then the explicit documentTypeName (exact → contains → substring).
+    if (!docType && documentTypeName) {
+      docType = await findByName(documentTypeName);
+    }
+    if (!docType && documentTypeName) {
       docType = await this.prisma.documentType.findFirst({
         where: { name: { contains: documentTypeName, mode: 'insensitive' } },
       });
@@ -266,7 +296,23 @@ export class DocumentsService {
       const all = await this.prisma.documentType.findMany();
       docType = all.find(t => documentTypeName.toLowerCase().includes(t.name.toLowerCase())) ?? null;
     }
-    if (!docType) docType = await this.prisma.documentType.findFirst({ orderBy: { createdAt: 'asc' } });
+    // Last-resort fallback: only use "Other" (or auto-create it) instead
+    // of "first DocumentType in DB" so an unmatched upload never silently
+    // gets classified as Passport just because it happens to be the first
+    // row created during seeding.
+    if (!docType) {
+      docType = await findByName('Other');
+      if (!docType) {
+        try {
+          docType = await this.prisma.documentType.create({
+            data: { name: 'Other', category: 'OTHER', isActive: true },
+          });
+        } catch {
+          // If create fails (e.g. unique-name race), retry the lookup.
+          docType = await findByName('Other');
+        }
+      }
+    }
     if (!docType) throw new BadRequestException({ code: 'DOCUMENT.TYPES_NOT_CONFIGURED', message: 'No document types configured' });
 
     // Attribute to System Admin

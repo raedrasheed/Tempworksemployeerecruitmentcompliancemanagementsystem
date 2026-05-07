@@ -189,7 +189,7 @@ export function PublicEmployeeApplication() {
           fileItems.map((item: any) => {
             const rawType: string = item.type || item.file!.name;
             const docTypeName = rawType.replace(/^Upload\s+/i, '').trim() || 'Other';
-            return publicApplicationApi.uploadDocument(applicant.id, item.file!, rawType, docTypeName);
+            return publicApplicationApi.uploadDocument(applicant.id, item.file!, rawType, docTypeName, item.sectionKey);
           }),
         );
         const failed = results.filter(r => r.status === 'rejected').length;

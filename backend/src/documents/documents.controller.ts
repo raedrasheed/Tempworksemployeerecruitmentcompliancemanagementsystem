@@ -115,10 +115,11 @@ export class DocumentsController {
     @Body('entityId') entityId: string,
     @Body('name') name: string,
     @Body('documentTypeName') documentTypeName: string,
+    @Body('sectionKey') sectionKey: string | undefined,
   ) {
     if (!file)     throw new BadRequestException({ code: 'GENERIC.FILE_REQUIRED', message: 'File is required' });
     if (!entityId) throw new BadRequestException({ code: 'DOCUMENT.ENTITY_ID_REQUIRED', message: 'entityId is required' });
-    return this.documentsService.publicCreate(file, entityId, name || file.originalname, documentTypeName || 'Other');
+    return this.documentsService.publicCreate(file, entityId, name || file.originalname, documentTypeName || 'Other', sectionKey);
   }
 
   // ── Authenticated upload ───────────────────────────────────────────────────

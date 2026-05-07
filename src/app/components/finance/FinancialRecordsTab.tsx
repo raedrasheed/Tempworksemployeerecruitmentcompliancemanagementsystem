@@ -164,7 +164,8 @@ interface Props {
 }
 
 export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite, canChangeStatus }: Props) {
-  const { t } = useTranslation('pages');
+  const { t, i18n } = useTranslation('pages');
+  const dir = i18n.dir();
   const [records, setRecords] = useState<FinancialRecord[]>([]);
   const [totals, setTotals] = useState<Totals | null>(null);
   const [constants, setConstants] = useState<Constants | null>(null);
@@ -620,8 +621,8 @@ export function FinancialRecordsTab({ entityType, entityId, entityName, canWrite
               )}
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+            <div className="overflow-x-auto" dir={dir}>
+              <table className="w-full text-sm" dir={dir}>
                 <thead>
                   <tr className="border-b bg-muted/40">
                     <th className="text-start px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">{t('finance.tab.columns.date')}</th>

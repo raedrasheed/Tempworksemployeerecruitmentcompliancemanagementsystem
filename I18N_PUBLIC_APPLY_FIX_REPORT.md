@@ -83,15 +83,36 @@ key didn't have a matching EN sibling was dropped. Final state:
 ✓ All 5 target locales × 9 namespaces match English.
 ```
 
+## Follow-up: same fix applied to all other locales
+
+After the AR pass, the SK screenshot confirmed the same issue affected
+every locale: their `applicants.form.*` values were Phase 2.S English
+placeholders. A second translation pass extended the fix to **sk, de,
+ru, tr** (and finished the AR catalog), translating the full 576-key
+form tree across all 5 locales. Final coverage:
+
+| Locale | Translated | Remaining EN | Notes                                     |
+|--------|------------|--------------|-------------------------------------------|
+| sk     | 574 / 576  | 2            | "WhatsApp" — brand                        |
+| de     | 571 / 576  | 5            | "WhatsApp", "Position", "EU / International" — DE-EN cognates |
+| ru     | 573 / 576  | 3            | "WhatsApp", `reference@company.com`       |
+| tr     | 574 / 576  | 2            | "WhatsApp"                                |
+| ar     | 575 / 576  | 1            | `reference@company.com`                   |
+
+The remaining 1–5 strings per locale are intentional: brand names that
+don't translate, email examples, and German cognates of English words
+(e.g. "Position").
+
 ## What this PR does NOT do
 
-- **Does not translate other AR namespaces.** The rest of `ar/pages.json`
-  (admin pages, dashboard, settings, reports, etc.) still has Phase 2.S
-  placeholder copy. Those are separate translator workstreams; this PR is
-  scoped to the public-application surface the screenshots flagged.
+- **Does not translate other namespaces** beyond `applicants.form.*`.
+  The rest of each locale's `pages.json` (admin pages, dashboard,
+  settings, reports, etc.) still has Phase 2.S placeholder copy in some
+  locales. Those are separate translator workstreams; this PR is scoped
+  to the public-application surface the screenshots flagged.
 - **Does not change EN copy.** No new keys were added; no existing EN
-  values were edited. The fix is value-only on the AR side, plus the
-  CountrySelect rendering tweak.
+  values were edited. The fix is value-only on each non-EN catalog,
+  plus the CountrySelect rendering tweak.
 - **Does not change the backend.** Country values stored in DB and sent
   over the wire remain canonical English.
 

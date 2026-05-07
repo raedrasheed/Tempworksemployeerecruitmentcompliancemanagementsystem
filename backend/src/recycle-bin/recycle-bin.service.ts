@@ -155,9 +155,9 @@ export class RecycleBinService {
     // helper is wrapped so a missing table/column (P2021 / P2022)
     // on a partially-migrated environment falls back to an empty
     // list for that entity type instead of failing the listing.
-    const safeList = <T>(p: Promise<T[]>): Promise<T[]> =>
-      p.catch((err: any) => {
-        if (this.isMissingSchemaError(err)) return [] as T[];
+    const safeList = (p: Promise<DeletedRecord[]>): Promise<DeletedRecord[]> =>
+      p.catch((err: any): DeletedRecord[] => {
+        if (this.isMissingSchemaError(err)) return [];
         throw err;
       });
     const [

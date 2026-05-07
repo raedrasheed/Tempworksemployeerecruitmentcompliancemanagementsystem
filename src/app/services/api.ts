@@ -583,12 +583,13 @@ export const publicApplicationApi = {
       body: JSON.stringify(data),
     }),
 
-  uploadDocument: (applicantId: string, file: File, name: string, documentTypeName: string) => {
+  uploadDocument: (applicantId: string, file: File, name: string, documentTypeName: string, sectionKey?: string) => {
     const form = new FormData();
     form.append('file', file);
     form.append('entityId', applicantId);
     form.append('name', name);
     form.append('documentTypeName', documentTypeName);
+    if (sectionKey) form.append('sectionKey', sectionKey);
     return apiFetch<any>('/documents/public/upload', { method: 'POST', body: form });
   },
 };

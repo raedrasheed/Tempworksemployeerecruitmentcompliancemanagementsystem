@@ -45,7 +45,10 @@
     "more": "Больше",
     "saveAdd": "Сохранить и добавить",
     "openFullPage": "Открыть страницу",
-    "openInNewTab": "Открыть в новой вкладке"
+    "openInNewTab": "Открыть в новой вкладке",
+    "downloadPdf": "Скачать PDF",
+    "generating": "Создание…",
+    "convertToEmployee": "Преобразовать в сотрудника"
   },
   "states": {
     "loading": "Загрузка…",

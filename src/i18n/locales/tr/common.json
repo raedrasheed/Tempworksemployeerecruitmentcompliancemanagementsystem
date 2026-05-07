@@ -45,7 +45,10 @@
     "more": "Daha fazla",
     "saveAdd": "Kaydet ve Ekle",
     "openFullPage": "Tam sayfa aç",
-    "openInNewTab": "Yeni sekmede aç"
+    "openInNewTab": "Yeni sekmede aç",
+    "downloadPdf": "PDF İndir",
+    "generating": "Oluşturuluyor…",
+    "convertToEmployee": "Çalışana Dönüştür"
   },
   "states": {
     "loading": "Yükleniyor…",

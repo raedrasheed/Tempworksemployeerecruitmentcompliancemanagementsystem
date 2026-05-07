@@ -45,7 +45,10 @@
     "more": "More",
     "saveAdd": "Save & Add",
     "openFullPage": "Open full page",
-    "openInNewTab": "Open in new tab"
+    "openInNewTab": "Open in new tab",
+    "downloadPdf": "Download PDF",
+    "generating": "Generating…",
+    "convertToEmployee": "Convert to Employee"
   },
   "states": {
     "loading": "Loading…",

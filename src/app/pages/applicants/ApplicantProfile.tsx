@@ -604,7 +604,7 @@ export function ApplicantProfile() {
           {canEdit('applicants') && (
             <Button asChild variant="outline">
               <Link to={`/dashboard/applicants/${id}/edit`}>
-                <Edit className="w-4 h-4 me-2" />Edit
+                <Edit className="w-4 h-4 me-2" />{t('common:actions.edit')}
               </Link>
             </Button>
           )}
@@ -626,13 +626,13 @@ export function ApplicantProfile() {
           {/* Convert Candidate → Employee */}
           {canEdit('applicants') && applicantData?.tier === 'CANDIDATE' && (
             <Button className="bg-[#22C55E] hover:bg-[#16a34a]" onClick={() => setShowConvertDialog(true)}>
-              <UserPlus className="w-4 h-4 me-2" />Convert to Employee
+              <UserPlus className="w-4 h-4 me-2" />{t('common:actions.convertToEmployee')}
             </Button>
           )}
           <ApplicantPdfExportButton applicant={applicantData} documents={documents} />
           {canDelete('applicants') && (
             <Button variant="outline" className="text-[#EF4444] border-[#EF4444]" onClick={handleDelete}>
-              <Trash2 className="w-4 h-4 me-2" />Delete
+              <Trash2 className="w-4 h-4 me-2" />{t('common:actions.delete')}
             </Button>
           )}
         </div>

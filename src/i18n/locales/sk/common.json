@@ -45,7 +45,10 @@
     "more": "Viac",
     "saveAdd": "Uložiť a pridať",
     "openFullPage": "Otvoriť celú stránku",
-    "openInNewTab": "Otvoriť na novej karte"
+    "openInNewTab": "Otvoriť na novej karte",
+    "downloadPdf": "Stiahnuť PDF",
+    "generating": "Generuje sa…",
+    "convertToEmployee": "Previesť na zamestnanca"
   },
   "states": {
     "loading": "Načítava sa…",

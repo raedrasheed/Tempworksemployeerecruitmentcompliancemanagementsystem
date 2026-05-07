@@ -247,5 +247,17 @@
     "Medical Certificate": "Medical Certificate",
     "DVLA Check": "DVLA Check",
     "Transport Manager CPC": "Transport Manager CPC"
+  },
+  "educationLevel": {
+    "Primary School": "Primary School",
+    "Secondary School": "Secondary School",
+    "High School / A-Levels": "High School / A-Levels",
+    "Vocational Training": "Vocational Training",
+    "Associate Degree": "Associate Degree",
+    "Bachelor's Degree": "Bachelor's Degree",
+    "Master's Degree": "Master's Degree",
+    "Doctoral Degree": "Doctoral Degree",
+    "Professional Certification": "Professional Certification",
+    "Other": "Other"
   }
 }

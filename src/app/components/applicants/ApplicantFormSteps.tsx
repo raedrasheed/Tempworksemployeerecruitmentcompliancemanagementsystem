@@ -1992,6 +1992,7 @@ function Step5DrivingExperience({ d, u, settings, fieldErrors }: { d: ApplicantF
 
 function Step6Education({ d, u, settings, uploadedFiles, onFilesChange, fieldErrors }: { d: ApplicantFormData; u: (fn: (p: ApplicantFormData) => ApplicantFormData) => void; settings: FormSettings; uploadedFiles: UploadedFileItem[]; onFilesChange: (files: UploadedFileItem[]) => void; fieldErrors?: Record<string, string> }) {
   const { t } = useTranslation('pages');
+  const { t: tEnums } = useTranslation('enums');
   const addEntry = () => {
     u(prev => ({
       ...prev,
@@ -2033,7 +2034,7 @@ function Step6Education({ d, u, settings, uploadedFiles, onFilesChange, fieldErr
               <Select value={entry.level} onValueChange={v => updateEntry(entry.id, 'level', v)}>
                 <SelectTrigger className={errClass(k('level'))}><SelectValue placeholder={t('applicants.form.step6.levelPh')} /></SelectTrigger>
                 <SelectContent>
-                  {(settings.educationLevels ?? []).map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
+                  {(settings.educationLevels ?? []).map(l => <SelectItem key={l} value={l}>{tEnums(`educationLevel.${l}`, { defaultValue: l })}</SelectItem>)}
                 </SelectContent>
               </Select>
               <FieldError errors={fieldErrors} name={k('level')} />

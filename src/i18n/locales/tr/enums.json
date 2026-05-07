@@ -247,5 +247,17 @@
     "Medical Certificate": "Sağlık Raporu",
     "DVLA Check": "DVLA Kontrolü",
     "Transport Manager CPC": "Nakliye Yöneticisi CPC"
+  },
+  "educationLevel": {
+    "Primary School": "İlkokul",
+    "Secondary School": "Ortaokul",
+    "High School / A-Levels": "Lise / A-Levels",
+    "Vocational Training": "Meslek Eğitimi",
+    "Associate Degree": "Ön Lisans",
+    "Bachelor's Degree": "Lisans",
+    "Master's Degree": "Yüksek Lisans",
+    "Doctoral Degree": "Doktora",
+    "Professional Certification": "Mesleki Sertifika",
+    "Other": "Diğer"
   }
 }

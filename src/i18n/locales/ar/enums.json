@@ -247,5 +247,17 @@
     "Medical Certificate": "الشهادة الطبية",
     "DVLA Check": "فحص DVLA",
     "Transport Manager CPC": "CPC مدير النقل"
+  },
+  "educationLevel": {
+    "Primary School": "المدرسة الابتدائية",
+    "Secondary School": "المدرسة الإعدادية",
+    "High School / A-Levels": "الثانوية العامة",
+    "Vocational Training": "التدريب المهني",
+    "Associate Degree": "دبلوم متوسط",
+    "Bachelor's Degree": "بكالوريوس",
+    "Master's Degree": "ماجستير",
+    "Doctoral Degree": "دكتوراه",
+    "Professional Certification": "شهادة مهنية",
+    "Other": "أخرى"
   }
 }

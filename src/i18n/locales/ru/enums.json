@@ -247,5 +247,17 @@
     "Medical Certificate": "Медицинская справка",
     "DVLA Check": "Проверка DVLA",
     "Transport Manager CPC": "CPC менеджера по транспорту"
+  },
+  "educationLevel": {
+    "Primary School": "Начальная школа",
+    "Secondary School": "Средняя школа",
+    "High School / A-Levels": "Старшая школа / A-уровни",
+    "Vocational Training": "Профессионально-техническое образование",
+    "Associate Degree": "Степень младшего специалиста",
+    "Bachelor's Degree": "Степень бакалавра",
+    "Master's Degree": "Степень магистра",
+    "Doctoral Degree": "Докторская степень",
+    "Professional Certification": "Профессиональный сертификат",
+    "Other": "Другое"
   }
 }

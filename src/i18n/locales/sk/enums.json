@@ -247,5 +247,17 @@
     "Medical Certificate": "Lekárske osvedčenie",
     "DVLA Check": "Kontrola DVLA",
     "Transport Manager CPC": "CPC manažéra dopravy"
+  },
+  "educationLevel": {
+    "Primary School": "Základná škola",
+    "Secondary School": "Stredná škola",
+    "High School / A-Levels": "Gymnázium / Maturita",
+    "Vocational Training": "Odborná škola",
+    "Associate Degree": "Vyššie odborné vzdelanie",
+    "Bachelor's Degree": "Bakalársky titul",
+    "Master's Degree": "Magisterský titul",
+    "Doctoral Degree": "Doktorský titul",
+    "Professional Certification": "Odborné osvedčenie",
+    "Other": "Iné"
   }
 }

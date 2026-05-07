@@ -247,5 +247,17 @@
     "Medical Certificate": "Ärztliches Attest",
     "DVLA Check": "DVLA-Auskunft",
     "Transport Manager CPC": "CPC Verkehrsleiter"
+  },
+  "educationLevel": {
+    "Primary School": "Grundschule",
+    "Secondary School": "Sekundarstufe I",
+    "High School / A-Levels": "Gymnasium / Abitur",
+    "Vocational Training": "Berufsausbildung",
+    "Associate Degree": "Fachhochschulreife / Associate-Abschluss",
+    "Bachelor's Degree": "Bachelor-Abschluss",
+    "Master's Degree": "Master-Abschluss",
+    "Doctoral Degree": "Promotion",
+    "Professional Certification": "Berufszertifikat",
+    "Other": "Sonstige"
   }
 }

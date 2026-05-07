@@ -338,20 +338,20 @@ export function UsersList() {
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={reload} disabled={loading}>
             <RefreshCw className={`w-4 h-4 me-1 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
+            {t('users.list.refresh')}
           </Button>
           <Button variant="outline" size="sm" onClick={handleExport}>
-            <Download className="w-4 h-4 me-2" />Export
+            <Download className="w-4 h-4 me-2" />{t('users.list.export')}
           </Button>
           {canCreate('users') && (
             <Button variant="outline" size="sm" onClick={() => setShowImportModal(true)}>
-              <Upload className="w-4 h-4 me-2" />Bulk Import
+              <Upload className="w-4 h-4 me-2" />{t('users.list.bulkImport')}
             </Button>
           )}
           {canCreate('users') && (
             <Button asChild>
               <Link to="/dashboard/users/add">
-                <Plus className="w-4 h-4 me-2" />Add User
+                <Plus className="w-4 h-4 me-2" />{t('users.list.addButton')}
               </Link>
             </Button>
           )}
@@ -366,7 +366,7 @@ export function UsersList() {
           <div className="relative w-full">
             <Search className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder="Search name, email, role, agency, phone, dept…"
+              placeholder={t('users.list.searchPh')}
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               className="ps-9 w-full"
@@ -389,7 +389,7 @@ export function UsersList() {
               <SelectTrigger className="w-40"><SelectValue placeholder={t('users.list.filterAllStatuses')} /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="__all__">{t('users.list.filterAllStatuses')}</SelectItem>
-                {STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                {STATUSES.map(s => <SelectItem key={s} value={s}>{t(`users.list.statuses.${s.toLowerCase()}`)}</SelectItem>)}
               </SelectContent>
             </Select>
 
@@ -425,7 +425,7 @@ export function UsersList() {
 
             {hasActiveFilters && (
               <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground hover:text-foreground">
-                <X className="w-3.5 h-3.5 me-1" />Clear filters
+                <X className="w-3.5 h-3.5 me-1" />{t('users.list.clearFilters')}
               </Button>
             )}
 
@@ -436,7 +436,7 @@ export function UsersList() {
                 onClick={() => setShowColPicker(v => !v)}
                 className={showColPicker ? 'border-blue-500 text-blue-600' : ''}
               >
-                <Columns2 className="w-4 h-4 me-1.5" />Columns
+                <Columns2 className="w-4 h-4 me-1.5" />{t('users.list.columns')}
                 {hiddenCount > 0 && (
                   <span className="ms-1.5 bg-blue-600 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
                     {hiddenCount}
@@ -475,14 +475,14 @@ export function UsersList() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <SortableHead label="#"          field="userNumber" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} className="w-24" />
-                  <SortableHead label="User"        field="name"       sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />
-                  {col('email')     && <SortableHead label="Email"      field="email"     sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
-                  {col('role')      && <SortableHead label="Role"       field="role"      sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
-                  {col('agency')    && <SortableHead label="Agency"     field="agency"    sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
-                  {col('status')    && <SortableHead label="Status"     field="status"    sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
-                  {col('lastLogin') && <SortableHead label="Last Login" field="lastLogin" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
-                  <TableHead className="text-end">Actions</TableHead>
+                  <SortableHead label={t('users.list.cols.userNumber')} field="userNumber" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} className="w-24" />
+                  <SortableHead label={t('users.list.cols.user')}       field="name"       sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />
+                  {col('email')     && <SortableHead label={t('users.list.cols.email')}     field="email"     sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  {col('role')      && <SortableHead label={t('users.list.cols.role')}      field="role"      sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  {col('agency')    && <SortableHead label={t('users.list.cols.agency')}    field="agency"    sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  {col('status')    && <SortableHead label={t('users.list.cols.status')}    field="status"    sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  {col('lastLogin') && <SortableHead label={t('users.list.cols.lastLogin')} field="lastLogin" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />}
+                  <TableHead className="text-end">{t('users.list.actionsHeader')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -524,7 +524,7 @@ export function UsersList() {
                     {col('status')    && (
                       <TableCell>
                         <Badge className={user.status === 'ACTIVE' ? 'bg-green-500' : user.status === 'PENDING' ? 'bg-amber-500' : user.status === 'SUSPENDED' ? 'bg-red-500' : 'bg-gray-500'}>
-                          {user.status}
+                          {user.status ? t(`users.list.statuses.${String(user.status).toLowerCase()}`, { defaultValue: user.status }) : '—'}
                         </Badge>
                       </TableCell>
                     )}
@@ -536,9 +536,9 @@ export function UsersList() {
                     <TableCell className="text-end">
                       <div className="flex items-center justify-end gap-1">
                         {canEdit('users') && (user.status === 'PENDING' || user.status === 'INACTIVE') && (
-                          <Button variant="ghost" size="sm" onClick={() => handleGetActivationLink(user)} disabled={loadingLink === user.id} className="text-amber-600 hover:text-amber-700 hover:bg-amber-50 text-xs" title="Get activation link">
+                          <Button variant="ghost" size="sm" onClick={() => handleGetActivationLink(user)} disabled={loadingLink === user.id} className="text-amber-600 hover:text-amber-700 hover:bg-amber-50 text-xs" title={t('users.list.activationLinkTooltip')}>
                             <Copy className="w-3.5 h-3.5 me-1" />
-                            {loadingLink === user.id ? '...' : 'Activation Link'}
+                            {loadingLink === user.id ? '...' : t('users.list.activationLink')}
                           </Button>
                         )}
                         {/* Approval pill (pending only) */}
@@ -552,9 +552,9 @@ export function UsersList() {
                             onClick={() => handleApprove(user)}
                             disabled={approveBusy === user.id}
                             className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 text-xs"
-                            title="Approve this agency-created user"
+                            title={t('users.list.approveTooltip')}
                           >
-                            {approveBusy === user.id ? '…' : 'Approve'}
+                            {approveBusy === user.id ? '…' : t('users.list.approve')}
                           </Button>
                         )}
                         {/* Per-user manager override toggles live on the Edit User page — System Admin only. */}
@@ -563,12 +563,12 @@ export function UsersList() {
                             view and this row would be redundant). */}
                         {mayViewRow(user) && !mayEditRow(user) && (
                           <Button variant="ghost" size="sm" asChild>
-                            <Link to={`/dashboard/users/${user.id}/edit`}><Eye className="w-4 h-4 me-1" />View</Link>
+                            <Link to={`/dashboard/users/${user.id}/edit`}><Eye className="w-4 h-4 me-1" />{t('users.list.view')}</Link>
                           </Button>
                         )}
                         {mayEditRow(user) && (
                           <Button variant="ghost" size="sm" asChild>
-                            <Link to={`/dashboard/users/${user.id}/edit`}><Edit className="w-4 h-4 me-1" />Edit</Link>
+                            <Link to={`/dashboard/users/${user.id}/edit`}><Edit className="w-4 h-4 me-1" />{t('users.list.edit')}</Link>
                           </Button>
                         )}
                         {mayDeleteRow(user) && (
@@ -584,7 +584,7 @@ export function UsersList() {
             </Table>
           </div>
           <p className="text-sm text-muted-foreground mt-4">
-            Showing {displayUsers.length} of {users.length} users
+            {t('users.list.showingOf', { shown: displayUsers.length, total: users.length })}
           </p>
         </CardContent>
       </Card>
@@ -597,16 +597,16 @@ export function UsersList() {
               <h2 className="text-xl font-semibold text-[#0F172A]">{t('users.list.activationLinkTitle')}</h2>
               <Button variant="ghost" size="sm" onClick={() => setActivationLink(null)}>✕</Button>
             </div>
-            <p className="text-sm text-muted-foreground">
-              Share this link with <strong>{activationLinkUser}</strong> so they can set their password and activate their account. The link expires in <strong>60 minutes</strong>.
-            </p>
+            <p className="text-sm text-muted-foreground"
+              dangerouslySetInnerHTML={{ __html: t('users.list.shareLink', { name: activationLinkUser }) }}
+            />
             <div className="bg-gray-50 border rounded-md p-3 break-all text-sm font-mono text-gray-700">{activationLink}</div>
             <div className="flex gap-3 pt-1">
               <Button className="flex-1" onClick={handleCopyLink}>
                 {linkCopied ? <Check className="w-4 h-4 me-2 text-green-400" /> : <Copy className="w-4 h-4 me-2" />}
-                {linkCopied ? 'Copied!' : 'Copy Link'}
+                {linkCopied ? t('users.list.copied') : t('users.list.copyLink')}
               </Button>
-              <Button variant="outline" className="flex-1" onClick={() => setActivationLink(null)}>Close</Button>
+              <Button variant="outline" className="flex-1" onClick={() => setActivationLink(null)}>{t('users.list.close')}</Button>
             </div>
           </div>
         </div>
@@ -620,10 +620,9 @@ export function UsersList() {
               <h2 className="text-xl font-semibold text-[#0F172A]">{t('users.list.bulkImportTitle')}</h2>
               <Button variant="ghost" size="sm" onClick={() => { setShowImportModal(false); setCsvText(''); }}>✕</Button>
             </div>
-            <p className="text-sm text-muted-foreground">
-              Paste CSV data below. The first row must be a header row with field names
-              (e.g. <code className="bg-gray-100 px-1 rounded text-xs">firstName,lastName,email,roleId,agencyId</code>).
-            </p>
+            <p className="text-sm text-muted-foreground"
+              dangerouslySetInnerHTML={{ __html: t('users.list.csvHelp') }}
+            />
             <div className="space-y-2">
               <Label htmlFor="csvInput">{t('users.list.csvDataLabel')}</Label>
               <textarea
@@ -635,11 +634,11 @@ export function UsersList() {
               />
             </div>
             {csvText.trim() && (
-              <p className="text-xs text-muted-foreground">Preview: {parseCsvText(csvText).length} record(s) detected</p>
+              <p className="text-xs text-muted-foreground">{t('users.list.csvPreview', { count: parseCsvText(csvText).length })}</p>
             )}
             <div className="flex gap-3 pt-2">
               <Button className="flex-1" onClick={handleBulkImport} disabled={importing || !csvText.trim()}>
-                {importing ? 'Importing...' : 'Import Records'}
+                {importing ? t('users.list.importing') : t('users.list.importRecords')}
               </Button>
               <Button variant="outline" className="flex-1" onClick={() => { setShowImportModal(false); setCsvText(''); }}>{tc('actions.cancel')}</Button>
             </div>

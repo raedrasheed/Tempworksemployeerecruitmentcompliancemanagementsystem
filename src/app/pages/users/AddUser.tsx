@@ -18,12 +18,10 @@ import { useValidationErrors } from '../../../i18n/useValidationErrors';
 import { FieldError } from '../../components/ui/field-error';
 import { ValidationSummary } from '../../components/ui/validation-summary';
 
-const GENDERS = [
-  { value: 'MALE', label: 'Male' },
-  { value: 'FEMALE', label: 'Female' },
-  { value: 'OTHER', label: 'Other' },
-  { value: 'PREFER_NOT_TO_SAY', label: 'Prefer not to say' },
-];
+const GENDER_VALUES = ['MALE', 'FEMALE', 'OTHER', 'PREFER_NOT_TO_SAY'];
+const GENDER_KEYS: Record<string, string> = {
+  MALE: 'male', FEMALE: 'female', OTHER: 'other', PREFER_NOT_TO_SAY: 'preferNotToSay',
+};
 const LANGUAGES = ['English', 'Arabic', 'Polish', 'German', 'French', 'Spanish', 'Italian', 'Romanian', 'Ukrainian'];
 const TIMEZONES = [
   'UTC', 'Europe/London', 'Europe/Warsaw', 'Europe/Berlin', 'Europe/Paris',
@@ -221,8 +219,8 @@ export function AddUser() {
         }`}>
           <span className="font-medium">
             {agencyUserCount >= maxUsersLimit
-              ? `User limit reached (${agencyUserCount}/${maxUsersLimit}). You cannot add more users. Contact a System Administrator to increase the limit.`
-              : `Agency users: ${agencyUserCount} / ${maxUsersLimit}`}
+              ? t('users.add.userLimitReached', { count: agencyUserCount, limit: maxUsersLimit })
+              : t('users.add.usersOf', { count: agencyUserCount, limit: maxUsersLimit })}
           </span>
         </div>
       )}
@@ -235,14 +233,14 @@ export function AddUser() {
           {/* Identity */}
           <Card>
             <CardHeader>
-              <CardTitle>Identity</CardTitle>
+              <CardTitle>{t('users.form.identity')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Photo upload */}
               <div className="flex items-center gap-4">
                 <div className="relative w-20 h-20 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden bg-gray-50 shrink-0">
                   {photoPreview ? (
-                    <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
+                    <img src={photoPreview} alt={t('users.form.preview')} className="w-full h-full object-cover" />
                   ) : (
                     <Camera className="w-7 h-7 text-gray-400" />
                   )}
@@ -253,7 +251,7 @@ export function AddUser() {
                   <div className="flex gap-2">
                     <Button type="button" variant="outline" size="sm" onClick={() => photoInputRef.current?.click()}>
                       <Camera className="w-3.5 h-3.5 me-1" />
-                      {photoPreview ? 'Change' : 'Upload'}
+                      {photoPreview ? t('users.form.photoChange') : t('users.form.photoUpload')}
                     </Button>
                     {photoPreview && (
                       <Button type="button" variant="ghost" size="sm" onClick={() => { setPhotoFile(null); setPhotoPreview(null); }}>
@@ -279,14 +277,14 @@ export function AddUser() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="firstName">{t('users.form.firstName')}</Label>
-                  <Input id="firstName" placeholder="First name" value={form.firstName} onChange={handleChange} required
+                  <Input id="firstName" placeholder={t('users.form.firstNamePh')} value={form.firstName} onChange={handleChange} required
                     aria-invalid={!!fieldErrs.firstName}
                     className={fieldErrs.firstName ? 'border-red-500 focus-visible:ring-red-500' : ''} />
                   <FieldError errors={fieldErrs} name="firstName" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="middleName">{t('users.form.middleName')}</Label>
-                  <Input id="middleName" placeholder="Middle name" value={form.middleName} onChange={handleChange}
+                  <Input id="middleName" placeholder={t('users.form.middleNamePh')} value={form.middleName} onChange={handleChange}
                     aria-invalid={!!fieldErrs.middleName}
                     className={fieldErrs.middleName ? 'border-red-500 focus-visible:ring-red-500' : ''} />
                   <FieldError errors={fieldErrs} name="middleName" />
@@ -294,14 +292,14 @@ export function AddUser() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="lastName">{t('users.form.lastName')}</Label>
-                <Input id="lastName" placeholder="Last name" value={form.lastName} onChange={handleChange} required
+                <Input id="lastName" placeholder={t('users.form.lastNamePh')} value={form.lastName} onChange={handleChange} required
                   aria-invalid={!!fieldErrs.lastName}
                   className={fieldErrs.lastName ? 'border-red-500 focus-visible:ring-red-500' : ''} />
                 <FieldError errors={fieldErrs} name="lastName" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email">{t('users.form.email')}</Label>
-                <Input id="email" type="email" placeholder="user@company.com" value={form.email} onChange={handleChange} required
+                <Input id="email" type="email" placeholder={t('users.form.emailPh')} value={form.email} onChange={handleChange} required
                   aria-invalid={!!fieldErrs.email}
                   className={fieldErrs.email ? 'border-red-500 focus-visible:ring-red-500' : ''} />
                 <FieldError errors={fieldErrs} name="email" />
@@ -312,23 +310,21 @@ export function AddUser() {
           {/* Work Information */}
           <Card>
             <CardHeader>
-              <CardTitle>Work Information</CardTitle>
+              <CardTitle>{t('users.form.workInfo')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label>Role *</Label>
+                <Label>{t('users.form.role')}</Label>
                 {isAgencyManager ? (
-                  // Agency Manager can only create Agency User — render
-                  // the role read-only so they can't pick anything else.
                   <Input
-                    value={roles[0]?.name ?? 'Loading...'}
+                    value={roles[0]?.name ?? t('users.form.loadingShort')}
                     disabled
                     className="bg-muted text-muted-foreground cursor-not-allowed"
                   />
                 ) : (
                   <Select value={form.roleId} onValueChange={val => handleSelect('roleId', val)} required>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select role" />
+                      <SelectValue placeholder={t('users.form.selectRole')} />
                     </SelectTrigger>
                     <SelectContent>
                       {roles.length > 0 ? (
@@ -336,24 +332,24 @@ export function AddUser() {
                           <SelectItem key={role.id} value={role.id}>{role.name}</SelectItem>
                         ))
                       ) : (
-                        <SelectItem value="placeholder" disabled>Loading roles...</SelectItem>
+                        <SelectItem value="placeholder" disabled>{t('users.form.loadingRoles')}</SelectItem>
                       )}
                     </SelectContent>
                   </Select>
                 )}
               </div>
               <div className="space-y-2">
-                <Label>Agency *</Label>
+                <Label>{t('users.form.agency')}</Label>
                 {isAgencyManager ? (
                   <Input
-                    value={myAgency ? `${myAgency.name} — ${myAgency.country}` : 'Loading...'}
+                    value={myAgency ? `${myAgency.name} — ${myAgency.country}` : t('users.form.loadingShort')}
                     disabled
                     className="bg-muted text-muted-foreground cursor-not-allowed"
                   />
                 ) : (
                   <Select value={form.agencyId} onValueChange={val => handleSelect('agencyId', val)} required>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select agency" />
+                      <SelectValue placeholder={t('users.form.selectAgency')} />
                     </SelectTrigger>
                     <SelectContent>
                       {agencies.length > 0 ? (
@@ -363,7 +359,7 @@ export function AddUser() {
                           </SelectItem>
                         ))
                       ) : (
-                        <SelectItem value="placeholder" disabled>Loading agencies...</SelectItem>
+                        <SelectItem value="placeholder" disabled>{t('users.form.loadingAgencies')}</SelectItem>
                       )}
                     </SelectContent>
                   </Select>
@@ -372,11 +368,11 @@ export function AddUser() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="jobTitle">{t('users.form.jobTitle')}</Label>
-                  <Input id="jobTitle" placeholder="e.g. Recruitment Officer" value={form.jobTitle} onChange={handleChange} />
+                  <Input id="jobTitle" placeholder={t('users.form.jobTitlePh')} value={form.jobTitle} onChange={handleChange} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="department">Department</Label>
-                  <Input id="department" placeholder="e.g. Operations" value={form.department} onChange={handleChange} />
+                  <Label htmlFor="department">{t('users.form.department')}</Label>
+                  <Input id="department" placeholder={t('users.form.departmentPh')} value={form.department} onChange={handleChange} />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -385,17 +381,17 @@ export function AddUser() {
                   <Input id="startDate" type="date" value={form.startDate} onChange={handleChange} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Status</Label>
+                  <Label>{t('users.form.status')}</Label>
                   <Select value={form.status} onValueChange={val => handleSelect('status', val)}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="ACTIVE">Active</SelectItem>
-                      <SelectItem value="INACTIVE">Inactive</SelectItem>
-                      <SelectItem value="SUSPENDED">Suspended</SelectItem>
-                      <SelectItem value="PENDING">Pending</SelectItem>
-                      <SelectItem value="TERMINATED">Terminated</SelectItem>
+                      <SelectItem value="ACTIVE">{t('users.form.statusOptions.ACTIVE')}</SelectItem>
+                      <SelectItem value="INACTIVE">{t('users.form.statusOptions.INACTIVE')}</SelectItem>
+                      <SelectItem value="SUSPENDED">{t('users.form.statusOptions.SUSPENDED')}</SelectItem>
+                      <SelectItem value="PENDING">{t('users.form.statusOptions.PENDING')}</SelectItem>
+                      <SelectItem value="TERMINATED">{t('users.form.statusOptions.TERMINATED')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -406,7 +402,7 @@ export function AddUser() {
           {/* Personal Details */}
           <Card>
             <CardHeader>
-              <CardTitle>Personal Details</CardTitle>
+              <CardTitle>{t('users.form.personal')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -415,14 +411,14 @@ export function AddUser() {
                   <Input id="dateOfBirth" type="date" value={form.dateOfBirth} onChange={handleChange} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Gender</Label>
+                  <Label>{t('users.form.gender')}</Label>
                   <Select value={form.gender} onValueChange={val => handleSelect('gender', val)}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select gender" />
+                      <SelectValue placeholder={t('users.form.selectGender')} />
                     </SelectTrigger>
                     <SelectContent>
-                      {GENDERS.map(g => (
-                        <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>
+                      {GENDER_VALUES.map(v => (
+                        <SelectItem key={v} value={v}>{t(`users.form.genders.${GENDER_KEYS[v]}`)}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -430,15 +426,15 @@ export function AddUser() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Citizenship</Label>
+                  <Label>{t('users.form.citizenship')}</Label>
                   <CountrySelect
                     value={form.citizenship}
                     onChange={(v) => handleSelect('citizenship', v)}
-                    placeholder="Select country of citizenship"
+                    placeholder={t('users.form.selectCitizenship')}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Phone</Label>
+                  <Label htmlFor="phone">{t('users.form.phone')}</Label>
                   <PhoneInput
                     id="phone"
                     value={form.phone}
@@ -452,24 +448,24 @@ export function AddUser() {
           {/* Address */}
           <Card>
             <CardHeader>
-              <CardTitle>Address</CardTitle>
+              <CardTitle>{t('users.form.address')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="addressLine1">{t('users.form.addressLine1')}</Label>
-                <Input id="addressLine1" placeholder="Street address" value={form.addressLine1} onChange={handleChange} />
+                <Input id="addressLine1" placeholder={t('users.form.addressLine1Ph')} value={form.addressLine1} onChange={handleChange} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="addressLine2">{t('users.form.addressLine2')}</Label>
-                <Input id="addressLine2" placeholder="Apartment, suite, etc." value={form.addressLine2} onChange={handleChange} />
+                <Input id="addressLine2" placeholder={t('users.form.addressLine2Ph')} value={form.addressLine2} onChange={handleChange} />
               </div>
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="city">City</Label>
-                  <Input id="city" placeholder="City" value={form.city} onChange={handleChange} />
+                  <Label htmlFor="city">{t('users.form.city')}</Label>
+                  <Input id="city" placeholder={t('users.form.cityPh')} value={form.city} onChange={handleChange} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Country</Label>
+                  <Label>{t('users.form.country')}</Label>
                   <CountrySelect
                     value={form.country}
                     onChange={(v) => handleSelect('country', v)}
@@ -477,7 +473,7 @@ export function AddUser() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="postalCode">{t('users.form.postalCode')}</Label>
-                  <Input id="postalCode" placeholder="Post code" value={form.postalCode} onChange={handleChange} />
+                  <Input id="postalCode" placeholder={t('users.form.postalCodePh')} value={form.postalCode} onChange={handleChange} />
                 </div>
               </div>
             </CardContent>
@@ -486,15 +482,15 @@ export function AddUser() {
           {/* Preferences */}
           <Card>
             <CardHeader>
-              <CardTitle>Preferences</CardTitle>
+              <CardTitle>{t('users.form.preferences')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Preferred Language</Label>
+                  <Label>{t('users.form.preferredLanguage')}</Label>
                   <Select value={form.preferredLanguage} onValueChange={val => handleSelect('preferredLanguage', val)}>
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue placeholder={t('users.form.selectLanguage')} />
                     </SelectTrigger>
                     <SelectContent>
                       {LANGUAGES.map(l => (
@@ -504,10 +500,10 @@ export function AddUser() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Time Zone</Label>
+                  <Label>{t('users.form.timeZone')}</Label>
                   <Select value={form.timeZone} onValueChange={val => handleSelect('timeZone', val)}>
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue placeholder={t('users.form.selectTimeZone')} />
                     </SelectTrigger>
                     <SelectContent>
                       {TIMEZONES.map(tz => (
@@ -523,7 +519,7 @@ export function AddUser() {
           {/* Account Setup */}
           <Card>
             <CardHeader>
-              <CardTitle>Account Setup</CardTitle>
+              <CardTitle>{t('users.form.accountSetup')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center gap-3">
@@ -534,10 +530,10 @@ export function AddUser() {
                 />
                 <div>
                   <Label htmlFor="sendActivationEmail" className="cursor-pointer font-medium">
-                    Send activation email
+                    {t('users.form.sendActivationEmail')}
                   </Label>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    The user will receive an email with a link to set their password
+                    {t('users.form.sendActivationHelp')}
                   </p>
                 </div>
               </div>
@@ -548,7 +544,7 @@ export function AddUser() {
                   <Input
                     id="password"
                     type="password"
-                    placeholder="Minimum 8 characters"
+                    placeholder={t('users.form.passwordPh')}
                     value={form.password}
                     onChange={handleChange}
                     aria-invalid={!!fieldErrs.password}
@@ -568,7 +564,7 @@ export function AddUser() {
               className="flex-1"
               disabled={submitting || (isAgencyManager && maxUsersLimit !== null && agencyUserCount !== null && agencyUserCount >= maxUsersLimit)}
             >
-              {submitting ? tc('states.saving') : t('users.add.title')}
+              {submitting ? tc('states.saving') : t('users.add.submit')}
             </Button>
             <Button type="button" variant="outline" className="flex-1" asChild>
               <Link to="/dashboard/users">{tc('actions.cancel')}</Link>

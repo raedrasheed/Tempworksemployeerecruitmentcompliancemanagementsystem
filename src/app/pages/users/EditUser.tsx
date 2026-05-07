@@ -19,12 +19,10 @@ import { FieldError } from '../../components/ui/field-error';
 import { ValidationSummary } from '../../components/ui/validation-summary';
 import { usersApi, rolesApi, agenciesApi, authApi, getCurrentUser, resolveAssetUrl } from '../../services/api';
 
-const GENDERS = [
-  { value: 'MALE', label: 'Male' },
-  { value: 'FEMALE', label: 'Female' },
-  { value: 'OTHER', label: 'Other' },
-  { value: 'PREFER_NOT_TO_SAY', label: 'Prefer not to say' },
-];
+const GENDER_VALUES = ['MALE', 'FEMALE', 'OTHER', 'PREFER_NOT_TO_SAY'];
+const GENDER_KEYS: Record<string, string> = {
+  MALE: 'male', FEMALE: 'female', OTHER: 'other', PREFER_NOT_TO_SAY: 'preferNotToSay',
+};
 const LANGUAGES = ['English', 'Arabic', 'Polish', 'German', 'French', 'Spanish', 'Italian', 'Romanian', 'Ukrainian'];
 const TIMEZONES = [
   'UTC', 'Europe/London', 'Europe/Warsaw', 'Europe/Berlin', 'Europe/Paris',
@@ -33,58 +31,20 @@ const TIMEZONES = [
   'Asia/Dubai', 'Asia/Riyadh',
 ];
 
-const STATUS_OPTIONS: { value: string; label: string }[] = [
-  { value: 'ACTIVE',     label: 'Active' },
-  { value: 'INACTIVE',   label: 'Inactive' },
-  { value: 'SUSPENDED',  label: 'Suspended' },
-  { value: 'PENDING',    label: 'Pending' },
-  { value: 'TERMINATED', label: 'Terminated' },
-];
+const STATUS_VALUES = ['ACTIVE', 'INACTIVE', 'SUSPENDED', 'PENDING', 'TERMINATED'];
 
 type StatusStyle = {
   badge: string;
   card:  string;
   dot:   string;
-  label: string;
-  description: string;
 };
 
 const STATUS_STYLES: Record<string, StatusStyle> = {
-  ACTIVE: {
-    badge: 'bg-emerald-500 text-white border-emerald-500',
-    card:  'border-emerald-300 bg-emerald-50/60',
-    dot:   'bg-emerald-500',
-    label: 'Active',
-    description: 'User can sign in and access the system.',
-  },
-  PENDING: {
-    badge: 'bg-amber-500 text-white border-amber-500',
-    card:  'border-amber-300 bg-amber-50/60',
-    dot:   'bg-amber-500',
-    label: 'Pending Activation',
-    description: 'Awaiting email activation. Sign-in is blocked until activated.',
-  },
-  INACTIVE: {
-    badge: 'bg-slate-500 text-white border-slate-500',
-    card:  'border-slate-300 bg-slate-50',
-    dot:   'bg-slate-500',
-    label: 'Inactive',
-    description: 'Account disabled. Sign-in and active sessions are blocked.',
-  },
-  SUSPENDED: {
-    badge: 'bg-red-500 text-white border-red-500',
-    card:  'border-red-300 bg-red-50/60',
-    dot:   'bg-red-500',
-    label: 'Suspended',
-    description: 'Account suspended. Sign-in and active sessions are blocked.',
-  },
-  TERMINATED: {
-    badge: 'bg-rose-700 text-white border-rose-700',
-    card:  'border-rose-300 bg-rose-50/60',
-    dot:   'bg-rose-700',
-    label: 'Terminated',
-    description: 'Account terminated. Sign-in is permanently blocked.',
-  },
+  ACTIVE:     { badge: 'bg-emerald-500 text-white border-emerald-500', card: 'border-emerald-300 bg-emerald-50/60', dot: 'bg-emerald-500' },
+  PENDING:    { badge: 'bg-amber-500 text-white border-amber-500',     card: 'border-amber-300 bg-amber-50/60',     dot: 'bg-amber-500' },
+  INACTIVE:   { badge: 'bg-slate-500 text-white border-slate-500',     card: 'border-slate-300 bg-slate-50',         dot: 'bg-slate-500' },
+  SUSPENDED:  { badge: 'bg-red-500 text-white border-red-500',         card: 'border-red-300 bg-red-50/60',         dot: 'bg-red-500' },
+  TERMINATED: { badge: 'bg-rose-700 text-white border-rose-700',       card: 'border-rose-300 bg-rose-50/60',       dot: 'bg-rose-700' },
 };
 
 function getStatusStyle(status: string): StatusStyle {
@@ -158,6 +118,8 @@ export function EditUser() {
     timeZone: '',
   });
 
+  const { errors: fieldErrs, setFromError, clearAll: clearFieldErrors, clearError } = useValidationErrors();
+
   useEffect(() => {
     Promise.all([
       usersApi.get(id!),
@@ -229,8 +191,6 @@ export function EditUser() {
       </div>
     );
   }
-
-  const { errors: fieldErrs, setFromError, clearAll: clearFieldErrors, clearError } = useValidationErrors();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm(prev => ({ ...prev, [e.target.id]: e.target.value }));
@@ -314,17 +274,22 @@ export function EditUser() {
 
       {/* Account Status — moved to top, with colors */}
       {(() => {
-        const style = getStatusStyle(form.status || userStatus);
+        const status = form.status || userStatus;
+        const style = getStatusStyle(status);
+        const label = status === 'PENDING'
+          ? t('users.form.statusDesc.PENDING_LABEL')
+          : t(`users.form.statusOptions.${status}`, { defaultValue: status });
+        const description = t(`users.form.statusDesc.${status}`, { defaultValue: '' });
         return (
           <div className={`max-w-2xl rounded-lg border ${style.card} p-4 flex flex-wrap items-center gap-4`}>
             <div className="flex items-center gap-3 min-w-0">
               <span className={`w-2.5 h-2.5 rounded-full ${style.dot}`} />
               <div className="min-w-0">
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">{t('users.edit.accountStatus')}</p>
-                <Badge className={`${style.badge} mt-1`}>{style.label}</Badge>
+                <Badge className={`${style.badge} mt-1`}>{label}</Badge>
               </div>
             </div>
-            <p className="text-sm text-muted-foreground flex-1 min-w-[200px]">{style.description}</p>
+            <p className="text-sm text-muted-foreground flex-1 min-w-[200px]">{description}</p>
             {isAdminOrHR && (
               <div className="space-y-1">
                 <Label htmlFor="status-select" className="text-xs">{t('users.edit.changeStatus')}</Label>
@@ -333,13 +298,13 @@ export function EditUser() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {STATUS_OPTIONS.map(o => {
-                      const s = getStatusStyle(o.value);
+                    {STATUS_VALUES.map(v => {
+                      const s = getStatusStyle(v);
                       return (
-                        <SelectItem key={o.value} value={o.value}>
+                        <SelectItem key={v} value={v}>
                           <span className="inline-flex items-center gap-2">
                             <span className={`w-2 h-2 rounded-full ${s.dot}`} />
-                            {o.label}
+                            {t(`users.form.statusOptions.${v}`)}
                           </span>
                         </SelectItem>
                       );
@@ -356,9 +321,9 @@ export function EditUser() {
       <div className="max-w-2xl flex flex-wrap gap-3">
         {lockedAt && (
           <div className="flex items-center gap-3 flex-1 p-3 rounded-lg border border-amber-300 bg-amber-50">
-            <Badge className="bg-amber-500 shrink-0">Locked</Badge>
+            <Badge className="bg-amber-500 shrink-0">{t('users.edit.lockedBadge')}</Badge>
             <span className="text-sm text-amber-800 flex-1">
-              Account locked since {new Date(lockedAt).toLocaleDateString()}
+              {t('users.edit.lockedSince', { date: new Date(lockedAt).toLocaleDateString() })}
             </span>
             <Button
               variant="outline"
@@ -367,7 +332,7 @@ export function EditUser() {
               className="border-amber-400 text-amber-700 hover:bg-amber-100 shrink-0"
             >
               <Unlock className="w-4 h-4 me-1" />
-              Unlock
+              {t('users.edit.unlock')}
             </Button>
           </div>
         )}
@@ -378,7 +343,7 @@ export function EditUser() {
           onClick={handleResetPassword}
         >
           <RefreshCw className="w-4 h-4 me-2" />
-          Reset Password
+          {t('users.edit.resetPassword')}
         </Button>
         {(userStatus === 'PENDING' || form.status === 'PENDING') && (
           <Button
@@ -388,7 +353,7 @@ export function EditUser() {
             onClick={handleResendActivation}
           >
             <Mail className="w-4 h-4 me-2" />
-            Resend Activation
+            {t('users.edit.resendActivation')}
           </Button>
         )}
       </div>
@@ -401,16 +366,16 @@ export function EditUser() {
           {/* Identity */}
           <Card>
             <CardHeader>
-              <CardTitle>Identity</CardTitle>
+              <CardTitle>{t('users.form.identity')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Photo upload */}
               <div className="flex items-center gap-4">
                 <div className="relative w-20 h-20 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden bg-gray-50 shrink-0">
                   {photoPreview ? (
-                    <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
+                    <img src={photoPreview} alt={t('users.form.preview')} className="w-full h-full object-cover" />
                   ) : existingPhotoUrl ? (
-                    <img src={resolveAssetUrl(existingPhotoUrl)} alt="Photo" className="w-full h-full object-cover" />
+                    <img src={resolveAssetUrl(existingPhotoUrl)} alt={t('users.form.photoLabel')} className="w-full h-full object-cover" />
                   ) : (
                     <Camera className="w-7 h-7 text-gray-400" />
                   )}
@@ -421,7 +386,7 @@ export function EditUser() {
                   <div className="flex gap-2">
                     <Button type="button" variant="outline" size="sm" onClick={() => photoInputRef.current?.click()} disabled={uploadingPhoto}>
                       <Camera className="w-3.5 h-3.5 me-1" />
-                      {photoPreview || existingPhotoUrl ? 'Change' : 'Upload'}
+                      {photoPreview || existingPhotoUrl ? t('users.form.photoChange') : t('users.form.photoUpload')}
                     </Button>
                     {(photoPreview || existingPhotoUrl) && (
                       <Button type="button" variant="ghost" size="sm" onClick={() => { setPhotoFile(null); setPhotoPreview(null); }}>
@@ -446,7 +411,7 @@ export function EditUser() {
 
               {userNumber && (
                 <div className="space-y-2">
-                  <Label>User Number</Label>
+                  <Label>{t('users.form.userNumber')}</Label>
                   <Input value={userNumber} disabled className="bg-muted text-muted-foreground font-mono cursor-not-allowed" />
                 </div>
               )}
@@ -486,16 +451,16 @@ export function EditUser() {
           {/* Work Information — admin-only fields shown to admins/HR */}
           <Card>
             <CardHeader>
-              <CardTitle>Work Information</CardTitle>
+              <CardTitle>{t('users.form.workInfo')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {isAdminOrHR && (
                 <>
                   <div className="space-y-2">
-                    <Label>Role *</Label>
+                    <Label>{t('users.form.role')}</Label>
                     <Select value={form.roleId} onValueChange={val => handleSelect('roleId', val)}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select role" />
+                        <SelectValue placeholder={t('users.form.selectRole')} />
                       </SelectTrigger>
                       <SelectContent>
                         {roles.map((role: any) => (
@@ -505,10 +470,10 @@ export function EditUser() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Agency *</Label>
+                    <Label>{t('users.form.agency')}</Label>
                     <Select value={form.agencyId} onValueChange={val => handleSelect('agencyId', val)}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select agency" />
+                        <SelectValue placeholder={t('users.form.selectAgency')} />
                       </SelectTrigger>
                       <SelectContent>
                         {agencies.map((agency: any) => (
@@ -524,11 +489,11 @@ export function EditUser() {
               {!isAdminOrHR && (
                 <>
                   <div className="space-y-2">
-                    <Label>Role</Label>
+                    <Label>{t('users.form.roleNoStar')}</Label>
                     <Input value={roles.find(r => r.id === form.roleId)?.name ?? form.roleId} disabled className="bg-muted" />
                   </div>
                   <div className="space-y-2">
-                    <Label>Agency</Label>
+                    <Label>{t('users.form.agencyNoStar')}</Label>
                     <Input value={agencies.find(a => a.id === form.agencyId)?.name ?? form.agencyId} disabled className="bg-muted" />
                   </div>
                 </>
@@ -543,7 +508,7 @@ export function EditUser() {
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="department">Department</Label>
+                  <Label htmlFor="department">{t('users.form.department')}</Label>
                   {isAdminOrHR ? (
                     <Input id="department" value={form.department} onChange={handleChange} />
                   ) : (
@@ -565,7 +530,7 @@ export function EditUser() {
           {/* Personal Details */}
           <Card>
             <CardHeader>
-              <CardTitle>Personal Details</CardTitle>
+              <CardTitle>{t('users.form.personal')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -574,14 +539,14 @@ export function EditUser() {
                   <Input id="dateOfBirth" type="date" value={form.dateOfBirth} onChange={handleChange} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Gender</Label>
+                  <Label>{t('users.form.gender')}</Label>
                   <Select value={form.gender} onValueChange={val => handleSelect('gender', val)}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select gender" />
+                      <SelectValue placeholder={t('users.form.selectGender')} />
                     </SelectTrigger>
                     <SelectContent>
-                      {GENDERS.map(g => (
-                        <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>
+                      {GENDER_VALUES.map(v => (
+                        <SelectItem key={v} value={v}>{t(`users.form.genders.${GENDER_KEYS[v]}`)}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -589,15 +554,15 @@ export function EditUser() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Citizenship</Label>
+                  <Label>{t('users.form.citizenship')}</Label>
                   <CountrySelect
                     value={form.citizenship}
                     onChange={(v) => handleSelect('citizenship', v)}
-                    placeholder="Select country of citizenship"
+                    placeholder={t('users.form.selectCitizenship')}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Phone</Label>
+                  <Label htmlFor="phone">{t('users.form.phone')}</Label>
                   <PhoneInput
                     id="phone"
                     value={form.phone}
@@ -611,24 +576,24 @@ export function EditUser() {
           {/* Address */}
           <Card>
             <CardHeader>
-              <CardTitle>Address</CardTitle>
+              <CardTitle>{t('users.form.address')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="addressLine1">{t('users.form.addressLine1')}</Label>
-                <Input id="addressLine1" placeholder="Street address" value={form.addressLine1} onChange={handleChange} />
+                <Input id="addressLine1" placeholder={t('users.form.addressLine1Ph')} value={form.addressLine1} onChange={handleChange} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="addressLine2">{t('users.form.addressLine2')}</Label>
-                <Input id="addressLine2" placeholder="Apartment, suite, etc." value={form.addressLine2} onChange={handleChange} />
+                <Input id="addressLine2" placeholder={t('users.form.addressLine2Ph')} value={form.addressLine2} onChange={handleChange} />
               </div>
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="city">City</Label>
-                  <Input id="city" placeholder="City" value={form.city} onChange={handleChange} />
+                  <Label htmlFor="city">{t('users.form.city')}</Label>
+                  <Input id="city" placeholder={t('users.form.cityPh')} value={form.city} onChange={handleChange} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Country</Label>
+                  <Label>{t('users.form.country')}</Label>
                   <CountrySelect
                     value={form.country}
                     onChange={(v) => handleSelect('country', v)}
@@ -636,7 +601,7 @@ export function EditUser() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="postalCode">{t('users.form.postalCode')}</Label>
-                  <Input id="postalCode" placeholder="Post code" value={form.postalCode} onChange={handleChange} />
+                  <Input id="postalCode" placeholder={t('users.form.postalCodePh')} value={form.postalCode} onChange={handleChange} />
                 </div>
               </div>
             </CardContent>
@@ -645,15 +610,15 @@ export function EditUser() {
           {/* Preferences */}
           <Card>
             <CardHeader>
-              <CardTitle>Preferences</CardTitle>
+              <CardTitle>{t('users.form.preferences')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Preferred Language</Label>
+                  <Label>{t('users.form.preferredLanguage')}</Label>
                   <Select value={form.preferredLanguage} onValueChange={val => handleSelect('preferredLanguage', val)}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select language" />
+                      <SelectValue placeholder={t('users.form.selectLanguage')} />
                     </SelectTrigger>
                     <SelectContent>
                       {LANGUAGES.map(l => (
@@ -663,10 +628,10 @@ export function EditUser() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Time Zone</Label>
+                  <Label>{t('users.form.timeZone')}</Label>
                   <Select value={form.timeZone} onValueChange={val => handleSelect('timeZone', val)}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select time zone" />
+                      <SelectValue placeholder={t('users.form.selectTimeZone')} />
                     </SelectTrigger>
                     <SelectContent>
                       {TIMEZONES.map(tz => (
@@ -686,9 +651,9 @@ export function EditUser() {
           {isSystemAdmin && form.agencyId && approvalStatus === 'APPROVED' && (
             <Card>
               <CardHeader>
-                <CardTitle>Agency Manager Permissions</CardTitle>
+                <CardTitle>{t('users.edit.managerPermsTitle')}</CardTitle>
                 <p className="text-xs text-muted-foreground mt-1">
-                  This agency user is approved — the owning Agency Manager is locked out of Edit and Delete by default. Flip a switch to grant specific access to this user only.
+                  {t('users.edit.managerPermsHelp')}
                 </p>
               </CardHeader>
               <CardContent className="space-y-3">

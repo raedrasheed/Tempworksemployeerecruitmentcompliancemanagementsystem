@@ -136,6 +136,7 @@ function CandidateCardCorridor({
   onApprove: (person: any) => void;
   onRefresh: () => void;
 }) {
+  const { t } = useTranslation('pages');
   const [quickNote, setQuickNote] = useState('');
   const [savingNote, setSavingNote] = useState(false);
   const [flagged, setFlagged] = useState(candidate.flagged);
@@ -318,6 +319,7 @@ function CandidateCardCorridor({
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export function WorkflowStageDetailsPage() {
+  const { t } = useTranslation('pages');
   const { stageId } = useParams<{ stageId: string }>();
   const navigate = useNavigate();
   const [data, setData] = useState<any>(null);

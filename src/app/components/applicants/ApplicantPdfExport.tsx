@@ -28,11 +28,14 @@ const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1'
 // ── Font registration (Arabic + Latin) ────────────────────────────────────────
 // Registered once on first import. Subsequent imports/HMR no-op because
 // react-pdf de-dupes families by name.
+// Served from /public so the fetch is same-origin — avoids CDN CORS
+// failures that previously aborted the PDF render in production.
+const FONT_BASE = `${window.location.origin}/fonts`;
 Font.register({
   family: 'NotoSansArabic',
   fonts: [
-    { src: 'https://cdn.jsdelivr.net/fontsource/fonts/noto-sans-arabic@latest/arabic-400-normal.ttf', fontWeight: 'normal' },
-    { src: 'https://cdn.jsdelivr.net/fontsource/fonts/noto-sans-arabic@latest/arabic-700-normal.ttf', fontWeight: 'bold' },
+    { src: `${FONT_BASE}/NotoSansArabic-Regular.ttf`, fontWeight: 'normal' },
+    { src: `${FONT_BASE}/NotoSansArabic-Bold.ttf`, fontWeight: 'bold' },
   ],
 });
 // Disable hyphenation — react-pdf otherwise inserts hyphens inside

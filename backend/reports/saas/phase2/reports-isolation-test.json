@@ -1,0 +1,174 @@
+{
+  "generatedAt": "2026-05-09T15:45:14.830Z",
+  "database": "postgres://postgres@127.0.0.1/saas_phase1_fixture?sslmode=disable",
+  "tenantA": {
+    "id": "11111111-1111-1111-1111-111111111111",
+    "name": "Acme HR"
+  },
+  "tenantB": {
+    "id": "44444444-4444-4444-4444-444444444444",
+    "name": "Empty Co"
+  },
+  "counts": {
+    "total": 18,
+    "ready": 3,
+    "passed": 3,
+    "failed": 0,
+    "disabled": 15
+  },
+  "results": [
+    {
+      "source": "employees",
+      "status": "READY",
+      "tenantA": "11111111-1111-1111-1111-111111111111",
+      "tenantB": "44444444-4444-4444-4444-444444444444",
+      "rowsForA": 16,
+      "rowsLeakedFromB": 0,
+      "crossTenantFilterRejected": true,
+      "ok": true,
+      "notes": []
+    },
+    {
+      "source": "applicants",
+      "status": "READY",
+      "tenantA": "11111111-1111-1111-1111-111111111111",
+      "tenantB": "44444444-4444-4444-4444-444444444444",
+      "rowsForA": 41,
+      "rowsLeakedFromB": 0,
+      "crossTenantFilterRejected": true,
+      "ok": true,
+      "notes": []
+    },
+    {
+      "source": "agencies",
+      "status": "READY",
+      "tenantA": "11111111-1111-1111-1111-111111111111",
+      "tenantB": "44444444-4444-4444-4444-444444444444",
+      "rowsForA": 1,
+      "rowsLeakedFromB": 0,
+      "crossTenantFilterRejected": true,
+      "ok": true,
+      "notes": []
+    },
+    {
+      "source": "documents",
+      "status": "DISABLED",
+      "ok": true,
+      "notes": [
+        "source disabled in safe mode"
+      ]
+    },
+    {
+      "source": "compliance_alerts",
+      "status": "DISABLED",
+      "ok": true,
+      "notes": [
+        "source disabled in safe mode"
+      ]
+    },
+    {
+      "source": "work_permits",
+      "status": "DISABLED",
+      "ok": true,
+      "notes": [
+        "source disabled in safe mode"
+      ]
+    },
+    {
+      "source": "visas",
+      "status": "DISABLED",
+      "ok": true,
+      "notes": [
+        "source disabled in safe mode"
+      ]
+    },
+    {
+      "source": "document_types",
+      "status": "DISABLED",
+      "ok": true,
+      "notes": [
+        "source disabled in safe mode"
+      ]
+    },
+    {
+      "source": "employees_documents",
+      "status": "DISABLED",
+      "ok": true,
+      "notes": [
+        "source disabled in safe mode"
+      ]
+    },
+    {
+      "source": "employees_work_permits",
+      "status": "DISABLED",
+      "ok": true,
+      "notes": [
+        "source disabled in safe mode"
+      ]
+    },
+    {
+      "source": "employees_compliance",
+      "status": "DISABLED",
+      "ok": true,
+      "notes": [
+        "source disabled in safe mode"
+      ]
+    },
+    {
+      "source": "applicants_documents",
+      "status": "DISABLED",
+      "ok": true,
+      "notes": [
+        "source disabled in safe mode"
+      ]
+    },
+    {
+      "source": "employees_agencies",
+      "status": "DISABLED",
+      "ok": true,
+      "notes": [
+        "source disabled in safe mode"
+      ]
+    },
+    {
+      "source": "applicants_compliance",
+      "status": "DISABLED",
+      "ok": true,
+      "notes": [
+        "source disabled in safe mode"
+      ]
+    },
+    {
+      "source": "documents_with_type",
+      "status": "DISABLED",
+      "ok": true,
+      "notes": [
+        "source disabled in safe mode"
+      ]
+    },
+    {
+      "source": "employees_visas",
+      "status": "DISABLED",
+      "ok": true,
+      "notes": [
+        "source disabled in safe mode"
+      ]
+    },
+    {
+      "source": "applicants_visas",
+      "status": "DISABLED",
+      "ok": true,
+      "notes": [
+        "source disabled in safe mode"
+      ]
+    },
+    {
+      "source": "employees_documents_type",
+      "status": "DISABLED",
+      "ok": true,
+      "notes": [
+        "source disabled in safe mode"
+      ]
+    }
+  ]
+}

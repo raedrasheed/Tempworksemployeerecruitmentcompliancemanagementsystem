@@ -18,7 +18,8 @@ export type FlagKey =
   | 'RLS_ENFORCEMENT'
   | 'SIGNED_URLS_ENABLED'
   | 'TENANT_SWITCHING_ENABLED'
-  | 'PLATFORM_ADMIN_ENABLED';
+  | 'PLATFORM_ADMIN_ENABLED'
+  | 'TENANT_SAFE_REPORTS_ENABLED';
 
 export const FLAG_KEYS: ReadonlyArray<FlagKey> = [
   'MULTI_TENANT_ENABLED',
@@ -27,16 +28,18 @@ export const FLAG_KEYS: ReadonlyArray<FlagKey> = [
   'SIGNED_URLS_ENABLED',
   'TENANT_SWITCHING_ENABLED',
   'PLATFORM_ADMIN_ENABLED',
+  'TENANT_SAFE_REPORTS_ENABLED',
 ];
 
 /** Defaults. ANY change to a default value is a release-note item. */
 export const FLAG_DEFAULTS: Record<FlagKey, boolean> = {
-  MULTI_TENANT_ENABLED:       false,
-  TENANT_PRISMA_ENFORCEMENT:  false,
-  RLS_ENFORCEMENT:            false,
-  SIGNED_URLS_ENABLED:        false,
-  TENANT_SWITCHING_ENABLED:   false,
-  PLATFORM_ADMIN_ENABLED:     false,
+  MULTI_TENANT_ENABLED:        false,
+  TENANT_PRISMA_ENFORCEMENT:   false,
+  RLS_ENFORCEMENT:             false,
+  SIGNED_URLS_ENABLED:         false,
+  TENANT_SWITCHING_ENABLED:    false,
+  PLATFORM_ADMIN_ENABLED:      false,
+  TENANT_SAFE_REPORTS_ENABLED: false,
 };
 
 /** Strict env parse: only `'true'`/`'false'` (case-insensitive) flip the flag. */

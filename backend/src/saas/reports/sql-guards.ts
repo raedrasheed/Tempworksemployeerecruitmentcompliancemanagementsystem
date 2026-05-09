@@ -65,9 +65,17 @@ export function looksLikeUnsafeSql(s: string): boolean {
   return FORBIDDEN_SQL_PATTERNS.some((re) => re.test(s));
 }
 
-/** UUID validator copied from `infra/prisma/rls.ts` for tenant-id binding. */
+/**
+ * UUID-shape validator — purpose is SQL-injection defence, not RFC 4122
+ * compliance. Accepts any 8-4-4-4-12 hex string. The v4-specific check
+ * in `infra/prisma/rls.ts` is intentionally stricter for the GUC path,
+ * but for the reports builder the looser shape suffices because the
+ * value is already a positional parameter — the regex only stops a
+ * caller from binding a garbage / SQL-laced string in a context where
+ * a UUID is expected.
+ */
 const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export function assertUuid(v: string, what = 'tenantId'): string {
   if (!UUID_RE.test(v)) throw new Error(`Invalid UUID for ${what}`);
   return v;

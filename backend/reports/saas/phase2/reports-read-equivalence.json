@@ -1,0 +1,162 @@
+{
+  "generatedAt": "2026-05-09T15:45:13.154Z",
+  "database": "postgres://postgres@127.0.0.1/saas_phase1_fixture?sslmode=disable",
+  "tenantId": "11111111-1111-1111-1111-111111111111",
+  "counts": {
+    "total": 18,
+    "ready": 3,
+    "disabled": 15,
+    "equal": 3,
+    "withDelta": 0,
+    "errors": 0
+  },
+  "results": [
+    {
+      "source": "employees",
+      "status": "READY",
+      "legacyCount": 16,
+      "safeCount": 16,
+      "idsLegacy": [
+        "139df7f7-abe5-4218-bb9b-fb02527e4554",
+        "3025c3a3-af01-4742-a456-9c23b213853b",
+        "31c2dacd-a2cc-444b-849f-b6504ce720a6",
+        "369b23f1-39c7-4d12-897d-c2628d587bd4",
+        "576c0181-0fb1-4a41-8de8-5d22a90f8a55",
+        "6be5138f-76ad-4fe4-a8ad-e8e4a1c9d42e",
+        "70cf29cb-8053-466c-bf31-82613b4d84b1",
+        "7a016854-edc7-4f7a-b5fd-9b550084f2fc",
+        "7aebdde0-78e4-4471-bf4f-58c74c386ccc",
+        "80926c8f-ab6c-4138-8c0b-8cb6427eaf8b"
+      ],
+      "idsSafe": [
+        "139df7f7-abe5-4218-bb9b-fb02527e4554",
+        "3025c3a3-af01-4742-a456-9c23b213853b",
+        "31c2dacd-a2cc-444b-849f-b6504ce720a6",
+        "369b23f1-39c7-4d12-897d-c2628d587bd4",
+        "576c0181-0fb1-4a41-8de8-5d22a90f8a55",
+        "6be5138f-76ad-4fe4-a8ad-e8e4a1c9d42e",
+        "70cf29cb-8053-466c-bf31-82613b4d84b1",
+        "7a016854-edc7-4f7a-b5fd-9b550084f2fc",
+        "7aebdde0-78e4-4471-bf4f-58c74c386ccc",
+        "80926c8f-ab6c-4138-8c0b-8cb6427eaf8b"
+      ],
+      "setEqual": true,
+      "delta": {
+        "onlyLegacy": 0,
+        "onlySafe": 0
+      }
+    },
+    {
+      "source": "applicants",
+      "status": "READY",
+      "legacyCount": 41,
+      "safeCount": 41,
+      "idsLegacy": [
+        "036eb901-be04-482a-87ba-0fe3410a5da7",
+        "068dbafe-cf53-40d1-8d3f-0c4fedec72bd",
+        "0efac9da-7039-4974-b6fb-560f8fcb39c3",
+        "1d1442b9-b64d-4e8c-a923-5fbf5f95eaa3",
+        "25af40a3-a790-4f8b-adae-1e381ba6c799",
+        "27514cdf-950f-47b4-977e-301e6738edc2",
+        "28cdba9b-ae5c-4996-9bce-9d62418178b1",
+        "28e1be19-c81d-47b9-8733-682f43f5b0b4",
+        "2a033cc7-fc1a-416f-90a2-fa1c71f3c8ca",
+        "2af4eb24-2564-4960-8abd-f456bec27517"
+      ],
+      "idsSafe": [
+        "036eb901-be04-482a-87ba-0fe3410a5da7",
+        "068dbafe-cf53-40d1-8d3f-0c4fedec72bd",
+        "0efac9da-7039-4974-b6fb-560f8fcb39c3",
+        "1d1442b9-b64d-4e8c-a923-5fbf5f95eaa3",
+        "25af40a3-a790-4f8b-adae-1e381ba6c799",
+        "27514cdf-950f-47b4-977e-301e6738edc2",
+        "28cdba9b-ae5c-4996-9bce-9d62418178b1",
+        "28e1be19-c81d-47b9-8733-682f43f5b0b4",
+        "2a033cc7-fc1a-416f-90a2-fa1c71f3c8ca",
+        "2af4eb24-2564-4960-8abd-f456bec27517"
+      ],
+      "setEqual": true,
+      "delta": {
+        "onlyLegacy": 0,
+        "onlySafe": 0
+      }
+    },
+    {
+      "source": "agencies",
+      "status": "READY",
+      "legacyCount": 1,
+      "safeCount": 1,
+      "idsLegacy": [
+        "a7385581-18ca-4bcd-a28c-e21850ea8598"
+      ],
+      "idsSafe": [
+        "a7385581-18ca-4bcd-a28c-e21850ea8598"
+      ],
+      "setEqual": true,
+      "delta": {
+        "onlyLegacy": 0,
+        "onlySafe": 0
+      }
+    },
+    {
+      "source": "documents",
+      "status": "DISABLED"
+    },
+    {
+      "source": "compliance_alerts",
+      "status": "DISABLED"
+    },
+    {
+      "source": "work_permits",
+      "status": "DISABLED"
+    },
+    {
+      "source": "visas",
+      "status": "DISABLED"
+    },
+    {
+      "source": "document_types",
+      "status": "DISABLED"
+    },
+    {
+      "source": "employees_documents",
+      "status": "DISABLED"
+    },
+    {
+      "source": "employees_work_permits",
+      "status": "DISABLED"
+    },
+    {
+      "source": "employees_compliance",
+      "status": "DISABLED"
+    },
+    {
+      "source": "applicants_documents",
+      "status": "DISABLED"
+    },
+    {
+      "source": "employees_agencies",
+      "status": "DISABLED"
+    },
+    {
+      "source": "applicants_compliance",
+      "status": "DISABLED"
+    },
+    {
+      "source": "documents_with_type",
+      "status": "DISABLED"
+    },
+    {
+      "source": "employees_visas",
+      "status": "DISABLED"
+    },
+    {
+      "source": "applicants_visas",
+      "status": "DISABLED"
+    },
+    {
+      "source": "employees_documents_type",
+      "status": "DISABLED"
+    }
+  ]
+}

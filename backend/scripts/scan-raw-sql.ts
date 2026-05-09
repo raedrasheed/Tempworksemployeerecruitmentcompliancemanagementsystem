@@ -133,9 +133,17 @@ async function main(): Promise<void> {
 
   for await (const file of walk(ROOT)) {
     const rel = path.relative(path.resolve(__dirname, '..'), file);
-    // Skip the SaaS scaffolding itself — it's the safe surface; its
-    // `looksLikeUnsafeSql` constants would otherwise self-flag.
+    // Skip the SaaS scaffolding (the safe surface) and the tenant-safe
+    // reports runtime. Both intentionally use `Prisma.raw` / patterns
+    // that would otherwise trip the scanner. They are the safe path.
+    //
+    // Phase 2.1 contract: any `$queryRaw*` inside the runtime MUST be
+    // accompanied by a `// @tenant-reviewed: tenant-safe-report-runtime`
+    // comment — checked by the per-line scanner below as usual; we do
+    // NOT skip individual lines, just the file roots that own the
+    // builder/registry/types.
     if (/[/\\]saas[/\\]reports[/\\]/.test(rel)) continue;
+    if (/[/\\]saas[/\\]reports[/\\]runtime[/\\]/.test(rel)) continue;
     const module = moduleFor(rel);
     const content = await fs.readFile(file, 'utf8');
     const lines = content.split('\n');

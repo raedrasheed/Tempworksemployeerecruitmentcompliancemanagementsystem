@@ -35,6 +35,7 @@ export class FeatureFlagsService {
   signedUrlsEnabled():      boolean { return this.snapshot.SIGNED_URLS_ENABLED; }
   tenantSwitchingEnabled(): boolean { return this.snapshot.TENANT_SWITCHING_ENABLED; }
   platformAdminEnabled():   boolean { return this.snapshot.PLATFORM_ADMIN_ENABLED; }
+  tenantSafeReportsEnabled():boolean{ return this.snapshot.TENANT_SAFE_REPORTS_ENABLED; }
 
   /** Test-only: build a service from an explicit map (no env reads). */
   static forTesting(overrides: Partial<Record<FlagKey, boolean>>): FeatureFlagsService {

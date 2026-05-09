@@ -73,6 +73,9 @@
     "saas:env-safety":                 "ts-node scripts/saas/phase1/env-safety.ts",
     "saas:phase2-runtime-inventory":   "ts-node scripts/saas/phase2/runtime-inventory.ts",
     "saas:phase2-reports-validate":    "ts-node scripts/saas/phase2/reports-validate.ts",
+    "saas:phase2-reports-equivalence": "ts-node scripts/saas/phase2/reports-read-equivalence.ts",
+    "saas:phase2-reports-isolation":   "ts-node scripts/saas/phase2/reports-isolation-test.ts",
+    "saas:phase2-reports-status":      "ts-node scripts/saas/phase2/reports-validate.ts",
     "saas:scan:raw-sql":               "ts-node scripts/scan-raw-sql.ts"
   },
   "dependencies": {

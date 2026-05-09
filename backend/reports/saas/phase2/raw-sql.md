@@ -1,6 +1,6 @@
 # Phase 2 — Raw-SQL Scanner Report
 
-Generated: 2026-05-09T15:23:00.310Z
+Generated: 2026-05-09T15:45:16.447Z
 
 - Total findings: **26**
 - BLOCKER: 11 (blocks Phase 2 enforcement: 20)
@@ -35,23 +35,23 @@ Generated: 2026-05-09T15:23:00.310Z
 | `src/recycle-bin/hard-delete.service.ts` | 26 | **BLOCKER** | `string-concat-SQL` | `recycle-bin` | — | `throw new ForbiddenException(`Hard delete is not permitted for entity type: ${entityType}`);` |
 | `src/recycle-bin/hard-delete.service.ts` | 281 | **BLOCKER** | `string-concat-SQL` | `recycle-bin` | — | ``Cannot hard-delete role: ${assignedUsers} active user(s) are assigned this role. Reassign them first.`,` |
 | `src/recycle-bin/hard-delete.service.ts` | 47 | **BLOCKER** | `string-concat-SQL` | `recycle-bin` | — | `throw new BadRequestException(`No hard-delete handler for entity type: ${entityType}`);` |
-| `src/reports/reports.service.ts` | 647 | **BLOCKER** | `string-concat-SQL` | `reports` | — | ``${j.joinType} JOIN "${j.table}" AS ${j.alias} ON ${j.on}`,` |
+| `src/reports/reports.service.ts` | 758 | **BLOCKER** | `string-concat-SQL` | `reports` | — | ``${j.joinType} JOIN "${j.table}" AS ${j.alias} ON ${j.on}`,` |
 | `src/saas/prisma/tenant-prisma.service.ts` | 62 | **BLOCKER** | `$executeRawUnsafe` | `saas` | — | `await tx.$executeRawUnsafe(setLocalTenantSql(tenantId));` |
-| `src/reports/reports.service.ts` | 653 | **HIGH** | `Prisma.raw` | `reports` | — | `? [Prisma.sql`${Prisma.raw(`${primaryAlias}."deletedAt"`)} IS NULL`]` |
-| `src/reports/reports.service.ts` | 660 | **HIGH** | `Prisma.raw` | `reports` | — | `const col    = Prisma.raw(`${f.alias}."${f.dbCol}"`);` |
-| `src/reports/reports.service.ts` | 692 | **HIGH** | `Prisma.raw` | `reports` | — | `groupedCols.map((c: any) => Prisma.raw(`${fields[c.columnName].alias}."${fields[c.columnName].dbCol}"`)),` |
-| `src/reports/reports.service.ts` | 700 | **HIGH** | `Prisma.raw` | `reports` | — | `.map((s: any) => Prisma.raw(` |
-| `src/reports/reports.service.ts` | 706 | **HIGH** | `Prisma.raw` | `reports` | — | `: Prisma.sql`ORDER BY ${Prisma.raw(fallbackOrder)}`;` |
-| `src/reports/reports.service.ts` | 715 | **HIGH** | `Prisma.raw` | `reports` | — | `SELECT ${Prisma.raw(countExpr)} AS total` |
-| `src/reports/reports.service.ts` | 716 | **HIGH** | `Prisma.raw` | `reports` | — | `FROM ${Prisma.raw(fromFragment)}` |
-| `src/reports/reports.service.ts` | 724 | **HIGH** | `Prisma.raw` | `reports` | — | `SELECT ${Prisma.raw(selectParts.join(', '))}` |
-| `src/reports/reports.service.ts` | 725 | **HIGH** | `Prisma.raw` | `reports` | — | `FROM ${Prisma.raw(fromFragment)}` |
+| `src/reports/reports.service.ts` | 764 | **HIGH** | `Prisma.raw` | `reports` | — | `? [Prisma.sql`${Prisma.raw(`${primaryAlias}."deletedAt"`)} IS NULL`]` |
+| `src/reports/reports.service.ts` | 771 | **HIGH** | `Prisma.raw` | `reports` | — | `const col    = Prisma.raw(`${f.alias}."${f.dbCol}"`);` |
+| `src/reports/reports.service.ts` | 803 | **HIGH** | `Prisma.raw` | `reports` | — | `groupedCols.map((c: any) => Prisma.raw(`${fields[c.columnName].alias}."${fields[c.columnName].dbCol}"`)),` |
+| `src/reports/reports.service.ts` | 811 | **HIGH** | `Prisma.raw` | `reports` | — | `.map((s: any) => Prisma.raw(` |
+| `src/reports/reports.service.ts` | 817 | **HIGH** | `Prisma.raw` | `reports` | — | `: Prisma.sql`ORDER BY ${Prisma.raw(fallbackOrder)}`;` |
+| `src/reports/reports.service.ts` | 826 | **HIGH** | `Prisma.raw` | `reports` | — | `SELECT ${Prisma.raw(countExpr)} AS total` |
+| `src/reports/reports.service.ts` | 827 | **HIGH** | `Prisma.raw` | `reports` | — | `FROM ${Prisma.raw(fromFragment)}` |
+| `src/reports/reports.service.ts` | 835 | **HIGH** | `Prisma.raw` | `reports` | — | `SELECT ${Prisma.raw(selectParts.join(', '))}` |
+| `src/reports/reports.service.ts` | 836 | **HIGH** | `Prisma.raw` | `reports` | — | `FROM ${Prisma.raw(fromFragment)}` |
 | `src/applicants/applicants.service.ts` | 1144 | **MEDIUM** | `$queryRaw` | `applicants` | — | `const result: { current: number }[] = await this.prisma.$queryRaw`` |
 | `src/applicants/applicants.service.ts` | 1170 | **MEDIUM** | `$queryRaw` | `applicants` | — | `const result: { current: number }[] = await this.prisma.$queryRaw`` |
 | `src/applicants/applicants.service.ts` | 1196 | **MEDIUM** | `$queryRaw` | `applicants` | — | `const result: { current: number }[] = await this.prisma.$queryRaw`` |
 | `src/employees/employees.service.ts` | 246 | **MEDIUM** | `$queryRaw` | `employees` | — | `const result: any[] = await this.prisma.$queryRaw`` |
 | `src/pipeline/pipeline.service.ts` | 305 | **MEDIUM** | `$executeRaw` | `pipeline` | — | `await this.prisma.$executeRaw`` |
-| `src/reports/reports.service.ts` | 835 | **MEDIUM** | `$queryRaw` | `reports` | — | `this.prisma.$queryRaw`` |
+| `src/reports/reports.service.ts` | 946 | **MEDIUM** | `$queryRaw` | `reports` | — | `this.prisma.$queryRaw`` |
 
 ## Suggested fixes
 

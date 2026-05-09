@@ -1163,6 +1163,14 @@ model JobAd {
   @@index([status])
   @@index([country])
   @@index([category])
+  // Phase 2.9 tenant-scoped pilot — additive nullable column. The
+  // existing global `slug @unique` is preserved; a future Phase 3
+  // migration will swap to a `(tenantId, slug)` composite unique once
+  // every existing public URL is reconciled. Until then, slug remains
+  // globally unique to keep current public URLs working.
+  tenantId   String?
+  @@index([tenantId])
+  @@index([tenantId, slug])
   @@map("job_ads")
 }
 

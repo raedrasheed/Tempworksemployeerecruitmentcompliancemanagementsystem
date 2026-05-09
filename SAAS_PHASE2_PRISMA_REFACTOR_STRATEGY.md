@@ -204,6 +204,33 @@ the Phase 2.8 PR. Key artefacts:
 The next recommended pilot is `src/job-ads` — single-table CRUD,
 low mutation rate, no file/storage interactions.
 
+## 11.3 Phase 2.9 pilot landed
+
+The third TENANT-SCOPED pilot module (`src/job-ads`) shipped in the
+Phase 2.9 PR. First pilot to ship a schema migration alongside the
+service refactor. Key artefacts:
+
+- `prisma/migrations/saas_phase29_jobads_tenantid/migration.sql` —
+  additive nullable `tenantId` + two indexes; reverse migration
+  provided.
+- `JobAdsService` rewired (10 call sites) with the same pattern as
+  Phase 2.7/2.8.
+- `phase29-jobads-extension.sql` fixture: materialises the columns
+  the staging fixture lacks + seeds two-tenant + one NULL-tenant
+  ads.
+- `saas:phase2-job-ads-equivalence` (13/13 PASS) including public
+  listing equivalence.
+- `saas:phase2-job-ads-isolation` (9/9 PASS) including same-slug-in-
+  two-tenants behaviour and public-listing cross-tenant visibility.
+- `SAAS_PHASE2_JOB_ADS_AUDIT.md`,
+  `SAAS_PHASE2_JOB_ADS_SLUG_SAFETY.md`,
+  `SAAS_PHASE2_JOB_ADS_PILOT_RESULTS.md`.
+
+Phase 2.6/2.7/2.8 harnesses still green (regression-clean).
+
+The next recommended pilot is `src/notifications` (read-mostly views
+of notification rules and recent notifications).
+
 ## 12. Hard rules
 
 - **Never enable `TENANT_PRISMA_ENFORCEMENT=true` in production until every P0/P1/P2 module has migrated.** Enabling it with a half-migrated codebase makes the un-migrated services start filtering by tenant when their callers don't expect it.

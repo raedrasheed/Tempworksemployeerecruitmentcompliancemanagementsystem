@@ -1,14 +1,51 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { PilotPrismaAccessor } from '../saas/prisma/pilot-prisma.accessor';
+import { getPilotScope, PilotScope } from '../saas/prisma/tenant-pilot-scope';
 import { CreateJobAdDto } from './dto/create-job-ad.dto';
 import { UpdateJobAdDto } from './dto/update-job-ad.dto';
 import { FilterJobAdsDto } from './dto/filter-job-ads.dto';
 import { PaginatedResponse } from '../common/dto/pagination-response.dto';
 import { JOB_AD_STATUSES, CONTRACT_TYPES, JOB_CATEGORIES, COMMON_CURRENCIES } from './constants';
 
+/**
+ * Phase 2.9 — third tenant-scoped TenantPrisma pilot.
+ *
+ * Reads/writes route through `PilotPrismaAccessor.client()` and apply
+ * a tenant filter when `getPilotScope(this.pilot, 'job-ads')` reports
+ * `active=true` (pilot flag on, env staging-classified, ALS has a
+ * tenant, allow-list includes `job-ads`). Otherwise — including every
+ * production request — the spreads are no-ops and behaviour is
+ * byte-identical to before this PR.
+ *
+ * Public endpoints (`findPublished`, `findBySlug`) typically run
+ * without a tenant in ALS. The pilot scope is naturally inactive
+ * there, so public URLs continue to surface every PUBLISHED ad
+ * regardless of tenant — preserving public-link semantics. A future
+ * Phase 3 may add a tenant-from-host resolver that attaches a tenant
+ * to public traffic; the service contract does NOT change today.
+ *
+ * Slug uniqueness: the schema's global `slug @unique` constraint is
+ * preserved (Phase 2.9 only added a nullable `tenantId` and two
+ * tenant-leading indexes). The service's `uniqueSlug` lookup stays
+ * global so the suffix-loop never hands out a slug that would later
+ * collide on insert. Phase 3 will swap to a composite `(tenantId, slug)`
+ * unique once every existing public URL is reconciled.
+ */
 @Injectable()
 export class JobAdsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private legacyPrisma: PrismaService,
+    private pilot: PilotPrismaAccessor,
+  ) {}
+
+  private get prisma(): PrismaService {
+    return this.pilot.client();
+  }
+
+  private scope(): PilotScope {
+    return getPilotScope(this.pilot, 'job-ads');
+  }
 
   // ── Slug generation ──────────────────────────────────────────────────────────
 
@@ -22,11 +59,16 @@ export class JobAdsService {
       .slice(0, 100);
   }
 
+  /** Slug uniqueness probe — INTENTIONALLY tenant-agnostic. The DB's
+   *  `slug @unique` constraint is global until Phase 3 swaps it to a
+   *  composite `(tenantId, slug)`. Tenant-filtering this lookup would
+   *  mean the suffix-loop hands out a slug that the unique index then
+   *  rejects on insert. Keeping it global keeps inserts predictable. */
   private async uniqueSlug(base: string, excludeId?: string): Promise<string> {
     let slug = base;
     let attempt = 0;
     while (true) {
-      const existing = await this.prisma.jobAd.findFirst({
+      const existing = await this.legacyPrisma.jobAd.findFirst({ // @tenant-reviewed: phase29-pilot-scope (slug uniqueness is GLOBAL until Phase 3 composite)
         where: {
           slug,
           deletedAt: null,
@@ -42,13 +84,14 @@ export class JobAdsService {
   // ── Dashboard: list (paginated + filtered) ───────────────────────────────────
 
   async findAll(filter: FilterJobAdsDto) {
+    const scope = this.scope();
     const {
       page = 1, limit = 20, search, status, category, country, contractType,
       sortBy = 'createdAt', sortOrder = 'desc',
     } = filter as any;
     const skip = (Number(page) - 1) * Number(limit);
 
-    const where: any = { deletedAt: null };
+    const where: any = { deletedAt: null, ...scope.tenantWhere() };
     if (status)       where.status       = status;
     if (category)     where.category     = category;
     if (country)      where.country      = country;
@@ -67,7 +110,7 @@ export class JobAdsService {
     const orderField = validSort.includes(sortBy) ? sortBy : 'createdAt';
 
     const [items, total] = await Promise.all([
-      this.prisma.jobAd.findMany({
+      this.prisma.jobAd.findMany({ // @tenant-reviewed: phase29-pilot-scope
         where, skip, take: Number(limit),
         orderBy: { [orderField]: sortOrder },
         include: {
@@ -75,22 +118,30 @@ export class JobAdsService {
           _count: { select: { applicants: true } },
         },
       }),
-      this.prisma.jobAd.count({ where }),
+      this.prisma.jobAd.count({ where }), // @tenant-reviewed: phase29-pilot-scope
     ]);
 
     return PaginatedResponse.create(items, total, Number(page), Number(limit));
   }
 
   // ── Public listing (only PUBLISHED, no auth required) ────────────────────────
-
+  //
+  // This endpoint is reached without auth and (typically) without a
+  // tenant in ALS, so `scope.tenantWhere()` returns `{}` and the
+  // listing behaves byte-identically to legacy: every PUBLISHED ad
+  // across all tenants is visible. If a future Phase 3 host-based
+  // resolver attaches a tenant to public traffic, the same code path
+  // will automatically narrow the listing to that tenant — no code
+  // change required.
   async findPublished(filter: FilterJobAdsDto) {
+    const scope = this.scope();
     const {
       page = 1, limit = 20, search, category, country, contractType,
       sortBy = 'publishedAt', sortOrder = 'desc',
     } = filter as any;
     const skip = (Number(page) - 1) * Number(limit);
 
-    const where: any = { deletedAt: null, status: 'PUBLISHED' };
+    const where: any = { deletedAt: null, status: 'PUBLISHED', ...scope.tenantWhere() };
     if (category)     where.category     = category;
     if (country)      where.country      = country;
     if (contractType) where.contractType = contractType;
@@ -108,7 +159,7 @@ export class JobAdsService {
     const orderField = validSort.includes(sortBy) ? sortBy : 'publishedAt';
 
     const [items, total] = await Promise.all([
-      this.prisma.jobAd.findMany({
+      this.prisma.jobAd.findMany({ // @tenant-reviewed: phase29-pilot-scope
         where, skip, take: Number(limit),
         orderBy: { [orderField]: sortOrder },
         select: {
@@ -119,7 +170,7 @@ export class JobAdsService {
           // Exclude description for listing (save bandwidth; use detail endpoint for full text)
         },
       }),
-      this.prisma.jobAd.count({ where }),
+      this.prisma.jobAd.count({ where }), // @tenant-reviewed: phase29-pilot-scope
     ]);
 
     return PaginatedResponse.create(items, total, Number(page), Number(limit));
@@ -133,10 +184,13 @@ export class JobAdsService {
   }
 
   // ── Public detail by slug ─────────────────────────────────────────────────────
-
+  //
+  // Same public-traffic semantics as `findPublished`. With no tenant in
+  // ALS, the slug lookup is global — preserving today's public URLs.
   async findBySlug(slug: string) {
-    const ad = await this.prisma.jobAd.findFirst({
-      where: { slug, deletedAt: null, status: 'PUBLISHED' },
+    const scope = this.scope();
+    const ad = await this.prisma.jobAd.findFirst({ // @tenant-reviewed: phase29-pilot-scope
+      where: { slug, deletedAt: null, status: 'PUBLISHED', ...scope.tenantWhere() },
     });
     if (!ad) throw new NotFoundException(`Job ad '${slug}' not found`);
     return { ...ad, requiredDocuments: this.parseRequiredDocuments(ad.requiredDocuments) };
@@ -145,8 +199,9 @@ export class JobAdsService {
   // ── Dashboard detail by ID ────────────────────────────────────────────────────
 
   async findOne(id: string) {
-    const ad = await this.prisma.jobAd.findFirst({
-      where: { id, deletedAt: null },
+    const scope = this.scope();
+    const ad = await this.prisma.jobAd.findFirst({ // @tenant-reviewed: phase29-pilot-scope
+      where: { id, deletedAt: null, ...scope.tenantWhere() },
       include: {
         createdBy: { select: { id: true, firstName: true, lastName: true } },
         _count: { select: { applicants: true } },
@@ -159,12 +214,13 @@ export class JobAdsService {
   // ── Create ────────────────────────────────────────────────────────────────────
 
   async create(dto: CreateJobAdDto, userId?: string) {
+    const scope = this.scope();
     const baseSlug = dto.slug ? dto.slug.toLowerCase().replace(/\s+/g, '-') : this.toSlug(dto.title);
     const slug = await this.uniqueSlug(baseSlug);
 
     const publishedAt = dto.status === 'PUBLISHED' ? new Date() : null;
 
-    return this.prisma.jobAd.create({
+    return this.prisma.jobAd.create({ // @tenant-reviewed: phase29-pilot-scope
       data: {
         title:             dto.title,
         slug,
@@ -180,6 +236,7 @@ export class JobAdsService {
         publishedAt,
         createdById:       userId ?? null,
         requiredDocuments: dto.requiredDocuments ? JSON.stringify(dto.requiredDocuments) : null,
+        ...scope.tenantData(),
       },
     });
   }
@@ -187,6 +244,8 @@ export class JobAdsService {
   // ── Update ────────────────────────────────────────────────────────────────────
 
   async update(id: string, dto: UpdateJobAdDto, userId?: string) {
+    // findOne is tenant-scoped, so cross-tenant id presents as 404
+    // before any update SQL runs.
     const existing = await this.findOne(id);
 
     // Regenerate slug if title changed and no explicit slug provided
@@ -203,7 +262,7 @@ export class JobAdsService {
       publishedAt = new Date();
     }
 
-    return this.prisma.jobAd.update({
+    return this.prisma.jobAd.update({ // @tenant-reviewed: phase29-pilot-scope
       where: { id },
       data: {
         ...(dto.title        !== undefined ? { title:        dto.title }        : {}),
@@ -226,8 +285,9 @@ export class JobAdsService {
   // ── Soft-delete ───────────────────────────────────────────────────────────────
 
   async remove(id: string) {
+    // findOne is tenant-scoped, so cross-tenant id presents as 404.
     await this.findOne(id);
-    return this.prisma.jobAd.update({
+    return this.prisma.jobAd.update({ // @tenant-reviewed: phase29-pilot-scope
       where: { id },
       data: { deletedAt: new Date() },
     });

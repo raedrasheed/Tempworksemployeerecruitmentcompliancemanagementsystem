@@ -1,7 +1,9 @@
-# Phase 2.6 — TenantPrisma Refactor Pattern
+# Phase 2.6 / 2.7 — TenantPrisma Refactor Pattern
 
 > The reusable shape every future module follows when adopting the
-> tenant-aware Prisma access surface. Roles is the first user.
+> tenant-aware Prisma access surface. Roles (Phase 2.6) is the first
+> GLOBAL pilot user; Employee Work History (Phase 2.7) is the first
+> TENANT-SCOPED pilot user.
 
 ---
 
@@ -178,3 +180,106 @@ the single `TENANT_PRISMA_PILOT_ENABLED` is enough until Phase 3.
   client that is structurally identical to `PrismaService`. Errors
   bubble up as before. We do not add try/catch fallbacks — those would
   hide bugs.
+
+## 10. Tenant-scoped modules (Phase 2.7+)
+
+Roles (Phase 2.6) was a GLOBAL pilot — the accessor swap was enough
+because no tenant filter is ever needed. Tenant-scoped modules need
+**two** mechanical changes:
+
+1. **Read paths** must add a `tenantId = $ctx` term to the Prisma
+   `where` clause when the pilot is active.
+2. **Write paths** must persist `tenantId = $ctx` on creates.
+
+These are encapsulated by `getPilotScope(pilot)` in
+`backend/src/saas/prisma/tenant-pilot-scope.ts`, which returns:
+
+```ts
+interface PilotScope {
+  active: boolean;
+  tenantId: string | null;
+  reason: string;
+  tenantWhere(): Record<string, unknown>;   // returns `{ tenantId }` or `{}`
+  tenantData():  Record<string, unknown>;   // returns `{ tenantId }` or `{}`
+}
+```
+
+The pilot scope is `active === true` only when ALL of these hold:
+
+- `TENANT_PRISMA_PILOT_ENABLED=true`
+- env classifies as SAFE_CLONE / SAFE_STAGING
+- a tenant is in the active ALS frame
+
+If any condition fails, both helpers return `{}` and call sites are
+byte-identical to legacy.
+
+### Read pattern
+
+```ts
+const scope = this.scope();
+return this.prisma.entry.findMany({
+  where: { employeeId, deletedAt: null, ...scope.tenantWhere() },
+});
+```
+
+When `scope.active === true`, the spread adds `tenantId: ctx.id`. When
+inactive, it spreads nothing.
+
+### Create pattern
+
+```ts
+return this.prisma.entry.create({
+  data: { employeeId, eventType, ...scope.tenantData() },
+});
+```
+
+The pilot persists `tenantId` so the row joins the tenant on subsequent
+queries. Legacy mode writes a row with `tenantId IS NULL` — exactly as
+before.
+
+### Update / delete pattern
+
+```ts
+const existing = await this.prisma.entry.findFirst({
+  where: { id, employeeId, deletedAt: null, ...scope.tenantWhere() },
+});
+if (!existing) throw new NotFoundException('not found');
+
+await this.prisma.entry.update({ where: { id }, data: ... });
+```
+
+The pre-check is the safety gate. Once it passes, the mutation can use
+the unique `id` key alone — the row is proven to belong to the active
+tenant.
+
+### Fallback to legacy when the pilot is active but no tenant context
+
+`getPilotScope()` reports `active=false` with reason
+`"pilot ON but no TenantContext in scope (legacy fallback)"`. This is
+deliberate: the pilot does not crash a request that the middleware
+hasn't yet attached tenant context to (e.g. a Phase 2.5 partial
+deployment). Operators see the reason in the accessor's startup log
+and can investigate.
+
+### Unsafe-query prevention
+
+Three layers stop a bad pilot rollout:
+
+1. **Per-call scope check.** Every read/write in the service spreads
+   `scope.tenantWhere()` / `scope.tenantData()` so a partial migration
+   cannot leave a query un-scoped.
+2. **Env classifier.** Even with the flag set, production hosts refuse
+   to engage the pilot.
+3. **Scanner annotations.** Every retained `this.prisma.*` line carries
+   a `@tenant-reviewed: phase27-pilot-scope` comment so future call
+   sites added without scope checks fail the scanner's diff.
+
+### Where this differs from the GLOBAL pattern
+
+| Concern | GLOBAL pattern (Phase 2.6) | TENANT-SCOPED pattern (Phase 2.7) |
+|---|---|---|
+| Accessor injection | `PilotPrismaAccessor` only | `PilotPrismaAccessor` + `getPilotScope()` per call |
+| `tenantWhere()` spread | not needed | required on every read/update/delete |
+| `tenantData()` spread | not needed | required on every create |
+| Cross-tenant id presents as | n/a — global table | `NotFoundException` (404) |
+| Audit log surface | accessor | always legacy (audit is global) |

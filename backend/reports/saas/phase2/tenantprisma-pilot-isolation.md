@@ -1,6 +1,6 @@
 # Phase 2.6 — TenantPrisma Pilot Isolation (Roles)
 
-Generated: 2026-05-09T17:36:48.269Z
+Generated: 2026-05-09T17:49:28.432Z
 Environment: SAFE_CLONE (localhost + fixture pattern (db=saas_phase1_fixture))
 
 - Cases passed: **9** / 9

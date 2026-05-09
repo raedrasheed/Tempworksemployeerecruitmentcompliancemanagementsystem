@@ -148,8 +148,8 @@ Rolling progress dashboard published to `backend/reports/saas/phase2/migration-p
 
 ## 11. Phase 2.6 pilot landed
 
-The first pilot module (`src/roles`) shipped in the Phase 2.6 PR. Key
-artefacts:
+The first pilot module (`src/roles`, GLOBAL) shipped in the Phase 2.6 PR.
+Key artefacts:
 
 - `src/saas/prisma/pilot-prisma.accessor.ts` — per-call routing helper.
 - `TENANT_PRISMA_PILOT_ENABLED` flag (default false).
@@ -160,8 +160,26 @@ artefacts:
   `SAAS_PHASE2_TENANTPRISMA_REFACTOR_PATTERN.md`,
   `SAAS_PHASE2_TENANTPRISMA_PILOT_RESULTS.md`.
 
-The next pilot recommendation is `src/employee-work-history` —
-tenant-scoped via Phase 2.3 denorm, small, no high-risk dependencies.
+## 11.1 Phase 2.7 pilot landed
+
+The first TENANT-SCOPED pilot module (`src/employee-work-history`)
+shipped in the Phase 2.7 PR. Key artefacts:
+
+- `src/saas/prisma/tenant-pilot-scope.ts` — `getPilotScope()` helper
+  exposing spreadable `tenantWhere()` / `tenantData()`.
+- `EmployeeWorkHistoryService` rewired with `private get prisma() { return pilot.client(); }`
+  and `scope.tenantWhere() / .tenantData()` spreads at every call site.
+- `phase27-ewh-extension.sql` fixture: seeds two-tenant collisions plus
+  one NULL-tenant legacy row.
+- `saas:phase2-ewh-equivalence` (12/12 PASS) — legacy vs pilot for
+  list / event-types / create / update / remove.
+- `saas:phase2-ewh-isolation` (8/8 PASS) — cross-tenant 404, write-
+  refusal, concurrent ALS frame separation, pilot-OFF legacy path.
+- `SAAS_PHASE2_EMPLOYEE_WORK_HISTORY_AUDIT.md`,
+  `SAAS_PHASE2_EMPLOYEE_WORK_HISTORY_PILOT_RESULTS.md`.
+
+The next recommended pilot is `src/compliance` (read-only views of
+`compliance_alerts`).
 
 ## 12. Hard rules
 

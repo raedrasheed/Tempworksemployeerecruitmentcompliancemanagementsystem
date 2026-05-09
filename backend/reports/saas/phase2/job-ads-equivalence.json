@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-09T19:25:55.020Z",
+  "generatedAt": "2026-05-09T19:42:48.413Z",
   "environment": {
     "classification": "SAFE_CLONE",
     "reason": "localhost + fixture pattern (db=saas_phase1_fixture)",
@@ -18,10 +18,10 @@
     "findBySlugId": "00000000-0000-0000-0000-0000000a0001",
     "findOneId": "00000000-0000-0000-0000-0000000a0001",
     "errorOnMissing": "NotFoundException",
-    "createdId": "5d01a176-f563-420d-9b06-48f38bef81c7",
+    "createdId": "e284714f-3644-49a8-8f7f-a18065ff5462",
     "createdTenantId": null,
-    "createdSlug": "rehearsal-job-1cj1bd",
-    "updatedTitle": "rehearsal-job-1cj1bd-updated",
+    "createdSlug": "rehearsal-job-3vxnil",
+    "updatedTitle": "rehearsal-job-3vxnil-updated",
     "removedDeletedAt": "set",
     "responseShapeOk": true
   },
@@ -33,10 +33,10 @@
     "findBySlugId": "00000000-0000-0000-0000-0000000a0001",
     "findOneId": "00000000-0000-0000-0000-0000000a0001",
     "errorOnMissing": "NotFoundException",
-    "createdId": "75ce0218-e718-4f57-9559-014421f8053b",
+    "createdId": "6f2e3a11-9b13-42ff-a9fe-7891fdac7e0e",
     "createdTenantId": "11111111-1111-1111-1111-111111111111",
-    "createdSlug": "rehearsal-job-7cvk46",
-    "updatedTitle": "rehearsal-job-7cvk46-updated",
+    "createdSlug": "rehearsal-job-l4k82f",
+    "updatedTitle": "rehearsal-job-l4k82f-updated",
     "removedDeletedAt": "set",
     "responseShapeOk": true
   },
@@ -94,12 +94,12 @@
     {
       "name": "create slug: legacy + pilot both got a non-empty slug",
       "ok": true,
-      "detail": "legacy=rehearsal-job-1cj1bd pilot=rehearsal-job-7cvk46"
+      "detail": "legacy=rehearsal-job-3vxnil pilot=rehearsal-job-l4k82f"
     },
     {
       "name": "update reflects new title in BOTH modes",
       "ok": true,
-      "detail": "legacy=rehearsal-job-1cj1bd-updated pilot=rehearsal-job-7cvk46-updated"
+      "detail": "legacy=rehearsal-job-3vxnil-updated pilot=rehearsal-job-l4k82f-updated"
     },
     {
       "name": "remove sets deletedAt in BOTH modes (soft delete)",

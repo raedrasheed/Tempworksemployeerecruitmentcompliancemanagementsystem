@@ -39,6 +39,8 @@ export class FeatureFlagsService {
   tenantContextStagingOnly():boolean{ return this.snapshot.TENANT_CONTEXT_STAGING_ONLY; }
   tenantContextRequiredForSafeReports():boolean{ return this.snapshot.TENANT_CONTEXT_REQUIRED_FOR_SAFE_REPORTS; }
   tenantPrismaPilotEnabled():boolean { return this.snapshot.TENANT_PRISMA_PILOT_ENABLED; }
+  tenantAwareJobsEnabled(): boolean { return this.snapshot.TENANT_AWARE_JOBS_ENABLED; }
+  tenantJobFanoutEnabled(): boolean { return this.snapshot.TENANT_JOB_FANOUT_ENABLED; }
 
   /** Test-only: build a service from an explicit map (no env reads). */
   static forTesting(overrides: Partial<Record<FlagKey, boolean>>): FeatureFlagsService {

@@ -1,6 +1,6 @@
 # Phase 2.9 — Job Ads Equivalence
 
-Generated: 2026-05-09T19:25:55.020Z
+Generated: 2026-05-09T19:42:48.413Z
 Environment: SAFE_CLONE (localhost + fixture pattern (db=saas_phase1_fixture))
 Tenant A: `11111111-1111-1111-1111-111111111111` · slug: `engineer-acme` · id: `00000000-0000-0000-0000-0000000a0001`
 
@@ -18,7 +18,7 @@ Tenant A: `11111111-1111-1111-1111-111111111111` · slug: `engineer-acme` · id:
 | 7 | error path: NotFoundException for missing id in both modes | PASS | legacy=NotFoundException pilot=NotFoundException |
 | 8 | create legacy: tenantId is NULL | PASS | legacy.tenantId=null |
 | 9 | create pilot: tenantId is set to active tenant | PASS | pilot.tenantId=11111111-1111-1111-1111-111111111111 tenantA=11111111-1111-1111-1111-111111111111 |
-| 10 | create slug: legacy + pilot both got a non-empty slug | PASS | legacy=rehearsal-job-1cj1bd pilot=rehearsal-job-7cvk46 |
-| 11 | update reflects new title in BOTH modes | PASS | legacy=rehearsal-job-1cj1bd-updated pilot=rehearsal-job-7cvk46-updated |
+| 10 | create slug: legacy + pilot both got a non-empty slug | PASS | legacy=rehearsal-job-3vxnil pilot=rehearsal-job-l4k82f |
+| 11 | update reflects new title in BOTH modes | PASS | legacy=rehearsal-job-3vxnil-updated pilot=rehearsal-job-l4k82f-updated |
 | 12 | remove sets deletedAt in BOTH modes (soft delete) | PASS | legacy=set pilot=set |
 | 13 | response shape preserved (PaginatedResponse<JobAd>) | PASS | legacy=true pilot=true |

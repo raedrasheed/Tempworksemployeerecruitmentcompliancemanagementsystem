@@ -22,7 +22,9 @@ export type FlagKey =
   | 'TENANT_SAFE_REPORTS_ENABLED'
   | 'TENANT_CONTEXT_STAGING_ONLY'
   | 'TENANT_CONTEXT_REQUIRED_FOR_SAFE_REPORTS'
-  | 'TENANT_PRISMA_PILOT_ENABLED';
+  | 'TENANT_PRISMA_PILOT_ENABLED'
+  | 'TENANT_AWARE_JOBS_ENABLED'
+  | 'TENANT_JOB_FANOUT_ENABLED';
 
 export const FLAG_KEYS: ReadonlyArray<FlagKey> = [
   'MULTI_TENANT_ENABLED',
@@ -35,6 +37,8 @@ export const FLAG_KEYS: ReadonlyArray<FlagKey> = [
   'TENANT_CONTEXT_STAGING_ONLY',
   'TENANT_CONTEXT_REQUIRED_FOR_SAFE_REPORTS',
   'TENANT_PRISMA_PILOT_ENABLED',
+  'TENANT_AWARE_JOBS_ENABLED',
+  'TENANT_JOB_FANOUT_ENABLED',
 ];
 
 /** Defaults. ANY change to a default value is a release-note item. */
@@ -49,6 +53,8 @@ export const FLAG_DEFAULTS: Record<FlagKey, boolean> = {
   TENANT_CONTEXT_STAGING_ONLY:                false,
   TENANT_CONTEXT_REQUIRED_FOR_SAFE_REPORTS:   false,
   TENANT_PRISMA_PILOT_ENABLED:                false,
+  TENANT_AWARE_JOBS_ENABLED:                  false,
+  TENANT_JOB_FANOUT_ENABLED:                  false,
 };
 
 /** Strict env parse: only `'true'`/`'false'` (case-insensitive) flip the flag. */

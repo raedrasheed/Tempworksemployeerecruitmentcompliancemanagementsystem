@@ -319,6 +319,39 @@ The next phase will pick up the Phase 2.10-flagged scheduler/
 job-context work, or — if a no-scheduler pilot is preferred —
 `src/finance` reads-first.
 
+## 11.7 Phase 2.13 — job-context framework landed
+
+The cron / scheduler blocker called out in Phase 2.10 + 2.12 is now
+addressed at the infrastructure layer:
+
+- New module `backend/src/saas/jobs/`:
+  - `tenant-job.payload.ts` — `TenantJobPayload<T>` envelope,
+    `assertTenantJobPayload`, `buildTenantJobPayload`,
+    `buildRetryPayload`, `makeIdempotencyKey`.
+  - `tenant-job-context.ts` — `runForTenant`, `runForTenantBatch`,
+    `currentJobTenantId`, gated by `TENANT_AWARE_JOBS_ENABLED` +
+    env classifier.
+  - `tenant-job-fanout-planner.ts` — `TenantJobFanoutPlanner.plan(...)`
+    returns an `ExecutionPlan` with `dryRun`, `maxTenants`, system /
+    inactive / duplicate filters.
+- Two new flags: `TENANT_AWARE_JOBS_ENABLED`,
+  `TENANT_JOB_FANOUT_ENABLED` — both default `false`.
+- New harness `saas:phase2-job-context-harness` (11/11 PASS):
+  ALS attachment, concurrent-frame isolation, fanout limits, env
+  refusal, retry preservation, idempotency-key stability.
+- New docs:
+  - `SAAS_PHASE2_JOB_CONTEXT_ARCHITECTURE.md`
+  - `SAAS_PHASE2_NOTIFICATIONS_SCHEDULER_ADAPTER_PLAN.md` (Phase 2.14)
+  - `SAAS_PHASE2_JOB_CONTEXT_OBSERVABILITY.md`
+
+NO existing scheduler is wired to this yet. Notifications
+scheduler / `notify*` writers / cron orchestrators continue to use
+their pre-pilot legacy code paths.
+
+The next phase is **Phase 2.14**: notifications scheduler adapter
+following `SAAS_PHASE2_NOTIFICATIONS_SCHEDULER_ADAPTER_PLAN.md`.
+Alternative path: `src/finance` reads-first split (no scheduler).
+
 ## 12. Hard rules
 
 - **Never enable `TENANT_PRISMA_ENFORCEMENT=true` in production until every P0/P1/P2 module has migrated.** Enabling it with a half-migrated codebase makes the un-migrated services start filtering by tenant when their callers don't expect it.

@@ -1,6 +1,6 @@
 # Phase 2.7 — Employee Work History Isolation
 
-Generated: 2026-05-09T19:25:12.944Z
+Generated: 2026-05-09T19:42:05.992Z
 Environment: SAFE_CLONE (localhost + fixture pattern (db=saas_phase1_fixture))
 Tenants: A=`11111111-1111-1111-1111-111111111111` B=`22222222-2222-2222-2222-222222222222`
 Employees: A=`f2cae0af-4df6-46ea-8689-3c0576681de2` B=`2e00a128-26e3-4fb0-a25d-fd9c06c4d281`

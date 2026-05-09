@@ -109,6 +109,19 @@ Phase 3 will document and implement; Phase 2.10 ignores.
 - The Phase 2.10 fixture extension adds rows that exercise the read
   paths only — no scheduler-trigger conditions.
 
+## 6.1 Phase 2.13 update — framework now exists
+
+Phase 2.13 shipped the `runForTenant` / `runForTenantBatch` /
+`TenantJobFanoutPlanner` infrastructure (dormant by default; see
+`SAAS_PHASE2_JOB_CONTEXT_ARCHITECTURE.md`). The notifications
+scheduler refactor outlined in §3 is now unblocked at the framework
+level — it becomes a Phase 2.14 deliverable per
+`SAAS_PHASE2_NOTIFICATIONS_SCHEDULER_ADAPTER_PLAN.md`.
+
+Phase 2.10's `phase210-excluded-background` annotations remain in
+place. They will move to `phase214-pilot-scope` only after Phase 2.14
+ships and a 7-day staging rehearsal validates the per-tenant fanout.
+
 ## 7. Operator checklist for Phase 2.11
 
 When Phase 2.11 starts, the operator should:

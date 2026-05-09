@@ -14,6 +14,12 @@
       in the avoid list.
 - [ ] Read `SAAS_PHASE2_TENANTPRISMA_PATTERN_AUDIT.md` and
       `SAAS_PHASE2_TENANTPRISMA_REFACTOR_PATTERN.md`.
+- [ ] If the module has cron / background paths: read
+      `SAAS_PHASE2_JOB_CONTEXT_ARCHITECTURE.md`. The Phase 2.13 job-
+      context framework is the prerequisite for moving cron-driven
+      paths out of the `phase2X-excluded-background` bucket. Without
+      it, scheduler paths must remain excluded with the existing
+      annotation tags.
 - [ ] Confirm `git status` is clean and the branch is the SaaS branch.
 - [ ] Confirm fixture: `DATABASE_URL` points at SAFE_CLONE / SAFE_STAGING.
 

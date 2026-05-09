@@ -89,7 +89,9 @@
     "saas:phase2-compliance-equivalence":         "ts-node scripts/saas/phase2/compliance-equivalence.ts",
     "saas:phase2-compliance-isolation":           "ts-node scripts/saas/phase2/compliance-isolation.ts",
     "saas:phase2-job-ads-equivalence":            "ts-node scripts/saas/phase2/job-ads-equivalence.ts",
-    "saas:phase2-job-ads-isolation":              "ts-node scripts/saas/phase2/job-ads-isolation.ts"
+    "saas:phase2-job-ads-isolation":              "ts-node scripts/saas/phase2/job-ads-isolation.ts",
+    "saas:phase2-notifications-equivalence":      "ts-node scripts/saas/phase2/notifications-equivalence.ts",
+    "saas:phase2-notifications-isolation":        "ts-node scripts/saas/phase2/notifications-isolation.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1041.0",

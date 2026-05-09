@@ -1,12 +1,52 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationType } from '@prisma/client';
 import { EVENT_TO_TYPE, NotifEventKey } from './notification-events';
 import { tServer, ServerLocale } from '../common/i18n/server-translate';
+import { PilotPrismaAccessor } from '../saas/prisma/pilot-prisma.accessor';
+import { getPilotScope, PilotScope } from '../saas/prisma/tenant-pilot-scope';
 
+/**
+ * Phase 2.10 — fourth tenant-scoped TenantPrisma pilot.
+ *
+ * IN SCOPE for tenant-safe routing:
+ *   - getUserNotifications, getUnreadCount, markAsRead, markAllAsRead
+ *   - wasHighBalanceAlertRecentlySent (read probe)
+ *
+ * EXPLICITLY OUT OF SCOPE (continue to use `legacyPrisma`; these will
+ * be revisited in a later phase that introduces a job-context for
+ * background workers):
+ *   - checkExpiringCompliance / checkServiceDue / checkOverdue /
+ *     checkScheduledMaintenance / runAllChecks
+ *   - notifyUploaderAndRoles / notifyUsersByRoles
+ *   - getOrCreatePreferences / updatePreferences (NotificationPreference
+ *     has NO `tenantId` — it is a per-user global record)
+ *
+ * The pilot scope is active iff:
+ *   - `TENANT_PRISMA_PILOT_ENABLED=true`, AND
+ *   - `TENANT_PRISMA_PILOT_MODULES` empty or includes `notifications`, AND
+ *   - env classifies as SAFE_CLONE / SAFE_STAGING, AND
+ *   - a tenant is in the active ALS frame.
+ *
+ * With the flag OFF (production default) the spreads return `{}` and
+ * every read path is byte-identical to before this PR.
+ */
 @Injectable()
 export class NotificationsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly legacyPrisma: PrismaService,
+    private readonly pilot: PilotPrismaAccessor,
+  ) {}
+
+  /** Prisma surface for in-scope read paths. Background workers keep
+   *  using `this.legacyPrisma` directly — see scope-split doc. */
+  private get prisma(): PrismaService {
+    return this.pilot.client();
+  }
+
+  private scope(): PilotScope {
+    return getPilotScope(this.pilot, 'notifications');
+  }
 
   /**
    * Translate a stored notification row into the active locale.
@@ -45,15 +85,16 @@ export class NotificationsService {
   /// Get notifications for a user with pagination.
   /// `locale` is the resolved `Accept-Language` value; defaults to 'en'.
   async getUserNotifications(userId: string, skip = 0, take = 20, locale: ServerLocale = 'en') {
+    const t = this.scope().tenantWhere();
     const [notifications, total] = await Promise.all([
-      this.prisma.notification.findMany({
-        where: { userId, deletedAt: null },
+      this.prisma.notification.findMany({ // @tenant-reviewed: phase210-pilot-scope
+        where: { userId, deletedAt: null, ...t },
         orderBy: { createdAt: 'desc' },
         skip,
         take,
       }),
-      this.prisma.notification.count({
-        where: { userId, deletedAt: null },
+      this.prisma.notification.count({ // @tenant-reviewed: phase210-pilot-scope
+        where: { userId, deletedAt: null, ...t },
       }),
     ]);
     return { data: notifications.map(n => this.translateRow(n as any, locale)), total };
@@ -61,14 +102,28 @@ export class NotificationsService {
 
   /// Get unread notification count for a user
   async getUnreadCount(userId: string): Promise<number> {
-    return this.prisma.notification.count({
-      where: { userId, isRead: false, deletedAt: null },
+    const t = this.scope().tenantWhere();
+    return this.prisma.notification.count({ // @tenant-reviewed: phase210-pilot-scope
+      where: { userId, isRead: false, deletedAt: null, ...t },
     });
   }
 
-  /// Mark a notification as read
+  /// Mark a notification as read.
+  ///
+  /// Pilot mode adds a tenant-scoped pre-check so a foreign-tenant
+  /// notification id presents as 404 instead of mutating across
+  /// tenants. Legacy mode keeps the original `update(by id)` behaviour
+  /// — Prisma's P2025 path remains the contract for missing ids.
   async markAsRead(notificationId: string) {
-    return this.prisma.notification.update({
+    const scope = this.scope();
+    if (scope.active) {
+      const existing = await this.prisma.notification.findFirst({ // @tenant-reviewed: phase210-pilot-scope
+        where: { id: notificationId, deletedAt: null, ...scope.tenantWhere() },
+        select: { id: true },
+      });
+      if (!existing) throw new NotFoundException('Notification not found');
+    }
+    return this.prisma.notification.update({ // @tenant-reviewed: phase210-pilot-scope
       where: { id: notificationId },
       data: { isRead: true, readAt: new Date() },
     });
@@ -76,24 +131,29 @@ export class NotificationsService {
 
   /// Mark all notifications as read for a user
   async markAllAsRead(userId: string) {
-    return this.prisma.notification.updateMany({
-      where: { userId, isRead: false, deletedAt: null },
+    const t = this.scope().tenantWhere();
+    return this.prisma.notification.updateMany({ // @tenant-reviewed: phase210-pilot-scope
+      where: { userId, isRead: false, deletedAt: null, ...t },
       data: { isRead: true, readAt: new Date() },
     });
   }
 
-  /// Get or create notification preferences for a user
+  /// Get or create notification preferences for a user.
+  ///
+  /// `NotificationPreference` has NO `tenantId` — it is a per-user
+  /// global record. Phase 2.10 does NOT route this through the pilot
+  /// accessor; preferences are reached via `legacyPrisma` directly.
   async getOrCreatePreferences(userId: string) {
-    return this.prisma.notificationPreference.upsert({
+    return this.legacyPrisma.notificationPreference.upsert({ // @tenant-reviewed: phase210-global (NotificationPreference is per-user global)
       where: { userId },
       update: {},
       create: { userId },
     });
   }
 
-  /// Update notification preferences
+  /// Update notification preferences (per-user global record).
   async updatePreferences(userId: string, data: any) {
-    return this.prisma.notificationPreference.update({
+    return this.legacyPrisma.notificationPreference.update({ // @tenant-reviewed: phase210-global (NotificationPreference is per-user global)
       where: { userId },
       data,
     });
@@ -102,7 +162,7 @@ export class NotificationsService {
   /// Check for vehicles with expiring compliance dates
   async checkExpiringCompliance(): Promise<void> {
     try {
-      const fleetManagers = await this.prisma.user.findMany({
+      const fleetManagers = await this.legacyPrisma.user.findMany({ // @tenant-reviewed: phase210-excluded-background (scheduler/notify-fanout — Phase 2.11+)
         where: {
           role: { name: { contains: 'Fleet Manager' } },
           status: 'ACTIVE',
@@ -135,7 +195,7 @@ export class NotificationsService {
         };
         whereClause[check.field] = { lte: cutoffDate, gt: new Date() };
 
-        const vehicles = await this.prisma.vehicle.findMany({
+        const vehicles = await this.legacyPrisma.vehicle.findMany({ // @tenant-reviewed: phase210-excluded-background (scheduler/notify-fanout — Phase 2.11+)
           where: whereClause,
           select: { id: true, registrationNumber: true, motExpiryDate: true, taxExpiryDate: true, insuranceExpiryDate: true, registrationExpiryDate: true, tachographCalibrationExpiry: true, atpCertificateExpiry: true },
         });
@@ -154,7 +214,7 @@ export class NotificationsService {
           const daysUntil = Math.ceil((expiryDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
           const severity = daysUntil <= 7 ? 'HIGH' : daysUntil <= 14 ? 'MEDIUM' : 'LOW';
 
-          const existing = await this.prisma.notification.findFirst({
+          const existing = await this.legacyPrisma.notification.findFirst({ // @tenant-reviewed: phase210-excluded-background (scheduler/notify-fanout — Phase 2.11+)
             where: {
               userId: manager.id,
               relatedEntityId: vehicle.id,
@@ -165,7 +225,7 @@ export class NotificationsService {
           });
 
           if (!existing) {
-            await this.prisma.notification.create({
+            await this.legacyPrisma.notification.create({ // @tenant-reviewed: phase210-excluded-background (scheduler/notify-fanout — Phase 2.11+)
               data: {
                 userId: manager.id,
                 // Pre-rendered English (legacy fallback for old clients).
@@ -205,7 +265,7 @@ export class NotificationsService {
   /// Check for vehicles needing service based on mileage
   async checkServiceDue(): Promise<void> {
     try {
-      const fleetManagers = await this.prisma.user.findMany({
+      const fleetManagers = await this.legacyPrisma.user.findMany({ // @tenant-reviewed: phase210-excluded-background (scheduler/notify-fanout — Phase 2.11+)
         where: {
           role: { name: { contains: 'Fleet Manager' } },
           status: 'ACTIVE',
@@ -218,7 +278,7 @@ export class NotificationsService {
       if (!manager.notificationPreference) continue;
       const kmBefore = manager.notificationPreference.serviceKmBefore;
 
-      const vehicles = await this.prisma.vehicle.findMany({
+      const vehicles = await this.legacyPrisma.vehicle.findMany({ // @tenant-reviewed: phase210-excluded-background (scheduler/notify-fanout — Phase 2.11+)
         where: {
           agencyId: manager.agencyId,
           deletedAt: null,
@@ -245,7 +305,7 @@ export class NotificationsService {
         if (kmRemaining > 0 && kmRemaining <= kmBefore) {
           const severity = kmRemaining <= 100 ? 'HIGH' : kmRemaining <= 250 ? 'MEDIUM' : 'LOW';
 
-          const existing = await this.prisma.notification.findFirst({
+          const existing = await this.legacyPrisma.notification.findFirst({ // @tenant-reviewed: phase210-excluded-background (scheduler/notify-fanout — Phase 2.11+)
             where: {
               userId: manager.id,
               relatedEntityId: vehicle.id,
@@ -256,7 +316,7 @@ export class NotificationsService {
           });
 
           if (!existing) {
-            await this.prisma.notification.create({
+            await this.legacyPrisma.notification.create({ // @tenant-reviewed: phase210-excluded-background (scheduler/notify-fanout — Phase 2.11+)
               data: {
                 userId: manager.id,
                 title: `${vehicle.registrationNumber}: Service Due Soon`,
@@ -292,7 +352,7 @@ export class NotificationsService {
   /// Check for overdue compliance
   async checkOverdue(): Promise<void> {
     try {
-      const fleetManagers = await this.prisma.user.findMany({
+      const fleetManagers = await this.legacyPrisma.user.findMany({ // @tenant-reviewed: phase210-excluded-background (scheduler/notify-fanout — Phase 2.11+)
         where: {
           role: { name: { contains: 'Fleet Manager' } },
           status: 'ACTIVE',
@@ -301,7 +361,7 @@ export class NotificationsService {
     });
 
     for (const manager of fleetManagers) {
-      const overduedVehicles = await this.prisma.vehicle.findMany({
+      const overduedVehicles = await this.legacyPrisma.vehicle.findMany({ // @tenant-reviewed: phase210-excluded-background (scheduler/notify-fanout — Phase 2.11+)
         where: {
           agencyId: manager.agencyId,
           deletedAt: null,
@@ -316,7 +376,7 @@ export class NotificationsService {
       });
 
       for (const vehicle of overduedVehicles) {
-        const existing = await this.prisma.notification.findFirst({
+        const existing = await this.legacyPrisma.notification.findFirst({ // @tenant-reviewed: phase210-excluded-background (scheduler/notify-fanout — Phase 2.11+)
           where: {
             userId: manager.id,
             relatedEntityId: vehicle.id,
@@ -326,7 +386,7 @@ export class NotificationsService {
         });
 
         if (!existing) {
-          await this.prisma.notification.create({
+          await this.legacyPrisma.notification.create({ // @tenant-reviewed: phase210-excluded-background (scheduler/notify-fanout — Phase 2.11+)
             data: {
               userId: manager.id,
               title: `🚨 ${vehicle.registrationNumber}: Compliance Overdue`,
@@ -359,7 +419,7 @@ export class NotificationsService {
   /// Check for scheduled maintenance records coming up
   async checkScheduledMaintenance(): Promise<void> {
     try {
-      const fleetManagers = await this.prisma.user.findMany({
+      const fleetManagers = await this.legacyPrisma.user.findMany({ // @tenant-reviewed: phase210-excluded-background (scheduler/notify-fanout — Phase 2.11+)
         where: {
           role: { name: { contains: 'Fleet Manager' } },
           status: 'ACTIVE',
@@ -375,7 +435,7 @@ export class NotificationsService {
         const upcomingDate = new Date();
         upcomingDate.setDate(upcomingDate.getDate() + maintenanceAlertDays);
 
-        const scheduledRecords = await this.prisma.maintenanceRecord.findMany({
+        const scheduledRecords = await this.legacyPrisma.maintenanceRecord.findMany({ // @tenant-reviewed: phase210-excluded-background (scheduler/notify-fanout — Phase 2.11+)
           where: {
             vehicle: { agencyId: manager.agencyId, deletedAt: null },
             status: 'SCHEDULED',
@@ -386,7 +446,7 @@ export class NotificationsService {
         });
 
         for (const record of scheduledRecords) {
-          const existing = await this.prisma.notification.findFirst({
+          const existing = await this.legacyPrisma.notification.findFirst({ // @tenant-reviewed: phase210-excluded-background (scheduler/notify-fanout — Phase 2.11+)
             where: {
               userId: manager.id,
               relatedEntityId: record.id,
@@ -400,7 +460,7 @@ export class NotificationsService {
             const daysUntil = Math.ceil((record.scheduledDate!.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
             const severity = daysUntil <= 3 ? 'HIGH' : daysUntil <= 7 ? 'MEDIUM' : 'LOW';
 
-            await this.prisma.notification.create({
+            await this.legacyPrisma.notification.create({ // @tenant-reviewed: phase210-excluded-background (scheduler/notify-fanout — Phase 2.11+)
               data: {
                 userId: manager.id,
                 title: `${record.vehicle.registrationNumber}: Scheduled Maintenance`,
@@ -466,7 +526,7 @@ export class NotificationsService {
     if (uploaderId) userIds.add(uploaderId);
 
     if (roles && roles.length > 0) {
-      const users = await this.prisma.user.findMany({
+      const users = await this.legacyPrisma.user.findMany({ // @tenant-reviewed: phase210-excluded-background (scheduler/notify-fanout — Phase 2.11+)
         where: {
           role: { name: { in: roles } },
           status: 'ACTIVE',
@@ -479,7 +539,7 @@ export class NotificationsService {
     const type = (EVENT_TO_TYPE[eventKey] || 'INFO') as NotificationType;
 
     for (const userId of userIds) {
-      await this.prisma.notification.create({
+      await this.legacyPrisma.notification.create({ // @tenant-reviewed: phase210-excluded-background (scheduler/notify-fanout — Phase 2.11+)
         data: {
           userId,
           title,
@@ -509,7 +569,7 @@ export class NotificationsService {
     relatedEntityId?: string,
     i18n?: { titleKey?: string; messageKey?: string; params?: Record<string, unknown> },
   ): Promise<void> {
-    const users = await this.prisma.user.findMany({
+    const users = await this.legacyPrisma.user.findMany({ // @tenant-reviewed: phase210-excluded-background (scheduler/notify-fanout — Phase 2.11+)
       where: {
         role: { name: { in: roles } },
         status: 'ACTIVE',
@@ -520,7 +580,7 @@ export class NotificationsService {
     const type = (EVENT_TO_TYPE[eventKey] || 'INFO') as NotificationType;
 
     for (const user of users) {
-      await this.prisma.notification.create({
+      await this.legacyPrisma.notification.create({ // @tenant-reviewed: phase210-excluded-background (scheduler/notify-fanout — Phase 2.11+)
         data: {
           userId: user.id,
           title,
@@ -539,11 +599,13 @@ export class NotificationsService {
 
   /// Check if high balance alert was recently sent
   async wasHighBalanceAlertRecentlySent(entityId: string): Promise<boolean> {
-    const recent = await this.prisma.notification.findFirst({
+    const t = this.scope().tenantWhere();
+    const recent = await this.prisma.notification.findFirst({ // @tenant-reviewed: phase210-pilot-scope
       where: {
         relatedEntityId: entityId,
         type: 'WARNING',
         createdAt: { gte: new Date(Date.now() - 86400000) },
+        ...t,
       },
     });
     return !!recent;

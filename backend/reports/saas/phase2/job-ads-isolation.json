@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-09T18:29:16.945Z",
+  "generatedAt": "2026-05-09T18:48:46.987Z",
   "environment": {
     "classification": "SAFE_CLONE",
     "reason": "localhost + fixture pattern (db=saas_phase1_fixture)",
@@ -43,7 +43,7 @@
     {
       "name": "same-slug request in two tenants: service auto-suffixes; both inserts succeed (legacy unique honoured)",
       "ok": true,
-      "detail": "aSlug=iso-collision-yc1a bSlug=iso-collision-yc1a-1"
+      "detail": "aSlug=iso-collision-z554 bSlug=iso-collision-z554-1"
     },
     {
       "name": "public listing (no ALS tenant): includes ads from all tenants (preserves public URLs)",

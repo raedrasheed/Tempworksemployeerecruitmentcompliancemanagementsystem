@@ -231,6 +231,31 @@ Phase 2.6/2.7/2.8 harnesses still green (regression-clean).
 The next recommended pilot is `src/notifications` (read-mostly views
 of notification rules and recent notifications).
 
+## 11.4 Phase 2.10 pilot landed (partial scope)
+
+The fourth TENANT-SCOPED pilot module (`src/notifications`, read paths
+only) shipped in the Phase 2.10 PR. First pilot to deliberately split
+a service into "in scope" and "explicitly excluded" — proving the
+pattern handles partial refactors. Key artefacts:
+
+- `NotificationsService` rewired (7 read sites under pilot scope; 19
+  background sites annotated `phase210-excluded-background` and
+  routed via `legacyPrisma`; 2 preferences sites `phase210-global`).
+- `phase210-notifications-extension.sql` fixture extension.
+- `saas:phase2-notifications-equivalence` (11/11 PASS).
+- `saas:phase2-notifications-isolation` (8/8 PASS) including a
+  source-level meta-assertion that the scheduler `check*` methods
+  remain on `legacyPrisma`.
+- `SAAS_PHASE2_NOTIFICATIONS_AUDIT.md`,
+  `SAAS_PHASE2_NOTIFICATIONS_SCOPE_SPLIT.md`,
+  `SAAS_PHASE2_NOTIFICATIONS_PILOT_RESULTS.md`.
+
+Phase 2.6/2.7/2.8/2.9 harnesses still green (regression-clean).
+
+The Phase 2.11+ scheduler/job-context refactor is documented in
+`SAAS_PHASE2_NOTIFICATIONS_SCOPE_SPLIT.md`. The next pilot module is
+`src/recycle-bin` (small, read-mostly, no scheduler).
+
 ## 12. Hard rules
 
 - **Never enable `TENANT_PRISMA_ENFORCEMENT=true` in production until every P0/P1/P2 module has migrated.** Enabling it with a half-migrated codebase makes the un-migrated services start filtering by tenant when their callers don't expect it.

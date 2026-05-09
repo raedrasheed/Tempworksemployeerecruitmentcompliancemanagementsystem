@@ -1,8 +1,8 @@
 # Audit E — Permissions / RBAC
 
 - **Status:** INFO
-- **Started:** 2026-05-09T14:02:40.171Z
-- **Duration:** 32 ms
+- **Started:** 2026-05-09T14:14:02.092Z
+- **Duration:** 35 ms
 
 ## Metrics
 

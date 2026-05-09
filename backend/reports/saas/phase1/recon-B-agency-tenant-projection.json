@@ -3,8 +3,8 @@
   "title": "Recon B — Agency → Tenant Projection",
   "mode": "dry-run",
   "database": "postgres://postgres@127.0.0.1/saas_phase1_fixture?sslmode=disable",
-  "startedAt": "2026-05-09T14:03:37.937Z",
-  "durationMs": 26,
+  "startedAt": "2026-05-09T14:14:54.058Z",
+  "durationMs": 34,
   "metrics": [
     {
       "key": "agencies.total",

@@ -3,8 +3,8 @@
   "title": "Recon A — User Identity",
   "mode": "dry-run",
   "database": "postgres://postgres@127.0.0.1/saas_phase1_fixture?sslmode=disable",
-  "startedAt": "2026-05-09T14:03:35.937Z",
-  "durationMs": 34,
+  "startedAt": "2026-05-09T14:14:52.351Z",
+  "durationMs": 29,
   "metrics": [
     {
       "key": "users.duplicate-emails",

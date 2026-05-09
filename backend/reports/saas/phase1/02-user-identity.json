@@ -1,8 +1,8 @@
 {
   "slug": "02-user-identity",
   "title": "Audit B — User Identity",
-  "startedAt": "2026-05-09T14:02:33.560Z",
-  "durationMs": 32,
+  "startedAt": "2026-05-09T14:13:56.777Z",
+  "durationMs": 62,
   "status": "BLOCKER",
   "metrics": [
     {

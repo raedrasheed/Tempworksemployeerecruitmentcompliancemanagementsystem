@@ -3,8 +3,8 @@
   "title": "Recon D — Data Ownership",
   "mode": "dry-run",
   "database": "postgres://postgres@127.0.0.1/saas_phase1_fixture?sslmode=disable",
-  "startedAt": "2026-05-09T14:03:42.010Z",
-  "durationMs": 42,
+  "startedAt": "2026-05-09T14:14:57.457Z",
+  "durationMs": 46,
   "metrics": [
     {
       "key": "applicants.total",

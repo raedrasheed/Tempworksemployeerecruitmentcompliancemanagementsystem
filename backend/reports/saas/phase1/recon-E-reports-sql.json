@@ -3,8 +3,8 @@
   "title": "Recon E — Reports SQL",
   "mode": "dry-run",
   "database": "postgres://postgres@127.0.0.1/saas_phase1_fixture?sslmode=disable",
-  "startedAt": "2026-05-09T14:03:44.136Z",
-  "durationMs": 23,
+  "startedAt": "2026-05-09T14:14:59.188Z",
+  "durationMs": 31,
   "metrics": [
     {
       "key": "reports.raw-sql-hits",

@@ -3,8 +3,8 @@
   "title": "Recon C — Unique Constraint Reconciliation",
   "mode": "dry-run",
   "database": "postgres://postgres@127.0.0.1/saas_phase1_fixture?sslmode=disable",
-  "startedAt": "2026-05-09T14:03:39.931Z",
-  "durationMs": 33,
+  "startedAt": "2026-05-09T14:14:55.776Z",
+  "durationMs": 31,
   "metrics": [
     {
       "key": "employees.email.cross-tenant-pairs",

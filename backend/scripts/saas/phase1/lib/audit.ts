@@ -14,6 +14,12 @@
 import { Client, ClientConfig } from 'pg';
 import { promises as fs } from 'fs';
 import path from 'path';
+import { autoLoadEnv, formatDatabaseUrlMissingMessage } from '../reconciliation/lib/env';
+
+// Auto-load `.env` from common locations (CWD, backend/, repo root). Safe
+// no-op if DATABASE_URL is already in the environment. Removes the
+// "export vs $env: vs set" footgun across shells.
+autoLoadEnv(__filename);
 
 export type Severity = 'OK' | 'INFO' | 'WARN' | 'BLOCKER';
 
@@ -62,7 +68,7 @@ const EXPECTED_TABLES = [
 export async function connect(): Promise<Client> {
   const argDb = process.argv.find((a) => a.startsWith('--db='))?.slice(5);
   const url = argDb ?? process.env.DATABASE_URL;
-  if (!url) throw new Error('DATABASE_URL is not set; pass --db=<url> or export DATABASE_URL');
+  if (!url) throw new Error(formatDatabaseUrlMissingMessage());
   const cfg: ClientConfig = { connectionString: url };
   // SSL handling: respect sslmode= in URL; default to no-SSL for localhost.
   if (/^postgres(?:ql)?:\/\/(?:[^@]*@)?(?:localhost|127\.0\.0\.1)/.test(url)) {

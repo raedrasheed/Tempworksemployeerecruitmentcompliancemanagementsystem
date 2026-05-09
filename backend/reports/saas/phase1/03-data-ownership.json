@@ -1,8 +1,8 @@
 {
   "slug": "03-data-ownership",
   "title": "Audit C — Data Ownership",
-  "startedAt": "2026-05-09T14:02:35.763Z",
-  "durationMs": 55,
+  "startedAt": "2026-05-09T14:13:58.548Z",
+  "durationMs": 102,
   "status": "WARN",
   "metrics": [
     {

@@ -1,6 +1,6 @@
 # Phase 1 Pre-Flight Summary
 
-- **Generated:** 2026-05-09T14:02:45.106Z
+- **Generated:** 2026-05-09T14:14:05.985Z
 - **Overall status:** **BLOCKER**
 - **Risk:** HIGH — backfill must NOT proceed.
 

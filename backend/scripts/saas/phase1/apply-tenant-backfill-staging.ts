@@ -27,6 +27,9 @@
 import { execFileSync } from 'child_process';
 import { promises as fs } from 'fs';
 import path from 'path';
+import { autoLoadEnv, formatDatabaseUrlMissingMessage } from './reconciliation/lib/env';
+
+autoLoadEnv(__filename);
 
 const STAGING_HOST_PATTERNS = [
   /^127\.0\.0\.1$/, /^localhost$/, /^staging[-.]/, /^stg[-.]/,
@@ -48,7 +51,7 @@ interface StageResult {
 function getDatabaseUrl(): string {
   const argDb = process.argv.find((a) => a.startsWith('--db='))?.slice(5);
   const url = argDb ?? process.env.DATABASE_URL;
-  if (!url) throw new Error('DATABASE_URL not set');
+  if (!url) throw new Error(formatDatabaseUrlMissingMessage());
   return url;
 }
 

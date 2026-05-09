@@ -3,8 +3,8 @@
 - **Mode:** `dry-run`
 - **Status:** **WARN**
 - **Database:** `postgres://postgres@127.0.0.1/saas_phase1_fixture?sslmode=disable`
-- **Started:** 2026-05-09T14:03:42.010Z
-- **Duration:** 42 ms
+- **Started:** 2026-05-09T14:14:57.457Z
+- **Duration:** 46 ms
 
 ## Metrics
 

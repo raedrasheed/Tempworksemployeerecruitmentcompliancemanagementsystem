@@ -1,8 +1,8 @@
 {
   "mode": "dry-run",
   "database": "postgres://postgres@127.0.0.1/saas_phase1_fixture?sslmode=disable",
-  "startedAt": "2026-05-09T13:28:12.401Z",
-  "durationMs": 62,
+  "startedAt": "2026-05-09T14:03:48.427Z",
+  "durationMs": 59,
   "status": "ROLLED_BACK",
   "preflightSummary": {
     "duplicateEmails": 0,
@@ -92,6 +92,94 @@
       "detail": {
         "stillNull": 0
       }
+    },
+    {
+      "name": "tenants.no-duplicate-slug",
+      "ok": true,
+      "detail": {
+        "duplicates": 0
+      }
+    },
+    {
+      "name": "tenant_memberships.no-duplicate-pair",
+      "ok": true,
+      "detail": {
+        "duplicates": 0
+      }
+    },
+    {
+      "name": "checkpoint.no-partial",
+      "ok": true,
+      "detail": {
+        "partial": 0
+      }
     }
-  ]
+  ],
+  "diffSummary": {
+    "agencies": {
+      "before": 5,
+      "after": 4,
+      "delta": -1
+    },
+    "users": {
+      "before": 14,
+      "after": 14,
+      "delta": 0
+    },
+    "employees": {
+      "before": 29,
+      "after": 29,
+      "delta": 0
+    },
+    "applicants": {
+      "before": 72,
+      "after": 72,
+      "delta": 0
+    },
+    "vehicles": {
+      "before": 3,
+      "after": 3,
+      "delta": 0
+    },
+    "tenants": {
+      "before": 0,
+      "after": 4,
+      "delta": 4
+    },
+    "tenant_memberships": {
+      "before": 0,
+      "after": 11,
+      "delta": 11
+    },
+    "agency_memberships": {
+      "before": 0,
+      "after": 11,
+      "delta": 11
+    },
+    "membership_roles": {
+      "before": 0,
+      "after": 11,
+      "delta": 11
+    },
+    "membership_permission_overrides": {
+      "before": 0,
+      "after": 0,
+      "delta": 0
+    },
+    "platform_admins": {
+      "before": 0,
+      "after": 2,
+      "delta": 2
+    },
+    "agency_split_progress": {
+      "before": 0,
+      "after": 4,
+      "delta": 4
+    },
+    "saas_reconciliation_queue": {
+      "before": 0,
+      "after": 1,
+      "delta": 1
+    }
+  }
 }

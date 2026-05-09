@@ -1,8 +1,8 @@
 # Audit C — Data Ownership
 
 - **Status:** WARN
-- **Started:** 2026-05-09T13:32:40.735Z
-- **Duration:** 57 ms
+- **Started:** 2026-05-09T14:02:35.763Z
+- **Duration:** 55 ms
 
 ## Metrics
 

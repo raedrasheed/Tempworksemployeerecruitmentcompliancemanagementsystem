@@ -1,8 +1,8 @@
 # Audit B — User Identity
 
 - **Status:** BLOCKER
-- **Started:** 2026-05-09T13:32:39.175Z
-- **Duration:** 30 ms
+- **Started:** 2026-05-09T14:02:33.560Z
+- **Duration:** 32 ms
 
 ## Metrics
 
@@ -22,7 +22,7 @@
 - **[BLOCKER]** `user.no-agency` — 1 users have NULL agencyId. Each must be reconciled (delete, assign, or platform-admin).
 - **[INFO]** `user.platform-admin-candidates` — 2 users belong to the system agency. They become PlatformAdmin rows.
   ```json
-  [{"id":"02b9ac7f-6d9f-4fff-85bf-2c53044d2082","email":"admin1@tempworks.test"},{"id":"13db82c0-5c19-468d-8135-944f75c5dc49","email":"admin2@tempworks.test"}]
+  [{"id":"1b60732d-64a2-4dca-be9b-b8a70c828682","email":"admin1@tempworks.test"},{"id":"5d860dcc-d7c7-4b2f-975e-754ffe33aa86","email":"admin2@tempworks.test"}]
   ```
 
 ## Notes

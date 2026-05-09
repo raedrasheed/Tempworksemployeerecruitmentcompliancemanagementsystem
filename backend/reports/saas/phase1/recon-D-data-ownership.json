@@ -3,8 +3,8 @@
   "title": "Recon D — Data Ownership",
   "mode": "dry-run",
   "database": "postgres://postgres@127.0.0.1/saas_phase1_fixture?sslmode=disable",
-  "startedAt": "2026-05-09T13:26:00.897Z",
-  "durationMs": 47,
+  "startedAt": "2026-05-09T14:03:42.010Z",
+  "durationMs": 42,
   "metrics": [
     {
       "key": "applicants.total",
@@ -83,7 +83,7 @@
     {
       "kind": "ownership.null.vehicles",
       "subject": {
-        "id": "77e6c5a7-ed03-48da-8cb6-d878748e4a6b",
+        "id": "321de0e9-cab8-44f9-bba0-31fcb4a3a31d",
         "table": "vehicles"
       },
       "proposedDecision": "assign-tenant | hard-delete (after review)",

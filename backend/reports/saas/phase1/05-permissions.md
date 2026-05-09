@@ -1,8 +1,8 @@
 # Audit E — Permissions / RBAC
 
 - **Status:** INFO
-- **Started:** 2026-05-09T13:32:43.856Z
-- **Duration:** 28 ms
+- **Started:** 2026-05-09T14:02:40.171Z
+- **Duration:** 32 ms
 
 ## Metrics
 
@@ -25,7 +25,7 @@
 - **[INFO]** `rbac.employee-cross-agency` — 2 cross-agency employee grants — these become AgencyMembership rows in Phase 1.
 - **[INFO]** `rbac.platform-admin-projection` — 2 users have system-level access today; PlatformAdmin backfill input.
   ```json
-  [{"id":"02b9ac7f-6d9f-4fff-85bf-2c53044d2082","email":"admin1@tempworks.test","via":"system-agency"},{"id":"13db82c0-5c19-468d-8135-944f75c5dc49","email":"admin2@tempworks.test","via":"system-agency"}]
+  [{"id":"1b60732d-64a2-4dca-be9b-b8a70c828682","email":"admin1@tempworks.test","via":"system-agency"},{"id":"5d860dcc-d7c7-4b2f-975e-754ffe33aa86","email":"admin2@tempworks.test","via":"system-agency"}]
   ```
 
 ## Notes

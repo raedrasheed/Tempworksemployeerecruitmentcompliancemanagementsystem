@@ -3,8 +3,8 @@
   "title": "Recon C — Unique Constraint Reconciliation",
   "mode": "dry-run",
   "database": "postgres://postgres@127.0.0.1/saas_phase1_fixture?sslmode=disable",
-  "startedAt": "2026-05-09T13:25:59.340Z",
-  "durationMs": 34,
+  "startedAt": "2026-05-09T14:03:39.931Z",
+  "durationMs": 33,
   "metrics": [
     {
       "key": "employees.email.cross-tenant-pairs",
@@ -41,8 +41,8 @@
           "22222222-2222-2222-2222-222222222222"
         ],
         "exampleIds": [
-          "a504d89c-238e-403c-979f-d160a64cac43",
-          "223944f5-d594-4217-9678-acbc678da83e"
+          "3734ca83-f74a-4814-aac7-933a6be8dc25",
+          "b49b36cb-933d-444f-9811-ba068408bca5"
         ]
       },
       "proposedDecision": "accept-as-tenant-scoped (no rename) | rename-one | merge",

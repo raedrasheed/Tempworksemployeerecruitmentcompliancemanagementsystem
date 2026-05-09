@@ -375,6 +375,22 @@ model Agency {
   deletedBy          String?
   deletionReason     String?
 
+  // ── SaaS Phase 1 transitional columns (NULLABLE).
+  //
+  //  - `tenantId`: the customer Agency.id is reused as Tenant.id; for the
+  //    DefaultAgency child created by the Phase 1 backfill, this points
+  //    at the parent tenant. NULL for legacy rows pre-backfill and for
+  //    any future agency that has not yet been associated with a tenant.
+  //  - `isDefault`: true on the single Default Agency child created per
+  //    tenant during backfill. Used to identify the "primary" agency
+  //    inside a tenant.
+  //  - `parentId`: hierarchical sub-agencies. Out of Phase 1 scope today;
+  //    column reserved so a future migration can add the FK without an
+  //    expand-contract dance.
+  tenantId           String?
+  isDefault          Boolean      @default(false)
+  parentId           String?
+
   users      User[]
   employees  Employee[]
   applicants Applicant[]
@@ -383,6 +399,7 @@ model Agency {
   employeeAccessGrants EmployeeAgencyAccess[]
   permissionOverrides  AgencyPermissionOverride[]
 
+  @@index([tenantId])
   @@map("agencies")
 }
 
@@ -445,6 +462,13 @@ model Employee {
   agencyAccessGrants     EmployeeAgencyAccess[]
   workHistory            EmployeeWorkHistory[]
 
+  // SaaS Phase 1 transitional column. Populated by the tenant backfill
+  // (one update per row, derived from `agencyId` → tenant). NULL today
+  // and through Phase 1; promoted to NOT NULL in Phase 2.
+  tenantId               String?
+
+  @@index([tenantId])
+  @@index([tenantId, status])
   @@map("employees")
 }
 
@@ -612,6 +636,11 @@ model Applicant {
   approvedAt        DateTime?
   rejectionReason   String?
 
+  // SaaS Phase 1 transitional column. NULL until backfill; NOT NULL in Phase 2.
+  tenantId          String?
+
+  @@index([tenantId])
+  @@index([tenantId, status, createdAt(sort: Desc)])
   @@map("applicants")
 }
 
@@ -1763,9 +1792,13 @@ model Vehicle {
   documents          VehicleDocument[]
   maintenanceRecords MaintenanceRecord[]
 
+  // SaaS Phase 1 transitional column.
+  tenantId           String?
+
   @@index([registrationNumber])
   @@index([status])
   @@index([type])
+  @@index([tenantId])
   @@map("vehicles")
 }
 
@@ -2055,4 +2088,210 @@ model NotificationPreference {
   user User @relation("NotificationPreferences", fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("notification_preferences")
+}
+
+// =============================================================================
+// SaaS Phase 0/1 Foundations  —  ADDITIVE
+// =============================================================================
+//
+// All eight models below are introduced by:
+//   - prisma/migrations/saas_phase0_foundations/migration.sql
+//   - prisma/migrations/saas_phase1_tenant_backfill_prepare/migration.sql
+//
+// They are read by NO production code in Phase 1.  The Phase 1 backfill
+// script populates them; the application begins reading them in Phase 2.
+//
+// Conventions:
+//   - String FK columns intentionally use `String?` instead of relations to
+//     existing User / Role models, because those FKs would constrain User
+//     deletion in unexpected ways during the legacy → SaaS transition.
+//     The Phase 2 cutover may introduce explicit relations once the
+//     legacy `User.agencyId` deprecation is complete.
+//   - All `@@map` names match the migration SQL.
+// =============================================================================
+
+enum TenantStatus {
+  ACTIVE
+  SUSPENDED
+  INACTIVE
+}
+
+enum MembershipStatus {
+  INVITED
+  ACTIVE
+  SUSPENDED
+  REMOVED
+}
+
+enum AgencyMembershipScope {
+  FULL
+  READ_ONLY
+  RECRUITER_ONLY
+}
+
+enum PlatformAdminLevel {
+  SUPPORT
+  OPERATOR
+  SUPER
+}
+
+model Tenant {
+  id           String       @id @default(uuid())
+  slug         String       @unique
+  name         String
+  status       TenantStatus @default(ACTIVE)
+  region       String       @default("eu")
+  customDomain String?      @unique
+  branding     Json?
+  planId       String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  memberships TenantMembership[]
+  domains     TenantDomain[]
+
+  @@map("tenants")
+}
+
+model TenantMembership {
+  id        String           @id @default(uuid())
+  userId    String
+  tenantId  String
+  status    MembershipStatus @default(ACTIVE)
+  invitedBy String?
+  invitedAt DateTime?
+  joinedAt  DateTime?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  tenant              Tenant                          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  roles               MembershipRole[]
+  agencies            AgencyMembership[]
+  permissionOverrides MembershipPermissionOverride[]
+
+  @@unique([userId, tenantId])
+  @@index([tenantId, status])
+  @@index([userId])
+  @@map("tenant_memberships")
+}
+
+model MembershipRole {
+  membershipId String
+  roleId       String
+  membership   TenantMembership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+
+  @@id([membershipId, roleId])
+  @@map("membership_roles")
+}
+
+model AgencyMembership {
+  id           String                @id @default(uuid())
+  membershipId String
+  agencyId     String
+  scope        AgencyMembershipScope @default(FULL)
+  membership   TenantMembership      @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+
+  @@unique([membershipId, agencyId])
+  @@index([agencyId])
+  @@map("agency_memberships")
+}
+
+/// Renamed from `AgencyUserPermission` per ADR-002 D-7. The legacy table
+/// is retained through Phase 1 and dropped in Phase 3 after a 2-week
+/// verification window.
+model MembershipPermissionOverride {
+  id           String  @id @default(uuid())
+  membershipId String
+  permissionId String
+  /// `true` = grant the permission, `false` = explicitly deny.
+  effect       Boolean @default(true)
+  membership   TenantMembership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+
+  @@unique([membershipId, permissionId])
+  @@map("membership_permission_overrides")
+}
+
+model PlatformAdmin {
+  id        String             @id @default(uuid())
+  userId    String             @unique
+  level     PlatformAdminLevel @default(SUPPORT)
+  grantedBy String?
+  grantedAt DateTime           @default(now())
+
+  @@map("platform_admins")
+}
+
+model PlatformAuditLog {
+  id        BigInt   @id @default(autoincrement())
+  actorId   String
+  tenantId  String?
+  action    String
+  reason    String
+  target    Json?
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([actorId, createdAt])
+  @@index([tenantId, createdAt])
+  @@map("platform_audit_logs")
+}
+
+model TenantDomain {
+  id         String    @id @default(uuid())
+  tenantId   String
+  host       String    @unique
+  verifiedAt DateTime?
+  createdAt  DateTime  @default(now())
+  tenant     Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("tenant_domains")
+}
+
+// ---- Phase 1 operational tables ---------------------------------------------
+
+/// Backfill checkpoint — one row per old customer Agency processed.
+model AgencySplitProgress {
+  oldAgencyId          String   @id @map("old_agency_id")
+  newTenantId          String   @map("new_tenant_id")
+  newDefaultAgencyId   String   @map("new_default_agency_id")
+  status               String   @default("PENDING")
+  errorMessage         String?  @map("error")
+  startedAt            DateTime @default(now()) @map("started_at")
+  finishedAt           DateTime?                @map("finished_at")
+
+  @@index([status])
+  @@map("agency_split_progress")
+}
+
+/// Manual-decision queue used by the reconciliation scripts.
+model SaasReconciliationQueue {
+  id         BigInt    @id @default(autoincrement())
+  kind       String
+  subject    Json
+  decision   String?
+  decidedBy  String?   @map("decided_by")
+  decidedAt  DateTime? @map("decided_at")
+  createdAt  DateTime  @default(now())
+
+  @@index([kind])
+  @@map("saas_reconciliation_queue")
+}
+
+/// Snapshot of per-tenant identifier-sequence counters computed in Phase 1
+/// and consumed by the Phase 2 sequence cutover migration.
+model SaasPhase1SeqSnapshot {
+  id          BigInt   @id @default(autoincrement())
+  tenantId    String   @map("tenant_id")
+  prefix      String
+  year        Int
+  month       Int
+  /// Maximum identifier value already issued under this (tenant, prefix,
+  /// year, month). New tenant-scoped sequence rows start ABOVE this value.
+  value       Int
+  computedAt  DateTime @default(now()) @map("computed_at")
+
+  @@unique([tenantId, prefix, year, month])
+  @@map("saas_phase1_seq_snapshot")
 }

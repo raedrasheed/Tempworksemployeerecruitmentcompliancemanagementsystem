@@ -159,7 +159,10 @@ export async function writeReport(r: ReconResult, outDir: string): Promise<void>
   await fs.writeFile(path.join(outDir, `recon-${r.slug}.md`), md.join('\n'));
 }
 
-const REPORTS_DIR = path.resolve(__dirname, '..', '..', '..', '..', 'reports', 'saas', 'phase1');
+// __dirname = backend/scripts/saas/phase1/reconciliation/lib
+// Five `..`s climb back to `backend/`; then `reports/saas/phase1` is the
+// canonical output directory shared with the audit framework.
+const REPORTS_DIR = path.resolve(__dirname, '..', '..', '..', '..', '..', 'reports', 'saas', 'phase1');
 
 export async function runRecon(
   slug: string,

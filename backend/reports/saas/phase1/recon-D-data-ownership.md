@@ -3,8 +3,8 @@
 - **Mode:** `dry-run`
 - **Status:** **WARN**
 - **Database:** `postgres://postgres@127.0.0.1/saas_phase1_fixture?sslmode=disable`
-- **Started:** 2026-05-09T13:26:00.897Z
-- **Duration:** 47 ms
+- **Started:** 2026-05-09T14:03:42.010Z
+- **Duration:** 42 ms
 
 ## Metrics
 
@@ -33,7 +33,7 @@
 
 | Kind | Applied | Proposed | Subject |
 |------|---------|----------|---------|
-| `ownership.null.vehicles` | no | assign-tenant | hard-delete (after review) | {"id":"77e6c5a7-ed03-48da-8cb6-d878748e4a6b","table":"vehicles"} |
+| `ownership.null.vehicles` | no | assign-tenant | hard-delete (after review) | {"id":"321de0e9-cab8-44f9-bba0-31fcb4a3a31d","table":"vehicles"} |
 | `ownership.manual-decision-required` | no | product-decision: tenant-scope | system-template-with-clone | catalog | {"table":"job_ads"} |
 | `ownership.manual-decision-required` | no | product-decision: tenant-scope | system-template-with-clone | catalog | {"table":"workflows"} |
 | `ownership.manual-decision-required` | no | product-decision: tenant-scope | system-template-with-clone | catalog | {"table":"workshops"} |

@@ -218,4 +218,19 @@ CREATE TABLE IF NOT EXISTS "saas_reconciliation_queue" (
 CREATE INDEX IF NOT EXISTS "saas_reconciliation_queue_kind_idx"
   ON "saas_reconciliation_queue"("kind");
 
+-- ---------- (7) Identifier-sequence snapshot table ----------
+-- Populated by `npm run saas:phase1-seq-snapshot`. Consumed by the Phase 2
+-- cutover migration to seed per-tenant identifier counters.
+CREATE TABLE IF NOT EXISTS "saas_phase1_seq_snapshot" (
+  "id"          BIGSERIAL PRIMARY KEY,
+  "tenant_id"   TEXT NOT NULL,
+  "prefix"      TEXT NOT NULL,
+  "year"        INT  NOT NULL,
+  "month"       INT  NOT NULL,
+  "value"       INT  NOT NULL,
+  "computed_at" TIMESTAMPTZ(3) NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "saas_phase1_seq_snapshot_unique"
+  ON "saas_phase1_seq_snapshot"("tenant_id", "prefix", "year", "month");
+
 COMMIT;

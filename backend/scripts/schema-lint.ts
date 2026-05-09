@@ -45,16 +45,28 @@ async function main(): Promise<void> {
       }
     }
 
-    // @@unique([..., tenantId]) where tenantId is not first
-    const uniqs = body.matchAll(/@@unique\(\s*\[([^\]]+)\]/g);
-    for (const u of uniqs) {
-      const cols = u[1].split(',').map(s => s.trim());
-      if (cols.includes('tenantId') && cols[0] !== 'tenantId') {
-        issues.push({
-          model,
-          rule: 'tenant-leading-unique',
-          detail: `@@unique([${cols.join(', ')}]) must lead with tenantId.`,
-        });
+    // @@unique([..., tenantId]) where tenantId is not first.
+    //
+    // Exception: identity-layer tables (TenantMembership, AgencyMembership,
+    // MembershipPermissionOverride, MembershipRole) intentionally lead with
+    // a non-tenantId join key because they are NOT tenant-scoped data —
+    // they are the identity/membership graph itself. The convention only
+    // applies to actual tenant-scoped domain models.
+    const IDENTITY_LAYER = new Set([
+      'TenantMembership', 'AgencyMembership',
+      'MembershipPermissionOverride', 'MembershipRole',
+    ]);
+    if (!IDENTITY_LAYER.has(model)) {
+      const uniqs = body.matchAll(/@@unique\(\s*\[([^\]]+)\]/g);
+      for (const u of uniqs) {
+        const cols = u[1].split(',').map(s => s.trim());
+        if (cols.includes('tenantId') && cols[0] !== 'tenantId') {
+          issues.push({
+            model,
+            rule: 'tenant-leading-unique',
+            detail: `@@unique([${cols.join(', ')}]) must lead with tenantId.`,
+          });
+        }
       }
     }
   }

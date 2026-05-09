@@ -82,6 +82,17 @@ interface BackfillReport {
     tenantIdAssignments: { applicants: number; employees: number; vehicles: number };
   };
   verification: VerificationCheck[];
+  /** Pre-run vs post-run row counts on every existing table. */
+  diffSummary?: Record<string, { before: number; after: number; delta: number }>;
+}
+
+/** Parse hardening flags. */
+function parseHardenFlags(): { failOnQuarantine: boolean; maxQuarantine: number; resume: boolean } {
+  const failOnQuarantine = process.argv.includes('--fail-on-quarantine');
+  const maxIdx = process.argv.findIndex((a) => a === '--max-quarantine');
+  const maxQuarantine = maxIdx >= 0 && process.argv[maxIdx + 1] ? parseInt(process.argv[maxIdx + 1], 10) : Number.POSITIVE_INFINITY;
+  const resume = process.argv.includes('--resume');
+  return { failOnQuarantine, maxQuarantine, resume };
 }
 
 async function main(): Promise<void> {
@@ -89,9 +100,24 @@ async function main(): Promise<void> {
   const url = getDatabaseUrl();
   if (mode === 'apply' && !process.env.ALLOW_NON_STAGING_APPLY) assertStagingOnly(url);
 
+  const harden = parseHardenFlags();
   const c = await connect();
   const startedAt = new Date().toISOString();
   const t0 = Date.now();
+
+  // Snapshot pre-run row counts on every existing table — used to compute a
+  // diff summary at the end so the operator can see what would change.
+  const preCounts: Record<string, number> = {};
+  for (const t of ['agencies', 'users', 'employees', 'applicants', 'vehicles',
+                   'tenants', 'tenant_memberships', 'agency_memberships',
+                   'membership_roles', 'membership_permission_overrides',
+                   'platform_admins', 'agency_split_progress',
+                   'saas_reconciliation_queue']) {
+    try {
+      const r = await c.query<{ n: number }>(`SELECT count(*)::int n FROM "${t}"`);
+      preCounts[t] = r.rows[0]?.n ?? 0;
+    } catch { /* table may not exist */ }
+  }
 
   const out: BackfillReport = {
     mode,
@@ -166,8 +192,33 @@ async function main(): Promise<void> {
     await c.query('BEGIN');
     await c.query("SELECT pg_advisory_xact_lock(hashtext('saas-agency-tenant-split'))");
 
+    // -------- Idempotency / resume check --------
+    // If --resume, any agency already DONE in agency_split_progress is skipped.
+    // If NOT --resume, the script refuses to proceed if a partial state is
+    // detected (any progress row with status != 'DONE').
+    const partial = await c.query<{ n: number; states: any }>(
+      `SELECT count(*)::int n, json_agg(distinct status) AS states FROM agency_split_progress`,
+    );
+    const hasProgress = (partial.rows[0]?.n ?? 0) > 0;
+    if (hasProgress) {
+      const states = (partial.rows[0]?.states as string[]) ?? [];
+      const allDone = states.every((s) => s === 'DONE');
+      if (!harden.resume && !allDone) {
+        throw new Error(
+          'Partial agency_split_progress detected (states: ' + JSON.stringify(states) +
+          '). Pass --resume to skip already-DONE agencies, or clean up the table.',
+        );
+      }
+    }
+
     // -------- Per-customer-agency loop --------
     for (const p of out.projection) {
+      if (harden.resume) {
+        const done = await c.query<{ status: string }>(
+          `SELECT status FROM agency_split_progress WHERE old_agency_id = $1`, [p.agencyId],
+        );
+        if (done.rows[0]?.status === 'DONE') continue;
+      }
       // 1. Tenant
       const tIns = await c.query<{ id: string }>(
         `INSERT INTO tenants (id, slug, name, region, status)
@@ -364,8 +415,53 @@ async function main(): Promise<void> {
     out.verification.push({ name: 'applicants.tenantId-populated', ok: denormApp === 0, detail: { stillNull: denormApp } });
     out.verification.push({ name: 'employees.tenantId-populated',  ok: denormEmp === 0, detail: { stillNull: denormEmp } });
 
+    // No duplicate slug
+    const slugDupes = (await c.query<{ n: number }>(
+      `SELECT count(*)::int n FROM (SELECT slug FROM tenants GROUP BY slug HAVING count(*) > 1) x`,
+    )).rows[0].n;
+    out.verification.push({ name: 'tenants.no-duplicate-slug', ok: slugDupes === 0, detail: { duplicates: slugDupes } });
+
+    // No duplicate (userId, tenantId) memberships
+    const memDupes = (await c.query<{ n: number }>(
+      `SELECT count(*)::int n FROM (
+         SELECT "userId", "tenantId" FROM tenant_memberships GROUP BY 1,2 HAVING count(*) > 1
+       ) x`,
+    )).rows[0].n;
+    out.verification.push({ name: 'tenant_memberships.no-duplicate-pair', ok: memDupes === 0, detail: { duplicates: memDupes } });
+
+    // No partial checkpoint
+    const partialCk = (await c.query<{ n: number }>(
+      `SELECT count(*)::int n FROM agency_split_progress WHERE status NOT IN ('DONE','SKIPPED')`,
+    )).rows[0].n;
+    out.verification.push({ name: 'checkpoint.no-partial', ok: partialCk === 0, detail: { partial: partialCk } });
+
+    // Fail-on-quarantine policy
+    if (harden.failOnQuarantine && out.written.quarantineRows > 0) {
+      throw new Error(
+        `--fail-on-quarantine: ${out.written.quarantineRows} rows quarantined (max=${
+          isFinite(harden.maxQuarantine) ? harden.maxQuarantine : 'inf'
+        })`,
+      );
+    }
+    if (out.written.quarantineRows > harden.maxQuarantine) {
+      throw new Error(
+        `--max-quarantine exceeded: ${out.written.quarantineRows} > ${harden.maxQuarantine}`,
+      );
+    }
+
     const failedChecks = out.verification.filter((v) => !v.ok);
     if (failedChecks.length > 0) out.status = 'WARN';
+
+    // Diff summary BEFORE commit/rollback (i.e. inside the open tx so the
+    // counts reflect what would be persisted in --apply mode).
+    out.diffSummary = {};
+    for (const t of Object.keys(preCounts)) {
+      try {
+        const r = await c.query<{ n: number }>(`SELECT count(*)::int n FROM "${t}"`);
+        const after = r.rows[0]?.n ?? 0;
+        out.diffSummary[t] = { before: preCounts[t], after, delta: after - preCounts[t] };
+      } catch { /* table missing; skip */ }
+    }
 
     if (mode === 'apply') {
       await c.query('COMMIT');
@@ -427,6 +523,26 @@ async function writeReports(r: BackfillReport): Promise<void> {
   md.push('| Check | OK | Detail |');
   md.push('|-------|----|--------|');
   for (const v of r.verification) md.push(`| ${v.name} | ${v.ok ? 'PASS' : '**FAIL**'} | ${JSON.stringify(v.detail ?? '')} |`);
+  md.push('');
+  if (r.diffSummary) {
+    md.push('## Diff Summary (pre-run vs in-tx counts)');
+    md.push('');
+    md.push('| Table | Before | After | Δ |');
+    md.push('|-------|--------|-------|---|');
+    for (const [t, d] of Object.entries(r.diffSummary)) {
+      const sign = d.delta > 0 ? `+${d.delta}` : String(d.delta);
+      md.push(`| \`${t}\` | ${d.before} | ${d.after} | ${sign} |`);
+    }
+    md.push('');
+    md.push('> In `--dry-run`, the "After" column reflects what would have been written before ROLLBACK. The persisted database state is unchanged.');
+    md.push('');
+  }
+  md.push('## Rollback notes');
+  md.push('');
+  md.push('- `--dry-run`: ROLLBACK is automatic; no recovery needed.');
+  md.push('- `--apply` on staging: re-running `dry-run-tenant-backfill --resume` is idempotent. To revert the entire backfill, restore the pre-run snapshot.');
+  md.push('- The original `agencies` rows are deleted at backfill step 5.4. Database restore is the only revert path once `--apply` commits.');
+  md.push('- Detected partial state from a prior run? Pass `--resume` to continue, or DELETE FROM agency_split_progress and start over.');
   md.push('');
   md.push('## Notes');
   md.push('');

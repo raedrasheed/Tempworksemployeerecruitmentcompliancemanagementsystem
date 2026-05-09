@@ -24,6 +24,7 @@ ALTER TABLE IF EXISTS "agencies"
   DROP COLUMN IF EXISTS "isDefault",
   DROP COLUMN IF EXISTS "parentId";
 
+DROP TABLE IF EXISTS "saas_phase1_seq_snapshot";
 DROP TABLE IF EXISTS "saas_reconciliation_queue";
 DROP TABLE IF EXISTS "agency_split_progress";
 

@@ -3,8 +3,8 @@
 - **Mode:** `dry-run`
 - **Status:** **BLOCKER**
 - **Database:** `postgres://postgres@127.0.0.1/saas_phase1_fixture?sslmode=disable`
-- **Started:** 2026-05-09T13:25:59.340Z
-- **Duration:** 34 ms
+- **Started:** 2026-05-09T14:03:39.931Z
+- **Duration:** 33 ms
 
 ## Metrics
 
@@ -21,7 +21,7 @@
 
 | Kind | Applied | Proposed | Subject |
 |------|---------|----------|---------|
-| `collision.employee-code` | no | accept-as-tenant-scoped (no rename) | rename-one | merge | {"value":"common-001","ownerAgencies":["11111111-1111-1111-1111-111111111111","22222222-2222-2222-2222-222222222222"],"exampleIds":["a504d89c-238e-403c-979f-d160a64cac43","223944f5-d594-4217-9678-acbc |
+| `collision.employee-code` | no | accept-as-tenant-scoped (no rename) | rename-one | merge | {"value":"common-001","ownerAgencies":["11111111-1111-1111-1111-111111111111","22222222-2222-2222-2222-222222222222"],"exampleIds":["3734ca83-f74a-4814-aac7-933a6be8dc25","b49b36cb-933d-444f-9811-ba06 |
 | `collision.identifier-sequences` | no | run TKT-P1-05 (seq-snapshot) before cutover | {"rowsToSnapshot":2,"sample":[{"prefix":"A","year":2025,"month":1,"value":250},{"prefix":"E","year":2025,"month":1,"value":87}]} |
 | `collision.attendance-locked-period` | no | replicate-to-every-tenant (default) | per-tenant-policy | {"year":2025,"month":1} |
 | `collision.attendance-locked-period` | no | replicate-to-every-tenant (default) | per-tenant-policy | {"year":2025,"month":2} |

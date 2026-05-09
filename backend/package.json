@@ -62,8 +62,12 @@
     "saas:phase1-recon-B":    "ts-node scripts/saas/phase1/reconciliation/B-agency-tenant-projection.recon.ts",
     "saas:phase1-recon-C":    "ts-node scripts/saas/phase1/reconciliation/C-unique-constraints.recon.ts",
     "saas:phase1-recon-D":    "ts-node scripts/saas/phase1/reconciliation/D-data-ownership.recon.ts",
-    "saas:phase1-recon-E":    "ts-node scripts/saas/phase1/reconciliation/E-reports-sql.recon.ts",
-    "saas:phase1-dry-run":    "ts-node scripts/saas/phase1/dry-run-tenant-backfill.ts"
+    "saas:phase1-recon-E":             "ts-node scripts/saas/phase1/reconciliation/E-reports-sql.recon.ts",
+    "saas:phase1-dry-run":             "ts-node scripts/saas/phase1/dry-run-tenant-backfill.ts",
+    "saas:phase1-backfill-dry-run":    "ts-node scripts/saas/phase1/dry-run-tenant-backfill.ts",
+    "saas:phase1-backfill-apply-staging": "ts-node scripts/saas/phase1/apply-tenant-backfill-staging.ts",
+    "saas:phase1-seq-snapshot":        "ts-node scripts/saas/phase1/snapshot-identifier-sequences.ts",
+    "saas:phase1-verify-backfill":     "ts-node scripts/saas/phase1/verify-tenant-backfill.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1041.0",

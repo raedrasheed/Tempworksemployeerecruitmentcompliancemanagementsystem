@@ -1,8 +1,8 @@
 {
   "slug": "02-user-identity",
   "title": "Audit B — User Identity",
-  "startedAt": "2026-05-09T13:32:39.175Z",
-  "durationMs": 30,
+  "startedAt": "2026-05-09T14:02:33.560Z",
+  "durationMs": 32,
   "status": "BLOCKER",
   "metrics": [
     {
@@ -50,11 +50,11 @@
       "message": "2 users belong to the system agency. They become PlatformAdmin rows.",
       "detail": [
         {
-          "id": "02b9ac7f-6d9f-4fff-85bf-2c53044d2082",
+          "id": "1b60732d-64a2-4dca-be9b-b8a70c828682",
           "email": "admin1@tempworks.test"
         },
         {
-          "id": "13db82c0-5c19-468d-8135-944f75c5dc49",
+          "id": "5d860dcc-d7c7-4b2f-975e-754ffe33aa86",
           "email": "admin2@tempworks.test"
         }
       ]

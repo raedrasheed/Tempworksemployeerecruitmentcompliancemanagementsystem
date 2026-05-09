@@ -100,3 +100,14 @@ Two-token model:
 - Through Phase 0–1, the legacy login path remains the source of truth. Disabling the feature flags reverts behavior.
 - Once memberships are backfilled and clients hold new-claim refresh tokens, rollback requires reverting issuer + verifier and accepting that all sessions force re-login.
 - `MembershipPermissionOverride` (renamed from `AgencyUserPermission`) is a new table; the old table remains until cutover, providing a fallback during Phase 1.
+
+---
+
+## Addendum (Phase 1 preflight findings)
+
+Added 2026-05-09.
+
+- **D-5 reaffirmed:** `User.agencyId` and `User.roleId` remain nullable through Phase 4. SPIKE-003 F-6 + Phase 1 preflight confirmed `agencyId` MUST become nullable to detach system-agency users without dropping FKs.
+- **Membership row creation:** the Phase 1 backfill creates exactly one `TenantMembership` per non-system user (the user's home agency becomes its tenant). Multi-tenant memberships (a user belonging to two tenants) are **not** auto-detected from existing data; that capability is exercised only via the Phase 4 invite flow.
+- **Backfill suspension policy:** users with `status != 'ACTIVE'` get `MembershipStatus = 'SUSPENDED'` rather than skipped. This preserves audit trail and allows ops to re-activate without re-invite.
+- **Permission preservation invariant** (`pre_user_role_pairs == post_membership_role_pairs`) is verified by `verify-backfill.ts` after every run.

@@ -75,3 +75,17 @@ Replaced by `PlatformAdmin` + a `pa` JWT claim. During the transition, both are 
 - The split is destructive in the sense that the original `Agency` rows are deleted at the end. Pre-migration database snapshot is mandatory.
 - The reparenting step is transactional per old agency; partial migrations resume from `agency_split_progress`.
 - If any post-migration smoke test fails, the rollback path is "restore snapshot and revert code" rather than "undo migration in place." Explicitly rehearsed on staging at least once before production.
+
+---
+
+## Addendum (Phase 1 preflight findings)
+
+Added 2026-05-09. Refines (does not supersede) the original decision.
+
+- **`users.agencyId` becomes nullable** for the duration of Phase 1 in order to detach system-agency users from the row that will be deleted (preflight surfaced this as a structural prerequisite). The column is **kept nullable through Phase 4**; legacy reads tolerate `NULL` for platform admins. See ADR-002 D-5.
+- **EmployeeAgencyAccess provenance** (which user originally granted the cross-agency access) is reconstructed from `audit_logs` where possible. When unattributable, the row is queued in `saas_reconciliation_queue` with kind `eaa.unattributable-grant`; the default disposition is to drop the grant unless ops chooses otherwise.
+- **`AgencyUserPermission`** rows are migrated 1:1 into `MembershipPermissionOverride` (renamed table; columns repointed to `membershipId`). The original table remains in place through Phase 1 — it is dropped in Phase 3 after a 2-week verification window.
+- **Backfill checkpoint table** `agency_split_progress` is the resume key; it persists post-migration as historical evidence of the split. It is NOT a configuration table — never read at runtime.
+- **Identifier-sequence snapshot** is computed in Phase 1 (`saas_phase1_seq_snapshot`) but the global UNIQUE on `identifier_sequences` is only **dropped in Phase 2** as part of the cutover that switches application writers to the new `(tenantId, prefix, year, month)` key. Phase 1 prepares; Phase 2 cuts.
+- **Reserved-slug list** is codified in `backend/src/saas/tenancy/reserved-slugs.ts` (Phase 2 adds the file; Phase 1 backfill uses the list inlined in the script). Slugs may be manually overridden via `saas_reconciliation_queue.subject.slug` before backfill runs.
+- **Phase 1 is data-only.** The application's JWT continues to emit `agencyId`/`agencyIsSystem`. Removal of those legacy claims is a **Phase 3** deliverable conditional on `PlatformAdmin` rows existing for every prior `Agency.isSystem=true` user.

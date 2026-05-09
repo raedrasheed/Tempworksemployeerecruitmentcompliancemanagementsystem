@@ -95,3 +95,13 @@ A separate **Platform Admin** access model with explicit, audited bypass:
 - During the `DUAL_CLAIM_JWT` window, removing the `pa` claim emission falls back to legacy `agencyIsSystem` honoring.
 - `PlatformPrismaService` and its consumers are zero-touched in Phase 0; rollback is removing the service file.
 - `PlatformAdmin` rows are additive; if abandoned, they are inert without `pa` claim emission.
+
+---
+
+## Addendum (Phase 1 preflight findings)
+
+Added 2026-05-09.
+
+- **Default level on Phase 1 backfill is `SUPER`**, not `SUPPORT`. Rationale: every existing `agencyIsSystem=true` user already has cross-tenant access today; downgrading without explicit security review would lock people out. Security reviews and downgrades to `SUPPORT`/`OPERATOR` happen post-cutover (TKT-P1-09 +30 days). Recorded in the reconciliation queue so the diff is visible.
+- **Bypass policies are still NOT created in Phase 1.** The `platform_admin` Postgres role exists (Phase 0 migration), but per-table `TO platform_admin USING (true) WITH CHECK (true)` policies are added in **Phase 3**, alongside RLS `FORCE` per table. Phase 1 cannot enable any cross-tenant read path.
+- **`agencyIsSystem` retirement:** stays in Phase 3. The dual-honour period is at least 30 days post-Phase-2 dual-claim JWT cutover.

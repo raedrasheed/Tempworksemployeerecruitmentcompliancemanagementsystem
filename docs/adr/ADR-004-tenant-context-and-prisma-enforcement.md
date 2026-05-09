@@ -151,3 +151,14 @@ System-template workflows (`Workflow.tenantId IS NULL`) are public-read to all m
 - `RLS_ENFORCED=false` keeps RLS in audit mode (no enforcement).
 - `PlatformPrismaService` consumers are zero in Phase 0; rollback is a no-op.
 - Removing the `TenantAwareJobProcessor` base class is safe pre-Phase 3 since no jobs depend on it yet.
+
+---
+
+## Addendum (Phase 1 preflight findings)
+
+Added 2026-05-09.
+
+- **`TENANT_SCOPED_MODELS` in Phase 1:** still empty in code. Even though the prep migration adds `tenantId` columns to `applicants`, `employees`, `vehicles`, the application **does not yet** filter through `TenantPrismaService`. The columns are populated by the backfill but read by nothing until Phase 2 wires the wrapper.
+- **Catalog resolution model (§6) is locked as the default**: `DocumentType`, `MaintenanceType`, `NotificationRule`, `Workshop` keep `tenantId IS NULL` rows as the system catalog; tenants override per-key. Replicate-mode is rejected (data duplication; no clear product win).
+- **Reports engine impact:** Audit G surfaced 13 raw-SQL occurrences in `backend/src/reports`. The Phase 3 reports refactor (ADR-007) is a **hard prerequisite** for Phase 2's `TENANT_PRISMA_ENFORCEMENT=true` cutover — otherwise reports become a leakage channel even with RLS on.
+- **Identifier sequence cutover** is the first time the wrapper actually rewrites a query (Phase 2 TKT). Until then, the legacy single-key writer continues — Phase 1 only stages the snapshot.

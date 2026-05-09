@@ -181,6 +181,29 @@ shipped in the Phase 2.7 PR. Key artefacts:
 The next recommended pilot is `src/compliance` (read-only views of
 `compliance_alerts`).
 
+## 11.2 Phase 2.8 pilot landed
+
+The second TENANT-SCOPED pilot module (`src/compliance`) shipped in
+the Phase 2.8 PR. Key artefacts:
+
+- `getPilotScope(pilot, moduleName)` extended with module allow-list
+  via `TENANT_PRISMA_PILOT_MODULES`.
+- `ComplianceService` rewired with the same `private get prisma()` +
+  `private scope()` pattern as EWH; 23 retained call sites annotated.
+- `phase28-compliance-extension.sql` fixture: adds Postgres enums
+  (AlertStatus, AlertSeverity, EntityType, DocumentStatus,
+  WorkPermitStatus, VisaStatus) + missing columns on
+  compliance_alerts/documents/document_types/work_permits/visas/employees,
+  then seeds two-tenant compliance alerts plus one NULL-tenant legacy.
+- `saas:phase2-compliance-equivalence` (12/12 PASS).
+- `saas:phase2-compliance-isolation` (7/7 PASS).
+- Phase 2.7 EWH harness still 12/12 + 8/8 PASS (no regression).
+- `SAAS_PHASE2_COMPLIANCE_AUDIT.md`,
+  `SAAS_PHASE2_COMPLIANCE_PILOT_RESULTS.md`.
+
+The next recommended pilot is `src/job-ads` — single-table CRUD,
+low mutation rate, no file/storage interactions.
+
 ## 12. Hard rules
 
 - **Never enable `TENANT_PRISMA_ENFORCEMENT=true` in production until every P0/P1/P2 module has migrated.** Enabling it with a half-migrated codebase makes the un-migrated services start filtering by tenant when their callers don't expect it.

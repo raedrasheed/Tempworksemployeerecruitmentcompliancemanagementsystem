@@ -34,6 +34,32 @@
 import { TenantContext } from '../context/als';
 import { PilotPrismaAccessor } from './pilot-prisma.accessor';
 
+/**
+ * Per-module allow-list. The env var `TENANT_PRISMA_PILOT_MODULES` is
+ * a comma-separated list of module names that are opted in to the
+ * pilot. When unset OR empty, every module is allowed (backward-
+ * compatible with Phase 2.7 which had no allow-list). When set, only
+ * the listed modules engage the pilot scope; everything else falls
+ * back to legacy.
+ *
+ * Examples:
+ *   (unset)                                       — all modules opt in
+ *   ""                                            — all modules opt in (treated as unset)
+ *   "employee-work-history"                       — only EWH
+ *   "employee-work-history,compliance"            — EWH + compliance
+ *   "compliance, employee-work-history"           — whitespace tolerated
+ *
+ * Set to a name that doesn't exist (e.g. "nothing") to rapidly
+ * disable every module's pilot path without unsetting
+ * TENANT_PRISMA_PILOT_ENABLED.
+ */
+export function isModuleAllowed(moduleName: string): boolean {
+  const raw = (process.env.TENANT_PRISMA_PILOT_MODULES ?? '').trim();
+  if (!raw) return true;                    // unset / empty ⇒ all allowed
+  const set = new Set(raw.split(',').map((s) => s.trim()).filter(Boolean));
+  return set.has(moduleName);
+}
+
 export interface PilotScope {
   /** Whether tenant filtering / tenant-id injection is active. */
   active: boolean;
@@ -63,9 +89,22 @@ const INACTIVE = (reason: string): PilotScope => ({
   tenantData:  () => ({}),
 });
 
-export function getPilotScope(pilot: PilotPrismaAccessor): PilotScope {
+/**
+ * @param pilot       the injected accessor for env + flag check.
+ * @param moduleName  optional module name. When provided, the scope
+ *                    additionally consults `TENANT_PRISMA_PILOT_MODULES`
+ *                    to gate per-module opt-in. Phase 2.7 callers that
+ *                    omit `moduleName` keep their previous behaviour
+ *                    (allow-list bypassed) — the parameter is purely
+ *                    additive.
+ */
+export function getPilotScope(pilot: PilotPrismaAccessor, moduleName?: string): PilotScope {
   const r = pilot.pilotReason();
   if (!r.active) return INACTIVE(r.reason);
+
+  if (moduleName && !isModuleAllowed(moduleName)) {
+    return INACTIVE(`module "${moduleName}" not in TENANT_PRISMA_PILOT_MODULES`);
+  }
 
   const ctx = TenantContext.optional?.();
   if (!ctx?.id) return INACTIVE('pilot ON but no TenantContext in scope (legacy fallback)');
@@ -74,7 +113,7 @@ export function getPilotScope(pilot: PilotPrismaAccessor): PilotScope {
   return {
     active: true,
     tenantId,
-    reason: r.reason,
+    reason: moduleName ? `${r.reason} (module=${moduleName})` : r.reason,
     tenantWhere: () => ({ tenantId }),
     tenantData:  () => ({ tenantId }),
   };

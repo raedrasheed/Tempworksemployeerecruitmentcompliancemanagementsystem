@@ -85,7 +85,9 @@
     "saas:phase2-tenantprisma-pilot-equivalence": "ts-node scripts/saas/phase2/tenantprisma-pilot-equivalence.ts",
     "saas:phase2-tenantprisma-pilot-isolation":   "ts-node scripts/saas/phase2/tenantprisma-pilot-isolation.ts",
     "saas:phase2-ewh-equivalence":                "ts-node scripts/saas/phase2/employee-work-history-equivalence.ts",
-    "saas:phase2-ewh-isolation":                  "ts-node scripts/saas/phase2/employee-work-history-isolation.ts"
+    "saas:phase2-ewh-isolation":                  "ts-node scripts/saas/phase2/employee-work-history-isolation.ts",
+    "saas:phase2-compliance-equivalence":         "ts-node scripts/saas/phase2/compliance-equivalence.ts",
+    "saas:phase2-compliance-isolation":           "ts-node scripts/saas/phase2/compliance-isolation.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1041.0",

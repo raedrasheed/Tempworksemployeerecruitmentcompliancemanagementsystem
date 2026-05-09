@@ -38,9 +38,11 @@ export class EmployeeWorkHistoryService {
     return this.pilot.client();
   }
 
-  /** Per-call pilot decision. Stays inactive in production. */
+  /** Per-call pilot decision. Stays inactive in production. The module
+   *  name gates this service against `TENANT_PRISMA_PILOT_MODULES` when
+   *  set; if the env var is unset (default) every module is allowed. */
   private scope(): PilotScope {
-    return getPilotScope(this.pilot);
+    return getPilotScope(this.pilot, 'employee-work-history');
   }
 
   private get include() {

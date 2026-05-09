@@ -14,6 +14,8 @@
 - [ ] `npm run saas:phase2-reports-isolation` returns `N/N sources isolated`, including 0 child-leak and 0 parent-leak counts.
 - [ ] For every Phase 2.4 joined source, the registry's structuredOn renders cleanly (`saas:phase2-reports-validate` or in-process registry validation; see `SAAS_PHASE2_REPORTS_JOIN_SAFETY_DESIGN.md`).
 - [ ] `phase24-extension.sql` is NOT applied on production (it adds fixture tables only — production already has them).
+- [ ] **Phase 2.5 rehearsal:** `npm run saas:phase2-reports-rollout-rehearsal` reports `N/N steps PASS` on the same DB.
+- [ ] Operator has read `SAAS_PHASE2_REPORTS_STAGING_ROLLOUT_RUNBOOK.md` and `SAAS_PHASE2_REPORTS_STAGING_OBSERVABILITY_CHECKLIST.md`.
 - [ ] Reports team code-owner has signed off on `SAAS_PHASE2_REPORTS_SOURCE_STATUS.md`.
 
 ## 2. Per-environment rollout

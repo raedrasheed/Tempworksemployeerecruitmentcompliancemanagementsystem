@@ -6,14 +6,20 @@
 
 ---
 
-## 1. Headline
+## 1. Headline (post Phase 2.5 rehearsal on staging fixture)
 
 ```
-context-smoke:               7/7 cases PASS
-reports-read-equivalence:    3/3 sources equivalent (0 delta, 0 errors)
-reports-isolation-test:      3/3 sources isolated
-saas:validate (45 unit):     all PASS
+context-smoke:                           7/7 cases PASS
+reports-read-equivalence:                PASS=17 WARN=0 FAIL=0 SKIPPED=1 (of 17 READY)
+reports-isolation-test:                  17/17 sources isolated
+reports-staging-rollout-rehearsal:       20/20 steps PASS
+saas:validate (6 suites, 45+ unit):      all PASS
 ```
+
+The Phase 2.5 rehearsal harness exercises the integration path
+end-to-end on a SAFE_CLONE classified database with the four flags
+set to their staging values. Rollback step (flags off → legacy path,
+0 row mutations) verified inside the same script.
 
 ## 2. Reports engine + tenant context
 

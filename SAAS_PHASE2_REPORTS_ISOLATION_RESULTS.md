@@ -5,11 +5,15 @@
 
 ---
 
-## Headline (post Phase 2.4)
+## Headline (post Phase 2.5 rehearsal)
 
 ```
 17/17 sources isolated.
 ```
+
+Re-validated under the Phase 2.5 rollout rehearsal harness (env =
+SAFE_CLONE, all four staging flags ON). The harness's full result:
+`[rollout-rehearsal] 20/20 steps PASS`. No new isolation failure.
 
 Plus, for every READY source:
 

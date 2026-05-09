@@ -1,6 +1,6 @@
 # Phase 2.2 — Tenant Context Smoke Test
 
-Generated: 2026-05-09T17:05:16.627Z
+Generated: 2026-05-09T17:18:48.906Z
 
 - Total cases: 7
 - Passed: **7**

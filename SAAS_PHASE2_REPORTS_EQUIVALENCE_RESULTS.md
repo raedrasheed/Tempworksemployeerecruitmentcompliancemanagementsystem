@@ -6,11 +6,15 @@
 
 ---
 
-## Headline (post Phase 2.4)
+## Headline (post Phase 2.5 rehearsal)
 
 ```
 PASS=17  WARN=0  FAIL=0  SKIPPED=1  (of 17 READY)
 ```
+
+Re-validated as part of the Phase 2.5 staging rollout rehearsal harness.
+Rehearsal result: `[rollout-rehearsal] 20/20 steps PASS`. Per-source
+verdicts and joined-cardinality counts unchanged from Phase 2.4.
 
 Every READY source's tenant-safe SQL returns the same parent-row id
 set as the legacy-shape SQL when both are scoped to the same tenant.

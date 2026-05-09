@@ -1,0 +1,89 @@
+{
+  "generatedAt": "2026-05-09T19:27:16.870Z",
+  "environment": {
+    "classification": "SAFE_CLONE",
+    "reason": "localhost + fixture pattern (db=saas_phase1_fixture)",
+    "host": "127.0.0.1",
+    "dbName": "saas_phase1_fixture",
+    "nodeEnv": "unset"
+  },
+  "counts": {
+    "total": 12,
+    "passed": 12,
+    "failed": 0
+  },
+  "results": [
+    {
+      "name": "roles equivalence",
+      "ok": true,
+      "detail": "tenantprisma-pilot-equivalence: 13/13 cases PASS | exit=0",
+      "durationMs": 13719
+    },
+    {
+      "name": "roles isolation",
+      "ok": true,
+      "detail": "tenantprisma-pilot-isolation: 9/9 cases PASS | exit=0",
+      "durationMs": 13763
+    },
+    {
+      "name": "employee-work-history equivalence",
+      "ok": true,
+      "detail": "employee-work-history-equivalence: 12/12 cases PASS | exit=0",
+      "durationMs": 14366
+    },
+    {
+      "name": "employee-work-history isolation",
+      "ok": true,
+      "detail": "employee-work-history-isolation: 8/8 cases PASS | exit=0",
+      "durationMs": 14508
+    },
+    {
+      "name": "compliance equivalence",
+      "ok": true,
+      "detail": "compliance-equivalence: 12/12 cases PASS | exit=0",
+      "durationMs": 13884
+    },
+    {
+      "name": "compliance isolation",
+      "ok": true,
+      "detail": "compliance-isolation: 7/7 cases PASS | exit=0",
+      "durationMs": 14319
+    },
+    {
+      "name": "job-ads equivalence",
+      "ok": true,
+      "detail": "job-ads-equivalence: 13/13 cases PASS | exit=0",
+      "durationMs": 13895
+    },
+    {
+      "name": "job-ads isolation",
+      "ok": true,
+      "detail": "job-ads-isolation: 9/9 cases PASS | exit=0",
+      "durationMs": 14082
+    },
+    {
+      "name": "notifications equivalence",
+      "ok": true,
+      "detail": "notifications-equivalence: 11/11 cases PASS | exit=0",
+      "durationMs": 13945
+    },
+    {
+      "name": "notifications isolation",
+      "ok": true,
+      "detail": "notifications-isolation: 8/8 cases PASS | exit=0",
+      "durationMs": 14202
+    },
+    {
+      "name": "recycle-bin equivalence",
+      "ok": true,
+      "detail": "recycle-bin-equivalence: 11/11 cases PASS | exit=0",
+      "durationMs": 14481
+    },
+    {
+      "name": "recycle-bin isolation",
+      "ok": true,
+      "detail": "recycle-bin-isolation: 7/7 cases PASS | exit=0",
+      "durationMs": 14953
+    }
+  ]
+}

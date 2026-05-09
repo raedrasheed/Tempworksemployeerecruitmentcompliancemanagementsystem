@@ -7,37 +7,17 @@
  * Output: backend/reports/saas/phase2/recycle-bin-equivalence.{json,md}
  */
 /* eslint-disable no-console */
-import { promises as fs } from 'fs';
-import path from 'path';
-import { Client } from 'pg';
-import { autoLoadEnv, formatDatabaseUrlMissingMessage } from './../phase1/reconciliation/lib/env';
-import { classifyRuntimeEnv, isStagingClassification } from '../../../src/saas/tenancy/env-safety';
+import {
+  abortUnlessStaging, withFlags, writeReport,
+  getDatabaseUrl, discoverPilotTenants,
+  type CaseResult,
+} from './lib/harness';
 import { PrismaService } from '../../../src/prisma/prisma.service';
 import { TenantPrismaService } from '../../../src/saas/prisma/tenant-prisma.service';
 import { PilotPrismaAccessor } from '../../../src/saas/prisma/pilot-prisma.accessor';
 import { FeatureFlagsService } from '../../../src/saas/feature-flags/feature-flags.service';
 import { RecycleBinService } from '../../../src/recycle-bin/recycle-bin.service';
 import { TenantContext, withRequestContext, newRequestId } from '../../../src/saas/context/als';
-
-autoLoadEnv(__filename);
-
-const OUT_DIR = path.resolve(__dirname, '..', '..', '..', 'reports', 'saas', 'phase2');
-interface CaseResult { name: string; ok: boolean; detail: string; }
-
-function getDatabaseUrl(): string {
-  const arg = process.argv.find((a) => a.startsWith('--db='))?.slice(5);
-  return arg ?? process.env.DATABASE_URL ?? (() => { throw new Error(formatDatabaseUrlMissingMessage()); })();
-}
-
-async function withFlags<T>(env: Record<string, string | undefined>, fn: () => Promise<T> | T): Promise<T> {
-  const prev = { ...process.env };
-  for (const [k, v] of Object.entries(env)) {
-    if (v === undefined) delete process.env[k];
-    else process.env[k] = v;
-  }
-  try { return await fn(); }
-  finally { process.env = prev; }
-}
 
 interface Snapshot {
   pilotActive: boolean;
@@ -106,19 +86,8 @@ async function snap(flagsOverride: Record<string, string | undefined>,
 
 async function main(): Promise<void> {
   const url = getDatabaseUrl();
-  const env = classifyRuntimeEnv();
-  if (!isStagingClassification(env.classification)) {
-    console.error(`[recycle-bin-equivalence] refusing on classification=${env.classification}`);
-    process.exit(3);
-  }
-  const c = new Client({ connectionString: url, ssl: /127\.0\.0\.1|localhost/.test(url) ? false : { rejectUnauthorized: false } });
-  await c.connect();
-  const ts = await c.query<{ id: string }>(
-    `SELECT t.id FROM tenants t
-       WHERE EXISTS (SELECT 1 FROM employees e WHERE e."tenantId" = t.id::text)
-       ORDER BY t.name`);
-  const tA = ts.rows[0]?.id;
-  await c.end();
+  const env = abortUnlessStaging('recycle-bin-equivalence');
+  const { tenantA: tA } = await discoverPilotTenants(url);
   if (!tA) { console.error('[recycle-bin-equivalence] need a tenant'); process.exit(3); }
 
   const out: CaseResult[] = [];
@@ -188,30 +157,13 @@ async function main(): Promise<void> {
     detail: 'numeric totals + meta in both modes',
   });
 
-  await fs.mkdir(OUT_DIR, { recursive: true });
-  const summary = {
-    generatedAt: new Date().toISOString(), environment: env, tenantA: tA, legacy, pilot,
-    counts: { total: out.length, passed: out.filter((r) => r.ok).length, failed: out.filter((r) => !r.ok).length },
-    results: out,
-  };
-  await fs.writeFile(path.join(OUT_DIR, 'recycle-bin-equivalence.json'), JSON.stringify(summary, null, 2));
-  const md: string[] = [];
-  md.push('# Phase 2.11 — Recycle Bin Equivalence');
-  md.push('');
-  md.push(`Generated: ${summary.generatedAt}`);
-  md.push(`Environment: ${env.classification} (${env.reason})`);
-  md.push(`Tenant A: \`${tA}\``);
-  md.push('');
-  md.push(`- Cases passed: **${summary.counts.passed}** / ${summary.counts.total}`);
-  md.push(`- Cases failed: ${summary.counts.failed}`);
-  md.push('');
-  md.push('| # | Case | Result | Detail |');
-  md.push('|--:|------|:------:|--------|');
-  out.forEach((r, i) => md.push(`| ${i + 1} | ${r.name} | ${r.ok ? 'PASS' : '**FAIL**'} | ${r.detail} |`));
-  await fs.writeFile(path.join(OUT_DIR, 'recycle-bin-equivalence.md'), md.join('\n'));
-
-  console.log(`recycle-bin-equivalence: ${summary.counts.passed}/${summary.counts.total} cases PASS`);
-  if (summary.counts.failed > 0) process.exit(2);
+  await writeReport({
+    title: 'Phase 2.11 — Recycle Bin Equivalence',
+    name: 'recycle-bin-equivalence',
+    out,
+    environment: env,
+    metadata: { tenantA: tA, legacy, pilot },
+  });
 }
 
 main().catch((e) => { console.error(e); process.exit(3); });

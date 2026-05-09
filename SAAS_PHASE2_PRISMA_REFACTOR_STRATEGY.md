@@ -282,6 +282,43 @@ Phase 2.6/2.7/2.8/2.9/2.10 harnesses still green. The next phase will
 either tackle the Phase 2.10-flagged scheduler/job-context work or
 split `src/finance` reads-first.
 
+## 11.6 Phase 2.12 consolidation landed
+
+Six pilots prompted enough copy-paste that Phase 2.12 consolidates the
+shared scaffolding before larger modules begin:
+
+- **Harness library** — `backend/scripts/saas/phase2/lib/harness.ts`
+  exports `getDatabaseUrl`, `abortUnlessStaging`, `withFlags`,
+  `discoverPilotTenants`, `discoverUserForTenant`,
+  `discoverEmployeeForTenant`, `writeReport`. Two existing harnesses
+  (`tenantprisma-pilot-isolation`, `recycle-bin-equivalence`) were
+  refactored to use the helpers as proof.
+- **Annotation policy** — `SAAS_PHASE2_SCANNER_ANNOTATION_POLICY.md`
+  enumerates every `@tenant-reviewed:` reason tag with allowed paths
+  and expiry conditions. Adding a new tag requires updating both the
+  policy doc and `KNOWN_REASONS` in the scanner.
+- **Annotation scanner** — `npm run saas:scan:annotations` validates
+  each annotation against the policy. Reports `UNKNOWN_REASON` /
+  `WRONG_PATH` findings; WARN-only by default; `--strict-annotations`
+  fails the build.
+- **Pilot regression** — `npm run saas:phase2-pilot-regression` runs
+  all 12 existing pilot harnesses sequentially. Today: 12/12 PASS.
+- **Pattern audit + next-module template** —
+  `SAAS_PHASE2_TENANTPRISMA_PATTERN_AUDIT.md` and
+  `SAAS_PHASE2_NEXT_MODULE_TEMPLATE.md` codify the standard so the
+  next pilot lands in a single PR with a predictable shape.
+
+No business logic changed. No flags flipped. No new module under
+pilot. Validation suite still green:
+
+- saas:scan unchanged at 576.
+- saas:scan:annotations: 0 findings.
+- saas:phase2-pilot-regression: 12/12 PASS.
+
+The next phase will pick up the Phase 2.10-flagged scheduler/
+job-context work, or — if a no-scheduler pilot is preferred —
+`src/finance` reads-first.
+
 ## 12. Hard rules
 
 - **Never enable `TENANT_PRISMA_ENFORCEMENT=true` in production until every P0/P1/P2 module has migrated.** Enabling it with a half-migrated codebase makes the un-migrated services start filtering by tenant when their callers don't expect it.

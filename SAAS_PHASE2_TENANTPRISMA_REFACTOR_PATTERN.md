@@ -283,3 +283,27 @@ Three layers stop a bad pilot rollout:
 | `tenantData()` spread | not needed | required on every create |
 | Cross-tenant id presents as | n/a — global table | `NotFoundException` (404) |
 | Audit log surface | accessor | always legacy (audit is global) |
+
+## 11. Phase 2.12 consolidation update
+
+After six pilots the consolidated standard is:
+
+- **Wiring**: `imports: [FeatureFlagsModule]`, `providers: [<Service>, TenantPrismaService, PilotPrismaAccessor]`.
+- **Service shape**: `constructor(private legacyPrisma, …, private pilot)`; `private get prisma() { return this.pilot.client(); }`; `private scope() { return getPilotScope(this.pilot, '<module>'); }`.
+- **Reads**: spread `scope.tenantWhere()` into every `where`.
+- **Creates**: spread `scope.tenantData()` into every `data`.
+- **Updates / deletes**: pre-check + mutate-by-id.
+- **Multi-entity services**: a module-local `tenant-scope-map.ts`
+  separating tenant-scoped from global entity types, plus a
+  `tenantWhereFor(entityType)` helper.
+- **Excluded paths**: route via `legacyPrisma`; annotate
+  `phase2X-excluded-<reason>`; add a source-level meta-assertion in
+  the isolation harness.
+- **Annotations**: every retained `this.prisma.*` line carries a
+  policy-allowed tag. See `SAAS_PHASE2_SCANNER_ANNOTATION_POLICY.md`.
+- **Harnesses**: import `lib/harness` for env safety, flag
+  manipulation, tenant discovery, and report writing.
+- **Per-pilot docs**: audit + results + scope-related docs as needed.
+
+The full checklist for adopting this in a new module lives in
+`SAAS_PHASE2_NEXT_MODULE_TEMPLATE.md`.

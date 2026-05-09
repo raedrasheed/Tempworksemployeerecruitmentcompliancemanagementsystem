@@ -29,10 +29,10 @@
  *   3 — runtime error
  */
 /* eslint-disable no-console */
-import { promises as fs } from 'fs';
-import path from 'path';
-import { autoLoadEnv, formatDatabaseUrlMissingMessage } from './../phase1/reconciliation/lib/env';
-import { classifyRuntimeEnv, isStagingClassification } from '../../../src/saas/tenancy/env-safety';
+import {
+  abortUnlessStaging, withFlags, writeReport, getDatabaseUrl,
+  type CaseResult,
+} from './lib/harness';
 import { PrismaService } from '../../../src/prisma/prisma.service';
 import { TenantPrismaService } from '../../../src/saas/prisma/tenant-prisma.service';
 import { PilotPrismaAccessor } from '../../../src/saas/prisma/pilot-prisma.accessor';
@@ -45,31 +45,13 @@ import {
 } from '../../../src/saas/context/als';
 import { classify, GLOBAL_MODELS } from '../../../src/saas/prisma/tenant-scoped-models';
 
-autoLoadEnv(__filename);
-
-const OUT_DIR = path.resolve(__dirname, '..', '..', '..', 'reports', 'saas', 'phase2');
-
-interface CaseResult { name: string; ok: boolean; detail: string; }
-
 class StubAuditLog { async log(_: any): Promise<void> { /* empty */ } }
 
-async function withFlags<T>(env: Record<string, string | undefined>, fn: () => Promise<T> | T): Promise<T> {
-  const prev = { ...process.env };
-  for (const [k, v] of Object.entries(env)) {
-    if (v === undefined) delete process.env[k];
-    else process.env[k] = v;
-  }
-  try { return await fn(); }
-  finally { process.env = prev; }
-}
-
 async function main(): Promise<void> {
-  if (!process.env.DATABASE_URL) throw new Error(formatDatabaseUrlMissingMessage());
-  const env = classifyRuntimeEnv();
-  if (!isStagingClassification(env.classification)) {
-    console.error(`[pilot-isolation] refusing to run on classification=${env.classification}`);
-    process.exit(3);
-  }
+  // Touch DATABASE_URL accessor for consistent error message; harness
+  // does not actually need a DB for the in-process classifier check.
+  void getDatabaseUrl;
+  const env = abortUnlessStaging('pilot-isolation');
 
   const out: CaseResult[] = [];
 
@@ -193,35 +175,12 @@ async function main(): Promise<void> {
     });
   });
 
-  await fs.mkdir(OUT_DIR, { recursive: true });
-  const summary = {
-    generatedAt: new Date().toISOString(),
+  await writeReport({
+    title: 'Phase 2.6 — TenantPrisma Pilot Isolation (Roles)',
+    name: 'tenantprisma-pilot-isolation',
+    out,
     environment: env,
-    counts: {
-      total: out.length,
-      passed: out.filter((r) => r.ok).length,
-      failed: out.filter((r) => !r.ok).length,
-    },
-    results: out,
-  };
-  await fs.writeFile(path.join(OUT_DIR, 'tenantprisma-pilot-isolation.json'), JSON.stringify(summary, null, 2));
-
-  const md: string[] = [];
-  md.push('# Phase 2.6 — TenantPrisma Pilot Isolation (Roles)');
-  md.push('');
-  md.push(`Generated: ${summary.generatedAt}`);
-  md.push(`Environment: ${env.classification} (${env.reason})`);
-  md.push('');
-  md.push(`- Cases passed: **${summary.counts.passed}** / ${summary.counts.total}`);
-  md.push(`- Cases failed: ${summary.counts.failed}`);
-  md.push('');
-  md.push('| # | Case | Result | Detail |');
-  md.push('|--:|------|:------:|--------|');
-  out.forEach((r, i) => md.push(`| ${i + 1} | ${r.name} | ${r.ok ? 'PASS' : '**FAIL**'} | ${r.detail} |`));
-  await fs.writeFile(path.join(OUT_DIR, 'tenantprisma-pilot-isolation.md'), md.join('\n'));
-
-  console.log(`tenantprisma-pilot-isolation: ${summary.counts.passed}/${summary.counts.total} cases PASS`);
-  if (summary.counts.failed > 0) process.exit(2);
+  });
 }
 
 main().catch((e) => { console.error(e); process.exit(3); });

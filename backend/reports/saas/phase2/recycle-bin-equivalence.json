@@ -1,11 +1,16 @@
 {
-  "generatedAt": "2026-05-09T19:04:21.205Z",
+  "generatedAt": "2026-05-09T19:26:51.749Z",
   "environment": {
     "classification": "SAFE_CLONE",
     "reason": "localhost + fixture pattern (db=saas_phase1_fixture)",
     "host": "127.0.0.1",
     "dbName": "saas_phase1_fixture",
     "nodeEnv": "unset"
+  },
+  "counts": {
+    "total": 11,
+    "passed": 11,
+    "failed": 0
   },
   "tenantA": "11111111-1111-1111-1111-111111111111",
   "legacy": {
@@ -31,11 +36,6 @@
     "filteredApplicantTotal": 0,
     "filteredUserTotal": 0,
     "errorOnUnknown": "no-error"
-  },
-  "counts": {
-    "total": 11,
-    "passed": 11,
-    "failed": 0
   },
   "results": [
     {

@@ -1,6 +1,6 @@
 # Phase 2.6 — TenantPrisma Pilot Read-Equivalence (Roles)
 
-Generated: 2026-05-09T18:08:14.937Z
+Generated: 2026-05-09T19:24:30.309Z
 Environment: SAFE_CLONE (localhost + fixture pattern (db=saas_phase1_fixture))
 
 - Cases passed: **13** / 13

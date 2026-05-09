@@ -36,6 +36,8 @@ export class FeatureFlagsService {
   tenantSwitchingEnabled(): boolean { return this.snapshot.TENANT_SWITCHING_ENABLED; }
   platformAdminEnabled():   boolean { return this.snapshot.PLATFORM_ADMIN_ENABLED; }
   tenantSafeReportsEnabled():boolean{ return this.snapshot.TENANT_SAFE_REPORTS_ENABLED; }
+  tenantContextStagingOnly():boolean{ return this.snapshot.TENANT_CONTEXT_STAGING_ONLY; }
+  tenantContextRequiredForSafeReports():boolean{ return this.snapshot.TENANT_CONTEXT_REQUIRED_FOR_SAFE_REPORTS; }
 
   /** Test-only: build a service from an explicit map (no env reads). */
   static forTesting(overrides: Partial<Record<FlagKey, boolean>>): FeatureFlagsService {

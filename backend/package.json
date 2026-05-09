@@ -76,7 +76,9 @@
     "saas:phase2-reports-equivalence": "ts-node scripts/saas/phase2/reports-read-equivalence.ts",
     "saas:phase2-reports-isolation":   "ts-node scripts/saas/phase2/reports-isolation-test.ts",
     "saas:phase2-reports-status":      "ts-node scripts/saas/phase2/reports-validate.ts",
-    "saas:scan:raw-sql":               "ts-node scripts/scan-raw-sql.ts"
+    "saas:scan:raw-sql":               "ts-node scripts/scan-raw-sql.ts",
+    "saas:phase2-context-smoke":       "ts-node scripts/saas/phase2/context-smoke-test.ts",
+    "saas:phase2-diagnostics":         "ts-node scripts/saas/phase2/diagnostics-probe.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1041.0",

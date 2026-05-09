@@ -527,6 +527,11 @@ export class ReportsService {
    */
   private isTenantSafeRoute(source: string): boolean {
     if (!this.flags.tenantSafeReportsEnabled()) return false;
+    // One-shot bypass used by `executeReportTenantSafe` when context is
+    // missing AND TENANT_CONTEXT_REQUIRED_FOR_SAFE_REPORTS=false. Lets
+    // a single re-entry fall through to the legacy engine without
+    // ever returning to the safe path within the same call.
+    if ((this as any).__forceLegacyOnce) return false;
     const m = TENANT_SAFE_SOURCES[source];
     return !!m && m.status === 'READY';
   }
@@ -676,10 +681,26 @@ export class ReportsService {
 
     const tenant = TenantContext.optional?.();
     if (!tenant) {
-      throw new BadRequestException({
-        code: 'REPORT.TENANT_CONTEXT_REQUIRED',
-        message: 'Tenant-safe reports require an active TenantContext (TENANT_SAFE_REPORTS_ENABLED is on).',
-      });
+      // Phase 2.2: when TENANT_CONTEXT_REQUIRED_FOR_SAFE_REPORTS=true,
+      // we fail loud as before. When false, we fall back to the legacy
+      // engine for this single request — letting staging operators
+      // gradually flip flags without bricking traffic. The legacy
+      // engine is invoked transparently by re-entering executeReport.
+      if (this.flags.tenantContextRequiredForSafeReports()) {
+        throw new BadRequestException({
+          code: 'REPORT.TENANT_CONTEXT_REQUIRED',
+          message: 'Tenant-safe reports require an active TenantContext. ' +
+            'Set TENANT_CONTEXT_REQUIRED_FOR_SAFE_REPORTS=false to allow legacy fallback.',
+        });
+      }
+      // Soft fallback to legacy. Disable the safe route for this call.
+      const opts2 = opts;
+      // eslint-disable-next-line @typescript-eslint/no-this-alias
+      const self = this as any;
+      const prevFlag = self.__forceLegacyOnce;
+      self.__forceLegacyOnce = true;
+      try { return await this.executeReport(report, opts2); }
+      finally { self.__forceLegacyOnce = prevFlag; }
     }
     const user = UserContext.optional?.() ?? null;
 

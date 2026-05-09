@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-09T15:45:16.447Z",
+  "generatedAt": "2026-05-09T16:18:00.576Z",
   "counts": {
     "total": 26,
     "BLOCKER": 11,
@@ -121,7 +121,7 @@
     },
     {
       "file": "src/reports/reports.service.ts",
-      "line": 758,
+      "line": 779,
       "pattern": "string-concat-SQL",
       "severity": "BLOCKER",
       "blocksPhase2": true,
@@ -143,7 +143,7 @@
     },
     {
       "file": "src/reports/reports.service.ts",
-      "line": 764,
+      "line": 785,
       "pattern": "Prisma.raw",
       "severity": "HIGH",
       "blocksPhase2": true,
@@ -154,7 +154,7 @@
     },
     {
       "file": "src/reports/reports.service.ts",
-      "line": 771,
+      "line": 792,
       "pattern": "Prisma.raw",
       "severity": "HIGH",
       "blocksPhase2": true,
@@ -165,7 +165,7 @@
     },
     {
       "file": "src/reports/reports.service.ts",
-      "line": 803,
+      "line": 824,
       "pattern": "Prisma.raw",
       "severity": "HIGH",
       "blocksPhase2": true,
@@ -176,7 +176,7 @@
     },
     {
       "file": "src/reports/reports.service.ts",
-      "line": 811,
+      "line": 832,
       "pattern": "Prisma.raw",
       "severity": "HIGH",
       "blocksPhase2": true,
@@ -187,7 +187,7 @@
     },
     {
       "file": "src/reports/reports.service.ts",
-      "line": 817,
+      "line": 838,
       "pattern": "Prisma.raw",
       "severity": "HIGH",
       "blocksPhase2": true,
@@ -198,7 +198,7 @@
     },
     {
       "file": "src/reports/reports.service.ts",
-      "line": 826,
+      "line": 847,
       "pattern": "Prisma.raw",
       "severity": "HIGH",
       "blocksPhase2": true,
@@ -209,7 +209,7 @@
     },
     {
       "file": "src/reports/reports.service.ts",
-      "line": 827,
+      "line": 848,
       "pattern": "Prisma.raw",
       "severity": "HIGH",
       "blocksPhase2": true,
@@ -220,7 +220,7 @@
     },
     {
       "file": "src/reports/reports.service.ts",
-      "line": 835,
+      "line": 856,
       "pattern": "Prisma.raw",
       "severity": "HIGH",
       "blocksPhase2": true,
@@ -231,7 +231,7 @@
     },
     {
       "file": "src/reports/reports.service.ts",
-      "line": 836,
+      "line": 857,
       "pattern": "Prisma.raw",
       "severity": "HIGH",
       "blocksPhase2": true,
@@ -297,7 +297,7 @@
     },
     {
       "file": "src/reports/reports.service.ts",
-      "line": 946,
+      "line": 967,
       "pattern": "$queryRaw",
       "severity": "MEDIUM",
       "blocksPhase2": false,

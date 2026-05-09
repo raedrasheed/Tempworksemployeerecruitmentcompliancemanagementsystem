@@ -19,7 +19,9 @@ export type FlagKey =
   | 'SIGNED_URLS_ENABLED'
   | 'TENANT_SWITCHING_ENABLED'
   | 'PLATFORM_ADMIN_ENABLED'
-  | 'TENANT_SAFE_REPORTS_ENABLED';
+  | 'TENANT_SAFE_REPORTS_ENABLED'
+  | 'TENANT_CONTEXT_STAGING_ONLY'
+  | 'TENANT_CONTEXT_REQUIRED_FOR_SAFE_REPORTS';
 
 export const FLAG_KEYS: ReadonlyArray<FlagKey> = [
   'MULTI_TENANT_ENABLED',
@@ -29,17 +31,21 @@ export const FLAG_KEYS: ReadonlyArray<FlagKey> = [
   'TENANT_SWITCHING_ENABLED',
   'PLATFORM_ADMIN_ENABLED',
   'TENANT_SAFE_REPORTS_ENABLED',
+  'TENANT_CONTEXT_STAGING_ONLY',
+  'TENANT_CONTEXT_REQUIRED_FOR_SAFE_REPORTS',
 ];
 
 /** Defaults. ANY change to a default value is a release-note item. */
 export const FLAG_DEFAULTS: Record<FlagKey, boolean> = {
-  MULTI_TENANT_ENABLED:        false,
-  TENANT_PRISMA_ENFORCEMENT:   false,
-  RLS_ENFORCEMENT:             false,
-  SIGNED_URLS_ENABLED:         false,
-  TENANT_SWITCHING_ENABLED:    false,
-  PLATFORM_ADMIN_ENABLED:      false,
-  TENANT_SAFE_REPORTS_ENABLED: false,
+  MULTI_TENANT_ENABLED:                       false,
+  TENANT_PRISMA_ENFORCEMENT:                  false,
+  RLS_ENFORCEMENT:                            false,
+  SIGNED_URLS_ENABLED:                        false,
+  TENANT_SWITCHING_ENABLED:                   false,
+  PLATFORM_ADMIN_ENABLED:                     false,
+  TENANT_SAFE_REPORTS_ENABLED:                false,
+  TENANT_CONTEXT_STAGING_ONLY:                false,
+  TENANT_CONTEXT_REQUIRED_FOR_SAFE_REPORTS:   false,
 };
 
 /** Strict env parse: only `'true'`/`'false'` (case-insensitive) flip the flag. */

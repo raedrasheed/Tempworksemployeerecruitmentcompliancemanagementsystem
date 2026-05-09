@@ -1,6 +1,6 @@
 # Phase 2.1 — Reports Isolation Test
 
-Generated: 2026-05-09T15:45:14.830Z
+Generated: 2026-05-09T16:17:58.814Z
 Tenant A: `11111111-1111-1111-1111-111111111111` (Acme HR)
 Tenant B: `44444444-4444-4444-4444-444444444444` (Empty Co)
 

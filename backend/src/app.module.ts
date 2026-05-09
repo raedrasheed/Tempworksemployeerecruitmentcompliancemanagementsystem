@@ -28,6 +28,7 @@ import { EmployeeWorkHistoryModule } from './employee-work-history/employee-work
 import { VehiclesModule } from './vehicles/vehicles.module';
 import { BackupModule }   from './backup/backup.module';
 import { EmailModule } from './email/email.module';
+import { TenancyModule } from './saas/tenancy/tenancy.module';
 
 @Module({
   imports: [
@@ -59,6 +60,10 @@ import { EmailModule } from './email/email.module';
     EmployeeWorkHistoryModule,
     VehiclesModule,
     BackupModule,
+    // Phase 2.2 SaaS scaffolding. The middleware + interceptor are
+    // INERT when MULTI_TENANT_ENABLED=false (production default).
+    // Activates only on staging-classified hosts.
+    TenancyModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

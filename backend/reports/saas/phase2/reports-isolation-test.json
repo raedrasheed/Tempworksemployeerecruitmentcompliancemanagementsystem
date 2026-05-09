@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-09T15:45:14.830Z",
+  "generatedAt": "2026-05-09T16:17:58.814Z",
   "database": "postgres://postgres@127.0.0.1/saas_phase1_fixture?sslmode=disable",
   "tenantA": {
     "id": "11111111-1111-1111-1111-111111111111",

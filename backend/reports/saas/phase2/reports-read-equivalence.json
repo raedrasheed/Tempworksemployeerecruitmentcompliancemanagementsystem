@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-09T15:45:13.154Z",
+  "generatedAt": "2026-05-09T16:17:57.104Z",
   "database": "postgres://postgres@127.0.0.1/saas_phase1_fixture?sslmode=disable",
   "tenantId": "11111111-1111-1111-1111-111111111111",
   "counts": {
@@ -17,28 +17,28 @@
       "legacyCount": 16,
       "safeCount": 16,
       "idsLegacy": [
-        "139df7f7-abe5-4218-bb9b-fb02527e4554",
-        "3025c3a3-af01-4742-a456-9c23b213853b",
-        "31c2dacd-a2cc-444b-849f-b6504ce720a6",
-        "369b23f1-39c7-4d12-897d-c2628d587bd4",
-        "576c0181-0fb1-4a41-8de8-5d22a90f8a55",
-        "6be5138f-76ad-4fe4-a8ad-e8e4a1c9d42e",
-        "70cf29cb-8053-466c-bf31-82613b4d84b1",
-        "7a016854-edc7-4f7a-b5fd-9b550084f2fc",
-        "7aebdde0-78e4-4471-bf4f-58c74c386ccc",
-        "80926c8f-ab6c-4138-8c0b-8cb6427eaf8b"
+        "001af5d8-cac9-436c-8a67-3b515eb9880c",
+        "0b836a5b-970c-4164-afcc-37f3ee55e9bb",
+        "0d197495-9d6b-4452-91a0-4ac243b18af4",
+        "2c842b8e-76d8-4676-b325-d056afff0af8",
+        "3053710f-e52a-4186-9947-58ad6dfba39e",
+        "52e77b94-25f5-4490-aab6-d31f30c2412c",
+        "669a431c-be77-478b-b53d-6b82a6cbbac4",
+        "66e973bb-1d7a-48ab-ab9a-703b27c213df",
+        "6b1130ef-ead1-4800-af5a-5b373e49ab31",
+        "78880d40-4a7a-4dfa-b5b9-ccac6f9ff9c3"
       ],
       "idsSafe": [
-        "139df7f7-abe5-4218-bb9b-fb02527e4554",
-        "3025c3a3-af01-4742-a456-9c23b213853b",
-        "31c2dacd-a2cc-444b-849f-b6504ce720a6",
-        "369b23f1-39c7-4d12-897d-c2628d587bd4",
-        "576c0181-0fb1-4a41-8de8-5d22a90f8a55",
-        "6be5138f-76ad-4fe4-a8ad-e8e4a1c9d42e",
-        "70cf29cb-8053-466c-bf31-82613b4d84b1",
-        "7a016854-edc7-4f7a-b5fd-9b550084f2fc",
-        "7aebdde0-78e4-4471-bf4f-58c74c386ccc",
-        "80926c8f-ab6c-4138-8c0b-8cb6427eaf8b"
+        "001af5d8-cac9-436c-8a67-3b515eb9880c",
+        "0b836a5b-970c-4164-afcc-37f3ee55e9bb",
+        "0d197495-9d6b-4452-91a0-4ac243b18af4",
+        "2c842b8e-76d8-4676-b325-d056afff0af8",
+        "3053710f-e52a-4186-9947-58ad6dfba39e",
+        "52e77b94-25f5-4490-aab6-d31f30c2412c",
+        "669a431c-be77-478b-b53d-6b82a6cbbac4",
+        "66e973bb-1d7a-48ab-ab9a-703b27c213df",
+        "6b1130ef-ead1-4800-af5a-5b373e49ab31",
+        "78880d40-4a7a-4dfa-b5b9-ccac6f9ff9c3"
       ],
       "setEqual": true,
       "delta": {
@@ -52,28 +52,28 @@
       "legacyCount": 41,
       "safeCount": 41,
       "idsLegacy": [
-        "036eb901-be04-482a-87ba-0fe3410a5da7",
-        "068dbafe-cf53-40d1-8d3f-0c4fedec72bd",
-        "0efac9da-7039-4974-b6fb-560f8fcb39c3",
-        "1d1442b9-b64d-4e8c-a923-5fbf5f95eaa3",
-        "25af40a3-a790-4f8b-adae-1e381ba6c799",
-        "27514cdf-950f-47b4-977e-301e6738edc2",
-        "28cdba9b-ae5c-4996-9bce-9d62418178b1",
-        "28e1be19-c81d-47b9-8733-682f43f5b0b4",
-        "2a033cc7-fc1a-416f-90a2-fa1c71f3c8ca",
-        "2af4eb24-2564-4960-8abd-f456bec27517"
+        "05ddf479-5ece-495a-b885-e8900fe9afe9",
+        "07e7368b-80d3-4faa-a66b-5f6939b498f4",
+        "0b97bdfc-fa5d-4bca-892e-f016a5097b21",
+        "0d8037cc-f2f5-4c33-9a98-b551ba937ea7",
+        "0ed67532-fff0-4854-930a-6925641e261c",
+        "0f9f5ced-a27c-472f-9b97-d57f9d0b2cd6",
+        "163e9bb9-466e-42f8-9081-759ca457c22b",
+        "1a17583a-f7ba-45a0-9bc7-5e82027da0a3",
+        "1e55be06-6812-4c71-af8a-f12c886cc712",
+        "255b51a1-a6e2-429b-8951-b75c3a074cf9"
       ],
       "idsSafe": [
-        "036eb901-be04-482a-87ba-0fe3410a5da7",
-        "068dbafe-cf53-40d1-8d3f-0c4fedec72bd",
-        "0efac9da-7039-4974-b6fb-560f8fcb39c3",
-        "1d1442b9-b64d-4e8c-a923-5fbf5f95eaa3",
-        "25af40a3-a790-4f8b-adae-1e381ba6c799",
-        "27514cdf-950f-47b4-977e-301e6738edc2",
-        "28cdba9b-ae5c-4996-9bce-9d62418178b1",
-        "28e1be19-c81d-47b9-8733-682f43f5b0b4",
-        "2a033cc7-fc1a-416f-90a2-fa1c71f3c8ca",
-        "2af4eb24-2564-4960-8abd-f456bec27517"
+        "05ddf479-5ece-495a-b885-e8900fe9afe9",
+        "07e7368b-80d3-4faa-a66b-5f6939b498f4",
+        "0b97bdfc-fa5d-4bca-892e-f016a5097b21",
+        "0d8037cc-f2f5-4c33-9a98-b551ba937ea7",
+        "0ed67532-fff0-4854-930a-6925641e261c",
+        "0f9f5ced-a27c-472f-9b97-d57f9d0b2cd6",
+        "163e9bb9-466e-42f8-9081-759ca457c22b",
+        "1a17583a-f7ba-45a0-9bc7-5e82027da0a3",
+        "1e55be06-6812-4c71-af8a-f12c886cc712",
+        "255b51a1-a6e2-429b-8951-b75c3a074cf9"
       ],
       "setEqual": true,
       "delta": {
@@ -87,10 +87,10 @@
       "legacyCount": 1,
       "safeCount": 1,
       "idsLegacy": [
-        "a7385581-18ca-4bcd-a28c-e21850ea8598"
+        "ec75468c-ea90-45d8-8c18-efe7cef37fe6"
       ],
       "idsSafe": [
-        "a7385581-18ca-4bcd-a28c-e21850ea8598"
+        "ec75468c-ea90-45d8-8c18-efe7cef37fe6"
       ],
       "setEqual": true,
       "delta": {

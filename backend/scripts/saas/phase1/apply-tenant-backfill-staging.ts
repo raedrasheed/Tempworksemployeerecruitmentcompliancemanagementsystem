@@ -82,18 +82,41 @@ function safetyCheck(apply: boolean, url: string): void {
   }
 }
 
+/**
+ * Resolve the local `ts-node` binary directly to avoid `npx` resolution
+ * differences across shells. On Windows the binary is `ts-node.cmd`;
+ * on POSIX it is `ts-node`. Both ship under `node_modules/.bin/`.
+ */
+function resolveTsNode(): string {
+  const isWin = process.platform === 'win32';
+  // From this file: ../../../../../node_modules/.bin/ts-node
+  // (apply-tenant-backfill-staging.ts is at backend/scripts/saas/phase1/)
+  return path.resolve(
+    __dirname, '..', '..', '..', 'node_modules', '.bin',
+    isWin ? 'ts-node.cmd' : 'ts-node',
+  );
+}
+
 function runStage(name: string, scriptPath: string, args: string[]): StageResult {
   const t0 = Date.now();
   let exitCode = 0;
   let detail: string | undefined;
+  const tsNode = resolveTsNode();
   try {
-    execFileSync('npx', ['ts-node', scriptPath, ...args], {
+    execFileSync(tsNode, [scriptPath, ...args], {
       stdio: 'inherit',
       env: { ...process.env },
+      // `shell: true` is required on Windows when invoking a `.cmd`
+      // file via execFileSync. Harmless on POSIX — Node uses /bin/sh.
+      shell: process.platform === 'win32',
     });
   } catch (e: any) {
     exitCode = e.status ?? 1;
     detail = e.message;
+    // Surface the failure so the operator can see WHY the stage didn't
+    // run, instead of an empty "FAIL" with no context.
+    // eslint-disable-next-line no-console
+    console.error(`\n[stage:${name}] failed (exit ${exitCode}): ${detail ?? ''}\n`);
   }
   // Treat 2 (WARN) and 3 (BLOCKER findings from preflight runner) as
   // "stage ran successfully but surfaced findings", not as crashes. The

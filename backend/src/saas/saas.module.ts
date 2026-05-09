@@ -1,6 +1,7 @@
 import { Module, Global } from '@nestjs/common';
 import { FeatureFlagsModule } from './feature-flags/feature-flags.module';
 import { TenantPrismaService } from './prisma/tenant-prisma.service';
+import { PilotPrismaAccessor } from './prisma/pilot-prisma.accessor';
 import { PlatformPrismaService } from './prisma/platform-prisma.service';
 import { SignedUrlService } from './signed-urls/signed-url.service';
 import { PrismaModule } from '../prisma/prisma.module';
@@ -15,10 +16,11 @@ import { PrismaModule } from '../prisma/prisma.module';
 @Global()
 @Module({
   imports:   [FeatureFlagsModule, PrismaModule],
-  providers: [TenantPrismaService, PlatformPrismaService, SignedUrlService],
+  providers: [TenantPrismaService, PilotPrismaAccessor, PlatformPrismaService, SignedUrlService],
   exports:   [
     FeatureFlagsModule,
     TenantPrismaService,
+    PilotPrismaAccessor,
     PlatformPrismaService,
     SignedUrlService,
   ],

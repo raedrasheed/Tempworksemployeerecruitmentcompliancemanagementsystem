@@ -81,7 +81,9 @@
     "saas:phase2-diagnostics":         "ts-node scripts/saas/phase2/diagnostics-probe.ts",
     "saas:phase2-backfill-entity-tenantids": "ts-node scripts/saas/phase2/backfill-entity-tenantids.ts",
     "saas:phase2-verify-entity-tenantids":   "ts-node scripts/saas/phase2/verify-entity-tenantids.ts",
-    "saas:phase2-reports-rollout-rehearsal": "ts-node scripts/saas/phase2/reports-staging-rollout-rehearsal.ts"
+    "saas:phase2-reports-rollout-rehearsal":   "ts-node scripts/saas/phase2/reports-staging-rollout-rehearsal.ts",
+    "saas:phase2-tenantprisma-pilot-equivalence": "ts-node scripts/saas/phase2/tenantprisma-pilot-equivalence.ts",
+    "saas:phase2-tenantprisma-pilot-isolation":   "ts-node scripts/saas/phase2/tenantprisma-pilot-isolation.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1041.0",

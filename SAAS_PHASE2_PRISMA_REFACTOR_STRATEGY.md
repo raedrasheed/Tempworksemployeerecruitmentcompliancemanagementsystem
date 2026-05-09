@@ -146,6 +146,25 @@ Rolling progress dashboard published to `backend/reports/saas/phase2/migration-p
 
 ## 10. Hard rules
 
+## 11. Phase 2.6 pilot landed
+
+The first pilot module (`src/roles`) shipped in the Phase 2.6 PR. Key
+artefacts:
+
+- `src/saas/prisma/pilot-prisma.accessor.ts` — per-call routing helper.
+- `TENANT_PRISMA_PILOT_ENABLED` flag (default false).
+- `RolesService` rewired to use the accessor (legacy semantics preserved).
+- `saas:phase2-tenantprisma-pilot-equivalence` (13/13 PASS).
+- `saas:phase2-tenantprisma-pilot-isolation` (9/9 PASS).
+- `SAAS_PHASE2_TENANTPRISMA_PILOT_SELECTION.md`,
+  `SAAS_PHASE2_TENANTPRISMA_REFACTOR_PATTERN.md`,
+  `SAAS_PHASE2_TENANTPRISMA_PILOT_RESULTS.md`.
+
+The next pilot recommendation is `src/employee-work-history` —
+tenant-scoped via Phase 2.3 denorm, small, no high-risk dependencies.
+
+## 12. Hard rules
+
 - **Never enable `TENANT_PRISMA_ENFORCEMENT=true` in production until every P0/P1/P2 module has migrated.** Enabling it with a half-migrated codebase makes the un-migrated services start filtering by tenant when their callers don't expect it.
 - **Never ship a `Prisma.raw` outside the registry** during Phase 2.1+. The scanner blocks new ones; existing ones are migrated, not copied.
 - **Always preserve the legacy code path** behind the flag. Removing the legacy code is Phase 3.

@@ -1,4 +1,5 @@
 export { TenantPrismaService } from './tenant-prisma.service';
+export { PilotPrismaAccessor } from './pilot-prisma.accessor';
 export { PlatformPrismaService } from './platform-prisma.service';
 export {
   TENANT_SCOPED_MODELS,

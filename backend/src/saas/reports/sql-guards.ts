@@ -80,3 +80,41 @@ export function assertUuid(v: string, what = 'tenantId'): string {
   if (!UUID_RE.test(v)) throw new Error(`Invalid UUID for ${what}`);
   return v;
 }
+
+/**
+ * Phase 2.4 — global catalog allow-list.
+ *
+ * Tables here legitimately have NO `tenantId` column and serve as
+ * read-only reference data shared across tenants. They MAY be joined
+ * via `kind: 'catalog'` joins. They MUST NOT carry tenant-owned data;
+ * adding a row to a catalog requires a separate review (and a schema
+ * migration that deliberately leaves `tenantId` out of the model).
+ *
+ * To add a table here, the operator must:
+ *   1. Confirm the table has no `tenantId` column in the live schema.
+ *   2. Confirm rows are not user-writable per-tenant (the model is a
+ *      catalog, not a per-tenant table).
+ *   3. Add a section to `SAAS_PHASE2_CATALOG_SOURCES_DECISION.md`.
+ */
+export const CATALOG_TABLES: ReadonlySet<string> = new Set([
+  'document_types',
+]);
+
+/**
+ * Literal validator for fixed-value join terms (e.g. discriminators
+ * like `entityType = 'EMPLOYEE'`). Hard upper-case enum-name shape —
+ * no spaces, no quotes, no comments, no SQL syntax. The composer
+ * single-quotes the rendered value.
+ */
+const LITERAL_RE = /^[A-Z][A-Z0-9_]*$/;
+export function assertLiteral(v: string): string {
+  if (!LITERAL_RE.test(v)) throw new Error(`bad join literal: ${JSON.stringify(v)}`);
+  return v;
+}
+
+/** Join type allow-list (Phase 2.4 — INNER and LEFT only). */
+export const ALLOWED_JOIN_TYPES: ReadonlySet<string> = new Set(['LEFT', 'INNER']);
+export function assertJoinType(t: string): 'LEFT' | 'INNER' {
+  if (!ALLOWED_JOIN_TYPES.has(t)) throw new Error(`forbidden join type: ${JSON.stringify(t)}`);
+  return t as 'LEFT' | 'INNER';
+}

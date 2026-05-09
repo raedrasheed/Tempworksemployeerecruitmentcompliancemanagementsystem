@@ -1,22 +1,22 @@
 # Phase 2.3 — Entity-Keyed `tenantId` Verification
 
-Generated: 2026-05-09T16:51:20.457Z
+Generated: 2026-05-09T17:05:22.199Z
 Database: `postgres://postgres@127.0.0.1/saas_phase1_fixture?sslmode=disable`
 
 - Models verified: 15
-- Models PASSED: **4**
-- Models FAILED: 11
+- Models PASSED: **7**
+- Models FAILED: 8
 - Mismatched rows (tenantId ≠ parent): 0
-- Rows with tenantId set: 56
+- Rows with tenantId set: 61
 - Rows with tenantId NULL: 2
 - Unexplained NULLs (parent has tenantId but row does not): 0
 
 | Model | Result | Mismatch | With tid | Without tid | Without parent tid | Unexplained NULLs |
 |-------|--------|---------:|---------:|------------:|-------------------:|------------------:|
 | `documents` | PASS | 0 | 52 | 0 | 0 | 0 |
-| `work_permits` | **ERROR** | 0 | 0 | 0 | 0 | 0 — relation "work_permits" does not exist |
-| `visas` | **ERROR** | 0 | 0 | 0 | 0 | 0 — relation "visas" does not exist |
-| `compliance_alerts` | **ERROR** | 0 | 0 | 0 | 0 | 0 — relation "compliance_alerts" does not exist |
+| `work_permits` | PASS | 0 | 1 | 0 | 0 | 0 |
+| `visas` | PASS | 0 | 2 | 0 | 0 | 0 |
+| `compliance_alerts` | PASS | 0 | 2 | 0 | 0 | 0 |
 | `financial_records` | PASS | 0 | 1 | 0 | 0 | 0 |
 | `financial_record_attachments` | **ERROR** | 0 | 0 | 0 | 0 | 0 — relation "financial_record_attachments" does not exist |
 | `financial_record_deductions` | **ERROR** | 0 | 0 | 0 | 0 | 0 — relation "financial_record_deductions" does not exist |

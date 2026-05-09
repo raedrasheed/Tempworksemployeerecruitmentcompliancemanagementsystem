@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-09T16:47:31.687Z",
+  "generatedAt": "2026-05-09T17:09:59.705Z",
   "database": "postgres://postgres@127.0.0.1/saas_phase1_fixture?sslmode=disable",
   "tenantA": {
     "id": "11111111-1111-1111-1111-111111111111",
@@ -11,10 +11,10 @@
   },
   "counts": {
     "total": 18,
-    "ready": 7,
-    "passed": 7,
+    "ready": 17,
+    "passed": 17,
     "failed": 0,
-    "disabled": 11
+    "disabled": 1
   },
   "results": [
     {
@@ -25,6 +25,9 @@
       "rowsForA": 16,
       "rowsLeakedFromB": 0,
       "crossTenantFilterRejected": true,
+      "childLeakViaParent": 0,
+      "parentLeakViaChild": 0,
+      "agencyScopeApplied": true,
       "ok": true,
       "notes": []
     },
@@ -36,6 +39,9 @@
       "rowsForA": 41,
       "rowsLeakedFromB": 0,
       "crossTenantFilterRejected": true,
+      "childLeakViaParent": 0,
+      "parentLeakViaChild": 0,
+      "agencyScopeApplied": true,
       "ok": true,
       "notes": []
     },
@@ -47,6 +53,9 @@
       "rowsForA": 1,
       "rowsLeakedFromB": 0,
       "crossTenantFilterRejected": true,
+      "childLeakViaParent": 0,
+      "parentLeakViaChild": 0,
+      "agencyScopeApplied": true,
       "ok": true,
       "notes": []
     },
@@ -55,52 +64,56 @@
       "status": "READY",
       "tenantA": "11111111-1111-1111-1111-111111111111",
       "tenantB": "44444444-4444-4444-4444-444444444444",
-      "rowsForA": 0,
+      "rowsForA": 28,
       "rowsLeakedFromB": 0,
-      "crossTenantFilterRejected": false,
+      "crossTenantFilterRejected": true,
+      "childLeakViaParent": 0,
+      "parentLeakViaChild": 0,
+      "agencyScopeApplied": "n/a",
       "ok": true,
-      "notes": [
-        "skipped: column doc.deletedAt does not exist"
-      ]
+      "notes": []
     },
     {
       "source": "compliance_alerts",
       "status": "READY",
       "tenantA": "11111111-1111-1111-1111-111111111111",
       "tenantB": "44444444-4444-4444-4444-444444444444",
-      "rowsForA": 0,
+      "rowsForA": 2,
       "rowsLeakedFromB": 0,
-      "crossTenantFilterRejected": false,
+      "crossTenantFilterRejected": true,
+      "childLeakViaParent": 0,
+      "parentLeakViaChild": 0,
+      "agencyScopeApplied": "n/a",
       "ok": true,
-      "notes": [
-        "skipped: relation \"compliance_alerts\" does not exist"
-      ]
+      "notes": []
     },
     {
       "source": "work_permits",
       "status": "READY",
       "tenantA": "11111111-1111-1111-1111-111111111111",
       "tenantB": "44444444-4444-4444-4444-444444444444",
-      "rowsForA": 0,
+      "rowsForA": 1,
       "rowsLeakedFromB": 0,
-      "crossTenantFilterRejected": false,
+      "crossTenantFilterRejected": true,
+      "childLeakViaParent": 0,
+      "parentLeakViaChild": 0,
+      "agencyScopeApplied": "n/a",
       "ok": true,
-      "notes": [
-        "skipped: relation \"work_permits\" does not exist"
-      ]
+      "notes": []
     },
     {
       "source": "visas",
       "status": "READY",
       "tenantA": "11111111-1111-1111-1111-111111111111",
       "tenantB": "44444444-4444-4444-4444-444444444444",
-      "rowsForA": 0,
+      "rowsForA": 2,
       "rowsLeakedFromB": 0,
-      "crossTenantFilterRejected": false,
+      "crossTenantFilterRejected": true,
+      "childLeakViaParent": 0,
+      "parentLeakViaChild": 0,
+      "agencyScopeApplied": "n/a",
       "ok": true,
-      "notes": [
-        "skipped: relation \"visas\" does not exist"
-      ]
+      "notes": []
     },
     {
       "source": "document_types",
@@ -112,83 +125,143 @@
     },
     {
       "source": "employees_documents",
-      "status": "DISABLED",
+      "status": "READY",
+      "tenantA": "11111111-1111-1111-1111-111111111111",
+      "tenantB": "44444444-4444-4444-4444-444444444444",
+      "rowsForA": 28,
+      "rowsLeakedFromB": 0,
+      "crossTenantFilterRejected": true,
+      "childLeakViaParent": 0,
+      "parentLeakViaChild": 0,
+      "agencyScopeApplied": true,
       "ok": true,
-      "notes": [
-        "source disabled in safe mode"
-      ]
+      "notes": []
     },
     {
       "source": "employees_work_permits",
-      "status": "DISABLED",
+      "status": "READY",
+      "tenantA": "11111111-1111-1111-1111-111111111111",
+      "tenantB": "44444444-4444-4444-4444-444444444444",
+      "rowsForA": 16,
+      "rowsLeakedFromB": 0,
+      "crossTenantFilterRejected": true,
+      "childLeakViaParent": 0,
+      "parentLeakViaChild": 0,
+      "agencyScopeApplied": true,
       "ok": true,
-      "notes": [
-        "source disabled in safe mode"
-      ]
+      "notes": []
     },
     {
       "source": "employees_compliance",
-      "status": "DISABLED",
+      "status": "READY",
+      "tenantA": "11111111-1111-1111-1111-111111111111",
+      "tenantB": "44444444-4444-4444-4444-444444444444",
+      "rowsForA": 16,
+      "rowsLeakedFromB": 0,
+      "crossTenantFilterRejected": true,
+      "childLeakViaParent": 0,
+      "parentLeakViaChild": 0,
+      "agencyScopeApplied": true,
       "ok": true,
-      "notes": [
-        "source disabled in safe mode"
-      ]
+      "notes": []
     },
     {
       "source": "applicants_documents",
-      "status": "DISABLED",
+      "status": "READY",
+      "tenantA": "11111111-1111-1111-1111-111111111111",
+      "tenantB": "44444444-4444-4444-4444-444444444444",
+      "rowsForA": 41,
+      "rowsLeakedFromB": 0,
+      "crossTenantFilterRejected": true,
+      "childLeakViaParent": 0,
+      "parentLeakViaChild": 0,
+      "agencyScopeApplied": true,
       "ok": true,
-      "notes": [
-        "source disabled in safe mode"
-      ]
-    },
-    {
-      "source": "employees_agencies",
-      "status": "DISABLED",
-      "ok": true,
-      "notes": [
-        "source disabled in safe mode"
-      ]
+      "notes": []
     },
     {
       "source": "applicants_compliance",
-      "status": "DISABLED",
+      "status": "READY",
+      "tenantA": "11111111-1111-1111-1111-111111111111",
+      "tenantB": "44444444-4444-4444-4444-444444444444",
+      "rowsForA": 41,
+      "rowsLeakedFromB": 0,
+      "crossTenantFilterRejected": true,
+      "childLeakViaParent": 0,
+      "parentLeakViaChild": 0,
+      "agencyScopeApplied": true,
       "ok": true,
-      "notes": [
-        "source disabled in safe mode"
-      ]
-    },
-    {
-      "source": "documents_with_type",
-      "status": "DISABLED",
-      "ok": true,
-      "notes": [
-        "source disabled in safe mode"
-      ]
+      "notes": []
     },
     {
       "source": "employees_visas",
-      "status": "DISABLED",
+      "status": "READY",
+      "tenantA": "11111111-1111-1111-1111-111111111111",
+      "tenantB": "44444444-4444-4444-4444-444444444444",
+      "rowsForA": 16,
+      "rowsLeakedFromB": 0,
+      "crossTenantFilterRejected": true,
+      "childLeakViaParent": 0,
+      "parentLeakViaChild": 0,
+      "agencyScopeApplied": true,
       "ok": true,
-      "notes": [
-        "source disabled in safe mode"
-      ]
+      "notes": []
     },
     {
       "source": "applicants_visas",
-      "status": "DISABLED",
+      "status": "READY",
+      "tenantA": "11111111-1111-1111-1111-111111111111",
+      "tenantB": "44444444-4444-4444-4444-444444444444",
+      "rowsForA": 41,
+      "rowsLeakedFromB": 0,
+      "crossTenantFilterRejected": true,
+      "childLeakViaParent": 0,
+      "parentLeakViaChild": 0,
+      "agencyScopeApplied": true,
       "ok": true,
-      "notes": [
-        "source disabled in safe mode"
-      ]
+      "notes": []
+    },
+    {
+      "source": "employees_agencies",
+      "status": "READY",
+      "tenantA": "11111111-1111-1111-1111-111111111111",
+      "tenantB": "44444444-4444-4444-4444-444444444444",
+      "rowsForA": 16,
+      "rowsLeakedFromB": 0,
+      "crossTenantFilterRejected": true,
+      "childLeakViaParent": 0,
+      "parentLeakViaChild": 0,
+      "agencyScopeApplied": true,
+      "ok": true,
+      "notes": []
+    },
+    {
+      "source": "documents_with_type",
+      "status": "READY",
+      "tenantA": "11111111-1111-1111-1111-111111111111",
+      "tenantB": "44444444-4444-4444-4444-444444444444",
+      "rowsForA": 28,
+      "rowsLeakedFromB": 0,
+      "crossTenantFilterRejected": true,
+      "childLeakViaParent": 0,
+      "parentLeakViaChild": 0,
+      "agencyScopeApplied": "n/a",
+      "ok": true,
+      "notes": []
     },
     {
       "source": "employees_documents_type",
-      "status": "DISABLED",
+      "status": "READY",
+      "tenantA": "11111111-1111-1111-1111-111111111111",
+      "tenantB": "44444444-4444-4444-4444-444444444444",
+      "rowsForA": 28,
+      "rowsLeakedFromB": 0,
+      "crossTenantFilterRejected": true,
+      "childLeakViaParent": 0,
+      "parentLeakViaChild": 0,
+      "agencyScopeApplied": true,
       "ok": true,
-      "notes": [
-        "source disabled in safe mode"
-      ]
+      "notes": []
     }
   ]
 }

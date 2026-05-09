@@ -6,31 +6,34 @@
 
 ---
 
-## Headline (post Phase 2.3)
+## Headline (post Phase 2.4)
 
 ```
-3/7 sources equivalent (0 delta, 4 errors)
+PASS=17  WARN=0  FAIL=0  SKIPPED=1  (of 17 READY)
 ```
 
-The 4 "errors" are fixture gaps, not behaviour drift:
-- `documents` — fixture's `documents` table predates the production schema
-  and is missing `deletedAt`. Production has the column.
-- `compliance_alerts`, `work_permits`, `visas` — tables not materialised in
-  the fixture. Production has them.
+Every READY source's tenant-safe SQL returns the same parent-row id
+set as the legacy-shape SQL when both are scoped to the same tenant.
+Joined-cardinality counts (LEFT JOIN row expansion) match. Pagination
+(page 1, limit 5) and sort (ASC by id) probes pass for every source.
 
-For sources whose tables exist in the fixture, legacy and safe paths
-return identical row sets.
+The single SKIPPED source is `document_types`, intentionally DISABLED
+(global catalog reachable only via joined sources — see
+`SAAS_PHASE2_CATALOG_SOURCES_DECISION.md`).
 
-| Source | Status | Legacy n | Safe n | Equal | onlyLegacy | onlySafe | Notes |
-|--------|--------|---------:|-------:|:-----:|-----------:|---------:|-------|
-| `employees`        | READY    | matches | matches | yes | 0 | 0 | |
-| `applicants`       | READY    | matches | matches | yes | 0 | 0 | |
-| `agencies`         | READY    | matches | matches | yes | 0 | 0 | |
-| `documents`        | READY    | — | — | — | — | — | fixture missing `deletedAt`; production OK |
-| `compliance_alerts`| READY    | — | — | — | — | — | fixture missing table |
-| `work_permits`     | READY    | — | — | — | — | — | fixture missing table |
-| `visas`            | READY    | — | — | — | — | — | fixture missing table |
-| (11 DISABLED) | — | — | — | — | — | — | engine refuses, as designed |
+For exact per-source row counts, joined-cardinality counts, and
+pagination/sort verdicts, see `backend/reports/saas/phase2/reports-read-equivalence.{json,md}`.
+
+Quick view (verdict per source, post Phase 2.4 fixture extension applied):
+
+| Group | Sources | Verdict |
+|------|--------|--------:|
+| Phase 2.1 single-table | `employees`, `applicants`, `agencies` | 3 × PASS |
+| Phase 2.3 single-table | `documents`, `compliance_alerts`, `work_permits`, `visas` | 4 × PASS |
+| Phase 2.4 joined (entity-keyed) | `employees_documents`, `employees_work_permits`, `employees_compliance`, `applicants_documents`, `applicants_compliance`, `employees_visas`, `applicants_visas` | 7 × PASS |
+| Phase 2.4 joined (denorm) | `employees_agencies` | 1 × PASS |
+| Phase 2.4 catalog-join | `documents_with_type`, `employees_documents_type` | 2 × PASS |
+| Disabled (catalog direct) | `document_types` | 1 × SKIPPED (intended) |
 
 (For exact row counts, see the live `backend/reports/saas/phase2/reports-read-equivalence.{json,md}`. The equivalence file is regenerated each run.)
 
@@ -64,6 +67,6 @@ npm run saas:phase2-reports-equivalence -- --source employees --tenant <uuid>
 
 ## Acceptance for cutover
 
-Phase 3 (per-source flag flip) requires read-equivalence to be **0 delta, 0 errors** for that source on a sanitized prod clone. Current results meet that bar for the 3 fixture-present READY sources (`employees`, `applicants`, `agencies`). The 4 newly-READY Phase 2.3 sources (`documents`, `compliance_alerts`, `work_permits`, `visas`) require a re-run on a prod-shaped clone to clear the fixture-gap errors.
+Phase 3 (per-source flag flip) requires read-equivalence to be **PASS** (0 delta, 0 errors, pagination & sort equal) for that source on a sanitized prod clone. The current run on the staging fixture (with `phase24-extension.sql` applied) shows PASS for all 17 READY sources. A re-run on a real prod-shaped clone is the next operational gate before flipping `TENANT_SAFE_REPORTS_ENABLED=true` for the joined sources.
 
 Real-prod-clone re-run is the next operational gate (TKT-P2-01 in the Phase 2 implementation plan).

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-09T16:48:01.313Z",
+  "generatedAt": "2026-05-09T17:05:16.627Z",
   "counts": {
     "total": 7,
     "passed": 7,
@@ -29,7 +29,7 @@
     {
       "name": "disabled report source fails closed",
       "ok": true,
-      "detail": "document_types status=DISABLED, reason=Phase 2.4 — catalog model with tenantId NULL semantics not finalised."
+      "detail": "document_types status=DISABLED, reason=Phase 2.4 — global catalog; reachable via joined sources (documents_with_type, employees_documents_type) using kind=catalog. Direct exposure pending product decision."
     },
     {
       "name": "ready source builder emits tenant=$1 first",

@@ -1,4 +1,4 @@
-# Phase 2.1 — Reports Engine Rollout Plan
+# Phase 2.1 / 2.3 / 2.4 — Reports Engine Rollout Plan
 
 > Goal: enable `TENANT_SAFE_REPORTS_ENABLED=true` per environment, per source, with a clear rollback at every step.
 
@@ -10,8 +10,10 @@
 - [ ] `MULTI_TENANT_ENABLED=true` planned for the same environment (the safe path requires `TenantContext`).
 - [ ] `TenantContextMiddleware` registered in `AppModule` (Phase 2.5 deliverable).
 - [ ] `npm run saas:env-safety` returns `SAFE_CLONE` or `SAFE_STAGING`.
-- [ ] `npm run saas:phase2-reports-equivalence` returns `0 delta, 0 errors` for every READY source on this environment.
-- [ ] `npm run saas:phase2-reports-isolation` returns `N/N sources isolated`.
+- [ ] `npm run saas:phase2-reports-equivalence` returns `PASS=N WARN=0 FAIL=0` for every READY source on this environment.
+- [ ] `npm run saas:phase2-reports-isolation` returns `N/N sources isolated`, including 0 child-leak and 0 parent-leak counts.
+- [ ] For every Phase 2.4 joined source, the registry's structuredOn renders cleanly (`saas:phase2-reports-validate` or in-process registry validation; see `SAAS_PHASE2_REPORTS_JOIN_SAFETY_DESIGN.md`).
+- [ ] `phase24-extension.sql` is NOT applied on production (it adds fixture tables only — production already has them).
 - [ ] Reports team code-owner has signed off on `SAAS_PHASE2_REPORTS_SOURCE_STATUS.md`.
 
 ## 2. Per-environment rollout
@@ -78,13 +80,20 @@ There is no data migration. Rollback is config / deploy only.
 
 ## 4. Per-source rollout (within an environment)
 
-After the flag is on, sources move from DISABLED → READY one at a time:
+Sources move from DISABLED → READY one at a time. As of Phase 2.4,
+17 of 18 sources are READY (the only DISABLED one is `document_types`,
+which is intentionally reachable only via joined sources).
 
-1. Phase 2.3 ships the entity-keyed denorm for that source (writes `<table>.tenantId`).
-2. Engineer flips the source from `DISABLED` to `READY` in `report-sources.ts`.
-3. CI runs equivalence + isolation against the staging fixture.
-4. Code-owner reviews + merges.
-5. Source becomes available to the safe runtime on the next deploy.
+| Wave | Sources | Phase | Status |
+|---|---|---|---|
+| Wave A | `employees`, `applicants`, `agencies` | 2.1 | READY |
+| Wave B | `documents`, `compliance_alerts`, `work_permits`, `visas` | 2.3 | READY |
+| Wave C | `employees_documents`, `employees_work_permits`, `employees_compliance`, `applicants_documents`, `applicants_compliance`, `employees_visas`, `applicants_visas`, `employees_agencies`, `documents_with_type`, `employees_documents_type` | 2.4 | READY |
+| Wave D | `document_types` direct exposure | TBD | DISABLED — pending product |
+
+For each new READY source: equivalence harness must report `PASS`,
+isolation harness must report `PASS` with `0` for child-leak and
+parent-leak counts. Any FAIL blocks the source from rolling forward.
 
 DISABLED sources still go through the legacy path during this period — there is **no behaviour regression**.
 

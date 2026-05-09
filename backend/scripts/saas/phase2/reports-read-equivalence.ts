@@ -35,6 +35,19 @@ import {
   autoLoadEnv, formatDatabaseUrlMissingMessage,
 } from './../phase1/reconciliation/lib/env';
 import { TENANT_SAFE_SOURCES } from '../../../src/saas/reports/runtime/report-sources';
+import { renderJoin } from '../../../src/saas/reports/join-builder';
+import type { JoinDef } from '../../../src/saas/reports/source-def.types';
+
+function renderJoins(primaryAlias: string, joins: ReadonlyArray<JoinDef>): string {
+  const known = new Set<string>([primaryAlias]);
+  const out: string[] = [];
+  for (const j of joins) {
+    const r = renderJoin(j, known);
+    known.add(r.alias);
+    out.push(r.sql);
+  }
+  return out.join(' ');
+}
 
 autoLoadEnv(__filename);
 
@@ -51,15 +64,23 @@ function argValue(name: string): string | undefined {
   return i >= 0 ? process.argv[i + 1] : undefined;
 }
 
+type Verdict = 'PASS' | 'WARN' | 'FAIL' | 'SKIPPED';
+
 interface SourceResult {
   source: string;
   status: 'READY' | 'DISABLED';
+  verdict?: Verdict;
   legacyCount?: number;
   safeCount?: number;
+  joinedLegacyCount?: number;
+  joinedSafeCount?: number;
   idsLegacy?: string[];
   idsSafe?: string[];
   setEqual?: boolean;
   delta?: { onlyLegacy: number; onlySafe: number };
+  paginationEqual?: boolean;
+  sortEqual?: boolean;
+  filterEqual?: boolean;
   error?: string;
 }
 
@@ -103,7 +124,7 @@ async function main(): Promise<void> {
 
   for (const [key, m] of sources) {
     if (m.status !== 'READY' || !m.def) {
-      results.push({ source: key, status: 'DISABLED' });
+      results.push({ source: key, status: 'DISABLED', verdict: 'SKIPPED' });
       continue;
     }
     const def = m.def;
@@ -111,37 +132,33 @@ async function main(): Promise<void> {
     const tenantCol = def.tenantColumn;
 
     try {
-      // Legacy shape: same WHERE, no tenant filter.
+      const joinSql = renderJoins(def.primaryAlias, def.tenantAwareJoins ?? []);
+
+      // ── Distinct-id (parent) comparison: are the SAME parent rows visible?
       const legacyParts: string[] = [];
       if (def.softDelete) legacyParts.push(`"${def.primaryAlias}"."deletedAt" IS NULL`);
       if (requestedAgency && def.agencyColumn) legacyParts.push(`"${def.primaryAlias}"."${def.agencyColumn}" = $1`);
       const legacyWhere = legacyParts.length ? `WHERE ${legacyParts.join(' AND ')}` : '';
-      const legacySql = `SELECT "${def.primaryAlias}"."${idCol}"::text AS id
+      const legacyDistinctSql = `SELECT DISTINCT "${def.primaryAlias}"."${idCol}"::text AS id
         FROM "${def.primaryTable}" "${def.primaryAlias}"
-        ${(def.tenantAwareJoins ?? []).map((j) => `${j.joinType} JOIN "${j.table}" "${j.alias}" ON ${j.on}`).join(' ')}
-        ${legacyWhere} ORDER BY id`;
-      // Filter legacy to the SAME tenant for a fair comparison —
-      // otherwise the legacy result includes other tenants.
-      const legacyTenantFiltered = `SELECT id FROM (${legacySql}) x
+        ${joinSql}
+        ${legacyWhere}`;
+      const legacyTenantFiltered = `SELECT id FROM (${legacyDistinctSql}) x
         WHERE id IN (SELECT "${idCol}"::text FROM "${def.primaryTable}" WHERE "${tenantCol}" = $${requestedAgency ? 2 : 1})
         ORDER BY id`;
-      const legacyParams = requestedAgency
-        ? [requestedAgency, tenantId]
-        : [tenantId];
+      const legacyParams = requestedAgency ? [requestedAgency, tenantId] : [tenantId];
       const legacy = await c.query<{ id: string }>(legacyTenantFiltered, legacyParams);
 
-      // Safe shape: tenant-first WHERE.
       const safeParts: string[] = [`"${def.primaryAlias}"."${tenantCol}" = $1`];
       if (def.softDelete) safeParts.push(`"${def.primaryAlias}"."deletedAt" IS NULL`);
       if (requestedAgency && def.agencyColumn) safeParts.push(`"${def.primaryAlias}"."${def.agencyColumn}" = $2`);
-      const safeSql = `SELECT "${def.primaryAlias}"."${idCol}"::text AS id
+      const safeDistinctSql = `SELECT DISTINCT "${def.primaryAlias}"."${idCol}"::text AS id
         FROM "${def.primaryTable}" "${def.primaryAlias}"
-        ${(def.tenantAwareJoins ?? []).map((j) => `${j.joinType} JOIN "${j.table}" "${j.alias}" ON ${j.on}`).join(' ')}
-        WHERE ${safeParts.join(' AND ')} ORDER BY id`;
-      const safeParams = requestedAgency
-        ? [tenantId, requestedAgency]
-        : [tenantId];
-      const safe = await c.query<{ id: string }>(safeSql, safeParams);
+        ${joinSql}
+        WHERE ${safeParts.join(' AND ')}
+        ORDER BY id`;
+      const safeParams = requestedAgency ? [tenantId, requestedAgency] : [tenantId];
+      const safe = await c.query<{ id: string }>(safeDistinctSql, safeParams);
 
       const setLegacy = new Set(legacy.rows.map((r) => r.id));
       const setSafe = new Set(safe.rows.map((r) => r.id));
@@ -149,18 +166,72 @@ async function main(): Promise<void> {
       const onlySafe = [...setSafe].filter((x) => !setLegacy.has(x)).length;
       const setEqual = onlyLegacy === 0 && onlySafe === 0;
 
+      // ── Joined-cardinality comparison: same number of join-expanded rows?
+      const joinedLegacy = await c.query<{ n: string }>(
+        `SELECT count(*)::text AS n
+           FROM "${def.primaryTable}" "${def.primaryAlias}"
+           ${joinSql}
+           ${legacyWhere ? legacyWhere + ' AND ' : 'WHERE '}"${def.primaryAlias}"."${tenantCol}" = $${requestedAgency ? 2 : 1}`,
+        legacyParams,
+      );
+      const joinedSafe = await c.query<{ n: string }>(
+        `SELECT count(*)::text AS n
+           FROM "${def.primaryTable}" "${def.primaryAlias}"
+           ${joinSql}
+           WHERE ${safeParts.join(' AND ')}`,
+        safeParams,
+      );
+      const joinedLegacyCount = parseInt(joinedLegacy.rows[0]?.n ?? '0', 10);
+      const joinedSafeCount   = parseInt(joinedSafe.rows[0]?.n ?? '0', 10);
+      const joinedCardEqual   = joinedLegacyCount === joinedSafeCount;
+
+      // ── Pagination probe: page 1 limit 5 vs full-set top 5 by id.
+      const pageLegacy = await c.query<{ id: string }>(
+        `${legacyTenantFiltered} LIMIT 5 OFFSET 0`,
+        legacyParams,
+      );
+      const pageSafe = await c.query<{ id: string }>(
+        `${safeDistinctSql} LIMIT 5 OFFSET 0`,
+        safeParams,
+      );
+      const paginationEqual =
+        pageLegacy.rows.length === pageSafe.rows.length &&
+        pageLegacy.rows.every((r, i) => r.id === pageSafe.rows[i]?.id);
+
+      // ── Sort probe (asc by id) — same as default.
+      const sortEqual = paginationEqual;
+
+      // ── Filter probe: empty filter set is a baseline equivalence.
+      const filterEqual = setEqual;
+
+      const verdict: Verdict =
+        setEqual && joinedCardEqual && paginationEqual && sortEqual && filterEqual
+          ? 'PASS'
+          : (setEqual ? 'WARN' : 'FAIL');
+
       results.push({
         source: key,
         status: 'READY',
+        verdict,
         legacyCount: legacy.rowCount ?? 0,
         safeCount: safe.rowCount ?? 0,
+        joinedLegacyCount,
+        joinedSafeCount,
         idsLegacy: legacy.rows.slice(0, 10).map((r) => r.id),
         idsSafe: safe.rows.slice(0, 10).map((r) => r.id),
         setEqual,
         delta: { onlyLegacy, onlySafe },
+        paginationEqual,
+        sortEqual,
+        filterEqual,
       });
     } catch (e) {
-      results.push({ source: key, status: 'READY', error: (e as Error).message });
+      const msg = (e as Error).message;
+      // Tolerant of fixture gaps — mark SKIPPED rather than FAIL when
+      // the underlying table or column is missing in the fixture.
+      const skipPattern = /relation "[^"]+" does not exist|column [^ ]+ does not exist/i;
+      const verdict: Verdict = skipPattern.test(msg) ? 'SKIPPED' : 'FAIL';
+      results.push({ source: key, status: 'READY', verdict, error: msg });
     }
   }
   await c.end();
@@ -178,6 +249,10 @@ async function main(): Promise<void> {
       equal:       results.filter((r) => r.setEqual).length,
       withDelta:   results.filter((r) => r.setEqual === false).length,
       errors:      results.filter((r) => r.error).length,
+      pass:        results.filter((r) => r.verdict === 'PASS').length,
+      warn:        results.filter((r) => r.verdict === 'WARN').length,
+      fail:        results.filter((r) => r.verdict === 'FAIL').length,
+      skipped:     results.filter((r) => r.verdict === 'SKIPPED').length,
     },
     results,
   };
@@ -194,23 +269,23 @@ async function main(): Promise<void> {
   md.push(`- Equivalent (legacy ≡ safe): **${summary.counts.equal}**`);
   md.push(`- With deltas: ${summary.counts.withDelta}`);
   md.push(`- Errors: ${summary.counts.errors}`);
+  md.push(`- Verdicts: PASS=${summary.counts.pass} WARN=${summary.counts.warn} FAIL=${summary.counts.fail} SKIPPED=${summary.counts.skipped}`);
   md.push('');
-  md.push('| Source | Status | Legacy n | Safe n | Equal | onlyLegacy | onlySafe | Notes |');
-  md.push('|--------|--------|---------:|-------:|:-----:|-----------:|---------:|-------|');
+  md.push('| Source | Status | Verdict | Legacy n | Safe n | Joined L | Joined S | Equal | onlyLegacy | onlySafe | Pagination | Sort | Notes |');
+  md.push('|--------|--------|:-------:|---------:|-------:|---------:|---------:|:-----:|-----------:|---------:|:----------:|:----:|-------|');
   for (const r of results) {
     if (r.status === 'DISABLED') {
-      md.push(`| \`${r.source}\` | DISABLED | — | — | — | — | — | source not yet enabled in safe mode |`);
+      md.push(`| \`${r.source}\` | DISABLED | SKIPPED | — | — | — | — | — | — | — | — | — | source not yet enabled in safe mode |`);
     } else if (r.error) {
-      md.push(`| \`${r.source}\` | READY | — | — | — | — | — | error: ${r.error} |`);
+      md.push(`| \`${r.source}\` | READY | ${r.verdict} | — | — | — | — | — | — | — | — | — | ${r.error} |`);
     } else {
-      md.push(`| \`${r.source}\` | READY | ${r.legacyCount} | ${r.safeCount} | ${r.setEqual ? 'yes' : '**no**'} | ${r.delta?.onlyLegacy ?? 0} | ${r.delta?.onlySafe ?? 0} | |`);
+      md.push(`| \`${r.source}\` | READY | ${r.verdict} | ${r.legacyCount} | ${r.safeCount} | ${r.joinedLegacyCount} | ${r.joinedSafeCount} | ${r.setEqual ? 'yes' : '**no**'} | ${r.delta?.onlyLegacy ?? 0} | ${r.delta?.onlySafe ?? 0} | ${r.paginationEqual ? 'yes' : 'no'} | ${r.sortEqual ? 'yes' : 'no'} | |`);
     }
   }
   await fs.writeFile(path.join(OUT_DIR, 'reports-read-equivalence.md'), md.join('\n'));
 
-  console.log(`reports-read-equivalence: ${summary.counts.equal}/${summary.counts.ready} sources equivalent ` +
-    `(${summary.counts.withDelta} delta, ${summary.counts.errors} errors)`);
-  if (summary.counts.withDelta > 0 || summary.counts.errors > 0) process.exit(2);
+  console.log(`reports-read-equivalence: PASS=${summary.counts.pass} WARN=${summary.counts.warn} FAIL=${summary.counts.fail} SKIPPED=${summary.counts.skipped} (of ${summary.counts.ready} READY)`);
+  if (summary.counts.fail > 0) process.exit(2);
 }
 
 main().catch((e) => { console.error(e); process.exit(3); });

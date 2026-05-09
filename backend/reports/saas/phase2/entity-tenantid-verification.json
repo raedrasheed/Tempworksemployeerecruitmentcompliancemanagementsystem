@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-05-09T16:51:20.457Z",
+  "generatedAt": "2026-05-09T17:05:22.199Z",
   "database": "postgres://postgres@127.0.0.1/saas_phase1_fixture?sslmode=disable",
   "counts": {
     "models": 15,
-    "passed": 4,
-    "failed": 11,
+    "passed": 7,
+    "failed": 8,
     "mismatches": 0,
-    "withTid": 56,
+    "withTid": 61,
     "withoutTid": 2,
     "unexplained": 0
   },
@@ -22,33 +22,30 @@
     },
     {
       "name": "work_permits",
-      "ok": false,
       "mismatch": 0,
-      "withTid": 0,
+      "withTid": 1,
       "withoutTid": 0,
       "withoutParentTid": 0,
       "unexplainedNulls": 0,
-      "error": "relation \"work_permits\" does not exist"
+      "ok": true
     },
     {
       "name": "visas",
-      "ok": false,
       "mismatch": 0,
-      "withTid": 0,
+      "withTid": 2,
       "withoutTid": 0,
       "withoutParentTid": 0,
       "unexplainedNulls": 0,
-      "error": "relation \"visas\" does not exist"
+      "ok": true
     },
     {
       "name": "compliance_alerts",
-      "ok": false,
       "mismatch": 0,
-      "withTid": 0,
+      "withTid": 2,
       "withoutTid": 0,
       "withoutParentTid": 0,
       "unexplainedNulls": 0,
-      "error": "relation \"compliance_alerts\" does not exist"
+      "ok": true
     },
     {
       "name": "financial_records",

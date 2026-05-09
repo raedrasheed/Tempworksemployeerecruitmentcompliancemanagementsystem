@@ -16,7 +16,8 @@
  *     throws on violation (use in boot path).
  */
 import { SourceDef, SourceValidationError } from './source-def.types';
-import { joinHasTenantEquality } from './sql-guards';
+import { ALLOWED_JOIN_TYPES, CATALOG_TABLES, joinHasTenantEquality } from './sql-guards';
+import { renderJoin } from './join-builder';
 
 const IDENT_RE = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
 
@@ -84,15 +85,70 @@ export class TenantSafeReportSourceRegistry {
       if (!IDENT_RE.test(fld.dbCol)) push('invalid-field-dbCol', `${name}.dbCol=${fld.dbCol}`);
     }
 
+    const aliasesSoFar = new Set<string>([s.primaryAlias]);
     for (const j of s.tenantAwareJoins) {
       if (!IDENT_RE.test(j.table)) push('invalid-join-table', `${j.table}`);
       if (!IDENT_RE.test(j.alias)) push('invalid-join-alias', `${j.alias}`);
-      if (!joinHasTenantEquality(j.on)) {
-        push(
-          'join-missing-tenant-equality',
-          `Join on ${j.table} (alias ${j.alias}) does not equate tenant_id. ON: ${j.on}`,
-        );
+      if (!ALLOWED_JOIN_TYPES.has(j.joinType)) {
+        push('invalid-join-type', `Join "${j.alias}" has type "${j.joinType}". Only LEFT/INNER allowed.`);
+        continue;
       }
+      if (aliasesSoFar.has(j.alias)) {
+        push('duplicate-join-alias', `alias "${j.alias}" reused in source "${s.key}"`);
+        continue;
+      }
+
+      const kind = j.kind ?? 'tenant-equality';
+
+      if (kind === 'catalog' && !CATALOG_TABLES.has(j.table)) {
+        push('catalog-table-not-allowed',
+          `Join "${j.alias}" uses kind=catalog on table "${j.table}" not in CATALOG_TABLES.`);
+        continue;
+      }
+
+      if (j.structuredOn) {
+        // Render once with the validator's alias set; renderer throws
+        // structured errors that map cleanly onto our rule names.
+        try {
+          renderJoin(j, aliasesSoFar);
+        } catch (e) {
+          const msg = (e as Error).message;
+          if (/literal/i.test(msg))            push('invalid-literal', msg);
+          else if (/missing tenant/i.test(msg)) push('tenant-equality-missing-from-structured-join', msg);
+          else if (/unknown alias/i.test(msg))  push('unknown-join-alias-reference', msg);
+          else if (/duplicate/i.test(msg))      push('duplicate-join-alias', msg);
+          else                                  push('join-missing-tenant-equality', msg);
+          continue;
+        }
+      } else if (j.on) {
+        // Legacy free-form path. Tenant-equality regex still applies
+        // (catalog joins may legitimately omit it).
+        if (kind !== 'catalog' && !joinHasTenantEquality(j.on)) {
+          push('join-missing-tenant-equality',
+            `Join on ${j.table} (alias ${j.alias}) does not equate tenant_id. ON: ${j.on}`);
+          continue;
+        }
+      } else {
+        push('join-missing-tenant-equality',
+          `Join "${j.alias}" must declare structuredOn or on.`);
+        continue;
+      }
+
+      aliasesSoFar.add(j.alias);
+    }
+
+    const fieldKeys = new Set(Object.keys(s.fields));
+    for (const k of s.allowedFilterFields ?? []) {
+      if (!fieldKeys.has(k)) push('unknown-allowed-filter', `${k}`);
+    }
+    for (const k of s.sortFields ?? []) {
+      if (!fieldKeys.has(k)) push('unknown-sort-field', `${k}`);
+    }
+    for (const k of s.exportFields ?? []) {
+      if (!fieldKeys.has(k)) push('unknown-export-field', `${k}`);
+    }
+    if (s.defaultSort && !fieldKeys.has(s.defaultSort.field)) {
+      push('unknown-default-sort', `${s.defaultSort.field}`);
     }
   }
 }

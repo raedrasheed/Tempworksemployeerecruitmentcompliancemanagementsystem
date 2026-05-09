@@ -5,10 +5,10 @@
 
 ---
 
-## Headline (post Phase 2.3)
+## Headline (post Phase 2.4)
 
 ```
-7/7 sources isolated.
+17/17 sources isolated.
 ```
 
 Plus, for every READY source:
@@ -16,22 +16,31 @@ Plus, for every READY source:
 - ✅ Cross-tenant filter rejected (caller cannot pass `tenantId` as a user filter).
 - ✅ Forbidden operator rejected (`OR` not in the allow-list).
 - ✅ All returned rows have `tenantId === tenantA.id`.
-- For sources whose tables aren't materialised in the fixture, the
-  harness records the per-source error and marks the source as
-  *skipped* rather than failed. The negative-path checks (cross-tenant
-  filter rejection, forbidden-op rejection) still run, since they are
-  driver-only and don't depend on the table being present.
+- ✅ **Phase 2.4: child rows do not leak through parent joins.** For
+  every non-catalog joined alias, count of rows where the joined
+  side's `tenantId` differs from tenant A is **0**.
+- ✅ **Phase 2.4: parent rows cannot match B-tenant children.**
+  Forcing tenant A's parent + tenant B's child via FK alone yields
+  **0** rows — the join's tenant equality term refuses the match.
+- ✅ **Phase 2.4: agency-scope reduces row count (or stays equal)**
+  for every source that declares `agencyColumn`.
+- ✅ **Phase 2.4: platform-admin bypass is audited.** No READY source
+  currently declares `platformAdminOnly: true`. The harness logs the
+  full list at the end of every run.
+- ✅ **Phase 2.4: disabled sources fail closed** — the engine refuses
+  any request for a DISABLED source.
 
-| Source | Status | Rows for A | Leaks from B | Cross-tenant filter rejected | Result |
-|--------|--------|-----------:|-------------:|:-----------------------------:|:------:|
-| `employees`         | READY | many | 0 | yes | PASS |
-| `applicants`        | READY | many | 0 | yes | PASS |
-| `agencies`          | READY | many | 0 | yes | PASS |
-| `documents`         | READY | matches | 0 | yes | PASS (skipped exec — fixture missing `deletedAt`) |
-| `compliance_alerts` | READY | — | 0 | yes | PASS (skipped exec — fixture missing table) |
-| `work_permits`      | READY | — | 0 | yes | PASS (skipped exec — fixture missing table) |
-| `visas`             | READY | — | 0 | yes | PASS (skipped exec — fixture missing table) |
-| (11 DISABLED) | — | — | — | — | — |
+For exact per-source rows-for-A, leak counts, agency-scope verdict,
+and child/parent leak counts, see
+`backend/reports/saas/phase2/reports-isolation-test.{json,md}`. Quick
+view post-Phase 2.4:
+
+| Group | Sources | Result |
+|------|--------|--------|
+| Phase 2.1 / 2.3 single-table | 7 sources | 7 × PASS (0 leaks) |
+| Phase 2.4 joined (tenant-equality) | 8 sources (entity-keyed + employees_agencies) | 8 × PASS (0 leaks, 0 child-via-parent, 0 parent-via-child) |
+| Phase 2.4 catalog-join | `documents_with_type`, `employees_documents_type` | 2 × PASS |
+| DISABLED (engine refuses) | `document_types` | n/a |
 
 ## Methodology
 
@@ -64,7 +73,7 @@ When a platform-admin-only source is added in Phase 3, this harness will pick it
 
 ## Acceptance for cutover
 
-Phase 3 per-source enablement requires N/N `PASS` against a sanitized prod clone. Post-Phase 2.3 the harness reports `7/7 sources isolated.` (3 fully exercised, 4 negative-path-only because fixture tables are missing). Real-prod-clone re-run is the next operational gate.
+Phase 3 per-source enablement requires N/N `PASS` against a sanitized prod clone. Post-Phase 2.4 the harness reports `17/17 sources isolated.` against the staging fixture with `phase24-extension.sql` applied. The fixture deliberately seeds same-shape rows in two tenants so the child-leak and parent-leak probes have something to attempt to violate; both stay at 0. Real-prod-clone re-run is the next operational gate.
 
 ## Negative-test catalogue (unit tests)
 

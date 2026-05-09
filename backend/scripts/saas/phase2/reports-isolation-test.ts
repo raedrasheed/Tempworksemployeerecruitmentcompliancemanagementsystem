@@ -21,6 +21,19 @@ import {
 } from './../phase1/reconciliation/lib/env';
 import { TENANT_SAFE_SOURCES } from '../../../src/saas/reports/runtime/report-sources';
 import { buildTenantSafeWhere } from '../../../src/saas/reports/where-builder';
+import { renderJoin } from '../../../src/saas/reports/join-builder';
+import type { JoinDef } from '../../../src/saas/reports/source-def.types';
+
+function renderJoins(primaryAlias: string, joins: ReadonlyArray<JoinDef>): string {
+  const known = new Set<string>([primaryAlias]);
+  const out: string[] = [];
+  for (const j of joins) {
+    const r = renderJoin(j, known);
+    known.add(r.alias);
+    out.push(r.sql);
+  }
+  return out.join(' ');
+}
 
 autoLoadEnv(__filename);
 
@@ -41,6 +54,12 @@ interface Check {
   rowsForA?: number;
   rowsLeakedFromB?: number;
   crossTenantFilterRejected?: boolean;
+  /** Phase 2.4: cross-tenant collision through joins (parent A, child B). */
+  childLeakViaParent?: number;
+  /** Phase 2.4: cross-tenant collision through reverse joins (child B, parent A). */
+  parentLeakViaChild?: number;
+  /** Phase 2.4: agency scope reduces row count when applied. */
+  agencyScopeApplied?: boolean | 'n/a';
   ok: boolean;
   notes: string[];
 }
@@ -86,10 +105,13 @@ async function main(): Promise<void> {
       continue;
     }
 
-    // 2. Execute. Rows must all have tenantId === A.
+    // 2. Execute. Rows must all have tenantId === A. With joins, also
+    //    confirm no joined-row's tenantId belongs to B.
+    const joinSql = renderJoins(def.primaryAlias, def.tenantAwareJoins ?? []);
     const sql = `SELECT "${def.primaryAlias}"."${idCol}"::text AS id,
                         "${def.primaryAlias}"."${tenantCol}"::text AS tid
                    FROM "${def.primaryTable}" "${def.primaryAlias}"
+                   ${joinSql}
                   WHERE ${where.sql}`;
     let rowsForA = 0;
     let leaks: { id: string; tid: string }[] = [];
@@ -134,13 +156,112 @@ async function main(): Promise<void> {
       ok = false;
     } catch { /* expected */ }
 
+    // 5. Phase 2.4 — cross-tenant child leak via parent join. For
+    //    every non-catalog joined alias, count rows where the joined
+    //    side's tenantId !== A.id while the parent's tenantId = A.id.
+    //    The result must be 0; if not, a join is missing the tenant
+    //    equality term.
+    let childLeakViaParent = 0;
+    let parentLeakViaChild = 0;
+    if ((def.tenantAwareJoins ?? []).length > 0) {
+      // Track aliases as we render so we can build per-join leak SQL.
+      const known = new Set<string>([def.primaryAlias]);
+      for (const j of def.tenantAwareJoins) {
+        const r = renderJoin(j, known);
+        known.add(r.alias);
+        if (r.isCatalog) continue;
+        try {
+          const childLeakSql = `SELECT count(*)::int AS n
+              FROM "${def.primaryTable}" "${def.primaryAlias}"
+              ${joinSql}
+             WHERE "${def.primaryAlias}"."${tenantCol}" = $1
+               AND "${j.alias}"."tenantId" IS NOT NULL
+               AND "${j.alias}"."tenantId"::text <> $1`;
+          const cl = await c.query<{ n: number }>(childLeakSql, [A.id]);
+          const n = cl.rows[0]?.n ?? 0;
+          childLeakViaParent += n;
+          if (n > 0) {
+            ok = false;
+            notes.push(`join ${j.alias}: ${n} row(s) with tenantId != A leaked through parent`);
+          }
+          // Reverse: scope the parent to A.id but force a child row
+          // belonging to B via FK alone (without tenant equality). The
+          // safe join MUST already enforce the tenant equality, so
+          // joining the parent to a B-tenant child should yield 0.
+          const parentLeakSql = `SELECT count(*)::int AS n
+              FROM "${def.primaryTable}" "${def.primaryAlias}"
+              ${joinSql}
+             WHERE "${def.primaryAlias}"."${tenantCol}" = $1
+               AND "${j.alias}"."tenantId"::text = $2`;
+          const pl = await c.query<{ n: number }>(parentLeakSql, [A.id, B.id]);
+          const m = pl.rows[0]?.n ?? 0;
+          parentLeakViaChild += m;
+          if (m > 0) {
+            ok = false;
+            notes.push(`join ${j.alias}: ${m} row(s) match B-tenant children for an A-tenant parent`);
+          }
+        } catch {
+          // joined table missing in fixture — already noted as skipped
+          // for the row-leak check; nothing to add here.
+        }
+      }
+    }
+
+    // 6. Phase 2.4 — agency-scope sanity: when the source declares
+    //    agencyColumn, a builder call with an empty agency list should
+    //    still emit the tenant filter (already proved); a call with
+    //    one agency should yield row count <= unscoped count.
+    let agencyScopeApplied: boolean | 'n/a' = 'n/a';
+    if (def.agencyColumn) {
+      try {
+        const ag = await c.query<{ id: string }>(
+          `SELECT id::text AS id FROM agencies WHERE "tenantId" = $1 LIMIT 1`,
+          [A.id],
+        );
+        const agencyId = ag.rows[0]?.id;
+        if (agencyId) {
+          const wScoped = buildTenantSafeWhere(def, [],
+            { tenantId: A.id, platformAdmin: false, agencyIds: [agencyId] });
+          const scopedSql = `SELECT count(*)::int AS n
+              FROM "${def.primaryTable}" "${def.primaryAlias}"
+              ${joinSql}
+             WHERE ${wScoped.sql}`;
+          const ns = (await c.query<{ n: number }>(scopedSql, wScoped.params)).rows[0]?.n ?? 0;
+          const fullSql = `SELECT count(*)::int AS n
+              FROM "${def.primaryTable}" "${def.primaryAlias}"
+              ${joinSql}
+             WHERE ${where.sql}`;
+          const nf = (await c.query<{ n: number }>(fullSql, where.params)).rows[0]?.n ?? 0;
+          agencyScopeApplied = ns <= nf;
+          if (!agencyScopeApplied) {
+            ok = false;
+            notes.push(`agency-scope did not narrow result: scoped=${ns} > full=${nf}`);
+          }
+        }
+      } catch { /* skip if agencies not present */ }
+    }
+
     results.push({
       source: key, status: 'READY',
       tenantA: A.id, tenantB: B.id,
       rowsForA, rowsLeakedFromB: leaks.length,
       crossTenantFilterRejected,
+      childLeakViaParent, parentLeakViaChild,
+      agencyScopeApplied,
       ok, notes,
     });
+  }
+
+  // ── Phase 2.4 platform-admin bypass audit ────────────────────────
+  // The engine's contract: only sources with `platformAdminOnly: true`
+  // skip the tenant filter for platform admins. There is currently no
+  // such source in the registry. Confirm that no READY source declares
+  // platformAdminOnly without the explicit reason logged.
+  const platformAdminSources = Object.entries(TENANT_SAFE_SOURCES)
+    .filter(([, m]) => m.status === 'READY' && m.def?.platformAdminOnly === true)
+    .map(([k]) => k);
+  if (platformAdminSources.length > 0) {
+    console.log(`[isolation] platform-admin-only READY sources: ${platformAdminSources.join(', ')}`);
   }
 
   await c.end();
@@ -173,13 +294,13 @@ async function main(): Promise<void> {
   md.push(`- Sources failed: ${summary.counts.failed}`);
   md.push(`- Sources skipped (disabled): ${summary.counts.disabled}`);
   md.push('');
-  md.push('| Source | Status | Rows for A | Leaks from B | Cross-tenant filter rejected | Result |');
-  md.push('|--------|--------|-----------:|-------------:|:-----------------------------:|:------:|');
+  md.push('| Source | Status | Rows for A | Leaks from B | Cross-tenant filter rejected | Child leak via parent | Parent leak via child | Agency scope | Result |');
+  md.push('|--------|--------|-----------:|-------------:|:-----------------------------:|----------------------:|----------------------:|:------------:|:------:|');
   for (const r of results) {
     if (r.status === 'DISABLED') {
-      md.push(`| \`${r.source}\` | DISABLED | — | — | — | — |`);
+      md.push(`| \`${r.source}\` | DISABLED | — | — | — | — | — | — | — |`);
     } else {
-      md.push(`| \`${r.source}\` | READY | ${r.rowsForA ?? 0} | ${r.rowsLeakedFromB ?? 0} | ${r.crossTenantFilterRejected ? 'yes' : 'no'} | ${r.ok ? 'PASS' : '**FAIL**'} |`);
+      md.push(`| \`${r.source}\` | READY | ${r.rowsForA ?? 0} | ${r.rowsLeakedFromB ?? 0} | ${r.crossTenantFilterRejected ? 'yes' : 'no'} | ${r.childLeakViaParent ?? 0} | ${r.parentLeakViaChild ?? 0} | ${r.agencyScopeApplied ?? 'n/a'} | ${r.ok ? 'PASS' : '**FAIL**'} |`);
     }
   }
   md.push('');

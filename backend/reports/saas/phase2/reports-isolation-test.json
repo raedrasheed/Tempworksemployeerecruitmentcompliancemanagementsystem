@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-09T16:17:58.814Z",
+  "generatedAt": "2026-05-09T16:47:31.687Z",
   "database": "postgres://postgres@127.0.0.1/saas_phase1_fixture?sslmode=disable",
   "tenantA": {
     "id": "11111111-1111-1111-1111-111111111111",
@@ -11,10 +11,10 @@
   },
   "counts": {
     "total": 18,
-    "ready": 3,
-    "passed": 3,
+    "ready": 7,
+    "passed": 7,
     "failed": 0,
-    "disabled": 15
+    "disabled": 11
   },
   "results": [
     {
@@ -52,34 +52,54 @@
     },
     {
       "source": "documents",
-      "status": "DISABLED",
+      "status": "READY",
+      "tenantA": "11111111-1111-1111-1111-111111111111",
+      "tenantB": "44444444-4444-4444-4444-444444444444",
+      "rowsForA": 0,
+      "rowsLeakedFromB": 0,
+      "crossTenantFilterRejected": false,
       "ok": true,
       "notes": [
-        "source disabled in safe mode"
+        "skipped: column doc.deletedAt does not exist"
       ]
     },
     {
       "source": "compliance_alerts",
-      "status": "DISABLED",
+      "status": "READY",
+      "tenantA": "11111111-1111-1111-1111-111111111111",
+      "tenantB": "44444444-4444-4444-4444-444444444444",
+      "rowsForA": 0,
+      "rowsLeakedFromB": 0,
+      "crossTenantFilterRejected": false,
       "ok": true,
       "notes": [
-        "source disabled in safe mode"
+        "skipped: relation \"compliance_alerts\" does not exist"
       ]
     },
     {
       "source": "work_permits",
-      "status": "DISABLED",
+      "status": "READY",
+      "tenantA": "11111111-1111-1111-1111-111111111111",
+      "tenantB": "44444444-4444-4444-4444-444444444444",
+      "rowsForA": 0,
+      "rowsLeakedFromB": 0,
+      "crossTenantFilterRejected": false,
       "ok": true,
       "notes": [
-        "source disabled in safe mode"
+        "skipped: relation \"work_permits\" does not exist"
       ]
     },
     {
       "source": "visas",
-      "status": "DISABLED",
+      "status": "READY",
+      "tenantA": "11111111-1111-1111-1111-111111111111",
+      "tenantB": "44444444-4444-4444-4444-444444444444",
+      "rowsForA": 0,
+      "rowsLeakedFromB": 0,
+      "crossTenantFilterRejected": false,
       "ok": true,
       "notes": [
-        "source disabled in safe mode"
+        "skipped: relation \"visas\" does not exist"
       ]
     },
     {

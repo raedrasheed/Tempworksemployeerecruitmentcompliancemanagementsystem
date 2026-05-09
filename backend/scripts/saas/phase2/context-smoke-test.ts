@@ -178,11 +178,13 @@ async function runCases(): Promise<CaseResult[]> {
 
   // ---- Case 5 — disabled source fails closed
   {
-    const m = TENANT_SAFE_SOURCES['documents'];
+    // `documents` was DISABLED in Phase 2.1 and flipped to READY in Phase 2.3.
+    // Use a source that is still DISABLED post-2.3 (catalog or join-keyed).
+    const m = TENANT_SAFE_SOURCES['document_types'];
     out.push({
       name: 'disabled report source fails closed',
       ok: m?.status === 'DISABLED',
-      detail: `documents status=${m?.status}, reason=${m?.reason}`,
+      detail: `document_types status=${m?.status}, reason=${m?.reason}`,
     });
   }
 

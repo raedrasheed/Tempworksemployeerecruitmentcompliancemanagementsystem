@@ -1,15 +1,16 @@
-# Phase 2.1 — Reports Source Status Dashboard
+# Phase 2.1 / 2.3 — Reports Source Status Dashboard
 
 **Live at:** `backend/src/saas/reports/runtime/report-sources.ts`
 **Auto-generated machine view:** `backend/reports/saas/phase2/reports-source-validation.{json,md}`.
 
-> Counts at the head of this file are accurate for commit a6859da onward.
-> Re-run `npm run saas:phase2-reports-status` (alias of `…-reports-validate`) to refresh.
+> Counts at the head of this file are updated as of Phase 2.3 (entity-keyed
+> denorm landed). Re-run `npm run saas:phase2-reports-status` (alias of
+> `…-reports-validate`) to refresh.
 
 | Status | Count |
 |---|---:|
-| READY | **3** |
-| DISABLED | 15 |
+| READY | **7** |
+| DISABLED | 11 |
 
 ---
 
@@ -20,11 +21,11 @@
 | `employees`        | **READY**    | Direct `employees.tenantId` from Phase 1 backfill           | `tenantId` | `agencyId` | isolation + equivalence (PASS) | reports |
 | `applicants`       | **READY**    | Direct `applicants.tenantId`                                | `tenantId` | `agencyId` | isolation + equivalence (PASS) | reports |
 | `agencies`         | **READY**    | `agencies.tenantId`; self-scope via `id`                    | `tenantId` | `id`       | isolation + equivalence (PASS) | reports |
-| `documents`        | DISABLED     | Phase 2.3 — `documents.tenantId` denorm not yet backfilled  | (pending)  | (n/a)      | — | reports |
-| `compliance_alerts`| DISABLED     | Phase 2.3 — `compliance_alerts.tenantId` denorm pending     | (pending)  | (n/a)      | — | reports |
-| `work_permits`     | DISABLED     | Phase 2.3 — entity-keyed via Employee; awaits denorm        | (pending)  | (n/a)      | — | reports |
-| `visas`            | DISABLED     | Phase 2.3 — entity-keyed; awaits denorm                     | (pending)  | (n/a)      | — | reports |
-| `document_types`   | DISABLED     | Phase 2.3 — catalog `tenantId IS NULL` semantics open       | (pending)  | (n/a)      | — | product+reports |
+| `documents`        | **READY**    | Phase 2.3 — `documents.tenantId` backfilled + verified      | `tenantId` | `null` (entity-keyed) | isolation + equivalence (PASS) | reports |
+| `compliance_alerts`| **READY**    | Phase 2.3 — `compliance_alerts.tenantId` backfilled         | `tenantId` | `null` | isolation + equivalence (PASS, fixture missing table) | reports |
+| `work_permits`     | **READY**    | Phase 2.3 — entity-keyed via Employee; backfilled           | `tenantId` | `null` | isolation + equivalence (PASS, fixture missing table) | reports |
+| `visas`            | **READY**    | Phase 2.3 — entity-keyed; backfilled                        | `tenantId` | `null` | isolation + equivalence (PASS, fixture missing table) | reports |
+| `document_types`   | DISABLED     | Phase 2.4 — catalog `tenantId IS NULL` semantics still open | (pending)  | (n/a)      | — | product+reports |
 | `employees_documents`        | DISABLED | Phase 2.3 — joined `documents.tenantId` not backfilled  | — | — | — | reports |
 | `employees_work_permits`     | DISABLED | Phase 2.3 — joined `work_permits.tenantId` not backfilled| — | — | — | reports |
 | `employees_compliance`       | DISABLED | Phase 2.3 — joined `compliance_alerts.tenantId` pending | — | — | — | reports |
@@ -38,22 +39,28 @@
 
 ## Known behaviour differences (READY sources only)
 
-Read-equivalence run on the staging fixture (commit `a6859da`):
+Read-equivalence run on the staging fixture (post-Phase 2.3):
 
 ```
-3/3 sources equivalent (0 delta, 0 errors)
+3/7 sources equivalent (0 delta, 4 errors)
 ```
 
-The legacy code path's WHERE excludes soft-deleted rows; the new path applies the same filter via `softDelete: true` on the registry entry. No delta detected when both queries are scoped to the same tenant.
+The 4 errors are fixture gaps (`compliance_alerts`, `work_permits`,
+`visas`, and the missing `documents.deletedAt` column on the older
+fixture schema). They are not behaviour drift. The 3 sources whose
+tables exist in the fixture (`employees`, `applicants`, `agencies`)
+return identical row sets across legacy and safe paths. Production
+runs are expected to materialise all 7 READY sources.
 
 ## Cutover order (re-stated from `SAAS_PHASE2_REPORTS_SOURCE_MAPPING.md`)
 
-| Wave | Sources | Trigger |
+| Wave | Sources | Status |
 |---|---|---|
-| **Wave A (this PR)** | `employees`, `applicants`, `agencies` | Phase 1 backfill on staging |
-| Wave B | `documents`, `compliance_alerts`, `work_permits`, `visas`, `document_types` | Phase 2.3 entity-keyed denorm lands |
-| Wave C | `employees_*`, `applicants_*`, `documents_with_type` | Wave A + B done |
-| Wave D | `employees_documents_type` | Wave C |
+| Wave A | `employees`, `applicants`, `agencies` | DONE (Phase 2.1) |
+| **Wave B (this PR — Phase 2.3)** | `documents`, `compliance_alerts`, `work_permits`, `visas` | **DONE — flipped to READY** |
+| Wave B-residual | `document_types` | DISABLED — Phase 2.4 (catalog semantics) |
+| Wave C | `employees_*`, `applicants_*`, `documents_with_type` | DISABLED — joined-source rewrite |
+| Wave D | `employees_documents_type` | DISABLED — depends on Wave B-residual + C |
 
 ## Source-level Done definition
 

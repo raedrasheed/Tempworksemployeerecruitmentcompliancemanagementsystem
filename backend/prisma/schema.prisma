@@ -755,6 +755,11 @@ model Document {
   @@index([status])
   @@index([documentTypeId])
   @@index([expiryDate])
+  // Phase 2.3 entity-keyed denorm. NULL until backfill; remains nullable
+  // through Phase 2; promoted to NOT NULL no earlier than Phase 3.
+  tenantId   String?
+  @@index([tenantId])
+  @@index([tenantId, status])
   @@map("documents")
 }
 
@@ -795,6 +800,9 @@ model WorkPermit {
 
   employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
 
+  // Phase 2.3 entity-keyed denorm.
+  tenantId String?
+  @@index([tenantId])
   @@map("work_permits")
 }
 
@@ -814,7 +822,9 @@ model Visa {
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
 
-
+  // Phase 2.3 entity-keyed denorm.
+  tenantId        String?
+  @@index([tenantId])
   @@map("visas")
 }
 
@@ -858,6 +868,10 @@ model Notification {
   @@index([userId, isRead])
   @@index([userId, eventType])
   @@index([userId, type])
+  // Phase 2.3 entity-keyed denorm.
+  tenantId   String?
+  @@index([tenantId])
+  @@index([tenantId, userId])
   @@map("notifications")
 }
 
@@ -900,6 +914,10 @@ model ComplianceAlert {
   document   Document?  @relation(fields: [documentId], references: [id])
   resolvedBy User?      @relation("ResolvedAlerts", fields: [resolvedById], references: [id])
 
+  // Phase 2.3 entity-keyed denorm.
+  tenantId   String?
+  @@index([tenantId])
+  @@index([tenantId, status])
   @@map("compliance_alerts")
 }
 
@@ -1102,6 +1120,10 @@ model FinancialRecord {
   @@index([status])
   @@index([transactionDate])
   @@index([transactionType])
+  // Phase 2.3 entity-keyed denorm.
+  tenantId   String?
+  @@index([tenantId])
+  @@index([tenantId, transactionDate])
   @@map("financial_records")
 }
 
@@ -1161,6 +1183,9 @@ model FinancialRecordAttachment {
   financialRecord FinancialRecord @relation(fields: [financialRecordId], references: [id], onDelete: Cascade)
   uploadedBy      User?           @relation("FRAttachmentUploadedBy", fields: [uploadedById], references: [id])
 
+  // Phase 2.3 entity-keyed denorm.
+  tenantId        String?
+  @@index([tenantId])
   @@map("financial_record_attachments")
 }
 
@@ -1184,6 +1209,9 @@ model FinancialRecordDeduction {
   createdBy       User?           @relation("FRDeductionCreatedBy", fields: [createdById], references: [id])
 
   @@index([financialRecordId])
+  // Phase 2.3 entity-keyed denorm.
+  tenantId        String?
+  @@index([tenantId])
   @@map("financial_record_deductions")
 }
 
@@ -1387,6 +1415,9 @@ model CandidateWorkflowAssignment {
 
   @@index([candidateId])
   @@index([workflowId])
+  // Phase 2.3 entity-keyed denorm.
+  tenantId     String?
+  @@index([tenantId])
   @@map("candidate_workflow_assignments")
 }
 
@@ -1469,6 +1500,9 @@ model EmployeeWorkflowAssignment {
   assignedBy   User?          @relation("EmployeeWorkflowAssignments", fields: [assignedById], references: [id])
 
   @@index([workflowId])
+  // Phase 2.3 entity-keyed denorm.
+  tenantId     String?
+  @@index([tenantId])
   @@map("employee_workflow_assignments")
 }
 
@@ -1515,6 +1549,10 @@ model AttendanceRecord {
   @@unique([employeeId, date])
   @@index([employeeId])
   @@index([date])
+  // Phase 2.3 entity-keyed denorm.
+  tenantId   String?
+  @@index([tenantId])
+  @@index([tenantId, date])
   @@map("attendance_records")
 }
 
@@ -1589,6 +1627,9 @@ model EmployeeWorkHistory {
 
   @@index([employeeId, date])
   @@index([eventType])
+  // Phase 2.3 entity-keyed denorm.
+  tenantId   String?
+  @@index([tenantId])
   @@map("employee_work_history")
 }
 
@@ -1607,6 +1648,9 @@ model EmployeeWorkHistoryAttachment {
   uploadedBy  User?               @relation("WorkHistoryAttachmentUploadedBy", fields: [uploadedById], references: [id])
 
   @@index([workHistoryId])
+  // Phase 2.3 entity-keyed denorm.
+  tenantId    String?
+  @@index([tenantId])
   @@map("employee_work_history_attachments")
 }
 
@@ -1844,6 +1888,9 @@ model VehicleDocument {
   uploadedBy User?   @relation("VehicleDocUploadedBy", fields: [uploadedById], references: [id])
 
   @@index([vehicleId])
+  // Phase 2.3 entity-keyed denorm.
+  tenantId   String?
+  @@index([tenantId])
   @@map("vehicle_documents")
 }
 
@@ -1883,6 +1930,9 @@ model MaintenanceRecord {
   @@index([vehicleId])
   @@index([status])
   @@index([scheduledDate])
+  // Phase 2.3 entity-keyed denorm.
+  tenantId           String?
+  @@index([tenantId])
   @@map("maintenance_records")
 }
 

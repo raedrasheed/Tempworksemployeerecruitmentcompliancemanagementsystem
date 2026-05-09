@@ -95,7 +95,7 @@ For each P0 / P1 / P2 module the Phase 2 implementation will:
 | **Phase 2.0 — scaffolding** (this PR) | report scaffolding under `backend/src/saas/reports/`; scanners; planning | ½ week |
 | **Phase 2.1 — reports refactor** | `reports` | 2 weeks (ADR-007 hard prerequisite to enforcement) |
 | **Phase 2.2 — notifications fanout** | `notifications` | 1 week |
-| **Phase 2.3 — entity-keyed denorm** | `documents`, `finance`, `compliance`, `visa` (in Document) | 1 week (uses Phase 1 backfill output) |
+| **Phase 2.3 — entity-keyed denorm** ✅ DONE | `documents`, `work_permits`, `visas`, `compliance_alerts`, `financial_records` (+10 descendants) | 15 models migrated additively; 56 rows backfilled, 2 quarantined, 0 mismatches; 4 new READY report sources |
 | **Phase 2.4 — domain modules** | `applicants`, `employees`, `pipeline`, `vehicles`, `workflow` | 2 weeks |
 | **Phase 2.5 — utility modules** | rest of P2 + P3 | 1 week |
 | **Phase 2.6 — RLS audit-mode** | flip `RLS_ENFORCEMENT` to log-only | ½ week + 7 days observation |

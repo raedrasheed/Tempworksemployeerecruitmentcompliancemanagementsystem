@@ -78,7 +78,9 @@
     "saas:phase2-reports-status":      "ts-node scripts/saas/phase2/reports-validate.ts",
     "saas:scan:raw-sql":               "ts-node scripts/scan-raw-sql.ts",
     "saas:phase2-context-smoke":       "ts-node scripts/saas/phase2/context-smoke-test.ts",
-    "saas:phase2-diagnostics":         "ts-node scripts/saas/phase2/diagnostics-probe.ts"
+    "saas:phase2-diagnostics":         "ts-node scripts/saas/phase2/diagnostics-probe.ts",
+    "saas:phase2-backfill-entity-tenantids": "ts-node scripts/saas/phase2/backfill-entity-tenantids.ts",
+    "saas:phase2-verify-entity-tenantids":   "ts-node scripts/saas/phase2/verify-entity-tenantids.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1041.0",

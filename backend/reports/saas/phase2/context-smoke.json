@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-09T16:17:55.329Z",
+  "generatedAt": "2026-05-09T16:48:01.313Z",
   "counts": {
     "total": 7,
     "passed": 7,
@@ -29,7 +29,7 @@
     {
       "name": "disabled report source fails closed",
       "ok": true,
-      "detail": "documents status=DISABLED, reason=Phase 2.3 — `documents.tenantId` denorm not yet backfilled."
+      "detail": "document_types status=DISABLED, reason=Phase 2.4 — catalog model with tenantId NULL semantics not finalised."
     },
     {
       "name": "ready source builder emits tenant=$1 first",

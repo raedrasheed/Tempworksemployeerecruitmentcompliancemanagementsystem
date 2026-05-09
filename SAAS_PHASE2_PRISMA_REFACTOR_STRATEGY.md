@@ -1,0 +1,151 @@
+# Phase 2 — Prisma Runtime Refactor Strategy
+
+> Goal: replace **793 direct `prisma.<model>.<op>`** call sites with `tenantPrisma.client.<model>.<op>` across 28 modules, **without changing observable behaviour** until `TENANT_PRISMA_ENFORCEMENT=true` flips per-environment.
+
+---
+
+## 1. Migration model
+
+Each call site goes through one of three transitions:
+
+```
+A.  prisma.x.findMany(...)             →  tenantPrisma.client.x.findMany(...)
+B.  prisma.x.findUnique({ email })    →  tenantPrisma.client.x.findFirst({ email })  // tenant injected
+C.  prisma.$queryRaw`...`             →  source registry (reports) OR tenantPrisma.withTenant(tx => tx.$queryRaw`...`)
+```
+
+Type **A** is mechanical (~85% of sites). Type **B** appears wherever a previously global unique key (e.g. `Employee.email`) becomes tenant-scoped (`@@unique([tenantId, email])`). Type **C** is rare (17 sites) and routes through the reports refactor (ADR-007).
+
+## 2. Module-by-module order
+
+Per `SAAS_PHASE2_RUNTIME_REFACTOR_INVENTORY.md` §9:
+
+| Wave | Modules | Effort |
+|---|---|---|
+| 2.0 (this PR) | scaffolding only | ½ week |
+| 2.1 | `reports` (P0, raw SQL) | 2 weeks |
+| 2.2 | `notifications` (P0, scheduler) | 1 week |
+| 2.3 | entity-keyed: `documents`, `finance`, `compliance` | 1 week |
+| 2.4 | domain: `applicants`, `employees`, `pipeline`, `vehicles`, `workflow` | 2 weeks |
+| 2.5 | utility: `recycle-bin`, `users`, `roles`, `agencies`, `attendance`, etc. | 1 week |
+| 2.6 | RLS audit-mode + `TENANT_PRISMA_ENFORCEMENT=true` per env | ½ week + 7-day observation |
+| 2.7 | RLS `FORCE` per-table | ½ week + per-table observation |
+
+## 3. Codemod strategy
+
+**No automated codemod is shipped.** The replacement is module-by-module, by code-owner, with every PR touching one bounded context.
+
+Why: an automated `prisma. → tenantPrisma.client.` rewrite would be:
+
+- correct in 95% of cases,
+- subtly wrong in the remaining 5% (interactive transactions, places that rely on `findUnique(email)`, raw SQL),
+- and visually impossible to review per call site.
+
+Instead each module PR includes:
+
+1. The mechanical rewrite (find-and-replace within a single module folder).
+2. Any required `findUnique → findFirst` adjustments where the unique constraint is becoming tenant-scoped.
+3. The new `applyAgencyScope(where, 'agencyId', ctx)` helper invocation on every list/read endpoint that targets an agency-scoped model.
+4. A two-tenant isolation test for that module.
+5. A read-equivalence test (§5).
+
+## 4. Scanner strictness phases
+
+The advisory scanner (`saas:scan` + `saas:scan:raw-sql`) tightens over phases:
+
+| Phase | `saas:scan` | `saas:scan:raw-sql` | CI gate |
+|-------|-------------|---------------------|---------|
+| 0 (current) | report-only | report-only | none |
+| 2.0 (this PR) | report-only | report-only | none |
+| 2.1 | strict for `backend/src/reports/` | strict for `backend/src/reports/` | only `reports` module fails on regression |
+| 2.4 (after entity-keyed + domain modules) | strict for `documents`, `applicants`, `employees`, `pipeline`, `notifications`, `reports` | strict on the same allow-list | gates per-module |
+| 2.6 | strict everywhere | strict everywhere | full repo gate |
+| Phase 3 | the legacy `prisma` import is forbidden outside `infra/prisma/*` and explicitly reviewed sites | same | hard gate |
+
+## 5. Read-equivalence testing (the safety net)
+
+For every module migration, a "before / after" test against the SAFE_CLONE staging fixture:
+
+```
+1. Capture: list 50 representative queries (URL + params) per module.
+2. Run them on the legacy code path; serialise the response (sorted JSON).
+3. Apply the migration.
+4. Re-run the same queries; serialise again.
+5. Diff. The only acceptable deltas are:
+     - row order (if the test query had no ORDER BY) — re-run with explicit ORDER BY
+     - new tenant-scoped indexes ⇒ different default sort — accept after review
+   Anything else is a regression and the migration PR is rejected.
+```
+
+The harness lives at `backend/src/saas/__validation__/read-equivalence/` (added per-module in Phase 2.1+).
+
+## 6. `// @tenant-reviewed` policy
+
+A single comment suppresses scanner findings on a line:
+
+```ts
+// @tenant-reviewed: <reason>
+const u = await this.prisma.user.findUnique({ where: { email } });
+```
+
+Mandatory rules:
+
+- The reason must reference one of: `R-1..R-12` (in `docs/saas/phase0/TENANT_ISOLATION_RULES.md`), an ADR (`ADR-NNN`), or an explicit Phase 2 ticket id.
+- "TODO" is **never** a reason. Use a tracked ticket instead.
+- Code-owner approval is required on the PR; the scanner reports comments without a `<reason>` separately.
+- The list of reviewed lines is enumerated at boot (Phase 2.5) and a metric is exported (`saas.reviewed_prisma_sites`).
+
+Categories where `@tenant-reviewed` is the **right answer**:
+
+- `auth/`, `users/`, `identity/` — login is global. `findUnique({ email })` on `User` is the legitimate global identity lookup.
+- `platform-admin/` — by design.
+- migration scripts under `prisma/run-*.ts` — they execute against the live DB outside the wrapped client.
+
+Anywhere else, `@tenant-reviewed` is a smell — prefer the wrapper.
+
+## 7. Avoiding accidental behaviour changes
+
+### 7.1 Pass-through default
+
+`TenantPrismaService.client` is a **pass-through** to the underlying Prisma client when `TENANT_PRISMA_ENFORCEMENT=false`. Phase 2.0–2.5 ship with the flag OFF. The mechanical rewrite is therefore behaviourally identical to the legacy code; only the import path changes.
+
+### 7.2 `findUnique` → `findFirst` rule
+
+Wherever the unique key includes `tenantId` after Phase 2 backfill, every `findUnique({ where: { email } })` becomes `findFirst({ where: { email } })` (the wrapper auto-injects `tenantId`). The migration PR includes a one-line ESLint rule that flags `findUnique({ email | code | slug })` for tenant-scoped models and refers to this guidance.
+
+### 7.3 Test gate
+
+A migration PR cannot merge until:
+
+- `npm run saas:validate` passes (28 → growing).
+- `npm run saas:schema-lint` passes.
+- The module's read-equivalence test passes (above).
+- The module's two-tenant isolation test passes.
+- The module's raw-SQL count drops to 0 OR every site has `@tenant-reviewed`.
+
+## 8. Rollback strategy
+
+Every migration PR is a single squash-merge commit. To roll back:
+
+1. Revert the commit.
+2. Run `npm run saas:validate` to confirm the SaaS suites still pass.
+3. The flag remains OFF, so the legacy code path is what runs in production.
+
+Because the migration is mechanically equivalent (under flag OFF), the cost of revert is the cost of one deploy, not a data migration.
+
+## 9. Tracking & telemetry
+
+Per-module migration PR description includes:
+
+- Pre-migration count from `saas:phase2-runtime-inventory` for that module.
+- Post-migration count (target: 0 unreviewed direct prisma sites).
+- Read-equivalence test result (rows compared, deltas explained).
+- Two-tenant isolation test passing screenshot/log.
+
+Rolling progress dashboard published to `backend/reports/saas/phase2/migration-progress.json` (regenerated on each merge).
+
+## 10. Hard rules
+
+- **Never enable `TENANT_PRISMA_ENFORCEMENT=true` in production until every P0/P1/P2 module has migrated.** Enabling it with a half-migrated codebase makes the un-migrated services start filtering by tenant when their callers don't expect it.
+- **Never ship a `Prisma.raw` outside the registry** during Phase 2.1+. The scanner blocks new ones; existing ones are migrated, not copied.
+- **Always preserve the legacy code path** behind the flag. Removing the legacy code is Phase 3.

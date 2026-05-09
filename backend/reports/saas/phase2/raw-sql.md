@@ -1,0 +1,62 @@
+# Phase 2 — Raw-SQL Scanner Report
+
+Generated: 2026-05-09T15:23:00.310Z
+
+- Total findings: **26**
+- BLOCKER: 11 (blocks Phase 2 enforcement: 20)
+- HIGH: 9
+- MEDIUM: 6
+- @tenant-reviewed without reason: 0
+
+## Per-module
+
+| Module | Findings |
+|--------|---------:|
+| `backup` | 2 |
+| `common` | 1 |
+| `email` | 1 |
+| `recycle-bin` | 5 |
+| `reports` | 11 |
+| `saas` | 1 |
+| `applicants` | 3 |
+| `employees` | 1 |
+| `pipeline` | 1 |
+
+## Findings
+
+| File | Line | Severity | Pattern | Module | Reviewed | Snippet |
+|------|-----:|----------|---------|--------|---------|---------|
+| `src/backup/backup.service.ts` | 325 | **BLOCKER** | `$executeRawUnsafe` | `backup` | — | `await this.prisma.$executeRawUnsafe(` |
+| `src/backup/backup.service.ts` | 556 | **BLOCKER** | `string-concat-SQL` | `backup` | — | ``Backup database name "${meta.databaseName}" differs from current "${conn.database}".`,` |
+| `src/common/storage/storage.service.ts` | 171 | **BLOCKER** | `string-concat-SQL` | `common` | — | `this.logger.warn(`Spaces delete failed for ${key}: ${err?.message ?? err}`);` |
+| `src/email/email.service.ts` | 19 | **BLOCKER** | `string-concat-SQL` | `email` | — | `this.logger.log(`Email service ready (Resend API). Key: ${this.apiKey.substring(0, 8)}... FROM: ${this.from}`);` |
+| `src/recycle-bin/hard-delete.service.ts` | 178 | **BLOCKER** | `string-concat-SQL` | `recycle-bin` | — | ``Cannot hard-delete agency: ${activeEmployees} active employee(s) and ${activeUsers} active user(s) still reference it. Reassign or delete them first.`,` |
+| `src/recycle-bin/hard-delete.service.ts` | 217 | **BLOCKER** | `string-concat-SQL` | `recycle-bin` | — | ``Cannot hard-delete document type: ${activeDocs} active document(s) reference it. Soft-delete or reassign them first.`,` |
+| `src/recycle-bin/hard-delete.service.ts` | 26 | **BLOCKER** | `string-concat-SQL` | `recycle-bin` | — | `throw new ForbiddenException(`Hard delete is not permitted for entity type: ${entityType}`);` |
+| `src/recycle-bin/hard-delete.service.ts` | 281 | **BLOCKER** | `string-concat-SQL` | `recycle-bin` | — | ``Cannot hard-delete role: ${assignedUsers} active user(s) are assigned this role. Reassign them first.`,` |
+| `src/recycle-bin/hard-delete.service.ts` | 47 | **BLOCKER** | `string-concat-SQL` | `recycle-bin` | — | `throw new BadRequestException(`No hard-delete handler for entity type: ${entityType}`);` |
+| `src/reports/reports.service.ts` | 647 | **BLOCKER** | `string-concat-SQL` | `reports` | — | ``${j.joinType} JOIN "${j.table}" AS ${j.alias} ON ${j.on}`,` |
+| `src/saas/prisma/tenant-prisma.service.ts` | 62 | **BLOCKER** | `$executeRawUnsafe` | `saas` | — | `await tx.$executeRawUnsafe(setLocalTenantSql(tenantId));` |
+| `src/reports/reports.service.ts` | 653 | **HIGH** | `Prisma.raw` | `reports` | — | `? [Prisma.sql`${Prisma.raw(`${primaryAlias}."deletedAt"`)} IS NULL`]` |
+| `src/reports/reports.service.ts` | 660 | **HIGH** | `Prisma.raw` | `reports` | — | `const col    = Prisma.raw(`${f.alias}."${f.dbCol}"`);` |
+| `src/reports/reports.service.ts` | 692 | **HIGH** | `Prisma.raw` | `reports` | — | `groupedCols.map((c: any) => Prisma.raw(`${fields[c.columnName].alias}."${fields[c.columnName].dbCol}"`)),` |
+| `src/reports/reports.service.ts` | 700 | **HIGH** | `Prisma.raw` | `reports` | — | `.map((s: any) => Prisma.raw(` |
+| `src/reports/reports.service.ts` | 706 | **HIGH** | `Prisma.raw` | `reports` | — | `: Prisma.sql`ORDER BY ${Prisma.raw(fallbackOrder)}`;` |
+| `src/reports/reports.service.ts` | 715 | **HIGH** | `Prisma.raw` | `reports` | — | `SELECT ${Prisma.raw(countExpr)} AS total` |
+| `src/reports/reports.service.ts` | 716 | **HIGH** | `Prisma.raw` | `reports` | — | `FROM ${Prisma.raw(fromFragment)}` |
+| `src/reports/reports.service.ts` | 724 | **HIGH** | `Prisma.raw` | `reports` | — | `SELECT ${Prisma.raw(selectParts.join(', '))}` |
+| `src/reports/reports.service.ts` | 725 | **HIGH** | `Prisma.raw` | `reports` | — | `FROM ${Prisma.raw(fromFragment)}` |
+| `src/applicants/applicants.service.ts` | 1144 | **MEDIUM** | `$queryRaw` | `applicants` | — | `const result: { current: number }[] = await this.prisma.$queryRaw`` |
+| `src/applicants/applicants.service.ts` | 1170 | **MEDIUM** | `$queryRaw` | `applicants` | — | `const result: { current: number }[] = await this.prisma.$queryRaw`` |
+| `src/applicants/applicants.service.ts` | 1196 | **MEDIUM** | `$queryRaw` | `applicants` | — | `const result: { current: number }[] = await this.prisma.$queryRaw`` |
+| `src/employees/employees.service.ts` | 246 | **MEDIUM** | `$queryRaw` | `employees` | — | `const result: any[] = await this.prisma.$queryRaw`` |
+| `src/pipeline/pipeline.service.ts` | 305 | **MEDIUM** | `$executeRaw` | `pipeline` | — | `await this.prisma.$executeRaw`` |
+| `src/reports/reports.service.ts` | 835 | **MEDIUM** | `$queryRaw` | `reports` | — | `this.prisma.$queryRaw`` |
+
+## Suggested fixes
+
+- **`$executeRawUnsafe`** (BLOCKER): Convert to $executeRaw with tagged-template params; route through TenantPrismaService.withTenant.
+- **`$queryRawUnsafe`** (BLOCKER): Convert to $queryRaw tagged template; declare a SOURCE_DEFS entry with tenantColumn.
+- **`Prisma.raw`** (HIGH): Move into the SOURCE_DEFS registry under backend/src/saas/reports; the boot validator will require tenantColumn.
+- **`$executeRaw`** (MEDIUM): Wrap the call site in TenantPrismaService.withTenant so RLS sees a tenant_id GUC.
+- **`$queryRaw`** (MEDIUM): Wrap call site in TenantPrismaService.withTenant; verify the SQL has a tenant filter.

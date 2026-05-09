@@ -70,7 +70,10 @@
     "saas:phase1-verify-backfill":     "ts-node scripts/saas/phase1/verify-tenant-backfill.ts",
     "saas:apply-migrations":           "ts-node scripts/saas/phase1/apply-migrations.ts",
     "saas:rollback-migrations":        "ts-node scripts/saas/phase1/apply-migrations.ts --rollback",
-    "saas:env-safety":                 "ts-node scripts/saas/phase1/env-safety.ts"
+    "saas:env-safety":                 "ts-node scripts/saas/phase1/env-safety.ts",
+    "saas:phase2-runtime-inventory":   "ts-node scripts/saas/phase2/runtime-inventory.ts",
+    "saas:phase2-reports-validate":    "ts-node scripts/saas/phase2/reports-validate.ts",
+    "saas:scan:raw-sql":               "ts-node scripts/scan-raw-sql.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1041.0",

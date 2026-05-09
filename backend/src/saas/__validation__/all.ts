@@ -15,6 +15,7 @@ async function main(): Promise<void> {
     'rls.check.ts',
     'registry.check.ts',
     'jobs.check.ts',
+    'reports.check.ts',
   ];
   let failed = 0;
   for (const s of suites) {

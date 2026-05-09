@@ -142,3 +142,15 @@ The production runbook is the same shape as this one with the addition of:
 - `backend/reports/saas/phase1/recon-verify-backfill.{json,md}`
 - `backend/reports/saas/phase1/PHASE1_APPLY_STAGING.{json,md}`
 - DB snapshot of `saas_reconciliation_queue` post-drain.
+
+---
+
+## Stage 0 — Environment-safety probe (added 2026-05-09)
+
+Run BEFORE Stage 1:
+
+```sh
+npm run saas:env-safety
+```
+
+The classifier output (printed and saved to `backend/reports/saas/phase1-prod-replica/env-safety.json`) is the gate to proceed. Operators MUST stop on `UNSAFE_PRODUCTION` or `UNKNOWN`. The same classifier is invoked transitively by every `--apply` script in this runbook; running it here surfaces the verdict early so you don't waste time on a misconfigured host.

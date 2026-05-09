@@ -104,3 +104,19 @@ Use this checklist for the **first staging dry-run** and the **second staging dr
 - [ ] **Security** (name + date)
 - [ ] **DevOps / SRE** (name + date)
 - [ ] **Data steward** (name + date)
+
+---
+
+## Pre-stage probe (added 2026-05-09)
+
+Before any stage:
+
+```sh
+npm run saas:env-safety
+```
+
+- [ ] Classification is `SAFE_CLONE` or `SAFE_STAGING`.
+- [ ] If `SAFE_STAGING`, `ALLOW_SAAS_STAGING_MUTATION=true` is set explicitly.
+- [ ] `env-safety.json` archived to the change record.
+
+Any classification of `UNSAFE_PRODUCTION` or `UNKNOWN` aborts the staging apply; investigate the host/DB-name allow-list before retrying.

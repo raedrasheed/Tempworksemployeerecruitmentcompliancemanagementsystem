@@ -66,3 +66,21 @@ The replica preflight is complete when:
 
 - [ ] Mark replica for retention through cutover + 30 days.
 - [ ] Schedule destruction of the replica + any extracted reports per data-retention policy.
+
+---
+
+## Step 0 — Mandatory environment safety probe (added 2026-05-09)
+
+Before doing anything else on the replica:
+
+```sh
+DATABASE_URL=... npm run saas:env-safety
+```
+
+Expected classifications and actions:
+
+- `SAFE_CLONE` / `SAFE_STAGING` → proceed with the rest of this checklist.
+- `READONLY_REPLICA` → only the read-only audits in steps 4–5 are valid; skip steps 6–10.
+- `UNSAFE_PRODUCTION` / `UNKNOWN` → **stop**. Update the classifier allow-list with the actual replica hostname or fix DATABASE_URL.
+
+The classifier output is archived as `backend/reports/saas/phase1-prod-replica/env-safety.json` and must be attached to the change record.

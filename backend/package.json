@@ -52,7 +52,11 @@
     "db:migrate:ensure-applicant-columns": "ts-node prisma/run-ensure-applicant-columns.ts",
     "db:migrate:i18n-translations": "ts-node prisma/run-i18n-translations-migration.ts",
     "db:migrate:all": "ts-node prisma/run-all-migrations.ts",
-    "db:sync-permissions": "ts-node prisma/sync-permissions.ts"
+    "db:sync-permissions": "ts-node prisma/sync-permissions.ts",
+    "saas:validate":     "ts-node src/saas/__validation__/all.ts",
+    "saas:scan":         "ts-node scripts/scan-tenant-safe.ts",
+    "saas:scan:strict":  "ts-node scripts/scan-tenant-safe.ts --strict",
+    "saas:schema-lint":  "ts-node scripts/schema-lint.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1041.0",

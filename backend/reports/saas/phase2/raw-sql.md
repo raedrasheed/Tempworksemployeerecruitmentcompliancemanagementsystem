@@ -1,6 +1,6 @@
 # Phase 2 — Raw-SQL Scanner Report
 
-Generated: 2026-05-09T18:49:58.265Z
+Generated: 2026-05-09T19:06:43.067Z
 
 - Total findings: **26**
 - BLOCKER: 11 (blocks Phase 2 enforcement: 20)
@@ -30,11 +30,11 @@ Generated: 2026-05-09T18:49:58.265Z
 | `src/backup/backup.service.ts` | 556 | **BLOCKER** | `string-concat-SQL` | `backup` | — | ``Backup database name "${meta.databaseName}" differs from current "${conn.database}".`,` |
 | `src/common/storage/storage.service.ts` | 171 | **BLOCKER** | `string-concat-SQL` | `common` | — | `this.logger.warn(`Spaces delete failed for ${key}: ${err?.message ?? err}`);` |
 | `src/email/email.service.ts` | 19 | **BLOCKER** | `string-concat-SQL` | `email` | — | `this.logger.log(`Email service ready (Resend API). Key: ${this.apiKey.substring(0, 8)}... FROM: ${this.from}`);` |
-| `src/recycle-bin/hard-delete.service.ts` | 178 | **BLOCKER** | `string-concat-SQL` | `recycle-bin` | — | ``Cannot hard-delete agency: ${activeEmployees} active employee(s) and ${activeUsers} active user(s) still reference it. Reassign or delete them first.`,` |
-| `src/recycle-bin/hard-delete.service.ts` | 217 | **BLOCKER** | `string-concat-SQL` | `recycle-bin` | — | ``Cannot hard-delete document type: ${activeDocs} active document(s) reference it. Soft-delete or reassign them first.`,` |
-| `src/recycle-bin/hard-delete.service.ts` | 26 | **BLOCKER** | `string-concat-SQL` | `recycle-bin` | — | `throw new ForbiddenException(`Hard delete is not permitted for entity type: ${entityType}`);` |
-| `src/recycle-bin/hard-delete.service.ts` | 281 | **BLOCKER** | `string-concat-SQL` | `recycle-bin` | — | ``Cannot hard-delete role: ${assignedUsers} active user(s) are assigned this role. Reassign them first.`,` |
-| `src/recycle-bin/hard-delete.service.ts` | 47 | **BLOCKER** | `string-concat-SQL` | `recycle-bin` | — | `throw new BadRequestException(`No hard-delete handler for entity type: ${entityType}`);` |
+| `src/recycle-bin/hard-delete.service.ts` | 210 | **BLOCKER** | `string-concat-SQL` | `recycle-bin` | — | ``Cannot hard-delete agency: ${activeEmployees} active employee(s) and ${activeUsers} active user(s) still reference it. Reassign or delete them first.`,` |
+| `src/recycle-bin/hard-delete.service.ts` | 249 | **BLOCKER** | `string-concat-SQL` | `recycle-bin` | — | ``Cannot hard-delete document type: ${activeDocs} active document(s) reference it. Soft-delete or reassign them first.`,` |
+| `src/recycle-bin/hard-delete.service.ts` | 313 | **BLOCKER** | `string-concat-SQL` | `recycle-bin` | — | ``Cannot hard-delete role: ${assignedUsers} active user(s) are assigned this role. Reassign them first.`,` |
+| `src/recycle-bin/hard-delete.service.ts` | 55 | **BLOCKER** | `string-concat-SQL` | `recycle-bin` | — | `throw new ForbiddenException(`Hard delete is not permitted for entity type: ${entityType}`);` |
+| `src/recycle-bin/hard-delete.service.ts` | 79 | **BLOCKER** | `string-concat-SQL` | `recycle-bin` | — | `throw new BadRequestException(`No hard-delete handler for entity type: ${entityType}`);` |
 | `src/reports/reports.service.ts` | 779 | **BLOCKER** | `string-concat-SQL` | `reports` | — | ``${j.joinType} JOIN "${j.table}" AS ${j.alias} ON ${j.on}`,` |
 | `src/saas/prisma/tenant-prisma.service.ts` | 62 | **BLOCKER** | `$executeRawUnsafe` | `saas` | — | `await tx.$executeRawUnsafe(setLocalTenantSql(tenantId));` |
 | `src/reports/reports.service.ts` | 785 | **HIGH** | `Prisma.raw` | `reports` | — | `? [Prisma.sql`${Prisma.raw(`${primaryAlias}."deletedAt"`)} IS NULL`]` |

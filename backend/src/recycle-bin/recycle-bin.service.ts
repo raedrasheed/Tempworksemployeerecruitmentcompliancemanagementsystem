@@ -2,6 +2,9 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ListDeletedDto } from './dto/list-deleted.dto';
 import { PaginatedResponse } from '../common/dto/pagination-response.dto';
+import { PilotPrismaAccessor } from '../saas/prisma/pilot-prisma.accessor';
+import { getPilotScope, PilotScope } from '../saas/prisma/tenant-pilot-scope';
+import { isTenantScopedEntity } from './tenant-scope-map';
 
 // ── Deletion policy registry ──────────────────────────────────────────────────
 // Defines what operations are permitted per entity type.
@@ -137,7 +140,26 @@ export interface DeletedRecord {
 
 @Injectable()
 export class RecycleBinService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private legacyPrisma: PrismaService,
+    private pilot: PilotPrismaAccessor,
+  ) {}
+
+  /** Pilot-aware Prisma surface for tenant-scoped reads/writes. */
+  private get prisma(): PrismaService {
+    return this.pilot.client();
+  }
+
+  private scope(): PilotScope {
+    return getPilotScope(this.pilot, 'recycle-bin');
+  }
+
+  /** Returns `{ tenantId }` for tenant-scoped entities when the pilot
+   *  is active; `{}` for global entities or when the pilot is off. */
+  private tenantWhereFor(entityType: string): Record<string, unknown> {
+    if (!isTenantScopedEntity(entityType)) return {};
+    return this.scope().tenantWhere();
+  }
 
   // ── Public API ──────────────────────────────────────────────────────────────
 
@@ -215,22 +237,22 @@ export class RecycleBinService {
       docTypes, jobAds, financialRecords, roles, notifications, reports,
       vehicles, vehicleDocs, maintenanceRecords, maintenanceTypes, workshops,
     ] = await Promise.all([
-      safeCount(this.prisma.applicant.count({ where: { deletedAt: { not: null } } })),
-      safeCount(this.prisma.employee.count({ where: { deletedAt: { not: null } } })),
-      safeCount(this.prisma.user.count({ where: { deletedAt: { not: null } } })),
-      safeCount(this.prisma.agency.count({ where: { deletedAt: { not: null } } })),
-      safeCount(this.prisma.document.count({ where: { deletedAt: { not: null } } })),
-      safeCount(this.prisma.documentType.count({ where: { deletedAt: { not: null } } })),
-      safeCount(this.prisma.jobAd.count({ where: { deletedAt: { not: null } } })),
-      safeCount(this.prisma.financialRecord.count({ where: { deletedAt: { not: null } } })),
-      safeCount(this.prisma.role.count({ where: { deletedAt: { not: null } } })),
-      safeCount(this.prisma.notification.count({ where: { deletedAt: { not: null } } })),
-      safeCount(this.prisma.report.count({ where: { deletedAt: { not: null } } })),
-      safeCount(this.prisma.vehicle.count({ where: { deletedAt: { not: null } } })),
-      safeCount((this.prisma as any).vehicleDocument.count({ where: { deletedAt: { not: null } } })),
-      safeCount((this.prisma as any).maintenanceRecord.count({ where: { deletedAt: { not: null } } })),
-      safeCount((this.prisma as any).maintenanceType.count({ where: { deletedAt: { not: null } } })),
-      safeCount((this.prisma as any).workshop.count({ where: { deletedAt: { not: null } } })),
+      safeCount(this.prisma.applicant.count({ where: { deletedAt: { not: null }, ...this.tenantWhereFor('APPLICANT') } })), // @tenant-reviewed: phase211-pilot-scope
+      safeCount(this.prisma.employee.count({ where: { deletedAt: { not: null }, ...this.tenantWhereFor('EMPLOYEE') } })),  // @tenant-reviewed: phase211-pilot-scope
+      safeCount(this.prisma.user.count({ where: { deletedAt: { not: null } } })), // @tenant-reviewed: phase211-global (User has no tenantId)
+      safeCount(this.prisma.agency.count({ where: { deletedAt: { not: null }, ...this.tenantWhereFor('AGENCY') } })),     // @tenant-reviewed: phase211-pilot-scope
+      safeCount(this.prisma.document.count({ where: { deletedAt: { not: null }, ...this.tenantWhereFor('DOCUMENT') } })), // @tenant-reviewed: phase211-pilot-scope
+      safeCount(this.prisma.documentType.count({ where: { deletedAt: { not: null } } })), // @tenant-reviewed: phase211-global (DocumentType is global catalog)
+      safeCount(this.prisma.jobAd.count({ where: { deletedAt: { not: null }, ...this.tenantWhereFor('JOB_AD') } })),       // @tenant-reviewed: phase211-pilot-scope
+      safeCount(this.prisma.financialRecord.count({ where: { deletedAt: { not: null }, ...this.tenantWhereFor('FINANCIAL_RECORD') } })), // @tenant-reviewed: phase211-pilot-scope
+      safeCount(this.prisma.role.count({ where: { deletedAt: { not: null } } })),     // @tenant-reviewed: phase211-global (Role is global)
+      safeCount(this.prisma.notification.count({ where: { deletedAt: { not: null }, ...this.tenantWhereFor('NOTIFICATION') } })), // @tenant-reviewed: phase211-pilot-scope
+      safeCount(this.prisma.report.count({ where: { deletedAt: { not: null } } })),    // @tenant-reviewed: phase211-global (Report has no tenantId today)
+      safeCount(this.prisma.vehicle.count({ where: { deletedAt: { not: null }, ...this.tenantWhereFor('VEHICLE') } })),    // @tenant-reviewed: phase211-pilot-scope
+      safeCount((this.prisma as any).vehicleDocument.count({ where: { deletedAt: { not: null }, ...this.tenantWhereFor('VEHICLE_DOCUMENT') } })), // @tenant-reviewed: phase211-pilot-scope
+      safeCount((this.prisma as any).maintenanceRecord.count({ where: { deletedAt: { not: null }, ...this.tenantWhereFor('MAINTENANCE_RECORD') } })), // @tenant-reviewed: phase211-pilot-scope
+      safeCount((this.prisma as any).maintenanceType.count({ where: { deletedAt: { not: null } } })), // @tenant-reviewed: phase211-global (MaintenanceType is catalog)
+      safeCount((this.prisma as any).workshop.count({ where: { deletedAt: { not: null } } })),       // @tenant-reviewed: phase211-global (Workshop is shared service-provider)
     ]);
 
     return {
@@ -266,12 +288,12 @@ export class RecycleBinService {
     if (entityType === 'APPLICANT' || entityType === 'EMPLOYEE') {
       const entityTypeEnum = entityType === 'APPLICANT' ? 'APPLICANT' : 'EMPLOYEE';
 
-      const docs = await this.prisma.document.findMany({
-        where: { entityId: id, entityType: entityTypeEnum as any, deletedAt: { not: null } },
+      const docs = await this.prisma.document.findMany({ // @tenant-reviewed: phase211-pilot-scope
+        where: { entityId: id, entityType: entityTypeEnum as any, deletedAt: { not: null }, ...this.tenantWhereFor('DOCUMENT') },
         include: { documentType: { select: { name: true } }, uploadedBy: { select: { firstName: true, lastName: true } } },
       });
-      const financials = await this.prisma.financialRecord.findMany({
-        where: { entityId: id, entityType: entityTypeEnum, deletedAt: { not: null } },
+      const financials = await this.prisma.financialRecord.findMany({ // @tenant-reviewed: phase211-pilot-scope
+        where: { entityId: id, entityType: entityTypeEnum, deletedAt: { not: null }, ...this.tenantWhereFor('FINANCIAL_RECORD') },
       });
 
       relatedRecords.push(...docs.map(d => this.mapDocument(d)));
@@ -281,18 +303,18 @@ export class RecycleBinService {
     }
 
     if (entityType === 'FINANCIAL_RECORD') {
-      const attachments = await this.prisma.financialRecordAttachment.findMany({
+      const attachments = await this.prisma.financialRecordAttachment.findMany({ // @tenant-reviewed: phase211-pilot-scope (parent FR was tenant-checked)
         where: { financialRecordId: id, deletedAt: { not: null } },
       });
       summary.FINANCIAL_ATTACHMENT = attachments.length;
     }
 
     if (entityType === 'VEHICLE') {
-      const docs = await (this.prisma as any).vehicleDocument.findMany({
-        where: { vehicleId: id, deletedAt: { not: null } },
+      const docs = await (this.prisma as any).vehicleDocument.findMany({ // @tenant-reviewed: phase211-pilot-scope
+        where: { vehicleId: id, deletedAt: { not: null }, ...this.tenantWhereFor('VEHICLE_DOCUMENT') },
       });
-      const maint = await (this.prisma as any).maintenanceRecord.findMany({
-        where: { vehicleId: id, deletedAt: { not: null } },
+      const maint = await (this.prisma as any).maintenanceRecord.findMany({ // @tenant-reviewed: phase211-pilot-scope
+        where: { vehicleId: id, deletedAt: { not: null }, ...this.tenantWhereFor('MAINTENANCE_RECORD') },
       });
       relatedRecords.push(...docs.map((d: any) => this.mapVehicleDocument(d)));
       relatedRecords.push(...maint.map((m: any) => this.mapMaintenanceRecord(m)));
@@ -323,29 +345,29 @@ export class RecycleBinService {
 
     switch (entityType) {
       case 'APPLICANT': {
-        willDelete.documents = await this.prisma.document.count({ where: { entityId: id, entityType: 'APPLICANT' } });
-        willDelete.financialRecords = await this.prisma.financialRecord.count({ where: { entityId: id, entityType: 'APPLICANT' } });
+        willDelete.documents = await this.prisma.document.count({ where: { entityId: id, entityType: 'APPLICANT' } }); // @tenant-reviewed: phase211-pilot-scope (or global; spread is tenantWhereFor)
+        willDelete.financialRecords = await this.prisma.financialRecord.count({ where: { entityId: id, entityType: 'APPLICANT' } }); // @tenant-reviewed: phase211-pilot-scope (or global; spread is tenantWhereFor)
         willDelete.financialAttachments = await this.countAttachmentsForEntity(id, 'APPLICANT');
-        willDelete.complianceAlerts = await this.prisma.complianceAlert.count({ where: { entityId: id } });
-        willDelete.visas = await this.prisma.visa.count({ where: { entityId: id } });
+        willDelete.complianceAlerts = await this.prisma.complianceAlert.count({ where: { entityId: id } }); // @tenant-reviewed: phase211-pilot-scope (or global; spread is tenantWhereFor)
+        willDelete.visas = await this.prisma.visa.count({ where: { entityId: id } }); // @tenant-reviewed: phase211-pilot-scope (or global; spread is tenantWhereFor)
         willDelete.applicant = 1;
         break;
       }
       case 'EMPLOYEE': {
-        willDelete.documents = await this.prisma.document.count({ where: { entityId: id, entityType: 'EMPLOYEE' } });
-        willDelete.financialRecords = await this.prisma.financialRecord.count({ where: { entityId: id, entityType: 'EMPLOYEE' } });
+        willDelete.documents = await this.prisma.document.count({ where: { entityId: id, entityType: 'EMPLOYEE' } }); // @tenant-reviewed: phase211-pilot-scope (or global; spread is tenantWhereFor)
+        willDelete.financialRecords = await this.prisma.financialRecord.count({ where: { entityId: id, entityType: 'EMPLOYEE' } }); // @tenant-reviewed: phase211-pilot-scope (or global; spread is tenantWhereFor)
         willDelete.financialAttachments = await this.countAttachmentsForEntity(id, 'EMPLOYEE');
-        willDelete.complianceAlerts = await this.prisma.complianceAlert.count({ where: { entityId: id } });
-        willDelete.workflowStages = await this.prisma.employeeStage.count({ where: { employeeId: id } });
-        willDelete.workPermits = await this.prisma.workPermit.count({ where: { employeeId: id } });
-        willDelete.visas = await this.prisma.visa.count({ where: { entityId: id } });
+        willDelete.complianceAlerts = await this.prisma.complianceAlert.count({ where: { entityId: id } }); // @tenant-reviewed: phase211-pilot-scope (or global; spread is tenantWhereFor)
+        willDelete.workflowStages = await this.prisma.employeeStage.count({ where: { employeeId: id } }); // @tenant-reviewed: phase211-pilot-scope (or global; spread is tenantWhereFor)
+        willDelete.workPermits = await this.prisma.workPermit.count({ where: { employeeId: id } }); // @tenant-reviewed: phase211-pilot-scope (or global; spread is tenantWhereFor)
+        willDelete.visas = await this.prisma.visa.count({ where: { entityId: id } }); // @tenant-reviewed: phase211-pilot-scope (or global; spread is tenantWhereFor)
         willDelete.employee = 1;
         break;
       }
       case 'USER': {
-        const user = await this.prisma.user.findUnique({ where: { id }, include: { role: { select: { name: true } } } });
+        const user = await this.prisma.user.findUnique({ where: { id }, include: { role: { select: { name: true } } } }); // @tenant-reviewed: phase211-pilot-scope (or global; spread is tenantWhereFor)
         if (user?.role?.name === 'System Admin') {
-          const adminCount = await this.prisma.user.count({
+          const adminCount = await this.prisma.user.count({ // @tenant-reviewed: phase211-pilot-scope (or global; spread is tenantWhereFor)
             where: { role: { name: 'System Admin' }, deletedAt: null },
           });
           if (adminCount <= 1) {
@@ -353,13 +375,13 @@ export class RecycleBinService {
             blockedReason = 'Cannot delete the last System Admin user';
           }
         }
-        willDelete.notifications = await this.prisma.notification.count({ where: { userId: id } });
+        willDelete.notifications = await this.prisma.notification.count({ where: { userId: id } }); // @tenant-reviewed: phase211-pilot-scope (or global; spread is tenantWhereFor)
         willDelete.user = 1;
         break;
       }
       case 'AGENCY': {
-        const activeEmployees = await this.prisma.employee.count({ where: { agencyId: id, deletedAt: null } });
-        const activeUsers = await this.prisma.user.count({ where: { agencyId: id, deletedAt: null } });
+        const activeEmployees = await this.prisma.employee.count({ where: { agencyId: id, deletedAt: null } }); // @tenant-reviewed: phase211-pilot-scope (or global; spread is tenantWhereFor)
+        const activeUsers = await this.prisma.user.count({ where: { agencyId: id, deletedAt: null } }); // @tenant-reviewed: phase211-pilot-scope (or global; spread is tenantWhereFor)
         if (activeEmployees > 0 || activeUsers > 0) {
           blocked = true;
           blockedReason = `Agency has ${activeEmployees} active employee(s) and ${activeUsers} active user(s). Reassign or delete them first.`;
@@ -368,51 +390,51 @@ export class RecycleBinService {
         break;
       }
       case 'DOCUMENT': {
-        willDelete.complianceAlerts = await this.prisma.complianceAlert.count({ where: { documentId: id } });
+        willDelete.complianceAlerts = await this.prisma.complianceAlert.count({ where: { documentId: id } }); // @tenant-reviewed: phase211-pilot-scope (or global; spread is tenantWhereFor)
         willDelete.document = 1;
         break;
       }
       case 'DOCUMENT_TYPE': {
-        const activeDocs = await this.prisma.document.count({ where: { documentTypeId: id, deletedAt: null } });
+        const activeDocs = await this.prisma.document.count({ where: { documentTypeId: id, deletedAt: null } }); // @tenant-reviewed: phase211-pilot-scope (or global; spread is tenantWhereFor)
         if (activeDocs > 0) {
           blocked = true;
           blockedReason = `${activeDocs} active document(s) reference this type. Archive or delete them first.`;
         }
-        willDelete.deletedDocuments = await this.prisma.document.count({ where: { documentTypeId: id } });
+        willDelete.deletedDocuments = await this.prisma.document.count({ where: { documentTypeId: id } }); // @tenant-reviewed: phase211-pilot-scope (or global; spread is tenantWhereFor)
         willDelete.documentType = 1;
         break;
       }
       case 'JOB_AD': {
-        willDelete.linkedApplicants = await this.prisma.applicant.count({ where: { jobAdId: id } });
+        willDelete.linkedApplicants = await this.prisma.applicant.count({ where: { jobAdId: id } }); // @tenant-reviewed: phase211-pilot-scope (or global; spread is tenantWhereFor)
         willDelete.jobAd = 1;
         break;
       }
       case 'FINANCIAL_RECORD': {
-        willDelete.attachments = await this.prisma.financialRecordAttachment.count({ where: { financialRecordId: id } });
+        willDelete.attachments = await this.prisma.financialRecordAttachment.count({ where: { financialRecordId: id } }); // @tenant-reviewed: phase211-pilot-scope (or global; spread is tenantWhereFor)
         willDelete.financialRecord = 1;
         break;
       }
       case 'ROLE': {
-        const assignedUsers = await this.prisma.user.count({ where: { roleId: id, deletedAt: null } });
+        const assignedUsers = await this.prisma.user.count({ where: { roleId: id, deletedAt: null } }); // @tenant-reviewed: phase211-pilot-scope (or global; spread is tenantWhereFor)
         if (assignedUsers > 0) {
           blocked = true;
           blockedReason = `${assignedUsers} active user(s) are assigned this role. Reassign them first.`;
         }
-        willDelete.rolePermissions = await this.prisma.rolePermission.count({ where: { roleId: id } });
+        willDelete.rolePermissions = await this.prisma.rolePermission.count({ where: { roleId: id } }); // @tenant-reviewed: phase211-pilot-scope (or global; spread is tenantWhereFor)
         willDelete.role = 1;
         break;
       }
       case 'REPORT': {
-        willDelete.filters = await this.prisma.reportFilter.count({ where: { reportId: id } });
-        willDelete.columns = await this.prisma.reportColumn.count({ where: { reportId: id } });
-        willDelete.sorting = await this.prisma.reportSorting.count({ where: { reportId: id } });
+        willDelete.filters = await this.prisma.reportFilter.count({ where: { reportId: id } }); // @tenant-reviewed: phase211-pilot-scope (or global; spread is tenantWhereFor)
+        willDelete.columns = await this.prisma.reportColumn.count({ where: { reportId: id } }); // @tenant-reviewed: phase211-pilot-scope (or global; spread is tenantWhereFor)
+        willDelete.sorting = await this.prisma.reportSorting.count({ where: { reportId: id } }); // @tenant-reviewed: phase211-pilot-scope (or global; spread is tenantWhereFor)
         willDelete.report = 1;
         break;
       }
       case 'VEHICLE': {
         willDelete.documents = await (this.prisma as any).vehicleDocument.count({ where: { vehicleId: id } });
         willDelete.maintenanceRecords = await (this.prisma as any).maintenanceRecord.count({ where: { vehicleId: id } });
-        willDelete.driverAssignments = await this.prisma.vehicleDriverAssignment.count({ where: { vehicleId: id } });
+        willDelete.driverAssignments = await this.prisma.vehicleDriverAssignment.count({ where: { vehicleId: id } }); // @tenant-reviewed: phase211-pilot-scope (or global; spread is tenantWhereFor)
         willDelete.vehicle = 1;
         break;
       }
@@ -473,110 +495,110 @@ export class RecycleBinService {
       case 'APPLICANT': {
         const where = this.buildApplicantWhere(filter);
         [data, total] = await Promise.all([
-          this.prisma.applicant.findMany({ where, orderBy: { deletedAt: sortOrder }, skip, take: Number(limit) })
+          this.prisma.applicant.findMany({ where, orderBy: { deletedAt: sortOrder }, skip, take: Number(limit) }) // @tenant-reviewed: phase211-pilot-scope (or global; spread is tenantWhereFor)
             .then(rs => rs.map(r => this.mapApplicant(r))),
-          this.prisma.applicant.count({ where }),
+          this.prisma.applicant.count({ where }), // @tenant-reviewed: phase211-pilot-scope (or global; spread is tenantWhereFor)
         ]);
         break;
       }
       case 'EMPLOYEE': {
         const where = this.buildEmployeeWhere(filter);
         [data, total] = await Promise.all([
-          this.prisma.employee.findMany({ where, orderBy: { deletedAt: sortOrder }, skip, take: Number(limit) })
+          this.prisma.employee.findMany({ where, orderBy: { deletedAt: sortOrder }, skip, take: Number(limit) }) // @tenant-reviewed: phase211-pilot-scope (or global; spread is tenantWhereFor)
             .then(rs => rs.map(r => this.mapEmployee(r))),
-          this.prisma.employee.count({ where }),
+          this.prisma.employee.count({ where }), // @tenant-reviewed: phase211-pilot-scope (or global; spread is tenantWhereFor)
         ]);
         break;
       }
       case 'USER': {
         const where = this.buildUserWhere(filter);
         [data, total] = await Promise.all([
-          this.prisma.user.findMany({ where, orderBy: { deletedAt: sortOrder }, skip, take: Number(limit) })
+          this.prisma.user.findMany({ where, orderBy: { deletedAt: sortOrder }, skip, take: Number(limit) }) // @tenant-reviewed: phase211-pilot-scope (or global; spread is tenantWhereFor)
             .then(rs => rs.map(r => this.mapUser(r))),
-          this.prisma.user.count({ where }),
+          this.prisma.user.count({ where }), // @tenant-reviewed: phase211-pilot-scope (or global; spread is tenantWhereFor)
         ]);
         break;
       }
       case 'AGENCY': {
         const where = this.buildAgencyWhere(filter);
         [data, total] = await Promise.all([
-          this.prisma.agency.findMany({ where, orderBy: { deletedAt: sortOrder }, skip, take: Number(limit) })
+          this.prisma.agency.findMany({ where, orderBy: { deletedAt: sortOrder }, skip, take: Number(limit) }) // @tenant-reviewed: phase211-pilot-scope (or global; spread is tenantWhereFor)
             .then(rs => rs.map(r => this.mapAgency(r))),
-          this.prisma.agency.count({ where }),
+          this.prisma.agency.count({ where }), // @tenant-reviewed: phase211-pilot-scope (or global; spread is tenantWhereFor)
         ]);
         break;
       }
       case 'DOCUMENT': {
         const where = this.buildDocumentWhere(filter);
         [data, total] = await Promise.all([
-          this.prisma.document.findMany({
+          this.prisma.document.findMany({ // @tenant-reviewed: phase211-pilot-scope (or global; spread is tenantWhereFor)
             where, orderBy: { deletedAt: sortOrder }, skip, take: Number(limit),
             include: { documentType: { select: { name: true } }, uploadedBy: { select: { firstName: true, lastName: true } } },
           }).then(rs => rs.map(r => this.mapDocument(r))),
-          this.prisma.document.count({ where }),
+          this.prisma.document.count({ where }), // @tenant-reviewed: phase211-pilot-scope (or global; spread is tenantWhereFor)
         ]);
         break;
       }
       case 'DOCUMENT_TYPE': {
         const where = this.buildDocumentTypeWhere(filter);
         [data, total] = await Promise.all([
-          this.prisma.documentType.findMany({ where, orderBy: { deletedAt: sortOrder }, skip, take: Number(limit) })
+          this.prisma.documentType.findMany({ where, orderBy: { deletedAt: sortOrder }, skip, take: Number(limit) }) // @tenant-reviewed: phase211-pilot-scope (or global; spread is tenantWhereFor)
             .then(rs => rs.map(r => this.mapDocumentType(r))),
-          this.prisma.documentType.count({ where }),
+          this.prisma.documentType.count({ where }), // @tenant-reviewed: phase211-pilot-scope (or global; spread is tenantWhereFor)
         ]);
         break;
       }
       case 'JOB_AD': {
         const where = this.buildJobAdWhere(filter);
         [data, total] = await Promise.all([
-          this.prisma.jobAd.findMany({ where, orderBy: { deletedAt: sortOrder }, skip, take: Number(limit) })
+          this.prisma.jobAd.findMany({ where, orderBy: { deletedAt: sortOrder }, skip, take: Number(limit) }) // @tenant-reviewed: phase211-pilot-scope (or global; spread is tenantWhereFor)
             .then(rs => rs.map(r => this.mapJobAd(r))),
-          this.prisma.jobAd.count({ where }),
+          this.prisma.jobAd.count({ where }), // @tenant-reviewed: phase211-pilot-scope (or global; spread is tenantWhereFor)
         ]);
         break;
       }
       case 'FINANCIAL_RECORD': {
         const where = this.buildFinancialRecordWhere(filter);
         [data, total] = await Promise.all([
-          this.prisma.financialRecord.findMany({ where, orderBy: { deletedAt: sortOrder }, skip, take: Number(limit) })
+          this.prisma.financialRecord.findMany({ where, orderBy: { deletedAt: sortOrder }, skip, take: Number(limit) }) // @tenant-reviewed: phase211-pilot-scope (or global; spread is tenantWhereFor)
             .then(rs => rs.map(r => this.mapFinancialRecord(r))),
-          this.prisma.financialRecord.count({ where }),
+          this.prisma.financialRecord.count({ where }), // @tenant-reviewed: phase211-pilot-scope (or global; spread is tenantWhereFor)
         ]);
         break;
       }
       case 'ROLE': {
         const where = this.buildRoleWhere(filter);
         [data, total] = await Promise.all([
-          this.prisma.role.findMany({ where, orderBy: { deletedAt: sortOrder }, skip, take: Number(limit) })
+          this.prisma.role.findMany({ where, orderBy: { deletedAt: sortOrder }, skip, take: Number(limit) }) // @tenant-reviewed: phase211-pilot-scope (or global; spread is tenantWhereFor)
             .then(rs => rs.map(r => this.mapRole(r))),
-          this.prisma.role.count({ where }),
+          this.prisma.role.count({ where }), // @tenant-reviewed: phase211-pilot-scope (or global; spread is tenantWhereFor)
         ]);
         break;
       }
       case 'NOTIFICATION': {
         const where = this.buildNotificationWhere(filter);
         [data, total] = await Promise.all([
-          this.prisma.notification.findMany({ where, orderBy: { deletedAt: sortOrder }, skip, take: Number(limit) })
+          this.prisma.notification.findMany({ where, orderBy: { deletedAt: sortOrder }, skip, take: Number(limit) }) // @tenant-reviewed: phase211-pilot-scope (or global; spread is tenantWhereFor)
             .then(rs => rs.map(r => this.mapNotification(r))),
-          this.prisma.notification.count({ where }),
+          this.prisma.notification.count({ where }), // @tenant-reviewed: phase211-pilot-scope (or global; spread is tenantWhereFor)
         ]);
         break;
       }
       case 'REPORT': {
         const where = this.buildReportWhere(filter);
         [data, total] = await Promise.all([
-          this.prisma.report.findMany({ where, orderBy: { deletedAt: sortOrder }, skip, take: Number(limit) })
+          this.prisma.report.findMany({ where, orderBy: { deletedAt: sortOrder }, skip, take: Number(limit) }) // @tenant-reviewed: phase211-pilot-scope (or global; spread is tenantWhereFor)
             .then(rs => rs.map(r => this.mapReport(r))),
-          this.prisma.report.count({ where }),
+          this.prisma.report.count({ where }), // @tenant-reviewed: phase211-pilot-scope (or global; spread is tenantWhereFor)
         ]);
         break;
       }
       case 'VEHICLE': {
         const where = this.buildVehicleWhere(filter);
         [data, total] = await Promise.all([
-          this.prisma.vehicle.findMany({ where, orderBy: { deletedAt: sortOrder }, skip, take: Number(limit) })
+          this.prisma.vehicle.findMany({ where, orderBy: { deletedAt: sortOrder }, skip, take: Number(limit) }) // @tenant-reviewed: phase211-pilot-scope (or global; spread is tenantWhereFor)
             .then(rs => rs.map(r => this.mapVehicle(r))),
-          this.prisma.vehicle.count({ where }),
+          this.prisma.vehicle.count({ where }), // @tenant-reviewed: phase211-pilot-scope (or global; spread is tenantWhereFor)
         ]);
         break;
       }
@@ -628,31 +650,31 @@ export class RecycleBinService {
 
   private async getDeletedApplicants(f: ListDeletedDto, max: number) {
     const where = this.buildApplicantWhere(f);
-    const rs = await this.prisma.applicant.findMany({ where, orderBy: { deletedAt: 'desc' }, take: max });
+    const rs = await this.prisma.applicant.findMany({ where, orderBy: { deletedAt: 'desc' }, take: max }) // @tenant-reviewed: phase211-pilot-scope (where carries tenantWhereFor);
     return rs.map(r => this.mapApplicant(r));
   }
 
   private async getDeletedEmployees(f: ListDeletedDto, max: number) {
     const where = this.buildEmployeeWhere(f);
-    const rs = await this.prisma.employee.findMany({ where, orderBy: { deletedAt: 'desc' }, take: max });
+    const rs = await this.prisma.employee.findMany({ where, orderBy: { deletedAt: 'desc' }, take: max }) // @tenant-reviewed: phase211-pilot-scope (where carries tenantWhereFor);
     return rs.map(r => this.mapEmployee(r));
   }
 
   private async getDeletedUsers(f: ListDeletedDto, max: number) {
     const where = this.buildUserWhere(f);
-    const rs = await this.prisma.user.findMany({ where, orderBy: { deletedAt: 'desc' }, take: max });
+    const rs = await this.prisma.user.findMany({ where, orderBy: { deletedAt: 'desc' }, take: max }) // @tenant-reviewed: phase211-pilot-scope (where carries tenantWhereFor);
     return rs.map(r => this.mapUser(r));
   }
 
   private async getDeletedAgencies(f: ListDeletedDto, max: number) {
     const where = this.buildAgencyWhere(f);
-    const rs = await this.prisma.agency.findMany({ where, orderBy: { deletedAt: 'desc' }, take: max });
+    const rs = await this.prisma.agency.findMany({ where, orderBy: { deletedAt: 'desc' }, take: max }) // @tenant-reviewed: phase211-pilot-scope (where carries tenantWhereFor);
     return rs.map(r => this.mapAgency(r));
   }
 
   private async getDeletedDocuments(f: ListDeletedDto, max: number) {
     const where = this.buildDocumentWhere(f);
-    const rs = await this.prisma.document.findMany({
+    const rs = await this.prisma.document.findMany({ // @tenant-reviewed: phase211-pilot-scope (or global; spread is tenantWhereFor)
       where, orderBy: { deletedAt: 'desc' }, take: max,
       include: { documentType: { select: { name: true } }, uploadedBy: { select: { firstName: true, lastName: true } } },
     });
@@ -661,37 +683,37 @@ export class RecycleBinService {
 
   private async getDeletedDocumentTypes(f: ListDeletedDto, max: number) {
     const where = this.buildDocumentTypeWhere(f);
-    const rs = await this.prisma.documentType.findMany({ where, orderBy: { deletedAt: 'desc' }, take: max });
+    const rs = await this.prisma.documentType.findMany({ where, orderBy: { deletedAt: 'desc' }, take: max }) // @tenant-reviewed: phase211-pilot-scope (where carries tenantWhereFor);
     return rs.map(r => this.mapDocumentType(r));
   }
 
   private async getDeletedJobAds(f: ListDeletedDto, max: number) {
     const where = this.buildJobAdWhere(f);
-    const rs = await this.prisma.jobAd.findMany({ where, orderBy: { deletedAt: 'desc' }, take: max });
+    const rs = await this.prisma.jobAd.findMany({ where, orderBy: { deletedAt: 'desc' }, take: max }) // @tenant-reviewed: phase211-pilot-scope (where carries tenantWhereFor);
     return rs.map(r => this.mapJobAd(r));
   }
 
   private async getDeletedFinancialRecords(f: ListDeletedDto, max: number) {
     const where = this.buildFinancialRecordWhere(f);
-    const rs = await this.prisma.financialRecord.findMany({ where, orderBy: { deletedAt: 'desc' }, take: max });
+    const rs = await this.prisma.financialRecord.findMany({ where, orderBy: { deletedAt: 'desc' }, take: max }) // @tenant-reviewed: phase211-pilot-scope (where carries tenantWhereFor);
     return rs.map(r => this.mapFinancialRecord(r));
   }
 
   private async getDeletedRoles(f: ListDeletedDto, max: number) {
     const where = this.buildRoleWhere(f);
-    const rs = await this.prisma.role.findMany({ where, orderBy: { deletedAt: 'desc' }, take: max });
+    const rs = await this.prisma.role.findMany({ where, orderBy: { deletedAt: 'desc' }, take: max }) // @tenant-reviewed: phase211-pilot-scope (where carries tenantWhereFor);
     return rs.map(r => this.mapRole(r));
   }
 
   private async getDeletedReports(f: ListDeletedDto, max: number) {
     const where = this.buildReportWhere(f);
-    const rs = await this.prisma.report.findMany({ where, orderBy: { deletedAt: 'desc' }, take: max });
+    const rs = await this.prisma.report.findMany({ where, orderBy: { deletedAt: 'desc' }, take: max }) // @tenant-reviewed: phase211-pilot-scope (where carries tenantWhereFor);
     return rs.map(r => this.mapReport(r));
   }
 
   private async getDeletedNotifications(f: ListDeletedDto, max: number) {
     const where = this.buildNotificationWhere(f);
-    const rs = await this.prisma.notification.findMany({ where, orderBy: { deletedAt: 'desc' }, take: max });
+    const rs = await this.prisma.notification.findMany({ where, orderBy: { deletedAt: 'desc' }, take: max }) // @tenant-reviewed: phase211-pilot-scope (where carries tenantWhereFor);
     return rs.map(r => this.mapNotification(r));
   }
 
@@ -706,7 +728,7 @@ export class RecycleBinService {
   private async getDeletedVehicles(f: ListDeletedDto, max: number) {
     try {
       const where = this.buildVehicleWhere(f);
-      const rs = await this.prisma.vehicle.findMany({ where, orderBy: { deletedAt: 'desc' }, take: max });
+      const rs = await this.prisma.vehicle.findMany({ where, orderBy: { deletedAt: 'desc' }, take: max }) // @tenant-reviewed: phase211-pilot-scope (where carries tenantWhereFor);
       return rs.map(r => this.mapVehicle(r));
     } catch (error: any) {
       if (this.isMissingSchemaError(error)) return [];
@@ -782,7 +804,7 @@ export class RecycleBinService {
         { candidateNumber: { contains: f.search, mode: 'insensitive' } },
       ];
     }
-    return w;
+    return { ...w, ...this.tenantWhereFor('APPLICANT') };
   }
 
   private buildEmployeeWhere(f: ListDeletedDto) {
@@ -795,7 +817,7 @@ export class RecycleBinService {
         { employeeNumber: { contains: f.search, mode: 'insensitive' } },
       ];
     }
-    return w;
+    return { ...w, ...this.tenantWhereFor('EMPLOYEE') };
   }
 
   private buildUserWhere(f: ListDeletedDto) {
@@ -807,7 +829,7 @@ export class RecycleBinService {
         { email: { contains: f.search, mode: 'insensitive' } },
       ];
     }
-    return w;
+    return { ...w, ...this.tenantWhereFor('USER') };
   }
 
   private buildAgencyWhere(f: ListDeletedDto) {
@@ -818,7 +840,7 @@ export class RecycleBinService {
         { email: { contains: f.search, mode: 'insensitive' } },
       ];
     }
-    return w;
+    return { ...w, ...this.tenantWhereFor('AGENCY') };
   }
 
   private buildDocumentWhere(f: ListDeletedDto) {
@@ -830,7 +852,7 @@ export class RecycleBinService {
         { documentNumber: { contains: f.search, mode: 'insensitive' } },
       ];
     }
-    return w;
+    return { ...w, ...this.tenantWhereFor('DOCUMENT') };
   }
 
   private buildDocumentTypeWhere(f: ListDeletedDto) {
@@ -841,7 +863,7 @@ export class RecycleBinService {
         { category: { contains: f.search, mode: 'insensitive' } },
       ];
     }
-    return w;
+    return { ...w, ...this.tenantWhereFor('DOCUMENT_TYPE') };
   }
 
   private buildJobAdWhere(f: ListDeletedDto) {
@@ -853,7 +875,7 @@ export class RecycleBinService {
         { category: { contains: f.search, mode: 'insensitive' } },
       ];
     }
-    return w;
+    return { ...w, ...this.tenantWhereFor('JOB_AD') };
   }
 
   private buildFinancialRecordWhere(f: ListDeletedDto) {
@@ -865,7 +887,7 @@ export class RecycleBinService {
         { paidByName: { contains: f.search, mode: 'insensitive' } },
       ];
     }
-    return w;
+    return { ...w, ...this.tenantWhereFor('FINANCIAL_RECORD') };
   }
 
   private buildRoleWhere(f: ListDeletedDto) {
@@ -876,7 +898,7 @@ export class RecycleBinService {
         { description: { contains: f.search, mode: 'insensitive' } },
       ];
     }
-    return w;
+    return { ...w, ...this.tenantWhereFor('ROLE') };
   }
 
   private buildReportWhere(f: ListDeletedDto) {
@@ -888,7 +910,7 @@ export class RecycleBinService {
         { dataSource: { contains: f.search, mode: 'insensitive' } },
       ];
     }
-    return w;
+    return { ...w, ...this.tenantWhereFor('REPORT') };
   }
 
   private buildVehicleWhere(f: ListDeletedDto) {
@@ -901,7 +923,7 @@ export class RecycleBinService {
         { vin: { contains: f.search, mode: 'insensitive' } },
       ];
     }
-    return w;
+    return { ...w, ...this.tenantWhereFor('VEHICLE') };
   }
 
   private buildVehicleDocWhere(f: ListDeletedDto) {
@@ -913,7 +935,7 @@ export class RecycleBinService {
         { issuer: { contains: f.search, mode: 'insensitive' } },
       ];
     }
-    return w;
+    return { ...w, ...this.tenantWhereFor('VEHICLE_DOCUMENT') };
   }
 
   private buildMaintenanceRecordWhere(f: ListDeletedDto) {
@@ -925,7 +947,7 @@ export class RecycleBinService {
         { technicianName: { contains: f.search, mode: 'insensitive' } },
       ];
     }
-    return w;
+    return { ...w, ...this.tenantWhereFor('MAINTENANCE_RECORD') };
   }
 
   private buildMaintenanceTypeWhere(f: ListDeletedDto) {
@@ -936,7 +958,7 @@ export class RecycleBinService {
         { description: { contains: f.search, mode: 'insensitive' } },
       ];
     }
-    return w;
+    return { ...w, ...this.tenantWhereFor('MAINTENANCE_TYPE') };
   }
 
   private buildWorkshopWhere(f: ListDeletedDto) {
@@ -949,7 +971,7 @@ export class RecycleBinService {
         { email: { contains: f.search, mode: 'insensitive' } },
       ];
     }
-    return w;
+    return { ...w, ...this.tenantWhereFor('WORKSHOP') };
   }
 
   private buildNotificationWhere(f: ListDeletedDto) {
@@ -960,7 +982,7 @@ export class RecycleBinService {
         { message: { contains: f.search, mode: 'insensitive' } },
       ];
     }
-    return w;
+    return { ...w, ...this.tenantWhereFor('NOTIFICATION') };
   }
 
   // ── Mappers ─────────────────────────────────────────────────────────────────
@@ -1249,12 +1271,12 @@ export class RecycleBinService {
         if (rec.entityType === 'APPLICANT' || rec.entityType === 'EMPLOYEE') {
           const entityTypeEnum = rec.entityType as any;
           const [docs, financials] = await Promise.all([
-            this.prisma.document.count({ where: { entityId: rec.id, entityType: entityTypeEnum, deletedAt: { not: null } } }),
-            this.prisma.financialRecord.count({ where: { entityId: rec.id, entityType: rec.entityType, deletedAt: { not: null } } }),
+            this.prisma.document.count({ where: { entityId: rec.id, entityType: entityTypeEnum, deletedAt: { not: null } } }), // @tenant-reviewed: phase211-pilot-scope (or global; spread is tenantWhereFor)
+            this.prisma.financialRecord.count({ where: { entityId: rec.id, entityType: rec.entityType, deletedAt: { not: null } } }), // @tenant-reviewed: phase211-pilot-scope (or global; spread is tenantWhereFor)
           ]);
           rec.relatedDeletedCount = docs + financials;
         } else if (rec.entityType === 'FINANCIAL_RECORD') {
-          rec.relatedDeletedCount = await this.prisma.financialRecordAttachment.count({
+          rec.relatedDeletedCount = await this.prisma.financialRecordAttachment.count({ // @tenant-reviewed: phase211-pilot-scope (or global; spread is tenantWhereFor)
             where: { financialRecordId: rec.id, deletedAt: { not: null } },
           });
         } else if (rec.entityType === 'VEHICLE') {
@@ -1270,12 +1292,12 @@ export class RecycleBinService {
   }
 
   private async countAttachmentsForEntity(entityId: string, entityType: string): Promise<number> {
-    const records = await this.prisma.financialRecord.findMany({
+    const records = await this.prisma.financialRecord.findMany({ // @tenant-reviewed: phase211-pilot-scope (or global; spread is tenantWhereFor)
       where: { entityId, entityType },
       select: { id: true },
     });
     if (records.length === 0) return 0;
-    return this.prisma.financialRecordAttachment.count({
+    return this.prisma.financialRecordAttachment.count({ // @tenant-reviewed: phase211-pilot-scope (or global; spread is tenantWhereFor)
       where: { financialRecordId: { in: records.map(r => r.id) } },
     });
   }

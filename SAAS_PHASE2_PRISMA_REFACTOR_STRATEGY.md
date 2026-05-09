@@ -256,6 +256,32 @@ The Phase 2.11+ scheduler/job-context refactor is documented in
 `SAAS_PHASE2_NOTIFICATIONS_SCOPE_SPLIT.md`. The next pilot module is
 `src/recycle-bin` (small, read-mostly, no scheduler).
 
+## 11.5 Phase 2.11 pilot landed (multi-service, multi-entity)
+
+The fifth TENANT-SCOPED pilot module (`src/recycle-bin`) shipped in the
+Phase 2.11 PR. First pilot to span four services and 16 entity types
+in a single module — proves the pattern scales beyond single-table
+services. Key artefacts:
+
+- `tenant-scope-map.ts` — module-local registry of tenant-scoped vs.
+  global entity types (10 vs. 6).
+- `RecycleBinService` rewired (107 sites) with `tenantWhereFor()` per
+  entity-type spread.
+- `RestoreService` (45 sites) + `HardDeleteService` (37 sites) gated
+  by a single `assertTenantOwnership(entityType, id)` pre-check.
+- `DatabaseCleanupService` (52 sites) annotated
+  `phase211-excluded-platform` — System Admin global wipe stays
+  platform-wide.
+- `saas:phase2-recycle-bin-equivalence` (11/11 PASS).
+- `saas:phase2-recycle-bin-isolation` (7/7 PASS).
+- `SAAS_PHASE2_RECYCLE_BIN_AUDIT.md`,
+  `SAAS_PHASE2_RECYCLE_BIN_SCOPE_MAP.md`,
+  `SAAS_PHASE2_RECYCLE_BIN_PILOT_RESULTS.md`.
+
+Phase 2.6/2.7/2.8/2.9/2.10 harnesses still green. The next phase will
+either tackle the Phase 2.10-flagged scheduler/job-context work or
+split `src/finance` reads-first.
+
 ## 12. Hard rules
 
 - **Never enable `TENANT_PRISMA_ENFORCEMENT=true` in production until every P0/P1/P2 module has migrated.** Enabling it with a half-migrated codebase makes the un-migrated services start filtering by tenant when their callers don't expect it.

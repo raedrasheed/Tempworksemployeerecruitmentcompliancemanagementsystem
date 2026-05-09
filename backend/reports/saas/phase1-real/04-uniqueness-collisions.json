@@ -1,8 +1,8 @@
 {
   "slug": "04-uniqueness-collisions",
   "title": "Audit D — Uniqueness Collisions",
-  "startedAt": "2026-05-09T13:32:42.307Z",
-  "durationMs": 36,
+  "startedAt": "2026-05-09T13:22:33.630Z",
+  "durationMs": 41,
   "status": "BLOCKER",
   "metrics": [
     {

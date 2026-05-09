@@ -191,3 +191,79 @@ After Phase 1, the following are true:
 - Reconciliation queue empty (or every row decided).
 
 These are the preconditions for Phase 2 (application-layer enforcement, RLS audit-mode, JWT dual-claim issuance turn-on).
+
+---
+
+## Addendum — Blocker resolution sequence (added 2026-05-09 after first dry-run)
+
+The first dry-run (`SAAS_PHASE1_STAGING_DRY_RUN_RESULTS.md`) showed the
+algorithm is correct on the staging fixture. Before the prod run, these
+gates must pass in this exact order:
+
+```
+G-01  Run preflight on a sanitized prod replica.
+G-02  Triage findings → saas_reconciliation_queue.
+G-03  Run all 5 reconciliation scripts in --apply mode against staging
+      (writes only to saas_reconciliation_queue + Phase 1 prep columns).
+G-04  Drain saas_reconciliation_queue (queue-cli sets decisions).
+G-05  Re-run preflight; expect status ≤ WARN (only product-signed warns).
+G-06  Run TKT-P1-05 seq-snapshot.
+G-07  Run dry-run-tenant-backfill (--dry-run) on the sanitized clone.
+G-08  Second dry-run on a fresh clone; compare verification.
+G-09  Sign-offs per SAAS_PHASE1_DATA_RECONCILIATION_PLAN.md §6.
+G-10  Schedule maintenance window.
+G-11  TKT-P1-09 (production run).
+```
+
+### Reconciliation gates
+
+| Gate | Owner | Pass criteria |
+|------|-------|---------------|
+| G-01 preflight on prod replica | Backend | Reports written; severity captured |
+| G-02 triage | Data steward | Every BLOCKER finding has a queue row |
+| G-03 recon --apply | Backend | All 5 scripts emit `OK`/`WARN`/`BLOCKER` consistent with G-02 |
+| G-04 queue drain | Product + Security | `decision != 'pending'` for every row |
+| G-05 preflight re-run | Backend | Status ≤ WARN |
+| G-06 seq snapshot | Backend | `saas_phase1_seq_snapshot` populated; row-count matches `count(distinct tenantId × prefix × year × month)` |
+| G-07 dry-run on prod clone | Backend | All 5 verification checks PASS; status `ROLLED_BACK` |
+| G-08 dry-run #2 on a fresh clone | Backend | Verification matches G-07 |
+| G-09 sign-offs | All | Five names recorded in `decided_by` per role |
+| G-10 maintenance window | DevOps + SRE | Calendar + comms draft |
+
+### Sign-off checklist (TKT-P1-09 entry gate)
+
+- [ ] **Engineering lead** — preflight green; backfill rehearsed twice on a real-shape clone.
+- [ ] **Product owner** — slug list + reserved slugs + catalog mode confirmed; queue decisions accepted.
+- [ ] **Security** — PlatformAdmin grants confirmed; reconciliation accepted.
+- [ ] **DevOps / SRE** — pre-migration snapshot; restore rehearsed.
+- [ ] **Data steward** — `users.no-agency` and orphan dispositions confirmed.
+
+### Go / No-Go criteria (objective)
+
+**GO** if and only if all of the following are true:
+
+1. Preflight overall ≤ `WARN`.
+2. `users.duplicate-emails == 0`.
+3. `users.invalid-email == 0`.
+4. Every `users.no-agency` row has `decision != 'pending'`.
+5. `<table>.orphan-owner == 0` for every model.
+6. `saas_phase1_seq_snapshot` populated.
+7. Two dry-runs (staging + sanitized prod clone) PASS.
+8. Five sign-offs recorded.
+
+**NO-GO** if any of the above is false. There are no partial GOs.
+
+### Staging dry-run acceptance criteria
+
+Each dry-run must produce `PHASE1_DRY_RUN_BACKFILL.md` with:
+
+| Criterion | Threshold |
+|---|---|
+| Status | `ROLLED_BACK` (or `OK` for `--apply` on staging) |
+| `tenants.count` verification | PASS |
+| `users.with-agency-have-membership` | PASS |
+| `users.no-agency.handled` | PASS |
+| `applicants.tenantId-populated` | PASS |
+| `employees.tenantId-populated` | PASS |
+| Pre-run vs post-run table counts (existing tables) | byte-identical when `--dry-run` |
+| Re-running the script | identical projection and verification |

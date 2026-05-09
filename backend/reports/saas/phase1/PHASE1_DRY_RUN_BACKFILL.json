@@ -1,0 +1,97 @@
+{
+  "mode": "dry-run",
+  "database": "postgres://postgres@127.0.0.1/saas_phase1_fixture?sslmode=disable",
+  "startedAt": "2026-05-09T13:28:12.401Z",
+  "durationMs": 62,
+  "status": "ROLLED_BACK",
+  "preflightSummary": {
+    "duplicateEmails": 0,
+    "nullAgencyUsers": 1,
+    "employeeCodeCollisions": 1,
+    "employeeEmailCollisions": 0
+  },
+  "projection": [
+    {
+      "agencyId": "11111111-1111-1111-1111-111111111111",
+      "name": "Acme HR",
+      "tenantId": "11111111-1111-1111-1111-111111111111",
+      "slug": "acme-hr",
+      "conflicts": []
+    },
+    {
+      "agencyId": "22222222-2222-2222-2222-222222222222",
+      "name": "Globex Co.",
+      "tenantId": "22222222-2222-2222-2222-222222222222",
+      "slug": "globex-co",
+      "conflicts": []
+    },
+    {
+      "agencyId": "33333333-3333-3333-3333-333333333333",
+      "name": "Initech",
+      "tenantId": "33333333-3333-3333-3333-333333333333",
+      "slug": "initech",
+      "conflicts": []
+    },
+    {
+      "agencyId": "44444444-4444-4444-4444-444444444444",
+      "name": "Empty Co",
+      "tenantId": "44444444-4444-4444-4444-444444444444",
+      "slug": "empty-co",
+      "conflicts": []
+    }
+  ],
+  "systemAgencyUserCount": 2,
+  "written": {
+    "tenants": 4,
+    "defaultAgencies": 4,
+    "memberships": 11,
+    "agencyMemberships": 11,
+    "membershipRoles": 11,
+    "membershipPermissionOverrides": 0,
+    "platformAdmins": 2,
+    "quarantineRows": 1,
+    "tenantIdAssignments": {
+      "applicants": 72,
+      "employees": 29,
+      "vehicles": 2
+    }
+  },
+  "verification": [
+    {
+      "name": "tenants.count",
+      "ok": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "name": "users.with-agency-have-membership",
+      "ok": true,
+      "detail": {
+        "count": 0
+      }
+    },
+    {
+      "name": "users.no-agency.handled",
+      "ok": true,
+      "detail": {
+        "count": 0
+      }
+    },
+    {
+      "name": "applicants.tenantId-populated",
+      "ok": true,
+      "detail": {
+        "stillNull": 0
+      }
+    },
+    {
+      "name": "employees.tenantId-populated",
+      "ok": true,
+      "detail": {
+        "stillNull": 0
+      }
+    }
+  ]
+}

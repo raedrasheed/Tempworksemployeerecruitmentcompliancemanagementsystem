@@ -1,8 +1,8 @@
 {
   "slug": "05-permissions",
   "title": "Audit E — Permissions / RBAC",
-  "startedAt": "2026-05-09T13:32:43.856Z",
-  "durationMs": 28,
+  "startedAt": "2026-05-09T13:22:35.267Z",
+  "durationMs": 26,
   "status": "INFO",
   "metrics": [
     {

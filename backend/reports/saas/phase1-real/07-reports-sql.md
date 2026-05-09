@@ -1,8 +1,8 @@
 # Audit G — Reports SQL
 
 - **Status:** BLOCKER
-- **Started:** 2026-05-09T13:32:47.118Z
-- **Duration:** 226 ms
+- **Started:** 2026-05-09T13:22:38.687Z
+- **Duration:** 220 ms
 
 ## Metrics
 

@@ -1,0 +1,77 @@
+{
+  "slug": "A-user-identity",
+  "title": "Recon A — User Identity",
+  "mode": "dry-run",
+  "database": "postgres://postgres@127.0.0.1/saas_phase1_fixture?sslmode=disable",
+  "startedAt": "2026-05-09T13:25:56.091Z",
+  "durationMs": 30,
+  "metrics": [
+    {
+      "key": "users.duplicate-emails",
+      "value": 0
+    },
+    {
+      "key": "users.null-email",
+      "value": 0
+    },
+    {
+      "key": "users.invalid-email",
+      "value": 0
+    },
+    {
+      "key": "users.no-agency",
+      "value": 1
+    },
+    {
+      "key": "users.system-agency",
+      "value": 2
+    },
+    {
+      "key": "users.soft-deleted",
+      "value": 1
+    }
+  ],
+  "actions": [
+    {
+      "kind": "user.no-agency",
+      "subject": {
+        "id": "ad0b4f57-c3d0-47e3-8a3f-d3d058d62d88",
+        "email": "orphan@nowhere.test",
+        "status": "ACTIVE"
+      },
+      "proposedDecision": "assign-tenant | platform-admin | deactivate",
+      "applied": false
+    },
+    {
+      "kind": "user.platform-admin-candidate",
+      "subject": {
+        "id": "02b9ac7f-6d9f-4fff-85bf-2c53044d2082",
+        "email": "admin1@tempworks.test"
+      },
+      "proposedDecision": "platform-admin:SUPER (downgrade post-cutover)",
+      "applied": false
+    },
+    {
+      "kind": "user.platform-admin-candidate",
+      "subject": {
+        "id": "13db82c0-5c19-468d-8135-944f75c5dc49",
+        "email": "admin2@tempworks.test"
+      },
+      "proposedDecision": "platform-admin:SUPER (downgrade post-cutover)",
+      "applied": false
+    },
+    {
+      "kind": "user.soft-deleted-skipped",
+      "subject": {
+        "count": 1
+      },
+      "proposedDecision": "skip-from-membership-backfill",
+      "applied": false
+    }
+  ],
+  "notes": [
+    "No user rows are modified by this script. Apply mode only inserts proposals into saas_reconciliation_queue.",
+    "Ops drains the queue with the queue-cli (TKT-P1-07) before backfill runs."
+  ],
+  "status": "BLOCKER"
+}

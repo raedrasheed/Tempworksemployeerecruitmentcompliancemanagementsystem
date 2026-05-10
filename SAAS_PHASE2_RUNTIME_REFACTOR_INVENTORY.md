@@ -466,3 +466,38 @@ Real-DB run (`SAFE_CLONE` `saas_phase1_fixture`):
 
 Cumulative finance + documents + vehicles + workflow:
 **180/180** on real Postgres 16. Production behaviour unchanged.
+
+## 24. Phase 2.27 — Workflow mutation pilot (shipped)
+
+`src/workflow` mutation paths brought into the pilot.
+
+- New `findEmployeeOrFail` / `findApplicantOrFail` helpers
+  (tenant-scoped via pilot client). Tag `phase227-pilot-scope`.
+- `updateEmployeeWorkflowStage` / `setEmployeeCurrentStage`:
+  parent employee gate; by-key/by-employeeId EmployeeStage
+  mutations on legacyPrisma with `phase227-pilot-scope-precheck`.
+- `createWorkPermit` / `createVisa`: parent gate + `scope.tenantData()`
+  on the new row.
+- `updateWorkPermit` / `updateVisa`: NEW tenant-scoped pre-check
+  closes a real cross-tenant mutation gap.
+
+Real bugs closed: every mutation in workflow had a by-id or
+by-key pre-check with no tenant filter. Phase 2.27 closes the
+gap module-wide.
+
+`StageTemplate` decision unchanged: global catalog. Per-tenant
+override remains a Phase 3 product question.
+
+Real-DB run (SAFE_CLONE saas_phase1_fixture):
+- workflow-equivalence:           11/11 PASS
+- workflow-isolation:             11/11 PASS
+- workflow-mutation-equivalence:  11/11 PASS
+- workflow-mutation-isolation:    11/11 PASS
+
+Total **44/44 workflow harness cases PASS** across 4 harnesses.
+Cumulative finance + documents + vehicles + workflow:
+**202/202** on real Postgres 16.
+
+Four modules (finance, documents, vehicles, workflow) are now
+fully proven on real DB across reads + writes. Production
+behaviour unchanged.

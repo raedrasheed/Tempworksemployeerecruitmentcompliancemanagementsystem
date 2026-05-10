@@ -47,6 +47,27 @@ export class WorkflowService {
     return getPilotScope(this.pilot, 'workflow');
   }
 
+  /**
+   * Phase 2.27 — parent gate for mutations. Loads the employee
+   * through the pilot client with `tenantWhere()`. Cross-tenant
+   * employee ids raise 404 BEFORE any mutation. Legacy mode
+   * (`tenantWhere()` returns `{}`) reduces to a plain by-id
+   * lookup — same as the prior `findUnique` calls.
+   */
+  private async findEmployeeOrFail(id: string) {
+    const t = this.scope().tenantWhere();
+    const e = await this.prisma.employee.findFirst({ where: { id, deletedAt: null, ...t } }); // @tenant-reviewed: phase227-pilot-scope (mutation pre-check)
+    if (!e) throw new NotFoundException({ code: 'EMPLOYEE.NOT_FOUND', message: 'Employee not found' });
+    return e;
+  }
+
+  private async findApplicantOrFail(id: string) {
+    const t = this.scope().tenantWhere();
+    const a = await this.prisma.applicant.findFirst({ where: { id, deletedAt: null, ...t } }); // @tenant-reviewed: phase227-pilot-scope (mutation pre-check)
+    if (!a) throw new NotFoundException({ code: 'APPLICANT.NOT_FOUND', message: 'Applicant not found' });
+    return a;
+  }
+
   async getStages() {
     return this.prisma.stageTemplate.findMany({ // @tenant-reviewed: phase226-global
       where: { isActive: true },
@@ -116,7 +137,11 @@ export class WorkflowService {
     dto: UpdateWorkflowStageDto,
     updatedById?: string,
   ) {
-    const workflowEntry = await this.legacyPrisma.employeeStage.findUnique({ // @tenant-reviewed: phase226-excluded-mutation
+    // Phase 2.27 — parent employee gate. EmployeeStage has no
+    // tenantId column; cross-tenant safety comes from validating
+    // the parent employee through the pilot client first.
+    await this.findEmployeeOrFail(employeeId);
+    const workflowEntry = await this.legacyPrisma.employeeStage.findUnique({ // @tenant-reviewed: phase227-pilot-scope-precheck (parent employee tenant-checked above)
       where: { employeeId_stageId: { employeeId, stageId } },
       include: { stage: true },
     });
@@ -134,7 +159,7 @@ export class WorkflowService {
       updateData.completedAt = new Date();
     }
 
-    const updated = await this.legacyPrisma.employeeStage.update({ // @tenant-reviewed: phase226-excluded-mutation
+    const updated = await this.legacyPrisma.employeeStage.update({ // @tenant-reviewed: phase227-pilot-scope-precheck (parent employee tenant-checked above)
       where: { employeeId_stageId: { employeeId, stageId } },
       data: updateData,
       include: { stage: true, assignedTo: { select: { id: true, firstName: true, lastName: true } } },
@@ -155,20 +180,20 @@ export class WorkflowService {
   }
 
   async setEmployeeCurrentStage(employeeId: string, stageId: string, updatedById?: string) {
-    const employee = await this.legacyPrisma.employee.findUnique({ where: { id: employeeId, deletedAt: null } }); // @tenant-reviewed: phase226-excluded-mutation
-    if (!employee) throw new NotFoundException({ code: 'EMPLOYEE.NOT_FOUND', message: 'Employee not found' });
+    // Phase 2.27 — parent employee gate.
+    await this.findEmployeeOrFail(employeeId);
 
     const stage = await this.legacyPrisma.stageTemplate.findUnique({ where: { id: stageId } }); // @tenant-reviewed: phase226-global
     if (!stage) throw new NotFoundException({ code: 'WORKFLOW.STAGE_NOT_FOUND', message: 'Workflow stage not found' });
 
-    // Complete any currently IN_PROGRESS stages
-    await this.legacyPrisma.employeeStage.updateMany({ // @tenant-reviewed: phase226-excluded-mutation
+    // Complete any currently IN_PROGRESS stages (parent already gated)
+    await this.legacyPrisma.employeeStage.updateMany({ // @tenant-reviewed: phase227-pilot-scope-precheck (parent employee tenant-checked above)
       where: { employeeId, status: 'IN_PROGRESS' },
       data: { status: 'COMPLETED', completedAt: new Date() },
     });
 
     // Upsert the chosen stage as IN_PROGRESS
-    const result = await this.legacyPrisma.employeeStage.upsert({ // @tenant-reviewed: phase226-excluded-mutation
+    const result = await this.legacyPrisma.employeeStage.upsert({ // @tenant-reviewed: phase227-pilot-scope-precheck (parent employee tenant-checked above)
       where: { employeeId_stageId: { employeeId, stageId } },
       create: { employeeId, stageId, status: 'IN_PROGRESS', startedAt: new Date() },
       update: { status: 'IN_PROGRESS', startedAt: new Date(), completedAt: null },
@@ -293,15 +318,17 @@ export class WorkflowService {
   }
 
   async createWorkPermit(dto: CreateWorkPermitDto, createdById?: string) {
-    const employee = await this.legacyPrisma.employee.findUnique({ where: { id: dto.employeeId } }); // @tenant-reviewed: phase226-excluded-mutation
-    if (!employee) throw new NotFoundException({ code: 'EMPLOYEE.NOT_FOUND', message: 'Employee not found' });
-    const permit = await this.legacyPrisma.workPermit.create({ // @tenant-reviewed: phase226-excluded-mutation
+    // Phase 2.27 — parent employee gate + tenantId on the new permit.
+    await this.findEmployeeOrFail(dto.employeeId);
+    const tdata = this.scope().tenantData();
+    const permit = await this.legacyPrisma.workPermit.create({ // @tenant-reviewed: phase227-pilot-scope (writes tenantId via scope.tenantData)
       data: {
         ...dto,
         applicationDate: new Date(dto.applicationDate),
         approvalDate: dto.approvalDate ? new Date(dto.approvalDate) : undefined,
         expiryDate: new Date(dto.expiryDate),
         status: dto.status || 'PENDING',
+        ...tdata,
       },
       include: { employee: { select: { id: true, firstName: true, lastName: true } } },
     });
@@ -314,13 +341,15 @@ export class WorkflowService {
   }
 
   async updateWorkPermit(id: string, dto: Partial<CreateWorkPermitDto>, updatedById?: string) {
-    const permit = await this.legacyPrisma.workPermit.findUnique({ where: { id } }); // @tenant-reviewed: phase226-excluded-mutation
+    // Phase 2.27 — tenant-scoped pre-check via the pilot client.
+    const t = this.scope().tenantWhere();
+    const permit = await this.prisma.workPermit.findFirst({ where: { id, ...t } }); // @tenant-reviewed: phase227-pilot-scope (mutation pre-check)
     if (!permit) throw new NotFoundException({ code: 'WORKFLOW.WORK_PERMIT_NOT_FOUND', message: 'Work permit not found' });
     const updateData: any = { ...dto };
     if (dto.applicationDate) updateData.applicationDate = new Date(dto.applicationDate);
     if (dto.approvalDate) updateData.approvalDate = new Date(dto.approvalDate);
     if (dto.expiryDate) updateData.expiryDate = new Date(dto.expiryDate);
-    return this.legacyPrisma.workPermit.update({ where: { id }, data: updateData }); // @tenant-reviewed: phase226-excluded-mutation
+    return this.legacyPrisma.workPermit.update({ where: { id }, data: updateData }); // @tenant-reviewed: phase227-pilot-scope-precheck (pre-check above is tenant-scoped)
   }
 
   // Visas
@@ -336,7 +365,17 @@ export class WorkflowService {
   }
 
   async createVisa(dto: CreateVisaDto, createdById?: string) {
-    const visa = await this.legacyPrisma.visa.create({ // @tenant-reviewed: phase226-excluded-mutation
+    // Phase 2.27 — parent-entity gate (EMPLOYEE or APPLICANT) +
+    // tenantId on the new visa.
+    if (dto.entityType === 'EMPLOYEE') {
+      await this.findEmployeeOrFail(dto.entityId);
+    } else if (dto.entityType === 'APPLICANT') {
+      await this.findApplicantOrFail(dto.entityId);
+    } else {
+      throw new BadRequestException({ code: 'WORKFLOW.VISA_ENTITY_TYPE_INVALID', message: `Invalid entityType ${dto.entityType}` });
+    }
+    const tdata = this.scope().tenantData();
+    const visa = await this.legacyPrisma.visa.create({ // @tenant-reviewed: phase227-pilot-scope (writes tenantId via scope.tenantData)
       data: {
         ...dto,
         entityType: dto.entityType as any,
@@ -345,6 +384,7 @@ export class WorkflowService {
         approvalDate: dto.approvalDate ? new Date(dto.approvalDate) : undefined,
         expiryDate: dto.expiryDate ? new Date(dto.expiryDate) : undefined,
         status: dto.status || 'PENDING',
+        ...tdata,
       },
     });
     if (createdById) {
@@ -356,13 +396,15 @@ export class WorkflowService {
   }
 
   async updateVisa(id: string, dto: Partial<CreateVisaDto>, updatedById?: string) {
-    const visa = await this.legacyPrisma.visa.findUnique({ where: { id } }); // @tenant-reviewed: phase226-excluded-mutation
+    // Phase 2.27 — tenant-scoped pre-check via the pilot client.
+    const t = this.scope().tenantWhere();
+    const visa = await this.prisma.visa.findFirst({ where: { id, ...t } }); // @tenant-reviewed: phase227-pilot-scope (mutation pre-check)
     if (!visa) throw new NotFoundException({ code: 'WORKFLOW.VISA_NOT_FOUND', message: 'Visa not found' });
     const updateData: any = { ...dto };
     if (dto.applicationDate) updateData.applicationDate = new Date(dto.applicationDate);
     if (dto.appointmentDate) updateData.appointmentDate = new Date(dto.appointmentDate);
     if (dto.approvalDate) updateData.approvalDate = new Date(dto.approvalDate);
     if (dto.expiryDate) updateData.expiryDate = new Date(dto.expiryDate);
-    return this.legacyPrisma.visa.update({ where: { id }, data: updateData }); // @tenant-reviewed: phase226-excluded-mutation
+    return this.legacyPrisma.visa.update({ where: { id }, data: updateData }); // @tenant-reviewed: phase227-pilot-scope-precheck (pre-check above is tenant-scoped)
   }
 }

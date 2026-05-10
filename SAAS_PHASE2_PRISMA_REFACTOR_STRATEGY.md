@@ -637,6 +637,35 @@ vehicles + workflow: **180/180** on real Postgres 16.
 The next phase is **Phase 2.27** (workflow mutation pilot) OR a
 new module pilot (`applicants`).
 
+## 11.13 Phase 2.27 — Workflow mutation pilot (shipped)
+
+Closes the workflow module pilot. New helpers
+`findEmployeeOrFail` / `findApplicantOrFail` gate every
+mutation. New tags `phase227-pilot-scope` (parent-gate +
+tenantData create) and `phase227-pilot-scope-precheck`
+(by-id/by-key mutations gated by the prior pre-check).
+
+Real bugs closed:
+- updateEmployeeWorkflowStage / setEmployeeCurrentStage allowed
+  cross-tenant mutation in pilot mode.
+- createWorkPermit / createVisa left tenantId NULL on new rows.
+- updateWorkPermit / updateVisa allowed cross-tenant mutation.
+
+`StageTemplate` decision unchanged: global catalog (Phase 3
+product question).
+
+Real-DB results: workflow-equivalence 11/11 +
+workflow-isolation 11/11 + workflow-mutation-equivalence 11/11
++ workflow-mutation-isolation 11/11 = **44/44 cases PASS**.
+
+Combined cumulative finance + documents + vehicles + workflow:
+**202/202** on real Postgres 16. Production behaviour unchanged.
+
+Four modules (finance, documents, vehicles, workflow) are now
+fully proven on real DB across reads + writes. The next phase is
+a **new module pilot** (`applicants`) or the cross-module
+audit-log tenancy phase.
+
 ## 12. Hard rules
 
 - **Never enable `TENANT_PRISMA_ENFORCEMENT=true` in production until every P0/P1/P2 module has migrated.** Enabling it with a half-migrated codebase makes the un-migrated services start filtering by tenant when their callers don't expect it.

@@ -50,7 +50,28 @@ What does NOT land:
 - No `StageTemplate.tenantId` column (deferred to Phase 3).
 - No template clone / copy logic.
 
-## 3. Phase 2.27+ — Workflow mutation refactor (FUTURE)
+## 2.1 Phase 2.27 update — mutation pilot shipped
+
+Phase 2.27 closes the workflow module pilot. See
+`SAAS_PHASE2_WORKFLOW_MUTATION_AUDIT.md` and
+`SAAS_PHASE2_WORKFLOW_MUTATION_SCOPE_DECISION.md`.
+
+- New `findEmployeeOrFail` / `findApplicantOrFail` helpers
+  (tenant-scoped via pilot client) gate every mutation.
+- `updateEmployeeWorkflowStage`, `setEmployeeCurrentStage`:
+  parent employee gate; by-key/by-employeeId mutations stay on
+  legacyPrisma with `phase227-pilot-scope-precheck`.
+- `createWorkPermit`: parent gate + `scope.tenantData()` on the
+  new row. Tag `phase227-pilot-scope`.
+- `updateWorkPermit`, `updateVisa`: NEW tenant-scoped pre-check
+  (`this.prisma.X.findFirst({ id, ...t })`).
+- `createVisa`: parent-entity gate (EMPLOYEE/APPLICANT) +
+  `scope.tenantData()`.
+
+`StageTemplate` decision unchanged: global catalog. Per-tenant
+override remains a Phase 3 product question.
+
+## 3. Phase 3+ — Template per-tenant override (FUTURE)
 
 The mutation pilot needs:
 

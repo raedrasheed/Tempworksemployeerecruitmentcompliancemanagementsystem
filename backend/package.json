@@ -112,6 +112,8 @@
     "saas:phase2-vehicles-storage-isolation":     "ts-node scripts/saas/phase2/vehicles-storage-isolation.ts",
     "saas:phase2-workflow-equivalence":           "ts-node scripts/saas/phase2/workflow-equivalence.ts",
     "saas:phase2-workflow-isolation":             "ts-node scripts/saas/phase2/workflow-isolation.ts",
+    "saas:phase2-workflow-mutation-equivalence":  "ts-node scripts/saas/phase2/workflow-mutation-equivalence.ts",
+    "saas:phase2-workflow-mutation-isolation":    "ts-node scripts/saas/phase2/workflow-mutation-isolation.ts",
     "saas:scan:annotations":                      "ts-node scripts/scan-annotations.ts",
     "saas:phase2-pilot-regression":               "ts-node scripts/saas/phase2/pilot-regression.ts",
     "saas:phase2-job-context-harness":            "ts-node scripts/saas/phase2/job-context-harness.ts",

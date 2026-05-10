@@ -135,6 +135,59 @@ Same SAFE_CLONE used by Phase 2.16-2.25. Cumulative harness cases:
 
 All PASS on real Postgres 16.
 
+## 12.1 Phase 2.27 — Mutation pilot delta
+
+Phase 2.27 extended the workflow pilot to mutations. New
+annotations:
+
+- `findEmployeeOrFail` / `findApplicantOrFail` private helpers
+  (tenant-scoped via pilot client). Tag `phase227-pilot-scope`.
+- `updateEmployeeWorkflowStage`: NEW parent gate. By-key
+  EmployeeStage update + auditLog tagged
+  `phase227-pilot-scope-precheck`.
+- `setEmployeeCurrentStage`: same parent gate. The StageTemplate
+  lookup remains `phase226-global`. The by-employeeId `updateMany`
+  + `upsert` are tagged `phase227-pilot-scope-precheck`.
+- `createWorkPermit`: parent gate + spreads `scope.tenantData()`
+  on the new row. Tag `phase227-pilot-scope`.
+- `updateWorkPermit`: NEW pre-check via `this.prisma.workPermit.findFirst({ id, ...t })`.
+  Tag `phase227-pilot-scope`. By-id update tagged
+  `phase227-pilot-scope-precheck`.
+- `createVisa`: NEW parent-entity gate (`findEmployeeOrFail` for
+  EMPLOYEE; `findApplicantOrFail` for APPLICANT) + spreads
+  `tenantData()`. Tag `phase227-pilot-scope`.
+- `updateVisa`: NEW pre-check via `this.prisma.visa.findFirst({ id, ...t })`.
+
+Real bugs closed:
+- `updateEmployeeWorkflowStage` / `setEmployeeCurrentStage` had
+  by-id pre-checks with no tenant filter. A tenant-A caller
+  could mutate a tenant-B employee's stage. Closed by parent
+  gate.
+- `createWorkPermit` / `createVisa` left `tenantId` NULL on new
+  rows. Pilot mode now persists `tenantId`.
+- `updateWorkPermit` / `updateVisa` had by-id pre-checks with no
+  tenant filter. Closed by switching pre-check to the pilot
+  client.
+
+New harnesses (real-DB SAFE_CLONE):
+- `workflow-mutation-equivalence` (11 cases): updateEmployeeWorkflowStage
+  / setEmployeeCurrentStage / createWorkPermit shape + tenantId
+  NULL/set / updateWorkPermit / createVisa / updateVisa parity,
+  validation parity, read-after-write.
+- `workflow-mutation-isolation` (11 cases): cross-tenant
+  rejections for stage update, current-stage set, permit/visa
+  CRUD; same-tenant create persists `tenantId=A`; legacy mode
+  unchanged; source-level meta-assertion of all phase227
+  patterns.
+
+Real-DB results: **44/44 workflow harness cases PASS** across
+all 4 harnesses (11 + 11 + 11 + 11). Cumulative finance +
+documents + vehicles + workflow: **202/202** on real Postgres 16.
+
+The workflow module pilot is now complete (reads + writes).
+Zero `phase226-excluded-mutation` annotations remain on the
+active mutation paths.
+
 ## 13. Next recommended module
 
 - **Phase 2.27 — Workflow mutation pilot** (recommended; mirrors finance/documents/vehicles precedent of completing one module before starting another).

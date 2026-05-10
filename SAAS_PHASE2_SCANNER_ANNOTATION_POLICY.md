@@ -73,6 +73,8 @@ and counted against the strict-mode threshold.
 | `phase226-global` | Workflow `StageTemplate` reads — global catalog (no `tenantId` column today; per-tenant override deferred to Phase 3 per `SAAS_PHASE2_WORKFLOW_SYSTEM_TEMPLATE_DECISION.md`). | `src/workflow/**` | 2.26 |
 | `phase226-excluded-mutation` | Workflow write/mutation sites (`updateEmployeeWorkflowStage`, `setEmployeeCurrentStage`, `createWorkPermit`, `updateWorkPermit`, `createVisa`, `updateVisa`) kept on `legacyPrisma` until Phase 2.27+. | `src/workflow/**` | 2.26 |
 | `phase226-audit-log` | Workflow audit-log writes — global by design (deferred to cross-module audit phase). | `src/workflow/**` | 2.26 |
+| `phase227-pilot-scope` | Workflow write sites narrowed in Phase 2.27 — `findEmployeeOrFail` / `findApplicantOrFail` parent gates, `createWorkPermit` / `createVisa` `scope.tenantData()` spreads, `updateWorkPermit` / `updateVisa` tenant-scoped pre-checks. | `src/workflow/**` | 2.27 |
+| `phase227-pilot-scope-precheck` | Workflow by-id / by-key mutation sites gated by the prior tenant-scoped pre-check (`findEmployeeOrFail` parent gate or `workPermit/visa.findFirst({ id, ...t })`). The mutation never reaches a foreign tenant's row in pilot mode. | `src/workflow/**` | 2.27 |
 | `tenant-safe-report-runtime` | Reports engine uses `$queryRawUnsafe` with positional parameters and a registry-validated SQL string. | `src/reports/reports.service.ts` | 2.1 |
 
 ## 3. When annotations are allowed

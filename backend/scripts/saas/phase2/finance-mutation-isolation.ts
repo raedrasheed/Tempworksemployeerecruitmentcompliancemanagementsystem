@@ -243,6 +243,91 @@ async function main(): Promise<void> {
     } finally { await prisma.$disconnect(); }
   });
 
+  // 9 — pilot ON, tenant A: create with tenant B entityId raises 404
+  // (helper enrichment narrowing — Phase 2.17.1).
+  await withFlags({ TENANT_PRISMA_PILOT_ENABLED: 'true', TENANT_PRISMA_PILOT_MODULES: 'finance' }, async () => {
+    const prisma = new PrismaService();
+    const flags = new FeatureFlagsService();
+    const pilot = new PilotPrismaAccessor(prisma, new TenantPrismaService(prisma, flags), flags);
+    const svc = makeService(prisma, pilot);
+    try {
+      const empB: any = await (prisma as any).employee.findFirst({ where: { tenantId: tB } });
+      if (!empB) {
+        out.push({ name: 'pilot ON, tenant A: cross-tenant create raises NotFoundException', ok: false, detail: 'fixture missing tenant B employee' });
+      } else {
+        const beforeCount = await (prisma as any).financialRecord.count({ where: { tenantId: tA } });
+        let leaked = false;
+        let errName = '';
+        try {
+          await withRequestContext({ requestId: newRequestId() }, async () => {
+            TenantContext.attach({ id: tA, slug: 'a', name: 'A', status: 'ACTIVE', region: 'eu' });
+            await svc.create({
+              entityType: 'EMPLOYEE', entityId: empB.id,
+              transactionDate: new Date().toISOString(), currency: 'EUR',
+              transactionType: 'TRAINING_COST',
+              companyDisbursedAmount: 99,
+              description: 'cross-tenant-create-attempt',
+            } as any);
+          });
+          leaked = true;
+        } catch (e) { errName = (e as Error).constructor.name; }
+        const afterCount = await (prisma as any).financialRecord.count({ where: { tenantId: tA } });
+        out.push({
+          name: 'pilot ON, tenant A: create with tenant-B entityId raises NotFoundException; no row inserted (Phase 2.17.1 helper guard)',
+          ok: !leaked && errName === 'NotFoundException' && beforeCount === afterCount,
+          detail: leaked ? 'UNEXPECTED: created' : `err=${errName} before=${beforeCount} after=${afterCount}`,
+        });
+      }
+    } finally { await prisma.$disconnect(); }
+  });
+
+  // 10 — pilot ON, tenant A: smuggled entityType/entityId/applicantId
+  // via `as any` are scrubbed in update() (Phase 2.17.1 defensive scrub).
+  await withFlags({ TENANT_PRISMA_PILOT_ENABLED: 'true', TENANT_PRISMA_PILOT_MODULES: 'finance' }, async () => {
+    const prisma = new PrismaService();
+    const flags = new FeatureFlagsService();
+    const pilot = new PilotPrismaAccessor(prisma, new TenantPrismaService(prisma, flags), flags);
+    const svc = makeService(prisma, pilot);
+    try {
+      // Create a fresh tenant A record so the test does not pollute the fixture row.
+      const empA: any = await (prisma as any).employee.findFirst({ where: { tenantId: tA } });
+      const empB: any = await (prisma as any).employee.findFirst({ where: { tenantId: tB } });
+      const created = await withRequestContext({ requestId: newRequestId() }, async () => {
+        TenantContext.attach({ id: tA, slug: 'a', name: 'A', status: 'ACTIVE', region: 'eu' });
+        return svc.create({
+          entityType: 'EMPLOYEE', entityId: empA.id,
+          transactionDate: new Date().toISOString(), currency: 'EUR',
+          transactionType: 'TRAINING_COST', companyDisbursedAmount: 10,
+          description: 'iso-scrub-target',
+        } as any);
+      });
+      createdIds.push(created.id);
+      const beforeIdent = { entityType: created.entityType, entityId: created.entityId, applicantId: (created as any).applicantId };
+
+      await withRequestContext({ requestId: newRequestId() }, async () => {
+        TenantContext.attach({ id: tA, slug: 'a', name: 'A', status: 'ACTIVE', region: 'eu' });
+        await svc.update(created.id, {
+          description: 'updated',
+          // Smuggled identity fields — must be scrubbed:
+          entityType: 'AGENCY',
+          entityId: empB.id,
+          applicantId: empB.id,
+          stageAtCreation: 'AGENCY',
+        } as any);
+      });
+
+      const after: any = await (prisma as any).financialRecord.findUnique({ where: { id: created.id } });
+      const ok = after.entityType === beforeIdent.entityType
+              && after.entityId === beforeIdent.entityId
+              && (after.applicantId ?? null) === (beforeIdent.applicantId ?? null);
+      out.push({
+        name: 'pilot ON, tenant A: update scrubs smuggled entityType/entityId/applicantId (defensive)',
+        ok,
+        detail: `before=${JSON.stringify(beforeIdent)} after={"entityType":"${after.entityType}","entityId":"${after.entityId}","applicantId":${JSON.stringify(after.applicantId ?? null)}}`,
+      });
+    } finally { await prisma.$disconnect(); }
+  });
+
   // 8 — pilot OFF: legacy still mutates without tenant gate
   await withFlags({ TENANT_PRISMA_PILOT_ENABLED: 'false' }, async () => {
     const prisma = new PrismaService();

@@ -87,6 +87,22 @@ reads called from already tenant-filtered records. Tightening
 them is non-trivial (they accept arrays of mixed entity types) and
 not strictly required for ledger isolation. Deferred.
 
+## Phase 2.17.1 addendum — helper enrichment narrowed
+
+The Phase 2.17 review left three finance helpers (`attachEntityNames`,
+`resolvePersonIdentity`, `resolveEntityNameForNotif`) on
+`legacyPrisma`. The 2.17.1 execution-on-real-DB review elevated
+`resolvePersonIdentity` from LEGACY_ONLY to **INCLUDED_NOW**: it
+had a real cross-tenant create vulnerability when the pilot was
+active. The other two were narrowed defensively in the same pass.
+Tag: `phase2171-helper-narrowed`.
+
+`update` also got a one-shot defensive scrub of
+`entityType`/`entityId`/`applicantId`/`stageAtCreation` to keep
+the cross-entity invariant intact even if a future DTO refactor
+re-introduced those fields. See
+`SAAS_PHASE2171_FINANCE_CROSS_ENTITY_GUARD_REVIEW.md`.
+
 ## Out-of-scope safeguards
 
 - No schema change.

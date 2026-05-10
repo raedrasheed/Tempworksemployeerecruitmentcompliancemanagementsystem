@@ -186,3 +186,30 @@ Production default (`TENANT_PRISMA_PILOT_ENABLED=false`)
 unchanged: every `tenantWhere()` and `tenantData()` spread
 collapses to `{}`.
 
+
+## 14. Phase 2.17.1 — Real DB harness execution + helper narrowing
+
+The Phase 2.16/2.17 finance harnesses ran for the first time
+against a real Postgres `SAFE_CLONE` on 2026-05-10:
+
+| Harness | Cases | Status |
+|---------|------:|:------:|
+| `saas:phase2-finance-equivalence` | 9/9 | PASS |
+| `saas:phase2-finance-isolation` | 7/7 | PASS |
+| `saas:phase2-finance-mutation-equivalence` | 9/9 | PASS |
+| `saas:phase2-finance-mutation-isolation` | 10/10 | PASS |
+
+The execution exposed a real cross-tenant create vulnerability:
+`resolvePersonIdentity` (called by `create`) looked up entities by
+id without a tenant predicate. Closed in 2.17.1 by routing the
+helper through `this.prisma` and spreading `scope.tenantWhere()`.
+A defensive scrub in `update` strips smuggled
+`entityType`/`entityId`/`applicantId`/`stageAtCreation`.
+
+New annotation tag: `phase2171-helper-narrowed`. Two new
+isolation cases (9 + 10) prove the close.
+
+Production default (`TENANT_PRISMA_PILOT_ENABLED=false`) remains
+unchanged — every `tenantWhere()` spread collapses to `{}` and
+the defensive `delete` is a no-op against a DTO that does not
+contain those fields.

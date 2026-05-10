@@ -49,6 +49,7 @@ and counted against the strict-mode threshold.
 | `phase216-audit-log` | Finance audit-log reads/writes — global by design, parent already tenant-checked. | `src/finance/**` | 2.16 |
 | `phase217-pilot-scope` | Finance write sites narrowed in Phase 2.17 — `create` spreads `scope.tenantData()`; `removeDeduction` adds a parent tenant pre-check. | `src/finance/**` | 2.17 |
 | `phase217-pilot-scope-precheck` | Finance write sites that rely on the prior `findOne` (Phase 2.16, tenant-scoped) as the tenant gate; the by-id `update`/`soft-delete` is unreachable for foreign tenants. | `src/finance/**` | 2.17 |
+| `phase2171-helper-narrowed` | Finance helper sites (`attachEntityNames`, `resolvePersonIdentity`, `resolveEntityNameForNotif`) routed through the pilot client and spreading `scope.tenantWhere()`. Closes a real cross-tenant create vulnerability uncovered during Phase 2.17.1 real-DB execution. | `src/finance/**` | 2.17.1 |
 | `tenant-safe-report-runtime` | Reports engine uses `$queryRawUnsafe` with positional parameters and a registry-validated SQL string. | `src/reports/reports.service.ts` | 2.1 |
 
 ## 3. When annotations are allowed

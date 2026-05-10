@@ -134,6 +134,50 @@ meta-assertion now checks for the Phase 2.17
 `phase217-pilot-scope-precheck` annotations on each mutation
 method and the `...tdata` spread inside `create`.
 
+## 7.2 Phase 2.17.1 — Real DB harness execution
+
+The Phase 2.17 harnesses were executed against a SAFE_CLONE
+(`postgresql://…@127.0.0.1:5432/saas_phase1_fixture`) on
+2026-05-10. Results:
+
+| Harness | Cases | Status |
+|---------|------:|:------:|
+| `saas:phase2-finance-equivalence` | 9/9 | **PASS** |
+| `saas:phase2-finance-isolation` | 7/7 | **PASS** |
+| `saas:phase2-finance-mutation-equivalence` | 9/9 | **PASS** |
+| `saas:phase2-finance-mutation-isolation` | 10/10 | **PASS** |
+
+Total **35/35 cases PASS** on real Postgres 16. See
+`SAAS_PHASE2171_FINANCE_MUTATION_ENV_REPORT.md` for the
+environment classification, seed steps, and refusal-gate
+behaviour.
+
+Two real bugs/regressions identified by the review and closed in
+2.17.1:
+
+- `resolvePersonIdentity` was looking up entities by id without a
+  tenant predicate. In pilot mode that allowed a tenant-A caller
+  to seed a financial record pointing at a tenant-B entity. Fixed
+  by routing through the pilot client and spreading
+  `scope.tenantWhere()`. New annotation tag:
+  `phase2171-helper-narrowed`. Covered by
+  `finance-mutation-isolation` case 9.
+- `update`'s spread `data: { ...dto }` would propagate any stray
+  identity-reassignment fields if a future DTO refactor
+  re-introduced `entityType` / `entityId` / `applicantId` /
+  `stageAtCreation`. Closed by a defensive scrub in `update`.
+  Covered by `finance-mutation-isolation` case 10.
+
+The two other helpers (`attachEntityNames`,
+`resolveEntityNameForNotif`) were structurally safe in pilot mode
+because their callers already tenant-filter, but were narrowed
+defensively in the same pass.
+
+See:
+- `SAAS_PHASE2171_FINANCE_MUTATION_ENV_REPORT.md`
+- `SAAS_PHASE2171_FINANCE_CROSS_ENTITY_GUARD_REVIEW.md`
+- `SAAS_PHASE2171_FINANCE_HELPER_ENRICHMENT_REVIEW.md`
+
 ## 8. Next steps — Phase 2.18
 
 Remaining finance work:

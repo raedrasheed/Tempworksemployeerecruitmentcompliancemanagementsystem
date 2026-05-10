@@ -148,6 +148,21 @@ a Phase 2.18+ deliverable.
 
 No DB state introduced. No migration. Pure configuration rollback.
 
+## 4.5 Phase 2.17.1 — helper narrowing addendum
+
+Three helper methods were re-routed in 2.17.1:
+
+| Helper | Pre-2.17.1 | Post-2.17.1 |
+|--------|-----------|-------------|
+| `attachEntityNames` | `legacyPrisma.X.findMany({ where: { id: { in } } })` (`phase216-helper-read`) | `this.prisma.X.findMany({ where: { id: { in }, ...t } })` (`phase2171-helper-narrowed`) |
+| `resolvePersonIdentity` | `legacyPrisma.X.findUnique({ where: { id } })` (`phase216-helper-read`) | `this.prisma.X.findFirst({ where: { id, ...t } })` (`phase2171-helper-narrowed`) — **closes a real cross-tenant create bug** |
+| `resolveEntityNameForNotif` | `legacyPrisma.X.findUnique({ where: { id } })` (`phase216-helper-read`) | `this.prisma.X.findFirst({ where: { id, ...t } })` (`phase2171-helper-narrowed`) |
+
+Plus a defensive scrub in `update` strips any smuggled
+`entityType` / `entityId` / `applicantId` / `stageAtCreation`
+fields. See `SAAS_PHASE2171_FINANCE_CROSS_ENTITY_GUARD_REVIEW.md`
+and `SAAS_PHASE2171_FINANCE_HELPER_ENRICHMENT_REVIEW.md`.
+
 ## 5. Production safety
 
 With production defaults (`TENANT_PRISMA_PILOT_ENABLED=false`) every

@@ -414,6 +414,15 @@ export class FinanceService {
   async update(id: string, dto: UpdateFinancialRecordDto, actorId?: string) {
     const existing = await this.findOne(id);
     const data: any = { ...dto };
+    // Phase 2.17.1 — defensive scrub of identity-reassignment fields.
+    // UpdateFinancialRecordDto structurally omits entityType / entityId;
+    // applicantId + stageAtCreation are computed at create time only.
+    // Stripping them here keeps the cross-entity invariant intact even
+    // if a future DTO refactor accidentally re-introduces them.
+    delete data.entityType;
+    delete data.entityId;
+    delete data.applicantId;
+    delete data.stageAtCreation;
     if (dto.transactionDate) data.transactionDate = new Date(dto.transactionDate);
 
     const updated = await this.legacyPrisma.financialRecord.update({ // @tenant-reviewed: phase217-pilot-scope-precheck (findOne above is tenant-scoped in pilot mode)
@@ -997,24 +1006,25 @@ export class FinanceService {
       records.filter(r => r.entityType === 'AGENCY').map(r => r.entityId),
     )];
 
+    const t = this.scope().tenantWhere();
     const [applicants, employees, agencies] = await Promise.all([
       applicantIds.length
         // Include soft-deleted: after conversion the applicant is soft-deleted
         // but the name must still resolve for historical records
-        ? this.legacyPrisma.applicant.findMany({ // @tenant-reviewed: phase216-helper-read
-            where: { id: { in: applicantIds } },
+        ? this.prisma.applicant.findMany({ // @tenant-reviewed: phase2171-helper-narrowed (pilot mode constrains by tenantId)
+            where: { id: { in: applicantIds }, ...t },
             select: { id: true, firstName: true, lastName: true },
           })
         : [],
       employeeIds.length
-        ? this.legacyPrisma.employee.findMany({ // @tenant-reviewed: phase216-helper-read
-            where: { id: { in: employeeIds } },
+        ? this.prisma.employee.findMany({ // @tenant-reviewed: phase2171-helper-narrowed (pilot mode constrains by tenantId)
+            where: { id: { in: employeeIds }, ...t },
             select: { id: true, firstName: true, lastName: true },
           })
         : [],
       agencyIds.length
-        ? this.legacyPrisma.agency.findMany({ // @tenant-reviewed: phase216-helper-read
-            where: { id: { in: agencyIds } },
+        ? this.prisma.agency.findMany({ // @tenant-reviewed: phase2171-helper-narrowed (pilot mode constrains by tenantId)
+            where: { id: { in: agencyIds }, ...t },
             select: { id: true, name: true },
           })
         : [],
@@ -1047,9 +1057,15 @@ export class FinanceService {
     entityType: string,
     entityId: string,
   ): Promise<{ applicantId: string | null; stageAtCreation: string }> {
+    // Phase 2.17.1 — narrow the entity lookup so a tenant-A caller
+    // cannot create a financial record pointing at a tenant-B entity.
+    // In pilot mode the tenant filter rejects cross-tenant ids; in
+    // legacy mode the spread is `{}` and behaviour is unchanged.
+    const t = this.scope().tenantWhere();
+
     if (entityType === 'APPLICANT') {
-      const a = await this.legacyPrisma.applicant.findUnique({ // @tenant-reviewed: phase216-helper-read
-        where: { id: entityId },
+      const a = await this.prisma.applicant.findFirst({ // @tenant-reviewed: phase2171-helper-narrowed (cross-tenant create blocked in pilot mode)
+        where: { id: entityId, ...t },
         select: { firstName: true, lastName: true, tier: true, deletedAt: true },
       });
       if (!a || (a.deletedAt !== null))
@@ -1059,15 +1075,15 @@ export class FinanceService {
     }
 
     if (entityType === 'EMPLOYEE') {
-      const e = await this.legacyPrisma.employee.findUnique({ // @tenant-reviewed: phase216-helper-read
-        where: { id: entityId, deletedAt: null },
+      const e = await this.prisma.employee.findFirst({ // @tenant-reviewed: phase2171-helper-narrowed (cross-tenant create blocked in pilot mode)
+        where: { id: entityId, deletedAt: null, ...t },
         select: { firstName: true, lastName: true },
       });
       if (!e) throw new NotFoundException(`Employee ${entityId} not found`);
 
       // Try to find the originating applicant via convertedToEmployeeId
-      const originApplicant = await this.legacyPrisma.applicant.findFirst({ // @tenant-reviewed: phase216-helper-read
-        where: { convertedToEmployeeId: entityId },
+      const originApplicant = await this.prisma.applicant.findFirst({ // @tenant-reviewed: phase2171-helper-narrowed (pilot mode constrains by tenantId)
+        where: { convertedToEmployeeId: entityId, ...t },
         select: { id: true },
       });
 
@@ -1080,8 +1096,8 @@ export class FinanceService {
     if (entityType === 'AGENCY') {
       // Agencies are not persons — no applicantId, no lifecycle stage.
       // Verify the agency exists so we don't orphan records on bad IDs.
-      const ag = await this.legacyPrisma.agency.findUnique({ // @tenant-reviewed: phase216-helper-read
-        where: { id: entityId },
+      const ag = await this.prisma.agency.findFirst({ // @tenant-reviewed: phase2171-helper-narrowed (cross-tenant create blocked in pilot mode)
+        where: { id: entityId, ...t },
         select: { id: true, deletedAt: true },
       });
       if (!ag || ag.deletedAt !== null) throw new NotFoundException(`Agency ${entityId} not found`);
@@ -1095,17 +1111,22 @@ export class FinanceService {
 
   /** Resolve a short entity name for notification messages. */
   private async resolveEntityNameForNotif(entityType: string, entityId: string): Promise<string> {
+    // Phase 2.17.1 — narrow by tenant in pilot mode. The callers
+    // (`create` etc.) hand us entityIds from already tenant-filtered
+    // records, but defending in depth keeps a future caller from
+    // leaking a cross-tenant name into a notification body.
+    const t = this.scope().tenantWhere();
     try {
       if (entityType === 'APPLICANT') {
-        const a = await this.legacyPrisma.applicant.findUnique({ where: { id: entityId }, select: { firstName: true, lastName: true } }); // @tenant-reviewed: phase216-helper-read
+        const a = await this.prisma.applicant.findFirst({ where: { id: entityId, ...t }, select: { firstName: true, lastName: true } }); // @tenant-reviewed: phase2171-helper-narrowed
         return a ? `${a.firstName} ${a.lastName}` : 'Unknown';
       }
       if (entityType === 'EMPLOYEE') {
-        const e = await this.legacyPrisma.employee.findUnique({ where: { id: entityId }, select: { firstName: true, lastName: true } }); // @tenant-reviewed: phase216-helper-read
+        const e = await this.prisma.employee.findFirst({ where: { id: entityId, ...t }, select: { firstName: true, lastName: true } }); // @tenant-reviewed: phase2171-helper-narrowed
         return e ? `${e.firstName} ${e.lastName}` : 'Unknown';
       }
       if (entityType === 'AGENCY') {
-        const ag = await this.legacyPrisma.agency.findUnique({ where: { id: entityId }, select: { name: true } }); // @tenant-reviewed: phase216-helper-read
+        const ag = await this.prisma.agency.findFirst({ where: { id: entityId, ...t }, select: { name: true } }); // @tenant-reviewed: phase2171-helper-narrowed
         return ag?.name ?? 'Unknown Agency';
       }
     } catch { /* ignore */ }

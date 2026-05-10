@@ -340,3 +340,36 @@ Combined with finance: **93/93 on real Postgres 16**.
 The documents module pilot is complete (reads + writes +
 downloads). Zero `phase220-excluded-download` annotations
 remain in `src/documents`.
+
+## 20. Phase 2.23 — Vehicles reads-first pilot (shipped)
+
+`src/vehicles` joins the pilot. Reads only; mutations / assignments
+/ maintenance / vehicle documents / storage deferred.
+
+- 24 read sites: `phase223-pilot-scope` (`listVehicles`,
+  `getVehicle`, `findVehicleOrFail` private mutation pre-check,
+  `getDriverHistory` (parent-gated), `listMaintenanceRecords`,
+  `getMaintenanceRecord` migrated `findUnique`→`findFirst`,
+  `getDashboardStats` 7 parallel counts/groups, `exportVehicles`,
+  `fetchMaintenanceForExport`).
+- 7 catalog sites: `phase223-global` (`MaintenanceType`,
+  `Workshop`).
+- 22 mutation sites: `phase223-excluded-mutation`.
+- 5 storage / vehicle-document sites: `phase223-excluded-storage`.
+
+`VehicleDriverAssignment` has no `tenantId` column today;
+`getDriverHistory` is parent-gated by the tenant-scoped
+`findVehicleOrFail`. `Workshop` and `MaintenanceType` are
+tenant-less catalogs.
+
+`registrationNumber` remains globally `@unique`. Per-tenant
+uniqueness is a Phase 3 schema change.
+
+Real-DB run (`SAFE_CLONE` `saas_phase1_fixture`):
+**vehicles-equivalence 11/11 PASS** + **vehicles-isolation 10/10 PASS**.
+
+Cross-module regression: finance 41/41 + documents 52/52 + vehicles
+21/21 = **114/114 cases PASS** on real Postgres 16.
+
+Production default unchanged: `tenantWhere()` collapses to `{}`
+when `TENANT_PRISMA_PILOT_ENABLED=false`.

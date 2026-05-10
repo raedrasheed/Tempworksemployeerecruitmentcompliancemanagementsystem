@@ -517,6 +517,38 @@ download guard). The next phase is a **new module pilot**
 audit-log tenancy phase. See `SAAS_PHASE2_DOCUMENTS_DOWNLOAD_AUDIT.md`
 and `SAAS_PHASE2_DOCUMENTS_DOWNLOAD_SIDE_EFFECT_REVIEW.md`.
 
+## 11.9 Phase 2.23 — Vehicles reads-first pilot (shipped)
+
+`src/vehicles` joins the pilot. Reads only; mutations / driver
+assignments / maintenance / vehicle documents / storage deferred.
+
+- 24 read sites narrowed via
+  `getPilotScope(this.pilot, 'vehicles').tenantWhere()`. Tag
+  `phase223-pilot-scope`.
+- `findVehicleOrFail` (private mutation pre-check) is also
+  tenant-scoped — every mutation method that uses it now
+  inherits an INCLUDED_WITH_GUARD posture for Phase 2.24.
+- `getMaintenanceRecord` migrated `findUnique`→`findFirst` to
+  admit the tenant predicate.
+- `getDriverHistory` is parent-gated (`VehicleDriverAssignment`
+  has no `tenantId` column today).
+- `Workshop` and `MaintenanceType` tagged `phase223-global`
+  (tenant-less catalogs; per-tenant catalog deferred to Phase 3).
+- 22 mutation sites + 5 storage sites stay on `legacyPrisma` with
+  `phase223-excluded-mutation` / `phase223-excluded-storage`.
+- `registrationNumber` remains globally `@unique` (per-tenant
+  uniqueness is a Phase 3 schema change).
+
+Real-DB run: vehicles-equivalence 11/11, vehicles-isolation
+10/10 = **21/21 cases PASS**. Combined with finance + documents:
+**114/114 on real Postgres 16**. See
+`SAAS_PHASE2_VEHICLES_AUDIT.md`,
+`SAAS_PHASE2_VEHICLES_SCOPE_SPLIT.md`,
+`SAAS_PHASE2_VEHICLES_PILOT_RESULTS.md`.
+
+The next phase is **Phase 2.24** (vehicles mutation pilot) OR a
+new module pilot (`workflow`, `applicants`).
+
 ## 12. Hard rules
 
 - **Never enable `TENANT_PRISMA_ENFORCEMENT=true` in production until every P0/P1/P2 module has migrated.** Enabling it with a half-migrated codebase makes the un-migrated services start filtering by tenant when their callers don't expect it.

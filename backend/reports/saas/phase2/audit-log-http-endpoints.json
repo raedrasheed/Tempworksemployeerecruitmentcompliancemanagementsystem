@@ -40,7 +40,7 @@
     {
       "name": "8. byId endpoint returns tenant A row for tenant A",
       "ok": true,
-      "detail": "id=e5ab293e"
+      "detail": "id=b40b350c"
     },
     {
       "name": "9. byId endpoint hides tenant B row from tenant A (NotFound)",
@@ -50,12 +50,12 @@
     {
       "name": "10. stats endpoint counts only tenant A rows",
       "ok": true,
-      "detail": "total=185 entities=10"
+      "detail": "total=196 entities=10"
     },
     {
       "name": "11. retention-preview endpoint returns count only and modifies zero rows",
       "ok": true,
-      "detail": "candidate=3 before=947 after=947"
+      "detail": "candidate=3 before=983 after=983"
     },
     {
       "name": "12. retention-preview endpoint excludes tenant B rows for tenant A",

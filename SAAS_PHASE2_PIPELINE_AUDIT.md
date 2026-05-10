@@ -172,3 +172,97 @@ seeds harness data only — production deployments are not affected.
 - **Workflow tenant scoping**: a future product phase may
   introduce per-tenant workflows (requires schema migration on
   `Workflow.tenantId`).
+
+---
+
+# Phase 2.62 addendum — Pipeline mutation + transition pilot
+
+Extends the Phase 2.61 reads-first pilot to mutation + transition
+parent gates plus audit routing through `TenantAuditLogService`.
+
+## A. Tenant stamping on assignment creation
+`assignCandidate` spreads `scope().tenantData()` into the
+`CandidateWorkflowAssignment.create` data block. With pilot OFF
+`tenantData()` returns `{}` so the create is byte-identical to
+pre-2.62. `assignEmployee` remains a documented `BadRequest`
+(`WORKFLOW.EMPLOYEE_ASSIGN_FORBIDDEN`) by product spec — no
+mutation surface to gate. Tag: `phase262-pipeline-mutation-pilot`.
+
+## B. Parent gates
+New private helpers:
+- `findCandidateForPipelineMutationOrFail(candidateId)` — applicant
+  table with `tenantWhere()`. Wired into `assignCandidate`.
+- `findCandidateAssignmentForMutationOrFail(assignmentId)` —
+  `CandidateWorkflowAssignment.tenantId` filter. Wired into
+  `advanceToStage`.
+- `findProgressForMutationOrFail(progressId)` — `CandidateStageProgress`
+  scoped via `assignment.tenantId`. Wired into `updateProgress`,
+  `toggleProgressFlag`, `submitApproval`.
+
+Tag: `phase262-pipeline-transition-pilot`.
+
+Stage object remains GLOBAL: stage existence + workflow membership
+checks are unchanged. Cross-tenant access fails BEFORE any write
+because the gate runs first.
+
+## C. Audit routing
+All 14 active `legacyPrisma.auditLog.create` sites now flow
+through a private `auditLog(userId, action, entity, entityId,
+changes?)` helper that delegates to `TenantAuditLogService.write`.
+
+- `TENANT_AUDIT_LOG_PILOT_ENABLED=false` (default) ⇒ row carries
+  no `tenantId` — byte-identical to legacy.
+- `TENANT_AUDIT_LOG_PILOT_ENABLED=true` + ALS tenant attached ⇒
+  row carries `tenantId = <active>`.
+- Rejected mutations short-circuit BEFORE `auditLog(...)` is
+  called, so no audit row is emitted for a denied cross-tenant
+  attempt.
+
+Tag: `phase262-pipeline-audit-log-pilot`.
+
+The only remaining `prisma.auditLog.create` reference in the file
+is inside `assignEmployee`'s commented-out body, which never
+executes.
+
+## D. Workflow / Stage config
+Unchanged. Workflow and WorkflowStage have no `tenantId` column;
+a future schema migration is required to tenant-scope workflow
+configuration. Tags:
+`phase262-pipeline-workflow-config-global`,
+`phase262-pipeline-stage-config-global`.
+
+## E. Harness — `pipeline-mutation-isolation` 17/17 PASS
+
+```
+[pipeline-mutation-isolation] 17/17 PASS
+```
+
+1. pilot off assignment reads succeed (legacy-compatible)
+2. pilot A reads: every returned assignment has tenantId=A
+3. assignEmployee remains a documented BadRequest (no mutation surface)
+4. tenant A cannot assign tenant B candidate (NotFound)
+5. employee assign mutation surface forbidden by product
+6. rejected tenant B assign creates no row in tenant A scope
+7. tenant A can advance tenant A assignment (passes tenant gate)
+8. tenant A cannot advance tenant B assignment (NotFound)
+9. rejected tenant B advance leaves progress unchanged
+10. tenant A can toggle flag on tenant A progress
+11. tenant A cannot toggle flag on tenant B progress (NotFound)
+12. tenant A cannot mutate NULL-tenant legacy assignment (NotFound)
+13. audit row tenant A carries tenantId=A (audit pilot ON)
+14. rejected tenant B mutation emits no audit row
+15. workflow CONFIG remains global (same id visible to A and B)
+16. concurrent ALS frames remain isolated for advanceToStage
+17. source-level: every candidateWorkflowAssignment.create site spreads tenantData()
+
+## F. Rollback runbook
+
+```sh
+TENANT_PRISMA_PILOT_ENABLED=false           # disables pilot path
+# OR
+TENANT_PRISMA_PILOT_MODULES=nothing         # opts pipeline out only
+# OR
+TENANT_AUDIT_LOG_PILOT_ENABLED=false        # disables tenantId on audit rows
+```
+
+No data, no schema migration introduced. Configuration-only.

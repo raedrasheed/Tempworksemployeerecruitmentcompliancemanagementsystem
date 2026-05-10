@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, ConflictException, BadRequestException, 
 import { PrismaService } from '../prisma/prisma.service';
 import { PilotPrismaAccessor } from '../saas/prisma/pilot-prisma.accessor';
 import { getPilotScope, PilotScope } from '../saas/prisma/tenant-pilot-scope';
+import { TenantAuditLogService } from '../saas/audit/tenant-audit-log.service';
 import {
   CreateWorkflowDto,
   CreateWorkflowStageDto,
@@ -51,6 +52,7 @@ export class WorkflowService {
   constructor(
     private legacyPrisma: PrismaService,
     private pilot: PilotPrismaAccessor,
+    private tenantAuditLog: TenantAuditLogService,
   ) {}
 
   private get prisma(): PrismaService {
@@ -59,6 +61,60 @@ export class WorkflowService {
 
   private scope(): PilotScope {
     return getPilotScope(this.pilot, 'pipeline');
+  }
+
+  /**
+   * Phase 2.62 — single audit emission hook. Routes every pipeline
+   * audit row through `TenantAuditLogService.write` so the row
+   * carries `tenantId` when the audit pilot is on + an ALS frame is
+   * present. With `TENANT_AUDIT_LOG_PILOT_ENABLED=false` (default)
+   * the row is written with NO `tenantId` — legacy/NULL-tenant
+   * compatible. Rejected mutations short-circuit BEFORE this is
+   * called, so denied attempts never emit audit rows.
+   * Tag: phase262-pipeline-audit-log-pilot.
+   */
+  private async auditLog(
+    userId: string | undefined | null,
+    action: string,
+    entity: string,
+    entityId: string,
+    changes?: Record<string, any>,
+  ): Promise<void> {
+    await this.tenantAuditLog.write({ userId, action, entity, entityId, changes });
+  }
+
+  /** Phase 2.62 — candidate parent gate. With pilot ON +
+   *  audit-logs-allowed module, ensures the subject applicant
+   *  belongs to the active tenant. Legacy mode (`tenantWhere = {}`)
+   *  reduces to a plain by-id check — byte-identical to pre-2.62. */
+  private async findCandidateForPipelineMutationOrFail(candidateId: string) {
+    const t = this.scope().tenantWhere();
+    const c = await this.prisma.applicant.findFirst({ // @tenant-reviewed: phase262-pipeline-mutation-pilot (candidate parent gate)
+      where: { id: candidateId, tier: 'CANDIDATE', deletedAt: null, ...t },
+    });
+    if (!c) throw new NotFoundException({ code: 'APPLICANT.NOT_FOUND', message: 'Candidate not found' });
+    return c;
+  }
+
+  /** Phase 2.62 — assignment parent gate. */
+  private async findCandidateAssignmentForMutationOrFail(assignmentId: string) {
+    const t = this.scope().tenantWhere();
+    const a = await this.prisma.candidateWorkflowAssignment.findFirst({ // @tenant-reviewed: phase262-pipeline-mutation-pilot
+      where: { id: assignmentId, ...t },
+    });
+    if (!a) throw new NotFoundException({ code: 'WORKFLOW.ASSIGNMENT_NOT_FOUND', message: 'Assignment not found' });
+    return a;
+  }
+
+  /** Phase 2.62 — stage-progress parent gate via assignment.tenantId. */
+  private async findProgressForMutationOrFail(progressId: string) {
+    const t = this.scope().tenantWhere();
+    const p = await this.prisma.candidateStageProgress.findFirst({ // @tenant-reviewed: phase262-pipeline-transition-pilot (progress gate via assignment.tenantId)
+      where: { id: progressId, assignment: { ...t } },
+      include: { stage: true },
+    });
+    if (!p) throw new NotFoundException({ code: 'WORKFLOW.PROGRESS_NOT_FOUND', message: 'Progress record not found' });
+    return p;
   }
 
   // ─── Workflows ────────────────────────────────────────────────────────────
@@ -212,17 +268,8 @@ export class WorkflowService {
       return newWorkflow;
     });
 
-    try {
-      await this.prisma.auditLog.create({
-        data: {
-          userId: actorId,
-          action: 'WORKFLOW_COPY',
-          entity: 'Workflow',
-          entityId: created.id,
-          changes: { sourceWorkflowId: sourceId, name: created.name } as any,
-        },
-      });
-    } catch { /* audit never blocks */ }
+    // @tenant-reviewed: phase262-pipeline-audit-log-pilot
+    await this.auditLog(actorId, 'WORKFLOW_COPY', 'Workflow', created.id, { sourceWorkflowId: sourceId, name: created.name });
 
     return this.getWorkflow(created.id);
   }
@@ -244,7 +291,7 @@ export class WorkflowService {
       include: WORKFLOW_INCLUDE,
     });
     if (updatedById) {
-      await this.prisma.auditLog.create({ data: { userId: updatedById, action: 'UPDATE', entity: 'Workflow', entityId: id, changes: dto as any } });
+      await this.auditLog(updatedById, 'UPDATE', 'Workflow', id, dto as any); // @tenant-reviewed: phase262-pipeline-audit-log-pilot
     }
     return updated;
   }
@@ -253,7 +300,7 @@ export class WorkflowService {
     await this.getWorkflow(id);
     const updated = await this.prisma.workflow.update({ where: { id }, data: { status: 'ARCHIVED' as any } });
     if (actorId) {
-      await this.prisma.auditLog.create({ data: { userId: actorId, action: 'ARCHIVE', entity: 'Workflow', entityId: id } });
+      await this.auditLog(actorId, 'ARCHIVE', 'Workflow', id); // @tenant-reviewed: phase262-pipeline-audit-log-pilot
     }
     return updated;
   }
@@ -262,7 +309,7 @@ export class WorkflowService {
     await this.getWorkflow(id);
     await this.prisma.workflow.update({ where: { id }, data: { deletedAt: new Date(), deletedBy: actorId } });
     if (actorId) {
-      await this.prisma.auditLog.create({ data: { userId: actorId, action: 'DELETE', entity: 'Workflow', entityId: id } });
+      await this.auditLog(actorId, 'DELETE', 'Workflow', id); // @tenant-reviewed: phase262-pipeline-audit-log-pilot
     }
     return { message: 'Workflow deleted' };
   }
@@ -295,9 +342,7 @@ export class WorkflowService {
         include: { user: { select: { id: true, firstName: true, lastName: true, email: true } } },
       });
       if (actorId) {
-        await this.prisma.auditLog.create({
-          data: { userId: actorId, action: 'WORKFLOW_ACCESS_GRANTED', entity: 'Workflow', entityId: workflowId, changes: { userId } },
-        });
+        await this.auditLog(actorId, 'WORKFLOW_ACCESS_GRANTED', 'Workflow', workflowId, { userId }); // @tenant-reviewed: phase262-pipeline-audit-log-pilot
       }
       return row;
     } catch (err: any) {
@@ -316,9 +361,7 @@ export class WorkflowService {
       where: { workflowId_userId: { workflowId, userId } },
     });
     if (actorId) {
-      await this.prisma.auditLog.create({
-        data: { userId: actorId, action: 'WORKFLOW_ACCESS_REVOKED', entity: 'Workflow', entityId: workflowId, changes: { userId } },
-      });
+      await this.auditLog(actorId, 'WORKFLOW_ACCESS_REVOKED', 'Workflow', workflowId, { userId }); // @tenant-reviewed: phase262-pipeline-audit-log-pilot
     }
     return { message: 'Access revoked' };
   }
@@ -378,7 +421,7 @@ export class WorkflowService {
       include: WORKFLOW_STAGE_INCLUDE,
     });
     if (actorId) {
-      await this.prisma.auditLog.create({ data: { userId: actorId, action: 'CREATE', entity: 'WorkflowStage', entityId: stage.id, changes: { workflowId } as any } });
+      await this.auditLog(actorId, 'CREATE', 'WorkflowStage', stage.id, { workflowId }); // @tenant-reviewed: phase262-pipeline-audit-log-pilot
     }
     return stage;
   }
@@ -491,11 +534,11 @@ export class WorkflowService {
     actorId?: string,
     actor?: { role?: string },
   ) {
+    // Phase 2.62 — candidate parent gate (tenant predicate when pilot active).
     const [candidate, workflow] = await Promise.all([
-      this.prisma.applicant.findFirst({ where: { id: dto.candidateId, tier: 'CANDIDATE', deletedAt: null } }),
+      this.findCandidateForPipelineMutationOrFail(dto.candidateId), // @tenant-reviewed: phase262-pipeline-mutation-pilot
       this.getWorkflow(dto.workflowId),
     ]);
-    if (!candidate) throw new NotFoundException({ code: 'APPLICANT.NOT_FOUND', message: 'Candidate not found' });
 
     // Business rule: a candidate is on exactly ONE active workflow at
     // any time. Reassignment to a different workflow is an
@@ -527,19 +570,11 @@ export class WorkflowService {
         where: { id: existingOnOther.id },
         data: { status: 'WITHDRAWN' as any, completedAt: new Date() },
       });
-      await this.prisma.auditLog.create({
-        data: {
-          userId: actorId,
-          action: 'WORKFLOW_REASSIGNED',
-          entity: 'CandidateWorkflowAssignment',
-          entityId: existingOnOther.id,
-          changes: {
-            candidateId: dto.candidateId,
-            fromWorkflowId: existingOnOther.workflowId,
-            toWorkflowId: dto.workflowId,
-            reason: dto.notes ?? null,
-          } as any,
-        },
+      await this.auditLog(actorId, 'WORKFLOW_REASSIGNED', 'CandidateWorkflowAssignment', existingOnOther.id, { // @tenant-reviewed: phase262-pipeline-audit-log-pilot
+        candidateId: dto.candidateId,
+        fromWorkflowId: existingOnOther.workflowId,
+        toWorkflowId: dto.workflowId,
+        reason: dto.notes ?? null,
       });
     }
 
@@ -553,12 +588,13 @@ export class WorkflowService {
       .sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0));
     const firstStage = activeStages[0];
 
-    const assignment = await this.prisma.candidateWorkflowAssignment.create({
+    const assignment = await this.prisma.candidateWorkflowAssignment.create({ // @tenant-reviewed: phase262-pipeline-mutation-pilot (tenantData stamping when pilot active)
       data: {
         candidateId: dto.candidateId,
         workflowId: dto.workflowId,
         assignedById: actorId,
         notes: dto.notes,
+        ...this.scope().tenantData(),
         stageProgress: firstStage
           ? {
               create: {
@@ -582,9 +618,7 @@ export class WorkflowService {
     });
 
     if (actorId) {
-      await this.prisma.auditLog.create({
-        data: { userId: actorId, action: 'ASSIGN', entity: 'CandidateWorkflowAssignment', entityId: assignment.id, changes: { candidateId: dto.candidateId, workflowId: dto.workflowId } as any },
-      });
+      await this.auditLog(actorId, 'ASSIGN', 'CandidateWorkflowAssignment', assignment.id, { candidateId: dto.candidateId, workflowId: dto.workflowId }); // @tenant-reviewed: phase262-pipeline-audit-log-pilot
     }
     return assignment;
   }
@@ -665,15 +699,7 @@ export class WorkflowService {
     };
 
     if (actorId) {
-      await this.prisma.auditLog.create({
-        data: {
-          userId: actorId,
-          action: 'WORKFLOW_BULK_ASSIGN',
-          entity: 'Workflow',
-          entityId: dto.workflowId,
-          changes: { ...summary, candidateIds: dto.candidateIds } as any,
-        },
-      });
+      await this.auditLog(actorId, 'WORKFLOW_BULK_ASSIGN', 'Workflow', dto.workflowId, { ...summary, candidateIds: dto.candidateIds }); // @tenant-reviewed: phase262-pipeline-audit-log-pilot
     }
 
     return { summary, results };
@@ -883,9 +909,7 @@ export class WorkflowService {
     if (!assignment) throw new NotFoundException({ code: 'WORKFLOW.ASSIGNMENT_NOT_FOUND', message: 'Assignment not found' });
     await this.prisma.employeeWorkflowAssignment.delete({ where: { id: assignment.id } });
     if (actorId) {
-      await this.prisma.auditLog.create({
-        data: { userId: actorId, action: 'DELETE', entity: 'EmployeeWorkflowAssignment', entityId: assignment.id },
-      });
+      await this.auditLog(actorId, 'DELETE', 'EmployeeWorkflowAssignment', assignment.id); // @tenant-reviewed: phase262-pipeline-audit-log-pilot
     }
     return { message: 'Employee removed from workflow' };
   }
@@ -967,6 +991,8 @@ export class WorkflowService {
   // ─── Stage Progress ───────────────────────────────────────────────────────
 
   async advanceToStage(assignmentId: string, stageId: string, actorId?: string) {
+    // Phase 2.62 — parent gate: cross-tenant assignment ids raise NotFound BEFORE any write.
+    await this.findCandidateAssignmentForMutationOrFail(assignmentId); // @tenant-reviewed: phase262-pipeline-transition-pilot
     const assignment = await this.prisma.candidateWorkflowAssignment.findUnique({
       where: { id: assignmentId },
       include: {
@@ -1077,16 +1103,14 @@ export class WorkflowService {
     });
 
     if (actorId) {
-      await this.prisma.auditLog.create({
-        data: { userId: actorId, action: 'STAGE_ADVANCE', entity: 'CandidateStageProgress', entityId: progress.id, changes: { stageId, stageN: stage.name } as any },
-      });
+      await this.auditLog(actorId, 'STAGE_ADVANCE', 'CandidateStageProgress', progress.id, { stageId, stageN: stage.name }); // @tenant-reviewed: phase262-pipeline-audit-log-pilot
     }
     return progress;
   }
 
   async updateProgress(progressId: string, dto: UpdateWorkflowStageProgressDto, actorId?: string) {
-    const progress = await this.prisma.candidateStageProgress.findUnique({ where: { id: progressId }, include: { stage: true } });
-    if (!progress) throw new NotFoundException({ code: 'WORKFLOW.PROGRESS_NOT_FOUND', message: 'Progress record not found' });
+    // Phase 2.62 — progress parent gate via assignment.tenantId.
+    const progress = await this.findProgressForMutationOrFail(progressId); // @tenant-reviewed: phase262-pipeline-transition-pilot
 
     const data: any = { status: dto.status };
     if (dto.status === 'COMPLETED') data.completedAt = new Date();
@@ -1132,8 +1156,8 @@ export class WorkflowService {
   // ─── Flag ─────────────────────────────────────────────────────────────────
 
   async toggleProgressFlag(progressId: string, flagged: boolean, reason: string | null, actorId?: string) {
-    const progress = await this.prisma.candidateStageProgress.findUnique({ where: { id: progressId } });
-    if (!progress) throw new NotFoundException({ code: 'WORKFLOW.PROGRESS_NOT_FOUND', message: 'Progress record not found' });
+    // Phase 2.62 — progress parent gate via assignment.tenantId.
+    const progress = await this.findProgressForMutationOrFail(progressId); // @tenant-reviewed: phase262-pipeline-transition-pilot
     const updated = await this.prisma.candidateStageProgress.update({
       where: { id: progressId },
       data: {
@@ -1141,23 +1165,17 @@ export class WorkflowService {
         flagReason: flagged ? (reason ?? progress.flagReason ?? null) : null,
       },
     });
-    try {
-      await this.prisma.auditLog.create({
-        data: {
-          userId: actorId,
-          action: flagged ? 'STAGE_PROGRESS_FLAG' : 'STAGE_PROGRESS_UNFLAG',
-          entityType: 'WORKFLOW_STAGE_PROGRESS',
-          entityId: progressId,
-          details: JSON.stringify({ flagged, reason: reason ?? null }),
-        } as any,
-      });
-    } catch { /* audit never blocks */ }
+    // @tenant-reviewed: phase262-pipeline-audit-log-pilot
+    await this.auditLog(actorId, flagged ? 'STAGE_PROGRESS_FLAG' : 'STAGE_PROGRESS_UNFLAG',
+      'WORKFLOW_STAGE_PROGRESS', progressId, { flagged, reason: reason ?? null });
     return updated;
   }
 
   // ─── Approvals ────────────────────────────────────────────────────────────
 
   async submitApproval(progressId: string, dto: CreateStageApprovalDto, actorId?: string) {
+    // Phase 2.62 — progress parent gate via assignment.tenantId.
+    await this.findProgressForMutationOrFail(progressId); // @tenant-reviewed: phase262-pipeline-transition-pilot
     const progress = await this.prisma.candidateStageProgress.findUnique({
       where: { id: progressId },
       include: { stage: { include: { assignedUsers: true } } },

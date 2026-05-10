@@ -25,6 +25,7 @@ import { TenantPrismaService } from '../../../src/saas/prisma/tenant-prisma.serv
 import { PilotPrismaAccessor } from '../../../src/saas/prisma/pilot-prisma.accessor';
 import { FeatureFlagsService } from '../../../src/saas/feature-flags/feature-flags.service';
 import { WorkflowService } from '../../../src/pipeline/pipeline.service';
+import { TenantAuditLogService } from '../../../src/saas/audit/tenant-audit-log.service';
 import { TenantContext, withRequestContext, newRequestId } from '../../../src/saas/context/als';
 import { isModuleAllowed, getPilotScope } from '../../../src/saas/prisma/tenant-pilot-scope';
 
@@ -50,8 +51,8 @@ async function withFlags<T>(env: Record<string, string | undefined>, fn: () => P
   }
   try { return await fn(); } finally { process.env = prev; }
 }
-function makeService(prisma: PrismaService, pilot: PilotPrismaAccessor): WorkflowService {
-  return new WorkflowService(prisma, pilot);
+function makeService(prisma: PrismaService, pilot: PilotPrismaAccessor, ff: FeatureFlagsService): WorkflowService {
+  return new WorkflowService(prisma, pilot, new TenantAuditLogService(prisma, ff));
 }
 async function applyFixture(url: string): Promise<void> {
   const sql = await fs.readFile(FIXTURE, 'utf8');
@@ -81,7 +82,7 @@ async function main(): Promise<void> {
   await withFlags({ TENANT_PRISMA_PILOT_ENABLED: 'false' }, async () => {
     const prisma = new PrismaService(); const ff = new FeatureFlagsService();
     const pilot = new PilotPrismaAccessor(prisma, new TenantPrismaService(prisma, ff), ff);
-    const svc = makeService(prisma, pilot);
+    const svc = makeService(prisma, pilot, ff);
     try {
       const list = await svc.listWorkflows();
       const detail: any = await svc.getWorkflow(WORKFLOW_ID);
@@ -97,7 +98,7 @@ async function main(): Promise<void> {
   await withFlags({ TENANT_PRISMA_PILOT_ENABLED: 'true', TENANT_PRISMA_PILOT_MODULES: 'pipeline' }, async () => {
     const prisma = new PrismaService(); const ff = new FeatureFlagsService();
     const pilot = new PilotPrismaAccessor(prisma, new TenantPrismaService(prisma, ff), ff);
-    const svc = makeService(prisma, pilot);
+    const svc = makeService(prisma, pilot, ff);
     try {
       const cands = await withRequestContext({ requestId: newRequestId() }, async () => {
         TenantContext.attach({ id: tA, slug: 'a', name: 'A', status: 'ACTIVE', region: 'eu' });
@@ -113,7 +114,7 @@ async function main(): Promise<void> {
   await withFlags({ TENANT_PRISMA_PILOT_ENABLED: 'true', TENANT_PRISMA_PILOT_MODULES: 'pipeline' }, async () => {
     const prisma = new PrismaService(); const ff = new FeatureFlagsService();
     const pilot = new PilotPrismaAccessor(prisma, new TenantPrismaService(prisma, ff), ff);
-    const svc = makeService(prisma, pilot);
+    const svc = makeService(prisma, pilot, ff);
     try {
       const r: any = await withRequestContext({ requestId: newRequestId() }, async () => {
         TenantContext.attach({ id: tA, slug: 'a', name: 'A', status: 'ACTIVE', region: 'eu' });
@@ -127,7 +128,7 @@ async function main(): Promise<void> {
   await withFlags({ TENANT_PRISMA_PILOT_ENABLED: 'false' }, async () => {
     const prisma = new PrismaService(); const ff = new FeatureFlagsService();
     const pilot = new PilotPrismaAccessor(prisma, new TenantPrismaService(prisma, ff), ff);
-    const svc = makeService(prisma, pilot);
+    const svc = makeService(prisma, pilot, ff);
     try {
       const r: any = await svc.getWorkflow(WORKFLOW_ID);
       const ok = Array.isArray(r.stages) && r.stages.every((s: any) => s.id && s.name && typeof s.order === 'number');
@@ -139,7 +140,7 @@ async function main(): Promise<void> {
   await withFlags({ TENANT_PRISMA_PILOT_ENABLED: 'true', TENANT_PRISMA_PILOT_MODULES: 'pipeline' }, async () => {
     const prisma = new PrismaService(); const ff = new FeatureFlagsService();
     const pilot = new PilotPrismaAccessor(prisma, new TenantPrismaService(prisma, ff), ff);
-    const svc = makeService(prisma, pilot);
+    const svc = makeService(prisma, pilot, ff);
     try {
       const stats: any = await withRequestContext({ requestId: newRequestId() }, async () => {
         TenantContext.attach({ id: tA, slug: 'a', name: 'A', status: 'ACTIVE', region: 'eu' });
@@ -154,7 +155,7 @@ async function main(): Promise<void> {
   await withFlags({ TENANT_PRISMA_PILOT_ENABLED: 'true', TENANT_PRISMA_PILOT_MODULES: 'pipeline' }, async () => {
     const prisma = new PrismaService(); const ff = new FeatureFlagsService();
     const pilot = new PilotPrismaAccessor(prisma, new TenantPrismaService(prisma, ff), ff);
-    const svc = makeService(prisma, pilot);
+    const svc = makeService(prisma, pilot, ff);
     try {
       const r: any = await withRequestContext({ requestId: newRequestId() }, async () => {
         TenantContext.attach({ id: tA, slug: 'a', name: 'A', status: 'ACTIVE', region: 'eu' });

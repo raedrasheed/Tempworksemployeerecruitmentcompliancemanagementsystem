@@ -25,6 +25,7 @@ import { TenantPrismaService } from '../../../src/saas/prisma/tenant-prisma.serv
 import { PilotPrismaAccessor } from '../../../src/saas/prisma/pilot-prisma.accessor';
 import { FeatureFlagsService } from '../../../src/saas/feature-flags/feature-flags.service';
 import { WorkflowService } from '../../../src/pipeline/pipeline.service';
+import { TenantAuditLogService } from '../../../src/saas/audit/tenant-audit-log.service';
 import { TenantContext, withRequestContext, newRequestId } from '../../../src/saas/context/als';
 
 autoLoadEnv(__filename);
@@ -50,8 +51,8 @@ async function withFlags<T>(env: Record<string, string | undefined>, fn: () => P
   }
   try { return await fn(); } finally { process.env = prev; }
 }
-function makeService(prisma: PrismaService, pilot: PilotPrismaAccessor): WorkflowService {
-  return new WorkflowService(prisma, pilot);
+function makeService(prisma: PrismaService, pilot: PilotPrismaAccessor, ff: FeatureFlagsService): WorkflowService {
+  return new WorkflowService(prisma, pilot, new TenantAuditLogService(prisma, ff));
 }
 function attach(tid: string, slug: string) {
   TenantContext.attach({ id: tid, slug, name: slug.toUpperCase(), status: 'ACTIVE', region: 'eu' });
@@ -84,7 +85,7 @@ async function main(): Promise<void> {
   await withFlags(PILOT, async () => {
     const prisma = new PrismaService(); const ff = new FeatureFlagsService();
     const pilot = new PilotPrismaAccessor(prisma, new TenantPrismaService(prisma, ff), ff);
-    const svc = makeService(prisma, pilot);
+    const svc = makeService(prisma, pilot, ff);
     try {
       const cands: any[] = await withRequestContext({ requestId: newRequestId() }, async () => {
         attach(tA, 'a'); return svc.getWorkflowCandidates(WORKFLOW_ID);
@@ -102,7 +103,7 @@ async function main(): Promise<void> {
   await withFlags(PILOT, async () => {
     const prisma = new PrismaService(); const ff = new FeatureFlagsService();
     const pilot = new PilotPrismaAccessor(prisma, new TenantPrismaService(prisma, ff), ff);
-    const svc = makeService(prisma, pilot);
+    const svc = makeService(prisma, pilot, ff);
     try {
       const cands: any[] = await withRequestContext({ requestId: newRequestId() }, async () => {
         attach(tB, 'b'); return svc.getWorkflowCandidates(WORKFLOW_ID);
@@ -116,7 +117,7 @@ async function main(): Promise<void> {
   await withFlags(PILOT, async () => {
     const prisma = new PrismaService(); const ff = new FeatureFlagsService();
     const pilot = new PilotPrismaAccessor(prisma, new TenantPrismaService(prisma, ff), ff);
-    const svc = makeService(prisma, pilot);
+    const svc = makeService(prisma, pilot, ff);
     try {
       const sA: any = await withRequestContext({ requestId: newRequestId() }, async () => { attach(tA, 'a'); return svc.getWorkflowStats(WORKFLOW_ID); });
       const sB: any = await withRequestContext({ requestId: newRequestId() }, async () => { attach(tB, 'b'); return svc.getWorkflowStats(WORKFLOW_ID); });
@@ -133,7 +134,7 @@ async function main(): Promise<void> {
   await withFlags(PILOT, async () => {
     const prisma = new PrismaService(); const ff = new FeatureFlagsService();
     const pilot = new PilotPrismaAccessor(prisma, new TenantPrismaService(prisma, ff), ff);
-    const svc = makeService(prisma, pilot);
+    const svc = makeService(prisma, pilot, ff);
     try {
       const r: any = await withRequestContext({ requestId: newRequestId() }, async () => {
         attach(tA, 'a'); return svc.getWorkflowBoardView(WORKFLOW_ID);
@@ -148,7 +149,7 @@ async function main(): Promise<void> {
   await withFlags(PILOT, async () => {
     const prisma = new PrismaService(); const ff = new FeatureFlagsService();
     const pilot = new PilotPrismaAccessor(prisma, new TenantPrismaService(prisma, ff), ff);
-    const svc = makeService(prisma, pilot);
+    const svc = makeService(prisma, pilot, ff);
     try {
       const [a, b]: any[] = await Promise.all([
         withRequestContext({ requestId: newRequestId() }, async () => { attach(tA, 'a'); return svc.getWorkflowCandidates(WORKFLOW_ID); }),
@@ -164,7 +165,7 @@ async function main(): Promise<void> {
   await withFlags({ TENANT_PRISMA_PILOT_ENABLED: 'true', TENANT_PRISMA_PILOT_MODULES: 'nothing' }, async () => {
     const prisma = new PrismaService(); const ff = new FeatureFlagsService();
     const pilot = new PilotPrismaAccessor(prisma, new TenantPrismaService(prisma, ff), ff);
-    const svc = makeService(prisma, pilot);
+    const svc = makeService(prisma, pilot, ff);
     try {
       const cands: any[] = await withRequestContext({ requestId: newRequestId() }, async () => {
         attach(tA, 'a'); return svc.getWorkflowCandidates(WORKFLOW_ID);
@@ -180,7 +181,7 @@ async function main(): Promise<void> {
   await withFlags(PILOT, async () => {
     const prisma = new PrismaService(); const ff = new FeatureFlagsService();
     const pilot = new PilotPrismaAccessor(prisma, new TenantPrismaService(prisma, ff), ff);
-    const svc = makeService(prisma, pilot);
+    const svc = makeService(prisma, pilot, ff);
     try {
       const r: any = await withRequestContext({ requestId: newRequestId() }, async () => {
         attach(tA, 'a'); return svc.getWorkflow(WORKFLOW_ID);
@@ -197,11 +198,14 @@ async function main(): Promise<void> {
   // We're checking the service uses `this.prisma.X` (the pilot getter) for global tables —
   // configuration paths still flow through pilot.client(), which returns legacy when flag off.
   const hasGlobalCreate = /this\.prisma\.workflow\.create\(/.test(stripped);
-  const hasAuditCreate = /this\.prisma\.auditLog\.create\(/.test(stripped);
-  out.push({ name: '11. mutation paths deferred (createWorkflow still uses pilot.prisma; no separate mutation pilot yet)',
+  // Phase 2.62: audit emission routes through TenantAuditLogService via the
+  // private this.auditLog(...) helper.
+  const usesAuditHelper = /this\.auditLog\s*\(/.test(stripped) && /this\.tenantAuditLog\.write\s*\(/.test(stripped);
+  const noRawAuditCreate = !/this\.prisma\.auditLog\.create\s*\(/.test(stripped);
+  out.push({ name: '11. mutation paths still flow through pilot.prisma (createWorkflow present)',
     ok: hasGlobalCreate, detail: hasGlobalCreate ? 'createWorkflow present' : 'NOT FOUND' });
-  out.push({ name: '12. audit emission deferred (auditLog.create stays on pilot.prisma; no TenantAuditLogService routing yet)',
-    ok: hasAuditCreate, detail: hasAuditCreate ? 'auditLog.create present' : 'NOT FOUND' });
+  out.push({ name: '12. audit emission routes through TenantAuditLogService (Phase 2.62)',
+    ok: usesAuditHelper && noRawAuditCreate, detail: `helper=${usesAuditHelper} noRawCreate=${noRawAuditCreate}` });
 
   await fs.mkdir(OUT_DIR, { recursive: true });
   const passed = out.filter((c) => c.ok).length;

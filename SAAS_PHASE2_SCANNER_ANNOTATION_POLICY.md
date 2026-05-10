@@ -159,7 +159,12 @@ and counted against the strict-mode threshold.
 | `phase261-pipeline-mutation-deferred` | Pipeline mutation parent gates / tenantId stamping deferred to a follow-up phase. CRUD continues to use the legacy path via `pilot.client()` (no-op when flag off). | `src/pipeline/**` | 2.61 |
 | `phase261-pipeline-audit-log` | `legacyPrisma.auditLog.create` sites in `WorkflowService` continue to flow through the pilot client; routing through `TenantAuditLogService` deferred to the mutation-pilot phase. | `src/pipeline/**` | 2.61 |
 | `phase261-pipeline-export-deferred` | Reserved for any future pipeline export endpoint that defers tenant scoping. No export exists today. | `src/pipeline/**` | 2.61 |
-| `phase261-pipeline-transition-deferred` | Stage transition flow (`advanceToStage`, `approveStage`, etc.) keeps legacy behaviour; tenant parent gates deferred. | `src/pipeline/**` | 2.61 |
+| `phase261-pipeline-transition-deferred` | Stage transition flow (`advanceToStage`, `approveStage`, etc.) keeps legacy behaviour; tenant parent gates deferred. **Superseded by Phase 2.62.** | `src/pipeline/**` | 2.61 |
+| `phase262-pipeline-mutation-pilot` | `assignCandidate` stamps `tenantId` via `scope().tenantData()`; candidate parent gate (`findCandidateForPipelineMutationOrFail`) refuses cross-tenant candidate ids BEFORE write. | `src/pipeline/**` | 2.62 |
+| `phase262-pipeline-transition-pilot` | Transition methods (`advanceToStage`, `updateProgress`, `toggleProgressFlag`, `submitApproval`) gate through assignment / progress parent helpers that refuse cross-tenant ids. | `src/pipeline/**` | 2.62 |
+| `phase262-pipeline-audit-log-pilot` | 14 `legacyPrisma.auditLog.create` sites now flow through a private `auditLog(...)` helper that delegates to `TenantAuditLogService.write`. With audit pilot ON + ALS tenant, rows carry `tenantId`. | `src/pipeline/**` | 2.62 |
+| `phase262-pipeline-workflow-config-global` | Workflow CRUD remains global — no `tenantId` column on `Workflow`. Documented; requires future schema migration. | `src/pipeline/**` | 2.62 |
+| `phase262-pipeline-stage-config-global` | WorkflowStage CRUD remains global — stage rows owned by global workflows. Documented; requires future schema migration. | `src/pipeline/**` | 2.62 |
 | `tenant-safe-report-runtime` | Reports engine uses `$queryRawUnsafe` with positional parameters and a registry-validated SQL string. | `src/reports/reports.service.ts` | 2.1 |
 
 ## 3. When annotations are allowed

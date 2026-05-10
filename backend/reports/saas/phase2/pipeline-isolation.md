@@ -12,5 +12,5 @@
 - PASS — 8. concurrent ALS frames stay isolated for getWorkflowCandidates — A=1 B=1
 - PASS — 9. allow-list "nothing" ⇒ legacy union (B + NULL visible) — B=true NULL=true
 - PASS — 10. workflow CONFIG (getWorkflow) remains global — tenant A sees the global workflow id — id=00000000
-- PASS — 11. mutation paths deferred (createWorkflow still uses pilot.prisma; no separate mutation pilot yet) — createWorkflow present
-- PASS — 12. audit emission deferred (auditLog.create stays on pilot.prisma; no TenantAuditLogService routing yet) — auditLog.create present
+- PASS — 11. mutation paths still flow through pilot.prisma (createWorkflow present) — createWorkflow present
+- PASS — 12. audit emission routes through TenantAuditLogService (Phase 2.62) — helper=true noRawCreate=true

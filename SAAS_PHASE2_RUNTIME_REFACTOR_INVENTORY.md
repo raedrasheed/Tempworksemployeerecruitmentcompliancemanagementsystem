@@ -1074,3 +1074,21 @@ Tags: `phase261-pipeline-pilot-scope`,
 
 Real-DB: `pipeline-equivalence` 12/12, `pipeline-isolation` 12/12.
 Cumulative: **788/788**.
+
+## 59 — Pipeline mutation + transition pilot (Phase 2.62)
+
+Extends Phase 2.61 reads-first to safe mutation coverage. Tenant
+stamping on `CandidateWorkflowAssignment.create` via
+`scope().tenantData()`. Parent gates for candidate / assignment /
+progress paths. Audit routing through `TenantAuditLogService.write`
+via a single `auditLog(...)` helper. `assignEmployee` remains a
+product-level `BadRequest`. Workflow / WorkflowStage CRUD stays
+global until a schema migration adds `Workflow.tenantId`.
+
+Tags: `phase262-pipeline-mutation-pilot`,
+`phase262-pipeline-transition-pilot`,
+`phase262-pipeline-audit-log-pilot`,
+`phase262-pipeline-workflow-config-global`,
+`phase262-pipeline-stage-config-global`.
+
+Real-DB harness: 17/17. Cumulative: **805/805**.

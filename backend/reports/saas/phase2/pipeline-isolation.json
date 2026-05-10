@@ -53,14 +53,14 @@
       "detail": "id=00000000"
     },
     {
-      "name": "11. mutation paths deferred (createWorkflow still uses pilot.prisma; no separate mutation pilot yet)",
+      "name": "11. mutation paths still flow through pilot.prisma (createWorkflow present)",
       "ok": true,
       "detail": "createWorkflow present"
     },
     {
-      "name": "12. audit emission deferred (auditLog.create stays on pilot.prisma; no TenantAuditLogService routing yet)",
+      "name": "12. audit emission routes through TenantAuditLogService (Phase 2.62)",
       "ok": true,
-      "detail": "auditLog.create present"
+      "detail": "helper=true noRawCreate=true"
     }
   ]
 }

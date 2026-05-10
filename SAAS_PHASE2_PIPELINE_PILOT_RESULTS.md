@@ -48,3 +48,27 @@ on `CandidateWorkflowAssignment.create` and
 `TenantAuditLogService.write`. Workflow / Stage CRUD remains
 global until product approves a schema migration to add
 `Workflow.tenantId`.
+
+---
+
+# Phase 2.62 results — Pipeline mutation + transition pilot
+
+```
+[pipeline-mutation-isolation] 17/17 PASS
+[pipeline-equivalence]        12/12 PASS  (regression)
+[pipeline-isolation]          12/12 PASS  (regression — case 12 updated to assert audit routing)
+```
+
+Cumulative regression chain: **805/805 PASS** (was 788/788 after 2.61).
+
+## Recommended next phase
+
+**2.63 — Workflow tenant scoping (schema migration).** Add
+`Workflow.tenantId` (and propagate to `WorkflowStage` via the
+workflow FK), backfill existing global workflows to a default
+tenant or "platform" sentinel, then tenant-scope listWorkflows /
+getWorkflow / createWorkflow / updateWorkflow / archiveWorkflow /
+deleteWorkflow / addStage / updateStage / deleteStage /
+reorderStages / addAccessUser / removeAccessUser. Requires
+explicit product decision on backfill strategy because workflows
+are shared today.

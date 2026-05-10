@@ -1,6 +1,6 @@
 # Phase 2.8 — Compliance Equivalence
 
-Generated: 2026-05-10T21:07:33.072Z
+Generated: 2026-05-10T21:33:06.020Z
 Environment: SAFE_CLONE (localhost + fixture pattern (db=saas_phase1_fixture))
 Tenant A: `11111111-1111-1111-1111-111111111111` · employee: `eeeeeeea-aaaa-aaaa-aaaa-aaaaaaaaaaaa`
 

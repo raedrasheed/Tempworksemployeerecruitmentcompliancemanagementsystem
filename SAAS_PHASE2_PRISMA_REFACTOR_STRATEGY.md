@@ -1317,3 +1317,26 @@ follow-up phase. Tags: `phase261-pipeline-pilot-scope`,
 
 Real-DB: `pipeline-equivalence` 12/12 + `pipeline-isolation`
 12/12. Cumulative: **788/788**.
+
+## 11.35 — Phase 2.62: Pipeline mutation + transition pilot
+
+`assignCandidate` stamps `tenantId` via `scope().tenantData()` on
+the `CandidateWorkflowAssignment.create` data block. Parent gates
+added for assignment + progress paths
+(`findCandidateForPipelineMutationOrFail`,
+`findCandidateAssignmentForMutationOrFail`,
+`findProgressForMutationOrFail`) wired into `assignCandidate`,
+`advanceToStage`, `updateProgress`, `toggleProgressFlag`,
+`submitApproval`. All 14 active `auditLog.create` sites now route
+through a private `auditLog(...)` helper that delegates to
+`TenantAuditLogService.write`. Workflow / WorkflowStage CRUD
+remains global (no `tenantId` column).
+
+Tags: `phase262-pipeline-mutation-pilot`,
+`phase262-pipeline-transition-pilot`,
+`phase262-pipeline-audit-log-pilot`,
+`phase262-pipeline-workflow-config-global`,
+`phase262-pipeline-stage-config-global`.
+
+Real-DB: `pipeline-mutation-isolation` 17/17 + 2.61 sentinels
+green. Cumulative: **805/805**.

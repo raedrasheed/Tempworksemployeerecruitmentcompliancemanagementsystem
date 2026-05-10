@@ -102,6 +102,8 @@
     "saas:phase249-attendance-lock-period-isolation": "ts-node scripts/saas/phase2/attendance-lock-period-isolation.ts",
     "saas:phase250-attendance-audit-backfill":         "ts-node scripts/saas/phase2/attendance-audit-backfill.ts",
     "saas:phase250-attendance-audit-backfill-harness": "ts-node scripts/saas/phase2/attendance-audit-backfill-harness.ts",
+    "saas:phase251-cross-module-audit-backfill":         "ts-node scripts/saas/phase2/cross-module-audit-backfill.ts",
+    "saas:phase251-cross-module-audit-backfill-harness": "ts-node scripts/saas/phase2/cross-module-audit-backfill-harness.ts",
     "saas:phase2-job-ads-equivalence": "ts-node scripts/saas/phase2/job-ads-equivalence.ts",
     "saas:phase2-job-ads-isolation": "ts-node scripts/saas/phase2/job-ads-isolation.ts",
     "saas:phase2-notifications-equivalence": "ts-node scripts/saas/phase2/notifications-equivalence.ts",

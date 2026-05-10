@@ -1122,3 +1122,20 @@ Tag: `phase250-attendance-audit-backfill`. Raw SQL in `scripts/`
 (not in `src/`), so the `saas:scan:raw-sql` baseline is unchanged.
 
 Real-DB harness: 13/13. Cumulative: **570/570**.
+
+## 11.24 — Phase 2.51: Cross-module audit-log tenant backfill
+
+Generalises the Phase 2.50 attendance template to six target
+entities — `Document`, `FinancialRecord`, `WorkPermit`, `Visa`,
+`ComplianceAlert`, `Notification`. Each target table carries
+`tenantId` directly (Phase 2.3+), so derivation is a direct join
+with no ambiguity.
+
+Apply double-gated by `CROSS_MODULE_AUDIT_BACKFILL_APPLY=true` AND
+SAFE_CLONE/SAFE_STAGING classification. Per-entity UPDATE inside a
+single transaction; idempotent.
+
+Tag: `phase251-cross-module-audit-backfill`. Raw SQL lives in
+`scripts/`, so the `saas:scan:raw-sql` baseline is unchanged.
+
+Real-DB harness: 20/20. Cumulative: **590/590**.

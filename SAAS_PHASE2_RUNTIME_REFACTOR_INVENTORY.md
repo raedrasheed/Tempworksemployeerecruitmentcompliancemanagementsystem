@@ -912,3 +912,17 @@ entityId joins). Idempotent. Other-entity audit rows untouched.
 Tag: `phase250-attendance-audit-backfill`.
 
 Real-DB harness: 13/13. Cumulative: **570/570**.
+
+## 48 — Cross-module audit-log tenant backfill (Phase 2.51)
+
+Data-only one-shot. Backfills NULL-tenant `audit_logs.tenantId`
+across six target entities (`Document`, `FinancialRecord`,
+`WorkPermit`, `Visa`, `ComplianceAlert`, `Notification`) by direct
+join through each target table's denormalised `tenantId` column.
+Dry-run-first; apply requires both
+`CROSS_MODULE_AUDIT_BACKFILL_APPLY=true` AND a SAFE classification.
+Per-entity UPDATE inside a single transaction.
+
+Tag: `phase251-cross-module-audit-backfill`.
+
+Real-DB harness: 20/20. Cumulative: **590/590**.

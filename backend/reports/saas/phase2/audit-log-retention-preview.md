@@ -8,7 +8,7 @@
 - PASS — 4. tenant B preview counts only tenant B rows — count=2
 - PASS — 5. NULL-tenant rows excluded from tenant preview; included in NULL preview — nullCount=1 A=3
 - PASS — 6. date threshold respected (large days ⇒ zero candidates) — days=10000 count=0
-- PASS — 7. no rows are deleted or modified (snapshot before/after equal) — before=772 after=772
+- PASS — 7. no rows are deleted or modified (snapshot before/after equal) — before=838 after=838
 - PASS — 8. preview is idempotent — a=3 b=3
 - PASS — 9. retention days env fallback works for invalid values (defaults to 365) — days=365
 - PASS — 10. retention preview source contains no destructive Prisma calls — noDestructive=true hasCount=true

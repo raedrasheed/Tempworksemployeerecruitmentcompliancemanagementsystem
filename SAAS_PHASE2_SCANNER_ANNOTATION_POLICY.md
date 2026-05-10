@@ -147,6 +147,9 @@ and counted against the strict-mode threshold.
 | `phase257-audit-log-http-read` | `TenantAuditController` GET routes (`/admin/tenant-audit{,/:id,/stats}`) and `LogsService.findOneForActor`. Reuse Phase 2.56 RBAC binding inside the service. | `src/logs/**` | 2.57 |
 | `phase257-audit-log-http-retention-preview` | `GET /admin/tenant-audit/retention-preview` exposes `LogsService.previewRetentionForActor`, which wraps `TenantAuditLogService.previewRetention` (count-only). | `src/logs/**` | 2.57 |
 | `phase257-audit-log-http-no-destructive-routes` | Source-level invariant: `TenantAuditController` exposes only GET routes. Phase 2.53/2.54 retention apply / hard-delete remain script-only. | `src/logs/**` | 2.57 |
+| `phase258-audit-log-export-csv` | `GET /admin/tenant-audit/export.csv` and `LogsService.exportCsvForActor` — RFC-4180-style CSV body, CRLF line endings, fixed safe column list. Reuses Phase 2.56 RBAC binding. | `src/logs/**` | 2.58 |
+| `phase258-audit-log-export-row-cap` | `AUDIT_LOG_EXPORT_MAX_ROWS` resolution (default 50000; invalid ⇒ 50000). Response headers `X-Audit-Export-Row-Count` / `Max-Rows` / `Capped`. | `src/logs/**` | 2.58 |
+| `phase258-audit-log-export-no-destructive` | Source-level invariant: the CSV export touches `prisma.auditLog.findMany` only — no destructive Prisma call sites and no imports of Phase 2.53/2.54 scripts. | `src/logs/**` | 2.58 |
 | `tenant-safe-report-runtime` | Reports engine uses `$queryRawUnsafe` with positional parameters and a registry-validated SQL string. | `src/reports/reports.service.ts` | 2.1 |
 
 ## 3. When annotations are allowed

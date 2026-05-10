@@ -190,3 +190,13 @@ under `/admin/tenant-audit/*`. It REUSES this phase's RBAC contract
 unchanged — `assertAuditReadAccess` + `auditTenantWhereForActor` still
 fire from inside the service. See
 `SAAS_PHASE2_AUDIT_LOG_HTTP_ENDPOINTS.md`.
+
+---
+
+# Phase 2.58 cross-link — CSV export endpoint
+
+`LogsService.exportCsvForActor` is the third caller of
+`assertAuditReadAccess` + `auditTenantWhereForActor` (after
+`findAll` / `getStats` and `findOneForActor` /
+`previewRetentionForActor`). Same RBAC binding; adds a row cap.
+See `SAAS_PHASE2_AUDIT_LOG_EXPORT_CSV.md`.

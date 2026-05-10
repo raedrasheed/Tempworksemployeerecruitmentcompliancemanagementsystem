@@ -188,3 +188,16 @@ tenant-scoped export, reusing the same RBAC binding. Out of scope:
 hard-delete export bundles (must remain script-only) and full-row
 backups (already covered by `pg_dump`). The export endpoint must
 have a row cap to prevent Excel-DoS.
+
+---
+
+# Phase 2.58 cross-link — CSV export endpoint
+
+`GET /admin/tenant-audit/export.csv` joins the controller as a
+fifth read-only route. Reuses the Phase 2.56 RBAC binding and
+adds a hard row cap (`AUDIT_LOG_EXPORT_MAX_ROWS`, default 50000).
+See `SAAS_PHASE2_AUDIT_LOG_EXPORT_CSV.md`.
+
+Tags: `phase258-audit-log-export-csv`,
+`phase258-audit-log-export-row-cap`,
+`phase258-audit-log-export-no-destructive`.

@@ -1011,3 +1011,18 @@ Tags: `phase257-audit-log-http-read`,
 `phase257-audit-log-http-no-destructive-routes`.
 
 Real-DB harness: 18/18. Cumulative: **713/713**.
+
+## 55 — Tenant-scoped audit CSV export (Phase 2.58)
+
+Adds a fifth read-only route under `/admin/tenant-audit/export.csv`
+that streams an RFC-4180-style CSV with `Content-Type: text/csv;
+charset=utf-8`, attachment disposition, and a hard row cap
+(`AUDIT_LOG_EXPORT_MAX_ROWS`, default 50000). Reuses the Phase
+2.56 RBAC binding inside the service. The `changes` jsonb column
+is intentionally omitted to keep the CSV small and well-formed.
+
+Tags: `phase258-audit-log-export-csv`,
+`phase258-audit-log-export-row-cap`,
+`phase258-audit-log-export-no-destructive`.
+
+Real-DB harness: 17/17. Cumulative: **730/730**.

@@ -282,4 +282,95 @@ export class LogsService {
     const tenantId = s.active ? s.tenantId : null;
     return this.tenantAuditLog.previewRetention({ tenantId, days }); // @tenant-reviewed: phase257-audit-log-http-retention-preview
   }
+
+  /**
+   * Phase 2.58 — tenant-scoped CSV export. Read-only by contract;
+   * never mutates audit_logs. Reuses Phase 2.56's RBAC tenant
+   * binding (`assertAuditReadAccess` + `auditTenantWhereForActor`)
+   * so cross-tenant rows cannot be exported, NULL-tenant rows are
+   * excluded for tenant-scoped actors, and global export requires
+   * the explicit FULL_ACCESS + `AUDIT_LOG_GLOBAL_READ_ENABLED=true`
+   * gate.
+   *
+   * Row cap: `AUDIT_LOG_EXPORT_MAX_ROWS` (default 50000; invalid
+   * non-positive values fall back to 50000). The query takes the
+   * top N rows by `createdAt desc` so the export is always finite.
+   *
+   * Tag: phase258-audit-log-export-csv.
+   */
+  async exportCsvForActor(
+    filters: {
+      entity?: string;
+      entityId?: string;
+      action?: string;
+      userId?: string;
+      fromDate?: string;
+      toDate?: string;
+    } = {},
+    scope?: CallerScope,
+  ): Promise<{ filename: string; contentType: string; body: string; rowCount: number; capped: boolean; maxRows: number }> {
+    this.assertAuditReadAccess(scope); // @tenant-reviewed: phase256-audit-log-rbac-tenant-binding
+    const tenantWhere = this.auditTenantWhereForActor(scope); // @tenant-reviewed: phase256-audit-log-actor-scope
+    const where: any = { deletedAt: null, ...tenantWhere };
+    if (scope) {
+      const visibleIds = await this.resolveVisibleUserIds(scope);
+      if (visibleIds !== undefined) where.userId = { in: visibleIds };
+    }
+    if (filters.entity) where.entity = filters.entity;
+    if (filters.entityId) where.entityId = filters.entityId;
+    if (filters.action) where.action = { contains: filters.action, mode: 'insensitive' };
+    if (filters.userId) where.userId = filters.userId;
+    if (filters.fromDate || filters.toDate) {
+      where.createdAt = {};
+      if (filters.fromDate) where.createdAt.gte = new Date(filters.fromDate);
+      if (filters.toDate) where.createdAt.lte = new Date(filters.toDate);
+    }
+
+    const maxRows = resolveExportMaxRows();
+    const rows = await this.prisma.auditLog.findMany({ // @tenant-reviewed: phase258-audit-log-export-csv
+      where,
+      orderBy: { createdAt: 'desc' },
+      take: maxRows + 1, // request one extra to detect cap
+    });
+
+    const capped = rows.length > maxRows;
+    const slice = capped ? rows.slice(0, maxRows) : rows;
+    const body = renderAuditCsv(slice); // @tenant-reviewed: phase258-audit-log-export-csv
+    const ts = new Date().toISOString().replace(/[:.]/g, '-');
+    return {
+      filename: `audit-export-${ts}.csv`,
+      contentType: 'text/csv; charset=utf-8',
+      body,
+      rowCount: slice.length,
+      capped,
+      maxRows,
+    };
+  }
+}
+
+// ── CSV helpers (module-private; pure) ──────────────────────────────────────
+
+/** Phase 2.58 — `AUDIT_LOG_EXPORT_MAX_ROWS` resolution.
+ *  Invalid / non-positive ⇒ 50000 default.
+ *  Tag: phase258-audit-log-export-row-cap. */
+function resolveExportMaxRows(): number {
+  const raw = Number(process.env.AUDIT_LOG_EXPORT_MAX_ROWS);
+  return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : 50000;
+}
+
+/** Phase 2.58 — RFC-4180-style CSV escaping. Quotes fields that
+ *  contain comma, double-quote, CR, or LF; doubles internal quotes.
+ *  Lines joined with CRLF for Excel compatibility.
+ *  Tag: phase258-audit-log-export-csv. */
+function renderAuditCsv(rows: any[]): string {
+  const cols = ['id','tenantId','createdAt','userId','userEmail','action','entity','entityId','ipAddress','userAgent'] as const;
+  const esc = (v: unknown): string => {
+    if (v === null || v === undefined) return '';
+    const s = v instanceof Date ? v.toISOString() : String(v);
+    if (/[",\r\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+    return s;
+  };
+  const lines = [cols.join(',')];
+  for (const r of rows) lines.push(cols.map((c) => esc((r as any)[c])).join(','));
+  return lines.join('\r\n') + '\r\n';
 }

@@ -152,6 +152,9 @@ const KNOWN_REASONS: ReadonlyArray<PolicyEntry> = [
   { tag: 'phase257-audit-log-http-read',                 allowedPaths: ['src/logs/'] },
   { tag: 'phase257-audit-log-http-retention-preview',    allowedPaths: ['src/logs/'] },
   { tag: 'phase257-audit-log-http-no-destructive-routes', allowedPaths: ['src/logs/'] },
+  { tag: 'phase258-audit-log-export-csv',                allowedPaths: ['src/logs/'] },
+  { tag: 'phase258-audit-log-export-row-cap',            allowedPaths: ['src/logs/'] },
+  { tag: 'phase258-audit-log-export-no-destructive',     allowedPaths: ['src/logs/'] },
   { tag: 'tenant-safe-report-runtime',    allowedPaths: ['src/reports/', 'src/saas/reports/'] },
   { tag: 'tenant-resolver-bootstrap',     allowedPaths: ['src/saas/tenancy/'] },
 ];

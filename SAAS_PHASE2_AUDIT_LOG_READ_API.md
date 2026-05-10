@@ -222,3 +222,12 @@ A new `TenantAuditController` exposes
 Uses `LogsService.findAll` / `getStats` / `findOneForActor` /
 `previewRetentionForActor`. See
 `SAAS_PHASE2_AUDIT_LOG_HTTP_ENDPOINTS.md`.
+
+---
+
+# Phase 2.58 cross-link — CSV export
+
+`LogsService.exportCsvForActor(filters, scope)` produces an
+RFC-4180-style CSV body with hard row cap. Exposed at
+`GET /admin/tenant-audit/export.csv`. See
+`SAAS_PHASE2_AUDIT_LOG_EXPORT_CSV.md`.

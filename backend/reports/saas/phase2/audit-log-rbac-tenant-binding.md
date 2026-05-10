@@ -14,6 +14,6 @@
 - PASS — 10. FULL_ACCESS with explicit global gate ON sees global rows (B + NULL) — count=6 hasB=true hasNull=true
 - PASS — 11. non-allowed role cannot read audit rows (RBAC roles decorator pinned) — roles pinned + no Random Role
 - PASS — 12. pagination under tenant A cannot page into tenant B rows — p1=2 p2=1
-- PASS — 13. getStats respects tenant-bound RBAC scope — total=115
+- PASS — 13. getStats respects tenant-bound RBAC scope — total=153
 - PASS — 14. concurrent ALS frames remain isolated for findAll — A=3 B=2
 - PASS — 15. assertAuditReadAccess + auditTenantWhereForActor + global gate are wired — all helpers present + called

@@ -1,4 +1,5 @@
-import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Query, Res, UseGuards } from '@nestjs/common';
+import { Response } from 'express';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { LogsService } from './logs.service';
 import { PaginationDto } from '../common/dto/pagination.dto';
@@ -77,6 +78,41 @@ export class TenantAuditController {
       { role: caller.role, userId: caller.id, agencyId: caller.agencyId },
       Number.isFinite(parsedDays) ? parsedDays : undefined,
     );
+  }
+
+  @Get('export.csv')
+  @Roles('System Admin', 'Compliance Officer')
+  @ApiOperation({ summary: 'Tenant-scoped audit log CSV export (read-only; row-capped)' })
+  @ApiQuery({ name: 'entity',   required: false })
+  @ApiQuery({ name: 'entityId', required: false })
+  @ApiQuery({ name: 'action',   required: false })
+  @ApiQuery({ name: 'userId',   required: false })
+  @ApiQuery({ name: 'fromDate', required: false })
+  @ApiQuery({ name: 'toDate',   required: false })
+  // @tenant-reviewed: phase258-audit-log-export-csv (row-capped read-only export; reuses Phase 2.56 RBAC binding inside the service)
+  async exportCsv(
+    @CurrentUser() caller: any,
+    @Res() res: Response,
+    @Query('entity')   entity?: string,
+    @Query('entityId') entityId?: string,
+    @Query('action')   action?: string,
+    @Query('userId')   userId?: string,
+    @Query('fromDate') fromDate?: string,
+    @Query('toDate')   toDate?: string,
+  ): Promise<void> {
+    const out = await this.logsService.exportCsvForActor(
+      { entity, entityId, action, userId, fromDate, toDate },
+      { role: caller.role, userId: caller.id, agencyId: caller.agencyId },
+    );
+    res.set({
+      'Content-Type': out.contentType,
+      'Content-Disposition': `attachment; filename="${out.filename}"`,
+      // @tenant-reviewed: phase258-audit-log-export-row-cap
+      'X-Audit-Export-Row-Count': String(out.rowCount),
+      'X-Audit-Export-Max-Rows':  String(out.maxRows),
+      'X-Audit-Export-Capped':    String(out.capped),
+    });
+    res.send(out.body);
   }
 
   @Get(':id')

@@ -1241,3 +1241,19 @@ Tags: `phase257-audit-log-http-read`,
 `phase257-audit-log-http-no-destructive-routes`.
 
 Real-DB harness: 18/18. Cumulative: **713/713**.
+
+## 11.31 — Phase 2.58: Tenant-scoped audit CSV export
+
+`LogsService` gains `exportCsvForActor(filters, scope)` and two
+module-private helpers: `resolveExportMaxRows()` (env fallback to
+50000) and `renderAuditCsv(rows)` (RFC-4180-style escaping with
+CRLF line endings). The new `GET /admin/tenant-audit/export.csv`
+route on `TenantAuditController` returns the body with response
+headers `X-Audit-Export-Row-Count`, `X-Audit-Export-Max-Rows`,
+`X-Audit-Export-Capped`.
+
+Tags: `phase258-audit-log-export-csv`,
+`phase258-audit-log-export-row-cap`,
+`phase258-audit-log-export-no-destructive`.
+
+Real-DB harness: 17/17. Cumulative: **730/730**.

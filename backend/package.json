@@ -114,6 +114,7 @@
     "saas:phase255-audit-retention-runbook-check":       "ts-node scripts/saas/phase2/audit-retention-runbook-check.ts",
     "saas:phase256-audit-log-rbac-tenant-binding":       "ts-node scripts/saas/phase2/audit-log-rbac-tenant-binding.ts",
     "saas:phase257-audit-log-http-endpoints":            "ts-node scripts/saas/phase2/audit-log-http-endpoints.ts",
+    "saas:phase258-audit-log-export-csv":                "ts-node scripts/saas/phase2/audit-log-export-csv.ts",
     "saas:phase2-job-ads-equivalence": "ts-node scripts/saas/phase2/job-ads-equivalence.ts",
     "saas:phase2-job-ads-isolation": "ts-node scripts/saas/phase2/job-ads-isolation.ts",
     "saas:phase2-notifications-equivalence": "ts-node scripts/saas/phase2/notifications-equivalence.ts",

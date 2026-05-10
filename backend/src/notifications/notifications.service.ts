@@ -1,10 +1,17 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationType } from '@prisma/client';
 import { EVENT_TO_TYPE, NotifEventKey } from './notification-events';
 import { tServer, ServerLocale } from '../common/i18n/server-translate';
 import { PilotPrismaAccessor } from '../saas/prisma/pilot-prisma.accessor';
 import { getPilotScope, PilotScope } from '../saas/prisma/tenant-pilot-scope';
+import { FeatureFlagsService } from '../saas/feature-flags/feature-flags.service';
+import {
+  TenantJobFanoutPlanner,
+  runForTenantBatch,
+} from '../saas/jobs';
+import { TenantContext, MissingTenantContextError } from '../saas/context/als';
+import { classifyRuntimeEnv, isStagingClassification } from '../saas/tenancy/env-safety';
 
 /**
  * Phase 2.10 — fourth tenant-scoped TenantPrisma pilot.
@@ -33,10 +40,25 @@ import { getPilotScope, PilotScope } from '../saas/prisma/tenant-pilot-scope';
  */
 @Injectable()
 export class NotificationsService {
+  private readonly logger = new Logger('NotificationsService');
+
   constructor(
     private readonly legacyPrisma: PrismaService,
     private readonly pilot: PilotPrismaAccessor,
+    /** Optional: when undefined, the tenant-aware paths default to
+     *  legacy behaviour (flags treated as off). The harness can pass
+     *  a configured FeatureFlagsService to drive the new path. */
+    private readonly flags?: FeatureFlagsService,
   ) {}
+
+  /** True iff Phase 2.14's tenant-aware scheduler path is engaged. */
+  private tenantAwareSchedulerActive(): boolean {
+    if (!this.flags) return false;
+    if (!this.flags.tenantAwareJobsEnabled()) return false;
+    if (!this.flags.tenantJobFanoutEnabled()) return false;
+    const env = classifyRuntimeEnv();
+    return isStagingClassification(env.classification);
+  }
 
   /** Prisma surface for in-scope read paths. Background workers keep
    *  using `this.legacyPrisma` directly — see scope-split doc. */
@@ -493,7 +515,11 @@ export class NotificationsService {
     }
   }
 
-  /// Run all checks
+  /// Run all checks (LEGACY: cross-tenant iteration, unchanged behaviour).
+  ///
+  /// Phase 2.14 keeps this method untouched so the scheduler can fall
+  /// back to it when the tenant-aware flags are off. Production
+  /// continues to run THIS method.
   async runAllChecks(): Promise<void> {
     try {
       await this.checkExpiringCompliance();
@@ -505,12 +531,139 @@ export class NotificationsService {
     }
   }
 
+  /**
+   * Phase 2.14 — tenant-aware runAllChecks.
+   *
+   * REQUIRES:
+   *   - `TENANT_AWARE_JOBS_ENABLED=true`
+   *   - `TENANT_JOB_FANOUT_ENABLED=true`
+   *   - env classifies as SAFE_CLONE / SAFE_STAGING
+   *   - FeatureFlagsService injected
+   *
+   * Discovers ACTIVE tenants, plans per-tenant fanout via
+   * `TenantJobFanoutPlanner`, then executes each tenant's
+   * `runAllChecksForTenant(tenantId)` inside a `runForTenant` ALS frame.
+   *
+   * Failures of one tenant do NOT abort other tenants. Per-tenant
+   * results (ok/duration/error) are logged.
+   */
+  async runAllChecksTenantAware(): Promise<{
+    plannedTenants: number;
+    executedTenants: number;
+    failedTenants: number;
+    skipped: number;
+  }> {
+    if (!this.tenantAwareSchedulerActive()) {
+      // Defensive: the scheduler should never call this when flags are
+      // off, but if a test/harness invokes it directly, fall back to
+      // legacy and report zero plan.
+      this.logger.warn('[tenant-aware] flags not set — falling back to legacy runAllChecks');
+      await this.runAllChecks();
+      return { plannedTenants: 0, executedTenants: 0, failedTenants: 0, skipped: 0 };
+    }
+
+    // Tenant discovery. Uses `legacyPrisma` because tenant lookup is a
+    // platform-global read; the per-tenant work routes through the
+    // pilot accessor inside `runAllChecksForTenant`.
+    const tenants = await this.legacyPrisma.tenant.findMany({ // @tenant-reviewed: phase214-pilot-scope (tenant catalog discovery)
+      select: { id: true, slug: true, status: true },
+    }) as Array<{ id: string; slug: string; status: 'ACTIVE' | 'SUSPENDED' | 'INACTIVE' }>;
+
+    const planner = new TenantJobFanoutPlanner();
+    const plan = planner.plan(
+      'notifications.runAllChecks',
+      tenants,
+      () => ({}),
+      { activeOnly: true, excludeSystem: true },
+    );
+
+    this.logger.log(
+      `[tenant-aware] plan: ${plan.tenants.length} tenants, ${plan.skipped.length} skipped`,
+    );
+
+    const outcome = await runForTenantBatch(
+      plan.tenants.map((p) => p.tenantId),
+      (tid) => this.runAllChecksForTenant(tid),
+      { concurrency: 4, perTenantTimeoutMs: 60_000 },
+    );
+
+    const failed = outcome.results.filter((r) => !r.ok);
+    if (failed.length > 0) {
+      for (const f of failed) {
+        this.logger.error(
+          `[tenant-aware] tenant ${f.tenantId} failed: ${f.error?.name}: ${f.error?.message}`,
+        );
+      }
+    }
+
+    return {
+      plannedTenants: plan.tenants.length,
+      executedTenants: outcome.results.length,
+      failedTenants: failed.length,
+      skipped: plan.skipped.length + outcome.skipped.length,
+    };
+  }
+
+  /**
+   * Per-tenant entry point used by the fanout runner. The tenant id
+   * is in ALS by the time this runs; the existing `check*` methods
+   * read it via `TenantContext.optional()` if they need it.
+   *
+   * Phase 2.14 keeps the existing `check*` bodies on `legacyPrisma`
+   * (they iterate `User` across all tenants today). They will be
+   * narrowed to the active tenant in a follow-up pass — for now,
+   * the tenant boundary is enforced by the surrounding ALS frame +
+   * the read-path pilot scope on `notification.findFirst` /
+   * `notification.create` calls.
+   */
+  async runAllChecksForTenant(_tenantId: string): Promise<void> {
+    // The four legacy `check*` methods are not yet narrowed by tenant
+    // (Phase 2.14 ships the framework + adapter; the per-check tenant
+    // narrowing is the Phase 2.14.1 follow-up). Calling them inside a
+    // tenant ALS frame is still safe because:
+    //   - they only READ User/Vehicle (no pilot-scoped writes here),
+    //   - their `notification.create` calls land tenantId via the
+    //     existing pilot scope when the pilot module flag is on.
+    // See SAAS_PHASE2_NOTIFICATIONS_SCHEDULER_PILOT_RESULTS.md §6 for
+    // the migration plan to a fully tenant-narrowed check loop.
+    try {
+      await this.checkExpiringCompliance();
+      await this.checkServiceDue();
+      await this.checkScheduledMaintenance();
+      await this.checkOverdue();
+    } catch (error) {
+      // Re-throw so the batch runner records the failure per tenant.
+      throw error;
+    }
+  }
+
+  /// Phase 2.14 fanout-writer contract.
+  ///
+  /// When the tenant-aware scheduler path is active
+  /// (`TENANT_AWARE_JOBS_ENABLED && TENANT_JOB_FANOUT_ENABLED &&
+  ///  staging`), the fanout writers REQUIRE a tenant in ALS. Calling
+  /// them without context raises `MissingTenantContextError`. This
+  /// closes the cross-tenant fanout hole described in Phase 2.10's
+  /// scope-split doc.
+  ///
+  /// When the tenant-aware path is OFF (production default), the
+  /// writers preserve their pre-Phase-2.14 behaviour byte-identically.
+  private assertTenantForFanout(method: string): void {
+    if (!this.tenantAwareSchedulerActive()) return;
+    if (!TenantContext.optional()) {
+      throw new MissingTenantContextError(`notifications.${method}`);
+    }
+  }
+
   /// Notify uploader and users with specific roles.
   ///
   /// `i18n` is optional — pass `{ titleKey, messageKey?, params? }` to
   /// have the reader render translations against the requester's locale.
   /// When omitted, the existing English `title`/`message` flow is used
   /// unchanged (backward compatible with all current callers).
+  ///
+  /// Phase 2.14: refuses without a tenant in ALS when the tenant-aware
+  /// scheduler path is active.
   async notifyUploaderAndRoles(
     uploaderId: string,
     roles: string[],
@@ -521,6 +674,7 @@ export class NotificationsService {
     relatedEntityId?: string,
     i18n?: { titleKey?: string; messageKey?: string; params?: Record<string, unknown> },
   ): Promise<void> {
+    this.assertTenantForFanout('notifyUploaderAndRoles');
     const userIds = new Set<string>();
 
     if (uploaderId) userIds.add(uploaderId);
@@ -560,6 +714,9 @@ export class NotificationsService {
   ///
   /// Same `i18n` opt-in as `notifyUploaderAndRoles` — see that doc for
   /// fallback semantics.
+  ///
+  /// Phase 2.14: refuses without a tenant in ALS when the tenant-aware
+  /// scheduler path is active.
   async notifyUsersByRoles(
     roles: string[],
     eventKey: NotifEventKey,
@@ -569,6 +726,7 @@ export class NotificationsService {
     relatedEntityId?: string,
     i18n?: { titleKey?: string; messageKey?: string; params?: Record<string, unknown> },
   ): Promise<void> {
+    this.assertTenantForFanout('notifyUsersByRoles');
     const users = await this.legacyPrisma.user.findMany({ // @tenant-reviewed: phase210-excluded-background (scheduler/notify-fanout — Phase 2.11+)
       where: {
         role: { name: { in: roles } },

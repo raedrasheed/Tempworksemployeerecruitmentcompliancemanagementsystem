@@ -1,6 +1,10 @@
-# Phase 2.14 (planned) — Notifications Scheduler Adapter Plan
+# Phase 2.14 — Notifications Scheduler Adapter Plan
 
-> Design only. Not implemented in Phase 2.13.
+> Status: **adapter SHIPPED** in Phase 2.14. Per-method narrowing of
+> the four `check*` methods is deferred to **Phase 2.14.1** — see §3
+> for the residual scope.
+>
+> Original design (kept verbatim below for the historical record).
 >
 > Describes how `NotificationsScheduler`, the four `check*` methods,
 > and the two `notify*` writers will adopt the Phase 2.13 job-context

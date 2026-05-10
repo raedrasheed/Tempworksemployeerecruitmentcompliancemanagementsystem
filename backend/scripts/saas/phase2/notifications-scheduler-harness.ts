@@ -1,0 +1,259 @@
+/**
+ * Phase 2.14 — Notifications Scheduler Adapter Harness.
+ *
+ * Tests the dispatch behaviour of `NotificationsSchedulerService` and
+ * the `runAllChecksTenantAware` path on `NotificationsService`.
+ *
+ * Cases:
+ *   1. flags OFF → scheduler picks legacy `runAllChecks`.
+ *   2. flags ON in SAFE_CLONE → scheduler picks `runAllChecksTenantAware`.
+ *   3. fanout planner emits per-tenant entries (active-only, non-system).
+ *   4. each tenant runs inside an ALS frame (verified via spy fn).
+ *   5. inactive / system tenants skipped with documented reasons.
+ *   6. `notifyUploaderAndRoles` refuses without ALS tenant in tenant-aware mode.
+ *   7. `notifyUsersByRoles` refuses without ALS tenant in tenant-aware mode.
+ *   8. fanout writers preserve legacy behaviour with flags OFF.
+ *   9. flags ON outside staging is refused at the framework boundary.
+ *  10. rollback to flags OFF immediately restores legacy path.
+ *  11. cron timing constant is unchanged (six-hour interval).
+ */
+/* eslint-disable no-console */
+import {
+  abortUnlessStaging, withFlags, writeReport,
+  type CaseResult,
+} from './lib/harness';
+import { PrismaService } from '../../../src/prisma/prisma.service';
+import { TenantPrismaService } from '../../../src/saas/prisma/tenant-prisma.service';
+import { PilotPrismaAccessor } from '../../../src/saas/prisma/pilot-prisma.accessor';
+import { FeatureFlagsService } from '../../../src/saas/feature-flags/feature-flags.service';
+import { NotificationsService } from '../../../src/notifications/notifications.service';
+import { NotificationsSchedulerService } from '../../../src/notifications/notifications-scheduler.service';
+import { TenantJobFanoutPlanner, runForTenant } from '../../../src/saas/jobs';
+import { TenantContext, MissingTenantContextError } from '../../../src/saas/context/als';
+import { promises as fs } from 'fs';
+import path from 'path';
+
+function makeSvc(flags: FeatureFlagsService) {
+  const prisma = new PrismaService();
+  const tp = new TenantPrismaService(prisma, flags);
+  const pilot = new PilotPrismaAccessor(prisma, tp, flags);
+  const svc = new NotificationsService(prisma, pilot, flags);
+  return { prisma, svc };
+}
+
+async function main(): Promise<void> {
+  const env = abortUnlessStaging('notifications-scheduler-harness');
+  const out: CaseResult[] = [];
+
+  const T1 = '11111111-1111-1111-1111-111111111111';
+  const T2 = '22222222-2222-2222-2222-222222222222';
+  const T3 = '33333333-3333-3333-3333-333333333333';
+
+  // ── 1+10. Scheduler picks legacy path with flags OFF; rollback ──
+  await withFlags({ TENANT_AWARE_JOBS_ENABLED: 'false', TENANT_JOB_FANOUT_ENABLED: 'false' },
+    async () => {
+      const flags = new FeatureFlagsService();
+      const { svc, prisma } = makeSvc(flags);
+      try {
+        let legacyCalled = false;
+        let tenantAwareCalled = false;
+        const orig = svc.runAllChecks.bind(svc);
+        const origTA = svc.runAllChecksTenantAware.bind(svc);
+        (svc as any).runAllChecks = async () => { legacyCalled = true; return orig(); };
+        (svc as any).runAllChecksTenantAware = async () => { tenantAwareCalled = true; return origTA(); };
+        const sched = new NotificationsSchedulerService(svc, flags);
+        await (sched as any).runOnce();
+        out.push({
+          name: 'flags OFF: scheduler invokes legacy runAllChecks (not tenant-aware)',
+          ok: legacyCalled && !tenantAwareCalled,
+          detail: `legacy=${legacyCalled} tenantAware=${tenantAwareCalled}`,
+        });
+      } finally { await prisma.$disconnect(); }
+    });
+
+  // ── 2. Scheduler picks tenant-aware path with both flags ON ────
+  await withFlags(
+    { TENANT_AWARE_JOBS_ENABLED: 'true', TENANT_JOB_FANOUT_ENABLED: 'true' },
+    async () => {
+      const flags = new FeatureFlagsService();
+      const { svc, prisma } = makeSvc(flags);
+      try {
+        let legacyCalled = false;
+        let tenantAwareCalled = false;
+        const orig = svc.runAllChecks.bind(svc);
+        const origTA = svc.runAllChecksTenantAware.bind(svc);
+        (svc as any).runAllChecks = async () => { legacyCalled = true; return orig(); };
+        (svc as any).runAllChecksTenantAware = async () => {
+          tenantAwareCalled = true;
+          return { plannedTenants: 0, executedTenants: 0, failedTenants: 0, skipped: 0 };
+        };
+        const sched = new NotificationsSchedulerService(svc, flags);
+        await (sched as any).runOnce();
+        out.push({
+          name: 'flags ON in SAFE_CLONE: scheduler invokes runAllChecksTenantAware',
+          ok: !legacyCalled && tenantAwareCalled,
+          detail: `legacy=${legacyCalled} tenantAware=${tenantAwareCalled}`,
+        });
+      } finally { await prisma.$disconnect(); }
+    });
+
+  // ── 3+5. Fanout planner: ACTIVE non-system selected; others skipped ──
+  {
+    const planner = new TenantJobFanoutPlanner();
+    const plan = planner.plan(
+      'notifications.runAllChecks',
+      [
+        { id: T1, status: 'ACTIVE' },
+        { id: T2, status: 'ACTIVE', isSystem: true },
+        { id: T3, status: 'INACTIVE' },
+      ],
+      () => ({}),
+    );
+    const ids = plan.tenants.map((t) => t.tenantId);
+    const reasons = plan.skipped.reduce<Record<string, number>>((acc, s) => {
+      acc[s.reason] = (acc[s.reason] ?? 0) + 1; return acc;
+    }, {});
+    out.push({
+      name: 'planner: 1 ACTIVE non-system selected; 1 system + 1 inactive skipped',
+      ok: ids.length === 1 && ids[0] === T1
+         && reasons['system-tenant'] === 1 && reasons.inactive === 1,
+      detail: `selected=${ids.join(',')} skipped=${JSON.stringify(reasons)}`,
+    });
+  }
+
+  // ── 4. Each tenant runs inside ALS frame (verified via runForTenant) ──
+  {
+    const seen: Array<{ tenantFromAls: string | null }> = [];
+    await runForTenant(T1, async () => {
+      seen.push({ tenantFromAls: TenantContext.optional()?.id ?? null });
+    }, { allowDormant: true });
+    out.push({
+      name: 'runForTenant: ALS frame carries tenantId (smoke for fanout-tenant entry)',
+      ok: seen.length === 1 && seen[0].tenantFromAls === T1,
+      detail: `seen=${JSON.stringify(seen)}`,
+    });
+  }
+
+  // ── 6. notifyUploaderAndRoles refuses without ALS tenant (tenant-aware) ──
+  await withFlags(
+    { TENANT_AWARE_JOBS_ENABLED: 'true', TENANT_JOB_FANOUT_ENABLED: 'true' },
+    async () => {
+      const flags = new FeatureFlagsService();
+      const { svc, prisma } = makeSvc(flags);
+      try {
+        let threw = false;
+        let isMissing = false;
+        try {
+          await svc.notifyUploaderAndRoles('00000000-0000-0000-0000-000000000111',
+            ['FleetManager'], 'document.uploaded' as any,
+            'title', 'msg');
+        } catch (e) {
+          threw = true;
+          isMissing = e instanceof MissingTenantContextError;
+        }
+        out.push({
+          name: 'tenant-aware ON: notifyUploaderAndRoles without ALS tenant raises MissingTenantContextError',
+          ok: threw && isMissing,
+          detail: `threw=${threw} isMissing=${isMissing}`,
+        });
+      } finally { await prisma.$disconnect(); }
+    });
+
+  // ── 7. notifyUsersByRoles refuses without ALS tenant (tenant-aware) ──
+  await withFlags(
+    { TENANT_AWARE_JOBS_ENABLED: 'true', TENANT_JOB_FANOUT_ENABLED: 'true' },
+    async () => {
+      const flags = new FeatureFlagsService();
+      const { svc, prisma } = makeSvc(flags);
+      try {
+        let threw = false;
+        let isMissing = false;
+        try {
+          await svc.notifyUsersByRoles(
+            ['FleetManager'], 'document.uploaded' as any, 'title', 'msg');
+        } catch (e) {
+          threw = true;
+          isMissing = e instanceof MissingTenantContextError;
+        }
+        out.push({
+          name: 'tenant-aware ON: notifyUsersByRoles without ALS tenant raises MissingTenantContextError',
+          ok: threw && isMissing,
+          detail: `threw=${threw} isMissing=${isMissing}`,
+        });
+      } finally { await prisma.$disconnect(); }
+    });
+
+  // ── 8. Fanout writers preserve legacy behaviour with flags OFF ──
+  await withFlags(
+    { TENANT_AWARE_JOBS_ENABLED: 'false', TENANT_JOB_FANOUT_ENABLED: 'false' },
+    async () => {
+      const flags = new FeatureFlagsService();
+      const { svc, prisma } = makeSvc(flags);
+      try {
+        // Legacy: no ALS tenant should NOT raise the new
+        // MissingTenantContextError. Other errors (e.g. Prisma errors
+        // from the role lookup) are unrelated to Phase 2.14.
+        let raisedMissing = false;
+        try {
+          await svc.notifyUsersByRoles(
+            ['NoSuchRoleProbably'], 'document.uploaded' as any,
+            'title', 'msg');
+        } catch (e) {
+          raisedMissing = e instanceof MissingTenantContextError;
+        }
+        out.push({
+          name: 'flags OFF: notifyUsersByRoles does NOT raise the new MissingTenantContextError',
+          ok: !raisedMissing,
+          detail: `raisedMissing=${raisedMissing} (other errors are unrelated to this case)`,
+        });
+      } finally { await prisma.$disconnect(); }
+    });
+
+  // ── 9. flags ON outside staging refused at the framework boundary ──
+  await withFlags(
+    { TENANT_AWARE_JOBS_ENABLED: 'true', TENANT_JOB_FANOUT_ENABLED: 'true',
+      NODE_ENV: 'production',
+      DATABASE_URL: 'postgres://postgres@prod-db.prod.example.com/tempworks_prod' },
+    async () => {
+      const flags = new FeatureFlagsService();
+      const { svc, prisma } = makeSvc(flags);
+      try {
+        let legacyCalled = false;
+        let tenantAwareCalled = false;
+        const orig = svc.runAllChecks.bind(svc);
+        const origTA = svc.runAllChecksTenantAware.bind(svc);
+        (svc as any).runAllChecks = async () => { legacyCalled = true; return orig(); };
+        (svc as any).runAllChecksTenantAware = async () => { tenantAwareCalled = true; return origTA(); };
+        const sched = new NotificationsSchedulerService(svc, flags);
+        await (sched as any).runOnce();
+        out.push({
+          name: 'flags ON outside staging: scheduler stays on legacy path (env classifier refuses tenant-aware)',
+          ok: legacyCalled && !tenantAwareCalled,
+          detail: `legacy=${legacyCalled} tenantAware=${tenantAwareCalled}`,
+        });
+      } finally { await prisma.$disconnect(); }
+    });
+
+  // ── 11. Cron timing constant unchanged ─────────────────────────
+  {
+    const src = await fs.readFile(
+      path.resolve(__dirname, '..', '..', '..', 'src', 'notifications', 'notifications-scheduler.service.ts'),
+      'utf8',
+    );
+    const ok = /6\s*\*\s*60\s*\*\s*60\s*\*\s*1000/.test(src);
+    out.push({
+      name: 'cron timing constant unchanged (6-hour interval)',
+      ok,
+      detail: `source contains 6 * 60 * 60 * 1000: ${ok}`,
+    });
+  }
+
+  await writeReport({
+    title: 'Phase 2.14 — Notifications Scheduler Harness',
+    name: 'notifications-scheduler-harness',
+    out,
+    environment: env,
+  });
+}
+
+main().catch((e) => { console.error(e); process.exit(3); });

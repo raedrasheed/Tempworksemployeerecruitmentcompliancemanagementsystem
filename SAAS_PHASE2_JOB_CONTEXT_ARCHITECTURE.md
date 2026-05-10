@@ -228,10 +228,14 @@ clean up on rollback.
 
 ## 12. Production rollout phases
 
-Phase 2.13 (this PR): infrastructure only. Defaults OFF.
-Phase 2.14 (planned): notifications scheduler adapter — first user
-  of `TenantJobFanoutPlanner` + `runForTenantBatch`. Stays gated by
-  `TENANT_JOB_FANOUT_ENABLED=false` until staging rehearsal.
+Phase 2.13: infrastructure only. Defaults OFF.
+Phase 2.14 ✅ shipped: notifications scheduler adapter — first user of
+  `TenantJobFanoutPlanner` + `runForTenantBatch`. Stays gated by
+  `TENANT_JOB_FANOUT_ENABLED=false` until staging rehearsal. See
+  `SAAS_PHASE2_NOTIFICATIONS_SCHEDULER_PILOT_RESULTS.md`.
+Phase 2.14.1 (planned): per-method narrowing of the four `check*`
+  methods. Each method reads `TenantContext.optional()` and narrows
+  its `prisma.user.findMany` to the active tenant.
 Phase 2.15+ (planned): vehicles maintenance reminders, finance
   balance alerts, document-expiry creators, applicant follow-ups,
   workflow scheduler.

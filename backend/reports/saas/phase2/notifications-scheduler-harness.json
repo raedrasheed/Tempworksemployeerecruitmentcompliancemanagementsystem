@@ -1,0 +1,62 @@
+{
+  "generatedAt": "2026-05-10T01:33:49.048Z",
+  "environment": {
+    "classification": "SAFE_CLONE",
+    "reason": "localhost + fixture pattern (db=saas_phase1_fixture)",
+    "host": "127.0.0.1",
+    "dbName": "saas_phase1_fixture",
+    "nodeEnv": "unset"
+  },
+  "counts": {
+    "total": 9,
+    "passed": 9,
+    "failed": 0
+  },
+  "results": [
+    {
+      "name": "flags OFF: scheduler invokes legacy runAllChecks (not tenant-aware)",
+      "ok": true,
+      "detail": "legacy=true tenantAware=false"
+    },
+    {
+      "name": "flags ON in SAFE_CLONE: scheduler invokes runAllChecksTenantAware",
+      "ok": true,
+      "detail": "legacy=false tenantAware=true"
+    },
+    {
+      "name": "planner: 1 ACTIVE non-system selected; 1 system + 1 inactive skipped",
+      "ok": true,
+      "detail": "selected=11111111-1111-1111-1111-111111111111 skipped={\"system-tenant\":1,\"inactive\":1}"
+    },
+    {
+      "name": "runForTenant: ALS frame carries tenantId (smoke for fanout-tenant entry)",
+      "ok": true,
+      "detail": "seen=[{\"tenantFromAls\":\"11111111-1111-1111-1111-111111111111\"}]"
+    },
+    {
+      "name": "tenant-aware ON: notifyUploaderAndRoles without ALS tenant raises MissingTenantContextError",
+      "ok": true,
+      "detail": "threw=true isMissing=true"
+    },
+    {
+      "name": "tenant-aware ON: notifyUsersByRoles without ALS tenant raises MissingTenantContextError",
+      "ok": true,
+      "detail": "threw=true isMissing=true"
+    },
+    {
+      "name": "flags OFF: notifyUsersByRoles does NOT raise the new MissingTenantContextError",
+      "ok": true,
+      "detail": "raisedMissing=false (other errors are unrelated to this case)"
+    },
+    {
+      "name": "flags ON outside staging: scheduler stays on legacy path (env classifier refuses tenant-aware)",
+      "ok": true,
+      "detail": "legacy=true tenantAware=false"
+    },
+    {
+      "name": "cron timing constant unchanged (6-hour interval)",
+      "ok": true,
+      "detail": "source contains 6 * 60 * 60 * 1000: true"
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-09T19:44:12.906Z",
+  "generatedAt": "2026-05-10T01:37:20.621Z",
   "environment": {
     "classification": "SAFE_CLONE",
     "reason": "localhost + fixture pattern (db=saas_phase1_fixture)",
@@ -17,73 +17,73 @@
       "name": "roles equivalence",
       "ok": true,
       "detail": "tenantprisma-pilot-equivalence: 13/13 cases PASS | exit=0",
-      "durationMs": 13892
+      "durationMs": 14174
     },
     {
       "name": "roles isolation",
       "ok": true,
       "detail": "tenantprisma-pilot-isolation: 9/9 cases PASS | exit=0",
-      "durationMs": 13841
+      "durationMs": 14541
     },
     {
       "name": "employee-work-history equivalence",
       "ok": true,
       "detail": "employee-work-history-equivalence: 12/12 cases PASS | exit=0",
-      "durationMs": 14722
+      "durationMs": 14867
     },
     {
       "name": "employee-work-history isolation",
       "ok": true,
       "detail": "employee-work-history-isolation: 8/8 cases PASS | exit=0",
-      "durationMs": 14420
+      "durationMs": 14951
     },
     {
       "name": "compliance equivalence",
       "ok": true,
       "detail": "compliance-equivalence: 12/12 cases PASS | exit=0",
-      "durationMs": 14193
+      "durationMs": 14576
     },
     {
       "name": "compliance isolation",
       "ok": true,
       "detail": "compliance-isolation: 7/7 cases PASS | exit=0",
-      "durationMs": 14304
+      "durationMs": 14998
     },
     {
       "name": "job-ads equivalence",
       "ok": true,
       "detail": "job-ads-equivalence: 13/13 cases PASS | exit=0",
-      "durationMs": 13903
+      "durationMs": 14656
     },
     {
       "name": "job-ads isolation",
       "ok": true,
       "detail": "job-ads-isolation: 9/9 cases PASS | exit=0",
-      "durationMs": 14154
+      "durationMs": 14740
     },
     {
       "name": "notifications equivalence",
       "ok": true,
       "detail": "notifications-equivalence: 11/11 cases PASS | exit=0",
-      "durationMs": 14245
+      "durationMs": 14755
     },
     {
       "name": "notifications isolation",
       "ok": true,
       "detail": "notifications-isolation: 8/8 cases PASS | exit=0",
-      "durationMs": 15064
+      "durationMs": 15042
     },
     {
       "name": "recycle-bin equivalence",
       "ok": true,
       "detail": "recycle-bin-equivalence: 11/11 cases PASS | exit=0",
-      "durationMs": 15112
+      "durationMs": 14781
     },
     {
       "name": "recycle-bin isolation",
       "ok": true,
       "detail": "recycle-bin-isolation: 7/7 cases PASS | exit=0",
-      "durationMs": 15744
+      "durationMs": 15804
     }
   ]
 }

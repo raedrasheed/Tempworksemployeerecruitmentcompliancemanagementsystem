@@ -118,9 +118,29 @@ scheduler refactor outlined in §3 is now unblocked at the framework
 level — it becomes a Phase 2.14 deliverable per
 `SAAS_PHASE2_NOTIFICATIONS_SCHEDULER_ADAPTER_PLAN.md`.
 
-Phase 2.10's `phase210-excluded-background` annotations remain in
-place. They will move to `phase214-pilot-scope` only after Phase 2.14
-ships and a 7-day staging rehearsal validates the per-tenant fanout.
+## 6.2 Phase 2.14 update — adapter shipped (partial)
+
+Phase 2.14 shipped the orchestrator + ALS adapter:
+
+- `NotificationsSchedulerService.runOnce` is now a flag-aware
+  dispatcher. Default OFF → legacy `runAllChecks`. Both flags on +
+  staging → `runAllChecksTenantAware`.
+- `NotificationsService.runAllChecksTenantAware` discovers active
+  tenants via `legacyPrisma.tenant.findMany`, plans per-tenant
+  fanout via `TenantJobFanoutPlanner`, and runs each tenant inside
+  `runForTenant`.
+- `NotificationsService.runAllChecksForTenant(tenantId)` is the
+  per-tenant entry point.
+- `notifyUploaderAndRoles` and `notifyUsersByRoles` now refuse
+  without an ALS tenant when the tenant-aware path is active. Legacy
+  behaviour unchanged when flags are off.
+- New annotation tag `phase214-pilot-scope` on the tenant-catalog
+  discovery site. The four `check*` methods themselves keep
+  `phase210-excluded-background` (their per-method narrowing is
+  deferred to **Phase 2.14.1**).
+
+The legacy `runAllChecks` path is preserved as the production
+default and the rollback target.
 
 ## 7. Operator checklist for Phase 2.11
 

@@ -806,3 +806,24 @@ across modules: **307/307**.
 The natural next phase is the **employees mutation pilot (Phase
 2.34)** — `findEmployeeOrFail` parent gate, `Employee.create`
 tenantId, `uploadPhoto` storage-guard, agency-access write paths.
+
+## 11.7 Phase 2.34 — employees mutation + storage + agency-access pilot
+
+Closes the employees reads-then-writes split.
+
+- `findEmployeeOrFail(id)` + `findAgencyOrFail(id)` parent gates added.
+- `Employee.create` writes `tenantId` via `scope.tenantData()`.
+- `update` / `remove` / `updateStatus` rely on Phase 2.33
+  tenant-scoped `findOne` pre-check.
+- `uploadPhoto` storage-guard: tenant lookup BEFORE `storage.uploadFile`.
+- `grantAgencyAccess` / `updateAgencyAccess` / `revokeAgencyAccess`
+  add dual target gates (employee + agency).
+
+`Employee.email` / `Employee.employeeNumber` stay globally unique
+(Phase 3). Storage keys / ACLs / signed URLs unchanged.
+
+Real-DB: equivalence 10/10 + isolation 12/12 = 22/22. Cumulative
+across modules: **329/329**.
+
+The employees module has no deferred paths. Six modules now fully
+proven on real DB across reads + writes.

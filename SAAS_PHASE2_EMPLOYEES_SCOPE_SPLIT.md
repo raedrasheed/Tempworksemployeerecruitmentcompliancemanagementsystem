@@ -81,3 +81,19 @@ pilot tenant predicate is additive: `tenantId AND id IN (granted)`.
   `phase233-excluded-mutation` (or `…-storage` / `…-global`).
 - The fixture seeds two tenants × multiple employees so reads can be
   exercised with cross-tenant collision shapes.
+
+## 7. Phase 2.34 update — mutations + storage + agency gates shipped
+
+| Phase 2.33 status | Phase 2.34 result |
+|---|---|
+| `create` (excluded) | **shipped** — `phase234-pilot-scope`; spreads `scope.tenantData()` on `Employee.create` |
+| `update` / `remove` / `updateStatus` (excluded) | **shipped** — `phase234-pilot-scope-precheck` (gated by Phase 2.33 `findOne`) |
+| `uploadPhoto` (excluded-storage) | **shipped** — `phase234-storage-guard`; tenant gate runs BEFORE `storage.uploadFile` |
+| `grantAgencyAccess` / `updateAgencyAccess` / `revokeAgencyAccess` (excluded) | **shipped** — `phase234-agency-gate`; NEW `findEmployeeOrFail` + `findAgencyOrFail` gates |
+| `generateEmployeeNumber` raw SQL | **unchanged** — `phase233-global` |
+| Email duplicate-check | **unchanged** — `phase233-global` |
+| `StageTemplate.findMany` catalog | **unchanged** — `phase233-global` |
+
+No remaining employees paths are deferred. Per-tenant uniqueness
+(`Employee.email`, `Employee.employeeNumber`) remains a Phase 3
+schema migration.

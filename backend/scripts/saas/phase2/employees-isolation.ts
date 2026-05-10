@@ -224,14 +224,16 @@ async function main(): Promise<void> {
   // 11 — source-level meta-assertion
   const src = await fs.readFile(SRC_FILE, 'utf8');
   const hasReadTag = /phase233-pilot-scope/.test(src);
-  const hasMutTag  = /phase233-excluded-mutation/.test(src);
+  // Mutation tag may be phase233-excluded-mutation OR phase234-pilot-scope-precheck
+  // (Phase 2.34 retagged the by-id mutation sites once they were proven gated).
+  const hasMutTag  = /phase233-excluded-mutation/.test(src) || /phase234-pilot-scope-precheck/.test(src);
   const hasGlobalTag = /phase233-global/.test(src);
-  const hasStorageTag = /phase233-excluded-storage/.test(src);
+  const hasStorageTag = /phase233-excluded-storage/.test(src) || /phase234-storage-guard/.test(src);
   // Mutation methods source legacyPrisma. Look for the pattern.
   const createOnLegacy = /async create\([^)]*\)[\s\S]*?legacyPrisma\.employee\.create/.test(src);
   const updateOnLegacy = /async update\([^)]*\)[\s\S]*?legacyPrisma\.employee\.update/.test(src);
   const ok = hasReadTag && hasMutTag && hasGlobalTag && hasStorageTag && createOnLegacy && updateOnLegacy;
-  out.push({ name: '11. source-level: phase233 read+mutation+global+storage tags present', ok, detail: `read=${hasReadTag} mut=${hasMutTag} global=${hasGlobalTag} storage=${hasStorageTag} create=${createOnLegacy} update=${updateOnLegacy}` });
+  out.push({ name: '11. source-level: phase233/234 read+mutation+global+storage tags present', ok, detail: `read=${hasReadTag} mut=${hasMutTag} global=${hasGlobalTag} storage=${hasStorageTag} create=${createOnLegacy} update=${updateOnLegacy}` });
 
   await fs.mkdir(OUT_DIR, { recursive: true });
   const passed = out.filter((c) => c.ok).length;

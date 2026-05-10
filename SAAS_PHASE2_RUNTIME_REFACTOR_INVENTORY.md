@@ -630,3 +630,20 @@ across modules: **307/307**.
 
 `Employee.email` / `Employee.employeeNumber` per-tenant uniqueness
 remains a Phase 3 product question.
+
+## 31. Phase 2.34 — Employees mutation + storage + agency-access pilot (shipped)
+
+`src/employees` mutation paths brought into the pilot.
+
+- NEW `findEmployeeOrFail` and `findAgencyOrFail` helpers.
+- `create`: `scope.tenantData()` spread.
+- `update` / `remove` / `updateStatus`: gated via Phase 2.33 `findOne`.
+- `uploadPhoto`: storage-guard before byte write.
+- `grantAgencyAccess` / `updateAgencyAccess` / `revokeAgencyAccess`:
+  dual employee + agency tenant gates.
+
+Tags introduced: `phase234-pilot-scope`, `phase234-pilot-scope-precheck`,
+`phase234-storage-guard`, `phase234-agency-gate`.
+
+Real-DB: equivalence 10/10 + isolation 12/12 = 22/22. Cumulative:
+**329/329**.

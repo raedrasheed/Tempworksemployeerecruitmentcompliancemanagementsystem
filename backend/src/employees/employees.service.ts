@@ -18,8 +18,11 @@ import { tServer, ServerLocale } from '../common/i18n/server-translate';
  *
  * WRITE / mutation / storage paths (`create`, `update`, `remove`,
  * `updateStatus`, `uploadPhoto`, `grant/update/revokeAgencyAccess`)
- * stay on `legacyPrisma` and are tagged `phase233-excluded-mutation`
- * or `phase233-excluded-storage`.
+ * stay on `legacyPrisma` and are tagged `phase234-pilot-scope`,
+ * `phase234-pilot-scope-precheck`, `phase234-storage-guard`, or
+ * `phase234-agency-gate` (Phase 2.34) — except the intentionally
+ * global identifier sequence and email-uniqueness sites which keep
+ * `phase233-global`.
  *
  * `Employee.email`, `Employee.employeeNumber` stay globally unique
  * (Phase 3 product). Identifier raw SQL stays global.
@@ -40,6 +43,30 @@ export class EmployeesService {
 
   private scope(): PilotScope {
     return getPilotScope(this.pilot, 'employees');
+  }
+
+  /**
+   * Phase 2.34 — parent gate. Loads the employee through the pilot
+   * client with `tenantWhere()`. Cross-tenant ids raise 404.
+   * Legacy mode reduces to plain by-id lookup (`tenantWhere()` ⇒ {}).
+   */
+  private async findEmployeeOrFail(id: string) {
+    const t = this.scope().tenantWhere();
+    const e = await this.prisma.employee.findFirst({ where: { id, deletedAt: null, ...t } }); // @tenant-reviewed: phase234-pilot-scope (parent gate)
+    if (!e) throw new NotFoundException('Employee not found');
+    return e;
+  }
+
+  /**
+   * Phase 2.34 — agency tenant gate. Loads the agency through the
+   * pilot client with `tenantWhere()`. Cross-tenant agency ids
+   * raise 404 BEFORE any agency-access mutation.
+   */
+  private async findAgencyOrFail(id: string) {
+    const t = this.scope().tenantWhere();
+    const a = await this.prisma.agency.findFirst({ where: { id, deletedAt: null, ...t } }); // @tenant-reviewed: phase234-agency-gate
+    if (!a) throw new NotFoundException('Agency not found');
+    return a;
   }
 
   /**
@@ -174,22 +201,24 @@ export class EmployeesService {
     dto: { notes?: string; canView?: boolean; canEdit?: boolean } = {},
     actorId?: string,
   ) {
-    const employee = await this.legacyPrisma.employee.findFirst({ where: { id: employeeId, deletedAt: null } }); // @tenant-reviewed: phase233-excluded-mutation
-    if (!employee) throw new NotFoundException('Employee not found');
-    const agency = await this.legacyPrisma.agency.findFirst({ where: { id: agencyId, deletedAt: null } }); // @tenant-reviewed: phase233-excluded-mutation
-    if (!agency) throw new NotFoundException('Agency not found');
+    // Phase 2.34 — both target sides are tenant-gated in pilot mode.
+    // In legacy mode the gates collapse to plain by-id lookups
+    // (`tenantWhere()` → `{}`) — byte-equivalent to pre-2.34 behaviour
+    // since the prior code already required `deletedAt: null` on both.
+    await this.findEmployeeOrFail(employeeId);
+    await this.findAgencyOrFail(agencyId);
     const canView = dto.canView ?? true;
     const canEdit = dto.canEdit ?? true;
     // If the caller sets both flags to false we delete the row instead
     // of persisting a useless "no access" grant — keeps the table tidy
     // and makes revoke from the UI symmetric with delete.
     if (!canView && !canEdit) {
-      await this.legacyPrisma.employeeAgencyAccess.deleteMany({ // @tenant-reviewed: phase233-excluded-mutation
+      await this.legacyPrisma.employeeAgencyAccess.deleteMany({ // @tenant-reviewed: phase234-agency-gate (gates above)
         where: { employeeId, agencyId },
       });
       return { employeeId, agencyId, canView: false, canEdit: false, deleted: true };
     }
-    const grant = await this.legacyPrisma.employeeAgencyAccess.upsert({ // @tenant-reviewed: phase233-excluded-mutation
+    const grant = await this.legacyPrisma.employeeAgencyAccess.upsert({ // @tenant-reviewed: phase234-agency-gate (gates above)
       where:  { employeeId_agencyId: { employeeId, agencyId } },
       create: { employeeId, agencyId, notes: dto.notes, grantedById: actorId, canView, canEdit },
       update: { notes: dto.notes, grantedById: actorId, grantedAt: new Date(), canView, canEdit },
@@ -203,19 +232,23 @@ export class EmployeesService {
     dto: { canView?: boolean; canEdit?: boolean; notes?: string },
     actorId?: string,
   ) {
-    const existing = await this.legacyPrisma.employeeAgencyAccess.findUnique({ // @tenant-reviewed: phase233-excluded-mutation
+    // Phase 2.34 — gate both sides BEFORE the access-row lookup so a
+    // foreign-tenant employee or agency cannot drive any update.
+    await this.findEmployeeOrFail(employeeId);
+    await this.findAgencyOrFail(agencyId);
+    const existing = await this.legacyPrisma.employeeAgencyAccess.findUnique({ // @tenant-reviewed: phase234-agency-gate (gates above)
       where: { employeeId_agencyId: { employeeId, agencyId } },
     });
     if (!existing) throw new NotFoundException('No grant for that employee/agency pair');
     const canView = dto.canView ?? existing.canView;
     const canEdit = dto.canEdit ?? existing.canEdit;
     if (!canView && !canEdit) {
-      await this.legacyPrisma.employeeAgencyAccess.delete({ // @tenant-reviewed: phase233-excluded-mutation
+      await this.legacyPrisma.employeeAgencyAccess.delete({ // @tenant-reviewed: phase234-agency-gate
         where: { employeeId_agencyId: { employeeId, agencyId } },
       });
       return { employeeId, agencyId, canView: false, canEdit: false, deleted: true };
     }
-    return this.legacyPrisma.employeeAgencyAccess.update({ // @tenant-reviewed: phase233-excluded-mutation
+    return this.legacyPrisma.employeeAgencyAccess.update({ // @tenant-reviewed: phase234-agency-gate
       where: { employeeId_agencyId: { employeeId, agencyId } },
       data: {
         canView, canEdit,
@@ -226,8 +259,11 @@ export class EmployeesService {
   }
 
   async revokeAgencyAccess(employeeId: string, agencyId: string) {
+    // Phase 2.34 — gate both sides BEFORE delete.
+    await this.findEmployeeOrFail(employeeId);
+    await this.findAgencyOrFail(agencyId);
     try {
-      await this.legacyPrisma.employeeAgencyAccess.delete({ // @tenant-reviewed: phase233-excluded-mutation
+      await this.legacyPrisma.employeeAgencyAccess.delete({ // @tenant-reviewed: phase234-agency-gate
         where: { employeeId_agencyId: { employeeId, agencyId } },
       });
     } catch {
@@ -245,7 +281,8 @@ export class EmployeesService {
 
     const employeeNumber = await this.generateEmployeeNumber();
     const { agencyId, ...rest } = dto;
-    const employee = await this.legacyPrisma.employee.create({ // @tenant-reviewed: phase233-excluded-mutation
+    const tdata = this.scope().tenantData();
+    const employee = await this.legacyPrisma.employee.create({ // @tenant-reviewed: phase234-pilot-scope (writes tenantId via scope.tenantData)
       data: {
         ...rest,
         employeeNumber,
@@ -263,6 +300,7 @@ export class EmployeesService {
             status: 'PENDING',
           })),
         },
+        ...tdata,
       } as any,
       include: { agency: { select: { id: true, name: true } } },
     });
@@ -300,12 +338,17 @@ export class EmployeesService {
     await this.findOne(id, actor, { require: 'edit' });
     const data: any = { ...dto };
     if (dto.dateOfBirth) data.dateOfBirth = new Date(dto.dateOfBirth);
-    return this.legacyPrisma.employee.update({ where: { id }, data, include: { agency: { select: { id: true, name: true } } } }); // @tenant-reviewed: phase233-excluded-mutation
+    return this.legacyPrisma.employee.update({ where: { id }, data, include: { agency: { select: { id: true, name: true } } } }); // @tenant-reviewed: phase234-pilot-scope-precheck
   }
 
   async uploadPhoto(id: string, file: Express.Multer.File) {
-    const employee = await this.legacyPrisma.employee.findUnique({ // @tenant-reviewed: phase233-excluded-storage (deferred to Phase 2.34 storage-guard)
-      where: { id },
+    // Phase 2.34 — storage guard. Resolve through the pilot-aware
+    // tenant gate BEFORE writing bytes to storage. Cross-tenant ids
+    // raise 404 BEFORE `storage.uploadFile` is called. Legacy mode
+    // collapses `tenantWhere()` to {} ⇒ tenant-agnostic by-id lookup.
+    const t = this.scope().tenantWhere();
+    const employee = await this.prisma.employee.findFirst({ // @tenant-reviewed: phase234-storage-guard
+      where: { id, deletedAt: null, ...t },
       select: { firstName: true, lastName: true, photoUrl: true },
     });
     if (!employee) throw new NotFoundException('Employee not found');
@@ -317,7 +360,7 @@ export class EmployeesService {
       inline: true,
     });
 
-    const updated = await this.legacyPrisma.employee.update({ // @tenant-reviewed: phase233-excluded-storage
+    const updated = await this.legacyPrisma.employee.update({ // @tenant-reviewed: phase234-pilot-scope-precheck (storage guard above is tenant-scoped)
       where: { id },
       data: { photoUrl: upload.url },
       include: { agency: { select: { id: true, name: true } } },
@@ -347,13 +390,13 @@ export class EmployeesService {
 
   async remove(id: string, _actorId?: string, actor?: { role?: string; agencyId?: string; agencyIsSystem?: boolean }) {
     await this.findOne(id, actor, { require: 'edit' });
-    await this.legacyPrisma.employee.update({ where: { id }, data: { deletedAt: new Date() } }); // @tenant-reviewed: phase233-excluded-mutation
+    await this.legacyPrisma.employee.update({ where: { id }, data: { deletedAt: new Date() } }); // @tenant-reviewed: phase234-pilot-scope-precheck
     return { message: 'Employee deleted successfully' };
   }
 
   async updateStatus(id: string, status: string, _actorId?: string, actor?: { role?: string; agencyId?: string; agencyIsSystem?: boolean }) {
     await this.findOne(id, actor, { require: 'edit' });
-    return this.legacyPrisma.employee.update({ where: { id }, data: { status: status as any } }); // @tenant-reviewed: phase233-excluded-mutation
+    return this.legacyPrisma.employee.update({ where: { id }, data: { status: status as any } }); // @tenant-reviewed: phase234-pilot-scope-precheck
   }
 
   async getDocuments(id: string) {

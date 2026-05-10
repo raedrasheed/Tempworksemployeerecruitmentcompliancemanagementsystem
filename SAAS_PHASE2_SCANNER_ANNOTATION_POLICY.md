@@ -93,6 +93,10 @@ and counted against the strict-mode threshold.
 | `phase233-global` | Employees intentionally global lookups: `Employee.email` duplicate-check, `StageTemplate` reads inside `create`, `generateEmployeeNumber` raw SQL serial. | `src/employees/**` | 2.33 |
 | `phase233-excluded-mutation` | Employees write/lifecycle/agency-access mutation sites kept on `legacyPrisma` until Phase 2.34+. | `src/employees/**` | 2.33 |
 | `phase233-excluded-storage` | Employees `uploadPhoto` storage-write sites — deferred to Phase 2.34 storage-guard. | `src/employees/**` | 2.33 |
+| `phase234-pilot-scope` | Employees write sites narrowed in Phase 2.34 — `create` spreads `scope.tenantData()`; `findEmployeeOrFail` parent gate. | `src/employees/**` | 2.34 |
+| `phase234-pilot-scope-precheck` | Employees by-id mutation sites gated by the prior tenant-scoped `findOne` (Phase 2.33). | `src/employees/**` | 2.34 |
+| `phase234-storage-guard` | Employees `uploadPhoto` parent tenant gate runs BEFORE `storage.uploadFile`. | `src/employees/**` | 2.34 |
+| `phase234-agency-gate` | Employees agency-access write sites narrowed by dual gates (employee + agency tenant). | `src/employees/**` | 2.34 |
 | `tenant-safe-report-runtime` | Reports engine uses `$queryRawUnsafe` with positional parameters and a registry-validated SQL string. | `src/reports/reports.service.ts` | 2.1 |
 
 ## 3. When annotations are allowed

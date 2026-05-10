@@ -143,3 +143,47 @@ agencies, pipeline) — pick by risk profile.
   storage-guard mirror of applicants 2.31.
 - Agency-access write paths need a target-employee parent gate +
   agency tenant gate (`findAgencyOrFail` mirror).
+
+## 13. Phase 2.34 — mutation pilot delta
+
+Phase 2.34 extends the employees pilot to mutations. The employees
+module now joins finance, documents, vehicles, workflow, and
+applicants as the **sixth** end-to-end module proven on real DB
+across reads + writes.
+
+New helpers:
+- `findEmployeeOrFail(id)` — pilot-aware tenant gate.
+- `findAgencyOrFail(id)` — agency tenant gate.
+
+Per-method changes:
+- `create` — spreads `scope.tenantData()`. Tag `phase234-pilot-scope`.
+- `update`, `remove`, `updateStatus` — rely on the Phase 2.33
+  tenant-scoped `findOne` pre-check; retagged
+  `phase234-pilot-scope-precheck`.
+- `uploadPhoto` — pilot-aware `findFirst({ id, deletedAt:null, ...tenantWhere() })`
+  runs BEFORE `storage.uploadFile`. Tag `phase234-storage-guard`.
+- `grantAgencyAccess`, `updateAgencyAccess`, `revokeAgencyAccess` —
+  NEW dual gates (target employee + target agency) before any
+  EmployeeAgencyAccess mutation. Tag `phase234-agency-gate`.
+
+Email duplicate-check, `StageTemplate.findMany`, and
+`generateEmployeeNumber` raw SQL stay `phase233-global` (Phase 3
+product question for per-tenant uniqueness / per-tenant sequence).
+
+New harnesses (real Postgres SAFE_CLONE):
+- `employees-mutation-equivalence` (10 cases): create shape +
+  tenantId NULL/set, update / updateStatus / remove parity,
+  uploadPhoto storage count, agency-access grant/update/revoke parity.
+- `employees-mutation-isolation` (12 cases): cross-tenant rejections
+  for update / updateStatus / remove / uploadPhoto / grant / update /
+  revoke; agency gate rejects cross-tenant target; uploadPhoto NO
+  storage write on cross-tenant; legacy mode unchanged; ALS frame
+  isolation; source-level meta-assertion.
+
+Real-DB results: 22/22 mutation cases PASS + 23/23 read cases PASS =
+**45/45 employees** total. Cumulative finance + documents + vehicles
++ workflow + applicants + audit-log + employees: **329/329** on
+real Postgres 16.
+
+Storage keys, ACLs, signed-URL behaviour, email uniqueness, and
+employee-number generation are all unchanged.

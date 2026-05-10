@@ -781,3 +781,28 @@ The natural next phase is the **first non-applicant module audit
 on real production-shape data** (compliance, employees, attendance,
 pipeline, or agencies — pick by risk profile) OR a Phase 3 audit
 of `Applicant.email` / `Employee.email` per-tenant uniqueness.
+
+## 11.6 Phase 2.33 — employees reads-first pilot
+
+`src/employees` brought into the pilot following the
+finance/documents/vehicles/workflow/applicants pattern.
+
+- `findAll`, `findOne`, `listAgencyAccess`, `getFinancialProfile`,
+  `getDocuments`, `getWorkflow`, `getCompliance`, `getCertifications`,
+  `getTraining`, `getPerformance`, `exportExcel` — `tenantWhere()`
+  spread or parent-gated via tenant-scoped `findOne`.
+- Mutation / lifecycle / agency-access write / storage / global
+  uniqueness / sequence sites tagged `phase233-excluded-mutation`,
+  `phase233-excluded-storage`, or `phase233-global` and routed through
+  `legacyPrisma`.
+
+`Employee.email` and `Employee.employeeNumber` stay globally unique
+(see `SAAS_PHASE2_EMPLOYEES_UNIQUENESS_REVIEW.md`). External-actor
+agency-grant visibility preserved.
+
+Real-DB: equivalence 12/12 + isolation 11/11 = 23/23. Cumulative
+across modules: **307/307**.
+
+The natural next phase is the **employees mutation pilot (Phase
+2.34)** — `findEmployeeOrFail` parent gate, `Employee.create`
+tenantId, `uploadPhoto` storage-guard, agency-access write paths.

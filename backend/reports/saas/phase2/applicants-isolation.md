@@ -1,6 +1,6 @@
 # Phase 2.28 — Applicants Isolation
 
-Generated: 2026-05-10T12:01:58.483Z
+Generated: 2026-05-10T12:20:59.233Z
 Environment: SAFE_CLONE (localhost + fixture pattern (db=saas_phase1_fixture))
 Tenants: A=`11111111-1111-1111-1111-111111111111` B=`22222222-2222-2222-2222-222222222222`
 

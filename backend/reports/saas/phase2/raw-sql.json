@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-10T11:42:41.087Z",
+  "generatedAt": "2026-05-10T12:24:00.323Z",
   "counts": {
     "total": 26,
     "BLOCKER": 11,
@@ -242,7 +242,7 @@
     },
     {
       "file": "src/applicants/applicants.service.ts",
-      "line": 1324,
+      "line": 1336,
       "pattern": "$queryRaw",
       "severity": "MEDIUM",
       "blocksPhase2": false,
@@ -253,7 +253,7 @@
     },
     {
       "file": "src/applicants/applicants.service.ts",
-      "line": 1351,
+      "line": 1363,
       "pattern": "$queryRaw",
       "severity": "MEDIUM",
       "blocksPhase2": false,
@@ -264,7 +264,7 @@
     },
     {
       "file": "src/applicants/applicants.service.ts",
-      "line": 1378,
+      "line": 1390,
       "pattern": "$queryRaw",
       "severity": "MEDIUM",
       "blocksPhase2": false,
@@ -275,12 +275,12 @@
     },
     {
       "file": "src/employees/employees.service.ts",
-      "line": 246,
+      "line": 280,
       "pattern": "$queryRaw",
       "severity": "MEDIUM",
       "blocksPhase2": false,
       "module": "employees",
-      "snippet": "const result: any[] = await this.prisma.$queryRaw`",
+      "snippet": "const result: any[] = await this.legacyPrisma.$queryRaw`",
       "fix": "Wrap call site in TenantPrismaService.withTenant; verify the SQL has a tenant filter.",
       "reviewed": false
     },

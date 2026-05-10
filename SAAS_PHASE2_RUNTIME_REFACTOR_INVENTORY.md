@@ -613,3 +613,20 @@ Real-DB: equivalence 7/7 + isolation 9/9 = 16/16. Cumulative across
 modules: **277/277**.
 
 The applicants module has no remaining cross-module deferred paths.
+
+## 30. Phase 2.33 — Employees reads-first pilot (shipped)
+
+`src/employees` reads-first pilot. `EmployeesService` accepts
+`PilotPrismaAccessor`; read paths route through `pilot.client()` and
+spread `scope.tenantWhere()` when the pilot is active. Mutation,
+agency-access write, storage, and global-uniqueness sites stay on
+`legacyPrisma`.
+
+Tags introduced: `phase233-pilot-scope`, `phase233-pilot-scope-precheck`,
+`phase233-global`, `phase233-excluded-mutation`, `phase233-excluded-storage`.
+
+Real-DB: equivalence 12/12 + isolation 11/11 = 23/23. Cumulative
+across modules: **307/307**.
+
+`Employee.email` / `Employee.employeeNumber` per-tenant uniqueness
+remains a Phase 3 product question.

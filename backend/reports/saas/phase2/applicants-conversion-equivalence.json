@@ -5,7 +5,7 @@
     {
       "name": "1. legacy convert: response shape preserved",
       "ok": true,
-      "detail": "employeeId=afa29639"
+      "detail": "employeeId=bb8ae0c2"
     },
     {
       "name": "3. legacy convert: Employee.tenantId NULL",
@@ -30,7 +30,7 @@
     {
       "name": "2. pilot convert: response shape preserved",
       "ok": true,
-      "detail": "employeeId=a1a0784e"
+      "detail": "employeeId=6d51b0fc"
     },
     {
       "name": "4. pilot convert: Employee.tenantId = A",

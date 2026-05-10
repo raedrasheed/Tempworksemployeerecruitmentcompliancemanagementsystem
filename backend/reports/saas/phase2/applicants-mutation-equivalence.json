@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-10T12:02:15.258Z",
+  "generatedAt": "2026-05-10T12:21:15.962Z",
   "environment": {
     "classification": "SAFE_CLONE",
     "reason": "localhost + fixture pattern (db=saas_phase1_fixture)",
@@ -17,7 +17,7 @@
     {
       "name": "create response shape preserved",
       "ok": true,
-      "detail": "legacy.id=130c4200-bd21-41d5-943f-d14ef0662756 pilot.id=db9cf339-00a4-41e1-9c24-46a7bf34223b"
+      "detail": "legacy.id=bfb92a01-e56f-4ed1-a544-465089b7d0e4 pilot.id=e0401a19-391b-4172-8e72-859aa54fccef"
     },
     {
       "name": "create legacy: tenantId NULL",
@@ -62,7 +62,7 @@
     {
       "name": "requestDelete (pilot) creates request for tenant A applicant",
       "ok": true,
-      "detail": "id=179a3aa4-bb38-41fa-a12b-136fff98044d"
+      "detail": "id=6947c599-5ddd-497a-ba39-134d8ba9cd78"
     }
   ]
 }

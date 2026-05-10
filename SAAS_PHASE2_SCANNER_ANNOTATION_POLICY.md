@@ -88,6 +88,11 @@ and counted against the strict-mode threshold.
 | `phase231-public-submit-attribution` | Applicants `publicSubmit` tenant attribution: ALS first, agency fallback, reject otherwise (pilot mode). NULL-tenant rows preserved in legacy. | `src/applicants/**` | 2.31 |
 | `phase231-pilot-scope` | Reserved for follow-up applicants pilot sites that engage during Phase 2.31 review. | `src/applicants/**` | 2.31 |
 | `phase232-conversion-gate` | Applicants `convertToEmployee` cross-module re-link calls (`Document.updateMany`, `FinancialRecord.updateMany`, `ApplicantFinancialProfile.updateMany`) narrowed on `tenantId` in pilot mode. Foreign-tenant rows that incidentally point at the applicant id stay untouched. | `src/applicants/**` | 2.32 |
+| `phase233-pilot-scope` | Employees read sites narrowed via `tenantWhere()` spread (`findAll`, `findOne`, `exportExcel` by-id branch, parent gates inside `listAgencyAccess`). | `src/employees/**` | 2.33 |
+| `phase233-pilot-scope-precheck` | Employees child reads gated by tenant-scoped `findOne` parent (Document / EmployeeStage / ComplianceAlert / EmployeeAgencyAccess by `employeeId` / ApplicantFinancialProfile by `employeeId`). | `src/employees/**` | 2.33 |
+| `phase233-global` | Employees intentionally global lookups: `Employee.email` duplicate-check, `StageTemplate` reads inside `create`, `generateEmployeeNumber` raw SQL serial. | `src/employees/**` | 2.33 |
+| `phase233-excluded-mutation` | Employees write/lifecycle/agency-access mutation sites kept on `legacyPrisma` until Phase 2.34+. | `src/employees/**` | 2.33 |
+| `phase233-excluded-storage` | Employees `uploadPhoto` storage-write sites — deferred to Phase 2.34 storage-guard. | `src/employees/**` | 2.33 |
 | `tenant-safe-report-runtime` | Reports engine uses `$queryRawUnsafe` with positional parameters and a registry-validated SQL string. | `src/reports/reports.service.ts` | 2.1 |
 
 ## 3. When annotations are allowed

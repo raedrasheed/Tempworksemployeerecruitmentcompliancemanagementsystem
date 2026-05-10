@@ -123,6 +123,8 @@
     "saas:phase231-applicants-deferred-isolation":   "ts-node scripts/saas/phase2/applicants-deferred-paths-isolation.ts",
     "saas:phase232-applicants-conversion-equivalence": "ts-node scripts/saas/phase2/applicants-conversion-equivalence.ts",
     "saas:phase232-applicants-conversion-isolation":   "ts-node scripts/saas/phase2/applicants-conversion-isolation.ts",
+    "saas:phase2-employees-equivalence":             "ts-node scripts/saas/phase2/employees-equivalence.ts",
+    "saas:phase2-employees-isolation":               "ts-node scripts/saas/phase2/employees-isolation.ts",
     "saas:scan:annotations":                      "ts-node scripts/scan-annotations.ts",
     "saas:phase2-pilot-regression":               "ts-node scripts/saas/phase2/pilot-regression.ts",
     "saas:phase2-job-context-harness":            "ts-node scripts/saas/phase2/job-context-harness.ts",

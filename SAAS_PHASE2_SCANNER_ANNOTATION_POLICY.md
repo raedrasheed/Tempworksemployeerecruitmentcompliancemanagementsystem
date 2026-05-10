@@ -133,6 +133,7 @@ and counted against the strict-mode threshold.
 | `phase249-attendance-lock-period-tenant-scope` | `AttendanceLockedPeriod` lock APIs (`isPeriodLocked`, `listLockedPeriods`, `lockPeriod`, `unlockPeriod`) scope by `tenantId` when pilot active; legacy mode preserves NULL-tenant lookup. | `src/attendance/**` | 2.49 |
 | `phase249-attendance-lock-period-migration` | Schema migration `saas_phase249_attendance_locked_period_tenant` (nullable `tenantId`, replaced unique constraint, partial unique on NULL-tenant rows). | `src/attendance/**`, `prisma/**` | 2.49 |
 | `phase249-attendance-lock-period-backfill` | Reserved for optional production backfill scripts (Strategies B/C in the lock-period tenant-scope doc). | `src/attendance/**`, `scripts/**` | 2.49 |
+| `phase250-attendance-audit-backfill` | One-shot dry-run-first backfill that maps historic NULL-tenant `audit_logs(entity='AttendanceRecord')` rows to `tenantId` via `attendance_records.tenantId`. Apply double-gated (`ATTENDANCE_AUDIT_BACKFILL_APPLY=true` + SAFE_CLONE/SAFE_STAGING). | `scripts/saas/phase2/**` | 2.50 |
 | `tenant-safe-report-runtime` | Reports engine uses `$queryRawUnsafe` with positional parameters and a registry-validated SQL string. | `src/reports/reports.service.ts` | 2.1 |
 
 ## 3. When annotations are allowed

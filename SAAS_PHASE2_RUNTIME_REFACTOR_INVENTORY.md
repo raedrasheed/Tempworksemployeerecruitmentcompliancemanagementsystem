@@ -900,3 +900,15 @@ selects from Strategies A/B/C documented in
 `SAAS_PHASE2_ATTENDANCE_LOCK_PERIOD_TENANT_SCOPE.md`.
 
 Real-DB: `attendance-lock-period-isolation` 13/13. Cumulative: **557/557**.
+
+## 47 — Historic Attendance audit-log tenant backfill (Phase 2.50)
+
+Data-only one-shot. Dry-run-first; apply requires both
+`ATTENDANCE_AUDIT_BACKFILL_APPLY=true` AND a SAFE classification.
+Updates only the four-condition target set (entity=AttendanceRecord
+AND audit.tenantId IS NULL AND attendance.tenantId IS NOT NULL AND
+entityId joins). Idempotent. Other-entity audit rows untouched.
+
+Tag: `phase250-attendance-audit-backfill`.
+
+Real-DB harness: 13/13. Cumulative: **570/570**.

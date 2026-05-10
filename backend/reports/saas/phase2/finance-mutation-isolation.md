@@ -1,6 +1,6 @@
 # Phase 2.17 — Finance Mutation Isolation
 
-Generated: 2026-05-10T17:19:22.808Z
+Generated: 2026-05-10T17:30:03.303Z
 Environment: SAFE_CLONE (localhost + fixture pattern (db=saas_phase1_fixture))
 Tenants: A=`11111111-1111-1111-1111-111111111111` B=`22222222-2222-2222-2222-222222222222`
 

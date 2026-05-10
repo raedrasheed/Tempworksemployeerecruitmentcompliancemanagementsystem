@@ -135,3 +135,27 @@ to read/write NULL-tenant rows.
 
 2.50 — historic audit-row tenant backfill pass for the attendance
 entity now that mutation/lock paths emit `tenantId` natively.
+
+---
+
+# Phase 2.50 results — historic audit-log tenant backfill
+
+```
+[attendance-audit-backfill-harness] 13/13 PASS
+[attendance-lock-period-isolation] 13/13 PASS  (regression)
+[attendance-mutation-isolation]    17/17 PASS  (regression)
+[attendance-equivalence]           12/12 PASS  (regression)
+[attendance-isolation]             12/12 PASS  (regression)
+```
+
+Cumulative regression: **570/570 PASS**.
+
+No schema migration. No runtime production behaviour change.
+Apply mode is double-gated (`ATTENDANCE_AUDIT_BACKFILL_APPLY=true`
++ SAFE_CLONE/SAFE_STAGING).
+
+## Recommended next phase
+
+**2.51 — Cross-module audit-row tenant backfill** (Document,
+FinancialRecord, WorkPermit, Visa, ComplianceAlert, Notification)
+following the Phase 2.50 template.

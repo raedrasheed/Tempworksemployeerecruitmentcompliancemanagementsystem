@@ -1109,3 +1109,16 @@ Tags: `phase249-attendance-lock-period-tenant-scope`,
 
 Real-DB: `attendance-lock-period-isolation` 13/13 + 2.47/2.48
 sentinels green. Cumulative: **557/557**.
+
+## 11.23 — Phase 2.50: Historic Attendance audit-log tenant backfill
+
+Adds a dry-run-first script that maps historic NULL-tenant
+`audit_logs(entity='AttendanceRecord')` rows to a `tenantId`
+derived from the joined `attendance_records.tenantId`. Apply mode
+is double-gated by `ATTENDANCE_AUDIT_BACKFILL_APPLY=true` AND
+SAFE_CLONE/SAFE_STAGING classification. UPDATE is idempotent.
+
+Tag: `phase250-attendance-audit-backfill`. Raw SQL in `scripts/`
+(not in `src/`), so the `saas:scan:raw-sql` baseline is unchanged.
+
+Real-DB harness: 13/13. Cumulative: **570/570**.

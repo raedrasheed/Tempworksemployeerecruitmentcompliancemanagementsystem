@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-10T13:50:39.885Z",
+  "generatedAt": "2026-05-10T14:00:25.172Z",
   "environment": {
     "classification": "SAFE_CLONE",
     "reason": "localhost + fixture pattern (db=saas_phase1_fixture)",
@@ -11,8 +11,8 @@
   "empA": "eeeeeeea-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
   "legacySnapshot": {
     "dashSummary": {
-      "totalAlerts": 8,
-      "openAlerts": 6,
+      "totalAlerts": 9,
+      "openAlerts": 7,
       "criticalAlerts": 2,
       "resolvedAlerts": 2
     },
@@ -22,14 +22,15 @@
       "00000000-0000-0000-0000-00000000c101",
       "00000000-0000-0000-0000-00000000c102",
       "00000000-0000-0000-0000-00000000c999",
-      "0db0c28f-bbfa-4e76-92bf-013c66786042"
+      "0db0c28f-bbfa-4e76-92bf-013c66786042",
+      "bc44f996-261d-4f7e-9b27-734ffad216ff"
     ],
-    "dashRecentCount": 6,
-    "alertsTotal": 8,
-    "alertsOpenTotal": 6,
+    "dashRecentCount": 7,
+    "alertsTotal": 9,
+    "alertsOpenTotal": 7,
     "expiringDocsCount": 4,
     "empDocsCount": 5,
-    "empAlertsCount": 3
+    "empAlertsCount": 4
   },
   "pilotSnapshot": {
     "dashSummary": {
@@ -78,7 +79,7 @@
     {
       "name": "getDashboard: legacy totalAlerts ≥ pilot totalAlerts (pilot filtered)",
       "ok": true,
-      "detail": "legacy=8 pilot=3"
+      "detail": "legacy=9 pilot=3"
     },
     {
       "name": "getDashboard: pilot summary excludes NULL-tenant + tenant B",
@@ -88,12 +89,12 @@
     {
       "name": "getAlerts: pilot total < legacy total (other tenants filtered)",
       "ok": true,
-      "detail": "legacy=8 pilot=3"
+      "detail": "legacy=9 pilot=3"
     },
     {
       "name": "getAlerts(status=OPEN): both modes count only OPEN status",
       "ok": true,
-      "detail": "legacy open=6/8 pilot open=2/3"
+      "detail": "legacy open=7/9 pilot open=2/3"
     },
     {
       "name": "getEmployeeCompliance: response shape preserved",
@@ -103,7 +104,7 @@
     {
       "name": "getEmployeeCompliance: pilot openAlerts only counts tenant A",
       "ok": true,
-      "detail": "legacy=3 pilot=2"
+      "detail": "legacy=4 pilot=2"
     },
     {
       "name": "getExpiringDocuments: pilot result subset of legacy result",

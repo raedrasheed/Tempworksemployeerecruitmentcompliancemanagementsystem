@@ -50,7 +50,7 @@ async function withFlags<T>(env: Record<string, string | undefined>, fn: () => P
 }
 
 function makeService(prisma: PrismaService, pilot: PilotPrismaAccessor, flags: FeatureFlagsService): ComplianceService {
-  return new ComplianceService(prisma, pilot, new TenantAuditLogService(prisma, flags));
+  return new ComplianceService(prisma, pilot, new TenantAuditLogService(prisma, flags), flags);
 }
 
 async function fetchAuditRow(prisma: PrismaService, entityId: string): Promise<{ tenantId: string | null } | null> {

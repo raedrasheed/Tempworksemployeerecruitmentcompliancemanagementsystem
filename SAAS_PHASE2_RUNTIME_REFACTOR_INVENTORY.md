@@ -724,3 +724,18 @@ green. Cumulative across modules: **399/399**.
 No scheduler wiring is added. Future schedulers MUST call
 `generateAlertsForTenant` per tenant — the entrypoint refuses to run
 without a SAFE_CLONE/SAFE_STAGING env + active compliance pilot.
+
+## 36. Phase 2.39 — Compliance tenant-aware job dispatch (shipped)
+
+`ComplianceService.dispatchComplianceAlertGenerationForTenants()` is
+the only supported background-scheduler execution path. Default
+refuses; gated by `TENANT_JOB_FANOUT_ENABLED` AND the compliance
+pilot. Enumerates ACTIVE tenants; per-tenant fault isolation;
+source-level meta-assertion that raw `generateAlerts()` is not
+called.
+
+Tag: `phase239-tenant-job-dispatch`.
+
+No scheduler wired this phase.
+
+Real-DB: 9/9. Cumulative: **408/408**.

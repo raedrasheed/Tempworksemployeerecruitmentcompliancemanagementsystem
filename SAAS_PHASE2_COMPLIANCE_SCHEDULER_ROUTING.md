@@ -125,3 +125,29 @@ rollback.
 |---|---|---|---|
 | `phase238-audit-log-pilot` | Compliance audit emission delegated to `TenantAuditLogService` | `src/compliance/**` | 2.38 |
 | `phase238-scheduler-routing` | Compliance scheduler-safe entrypoint (`generateAlertsForTenant`) | `src/compliance/**` | 2.38 |
+
+---
+
+# Phase 2.39 addendum — tenant-aware job dispatch
+
+Phase 2.39 adds the gated, per-tenant fan-out helper:
+
+```ts
+ComplianceService.dispatchComplianceAlertGenerationForTenants()
+```
+
+See `SAAS_PHASE2_TENANT_JOB_DISPATCH.md` for the full contract.
+
+Key invariants:
+- Default `TENANT_JOB_FANOUT_ENABLED=false` — dispatch refuses.
+- Pilot must be active for `compliance` — dispatch refuses otherwise.
+- Enumerates only ACTIVE tenants from the `Tenant` table.
+- Calls `generateAlertsForTenant(tenantId)` once per tenant. Source-level
+  meta-assertion proves the dispatch body never calls raw
+  `generateAlerts()`.
+- Per-tenant fault isolation: one failure recorded as
+  `{ ok: false, error }`; the loop continues.
+- **No real scheduler is wired**. Future schedulers MUST call the
+  dispatch helper and nothing else.
+
+New harness: `compliance-tenant-job-dispatch` — 9/9 PASS.

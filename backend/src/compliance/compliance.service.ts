@@ -5,6 +5,7 @@ import { getPilotScope, PilotScope } from '../saas/prisma/tenant-pilot-scope';
 import { TenantAuditLogService } from '../saas/audit/tenant-audit-log.service';
 import { TenantContext, withRequestContext, newRequestId } from '../saas/context/als';
 import { classifyRuntimeEnv, isStagingClassification } from '../saas/tenancy/env-safety';
+import { FeatureFlagsService } from '../saas/feature-flags/feature-flags.service';
 import { UpdateAlertDto } from './dto/update-alert.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { PaginatedResponse } from '../common/dto/pagination-response.dto';
@@ -31,6 +32,7 @@ export class ComplianceService {
     private legacyPrisma: PrismaService,
     private pilot: PilotPrismaAccessor,
     private tenantAuditLog: TenantAuditLogService,
+    private flags: FeatureFlagsService,
   ) {}
 
   private readonly logger = new Logger('ComplianceService');
@@ -307,5 +309,67 @@ export class ComplianceService {
       const r = await this.generateAlerts();
       return { ...r, tenantId };
     });
+  }
+
+  // ── Phase 2.39 — tenant-aware fan-out dispatch ──────────────────────────────
+  //
+  // The ONLY supported path for any background scheduler to invoke compliance
+  // alert generation across multiple tenants. Enforces the "one tenant per
+  // scan" contract from Phase 2.38 by enumerating active tenants and calling
+  // `generateAlertsForTenant(tenantId)` once per tenant.
+  //
+  // Refusal contract:
+  //   - TENANT_JOB_FANOUT_ENABLED=false  ⇒ refuses, runs zero scans.
+  //   - pilot inactive (flag off, not allow-listed, or env not staging) ⇒ refuses.
+  //
+  // Per-tenant outcomes are recorded in `results`; one tenant's failure does
+  // NOT abort the loop — it is captured as `{ ok: false, error }` and the
+  // remaining tenants are processed. ALS isolation is provided by
+  // `generateAlertsForTenant` itself (each call wraps `withRequestContext`).
+  //
+  // Schedulers MUST NOT call `generateAlerts()` directly. Annotated
+  // `phase239-tenant-job-dispatch`.
+  //
+  // @tenant-reviewed: phase239-tenant-job-dispatch
+  async dispatchComplianceAlertGenerationForTenants(): Promise<{
+    refused?: string;
+    processed: number;
+    results: Array<{ tenantId: string; ok: boolean; total?: number; message?: string; error?: string }>;
+  }> {
+    if (!this.flags.tenantJobFanoutEnabled()) {
+      return { refused: 'TENANT_JOB_FANOUT_ENABLED=false', processed: 0, results: [] };
+    }
+    const pilotReason = this.pilot.pilotReason();
+    if (!pilotReason.active) {
+      return { refused: `pilot inactive: ${pilotReason.reason}`, processed: 0, results: [] };
+    }
+    if (!isStagingClassification(classifyRuntimeEnv().classification)) {
+      return { refused: 'env is not SAFE_CLONE/SAFE_STAGING', processed: 0, results: [] };
+    }
+
+    // Enumerate ACTIVE tenants only. The Tenant table is global-scope; the
+    // legacy client is the right surface (pilot client has no tenant frame
+    // here yet; we are about to attach one per row).
+    // @tenant-reviewed: phase239-tenant-job-dispatch (global Tenant enumeration)
+    const tenants: Array<{ id: string }> = await this.legacyPrisma.tenant.findMany({
+      where: { status: 'ACTIVE' as any },
+      select: { id: true },
+      orderBy: { slug: 'asc' },
+    });
+
+    const results: Array<{ tenantId: string; ok: boolean; total?: number; message?: string; error?: string }> = [];
+    for (const t of tenants) {
+      try {
+        const r = await this.generateAlertsForTenant(t.id);
+        results.push({ tenantId: t.id, ok: true, total: r.total, message: r.message });
+      } catch (e: any) {
+        // Capture and continue — one tenant's failure must not leak into
+        // another tenant's frame. ALS isolation is guaranteed by the
+        // per-call `withRequestContext` inside `generateAlertsForTenant`.
+        this.logger.warn(`[fan-out] tenant=${t.id} failed: ${e?.message ?? e}`);
+        results.push({ tenantId: t.id, ok: false, error: String(e?.message ?? e) });
+      }
+    }
+    return { processed: results.length, results };
   }
 }

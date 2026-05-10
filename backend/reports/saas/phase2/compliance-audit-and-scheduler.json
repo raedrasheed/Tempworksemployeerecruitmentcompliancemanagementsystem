@@ -40,7 +40,7 @@
     {
       "name": "8. scheduler does not create B/NULL-tenant alerts",
       "ok": true,
-      "detail": "beforeBN=4 afterBN=4"
+      "detail": "beforeBN=6 afterBN=6"
     },
     {
       "name": "9. concurrent scheduler frames isolated (A→A, B→B)",

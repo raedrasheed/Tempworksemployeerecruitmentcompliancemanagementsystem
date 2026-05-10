@@ -913,3 +913,18 @@ Closes the two gaps Phase 2.37 left open.
 
 Real-DB: 9/9 audit+scheduler harness; existing 12/12 + 7/7 still
 green. Cumulative: **399/399**.
+
+## 11.12 Phase 2.39 — tenant-aware job dispatch (compliance)
+
+`dispatchComplianceAlertGenerationForTenants()` shipped on
+`ComplianceService`. Refuses by default
+(`TENANT_JOB_FANOUT_ENABLED=false`); when both fan-out and the
+compliance pilot are active, enumerates ACTIVE tenants and calls
+`generateAlertsForTenant(tenantId)` per tenant. Per-tenant fault
+isolation; source-level meta-assertion that the dispatch body never
+calls raw `generateAlerts()`.
+
+No real scheduler is wired. The dispatch helper is the contract for
+any future scheduler.
+
+Real-DB: `compliance-tenant-job-dispatch` 9/9. Cumulative: **408/408**.

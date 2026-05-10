@@ -194,3 +194,23 @@ fan-out is handled by `notifications`.
   and Alerts already carry `tenantId`, so the cross-module risk is
   already mitigated.
 - Notification fan-out — out of scope.
+
+---
+
+# Phase 2.39 addendum — tenant fan-out dispatch
+
+The compliance service now exposes a single supported entry point
+for any background scheduler:
+
+`dispatchComplianceAlertGenerationForTenants()` — defaults refuse;
+when both `TENANT_JOB_FANOUT_ENABLED=true` AND the compliance pilot
+is active, enumerates ACTIVE tenants and calls
+`generateAlertsForTenant(tenantId)` per tenant. Per-tenant fault
+isolation; source-level meta-assertion that raw `generateAlerts()`
+is not called.
+
+Tag: `phase239-tenant-job-dispatch`.
+
+Harness: `compliance-tenant-job-dispatch` — 9/9 PASS.
+
+No scheduler is wired in this phase.

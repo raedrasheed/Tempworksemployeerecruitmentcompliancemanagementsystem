@@ -245,3 +245,31 @@ configuration-only (`TENANT_PRISMA_PILOT_ENABLED=false` or remove
   scope this phase.
 - **Notification fan-out**: continues to live in the `notifications`
   module pilot.
+
+---
+
+## Phase 2.39 — tenant-aware job dispatch
+
+`dispatchComplianceAlertGenerationForTenants()` shipped. The dispatch
+helper is the only supported execution path for any background
+scheduler that needs compliance alert generation across tenants.
+
+- Refuses by default (`TENANT_JOB_FANOUT_ENABLED=false`).
+- Refuses when pilot inactive or env not SAFE_CLONE/SAFE_STAGING.
+- Enumerates only ACTIVE tenants from the `Tenant` table.
+- Calls `generateAlertsForTenant(tenantId)` once per tenant.
+- Per-tenant fault isolation: failures recorded; loop continues.
+- Source-level meta-assertion: dispatch body never calls raw
+  `generateAlerts()`.
+
+New annotation tag: `phase239-tenant-job-dispatch`.
+
+New harness (real Postgres): `compliance-tenant-job-dispatch` —
+**9/9 PASS**.
+
+Cumulative compliance: equivalence 12/12 + isolation 7/7 +
+audit/scheduler 9/9 + tenant-job-dispatch 9/9 = **37/37**.
+Cumulative across modules: **408/408**.
+
+No production behaviour change. No real scheduler is wired. Rollback
+is configuration-only.

@@ -77,7 +77,7 @@ async function snapshot(flagsOverride: Record<string, string | undefined>,
     const prisma = new PrismaService();
     const tp = new TenantPrismaService(prisma, flags);
     const pilot = new PilotPrismaAccessor(prisma, tp, flags);
-    const svc = new ComplianceService(prisma, pilot, new TenantAuditLogService(prisma, flags));
+    const svc = new ComplianceService(prisma, pilot, new TenantAuditLogService(prisma, flags), flags);
     const run = async (): Promise<Snapshot> => {
       const dash = await svc.getDashboard();
       const alerts = await svc.getAlerts({ page: 1, limit: 50 } as any);

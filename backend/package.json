@@ -89,6 +89,7 @@
     "saas:phase2-compliance-equivalence":         "ts-node scripts/saas/phase2/compliance-equivalence.ts",
     "saas:phase2-compliance-isolation":           "ts-node scripts/saas/phase2/compliance-isolation.ts",
     "saas:phase238-compliance-audit-and-scheduler": "ts-node scripts/saas/phase2/compliance-audit-and-scheduler.ts",
+    "saas:phase239-compliance-tenant-job-dispatch": "ts-node scripts/saas/phase2/compliance-tenant-job-dispatch.ts",
     "saas:phase2-job-ads-equivalence":            "ts-node scripts/saas/phase2/job-ads-equivalence.ts",
     "saas:phase2-job-ads-isolation":              "ts-node scripts/saas/phase2/job-ads-isolation.ts",
     "saas:phase2-notifications-equivalence":      "ts-node scripts/saas/phase2/notifications-equivalence.ts",

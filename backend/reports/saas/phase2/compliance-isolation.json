@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-10T13:50:54.758Z",
+  "generatedAt": "2026-05-10T14:00:39.922Z",
   "environment": {
     "classification": "SAFE_CLONE",
     "reason": "localhost + fixture pattern (db=saas_phase1_fixture)",
@@ -43,12 +43,12 @@
     {
       "name": "pilot OFF: legacy reads include tenant B + NULL-tenant legacy row",
       "ok": true,
-      "detail": "total=8 includesB=true includesNull=true"
+      "detail": "total=9 includesB=true includesNull=true"
     },
     {
       "name": "allow-list: TENANT_PRISMA_PILOT_MODULES=nothing ⇒ legacy union (compliance opt-out)",
       "ok": true,
-      "detail": "total=8 includesB=true"
+      "detail": "total=9 includesB=true"
     }
   ]
 }

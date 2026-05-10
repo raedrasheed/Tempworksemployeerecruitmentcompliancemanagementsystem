@@ -30,7 +30,7 @@
     {
       "name": "6. dispatch creates no NULL-tenant or cross-tenant alerts",
       "ok": true,
-      "detail": "newNull=false newA=1 newB=0"
+      "detail": "newNull=false newA=1 newB=1"
     },
     {
       "name": "7. one tenant failure does not abort loop or leak",

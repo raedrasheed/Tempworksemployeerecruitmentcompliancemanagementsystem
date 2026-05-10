@@ -699,6 +699,63 @@ export class NotificationsService {
     }
   }
 
+  // ── Phase 2.45 — per-recipient notification dedup ────────────────────────
+  //
+  // Default: disabled (NOTIFICATION_DEDUP_ENABLED=false). When the flag is
+  // off, callers fall through to a plain `notification.create` and the path
+  // is byte-identical to pre-2.45.
+  //
+  // When the flag is on, we look up an existing in-app notification for the
+  // SAME tenant + recipient + type + relatedEntity + relatedEntityId within
+  // the configured window (default 360 minutes). If one is found, we
+  // SUPPRESS the create and report a `deduped` count. Tenant scoping is
+  // mandatory — the dedup query always carries the active tenantId so it
+  // CANNOT match cross-tenant rows. Missing tenant context is handled by
+  // refusing the dedup probe and falling through to legacy behaviour
+  // (caller's `assertTenantForFanout` already gates this earlier).
+  //
+  // Identity: (tenantId, userId, type, relatedEntity, relatedEntityId,
+  //            createdAt >= now - window).
+  // Limitations:
+  //   - relatedEntityId is required to dedup; without it the lookup falls
+  //     back to type-only matching, which is too coarse for general use,
+  //     so we explicitly do NOT dedup when relatedEntityId is absent.
+  //
+  // @tenant-reviewed: phase245-notifications-dedup
+  private dedupWindowMinutes(): number {
+    const raw = process.env.NOTIFICATION_DEDUP_WINDOW_MINUTES;
+    const n = raw ? Number(raw) : 360;
+    return Number.isFinite(n) && n > 0 ? n : 360;
+  }
+
+  private async createInAppWithDedup(data: any, tid: string | null): Promise<{ created: number; deduped: number }> {
+    const dedupOn = !!this.flags?.notificationDedupEnabled();
+    // Dedup requires both: flag on, an explicit tenantId, AND a
+    // (relatedEntity, relatedEntityId) pair. If any are missing we fall
+    // through to a plain create.
+    if (dedupOn && tid && data.relatedEntity && data.relatedEntityId) {
+      const since = new Date(Date.now() - this.dedupWindowMinutes() * 60 * 1000);
+      // @tenant-reviewed: phase245-notifications-dedup (tenantId always present in lookup)
+      const existing = await this.legacyPrisma.notification.findFirst({
+        where: {
+          tenantId: tid,
+          userId: data.userId,
+          type: data.type,
+          relatedEntity: data.relatedEntity,
+          relatedEntityId: data.relatedEntityId,
+          createdAt: { gte: since },
+          deletedAt: null,
+        },
+        select: { id: true },
+      });
+      if (existing) {
+        return { created: 0, deduped: 1 };
+      }
+    }
+    await this.legacyPrisma.notification.create({ data });
+    return { created: 1, deduped: 0 };
+  }
+
   /// Notify uploader and users with specific roles.
   ///
   /// `i18n` is optional — pass `{ titleKey, messageKey?, params? }` to
@@ -717,7 +774,7 @@ export class NotificationsService {
     relatedEntity?: string,
     relatedEntityId?: string,
     i18n?: { titleKey?: string; messageKey?: string; params?: Record<string, unknown> },
-  ): Promise<void> {
+  ): Promise<{ created: number; deduped: number }> {
     this.assertTenantForFanout('notifyUploaderAndRoles');
     const tid = this.narrowingTenantId();
     const userIds = new Set<string>();
@@ -751,23 +808,26 @@ export class NotificationsService {
 
     const type = (EVENT_TO_TYPE[eventKey] || 'INFO') as NotificationType;
 
+    let created = 0, deduped = 0;
     for (const userId of userIds) {
-      await this.legacyPrisma.notification.create({ // @tenant-reviewed: phase215-pilot-scope (writes tenantId when tid)
-        data: {
-          userId,
-          title,
-          message,
-          titleKey:   i18n?.titleKey   ?? null,
-          messageKey: i18n?.messageKey ?? null,
-          params:     (i18n?.params ?? null) as any,
-          type,
-          channel: 'in_app',
-          relatedEntity: relatedEntity || 'Document',
-          relatedEntityId,
-          ...(tid ? { tenantId: tid } : {}),
-        },
-      });
+      // @tenant-reviewed: phase215-pilot-scope (writes tenantId when tid)
+      const r = await this.createInAppWithDedup({
+        userId,
+        title,
+        message,
+        titleKey:   i18n?.titleKey   ?? null,
+        messageKey: i18n?.messageKey ?? null,
+        params:     (i18n?.params ?? null) as any,
+        type,
+        channel: 'in_app',
+        relatedEntity: relatedEntity || 'Document',
+        relatedEntityId,
+        ...(tid ? { tenantId: tid } : {}),
+      }, tid);
+      created += r.created;
+      deduped += r.deduped;
     }
+    return { created, deduped };
   }
 
   /// Notify users with specific roles.
@@ -785,7 +845,7 @@ export class NotificationsService {
     relatedEntity?: string,
     relatedEntityId?: string,
     i18n?: { titleKey?: string; messageKey?: string; params?: Record<string, unknown> },
-  ): Promise<void> {
+  ): Promise<{ created: number; deduped: number }> {
     this.assertTenantForFanout('notifyUsersByRoles');
     const tid = this.narrowingTenantId();
     const users = await this.legacyPrisma.user.findMany({ // @tenant-reviewed: phase215-pilot-scope (role fanout narrowed via agency.tenantId when tid)
@@ -799,23 +859,26 @@ export class NotificationsService {
 
     const type = (EVENT_TO_TYPE[eventKey] || 'INFO') as NotificationType;
 
+    let created = 0, deduped = 0;
     for (const user of users) {
-      await this.legacyPrisma.notification.create({ // @tenant-reviewed: phase215-pilot-scope (writes tenantId when tid)
-        data: {
-          userId: user.id,
-          title,
-          message,
-          titleKey:   i18n?.titleKey   ?? null,
-          messageKey: i18n?.messageKey ?? null,
-          params:     (i18n?.params ?? null) as any,
-          type,
-          channel: 'in_app',
-          relatedEntity,
-          relatedEntityId,
-          ...(tid ? { tenantId: tid } : {}),
-        },
-      });
+      // @tenant-reviewed: phase215-pilot-scope (writes tenantId when tid)
+      const r = await this.createInAppWithDedup({
+        userId: user.id,
+        title,
+        message,
+        titleKey:   i18n?.titleKey   ?? null,
+        messageKey: i18n?.messageKey ?? null,
+        params:     (i18n?.params ?? null) as any,
+        type,
+        channel: 'in_app',
+        relatedEntity,
+        relatedEntityId,
+        ...(tid ? { tenantId: tid } : {}),
+      }, tid);
+      created += r.created;
+      deduped += r.deduped;
     }
+    return { created, deduped };
   }
 
   /// Check if high balance alert was recently sent

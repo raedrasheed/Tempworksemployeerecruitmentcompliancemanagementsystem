@@ -12,7 +12,7 @@
 - PASS — 8. scheduler disabled: cron tick is a no-op — noNew=true
 - PASS — 9. scheduler ON + fan-out OFF: dispatch refuses; zero scans — noNew=true
 - PASS — 10. scheduler + fan-out ON + pilot OFF: dispatch refuses — noNew=true
-- PASS — 11. cron processes ACTIVE tenants only (no error path) — newA=1 newB=0
+- PASS — 11. cron processes ACTIVE tenants only (no error path) — newA=1 newB=1
 - PASS — 12. cron creates no NULL-tenant alerts — newNull=false
-- PASS — 13. cron creates no cross-tenant alerts (per-row tenantId attributed) — newA=1 newB=0
+- PASS — 13. cron creates no cross-tenant alerts (per-row tenantId attributed) — newA=1 newB=1
 - PASS — 14. concurrent cron ticks remain ALS-isolated — newNull=false

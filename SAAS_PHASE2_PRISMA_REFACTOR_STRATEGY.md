@@ -1023,3 +1023,14 @@ Tag: `phase244-compliance-scheduler-health`.
 
 Real-DB: `compliance-scheduler-health` — 12/12 PASS. Cumulative:
 **478/478**.
+
+## 11.18 Phase 2.45 — per-recipient notification dedup
+
+Optional, default-off dedup helper inside `NotificationsService`.
+`notifyUsersByRoles` and `notifyUploaderAndRoles` now return
+`{ created, deduped }`. Compliance coupling forwards the count;
+scheduler health summary surfaces `notifyDeduped`.
+
+Tag: `phase245-notifications-dedup`.
+
+Real-DB: `notifications-dedup` — 12/12 PASS. Cumulative: **490/490**.

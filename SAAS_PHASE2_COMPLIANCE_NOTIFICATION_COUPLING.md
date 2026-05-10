@@ -169,3 +169,16 @@ log line with stable JSON. See `SAAS_PHASE2_COMPLIANCE_SCHEDULER_HEALTH.md`.
 The notification-coupling failure path
 (`notify.error`) now reports as `status='partial_failure'` with
 `notifyFailed >= 1` in the per-tick health log.
+
+---
+
+# Phase 2.45 addendum — relatedEntityId stable identity for dedup
+
+`maybeNotifyOnAlertGeneration` now passes a stable
+`relatedEntityId = 'tick:<tenantId>'` to `notifyUsersByRoles`. With
+`NOTIFICATION_DEDUP_ENABLED=true` this allows consecutive cron ticks
+to collapse to a single notification per recipient within the
+configured window. The notify-coupling result gains an optional
+`deduped` counter forwarded into the dispatch + scheduler results.
+
+See `SAAS_PHASE2_NOTIFICATIONS_DEDUP.md`.

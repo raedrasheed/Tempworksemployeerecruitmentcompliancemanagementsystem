@@ -348,6 +348,7 @@ export class ComplianceService {
     skipped?: string;
     refused?: string;
     notified?: number;
+    deduped?: number;
     error?: string;
   } | null> {
     if (!this.flags.complianceNotifyOnAlert()) {
@@ -371,20 +372,30 @@ export class ComplianceService {
     }
     try {
       // @tenant-reviewed: phase243-compliance-notification-fanout
-      await this.notifications.notifyUsersByRoles(
+      const r: any = await this.notifications.notifyUsersByRoles(
         ['Compliance Officer', 'Compliance Manager', 'System Admin'],
         'compliance.alert.generated' as any,
         'New compliance alerts',
         `${total} new compliance alert${total === 1 ? '' : 's'} were generated for this tenant.`,
         'ComplianceAlert',
-        undefined,
+        // Phase 2.45 — stable relatedEntityId so the per-recipient dedup
+        // helper has a reliable identity. We use 'tick:<tenantId>' to
+        // avoid colliding across tenants while still letting the dedup
+        // window suppress consecutive identical ticks for the same
+        // recipient.
+        // @tenant-reviewed: phase245-notifications-dedup
+        `tick:${TenantContext.optional?.()?.id ?? 'unknown'}`,
         {
           titleKey: 'compliance.alertGenerated.title',
           messageKey: 'compliance.alertGenerated.message',
           params: { total },
         },
       );
-      return { notified: total };
+      // The notify helper now returns counters; surface deduped to the
+      // health summary.
+      const created = typeof r?.created === 'number' ? r.created : total;
+      const deduped = typeof r?.deduped === 'number' ? r.deduped : 0;
+      return { notified: created, deduped };
     } catch (e: any) {
       // Crash-safe: never throw out of generateAlertsForTenant on
       // notification failure.
@@ -423,7 +434,7 @@ export class ComplianceService {
       message?: string;
       error?: string;
       /** Phase 2.43 — coupling outcome forwarded from generateAlertsForTenant. */
-      notify?: { skipped?: string; refused?: string; notified?: number; error?: string };
+      notify?: { skipped?: string; refused?: string; notified?: number; deduped?: number; error?: string };
     }>;
   }> {
     if (!this.flags.tenantJobFanoutEnabled()) {
@@ -453,7 +464,7 @@ export class ComplianceService {
       total?: number;
       message?: string;
       error?: string;
-      notify?: { skipped?: string; refused?: string; notified?: number; error?: string };
+      notify?: { skipped?: string; refused?: string; notified?: number; deduped?: number; error?: string };
     }> = [];
     for (const t of tenants) {
       try {

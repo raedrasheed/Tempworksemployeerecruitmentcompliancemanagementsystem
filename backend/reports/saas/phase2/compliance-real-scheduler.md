@@ -7,7 +7,7 @@
 - PASS — 3. scheduler + fan-out ON + pilot OFF: dispatch refuses — refused=pilot inactive: TENANT_PRISMA_PILOT_ENABLED=false
 - PASS — 4. scheduler+fanout+pilot: processes ACTIVE tenants only — processed=2 ids=11111111,22222222
 - PASS — 5. scheduler creates no NULL-tenant alerts — newNull=false
-- PASS — 6. scheduler creates no cross-tenant alerts — newA=1 newB=0
+- PASS — 6. scheduler creates no cross-tenant alerts — newA=1 newB=1
 - PASS — 7. scheduler body never calls raw generateAlerts() — raw=false
 - PASS — 8. scheduler body never calls generateAlertsForTenant() directly — forTenant=false
 - PASS — 9. exactly one dispatch call per tick — dispatchCalls=1 dispatchSrc=true

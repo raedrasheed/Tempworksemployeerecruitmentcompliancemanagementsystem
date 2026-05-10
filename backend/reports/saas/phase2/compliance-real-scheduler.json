@@ -30,7 +30,7 @@
     {
       "name": "6. scheduler creates no cross-tenant alerts",
       "ok": true,
-      "detail": "newA=1 newB=0"
+      "detail": "newA=1 newB=1"
     },
     {
       "name": "7. scheduler body never calls raw generateAlerts()",

@@ -810,3 +810,18 @@ no PII. External alerting providers not invoked.
 Tag: `phase244-compliance-scheduler-health`.
 
 Real-DB: 12/12. Cumulative: **478/478**.
+
+## 42. Phase 2.45 — Per-recipient notification dedup (shipped)
+
+`NotificationsService.createInAppWithDedup(data, tid)` private
+helper added; gated by `NOTIFICATION_DEDUP_ENABLED=false`. Identity:
+`(tenantId, userId, type, relatedEntity, relatedEntityId, createdAt
+>= now - window)`. `notifyUsersByRoles` and `notifyUploaderAndRoles`
+now return `{ created, deduped }`.
+
+Compliance coupling forwards `deduped` into the dispatch result
+shape; scheduler health summary surfaces `notifyDeduped`.
+
+Tag: `phase245-notifications-dedup`.
+
+Real-DB: 12/12. Cumulative: **490/490**.

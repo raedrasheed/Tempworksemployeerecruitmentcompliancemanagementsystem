@@ -55,7 +55,7 @@
     {
       "name": "11. cron processes ACTIVE tenants only (no error path)",
       "ok": true,
-      "detail": "newA=1 newB=0"
+      "detail": "newA=1 newB=1"
     },
     {
       "name": "12. cron creates no NULL-tenant alerts",
@@ -65,7 +65,7 @@
     {
       "name": "13. cron creates no cross-tenant alerts (per-row tenantId attributed)",
       "ok": true,
-      "detail": "newA=1 newB=0"
+      "detail": "newA=1 newB=1"
     },
     {
       "name": "14. concurrent cron ticks remain ALS-isolated",

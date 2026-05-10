@@ -51,7 +51,7 @@ export interface ScheduledRunResult {
     total?: number;
     message?: string;
     error?: string;
-    notify?: { skipped?: string; refused?: string; notified?: number; error?: string };
+    notify?: { skipped?: string; refused?: string; notified?: number; deduped?: number; error?: string };
   }>;
   /** Configured cron expression (informational; no scheduler binds to it yet). */
   cron?: string;
@@ -92,6 +92,8 @@ export interface ScheduledHealthSummary {
   notifySkipped: number;
   /** Tenants whose notification coupling reported a `notify.error`. */
   notifyFailed: number;
+  /** Sum of per-tenant `notify.deduped` (Phase 2.45). */
+  notifyDeduped: number;
   /** Scheduler-level synthetic error message, when status='failed'. */
   error?: string;
   /** Configured cron expression. */
@@ -207,6 +209,7 @@ export class ComplianceScheduler {
         notifySucceeded: 0,
         notifySkipped: 0,
         notifyFailed: 0,
+        notifyDeduped: 0,
         error: r.error,
         cron,
         timestamp,
@@ -229,6 +232,7 @@ export class ComplianceScheduler {
         notifySucceeded: 0,
         notifySkipped: 0,
         notifyFailed: 0,
+        notifyDeduped: 0,
         cron,
         timestamp,
       };
@@ -241,6 +245,7 @@ export class ComplianceScheduler {
     let notifySucceeded = 0;
     let notifySkipped = 0;
     let notifyFailed = 0;
+    let notifyDeduped = 0;
     for (const x of r.results) {
       if (x.ok) succeeded += 1; else failed += 1;
       alertsCreated += x.total ?? 0;
@@ -248,6 +253,7 @@ export class ComplianceScheduler {
         if (x.notify.error) notifyFailed += 1;
         else if (x.notify.notified && x.notify.notified > 0) notifySucceeded += 1;
         else if (x.notify.skipped || x.notify.refused) notifySkipped += 1;
+        if (typeof x.notify.deduped === 'number') notifyDeduped += x.notify.deduped;
       }
     }
 
@@ -265,6 +271,7 @@ export class ComplianceScheduler {
       notifySucceeded,
       notifySkipped,
       notifyFailed,
+      notifyDeduped,
       cron,
       timestamp,
     };

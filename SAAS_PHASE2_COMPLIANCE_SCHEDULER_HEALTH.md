@@ -161,3 +161,14 @@ calls.
   a counter (`scheduler.compliance.tenants_failed_total{status}`).
 - **Alert rule templates** — codify the suggested log queries in a
   runbook once the operator's preferred aggregator is decided.
+
+---
+
+# Phase 2.45 addendum — `notifyDeduped` counter
+
+The scheduler health summary now includes a `notifyDeduped` counter
+that aggregates per-tenant `notify.deduped` values. A tick that
+suppresses a duplicate notification reports `status='ok'` (no
+failure) with `notifyDeduped > 0`. Operators can alert on
+`notifyDeduped > 0` independently if dedup observability is desired.
+See `SAAS_PHASE2_NOTIFICATIONS_DEDUP.md`.

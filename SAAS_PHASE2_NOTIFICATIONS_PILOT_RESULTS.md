@@ -245,3 +245,32 @@ directly.
 
 Notifications equivalence + isolation harnesses remain 11/11 + 10/10
 PASS.
+
+---
+
+## Phase 2.45 — per-recipient notification dedup
+
+Optional, default-off helper inside `NotificationsService` that
+suppresses identical fan-out notifications for the same
+`(tenantId, userId, type, relatedEntity, relatedEntityId)` within a
+configurable window. See `SAAS_PHASE2_NOTIFICATIONS_DEDUP.md`.
+
+- New flag: `NOTIFICATION_DEDUP_ENABLED=false` (default).
+- New optional config: `NOTIFICATION_DEDUP_WINDOW_MINUTES=360` (default 6h).
+- New private helper `createInAppWithDedup(data, tid)` used by both
+  `notifyUsersByRoles` and `notifyUploaderAndRoles`. Compliance code
+  unchanged — dedup gate lives entirely inside notifications.
+- Both fan-out methods now return `{ created, deduped }`. Backward-
+  compatible at the await site.
+- `relatedEntityId` is required for dedup; without it the helper
+  falls through to a plain create (type-only dedup is too coarse).
+
+New annotation tag: `phase245-notifications-dedup` (allowed in both
+`src/notifications/` and `src/compliance/` for the small relatedEntityId
+helper site).
+
+New harness: `notifications-dedup` — **12/12 PASS**.
+
+Notifications harnesses still green:
+- `notifications-equivalence` — 11/11
+- `notifications-isolation` — 10/10

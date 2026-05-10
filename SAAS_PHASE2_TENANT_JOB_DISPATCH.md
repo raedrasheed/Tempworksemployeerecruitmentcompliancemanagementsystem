@@ -160,3 +160,12 @@ rollback.
 provides the disabled-by-default scheduler entry-point. It calls only
 `dispatchComplianceAlertGenerationForTenants()`. See
 `SAAS_PHASE2_COMPLIANCE_REAL_SCHEDULER.md`.
+
+---
+
+## Phase 2.41 update — cron framework wired
+
+`@nestjs/schedule` is now wired. The cron entrypoint calls only
+`ComplianceScheduler.runScheduledComplianceAlertGeneration()`. The
+dispatch helper continues to be the only path that enumerates
+tenants. See `SAAS_PHASE2_COMPLIANCE_CRON_FRAMEWORK.md`.

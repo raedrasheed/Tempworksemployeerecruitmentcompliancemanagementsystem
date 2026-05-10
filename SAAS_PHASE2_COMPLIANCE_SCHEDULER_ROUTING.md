@@ -173,3 +173,13 @@ Key invariants:
   framework is wired this phase.
 
 New harness: `compliance-real-scheduler` — 11/11 PASS.
+
+---
+
+# Phase 2.41 addendum — cron framework wired
+
+`@nestjs/schedule` is now wired. `ComplianceCron.tick()` is the single
+decorated entry-point. It calls only
+`ComplianceScheduler.runScheduledComplianceAlertGeneration()`. Source-
+level meta-assertions enforce this. See
+`SAAS_PHASE2_COMPLIANCE_CRON_FRAMEWORK.md`.

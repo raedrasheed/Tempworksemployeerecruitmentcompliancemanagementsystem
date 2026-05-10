@@ -752,3 +752,17 @@ Tag: `phase240-compliance-real-scheduler`.
 No cron framework is wired this phase.
 
 Real-DB: 11/11. Cumulative: **419/419**.
+
+## 38. Phase 2.41 — Compliance cron framework wired (shipped)
+
+`@nestjs/schedule@^4.0.0` added.  `ScheduleModule.forRoot()`
+registered once in `app.module.ts`. `ComplianceCron` provider added
+with one `@Cron(...)` entry-point that delegates to
+`ComplianceScheduler.runScheduledComplianceAlertGeneration()`.
+
+Tag: `phase241-compliance-cron-framework`.
+
+Real-DB: 14/14. Cumulative: **433/433**.
+
+No production behaviour change with default flags. Cron tick is a
+no-op until the four-layer flag chain is fully on.

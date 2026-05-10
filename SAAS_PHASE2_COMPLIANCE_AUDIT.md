@@ -230,3 +230,16 @@ Tag: `phase240-compliance-real-scheduler`.
 Harness: `compliance-real-scheduler` — 11/11 PASS.
 
 No cron framework is wired this phase.
+
+---
+
+# Phase 2.41 addendum — cron framework wired
+
+`@nestjs/schedule` is now wired. The single compliance cron entry-
+point lives at `src/compliance/compliance.cron.ts`. It delegates to
+`ComplianceScheduler.runScheduledComplianceAlertGeneration()` and
+nothing else.
+
+Tag: `phase241-compliance-cron-framework`.
+
+Harness: `compliance-cron-framework` — 14/14 PASS.

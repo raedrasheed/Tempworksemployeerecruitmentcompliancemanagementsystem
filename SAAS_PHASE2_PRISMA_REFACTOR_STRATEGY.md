@@ -945,3 +945,20 @@ Real-DB: `compliance-real-scheduler` — 11/11 PASS. Cumulative:
 
 No cron framework is wired this phase. The scheduler entry-point is
 the contract for any future schedule.
+
+## 11.14 Phase 2.41 — compliance cron framework wired
+
+`@nestjs/schedule` added as a runtime dependency.
+`ScheduleModule.forRoot()` registered once in `app.module.ts`.
+`ComplianceCron` provider with a single `@Cron(...)` entry-point
+delegates to `ComplianceScheduler.runScheduledComplianceAlertGeneration()`.
+
+Tag: `phase241-compliance-cron-framework`.
+
+Real-DB: `compliance-cron-framework` — 14/14 PASS. Cumulative:
+**433/433**.
+
+The four-layer flag chain (`COMPLIANCE_ALERT_SCHEDULER_ENABLED` →
+`TENANT_JOB_FANOUT_ENABLED` → pilot → env) is unchanged from
+Phase 2.40. The decorator fires on schedule; every layer below
+remains a no-op until all four flags are on.

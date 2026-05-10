@@ -117,6 +117,7 @@ const KNOWN_REASONS: ReadonlyArray<PolicyEntry> = [
   { tag: 'phase238-scheduler-routing',            allowedPaths: ['src/compliance/'] },
   { tag: 'phase239-tenant-job-dispatch',          allowedPaths: ['src/compliance/'] },
   { tag: 'phase240-compliance-real-scheduler',    allowedPaths: ['src/compliance/'] },
+  { tag: 'phase241-compliance-cron-framework',    allowedPaths: ['src/compliance/'] },
   { tag: 'tenant-safe-report-runtime',    allowedPaths: ['src/reports/', 'src/saas/reports/'] },
   { tag: 'tenant-resolver-bootstrap',     allowedPaths: ['src/saas/tenancy/'] },
 ];

@@ -292,3 +292,28 @@ audit/scheduler 9/9 + tenant-job-dispatch 9/9 + real-scheduler 11/11
 
 No production behaviour change. No cron framework wired. Rollback is
 configuration-only.
+
+---
+
+## Phase 2.41 — cron framework wired
+
+`@nestjs/schedule@^4.0.0` added; `ScheduleModule.forRoot()` registered
+once in `app.module.ts`; `ComplianceCron` provider added with one
+`@Cron(...)` entry-point that delegates to
+`ComplianceScheduler.runScheduledComplianceAlertGeneration()`.
+
+Cron expression read from `COMPLIANCE_ALERT_SCHEDULER_CRON` at
+process start (default `0 */6 * * *`). Runtime enable/disable lives
+at `COMPLIANCE_ALERT_SCHEDULER_ENABLED` (per-tick gate).
+
+New annotation tag: `phase241-compliance-cron-framework`.
+
+New harness (real Postgres): `compliance-cron-framework` — **14/14 PASS**.
+
+Cumulative compliance: equivalence 12/12 + isolation 7/7 +
+audit/scheduler 9/9 + tenant-job-dispatch 9/9 + real-scheduler 11/11
++ cron-framework 14/14 = **62/62**. Cumulative across modules:
+**433/433**.
+
+No production behaviour change. Default flags off ⇒ cron tick is a
+no-op. Rollback is configuration-only.

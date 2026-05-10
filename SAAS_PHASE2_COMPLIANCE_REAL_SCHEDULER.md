@@ -121,3 +121,21 @@ No data, no schema migration introduced. Configuration-only rollback.
 - **Platform / system-tenant filter**: when system tenants are
   introduced, the dispatch helper's `tenant.findMany` filter must
   exclude them.
+
+---
+
+# Phase 2.41 addendum — cron framework wired
+
+Phase 2.41 wires `@nestjs/schedule` and adds a single decorated
+entry-point at `src/compliance/compliance.cron.ts`. The decorator
+delegates to `ComplianceScheduler.runScheduledComplianceAlertGeneration()`
+and nothing else. See `SAAS_PHASE2_COMPLIANCE_CRON_FRAMEWORK.md`.
+
+Source-level invariants:
+- exactly one `@Cron(...)` decorator in compliance code
+- cron body never calls `generateAlerts()`,
+  `generateAlertsForTenant()`, or
+  `dispatchComplianceAlertGenerationForTenants()` directly
+- `ScheduleModule.forRoot()` registered exactly once in `app.module.ts`
+
+New harness: `compliance-cron-framework` — 14/14 PASS.

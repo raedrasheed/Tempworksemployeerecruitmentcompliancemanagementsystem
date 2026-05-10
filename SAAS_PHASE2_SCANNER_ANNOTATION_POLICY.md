@@ -144,6 +144,9 @@ and counted against the strict-mode threshold.
 | `phase256-audit-log-rbac-tenant-binding` | Explicit refusal contract on `LogsService` audit reads when pilot is active, audit-logs is allow-listed, and either the actor is tenant-scoped OR FULL_ACCESS without the global-read gate, but no ALS tenant frame is present. | `src/logs/**` | 2.56 |
 | `phase256-audit-log-global-read-gate` | `AUDIT_LOG_GLOBAL_READ_ENABLED` flag — default off; explicit opt-in lets FULL_ACCESS roles bypass the tenant predicate. | `src/logs/**` | 2.56 |
 | `phase256-audit-log-actor-scope` | `auditTenantWhereForActor(scope)` composes the tenant predicate with the global-read gate so audit reads are never tenant-leaky and never silently global. | `src/logs/**` | 2.56 |
+| `phase257-audit-log-http-read` | `TenantAuditController` GET routes (`/admin/tenant-audit{,/:id,/stats}`) and `LogsService.findOneForActor`. Reuse Phase 2.56 RBAC binding inside the service. | `src/logs/**` | 2.57 |
+| `phase257-audit-log-http-retention-preview` | `GET /admin/tenant-audit/retention-preview` exposes `LogsService.previewRetentionForActor`, which wraps `TenantAuditLogService.previewRetention` (count-only). | `src/logs/**` | 2.57 |
+| `phase257-audit-log-http-no-destructive-routes` | Source-level invariant: `TenantAuditController` exposes only GET routes. Phase 2.53/2.54 retention apply / hard-delete remain script-only. | `src/logs/**` | 2.57 |
 | `tenant-safe-report-runtime` | Reports engine uses `$queryRawUnsafe` with positional parameters and a registry-validated SQL string. | `src/reports/reports.service.ts` | 2.1 |
 
 ## 3. When annotations are allowed

@@ -179,3 +179,14 @@ and add a per-tenant retention preview endpoint that wraps
 `previewRetention` for product / compliance dashboards. Read-only
 by contract; same triple-gated apply chain (Phase 2.53/2.54)
 remains script-only.
+
+---
+
+# Phase 2.57 cross-link — HTTP endpoints
+
+`TenantAuditController` (`src/logs/tenant-audit.controller.ts`) is
+a thin wrapper around `LogsService` exposing four read-only routes
+under `/admin/tenant-audit/*`. It REUSES this phase's RBAC contract
+unchanged — `assertAuditReadAccess` + `auditTenantWhereForActor` still
+fire from inside the service. See
+`SAAS_PHASE2_AUDIT_LOG_HTTP_ENDPOINTS.md`.

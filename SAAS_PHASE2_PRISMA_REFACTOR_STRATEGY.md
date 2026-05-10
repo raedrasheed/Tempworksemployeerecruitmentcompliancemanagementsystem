@@ -1226,3 +1226,18 @@ predicate. Tag chain:
 `phase256-audit-log-actor-scope`.
 
 Real-DB harness: 15/15. Cumulative: **695/695**.
+
+## 11.30 — Phase 2.57: Tenant-scoped audit HTTP endpoints
+
+`src/logs/tenant-audit.controller.ts` (new) exposes four read-only
+routes under `/admin/tenant-audit`. `LogsService` gains
+`findOneForActor(id, scope)` and `previewRetentionForActor(scope, days?)`,
+both reusing the Phase 2.56 RBAC contract. `LogsModule` imports
+`TenantAuditLogModule` and registers the new controller.
+Constructor of `LogsService` now takes the audit service.
+
+Tags: `phase257-audit-log-http-read`,
+`phase257-audit-log-http-retention-preview`,
+`phase257-audit-log-http-no-destructive-routes`.
+
+Real-DB harness: 18/18. Cumulative: **713/713**.

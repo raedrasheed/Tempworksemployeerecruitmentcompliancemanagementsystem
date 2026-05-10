@@ -103,3 +103,13 @@ The retention preview is unchanged (still a count helper on
 `TenantAuditLogService`). Phase 2.56 added an explicit RBAC tenant
 binding to the `LogsService` audit *reads* (`findAll` / `getStats`).
 See `SAAS_PHASE2_AUDIT_LOG_RBAC_TENANT_BINDING.md`.
+
+---
+
+# Phase 2.57 cross-link — HTTP retention preview
+
+`GET /admin/tenant-audit/retention-preview` exposes the existing
+`previewRetention` helper as a read-only HTTP endpoint, scoped to
+the active ALS tenant. The endpoint never modifies data. Apply
+mode (Phase 2.53/2.54) remains script-only. See
+`SAAS_PHASE2_AUDIT_LOG_HTTP_ENDPOINTS.md`.

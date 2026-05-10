@@ -1,6 +1,6 @@
 # Phase 2.10 — Notifications Isolation
 
-Generated: 2026-05-10T19:10:01.021Z
+Generated: 2026-05-10T19:21:52.203Z
 Environment: SAFE_CLONE (localhost + fixture pattern (db=saas_phase1_fixture))
 Tenants: A=`11111111-1111-1111-1111-111111111111` B=`22222222-2222-2222-2222-222222222222`
 Users: A=`00000000-0000-0000-0000-00000000us01` B=`00000000-0000-0000-0000-00000000us02`

@@ -1,7 +1,8 @@
-import { Injectable, ForbiddenException } from '@nestjs/common';
+import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PilotPrismaAccessor } from '../saas/prisma/pilot-prisma.accessor';
 import { getPilotScope, isModuleAllowed, PilotScope } from '../saas/prisma/tenant-pilot-scope';
+import { TenantAuditLogService } from '../saas/audit/tenant-audit-log.service';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { PaginatedResponse } from '../common/dto/pagination-response.dto';
 
@@ -29,6 +30,7 @@ export class LogsService {
   constructor(
     private legacyPrisma: PrismaService,
     private pilot: PilotPrismaAccessor,
+    private tenantAuditLog: TenantAuditLogService,
   ) {}
 
   private get prisma(): PrismaService {
@@ -236,5 +238,48 @@ export class LogsService {
     if (!log) return { message: 'Not found' };
     await this.prisma.auditLog.update({ where: { id }, data: { deletedAt: new Date() } });
     return { message: 'Log entry deleted' };
+  }
+
+  /**
+   * Phase 2.57 — tenant-scoped by-id read for HTTP endpoints.
+   * Reuses Phase 2.56's RBAC tenant binding. Returns the row only
+   * when it satisfies the active tenant predicate AND role visibility;
+   * otherwise raises NotFoundException so cross-tenant ids are
+   * indistinguishable from missing ids. Tag: phase257-audit-log-http-read.
+   */
+  async findOneForActor(id: string, scope?: CallerScope) {
+    this.assertAuditReadAccess(scope); // @tenant-reviewed: phase256-audit-log-rbac-tenant-binding
+    const tenantWhere = this.auditTenantWhereForActor(scope); // @tenant-reviewed: phase256-audit-log-actor-scope
+    const where: any = { id, deletedAt: null, ...tenantWhere };
+    if (scope) {
+      const visibleIds = await this.resolveVisibleUserIds(scope);
+      if (visibleIds !== undefined) where.userId = { in: visibleIds };
+    }
+    const row = await this.prisma.auditLog.findFirst({ // @tenant-reviewed: phase257-audit-log-http-read
+      where,
+      include: { user: { select: { id: true, firstName: true, lastName: true, email: true } } },
+    });
+    if (!row) throw new NotFoundException('Audit log entry not found');
+    return row;
+  }
+
+  /**
+   * Phase 2.57 — tenant-scoped retention preview for HTTP endpoints.
+   * Read-only; delegates to TenantAuditLogService.previewRetention.
+   * The tenant id is taken from the active ALS frame; a missing frame
+   * is rejected by `assertAuditReadAccess`. With the global-read gate
+   * on AND a FULL_ACCESS caller, the helper returns a NULL-tenant
+   * preview only if the caller explicitly supplies `null` (out of
+   * scope today — defaults to active tenant). Tag:
+   * phase257-audit-log-http-retention-preview.
+   */
+  async previewRetentionForActor(scope?: CallerScope, days?: number) {
+    this.assertAuditReadAccess(scope); // @tenant-reviewed: phase256-audit-log-rbac-tenant-binding
+    const s = this.scope();
+    // When pilot is inactive or not allow-listed, default to NULL-tenant
+    // legacy preview to mirror legacy behaviour. When active, use the
+    // ALS tenant id.
+    const tenantId = s.active ? s.tenantId : null;
+    return this.tenantAuditLog.previewRetention({ tenantId, days }); // @tenant-reviewed: phase257-audit-log-http-retention-preview
   }
 }

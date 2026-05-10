@@ -27,6 +27,7 @@ import { TenantPrismaService } from '../../../src/saas/prisma/tenant-prisma.serv
 import { PilotPrismaAccessor } from '../../../src/saas/prisma/pilot-prisma.accessor';
 import { FeatureFlagsService } from '../../../src/saas/feature-flags/feature-flags.service';
 import { LogsService } from '../../../src/logs/logs.service';
+import { TenantAuditLogService } from '../../../src/saas/audit/tenant-audit-log.service';
 import { TenantContext, withRequestContext, newRequestId } from '../../../src/saas/context/als';
 import { isModuleAllowed, getPilotScope } from '../../../src/saas/prisma/tenant-pilot-scope';
 
@@ -51,8 +52,8 @@ async function withFlags<T>(env: Record<string, string | undefined>, fn: () => P
   }
   try { return await fn(); } finally { process.env = prev; }
 }
-function makeService(prisma: PrismaService, pilot: PilotPrismaAccessor): LogsService {
-  return new LogsService(prisma, pilot);
+function makeService(prisma: PrismaService, pilot: PilotPrismaAccessor, ff: FeatureFlagsService): LogsService {
+  return new LogsService(prisma, pilot, new TenantAuditLogService(prisma, ff));
 }
 
 async function seed(url: string): Promise<{ tA: string; tB: string }> {
@@ -95,7 +96,7 @@ async function main(): Promise<void> {
   await withFlags({ TENANT_PRISMA_PILOT_ENABLED: 'false' }, async () => {
     const prisma = new PrismaService(); const ff = new FeatureFlagsService();
     const pilot = new PilotPrismaAccessor(prisma, new TenantPrismaService(prisma, ff), ff);
-    const svc = makeService(prisma, pilot);
+    const svc = makeService(prisma, pilot, ff);
     try {
       const r: any = await svc.findAll({} as any, filterEntity);
       legacyTotal = r.meta.total;
@@ -112,7 +113,7 @@ async function main(): Promise<void> {
   await withFlags({ TENANT_PRISMA_PILOT_ENABLED: 'true', TENANT_PRISMA_PILOT_MODULES: 'audit-logs' }, async () => {
     const prisma = new PrismaService(); const ff = new FeatureFlagsService();
     const pilot = new PilotPrismaAccessor(prisma, new TenantPrismaService(prisma, ff), ff);
-    const svc = makeService(prisma, pilot);
+    const svc = makeService(prisma, pilot, ff);
     try {
       const r: any = await withRequestContext({ requestId: newRequestId() }, async () => {
         TenantContext.attach({ id: tA, slug: 'a', name: 'A', status: 'ACTIVE', region: 'eu' });
@@ -129,7 +130,7 @@ async function main(): Promise<void> {
     return withFlags({ TENANT_PRISMA_PILOT_ENABLED: 'true', TENANT_PRISMA_PILOT_MODULES: 'audit-logs' }, async () => {
       const prisma = new PrismaService(); const ff = new FeatureFlagsService();
       const pilot = new PilotPrismaAccessor(prisma, new TenantPrismaService(prisma, ff), ff);
-      const svc = makeService(prisma, pilot);
+      const svc = makeService(prisma, pilot, ff);
       try {
         const r: any = await withRequestContext({ requestId: newRequestId() }, async () => {
           TenantContext.attach({ id: tA, slug: 'a', name: 'A', status: 'ACTIVE', region: 'eu' });
@@ -149,7 +150,7 @@ async function main(): Promise<void> {
   await withFlags({ TENANT_PRISMA_PILOT_ENABLED: 'true', TENANT_PRISMA_PILOT_MODULES: 'audit-logs' }, async () => {
     const prisma = new PrismaService(); const ff = new FeatureFlagsService();
     const pilot = new PilotPrismaAccessor(prisma, new TenantPrismaService(prisma, ff), ff);
-    const svc = makeService(prisma, pilot);
+    const svc = makeService(prisma, pilot, ff);
     try {
       const r: any = await withRequestContext({ requestId: newRequestId() }, async () => {
         TenantContext.attach({ id: tA, slug: 'a', name: 'A', status: 'ACTIVE', region: 'eu' });

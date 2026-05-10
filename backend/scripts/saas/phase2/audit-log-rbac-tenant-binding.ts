@@ -29,6 +29,7 @@ import { TenantPrismaService } from '../../../src/saas/prisma/tenant-prisma.serv
 import { PilotPrismaAccessor } from '../../../src/saas/prisma/pilot-prisma.accessor';
 import { FeatureFlagsService } from '../../../src/saas/feature-flags/feature-flags.service';
 import { LogsService, FULL_ACCESS_ROLES } from '../../../src/logs/logs.service';
+import { TenantAuditLogService } from '../../../src/saas/audit/tenant-audit-log.service';
 import { TenantContext, withRequestContext, newRequestId } from '../../../src/saas/context/als';
 
 autoLoadEnv(__filename);
@@ -55,8 +56,8 @@ async function withFlags<T>(env: Record<string, string | undefined>, fn: () => P
   }
   try { return await fn(); } finally { process.env = prev; }
 }
-function makeService(prisma: PrismaService, pilot: PilotPrismaAccessor): LogsService {
-  return new LogsService(prisma, pilot);
+function makeService(prisma: PrismaService, pilot: PilotPrismaAccessor, ff: FeatureFlagsService): LogsService {
+  return new LogsService(prisma, pilot, new TenantAuditLogService(prisma, ff));
 }
 function attach(tid: string, slug: string) {
   TenantContext.attach({ id: tid, slug, name: slug.toUpperCase(), status: 'ACTIVE', region: 'eu' });
@@ -108,7 +109,7 @@ async function main(): Promise<void> {
     return withFlags(envOverride, async () => {
       const prisma = new PrismaService(); const ff = new FeatureFlagsService();
       const pilot = new PilotPrismaAccessor(prisma, new TenantPrismaService(prisma, ff), ff);
-      const svc = makeService(prisma, pilot);
+      const svc = makeService(prisma, pilot, ff);
       try {
         if (tid) {
           return await withRequestContext({ requestId: newRequestId() }, async () => {
@@ -215,7 +216,7 @@ async function main(): Promise<void> {
   const [concA, concB]: any[] = await withFlags(PILOT, async () => {
     const prisma = new PrismaService(); const ff = new FeatureFlagsService();
     const pilot = new PilotPrismaAccessor(prisma, new TenantPrismaService(prisma, ff), ff);
-    const svc = makeService(prisma, pilot);
+    const svc = makeService(prisma, pilot, ff);
     try {
       return await Promise.all([
         withRequestContext({ requestId: newRequestId() }, async () => { attach(tA, 'a'); return svc.findAll({ limit: 50 } as any, isoFilter, fullActor('HR Manager', userA)); }),

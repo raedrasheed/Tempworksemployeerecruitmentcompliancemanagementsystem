@@ -996,3 +996,18 @@ Tags: `phase256-audit-log-rbac-tenant-binding`,
 `phase256-audit-log-actor-scope`.
 
 Real-DB harness: 15/15. Cumulative: **695/695**.
+
+## 54 — Tenant-scoped audit HTTP endpoints (Phase 2.57)
+
+Adds `TenantAuditController` mounted at `/admin/tenant-audit` with
+four read-only routes (list, by-id, stats, retention-preview).
+Roles pinned to System Admin / Compliance Officer. RBAC tenant
+binding from Phase 2.56 still enforced inside the service so even
+elevated roles are tenant-bound when the global-read gate is off.
+NO destructive routes — Phase 2.53/2.54 stay script-only.
+
+Tags: `phase257-audit-log-http-read`,
+`phase257-audit-log-http-retention-preview`,
+`phase257-audit-log-http-no-destructive-routes`.
+
+Real-DB harness: 18/18. Cumulative: **713/713**.

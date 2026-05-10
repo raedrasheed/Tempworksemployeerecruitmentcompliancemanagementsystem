@@ -212,3 +212,13 @@ with the new global-read gate. With `AUDIT_LOG_GLOBAL_READ_ENABLED=false`
 Tags: `phase256-audit-log-rbac-tenant-binding`,
 `phase256-audit-log-global-read-gate`,
 `phase256-audit-log-actor-scope`.
+
+---
+
+# Phase 2.57 cross-link — HTTP endpoints
+
+A new `TenantAuditController` exposes
+`GET /admin/tenant-audit{,/:id,/stats,/retention-preview}` (read-only).
+Uses `LogsService.findAll` / `getStats` / `findOneForActor` /
+`previewRetentionForActor`. See
+`SAAS_PHASE2_AUDIT_LOG_HTTP_ENDPOINTS.md`.

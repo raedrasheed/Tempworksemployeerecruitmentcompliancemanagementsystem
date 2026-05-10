@@ -1159,3 +1159,19 @@ Tags: `phase252-audit-log-read-pilot`,
 Real-DB: `audit-log-read-equivalence` 14/14,
 `audit-log-read-isolation` 10/10, `audit-log-retention-preview`
 10/10. Cumulative: **624/624**.
+
+## 11.26 — Phase 2.53: Audit-log retention enforcement (soft-delete)
+
+`scripts/saas/phase2/audit-log-retention-enforce.ts` introduces a
+dry-run-first enforcement step that sets `audit_logs.deletedAt =
+now()` on rows older than the configured cutoff. Apply requires
+THREE gates: `AUDIT_LOG_RETENTION_ENABLED=true` AND
+`AUDIT_LOG_RETENTION_APPLY=true` AND a SAFE classification. The
+`AUDIT_LOG_RETENTION_SCOPE` env (`tenant` | `null-tenant` | `all`)
+controls which rows are eligible. Hard-delete is forbidden by
+source-level harness assertion.
+
+Tag: `phase253-audit-log-retention-enforce`. Raw SQL lives in
+`scripts/`, baseline unchanged.
+
+Real-DB harness: 17/17. Cumulative: **641/641**.

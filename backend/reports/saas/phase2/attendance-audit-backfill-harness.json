@@ -10,7 +10,7 @@
     {
       "name": "2. dry-run reports correct candidate count",
       "ok": true,
-      "detail": "candidate=1"
+      "detail": "candidate=10"
     },
     {
       "name": "3. apply refused when flag false",
@@ -25,7 +25,7 @@
     {
       "name": "5. apply updates only AttendanceRecord rows with matching ar.tenantId",
       "ok": true,
-      "detail": "mode=apply updated=1 candidate=1"
+      "detail": "mode=apply updated=10 candidate=10"
     },
     {
       "name": "6. apply does not overwrite already tenant-stamped rows",

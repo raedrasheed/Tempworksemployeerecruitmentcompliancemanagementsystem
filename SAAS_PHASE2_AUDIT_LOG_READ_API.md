@@ -175,3 +175,18 @@ default-off, dry-run-first, apply double-gated by
 `AUDIT_LOG_RETENTION_APPLY=true` AND a SAFE_CLONE/SAFE_STAGING
 classification, with a pre-apply snapshot capture step and a
 reversal SQL template documented next to it.
+
+---
+
+# Phase 2.53 update — Soft-delete retention enforcement
+
+A new script `scripts/saas/phase2/audit-log-retention-enforce.ts`
+performs soft-delete (`deletedAt = now()`) only. The existing
+`LogsService.findAll`, which already filters `deletedAt: null` in
+its base where clause, naturally hides soft-deleted rows from
+non-admin reads. Callers that need historical visibility can use
+`TenantAuditLogService.listForTenant` with an explicit
+`includeDeleted` parameter — out of scope for Phase 2.53 and
+deferred.
+
+Tag: `phase253-audit-log-retention-enforce`.

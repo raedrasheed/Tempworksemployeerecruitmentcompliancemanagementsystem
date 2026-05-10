@@ -138,6 +138,7 @@ and counted against the strict-mode threshold.
 | `phase252-audit-log-read-pilot` | `LogsService.findAll` / `getStats` and `TenantAuditLogService.listForTenant` / `countForTenant` / `getByIdForTenant` apply `tenantWhere()` when the `audit-logs` pilot is active. Default off. | `src/logs/**`, `src/saas/audit/**` | 2.52 |
 | `phase252-audit-log-retention-preview` | `TenantAuditLogService.previewRetention` returns counts only — no destructive Prisma calls under any flag combination. | `src/saas/audit/**` | 2.52 |
 | `phase252-audit-log-export-deferred` | Reserved for any future audit export endpoint that defers tenant scoping. Currently no audit export exists in `src/logs`. | `src/logs/**` | 2.52 |
+| `phase253-audit-log-retention-enforce` | One-shot dry-run-first soft-delete enforcement for audit_logs. Triple-gated by `AUDIT_LOG_RETENTION_ENABLED=true` + `AUDIT_LOG_RETENTION_APPLY=true` + SAFE_CLONE/SAFE_STAGING. Hard-delete forbidden by source-level harness assertion. | `scripts/saas/phase2/**` | 2.53 |
 | `tenant-safe-report-runtime` | Reports engine uses `$queryRawUnsafe` with positional parameters and a registry-validated SQL string. | `src/reports/reports.service.ts` | 2.1 |
 
 ## 3. When annotations are allowed

@@ -65,3 +65,16 @@ by an explicit env flag and a SAFE classification, with a snapshot
 capture step). The preview API is already the single source of
 truth for "what would be retained vs deleted", so the enforcement
 step can re-use it directly.
+
+---
+
+# Phase 2.53 update — Retention enforcement now exists (soft-delete only)
+
+The Phase 2.52 preview helper is unchanged and remains
+the count-only API. Phase 2.53 adds a separate enforcement
+script (`scripts/saas/phase2/audit-log-retention-enforce.ts`)
+that performs **soft-delete only** under three gates:
+`AUDIT_LOG_RETENTION_ENABLED=true` AND
+`AUDIT_LOG_RETENTION_APPLY=true` AND a SAFE classification.
+
+See `SAAS_PHASE2_AUDIT_LOG_RETENTION_ENFORCEMENT.md`.

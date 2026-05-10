@@ -943,3 +943,15 @@ Tags: `phase252-audit-log-read-pilot`,
 `phase252-audit-log-retention-preview`.
 
 Real-DB: 14 + 10 + 10. Cumulative: **624/624**.
+
+## 50 — Audit-log retention enforcement (Phase 2.53)
+
+Data-only one-shot, soft-delete only. Triple-gated by
+`AUDIT_LOG_RETENTION_ENABLED=true` AND
+`AUDIT_LOG_RETENTION_APPLY=true` AND a SAFE classification. Tenant
+scope (`tenant` default; `null-tenant` and `all` opt-in). Idempotent.
+No physical deletion. No schema migration.
+
+Tag: `phase253-audit-log-retention-enforce`.
+
+Real-DB harness: 17/17. Cumulative: **641/641**.

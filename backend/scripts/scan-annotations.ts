@@ -143,6 +143,7 @@ const KNOWN_REASONS: ReadonlyArray<PolicyEntry> = [
   { tag: 'phase252-audit-log-read-pilot',                allowedPaths: ['src/logs/', 'src/saas/audit/'] },
   { tag: 'phase252-audit-log-retention-preview',         allowedPaths: ['src/saas/audit/'] },
   { tag: 'phase252-audit-log-export-deferred',           allowedPaths: ['src/logs/'] },
+  { tag: 'phase253-audit-log-retention-enforce',         allowedPaths: ['scripts/saas/phase2/'] },
   { tag: 'tenant-safe-report-runtime',    allowedPaths: ['src/reports/', 'src/saas/reports/'] },
   { tag: 'tenant-resolver-bootstrap',     allowedPaths: ['src/saas/tenancy/'] },
 ];

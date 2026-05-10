@@ -15,7 +15,7 @@
     {
       "name": "3. pilot B lockPeriod for SAME (year, month) succeeds",
       "ok": true,
-      "detail": "idA=d2be392d idB=059c0c58"
+      "detail": "idA=8612602e idB=98e10f02"
     },
     {
       "name": "4. tenant A listLockedPeriods returns only A rows",
@@ -35,7 +35,7 @@
     {
       "name": "7. tenant B lock (Y,9) does NOT block tenant A mutation in (Y,9)",
       "ok": true,
-      "detail": "id=080d6690"
+      "detail": "id=feed94ce"
     },
     {
       "name": "8. tenant A lock blocks tenant A mutation",
@@ -45,12 +45,12 @@
     {
       "name": "9. tenant A lock (Y,M) does NOT block tenant B mutation in (Y,10)",
       "ok": true,
-      "detail": "id=427a2395"
+      "detail": "id=72384986"
     },
     {
       "name": "10. NULL-tenant global lock does NOT block tenant A pilot mutation",
       "ok": true,
-      "detail": "id=f1a68180"
+      "detail": "id=7d6ae6e5"
     },
     {
       "name": "11. concurrent ALS frames: lock checks isolated",
@@ -60,7 +60,7 @@
     {
       "name": "12. unique constraint permits SAME (year, month) across tenants",
       "ok": true,
-      "detail": "idA=d2be392d idB=059c0c58"
+      "detail": "idA=8612602e idB=98e10f02"
     },
     {
       "name": "13. duplicate (tenantId, year, month) on same tenant rejected",

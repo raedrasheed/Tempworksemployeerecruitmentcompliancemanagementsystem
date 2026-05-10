@@ -4,6 +4,7 @@ import { AgenciesController } from './agencies.controller';
 import { FeatureFlagsModule } from '../saas/feature-flags/feature-flags.module';
 import { TenantPrismaService } from '../saas/prisma/tenant-prisma.service';
 import { PilotPrismaAccessor } from '../saas/prisma/pilot-prisma.accessor';
+import { TenantAuditLogModule } from '../saas/audit/tenant-audit-log.module';
 
 /**
  * Phase 2.35 — Agencies reads-first TenantPrisma pilot.
@@ -14,7 +15,7 @@ import { PilotPrismaAccessor } from '../saas/prisma/pilot-prisma.accessor';
  * paths remain on `legacyPrisma` and are byte-identical to pre-2.35.
  */
 @Module({
-  imports: [FeatureFlagsModule],
+  imports: [FeatureFlagsModule, TenantAuditLogModule],
   controllers: [AgenciesController],
   providers: [AgenciesService, TenantPrismaService, PilotPrismaAccessor],
   exports: [AgenciesService],

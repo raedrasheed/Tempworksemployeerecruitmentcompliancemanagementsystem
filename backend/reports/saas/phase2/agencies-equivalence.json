@@ -10,12 +10,12 @@
     {
       "name": "2. legacy findAll: union across tenants",
       "ok": true,
-      "detail": "total=2"
+      "detail": "total=14"
     },
     {
       "name": "3. pilot findAll(A): total reduced",
       "ok": true,
-      "detail": "legacy=2 pilot=1"
+      "detail": "legacy=14 pilot=7"
     },
     {
       "name": "4. findOne resolves tenant A id",
@@ -55,7 +55,7 @@
     {
       "name": "11. listPublic stays globally visible (>= legacy total)",
       "ok": true,
-      "detail": "count=2"
+      "detail": "count=14"
     },
     {
       "name": "12. response shape preserved",

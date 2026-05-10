@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../common/storage/storage.service';
 import { PilotPrismaAccessor } from '../saas/prisma/pilot-prisma.accessor';
 import { getPilotScope, PilotScope } from '../saas/prisma/tenant-pilot-scope';
+import { TenantAuditLogService } from '../saas/audit/tenant-audit-log.service';
 import { CreateAgencyDto } from './dto/create-agency.dto';
 import { UpdateAgencyDto } from './dto/update-agency.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
@@ -21,8 +22,11 @@ import { PaginatedResponse } from '../common/dto/pagination-response.dto';
  *
  * WRITE / mutation / storage paths (`create`, `update`, `remove`,
  * `uploadLogo`, `setPermissionOverride`, `removePermissionOverride`,
- * `setManager`) stay on `legacyPrisma` and are tagged
- * `phase235-excluded-mutation` or `phase235-excluded-storage`.
+ * `setManager`) write through `legacyPrisma` but are gated by
+ * Phase 2.35 tenant-scoped `findOne` and Phase 2.36 helpers.
+ * `Agency.create` writes `tenantId` via `scope.tenantData()` when an
+ * ALS frame is present. Audit emissions are routed through the
+ * shared `TenantAuditLogService` (Phase 2.30).
  *
  * See `SAAS_PHASE2_AGENCIES_SYSTEM_AGENCY_DECISION.md` for the
  * `OR isSystem: true` rationale.
@@ -33,6 +37,7 @@ export class AgenciesService {
     private legacyPrisma: PrismaService,
     private storage: StorageService,
     private pilot: PilotPrismaAccessor,
+    private tenantAuditLog: TenantAuditLogService,
   ) {}
 
   /** Pilot-aware Prisma surface used by READ paths only. Mutation
@@ -146,17 +151,20 @@ export class AgenciesService {
     if (actorRole !== 'System Admin' && 'isSystem' in (dto as any)) {
       delete (dto as any).isSystem;
     }
-    const agency = await this.legacyPrisma.agency.create({ // @tenant-reviewed: phase235-excluded-mutation
+    const tdata = this.scope().tenantData();
+    const agency = await this.legacyPrisma.agency.create({ // @tenant-reviewed: phase236-pilot-scope (writes tenantId via scope.tenantData when ALS frame present)
       data: {
         ...dto,
         contactPerson,
         status: (dto.status as any) || 'ACTIVE',
+        ...tdata,
       },
       include: this.include,
     });
     if (createdById) {
-      await this.legacyPrisma.auditLog.create({ // @tenant-reviewed: phase235-excluded-mutation (audit kept legacy until agencies opts into TenantAuditLogService)
-        data: { userId: createdById, action: 'CREATE', entity: 'Agency', entityId: agency.id },
+      // @tenant-reviewed: phase236-audit-log-pilot
+      await this.tenantAuditLog.write({
+        userId: createdById, action: 'CREATE', entity: 'Agency', entityId: agency.id,
       });
     }
     return agency;
@@ -202,20 +210,25 @@ export class AgenciesService {
     const data: any = { ...dto };
     const derived = this.deriveContactPerson(dto);
     if (derived !== undefined) data.contactPerson = derived;
-    const agency = await this.legacyPrisma.agency.update({ // @tenant-reviewed: phase235-excluded-mutation
+    const agency = await this.legacyPrisma.agency.update({ // @tenant-reviewed: phase236-pilot-scope-precheck (findOne above is tenant-scoped)
       where: { id },
       data,
       include: this.include,
     });
     if (updatedById) {
-      await this.legacyPrisma.auditLog.create({ // @tenant-reviewed: phase235-excluded-mutation
-        data: { userId: updatedById, action: 'UPDATE', entity: 'Agency', entityId: id },
+      // @tenant-reviewed: phase236-audit-log-pilot
+      await this.tenantAuditLog.write({
+        userId: updatedById, action: 'UPDATE', entity: 'Agency', entityId: id,
       });
     }
     return agency;
   }
 
   async uploadLogo(id: string, file: Express.Multer.File, actorId?: string) {
+    // Phase 2.36 — storage guard. The Phase 2.35 tenant-scoped
+    // `findOne` runs BEFORE `storage.uploadFile`, so a cross-tenant
+    // id raises 404 with no byte write. Tag the storage-write site
+    // accordingly.
     const existing = await this.findOne(id);
     if (!file) throw new BadRequestException('No logo file provided');
 
@@ -226,7 +239,7 @@ export class AgenciesService {
       inline: true,
     });
 
-    const agency = await this.legacyPrisma.agency.update({ // @tenant-reviewed: phase235-excluded-storage
+    const agency = await this.legacyPrisma.agency.update({ // @tenant-reviewed: phase236-storage-guard (parent gate above is tenant-scoped)
       where: { id },
       data: { logoUrl: upload.url },
       include: this.include,
@@ -237,8 +250,10 @@ export class AgenciesService {
     }
 
     if (actorId) {
-      await this.legacyPrisma.auditLog.create({ // @tenant-reviewed: phase235-excluded-storage
-        data: { userId: actorId, action: 'UPDATE_LOGO', entity: 'Agency', entityId: id, changes: { logoUrl: upload.url } as any },
+      // @tenant-reviewed: phase236-audit-log-pilot
+      await this.tenantAuditLog.write({
+        userId: actorId, action: 'UPDATE_LOGO', entity: 'Agency', entityId: id,
+        changes: { logoUrl: upload.url },
       });
     }
     return agency;
@@ -246,10 +261,11 @@ export class AgenciesService {
 
   async remove(id: string, deletedById?: string) {
     await this.findOne(id);
-    await this.legacyPrisma.agency.update({ where: { id }, data: { deletedAt: new Date() } }); // @tenant-reviewed: phase235-excluded-mutation
+    await this.legacyPrisma.agency.update({ where: { id }, data: { deletedAt: new Date() } }); // @tenant-reviewed: phase236-pilot-scope-precheck
     if (deletedById) {
-      await this.legacyPrisma.auditLog.create({ // @tenant-reviewed: phase235-excluded-mutation
-        data: { userId: deletedById, action: 'DELETE', entity: 'Agency', entityId: id },
+      // @tenant-reviewed: phase236-audit-log-pilot
+      await this.tenantAuditLog.write({
+        userId: deletedById, action: 'DELETE', entity: 'Agency', entityId: id,
       });
     }
     return { message: 'Agency deleted' };
@@ -359,16 +375,15 @@ export class AgenciesService {
     actorId?: string,
   ) {
     await this.findOne(agencyId);
-    const record = await this.legacyPrisma.agencyPermissionOverride.upsert({ // @tenant-reviewed: phase235-excluded-mutation
+    const record = await this.legacyPrisma.agencyPermissionOverride.upsert({ // @tenant-reviewed: phase236-permission-gate (parent agency gated above)
       where:  { agencyId_permission: { agencyId, permission } },
       create: { agencyId, permission, allow },
       update: { allow },
     });
-    await this.legacyPrisma.auditLog.create({ // @tenant-reviewed: phase235-excluded-mutation
-      data: {
-        userId: actorId, action: allow ? 'AGENCY_PERMISSION_GRANT' : 'AGENCY_PERMISSION_REVOKE',
-        entity: 'Agency', entityId: agencyId, changes: { permission, allow } as any,
-      },
+    // @tenant-reviewed: phase236-audit-log-pilot
+    await this.tenantAuditLog.write({
+      userId: actorId, action: allow ? 'AGENCY_PERMISSION_GRANT' : 'AGENCY_PERMISSION_REVOKE',
+      entity: 'Agency', entityId: agencyId, changes: { permission, allow },
     });
     return record;
   }
@@ -376,39 +391,45 @@ export class AgenciesService {
   async removePermissionOverride(agencyId: string, permission: string, actorId?: string) {
     await this.findOne(agencyId);
     try {
-      await this.legacyPrisma.agencyPermissionOverride.delete({ // @tenant-reviewed: phase235-excluded-mutation
+      await this.legacyPrisma.agencyPermissionOverride.delete({ // @tenant-reviewed: phase236-permission-gate
         where: { agencyId_permission: { agencyId, permission } },
       });
     } catch {
       throw new NotFoundException('Permission override not found');
     }
-    await this.legacyPrisma.auditLog.create({ // @tenant-reviewed: phase235-excluded-mutation
-      data: {
-        userId: actorId, action: 'AGENCY_PERMISSION_OVERRIDE_REMOVED',
-        entity: 'Agency', entityId: agencyId, changes: { permission } as any,
-      },
+    // @tenant-reviewed: phase236-audit-log-pilot
+    await this.tenantAuditLog.write({
+      userId: actorId, action: 'AGENCY_PERMISSION_OVERRIDE_REMOVED',
+      entity: 'Agency', entityId: agencyId, changes: { permission },
     });
     return { message: 'Permission override removed' };
   }
 
   async setManager(agencyId: string, userId: string, actorId?: string) {
-    // Verify user belongs to this agency
-    const user = await this.legacyPrisma.user.findFirst({ where: { id: userId, agencyId, deletedAt: null } }); // @tenant-reviewed: phase235-excluded-mutation
+    // Phase 2.36 — manager gate. Tenant-scoped parent gate runs
+    // BEFORE the user lookup so a cross-tenant agencyId raises 404
+    // before any update.
+    await this.findOne(agencyId);
+
+    // Verify user belongs to this agency. The tenant-scoped findOne
+    // above guarantees the agency is within the active tenant; the
+    // user-belongs-to-agency check then rules out tenant-bypass via
+    // a known agencyId.
+    const user = await this.legacyPrisma.user.findFirst({ where: { id: userId, agencyId, deletedAt: null } }); // @tenant-reviewed: phase236-manager-gate (parent gated above)
     if (!user) throw new BadRequestException('User does not belong to this agency');
 
-    await this.legacyPrisma.agency.update({ // @tenant-reviewed: phase235-excluded-mutation
+    await this.legacyPrisma.agency.update({ // @tenant-reviewed: phase236-manager-gate
       where: { id: agencyId },
       data: { managerId: userId },
     });
 
-    await this.legacyPrisma.auditLog.create({ // @tenant-reviewed: phase235-excluded-mutation
-      data: {
-        userId: actorId,
-        action: 'SET_AGENCY_MANAGER',
-        entity: 'Agency',
-        entityId: agencyId,
-        changes: { managerId: userId } as any,
-      },
+    // @tenant-reviewed: phase236-audit-log-pilot
+    await this.tenantAuditLog.write({
+      userId: actorId,
+      action: 'SET_AGENCY_MANAGER',
+      entity: 'Agency',
+      entityId: agencyId,
+      changes: { managerId: userId },
     });
 
     return this.findOne(agencyId);

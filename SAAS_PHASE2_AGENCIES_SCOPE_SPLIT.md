@@ -70,3 +70,21 @@ decision.
   `phase235-excluded-mutation` (or `…-storage` / `…-global`).
 - The fixture seeds two tenants × multiple agencies so reads can be
   exercised with cross-tenant collision shapes.
+
+## 6. Phase 2.36 update — mutations + storage + permission + manager + audit shipped
+
+| Phase 2.35 status | Phase 2.36 result |
+|---|---|
+| `create` (excluded) | **shipped** — `phase236-pilot-scope`; spreads `scope.tenantData()` |
+| `update` / `remove` (excluded) | **shipped** — `phase236-pilot-scope-precheck` (gated by Phase 2.35 `findOne`) |
+| `uploadLogo` (excluded-storage) | **shipped** — `phase236-storage-guard` (Phase 2.35 `findOne` already runs before `storage.uploadFile`) |
+| `setPermissionOverride` / `removePermissionOverride` (excluded) | **shipped** — `phase236-permission-gate` |
+| `setManager` (excluded) | **shipped** — `phase236-manager-gate` (NEW `findOne` gate before user check) |
+| Audit emissions (legacy) | **shipped** — `phase236-audit-log-pilot` (all routed through `TenantAuditLogService`) |
+| `listPublic` | **unchanged** — `phase235-global` |
+| System-agency mutation semantics | **DEFERRED_SYSTEM_AGENCY_SEMANTICS** — Phase 3 |
+| Parent/child / `isDefault` semantics | **DEFERRED_HIGH_RISK** — Phase 3 |
+
+No remaining agency mutation paths are deferred (within current
+method surface). System-agency / parent-child / isDefault remain
+Phase 3 product work.

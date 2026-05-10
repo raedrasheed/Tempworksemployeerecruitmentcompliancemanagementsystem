@@ -129,6 +129,8 @@
     "saas:phase2-employees-mutation-isolation":      "ts-node scripts/saas/phase2/employees-mutation-isolation.ts",
     "saas:phase2-agencies-equivalence":              "ts-node scripts/saas/phase2/agencies-equivalence.ts",
     "saas:phase2-agencies-isolation":                "ts-node scripts/saas/phase2/agencies-isolation.ts",
+    "saas:phase2-agencies-mutation-equivalence":     "ts-node scripts/saas/phase2/agencies-mutation-equivalence.ts",
+    "saas:phase2-agencies-mutation-isolation":       "ts-node scripts/saas/phase2/agencies-mutation-isolation.ts",
     "saas:scan:annotations":                      "ts-node scripts/scan-annotations.ts",
     "saas:phase2-pilot-regression":               "ts-node scripts/saas/phase2/pilot-regression.ts",
     "saas:phase2-job-context-harness":            "ts-node scripts/saas/phase2/job-context-harness.ts",

@@ -5,7 +5,7 @@
     {
       "name": "1. findAll under tenant A: no tenant B rows (system agencies allowed)",
       "ok": true,
-      "detail": "count=2"
+      "detail": "count=8"
     },
     {
       "name": "2. findOne(tenantB-id) cross-tenant 404",
@@ -50,7 +50,7 @@
     {
       "name": "10. legacy: returns union across tenants",
       "ok": true,
-      "detail": "tenants=3 total=3"
+      "detail": "tenants=3 total=15"
     },
     {
       "name": "11. source-level: phase235 tags + mutation/storage on legacyPrisma",

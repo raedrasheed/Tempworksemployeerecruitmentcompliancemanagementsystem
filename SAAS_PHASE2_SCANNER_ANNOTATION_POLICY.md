@@ -102,6 +102,12 @@ and counted against the strict-mode threshold.
 | `phase235-global` | Agencies intentionally global lookups: `listPublic` (apply-form public dropdown). | `src/agencies/**` | 2.35 |
 | `phase235-excluded-mutation` | Agencies mutation / permission-override / manager-set sites kept on `legacyPrisma` until Phase 2.36+. | `src/agencies/**` | 2.35 |
 | `phase235-excluded-storage` | Agencies `uploadLogo` storage-write sites — deferred to Phase 2.36 storage-guard. | `src/agencies/**` | 2.35 |
+| `phase236-pilot-scope` | Agencies write sites narrowed in Phase 2.36 — `create` spreads `scope.tenantData()`. | `src/agencies/**` | 2.36 |
+| `phase236-pilot-scope-precheck` | Agencies by-id mutation sites gated by the prior tenant-scoped `findOne` (Phase 2.35). | `src/agencies/**` | 2.36 |
+| `phase236-storage-guard` | Agencies `uploadLogo` parent tenant gate runs BEFORE `storage.uploadFile`. | `src/agencies/**` | 2.36 |
+| `phase236-permission-gate` | Agencies permission-override write sites narrowed by parent agency tenant gate. | `src/agencies/**` | 2.36 |
+| `phase236-manager-gate` | Agencies `setManager` parent agency tenant gate runs BEFORE the user lookup. | `src/agencies/**` | 2.36 |
+| `phase236-audit-log-pilot` | Agencies audit emissions delegated to the shared `TenantAuditLogService`. | `src/agencies/**` | 2.36 |
 | `tenant-safe-report-runtime` | Reports engine uses `$queryRawUnsafe` with positional parameters and a registry-validated SQL string. | `src/reports/reports.service.ts` | 2.1 |
 
 ## 3. When annotations are allowed

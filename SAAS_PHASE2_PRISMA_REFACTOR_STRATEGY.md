@@ -849,3 +849,26 @@ across modules: **352/352**.
 The natural next phase is the **agencies mutation pilot (Phase
 2.36)** — `findAgencyOrFail` parent gate, `Agency.create` `tenantData`,
 `uploadLogo` storage-guard, permission-override / manager-set gates.
+
+## 11.9 Phase 2.36 — agencies mutation + storage + permission + manager pilot
+
+Closes the agencies reads-then-writes split.
+
+- `Agency.create` writes `tenantId` via `scope.tenantData()` (NULL
+  fallback when no ALS).
+- `update` / `remove` gated by Phase 2.35 `findOne`.
+- `uploadLogo` storage-guard (Phase 2.35 gate already in place).
+- `setPermissionOverride` / `removePermissionOverride` gated by parent
+  `findOne`.
+- `setManager` adds NEW parent gate before user lookup.
+- All audit emissions routed through `TenantAuditLogService`.
+
+Storage keys / ACLs / signed URLs / system-agency semantics /
+parent-child / `isDefault` all unchanged.
+
+Real-DB: equivalence 10/10 + isolation 9/9 = 19/19. Cumulative
+across modules: **371/371**.
+
+The agencies module has no remaining mutation paths within its
+current method surface. System-agency, parent-child, and isDefault
+semantics are Phase 3.

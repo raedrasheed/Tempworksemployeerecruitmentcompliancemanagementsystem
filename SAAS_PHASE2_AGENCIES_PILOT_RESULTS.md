@@ -137,3 +137,45 @@ pipeline) — pick by risk profile.
   the applicants `publicSubmit` decision).
 - Audit-log emissions for agencies are not yet routed through
   `TenantAuditLogService` — could be wired in Phase 2.36.
+
+## 13. Phase 2.36 — mutation pilot delta
+
+Phase 2.36 extends the agencies pilot to mutations + storage +
+permission gates + manager gate + audit-log routing. The agencies
+module now joins finance, documents, vehicles, workflow, applicants,
+and employees as the **seventh** end-to-end module proven on real DB
+across reads + writes.
+
+Per-method changes:
+- `create` — spreads `scope.tenantData()` (NULL-tenant fallback when
+  no ALS frame). Tag `phase236-pilot-scope`.
+- `update` / `remove` — gated by Phase 2.35 tenant-scoped `findOne`;
+  retagged `phase236-pilot-scope-precheck`.
+- `uploadLogo` — Phase 2.35 `findOne` already runs BEFORE
+  `storage.uploadFile`; site retagged `phase236-storage-guard`.
+- `setPermissionOverride` / `removePermissionOverride` — gated by
+  parent `findOne`; tag `phase236-permission-gate`.
+- `setManager` — NEW parent `findOne(agencyId)` gate added BEFORE
+  the user-belongs-to-agency check; tag `phase236-manager-gate`.
+- All agency audit emissions routed through
+  `TenantAuditLogService` (Phase 2.30); tag
+  `phase236-audit-log-pilot`.
+
+System-agency mutation semantics, parent/child agency restructuring,
+storage keys, ACLs, signed URLs, and `Agency.isDefault` semantics
+are all unchanged.
+
+New harnesses (real Postgres SAFE_CLONE):
+- `agencies-mutation-equivalence` (10 cases): create shape +
+  tenantId NULL/set, update / remove / uploadLogo parity, permission
+  override set/remove, setManager, NULL-tenant System Admin fallback.
+- `agencies-mutation-isolation` (9 cases): cross-tenant rejections
+  for update / remove / uploadLogo (NO storage write) /
+  setPermissionOverride / removePermissionOverride / setManager;
+  legacy unchanged; concurrent ALS create attribution; source-level
+  meta-assertion of phase236 tags + audit routing.
+
+Real-DB results: 19/19 mutation cases PASS + 23/23 read cases PASS =
+**42/42 agencies** total. Cumulative finance + documents + vehicles
++ workflow + applicants + audit-log + employees + agencies:
+**371/371** on real Postgres 16.

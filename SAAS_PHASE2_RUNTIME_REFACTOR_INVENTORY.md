@@ -666,3 +666,22 @@ across modules: **352/352**.
 System-agency semantics, `Agency.create` ALS attribution, and
 audit-log routing through `TenantAuditLogService` remain Phase 2.36+
 work.
+
+## 33. Phase 2.36 — Agencies mutation + storage + permission + manager pilot (shipped)
+
+`src/agencies` mutation paths brought into the pilot.
+
+- NEW `findAgencyOrFail` (logical: existing `findOne` is reused as
+  parent gate); audit emissions routed through `TenantAuditLogService`.
+- `create`: `scope.tenantData()` spread.
+- `update` / `remove`: gated via Phase 2.35 `findOne`.
+- `uploadLogo`: storage-guard via Phase 2.35 `findOne` BEFORE byte write.
+- `setPermissionOverride` / `removePermissionOverride`: parent-gated.
+- `setManager`: NEW parent gate before user lookup.
+
+Tags introduced: `phase236-pilot-scope`, `phase236-pilot-scope-precheck`,
+`phase236-storage-guard`, `phase236-permission-gate`,
+`phase236-manager-gate`, `phase236-audit-log-pilot`.
+
+Real-DB: equivalence 10/10 + isolation 9/9 = 19/19. Cumulative:
+**371/371**.

@@ -26,6 +26,7 @@ import { PrismaService } from '../../../src/prisma/prisma.service';
 import { TenantPrismaService } from '../../../src/saas/prisma/tenant-prisma.service';
 import { PilotPrismaAccessor } from '../../../src/saas/prisma/pilot-prisma.accessor';
 import { FeatureFlagsService } from '../../../src/saas/feature-flags/feature-flags.service';
+import { TenantAuditLogService } from '../../../src/saas/audit/tenant-audit-log.service';
 import { AgenciesService } from '../../../src/agencies/agencies.service';
 import { StorageService } from '../../../src/common/storage/storage.service';
 import { TenantContext, withRequestContext, newRequestId } from '../../../src/saas/context/als';
@@ -51,7 +52,7 @@ async function withFlags<T>(env: Record<string, string | undefined>, fn: () => P
 }
 
 function makeService(prisma: PrismaService, pilot: PilotPrismaAccessor): AgenciesService {
-  return new AgenciesService(prisma, new StorageService(), pilot);
+  return new AgenciesService(prisma, new StorageService(), pilot, new TenantAuditLogService(prisma, new FeatureFlagsService()));
 }
 
 async function main(): Promise<void> {

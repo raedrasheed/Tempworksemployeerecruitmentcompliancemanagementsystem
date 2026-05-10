@@ -190,3 +190,10 @@ non-admin reads. Callers that need historical visibility can use
 deferred.
 
 Tag: `phase253-audit-log-retention-enforce`.
+
+---
+
+# Phase 2.55 cross-link — Operator runbook
+
+See `docs/runbooks/audit-retention-rollout.md` for the operator-facing
+production rollout sequence covering Phases 2.50–2.54.

@@ -1192,3 +1192,21 @@ audit_logs` exists only in this script plus the pre-existing
 (tagged `phase211-excluded-platform`).
 
 Real-DB harness: 17/17. Cumulative: **658/658**.
+
+## 11.28 — Phase 2.55: Operator-facing audit retention runbook
+
+Documentation-only phase. New runbook at
+`docs/runbooks/audit-retention-rollout.md` (top-level pointer at
+`AUDIT_LOG_RETENTION_RUNBOOK.md`) stitches Phases 2.50 → 2.54 into
+one production rollout sequence: backfill → read validation →
+soft-delete → grace-window wait → hard-delete. Includes go/no-go
+gates, snapshot capture commands, monitoring fields, timing
+guidance, rollback policy table, and an operator sign-off table.
+
+A doc-level check script (`scripts/saas/phase2/audit-retention-runbook-check.ts`)
+asserts the runbook covers all five phases plus the
+soft-delete-only and grace-cutoff invariants of the destructive
+scripts. Tag: `phase255-audit-retention-runbook`. No DB I/O.
+
+Real-DB harness: 22/22 (doc + source-level checks).
+Cumulative: **680/680**.

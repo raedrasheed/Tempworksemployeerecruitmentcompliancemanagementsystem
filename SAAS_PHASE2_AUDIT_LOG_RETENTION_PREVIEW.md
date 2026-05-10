@@ -87,3 +87,10 @@ Phase 2.54 introduces a separate dry-run-first script that
 **physically removes** rows already soft-deleted by Phase 2.53 once
 the grace window elapses. The Phase 2.52 `previewRetention` API
 itself is unchanged.
+
+---
+
+# Phase 2.55 cross-link — Operator runbook
+
+See `docs/runbooks/audit-retention-rollout.md` for the operator-facing
+production rollout sequence.

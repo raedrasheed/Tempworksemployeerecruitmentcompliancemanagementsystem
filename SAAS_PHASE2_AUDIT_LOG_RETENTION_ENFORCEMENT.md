@@ -187,3 +187,12 @@ are eligible. The two scripts are intentionally separate; an
 operator who runs Phase 2.53 today sees rows hard-delete-eligible
 only after the grace window elapses. See
 `SAAS_PHASE2_AUDIT_LOG_HARD_DELETE.md`.
+
+---
+
+# Phase 2.55 cross-link — Operator runbook
+
+See `docs/runbooks/audit-retention-rollout.md` for the consolidated
+production rollout sequence (backfill → read validation →
+soft-delete → grace-window wait → hard-delete) with go/no-go
+gates and operator sign-off table.

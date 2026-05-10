@@ -3,12 +3,12 @@
 **17/17 PASS**
 
 - PASS — 1. dry-run deletes zero rows — mode=dry-run deleted=0
-- PASS — 2. dry-run reports correct eligible count for tenant A (>=2) — eligible=2
+- PASS — 2. dry-run reports correct eligible count for tenant A (>=2) — eligible=3
 - PASS — 3. apply refused when AUDIT_LOG_HARD_DELETE_ENABLED=false — AUDIT_LOG_HARD_DELETE_ENABLED=false
 - PASS — 4. apply refused when AUDIT_LOG_HARD_DELETE_APPLY=false — AUDIT_LOG_HARD_DELETE_APPLY=false
 - PASS — 5. apply refused outside SAFE_CLONE/SAFE_STAGING (source gate) — all 3 gates wired
 - PASS — 6. apply refuses tenant scope without tenant id — scope=tenant requires AUDIT_LOG_HARD_DELETE_TENANT_ID
-- PASS — 7. apply hard-deletes only already soft-deleted rows older than grace — deleted=2
+- PASS — 7. apply hard-deletes only already soft-deleted rows older than grace — deleted=3
 - PASS — 8. apply does not delete rows where deletedAt IS NULL — live row preserved
 - PASS — 9. apply does not delete soft-deleted rows inside grace window — inside-grace row preserved
 - PASS — 10. tenant A hard-delete does not touch tenant B rows — B old row preserved

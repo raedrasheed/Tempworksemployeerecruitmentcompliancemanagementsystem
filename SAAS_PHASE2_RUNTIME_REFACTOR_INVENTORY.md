@@ -969,3 +969,13 @@ opt-in). Idempotent. Rollback requires a full-row snapshot or
 Tag: `phase254-audit-log-hard-delete`.
 
 Real-DB harness: 17/17. Cumulative: **658/658**.
+
+## 52 — Operator audit retention runbook (Phase 2.55)
+
+Documentation-only. Operator-facing rollout sequence consolidating
+Phases 2.50 → 2.54 into one runbook with explicit go/no-go gates,
+snapshot SQL templates, timing guidance, and a sign-off table.
+
+Tag: `phase255-audit-retention-runbook`.
+
+Real-DB harness: 22/22. Cumulative: **680/680**.

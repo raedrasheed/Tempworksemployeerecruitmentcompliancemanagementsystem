@@ -10,7 +10,7 @@
     {
       "name": "2. dry-run reports correct eligible count for tenant A (>=2)",
       "ok": true,
-      "detail": "eligible=2"
+      "detail": "eligible=3"
     },
     {
       "name": "3. apply refused when AUDIT_LOG_HARD_DELETE_ENABLED=false",
@@ -35,7 +35,7 @@
     {
       "name": "7. apply hard-deletes only already soft-deleted rows older than grace",
       "ok": true,
-      "detail": "deleted=2"
+      "detail": "deleted=3"
     },
     {
       "name": "8. apply does not delete rows where deletedAt IS NULL",

@@ -174,3 +174,13 @@ no runtime hard-delete site.
 that wires Phases 2.50 → 2.51 → 2.52 → 2.53 → 2.54 into a single
 production rollout sequence with explicit go/no-go gates between
 backfill, soft-delete, and hard-delete steps.
+
+---
+
+# Phase 2.55 cross-link — Operator runbook
+
+A consolidated operator-facing rollout sequence is documented at
+`docs/runbooks/audit-retention-rollout.md` (top-level pointer at
+`AUDIT_LOG_RETENTION_RUNBOOK.md`). It stitches Phases 2.50–2.54
+into a single production sequence with go/no-go gates, snapshot
+guidance, and a sign-off table.

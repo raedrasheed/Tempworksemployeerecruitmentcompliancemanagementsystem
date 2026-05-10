@@ -111,6 +111,7 @@
     "saas:phase253-audit-log-retention-enforce-harness": "ts-node scripts/saas/phase2/audit-log-retention-enforce-harness.ts",
     "saas:phase254-audit-log-hard-delete":               "ts-node scripts/saas/phase2/audit-log-hard-delete.ts",
     "saas:phase254-audit-log-hard-delete-harness":       "ts-node scripts/saas/phase2/audit-log-hard-delete-harness.ts",
+    "saas:phase255-audit-retention-runbook-check":       "ts-node scripts/saas/phase2/audit-retention-runbook-check.ts",
     "saas:phase2-job-ads-equivalence": "ts-node scripts/saas/phase2/job-ads-equivalence.ts",
     "saas:phase2-job-ads-isolation": "ts-node scripts/saas/phase2/job-ads-isolation.ts",
     "saas:phase2-notifications-equivalence": "ts-node scripts/saas/phase2/notifications-equivalence.ts",

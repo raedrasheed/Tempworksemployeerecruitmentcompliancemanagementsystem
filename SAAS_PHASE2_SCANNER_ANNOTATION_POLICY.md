@@ -116,6 +116,9 @@ and counted against the strict-mode threshold.
 | `phase242-notifications-pilot-scope` | Reserved for new notifications pilot sites that engage during Phase 2.42 review. Phase 2.10's `phase210-pilot-scope` covers the existing sites. | `src/notifications/**` | 2.42 |
 | `phase242-notifications-fanout-deferred` | Reserved for any notifications fan-out site whose tenant attribution is explicitly deferred to a later product phase. | `src/notifications/**` | 2.42 |
 | `phase242-notifications-audit-log` | Reserved for any future notifications mutation that introduces audit-log emission (none in scope today). | `src/notifications/**` | 2.42 |
+| `phase243-compliance-notification-coupling` | Compliance `maybeNotifyOnAlertGeneration` helper invoked from `generateAlertsForTenant` after a per-tenant scan; default-off; gated by `COMPLIANCE_NOTIFY_ON_ALERT` + existing fan-out gates. | `src/compliance/**` | 2.43 |
+| `phase243-compliance-notification-fanout` | Compliance call to `NotificationsService.notifyUsersByRoles` from inside the per-tenant ALS frame. | `src/compliance/**` | 2.43 |
+| `phase243-compliance-notification-deferred-provider` | Reserved for any future external provider (email/SMS) coupling on compliance events. | `src/compliance/**` | 2.43 |
 | `tenant-safe-report-runtime` | Reports engine uses `$queryRawUnsafe` with positional parameters and a registry-validated SQL string. | `src/reports/reports.service.ts` | 2.1 |
 
 ## 3. When annotations are allowed

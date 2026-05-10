@@ -183,3 +183,14 @@ decorated entry-point. It calls only
 `ComplianceScheduler.runScheduledComplianceAlertGeneration()`. Source-
 level meta-assertions enforce this. See
 `SAAS_PHASE2_COMPLIANCE_CRON_FRAMEWORK.md`.
+
+---
+
+# Phase 2.43 addendum — optional notifications coupling
+
+`generateAlertsForTenant` now calls
+`maybeNotifyOnAlertGeneration(total)` AFTER `generateAlerts()`
+returns, INSIDE the same per-tenant ALS frame. The helper is
+default-off (`COMPLIANCE_NOTIFY_ON_ALERT=false`) and respects every
+existing fan-out gate. See
+`SAAS_PHASE2_COMPLIANCE_NOTIFICATION_COUPLING.md`.

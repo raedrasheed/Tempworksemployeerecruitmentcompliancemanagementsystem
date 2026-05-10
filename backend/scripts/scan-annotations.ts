@@ -121,6 +121,9 @@ const KNOWN_REASONS: ReadonlyArray<PolicyEntry> = [
   { tag: 'phase242-notifications-pilot-scope',    allowedPaths: ['src/notifications/'] },
   { tag: 'phase242-notifications-fanout-deferred', allowedPaths: ['src/notifications/'] },
   { tag: 'phase242-notifications-audit-log',      allowedPaths: ['src/notifications/'] },
+  { tag: 'phase243-compliance-notification-coupling', allowedPaths: ['src/compliance/'] },
+  { tag: 'phase243-compliance-notification-fanout',   allowedPaths: ['src/compliance/'] },
+  { tag: 'phase243-compliance-notification-deferred-provider', allowedPaths: ['src/compliance/'] },
   { tag: 'tenant-safe-report-runtime',    allowedPaths: ['src/reports/', 'src/saas/reports/'] },
   { tag: 'tenant-resolver-bootstrap',     allowedPaths: ['src/saas/tenancy/'] },
 ];

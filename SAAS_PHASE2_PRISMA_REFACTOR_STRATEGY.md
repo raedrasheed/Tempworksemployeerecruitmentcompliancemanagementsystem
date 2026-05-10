@@ -985,3 +985,25 @@ emits audit rows today). Real email/SMS sending stays in
 
 Real-DB: equivalence 11/11 + isolation 10/10 = 21/21. Cumulative
 across modules: **454/454**.
+
+## 11.16 Phase 2.43 — compliance → notifications event coupling
+
+Optional, default-off coupling between per-tenant compliance alert
+generation and tenant-safe notification fan-out.
+
+- New flag `COMPLIANCE_NOTIFY_ON_ALERT=false`.
+- New helper `ComplianceService.maybeNotifyOnAlertGeneration(total)`
+  invoked from `generateAlertsForTenant` INSIDE the per-tenant ALS
+  frame.
+- Uses existing `NotificationsService.notifyUsersByRoles` —
+  recipients narrowed by `agency.tenantId`; `Notification.tenantId`
+  stamped from ALS; no external provider invoked.
+- Crash-safe: notification failures captured as `{ error }`; no
+  rollback.
+
+Tags: `phase243-compliance-notification-coupling`,
+`phase243-compliance-notification-fanout`,
+`phase243-compliance-notification-deferred-provider`.
+
+Real-DB: `compliance-notification-coupling` — 12/12 PASS.
+Cumulative: **466/466**.

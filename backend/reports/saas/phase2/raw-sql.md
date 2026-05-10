@@ -1,6 +1,6 @@
 # Phase 2 — Raw-SQL Scanner Report
 
-Generated: 2026-05-10T14:03:02.310Z
+Generated: 2026-05-10T15:17:10.716Z
 
 - Total findings: **26**
 - BLOCKER: 11 (blocks Phase 2 enforcement: 20)

@@ -317,3 +317,43 @@ audit/scheduler 9/9 + tenant-job-dispatch 9/9 + real-scheduler 11/11
 
 No production behaviour change. Default flags off ⇒ cron tick is a
 no-op. Rollback is configuration-only.
+
+---
+
+## Phase 2.43 — compliance → notifications event coupling
+
+Optional, default-off coupling between per-tenant compliance alert
+generation and tenant-safe notification fan-out. See
+`SAAS_PHASE2_COMPLIANCE_NOTIFICATION_COUPLING.md`.
+
+- New flag `COMPLIANCE_NOTIFY_ON_ALERT=false` (default).
+- New helper `ComplianceService.maybeNotifyOnAlertGeneration(total)`
+  invoked from `generateAlertsForTenant` INSIDE the per-tenant ALS
+  frame, AFTER `generateAlerts()` returns.
+- Helper refuses if `TENANT_AWARE_JOBS_ENABLED` or
+  `TENANT_JOB_FANOUT_ENABLED` is off; structured `{refused, …}`
+  result.
+- Notification creation goes through the existing
+  `NotificationsService.notifyUsersByRoles(['Compliance Officer',
+  'Compliance Manager', 'System Admin'], …)` helper. Recipients
+  narrowed by `agency.tenantId`; `Notification.create.data.tenantId`
+  stamped from ALS.
+- No external provider (email/SMS/WhatsApp) invoked.
+- Failures captured as `{ error }`; compliance alert generation is
+  not rolled back.
+
+New annotation tags:
+- `phase243-compliance-notification-coupling`
+- `phase243-compliance-notification-fanout`
+- `phase243-compliance-notification-deferred-provider`
+
+New harness (real Postgres): `compliance-notification-coupling` —
+**12/12 PASS**.
+
+Cumulative compliance: equivalence 12/12 + isolation 7/7 +
+audit/scheduler 9/9 + tenant-job-dispatch 9/9 + real-scheduler 11/11
++ cron-framework 14/14 + notification-coupling 12/12 = **74/74**.
+Cumulative across modules: **466/466**.
+
+Production behaviour with default flags is byte-identical: coupling
+helper returns `null` and zero notifications are created.

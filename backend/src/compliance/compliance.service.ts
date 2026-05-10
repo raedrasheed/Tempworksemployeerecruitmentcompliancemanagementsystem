@@ -1,4 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
+import type { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { PilotPrismaAccessor } from '../saas/prisma/pilot-prisma.accessor';
 import { getPilotScope, PilotScope } from '../saas/prisma/tenant-pilot-scope';
@@ -33,6 +34,13 @@ export class ComplianceService {
     private pilot: PilotPrismaAccessor,
     private tenantAuditLog: TenantAuditLogService,
     private flags: FeatureFlagsService,
+    /**
+     * Phase 2.43 — optional notifications coupling. Injected via the
+     * compliance module wiring; left optional so existing harnesses
+     * that construct ComplianceService directly do not need to supply
+     * a NotificationsService unless they exercise the coupling.
+     */
+    @Optional() private notifications?: NotificationsService,
   ) {}
 
   private readonly logger = new Logger('ComplianceService');
@@ -307,8 +315,82 @@ export class ComplianceService {
         region: 'eu',
       });
       const r = await this.generateAlerts();
-      return { ...r, tenantId };
+      // Phase 2.43 — optional, gated, tenant-safe notification coupling.
+      // Runs INSIDE the same ALS frame so notifications carry tenantId.
+      // Failure here is captured but never rolls back compliance alert
+      // generation.
+      // @tenant-reviewed: phase243-compliance-notification-coupling
+      const notify = await this.maybeNotifyOnAlertGeneration(r.total);
+      return { ...r, tenantId, ...(notify ? { notify } : {}) };
     });
+  }
+
+  // ── Phase 2.43 — compliance → notifications coupling ───────────────────────
+  //
+  // Default: refused (COMPLIANCE_NOTIFY_ON_ALERT=false). Even when the
+  // flag is on, the existing fan-out gate (TENANT_AWARE_JOBS_ENABLED +
+  // TENANT_JOB_FANOUT_ENABLED) still governs whether
+  // notifyUsersByRoles is allowed to write notifications. If either
+  // gate is off, this method returns a structured refusal and creates
+  // zero notifications.
+  //
+  // Notifications are created only via the existing
+  // NotificationsService.notifyUsersByRoles helper, which:
+  //   - narrows recipients by agency.tenantId (active ALS frame)
+  //   - stamps Notification.create.data.tenantId from the active frame
+  //   - never invokes EmailModule / SMS / external providers here
+  //
+  // Failures are captured and never thrown — a notification fan-out
+  // problem must not roll back compliance alert generation.
+  //
+  // @tenant-reviewed: phase243-compliance-notification-coupling
+  private async maybeNotifyOnAlertGeneration(total: number): Promise<{
+    skipped?: string;
+    refused?: string;
+    notified?: number;
+    error?: string;
+  } | null> {
+    if (!this.flags.complianceNotifyOnAlert()) {
+      return null; // disabled by default → no structured noise either
+    }
+    if (!this.notifications) {
+      return { skipped: 'NotificationsService not provided to ComplianceService' };
+    }
+    // Reuse the notifications module's fan-out gate exactly. If
+    // TENANT_AWARE_JOBS_ENABLED or TENANT_JOB_FANOUT_ENABLED are off,
+    // notifyUsersByRoles' assertTenantForFanout would throw. Pre-check
+    // here so we capture the refusal cleanly.
+    if (!this.flags.tenantAwareJobsEnabled() || !this.flags.tenantJobFanoutEnabled()) {
+      return { refused: 'tenant fan-out gates off (TENANT_AWARE_JOBS_ENABLED / TENANT_JOB_FANOUT_ENABLED)' };
+    }
+    if (total <= 0) {
+      // No new alerts ⇒ nothing to notify about. Still gated and
+      // tenant-safe, but emit a structured skip so the harness can
+      // assert "fan-out not invoked when nothing new".
+      return { skipped: 'no new alerts in this tick' };
+    }
+    try {
+      // @tenant-reviewed: phase243-compliance-notification-fanout
+      await this.notifications.notifyUsersByRoles(
+        ['Compliance Officer', 'Compliance Manager', 'System Admin'],
+        'compliance.alert.generated' as any,
+        'New compliance alerts',
+        `${total} new compliance alert${total === 1 ? '' : 's'} were generated for this tenant.`,
+        'ComplianceAlert',
+        undefined,
+        {
+          titleKey: 'compliance.alertGenerated.title',
+          messageKey: 'compliance.alertGenerated.message',
+          params: { total },
+        },
+      );
+      return { notified: total };
+    } catch (e: any) {
+      // Crash-safe: never throw out of generateAlertsForTenant on
+      // notification failure.
+      this.logger.warn(`[notify] fan-out failed: ${e?.message ?? e}`);
+      return { error: String(e?.message ?? e) };
+    }
   }
 
   // ── Phase 2.39 — tenant-aware fan-out dispatch ──────────────────────────────

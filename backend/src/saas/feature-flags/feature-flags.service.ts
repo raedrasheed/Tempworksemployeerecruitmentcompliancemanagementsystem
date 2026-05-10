@@ -43,6 +43,7 @@ export class FeatureFlagsService {
   tenantJobFanoutEnabled(): boolean { return this.snapshot.TENANT_JOB_FANOUT_ENABLED; }
   tenantAuditLogPilotEnabled(): boolean { return this.snapshot.TENANT_AUDIT_LOG_PILOT_ENABLED; }
   complianceAlertSchedulerEnabled(): boolean { return this.snapshot.COMPLIANCE_ALERT_SCHEDULER_ENABLED; }
+  complianceNotifyOnAlert(): boolean { return this.snapshot.COMPLIANCE_NOTIFY_ON_ALERT; }
 
   /** Test-only: build a service from an explicit map (no env reads). */
   static forTesting(overrides: Partial<Record<FlagKey, boolean>>): FeatureFlagsService {

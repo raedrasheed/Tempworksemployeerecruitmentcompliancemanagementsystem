@@ -220,3 +220,28 @@ TENANT_JOB_FANOUT_ENABLED=false
   product wants cron-driven notifications for compliance events,
   that is a follow-up phase that still must call only
   `notifyUsersByRoles` per tenant inside the existing fan-out gate.
+
+---
+
+## Phase 2.43 — coupling consumer (no notifications-side change)
+
+Phase 2.43 introduces a default-off opt-in
+(`COMPLIANCE_NOTIFY_ON_ALERT=false`) that lets compliance call the
+existing `notifyUsersByRoles` helper after a per-tenant alert tick.
+
+- **No notifications-side code change.** The helper, recipient
+  narrowing, and tenantId stamping are all unchanged from
+  Phase 2.15.
+- **No external provider invocation.** The coupling is in-app only.
+- **No fan-out widening.** The existing fan-out gates
+  (`TENANT_AWARE_JOBS_ENABLED` + `TENANT_JOB_FANOUT_ENABLED`) still
+  govern whether `notifyUsersByRoles` writes anything.
+
+The Phase 2.43 harness asserts source-level invariants on the
+compliance side: raw `generateAlerts()` does not call notification
+fan-out; `ComplianceCron` does not call notification helpers
+directly; `ComplianceScheduler` does not call notification helpers
+directly.
+
+Notifications equivalence + isolation harnesses remain 11/11 + 10/10
+PASS.

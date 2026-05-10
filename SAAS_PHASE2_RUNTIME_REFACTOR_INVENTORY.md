@@ -785,3 +785,17 @@ No audit-log emission introduced. No real email/SMS provider invoked.
 
 Real-DB: equivalence 11/11 + isolation 10/10 = 21/21. Cumulative:
 **454/454**.
+
+## 40. Phase 2.43 — Compliance → notifications event coupling (shipped)
+
+Optional, default-off (`COMPLIANCE_NOTIFY_ON_ALERT=false`) helper on
+`ComplianceService` that fires `notifyUsersByRoles` per tenant from
+inside `generateAlertsForTenant`'s ALS frame. Notifications carry
+`tenantId` from ALS; recipients narrowed by `agency.tenantId`. No
+external provider invoked. Failures captured as `{ error }`.
+
+Tags: `phase243-compliance-notification-coupling`,
+`phase243-compliance-notification-fanout`,
+`phase243-compliance-notification-deferred-provider`.
+
+Real-DB: 12/12. Cumulative: **466/466**.

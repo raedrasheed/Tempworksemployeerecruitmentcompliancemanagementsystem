@@ -169,3 +169,13 @@ provides the disabled-by-default scheduler entry-point. It calls only
 `ComplianceScheduler.runScheduledComplianceAlertGeneration()`. The
 dispatch helper continues to be the only path that enumerates
 tenants. See `SAAS_PHASE2_COMPLIANCE_CRON_FRAMEWORK.md`.
+
+---
+
+## Phase 2.43 update — optional notifications coupling consumer
+
+The per-tenant `generateAlertsForTenant` path now optionally invokes
+`NotificationsService.notifyUsersByRoles` AFTER the scan completes,
+INSIDE the same ALS frame. Default off
+(`COMPLIANCE_NOTIFY_ON_ALERT=false`). Dispatch helper unchanged.
+See `SAAS_PHASE2_COMPLIANCE_NOTIFICATION_COUPLING.md`.

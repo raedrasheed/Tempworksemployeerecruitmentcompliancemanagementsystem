@@ -229,3 +229,23 @@ narrowing. Pure test coverage; no service change.
 
 Real-DB run (`SAFE_CLONE` `saas_phase1_fixture`):
 **38/38 finance harness cases PASS** (9 + 7 + 9 + 13).
+
+## 16. Phase 2.19 — AGENCY helper coverage completion
+
+Adds AGENCY-entity coverage for the Phase 2.17.1 helper
+narrowing. Pure test coverage; no service change.
+
+- New fixture: `phase219-finance-agency-seed.sql` (one
+  AGENCY-typed financial record on tenant A; per-tenant agency
+  rows already seeded in 2.17.1).
+- New isolation cases 14, 15, 16:
+  - 14: AGENCY cross-tenant create ⇒ NotFoundException (no row).
+  - 15: AGENCY same-tenant create ⇒ success, tenantId=A,
+    applicantId=null, stage=AGENCY.
+  - 16: AGENCY-typed update keeps entityId tenant-scoped.
+
+Real-DB run (`SAFE_CLONE` `saas_phase1_fixture`):
+**41/41 finance harness cases PASS** (9 + 7 + 9 + 16).
+
+The per-entity coverage matrix is complete: every supported
+`entityType` (EMPLOYEE, APPLICANT, AGENCY) is proven on real DB.

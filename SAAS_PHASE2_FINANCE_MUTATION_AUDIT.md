@@ -176,7 +176,7 @@ code change.
 |---------------|:-------------:|:-----------------------:|
 | EMPLOYEE | 2.17.1 | case 9 (2.17.1) |
 | APPLICANT | 2.17.1 | **cases 11+12+13 (2.18)** |
-| AGENCY | 2.17.1 | deferred (no AGENCY-typed records seeded) |
+| AGENCY | 2.17.1 | **cases 14+15+16 (2.19)** |
 
 ## 5. Production safety
 

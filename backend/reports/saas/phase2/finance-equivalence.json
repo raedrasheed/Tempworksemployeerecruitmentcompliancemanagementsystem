@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-10T06:28:19.091Z",
+  "generatedAt": "2026-05-10T06:34:16.807Z",
   "environment": {
     "classification": "SAFE_CLONE",
     "reason": "localhost + fixture pattern (db=saas_phase1_fixture)",
@@ -11,7 +11,7 @@
   "legacy": {
     "pilotActive": false,
     "reason": "TENANT_PRISMA_PILOT_ENABLED=false",
-    "findAllTotal": 5,
+    "findAllTotal": 6,
     "findOneAId": "00000000-0000-0000-0000-0000000fa001",
     "errorOnMissing": "NotFoundException",
     "totalsADisbursed": 300,
@@ -23,7 +23,7 @@
   "pilot": {
     "pilotActive": true,
     "reason": "pilot ON, env=SAFE_CLONE",
-    "findAllTotal": 3,
+    "findAllTotal": 4,
     "findOneAId": "00000000-0000-0000-0000-0000000fa001",
     "errorOnMissing": "NotFoundException",
     "totalsADisbursed": 300,
@@ -51,7 +51,7 @@
     {
       "name": "findAll: pilot total <= legacy total (tenant filter applies)",
       "ok": true,
-      "detail": "legacy=5 pilot=3"
+      "detail": "legacy=6 pilot=4"
     },
     {
       "name": "findOne: legacy + pilot resolve the tenant A record id",

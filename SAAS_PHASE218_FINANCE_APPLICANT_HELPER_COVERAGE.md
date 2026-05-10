@@ -119,7 +119,7 @@ Per-entity coverage in mutation-isolation:
 |--------|-----------|-------------|-----------|
 | EMPLOYEE | not tested | case 9 PASS | case 9 PASS |
 | APPLICANT | not tested | not tested | **case 11 (this phase)** |
-| AGENCY | not tested | not tested | deferred (no AGENCY-typed financial records in fixture; `phase2171-finance-seed.sql` seeds EMPLOYEE-typed only) |
+| AGENCY | not tested | not tested | **closed in Phase 2.19 (cases 14, 15, 16)** — see `SAAS_PHASE219_FINANCE_AGENCY_HELPER_COVERAGE.md` |
 
 `resolveEntityNameForNotif` is also exercised indirectly through
 the new APPLICANT case via the `create` notification side effect:

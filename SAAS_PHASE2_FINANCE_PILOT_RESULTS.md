@@ -202,7 +202,26 @@ symmetrically; Phase 2.18 is pure test coverage completion.
 
 See `SAAS_PHASE218_FINANCE_APPLICANT_HELPER_COVERAGE.md`.
 
-## 8. Next steps — Phase 2.19
+## 7.4 Phase 2.19 — AGENCY helper coverage completion
+
+The per-entity coverage matrix is now complete. Three new
+isolation cases (14, 15, 16) cover the AGENCY branch the same way
+APPLICANT was covered in 2.18.
+
+| Entity | Real-DB harness coverage |
+|--------|--------------------------|
+| EMPLOYEE | case 9 (Phase 2.17.1) |
+| APPLICANT | cases 11+12+13 (Phase 2.18) |
+| AGENCY | **cases 14+15+16 (Phase 2.19)** |
+
+Real-DB results on the same SAFE_CLONE: **41/41 cases PASS**
+(9 + 7 + 9 + 16). No service code change. Pure coverage
+completion. See `SAAS_PHASE219_FINANCE_AGENCY_HELPER_COVERAGE.md`.
+
+The Phase 2.17.1 helper-narrowing fix is now end-to-end proven on
+real DB across every supported `entityType`.
+
+## 8. Next steps — Phase 2.20
 
 Remaining finance work:
 

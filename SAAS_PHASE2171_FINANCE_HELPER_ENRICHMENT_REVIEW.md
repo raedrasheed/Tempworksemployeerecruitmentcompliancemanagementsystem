@@ -111,6 +111,12 @@ narrowing.
   isolation cases (11, 12, 13) cover APPLICANT cross-tenant
   rejection, same-tenant success, and update-path notification
   helper safety. 13/13 pass on real DB.
+- **Phase 2.19** added cases 14, 15, 16 covering the AGENCY
+  branch: cross-tenant rejection / same-tenant success / update-
+  path notif-helper safety. The per-entity coverage matrix is
+  complete (EMPLOYEE + APPLICANT + AGENCY all proven on real DB).
+  See `SAAS_PHASE219_FINANCE_AGENCY_HELPER_COVERAGE.md`. 16/16
+  isolation cases pass; 41/41 finance harness cases overall.
 - `getPersonRecords` already calls `findFirst` with tenant filter
   (Phase 2.16). It is unaffected by 2.17.1.
 - `checkAndNotifyHighBalance` (background path) remains

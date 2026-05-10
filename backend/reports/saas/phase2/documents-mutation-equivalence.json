@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-10T07:08:55.309Z",
+  "generatedAt": "2026-05-10T07:21:34.889Z",
   "environment": {
     "classification": "SAFE_CLONE",
     "reason": "localhost + fixture pattern (db=saas_phase1_fixture)",
@@ -57,7 +57,7 @@
     {
       "name": "pilot renew: creates new row with renewedFromId AND tenantId=A",
       "ok": true,
-      "detail": "renewedFromId=48f5cc68-4693-45b7-ad08-26b17d5cfb77 tenantId=11111111-1111-1111-1111-111111111111"
+      "detail": "renewedFromId=86d61a32-9c23-4908-91f0-725a0df114ec tenantId=11111111-1111-1111-1111-111111111111"
     },
     {
       "name": "pilot read-after-write: findOne returns tenant A seed doc",

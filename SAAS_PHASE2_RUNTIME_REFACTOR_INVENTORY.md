@@ -305,3 +305,38 @@ Production default unchanged: `tenantWhere()` and `tenantData()`
 both collapse to `{}` when `TENANT_PRISMA_PILOT_ENABLED=false`.
 The new storage guard is a no-op in legacy mode (entity lookup by
 id alone).
+
+## 19. Phase 2.22 — Documents download pilot (shipped)
+
+Closes the documents-module pilot. `createBulkDownloadArchive`
+no longer leaks tenant-B file bytes when a tenant-A caller
+includes B's ids in the input list.
+
+- `readDocumentBytes`: re-tagged from `phase220-pilot-scope` to
+  `phase222-download-guard`. Metadata gate from Phase 2.20
+  preserved; cross-tenant id raises NotFoundException BEFORE
+  fetchDocumentBuffer.
+- `createBulkDownloadArchive`: switched from `legacyPrisma` to
+  `this.prisma`; spreads `...t` into the `where` clause. Tag
+  `phase222-download-guard`. Cross-tenant ids in the input list
+  are silently filtered out by the tenant predicate.
+
+Mixed-tenant id list behaviour:
+- pure cross-tenant ⇒ empty zip + 0 storage reads
+- mixed ⇒ A-only entries + N=A-count storage reads
+- pure same-tenant ⇒ unchanged
+
+Real-DB run (`SAFE_CLONE` `saas_phase1_fixture`):
+- documents-equivalence:           10/10 PASS
+- documents-isolation:              9/9 PASS
+- documents-mutation-equivalence:  10/10 PASS
+- documents-mutation-isolation:     9/9 PASS
+- documents-download-equivalence:   6/6 PASS
+- documents-download-isolation:     8/8 PASS
+
+Total **52/52 documents harness cases PASS** across 6 harnesses.
+Combined with finance: **93/93 on real Postgres 16**.
+
+The documents module pilot is complete (reads + writes +
+downloads). Zero `phase220-excluded-download` annotations
+remain in `src/documents`.

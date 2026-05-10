@@ -1,6 +1,6 @@
 # Phase 2.21 — Documents Mutation Equivalence
 
-Generated: 2026-05-10T07:08:55.309Z
+Generated: 2026-05-10T07:21:34.889Z
 Environment: SAFE_CLONE (localhost + fixture pattern (db=saas_phase1_fixture))
 Tenant A: `11111111-1111-1111-1111-111111111111`
 
@@ -17,5 +17,5 @@ Tenant A: `11111111-1111-1111-1111-111111111111`
 | 6 | validation error: NotFoundException for unknown documentTypeId in both modes | PASS | legacy=NotFoundException pilot=NotFoundException |
 | 7 | audit log: one UPLOAD row written per create in both modes | PASS | legacy=1 pilot=1 |
 | 8 | pilot remove: deletedAt is set on the row | PASS | deletedAt=set |
-| 9 | pilot renew: creates new row with renewedFromId AND tenantId=A | PASS | renewedFromId=48f5cc68-4693-45b7-ad08-26b17d5cfb77 tenantId=11111111-1111-1111-1111-111111111111 |
+| 9 | pilot renew: creates new row with renewedFromId AND tenantId=A | PASS | renewedFromId=86d61a32-9c23-4908-91f0-725a0df114ec tenantId=11111111-1111-1111-1111-111111111111 |
 | 10 | pilot read-after-write: findOne returns tenant A seed doc | PASS | id=00000000-0000-0000-0000-0000000dc001 |

@@ -287,7 +287,7 @@ export class DocumentsService {
     // scoped in pilot mode. The storage byte fetch uses only the URL
     // returned by this lookup, so a cross-tenant id can never reach
     // a foreign file's bytes.
-    const doc = await this.prisma.document.findFirst({ // @tenant-reviewed: phase220-pilot-scope
+    const doc = await this.prisma.document.findFirst({ // @tenant-reviewed: phase222-download-guard (metadata gates storage read; cross-tenant ids never reach fetchDocumentBuffer)
       where: { id, deletedAt: null, ...t },
       select: { id: true, name: true, fileUrl: true, mimeType: true },
     });
@@ -759,8 +759,15 @@ export class DocumentsService {
   // ── Bulk download as ZIP ───────────────────────────────────────────────────
 
   async createBulkDownloadArchive(ids: string[]): Promise<Buffer> {
-    const docs = await this.legacyPrisma.document.findMany({ // @tenant-reviewed: phase220-excluded-download
-      where: { id: { in: ids }, deletedAt: null },
+    // Phase 2.22 — DOWNLOAD GUARD. Pre-filter the requested id list
+    // by the active tenant BEFORE issuing any storage reads. In legacy
+    // mode the spread is `{}` and the lookup matches by id alone (same
+    // as pre-2.22). In pilot mode foreign-tenant ids are silently
+    // dropped; the storage loop below only sees URLs the active
+    // tenant owns.
+    const t = this.scope().tenantWhere();
+    const docs = await this.prisma.document.findMany({ // @tenant-reviewed: phase222-download-guard (tenant pre-filter on id list; foreign ids never reach fetchDocumentBuffer)
+      where: { id: { in: ids }, deletedAt: null, ...t },
       include: { documentType: { select: { name: true } } },
     });
     const entityIds = [...new Set(docs.map(d => d.entityId))];

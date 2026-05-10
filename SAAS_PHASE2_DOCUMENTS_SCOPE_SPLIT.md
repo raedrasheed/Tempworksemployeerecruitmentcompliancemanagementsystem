@@ -76,7 +76,26 @@ Phase 2.21 narrowed the mutation surface. See
   `createBulkDownloadArchive`, `auditLog.create` remain
   `phase220-*` (deferred / global / download).
 
-## 3. Phase 2.22+ — Download refactor (FUTURE)
+## 2.2 Phase 2.22 update — download/bulk archive pilot shipped
+
+Phase 2.22 closes the documents module pilot. See
+`SAAS_PHASE2_DOCUMENTS_DOWNLOAD_AUDIT.md` and
+`SAAS_PHASE2_DOCUMENTS_DOWNLOAD_SIDE_EFFECT_REVIEW.md`.
+
+- `readDocumentBytes`: re-tagged `phase222-download-guard`
+  (Phase 2.20 metadata gate preserved).
+- `createBulkDownloadArchive`: switched to `this.prisma` with
+  `...t` spread on the where clause. Cross-tenant ids in the
+  input list are silently filtered out by the tenant predicate
+  before any storage read. Tag `phase222-download-guard`.
+- ACL / signed URLs / storage key format / download authz
+  beyond tenantId still deferred (Phase 3 product / storage
+  refactor).
+
+Zero `phase220-excluded-download` annotations remain in
+`src/documents`.
+
+## 3. Phase 3+ — Storage authz refactor (FUTURE)
 
 The `create` path is the most complex:
 

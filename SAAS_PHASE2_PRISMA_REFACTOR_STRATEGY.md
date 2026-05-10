@@ -491,6 +491,32 @@ The next phase is **Phase 2.22** (documents download pilot —
 `createBulkDownloadArchive` + storage authz) OR a new module
 pilot (`vehicles`, `workflow`, `applicants`).
 
+## 11.8 Phase 2.22 — Documents download pilot (shipped)
+
+Closes the documents-module pilot. `createBulkDownloadArchive`
+no longer leaks tenant-B file bytes when a tenant-A caller
+includes B's ids in the input list. New tag:
+`phase222-download-guard` on `readDocumentBytes` (re-tagged from
+`phase220-pilot-scope` for taxonomy clarity) and on
+`createBulkDownloadArchive` (switched from `legacyPrisma` to
+`this.prisma` with `...t` spread; cross-tenant ids silently
+filtered).
+
+New harnesses (real-DB SAFE_CLONE):
+- documents-download-equivalence: 6/6 PASS
+- documents-download-isolation: 8/8 PASS
+
+Combined documents totals: **52/52 cases PASS** across 6
+harnesses. Finance + documents combined: **93/93** on real
+Postgres 16. Production behaviour unchanged.
+
+The documents module is now fully proven on real DB across
+reads, writes (with storage guard), and downloads (with
+download guard). The next phase is a **new module pilot**
+(`vehicles`, `workflow`, `applicants`) or the cross-module
+audit-log tenancy phase. See `SAAS_PHASE2_DOCUMENTS_DOWNLOAD_AUDIT.md`
+and `SAAS_PHASE2_DOCUMENTS_DOWNLOAD_SIDE_EFFECT_REVIEW.md`.
+
 ## 12. Hard rules
 
 - **Never enable `TENANT_PRISMA_ENFORCEMENT=true` in production until every P0/P1/P2 module has migrated.** Enabling it with a half-migrated codebase makes the un-migrated services start filtering by tenant when their callers don't expect it.

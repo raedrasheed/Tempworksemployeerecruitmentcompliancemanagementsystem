@@ -276,7 +276,9 @@ async function main(): Promise<void> {
     /async renew\([^)]*?\) \{[\s\S]*?this\.legacyPrisma\.\$transaction/,
     /async remove\([^)]*\) \{[\s\S]*?this\.legacyPrisma\.document\.update/,
     /async upsertDocTypePermission\([^)]*\) \{[\s\S]*?this\.legacyPrisma\.documentTypePermission\.upsert/,
-    /async createBulkDownloadArchive\([^)]*\)[^{]*\{[\s\S]*?this\.legacyPrisma\.document\.findMany/,
+    // Phase 2.22 — createBulkDownloadArchive moved from legacyPrisma
+    // to the pilot client with `...t` spread (download guard).
+    /async createBulkDownloadArchive\([^)]*\)[^{]*\{[\s\S]*?this\.prisma\.document\.findMany\([\s\S]{0,400}phase222-download-guard/,
     /private async checkAndAutoCompleteStage\([^)]*\) \{[\s\S]*?this\.legacyPrisma\./,
   ];
   const failed: string[] = [];

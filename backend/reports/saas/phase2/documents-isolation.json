@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-10T07:07:33.226Z",
+  "generatedAt": "2026-05-10T07:21:19.178Z",
   "environment": {
     "classification": "SAFE_CLONE",
     "reason": "localhost + fixture pattern (db=saas_phase1_fixture)",
@@ -53,7 +53,7 @@
     {
       "name": "pilot OFF: legacy reads include both tenant A and tenant B documents",
       "ok": true,
-      "detail": "count=4 hasA=true hasB=true"
+      "detail": "count=7 hasA=true hasB=true"
     },
     {
       "name": "source: every mutation/download method routes through legacyPrisma",

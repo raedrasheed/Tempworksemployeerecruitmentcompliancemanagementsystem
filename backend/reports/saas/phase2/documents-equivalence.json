@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-10T07:07:18.256Z",
+  "generatedAt": "2026-05-10T07:21:04.139Z",
   "environment": {
     "classification": "SAFE_CLONE",
     "reason": "localhost + fixture pattern (db=saas_phase1_fixture)",
@@ -11,10 +11,10 @@
   "legacy": {
     "pilotActive": false,
     "reason": "TENANT_PRISMA_PILOT_ENABLED=false",
-    "findAllTotal": 4,
+    "findAllTotal": 7,
     "findOneAId": "00000000-0000-0000-0000-0000000dc001",
     "errorOnMissing": "NotFoundException",
-    "findByEntityCount": 2,
+    "findByEntityCount": 5,
     "expiringCount": 4,
     "bytesMetaOk": true,
     "permIdentical": true,
@@ -51,7 +51,7 @@
     {
       "name": "findAll: pilot total <= legacy total (tenant filter applies)",
       "ok": true,
-      "detail": "legacy=4 pilot=2"
+      "detail": "legacy=7 pilot=2"
     },
     {
       "name": "findOne: legacy + pilot resolve the tenant A document id",
@@ -66,7 +66,7 @@
     {
       "name": "findByEntity: pilot count <= legacy count (entity is tenant A; counts equal here)",
       "ok": true,
-      "detail": "legacy=2 pilot=2"
+      "detail": "legacy=5 pilot=2"
     },
     {
       "name": "getExpiringDocuments: pilot count <= legacy count (tenant filter applies)",

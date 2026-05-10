@@ -59,6 +59,7 @@ and counted against the strict-mode threshold.
 | `phase221-pilot-scope` | Documents write sites narrowed in Phase 2.21 — `create` + `publicCreate` + `renew` spread `scope.tenantData()`; `complianceAlert.create` writes `tenantId`. | `src/documents/**` | 2.21 |
 | `phase221-pilot-scope-precheck` | Documents write sites that rely on the prior `findOne` (Phase 2.20, tenant-scoped) as the tenant gate; the by-id `update` / `verify` / `remove` / soft-delete is unreachable for foreign tenants. | `src/documents/**` | 2.21 |
 | `phase221-storage-guard` | Documents `assertEntityOwnedByActiveTenant` entity-validation lookups that gate `storage.uploadFile`. Closes a cross-tenant orphan-file attack vector. | `src/documents/**` | 2.21 |
+| `phase222-download-guard` | Documents download/bulk-archive metadata lookups that gate `fetchDocumentBuffer` / `storage.downloadByUrlOrKey`. `readDocumentBytes` (re-tagged from `phase220-pilot-scope` for taxonomy clarity) and `createBulkDownloadArchive` (switched from `legacyPrisma` to `this.prisma` with `...t` spread). Closes a cross-tenant byte-read attack vector in bulk archives. | `src/documents/**` | 2.22 |
 | `tenant-safe-report-runtime` | Reports engine uses `$queryRawUnsafe` with positional parameters and a registry-validated SQL string. | `src/reports/reports.service.ts` | 2.1 |
 
 ## 3. When annotations are allowed

@@ -191,6 +191,57 @@ Real-DB results on the same SAFE_CLONE: **38/38 documents harness
 cases PASS** (10 + 9 + 10 + 9). Combined with finance: **79/79
 on real Postgres 16**.
 
+## 10.2 Phase 2.22 — Download/bulk archive pilot delta
+
+Phase 2.22 closes the last documents-module deferred path. New
+annotations:
+
+- `readDocumentBytes`: re-tagged from `phase220-pilot-scope` to
+  **`phase222-download-guard`** for taxonomy clarity. The
+  metadata `findFirst({ id, ...t })` already gates the storage
+  byte fetch (Phase 2.20 behaviour preserved). Cross-tenant id
+  raises `NotFoundException` BEFORE `fetchDocumentBuffer`.
+- `createBulkDownloadArchive`: switched from `legacyPrisma` to
+  `this.prisma` and added `...t` spread on the `where` clause.
+  Tag **`phase222-download-guard`**. **Closes a real cross-tenant
+  byte-read vulnerability**: pre-2.22, a tenant-A caller passing
+  a list containing tenant-B ids would receive an archive
+  containing tenant-B file bytes; post-2.22, the tenant
+  predicate silently filters foreign ids out of the metadata
+  result so the storage loop never sees them.
+
+Mixed-tenant id list behaviour (post-2.22):
+- pure cross-tenant ids ⇒ empty zip + 0 storage reads
+- mixed ⇒ active-tenant entries only + N storage reads where N =
+  active-tenant id count
+- pure same-tenant ids ⇒ unchanged from legacy
+
+Filter chosen over reject (per
+`SAAS_PHASE2_DOCUMENTS_DOWNLOAD_AUDIT.md` §5) — the existing
+per-row `try/catch...continue` block in the archive loop already
+tolerates partial failures, and silent filtering preserves UX.
+
+New harnesses (real-DB SAFE_CLONE):
+- `documents-download-equivalence` (6 cases): readDocumentBytes
+  shape + storage read count, archive entry count + storage
+  reads, missing id error parity, empty input parity.
+- `documents-download-isolation` (8 cases): DOWNLOAD GUARD
+  blocks cross-tenant single-byte read with 0 storage reads,
+  same-tenant succeeds, **ARCHIVE GUARD** drops cross-tenant
+  ids from the metadata so storage never sees them (cross-only
+  ⇒ 0 reads + empty zip; mixed ⇒ N=A-count reads + A-only
+  entries with no tenant-B file names), same-tenant archive
+  succeeds, legacy mode unchanged, concurrent ALS frames
+  isolated, source-level meta-assertion.
+
+Real-DB results: **52/52 documents harness cases PASS** across
+all 6 harnesses (10 + 9 + 10 + 9 + 6 + 8). Combined with finance:
+**93/93 on real Postgres 16**.
+
+The documents module pilot is now complete (reads + writes +
+downloads). Zero `phase220-excluded-download` annotations
+remain. Production behaviour unchanged.
+
 ## 11. Next recommended module
 
 The pattern is now proven on `roles` (2.6), `employee-work-history`

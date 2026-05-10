@@ -50,7 +50,7 @@
     {
       "name": "10. legacy: cross-tenant update succeeds (today's behaviour)",
       "ok": true,
-      "detail": "phone=+legacy-moztg60h"
+      "detail": "phone=+legacy-moztzyza"
     },
     {
       "name": "11. concurrent ALS create A→A, B→B",

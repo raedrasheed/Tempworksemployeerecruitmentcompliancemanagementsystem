@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-10T12:24:00.323Z",
+  "generatedAt": "2026-05-10T13:53:20.384Z",
   "counts": {
     "total": 26,
     "BLOCKER": 11,
@@ -275,7 +275,7 @@
     },
     {
       "file": "src/employees/employees.service.ts",
-      "line": 280,
+      "line": 318,
       "pattern": "$queryRaw",
       "severity": "MEDIUM",
       "blocksPhase2": false,

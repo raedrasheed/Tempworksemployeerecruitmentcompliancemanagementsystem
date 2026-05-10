@@ -108,6 +108,8 @@ and counted against the strict-mode threshold.
 | `phase236-permission-gate` | Agencies permission-override write sites narrowed by parent agency tenant gate. | `src/agencies/**` | 2.36 |
 | `phase236-manager-gate` | Agencies `setManager` parent agency tenant gate runs BEFORE the user lookup. | `src/agencies/**` | 2.36 |
 | `phase236-audit-log-pilot` | Agencies audit emissions delegated to the shared `TenantAuditLogService`. | `src/agencies/**` | 2.36 |
+| `phase238-audit-log-pilot` | Compliance `updateAlert` audit emission delegated to `TenantAuditLogService` (replaces `phase28-audit-log`). | `src/compliance/**` | 2.38 |
+| `phase238-scheduler-routing` | Compliance `generateAlertsForTenant` scheduler-safe entrypoint with explicit per-tenant ALS frame attach. | `src/compliance/**` | 2.38 |
 | `tenant-safe-report-runtime` | Reports engine uses `$queryRawUnsafe` with positional parameters and a registry-validated SQL string. | `src/reports/reports.service.ts` | 2.1 |
 
 ## 3. When annotations are allowed

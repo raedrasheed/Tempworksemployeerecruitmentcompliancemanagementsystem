@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-10T13:35:18.195Z",
+  "generatedAt": "2026-05-10T13:50:39.885Z",
   "environment": {
     "classification": "SAFE_CLONE",
     "reason": "localhost + fixture pattern (db=saas_phase1_fixture)",
@@ -11,8 +11,8 @@
   "empA": "eeeeeeea-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
   "legacySnapshot": {
     "dashSummary": {
-      "totalAlerts": 7,
-      "openAlerts": 5,
+      "totalAlerts": 8,
+      "openAlerts": 6,
       "criticalAlerts": 2,
       "resolvedAlerts": 2
     },
@@ -21,11 +21,12 @@
       "00000000-0000-0000-0000-00000000c002",
       "00000000-0000-0000-0000-00000000c101",
       "00000000-0000-0000-0000-00000000c102",
-      "00000000-0000-0000-0000-00000000c999"
+      "00000000-0000-0000-0000-00000000c999",
+      "0db0c28f-bbfa-4e76-92bf-013c66786042"
     ],
-    "dashRecentCount": 5,
-    "alertsTotal": 7,
-    "alertsOpenTotal": 5,
+    "dashRecentCount": 6,
+    "alertsTotal": 8,
+    "alertsOpenTotal": 6,
     "expiringDocsCount": 4,
     "empDocsCount": 5,
     "empAlertsCount": 3
@@ -77,7 +78,7 @@
     {
       "name": "getDashboard: legacy totalAlerts ≥ pilot totalAlerts (pilot filtered)",
       "ok": true,
-      "detail": "legacy=7 pilot=3"
+      "detail": "legacy=8 pilot=3"
     },
     {
       "name": "getDashboard: pilot summary excludes NULL-tenant + tenant B",
@@ -87,12 +88,12 @@
     {
       "name": "getAlerts: pilot total < legacy total (other tenants filtered)",
       "ok": true,
-      "detail": "legacy=7 pilot=3"
+      "detail": "legacy=8 pilot=3"
     },
     {
       "name": "getAlerts(status=OPEN): both modes count only OPEN status",
       "ok": true,
-      "detail": "legacy open=5/7 pilot open=2/3"
+      "detail": "legacy open=6/8 pilot open=2/3"
     },
     {
       "name": "getEmployeeCompliance: response shape preserved",

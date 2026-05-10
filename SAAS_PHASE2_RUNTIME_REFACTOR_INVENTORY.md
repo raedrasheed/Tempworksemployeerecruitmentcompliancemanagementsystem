@@ -707,3 +707,20 @@ introduced this phase).
 
 Real-DB: equivalence 12/12 + isolation 7/7 = 19/19. Cumulative:
 **390/390**.
+
+## 35. Phase 2.38 — Compliance audit routing + scheduler-safe entrypoint (shipped)
+
+`updateAlert` audit emission now goes through
+`TenantAuditLogService`; new `generateAlertsForTenant(tenantId)`
+entrypoint provides the gated, per-tenant ALS frame attach for any
+future scheduled invocation.
+
+Tags introduced: `phase238-audit-log-pilot`,
+`phase238-scheduler-routing`.
+
+Real-DB: audit+scheduler harness 9/9; existing 12/12 + 7/7 still
+green. Cumulative across modules: **399/399**.
+
+No scheduler wiring is added. Future schedulers MUST call
+`generateAlertsForTenant` per tenant — the entrypoint refuses to run
+without a SAFE_CLONE/SAFE_STAGING env + active compliance pilot.

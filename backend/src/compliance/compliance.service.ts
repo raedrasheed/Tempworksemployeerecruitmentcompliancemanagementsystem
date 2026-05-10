@@ -1,7 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PilotPrismaAccessor } from '../saas/prisma/pilot-prisma.accessor';
 import { getPilotScope, PilotScope } from '../saas/prisma/tenant-pilot-scope';
+import { TenantAuditLogService } from '../saas/audit/tenant-audit-log.service';
+import { TenantContext, withRequestContext, newRequestId } from '../saas/context/als';
+import { classifyRuntimeEnv, isStagingClassification } from '../saas/tenancy/env-safety';
 import { UpdateAlertDto } from './dto/update-alert.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { PaginatedResponse } from '../common/dto/pagination-response.dto';
@@ -27,7 +30,10 @@ export class ComplianceService {
   constructor(
     private legacyPrisma: PrismaService,
     private pilot: PilotPrismaAccessor,
+    private tenantAuditLog: TenantAuditLogService,
   ) {}
+
+  private readonly logger = new Logger('ComplianceService');
 
   private get prisma(): PrismaService {
     return this.pilot.client();
@@ -146,8 +152,14 @@ export class ComplianceService {
       include: { document: true },
     });
     if (userId) {
-      await this.legacyPrisma.auditLog.create({ // @tenant-reviewed: phase28-audit-log (writes use legacy prisma intentionally)
-        data: { userId, action: 'UPDATE_ALERT', entity: 'ComplianceAlert', entityId: id, changes: dto as any },
+      // Phase 2.38 — route through TenantAuditLogService.
+      // @tenant-reviewed: phase238-audit-log-pilot
+      await this.tenantAuditLog.write({
+        userId,
+        action: 'UPDATE_ALERT',
+        entity: 'ComplianceAlert',
+        entityId: id,
+        changes: dto as any,
       });
     }
     return alert;
@@ -248,5 +260,52 @@ export class ComplianceService {
       }
     }
     return { message: `Generated ${created} new compliance alerts`, total: expiringDocs.length };
+  }
+
+  // ── Phase 2.38 — scheduler-safe entrypoint ──────────────────────────────────
+  //
+  // `generateAlerts()` reads ALS for tenant attribution. Calling it from a
+  // background scheduler without first attaching an ALS frame is unsafe — the
+  // scope would be inactive and the scan would create NULL-tenant rows.
+  //
+  // `generateAlertsForTenant(tenantId)` is the supported, gated entrypoint
+  // for any future scheduled invocation. It:
+  //   - refuses to run unless the runtime env is SAFE_CLONE / SAFE_STAGING,
+  //   - refuses to run unless TENANT_PRISMA_PILOT_ENABLED is true and the
+  //     `compliance` module is in the allow-list,
+  //   - attaches a fresh ALS frame for the requested tenant inside its own
+  //     `withRequestContext`, so concurrent calls remain isolated,
+  //   - calls the existing `generateAlerts()` body unchanged.
+  //
+  // No fan-out helper is provided. If a future scheduler needs to scan
+  // every tenant, it must explicitly enumerate tenant ids and call this
+  // method per tenant — that decision is product-side and explicitly
+  // out of scope this phase.
+  //
+  // @tenant-reviewed: phase238-scheduler-routing
+  async generateAlertsForTenant(tenantId: string): Promise<{ message: string; total: number; tenantId: string }> {
+    if (!tenantId) {
+      throw new Error('generateAlertsForTenant requires a tenantId');
+    }
+    const env = classifyRuntimeEnv();
+    if (!isStagingClassification(env.classification)) {
+      this.logger.warn(`[scheduler] refusing to run on classification=${env.classification}`);
+      return { message: `refused: env=${env.classification}`, total: 0, tenantId };
+    }
+    if (!this.pilot.isPilotActive()) {
+      this.logger.warn(`[scheduler] refusing to run: ${this.pilot.pilotReason().reason}`);
+      return { message: `refused: ${this.pilot.pilotReason().reason}`, total: 0, tenantId };
+    }
+    return withRequestContext({ requestId: newRequestId() }, async () => {
+      TenantContext.attach({
+        id: tenantId,
+        slug: 'scheduler',
+        name: 'scheduler',
+        status: 'ACTIVE',
+        region: 'eu',
+      });
+      const r = await this.generateAlerts();
+      return { ...r, tenantId };
+    });
   }
 }

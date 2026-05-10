@@ -4,6 +4,7 @@ import { ComplianceController } from './compliance.controller';
 import { FeatureFlagsModule } from '../saas/feature-flags/feature-flags.module';
 import { TenantPrismaService } from '../saas/prisma/tenant-prisma.service';
 import { PilotPrismaAccessor } from '../saas/prisma/pilot-prisma.accessor';
+import { TenantAuditLogModule } from '../saas/audit/tenant-audit-log.module';
 
 /**
  * Phase 2.8 — second tenant-scoped TenantPrisma pilot.
@@ -13,7 +14,7 @@ import { PilotPrismaAccessor } from '../saas/prisma/pilot-prisma.accessor';
  * Defaults are off; production behaviour is unchanged.
  */
 @Module({
-  imports: [FeatureFlagsModule],
+  imports: [FeatureFlagsModule, TenantAuditLogModule],
   controllers: [ComplianceController],
   providers: [ComplianceService, TenantPrismaService, PilotPrismaAccessor],
   exports: [ComplianceService],

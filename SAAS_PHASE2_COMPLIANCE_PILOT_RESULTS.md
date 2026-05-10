@@ -204,3 +204,44 @@ modules now all compose cleanly.
 - Scheduled background scans need explicit per-tenant ALS frame
   management.
 - Bulk remediation flows are not yet defined by product.
+
+---
+
+## Phase 2.38 — audit routing + scheduler-safe entrypoint
+
+Phase 2.38 closes the two gaps Phase 2.37 left open. See
+`SAAS_PHASE2_COMPLIANCE_SCHEDULER_ROUTING.md`.
+
+- `updateAlert` audit emission now routes through
+  `TenantAuditLogService` (Phase 2.30). Tag retagged from
+  `phase28-audit-log` to `phase238-audit-log-pilot`. With audit pilot
+  on AND ALS tenant frame in scope, the audit row carries
+  `tenantId = active`; with the flag off the row is NULL-tenant
+  (byte-identical to pre-2.38).
+- New `generateAlertsForTenant(tenantId)` entrypoint. Refuses to run
+  unless env is SAFE_CLONE/SAFE_STAGING AND the compliance pilot is
+  active. Attaches a fresh ALS frame per call so concurrent
+  invocations remain isolated. Tag `phase238-scheduler-routing`.
+- No scheduler is wired. The entrypoint is the **contract** for any
+  future scheduler. Fan-out across all tenants is explicitly NOT
+  provided — callers must enumerate tenant ids.
+
+New harness (real Postgres SAFE_CLONE):
+- `compliance-audit-and-scheduler` — 9/9 PASS
+
+Real-DB results: equivalence 12/12 + isolation 7/7 +
+audit/scheduler 9/9 = **28/28 compliance**. Cumulative across
+modules: **399/399** on real Postgres 16.
+
+Production behaviour with flags off is byte-identical. Rollback is
+configuration-only (`TENANT_PRISMA_PILOT_ENABLED=false` or remove
+`compliance` from `TENANT_PRISMA_PILOT_MODULES` or
+`TENANT_AUDIT_LOG_PILOT_ENABLED=false`).
+
+### Remaining blockers
+
+- **Scheduler wiring**: a real cron / Bull schedule must enumerate
+  tenants and call `generateAlertsForTenant` per tenant. Out of
+  scope this phase.
+- **Notification fan-out**: continues to live in the `notifications`
+  module pilot.

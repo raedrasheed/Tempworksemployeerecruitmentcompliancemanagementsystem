@@ -895,3 +895,21 @@ verified. The pattern stands.
 
 Audit emission for `updateAlert` and scheduled background-scan ALS
 frame attach are reserved for Phase 2.38+.
+
+## 11.11 Phase 2.38 — compliance audit routing + scheduler-safe entrypoint
+
+Closes the two gaps Phase 2.37 left open.
+
+- `updateAlert` audit retagged `phase238-audit-log-pilot`; routed
+  through `TenantAuditLogService`. Audit row carries `tenantId` only
+  when audit pilot + ALS frame are on. NULL-tenant otherwise —
+  byte-identical to pre-2.38.
+- NEW `generateAlertsForTenant(tenantId)` entrypoint. Refuses to run
+  outside SAFE_CLONE/SAFE_STAGING + compliance pilot active. Wraps
+  the existing `generateAlerts` body in a fresh ALS frame.
+  Tag `phase238-scheduler-routing`.
+- No scheduler wiring; no fan-out helper. The contract for future
+  scheduling is "one tenant per call".
+
+Real-DB: 9/9 audit+scheduler harness; existing 12/12 + 7/7 still
+green. Cumulative: **399/399**.

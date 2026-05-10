@@ -29,6 +29,7 @@ import { PrismaService } from '../../../src/prisma/prisma.service';
 import { TenantPrismaService } from '../../../src/saas/prisma/tenant-prisma.service';
 import { PilotPrismaAccessor } from '../../../src/saas/prisma/pilot-prisma.accessor';
 import { FeatureFlagsService } from '../../../src/saas/feature-flags/feature-flags.service';
+import { TenantAuditLogService } from '../../../src/saas/audit/tenant-audit-log.service';
 import { ComplianceService } from '../../../src/compliance/compliance.service';
 import {
   TenantContext,
@@ -80,7 +81,7 @@ async function main(): Promise<void> {
     const prisma = new PrismaService();
     const tp = new TenantPrismaService(prisma, flags);
     const pilot = new PilotPrismaAccessor(prisma, tp, flags);
-    const svc = new ComplianceService(prisma, pilot);
+    const svc = new ComplianceService(prisma, pilot, new TenantAuditLogService(prisma, flags));
     try {
       const res = await withRequestContext({ requestId: newRequestId() }, async () => {
         TenantContext.attach({ id: tA, slug: 'a', name: 'A', status: 'ACTIVE', region: 'eu' });
@@ -104,7 +105,7 @@ async function main(): Promise<void> {
     const prisma = new PrismaService();
     const tp = new TenantPrismaService(prisma, flags);
     const pilot = new PilotPrismaAccessor(prisma, tp, flags);
-    const svc = new ComplianceService(prisma, pilot);
+    const svc = new ComplianceService(prisma, pilot, new TenantAuditLogService(prisma, flags));
     try {
       const dashA = await withRequestContext({ requestId: newRequestId() }, async () => {
         TenantContext.attach({ id: tA, slug: 'a', name: 'A', status: 'ACTIVE', region: 'eu' });
@@ -129,7 +130,7 @@ async function main(): Promise<void> {
     const prisma = new PrismaService();
     const tp = new TenantPrismaService(prisma, flags);
     const pilot = new PilotPrismaAccessor(prisma, tp, flags);
-    const svc = new ComplianceService(prisma, pilot);
+    const svc = new ComplianceService(prisma, pilot, new TenantAuditLogService(prisma, flags));
     try {
       const before = await (prisma as any).complianceAlert.findUnique({
         where: { id: '00000000-0000-0000-0000-00000000c101' },
@@ -160,7 +161,7 @@ async function main(): Promise<void> {
     const prisma = new PrismaService();
     const tp = new TenantPrismaService(prisma, flags);
     const pilot = new PilotPrismaAccessor(prisma, tp, flags);
-    const svc = new ComplianceService(prisma, pilot);
+    const svc = new ComplianceService(prisma, pilot, new TenantAuditLogService(prisma, flags));
     try {
       const seen: Array<{ t: string; ids: string[] }> = [];
       await Promise.all([
@@ -196,7 +197,7 @@ async function main(): Promise<void> {
     const prisma = new PrismaService();
     const tp = new TenantPrismaService(prisma, flags);
     const pilot = new PilotPrismaAccessor(prisma, tp, flags);
-    const svc = new ComplianceService(prisma, pilot);
+    const svc = new ComplianceService(prisma, pilot, new TenantAuditLogService(prisma, flags));
     try {
       const res = await svc.getAlerts({ page: 1, limit: 50 } as any);
       const total = (res as any).meta?.total;
@@ -216,7 +217,7 @@ async function main(): Promise<void> {
     const prisma = new PrismaService();
     const tp = new TenantPrismaService(prisma, flags);
     const pilot = new PilotPrismaAccessor(prisma, tp, flags);
-    const svc = new ComplianceService(prisma, pilot);
+    const svc = new ComplianceService(prisma, pilot, new TenantAuditLogService(prisma, flags));
     try {
       const res = await withRequestContext({ requestId: newRequestId() }, async () => {
         TenantContext.attach({ id: tA, slug: 'a', name: 'A', status: 'ACTIVE', region: 'eu' });

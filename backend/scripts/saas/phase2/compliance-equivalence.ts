@@ -28,6 +28,7 @@ import { PrismaService } from '../../../src/prisma/prisma.service';
 import { TenantPrismaService } from '../../../src/saas/prisma/tenant-prisma.service';
 import { PilotPrismaAccessor } from '../../../src/saas/prisma/pilot-prisma.accessor';
 import { FeatureFlagsService } from '../../../src/saas/feature-flags/feature-flags.service';
+import { TenantAuditLogService } from '../../../src/saas/audit/tenant-audit-log.service';
 import { ComplianceService } from '../../../src/compliance/compliance.service';
 import {
   TenantContext,
@@ -76,7 +77,7 @@ async function snapshot(flagsOverride: Record<string, string | undefined>,
     const prisma = new PrismaService();
     const tp = new TenantPrismaService(prisma, flags);
     const pilot = new PilotPrismaAccessor(prisma, tp, flags);
-    const svc = new ComplianceService(prisma, pilot);
+    const svc = new ComplianceService(prisma, pilot, new TenantAuditLogService(prisma, flags));
     const run = async (): Promise<Snapshot> => {
       const dash = await svc.getDashboard();
       const alerts = await svc.getAlerts({ page: 1, limit: 50 } as any);

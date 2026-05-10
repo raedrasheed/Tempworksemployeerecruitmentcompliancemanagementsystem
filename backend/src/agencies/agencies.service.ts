@@ -1,24 +1,71 @@
 import { Injectable, NotFoundException, ConflictException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../common/storage/storage.service';
+import { PilotPrismaAccessor } from '../saas/prisma/pilot-prisma.accessor';
+import { getPilotScope, PilotScope } from '../saas/prisma/tenant-pilot-scope';
 import { CreateAgencyDto } from './dto/create-agency.dto';
 import { UpdateAgencyDto } from './dto/update-agency.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { PaginatedResponse } from '../common/dto/pagination-response.dto';
 
+/**
+ * Phase 2.35 — Agencies reads-first TenantPrisma pilot.
+ *
+ * READ paths route through `pilot.client()` and spread
+ * `tenantWherePlusSystem()` (active tenant OR `isSystem=true`) when
+ * the pilot scope is active. Production default (flag off) is
+ * byte-identical to pre-2.35.
+ *
+ * `listPublic()` stays globally visible — it is the public agency
+ * dropdown for the apply form.
+ *
+ * WRITE / mutation / storage paths (`create`, `update`, `remove`,
+ * `uploadLogo`, `setPermissionOverride`, `removePermissionOverride`,
+ * `setManager`) stay on `legacyPrisma` and are tagged
+ * `phase235-excluded-mutation` or `phase235-excluded-storage`.
+ *
+ * See `SAAS_PHASE2_AGENCIES_SYSTEM_AGENCY_DECISION.md` for the
+ * `OR isSystem: true` rationale.
+ */
 @Injectable()
 export class AgenciesService {
   constructor(
-    private prisma: PrismaService,
+    private legacyPrisma: PrismaService,
     private storage: StorageService,
+    private pilot: PilotPrismaAccessor,
   ) {}
+
+  /** Pilot-aware Prisma surface used by READ paths only. Mutation
+   *  paths use `legacyPrisma` directly. */
+  private get prisma(): PrismaService {
+    return this.pilot.client();
+  }
+
+  private scope(): PilotScope {
+    return getPilotScope(this.pilot, 'agencies');
+  }
+
+  /**
+   * Phase 2.35 — tenant-scope predicate that ALSO admits system
+   * agencies. In legacy mode returns `{}` (byte-identical). In pilot
+   * mode returns `{ OR: [{ tenantId: <active> }, { isSystem: true }] }`
+   * which composes additively into the caller's `where` clause.
+   */
+  private tenantWhereOrSystem(): Record<string, unknown> {
+    const s = this.scope();
+    if (!s.active) return {};
+    // Wrap in AND so a caller's existing top-level `OR` (e.g. search
+    // filter on `findAll`) does not collide with this OR clause.
+    return { AND: [{ OR: [{ tenantId: s.tenantId }, { isSystem: true }] }] };
+  }
 
   private get include() {
     return { _count: { select: { users: true, employees: true } } };
   }
 
   async listPublic(): Promise<{ id: string; name: string }[]> {
-    return this.prisma.agency.findMany({
+    // @tenant-reviewed: phase235-global (public apply-form dropdown — every tenant must be enumerable)
+    return this.legacyPrisma.agency.findMany({
       where: { deletedAt: null },
       select: { id: true, name: true },
       orderBy: { name: 'asc' },
@@ -45,7 +92,7 @@ export class AgenciesService {
   async findAll(pagination: PaginationDto, actor?: { role?: string; agencyId?: string; agencyIsSystem?: boolean }) {
     const { page = 1, limit = 10, search, sortBy = 'name', sortOrder = 'asc' } = pagination;
     const skip = (Number(page) - 1) * Number(limit);
-    const where: any = { deletedAt: null };
+    const where: any = { deletedAt: null, ...this.tenantWhereOrSystem() }; // @tenant-reviewed: phase235-pilot-scope
     // Agency users can only see their own agency in the listing.
     if (this.isExternalActor(actor)) {
       if (!actor?.agencyId) return PaginatedResponse.create([], 0, page, limit);
@@ -60,16 +107,16 @@ export class AgenciesService {
     }
     const validSort = ['name', 'country', 'status', 'createdAt'];
     const [items, total] = await Promise.all([
-      this.prisma.agency.findMany({ where, skip, take: Number(limit), orderBy: { [validSort.includes(sortBy) ? sortBy : 'name']: sortOrder }, include: this.include }),
-      this.prisma.agency.count({ where }),
+      this.prisma.agency.findMany({ where, skip, take: Number(limit), orderBy: { [validSort.includes(sortBy) ? sortBy : 'name']: sortOrder }, include: this.include }), // @tenant-reviewed: phase235-pilot-scope
+      this.prisma.agency.count({ where }), // @tenant-reviewed: phase235-pilot-scope
     ]);
     return PaginatedResponse.create(items, total, page, limit);
   }
 
   async findOne(id: string, actor?: { role?: string; agencyId?: string; agencyIsSystem?: boolean }) {
     this.assertAgencyAccess(id, actor);
-    const agency = await this.prisma.agency.findUnique({
-      where: { id, deletedAt: null },
+    const agency = await this.prisma.agency.findFirst({ // @tenant-reviewed: phase235-pilot-scope (was findUnique; migrated to findFirst to compose tenant predicate)
+      where: { id, deletedAt: null, ...this.tenantWhereOrSystem() },
       include: {
         ...this.include,
         manager: { select: { id: true, firstName: true, lastName: true, email: true } },
@@ -99,7 +146,7 @@ export class AgenciesService {
     if (actorRole !== 'System Admin' && 'isSystem' in (dto as any)) {
       delete (dto as any).isSystem;
     }
-    const agency = await this.prisma.agency.create({
+    const agency = await this.legacyPrisma.agency.create({ // @tenant-reviewed: phase235-excluded-mutation
       data: {
         ...dto,
         contactPerson,
@@ -108,7 +155,7 @@ export class AgenciesService {
       include: this.include,
     });
     if (createdById) {
-      await this.prisma.auditLog.create({
+      await this.legacyPrisma.auditLog.create({ // @tenant-reviewed: phase235-excluded-mutation (audit kept legacy until agencies opts into TenantAuditLogService)
         data: { userId: createdById, action: 'CREATE', entity: 'Agency', entityId: agency.id },
       });
     }
@@ -155,13 +202,13 @@ export class AgenciesService {
     const data: any = { ...dto };
     const derived = this.deriveContactPerson(dto);
     if (derived !== undefined) data.contactPerson = derived;
-    const agency = await this.prisma.agency.update({
+    const agency = await this.legacyPrisma.agency.update({ // @tenant-reviewed: phase235-excluded-mutation
       where: { id },
       data,
       include: this.include,
     });
     if (updatedById) {
-      await this.prisma.auditLog.create({
+      await this.legacyPrisma.auditLog.create({ // @tenant-reviewed: phase235-excluded-mutation
         data: { userId: updatedById, action: 'UPDATE', entity: 'Agency', entityId: id },
       });
     }
@@ -179,7 +226,7 @@ export class AgenciesService {
       inline: true,
     });
 
-    const agency = await this.prisma.agency.update({
+    const agency = await this.legacyPrisma.agency.update({ // @tenant-reviewed: phase235-excluded-storage
       where: { id },
       data: { logoUrl: upload.url },
       include: this.include,
@@ -190,7 +237,7 @@ export class AgenciesService {
     }
 
     if (actorId) {
-      await this.prisma.auditLog.create({
+      await this.legacyPrisma.auditLog.create({ // @tenant-reviewed: phase235-excluded-storage
         data: { userId: actorId, action: 'UPDATE_LOGO', entity: 'Agency', entityId: id, changes: { logoUrl: upload.url } as any },
       });
     }
@@ -199,9 +246,9 @@ export class AgenciesService {
 
   async remove(id: string, deletedById?: string) {
     await this.findOne(id);
-    await this.prisma.agency.update({ where: { id }, data: { deletedAt: new Date() } });
+    await this.legacyPrisma.agency.update({ where: { id }, data: { deletedAt: new Date() } }); // @tenant-reviewed: phase235-excluded-mutation
     if (deletedById) {
-      await this.prisma.auditLog.create({
+      await this.legacyPrisma.auditLog.create({ // @tenant-reviewed: phase235-excluded-mutation
         data: { userId: deletedById, action: 'DELETE', entity: 'Agency', entityId: id },
       });
     }
@@ -214,7 +261,7 @@ export class AgenciesService {
     const { page = 1, limit = 10 } = pagination;
     const where = { agencyId: id, deletedAt: null };
     const [items, total] = await Promise.all([
-      this.prisma.user.findMany({
+      this.prisma.user.findMany({ // @tenant-reviewed: phase235-pilot-scope-precheck (parent agency gated by findOne above)
         where,
         skip: (Number(page) - 1) * Number(limit),
         take: Number(limit),
@@ -231,7 +278,7 @@ export class AgenciesService {
           role: { select: { id: true, name: true } },
         },
       }),
-      this.prisma.user.count({ where }),
+      this.prisma.user.count({ where }), // @tenant-reviewed: phase235-pilot-scope-precheck
     ]);
     return PaginatedResponse.create(items, total, page, limit);
   }
@@ -246,7 +293,7 @@ export class AgenciesService {
     // per-employee grant with canView=true; origin agency alone never
     // grants access, and a read-access-only-revoked grant still blocks.
     if (this.isExternalActor(actor)) {
-      const grants = await this.prisma.employeeAgencyAccess.findMany({
+      const grants = await this.prisma.employeeAgencyAccess.findMany({ // @tenant-reviewed: phase235-pilot-scope-precheck
         where: { agencyId: actor!.agencyId!, canView: true },
         select: { employeeId: true },
       });
@@ -256,13 +303,13 @@ export class AgenciesService {
     }
 
     const [items, total] = await Promise.all([
-      this.prisma.employee.findMany({
+      this.prisma.employee.findMany({ // @tenant-reviewed: phase235-pilot-scope-precheck
         where,
         skip: (Number(page) - 1) * Number(limit),
         take: Number(limit),
         select: { id: true, firstName: true, lastName: true, email: true, status: true, licenseCategory: true },
       }),
-      this.prisma.employee.count({ where }),
+      this.prisma.employee.count({ where }), // @tenant-reviewed: phase235-pilot-scope-precheck
     ]);
     return PaginatedResponse.create(items, total, page, limit);
   }
@@ -275,22 +322,22 @@ export class AgenciesService {
     // don't leak a count larger than the external tenant can open.
     const employeeWhere: any = { agencyId: id, deletedAt: null };
     if (this.isExternalActor(actor)) {
-      const grants = await this.prisma.employeeAgencyAccess.findMany({
+      const grants = await this.prisma.employeeAgencyAccess.findMany({ // @tenant-reviewed: phase235-pilot-scope-precheck
         where: { agencyId: actor!.agencyId!, canView: true },
         select: { employeeId: true },
       });
       const allowedIds = grants.map(g => g.employeeId);
       if (allowedIds.length === 0) {
-        const users = await this.prisma.user.count({ where: { agencyId: id, deletedAt: null } });
+        const users = await this.prisma.user.count({ where: { agencyId: id, deletedAt: null } }); // @tenant-reviewed: phase235-pilot-scope-precheck
         return { users, employees: 0, activeEmployees: 0, pendingEmployees: 0 };
       }
       employeeWhere.id = { in: allowedIds };
     }
     const [users, employees, activeEmployees, pendingEmployees] = await Promise.all([
-      this.prisma.user.count({ where: { agencyId: id, deletedAt: null } }),
-      this.prisma.employee.count({ where: employeeWhere }),
-      this.prisma.employee.count({ where: { ...employeeWhere, status: 'ACTIVE' } }),
-      this.prisma.employee.count({ where: { ...employeeWhere, status: 'PENDING' } }),
+      this.prisma.user.count({ where: { agencyId: id, deletedAt: null } }),                                       // @tenant-reviewed: phase235-pilot-scope-precheck
+      this.prisma.employee.count({ where: employeeWhere }),                                                       // @tenant-reviewed: phase235-pilot-scope-precheck
+      this.prisma.employee.count({ where: { ...employeeWhere, status: 'ACTIVE' } }),                              // @tenant-reviewed: phase235-pilot-scope-precheck
+      this.prisma.employee.count({ where: { ...employeeWhere, status: 'PENDING' } }),                             // @tenant-reviewed: phase235-pilot-scope-precheck
     ]);
     return { users, employees, activeEmployees, pendingEmployees };
   }
@@ -299,7 +346,7 @@ export class AgenciesService {
 
   async listPermissionOverrides(agencyId: string) {
     await this.findOne(agencyId);
-    return this.prisma.agencyPermissionOverride.findMany({
+    return this.prisma.agencyPermissionOverride.findMany({ // @tenant-reviewed: phase235-pilot-scope-precheck
       where: { agencyId },
       orderBy: { permission: 'asc' },
     });
@@ -312,12 +359,12 @@ export class AgenciesService {
     actorId?: string,
   ) {
     await this.findOne(agencyId);
-    const record = await this.prisma.agencyPermissionOverride.upsert({
+    const record = await this.legacyPrisma.agencyPermissionOverride.upsert({ // @tenant-reviewed: phase235-excluded-mutation
       where:  { agencyId_permission: { agencyId, permission } },
       create: { agencyId, permission, allow },
       update: { allow },
     });
-    await this.prisma.auditLog.create({
+    await this.legacyPrisma.auditLog.create({ // @tenant-reviewed: phase235-excluded-mutation
       data: {
         userId: actorId, action: allow ? 'AGENCY_PERMISSION_GRANT' : 'AGENCY_PERMISSION_REVOKE',
         entity: 'Agency', entityId: agencyId, changes: { permission, allow } as any,
@@ -329,13 +376,13 @@ export class AgenciesService {
   async removePermissionOverride(agencyId: string, permission: string, actorId?: string) {
     await this.findOne(agencyId);
     try {
-      await this.prisma.agencyPermissionOverride.delete({
+      await this.legacyPrisma.agencyPermissionOverride.delete({ // @tenant-reviewed: phase235-excluded-mutation
         where: { agencyId_permission: { agencyId, permission } },
       });
     } catch {
       throw new NotFoundException('Permission override not found');
     }
-    await this.prisma.auditLog.create({
+    await this.legacyPrisma.auditLog.create({ // @tenant-reviewed: phase235-excluded-mutation
       data: {
         userId: actorId, action: 'AGENCY_PERMISSION_OVERRIDE_REMOVED',
         entity: 'Agency', entityId: agencyId, changes: { permission } as any,
@@ -346,15 +393,15 @@ export class AgenciesService {
 
   async setManager(agencyId: string, userId: string, actorId?: string) {
     // Verify user belongs to this agency
-    const user = await this.prisma.user.findFirst({ where: { id: userId, agencyId, deletedAt: null } });
+    const user = await this.legacyPrisma.user.findFirst({ where: { id: userId, agencyId, deletedAt: null } }); // @tenant-reviewed: phase235-excluded-mutation
     if (!user) throw new BadRequestException('User does not belong to this agency');
 
-    await this.prisma.agency.update({
+    await this.legacyPrisma.agency.update({ // @tenant-reviewed: phase235-excluded-mutation
       where: { id: agencyId },
       data: { managerId: userId },
     });
 
-    await this.prisma.auditLog.create({
+    await this.legacyPrisma.auditLog.create({ // @tenant-reviewed: phase235-excluded-mutation
       data: {
         userId: actorId,
         action: 'SET_AGENCY_MANAGER',

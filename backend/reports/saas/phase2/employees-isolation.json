@@ -40,7 +40,7 @@
     {
       "name": "8. exportExcel by-id [A,B] under A includes only A rows",
       "ok": true,
-      "detail": "bytes=7200 listAllA=true"
+      "detail": "bytes=7199 listAllA=true"
     },
     {
       "name": "9. concurrent ALS frames isolated (A, B)",

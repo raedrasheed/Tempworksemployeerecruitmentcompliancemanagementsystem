@@ -647,3 +647,22 @@ Tags introduced: `phase234-pilot-scope`, `phase234-pilot-scope-precheck`,
 
 Real-DB: equivalence 10/10 + isolation 12/12 = 22/22. Cumulative:
 **329/329**.
+
+## 32. Phase 2.35 — Agencies reads-first pilot (shipped)
+
+`src/agencies` reads-first pilot. `AgenciesService` accepts
+`PilotPrismaAccessor`; read paths route through `pilot.client()` and
+spread `tenantWhereOrSystem()` (active tenant OR `isSystem: true`).
+Mutation, permission, storage, and audit-write sites stay on
+`legacyPrisma`. `listPublic` stays globally visible by design.
+
+Tags introduced: `phase235-pilot-scope`, `phase235-pilot-scope-precheck`,
+`phase235-global`, `phase235-excluded-mutation`,
+`phase235-excluded-storage`.
+
+Real-DB: equivalence 12/12 + isolation 11/11 = 23/23. Cumulative
+across modules: **352/352**.
+
+System-agency semantics, `Agency.create` ALS attribution, and
+audit-log routing through `TenantAuditLogService` remain Phase 2.36+
+work.

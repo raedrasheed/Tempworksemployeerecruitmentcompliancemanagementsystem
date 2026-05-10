@@ -5,7 +5,7 @@
     {
       "name": "1. create legacy: response shape",
       "ok": true,
-      "detail": "id=003079fe"
+      "detail": "id=691e2437"
     },
     {
       "name": "2. create legacy: tenantId NULL",

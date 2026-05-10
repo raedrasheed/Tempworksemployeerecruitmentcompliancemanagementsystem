@@ -1,6 +1,6 @@
 # Phase 2.27 — Workflow Mutation Isolation
 
-Generated: 2026-05-10T12:49:05.680Z
+Generated: 2026-05-10T13:06:41.218Z
 Environment: SAFE_CLONE (localhost + fixture pattern (db=saas_phase1_fixture))
 Tenants: A=`11111111-1111-1111-1111-111111111111` B=`22222222-2222-2222-2222-222222222222`
 

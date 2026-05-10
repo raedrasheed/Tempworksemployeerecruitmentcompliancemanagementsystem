@@ -827,3 +827,25 @@ across modules: **329/329**.
 
 The employees module has no deferred paths. Six modules now fully
 proven on real DB across reads + writes.
+
+## 11.8 Phase 2.35 — agencies reads-first pilot
+
+`src/agencies` brought into the pilot following the
+finance/documents/vehicles/workflow/applicants/employees pattern.
+
+- `findAll`, `findOne`, `getUsers`, `getEmployees`, `getStats`,
+  `listPermissionOverrides` — narrowed via `tenantWhereOrSystem()`
+  (active tenant `OR isSystem: true`) or parent-gated.
+- `listPublic` stays global by design (apply-form contract).
+- Mutation / permission / storage / manager-set / audit-write sites
+  routed through `legacyPrisma` and tagged
+  `phase235-excluded-mutation` or `phase235-excluded-storage`.
+
+`Agency` has no `@unique` columns → no Phase 3 uniqueness debt.
+
+Real-DB: equivalence 12/12 + isolation 11/11 = 23/23. Cumulative
+across modules: **352/352**.
+
+The natural next phase is the **agencies mutation pilot (Phase
+2.36)** — `findAgencyOrFail` parent gate, `Agency.create` `tenantData`,
+`uploadLogo` storage-guard, permission-override / manager-set gates.

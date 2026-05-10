@@ -97,6 +97,11 @@ and counted against the strict-mode threshold.
 | `phase234-pilot-scope-precheck` | Employees by-id mutation sites gated by the prior tenant-scoped `findOne` (Phase 2.33). | `src/employees/**` | 2.34 |
 | `phase234-storage-guard` | Employees `uploadPhoto` parent tenant gate runs BEFORE `storage.uploadFile`. | `src/employees/**` | 2.34 |
 | `phase234-agency-gate` | Employees agency-access write sites narrowed by dual gates (employee + agency tenant). | `src/employees/**` | 2.34 |
+| `phase235-pilot-scope` | Agencies read sites narrowed via `tenantWhereOrSystem()` (active tenant OR `isSystem: true`). | `src/agencies/**` | 2.35 |
+| `phase235-pilot-scope-precheck` | Agencies child reads gated by tenant-scoped `findOne` parent (User / Employee / EmployeeAgencyAccess by `agencyId` / AgencyPermissionOverride by `agencyId`). | `src/agencies/**` | 2.35 |
+| `phase235-global` | Agencies intentionally global lookups: `listPublic` (apply-form public dropdown). | `src/agencies/**` | 2.35 |
+| `phase235-excluded-mutation` | Agencies mutation / permission-override / manager-set sites kept on `legacyPrisma` until Phase 2.36+. | `src/agencies/**` | 2.35 |
+| `phase235-excluded-storage` | Agencies `uploadLogo` storage-write sites — deferred to Phase 2.36 storage-guard. | `src/agencies/**` | 2.35 |
 | `tenant-safe-report-runtime` | Reports engine uses `$queryRawUnsafe` with positional parameters and a registry-validated SQL string. | `src/reports/reports.service.ts` | 2.1 |
 
 ## 3. When annotations are allowed

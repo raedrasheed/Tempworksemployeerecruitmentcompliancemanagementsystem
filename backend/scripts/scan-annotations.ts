@@ -102,6 +102,11 @@ const KNOWN_REASONS: ReadonlyArray<PolicyEntry> = [
   { tag: 'phase234-pilot-scope-precheck',         allowedPaths: ['src/employees/'] },
   { tag: 'phase234-storage-guard',                allowedPaths: ['src/employees/'] },
   { tag: 'phase234-agency-gate',                  allowedPaths: ['src/employees/'] },
+  { tag: 'phase235-pilot-scope',                  allowedPaths: ['src/agencies/'] },
+  { tag: 'phase235-pilot-scope-precheck',         allowedPaths: ['src/agencies/'] },
+  { tag: 'phase235-global',                       allowedPaths: ['src/agencies/'] },
+  { tag: 'phase235-excluded-mutation',            allowedPaths: ['src/agencies/'] },
+  { tag: 'phase235-excluded-storage',             allowedPaths: ['src/agencies/'] },
   { tag: 'tenant-safe-report-runtime',    allowedPaths: ['src/reports/', 'src/saas/reports/'] },
   { tag: 'tenant-resolver-bootstrap',     allowedPaths: ['src/saas/tenancy/'] },
 ];

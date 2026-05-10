@@ -1,6 +1,6 @@
 # Phase 2.17 — Finance Mutation Isolation
 
-Generated: 2026-05-10T12:48:17.730Z
+Generated: 2026-05-10T13:05:54.448Z
 Environment: SAFE_CLONE (localhost + fixture pattern (db=saas_phase1_fixture))
 Tenants: A=`11111111-1111-1111-1111-111111111111` B=`22222222-2222-2222-2222-222222222222`
 
@@ -20,7 +20,7 @@ Tenants: A=`11111111-1111-1111-1111-111111111111` B=`22222222-2222-2222-2222-222
 | 9 | pilot ON, tenant A: update scrubs smuggled entityType/entityId/applicantId (defensive) | PASS | before={"entityType":"EMPLOYEE","entityId":"eeeeeeea-aaaa-aaaa-aaaa-aaaaaaaaaaaa","applicantId":null} after={"entityType":"EMPLOYEE","entityId":"eeeeeeea-aaaa-aaaa-aaaa-aaaaaaaaaaaa","applicantId":null} |
 | 10 | pilot ON, tenant A: APPLICANT cross-tenant create raises NotFoundException; no row inserted | PASS | err=NotFoundException before=6 after=6 |
 | 11 | pilot ON, tenant A: APPLICANT same-tenant create succeeds, tenantId=A, applicantId=appA, stageAtCreation set | PASS | tenantId=11111111-1111-1111-1111-111111111111 applicantId=00000000-0000-0000-0000-0000000aa002 stage=CANDIDATE |
-| 12 | pilot ON, tenant A: APPLICANT-typed record update keeps applicantId tenant-scoped (notif helper safe) | PASS | tenantId=11111111-1111-1111-1111-111111111111 applicantId=00000000-0000-0000-0000-0000000aa001 desc="iso-applicant-update" |
+| 12 | pilot ON, tenant A: APPLICANT-typed record update keeps applicantId tenant-scoped (notif helper safe) | PASS | tenantId=11111111-1111-1111-1111-111111111111 applicantId=00000000-0000-0000-0000-0000000aa002 desc="iso-applicant-update" |
 | 13 | pilot ON, tenant A: AGENCY cross-tenant create raises NotFoundException; no row inserted | PASS | err=NotFoundException before=7 after=7 |
 | 14 | pilot ON, tenant A: AGENCY same-tenant create succeeds, tenantId=A, applicantId=null, stage=AGENCY | PASS | tenantId=11111111-1111-1111-1111-111111111111 entityId=aaaaaaa1-aaaa-aaaa-aaaa-aaaaaaaaaaaa applicantId=null stage=AGENCY |
 | 15 | pilot ON, tenant A: AGENCY-typed record update keeps entityId tenant-scoped (notif helper safe) | PASS | tenantId=11111111-1111-1111-1111-111111111111 entityId=aaaaaaa1-aaaa-aaaa-aaaa-aaaaaaaaaaaa desc="iso-agency-update" |

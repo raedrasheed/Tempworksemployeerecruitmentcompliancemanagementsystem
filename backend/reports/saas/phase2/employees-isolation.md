@@ -9,7 +9,7 @@
 - PASS — 5. getDocuments(tenantB-id) blocked at parent gate — NotFound
 - PASS — 6. getCompliance(tenantB-id) blocked at parent gate — NotFound
 - PASS — 7. listAgencyAccess(tenantB-id) blocked at parent gate — NotFound
-- PASS — 8. exportExcel by-id [A,B] under A includes only A rows — bytes=7200 listAllA=true
+- PASS — 8. exportExcel by-id [A,B] under A includes only A rows — bytes=7199 listAllA=true
 - PASS — 9. concurrent ALS frames isolated (A, B) — aAll=true bAll=true
 - PASS — 10. legacy: returns union across tenants — tenants=3 total=10
 - PASS — 11. source-level: phase233/234 read+mutation+global+storage tags present — read=true mut=true global=true storage=true create=true update=true

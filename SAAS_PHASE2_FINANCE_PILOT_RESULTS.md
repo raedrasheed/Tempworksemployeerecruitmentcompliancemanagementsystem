@@ -97,16 +97,53 @@ No DB state introduced; rollback is configuration only. The Phase
 2.16 read narrowing is a same-process spread that collapses to
 `{}` when the scope is inactive.
 
-## 8. Next steps — Phase 2.17
+## 7.1 Phase 2.17 — Mutation pilot delta
 
-The mutation paths (`create`, `update`, `remove`, `updateStatus`,
-`addDeduction`, `removeDeduction`, `addAttachment`,
-`removeAttachment`) are the natural follow-up. Each needs:
+Phase 2.17 extended the pilot to mutations. New annotations in
+`src/finance/finance.service.ts`:
 
-- a tenant pre-check on the id (`findFirst` with `tenantWhere`)
-- `tenantData()` spread on `create.data`
-- a cross-tenant entity reassignment guard on `update`
+- `create`: `phase217-pilot-scope` — spreads `scope.tenantData()`
+  into create data; routes through `this.prisma`.
+- `update` / `remove` / `updateStatus` / `addDeduction` /
+  `addAttachment` / `removeAttachment`: `phase217-pilot-scope-precheck`
+  on the by-id `legacyPrisma.update`. The tenant gate is the prior
+  `findOne(id)` (Phase 2.16, tenant-scoped).
+- `removeDeduction`: `phase217-pilot-scope` on a NEW parent
+  `findFirst({ where: { id, tenantWhere() } })` pre-check; the
+  subsequent legacy aggregate update is annotated
+  `phase217-pilot-scope-precheck`.
+- `attachAttachment` find/update of the attachment row stays on
+  `legacyPrisma` and is gated by the parent `findOne` plus the
+  `financialRecordId` predicate.
 
-The isolation harness's case 7 will fail the moment any mutation
-method moves to `this.prisma` without the surrounding pre-check,
-which is the desired guard during 2.17 development.
+New harnesses:
+
+- `finance-mutation-equivalence` — 8 cases: create shape, create
+  tenantId NULL legacy / set pilot, update shape, validation error
+  parity, audit-log delta, removeDeduction parent pre-check
+  (bogus-id 404), pilot soft-delete, totals after mutation.
+- `finance-mutation-isolation` — 8 cases: pilot create persists
+  tenantId=A; cross-tenant update / remove / updateStatus /
+  addAttachment / removeDeduction all rejected with
+  NotFoundException and target row unchanged; getTotals on tenant
+  B's entity from tenant A returns 0; legacy mode (flags off)
+  still mutates without tenant gate.
+
+The existing `finance-isolation` harness's source-level
+meta-assertion now checks for the Phase 2.17
+`phase217-pilot-scope-precheck` annotations on each mutation
+method and the `...tdata` spread inside `create`.
+
+## 8. Next steps — Phase 2.18
+
+Remaining finance work:
+
+- Cross-tenant entity reassignment guard on `update` (when caller
+  changes `entityType` / `entityId` / `applicantId`, validate the
+  new entity's tenant matches).
+- Helper enrichment narrowing (`attachEntityNames`,
+  `resolvePersonIdentity`, `resolveEntityNameForNotif`) so the
+  helpers cannot leak names cross-tenant when reused.
+- `checkAndNotifyHighBalance` background path engagement via the
+  Phase 2.13 `runForTenant` framework.
+- Audit-log tenancy (cross-module audit phase).

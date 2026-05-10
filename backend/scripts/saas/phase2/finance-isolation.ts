@@ -229,28 +229,30 @@ async function main(): Promise<void> {
     } finally { await prisma.$disconnect(); }
   });
 
-  // 7 — source-level meta-assertion: mutation methods stay on legacyPrisma
+  // 7 — source-level meta-assertion (Phase 2.17 update): the
+  // legacyPrisma update / soft-delete site inside each mutation
+  // method still carries a `phase217-pilot-scope-precheck` annotation
+  // so reviewers know the tenant gate is the prior `findOne`.
   const src = await fs.readFile(SRC_FILE, 'utf8');
-  const mutationMethods = ['async create(', 'async update(', 'async remove(', 'async updateStatus(',
-                          'async addDeduction(', 'async removeDeduction(',
-                          'async addAttachment(', 'async removeAttachment('];
+  const expected = [
+    /async update\([^)]*\) \{[\s\S]*?this\.legacyPrisma\.financialRecord\.update\([\s\S]{0,400}phase217-pilot-scope-precheck/,
+    /async remove\([^)]*\) \{[\s\S]*?this\.legacyPrisma\.financialRecord\.update\([\s\S]{0,400}phase217-pilot-scope-precheck/,
+    /async updateStatus\([^)]*\) \{[\s\S]*?this\.legacyPrisma\.financialRecord\.update\([\s\S]{0,400}phase217-pilot-scope-precheck/,
+    /async addDeduction\([^)]*\) \{[\s\S]*?this\.legacyPrisma\.financialRecord\.update\([\s\S]{0,400}phase217-pilot-scope-precheck/,
+    /async removeDeduction\([^)]*\) \{[\s\S]*?phase217-pilot-scope[\s\S]{0,800}this\.legacyPrisma\.financialRecord\.update\([\s\S]{0,400}phase217-pilot-scope-precheck/,
+    /async addAttachment\([^)]*\) \{[\s\S]*?this\.legacyPrisma\.financialRecordAttachment\.create\([\s\S]{0,400}phase217-pilot-scope-precheck/,
+    /async removeAttachment\([^)]*\) \{[\s\S]*?this\.legacyPrisma\.financialRecordAttachment\.update\([\s\S]{0,400}phase217-pilot-scope-precheck/,
+  ];
   const failed: string[] = [];
-  for (const sig of mutationMethods) {
-    const start = src.indexOf(sig);
-    if (start < 0) { failed.push(`${sig} (not found)`); continue; }
-    // Read until matching closing brace at same indent — heuristic: scan
-    // to next `\n  async ` or `\n  /` (docblock) or end of class.
-    const rest = src.slice(start);
-    const nextSig = rest.slice(1).search(/\n  (?:async |\/\*\*|private )/);
-    const body = nextSig > 0 ? rest.slice(0, nextSig) : rest;
-    if (/this\.prisma\./.test(body)) {
-      failed.push(`${sig} contains this.prisma. (must be this.legacyPrisma.)`);
-    }
+  expected.forEach((re, i) => { if (!re.test(src)) failed.push(`pattern #${i + 1} missing`); });
+  // Additionally: create must spread tenantData() and use this.prisma.
+  if (!/async create\([^)]*\) \{[\s\S]*?this\.prisma\.financialRecord\.create\([\s\S]{0,2000}\.\.\.tdata/.test(src)) {
+    failed.push('create() must use this.prisma.financialRecord.create with ...tdata spread');
   }
   out.push({
-    name: 'source: mutation methods (create/update/remove/updateStatus/add+removeDeduction/Attachment) use legacyPrisma',
+    name: 'source: Phase 2.17 mutation annotations and tenantData spread present',
     ok: failed.length === 0,
-    detail: failed.length === 0 ? 'all mutation paths legacy' : failed.join('; '),
+    detail: failed.length === 0 ? 'all mutation guard annotations present' : failed.join('; '),
   });
 
   await fs.mkdir(OUT_DIR, { recursive: true });

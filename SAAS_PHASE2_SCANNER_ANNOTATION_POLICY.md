@@ -42,6 +42,13 @@ and counted against the strict-mode threshold.
 | `phase211-excluded-platform` | DatabaseCleanupService — System Admin global wipe; intentionally cross-tenant. | `src/recycle-bin/**` | 2.11 |
 | `phase214-pilot-scope` | Notifications scheduler adapter sites — tenant-catalog discovery and per-tenant fanout entry points wired to the Phase 2.13 job-context framework. | `src/notifications/**` | 2.14 |
 | `phase215-pilot-scope` | Notifications fanout writers (`notifyUploaderAndRoles`, `notifyUsersByRoles`) — User scan narrowed via `agency.tenantId`, uploader probe scoped to active tenant, `notification.create.data` carries `tenantId` when tid is set. | `src/notifications/**` | 2.15 |
+| `phase216-pilot-scope` | Finance read sites narrowed via `getPilotScope(...).tenantWhere()`. | `src/finance/**` | 2.16 |
+| `phase216-excluded-mutation` | Finance write/mutation sites kept on `legacyPrisma` until Phase 2.17. | `src/finance/**` | 2.16 |
+| `phase216-helper-read` | Finance helper reads (entity-name enrichment, person resolution) operating on already tenant-filtered IDs. | `src/finance/**` | 2.16 |
+| `phase216-global` | Finance global catalog reads (`finance_transaction_types`, `system_settings`). | `src/finance/**` | 2.16 |
+| `phase216-audit-log` | Finance audit-log reads/writes — global by design, parent already tenant-checked. | `src/finance/**` | 2.16 |
+| `phase217-pilot-scope` | Finance write sites narrowed in Phase 2.17 — `create` spreads `scope.tenantData()`; `removeDeduction` adds a parent tenant pre-check. | `src/finance/**` | 2.17 |
+| `phase217-pilot-scope-precheck` | Finance write sites that rely on the prior `findOne` (Phase 2.16, tenant-scoped) as the tenant gate; the by-id `update`/`soft-delete` is unreachable for foreign tenants. | `src/finance/**` | 2.17 |
 | `tenant-safe-report-runtime` | Reports engine uses `$queryRawUnsafe` with positional parameters and a registry-validated SQL string. | `src/reports/reports.service.ts` | 2.1 |
 
 ## 3. When annotations are allowed

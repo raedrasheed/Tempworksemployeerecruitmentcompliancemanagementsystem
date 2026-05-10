@@ -96,6 +96,8 @@
     "saas:phase2-recycle-bin-isolation":          "ts-node scripts/saas/phase2/recycle-bin-isolation.ts",
     "saas:phase2-finance-equivalence":            "ts-node scripts/saas/phase2/finance-equivalence.ts",
     "saas:phase2-finance-isolation":              "ts-node scripts/saas/phase2/finance-isolation.ts",
+    "saas:phase2-finance-mutation-equivalence":   "ts-node scripts/saas/phase2/finance-mutation-equivalence.ts",
+    "saas:phase2-finance-mutation-isolation":     "ts-node scripts/saas/phase2/finance-mutation-isolation.ts",
     "saas:scan:annotations":                      "ts-node scripts/scan-annotations.ts",
     "saas:phase2-pilot-regression":               "ts-node scripts/saas/phase2/pilot-regression.ts",
     "saas:phase2-job-context-harness":            "ts-node scripts/saas/phase2/job-context-harness.ts",

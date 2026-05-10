@@ -21,18 +21,23 @@ const FINANCE_ROLES = ['System Admin', 'Finance', 'HR Manager'];
 const DEFAULT_HIGH_BALANCE_THRESHOLD = 500;
 
 /**
- * Phase 2.16 — Finance reads-first pilot.
+ * Phase 2.16 + 2.17 — Finance pilot (reads + selected mutations).
  *
  * READ paths route through `pilot.client()` and spread
  * `scope.tenantWhere()` when the pilot scope is active. Production
  * default (flag off) is byte-identical to pre-2.16.
  *
- * WRITE / mutation paths (create / update / remove / updateStatus /
- * addDeduction / removeDeduction / addAttachment / removeAttachment /
- * exportExcel-internal-DB-side-effect-free) explicitly use
- * `legacyPrisma`. They are out of scope for this phase and remain
- * annotated `phase216-excluded-mutation` until a follow-up pilot
- * audits them.
+ * WRITE / mutation paths (Phase 2.17):
+ *  - `create` writes `tenantId` via `scope.tenantData()` in pilot mode
+ *    (`phase217-pilot-scope`).
+ *  - `update`, `remove`, `updateStatus`, `addDeduction`,
+ *    `addAttachment`, `removeAttachment` rely on the tenant-scoped
+ *    `findOne(id)` pre-check (`phase217-pilot-scope-precheck`). The
+ *    by-id update / soft-delete therefore never reaches a foreign
+ *    tenant's row.
+ *  - `removeDeduction` adds a NEW parent tenant pre-check via
+ *    `findFirst({ where: { id, tenantWhere() } })` before deleting
+ *    the child deduction (`phase217-pilot-scope`).
  *
  * Audit log writes use `legacyPrisma` always (global side effect).
  *
@@ -344,7 +349,8 @@ export class FinanceService {
     const { applicantId, stageAtCreation } =
       await this.resolvePersonIdentity(dto.entityType, dto.entityId);
 
-    const record = await this.legacyPrisma.financialRecord.create({ // @tenant-reviewed: phase216-excluded-mutation
+    const tdata = this.scope().tenantData();
+    const record = await this.prisma.financialRecord.create({ // @tenant-reviewed: phase217-pilot-scope (writes tenantId in pilot mode via scope.tenantData)
       data: {
         entityType:                 dto.entityType,
         entityId:                   dto.entityId,
@@ -362,6 +368,7 @@ export class FinanceService {
         status:                     'PENDING',
         notes:                      dto.notes,
         createdById:                actorId,
+        ...tdata,
       },
       include: this.recordInclude,
     });
@@ -409,7 +416,7 @@ export class FinanceService {
     const data: any = { ...dto };
     if (dto.transactionDate) data.transactionDate = new Date(dto.transactionDate);
 
-    const updated = await this.legacyPrisma.financialRecord.update({ // @tenant-reviewed: phase216-excluded-mutation
+    const updated = await this.legacyPrisma.financialRecord.update({ // @tenant-reviewed: phase217-pilot-scope-precheck (findOne above is tenant-scoped in pilot mode)
       where: { id }, data, include: this.recordInclude,
     });
 
@@ -455,7 +462,7 @@ export class FinanceService {
 
   async remove(id: string, actorId?: string) {
     const existing = await this.findOne(id);
-    await this.legacyPrisma.financialRecord.update({ // @tenant-reviewed: phase216-excluded-mutation
+    await this.legacyPrisma.financialRecord.update({ // @tenant-reviewed: phase217-pilot-scope-precheck (findOne above is tenant-scoped in pilot mode)
       where: { id }, data: { deletedAt: new Date() },
     });
     await this.auditLog(actorId, 'FINANCIAL_RECORD_DELETED', id);
@@ -504,7 +511,7 @@ export class FinanceService {
     if (dto.deductionDate)    data.deductionDate    = new Date(dto.deductionDate);
     if (dto.payrollReference) data.payrollReference = dto.payrollReference;
 
-    const updated = await this.legacyPrisma.financialRecord.update({ // @tenant-reviewed: phase216-excluded-mutation
+    const updated = await this.legacyPrisma.financialRecord.update({ // @tenant-reviewed: phase217-pilot-scope-precheck (findOne above is tenant-scoped in pilot mode)
       where: { id }, data, include: this.recordInclude,
     });
 
@@ -590,7 +597,7 @@ export class FinanceService {
     // expanded panel can still show "Add another deduction".
     const nextStatus = Math.abs(newSum - disbursed) < 0.005 ? 'DEDUCTED' : 'PARTIAL';
 
-    const updated = await this.legacyPrisma.financialRecord.update({ // @tenant-reviewed: phase216-excluded-mutation
+    const updated = await this.legacyPrisma.financialRecord.update({ // @tenant-reviewed: phase217-pilot-scope-precheck (findOne above is tenant-scoped in pilot mode)
       where: { id: recordId },
       data: {
         deductionAmount: newSum,
@@ -634,6 +641,17 @@ export class FinanceService {
     if (!deduction) throw new NotFoundException('Deduction not found');
 
     const recordId: string = deduction.financialRecordId;
+
+    // Phase 2.17 — parent tenant pre-check. In pilot mode this raises
+    // 404 if the parent FinancialRecord belongs to a different tenant
+    // than the active ALS frame. Legacy mode: spread is `{}` and the
+    // lookup matches by id alone (legacy semantics preserved).
+    const parent = await this.prisma.financialRecord.findFirst({ // @tenant-reviewed: phase217-pilot-scope (parent tenant pre-check before child delete)
+      where: { id: recordId, ...this.scope().tenantWhere() },
+      select: { id: true },
+    });
+    if (!parent) throw new NotFoundException('Deduction not found');
+
     await (this.prisma as any).financialRecordDeduction.delete({ where: { id: deductionId } });
 
     // Recompute aggregates from whatever remains.
@@ -642,7 +660,7 @@ export class FinanceService {
       orderBy: { deductionDate: 'desc' },
     });
     const newSum = remaining.reduce((s: number, d: any) => s + Number(d.amount ?? 0), 0);
-    const record = await this.legacyPrisma.financialRecord.findUnique({ where: { id: recordId } }); // @tenant-reviewed: phase216-excluded-mutation
+    const record = await this.legacyPrisma.financialRecord.findUnique({ where: { id: recordId } }); // @tenant-reviewed: phase217-pilot-scope-precheck (parent already tenant-checked above)
     const disbursed = Number(record?.companyDisbursedAmount ?? 0);
     const nextStatus = newSum === 0
       ? 'PENDING'
@@ -651,7 +669,7 @@ export class FinanceService {
         : 'PARTIAL';
     const latest = remaining[0];
 
-    const updated = await this.legacyPrisma.financialRecord.update({ // @tenant-reviewed: phase216-excluded-mutation
+    const updated = await this.legacyPrisma.financialRecord.update({ // @tenant-reviewed: phase217-pilot-scope-precheck (parent already tenant-checked above)
       where: { id: recordId },
       data: {
         deductionAmount: newSum > 0 ? newSum : null,
@@ -687,7 +705,7 @@ export class FinanceService {
       inline: file.mimetype === 'application/pdf' || file.mimetype.startsWith('image/'),
     });
 
-    const attachment = await this.legacyPrisma.financialRecordAttachment.create({ // @tenant-reviewed: phase216-excluded-mutation
+    const attachment = await this.legacyPrisma.financialRecordAttachment.create({ // @tenant-reviewed: phase217-pilot-scope-precheck (findOne above is tenant-scoped in pilot mode)
       data: {
         financialRecordId: recordId,
         name: file.originalname,
@@ -711,12 +729,12 @@ export class FinanceService {
     actorId?: string,
   ) {
     await this.findOne(recordId);
-    const att = await this.legacyPrisma.financialRecordAttachment.findFirst({ // @tenant-reviewed: phase216-excluded-mutation
+    const att = await this.legacyPrisma.financialRecordAttachment.findFirst({ // @tenant-reviewed: phase217-pilot-scope-precheck (findOne above is tenant-scoped; parent FK enforces attachment scope)
       where: { id: attachmentId, financialRecordId: recordId, deletedAt: null },
     });
     if (!att) throw new NotFoundException('Attachment not found');
 
-    await this.legacyPrisma.financialRecordAttachment.update({ // @tenant-reviewed: phase216-excluded-mutation
+    await this.legacyPrisma.financialRecordAttachment.update({ // @tenant-reviewed: phase217-pilot-scope-precheck (findOne above is tenant-scoped in pilot mode)
       where: { id: attachmentId }, data: { deletedAt: new Date() },
     });
 

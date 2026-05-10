@@ -373,6 +373,42 @@ The next phase is **Phase 2.16** (TBD): either `src/finance`
 reads-first or Phase 3 prep (`TenantPrismaService.client` `$extends`
 implementation).
 
+## 11.1 Phase 2.16 — Finance reads-first pilot (shipped)
+
+`src/finance` reads-first split shipped: 9 read sites narrowed via
+`getPilotScope(this.pilot, 'finance').tenantWhere()`; `findOne` /
+`getHistory` migrated from `findUnique` to `findFirst` to admit the
+tenant predicate; mutation paths kept on `legacyPrisma` and tagged
+`phase216-excluded-mutation`. See
+`SAAS_PHASE2_FINANCE_AUDIT.md`,
+`SAAS_PHASE2_FINANCE_SCOPE_SPLIT.md`, and
+`SAAS_PHASE2_FINANCE_PILOT_RESULTS.md`.
+
+## 11.2 Phase 2.17 — Finance mutation pilot (shipped)
+
+`src/finance` mutation paths brought into the pilot:
+
+- `create` writes `tenantId` via `scope.tenantData()` in pilot
+  mode (`phase217-pilot-scope`).
+- `update`, `remove`, `updateStatus`, `addDeduction`,
+  `addAttachment`, `removeAttachment` rely on the tenant-scoped
+  `findOne` pre-check (`phase217-pilot-scope-precheck`).
+- `removeDeduction` adds a NEW parent tenant pre-check
+  (`phase217-pilot-scope`) to close a pre-existing cross-tenant
+  gap.
+- `auditLog.create` and `checkAndNotifyHighBalance` deferred
+  (`LEGACY_ONLY` / `DEFERRED_HIGH_RISK`).
+
+New harnesses: `finance-mutation-equivalence` (8 cases),
+`finance-mutation-isolation` (8 cases). Scanner policy adds
+`phase217-pilot-scope` and `phase217-pilot-scope-precheck`. See
+`SAAS_PHASE2_FINANCE_MUTATION_AUDIT.md` and
+`SAAS_PHASE2_FINANCE_MUTATION_SCOPE_DECISION.md`.
+
+The next phase is **Phase 2.18** (TBD): finance helper enrichment
+narrowing, cross-entity-reassignment guard on `update`, or the
+audit-log tenancy phase.
+
 ## 12. Hard rules
 
 - **Never enable `TENANT_PRISMA_ENFORCEMENT=true` in production until every P0/P1/P2 module has migrated.** Enabling it with a half-migrated codebase makes the un-migrated services start filtering by tenant when their callers don't expect it.

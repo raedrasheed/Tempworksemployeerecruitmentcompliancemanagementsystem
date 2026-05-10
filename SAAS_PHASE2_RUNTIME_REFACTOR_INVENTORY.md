@@ -155,3 +155,34 @@ Each P0/P1/P2 module gets a code-owner-led review with these mandatory checks:
 - [ ] Two-tenant isolation test exists and passes pre-enforcement.
 - [ ] Read-equivalence test passes against pre-Phase-2 baseline (same query, same row count, same row IDs for the active tenant).
 - [ ] Raw-SQL scanner reports `0 BLOCKER` (unreviewed) findings for the module after the refactor.
+
+## 13. Phase 2.16 + 2.17 — Finance pilot status
+
+`src/finance` has been narrowed for both reads and selected
+mutations. Current state:
+
+- Reads (9 sites): `phase216-pilot-scope` — narrowed via
+  `getPilotScope(this.pilot, 'finance').tenantWhere()`.
+- Globals: `phase216-global` (`finance_transaction_types`,
+  `system_settings`), `phase216-audit-log` (audit reads/writes).
+- Helpers: `phase216-helper-read` (entity-name enrichment).
+- Writes:
+  - `create`: `phase217-pilot-scope` — spreads
+    `scope.tenantData()`.
+  - `update` / `remove` / `updateStatus` / `addDeduction` /
+    `addAttachment` / `removeAttachment`:
+    `phase217-pilot-scope-precheck` — tenant-scoped `findOne`
+    pre-check is the gate.
+  - `removeDeduction`: `phase217-pilot-scope` — new parent
+    tenant pre-check before child delete.
+
+**Zero `phase216-excluded-mutation` annotations remain in
+`src/finance`.** Harnesses:
+`saas:phase2-finance-equivalence`, `saas:phase2-finance-isolation`,
+`saas:phase2-finance-mutation-equivalence`,
+`saas:phase2-finance-mutation-isolation`.
+
+Production default (`TENANT_PRISMA_PILOT_ENABLED=false`)
+unchanged: every `tenantWhere()` and `tenantData()` spread
+collapses to `{}`.
+

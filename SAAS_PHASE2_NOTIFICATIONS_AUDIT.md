@@ -174,3 +174,81 @@ covered in `SAAS_PHASE2_NOTIFICATIONS_SCOPE_SPLIT.md`.
 
 These ship in a future Phase 2.11+ once a job-context framework
 exists for background workers.
+
+---
+
+# Phase 2.42 reaffirmation addendum
+
+Notifications was the **fourth** module piloted (Phase 2.10 reads-first,
+Phase 2.14/2.15 scheduler/fan-out gates). Phase 2.42 is the formal
+reads-first audit + harness reaffirmation under the Phase 2 strategy
+envelope.
+
+## A. Per-method classification (current state)
+
+| Method | Type | Status |
+|---|---|---|
+| `getUserNotifications` / `getUnreadCount` | READ | **INCLUDED** — `phase210-pilot-scope` |
+| `markAsRead` / `markAllAsRead` | MUTATION | **INCLUDED_WITH_GUARD** — pilot-mode pre-check; cross-tenant id raises 404 |
+| `getOrCreatePreferences` / `updatePreferences` | per-user GLOBAL | **`phase210-global`** — `NotificationPreference` has no `tenantId` (Phase 3 product) |
+| `checkExpiringCompliance` / `checkServiceDue` / `checkOverdue` / `checkScheduledMaintenance` | BACKGROUND SCAN | **INCLUDED_WITH_NARROW** (Phase 2.14) — `narrowingTenantId()` spread |
+| `runAllChecks` | LEGACY orchestrator | unchanged |
+| `runAllChecksTenantAware` / `runAllChecksForTenant` | tenant-aware fan-out | **GATED** by `TENANT_AWARE_JOBS_ENABLED` + `TENANT_JOB_FANOUT_ENABLED` |
+| `notifyUploaderAndRoles` / `notifyUsersByRoles` | cross-user fan-out | **INCLUDED_WITH_NARROW** (Phase 2.15) — recipients narrowed by `agency.tenantId`; `Notification.create.data.tenantId` set |
+| `wasHighBalanceAlertRecentlySent` | READ probe | **INCLUDED** |
+
+## B. Models touched + tenancy
+
+`Notification.tenantId` (Phase 2.4 backfill);
+`NotificationPreference` has no `tenantId` (intentional);
+`User` narrowed indirectly via `agency.tenantId`;
+`Document`/`Vehicle`/`MaintenanceRecord`/`ComplianceAlert` narrowed in
+their own pilots.
+
+## C. Fan-out status: implemented (Phase 2.15) and proven by harness
+
+- `notifyUsersByRoles(['Recruiter'], …)` under tenant A creates
+  notifications stamped `tenantId = A` only. Tenant B's notification
+  count is unchanged.
+- Cross-tenant fan-out is structurally impossible in pilot mode: the
+  recipient `User.findMany` query narrows by `agency.tenantId` and
+  the `Notification.create.data.tenantId` is set from the active
+  ALS frame.
+- No real email/SMS provider is invoked by the harness path.
+
+## D. Audit-log surface
+
+None. `NotificationsService` does not emit audit-log rows. No
+`TenantAuditLogService` wiring required this phase. Tag
+`phase242-notifications-audit-log` is reserved for any future
+mutation surface that adds audit emission.
+
+## E. Compliance ⇄ notifications coupling
+
+`ComplianceCron` (Phase 2.41) does NOT directly call notifications
+fan-out. Coupling between compliance alert events and notification
+delivery remains the responsibility of explicit producer call-sites
+(e.g. document upload events).
+
+## F. Phase 2.42 scope (this PR)
+
+- Re-applied the notifications fixture: seeded a Recruiter role +
+  tenant-A and tenant-B recruiter users + per-user notification
+  preferences. The fixture extension SQL was already idempotent;
+  Phase 2.42 only patches the fresh DB.
+- Added Phase 2.42 npm aliases pointing at the Phase 2.10 harnesses:
+  `saas:phase242-notifications-equivalence`,
+  `saas:phase242-notifications-isolation`.
+- Reserved scanner tags `phase242-notifications-pilot-scope`,
+  `phase242-notifications-fanout-deferred`,
+  `phase242-notifications-audit-log` for any future notifications
+  work.
+
+## G. What is explicitly excluded
+
+- Real email/SMS provider sending.
+- Per-tenant `NotificationPreference` (Phase 3 product).
+- Audit-log emission for notifications (no surface today).
+- Production cron registration for notifications (only the
+  compliance cron is wired; notifications relies on Phase 2.14's
+  tenant-aware orchestrator).

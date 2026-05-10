@@ -766,3 +766,22 @@ Real-DB: 14/14. Cumulative: **433/433**.
 
 No production behaviour change with default flags. Cron tick is a
 no-op until the four-layer flag chain is fully on.
+
+## 39. Phase 2.42 — Notifications reads-first reaffirmation (shipped)
+
+Notifications was piloted in Phase 2.10 (reads-first) + Phase
+2.14/2.15 (scheduler/fan-out gates). Phase 2.42 is the formal
+reaffirmation:
+
+- Re-applied the notifications fixture extension on the SAFE_CLONE
+  DB.
+- Added Phase 2.42 npm aliases.
+- Reserved tags `phase242-notifications-pilot-scope`,
+  `phase242-notifications-fanout-deferred`,
+  `phase242-notifications-audit-log`.
+
+`NotificationPreference` stays per-user global (Phase 3 product).
+No audit-log emission introduced. No real email/SMS provider invoked.
+
+Real-DB: equivalence 11/11 + isolation 10/10 = 21/21. Cumulative:
+**454/454**.

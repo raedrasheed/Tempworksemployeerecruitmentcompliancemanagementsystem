@@ -147,3 +147,76 @@ Backups:
 and the explicitly-excluded background paths continue to use
 `legacyPrisma` directly. Every legacy SQL is byte-for-byte identical
 to before this PR. The scheduler runs unchanged.
+
+---
+
+## Phase 2.42 reaffirmation
+
+Notifications was the **fourth** module piloted (Phase 2.10 reads +
+Phase 2.14/2.15 scheduler+fan-out). Phase 2.42 is the formal
+reads-first audit + harness reaffirmation:
+
+- Re-applied the notifications fixture extension: seeded a Recruiter
+  role + a tenant-A Recruiter user + a tenant-B Recruiter user +
+  per-user `NotificationPreference` rows. Without these, the fan-out
+  case in `notifications-isolation` could not exercise a real
+  cross-tenant recipient query.
+- Added Phase 2.42 npm aliases:
+  - `saas:phase242-notifications-equivalence` →
+    `notifications-equivalence.ts`
+  - `saas:phase242-notifications-isolation` →
+    `notifications-isolation.ts`
+- Reserved scanner tags
+  `phase242-notifications-pilot-scope`,
+  `phase242-notifications-fanout-deferred`,
+  `phase242-notifications-audit-log`.
+
+### Real-DB results
+
+- `notifications-equivalence` — **11/11 PASS**
+- `notifications-isolation` — **10/10 PASS** (including the
+  cross-tenant fan-out case proving tenant-A `notifyUsersByRoles`
+  creates only tenant-A notifications and tenant-B count is
+  unchanged)
+
+### Fan-out status
+
+**Implemented and gated.** `notifyUsersByRoles` and
+`notifyUploaderAndRoles` already narrow recipients by
+`agency.tenantId` and stamp `Notification.create.data.tenantId`
+from the active ALS frame, behind `TENANT_AWARE_JOBS_ENABLED` +
+`TENANT_JOB_FANOUT_ENABLED`. Phase 2.42 confirms this still holds.
+
+### Cumulative
+
+Notifications: equivalence 11/11 + isolation 10/10 = **21/21**.
+Cumulative across modules: **454/454** on real Postgres 16.
+
+### Production behaviour change status
+
+**None.** All required flags remain default `false`.
+
+### Rollback
+
+Configuration-only:
+```sh
+TENANT_PRISMA_PILOT_ENABLED=false
+# OR
+TENANT_PRISMA_PILOT_MODULES=    # remove 'notifications'
+# OR
+TENANT_AWARE_JOBS_ENABLED=false
+TENANT_JOB_FANOUT_ENABLED=false
+```
+
+### Remaining blockers
+
+- **Per-tenant `NotificationPreference`** — Phase 3 product question;
+  schema migration + backfill required before tenant-scoped prefs
+  can land.
+- **Real email/SMS provider sending** — out of scope; not exercised
+  by any harness.
+- **Compliance ⇄ notifications direct coupling** — the compliance
+  cron (Phase 2.41) does not call notifications fan-out today. If
+  product wants cron-driven notifications for compliance events,
+  that is a follow-up phase that still must call only
+  `notifyUsersByRoles` per tenant inside the existing fan-out gate.

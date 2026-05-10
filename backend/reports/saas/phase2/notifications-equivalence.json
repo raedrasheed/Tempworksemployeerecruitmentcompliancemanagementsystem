@@ -1,36 +1,18 @@
 {
-  "generatedAt": "2026-05-10T02:09:58.283Z",
+  "generatedAt": "2026-05-10T15:02:54.279Z",
   "environment": {
     "classification": "SAFE_CLONE",
     "reason": "localhost + fixture pattern (db=saas_phase1_fixture)",
-    "host": "127.0.0.1",
+    "host": "localhost",
     "dbName": "saas_phase1_fixture",
-    "nodeEnv": "unset"
+    "nodeEnv": "staging"
   },
   "tenantA": "11111111-1111-1111-1111-111111111111",
-  "userA": "04d09f60-1882-480d-bc03-2ae1d7eb1794",
+  "userA": "00000000-0000-0000-0000-00000000us01",
   "relatedEntityId": "00000000-0000-0000-0000-deadbeef0001",
   "legacy": {
     "pilotActive": false,
     "reason": "TENANT_PRISMA_PILOT_ENABLED=false",
-    "listTotal": 7,
-    "listIds": [
-      "00000000-0000-0000-0000-000000c00001",
-      "00000000-0000-0000-0000-000000c00002",
-      "00000000-0000-0000-0000-000000c00003",
-      "00000000-0000-0000-0000-000000c00004",
-      "00000000-0000-0000-0000-000000c00501",
-      "00000000-0000-0000-0000-000000c00999",
-      "159d9dca-6c2b-42fe-af54-f9149ff9a957"
-    ],
-    "unreadCount": 4,
-    "highBalanceProbe": true,
-    "errorOnMissingMark": "PrismaClientKnownRequestError",
-    "preferencesId": "0d6820ab-affe-43d2-b84b-57209551d07c"
-  },
-  "pilot": {
-    "pilotActive": true,
-    "reason": "pilot ON, env=SAFE_CLONE",
     "listTotal": 6,
     "listIds": [
       "00000000-0000-0000-0000-000000c00001",
@@ -38,12 +20,28 @@
       "00000000-0000-0000-0000-000000c00003",
       "00000000-0000-0000-0000-000000c00004",
       "00000000-0000-0000-0000-000000c00501",
-      "159d9dca-6c2b-42fe-af54-f9149ff9a957"
+      "00000000-0000-0000-0000-000000c00999"
+    ],
+    "unreadCount": 4,
+    "highBalanceProbe": true,
+    "errorOnMissingMark": "PrismaClientKnownRequestError",
+    "preferencesId": "f5fcc90c-874f-49dd-8e23-df3f4feb4114"
+  },
+  "pilot": {
+    "pilotActive": true,
+    "reason": "pilot ON, env=SAFE_CLONE",
+    "listTotal": 5,
+    "listIds": [
+      "00000000-0000-0000-0000-000000c00001",
+      "00000000-0000-0000-0000-000000c00002",
+      "00000000-0000-0000-0000-000000c00003",
+      "00000000-0000-0000-0000-000000c00004",
+      "00000000-0000-0000-0000-000000c00501"
     ],
     "unreadCount": 3,
     "highBalanceProbe": true,
     "errorOnMissingMark": "NotFoundException",
-    "preferencesId": "0d6820ab-affe-43d2-b84b-57209551d07c"
+    "preferencesId": "f5fcc90c-874f-49dd-8e23-df3f4feb4114"
   },
   "counts": {
     "total": 11,
@@ -64,12 +62,12 @@
     {
       "name": "getUserNotifications: pilot total <= legacy total (filtered)",
       "ok": true,
-      "detail": "legacy=7 pilot=6"
+      "detail": "legacy=6 pilot=5"
     },
     {
       "name": "getUserNotifications: pilot excludes NULL-tenant legacy row",
       "ok": true,
-      "detail": "pilotIds=6 ids"
+      "detail": "pilotIds=5 ids"
     },
     {
       "name": "getUserNotifications: legacy includes NULL-tenant legacy row",
@@ -94,7 +92,7 @@
     {
       "name": "getOrCreatePreferences: returns identical preferences id (per-user global record)",
       "ok": true,
-      "detail": "legacy=0d6820ab-affe-43d2-b84b-57209551d07c pilot=0d6820ab-affe-43d2-b84b-57209551d07c"
+      "detail": "legacy=f5fcc90c-874f-49dd-8e23-df3f4feb4114 pilot=f5fcc90c-874f-49dd-8e23-df3f4feb4114"
     },
     {
       "name": "markAllAsRead pilot ON: tenant A unread → 0; tenant B unread unchanged",

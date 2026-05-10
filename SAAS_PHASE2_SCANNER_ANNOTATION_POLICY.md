@@ -113,6 +113,9 @@ and counted against the strict-mode threshold.
 | `phase239-tenant-job-dispatch` | Compliance `dispatchComplianceAlertGenerationForTenants` tenant fan-out helper. Refuses by default; gated by `TENANT_JOB_FANOUT_ENABLED` AND active compliance pilot. Calls `generateAlertsForTenant` per tenant. | `src/compliance/**` | 2.39 |
 | `phase240-compliance-real-scheduler` | Compliance scheduler entry-point (`ComplianceScheduler.runScheduledComplianceAlertGeneration`). Disabled by default; calls only the Phase 2.39 dispatch helper. | `src/compliance/**` | 2.40 |
 | `phase241-compliance-cron-framework` | Compliance `@Cron` entry-point (`ComplianceCron.tick`). Single decorated handler that delegates to `ComplianceScheduler.runScheduledComplianceAlertGeneration` and nothing else. | `src/compliance/**` | 2.41 |
+| `phase242-notifications-pilot-scope` | Reserved for new notifications pilot sites that engage during Phase 2.42 review. Phase 2.10's `phase210-pilot-scope` covers the existing sites. | `src/notifications/**` | 2.42 |
+| `phase242-notifications-fanout-deferred` | Reserved for any notifications fan-out site whose tenant attribution is explicitly deferred to a later product phase. | `src/notifications/**` | 2.42 |
+| `phase242-notifications-audit-log` | Reserved for any future notifications mutation that introduces audit-log emission (none in scope today). | `src/notifications/**` | 2.42 |
 | `tenant-safe-report-runtime` | Reports engine uses `$queryRawUnsafe` with positional parameters and a registry-validated SQL string. | `src/reports/reports.service.ts` | 2.1 |
 
 ## 3. When annotations are allowed

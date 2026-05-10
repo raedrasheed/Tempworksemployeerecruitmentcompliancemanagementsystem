@@ -96,6 +96,8 @@
     "saas:phase2-job-ads-isolation": "ts-node scripts/saas/phase2/job-ads-isolation.ts",
     "saas:phase2-notifications-equivalence": "ts-node scripts/saas/phase2/notifications-equivalence.ts",
     "saas:phase2-notifications-isolation": "ts-node scripts/saas/phase2/notifications-isolation.ts",
+    "saas:phase242-notifications-equivalence": "ts-node scripts/saas/phase2/notifications-equivalence.ts",
+    "saas:phase242-notifications-isolation": "ts-node scripts/saas/phase2/notifications-isolation.ts",
     "saas:phase2-recycle-bin-equivalence": "ts-node scripts/saas/phase2/recycle-bin-equivalence.ts",
     "saas:phase2-recycle-bin-isolation": "ts-node scripts/saas/phase2/recycle-bin-isolation.ts",
     "saas:phase2-finance-equivalence": "ts-node scripts/saas/phase2/finance-equivalence.ts",

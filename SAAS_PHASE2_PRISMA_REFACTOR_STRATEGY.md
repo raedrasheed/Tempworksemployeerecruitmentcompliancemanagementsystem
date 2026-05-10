@@ -962,3 +962,26 @@ The four-layer flag chain (`COMPLIANCE_ALERT_SCHEDULER_ENABLED` →
 `TENANT_JOB_FANOUT_ENABLED` → pilot → env) is unchanged from
 Phase 2.40. The decorator fires on schedule; every layer below
 remains a no-op until all four flags are on.
+
+## 11.15 Phase 2.42 — notifications reads-first reaffirmation
+
+Notifications was the **fourth** module piloted (Phase 2.10 reads +
+Phase 2.14/2.15 scheduler/fan-out). Phase 2.42 is the formal
+reaffirmation:
+
+- Re-applied the notifications fixture extension on the SAFE_CLONE
+  DB; seeded the Recruiter role + tenant-A and tenant-B Recruiter
+  users + per-user notification preferences so the fan-out case can
+  exercise a real recipient query.
+- Added Phase 2.42 npm aliases for the existing harnesses.
+- Reserved tags `phase242-notifications-pilot-scope`,
+  `phase242-notifications-fanout-deferred`,
+  `phase242-notifications-audit-log`.
+
+`NotificationPreference` stays per-user global (Phase 3 product
+question). Audit-log emission is not in scope (no mutation surface
+emits audit rows today). Real email/SMS sending stays in
+`EmailModule` and is not exercised by any harness.
+
+Real-DB: equivalence 11/11 + isolation 10/10 = 21/21. Cumulative
+across modules: **454/454**.

@@ -55,6 +55,12 @@ const KNOWN_REASONS: ReadonlyArray<PolicyEntry> = [
   { tag: 'phase217-pilot-scope',          allowedPaths: ['src/finance/'] },
   { tag: 'phase217-pilot-scope-precheck', allowedPaths: ['src/finance/'] },
   { tag: 'phase2171-helper-narrowed',     allowedPaths: ['src/finance/'] },
+  { tag: 'phase220-pilot-scope',          allowedPaths: ['src/documents/'] },
+  { tag: 'phase220-global',               allowedPaths: ['src/documents/'] },
+  { tag: 'phase220-excluded-mutation',    allowedPaths: ['src/documents/'] },
+  { tag: 'phase220-excluded-download',    allowedPaths: ['src/documents/'] },
+  { tag: 'phase220-excluded-helper',      allowedPaths: ['src/documents/'] },
+  { tag: 'phase220-audit-log',            allowedPaths: ['src/documents/'] },
   { tag: 'tenant-safe-report-runtime',    allowedPaths: ['src/reports/', 'src/saas/reports/'] },
   { tag: 'tenant-resolver-bootstrap',     allowedPaths: ['src/saas/tenancy/'] },
 ];

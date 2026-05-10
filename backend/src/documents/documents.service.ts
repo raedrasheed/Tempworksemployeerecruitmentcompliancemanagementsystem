@@ -9,6 +9,8 @@ import { StorageService } from '../common/storage/storage.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { NOTIF_EVENTS } from '../notifications/notification-events';
 import { DocumentIdService } from './document-id.service';
+import { PilotPrismaAccessor } from '../saas/prisma/pilot-prisma.accessor';
+import { getPilotScope, PilotScope } from '../saas/prisma/tenant-pilot-scope';
 import { CreateDocumentDto } from './dto/create-document.dto';
 import { VerifyDocumentDto, VerifyActionEnum } from './dto/verify-document.dto';
 import { FilterDocumentsDto } from './dto/filter-documents.dto';
@@ -19,16 +21,54 @@ import { PaginatedResponse } from '../common/dto/pagination-response.dto';
 // Roles that receive document notifications
 const DOC_NOTIFY_ROLES = ['System Admin', 'HR Manager', 'Compliance Officer'];
 
+/**
+ * Phase 2.20 — Documents reads-first pilot.
+ *
+ * READ paths route through `pilot.client()` and spread
+ * `scope.tenantWhere()` when the pilot scope is active. Production
+ * default (flag off) is byte-identical to pre-2.20.
+ *
+ * WRITE / mutation paths (create / update / verify / renew /
+ * remove / upsertDocTypePermission / checkAndAutoCompleteStage)
+ * and storage-fetch paths (`createBulkDownloadArchive`) explicitly
+ * use `legacyPrisma` and remain annotated
+ * `phase220-excluded-mutation` / `phase220-excluded-download`
+ * until follow-up pilots audit them.
+ *
+ * `DocumentType` and `DocumentTypePermission` are tenant-less
+ * catalogs in the current schema; their reads/writes are
+ * `phase220-global`. Per-tenant catalog overrides are a Phase 3
+ * product question.
+ *
+ * Audit-log writes use `legacyPrisma` always (`phase220-audit-log`).
+ *
+ * The pilot scope is active iff:
+ *   - `TENANT_PRISMA_PILOT_ENABLED=true`
+ *   - `TENANT_PRISMA_PILOT_MODULES` empty or includes `documents`
+ *   - env classifies as SAFE_CLONE / SAFE_STAGING
+ *   - a tenant is in the active ALS frame
+ */
 @Injectable()
 export class DocumentsService {
   private readonly logger = new Logger(DocumentsService.name);
 
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly legacyPrisma: PrismaService,
     private readonly documentIdService: DocumentIdService,
     private readonly notifications: NotificationsService,
     private readonly storage: StorageService,
+    private readonly pilot: PilotPrismaAccessor,
   ) {}
+
+  /** Pilot-aware Prisma surface used by READ paths only. Mutation
+   *  paths use `legacyPrisma` directly. */
+  private get prisma(): PrismaService {
+    return this.pilot.client();
+  }
+
+  private scope(): PilotScope {
+    return getPilotScope(this.pilot, 'documents');
+  }
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -66,19 +106,19 @@ export class DocumentsService {
     try {
       switch (entityType) {
         case 'EMPLOYEE': {
-          const e = await this.prisma.employee.findUnique({ where: { id: entityId }, select: { firstName: true, lastName: true } });
+          const e = await this.legacyPrisma.employee.findUnique({ where: { id: entityId }, select: { firstName: true, lastName: true } }); // @tenant-reviewed: phase220-excluded-helper
           return e ? `${e.firstName} ${e.lastName}` : '';
         }
         case 'APPLICANT': {
-          const a = await this.prisma.applicant.findUnique({ where: { id: entityId }, select: { firstName: true, lastName: true } });
+          const a = await this.legacyPrisma.applicant.findUnique({ where: { id: entityId }, select: { firstName: true, lastName: true } }); // @tenant-reviewed: phase220-excluded-helper
           return a ? `${a.firstName} ${a.lastName}` : '';
         }
         case 'AGENCY': {
-          const ag = await this.prisma.agency.findUnique({ where: { id: entityId }, select: { name: true } });
+          const ag = await this.legacyPrisma.agency.findUnique({ where: { id: entityId }, select: { name: true } }); // @tenant-reviewed: phase220-excluded-helper
           return ag ? ag.name : '';
         }
         case 'USER': {
-          const u = await this.prisma.user.findUnique({ where: { id: entityId }, select: { firstName: true, lastName: true } });
+          const u = await this.legacyPrisma.user.findUnique({ where: { id: entityId }, select: { firstName: true, lastName: true } }); // @tenant-reviewed: phase220-excluded-helper
           return u ? `${u.firstName} ${u.lastName}` : '';
         }
         default: return '';
@@ -140,7 +180,8 @@ export class DocumentsService {
   async findAll(filter: FilterDocumentsDto) {
     const { page = 1, limit = 20, sortBy = 'createdAt', sortOrder = 'desc' } = filter;
     const skip  = (Number(page) - 1) * Number(limit);
-    const where = this.buildWhere(filter);
+    const t = this.scope().tenantWhere();
+    const where = { ...this.buildWhere(filter), ...t };
 
     // Validate sort field to prevent injection
     const allowedSorts = [
@@ -150,20 +191,20 @@ export class DocumentsService {
     const orderField = allowedSorts.includes(sortBy) ? sortBy : 'createdAt';
 
     const [items, total] = await Promise.all([
-      this.prisma.document.findMany({
+      this.prisma.document.findMany({ // @tenant-reviewed: phase220-pilot-scope
         where, skip, take: Number(limit),
         orderBy: { [orderField]: sortOrder },
         include: this.docInclude,
       }),
-      this.prisma.document.count({ where }),
+      this.prisma.document.count({ where }), // @tenant-reviewed: phase220-pilot-scope
     ]);
 
     // Batch-resolve owner names to avoid N+1 queries
     const empIds = [...new Set(items.filter(d => d.entityType === 'EMPLOYEE').map(d => d.entityId))];
     const appIds = [...new Set(items.filter(d => d.entityType === 'APPLICANT').map(d => d.entityId))];
     const [emps, apps] = await Promise.all([
-      empIds.length ? this.prisma.employee.findMany({ where: { id: { in: empIds } }, select: { id: true, firstName: true, lastName: true, employeeNumber: true } }) : [],
-      appIds.length ? this.prisma.applicant.findMany({ where: { id: { in: appIds } }, select: { id: true, firstName: true, lastName: true, candidateNumber: true, leadNumber: true } }) : [],
+      empIds.length ? this.prisma.employee.findMany({ where: { id: { in: empIds }, ...t }, select: { id: true, firstName: true, lastName: true, employeeNumber: true } }) : [], // @tenant-reviewed: phase220-pilot-scope
+      appIds.length ? this.prisma.applicant.findMany({ where: { id: { in: appIds }, ...t }, select: { id: true, firstName: true, lastName: true, candidateNumber: true, leadNumber: true } }) : [], // @tenant-reviewed: phase220-pilot-scope
     ]);
     const empMap = Object.fromEntries(emps.map(e => [e.id, e]));
     const appMap = Object.fromEntries(apps.map(a => [a.id, a]));
@@ -184,8 +225,11 @@ export class DocumentsService {
   }
 
   async findOne(id: string) {
-    const doc = await this.prisma.document.findUnique({
-      where: { id, deletedAt: null },
+    const t = this.scope().tenantWhere();
+    // findFirst (was findUnique) so we can additionally constrain by
+    // tenantId in pilot mode. Legacy behaviour identical when t={}.
+    const doc = await this.prisma.document.findFirst({ // @tenant-reviewed: phase220-pilot-scope
+      where: { id, deletedAt: null, ...t },
       include: {
         ...this.docInclude,
         renewals: { select: { id: true, docId: true, name: true, status: true, createdAt: true } },
@@ -201,8 +245,13 @@ export class DocumentsService {
    * and legacy `/uploads/...` handling stay in one place.
    */
   async readDocumentBytes(id: string): Promise<{ buffer: Buffer; mimeType: string; name: string }> {
-    const doc = await this.prisma.document.findUnique({
-      where: { id, deletedAt: null },
+    const t = this.scope().tenantWhere();
+    // findFirst (was findUnique) so the metadata lookup is tenant-
+    // scoped in pilot mode. The storage byte fetch uses only the URL
+    // returned by this lookup, so a cross-tenant id can never reach
+    // a foreign file's bytes.
+    const doc = await this.prisma.document.findFirst({ // @tenant-reviewed: phase220-pilot-scope
+      where: { id, deletedAt: null, ...t },
       select: { id: true, name: true, fileUrl: true, mimeType: true },
     });
     if (!doc) throw new NotFoundException({ code: 'DOCUMENT.NOT_FOUND', message: `Document ${id} not found`, params: { id } });
@@ -214,14 +263,15 @@ export class DocumentsService {
   async findByEntity(entityType: string, entityId: string, pagination: PaginationDto) {
     const { page = 1, limit = 50 } = pagination;
     const skip  = (Number(page) - 1) * Number(limit);
-    const where = { entityType: entityType as any, entityId, deletedAt: null };
+    const t = this.scope().tenantWhere();
+    const where = { entityType: entityType as any, entityId, deletedAt: null, ...t };
     const [items, total] = await Promise.all([
-      this.prisma.document.findMany({
+      this.prisma.document.findMany({ // @tenant-reviewed: phase220-pilot-scope
         where, skip, take: Number(limit),
         orderBy: { createdAt: 'desc' },
         include: this.docInclude,
       }),
-      this.prisma.document.count({ where }),
+      this.prisma.document.count({ where }), // @tenant-reviewed: phase220-pilot-scope
     ]);
     return PaginatedResponse.create(items, total, page, limit);
   }
@@ -233,7 +283,7 @@ export class DocumentsService {
     roleId: string,
     action: 'canUpload' | 'canView' | 'canEdit' | 'canDelete' | 'canRenew',
   ): Promise<boolean> {
-    const perm = await this.prisma.documentTypePermission.findUnique({
+    const perm = await this.prisma.documentTypePermission.findUnique({ // @tenant-reviewed: phase220-global
       where: { documentTypeId_roleId: { documentTypeId, roleId } },
     });
     // No specific permission row → fall back to allowed (general role check covers it)
@@ -266,7 +316,7 @@ export class DocumentsService {
         originalName: file.originalname,
         inline: true,
       });
-      await this.prisma.applicant.updateMany({ where: { id: entityId }, data: { photoUrl: upload.url } });
+      await this.legacyPrisma.applicant.updateMany({ where: { id: entityId }, data: { photoUrl: upload.url } }); // @tenant-reviewed: phase220-excluded-mutation
       return { id: null, photoUrl: upload.url, name, mimeType: file.mimetype, fileSize: file.size };
     }
 
@@ -292,7 +342,7 @@ export class DocumentsService {
       : sectionToTypeName[sectionKey ?? ''];
 
     const findByName = (n: string) =>
-      this.prisma.documentType.findFirst({ where: { name: { equals: n, mode: 'insensitive' } } });
+      this.prisma.documentType.findFirst({ where: { name: { equals: n, mode: 'insensitive' } } }); // @tenant-reviewed: phase220-global
 
     let docType: any = null;
 
@@ -304,12 +354,12 @@ export class DocumentsService {
       docType = await findByName(documentTypeName);
     }
     if (!docType && documentTypeName) {
-      docType = await this.prisma.documentType.findFirst({
+      docType = await this.prisma.documentType.findFirst({ // @tenant-reviewed: phase220-global
         where: { name: { contains: documentTypeName, mode: 'insensitive' } },
       });
     }
     if (!docType && documentTypeName) {
-      const all = await this.prisma.documentType.findMany();
+      const all = await this.prisma.documentType.findMany(); // @tenant-reviewed: phase220-global
       docType = all.find(t => documentTypeName.toLowerCase().includes(t.name.toLowerCase())) ?? null;
     }
     // Last-resort fallback: only use "Other" (or auto-create it) instead
@@ -320,7 +370,7 @@ export class DocumentsService {
       docType = await findByName('Other');
       if (!docType) {
         try {
-          docType = await this.prisma.documentType.create({
+          docType = await this.legacyPrisma.documentType.create({ // @tenant-reviewed: phase220-excluded-mutation
             data: { name: 'Other', category: 'OTHER', isActive: true },
           });
         } catch {
@@ -332,11 +382,11 @@ export class DocumentsService {
     if (!docType) throw new BadRequestException({ code: 'DOCUMENT.TYPES_NOT_CONFIGURED', message: 'No document types configured' });
 
     // Attribute to System Admin
-    let systemUser = await this.prisma.user.findFirst({
+    let systemUser = await this.legacyPrisma.user.findFirst({ // @tenant-reviewed: phase220-excluded-mutation
       where: { role: { name: 'System Admin' }, deletedAt: null },
       orderBy: { createdAt: 'asc' },
     });
-    if (!systemUser) systemUser = await this.prisma.user.findFirst({ where: { deletedAt: null }, orderBy: { createdAt: 'asc' } });
+    if (!systemUser) systemUser = await this.legacyPrisma.user.findFirst({ where: { deletedAt: null }, orderBy: { createdAt: 'asc' } }); // @tenant-reviewed: phase220-excluded-mutation
     if (!systemUser) throw new BadRequestException({ code: 'DOCUMENT.NO_ATTRIBUTION_USER', message: 'No users found to attribute upload to' });
 
     const safeDocType = this.sanitize(docType.name) || 'Others';
@@ -349,7 +399,7 @@ export class DocumentsService {
     const fileUrl = upload.url;
 
     // Generate doc ID inside a transaction
-    const document = await this.prisma.$transaction(async (tx) => {
+    const document = await this.legacyPrisma.$transaction(async (tx) => { // @tenant-reviewed: phase220-excluded-mutation
       const docId = await this.documentIdService.generate(entityId, 'APPLICANT', docType!.id, tx);
       return tx.document.create({
         data: {
@@ -374,7 +424,7 @@ export class DocumentsService {
   // ── Authenticated upload ───────────────────────────────────────────────────
 
   async create(dto: CreateDocumentDto, file: Express.Multer.File, uploadedById: string) {
-    const docType = await this.prisma.documentType.findUnique({ where: { id: dto.documentTypeId } });
+    const docType = await this.prisma.documentType.findUnique({ where: { id: dto.documentTypeId } }); // @tenant-reviewed: phase220-global
     if (!docType) throw new NotFoundException({ code: 'DOCUMENT.TYPE_NOT_FOUND', message: 'Document type not found' });
 
     const entityName  = await this.resolveEntityName(dto.entityType, dto.entityId);
@@ -387,7 +437,7 @@ export class DocumentsService {
     });
     const fileUrl = upload.url;
 
-    const doc = await this.prisma.$transaction(async (tx) => {
+    const doc = await this.legacyPrisma.$transaction(async (tx) => { // @tenant-reviewed: phase220-excluded-mutation
       const docId = await this.documentIdService.generate(dto.entityId, dto.entityType, dto.documentTypeId, tx);
       return tx.document.create({
         data: {
@@ -412,7 +462,7 @@ export class DocumentsService {
       });
     });
 
-    await this.prisma.auditLog.create({
+    await this.legacyPrisma.auditLog.create({ // @tenant-reviewed: phase220-audit-log
       data: {
         userId: uploadedById, action: 'UPLOAD', entity: 'Document', entityId: doc.id,
         changes: { docId: doc.docId, name: dto.name, entityType: dto.entityType, entityId: dto.entityId } as any,
@@ -423,7 +473,7 @@ export class DocumentsService {
       const expiry = new Date(dto.expiryDate);
       const daysUntilExpiry = Math.floor((expiry.getTime() - Date.now()) / 86400000);
       if (daysUntilExpiry <= 30) {
-        await this.prisma.complianceAlert.create({
+        await this.legacyPrisma.complianceAlert.create({ // @tenant-reviewed: phase220-excluded-mutation
           data: {
             entityType: dto.entityType as any, entityId: dto.entityId, documentId: doc.id,
             alertType: 'DOCUMENT_EXPIRY',
@@ -485,9 +535,9 @@ export class DocumentsService {
     if (updateData.expiryDate) data.expiryDate = new Date(updateData.expiryDate);
     // Prevent overwriting docId via update
     delete data.docId;
-    const doc = await this.prisma.document.update({ where: { id }, data, include: this.docInclude });
+    const doc = await this.legacyPrisma.document.update({ where: { id }, data, include: this.docInclude }); // @tenant-reviewed: phase220-excluded-mutation
     if (updatedById) {
-      await this.prisma.auditLog.create({
+      await this.legacyPrisma.auditLog.create({ // @tenant-reviewed: phase220-audit-log
         data: { userId: updatedById, action: 'UPDATE', entity: 'Document', entityId: id, changes: updateData as any },
       });
     }
@@ -510,7 +560,7 @@ export class DocumentsService {
     const isApprove = dto.action === VerifyActionEnum.VERIFY;
     const newStatus = isApprove ? 'VERIFIED' : 'REJECTED';
 
-    const updated = await this.prisma.document.update({
+    const updated = await this.legacyPrisma.document.update({ // @tenant-reviewed: phase220-excluded-mutation
       where: { id },
       data: {
         status:          newStatus as any,
@@ -525,14 +575,14 @@ export class DocumentsService {
     });
 
     if (isApprove) {
-      await this.prisma.complianceAlert.updateMany({
+      await this.legacyPrisma.complianceAlert.updateMany({ // @tenant-reviewed: phase220-excluded-mutation
         where: { documentId: id, status: 'OPEN' },
         data: { status: 'RESOLVED', resolvedAt: new Date(), resolvedById: verifiedById },
       });
       await this.checkAndAutoCompleteStage(doc.entityType as string, doc.entityId, verifiedById);
     }
 
-    await this.prisma.auditLog.create({
+    await this.legacyPrisma.auditLog.create({ // @tenant-reviewed: phase220-audit-log
       data: {
         userId: verifiedById,
         action: isApprove ? 'VERIFY_DOCUMENT' : 'REJECT_DOCUMENT',
@@ -579,7 +629,7 @@ export class DocumentsService {
       fileSize = file.size;
     }
 
-    const renewed = await this.prisma.$transaction(async (tx) => {
+    const renewed = await this.legacyPrisma.$transaction(async (tx) => { // @tenant-reviewed: phase220-excluded-mutation
       const docId = await this.documentIdService.generate(
         original.entityId, original.entityType as string, original.documentTypeId, tx,
       );
@@ -605,7 +655,7 @@ export class DocumentsService {
       });
     });
 
-    await this.prisma.auditLog.create({
+    await this.legacyPrisma.auditLog.create({ // @tenant-reviewed: phase220-audit-log
       data: {
         userId: renewedById, action: 'RENEW_DOCUMENT', entity: 'Document', entityId: renewed.id,
         changes: { renewedFromId: originalId, originalDocId: (original as any).docId, newDocId: renewed.docId } as any,
@@ -624,9 +674,9 @@ export class DocumentsService {
       // Allow System Admin via service; controller should check role before calling
     }
 
-    await this.prisma.document.update({ where: { id }, data: { deletedAt: new Date() } });
+    await this.legacyPrisma.document.update({ where: { id }, data: { deletedAt: new Date() } }); // @tenant-reviewed: phase220-excluded-mutation
     if (deletedById) {
-      await this.prisma.auditLog.create({
+      await this.legacyPrisma.auditLog.create({ // @tenant-reviewed: phase220-audit-log
         data: {
           userId: deletedById, action: 'DELETE', entity: 'Document', entityId: id,
           changes: { docId: (doc as any).docId, name: (doc as any).name } as any,
@@ -639,7 +689,7 @@ export class DocumentsService {
   // ── Bulk download as ZIP ───────────────────────────────────────────────────
 
   async createBulkDownloadArchive(ids: string[]): Promise<Buffer> {
-    const docs = await this.prisma.document.findMany({
+    const docs = await this.legacyPrisma.document.findMany({ // @tenant-reviewed: phase220-excluded-download
       where: { id: { in: ids }, deletedAt: null },
       include: { documentType: { select: { name: true } } },
     });
@@ -680,8 +730,9 @@ export class DocumentsService {
   async getExpiringDocuments(days = 30) {
     const threshold = new Date();
     threshold.setDate(threshold.getDate() + days);
-    return this.prisma.document.findMany({
-      where: { deletedAt: null, status: { notIn: ['REJECTED'] }, expiryDate: { not: null, lte: threshold, gte: new Date() } },
+    const t = this.scope().tenantWhere();
+    return this.prisma.document.findMany({ // @tenant-reviewed: phase220-pilot-scope
+      where: { deletedAt: null, status: { notIn: ['REJECTED'] }, expiryDate: { not: null, lte: threshold, gte: new Date() }, ...t },
       include: this.docInclude,
       orderBy: { expiryDate: 'asc' },
     });
@@ -690,7 +741,7 @@ export class DocumentsService {
   // ── Document-type permission CRUD (for Settings module) ────────────────────
 
   async getDocTypePermissions(documentTypeId: string) {
-    return this.prisma.documentTypePermission.findMany({
+    return this.prisma.documentTypePermission.findMany({ // @tenant-reviewed: phase220-global
       where: { documentTypeId },
       include: { role: { select: { id: true, name: true } } },
     });
@@ -701,7 +752,7 @@ export class DocumentsService {
     roleId: string,
     perms: Partial<{ canUpload: boolean; canView: boolean; canEdit: boolean; canDelete: boolean; canRenew: boolean }>,
   ) {
-    return this.prisma.documentTypePermission.upsert({
+    return this.legacyPrisma.documentTypePermission.upsert({ // @tenant-reviewed: phase220-excluded-mutation
       where: { documentTypeId_roleId: { documentTypeId, roleId } },
       create: { documentTypeId, roleId, ...perms },
       update: perms,
@@ -713,40 +764,40 @@ export class DocumentsService {
   private async checkAndAutoCompleteStage(entityType: string, entityId: string, actorId: string) {
     let currentStageId: string | null = null;
     if (entityType === 'EMPLOYEE') {
-      const s = await this.prisma.employeeStage.findFirst({ where: { employeeId: entityId, status: 'IN_PROGRESS' } });
+      const s = await this.legacyPrisma.employeeStage.findFirst({ where: { employeeId: entityId, status: 'IN_PROGRESS' } }); // @tenant-reviewed: phase220-excluded-mutation
       currentStageId = s?.stageId ?? null;
     } else if (entityType === 'APPLICANT') {
-      const a = await this.prisma.applicant.findUnique({ where: { id: entityId, deletedAt: null }, select: { currentWorkflowStageId: true } });
+      const a = await this.legacyPrisma.applicant.findUnique({ where: { id: entityId, deletedAt: null }, select: { currentWorkflowStageId: true } }); // @tenant-reviewed: phase220-excluded-mutation
       currentStageId = a?.currentWorkflowStageId ?? null;
     }
     if (!currentStageId) return;
 
-    const stage = await this.prisma.stageTemplate.findUnique({ where: { id: currentStageId }, select: { id: true, order: true, requirementsDocuments: true } });
+    const stage = await this.legacyPrisma.stageTemplate.findUnique({ where: { id: currentStageId }, select: { id: true, order: true, requirementsDocuments: true } }); // @tenant-reviewed: phase220-excluded-mutation
     if (!stage || stage.requirementsDocuments.length === 0) return;
 
-    const verifiedDocs = await this.prisma.document.findMany({
+    const verifiedDocs = await this.legacyPrisma.document.findMany({ // @tenant-reviewed: phase220-excluded-mutation
       where: { entityType: entityType as any, entityId, status: 'VERIFIED', deletedAt: null },
       include: { documentType: { select: { name: true } } },
     });
     const verifiedNames = new Set((verifiedDocs as any[]).map(d => d.documentType.name));
     if (!stage.requirementsDocuments.every(r => verifiedNames.has(r))) return;
 
-    const nextStage = await this.prisma.stageTemplate.findFirst({ where: { order: { gt: stage.order }, isActive: true }, orderBy: { order: 'asc' } });
+    const nextStage = await this.legacyPrisma.stageTemplate.findFirst({ where: { order: { gt: stage.order }, isActive: true }, orderBy: { order: 'asc' } }); // @tenant-reviewed: phase220-excluded-mutation
 
     if (entityType === 'EMPLOYEE') {
-      await this.prisma.employeeStage.updateMany({ where: { employeeId: entityId, stageId: currentStageId, status: 'IN_PROGRESS' }, data: { status: 'COMPLETED', completedAt: new Date() } });
+      await this.legacyPrisma.employeeStage.updateMany({ where: { employeeId: entityId, stageId: currentStageId, status: 'IN_PROGRESS' }, data: { status: 'COMPLETED', completedAt: new Date() } }); // @tenant-reviewed: phase220-excluded-mutation
       if (nextStage) {
-        await this.prisma.employeeStage.upsert({
+        await this.legacyPrisma.employeeStage.upsert({ // @tenant-reviewed: phase220-excluded-mutation
           where: { employeeId_stageId: { employeeId: entityId, stageId: nextStage.id } },
           create: { employeeId: entityId, stageId: nextStage.id, status: 'IN_PROGRESS', startedAt: new Date() },
           update: { status: 'IN_PROGRESS', startedAt: new Date(), completedAt: null },
         });
       }
     } else {
-      await this.prisma.applicant.update({ where: { id: entityId }, data: { currentWorkflowStageId: nextStage?.id ?? currentStageId } });
+      await this.legacyPrisma.applicant.update({ where: { id: entityId }, data: { currentWorkflowStageId: nextStage?.id ?? currentStageId } }); // @tenant-reviewed: phase220-excluded-mutation
     }
 
-    await this.prisma.auditLog.create({
+    await this.legacyPrisma.auditLog.create({ // @tenant-reviewed: phase220-audit-log
       data: {
         userId: actorId, action: 'WORKFLOW_STAGE_AUTO_COMPLETE',
         entity: entityType === 'EMPLOYEE' ? 'Employee' : 'Applicant', entityId,

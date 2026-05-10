@@ -50,6 +50,12 @@ and counted against the strict-mode threshold.
 | `phase217-pilot-scope` | Finance write sites narrowed in Phase 2.17 — `create` spreads `scope.tenantData()`; `removeDeduction` adds a parent tenant pre-check. | `src/finance/**` | 2.17 |
 | `phase217-pilot-scope-precheck` | Finance write sites that rely on the prior `findOne` (Phase 2.16, tenant-scoped) as the tenant gate; the by-id `update`/`soft-delete` is unreachable for foreign tenants. | `src/finance/**` | 2.17 |
 | `phase2171-helper-narrowed` | Finance helper sites (`attachEntityNames`, `resolvePersonIdentity`, `resolveEntityNameForNotif`) routed through the pilot client and spreading `scope.tenantWhere()`. Closes a real cross-tenant create vulnerability uncovered during Phase 2.17.1 real-DB execution. | `src/finance/**` | 2.17.1 |
+| `phase220-pilot-scope` | Documents read sites narrowed via `getPilotScope(...).tenantWhere()`. Includes `findAll`, `findOne`, `readDocumentBytes` metadata, `findByEntity`, `getExpiringDocuments`, owner-name enrichment. | `src/documents/**` | 2.20 |
+| `phase220-global` | Documents catalog reads (`DocumentType`, `DocumentTypePermission`) — no `tenantId` column today; per-tenant catalog deferred to Phase 3. | `src/documents/**` | 2.20 |
+| `phase220-excluded-mutation` | Documents write/mutation sites (`create`, `update`, `verify`, `renew`, `remove`, `upsertDocTypePermission`, `checkAndAutoCompleteStage`) kept on `legacyPrisma` until Phase 2.21+. | `src/documents/**` | 2.20 |
+| `phase220-excluded-helper` | Documents private owner-name helper (`resolveEntityName`) routed through `legacyPrisma`; called only from mutation/download flows. | `src/documents/**` | 2.20 |
+| `phase220-excluded-download` | Documents bulk-download / file-fetch read paths (`createBulkDownloadArchive`) kept on `legacyPrisma` until Phase 2.22+ (download pilot). | `src/documents/**` | 2.20 |
+| `phase220-audit-log` | Documents audit-log writes — global by design (deferred to cross-module audit phase). | `src/documents/**` | 2.20 |
 | `tenant-safe-report-runtime` | Reports engine uses `$queryRawUnsafe` with positional parameters and a registry-validated SQL string. | `src/reports/reports.service.ts` | 2.1 |
 
 ## 3. When annotations are allowed

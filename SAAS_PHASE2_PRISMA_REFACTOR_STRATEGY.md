@@ -409,6 +409,54 @@ The next phase is **Phase 2.18** (TBD): finance helper enrichment
 narrowing, cross-entity-reassignment guard on `update`, or the
 audit-log tenancy phase.
 
+## 11.3 Phase 2.17.1 — Real DB execution + helper guard close (shipped)
+
+`src/finance` harnesses ran against a real SAFE_CLONE for the
+first time. Found and closed a real cross-tenant create
+vulnerability in `resolvePersonIdentity` (helper looked up
+entities by id without tenant predicate). Three helpers narrowed:
+`attachEntityNames`, `resolvePersonIdentity`,
+`resolveEntityNameForNotif`. New tag: `phase2171-helper-narrowed`.
+Defensive scrub added to `update`. See
+`SAAS_PHASE2171_*` docs.
+
+## 11.4 Phase 2.18 — APPLICANT helper coverage (shipped)
+
+Added APPLICANT-typed real-DB harness coverage (cases 11+12+13).
+No service code change. See
+`SAAS_PHASE218_FINANCE_APPLICANT_HELPER_COVERAGE.md`.
+
+## 11.5 Phase 2.19 — AGENCY helper coverage (shipped)
+
+Added AGENCY-typed real-DB harness coverage (cases 14+15+16).
+Per-entity coverage matrix complete. See
+`SAAS_PHASE219_FINANCE_AGENCY_HELPER_COVERAGE.md`.
+
+## 11.6 Phase 2.20 — Documents reads-first pilot (shipped)
+
+`src/documents` reads-first split shipped:
+
+- 9 read sites narrowed via `getPilotScope(this.pilot,
+  'documents').tenantWhere()`.
+- `findOne` and `readDocumentBytes` migrated from `findUnique` to
+  `findFirst` to admit the tenant predicate.
+- 6 `DocumentType` / `DocumentTypePermission` catalog sites
+  annotated `phase220-global` (no `tenantId` column; per-tenant
+  catalog deferred to Phase 3).
+- All mutation, upload, download, audit, and helper sites kept on
+  `legacyPrisma` with explicit exclusion tags.
+
+New harnesses (19/19 cases PASS on real DB):
+`saas:phase2-documents-equivalence` (10), `…-isolation` (9 incl.
+source-level meta-assertion + `readDocumentBytes` cross-tenant
+gate verification).
+
+The pattern from finance carries over with no surprises. The next
+phase is **Phase 2.21** (documents mutation pilot — most complex
+write path encountered so far due to upload + transactional
+insert + storage side effects) OR a new module pilot
+(`vehicles`, `workflow`, `applicants`).
+
 ## 12. Hard rules
 
 - **Never enable `TENANT_PRISMA_ENFORCEMENT=true` in production until every P0/P1/P2 module has migrated.** Enabling it with a half-migrated codebase makes the un-migrated services start filtering by tenant when their callers don't expect it.

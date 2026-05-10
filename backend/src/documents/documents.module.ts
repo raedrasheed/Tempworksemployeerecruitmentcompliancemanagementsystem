@@ -3,14 +3,25 @@ import { DocumentsService } from './documents.service';
 import { DocumentsController } from './documents.controller';
 import { DocumentIdService } from './document-id.service';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { FeatureFlagsModule } from '../saas/feature-flags/feature-flags.module';
+import { TenantPrismaService } from '../saas/prisma/tenant-prisma.service';
+import { PilotPrismaAccessor } from '../saas/prisma/pilot-prisma.accessor';
 
+/**
+ * Phase 2.20 — Documents reads-first TenantPrisma pilot.
+ *
+ * Wires the pilot dependencies. Read paths in `DocumentsService` use
+ * `getPilotScope(this.pilot, 'documents')` which respects the
+ * `TENANT_PRISMA_PILOT_MODULES` allow-list. Mutation, upload,
+ * download, and storage paths remain on `legacyPrisma` and are
+ * byte-identical to pre-2.20.
+ */
 // Multer config now lives per-route (memoryStorage) — see
-// common/storage/multer.config.ts. Files stream straight to Spaces via
-// StorageService, so no global Multer dest is needed.
+// common/storage/multer.config.ts.
 @Module({
-  imports: [NotificationsModule],
+  imports: [NotificationsModule, FeatureFlagsModule],
   controllers: [DocumentsController],
-  providers: [DocumentsService, DocumentIdService],
+  providers: [DocumentsService, DocumentIdService, TenantPrismaService, PilotPrismaAccessor],
   exports: [DocumentsService, DocumentIdService],
 })
 export class DocumentsModule {}

@@ -249,3 +249,28 @@ Real-DB run (`SAFE_CLONE` `saas_phase1_fixture`):
 
 The per-entity coverage matrix is complete: every supported
 `entityType` (EMPLOYEE, APPLICANT, AGENCY) is proven on real DB.
+
+## 17. Phase 2.20 — Documents reads-first pilot (shipped)
+
+`src/documents` joins the pilot. Reads only; mutations/uploads/
+downloads/audit deferred.
+
+- 9 read sites: `phase220-pilot-scope` (`findAll`, `findOne`,
+  `readDocumentBytes` metadata, `findByEntity`,
+  `getExpiringDocuments`, owner-name enrichment).
+- 6 catalog sites: `phase220-global` (`DocumentType`,
+  `DocumentTypePermission`).
+- 32 mutation/helper/audit/download sites: `phase220-excluded-mutation`
+  / `phase220-excluded-helper` / `phase220-excluded-download` /
+  `phase220-audit-log`.
+
+`readDocumentBytes` metadata lookup is tenant-scoped in pilot
+mode; the storage byte fetch only ever sees URLs the metadata
+returned. Cross-tenant id ⇒ NotFoundException before any storage
+fetch (verified by isolation case 5).
+
+Real-DB run (`SAFE_CLONE` `saas_phase1_fixture`):
+**documents-equivalence 10/10 PASS** + **documents-isolation 9/9 PASS**.
+
+Production default unchanged: `tenantWhere()` collapses to `{}`
+when `TENANT_PRISMA_PILOT_ENABLED=false`.

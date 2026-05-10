@@ -31,35 +31,35 @@ DO $$
 DECLARE
   ta text;
   tb text;
-  emp_a uuid;
-  emp_b uuid;
+  emp_a text;
+  emp_b text;
 BEGIN
   SELECT id::text INTO ta FROM tenants ORDER BY name LIMIT 1;
   SELECT id::text INTO tb FROM tenants ORDER BY name OFFSET 1 LIMIT 1;
   IF ta IS NULL OR tb IS NULL THEN RETURN; END IF;
 
-  SELECT id INTO emp_a FROM employees WHERE "tenantId" = ta LIMIT 1;
-  SELECT id INTO emp_b FROM employees WHERE "tenantId" = tb LIMIT 1;
+  SELECT id::text INTO emp_a FROM employees WHERE "tenantId" = ta LIMIT 1;
+  SELECT id::text INTO emp_b FROM employees WHERE "tenantId" = tb LIMIT 1;
   IF emp_a IS NULL OR emp_b IS NULL THEN RETURN; END IF;
 
   -- Tenant A — three rows in Jan 2025
-  INSERT INTO attendance_records(id, "employeeId", date, status, "workingHours", "tenantId")
+  INSERT INTO attendance_records(id, "employeeId", date, status, "workingHours", "tenantId", "updatedAt")
     VALUES
-      (gen_random_uuid(), emp_a, DATE '2025-01-06', 'PRESENT', 8.0, ta),
-      (gen_random_uuid(), emp_a, DATE '2025-01-07', 'PRESENT', 7.5, ta),
-      (gen_random_uuid(), emp_a, DATE '2025-01-08', 'ABSENT',  0.0, ta)
+      (gen_random_uuid()::text, emp_a, DATE '2025-01-06', 'PRESENT', 8.0, ta, now()),
+      (gen_random_uuid()::text, emp_a, DATE '2025-01-07', 'PRESENT', 7.5, ta, now()),
+      (gen_random_uuid()::text, emp_a, DATE '2025-01-08', 'ABSENT',  0.0, ta, now())
     ON CONFLICT ("employeeId", date) DO NOTHING;
 
   -- Tenant B — two rows in Jan 2025
-  INSERT INTO attendance_records(id, "employeeId", date, status, "workingHours", "tenantId")
+  INSERT INTO attendance_records(id, "employeeId", date, status, "workingHours", "tenantId", "updatedAt")
     VALUES
-      (gen_random_uuid(), emp_b, DATE '2025-01-06', 'PRESENT', 8.0, tb),
-      (gen_random_uuid(), emp_b, DATE '2025-01-07', 'SICK',    0.0, tb)
+      (gen_random_uuid()::text, emp_b, DATE '2025-01-06', 'PRESENT', 8.0, tb, now()),
+      (gen_random_uuid()::text, emp_b, DATE '2025-01-07', 'SICK',    0.0, tb, now())
     ON CONFLICT ("employeeId", date) DO NOTHING;
 
   -- One NULL-tenant legacy row on tenant A's employee — must be
   -- excluded from pilot-mode reads.
-  INSERT INTO attendance_records(id, "employeeId", date, status, "workingHours", "tenantId")
-    VALUES (gen_random_uuid(), emp_a, DATE '2024-12-31', 'PRESENT', 8.0, NULL)
+  INSERT INTO attendance_records(id, "employeeId", date, status, "workingHours", "tenantId", "updatedAt")
+    VALUES (gen_random_uuid()::text, emp_a, DATE '2024-12-31', 'PRESENT', 8.0, NULL, now())
     ON CONFLICT ("employeeId", date) DO NOTHING;
 END $$;

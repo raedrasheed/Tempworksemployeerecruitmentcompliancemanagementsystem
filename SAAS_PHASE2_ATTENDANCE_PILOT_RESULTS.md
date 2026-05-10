@@ -15,14 +15,14 @@
 | Schema migration | none |
 | Production behaviour change with flags off | none |
 
-## Harness results
+## Harness results — confirmed against `saas_phase1_fixture` (Phase 2.47B)
 
 ```
 [attendance-equivalence] 12/12 PASS
 [attendance-isolation]   12/12 PASS
 ```
 
-## Cumulative regression chain
+## Cumulative regression chain — confirmed real-DB
 
 Phase 2.47 adds 24 cases to the cumulative chain:
 **527/527 PASS** (was 503/503 after Phase 2.46).

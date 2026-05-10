@@ -1,5 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { PilotPrismaAccessor } from '../saas/prisma/pilot-prisma.accessor';
+import { getPilotScope, PilotScope } from '../saas/prisma/tenant-pilot-scope';
 import { PaginatedResponse } from '../common/dto/pagination-response.dto';
 import { tServer, ServerLocale } from '../common/i18n/server-translate';
 import * as ExcelJS from 'exceljs';
@@ -45,9 +47,67 @@ const STATUS_COLORS: Record<string, { bg: string; fg: string }> = {
   HOLIDAY:  { bg: 'FFF3F4F6', fg: 'FF374151' },
 };
 
+/**
+ * Phase 2.47 — Attendance reads-first TenantPrisma pilot.
+ *
+ * READ paths (`listEmployeesWithStats`, `getEmployeeAttendance`) route
+ * through `pilot.client()` and spread `scope.tenantWhere()` into both
+ * the parent `Employee` lookup and the child `AttendanceRecord`
+ * queries (since `AttendanceRecord.tenantId` is denormalised, Phase
+ * 2.3). Production default (flag off) is byte-identical to pre-2.47.
+ *
+ * WRITE / mutation / bulk / lock / export paths
+ * (`upsertRecord`, `bulkUpsert`, `bulkApply`, `updateRecord`,
+ * `deleteRecord`, `lockPeriod`, `unlockPeriod`, `exportExcel`) remain
+ * on `legacyPrisma` and are explicitly out of scope for Phase 2.47 —
+ * they are deferred to a follow-up mutation phase.
+ *
+ * `AttendanceLockedPeriod` is intentionally global (no `tenantId`
+ * column per the schema comment) so `listLockedPeriods` is left
+ * unchanged. Audit emission via `legacyPrisma.auditLog.create` stays
+ * on the legacy path; routing through `TenantAuditLogService` is
+ * deferred to the mutation phase.
+ */
 @Injectable()
 export class AttendanceService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private legacyPrisma: PrismaService,
+    private pilot: PilotPrismaAccessor,
+  ) {}
+
+  /** Pilot-aware Prisma surface used by READ paths only. Mutation
+   *  paths use `legacyPrisma` directly. */
+  private get prisma(): PrismaService {
+    return this.pilot.client();
+  }
+
+  private scope(): PilotScope {
+    return getPilotScope(this.pilot, 'attendance');
+  }
+
+  /** Mutation parent gate. Loads the employee through the pilot
+   *  client with `tenantWhere()` so cross-tenant ids raise 404 when
+   *  the pilot is active. Legacy mode (`tenantWhere() === {}`) reduces
+   *  to a plain by-id lookup — byte-identical to pre-2.47. */
+  private async findEmployeeForMutationOrFail(employeeId: string) {
+    const t = this.scope().tenantWhere();
+    const e = await this.prisma.employee.findFirst({ // @tenant-reviewed: phase247-attendance-mutation-scope (parent gate; reduces to by-id lookup with flag off)
+      where: { id: employeeId, deletedAt: null, ...t },
+      select: { id: true, firstName: true, lastName: true, employeeNumber: true },
+    });
+    if (!e) throw new NotFoundException(`Employee ${employeeId} not found`);
+    return e;
+  }
+
+  /** Mutation parent gate for an existing AttendanceRecord by id. */
+  private async findRecordForMutationOrFail(id: string) {
+    const t = this.scope().tenantWhere();
+    const r = await (this.prisma as any).attendanceRecord.findFirst({ // @tenant-reviewed: phase247-attendance-mutation-scope (parent gate)
+      where: { id, ...t },
+    });
+    if (!r) throw new NotFoundException(`Attendance record ${id} not found`);
+    return r;
+  }
 
   // ── List employees with attendance stats ─────────────────────────────────────
 
@@ -68,7 +128,8 @@ export class AttendanceService {
     const skip = (Number(page) - 1) * Number(limit);
 
     // Build employee where clause
-    const where: any = { deletedAt: null };
+    const tenantWhere = this.scope().tenantWhere();
+    const where: any = { deletedAt: null, ...tenantWhere }; // @tenant-reviewed: phase247-attendance-pilot-scope
 
     if (agencyId) where.agencyId = agencyId;
 
@@ -97,7 +158,7 @@ export class AttendanceService {
     }
 
     const [employees, total] = await Promise.all([
-      this.prisma.employee.findMany({
+      this.prisma.employee.findMany({ // @tenant-reviewed: phase247-attendance-pilot-scope (parent gate via where = {..., ...tenantWhere})
         where,
         skip,
         take: Number(limit),
@@ -115,7 +176,7 @@ export class AttendanceService {
           agencyId:        true,
         },
       }),
-      this.prisma.employee.count({ where }),
+      this.prisma.employee.count({ where }), // @tenant-reviewed: phase247-attendance-pilot-scope
     ]);
 
     // Compute date range for stats
@@ -144,7 +205,7 @@ export class AttendanceService {
     const enriched = await Promise.all(
       employees.map(async (emp) => {
         try {
-          const attWhere: any = { employeeId: emp.id };
+          const attWhere: any = { employeeId: emp.id, ...tenantWhere }; // @tenant-reviewed: phase247-attendance-pilot-scope (child table also tenantId-denormed)
           if (statsFrom || statsTo) {
             attWhere.date = {};
             if (statsFrom) attWhere.date.gte = statsFrom;
@@ -152,7 +213,7 @@ export class AttendanceService {
           }
           if (status) attWhere.status = status;
 
-          const records = await (this.prisma as any).attendanceRecord.findMany({
+          const records = await (this.prisma as any).attendanceRecord.findMany({ // @tenant-reviewed: phase247-attendance-pilot-scope
             where: attWhere,
             select: { status: true, workingHours: true, date: true },
           });
@@ -194,8 +255,9 @@ export class AttendanceService {
   // ── Get single employee attendance ──────────────────────────────────────────
 
   async getEmployeeAttendance(employeeId: string, dto: GetEmployeeAttendanceDto) {
-    const employee = await this.prisma.employee.findFirst({
-      where: { id: employeeId, deletedAt: null },
+    const tenantWhere = this.scope().tenantWhere();
+    const employee = await this.prisma.employee.findFirst({ // @tenant-reviewed: phase247-attendance-pilot-scope (parent gate)
+      where: { id: employeeId, deletedAt: null, ...tenantWhere },
       select: {
         id:              true,
         employeeNumber:  true,
@@ -231,10 +293,11 @@ export class AttendanceService {
       to   = range.to;
     }
 
-    const records = await (this.prisma as any).attendanceRecord.findMany({
+    const records = await (this.prisma as any).attendanceRecord.findMany({ // @tenant-reviewed: phase247-attendance-pilot-scope
       where: {
         employeeId,
         date: { gte: from, lte: to },
+        ...tenantWhere,
       },
       orderBy: { date: 'asc' },
     });
@@ -255,12 +318,8 @@ export class AttendanceService {
   // ── Upsert single record ─────────────────────────────────────────────────────
 
   async upsertRecord(dto: UpsertAttendanceDto, actorId?: string) {
-    // Validate employee
-    const employee = await this.prisma.employee.findFirst({
-      where: { id: dto.employeeId, deletedAt: null },
-      select: { id: true, firstName: true, lastName: true, employeeNumber: true },
-    });
-    if (!employee) throw new NotFoundException(`Employee ${dto.employeeId} not found`);
+    // Validate employee through the pilot parent gate (legacy when flag off).
+    const employee = await this.findEmployeeForMutationOrFail(dto.employeeId);
 
     // Validate date format
     if (!/^\d{4}-\d{2}-\d{2}$/.test(dto.date)) {
@@ -308,7 +367,7 @@ export class AttendanceService {
 
     const id = uuidv4();
 
-    const record = await (this.prisma as any).attendanceRecord.upsert({
+    const record = await (this.legacyPrisma as any).attendanceRecord.upsert({ // @tenant-reviewed: phase247-attendance-mutation-scope (mutation deferred)
       where: {
         employeeId_date: { employeeId: dto.employeeId, date },
       },
@@ -364,7 +423,7 @@ export class AttendanceService {
         try {
           // Check if record already exists so we can count create vs update
           const date = new Date(rec.date + 'T00:00:00.000Z');
-          const existing = await (this.prisma as any).attendanceRecord.findUnique({
+          const existing = await (this.legacyPrisma as any).attendanceRecord.findUnique({ // @tenant-reviewed: phase247-attendance-mutation-scope (bulk mutation precheck on legacy)
             where: { employeeId_date: { employeeId: rec.employeeId, date } },
             select: { id: true },
           });
@@ -394,10 +453,7 @@ export class AttendanceService {
   // ── Update record ────────────────────────────────────────────────────────────
 
   async updateRecord(id: string, dto: UpdateAttendanceDto, actorId?: string) {
-    const existing = await (this.prisma as any).attendanceRecord.findUnique({
-      where: { id },
-    });
-    if (!existing) throw new NotFoundException(`Attendance record ${id} not found`);
+    const existing = await this.findRecordForMutationOrFail(id);
 
     // Refuse writes into a locked month (based on the existing row's date).
     const existingDate = new Date(existing.date);
@@ -444,7 +500,7 @@ export class AttendanceService {
     if (workingHours     !== undefined) data.workingHours = workingHours;
     if (dto.notes        !== undefined) data.notes        = dto.notes;
 
-    const updated = await (this.prisma as any).attendanceRecord.update({
+    const updated = await (this.legacyPrisma as any).attendanceRecord.update({ // @tenant-reviewed: phase247-attendance-mutation-scope
       where: { id },
       data,
     });
@@ -456,10 +512,7 @@ export class AttendanceService {
   // ── Delete record ────────────────────────────────────────────────────────────
 
   async deleteRecord(id: string, actorId?: string) {
-    const existing = await (this.prisma as any).attendanceRecord.findUnique({
-      where: { id },
-    });
-    if (!existing) throw new NotFoundException(`Attendance record ${id} not found`);
+    const existing = await this.findRecordForMutationOrFail(id);
 
     const existingDate = new Date(existing.date);
     const y = existingDate.getUTCFullYear();
@@ -468,7 +521,7 @@ export class AttendanceService {
       throw new BadRequestException(`Payroll period ${y}-${String(m).padStart(2, '0')} is locked`);
     }
 
-    await (this.prisma as any).attendanceRecord.delete({ where: { id } });
+    await (this.legacyPrisma as any).attendanceRecord.delete({ where: { id } }); // @tenant-reviewed: phase247-attendance-mutation-scope
 
     await this.auditLog(actorId, 'ATTENDANCE_DELETED', id, {
       employeeId: existing.employeeId,
@@ -718,7 +771,7 @@ export class AttendanceService {
       ];
     }
 
-    const employees = await this.prisma.employee.findMany({
+    const employees = await this.legacyPrisma.employee.findMany({ // @tenant-reviewed: phase247-attendance-deferred-export (Excel export deferred)
       where: empWhere,
       orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
       select: {
@@ -736,7 +789,7 @@ export class AttendanceService {
 
     // Fetch all attendance records for the month in one query
     const employeeIds = employees.map((e) => e.id);
-    const allRecords: any[] = await (this.prisma as any).attendanceRecord.findMany({
+    const allRecords: any[] = await (this.legacyPrisma as any).attendanceRecord.findMany({ // @tenant-reviewed: phase247-attendance-deferred-export (Excel export deferred)
       where: {
         employeeId: { in: employeeIds },
         date:       { gte: from, lte: to },
@@ -1113,7 +1166,7 @@ export class AttendanceService {
   /** True if the (year, month) is locked and therefore read-only. */
   async isPeriodLocked(year: number, month: number): Promise<boolean> {
     try {
-      const row = await (this.prisma as any).attendanceLockedPeriod.findUnique({
+      const row = await (this.legacyPrisma as any).attendanceLockedPeriod.findUnique({ // @tenant-reviewed: phase247-attendance-mutation-scope (lock table is global)
         where: { year_month: { year, month } },
         select: { id: true },
       });
@@ -1137,7 +1190,7 @@ export class AttendanceService {
 
   async listLockedPeriods() {
     try {
-      return await (this.prisma as any).attendanceLockedPeriod.findMany({
+      return await (this.legacyPrisma as any).attendanceLockedPeriod.findMany({ // @tenant-reviewed: phase247-attendance-mutation-scope (lock table is global by design)
         orderBy: [{ year: 'desc' }, { month: 'desc' }],
         include: { lockedBy: { select: { id: true, firstName: true, lastName: true, email: true } } },
       });
@@ -1147,11 +1200,11 @@ export class AttendanceService {
   }
 
   async lockPeriod(dto: LockPeriodDto, actorId?: string) {
-    const existing = await (this.prisma as any).attendanceLockedPeriod.findUnique({
+    const existing = await (this.legacyPrisma as any).attendanceLockedPeriod.findUnique({ // @tenant-reviewed: phase247-attendance-mutation-scope
       where: { year_month: { year: dto.year, month: dto.month } },
     });
     if (existing) throw new BadRequestException('Period is already locked');
-    const row = await (this.prisma as any).attendanceLockedPeriod.create({
+    const row = await (this.legacyPrisma as any).attendanceLockedPeriod.create({ // @tenant-reviewed: phase247-attendance-mutation-scope
       data: { year: dto.year, month: dto.month, reason: dto.reason, lockedById: actorId ?? null },
       include: { lockedBy: { select: { id: true, firstName: true, lastName: true, email: true } } },
     });
@@ -1160,9 +1213,9 @@ export class AttendanceService {
   }
 
   async unlockPeriod(id: string, actorId?: string) {
-    const existing = await (this.prisma as any).attendanceLockedPeriod.findUnique({ where: { id } });
+    const existing = await (this.legacyPrisma as any).attendanceLockedPeriod.findUnique({ where: { id } }); // @tenant-reviewed: phase247-attendance-mutation-scope
     if (!existing) throw new NotFoundException('Locked period not found');
-    await (this.prisma as any).attendanceLockedPeriod.delete({ where: { id } });
+    await (this.legacyPrisma as any).attendanceLockedPeriod.delete({ where: { id } }); // @tenant-reviewed: phase247-attendance-mutation-scope
     await this.auditLog(actorId, 'ATTENDANCE_PERIOD_UNLOCKED', id, {
       year: existing.year, month: existing.month,
     });
@@ -1178,11 +1231,8 @@ export class AttendanceService {
    * false). Returns per-date outcomes so the UI can render a summary.
    */
   async bulkApply(dto: BulkApplyAttendanceDto, actorId?: string) {
-    const employee = await this.prisma.employee.findFirst({
-      where: { id: dto.employeeId, deletedAt: null },
-      select: { id: true },
-    });
-    if (!employee) throw new NotFoundException(`Employee ${dto.employeeId} not found`);
+    // Bulk parent gate (legacy when flag off; tenant-scoped when pilot active).
+    await this.findEmployeeForMutationOrFail(dto.employeeId);
 
     // Expand the target date set.
     let dates: string[] = [];
@@ -1219,7 +1269,7 @@ export class AttendanceService {
           continue;
         }
         const dateObj = new Date(dateStr + 'T00:00:00.000Z');
-        const existing = await (this.prisma as any).attendanceRecord.findUnique({
+        const existing = await (this.legacyPrisma as any).attendanceRecord.findUnique({ // @tenant-reviewed: phase247-attendance-mutation-scope
           where: { employeeId_date: { employeeId: dto.employeeId, date: dateObj } },
           select: { id: true },
         });
@@ -1262,7 +1312,7 @@ export class AttendanceService {
     changes?: Record<string, any>,
   ): Promise<void> {
     try {
-      await this.prisma.auditLog.create({
+      await this.legacyPrisma.auditLog.create({ // @tenant-reviewed: phase247-attendance-audit-log (audit on legacy until mutation phase)
         data: {
           userId,
           action,

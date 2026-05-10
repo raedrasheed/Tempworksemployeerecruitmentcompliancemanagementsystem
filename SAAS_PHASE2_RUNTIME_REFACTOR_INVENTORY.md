@@ -838,3 +838,26 @@ type)` triple. No identity change, no schema migration. Pre-existing
 Tag: `phase246-notifications-internal-scan-dedup`.
 
 Real-DB: 13/13. Cumulative: **503/503**.
+
+## 44 — Attendance reads-first TenantPrisma pilot (Phase 2.47)
+
+`src/attendance` adopts the established TenantPrisma pilot pattern.
+Reads route through `pilot.client()` and add `scope().tenantWhere()`
+to both the `Employee` parent and the `AttendanceRecord` child query
+(both share a denormalised `tenantId` since Phase 2.3).
+
+Mutations stay on `legacyPrisma` but gain a pilot-aware parent gate
+that loads the parent through `pilot.client()` with `tenantWhere()`,
+so cross-tenant ids raise `NotFound` BEFORE the legacy mutation
+runs. Flag-off behaviour is byte-identical to pre-2.47.
+
+Excel export, audit-log routing, and locked-period scoping are
+deferred. `AttendanceLockedPeriod` stays global by design.
+
+Tags: `phase247-attendance-pilot-scope`,
+`phase247-attendance-mutation-scope`,
+`phase247-attendance-audit-log`,
+`phase247-attendance-deferred-export`.
+
+Real-DB: `attendance-equivalence` 12/12, `attendance-isolation`
+12/12. Cumulative: **527/527**.

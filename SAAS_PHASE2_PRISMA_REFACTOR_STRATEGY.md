@@ -1053,3 +1053,24 @@ Tag: `phase246-notifications-internal-scan-dedup`.
 
 Real-DB: `notifications-internal-scan-dedup` — 13/13 PASS.
 Cumulative: **503/503**.
+
+## 11.20 — Phase 2.47: Attendance reads-first TenantPrisma pilot
+
+`src/attendance` joins the `getPilotScope(this.pilot, 'attendance')`
+pattern. Read paths (`listEmployeesWithStats`, `getEmployeeAttendance`)
+spread `tenantWhere()` into both the `Employee` parent and the
+`AttendanceRecord` child query (denormalised `tenantId` since Phase
+2.3). Mutation paths (`upsertRecord`, `bulkApply`, `updateRecord`,
+`deleteRecord`) gain a pilot-aware parent gate
+(`findEmployeeForMutationOrFail` / `findRecordForMutationOrFail`)
+that reduces to a plain by-id lookup with the flag off — byte-
+identical legacy behaviour.
+
+`AttendanceLockedPeriod` is intentionally global; export-excel and
+audit emission are deferred to follow-up phases.
+
+Tags: `phase247-attendance-pilot-scope`, `phase247-attendance-mutation-scope`,
+`phase247-attendance-audit-log`, `phase247-attendance-deferred-export`.
+
+Real-DB: `attendance-equivalence` 12/12 + `attendance-isolation`
+12/12. Cumulative: **527/527**.

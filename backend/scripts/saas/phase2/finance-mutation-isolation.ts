@@ -328,6 +328,112 @@ async function main(): Promise<void> {
     } finally { await prisma.$disconnect(); }
   });
 
+  // 11 — APPLICANT cross-tenant create: pilot ON, tenant A passes
+  // tenant B's applicant id ⇒ NotFoundException, no row inserted.
+  await withFlags({ TENANT_PRISMA_PILOT_ENABLED: 'true', TENANT_PRISMA_PILOT_MODULES: 'finance' }, async () => {
+    const prisma = new PrismaService();
+    const flags = new FeatureFlagsService();
+    const pilot = new PilotPrismaAccessor(prisma, new TenantPrismaService(prisma, flags), flags);
+    const svc = makeService(prisma, pilot);
+    try {
+      const appB: any = await (prisma as any).applicant.findFirst({ where: { tenantId: tB } });
+      if (!appB) {
+        out.push({ name: 'pilot ON, tenant A: APPLICANT cross-tenant create raises NotFoundException', ok: false, detail: 'fixture missing tenant B applicant' });
+      } else {
+        const beforeCount = await (prisma as any).financialRecord.count({ where: { tenantId: tA } });
+        let leaked = false;
+        let errName = '';
+        try {
+          await withRequestContext({ requestId: newRequestId() }, async () => {
+            TenantContext.attach({ id: tA, slug: 'a', name: 'A', status: 'ACTIVE', region: 'eu' });
+            await svc.create({
+              entityType: 'APPLICANT', entityId: appB.id,
+              transactionDate: new Date().toISOString(), currency: 'EUR',
+              transactionType: 'TRAINING_COST',
+              companyDisbursedAmount: 11,
+              description: 'cross-tenant-applicant-attempt',
+            } as any);
+          });
+          leaked = true;
+        } catch (e) { errName = (e as Error).constructor.name; }
+        const afterCount = await (prisma as any).financialRecord.count({ where: { tenantId: tA } });
+        out.push({
+          name: 'pilot ON, tenant A: APPLICANT cross-tenant create raises NotFoundException; no row inserted',
+          ok: !leaked && errName === 'NotFoundException' && beforeCount === afterCount,
+          detail: leaked ? 'UNEXPECTED: created' : `err=${errName} before=${beforeCount} after=${afterCount}`,
+        });
+      }
+    } finally { await prisma.$disconnect(); }
+  });
+
+  // 12 — APPLICANT same-tenant create: pilot ON, tenant A passes its
+  // own applicant id ⇒ success, persists tenantId=A, applicantId set.
+  await withFlags({ TENANT_PRISMA_PILOT_ENABLED: 'true', TENANT_PRISMA_PILOT_MODULES: 'finance' }, async () => {
+    const prisma = new PrismaService();
+    const flags = new FeatureFlagsService();
+    const pilot = new PilotPrismaAccessor(prisma, new TenantPrismaService(prisma, flags), flags);
+    const svc = makeService(prisma, pilot);
+    try {
+      const appA: any = await (prisma as any).applicant.findFirst({ where: { tenantId: tA } });
+      if (!appA) {
+        out.push({ name: 'pilot ON, tenant A: APPLICANT same-tenant create succeeds', ok: false, detail: 'fixture missing tenant A applicant' });
+      } else {
+        const created = await withRequestContext({ requestId: newRequestId() }, async () => {
+          TenantContext.attach({ id: tA, slug: 'a', name: 'A', status: 'ACTIVE', region: 'eu' });
+          return svc.create({
+            entityType: 'APPLICANT', entityId: appA.id,
+            transactionDate: new Date().toISOString(), currency: 'EUR',
+            transactionType: 'TRAINING_COST',
+            companyDisbursedAmount: 12,
+            description: 'iso-applicant-same-tenant',
+          } as any);
+        });
+        createdIds.push(created.id);
+        const row: any = await (prisma as any).financialRecord.findUnique({ where: { id: created.id } });
+        const stageOk = row?.stageAtCreation === 'CANDIDATE' || row?.stageAtCreation === 'LEAD';
+        out.push({
+          name: 'pilot ON, tenant A: APPLICANT same-tenant create succeeds, tenantId=A, applicantId=appA, stageAtCreation set',
+          ok: row?.tenantId === tA && row?.applicantId === appA.id && stageOk,
+          detail: `tenantId=${row?.tenantId} applicantId=${row?.applicantId} stage=${row?.stageAtCreation}`,
+        });
+      }
+    } finally { await prisma.$disconnect(); }
+  });
+
+  // 13 — resolveEntityNameForNotif via update path: pilot ON, tenant A
+  // updates its own APPLICANT-typed record. The notification helper
+  // resolves the name from tenant A's applicant only. Cross-tenant
+  // applicant ids are NEVER reachable here because `existing` came
+  // from the tenant-scoped findOne. We assert the update succeeds and
+  // the persisted row keeps its tenant A applicantId (the helper does
+  // not corrupt the row).
+  await withFlags({ TENANT_PRISMA_PILOT_ENABLED: 'true', TENANT_PRISMA_PILOT_MODULES: 'finance' }, async () => {
+    const prisma = new PrismaService();
+    const flags = new FeatureFlagsService();
+    const pilot = new PilotPrismaAccessor(prisma, new TenantPrismaService(prisma, flags), flags);
+    const svc = makeService(prisma, pilot);
+    try {
+      const aRecord: any = await (prisma as any).financialRecord.findFirst({
+        where: { tenantId: tA, entityType: 'APPLICANT' },
+      });
+      if (!aRecord) {
+        out.push({ name: 'pilot ON, tenant A: APPLICANT-typed record update keeps applicantId tenant-scoped', ok: false, detail: 'fixture missing tenant A APPLICANT-typed record' });
+      } else {
+        const beforeApplicantId = aRecord.applicantId;
+        await withRequestContext({ requestId: newRequestId() }, async () => {
+          TenantContext.attach({ id: tA, slug: 'a', name: 'A', status: 'ACTIVE', region: 'eu' });
+          await svc.update(aRecord.id, { description: 'iso-applicant-update' } as any);
+        });
+        const after: any = await (prisma as any).financialRecord.findUnique({ where: { id: aRecord.id } });
+        out.push({
+          name: 'pilot ON, tenant A: APPLICANT-typed record update keeps applicantId tenant-scoped (notif helper safe)',
+          ok: after?.tenantId === tA && after?.applicantId === beforeApplicantId && after?.description === 'iso-applicant-update',
+          detail: `tenantId=${after?.tenantId} applicantId=${after?.applicantId} desc="${after?.description}"`,
+        });
+      }
+    } finally { await prisma.$disconnect(); }
+  });
+
   // 8 — pilot OFF: legacy still mutates without tenant gate
   await withFlags({ TENANT_PRISMA_PILOT_ENABLED: 'false' }, async () => {
     const prisma = new PrismaService();

@@ -178,7 +178,31 @@ See:
 - `SAAS_PHASE2171_FINANCE_CROSS_ENTITY_GUARD_REVIEW.md`
 - `SAAS_PHASE2171_FINANCE_HELPER_ENRICHMENT_REVIEW.md`
 
-## 8. Next steps — Phase 2.18
+## 7.3 Phase 2.18 — APPLICANT helper coverage completion
+
+The Phase 2.17.1 EMPLOYEE-only coverage gap is closed. New
+fixture extension `phase218-finance-applicant-seed.sql` seeds one
+applicant per tenant. Three new isolation cases:
+
+- **case 11**: pilot ON, tenant A, `create({ entityType: 'APPLICANT',
+  entityId: tenantB-applicant })` ⇒ `NotFoundException`, no row
+  inserted.
+- **case 12**: pilot ON, tenant A, `create({ entityType: 'APPLICANT',
+  entityId: tenantA-applicant })` ⇒ success, persists `tenantId=A`,
+  `applicantId=appA`, `stageAtCreation` derived from tier.
+- **case 13**: pilot ON, tenant A, `update` on the tenant A
+  APPLICANT-typed record keeps `applicantId` tenant-scoped — proves
+  the `resolveEntityNameForNotif` helper does not corrupt the row
+  when called inside an update flow.
+
+Real-DB results on the same SAFE_CLONE: **38/38 cases PASS**
+(9 + 7 + 9 + 13). No service code change required — the Phase
+2.17.1 narrowing already covered all three entityType branches
+symmetrically; Phase 2.18 is pure test coverage completion.
+
+See `SAAS_PHASE218_FINANCE_APPLICANT_HELPER_COVERAGE.md`.
+
+## 8. Next steps — Phase 2.19
 
 Remaining finance work:
 

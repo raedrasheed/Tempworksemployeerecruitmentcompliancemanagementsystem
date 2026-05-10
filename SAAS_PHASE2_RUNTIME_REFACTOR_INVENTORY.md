@@ -213,3 +213,19 @@ Production default (`TENANT_PRISMA_PILOT_ENABLED=false`) remains
 unchanged — every `tenantWhere()` spread collapses to `{}` and
 the defensive `delete` is a no-op against a DTO that does not
 contain those fields.
+
+## 15. Phase 2.18 — APPLICANT helper coverage completion
+
+Adds APPLICANT-entity coverage for the Phase 2.17.1 helper
+narrowing. Pure test coverage; no service change.
+
+- New fixture: `phase218-finance-applicant-seed.sql` (one
+  applicant per tenant + one APPLICANT-typed financial record for
+  tenant A).
+- New isolation cases 11, 12, 13:
+  - 11: APPLICANT cross-tenant create ⇒ NotFoundException (no row).
+  - 12: APPLICANT same-tenant create ⇒ success, tenantId=A.
+  - 13: APPLICANT-typed update keeps applicantId tenant-scoped.
+
+Real-DB run (`SAFE_CLONE` `saas_phase1_fixture`):
+**38/38 finance harness cases PASS** (9 + 7 + 9 + 13).

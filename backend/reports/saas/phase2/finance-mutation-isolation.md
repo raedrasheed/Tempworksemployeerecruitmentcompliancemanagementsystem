@@ -1,10 +1,10 @@
 # Phase 2.17 — Finance Mutation Isolation
 
-Generated: 2026-05-10T06:22:28.354Z
+Generated: 2026-05-10T06:29:04.930Z
 Environment: SAFE_CLONE (localhost + fixture pattern (db=saas_phase1_fixture))
 Tenants: A=`11111111-1111-1111-1111-111111111111` B=`22222222-2222-2222-2222-222222222222`
 
-- Cases passed: **10** / 10
+- Cases passed: **13** / 13
 - Cases failed: 0
 
 | # | Case | Result | Detail |
@@ -16,6 +16,9 @@ Tenants: A=`11111111-1111-1111-1111-111111111111` B=`22222222-2222-2222-2222-222
 | 5 | pilot ON, tenant A: addAttachment on tenant B record rejected (no upload performed) | PASS | NotFoundException |
 | 6 | pilot ON, tenant A: removeDeduction on tenant B deduction rejected, child row preserved | PASS | child preserved=true |
 | 7 | pilot ON, tenant A: getTotals on tenant B entity returns 0 records (mutations did not pollute) | PASS | count=0 disbursed=0 |
-| 8 | pilot ON, tenant A: create with tenant-B entityId raises NotFoundException; no row inserted (Phase 2.17.1 helper guard) | PASS | err=NotFoundException before=3 after=3 |
+| 8 | pilot ON, tenant A: create with tenant-B entityId raises NotFoundException; no row inserted (Phase 2.17.1 helper guard) | PASS | err=NotFoundException before=4 after=4 |
 | 9 | pilot ON, tenant A: update scrubs smuggled entityType/entityId/applicantId (defensive) | PASS | before={"entityType":"EMPLOYEE","entityId":"eeeeeeea-aaaa-aaaa-aaaa-aaaaaaaaaaaa","applicantId":null} after={"entityType":"EMPLOYEE","entityId":"eeeeeeea-aaaa-aaaa-aaaa-aaaaaaaaaaaa","applicantId":null} |
-| 10 | pilot OFF: legacy update on tenant B record still succeeds (tenant gate disengages) | PASS | mutated as expected |
+| 10 | pilot ON, tenant A: APPLICANT cross-tenant create raises NotFoundException; no row inserted | PASS | err=NotFoundException before=5 after=5 |
+| 11 | pilot ON, tenant A: APPLICANT same-tenant create succeeds, tenantId=A, applicantId=appA, stageAtCreation set | PASS | tenantId=11111111-1111-1111-1111-111111111111 applicantId=00000000-0000-0000-0000-0000000aa001 stage=CANDIDATE |
+| 12 | pilot ON, tenant A: APPLICANT-typed record update keeps applicantId tenant-scoped (notif helper safe) | PASS | tenantId=11111111-1111-1111-1111-111111111111 applicantId=00000000-0000-0000-0000-0000000aa001 desc="iso-applicant-update" |
+| 13 | pilot OFF: legacy update on tenant B record still succeeds (tenant gate disengages) | PASS | mutated as expected |

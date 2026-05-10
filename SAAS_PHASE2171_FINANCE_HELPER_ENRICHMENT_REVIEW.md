@@ -102,10 +102,15 @@ narrowing.
 
 ## 6. Unresolved follow-ups
 
-- The fixture's `applicants.tier` column is required by
+- ~~The fixture's `applicants.tier` column is required by
   `resolvePersonIdentity` for APPLICANT entityType; the harness
   exercises EMPLOYEE entities only. A future phase should add an
-  applicant-typed cross-tenant create case.
+  applicant-typed cross-tenant create case.~~ **Closed in
+  Phase 2.18** — see
+  `SAAS_PHASE218_FINANCE_APPLICANT_HELPER_COVERAGE.md`. Three new
+  isolation cases (11, 12, 13) cover APPLICANT cross-tenant
+  rejection, same-tenant success, and update-path notification
+  helper safety. 13/13 pass on real DB.
 - `getPersonRecords` already calls `findFirst` with tenant filter
   (Phase 2.16). It is unaffected by 2.17.1.
 - `checkAndNotifyHighBalance` (background path) remains

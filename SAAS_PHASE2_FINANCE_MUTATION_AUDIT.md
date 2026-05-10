@@ -163,6 +163,21 @@ Plus a defensive scrub in `update` strips any smuggled
 fields. See `SAAS_PHASE2171_FINANCE_CROSS_ENTITY_GUARD_REVIEW.md`
 and `SAAS_PHASE2171_FINANCE_HELPER_ENRICHMENT_REVIEW.md`.
 
+## 4.6 Phase 2.18 — APPLICANT entity coverage
+
+The 2.17.1 helper narrowing covered all three `entityType`
+branches symmetrically in code; Phase 2.18 adds the missing
+APPLICANT real-DB harness coverage (cases 11, 12, 13 in
+`finance-mutation-isolation`). New fixture extension:
+`phase218-finance-applicant-seed.sql` (idempotent). No service
+code change.
+
+| Entity branch | Code narrowed | Real-DB harness coverage |
+|---------------|:-------------:|:-----------------------:|
+| EMPLOYEE | 2.17.1 | case 9 (2.17.1) |
+| APPLICANT | 2.17.1 | **cases 11+12+13 (2.18)** |
+| AGENCY | 2.17.1 | deferred (no AGENCY-typed records seeded) |
+
 ## 5. Production safety
 
 With production defaults (`TENANT_PRISMA_PILOT_ENABLED=false`) every

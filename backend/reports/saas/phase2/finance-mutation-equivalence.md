@@ -1,6 +1,6 @@
 # Phase 2.17 — Finance Mutation Equivalence
 
-Generated: 2026-05-10T06:22:13.317Z
+Generated: 2026-05-10T06:28:49.446Z
 Environment: SAFE_CLONE (localhost + fixture pattern (db=saas_phase1_fixture))
 Tenant A: `11111111-1111-1111-1111-111111111111` · Employee A: `eeeeeeea-aaaa-aaaa-aaaa-aaaaaaaaaaaa`
 

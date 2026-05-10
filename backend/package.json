@@ -93,6 +93,7 @@
     "saas:phase240-compliance-real-scheduler": "ts-node scripts/saas/phase2/compliance-real-scheduler.ts",
     "saas:phase241-compliance-cron-framework": "ts-node scripts/saas/phase2/compliance-cron-framework.ts",
     "saas:phase243-compliance-notification-coupling": "ts-node scripts/saas/phase2/compliance-notification-coupling.ts",
+    "saas:phase244-compliance-scheduler-health": "ts-node scripts/saas/phase2/compliance-scheduler-health.ts",
     "saas:phase2-job-ads-equivalence": "ts-node scripts/saas/phase2/job-ads-equivalence.ts",
     "saas:phase2-job-ads-isolation": "ts-node scripts/saas/phase2/job-ads-isolation.ts",
     "saas:phase2-notifications-equivalence": "ts-node scripts/saas/phase2/notifications-equivalence.ts",

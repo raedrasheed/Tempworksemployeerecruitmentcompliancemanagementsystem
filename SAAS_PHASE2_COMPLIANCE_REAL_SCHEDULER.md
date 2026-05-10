@@ -139,3 +139,16 @@ Source-level invariants:
 - `ScheduleModule.forRoot()` registered exactly once in `app.module.ts`
 
 New harness: `compliance-cron-framework` — 14/14 PASS.
+
+---
+
+# Phase 2.44 addendum — health summary attached to ScheduledRunResult
+
+Phase 2.44 adds a `health: ScheduledHealthSummary` field to
+`ScheduledRunResult`. The summary is computed by
+`ComplianceScheduler.summarizeHealth(result)` and emitted once per
+tick as a structured `compliance.scheduler.health` log line.
+See `SAAS_PHASE2_COMPLIANCE_SCHEDULER_HEALTH.md`.
+
+`ComplianceCron.tick()` is unchanged. The cron handler still calls
+only `scheduler.runScheduledComplianceAlertGeneration()`.

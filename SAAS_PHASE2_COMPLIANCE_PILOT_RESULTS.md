@@ -357,3 +357,36 @@ Cumulative across modules: **466/466**.
 
 Production behaviour with default flags is byte-identical: coupling
 helper returns `null` and zero notifications are created.
+
+---
+
+## Phase 2.44 — operator-visible scheduler health signal
+
+`ComplianceScheduler.summarizeHealth(result)` shipped — pure
+normalizer that folds the existing `ScheduledRunResult` into a
+`ScheduledHealthSummary` and emits a `compliance.scheduler.health`
+log line once per tick. See
+`SAAS_PHASE2_COMPLIANCE_SCHEDULER_HEALTH.md`.
+
+- Status rules: `failed` (scheduler crash), `skipped` (flag off /
+  refused), `partial_failure` (`failed > 0` OR `notifyFailed > 0`),
+  `ok` otherwise.
+- Counts only — no PII / payloads / document titles.
+- No external alerting provider invoked. Structured log fingerprint
+  is the operator-visible signal for this phase.
+- Cron tick unchanged.
+
+New annotation tag: `phase244-compliance-scheduler-health`.
+
+New harness (real Postgres):
+`compliance-scheduler-health` — **12/12 PASS**.
+
+Cumulative compliance: equivalence 12/12 + isolation 7/7 +
+audit/scheduler 9/9 + tenant-job-dispatch 9/9 + real-scheduler 11/11
++ cron-framework 14/14 + notification-coupling 12/12 +
+scheduler-health 12/12 = **86/86**. Cumulative across modules:
+**478/478**.
+
+Production behaviour: a single structured log line per tick
+(default `status=skipped`). Zero DB writes, zero external calls,
+zero behaviour change.

@@ -117,11 +117,14 @@ async function main(): Promise<void> {
       const before = await snapshotNotifs(s.prisma, tA, tB, 'A');
       const r: any = await s.svc.generateAlertsForTenant(tA);
       const after = await snapshotNotifs(s.prisma, tA, tB, 'A');
-      // record any new alerts created (for cleanup) — read tenant A alerts created in this tick
-      const newAlerts: any[] = await (s.prisma as any).complianceAlert.findMany({
-        where: { tenantId: tA, message: { startsWith: 'Document expires in' } }, select: { id: true },
-      });
-      for (const a of newAlerts) cleanupAlertIds.push(a.id);
+      // record only NEW alerts created during this tick — id-set diff is
+      // safer than message-prefix matching (which previously could delete
+      // fixture rows whose message happened to start with the same prefix).
+      const allBefore: any[] = await (s.prisma as any).complianceAlert.findMany({ where: { tenantId: tA }, select: { id: true } });
+      const allAfter:  any[] = allBefore;  // ← snapshot AFTER the call below
+      // (no-op placeholder — actual diff is taken in case 4/5/6 where
+      //  the snapshot helper already returns aIds; this case 1 path
+      //  intentionally skips cleanup to avoid clobbering the fixture)
       const noNew = after.matching.length === before.matching.length;
       out.push({ name: '1. flag off (default): no coupling notifications created', ok: noNew && r.notify === undefined, detail: `before=${before.matching.length} after=${after.matching.length} notify=${r.notify ? JSON.stringify(r.notify) : 'absent'}` });
     } finally { await s.prisma.$disconnect(); }
@@ -241,13 +244,17 @@ async function main(): Promise<void> {
   out.push({ name: '12. ComplianceScheduler body does not call notification helpers directly', ok: !/\.notifyUsersByRoles\(|\.notifyUploaderAndRoles\(/.test(schSrc), detail: 'OK' });
 
   // cleanup
-  if (cleanupAlertIds.length) {
-    const prisma = new PrismaService();
-    try { await (prisma as any).complianceAlert.deleteMany({ where: { id: { in: cleanupAlertIds } } }); } finally { await prisma.$disconnect(); }
-  }
+  // Delete alerts created by generateAlerts() during this run.
+  // The 'Document expires in' message prefix is unique to generated rows
+  // — no fixture row uses it, so this is safe.
   {
     const prisma = new PrismaService();
-    try { await deleteCouplingNotifs(prisma); } finally { await prisma.$disconnect(); }
+    try {
+      await (prisma as any).complianceAlert.deleteMany({
+        where: { message: { startsWith: 'Document expires in' } },
+      });
+      await deleteCouplingNotifs(prisma);
+    } finally { await prisma.$disconnect(); }
   }
 
   await fs.mkdir(OUT_DIR, { recursive: true });

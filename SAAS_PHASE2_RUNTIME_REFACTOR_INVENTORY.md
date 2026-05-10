@@ -799,3 +799,14 @@ Tags: `phase243-compliance-notification-coupling`,
 `phase243-compliance-notification-deferred-provider`.
 
 Real-DB: 12/12. Cumulative: **466/466**.
+
+## 41. Phase 2.44 — Compliance scheduler health signal (shipped)
+
+`ComplianceScheduler` now computes a `ScheduledHealthSummary` and
+emits a `compliance.scheduler.health` log line per tick. Status
+rules: `skipped` / `ok` / `partial_failure` / `failed`. Counts only;
+no PII. External alerting providers not invoked.
+
+Tag: `phase244-compliance-scheduler-health`.
+
+Real-DB: 12/12. Cumulative: **478/478**.

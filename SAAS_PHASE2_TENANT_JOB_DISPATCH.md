@@ -179,3 +179,14 @@ The per-tenant `generateAlertsForTenant` path now optionally invokes
 INSIDE the same ALS frame. Default off
 (`COMPLIANCE_NOTIFY_ON_ALERT=false`). Dispatch helper unchanged.
 See `SAAS_PHASE2_COMPLIANCE_NOTIFICATION_COUPLING.md`.
+
+---
+
+## Phase 2.44 update — per-tenant notify forwarded into dispatch result
+
+The dispatch result type now optionally includes a per-tenant
+`notify` field forwarded from `generateAlertsForTenant`. The
+scheduler's `summarizeHealth(result)` folds these into
+`notifySucceeded` / `notifySkipped` / `notifyFailed` counters in the
+operator-visible health log. See
+`SAAS_PHASE2_COMPLIANCE_SCHEDULER_HEALTH.md`.

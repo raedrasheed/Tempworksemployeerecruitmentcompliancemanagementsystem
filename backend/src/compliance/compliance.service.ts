@@ -416,7 +416,15 @@ export class ComplianceService {
   async dispatchComplianceAlertGenerationForTenants(): Promise<{
     refused?: string;
     processed: number;
-    results: Array<{ tenantId: string; ok: boolean; total?: number; message?: string; error?: string }>;
+    results: Array<{
+      tenantId: string;
+      ok: boolean;
+      total?: number;
+      message?: string;
+      error?: string;
+      /** Phase 2.43 — coupling outcome forwarded from generateAlertsForTenant. */
+      notify?: { skipped?: string; refused?: string; notified?: number; error?: string };
+    }>;
   }> {
     if (!this.flags.tenantJobFanoutEnabled()) {
       return { refused: 'TENANT_JOB_FANOUT_ENABLED=false', processed: 0, results: [] };
@@ -439,11 +447,18 @@ export class ComplianceService {
       orderBy: { slug: 'asc' },
     });
 
-    const results: Array<{ tenantId: string; ok: boolean; total?: number; message?: string; error?: string }> = [];
+    const results: Array<{
+      tenantId: string;
+      ok: boolean;
+      total?: number;
+      message?: string;
+      error?: string;
+      notify?: { skipped?: string; refused?: string; notified?: number; error?: string };
+    }> = [];
     for (const t of tenants) {
       try {
-        const r = await this.generateAlertsForTenant(t.id);
-        results.push({ tenantId: t.id, ok: true, total: r.total, message: r.message });
+        const r: any = await this.generateAlertsForTenant(t.id);
+        results.push({ tenantId: t.id, ok: true, total: r.total, message: r.message, ...(r.notify ? { notify: r.notify } : {}) });
       } catch (e: any) {
         // Capture and continue — one tenant's failure must not leak into
         // another tenant's frame. ALS isolation is guaranteed by the

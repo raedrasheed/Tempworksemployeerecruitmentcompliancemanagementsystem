@@ -156,3 +156,16 @@ No data, no schema migration introduced. Configuration-only rollback.
   could add per-(tenantId, recipientUserId, dueDate) dedup.
 - **Configurable role list** — the recipient roles are hard-coded.
   A future phase could read them from a tenant-scoped setting.
+
+---
+
+# Phase 2.44 addendum — health summary surfaces notify counters
+
+`ComplianceScheduler.summarizeHealth(result)` now folds per-tenant
+`notify` outcomes into `notifySucceeded` / `notifySkipped` /
+`notifyFailed` counters and emits a `compliance.scheduler.health`
+log line with stable JSON. See `SAAS_PHASE2_COMPLIANCE_SCHEDULER_HEALTH.md`.
+
+The notification-coupling failure path
+(`notify.error`) now reports as `status='partial_failure'` with
+`notifyFailed >= 1` in the per-tick health log.

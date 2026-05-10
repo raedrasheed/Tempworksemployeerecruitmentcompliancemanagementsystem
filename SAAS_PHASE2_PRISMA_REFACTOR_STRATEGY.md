@@ -1007,3 +1007,19 @@ Tags: `phase243-compliance-notification-coupling`,
 
 Real-DB: `compliance-notification-coupling` — 12/12 PASS.
 Cumulative: **466/466**.
+
+## 11.17 Phase 2.44 — operator-visible scheduler health signal
+
+Adds a normalized `ScheduledHealthSummary` shape to
+`ComplianceScheduler.runScheduledComplianceAlertGeneration` and emits
+a single `compliance.scheduler.health` log line per tick.
+
+- Counts only (no PII).
+- No external alerting provider invoked.
+- Cron handler unchanged.
+- Status rules: `skipped` / `ok` / `partial_failure` / `failed`.
+
+Tag: `phase244-compliance-scheduler-health`.
+
+Real-DB: `compliance-scheduler-health` — 12/12 PASS. Cumulative:
+**478/478**.

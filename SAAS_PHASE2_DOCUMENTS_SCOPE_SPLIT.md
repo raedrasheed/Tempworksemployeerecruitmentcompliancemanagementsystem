@@ -54,7 +54,29 @@ What does NOT land:
 - No storage-key migration.
 - No download authz change.
 
-## 3. Phase 2.21+ — Mutation refactor (FUTURE)
+## 2.1 Phase 2.21 update — mutation pilot shipped
+
+Phase 2.21 narrowed the mutation surface. See
+`SAAS_PHASE2_DOCUMENTS_MUTATION_AUDIT.md`,
+`SAAS_PHASE2_DOCUMENTS_MUTATION_SCOPE_DECISION.md`, and
+`SAAS_PHASE2_DOCUMENTS_STORAGE_SIDE_EFFECT_REVIEW.md`.
+
+- `create` adds `assertEntityOwnedByActiveTenant` BEFORE storage
+  upload; persists `tenantId` via `scope.tenantData()`. Tag
+  `phase221-pilot-scope` + `phase221-storage-guard`.
+- `publicCreate` adds the same guard (active only when an ALS
+  frame is attached) + `tenantData()` spread.
+- `update` / `verify` / `remove` rely on the Phase 2.20
+  tenant-scoped `findOne` pre-check. Tag
+  `phase221-pilot-scope-precheck`.
+- `renew` same `findOne` gate + `tenantData()` on the new row.
+- `complianceAlert.create` spreads `tenantData()` (column denormed
+  in Phase 2.3).
+- `checkAndAutoCompleteStage`, `upsertDocTypePermission`,
+  `createBulkDownloadArchive`, `auditLog.create` remain
+  `phase220-*` (deferred / global / download).
+
+## 3. Phase 2.22+ — Download refactor (FUTURE)
 
 The `create` path is the most complex:
 

@@ -56,6 +56,9 @@ and counted against the strict-mode threshold.
 | `phase220-excluded-helper` | Documents private owner-name helper (`resolveEntityName`) routed through `legacyPrisma`; called only from mutation/download flows. | `src/documents/**` | 2.20 |
 | `phase220-excluded-download` | Documents bulk-download / file-fetch read paths (`createBulkDownloadArchive`) kept on `legacyPrisma` until Phase 2.22+ (download pilot). | `src/documents/**` | 2.20 |
 | `phase220-audit-log` | Documents audit-log writes — global by design (deferred to cross-module audit phase). | `src/documents/**` | 2.20 |
+| `phase221-pilot-scope` | Documents write sites narrowed in Phase 2.21 — `create` + `publicCreate` + `renew` spread `scope.tenantData()`; `complianceAlert.create` writes `tenantId`. | `src/documents/**` | 2.21 |
+| `phase221-pilot-scope-precheck` | Documents write sites that rely on the prior `findOne` (Phase 2.20, tenant-scoped) as the tenant gate; the by-id `update` / `verify` / `remove` / soft-delete is unreachable for foreign tenants. | `src/documents/**` | 2.21 |
+| `phase221-storage-guard` | Documents `assertEntityOwnedByActiveTenant` entity-validation lookups that gate `storage.uploadFile`. Closes a cross-tenant orphan-file attack vector. | `src/documents/**` | 2.21 |
 | `tenant-safe-report-runtime` | Reports engine uses `$queryRawUnsafe` with positional parameters and a registry-validated SQL string. | `src/reports/reports.service.ts` | 2.1 |
 
 ## 3. When annotations are allowed

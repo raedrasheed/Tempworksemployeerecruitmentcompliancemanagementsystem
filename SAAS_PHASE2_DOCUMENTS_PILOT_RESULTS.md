@@ -140,6 +140,57 @@ export TENANT_PRISMA_PILOT_ENABLED=false
 
 No DB state introduced; rollback is configuration only.
 
+## 10.1 Phase 2.21 — Mutation pilot delta
+
+Phase 2.21 extended the documents pilot to selected mutation
+paths. New annotations in `documents.service.ts`:
+
+- `create`: **STORAGE GUARD** — `assertEntityOwnedByActiveTenant`
+  validates `dto.entityId` belongs to the active tenant BEFORE
+  `storage.uploadFile`. `phase221-storage-guard` on the entity
+  lookup. The transactional insert spreads `scope.tenantData()`
+  ⇒ pilot mode persists `tenantId`. Tag `phase221-pilot-scope`.
+- `publicCreate`: tenant-narrowed applicant lookup (active only
+  when an ALS frame is attached, which the public flow normally
+  doesn't have). `tenantData()` spread on the document.create.
+  Defends future callers.
+- `update` / `verify` / `remove`: rely on the tenant-scoped
+  `findOne` from Phase 2.20. By-id mutation site retagged
+  `phase221-pilot-scope-precheck`.
+- `renew`: same `findOne` gate + `tenantData()` spread on the new
+  renewal row. Tag `phase221-pilot-scope`.
+- ComplianceAlert side effect on create: spreads `tenantData()`
+  into `complianceAlert.create.data` (column already exists from
+  Phase 2.3 denorm).
+- `checkAndAutoCompleteStage` and `auditLog.create` remain
+  `phase220-excluded-mutation` / `phase220-audit-log` (out of
+  scope; cross-module workflow + global audit).
+- `createBulkDownloadArchive` remains `phase220-excluded-download`.
+- `upsertDocTypePermission` remains `phase220-excluded-mutation`
+  (catalog mutation; Phase 3 product question).
+
+New harnesses (real-DB SAFE_CLONE):
+- `documents-mutation-equivalence` (10 cases): create shape,
+  tenantId NULL/set, storage upload count, update mutation,
+  validation parity, audit-log delta, soft-delete, renew creates
+  child row with tenantId=A, metadata read-after-write.
+- `documents-mutation-isolation` (9 cases): **storage guard**
+  blocks cross-tenant create with 0 uploads, same-tenant create
+  with 1 upload, cross-tenant update/verify/renew/remove all
+  rejected with NotFoundException AND no storage uploads on the
+  renew attempt, getExpiringDocuments stays clean,
+  legacy-mode unchanged, source-level meta-assertion of all
+  Phase 2.21 patterns.
+
+The existing `documents-isolation` harness's source-level
+meta-assertion still passes (mutation methods now match
+`phase221-pilot-scope` / `phase221-pilot-scope-precheck`
+patterns, which the read-side meta-assertion does not constrain).
+
+Real-DB results on the same SAFE_CLONE: **38/38 documents harness
+cases PASS** (10 + 9 + 10 + 9). Combined with finance: **79/79
+on real Postgres 16**.
+
 ## 11. Next recommended module
 
 The pattern is now proven on `roles` (2.6), `employee-work-history`

@@ -100,6 +100,8 @@
     "saas:phase2-finance-mutation-isolation":     "ts-node scripts/saas/phase2/finance-mutation-isolation.ts",
     "saas:phase2-documents-equivalence":          "ts-node scripts/saas/phase2/documents-equivalence.ts",
     "saas:phase2-documents-isolation":            "ts-node scripts/saas/phase2/documents-isolation.ts",
+    "saas:phase2-documents-mutation-equivalence": "ts-node scripts/saas/phase2/documents-mutation-equivalence.ts",
+    "saas:phase2-documents-mutation-isolation":   "ts-node scripts/saas/phase2/documents-mutation-isolation.ts",
     "saas:scan:annotations":                      "ts-node scripts/scan-annotations.ts",
     "saas:phase2-pilot-regression":               "ts-node scripts/saas/phase2/pilot-regression.ts",
     "saas:phase2-job-context-harness":            "ts-node scripts/saas/phase2/job-context-harness.ts",

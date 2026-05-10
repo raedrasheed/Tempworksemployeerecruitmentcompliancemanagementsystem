@@ -457,6 +457,40 @@ write path encountered so far due to upload + transactional
 insert + storage side effects) OR a new module pilot
 (`vehicles`, `workflow`, `applicants`).
 
+## 11.7 Phase 2.21 — Documents mutation pilot (shipped)
+
+`src/documents` mutation paths brought into the pilot:
+
+- `create` adds a STORAGE GUARD
+  (`assertEntityOwnedByActiveTenant`) BEFORE `storage.uploadFile`
+  + spreads `scope.tenantData()` into the new row. This closes a
+  cross-tenant orphan-file attack vector identified in the
+  storage side-effect review.
+- `publicCreate` adds the same guard (active only with ALS) +
+  `tenantData()` spread.
+- `update` / `verify` / `remove` rely on the Phase 2.20
+  tenant-scoped `findOne` pre-check.
+- `renew` same gate + `tenantData()` on the new renewal row.
+- `complianceAlert.create` writes `tenantId` (column denormed in
+  Phase 2.3).
+- `checkAndAutoCompleteStage` (cross-module workflow),
+  `upsertDocTypePermission` (catalog),
+  `createBulkDownloadArchive` (download), `auditLog.create`
+  (global) remain deferred.
+
+New tags: `phase221-pilot-scope`, `phase221-pilot-scope-precheck`,
+`phase221-storage-guard`. New harnesses
+(`documents-mutation-equivalence`, `documents-mutation-isolation`).
+Real-DB results: 38/38 documents cases PASS; 79/79 finance +
+documents combined. See
+`SAAS_PHASE2_DOCUMENTS_MUTATION_AUDIT.md`,
+`SAAS_PHASE2_DOCUMENTS_MUTATION_SCOPE_DECISION.md`,
+`SAAS_PHASE2_DOCUMENTS_STORAGE_SIDE_EFFECT_REVIEW.md`.
+
+The next phase is **Phase 2.22** (documents download pilot —
+`createBulkDownloadArchive` + storage authz) OR a new module
+pilot (`vehicles`, `workflow`, `applicants`).
+
 ## 12. Hard rules
 
 - **Never enable `TENANT_PRISMA_ENFORCEMENT=true` in production until every P0/P1/P2 module has migrated.** Enabling it with a half-migrated codebase makes the un-migrated services start filtering by tenant when their callers don't expect it.

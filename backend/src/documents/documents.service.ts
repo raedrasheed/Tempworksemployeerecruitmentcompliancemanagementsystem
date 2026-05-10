@@ -102,6 +102,43 @@ export class DocumentsService {
       .replace(/^_|_$/g, '');
   }
 
+  /**
+   * Phase 2.21 — STORAGE GUARD. Resolves the owner entity by id with
+   * the active pilot scope (tenant predicate when active). Raises
+   * NotFoundException if the entity does not belong to the caller's
+   * tenant — BEFORE the upload path touches object storage.
+   *
+   * Legacy mode (`tenantWhere()` returns `{}`) reduces to a plain
+   * by-id lookup — same behaviour as pre-2.21.
+   */
+  private async assertEntityOwnedByActiveTenant(entityType: string, entityId: string): Promise<void> {
+    const t = this.scope().tenantWhere();
+    let found: { id: string } | null = null;
+    switch (entityType) {
+      case 'EMPLOYEE':
+        found = await this.prisma.employee.findFirst({ where: { id: entityId, ...t }, select: { id: true } }); // @tenant-reviewed: phase221-storage-guard
+        break;
+      case 'APPLICANT':
+        found = await this.prisma.applicant.findFirst({ where: { id: entityId, ...t }, select: { id: true } }); // @tenant-reviewed: phase221-storage-guard
+        break;
+      case 'AGENCY':
+        found = await this.prisma.agency.findFirst({ where: { id: entityId, ...t }, select: { id: true } }); // @tenant-reviewed: phase221-storage-guard
+        break;
+      case 'USER':
+        found = await this.prisma.user.findFirst({ where: { id: entityId, ...t }, select: { id: true } }); // @tenant-reviewed: phase221-storage-guard
+        break;
+      default:
+        throw new BadRequestException({ code: 'DOCUMENT.ENTITY_TYPE_INVALID', message: `Invalid entityType ${entityType}` });
+    }
+    if (!found) {
+      throw new NotFoundException({
+        code: 'DOCUMENT.ENTITY_NOT_FOUND',
+        message: `Entity ${entityId} not found`,
+        params: { entityType, entityId },
+      });
+    }
+  }
+
   private async resolveEntityName(entityType: string, entityId: string): Promise<string> {
     try {
       switch (entityType) {
@@ -310,13 +347,22 @@ export class DocumentsService {
     // oldest type (typically Passport), producing a ghost entry in the
     // Documents tab like "Profile Photo · Passport".
     if (documentTypeName?.toLowerCase().includes('photo')) {
+      // Phase 2.21 — when an ALS tenant IS attached (rare for the
+      // public flow), validate the applicant belongs to it before
+      // touching storage. When no ALS tenant, the pilot scope is
+      // inactive and the lookup matches by id alone (legacy).
+      if (this.scope().active) {
+        const t = this.scope().tenantWhere();
+        const owner = await this.prisma.applicant.findFirst({ where: { id: entityId, ...t }, select: { id: true } }); // @tenant-reviewed: phase221-storage-guard
+        if (!owner) throw new NotFoundException({ code: 'DOCUMENT.ENTITY_NOT_FOUND', message: `Applicant ${entityId} not found`, params: { entityId } });
+      }
       const upload = await this.storage.uploadFile(file.buffer, {
         keyPrefix: `applicants/${entityId}/photos`,
         contentType: file.mimetype,
         originalName: file.originalname,
         inline: true,
       });
-      await this.legacyPrisma.applicant.updateMany({ where: { id: entityId }, data: { photoUrl: upload.url } }); // @tenant-reviewed: phase220-excluded-mutation
+      await this.legacyPrisma.applicant.updateMany({ where: { id: entityId }, data: { photoUrl: upload.url } }); // @tenant-reviewed: phase221-pilot-scope-precheck (storage guard above gates the photo write)
       return { id: null, photoUrl: upload.url, name, mimeType: file.mimetype, fileSize: file.size };
     }
 
@@ -381,6 +427,16 @@ export class DocumentsService {
     }
     if (!docType) throw new BadRequestException({ code: 'DOCUMENT.TYPES_NOT_CONFIGURED', message: 'No document types configured' });
 
+    // Phase 2.21 — STORAGE GUARD for the public flow. Active only
+    // when an ALS tenant is attached (rare). When no ALS tenant,
+    // pilot scope is inactive and behaviour is byte-identical to
+    // pre-2.21 public uploads.
+    if (this.scope().active) {
+      const t = this.scope().tenantWhere();
+      const owner = await this.prisma.applicant.findFirst({ where: { id: entityId, ...t }, select: { id: true } }); // @tenant-reviewed: phase221-storage-guard
+      if (!owner) throw new NotFoundException({ code: 'DOCUMENT.ENTITY_NOT_FOUND', message: `Applicant ${entityId} not found`, params: { entityId } });
+    }
+
     // Attribute to System Admin
     let systemUser = await this.legacyPrisma.user.findFirst({ // @tenant-reviewed: phase220-excluded-mutation
       where: { role: { name: 'System Admin' }, deletedAt: null },
@@ -399,7 +455,8 @@ export class DocumentsService {
     const fileUrl = upload.url;
 
     // Generate doc ID inside a transaction
-    const document = await this.legacyPrisma.$transaction(async (tx) => { // @tenant-reviewed: phase220-excluded-mutation
+    const tdataPub = this.scope().tenantData();
+    const document = await this.legacyPrisma.$transaction(async (tx) => { // @tenant-reviewed: phase221-pilot-scope (writes tenantId via scope.tenantData when ALS attached; no-op for public flow)
       const docId = await this.documentIdService.generate(entityId, 'APPLICANT', docType!.id, tx);
       return tx.document.create({
         data: {
@@ -413,6 +470,7 @@ export class DocumentsService {
           fileSize: file.size,
           status: 'PENDING',
           uploadedById: systemUser!.id,
+          ...tdataPub,
         },
         include: this.docInclude,
       });
@@ -427,6 +485,13 @@ export class DocumentsService {
     const docType = await this.prisma.documentType.findUnique({ where: { id: dto.documentTypeId } }); // @tenant-reviewed: phase220-global
     if (!docType) throw new NotFoundException({ code: 'DOCUMENT.TYPE_NOT_FOUND', message: 'Document type not found' });
 
+    // Phase 2.21 — STORAGE GUARD. Validate that the owner entity
+    // belongs to the active tenant BEFORE touching object storage.
+    // In legacy mode (`tenantWhere()` returns `{}`) the lookup matches
+    // by id alone — same as pre-2.21. In pilot mode a cross-tenant
+    // entityId raises 404 before any file bytes are uploaded.
+    await this.assertEntityOwnedByActiveTenant(dto.entityType, dto.entityId);
+
     const entityName  = await this.resolveEntityName(dto.entityType, dto.entityId);
     const safeDocType = this.sanitize(docType.name) || 'Others';
     const upload = await this.storage.uploadFile(file.buffer, {
@@ -437,7 +502,8 @@ export class DocumentsService {
     });
     const fileUrl = upload.url;
 
-    const doc = await this.legacyPrisma.$transaction(async (tx) => { // @tenant-reviewed: phase220-excluded-mutation
+    const tdata = this.scope().tenantData();
+    const doc = await this.legacyPrisma.$transaction(async (tx) => { // @tenant-reviewed: phase221-pilot-scope (writes tenantId via scope.tenantData; entity pre-validated)
       const docId = await this.documentIdService.generate(dto.entityId, dto.entityType, dto.documentTypeId, tx);
       return tx.document.create({
         data: {
@@ -457,6 +523,7 @@ export class DocumentsService {
           documentNumber: dto.documentNumber,
           notes:          dto.notes,
           uploadedById,
+          ...tdata,
         },
         include: this.docInclude,
       });
@@ -473,13 +540,14 @@ export class DocumentsService {
       const expiry = new Date(dto.expiryDate);
       const daysUntilExpiry = Math.floor((expiry.getTime() - Date.now()) / 86400000);
       if (daysUntilExpiry <= 30) {
-        await this.legacyPrisma.complianceAlert.create({ // @tenant-reviewed: phase220-excluded-mutation
+        await this.legacyPrisma.complianceAlert.create({ // @tenant-reviewed: phase221-pilot-scope (writes tenantId via scope.tenantData when ComplianceAlert.tenantId column lands)
           data: {
             entityType: dto.entityType as any, entityId: dto.entityId, documentId: doc.id,
             alertType: 'DOCUMENT_EXPIRY',
             severity:  daysUntilExpiry <= 7 ? 'CRITICAL' : daysUntilExpiry <= 14 ? 'HIGH' : 'MEDIUM',
             message:   `Document "${dto.name}" (${doc.docId}) expires in ${daysUntilExpiry} days`,
             status:    'OPEN', dueDate: expiry,
+            ...tdata,
           },
         });
         // Fire expiring-soon or already-expired notification
@@ -535,7 +603,7 @@ export class DocumentsService {
     if (updateData.expiryDate) data.expiryDate = new Date(updateData.expiryDate);
     // Prevent overwriting docId via update
     delete data.docId;
-    const doc = await this.legacyPrisma.document.update({ where: { id }, data, include: this.docInclude }); // @tenant-reviewed: phase220-excluded-mutation
+    const doc = await this.legacyPrisma.document.update({ where: { id }, data, include: this.docInclude }); // @tenant-reviewed: phase221-pilot-scope-precheck (findOne above is tenant-scoped)
     if (updatedById) {
       await this.legacyPrisma.auditLog.create({ // @tenant-reviewed: phase220-audit-log
         data: { userId: updatedById, action: 'UPDATE', entity: 'Document', entityId: id, changes: updateData as any },
@@ -560,7 +628,7 @@ export class DocumentsService {
     const isApprove = dto.action === VerifyActionEnum.VERIFY;
     const newStatus = isApprove ? 'VERIFIED' : 'REJECTED';
 
-    const updated = await this.legacyPrisma.document.update({ // @tenant-reviewed: phase220-excluded-mutation
+    const updated = await this.legacyPrisma.document.update({ // @tenant-reviewed: phase221-pilot-scope-precheck (findOne above is tenant-scoped)
       where: { id },
       data: {
         status:          newStatus as any,
@@ -575,7 +643,7 @@ export class DocumentsService {
     });
 
     if (isApprove) {
-      await this.legacyPrisma.complianceAlert.updateMany({ // @tenant-reviewed: phase220-excluded-mutation
+      await this.legacyPrisma.complianceAlert.updateMany({ // @tenant-reviewed: phase221-pilot-scope-precheck (parent document tenant-checked above)
         where: { documentId: id, status: 'OPEN' },
         data: { status: 'RESOLVED', resolvedAt: new Date(), resolvedById: verifiedById },
       });
@@ -629,7 +697,8 @@ export class DocumentsService {
       fileSize = file.size;
     }
 
-    const renewed = await this.legacyPrisma.$transaction(async (tx) => { // @tenant-reviewed: phase220-excluded-mutation
+    const tdataRenew = this.scope().tenantData();
+    const renewed = await this.legacyPrisma.$transaction(async (tx) => { // @tenant-reviewed: phase221-pilot-scope (findOne tenant gate above; renewal row carries tenantId via scope.tenantData)
       const docId = await this.documentIdService.generate(
         original.entityId, original.entityType as string, original.documentTypeId, tx,
       );
@@ -650,6 +719,7 @@ export class DocumentsService {
           notes:          dto.notes,
           renewedFromId:  originalId,
           uploadedById:   renewedById,
+          ...tdataRenew,
         },
         include: this.docInclude,
       });
@@ -674,7 +744,7 @@ export class DocumentsService {
       // Allow System Admin via service; controller should check role before calling
     }
 
-    await this.legacyPrisma.document.update({ where: { id }, data: { deletedAt: new Date() } }); // @tenant-reviewed: phase220-excluded-mutation
+    await this.legacyPrisma.document.update({ where: { id }, data: { deletedAt: new Date() } }); // @tenant-reviewed: phase221-pilot-scope-precheck (findOne above is tenant-scoped)
     if (deletedById) {
       await this.legacyPrisma.auditLog.create({ // @tenant-reviewed: phase220-audit-log
         data: {

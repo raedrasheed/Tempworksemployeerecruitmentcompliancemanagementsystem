@@ -274,3 +274,34 @@ Real-DB run (`SAFE_CLONE` `saas_phase1_fixture`):
 
 Production default unchanged: `tenantWhere()` collapses to `{}`
 when `TENANT_PRISMA_PILOT_ENABLED=false`.
+
+## 18. Phase 2.21 — Documents mutation pilot (shipped)
+
+`src/documents` mutation paths brought into the pilot:
+
+- `create`: STORAGE GUARD via `assertEntityOwnedByActiveTenant`
+  BEFORE `storage.uploadFile`. Persists `tenantId` via
+  `scope.tenantData()`. Tags `phase221-pilot-scope` +
+  `phase221-storage-guard`.
+- `publicCreate`: same guard pattern (active only when ALS frame
+  attached); `tenantData()` spread. Defends future callers.
+- `update` / `verify` / `remove`: by-id mutation gated by
+  Phase 2.20 tenant-scoped `findOne`. Tag
+  `phase221-pilot-scope-precheck`.
+- `renew`: same gate + `tenantData()` on new row.
+- `complianceAlert.create` writes `tenantId` (column denormed in
+  Phase 2.3).
+
+Real-DB run (`SAFE_CLONE` `saas_phase1_fixture`):
+- documents-equivalence:           10/10 PASS
+- documents-isolation:              9/9 PASS
+- documents-mutation-equivalence:  10/10 PASS
+- documents-mutation-isolation:     9/9 PASS
+
+Total **38/38 documents harness cases PASS**. Combined with
+finance: **79/79 on real Postgres 16**.
+
+Production default unchanged: `tenantWhere()` and `tenantData()`
+both collapse to `{}` when `TENANT_PRISMA_PILOT_ENABLED=false`.
+The new storage guard is a no-op in legacy mode (entity lookup by
+id alone).

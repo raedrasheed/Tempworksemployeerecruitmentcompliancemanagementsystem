@@ -61,6 +61,9 @@ const KNOWN_REASONS: ReadonlyArray<PolicyEntry> = [
   { tag: 'phase220-excluded-download',    allowedPaths: ['src/documents/'] },
   { tag: 'phase220-excluded-helper',      allowedPaths: ['src/documents/'] },
   { tag: 'phase220-audit-log',            allowedPaths: ['src/documents/'] },
+  { tag: 'phase221-pilot-scope',          allowedPaths: ['src/documents/'] },
+  { tag: 'phase221-pilot-scope-precheck', allowedPaths: ['src/documents/'] },
+  { tag: 'phase221-storage-guard',        allowedPaths: ['src/documents/'] },
   { tag: 'tenant-safe-report-runtime',    allowedPaths: ['src/reports/', 'src/saas/reports/'] },
   { tag: 'tenant-resolver-bootstrap',     allowedPaths: ['src/saas/tenancy/'] },
 ];

@@ -131,3 +131,66 @@ the report engine and EWH pilot contracts.
 Acceptance: legacy behaviour unchanged when pilot flag is off OR
 module not in allow-list; tenant-safe behaviour proven when scope is
 active.
+
+---
+
+# Phase 2.37 reaffirmation addendum
+
+Compliance was the **second** module ever piloted (Phase 2.8). The
+read paths are already routed through `PilotPrismaAccessor` and tagged
+`phase28-pilot-scope`. Phase 2.37 is the formal reads-first audit
++ harness reaffirmation.
+
+## A. Per-method classification (current state)
+
+| Method | Type | Phase 2.37 status |
+|---|---|---|
+| `getDashboard()` | READ | INCLUDED — `phase28-pilot-scope` (10 narrowed sites) |
+| `getAlerts(pagination, status?, severity?)` | READ | INCLUDED — `phase28-pilot-scope` |
+| `getEmployeeCompliance(employeeId)` | READ | INCLUDED — parent-employee + per-row `tenantWhere()` |
+| `getExpiringDocuments(days)` | READ | INCLUDED — `phase28-pilot-scope` |
+| `updateAlert(id, dto, userId?)` | WRITE | INCLUDED_WITH_GUARD — pre-check via `findFirst({ id, ...tenantWhere() })`; cross-tenant id raises 404. Audit on `legacyPrisma` (`phase28-audit-log`). |
+| `generateAlerts()` | BACKGROUND-LIKE WRITE | INCLUDED — scan filters by `tenantWhere()`; create spreads `tenantData()`. |
+
+## B. Models touched + tenancy
+
+`ComplianceAlert.tenantId` (Phase 2.3), `Document.tenantId`
+(Phase 2.20), `Employee.tenantId` (Phase 2.33), `WorkPermit.tenantId`,
+`Visa.tenantId`. Every read query and every mutation pre-check
+spreads `scope.tenantWhere()`.
+
+## C. Global / system call sites
+
+None. Compliance has no public/global read endpoints; every read is
+tenant-gated.
+
+## D. Background jobs
+
+`generateAlerts()` requires an ALS tenant frame to operate
+tenant-scoped. The controller path requires authenticated user
+context. A future scheduled-job refactor (Phase 2.38+) must
+explicitly attach an ALS frame per tenant when invoking
+`generateAlerts()`.
+
+## E. Notification side effects
+
+`ComplianceService` does not emit notifications today. Notification
+fan-out is handled by `notifications`.
+
+## F. Phase 2.37 scope
+
+- **Audit confirmation** of every read site as tenant-gated.
+- **Fixture fix**: `phase28-compliance-extension.sql` updated to
+  stamp `updatedAt = now()` on the seed inserts (a later schema
+  migration made the column NOT NULL).
+- **Doc updates**: `SAAS_PHASE2_COMPLIANCE_PILOT_RESULTS.md`,
+  Phase 2 strategy + inventory.
+
+## G. What is explicitly excluded
+
+- Audit emission routing through `TenantAuditLogService` — Phase 2.38+.
+- Scheduled background-scan ALS frame management — Phase 2.38+.
+- Alert-generation cross-module entity validation — both Documents
+  and Alerts already carry `tenantId`, so the cross-module risk is
+  already mitigated.
+- Notification fan-out — out of scope.

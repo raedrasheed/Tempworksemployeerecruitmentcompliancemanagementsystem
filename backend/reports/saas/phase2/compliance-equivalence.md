@@ -1,8 +1,8 @@
 # Phase 2.8 — Compliance Equivalence
 
-Generated: 2026-05-10T02:09:00.060Z
+Generated: 2026-05-10T13:35:18.195Z
 Environment: SAFE_CLONE (localhost + fixture pattern (db=saas_phase1_fixture))
-Tenant A: `11111111-1111-1111-1111-111111111111` · employee: `f2cae0af-4df6-46ea-8689-3c0576681de2`
+Tenant A: `11111111-1111-1111-1111-111111111111` · employee: `eeeeeeea-aaaa-aaaa-aaaa-aaaaaaaaaaaa`
 
 - Cases passed: **12** / 12
 - Cases failed: 0
@@ -16,8 +16,8 @@ Tenant A: `11111111-1111-1111-1111-111111111111` · employee: `f2cae0af-4df6-46e
 | 5 | getDashboard: legacy totalAlerts ≥ pilot totalAlerts (pilot filtered) | PASS | legacy=7 pilot=3 |
 | 6 | getDashboard: pilot summary excludes NULL-tenant + tenant B | PASS | pilot.totalAlerts=3 (expected 3 for tenant A) |
 | 7 | getAlerts: pilot total < legacy total (other tenants filtered) | PASS | legacy=7 pilot=3 |
-| 8 | getAlerts(status=OPEN): both modes count only OPEN status | PASS | legacy open=6/7 pilot open=3/3 |
-| 9 | getEmployeeCompliance: response shape preserved | PASS | legacy.docs=2 pilot.docs=2 |
+| 8 | getAlerts(status=OPEN): both modes count only OPEN status | PASS | legacy open=5/7 pilot open=2/3 |
+| 9 | getEmployeeCompliance: response shape preserved | PASS | legacy.docs=5 pilot.docs=2 |
 | 10 | getEmployeeCompliance: pilot openAlerts only counts tenant A | PASS | legacy=3 pilot=2 |
-| 11 | getExpiringDocuments: pilot result subset of legacy result | PASS | legacy=0 pilot=0 |
+| 11 | getExpiringDocuments: pilot result subset of legacy result | PASS | legacy=4 pilot=2 |
 | 12 | response shape preserved (summary/docs/alertsByStatus/recentAlerts keys present) | PASS | summary keys numeric in both |

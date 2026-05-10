@@ -244,23 +244,28 @@ BEGIN
   SELECT id INTO doc_b FROM documents WHERE "tenantId" = tb::text LIMIT 1;
 
   -- Same-shape rows on both tenants (cross-tenant collision check).
+  -- updatedAt is NOT NULL after the schema migration; explicitly stamp it.
   INSERT INTO compliance_alerts(id, "entityType", "entityId", "tenantId",
-                                "alertType", severity, message, status, "dueDate")
+                                "alertType", severity, message, status, "dueDate", "updatedAt")
   VALUES
     -- Tenant A — keep the existing rows from phase24; add one extra
     -- for the count comparison.
     ('00000000-0000-0000-0000-00000000c001', 'EMPLOYEE', emp_a, ta::text,
-     'doc.expiry', 'CRITICAL', 'A: critical doc expires soon', 'OPEN', DATE '2026-06-01'),
+     'doc.expiry', 'CRITICAL', 'A: critical doc expires soon', 'OPEN', DATE '2026-06-01', now()),
+    ('00000000-0000-0000-0000-00000000c002', 'EMPLOYEE', emp_a, ta::text,
+     'doc.missing', 'MEDIUM',  'A: medium', 'OPEN', DATE '2026-06-15', now()),
+    ('00000000-0000-0000-0000-00000000c003', 'EMPLOYEE', emp_a, ta::text,
+     'doc.expiry', 'LOW',      'A: resolved alert', 'RESOLVED', DATE '2026-04-01', now()),
     -- Tenant B — fresh rows.
     ('00000000-0000-0000-0000-00000000c101', 'EMPLOYEE', emp_b, tb::text,
-     'doc.expiry', 'HIGH',     'B: doc expires soon',       'OPEN', DATE '2026-06-01'),
+     'doc.expiry', 'HIGH',     'B: doc expires soon',       'OPEN', DATE '2026-06-01', now()),
     ('00000000-0000-0000-0000-00000000c102', 'EMPLOYEE', emp_b, tb::text,
-     'doc.expiry', 'CRITICAL', 'B: critical doc expires soon', 'OPEN', DATE '2026-06-01'),
+     'doc.expiry', 'CRITICAL', 'B: critical doc expires soon', 'OPEN', DATE '2026-06-01', now()),
     ('00000000-0000-0000-0000-00000000c103', 'EMPLOYEE', emp_b, tb::text,
-     'doc.missing', 'MEDIUM',  'B: missing required doc',    'RESOLVED', DATE '2026-05-01'),
+     'doc.missing', 'MEDIUM',  'B: missing required doc',    'RESOLVED', DATE '2026-05-01', now()),
     -- Legacy NULL-tenant row to prove the pilot filter excludes NULL tenants.
     ('00000000-0000-0000-0000-00000000c999', 'EMPLOYEE', emp_a, NULL,
-     'doc.expiry', 'LOW',      'legacy NULL-tenant alert',  'OPEN', DATE '2026-07-01')
+     'doc.expiry', 'LOW',      'legacy NULL-tenant alert',  'OPEN', DATE '2026-07-01', now())
   ON CONFLICT (id) DO NOTHING;
 END $do$;
 

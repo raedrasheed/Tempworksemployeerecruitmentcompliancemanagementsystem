@@ -872,3 +872,26 @@ across modules: **371/371**.
 The agencies module has no remaining mutation paths within its
 current method surface. System-agency, parent-child, and isDefault
 semantics are Phase 3.
+
+## 11.10 Phase 2.37 — compliance reads-first reaffirmation
+
+Compliance was the **second** module ever piloted (Phase 2.8). Phase
+2.37 is the formal reads-first audit + harness reaffirmation:
+
+- Read paths (`getDashboard`, `getAlerts`, `getEmployeeCompliance`,
+  `getExpiringDocuments`) and the gated write paths (`updateAlert`
+  pre-check, `generateAlerts` scan + create) are all already
+  routed through `PilotPrismaAccessor` and tagged
+  `phase28-pilot-scope`.
+- The `phase28-compliance-extension.sql` fixture seed was patched so
+  it stamps `updatedAt = now()` on insert (a later schema migration
+  made the column NOT NULL).
+- Real-DB: equivalence 12/12 + isolation 7/7 = 19/19. Cumulative
+  across modules: **390/390**.
+
+Eight reads-first modules (finance, documents, vehicles, workflow,
+applicants, employees, agencies, compliance) are now formally
+verified. The pattern stands.
+
+Audit emission for `updateAlert` and scheduled background-scan ALS
+frame attach are reserved for Phase 2.38+.

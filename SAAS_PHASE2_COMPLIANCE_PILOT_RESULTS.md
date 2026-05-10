@@ -152,3 +152,55 @@ already otherwise blocked.
 `getPilotScope()` returns inactive and the spreads are no-ops. Every
 legacy SQL is byte-for-byte the same as before this PR. Module allow-
 list is irrelevant when the global flag is off.
+
+---
+
+## Phase 2.37 reaffirmation
+
+Compliance was the **second** module ever piloted (Phase 2.8). Phase
+2.37 is the formal reads-first reaffirmation:
+
+- All 4 read methods (`getDashboard`, `getAlerts`,
+  `getEmployeeCompliance`, `getExpiringDocuments`) and the 2 write
+  methods (`updateAlert` with parent-gate pre-check, `generateAlerts`
+  with `tenantWhere()` scan + `tenantData()` create) were verified
+  on the current schema.
+- The Phase 2.8 fixture seed was patched: `updatedAt` is now stamped
+  on insert so it survives the later NOT NULL migration. The seed
+  remains idempotent (`ON CONFLICT (id) DO NOTHING`).
+
+Real-DB results on the patched fixture:
+- `compliance-equivalence` — **12/12 PASS**
+- `compliance-isolation`   — **7/7 PASS**
+
+Cumulative across modules (post-Phase 2.36): **371/371**. With
+compliance fully verified: finance + documents + vehicles + workflow
++ applicants + audit-log + employees + agencies + compliance =
+**390/390** on real Postgres 16.
+
+Pattern reusability stands: the compliance pilot is the same shape as
+every subsequent reads-first pilot (finance / documents / vehicles /
+workflow / applicants / employees / agencies). The eight reads-first
+modules now all compose cleanly.
+
+### Lessons
+
+- **`generateAlerts` already covers the cross-module read+write
+  cycle.** The scan filters by `tenantWhere()` and the create
+  spreads `tenantData()` — proves the pattern works when a single
+  method does both the read and the write.
+- **Audit routing through `TenantAuditLogService` is a future
+  Phase 2.38+ migration** — the existing `phase28-audit-log` tag
+  points at the legacy emission path until the audit pilot adopts
+  compliance.
+- **Background-job ALS frame attach** is the only remaining gap.
+  When/if `generateAlerts` is wired to a scheduler, the per-tenant
+  frame attach must be explicit.
+
+### Blockers before mutation-write extension
+
+- Audit emission for `updateAlert` not yet routed through the shared
+  helper.
+- Scheduled background scans need explicit per-tenant ALS frame
+  management.
+- Bulk remediation flows are not yet defined by product.

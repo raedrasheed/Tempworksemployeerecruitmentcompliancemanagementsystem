@@ -685,3 +685,25 @@ Tags introduced: `phase236-pilot-scope`, `phase236-pilot-scope-precheck`,
 
 Real-DB: equivalence 10/10 + isolation 9/9 = 19/19. Cumulative:
 **371/371**.
+
+## 34. Phase 2.37 — Compliance reads-first reaffirmation (shipped)
+
+Compliance was piloted in Phase 2.8 — Phase 2.37 is the formal
+reads-first audit + harness reaffirmation.
+
+- All read paths gated by `PilotPrismaAccessor.client()` +
+  `scope.tenantWhere()` (10 sites in `getDashboard`, plus
+  `getAlerts`, `getEmployeeCompliance`, `getExpiringDocuments`).
+- `updateAlert` parent-gate pre-check (`findFirst({ id, ...tenantWhere() })`).
+- `generateAlerts` scan filters by `tenantWhere()`; create spreads
+  `tenantData()`.
+- Audit emission still on `legacyPrisma` (deferred to Phase 2.38+
+  audit-routing pass).
+- Fixture seed patched for the post-migration `updatedAt NOT NULL`
+  constraint.
+
+Tags: `phase28-pilot-scope`, `phase28-audit-log` (no new tags
+introduced this phase).
+
+Real-DB: equivalence 12/12 + isolation 7/7 = 19/19. Cumulative:
+**390/390**.

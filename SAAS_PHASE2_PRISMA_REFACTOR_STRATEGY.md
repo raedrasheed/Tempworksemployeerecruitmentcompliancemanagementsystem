@@ -693,6 +693,32 @@ largest mutation surface piloted yet, including the
 `convertToEmployee` cross-module transactional conversion) OR
 the cross-module audit-log tenancy phase.
 
+## 11.15 Phase 2.29 — Applicants mutation pilot (shipped)
+
+Closes the applicants reads-then-writes split. New helpers
+(`findAgencyOrFail`); `create` + `convertToEmployee.employee.create`
+write `tenantId` via `scope.tenantData`; 30+ by-id mutations
+retagged `phase229-pilot-scope-precheck`; `bulkAction` adds
+pre-filter (`phase229-bulk-filter`); `reviewDeleteRequest` uses
+parent applicant relation filter.
+
+Deferred: `publicSubmit` (DEFERRED_PUBLIC_ENTRY — no ALS frame),
+`uploadPhoto` (DEFERRED_HIGH_RISK — storage upload precedes
+tenant gate; Phase 2.30+).
+
+Conversion semantics UNCHANGED. Email uniqueness UNCHANGED.
+Agency-scope filter UNCHANGED.
+
+Real-DB results: applicants-equivalence 12/12 +
+applicants-isolation 10/10 + applicants-mutation-equivalence
+10/10 + applicants-mutation-isolation 11/11 = **43/43 cases
+PASS**. Cumulative finance + documents + vehicles + workflow +
+applicants: **245/245** on real Postgres 16.
+
+Five modules now fully proven on real DB across reads + writes.
+The next phase is **Phase 2.30** (applicants storage path:
+`uploadPhoto`) OR the cross-module audit-log tenancy phase.
+
 ## 12. Hard rules
 
 - **Never enable `TENANT_PRISMA_ENFORCEMENT=true` in production until every P0/P1/P2 module has migrated.** Enabling it with a half-migrated codebase makes the un-migrated services start filtering by tenant when their callers don't expect it.

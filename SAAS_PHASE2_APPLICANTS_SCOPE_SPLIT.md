@@ -44,7 +44,30 @@ What does NOT land:
 - No email-uniqueness change.
 - No external-actor agency-filter behaviour change.
 
-## 3. Phase 2.29+ — Mutation refactor (FUTURE)
+## 2.1 Phase 2.29 update — mutation pilot shipped
+
+Phase 2.29 closes the applicants reads-then-writes split. See
+`SAAS_PHASE2_APPLICANTS_MUTATION_AUDIT.md` and
+`SAAS_PHASE2_APPLICANTS_MUTATION_SCOPE_DECISION.md`.
+
+- New `findAgencyOrFail` helper (tenant-scoped via pilot client).
+- `create` writes `tenantId` via `scope.tenantData()`.
+- `update` / `remove` / `updateStatus` / `setCurrentStage` /
+  `approveApplicant` / `rejectApplicant` / `upsertFinancialProfile` /
+  `convertLeadToCandidate` / `reassignAgency` / `requestDelete`
+  rely on the Phase 2.28 tenant-scoped `findOne` pre-check.
+- `convertLeadToCandidate` / `reassignAgency` add target-agency
+  gate via `findAgencyOrFail`.
+- `convertToEmployee` parent gate via `findOne` + `tenantData`
+  spread on `employee.create`.
+- `bulkAction` pre-filters cross-tenant ids via
+  `applicant.findMany({ id: { in }, ...t })`.
+- `reviewDeleteRequest` pre-check via parent applicant relation
+  filter.
+- `publicSubmit` DEFERRED_PUBLIC_ENTRY; `uploadPhoto`
+  DEFERRED_HIGH_RISK.
+
+## 3. Phase 2.30+ — Public + storage refactor (FUTURE)
 
 The applicants module has the largest mutation surface piloted so far. The mutation pilot will need:
 - `findApplicantOrFail` parent gate (already added in 2.28) used by every mutation that takes an applicant id.

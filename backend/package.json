@@ -116,6 +116,8 @@
     "saas:phase2-workflow-mutation-isolation":    "ts-node scripts/saas/phase2/workflow-mutation-isolation.ts",
     "saas:phase2-applicants-equivalence":         "ts-node scripts/saas/phase2/applicants-equivalence.ts",
     "saas:phase2-applicants-isolation":           "ts-node scripts/saas/phase2/applicants-isolation.ts",
+    "saas:phase2-applicants-mutation-equivalence":"ts-node scripts/saas/phase2/applicants-mutation-equivalence.ts",
+    "saas:phase2-applicants-mutation-isolation":  "ts-node scripts/saas/phase2/applicants-mutation-isolation.ts",
     "saas:scan:annotations":                      "ts-node scripts/scan-annotations.ts",
     "saas:phase2-pilot-regression":               "ts-node scripts/saas/phase2/pilot-regression.ts",
     "saas:phase2-job-context-harness":            "ts-node scripts/saas/phase2/job-context-harness.ts",

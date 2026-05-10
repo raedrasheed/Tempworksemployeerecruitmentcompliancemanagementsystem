@@ -530,3 +530,44 @@ Real-DB run (`SAFE_CLONE` `saas_phase1_fixture`):
 
 Cumulative finance + documents + vehicles + workflow + applicants:
 **224/224** on real Postgres 16. Production behaviour unchanged.
+
+## 26. Phase 2.29 — Applicants mutation pilot (shipped)
+
+`src/applicants` mutation paths brought into the pilot.
+
+- New `findAgencyOrFail` helper (tenant-scoped via pilot
+  client). `findApplicantOrFail` already exists from 2.28.
+- `create` + `convertToEmployee.employee.create`: spread
+  `scope.tenantData()` on insert. Tag `phase229-pilot-scope`.
+- 30+ by-id mutation sites retagged
+  `phase229-pilot-scope-precheck` (gated by Phase 2.28
+  tenant-scoped `findOne`).
+- `convertLeadToCandidate` / `reassignAgency` add target-agency
+  gate via `findAgencyOrFail`.
+- `bulkAction` pre-filters cross-tenant ids via
+  `applicant.findMany({ id: { in }, ...t })`. Tag
+  `phase229-bulk-filter`. Foreign ids silently dropped.
+- `reviewDeleteRequest` pre-check via parent applicant relation
+  filter (`candidateDeleteRequest.findFirst({ id, applicant: { tenantId } })`).
+- `publicSubmit` DEFERRED_PUBLIC_ENTRY (no ALS frame today;
+  needs product input).
+- `uploadPhoto` DEFERRED_HIGH_RISK (storage upload precedes
+  tenant gate; Phase 2.30+ storage-guard pattern).
+
+Conversion semantics (`convertLeadToCandidate`,
+`convertToEmployee`) UNCHANGED. Email global uniqueness
+UNCHANGED. Agency-scope filter for external actors UNCHANGED.
+
+Real-DB run (SAFE_CLONE saas_phase1_fixture):
+- applicants-equivalence:           12/12 PASS
+- applicants-isolation:             10/10 PASS
+- applicants-mutation-equivalence:  10/10 PASS
+- applicants-mutation-isolation:    11/11 PASS
+
+Total **43/43 applicants harness cases PASS** across 4
+harnesses. Cumulative finance + documents + vehicles + workflow
++ applicants: **245/245** on real Postgres 16.
+
+Five modules now fully proven on real DB across reads + writes:
+finance, documents, vehicles, workflow, applicants. Production
+behaviour unchanged.

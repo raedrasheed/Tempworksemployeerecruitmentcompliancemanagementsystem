@@ -98,6 +98,61 @@ Cumulative cases on real Postgres 16:
 | Applicants (NEW) | 22 |
 | **Total** | **224/224** |
 
+## 10.1 Phase 2.29 — Mutation pilot delta
+
+Phase 2.29 extends the applicants pilot to mutations. The
+applicants module now joins finance, documents, vehicles, and
+workflow as the **fifth** end-to-end module proven on real DB
+across reads + writes.
+
+New helpers:
+- `findAgencyOrFail(id)` — pilot-aware agency tenant gate.
+- `findApplicantOrFail(id)` already exists from Phase 2.28.
+
+Per-method changes:
+- `create`: spreads `scope.tenantData()` on the new row. Tag `phase229-pilot-scope`.
+- `update`, `remove`, `updateStatus`, `setCurrentStage`,
+  `approveApplicant`, `rejectApplicant`, `upsertFinancialProfile`,
+  `convertLeadToCandidate`, `reassignAgency`, `requestDelete`:
+  rely on the Phase 2.28 tenant-scoped `findOne` pre-check; by-id
+  mutation sites retagged `phase229-pilot-scope-precheck`.
+- `convertLeadToCandidate` / `reassignAgency`: NEW
+  `findAgencyOrFail` for target agency.
+- `convertToEmployee`: parent applicant gate via `findOne` + NEW
+  spread `scope.tenantData()` on the `employee.create.data`. The
+  cross-module `document.updateMany` and `financialRecord.updateMany`
+  filter by `entityType + entityId` which the gated applicant
+  guarantees is tenant A. **Conversion semantics UNCHANGED.**
+- `bulkAction`: NEW pre-filter — `applicant.findMany({ id: { in }, ...t })`
+  before the per-id loop. Foreign ids silently dropped. Tag
+  `phase229-bulk-filter`. Response shape preserved (`processed`
+  reports the original input length; `results` reflects only
+  processed ids).
+- `reviewDeleteRequest`: NEW pre-check via parent applicant
+  relation filter (`candidateDeleteRequest.findFirst({ id, applicant: { tenantId } })`).
+
+Deferred:
+- `publicSubmit` — DEFERRED_PUBLIC_ENTRY (no ALS frame today; needs product input).
+- `uploadPhoto` — DEFERRED_HIGH_RISK (storage upload precedes tenant gate; Phase 2.30+ storage-guard).
+
+New harnesses (real-DB SAFE_CLONE):
+- `applicants-mutation-equivalence` (10 cases): create shape +
+  tenantId NULL/set, update / updateStatus / soft-delete parity,
+  validation parity, bulk filter behavior, requestDelete creates
+  request.
+- `applicants-mutation-isolation` (11 cases): cross-tenant
+  rejections for update / updateStatus / remove / setCurrentStage /
+  approveApplicant / reassignAgency / requestDelete; agency gate
+  rejects cross-tenant target; bulk filter silently drops B ids;
+  legacy mode unchanged; source-level meta-assertion.
+
+Real-DB results: **21/21 mutation cases PASS** + 22/22 read cases
+PASS = **43/43 applicants** total. Cumulative finance + documents
++ vehicles + workflow + applicants: **245/245** on real Postgres 16.
+
+Conversion semantics, agency-scope behavior, email uniqueness,
+and identifier generation are all unchanged.
+
 ## 11. Next recommended module
 
 - **Phase 2.29 — Applicants mutation pilot** (recommended; mirrors finance/documents/vehicles/workflow precedent of completing one module before starting another).

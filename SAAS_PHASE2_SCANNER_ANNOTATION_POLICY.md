@@ -80,6 +80,9 @@ and counted against the strict-mode threshold.
 | `phase228-global` | Applicants intentionally global lookups: email duplicate-check (Applicant.email @unique stays globally unique), raw SQL identifier generators, StageTemplate (Phase 2.26 catalog) and SystemSetting reads inside mutation paths. | `src/applicants/**` | 2.28 |
 | `phase228-excluded-mutation` | Applicants write/lifecycle/conversion sites (every CRUD / status / convert / reassign / bulk / delete-request method) kept on `legacyPrisma` until Phase 2.29+. | `src/applicants/**` | 2.28 |
 | `phase228-audit-log` | Applicants audit-log writes — global by design (deferred to cross-module audit phase). | `src/applicants/**` | 2.28 |
+| `phase229-pilot-scope` | Applicants write sites narrowed in Phase 2.29 — `create` + `convertToEmployee.employee.create` spread `scope.tenantData()`; `findAgencyOrFail` agency gate. | `src/applicants/**` | 2.29 |
+| `phase229-pilot-scope-precheck` | Applicants by-id mutation sites gated by the prior tenant-scoped `findOne` (Phase 2.28). The mutation never reaches a foreign tenant's row in pilot mode. | `src/applicants/**` | 2.29 |
+| `phase229-bulk-filter` | Applicants `bulkAction` id pre-filter — `applicant.findMany({ id: { in }, ...t })` drops cross-tenant ids before the per-id loop. | `src/applicants/**` | 2.29 |
 | `tenant-safe-report-runtime` | Reports engine uses `$queryRawUnsafe` with positional parameters and a registry-validated SQL string. | `src/reports/reports.service.ts` | 2.1 |
 
 ## 3. When annotations are allowed

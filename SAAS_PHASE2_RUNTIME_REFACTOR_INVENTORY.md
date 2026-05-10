@@ -882,3 +882,21 @@ Tags: `phase248-attendance-mutation-pilot`,
 `phase248-attendance-lock-deferred`.
 
 Real-DB: `attendance-mutation-isolation` 17/17. Cumulative: **544/544**.
+
+## 46 — AttendanceLockedPeriod tenant scoping (Phase 2.49)
+
+Schema-level multi-tenancy for `AttendanceLockedPeriod`. The
+nullable `tenantId` column + `(tenantId, year, month)` composite
+unique permit per-tenant payroll locks; a partial unique index
+preserves "one global lock per (year, month)" for legacy
+NULL-tenant rows. `lockPeriod` / `unlockPeriod` / `listLockedPeriods` /
+`isPeriodLocked` all scope by ALS tenant in pilot mode and by
+NULL-tenant in legacy mode. Mutation paths inherit the tenant-aware
+lock via `assertPeriodUnlocked`.
+
+Migration: `prisma/migrations/saas_phase249_attendance_locked_period_tenant/`
+— additive, reversible. No backfill performed; production rollout
+selects from Strategies A/B/C documented in
+`SAAS_PHASE2_ATTENDANCE_LOCK_PERIOD_TENANT_SCOPE.md`.
+
+Real-DB: `attendance-lock-period-isolation` 13/13. Cumulative: **557/557**.

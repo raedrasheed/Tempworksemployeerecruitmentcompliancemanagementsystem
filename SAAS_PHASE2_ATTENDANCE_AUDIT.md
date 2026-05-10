@@ -216,3 +216,26 @@ TENANT_AUDIT_LOG_PILOT_ENABLED=false        # disable tenantId on audit rows (le
 # OR
 TENANT_PRISMA_PILOT_MODULES=nothing         # disable attendance pilot only
 ```
+
+---
+
+# Phase 2.49 addendum — AttendanceLockedPeriod tenant scoping
+
+The lock table now carries a nullable `tenantId` column with a
+composite `@@unique([tenantId, year, month])`. A partial unique
+index `(year, month) WHERE tenantId IS NULL` preserves the legacy
+"one global lock per (year, month)" invariant.
+
+Lock APIs (`lockPeriod`, `unlockPeriod`, `listLockedPeriods`,
+`isPeriodLocked`) are tenant-scoped when the pilot is active and
+fall back to NULL-tenant lookups when the pilot is off — so legacy
+deployments remain byte-identical. Mutation paths inherit the
+tenant-aware lock check via `assertPeriodUnlocked`.
+
+Tags: `phase249-attendance-lock-period-tenant-scope`,
+`phase249-attendance-lock-period-migration`,
+`phase249-attendance-lock-period-backfill`.
+
+Real-DB: `attendance-lock-period-isolation` 13/13. Cumulative:
+**557/557**. See `SAAS_PHASE2_ATTENDANCE_LOCK_PERIOD_TENANT_SCOPE.md`
+for schema, backfill strategies, and rollback runbook.

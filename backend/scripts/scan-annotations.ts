@@ -135,6 +135,9 @@ const KNOWN_REASONS: ReadonlyArray<PolicyEntry> = [
   { tag: 'phase248-attendance-audit-log-pilot',  allowedPaths: ['src/attendance/'] },
   { tag: 'phase248-attendance-export-scope',     allowedPaths: ['src/attendance/'] },
   { tag: 'phase248-attendance-lock-deferred',    allowedPaths: ['src/attendance/'] },
+  { tag: 'phase249-attendance-lock-period-tenant-scope', allowedPaths: ['src/attendance/'] },
+  { tag: 'phase249-attendance-lock-period-migration',    allowedPaths: ['src/attendance/', 'prisma/'] },
+  { tag: 'phase249-attendance-lock-period-backfill',     allowedPaths: ['src/attendance/', 'scripts/'] },
   { tag: 'tenant-safe-report-runtime',    allowedPaths: ['src/reports/', 'src/saas/reports/'] },
   { tag: 'tenant-resolver-bootstrap',     allowedPaths: ['src/saas/tenancy/'] },
 ];

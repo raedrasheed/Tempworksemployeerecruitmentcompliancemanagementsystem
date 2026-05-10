@@ -1169,11 +1169,23 @@ export class AttendanceService {
 
   // ── Lock periods ─────────────────────────────────────────────────────────────
 
-  /** True if the (year, month) is locked and therefore read-only. */
+  /** True if the (year, month) is locked and therefore read-only.
+   *  Phase 2.49: pilot mode looks up the lock by `(tenantId, year,
+   *  month)` so a tenant-A lock blocks tenant-A only and a tenant-B
+   *  lock blocks tenant-B only. Legacy mode preserves the pre-2.49
+   *  global lookup (any NULL-tenant row blocks every mutation). */
   async isPeriodLocked(year: number, month: number): Promise<boolean> {
+    const scope = this.scope();
     try {
-      const row = await (this.legacyPrisma as any).attendanceLockedPeriod.findUnique({ // @tenant-reviewed: phase248-attendance-lock-deferred (lock table is global by design — no tenantId column)
-        where: { year_month: { year, month } },
+      if (scope.active) {
+        const row = await (this.legacyPrisma as any).attendanceLockedPeriod.findFirst({ // @tenant-reviewed: phase249-attendance-lock-period-tenant-scope
+          where: { tenantId: scope.tenantId, year, month },
+          select: { id: true },
+        });
+        return !!row;
+      }
+      const row = await (this.legacyPrisma as any).attendanceLockedPeriod.findFirst({ // @tenant-reviewed: phase249-attendance-lock-period-tenant-scope (legacy global lookup)
+        where: { tenantId: null, year, month },
         select: { id: true },
       });
       return !!row;
@@ -1195,8 +1207,13 @@ export class AttendanceService {
   }
 
   async listLockedPeriods() {
+    const scope = this.scope();
+    const where = scope.active
+      ? { tenantId: scope.tenantId }
+      : { tenantId: null };
     try {
-      return await (this.legacyPrisma as any).attendanceLockedPeriod.findMany({ // @tenant-reviewed: phase248-attendance-lock-deferred (lock table is global by design — no tenantId column)
+      return await (this.legacyPrisma as any).attendanceLockedPeriod.findMany({ // @tenant-reviewed: phase249-attendance-lock-period-tenant-scope
+        where,
         orderBy: [{ year: 'desc' }, { month: 'desc' }],
         include: { lockedBy: { select: { id: true, firstName: true, lastName: true, email: true } } },
       });
@@ -1206,12 +1223,18 @@ export class AttendanceService {
   }
 
   async lockPeriod(dto: LockPeriodDto, actorId?: string) {
-    const existing = await (this.legacyPrisma as any).attendanceLockedPeriod.findUnique({ // @tenant-reviewed: phase247-attendance-mutation-scope
-      where: { year_month: { year: dto.year, month: dto.month } },
+    const scope = this.scope();
+    const tenantId = scope.active ? scope.tenantId : null;
+    const existing = await (this.legacyPrisma as any).attendanceLockedPeriod.findFirst({ // @tenant-reviewed: phase249-attendance-lock-period-tenant-scope
+      where: { tenantId, year: dto.year, month: dto.month },
     });
     if (existing) throw new BadRequestException('Period is already locked');
-    const row = await (this.legacyPrisma as any).attendanceLockedPeriod.create({ // @tenant-reviewed: phase247-attendance-mutation-scope
-      data: { year: dto.year, month: dto.month, reason: dto.reason, lockedById: actorId ?? null },
+    const row = await (this.legacyPrisma as any).attendanceLockedPeriod.create({ // @tenant-reviewed: phase249-attendance-lock-period-tenant-scope
+      data: {
+        year: dto.year, month: dto.month, reason: dto.reason,
+        lockedById: actorId ?? null,
+        ...(tenantId ? { tenantId } : {}),
+      },
       include: { lockedBy: { select: { id: true, firstName: true, lastName: true, email: true } } },
     });
     await this.auditLog(actorId, 'ATTENDANCE_PERIOD_LOCKED', row.id, { year: dto.year, month: dto.month });
@@ -1219,9 +1242,17 @@ export class AttendanceService {
   }
 
   async unlockPeriod(id: string, actorId?: string) {
-    const existing = await (this.legacyPrisma as any).attendanceLockedPeriod.findUnique({ where: { id } }); // @tenant-reviewed: phase247-attendance-mutation-scope
+    const scope = this.scope();
+    // Pilot mode: only unlock if the row belongs to the active tenant.
+    // Legacy mode: only unlock NULL-tenant global rows.
+    const tenantWhere = scope.active
+      ? { tenantId: scope.tenantId }
+      : { tenantId: null };
+    const existing = await (this.legacyPrisma as any).attendanceLockedPeriod.findFirst({ // @tenant-reviewed: phase249-attendance-lock-period-tenant-scope
+      where: { id, ...tenantWhere },
+    });
     if (!existing) throw new NotFoundException('Locked period not found');
-    await (this.legacyPrisma as any).attendanceLockedPeriod.delete({ where: { id } }); // @tenant-reviewed: phase247-attendance-mutation-scope
+    await (this.legacyPrisma as any).attendanceLockedPeriod.delete({ where: { id } }); // @tenant-reviewed: phase249-attendance-lock-period-tenant-scope
     await this.auditLog(actorId, 'ATTENDANCE_PERIOD_UNLOCKED', id, {
       year: existing.year, month: existing.month,
     });

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-10T17:05:16.305Z",
+  "generatedAt": "2026-05-10T17:19:22.808Z",
   "environment": {
     "classification": "SAFE_CLONE",
     "reason": "localhost + fixture pattern (db=saas_phase1_fixture)",

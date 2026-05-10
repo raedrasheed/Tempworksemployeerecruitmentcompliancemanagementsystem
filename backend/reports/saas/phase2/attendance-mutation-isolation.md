@@ -12,7 +12,7 @@
 - PASS — 8. tenant A delete on tenant A row succeeds — Attendance record deleted
 - PASS — 9. tenant A delete on tenant B row rejected — NotFound
 - PASS — 10. tenant B row unchanged after rejected delete — count=1
-- PASS — 11. bulkApply tenant A creates rows tagged tenant A — created=2 tagged=2
+- PASS — 11. bulkApply tenant A creates rows tagged tenant A — created=0 tagged=2
 - PASS — 12. bulkApply tenant B emp rejected; no rows — threw=true count=0
 - PASS — 13. NULL-tenant legacy row not mutated under pilot — threw=true status=PRESENT tenantId=null
 - PASS — 14. concurrent ALS frames stamp correct tenantId — A=11111111 B=22222222

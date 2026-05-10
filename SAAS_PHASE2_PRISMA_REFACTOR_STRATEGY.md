@@ -1094,3 +1094,18 @@ Tags: `phase248-attendance-mutation-pilot`,
 
 Real-DB: `attendance-mutation-isolation` 17/17 + 2.47 sentinels
 green. Cumulative: **544/544**.
+
+## 11.22 — Phase 2.49: AttendanceLockedPeriod tenant scoping
+
+Schema migration adds nullable `AttendanceLockedPeriod.tenantId`;
+unique replaced by `@@unique([tenantId, year, month])`; partial
+unique `(year, month) WHERE tenantId IS NULL` preserves the legacy
+global invariant. Service lock APIs scope by `tenantWhere()` in
+pilot mode and by `tenantId IS NULL` in legacy mode.
+
+Tags: `phase249-attendance-lock-period-tenant-scope`,
+`phase249-attendance-lock-period-migration`,
+`phase249-attendance-lock-period-backfill`.
+
+Real-DB: `attendance-lock-period-isolation` 13/13 + 2.47/2.48
+sentinels green. Cumulative: **557/557**.

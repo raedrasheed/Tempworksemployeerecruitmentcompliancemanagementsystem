@@ -55,7 +55,7 @@
     {
       "name": "11. bulkApply tenant A creates rows tagged tenant A",
       "ok": true,
-      "detail": "created=2 tagged=2"
+      "detail": "created=0 tagged=2"
     },
     {
       "name": "12. bulkApply tenant B emp rejected; no rows",

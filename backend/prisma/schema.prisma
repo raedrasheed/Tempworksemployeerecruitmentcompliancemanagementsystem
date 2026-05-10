@@ -1582,7 +1582,15 @@ model AttendanceLockedPeriod {
 
   lockedBy User? @relation("AttendanceLockedBy", fields: [lockedById], references: [id])
 
-  @@unique([year, month])
+  // Phase 2.49 — per-tenant payroll locks. NULL retained for legacy
+  // global rows. The composite `@@unique([tenantId, year, month])` permits
+  // multiple NULL-tenant rows per (year, month) under standard NULLS
+  // DISTINCT semantics; the pre-2.49 invariant "one GLOBAL lock per
+  // (year, month)" is preserved by a partial unique index defined in
+  // the migration SQL: `(year, month) WHERE tenantId IS NULL`.
+  tenantId   String?
+  @@unique([tenantId, year, month], map: "attendance_locked_periods_tenant_year_month_key")
+  @@index([tenantId])
   @@index([year, month])
   @@map("attendance_locked_periods")
 }

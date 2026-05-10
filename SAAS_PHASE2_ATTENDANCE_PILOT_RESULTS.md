@@ -108,3 +108,30 @@ TENANT_PRISMA_PILOT_MODULES=nothing         # opts attendance out only
 `(tenantId, year, month)` so per-tenant payroll locks become
 possible. Requires a Prisma migration and a backfill plan for
 existing global rows.
+
+---
+
+# Phase 2.49 results — lock-period tenant scoping
+
+```
+[attendance-lock-period-isolation] 13/13 PASS
+[attendance-mutation-isolation]    17/17 PASS  (regression)
+[attendance-equivalence]           12/12 PASS  (regression)
+[attendance-isolation]             12/12 PASS  (regression)
+```
+
+Cumulative regression: **557/557 PASS**.
+
+Schema migration: `prisma/migrations/saas_phase249_attendance_locked_period_tenant/`
+(idempotent, reversible). Adds `tenantId` column, replaces global
+`(year, month)` unique with `(tenantId, year, month)`, plus a
+partial unique on `(year, month) WHERE tenantId IS NULL` to keep
+the legacy global invariant.
+
+Production behaviour change: none with flags off; lock APIs continue
+to read/write NULL-tenant rows.
+
+## Recommended next phase
+
+2.50 — historic audit-row tenant backfill pass for the attendance
+entity now that mutation/lock paths emit `tenantId` natively.

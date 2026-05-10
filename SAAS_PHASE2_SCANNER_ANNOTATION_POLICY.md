@@ -129,7 +129,10 @@ and counted against the strict-mode threshold.
 | `phase248-attendance-mutation-pilot` | `upsertRecord` stamps `tenantId` via `scope().tenantData()` on the create branch. With pilot off, `tenantData()` returns `{}` so create is byte-identical to pre-2.48. | `src/attendance/**` | 2.48 |
 | `phase248-attendance-audit-log-pilot` | `auditLog` routes through `TenantAuditLogService.write`; tenantId stamped on audit row when `TENANT_AUDIT_LOG_PILOT_ENABLED=true` AND active ALS tenant. | `src/attendance/**` | 2.48 |
 | `phase248-attendance-export-scope` | `exportExcel` applies `scope().tenantWhere()` to both the parent `Employee` lookup and the bulk `attendanceRecord.findMany`. | `src/attendance/**` | 2.48 |
-| `phase248-attendance-lock-deferred` | `AttendanceLockedPeriod` (`isPeriodLocked`, `listLockedPeriods`, `lockPeriod`, `unlockPeriod`) remains intentionally global — no `tenantId` column per the schema comment. | `src/attendance/**` | 2.48 |
+| `phase248-attendance-lock-deferred` | `AttendanceLockedPeriod` (`isPeriodLocked`, `listLockedPeriods`, `lockPeriod`, `unlockPeriod`) remains intentionally global — no `tenantId` column per the schema comment. **Superseded by Phase 2.49.** | `src/attendance/**` | 2.48 |
+| `phase249-attendance-lock-period-tenant-scope` | `AttendanceLockedPeriod` lock APIs (`isPeriodLocked`, `listLockedPeriods`, `lockPeriod`, `unlockPeriod`) scope by `tenantId` when pilot active; legacy mode preserves NULL-tenant lookup. | `src/attendance/**` | 2.49 |
+| `phase249-attendance-lock-period-migration` | Schema migration `saas_phase249_attendance_locked_period_tenant` (nullable `tenantId`, replaced unique constraint, partial unique on NULL-tenant rows). | `src/attendance/**`, `prisma/**` | 2.49 |
+| `phase249-attendance-lock-period-backfill` | Reserved for optional production backfill scripts (Strategies B/C in the lock-period tenant-scope doc). | `src/attendance/**`, `scripts/**` | 2.49 |
 | `tenant-safe-report-runtime` | Reports engine uses `$queryRawUnsafe` with positional parameters and a registry-validated SQL string. | `src/reports/reports.service.ts` | 2.1 |
 
 ## 3. When annotations are allowed

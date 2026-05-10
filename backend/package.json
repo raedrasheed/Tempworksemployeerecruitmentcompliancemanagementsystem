@@ -99,6 +99,7 @@
     "saas:phase247-attendance-equivalence":        "ts-node scripts/saas/phase2/attendance-equivalence.ts",
     "saas:phase247-attendance-isolation":          "ts-node scripts/saas/phase2/attendance-isolation.ts",
     "saas:phase248-attendance-mutation-isolation": "ts-node scripts/saas/phase2/attendance-mutation-isolation.ts",
+    "saas:phase249-attendance-lock-period-isolation": "ts-node scripts/saas/phase2/attendance-lock-period-isolation.ts",
     "saas:phase2-job-ads-equivalence": "ts-node scripts/saas/phase2/job-ads-equivalence.ts",
     "saas:phase2-job-ads-isolation": "ts-node scripts/saas/phase2/job-ads-isolation.ts",
     "saas:phase2-notifications-equivalence": "ts-node scripts/saas/phase2/notifications-equivalence.ts",

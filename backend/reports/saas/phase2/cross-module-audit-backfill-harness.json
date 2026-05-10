@@ -10,7 +10,7 @@
     {
       "name": "2. dry-run reports candidates per entity",
       "ok": true,
-      "detail": "candidate=6 entities=6"
+      "detail": "candidate=8 entities=6"
     },
     {
       "name": "3. apply refused when flag false",
@@ -25,12 +25,12 @@
     {
       "name": "5. apply updates eligible Document audit rows only",
       "ok": true,
-      "detail": "updated=1"
+      "detail": "updated=2"
     },
     {
       "name": "6. apply updates eligible FinancialRecord audit rows only",
       "ok": true,
-      "detail": "updated=1"
+      "detail": "updated=2"
     },
     {
       "name": "7. apply updates eligible ComplianceAlert audit rows only",

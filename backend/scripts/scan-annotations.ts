@@ -140,6 +140,9 @@ const KNOWN_REASONS: ReadonlyArray<PolicyEntry> = [
   { tag: 'phase249-attendance-lock-period-backfill',     allowedPaths: ['src/attendance/', 'scripts/'] },
   { tag: 'phase250-attendance-audit-backfill',           allowedPaths: ['scripts/saas/phase2/'] },
   { tag: 'phase251-cross-module-audit-backfill',         allowedPaths: ['scripts/saas/phase2/'] },
+  { tag: 'phase252-audit-log-read-pilot',                allowedPaths: ['src/logs/', 'src/saas/audit/'] },
+  { tag: 'phase252-audit-log-retention-preview',         allowedPaths: ['src/saas/audit/'] },
+  { tag: 'phase252-audit-log-export-deferred',           allowedPaths: ['src/logs/'] },
   { tag: 'tenant-safe-report-runtime',    allowedPaths: ['src/reports/', 'src/saas/reports/'] },
   { tag: 'tenant-resolver-bootstrap',     allowedPaths: ['src/saas/tenancy/'] },
 ];

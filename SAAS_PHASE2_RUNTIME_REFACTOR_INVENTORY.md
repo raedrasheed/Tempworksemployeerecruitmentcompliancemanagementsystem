@@ -926,3 +926,20 @@ Per-entity UPDATE inside a single transaction.
 Tag: `phase251-cross-module-audit-backfill`.
 
 Real-DB harness: 20/20. Cumulative: **590/590**.
+
+## 49 — Audit-log tenant-scoped read API + retention preview (Phase 2.52)
+
+`LogsService.findAll` / `getStats` now apply `tenantWhere()` to the
+audit reads. With pilot off, behaviour is byte-identical legacy.
+`TenantAuditLogService` gains `listForTenant`, `countForTenant`,
+`getByIdForTenant`, and `previewRetention` — the latter is
+read-only and asserted by source-level harness check to contain no
+destructive Prisma calls.
+
+`AUDIT_LOG_RETENTION_ENABLED` and `AUDIT_LOG_RETENTION_DAYS` env
+flags were introduced; both are inert in this phase (no deletion).
+
+Tags: `phase252-audit-log-read-pilot`,
+`phase252-audit-log-retention-preview`.
+
+Real-DB: 14 + 10 + 10. Cumulative: **624/624**.

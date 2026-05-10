@@ -1139,3 +1139,23 @@ Tag: `phase251-cross-module-audit-backfill`. Raw SQL lives in
 `scripts/`, so the `saas:scan:raw-sql` baseline is unchanged.
 
 Real-DB harness: 20/20. Cumulative: **590/590**.
+
+## 11.25 — Phase 2.52: Audit-log tenant-scoped read API + retention preview
+
+`src/logs/logs.service.ts` joins the TenantPrisma pilot pattern.
+`findAll` and `getStats` add `getPilotScope(this.pilot, 'audit-logs').tenantWhere()`
+to their where clauses. Mutation paths (`clearLogs`, `deleteOne`)
+remain on `legacyPrisma` and are unchanged.
+
+`TenantAuditLogService` gains four new read-only helpers:
+`listForTenant`, `countForTenant`, `getByIdForTenant`, and
+`previewRetention`. The retention preview is a count-only helper —
+no destructive Prisma calls.
+
+Tags: `phase252-audit-log-read-pilot`,
+`phase252-audit-log-retention-preview`,
+`phase252-audit-log-export-deferred`.
+
+Real-DB: `audit-log-read-equivalence` 14/14,
+`audit-log-read-isolation` 10/10, `audit-log-retention-preview`
+10/10. Cumulative: **624/624**.

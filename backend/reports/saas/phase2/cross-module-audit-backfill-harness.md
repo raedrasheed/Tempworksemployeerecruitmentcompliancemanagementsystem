@@ -3,11 +3,11 @@
 **20/20 PASS**
 
 - PASS — 1. dry-run updates zero rows — updated=0
-- PASS — 2. dry-run reports candidates per entity — candidate=6 entities=6
+- PASS — 2. dry-run reports candidates per entity — candidate=8 entities=6
 - PASS — 3. apply refused when flag false — CROSS_MODULE_AUDIT_BACKFILL_APPLY=false (default; dry-run)
 - PASS — 4. apply refused outside SAFE_CLONE/SAFE_STAGING (source gate) — flag+SAFE both required
-- PASS — 5. apply updates eligible Document audit rows only — updated=1
-- PASS — 6. apply updates eligible FinancialRecord audit rows only — updated=1
+- PASS — 5. apply updates eligible Document audit rows only — updated=2
+- PASS — 6. apply updates eligible FinancialRecord audit rows only — updated=2
 - PASS — 7. apply updates eligible ComplianceAlert audit rows only — updated=1
 - PASS — 8. apply updates eligible Notification audit rows only — updated=1
 - PASS — 9. WorkPermit handled per schema (direct tenantId join) — updated=1

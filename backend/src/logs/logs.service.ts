@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { PilotPrismaAccessor } from '../saas/prisma/pilot-prisma.accessor';
+import { getPilotScope, PilotScope } from '../saas/prisma/tenant-pilot-scope';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { PaginatedResponse } from '../common/dto/pagination-response.dto';
 
@@ -12,9 +14,29 @@ export interface CallerScope {
   agencyId?: string;
 }
 
+/**
+ * Phase 2.52 — Tenant-scoped audit-log read pilot.
+ *
+ * Read paths (`findAll`, `getStats`) spread `scope.tenantWhere()`
+ * into the `where` clause when the pilot is active. With the flag
+ * off `tenantWhere()` returns `{}`, so the queries are byte-identical
+ * to pre-2.52. Mutation paths (`clearLogs`, `deleteOne`) stay on
+ * `legacyPrisma` — Phase 2.52 explicitly excludes audit deletion.
+ */
 @Injectable()
 export class LogsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private legacyPrisma: PrismaService,
+    private pilot: PilotPrismaAccessor,
+  ) {}
+
+  private get prisma(): PrismaService {
+    return this.pilot.client();
+  }
+
+  private scope(): PilotScope {
+    return getPilotScope(this.pilot, 'audit-logs');
+  }
 
   /**
    * Resolve the set of userIds whose logs the caller may see.
@@ -52,7 +74,7 @@ export class LogsService {
     const { page = 1, limit = 20, search } = pagination;
     const skip = (Number(page) - 1) * Number(limit);
 
-    const where: any = { deletedAt: null };
+    const where: any = { deletedAt: null, ...this.scope().tenantWhere() }; // @tenant-reviewed: phase252-audit-log-read-pilot
 
     // ── Scope restriction ────────────────────────────────────────────────────
     if (scope) {
@@ -110,11 +132,12 @@ export class LogsService {
     const last7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
     // Build the base scope filter
-    let scopeWhere: any = { deletedAt: null };
+    const tenantWhere = this.scope().tenantWhere(); // @tenant-reviewed: phase252-audit-log-read-pilot
+    let scopeWhere: any = { deletedAt: null, ...tenantWhere };
     if (scope) {
       const visibleIds = await this.resolveVisibleUserIds(scope);
       if (visibleIds !== undefined) {
-        scopeWhere = { userId: { in: visibleIds } };
+        scopeWhere = { userId: { in: visibleIds }, ...tenantWhere };
       }
     }
 

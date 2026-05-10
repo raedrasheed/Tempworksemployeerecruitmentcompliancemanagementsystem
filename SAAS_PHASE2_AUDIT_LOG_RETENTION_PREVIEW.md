@@ -1,0 +1,67 @@
+# Phase 2.52 — Audit-log Retention Preview
+
+> **NO ROWS ARE DELETED.** This document describes the read-only
+> retention preview helper introduced in Phase 2.52.
+
+## API
+
+`TenantAuditLogService.previewRetention({ tenantId, days? })`
+
+| Field | Type | Notes |
+|---|---|---|
+| `tenantId` | `string \| null` | `null` ⇒ count NULL-tenant legacy rows. |
+| `days` | `number?` | Override `AUDIT_LOG_RETENTION_DAYS`. Falls back to env, then to `365` if env value is invalid or unset. |
+
+Returns:
+```ts
+{
+  enabled: boolean,           // mirrors AUDIT_LOG_RETENTION_ENABLED
+  days: number,               // resolved retention window
+  cutoffIso: string,          // now() - days, ISO-8601
+  candidateCount: number,     // count of rows older than cutoff for the requested tenant scope
+  tenantId: string | null,    // echoed input
+}
+```
+
+## Flags
+
+| Variable | Default | Effect |
+|---|---|---|
+| `AUDIT_LOG_RETENTION_ENABLED` | `false` | Reflected in result; never gates destructive behaviour because none exists in this phase. |
+| `AUDIT_LOG_RETENTION_DAYS` | `365` | Default retention window. Invalid values fall back to `365`. |
+
+## Source-level invariants
+
+- The function calls `prisma.auditLog.count(...)` only.
+- No `delete`, `deleteMany`, `update`, `updateMany`, or `$executeRaw`.
+- No transactions wrapping destructive operations.
+- The harness asserts these via regex inspection of the function body.
+
+## Tenant scope
+
+| `tenantId` arg | Counts rows where … |
+|---|---|
+| `null` | `audit_logs.tenantId IS NULL` |
+| `<id>` | `audit_logs.tenantId = <id>` |
+
+NULL-tenant rows are explicitly addressable (legacy operators may
+need to know how many "global" rows are out of retention) but never
+included in a per-tenant count.
+
+## Harness — 10/10 PASS
+
+(See `SAAS_PHASE2_AUDIT_LOG_READ_API.md` §8.)
+
+## Rollback
+
+Configuration-only: `AUDIT_LOG_RETENTION_ENABLED=false` is the
+default. Rollback never requires data restoration because the
+preview never modifies data.
+
+## Recommended next phase
+
+**2.53 — Retention enforcement** (dry-run-first apply, double-gated
+by an explicit env flag and a SAFE classification, with a snapshot
+capture step). The preview API is already the single source of
+truth for "what would be retained vs deleted", so the enforcement
+step can re-use it directly.

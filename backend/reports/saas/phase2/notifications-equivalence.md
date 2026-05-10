@@ -1,6 +1,6 @@
 # Phase 2.10 — Notifications Equivalence
 
-Generated: 2026-05-10T17:39:48.206Z
+Generated: 2026-05-10T18:01:00.534Z
 Environment: SAFE_CLONE (localhost + fixture pattern (db=saas_phase1_fixture))
 Tenant A: `11111111-1111-1111-1111-111111111111` · user: `00000000-0000-0000-0000-00000000us01`
 

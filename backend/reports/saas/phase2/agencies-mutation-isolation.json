@@ -35,7 +35,7 @@
     {
       "name": "7. legacy: cross-tenant update succeeds (preserved)",
       "ok": true,
-      "detail": "phone=+legacy-mp026obo"
+      "detail": "phone=+legacy-mp02xzjs"
     },
     {
       "name": "8. concurrent ALS create A→A, B→B",

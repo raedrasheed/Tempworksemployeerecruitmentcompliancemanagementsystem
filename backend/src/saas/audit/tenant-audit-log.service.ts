@@ -94,6 +94,114 @@ export class TenantAuditLogService {
   }
 
   /**
+   * Phase 2.52 — Tenant-scoped read helpers. Always non-destructive.
+   * `listForTenant` and `countForTenant` apply the explicit/active
+   * tenantId equality filter. NULL-tenant rows are excluded by
+   * design — callers wanting the legacy union must use the legacy
+   * `LogsService.findAll` path with the pilot flag off.
+   */
+  async listForTenant(opts: {
+    tenantId: string;
+    entity?: string;
+    entityId?: string;
+    action?: string;
+    userId?: string;
+    fromDate?: string | Date;
+    toDate?: string | Date;
+    page?: number;
+    limit?: number;
+  }): Promise<{ items: any[]; total: number }> {
+    const where = this.buildTenantWhere(opts);
+    const skip = ((opts.page ?? 1) - 1) * (opts.limit ?? 20);
+    const [items, total] = await Promise.all([
+      this.prisma.auditLog.findMany({ // @tenant-reviewed: phase252-audit-log-read-pilot
+        where,
+        skip,
+        take: opts.limit ?? 20,
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.auditLog.count({ where }), // @tenant-reviewed: phase252-audit-log-read-pilot
+    ]);
+    return { items, total };
+  }
+
+  async countForTenant(opts: {
+    tenantId: string;
+    entity?: string;
+    entityId?: string;
+    action?: string;
+    userId?: string;
+    fromDate?: string | Date;
+    toDate?: string | Date;
+  }): Promise<number> {
+    return this.prisma.auditLog.count({ where: this.buildTenantWhere(opts) }); // @tenant-reviewed: phase252-audit-log-read-pilot
+  }
+
+  async getByIdForTenant(tenantId: string, id: string): Promise<any | null> {
+    return this.prisma.auditLog.findFirst({ // @tenant-reviewed: phase252-audit-log-read-pilot
+      where: { id, tenantId, deletedAt: null },
+    });
+  }
+
+  /**
+   * Phase 2.52 — Retention PREVIEW. Read-only by contract; never
+   * deletes or modifies rows. With `AUDIT_LOG_RETENTION_ENABLED=false`
+   * (default) the helper still returns counts, but it documents the
+   * disabled state in the result so operators can confirm the gate.
+   *
+   * `tenantId === null` ⇒ count NULL-tenant legacy rows (legacy mode).
+   * `tenantId === <id>` ⇒ count rows for that tenant only.
+   */
+  async previewRetention(opts: {
+    tenantId: string | null;
+    days?: number;
+  }): Promise<{
+    enabled: boolean;
+    days: number;
+    cutoffIso: string;
+    candidateCount: number;
+    tenantId: string | null;
+  }> {
+    const enabled = String(process.env.AUDIT_LOG_RETENTION_ENABLED ?? '').toLowerCase() === 'true';
+    const rawDays = opts.days ?? Number(process.env.AUDIT_LOG_RETENTION_DAYS);
+    const days = Number.isFinite(rawDays) && rawDays! > 0 ? Math.floor(rawDays!) : 365;
+    const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+    const where: any = { deletedAt: null, createdAt: { lt: cutoff } };
+    if (opts.tenantId === null) where.tenantId = null;
+    else where.tenantId = opts.tenantId;
+    const candidateCount = await this.prisma.auditLog.count({ where }); // @tenant-reviewed: phase252-audit-log-retention-preview
+    return {
+      enabled,
+      days,
+      cutoffIso: cutoff.toISOString(),
+      candidateCount,
+      tenantId: opts.tenantId,
+    };
+  }
+
+  private buildTenantWhere(opts: {
+    tenantId: string;
+    entity?: string;
+    entityId?: string;
+    action?: string;
+    userId?: string;
+    fromDate?: string | Date;
+    toDate?: string | Date;
+  }): Record<string, unknown> {
+    const where: any = { tenantId: opts.tenantId, deletedAt: null };
+    if (opts.entity) where.entity = opts.entity;
+    if (opts.entityId) where.entityId = opts.entityId;
+    if (opts.action) where.action = { contains: opts.action, mode: 'insensitive' };
+    if (opts.userId) where.userId = opts.userId;
+    if (opts.fromDate || opts.toDate) {
+      where.createdAt = {};
+      if (opts.fromDate) where.createdAt.gte = new Date(opts.fromDate);
+      if (opts.toDate) where.createdAt.lte = new Date(opts.toDate);
+    }
+    return where;
+  }
+
+  /**
    * Diagnostic for harnesses. Pure; no DB writes.
    */
   decide(explicit: string | null): AuditDecision {

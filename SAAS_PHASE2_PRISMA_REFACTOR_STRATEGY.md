@@ -758,3 +758,26 @@ The applicants module has no deferred paths remaining. The natural
 next phase is the **cross-module conversion gate** for
 `convertToEmployee` (Document / FinancialRecord / Employee target
 tenant must equal active tenant).
+
+## 11.5 Phase 2.32 — applicants cross-module conversion gate
+
+Hardens `convertToEmployee` so cross-module re-link calls cannot
+smuggle foreign-tenant rows across the conversion boundary.
+
+- `Document.updateMany` and `FinancialRecord.updateMany` where-clauses
+  spread `scope.tenantWhere()`. Strict `tenantId` equality in pilot
+  mode; `{}` in legacy.
+- `Employee.create` already writes `tenantId` via `scope.tenantData()`
+  (Phase 2.29) — unchanged.
+- Annotation tag `phase232-conversion-gate`.
+- No new flag, no schema change, no transaction-boundary change, no
+  conversion-flow redesign.
+
+Real-DB: equivalence 7/7 + isolation 9/9 = 16/16. Cumulative across
+modules: **277/277**.
+
+The applicants module's cross-module surface is now tenant-safe.
+The natural next phase is the **first non-applicant module audit
+on real production-shape data** (compliance, employees, attendance,
+pipeline, or agencies — pick by risk profile) OR a Phase 3 audit
+of `Applicant.email` / `Employee.email` per-tenant uniqueness.

@@ -598,3 +598,18 @@ Real-DB: equivalence 6/6 + isolation 9/9 = 15/15. Cumulative across
 modules: **261/261**.
 
 Applicants has no remaining deferred paths.
+
+## 29. Phase 2.32 — Applicants cross-module conversion gate (shipped)
+
+`convertToEmployee` cross-module re-link calls
+(`Document.updateMany`, `FinancialRecord.updateMany`) narrow on
+`tenantId` in pilot mode. Strict equality (legacy NULL-tenant rows
+are not re-linked).
+
+No new flag, no schema change, no transaction-boundary change.
+Annotation tag: `phase232-conversion-gate`.
+
+Real-DB: equivalence 7/7 + isolation 9/9 = 16/16. Cumulative across
+modules: **277/277**.
+
+The applicants module has no remaining cross-module deferred paths.

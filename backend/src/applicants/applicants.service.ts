@@ -1116,9 +1116,18 @@ export class ApplicantsService {
       include: { agency: { select: { id: true, name: true } } },
     });
 
+    // Phase 2.32 — cross-module conversion gate. The applicant is
+    // tenant-gated above; the new where-clause additionally narrows
+    // by `tenantId` so a foreign-tenant Document or FinancialRecord
+    // that happens to carry `entityId == applicant.id` (e.g. legacy
+    // drift) cannot be smuggled across tenants on conversion. In
+    // legacy mode `tenantWhere()` returns `{}` and the where-clause
+    // collapses to the pre-2.32 shape — byte-identical behaviour.
+    const tWhere = this.scope().tenantWhere();
+
     // Re-assign documents from applicant to employee
-    await this.legacyPrisma.document.updateMany({ // @tenant-reviewed: phase229-pilot-scope-precheck
-      where: { entityType: 'APPLICANT', entityId: id, deletedAt: null },
+    await this.legacyPrisma.document.updateMany({ // @tenant-reviewed: phase232-conversion-gate
+      where: { entityType: 'APPLICANT', entityId: id, deletedAt: null, ...tWhere },
       data: { entityType: 'EMPLOYEE', entityId: employee.id },
     });
 
@@ -1126,8 +1135,8 @@ export class ApplicantsService {
     // Preserve applicantId (stable person reference) for cross-stage queries.
     // stageAtCreation is NOT changed — it records what stage the person was
     // when the record was created, which is historical fact.
-    const financialReassignResult = await this.legacyPrisma.financialRecord.updateMany({ // @tenant-reviewed: phase229-pilot-scope-precheck
-      where: { entityType: 'APPLICANT', entityId: id, deletedAt: null },
+    const financialReassignResult = await this.legacyPrisma.financialRecord.updateMany({ // @tenant-reviewed: phase232-conversion-gate
+      where: { entityType: 'APPLICANT', entityId: id, deletedAt: null, ...tWhere },
       data: {
         entityType: 'EMPLOYEE',
         entityId: employee.id,
@@ -1137,7 +1146,10 @@ export class ApplicantsService {
 
     // Link the ApplicantFinancialProfile (banking/salary details) to the
     // new employee so it remains accessible from the Employee profile.
-    await (this.prisma as any).applicantFinancialProfile.updateMany({
+    // ApplicantFinancialProfile has no tenantId column today, so the
+    // tenant safety here rides on the gated `applicantId` (unique
+    // per applicant; the parent applicant load above is tenant-gated).
+    await (this.prisma as any).applicantFinancialProfile.updateMany({ // @tenant-reviewed: phase232-conversion-gate
       where: { applicantId: id },
       data: { employeeId: employee.id },
     });

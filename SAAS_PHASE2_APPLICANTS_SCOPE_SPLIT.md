@@ -121,3 +121,21 @@ The applicants module has the largest mutation surface piloted so far. The mutat
   Tag: `phase231-public-submit-attribution`.
 
 No remaining applicants paths are deferred.
+
+## 10. Phase 2.32 update — cross-module conversion gate
+
+`convertToEmployee` cross-module re-link calls now narrow by
+`tenantId`:
+
+- `Document.updateMany({ where: { entityType:'APPLICANT', entityId, deletedAt:null, ...tenantWhere() } })`
+- `FinancialRecord.updateMany({ where: { entityType:'APPLICANT', entityId, deletedAt:null, ...tenantWhere() } })`
+
+Tag: `phase232-conversion-gate`.
+
+In legacy mode `tenantWhere()` returns `{}` and the where-clauses
+collapse to today's shape — byte-identical behaviour. In pilot mode,
+foreign-tenant rows pointing at the same `applicantId` (drift /
+legacy collision) are NOT re-linked.
+
+Transaction boundaries unchanged. Conversion business rules
+unchanged. Identifier generation unchanged.

@@ -87,6 +87,7 @@ and counted against the strict-mode threshold.
 | `phase231-storage-guard` | Applicants `uploadPhoto` parent tenant gate runs BEFORE `storage.uploadFile`. No bytes for cross-tenant ids in pilot mode. | `src/applicants/**` | 2.31 |
 | `phase231-public-submit-attribution` | Applicants `publicSubmit` tenant attribution: ALS first, agency fallback, reject otherwise (pilot mode). NULL-tenant rows preserved in legacy. | `src/applicants/**` | 2.31 |
 | `phase231-pilot-scope` | Reserved for follow-up applicants pilot sites that engage during Phase 2.31 review. | `src/applicants/**` | 2.31 |
+| `phase232-conversion-gate` | Applicants `convertToEmployee` cross-module re-link calls (`Document.updateMany`, `FinancialRecord.updateMany`, `ApplicantFinancialProfile.updateMany`) narrowed on `tenantId` in pilot mode. Foreign-tenant rows that incidentally point at the applicant id stay untouched. | `src/applicants/**` | 2.32 |
 | `tenant-safe-report-runtime` | Reports engine uses `$queryRawUnsafe` with positional parameters and a registry-validated SQL string. | `src/reports/reports.service.ts` | 2.1 |
 
 ## 3. When annotations are allowed

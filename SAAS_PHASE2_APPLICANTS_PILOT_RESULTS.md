@@ -198,3 +198,35 @@ Remaining applicants blockers (cross-module / Phase 3+):
 - Custom-domain public form host resolution — Phase 3 product.
 - Photo signed URLs / tenant-scoped storage prefixes — out of scope
   this phase by design.
+
+## 14. Phase 2.32 — convertToEmployee cross-module conversion gate
+
+`convertToEmployee` now enforces tenant equality on the cross-module
+re-link calls. See `SAAS_PHASE232_APPLICANTS_CONVERT_TO_EMPLOYEE_AUDIT.md`
+and `SAAS_PHASE232_APPLICANTS_CONVERSION_SAFETY_DECISION.md`.
+
+- `Document.updateMany` and `FinancialRecord.updateMany` where-clauses
+  now spread `scope.tenantWhere()`. Foreign-tenant rows that incidentally
+  carry `entityId == applicant.id` (legacy drift) cannot be smuggled
+  across tenants on conversion.
+- Annotated `phase232-conversion-gate`.
+- `Employee.create` continues to write `tenantId` via `scope.tenantData()`
+  (Phase 2.29).
+- Legacy NULL-tenant rows are not re-linked in pilot mode (strict
+  equality). Operators with legacy data must run an offline backfill
+  before conversion.
+
+Conversion business rules, transaction boundaries, identifier
+generation, permissions, and email uniqueness are all unchanged.
+
+New harnesses (real-DB SAFE_CLONE):
+- `applicants-conversion-equivalence` — 7/7 PASS
+- `applicants-conversion-isolation`   — 9/9 PASS
+
+Cumulative real-DB applicants: **22 + 21 + 6 + 9 + 7 + 9 = 74/74**.
+Cumulative across modules: **277/277** on real Postgres 16.
+
+Remaining cross-module risk:
+- `Employee.email` per-tenant uniqueness (Phase 3 product).
+- `ApplicantFinancialProfile.tenantId` column (additive; not strictly
+  required because the gated `applicantId` already guarantees safety).

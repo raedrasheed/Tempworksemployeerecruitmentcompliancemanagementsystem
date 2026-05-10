@@ -92,6 +92,7 @@ const KNOWN_REASONS: ReadonlyArray<PolicyEntry> = [
   { tag: 'phase231-storage-guard',                allowedPaths: ['src/applicants/'] },
   { tag: 'phase231-public-submit-attribution',    allowedPaths: ['src/applicants/'] },
   { tag: 'phase231-pilot-scope',                  allowedPaths: ['src/applicants/'] },
+  { tag: 'phase232-conversion-gate',              allowedPaths: ['src/applicants/'] },
   { tag: 'tenant-safe-report-runtime',    allowedPaths: ['src/reports/', 'src/saas/reports/'] },
   { tag: 'tenant-resolver-bootstrap',     allowedPaths: ['src/saas/tenancy/'] },
 ];

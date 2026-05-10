@@ -5,6 +5,6 @@
 - PASS — 1. uploadPhoto legacy: shape preserved — id=00000000-0000-0000-0000-0000000aa001 hasPhotoUrl=true uploads=1
 - PASS — 2. uploadPhoto pilot: shape preserved — id=00000000-0000-0000-0000-0000000aa001 hasPhotoUrl=true
 - PASS — 3. uploadPhoto pilot same-tenant: 1 storage call — uploads=1
-- PASS — 4. publicSubmit legacy: tenantId = NULL — id=7a549260-0773-45f4-9160-6e80a2952f24 tenantId=null
+- PASS — 4. publicSubmit legacy: tenantId = NULL — id=e02a55db-0873-44f6-8e83-f340e09c55e6 tenantId=null
 - PASS — 5. publicSubmit pilot + agencyId (no ALS): tenantId = A — tenantId=11111111-1111-1111-1111-111111111111
 - PASS — 6. publicSubmit pilot + ALS A: tenantId = A — tenantId=11111111-1111-1111-1111-111111111111

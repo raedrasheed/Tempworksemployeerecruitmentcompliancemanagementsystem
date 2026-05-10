@@ -126,6 +126,10 @@ and counted against the strict-mode threshold.
 | `phase247-attendance-mutation-scope` | Attendance mutation parent gate: `findEmployeeForMutationOrFail` / `findRecordForMutationOrFail` load the parent through `pilot.client()` with `tenantWhere()`. Reduces to a plain by-id lookup with the flag off. Locked-period table is intentionally global. | `src/attendance/**` | 2.47 |
 | `phase247-attendance-audit-log` | `AttendanceService.auditLog` continues to write through `legacyPrisma.auditLog.create`; routing through `TenantAuditLogService` is deferred to the mutation phase. | `src/attendance/**` | 2.47 |
 | `phase247-attendance-deferred-export` | `exportExcel` queries (`employee.findMany`, `attendanceRecord.findMany`) stay on `legacyPrisma` until a follow-up phase that streams + paginates. | `src/attendance/**` | 2.47 |
+| `phase248-attendance-mutation-pilot` | `upsertRecord` stamps `tenantId` via `scope().tenantData()` on the create branch. With pilot off, `tenantData()` returns `{}` so create is byte-identical to pre-2.48. | `src/attendance/**` | 2.48 |
+| `phase248-attendance-audit-log-pilot` | `auditLog` routes through `TenantAuditLogService.write`; tenantId stamped on audit row when `TENANT_AUDIT_LOG_PILOT_ENABLED=true` AND active ALS tenant. | `src/attendance/**` | 2.48 |
+| `phase248-attendance-export-scope` | `exportExcel` applies `scope().tenantWhere()` to both the parent `Employee` lookup and the bulk `attendanceRecord.findMany`. | `src/attendance/**` | 2.48 |
+| `phase248-attendance-lock-deferred` | `AttendanceLockedPeriod` (`isPeriodLocked`, `listLockedPeriods`, `lockPeriod`, `unlockPeriod`) remains intentionally global — no `tenantId` column per the schema comment. | `src/attendance/**` | 2.48 |
 | `tenant-safe-report-runtime` | Reports engine uses `$queryRawUnsafe` with positional parameters and a registry-validated SQL string. | `src/reports/reports.service.ts` | 2.1 |
 
 ## 3. When annotations are allowed

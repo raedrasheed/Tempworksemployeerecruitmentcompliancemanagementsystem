@@ -131,6 +131,10 @@ const KNOWN_REASONS: ReadonlyArray<PolicyEntry> = [
   { tag: 'phase247-attendance-mutation-scope',   allowedPaths: ['src/attendance/'] },
   { tag: 'phase247-attendance-audit-log',        allowedPaths: ['src/attendance/'] },
   { tag: 'phase247-attendance-deferred-export',  allowedPaths: ['src/attendance/'] },
+  { tag: 'phase248-attendance-mutation-pilot',   allowedPaths: ['src/attendance/'] },
+  { tag: 'phase248-attendance-audit-log-pilot',  allowedPaths: ['src/attendance/'] },
+  { tag: 'phase248-attendance-export-scope',     allowedPaths: ['src/attendance/'] },
+  { tag: 'phase248-attendance-lock-deferred',    allowedPaths: ['src/attendance/'] },
   { tag: 'tenant-safe-report-runtime',    allowedPaths: ['src/reports/', 'src/saas/reports/'] },
   { tag: 'tenant-resolver-bootstrap',     allowedPaths: ['src/saas/tenancy/'] },
 ];

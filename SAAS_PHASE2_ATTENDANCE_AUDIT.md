@@ -143,3 +143,76 @@ No data, no schema migration introduced. Configuration-only rollback.
   pilot client.
 - **Locked period scoping**: today global; a future product phase may
   introduce per-tenant locks (requires schema change).
+
+---
+
+# Phase 2.48 addendum — Attendance mutation pilot
+
+## A. Tenant stamping on mutations
+`upsertRecord` now spreads `scope().tenantData()` into the
+`create:` branch of the upsert. With pilot ON + ALS tenant attached,
+new rows are stamped `tenantId = <active>`. With pilot OFF
+`tenantData()` returns `{}` so the create is byte-identical to
+pre-2.48. Update / delete reuse the Phase 2.47 parent gate
+(`findRecordForMutationOrFail`) which already filters by
+`tenantWhere()` — they cannot see, mutate, or delete a row
+belonging to another tenant. Tag: `phase248-attendance-mutation-pilot`.
+
+## B. Audit routing
+`auditLog` now writes through `TenantAuditLogService.write(...)`
+instead of `legacyPrisma.auditLog.create({...})`. With
+`TENANT_AUDIT_LOG_PILOT_ENABLED=false` (default) the audit row is
+emitted with no `tenantId` (legacy / NULL-tenant compatible). With
+the audit pilot ON and an active ALS tenant, the row carries
+`tenantId = <active>`. Rejected (NotFound) mutations short-circuit
+BEFORE `auditLog` is called, so no audit row is emitted for a
+denied cross-tenant attempt. Tag: `phase248-attendance-audit-log-pilot`.
+
+## C. exportExcel
+`exportExcel` now applies `scope().tenantWhere()` to the parent
+`Employee` lookup AND to the bulk `attendanceRecord.findMany` that
+populates the workbook. Under tenant A, an `employeeId = empB`
+export request raises `BadRequestException('No employees found ...')`
+because the employee lookup is filtered to tenant A's set. With the
+flag off, behaviour is byte-identical legacy. Tag:
+`phase248-attendance-export-scope`.
+
+## D. Lock periods
+Unchanged. `AttendanceLockedPeriod` has no `tenantId` column and is
+intentionally global per the schema comment. The four lock-related
+sites are re-tagged `phase248-attendance-lock-deferred` so that the
+deferral is explicit at the source. A future product phase can
+introduce per-tenant locks via schema migration.
+
+## E. Harness — `attendance-mutation-isolation` 17/17 PASS
+
+```
+[attendance-mutation-isolation] 17/17 PASS
+```
+
+1. pilot off legacy create: tenantId NULL
+2. pilot A create stamps tenantId = A
+3. pilot A create for tenant B employee: NotFound
+4. rejected create produces no row
+5. tenant A update on tenant A row: success
+6. tenant A update on tenant B row: NotFound
+7. tenant B row unchanged after rejected update
+8. tenant A delete on tenant A row: success
+9. tenant A delete on tenant B row: NotFound
+10. tenant B row unchanged after rejected delete
+11. bulkApply tenant A creates rows tagged tenant A
+12. bulkApply tenant B emp rejected; no rows created
+13. NULL-tenant legacy row not mutated under pilot
+14. concurrent ALS frames stamp correct tenantId per frame
+15. audit row tenant A mutation carries tenantId=A (audit pilot ON)
+16. rejected tenant B mutation does not emit audit row
+17. exportExcel tenant A refuses tenant B employee
+
+## F. Rollback
+```sh
+TENANT_PRISMA_PILOT_ENABLED=false           # disable mutation stamping + parent gate + export gate
+# OR
+TENANT_AUDIT_LOG_PILOT_ENABLED=false        # disable tenantId on audit rows (legacy)
+# OR
+TENANT_PRISMA_PILOT_MODULES=nothing         # disable attendance pilot only
+```

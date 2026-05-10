@@ -1074,3 +1074,23 @@ Tags: `phase247-attendance-pilot-scope`, `phase247-attendance-mutation-scope`,
 
 Real-DB: `attendance-equivalence` 12/12 + `attendance-isolation`
 12/12. Cumulative: **527/527**.
+
+## 11.21 — Phase 2.48: Attendance mutation pilot
+
+`upsertRecord` stamps `tenantId` via `scope().tenantData()` on the
+create-branch (legacy reduces to `{}`). Audit routing flips from
+`legacyPrisma.auditLog.create` to `TenantAuditLogService.write` so
+audit rows are tenant-attributed when `TENANT_AUDIT_LOG_PILOT_ENABLED=true`
+and remain legacy/NULL-tenant compatible when off. `exportExcel`
+applies `scope().tenantWhere()` to both the parent `Employee`
+lookup and the bulk `attendanceRecord.findMany`. `AttendanceLockedPeriod`
+sites are re-tagged `phase248-attendance-lock-deferred` and remain
+intentionally global.
+
+Tags: `phase248-attendance-mutation-pilot`,
+`phase248-attendance-audit-log-pilot`,
+`phase248-attendance-export-scope`,
+`phase248-attendance-lock-deferred`.
+
+Real-DB: `attendance-mutation-isolation` 17/17 + 2.47 sentinels
+green. Cumulative: **544/544**.

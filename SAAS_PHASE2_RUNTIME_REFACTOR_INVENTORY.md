@@ -861,3 +861,24 @@ Tags: `phase247-attendance-pilot-scope`,
 
 Real-DB: `attendance-equivalence` 12/12, `attendance-isolation`
 12/12. Cumulative: **527/527**.
+
+## 45 — Attendance mutation pilot (Phase 2.48)
+
+Extends Phase 2.47 from reads-first to safe mutation coverage:
+
+- Tenant stamping on `AttendanceRecord` create via
+  `scope().tenantData()` (legacy ⇒ `{}`).
+- Audit routing through `TenantAuditLogService.write`. Rejected
+  cross-tenant mutations short-circuit BEFORE audit emission, so
+  no audit row is produced for a denied attempt.
+- `exportExcel` applies `scope().tenantWhere()` to the parent
+  `Employee` query and the bulk `attendanceRecord.findMany`.
+- `AttendanceLockedPeriod` unchanged (no `tenantId` column;
+  intentionally global per schema comment).
+
+Tags: `phase248-attendance-mutation-pilot`,
+`phase248-attendance-audit-log-pilot`,
+`phase248-attendance-export-scope`,
+`phase248-attendance-lock-deferred`.
+
+Real-DB: `attendance-mutation-isolation` 17/17. Cumulative: **544/544**.

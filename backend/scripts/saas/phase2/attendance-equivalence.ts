@@ -27,6 +27,7 @@ import { TenantPrismaService } from '../../../src/saas/prisma/tenant-prisma.serv
 import { PilotPrismaAccessor } from '../../../src/saas/prisma/pilot-prisma.accessor';
 import { FeatureFlagsService } from '../../../src/saas/feature-flags/feature-flags.service';
 import { AttendanceService } from '../../../src/attendance/attendance.service';
+import { TenantAuditLogService } from '../../../src/saas/audit/tenant-audit-log.service';
 import { TenantContext, withRequestContext, newRequestId } from '../../../src/saas/context/als';
 import { getPilotScope, isModuleAllowed } from '../../../src/saas/prisma/tenant-pilot-scope';
 
@@ -50,8 +51,8 @@ async function withFlags<T>(env: Record<string, string | undefined>, fn: () => P
   try { return await fn(); } finally { process.env = prev; }
 }
 
-function makeService(prisma: PrismaService, pilot: PilotPrismaAccessor): AttendanceService {
-  return new AttendanceService(prisma, pilot);
+function makeService(prisma: PrismaService, pilot: PilotPrismaAccessor, ff: FeatureFlagsService): AttendanceService {
+  return new AttendanceService(prisma, pilot, new TenantAuditLogService(prisma, ff));
 }
 
 async function applyFixture(url: string): Promise<void> {
@@ -89,7 +90,7 @@ async function main(): Promise<void> {
     const prisma = new PrismaService();
     const ff = new FeatureFlagsService();
     const pilot = new PilotPrismaAccessor(prisma, new TenantPrismaService(prisma, ff), ff);
-    const svc = makeService(prisma, pilot);
+    const svc = makeService(prisma, pilot, ff);
     try {
       const r: any = await svc.listEmployeesWithStats({} as any);
       legacyTotal = r.meta.total;
@@ -107,7 +108,7 @@ async function main(): Promise<void> {
     const prisma = new PrismaService();
     const ff = new FeatureFlagsService();
     const pilot = new PilotPrismaAccessor(prisma, new TenantPrismaService(prisma, ff), ff);
-    const svc = makeService(prisma, pilot);
+    const svc = makeService(prisma, pilot, ff);
     try {
       const r: any = await withRequestContext({ requestId: newRequestId() }, async () => {
         TenantContext.attach({ id: tA, slug: 'a', name: 'A', status: 'ACTIVE', region: 'eu' });
@@ -127,7 +128,7 @@ async function main(): Promise<void> {
     const prisma = new PrismaService();
     const ff = new FeatureFlagsService();
     const pilot = new PilotPrismaAccessor(prisma, new TenantPrismaService(prisma, ff), ff);
-    const svc = makeService(prisma, pilot);
+    const svc = makeService(prisma, pilot, ff);
     try {
       const r: any = await svc.getEmployeeAttendance(empA, { month: 1, year: 2025 } as any);
       legacyJanRecs = r.records.length;
@@ -137,7 +138,7 @@ async function main(): Promise<void> {
     const prisma = new PrismaService();
     const ff = new FeatureFlagsService();
     const pilot = new PilotPrismaAccessor(prisma, new TenantPrismaService(prisma, ff), ff);
-    const svc = makeService(prisma, pilot);
+    const svc = makeService(prisma, pilot, ff);
     try {
       const r: any = await withRequestContext({ requestId: newRequestId() }, async () => {
         TenantContext.attach({ id: tA, slug: 'a', name: 'A', status: 'ACTIVE', region: 'eu' });
@@ -155,7 +156,7 @@ async function main(): Promise<void> {
     const prisma = new PrismaService();
     const ff = new FeatureFlagsService();
     const pilot = new PilotPrismaAccessor(prisma, new TenantPrismaService(prisma, ff), ff);
-    const svc = makeService(prisma, pilot);
+    const svc = makeService(prisma, pilot, ff);
     try {
       const r: any = await withRequestContext({ requestId: newRequestId() }, async () => {
         TenantContext.attach({ id: tA, slug: 'a', name: 'A', status: 'ACTIVE', region: 'eu' });
@@ -172,7 +173,7 @@ async function main(): Promise<void> {
     const prisma = new PrismaService();
     const ff = new FeatureFlagsService();
     const pilot = new PilotPrismaAccessor(prisma, new TenantPrismaService(prisma, ff), ff);
-    const svc = makeService(prisma, pilot);
+    const svc = makeService(prisma, pilot, ff);
     try {
       const r: any = await withRequestContext({ requestId: newRequestId() }, async () => {
         TenantContext.attach({ id: tA, slug: 'a', name: 'A', status: 'ACTIVE', region: 'eu' });
@@ -193,7 +194,7 @@ async function main(): Promise<void> {
     const prisma = new PrismaService();
     const ff = new FeatureFlagsService();
     const pilot = new PilotPrismaAccessor(prisma, new TenantPrismaService(prisma, ff), ff);
-    const svc = makeService(prisma, pilot);
+    const svc = makeService(prisma, pilot, ff);
     try {
       const r: any = await svc.upsertRecord({ employeeId: empA, date: '2025-02-15', status: 'PRESENT', checkIn: '08:00', checkOut: '16:00' } as any, undefined);
       out.push({ name: '8. mutation shape preserved (upsert returns id + employee)',

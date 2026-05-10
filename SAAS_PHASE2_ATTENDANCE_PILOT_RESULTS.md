@@ -60,3 +60,51 @@ No data, no schema migration introduced.
   / `upsert` writes through a tenant-stamping helper, route audit
   emission through `TenantAuditLogService`, and apply tenant
   predicate to the Excel export queries.
+
+---
+
+# Phase 2.48 results — mutation pilot
+
+## Module status (post-2.48)
+
+| Aspect | Status |
+|---|---|
+| Read paths under pilot | unchanged (12/12 equivalence + 12/12 isolation) |
+| Mutation tenant stamping | `upsertRecord` create-branch spreads `tenantData()` |
+| Mutation parent gate | unchanged (Phase 2.47) |
+| Audit emission | routed through `TenantAuditLogService.write` |
+| `exportExcel` | gated via `scope().tenantWhere()` on employee + records |
+| `AttendanceLockedPeriod` | unchanged (intentionally global; tagged `phase248-attendance-lock-deferred`) |
+| Schema migration | none |
+| Production behaviour change with flags off | none |
+
+## Real-DB harness results (`saas_phase1_fixture`)
+
+```
+[attendance-mutation-isolation] 17/17 PASS
+[attendance-equivalence]        12/12 PASS  (regression sentinel)
+[attendance-isolation]          12/12 PASS  (regression sentinel)
+```
+
+## Cumulative regression chain
+
+Phase 2.48 adds 17 cases on top of Phase 2.47:
+**544/544 PASS** (was 527/527 after 2.47B).
+
+## Rollback
+
+```sh
+TENANT_PRISMA_PILOT_ENABLED=false           # disables stamping + parent gate + export gate
+# OR
+TENANT_AUDIT_LOG_PILOT_ENABLED=false        # disables tenantId on audit rows only
+# OR
+TENANT_PRISMA_PILOT_MODULES=nothing         # opts attendance out only
+```
+
+## Recommended next phase
+
+**2.49 — Lock periods tenant scoping (schema change)**: introduce a
+`tenantId` column on `AttendanceLockedPeriod` and unique-by
+`(tenantId, year, month)` so per-tenant payroll locks become
+possible. Requires a Prisma migration and a backfill plan for
+existing global rows.

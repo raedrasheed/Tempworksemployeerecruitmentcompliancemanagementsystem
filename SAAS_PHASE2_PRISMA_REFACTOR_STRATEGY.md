@@ -1290,3 +1290,30 @@ Tags: `phase260-audit-log-rate-limit-envelope`,
 `phase260-audit-log-retry-after-header`.
 
 Real-DB harness: 17/17. Cumulative: **764/764**.
+
+## 11.34 — Phase 2.61: Pipeline reads-first TenantPrisma pilot
+
+`src/pipeline` joins the `getPilotScope(this.pilot, 'pipeline')`
+pattern. Workflow CONFIGURATION (Workflow, WorkflowStage,
+WorkflowStageUser, WorkflowStageRequiredDoc, WorkflowAccessUser)
+is GLOBAL by design — no `tenantId` column on those tables. The
+tenant-bound surface is the *assignment* layer
+(`CandidateWorkflowAssignment.tenantId`,
+`EmployeeWorkflowAssignment.tenantId`, denormed in Phase 2.3).
+
+Three read paths apply `scope.tenantWhere()`:
+- `getWorkflowCandidates` — direct on `CandidateWorkflowAssignment`.
+- `getWorkflowBoardView` — direct on `EmployeeWorkflowAssignment` +
+  nested `assignment.tenantId` on `CandidateStageProgress`.
+- `getWorkflowStats` — `count` / `findMany` on assignments and
+  nested `assignment.tenantId` on progress.
+
+Mutations + transitions + audit emission are deferred to a
+follow-up phase. Tags: `phase261-pipeline-pilot-scope`,
+`phase261-pipeline-mutation-deferred`,
+`phase261-pipeline-audit-log`,
+`phase261-pipeline-export-deferred`,
+`phase261-pipeline-transition-deferred`.
+
+Real-DB: `pipeline-equivalence` 12/12 + `pipeline-isolation`
+12/12. Cumulative: **788/788**.

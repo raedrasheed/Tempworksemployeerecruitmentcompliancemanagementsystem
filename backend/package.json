@@ -117,6 +117,8 @@
     "saas:phase258-audit-log-export-csv":                "ts-node scripts/saas/phase2/audit-log-export-csv.ts",
     "saas:phase259-audit-log-http-rate-limit":           "ts-node scripts/saas/phase2/audit-log-http-rate-limit.ts",
     "saas:phase260-audit-log-http-rate-limit-envelope":  "ts-node scripts/saas/phase2/audit-log-http-rate-limit-envelope.ts",
+    "saas:phase261-pipeline-equivalence":                "ts-node scripts/saas/phase2/pipeline-equivalence.ts",
+    "saas:phase261-pipeline-isolation":                  "ts-node scripts/saas/phase2/pipeline-isolation.ts",
     "saas:phase2-job-ads-equivalence": "ts-node scripts/saas/phase2/job-ads-equivalence.ts",
     "saas:phase2-job-ads-isolation": "ts-node scripts/saas/phase2/job-ads-isolation.ts",
     "saas:phase2-notifications-equivalence": "ts-node scripts/saas/phase2/notifications-equivalence.ts",

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-10T20:09:04.359Z",
+  "generatedAt": "2026-05-10T21:06:18.232Z",
   "counts": {
     "total": 26,
     "BLOCKER": 11,
@@ -286,7 +286,7 @@
     },
     {
       "file": "src/pipeline/pipeline.service.ts",
-      "line": 305,
+      "line": 340,
       "pattern": "$executeRaw",
       "severity": "MEDIUM",
       "blocksPhase2": false,

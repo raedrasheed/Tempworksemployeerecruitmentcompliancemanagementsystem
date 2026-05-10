@@ -1056,3 +1056,21 @@ Tags: `phase260-audit-log-rate-limit-envelope`,
 `phase260-audit-log-retry-after-header`.
 
 Real-DB harness: 17/17. Cumulative: **764/764**.
+
+## 58 — Pipeline reads-first TenantPrisma pilot (Phase 2.61)
+
+`src/pipeline` adopts the assignment-keyed pilot pattern. Three
+assignment-driven reads (candidates list, board view, stats)
+apply `scope.tenantWhere()` to per-tenant
+`Candidate/EmployeeWorkflowAssignment.tenantId` (Phase 2.3
+denorm). Workflow CONFIG stays global by design. Mutations,
+transitions, and audit routing are deferred.
+
+Tags: `phase261-pipeline-pilot-scope`,
+`phase261-pipeline-mutation-deferred`,
+`phase261-pipeline-audit-log`,
+`phase261-pipeline-export-deferred`,
+`phase261-pipeline-transition-deferred`.
+
+Real-DB: `pipeline-equivalence` 12/12, `pipeline-isolation` 12/12.
+Cumulative: **788/788**.

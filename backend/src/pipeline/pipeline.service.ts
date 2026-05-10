@@ -1,5 +1,7 @@
 import { Injectable, NotFoundException, ConflictException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { PilotPrismaAccessor } from '../saas/prisma/pilot-prisma.accessor';
+import { getPilotScope, PilotScope } from '../saas/prisma/tenant-pilot-scope';
 import {
   CreateWorkflowDto,
   CreateWorkflowStageDto,
@@ -22,9 +24,42 @@ const WORKFLOW_INCLUDE = {
   createdBy: { select: { id: true, firstName: true, lastName: true } },
 } as const;
 
+/**
+ * Phase 2.61 — Pipeline reads-first TenantPrisma pilot.
+ *
+ * Workflow / WorkflowStage configuration is GLOBAL by design today
+ * (no `tenantId` column; intentionally cross-tenant config like
+ * DocumentType). Workflow CRUD therefore stays on `legacyPrisma`
+ * and is tagged `phase261-pipeline-mutation-deferred`.
+ *
+ * The tenant-bound surface is the *assignment* layer:
+ * `CandidateWorkflowAssignment` and `EmployeeWorkflowAssignment`
+ * both carry a denormalised `tenantId` (Phase 2.3). Phase 2.61
+ * applies `scope.tenantWhere()` to assignment-driven read paths
+ * (`getWorkflowCandidates`, `getWorkflowBoardView`,
+ * `getWorkflowStats`) so a tenant-A actor cannot see tenant-B
+ * candidates inside a globally-defined workflow.
+ *
+ * Mutation parent gates and transition flow are deferred to the
+ * pipeline mutation pilot (next phase) — tag
+ * `phase261-pipeline-transition-deferred`. Stage-progress audit
+ * emission stays on `legacyPrisma.auditLog.create` — tag
+ * `phase261-pipeline-audit-log`.
+ */
 @Injectable()
 export class WorkflowService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private legacyPrisma: PrismaService,
+    private pilot: PilotPrismaAccessor,
+  ) {}
+
+  private get prisma(): PrismaService {
+    return this.pilot.client();
+  }
+
+  private scope(): PilotScope {
+    return getPilotScope(this.pilot, 'pipeline');
+  }
 
   // ─── Workflows ────────────────────────────────────────────────────────────
 
@@ -857,8 +892,8 @@ export class WorkflowService {
 
   async getWorkflowCandidates(workflowId: string) {
     await this.getWorkflow(workflowId);
-    return this.prisma.candidateWorkflowAssignment.findMany({
-      where: { workflowId, status: 'ACTIVE' },
+    return this.prisma.candidateWorkflowAssignment.findMany({ // @tenant-reviewed: phase261-pipeline-pilot-scope (assignment-keyed; CandidateWorkflowAssignment.tenantId)
+      where: { workflowId, status: 'ACTIVE', ...this.scope().tenantWhere() },
       include: {
         candidate: { select: { id: true, firstName: true, lastName: true, email: true, phone: true, candidateNumber: true, photoUrl: true, nationality: true, status: true } },
         stageProgress: {
@@ -876,8 +911,9 @@ export class WorkflowService {
 
     // Fetch ALL employee assignments for this workflow once, group by currentStageId in JS
     // (avoid enum/text cast issue by not filtering status in Prisma)
-    const allEmpAssignments = await this.prisma.employeeWorkflowAssignment.findMany({
-      where: { workflowId },
+    const tenantWhere = this.scope().tenantWhere();
+    const allEmpAssignments = await this.prisma.employeeWorkflowAssignment.findMany({ // @tenant-reviewed: phase261-pipeline-pilot-scope
+      where: { workflowId, ...tenantWhere },
       select: { currentStageId: true, status: true },
     });
     const empCountByStage = allEmpAssignments
@@ -889,8 +925,8 @@ export class WorkflowService {
 
     const columns = await Promise.all(
       stages.map(async (stage: any) => {
-        const progressItems = await this.prisma.candidateStageProgress.findMany({
-          where: { stageId: stage.id, status: 'ACTIVE', assignment: { workflowId } },
+        const progressItems = await this.prisma.candidateStageProgress.findMany({ // @tenant-reviewed: phase261-pipeline-pilot-scope (scope via parent assignment.tenantId)
+          where: { stageId: stage.id, status: 'ACTIVE', assignment: { workflowId, ...tenantWhere } },
           include: {
             assignment: {
               include: {
@@ -1406,14 +1442,15 @@ export class WorkflowService {
 
   async getWorkflowStats(workflowId: string) {
     await this.getWorkflow(workflowId);
+    const tenantWhere = this.scope().tenantWhere(); // @tenant-reviewed: phase261-pipeline-pilot-scope
     const [candidateActive, candidateCompleted, flaggedCount, slaBreached, empAssignments] = await Promise.all([
-      this.prisma.candidateWorkflowAssignment.count({ where: { workflowId, status: 'ACTIVE' } }),
-      this.prisma.candidateWorkflowAssignment.count({ where: { workflowId, status: 'COMPLETED' } }),
-      this.prisma.candidateStageProgress.count({ where: { assignment: { workflowId }, flagged: true, status: 'ACTIVE' } }),
-      this.prisma.candidateStageProgress.count({ where: { assignment: { workflowId }, status: 'ACTIVE', slaDeadline: { lt: new Date() } } }),
+      this.prisma.candidateWorkflowAssignment.count({ where: { workflowId, status: 'ACTIVE',    ...tenantWhere } }), // @tenant-reviewed: phase261-pipeline-pilot-scope
+      this.prisma.candidateWorkflowAssignment.count({ where: { workflowId, status: 'COMPLETED', ...tenantWhere } }), // @tenant-reviewed: phase261-pipeline-pilot-scope
+      this.prisma.candidateStageProgress.count({ where: { assignment: { workflowId, ...tenantWhere }, flagged: true, status: 'ACTIVE' } }), // @tenant-reviewed: phase261-pipeline-pilot-scope
+      this.prisma.candidateStageProgress.count({ where: { assignment: { workflowId, ...tenantWhere }, status: 'ACTIVE', slaDeadline: { lt: new Date() } } }), // @tenant-reviewed: phase261-pipeline-pilot-scope
       // Fetch employee assignments and filter in JS (avoid enum/text cast issue)
-      this.prisma.employeeWorkflowAssignment.findMany({
-        where: { workflowId },
+      this.prisma.employeeWorkflowAssignment.findMany({ // @tenant-reviewed: phase261-pipeline-pilot-scope
+        where: { workflowId, ...tenantWhere },
         select: { status: true },
       }),
     ]);

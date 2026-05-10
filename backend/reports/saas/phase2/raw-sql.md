@@ -1,6 +1,6 @@
 # Phase 2 — Raw-SQL Scanner Report
 
-Generated: 2026-05-10T20:09:04.359Z
+Generated: 2026-05-10T21:06:18.232Z
 
 - Total findings: **26**
 - BLOCKER: 11 (blocks Phase 2 enforcement: 20)
@@ -50,7 +50,7 @@ Generated: 2026-05-10T20:09:04.359Z
 | `src/applicants/applicants.service.ts` | 1363 | **MEDIUM** | `$queryRaw` | `applicants` | — | `const result: { current: number }[] = await this.legacyPrisma.$queryRaw`` |
 | `src/applicants/applicants.service.ts` | 1390 | **MEDIUM** | `$queryRaw` | `applicants` | — | `const result: { current: number }[] = await this.legacyPrisma.$queryRaw`` |
 | `src/employees/employees.service.ts` | 318 | **MEDIUM** | `$queryRaw` | `employees` | — | `const result: any[] = await this.legacyPrisma.$queryRaw`` |
-| `src/pipeline/pipeline.service.ts` | 305 | **MEDIUM** | `$executeRaw` | `pipeline` | — | `await this.prisma.$executeRaw`` |
+| `src/pipeline/pipeline.service.ts` | 340 | **MEDIUM** | `$executeRaw` | `pipeline` | — | `await this.prisma.$executeRaw`` |
 | `src/reports/reports.service.ts` | 967 | **MEDIUM** | `$queryRaw` | `reports` | — | `this.prisma.$queryRaw`` |
 
 ## Suggested fixes

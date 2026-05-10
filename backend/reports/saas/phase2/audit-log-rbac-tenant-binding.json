@@ -65,7 +65,7 @@
     {
       "name": "13. getStats respects tenant-bound RBAC scope",
       "ok": true,
-      "detail": "total=176"
+      "detail": "total=185"
     },
     {
       "name": "14. concurrent ALS frames remain isolated for findAll",

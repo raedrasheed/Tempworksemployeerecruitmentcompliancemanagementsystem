@@ -120,6 +120,7 @@
     "saas:phase261-pipeline-equivalence":                "ts-node scripts/saas/phase2/pipeline-equivalence.ts",
     "saas:phase261-pipeline-isolation":                  "ts-node scripts/saas/phase2/pipeline-isolation.ts",
     "saas:phase262-pipeline-mutation-isolation":         "ts-node scripts/saas/phase2/pipeline-mutation-isolation.ts",
+    "saas:phase263-workflow-config-isolation":           "ts-node scripts/saas/phase2/workflow-config-isolation.ts",
     "saas:phase2-job-ads-equivalence": "ts-node scripts/saas/phase2/job-ads-equivalence.ts",
     "saas:phase2-job-ads-isolation": "ts-node scripts/saas/phase2/job-ads-isolation.ts",
     "saas:phase2-notifications-equivalence": "ts-node scripts/saas/phase2/notifications-equivalence.ts",

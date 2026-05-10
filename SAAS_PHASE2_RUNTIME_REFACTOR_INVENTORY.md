@@ -1092,3 +1092,13 @@ Tags: `phase262-pipeline-mutation-pilot`,
 `phase262-pipeline-stage-config-global`.
 
 Real-DB harness: 17/17. Cumulative: **805/805**.
+
+---
+
+## Phase 2.63 — Workflow tenant scope
+
+`WorkflowService` gains three helpers (`workflowReadWhere`,
+`workflowMutateWhere`, `findMutableWorkflowOrFail`) and routes
+list/get/create/update/archive/delete/stage/access through them.
+Configuration-only rollback via `TENANT_PRISMA_PILOT_ENABLED=false`.
+See `SAAS_PHASE2_WORKFLOW_TENANT_SCOPE.md`.

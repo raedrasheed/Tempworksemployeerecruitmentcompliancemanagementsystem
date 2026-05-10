@@ -5,7 +5,7 @@
     {
       "name": "1. pilot disabled returns legacy list shape",
       "ok": true,
-      "detail": "workflows=1"
+      "detail": "workflows=3"
     },
     {
       "name": "2. pilot disabled getWorkflow matches legacy",

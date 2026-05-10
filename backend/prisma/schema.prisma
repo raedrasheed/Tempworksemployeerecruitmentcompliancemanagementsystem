@@ -1319,7 +1319,14 @@ model Workflow {
   employeeAssignments EmployeeWorkflowAssignment[]
   accessUsers         WorkflowAccessUser[]
 
+  // Phase 2.63 — tenant scope for workflow configuration.
+  // NULL ⇒ global template (legacy + cross-tenant read-only). Per-tenant
+  // workflows carry the active tenant's id. WorkflowStage derives its
+  // tenant through this Workflow relation (no direct tenantId on stage).
+  tenantId String?
+
   @@index([status])
+  @@index([tenantId])
   @@map("workflows")
 }
 

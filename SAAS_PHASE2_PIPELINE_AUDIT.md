@@ -266,3 +266,15 @@ TENANT_AUDIT_LOG_PILOT_ENABLED=false        # disables tenantId on audit rows
 ```
 
 No data, no schema migration introduced. Configuration-only.
+
+---
+
+## Phase 2.63 addendum — workflow config tenant scope
+
+Workflows now carry `tenantId text NULL`. NULL is reserved for legacy
+"global templates" (Strategy A): visible to every tenant under pilot,
+but mutation is refused. Tenant-specific workflows are created going
+forward and refuse cross-tenant access via `workflowMutateWhere()` and
+`findMutableWorkflowOrFail`. `WorkflowStage` derives its tenant through
+the parent workflow (no direct column). See
+`SAAS_PHASE2_WORKFLOW_TENANT_SCOPE.md`.

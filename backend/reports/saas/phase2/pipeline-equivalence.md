@@ -2,7 +2,7 @@
 
 **12/12 PASS**
 
-- PASS — 1. pilot disabled returns legacy list shape — workflows=1
+- PASS — 1. pilot disabled returns legacy list shape — workflows=3
 - PASS — 2. pilot disabled getWorkflow matches legacy — id=00000000 stages=2
 - PASS — 3. pilot enabled response shape preserved (array) — count=1
 - PASS — 4. pilot enabled candidates ⊂ legacy union — legacy=3 pilotA=1

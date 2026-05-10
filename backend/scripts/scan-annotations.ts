@@ -170,6 +170,11 @@ const KNOWN_REASONS: ReadonlyArray<PolicyEntry> = [
   { tag: 'phase262-pipeline-audit-log-pilot',            allowedPaths: ['src/pipeline/'] },
   { tag: 'phase262-pipeline-workflow-config-global',     allowedPaths: ['src/pipeline/'] },
   { tag: 'phase262-pipeline-stage-config-global',        allowedPaths: ['src/pipeline/'] },
+  { tag: 'phase263-workflow-tenant-scope',               allowedPaths: ['src/pipeline/'] },
+  { tag: 'phase263-workflow-schema-migration',           allowedPaths: ['src/pipeline/', 'prisma/'] },
+  { tag: 'phase263-workflow-global-template',            allowedPaths: ['src/pipeline/'] },
+  { tag: 'phase263-workflow-stage-scope',                allowedPaths: ['src/pipeline/'] },
+  { tag: 'phase263-workflow-audit-log',                  allowedPaths: ['src/pipeline/'] },
   { tag: 'tenant-safe-report-runtime',    allowedPaths: ['src/reports/', 'src/saas/reports/'] },
   { tag: 'tenant-resolver-bootstrap',     allowedPaths: ['src/saas/tenancy/'] },
 ];

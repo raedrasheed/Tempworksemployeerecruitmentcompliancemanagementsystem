@@ -1340,3 +1340,13 @@ Tags: `phase262-pipeline-mutation-pilot`,
 
 Real-DB: `pipeline-mutation-isolation` 17/17 + 2.61 sentinels
 green. Cumulative: **805/805**.
+
+---
+
+## Phase 2.63 — Workflow tenant scope schema migration
+
+Workflows promoted from a globally shared table to a per-tenant
+construct. `Workflow.tenantId text NULL` + `workflows_tenantId_idx`.
+Strategy A: NULL-tenant rows remain readable as global templates but
+mutation is refused. `WorkflowStage` derives tenant via its parent —
+no direct column. See `SAAS_PHASE2_WORKFLOW_TENANT_SCOPE.md`.

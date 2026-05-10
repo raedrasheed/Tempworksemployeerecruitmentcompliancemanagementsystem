@@ -106,6 +106,42 @@ export class WorkflowService {
     return a;
   }
 
+  /**
+   * Phase 2.63 — workflow READ predicate. With pilot active +
+   * pipeline allow-listed + ALS tenant attached, a tenant sees
+   * its own workflows PLUS NULL-tenant global templates (Strategy
+   * A; read-only). Legacy mode returns `{}` so behaviour is
+   * byte-identical to pre-2.63.
+   * Tag: phase263-workflow-tenant-scope + phase263-workflow-global-template.
+   */
+  private workflowReadWhere(): Record<string, unknown> {
+    const s = this.scope();
+    if (!s.active || !s.tenantId) return {};
+    return { OR: [{ tenantId: s.tenantId }, { tenantId: null }] };
+  }
+
+  /** Phase 2.63 — workflow MUTATION predicate. With pilot active,
+   *  refuses NULL-tenant global templates AND cross-tenant
+   *  workflows. Legacy mode returns `{}` (no extra filter).
+   *  Tag: phase263-workflow-tenant-scope. */
+  private workflowMutateWhere(): Record<string, unknown> {
+    const s = this.scope();
+    if (!s.active || !s.tenantId) return {};
+    return { tenantId: s.tenantId };
+  }
+
+  /** Phase 2.63 — assertion helper for stage / access-user routes:
+   *  the parent workflow must be mutable by the active tenant.
+   *  Returns the workflow row.
+   *  Tag: phase263-workflow-stage-scope. */
+  private async findMutableWorkflowOrFail(workflowId: string) {
+    const w = await this.prisma.workflow.findFirst({ // @tenant-reviewed: phase263-workflow-stage-scope (parent gate for stage/access mutations)
+      where: { id: workflowId, deletedAt: null, ...this.workflowMutateWhere() },
+    });
+    if (!w) throw new NotFoundException({ code: 'WORKFLOW.NOT_FOUND', message: 'Workflow not found' });
+    return w;
+  }
+
   /** Phase 2.62 — stage-progress parent gate via assignment.tenantId. */
   private async findProgressForMutationOrFail(progressId: string) {
     const t = this.scope().tenantWhere();
@@ -120,7 +156,8 @@ export class WorkflowService {
   // ─── Workflows ────────────────────────────────────────────────────────────
 
   async listWorkflows(includeArchived = false) {
-    const where: any = { deletedAt: null };
+    // @tenant-reviewed: phase263-workflow-tenant-scope (own + NULL-global templates visible)
+    const where: any = { deletedAt: null, ...this.workflowReadWhere() };
     if (!includeArchived) where.status = 'ACTIVE';
     const workflows = await this.prisma.workflow.findMany({
       where,
@@ -134,8 +171,9 @@ export class WorkflowService {
   }
 
   async getWorkflow(id: string) {
+    // @tenant-reviewed: phase263-workflow-tenant-scope (own + NULL-global templates readable)
     const workflow = await this.prisma.workflow.findFirst({
-      where: { id, deletedAt: null },
+      where: { id, deletedAt: null, ...this.workflowReadWhere() },
       include: WORKFLOW_INCLUDE,
     });
     if (!workflow) throw new NotFoundException({ code: 'WORKFLOW.NOT_FOUND', message: 'Workflow not found' });
@@ -144,7 +182,11 @@ export class WorkflowService {
 
   async createWorkflow(dto: CreateWorkflowDto, createdById?: string) {
     if (dto.isDefault) {
-      await this.prisma.workflow.updateMany({ where: { isDefault: true, deletedAt: null }, data: { isDefault: false } });
+      // @tenant-reviewed: phase263-workflow-tenant-scope (per-tenant default flag only within own scope)
+      await this.prisma.workflow.updateMany({
+        where: { isDefault: true, deletedAt: null, ...this.workflowMutateWhere() },
+        data: { isDefault: false },
+      });
     }
     return this.prisma.workflow.create({
       data: {
@@ -154,6 +196,7 @@ export class WorkflowService {
         isPublic: dto.isPublic ?? true,
         color: dto.color ?? '#2563EB',
         createdById,
+        ...this.scope().tenantData(), // @tenant-reviewed: phase263-workflow-tenant-scope (stamp tenantId on insert)
       },
       include: WORKFLOW_INCLUDE,
     });
@@ -170,8 +213,9 @@ export class WorkflowService {
    * afterwards if desired.
    */
   async copyWorkflow(sourceId: string, overrides: { name?: string } | undefined, actorId?: string) {
+    // @tenant-reviewed: phase263-workflow-tenant-scope (source readable if own or NULL-global template)
     const source = await this.prisma.workflow.findFirst({
-      where: { id: sourceId, deletedAt: null },
+      where: { id: sourceId, deletedAt: null, ...this.workflowReadWhere() },
       include: {
         stages: {
           orderBy: { order: 'asc' },
@@ -193,7 +237,8 @@ export class WorkflowService {
       const base = `${source.name} (Copy)`;
       let candidate = base;
       let suffix = 2;
-      while (await this.prisma.workflow.findFirst({ where: { name: candidate, deletedAt: null } })) {
+      // @tenant-reviewed: phase263-workflow-tenant-scope (name uniqueness check scoped to active tenant)
+      while (await this.prisma.workflow.findFirst({ where: { name: candidate, deletedAt: null, ...this.workflowMutateWhere() } })) {
         candidate = `${source.name} (Copy ${suffix})`;
         suffix += 1;
       }
@@ -209,6 +254,7 @@ export class WorkflowService {
           isPublic: source.isPublic,
           color: source.color,
           createdById: actorId,
+          ...this.scope().tenantData(), // @tenant-reviewed: phase263-workflow-tenant-scope (copy lands in active tenant)
         },
       });
 
@@ -275,9 +321,13 @@ export class WorkflowService {
   }
 
   async updateWorkflow(id: string, dto: Partial<CreateWorkflowDto>, updatedById?: string) {
-    await this.getWorkflow(id);
+    await this.findMutableWorkflowOrFail(id); // @tenant-reviewed: phase263-workflow-tenant-scope (refuses global templates + cross-tenant)
     if (dto.isDefault) {
-      await this.prisma.workflow.updateMany({ where: { isDefault: true, deletedAt: null, id: { not: id } }, data: { isDefault: false } });
+      // @tenant-reviewed: phase263-workflow-tenant-scope (per-tenant default flag only within own scope)
+      await this.prisma.workflow.updateMany({
+        where: { isDefault: true, deletedAt: null, id: { not: id }, ...this.workflowMutateWhere() },
+        data: { isDefault: false },
+      });
     }
     const updated = await this.prisma.workflow.update({
       where: { id },
@@ -297,7 +347,7 @@ export class WorkflowService {
   }
 
   async archiveWorkflow(id: string, actorId?: string) {
-    await this.getWorkflow(id);
+    await this.findMutableWorkflowOrFail(id); // @tenant-reviewed: phase263-workflow-tenant-scope (refuses global templates + cross-tenant)
     const updated = await this.prisma.workflow.update({ where: { id }, data: { status: 'ARCHIVED' as any } });
     if (actorId) {
       await this.auditLog(actorId, 'ARCHIVE', 'Workflow', id); // @tenant-reviewed: phase262-pipeline-audit-log-pilot
@@ -306,7 +356,7 @@ export class WorkflowService {
   }
 
   async deleteWorkflow(id: string, actorId?: string) {
-    await this.getWorkflow(id);
+    await this.findMutableWorkflowOrFail(id); // @tenant-reviewed: phase263-workflow-tenant-scope (refuses global templates + cross-tenant)
     await this.prisma.workflow.update({ where: { id }, data: { deletedAt: new Date(), deletedBy: actorId } });
     if (actorId) {
       await this.auditLog(actorId, 'DELETE', 'Workflow', id); // @tenant-reviewed: phase262-pipeline-audit-log-pilot
@@ -333,7 +383,7 @@ export class WorkflowService {
   }
 
   async addAccessUser(workflowId: string, userId: string, actorId?: string) {
-    await this.getWorkflow(workflowId);
+    await this.findMutableWorkflowOrFail(workflowId); // @tenant-reviewed: phase263-workflow-stage-scope (access-user grant requires mutable parent)
     const user = await this.prisma.user.findFirst({ where: { id: userId, deletedAt: null } });
     if (!user) throw new NotFoundException({ code: 'USER.NOT_FOUND', message: 'User not found' });
     try {
@@ -352,7 +402,7 @@ export class WorkflowService {
   }
 
   async removeAccessUser(workflowId: string, userId: string, actorId?: string) {
-    await this.getWorkflow(workflowId);
+    await this.findMutableWorkflowOrFail(workflowId); // @tenant-reviewed: phase263-workflow-stage-scope (access-user revoke requires mutable parent)
     const existing = await (this.prisma as any).workflowAccessUser.findUnique({
       where: { workflowId_userId: { workflowId, userId } },
     });
@@ -369,7 +419,7 @@ export class WorkflowService {
   // ─── Stages ───────────────────────────────────────────────────────────────
 
   async addStage(workflowId: string, dto: CreateWorkflowStageDto, actorId?: string) {
-    await this.getWorkflow(workflowId);
+    await this.findMutableWorkflowOrFail(workflowId); // @tenant-reviewed: phase263-workflow-stage-scope (stage add requires mutable parent)
 
     // Auto-assign order if not provided
     if (dto.order == null) {
@@ -429,6 +479,7 @@ export class WorkflowService {
   async updateStage(stageId: string, dto: Partial<CreateWorkflowStageDto>, actorId?: string) {
     const stage = await this.prisma.workflowStage.findUnique({ where: { id: stageId } });
     if (!stage) throw new NotFoundException({ code: 'WORKFLOW.STAGE_NOT_FOUND', message: 'Stage not found' });
+    await this.findMutableWorkflowOrFail(stage.workflowId); // @tenant-reviewed: phase263-workflow-stage-scope (stage derives tenant via parent workflow)
 
     const {
       assignedUserIds, approverUserIds, responsibleUserIds,
@@ -505,12 +556,13 @@ export class WorkflowService {
   async deleteStage(stageId: string, actorId?: string) {
     const stage = await this.prisma.workflowStage.findUnique({ where: { id: stageId } });
     if (!stage) throw new NotFoundException({ code: 'WORKFLOW.STAGE_NOT_FOUND', message: 'Stage not found' });
+    await this.findMutableWorkflowOrFail(stage.workflowId); // @tenant-reviewed: phase263-workflow-stage-scope (stage derives tenant via parent workflow)
     await this.prisma.workflowStage.delete({ where: { id: stageId } });
     return { message: 'Stage deleted' };
   }
 
   async reorderStages(workflowId: string, orderedIds: string[]) {
-    await this.getWorkflow(workflowId);
+    await this.findMutableWorkflowOrFail(workflowId); // @tenant-reviewed: phase263-workflow-stage-scope (reorder requires mutable parent)
     // Use a transaction with sequential updates to avoid intermediate unique-constraint
     // violations on (workflowId, order). First shift all orders to a safe negative
     // range, then assign the final values sequentially.

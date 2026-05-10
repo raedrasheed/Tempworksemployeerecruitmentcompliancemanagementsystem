@@ -265,3 +265,13 @@ npm run saas:scan:annotations
 npm run saas:scan -- --strict
 # → fails the build on any unannotated USAGE.
 ```
+
+---
+
+## Phase 2.63 — Workflow tenant scope tags
+
+- `phase263-workflow-tenant-scope` (allowed: `src/pipeline/`)
+- `phase263-workflow-schema-migration` (allowed: `src/pipeline/`, `prisma/`)
+- `phase263-workflow-global-template` (allowed: `src/pipeline/`)
+- `phase263-workflow-stage-scope` (allowed: `src/pipeline/`)
+- `phase263-workflow-audit-log` (allowed: `src/pipeline/`)

@@ -72,3 +72,14 @@ deleteWorkflow / addStage / updateStage / deleteStage /
 reorderStages / addAccessUser / removeAccessUser. Requires
 explicit product decision on backfill strategy because workflows
 are shared today.
+
+---
+
+## Phase 2.63 — Workflow Tenant Scoping Schema Migration (addendum)
+
+Strategy A landed: `Workflow.tenantId` added (nullable); legacy NULL-tenant
+rows treated as read-only global templates; per-tenant workflows created
+going forward. CRUD wired (list / get / create / update / archive / delete
+plus stage and access-user routes). Harness `workflow-config-isolation`
+19/19 PASS; Phase 2.61/2.62 pipeline harnesses re-run green. See
+`SAAS_PHASE2_WORKFLOW_TENANT_SCOPE.md` for full details.

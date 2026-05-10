@@ -158,6 +158,8 @@ const KNOWN_REASONS: ReadonlyArray<PolicyEntry> = [
   { tag: 'phase259-audit-log-http-rate-limit',           allowedPaths: ['src/logs/'] },
   { tag: 'phase259-audit-log-rate-limit-keying',         allowedPaths: ['src/logs/'] },
   { tag: 'phase259-audit-log-rate-limit-disabled-default', allowedPaths: ['src/logs/'] },
+  { tag: 'phase260-audit-log-rate-limit-envelope',       allowedPaths: ['src/logs/'] },
+  { tag: 'phase260-audit-log-retry-after-header',        allowedPaths: ['src/logs/'] },
   { tag: 'tenant-safe-report-runtime',    allowedPaths: ['src/reports/', 'src/saas/reports/'] },
   { tag: 'tenant-resolver-bootstrap',     allowedPaths: ['src/saas/tenancy/'] },
 ];

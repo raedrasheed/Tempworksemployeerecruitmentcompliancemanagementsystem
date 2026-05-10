@@ -62,6 +62,14 @@ export class AuditLogRateLimiter {
     return decision;
   }
 
+  /** Phase 2.60 — non-throwing variant. Returns the decision so the
+   *  controller can build a structured 429 envelope and set the
+   *  `Retry-After` header before throwing.
+   *  Tag: phase260-audit-log-rate-limit-envelope. */
+  tryConsume(key: string): AuditRateLimitDecision {
+    return this.peek(key, this.resolveConfig());
+  }
+
   /** Pure peek without throwing. Updates internal state when the
    *  limiter is enabled. */
   private peek(

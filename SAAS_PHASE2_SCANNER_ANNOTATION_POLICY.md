@@ -153,6 +153,8 @@ and counted against the strict-mode threshold.
 | `phase259-audit-log-http-rate-limit` | `AuditLogRateLimiter` service + `enforceRateLimit(caller, res?)` invoked at the top of every `TenantAuditController` GET handler. Throws HTTP 429 BEFORE the data path runs. | `src/logs/**` | 2.59 |
 | `phase259-audit-log-rate-limit-keying` | `rateLimitKey(caller)` — `tenant:<id>` for tenant-scoped + FULL_ACCESS-without-global-gate; `global:<userId>` for FULL_ACCESS under `AUDIT_LOG_GLOBAL_READ_ENABLED=true`. | `src/logs/**` | 2.59 |
 | `phase259-audit-log-rate-limit-disabled-default` | Limiter activates only when both `AUDIT_LOG_HTTP_RATE_LIMIT_ENABLED=true` and `AUDIT_LOG_HTTP_RATE_LIMIT_RPM > 0`; invalid values fall back to disabled. | `src/logs/**` | 2.59 |
+| `phase260-audit-log-rate-limit-envelope` | Stable JSON envelope on 429 from `TenantAuditController.enforceRateLimit` (`error: 'rate_limited'`, `retryAfterSeconds`, `limit`, `remaining=0`, `windowSeconds`). Backed by `AuditLogRateLimiter.tryConsume(key)`. | `src/logs/**` | 2.60 |
+| `phase260-audit-log-retry-after-header` | `Retry-After: <seconds>` HTTP header attached to 429 responses on every protected `/admin/tenant-audit/*` route. | `src/logs/**` | 2.60 |
 | `tenant-safe-report-runtime` | Reports engine uses `$queryRawUnsafe` with positional parameters and a registry-validated SQL string. | `src/reports/reports.service.ts` | 2.1 |
 
 ## 3. When annotations are allowed

@@ -1273,3 +1273,20 @@ Tags: `phase259-audit-log-http-rate-limit`,
 `phase259-audit-log-rate-limit-disabled-default`.
 
 Real-DB harness: 17/17. Cumulative: **747/747**.
+
+## 11.33 — Phase 2.60: Retry-After header + structured 429 envelope
+
+`AuditLogRateLimiter` gains `tryConsume(key)` (non-throwing).
+`TenantAuditController.enforceRateLimit(caller, res?)` now:
+- attaches `X-RateLimit-*` headers when enabled (Phase 2.59),
+- on rejection sets `Retry-After: <retryAfterSeconds>` and throws
+  `HttpException(<envelope>, 429)` where the envelope is
+  `{ error: 'rate_limited', message, retryAfterSeconds, limit,
+  remaining, windowSeconds }`.
+All five GET handlers declare `@Res({ passthrough: true })`
+(except `exportCsv` which already manages its own response).
+
+Tags: `phase260-audit-log-rate-limit-envelope`,
+`phase260-audit-log-retry-after-header`.
+
+Real-DB harness: 17/17. Cumulative: **764/764**.

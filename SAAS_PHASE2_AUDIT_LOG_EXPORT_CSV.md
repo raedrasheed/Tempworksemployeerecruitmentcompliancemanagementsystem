@@ -226,3 +226,13 @@ rate limiter (`AUDIT_LOG_HTTP_RATE_LIMIT_*`). Default-OFF; when
 enabled, an exhausted quota returns HTTP 429 BEFORE the service
 runs the underlying `findMany`. See
 `SAAS_PHASE2_AUDIT_LOG_HTTP_RATE_LIMIT.md`.
+
+---
+
+# Phase 2.60 cross-link — 429 envelope on export.csv
+
+When the Phase 2.59 limiter rejects an export request, the route
+no longer emits a partial CSV — it throws a structured 429
+envelope with `Retry-After`. Successful exports still return
+`text/csv; charset=utf-8` with all Phase 2.58 headers. See
+`SAAS_PHASE2_AUDIT_LOG_HTTP_RATE_LIMIT_ENVELOPE.md`.

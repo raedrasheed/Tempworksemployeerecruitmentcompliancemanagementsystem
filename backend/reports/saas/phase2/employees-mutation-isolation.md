@@ -11,6 +11,6 @@
 - PASS — 7. grantAgencyAccess(tenantA-emp, tenantB-agency) blocked at agency gate — NotFound
 - PASS — 8. updateAgencyAccess(tenantB-emp) blocked at employee gate — NotFound
 - PASS — 9. revokeAgencyAccess(tenantB-emp) blocked at employee gate — NotFound
-- PASS — 10. legacy: cross-tenant update succeeds (today's behaviour) — phone=+legacy-mp070n7y
+- PASS — 10. legacy: cross-tenant update succeeds (today's behaviour) — phone=+legacy-mp07kfz7
 - PASS — 11. concurrent ALS create A→A, B→B — a=11111111-1111-1111-1111-111111111111 b=22222222-2222-2222-2222-222222222222
 - PASS — 12. source-level: phase234 patterns + helpers present — OK

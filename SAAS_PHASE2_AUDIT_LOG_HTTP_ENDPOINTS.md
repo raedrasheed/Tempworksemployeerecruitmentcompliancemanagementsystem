@@ -216,3 +216,11 @@ Tags: `phase258-audit-log-export-csv`,
 Tags: `phase259-audit-log-http-rate-limit`,
 `phase259-audit-log-rate-limit-keying`,
 `phase259-audit-log-rate-limit-disabled-default`.
+
+---
+
+# Phase 2.60 cross-link — 429 envelope + Retry-After
+
+All five GET routes on `TenantAuditController` now share a stable
+JSON envelope on rate-limit rejection and emit a `Retry-After`
+header. See `SAAS_PHASE2_AUDIT_LOG_HTTP_RATE_LIMIT_ENVELOPE.md`.

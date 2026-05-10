@@ -5,7 +5,7 @@
     {
       "name": "1. export under tenant A returns only tenant A rows",
       "ok": true,
-      "detail": "rows=28"
+      "detail": "rows=30"
     },
     {
       "name": "2. export under tenant A excludes tenant B rows",
@@ -25,7 +25,7 @@
     {
       "name": "4. entity filter preserved",
       "ok": true,
-      "detail": "rows=28"
+      "detail": "rows=30"
     },
     {
       "name": "5. entityId filter cannot leak tenant B row",
@@ -35,7 +35,7 @@
     {
       "name": "6. date range filter preserved (last 6h ⊂ all 25h)",
       "ok": true,
-      "detail": "rows=9"
+      "detail": "rows=11"
     },
     {
       "name": "8. CSV escaping handles comma, quote, and newline safely",

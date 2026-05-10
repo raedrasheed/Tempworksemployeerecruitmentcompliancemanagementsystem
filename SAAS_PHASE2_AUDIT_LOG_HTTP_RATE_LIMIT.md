@@ -191,3 +191,16 @@ small Nest exception filter that converts
 (`{ error: 'rate_limited', retryAfterSeconds: <n> }`). The filter
 must apply only to the audit routes (or be globally idempotent).
 Defaults remain off; behaviour with limiter disabled is unchanged.
+
+---
+
+# Phase 2.60 cross-link — structured 429 envelope + Retry-After
+
+The deferred header from §11 is now wired. Rejected requests
+return a stable JSON envelope (`error: 'rate_limited'`,
+`retryAfterSeconds`, `limit`, `remaining`, `windowSeconds`) and
+a matching `Retry-After: <seconds>` header. See
+`SAAS_PHASE2_AUDIT_LOG_HTTP_RATE_LIMIT_ENVELOPE.md`.
+
+Tags: `phase260-audit-log-rate-limit-envelope`,
+`phase260-audit-log-retry-after-header`.

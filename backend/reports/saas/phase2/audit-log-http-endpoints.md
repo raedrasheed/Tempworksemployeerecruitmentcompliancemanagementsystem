@@ -9,10 +9,10 @@
 - PASS — 5. list endpoint preserves entityId filter without tenant leakage — count=0
 - PASS — 6. list endpoint preserves date range filter — count=1
 - PASS — 7. list endpoint preserves pagination shape — page=1 limit=1
-- PASS — 8. byId endpoint returns tenant A row for tenant A — id=4448ba07
+- PASS — 8. byId endpoint returns tenant A row for tenant A — id=ae7d4adb
 - PASS — 9. byId endpoint hides tenant B row from tenant A (NotFound) — NotFoundException
-- PASS — 10. stats endpoint counts only tenant A rows — total=164 entities=10
-- PASS — 11. retention-preview endpoint returns count only and modifies zero rows — candidate=3 before=875 after=875
+- PASS — 10. stats endpoint counts only tenant A rows — total=176 entities=10
+- PASS — 11. retention-preview endpoint returns count only and modifies zero rows — candidate=3 before=913 after=913
 - PASS — 12. retention-preview endpoint excludes tenant B rows for tenant A — tenantId=11111111
 - PASS — 13. missing ALS tenant context refuses safely (Forbidden) — ForbiddenException
 - PASS — 14. controller @Roles pinned to System Admin / Compliance Officer only — allowed=true noRecruiter=true

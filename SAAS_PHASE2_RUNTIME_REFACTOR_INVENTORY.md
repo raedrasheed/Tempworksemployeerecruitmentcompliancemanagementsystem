@@ -1043,3 +1043,16 @@ Tags: `phase259-audit-log-http-rate-limit`,
 `phase259-audit-log-rate-limit-disabled-default`.
 
 Real-DB harness: 17/17. Cumulative: **747/747**.
+
+## 57 — Retry-After header + structured 429 envelope (Phase 2.60)
+
+Closes the Phase 2.59 deferred-header blocker. Every protected
+GET route now emits a stable JSON envelope on rate-limit
+rejection and a matching `Retry-After: <seconds>` header.
+Successful CSV exports remain unchanged. RBAC errors still win
+on missing ALS. Limiter behaviour is unchanged when disabled.
+
+Tags: `phase260-audit-log-rate-limit-envelope`,
+`phase260-audit-log-retry-after-header`.
+
+Real-DB harness: 17/17. Cumulative: **764/764**.

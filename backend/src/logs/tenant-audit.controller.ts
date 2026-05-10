@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query, Res, UseGuards } from '@nestjs/common';
+import { Controller, Get, HttpException, HttpStatus, Param, Query, Res, UseGuards } from '@nestjs/common';
 import { Response } from 'express';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { LogsService, FULL_ACCESS_ROLES } from './logs.service';
@@ -53,15 +53,42 @@ export class TenantAuditController {
   /** Phase 2.59 — single throttle hook. ALL TenantAuditController
    *  GET routes call this BEFORE invoking LogsService so a rejected
    *  request never reaches the data path.
-   *  Tag: phase259-audit-log-http-rate-limit. */
+   *
+   *  Phase 2.60 — on rejection sets `Retry-After` (when `res` is
+   *  available) and throws a structured envelope:
+   *    {
+   *      error: 'rate_limited', message: 'Too Many Requests',
+   *      retryAfterSeconds, limit, remaining, windowSeconds
+   *    }
+   *  Tags: phase259-audit-log-http-rate-limit,
+   *  phase260-audit-log-rate-limit-envelope,
+   *  phase260-audit-log-retry-after-header.
+   */
   private enforceRateLimit(caller: any, res?: Response): void {
-    const decision = this.rateLimiter.consumeOrThrow(this.rateLimitKey(caller));
+    const decision = this.rateLimiter.tryConsume(this.rateLimitKey(caller));
     if (res && decision.enabled) {
       res.set?.({
         'X-RateLimit-Limit':     String(decision.limit),
         'X-RateLimit-Remaining': String(decision.remaining),
         'X-RateLimit-Window':    String(decision.windowSeconds),
       });
+    }
+    if (decision.enabled && !decision.allowed) {
+      // @tenant-reviewed: phase260-audit-log-retry-after-header (Retry-After header hint)
+      if (res) res.set?.({ 'Retry-After': String(decision.retryAfterSeconds) });
+      // @tenant-reviewed: phase260-audit-log-rate-limit-envelope (stable JSON envelope)
+      throw new HttpException(
+        {
+          statusCode: 429,
+          error: 'rate_limited',
+          message: 'Too Many Requests',
+          retryAfterSeconds: decision.retryAfterSeconds,
+          limit: decision.limit,
+          remaining: 0,
+          windowSeconds: decision.windowSeconds,
+        },
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
     }
   }
 
@@ -84,8 +111,9 @@ export class TenantAuditController {
     @Query('userId')   userId?: string,
     @Query('fromDate') fromDate?: string,
     @Query('toDate')   toDate?: string,
+    @Res({ passthrough: true }) res?: Response,
   ) {
-    this.enforceRateLimit(caller); // @tenant-reviewed: phase259-audit-log-http-rate-limit
+    this.enforceRateLimit(caller, res); // @tenant-reviewed: phase260-audit-log-retry-after-header
     return this.logsService.findAll(
       pagination,
       { entity, entityId, action, userId, fromDate, toDate },
@@ -97,8 +125,8 @@ export class TenantAuditController {
   @Roles('System Admin', 'Compliance Officer')
   @ApiOperation({ summary: 'Tenant-scoped audit log statistics (read-only)' })
   // @tenant-reviewed: phase257-audit-log-http-read (delegates to RBAC-bound LogsService.getStats)
-  stats(@CurrentUser() caller: any) {
-    this.enforceRateLimit(caller); // @tenant-reviewed: phase259-audit-log-http-rate-limit
+  stats(@CurrentUser() caller: any, @Res({ passthrough: true }) res?: Response) {
+    this.enforceRateLimit(caller, res); // @tenant-reviewed: phase260-audit-log-retry-after-header
     return this.logsService.getStats({
       role: caller.role, userId: caller.id, agencyId: caller.agencyId,
     });
@@ -109,8 +137,12 @@ export class TenantAuditController {
   @ApiOperation({ summary: 'Tenant-scoped audit retention preview (count-only; never modifies data)' })
   @ApiQuery({ name: 'days', required: false })
   // @tenant-reviewed: phase257-audit-log-http-retention-preview (count-only; no destructive call)
-  retentionPreview(@CurrentUser() caller: any, @Query('days') days?: string) {
-    this.enforceRateLimit(caller); // @tenant-reviewed: phase259-audit-log-http-rate-limit
+  retentionPreview(
+    @CurrentUser() caller: any,
+    @Query('days') days?: string,
+    @Res({ passthrough: true }) res?: Response,
+  ) {
+    this.enforceRateLimit(caller, res); // @tenant-reviewed: phase260-audit-log-retry-after-header
     const parsedDays = days ? Number(days) : undefined;
     return this.logsService.previewRetentionForActor(
       { role: caller.role, userId: caller.id, agencyId: caller.agencyId },
@@ -158,8 +190,8 @@ export class TenantAuditController {
   @Roles('System Admin', 'Compliance Officer')
   @ApiOperation({ summary: 'Tenant-scoped audit log by id (read-only)' })
   // @tenant-reviewed: phase257-audit-log-http-read
-  byId(@Param('id') id: string, @CurrentUser() caller: any) {
-    this.enforceRateLimit(caller); // @tenant-reviewed: phase259-audit-log-http-rate-limit
+  byId(@Param('id') id: string, @CurrentUser() caller: any, @Res({ passthrough: true }) res?: Response) {
+    this.enforceRateLimit(caller, res); // @tenant-reviewed: phase260-audit-log-retry-after-header
     return this.logsService.findOneForActor(id, {
       role: caller.role, userId: caller.id, agencyId: caller.agencyId,
     });

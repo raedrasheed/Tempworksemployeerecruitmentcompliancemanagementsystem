@@ -41,6 +41,7 @@ export class FeatureFlagsService {
   tenantPrismaPilotEnabled():boolean { return this.snapshot.TENANT_PRISMA_PILOT_ENABLED; }
   tenantAwareJobsEnabled(): boolean { return this.snapshot.TENANT_AWARE_JOBS_ENABLED; }
   tenantJobFanoutEnabled(): boolean { return this.snapshot.TENANT_JOB_FANOUT_ENABLED; }
+  tenantAuditLogPilotEnabled(): boolean { return this.snapshot.TENANT_AUDIT_LOG_PILOT_ENABLED; }
 
   /** Test-only: build a service from an explicit map (no env reads). */
   static forTesting(overrides: Partial<Record<FlagKey, boolean>>): FeatureFlagsService {

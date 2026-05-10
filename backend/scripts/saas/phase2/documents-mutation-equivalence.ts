@@ -25,6 +25,7 @@ import { PrismaService } from '../../../src/prisma/prisma.service';
 import { TenantPrismaService } from '../../../src/saas/prisma/tenant-prisma.service';
 import { PilotPrismaAccessor } from '../../../src/saas/prisma/pilot-prisma.accessor';
 import { FeatureFlagsService } from '../../../src/saas/feature-flags/feature-flags.service';
+import { TenantAuditLogService } from '../../../src/saas/audit/tenant-audit-log.service';
 import { DocumentsService } from '../../../src/documents/documents.service';
 import { DocumentIdService } from '../../../src/documents/document-id.service';
 import {
@@ -67,7 +68,7 @@ function makeService(prisma: PrismaService, pilot: PilotPrismaAccessor, counters
     deleteFileByUrlOrKey: async () => { counters.deletes += 1; },
     downloadByUrlOrKey: async () => Buffer.from('x'),
   };
-  return new DocumentsService(prisma, idStub, notifStub, storageStub, pilot);
+  return new DocumentsService(prisma, idStub, notifStub, storageStub, pilot, new TenantAuditLogService(prisma, new FeatureFlagsService()));
 }
 
 const fileFixture: any = {

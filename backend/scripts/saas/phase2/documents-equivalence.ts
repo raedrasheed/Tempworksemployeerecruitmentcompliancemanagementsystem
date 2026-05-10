@@ -29,6 +29,7 @@ import { PrismaService } from '../../../src/prisma/prisma.service';
 import { TenantPrismaService } from '../../../src/saas/prisma/tenant-prisma.service';
 import { PilotPrismaAccessor } from '../../../src/saas/prisma/pilot-prisma.accessor';
 import { FeatureFlagsService } from '../../../src/saas/feature-flags/feature-flags.service';
+import { TenantAuditLogService } from '../../../src/saas/audit/tenant-audit-log.service';
 import { DocumentsService } from '../../../src/documents/documents.service';
 import { DocumentIdService } from '../../../src/documents/document-id.service';
 import { StorageService } from '../../../src/common/storage/storage.service';
@@ -69,7 +70,7 @@ function makeService(prisma: PrismaService, pilot: PilotPrismaAccessor): Documen
   };
   const idStub = new DocumentIdService(prisma);
   const storage = new StorageService();
-  return new DocumentsService(prisma, idStub, notifStub, storage, pilot);
+  return new DocumentsService(prisma, idStub, notifStub, storage, pilot, new TenantAuditLogService(prisma, new FeatureFlagsService()));
 }
 
 interface Snapshot {

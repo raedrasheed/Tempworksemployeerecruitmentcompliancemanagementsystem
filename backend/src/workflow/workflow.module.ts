@@ -4,6 +4,7 @@ import { WorkflowController } from './workflow.controller';
 import { FeatureFlagsModule } from '../saas/feature-flags/feature-flags.module';
 import { TenantPrismaService } from '../saas/prisma/tenant-prisma.service';
 import { PilotPrismaAccessor } from '../saas/prisma/pilot-prisma.accessor';
+import { TenantAuditLogModule } from '../saas/audit/tenant-audit-log.module';
 
 /**
  * Phase 2.26 — Workflow reads-first TenantPrisma pilot.
@@ -16,7 +17,7 @@ import { PilotPrismaAccessor } from '../saas/prisma/pilot-prisma.accessor';
  * `legacyPrisma` until Phase 2.27+.
  */
 @Module({
-  imports: [FeatureFlagsModule],
+  imports: [FeatureFlagsModule, TenantAuditLogModule],
   controllers: [WorkflowController],
   providers: [WorkflowService, TenantPrismaService, PilotPrismaAccessor],
   exports: [WorkflowService],

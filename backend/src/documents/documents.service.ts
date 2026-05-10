@@ -10,6 +10,7 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { NOTIF_EVENTS } from '../notifications/notification-events';
 import { DocumentIdService } from './document-id.service';
 import { PilotPrismaAccessor } from '../saas/prisma/pilot-prisma.accessor';
+import { TenantAuditLogService } from '../saas/audit/tenant-audit-log.service';
 import { getPilotScope, PilotScope } from '../saas/prisma/tenant-pilot-scope';
 import { CreateDocumentDto } from './dto/create-document.dto';
 import { VerifyDocumentDto, VerifyActionEnum } from './dto/verify-document.dto';
@@ -58,6 +59,7 @@ export class DocumentsService {
     private readonly notifications: NotificationsService,
     private readonly storage: StorageService,
     private readonly pilot: PilotPrismaAccessor,
+    private readonly tenantAuditLog: TenantAuditLogService,
   ) {}
 
   /** Pilot-aware Prisma surface used by READ paths only. Mutation
@@ -529,11 +531,13 @@ export class DocumentsService {
       });
     });
 
-    await this.legacyPrisma.auditLog.create({ // @tenant-reviewed: phase220-audit-log
-      data: {
-        userId: uploadedById, action: 'UPLOAD', entity: 'Document', entityId: doc.id,
-        changes: { docId: doc.docId, name: dto.name, entityType: dto.entityType, entityId: dto.entityId } as any,
-      },
+    // @tenant-reviewed: phase230-audit-log-pilot
+    await this.tenantAuditLog.write({
+      userId: uploadedById,
+      action: 'UPLOAD',
+      entity: 'Document',
+      entityId: doc.id,
+      changes: { docId: doc.docId, name: dto.name, entityType: dto.entityType, entityId: dto.entityId },
     });
 
     if (dto.expiryDate) {
@@ -605,8 +609,13 @@ export class DocumentsService {
     delete data.docId;
     const doc = await this.legacyPrisma.document.update({ where: { id }, data, include: this.docInclude }); // @tenant-reviewed: phase221-pilot-scope-precheck (findOne above is tenant-scoped)
     if (updatedById) {
-      await this.legacyPrisma.auditLog.create({ // @tenant-reviewed: phase220-audit-log
-        data: { userId: updatedById, action: 'UPDATE', entity: 'Document', entityId: id, changes: updateData as any },
+      // @tenant-reviewed: phase230-audit-log-pilot
+      await this.tenantAuditLog.write({
+        userId: updatedById,
+        action: 'UPDATE',
+        entity: 'Document',
+        entityId: id,
+        changes: updateData,
       });
     }
     return doc;
@@ -650,13 +659,13 @@ export class DocumentsService {
       await this.checkAndAutoCompleteStage(doc.entityType as string, doc.entityId, verifiedById);
     }
 
-    await this.legacyPrisma.auditLog.create({ // @tenant-reviewed: phase220-audit-log
-      data: {
-        userId: verifiedById,
-        action: isApprove ? 'VERIFY_DOCUMENT' : 'REJECT_DOCUMENT',
-        entity: 'Document', entityId: id,
-        changes: { status: newStatus, docId: (doc as any).docId, reason: dto.reason } as any,
-      },
+    // @tenant-reviewed: phase230-audit-log-pilot
+    await this.tenantAuditLog.write({
+      userId: verifiedById,
+      action: isApprove ? 'VERIFY_DOCUMENT' : 'REJECT_DOCUMENT',
+      entity: 'Document',
+      entityId: id,
+      changes: { status: newStatus, docId: (doc as any).docId, reason: dto.reason },
     });
     return updated;
   }
@@ -725,11 +734,13 @@ export class DocumentsService {
       });
     });
 
-    await this.legacyPrisma.auditLog.create({ // @tenant-reviewed: phase220-audit-log
-      data: {
-        userId: renewedById, action: 'RENEW_DOCUMENT', entity: 'Document', entityId: renewed.id,
-        changes: { renewedFromId: originalId, originalDocId: (original as any).docId, newDocId: renewed.docId } as any,
-      },
+    // @tenant-reviewed: phase230-audit-log-pilot
+    await this.tenantAuditLog.write({
+      userId: renewedById,
+      action: 'RENEW_DOCUMENT',
+      entity: 'Document',
+      entityId: renewed.id,
+      changes: { renewedFromId: originalId, originalDocId: (original as any).docId, newDocId: renewed.docId },
     });
     return renewed;
   }
@@ -746,11 +757,13 @@ export class DocumentsService {
 
     await this.legacyPrisma.document.update({ where: { id }, data: { deletedAt: new Date() } }); // @tenant-reviewed: phase221-pilot-scope-precheck (findOne above is tenant-scoped)
     if (deletedById) {
-      await this.legacyPrisma.auditLog.create({ // @tenant-reviewed: phase220-audit-log
-        data: {
-          userId: deletedById, action: 'DELETE', entity: 'Document', entityId: id,
-          changes: { docId: (doc as any).docId, name: (doc as any).name } as any,
-        },
+      // @tenant-reviewed: phase230-audit-log-pilot
+      await this.tenantAuditLog.write({
+        userId: deletedById,
+        action: 'DELETE',
+        entity: 'Document',
+        entityId: id,
+        changes: { docId: (doc as any).docId, name: (doc as any).name },
       });
     }
     return { message: 'Document deleted' };
@@ -874,12 +887,13 @@ export class DocumentsService {
       await this.legacyPrisma.applicant.update({ where: { id: entityId }, data: { currentWorkflowStageId: nextStage?.id ?? currentStageId } }); // @tenant-reviewed: phase220-excluded-mutation
     }
 
-    await this.legacyPrisma.auditLog.create({ // @tenant-reviewed: phase220-audit-log
-      data: {
-        userId: actorId, action: 'WORKFLOW_STAGE_AUTO_COMPLETE',
-        entity: entityType === 'EMPLOYEE' ? 'Employee' : 'Applicant', entityId,
-        changes: { completedStageId: currentStageId, nextStageId: nextStage?.id ?? null } as any,
-      },
+    // @tenant-reviewed: phase230-audit-log-pilot
+    await this.tenantAuditLog.write({
+      userId: actorId,
+      action: 'WORKFLOW_STAGE_AUTO_COMPLETE',
+      entity: entityType === 'EMPLOYEE' ? 'Employee' : 'Applicant',
+      entityId,
+      changes: { completedStageId: currentStageId, nextStageId: nextStage?.id ?? null },
     });
   }
 }

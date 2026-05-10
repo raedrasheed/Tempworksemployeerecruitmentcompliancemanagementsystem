@@ -5,6 +5,7 @@ import { randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { PilotPrismaAccessor } from '../saas/prisma/pilot-prisma.accessor';
 import { getPilotScope, PilotScope } from '../saas/prisma/tenant-pilot-scope';
+import { TenantAuditLogService } from '../saas/audit/tenant-audit-log.service';
 import { EmailService } from '../email/email.service';
 import { tServer, ServerLocale } from '../common/i18n/server-translate';
 import { CreateApplicantDto } from './dto/create-applicant.dto';
@@ -45,6 +46,7 @@ export class ApplicantsService {
     private email: EmailService,
     private storage: StorageService,
     private pilot: PilotPrismaAccessor,
+    private tenantAuditLog: TenantAuditLogService,
   ) {}
 
   private get prisma(): PrismaService {
@@ -1184,13 +1186,15 @@ export class ApplicantsService {
     entityId: string,
     changes?: Record<string, any>,
   ): Promise<void> {
-    try {
-      await this.legacyPrisma.auditLog.create({ // @tenant-reviewed: phase228-audit-log
-        data: { userId, action, entity: 'Applicant', entityId, changes: changes as any },
-      });
-    } catch {
-      // Audit log must never crash the main flow
-    }
+    // Phase 2.30 — delegates to the shared tenant-aware audit emitter.
+    // @tenant-reviewed: phase230-audit-log-pilot
+    await this.tenantAuditLog.write({
+      userId,
+      action,
+      entity: 'Applicant',
+      entityId,
+      changes,
+    });
   }
 
   /**

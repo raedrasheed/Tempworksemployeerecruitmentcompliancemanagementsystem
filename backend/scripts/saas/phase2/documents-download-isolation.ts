@@ -36,6 +36,7 @@ import { PrismaService } from '../../../src/prisma/prisma.service';
 import { TenantPrismaService } from '../../../src/saas/prisma/tenant-prisma.service';
 import { PilotPrismaAccessor } from '../../../src/saas/prisma/pilot-prisma.accessor';
 import { FeatureFlagsService } from '../../../src/saas/feature-flags/feature-flags.service';
+import { TenantAuditLogService } from '../../../src/saas/audit/tenant-audit-log.service';
 import { DocumentsService } from '../../../src/documents/documents.service';
 import { DocumentIdService } from '../../../src/documents/document-id.service';
 import { TenantContext, withRequestContext, newRequestId } from '../../../src/saas/context/als';
@@ -79,7 +80,7 @@ function makeService(prisma: PrismaService, pilot: PilotPrismaAccessor, counters
     deleteFileByUrlOrKey: async () => undefined,
     downloadByUrlOrKey: async () => Buffer.from('x'),
   };
-  const svc = new DocumentsService(prisma, idStub, notifStub, storageStub, pilot);
+  const svc = new DocumentsService(prisma, idStub, notifStub, storageStub, pilot, new TenantAuditLogService(prisma, new FeatureFlagsService()));
   (svc as any).__restoreFetch = () => { (global as any).fetch = originalFetch; };
   return svc;
 }

@@ -889,9 +889,12 @@ model AuditLog {
   deletedAt      DateTime?
   deletedBy      String?
   deletionReason String?
+  tenantId       String?
 
   user User? @relation(fields: [userId], references: [id])
 
+  @@index([tenantId])
+  @@index([tenantId, createdAt])
   @@map("audit_logs")
 }
 

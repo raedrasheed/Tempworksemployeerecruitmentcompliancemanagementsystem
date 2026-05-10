@@ -5,6 +5,7 @@ import { EmailModule } from '../email/email.module';
 import { FeatureFlagsModule } from '../saas/feature-flags/feature-flags.module';
 import { TenantPrismaService } from '../saas/prisma/tenant-prisma.service';
 import { PilotPrismaAccessor } from '../saas/prisma/pilot-prisma.accessor';
+import { TenantAuditLogModule } from '../saas/audit/tenant-audit-log.module';
 
 /**
  * Phase 2.28 — Applicants reads-first TenantPrisma pilot.
@@ -15,7 +16,7 @@ import { PilotPrismaAccessor } from '../saas/prisma/pilot-prisma.accessor';
  * Phase 2.29+.
  */
 @Module({
-  imports: [EmailModule, FeatureFlagsModule],
+  imports: [EmailModule, FeatureFlagsModule, TenantAuditLogModule],
   controllers: [ApplicantsController],
   providers: [ApplicantsService, TenantPrismaService, PilotPrismaAccessor],
   exports: [ApplicantsService],

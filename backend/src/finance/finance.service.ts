@@ -14,6 +14,7 @@ import { StorageService } from '../common/storage/storage.service';
 import * as ExcelJS from 'exceljs';
 import { PilotPrismaAccessor } from '../saas/prisma/pilot-prisma.accessor';
 import { getPilotScope, PilotScope } from '../saas/prisma/tenant-pilot-scope';
+import { TenantAuditLogService } from '../saas/audit/tenant-audit-log.service';
 
 // Roles that receive financial notifications
 const FINANCE_ROLES = ['System Admin', 'Finance', 'HR Manager'];
@@ -56,6 +57,7 @@ export class FinanceService {
     private readonly notifications: NotificationsService,
     private readonly storage: StorageService,
     private readonly pilot: PilotPrismaAccessor,
+    private readonly tenantAuditLog: TenantAuditLogService,
   ) {}
 
   /** Pilot-aware Prisma surface used by READ paths only. Mutation
@@ -1187,18 +1189,14 @@ export class FinanceService {
     entityId: string,
     changes?: Record<string, any>,
   ): Promise<void> {
-    try {
-      await this.legacyPrisma.auditLog.create({ // @tenant-reviewed: phase216-audit-log
-        data: {
-          userId,
-          action,
-          entity: 'FinancialRecord',
-          entityId,
-          changes: changes as any,
-        },
-      });
-    } catch {
-      // Audit must never crash main flow
-    }
+    // Phase 2.30 — delegates to the shared tenant-aware audit emitter.
+    // @tenant-reviewed: phase230-audit-log-pilot
+    await this.tenantAuditLog.write({
+      userId,
+      action,
+      entity: 'FinancialRecord',
+      entityId,
+      changes,
+    });
   }
 }

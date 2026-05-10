@@ -6,6 +6,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
 import { FeatureFlagsModule } from '../saas/feature-flags/feature-flags.module';
 import { TenantPrismaService } from '../saas/prisma/tenant-prisma.service';
 import { PilotPrismaAccessor } from '../saas/prisma/pilot-prisma.accessor';
+import { TenantAuditLogModule } from '../saas/audit/tenant-audit-log.module';
 
 /**
  * Phase 2.20 — Documents reads-first TenantPrisma pilot.
@@ -19,7 +20,7 @@ import { PilotPrismaAccessor } from '../saas/prisma/pilot-prisma.accessor';
 // Multer config now lives per-route (memoryStorage) — see
 // common/storage/multer.config.ts.
 @Module({
-  imports: [NotificationsModule, FeatureFlagsModule],
+  imports: [NotificationsModule, FeatureFlagsModule, TenantAuditLogModule],
   controllers: [DocumentsController],
   providers: [DocumentsService, DocumentIdService, TenantPrismaService, PilotPrismaAccessor],
   exports: [DocumentsService, DocumentIdService],

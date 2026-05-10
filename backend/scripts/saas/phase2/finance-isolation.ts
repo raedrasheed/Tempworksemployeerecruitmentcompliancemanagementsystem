@@ -27,6 +27,7 @@ import { PrismaService } from '../../../src/prisma/prisma.service';
 import { TenantPrismaService } from '../../../src/saas/prisma/tenant-prisma.service';
 import { PilotPrismaAccessor } from '../../../src/saas/prisma/pilot-prisma.accessor';
 import { FeatureFlagsService } from '../../../src/saas/feature-flags/feature-flags.service';
+import { TenantAuditLogService } from '../../../src/saas/audit/tenant-audit-log.service';
 import { FinanceService } from '../../../src/finance/finance.service';
 import { StorageService } from '../../../src/common/storage/storage.service';
 import {
@@ -64,7 +65,7 @@ function makeService(prisma: PrismaService, pilot: PilotPrismaAccessor): Finance
     wasHighBalanceAlertRecentlySent: async () => false,
   };
   const storage = new StorageService();
-  return new FinanceService(prisma, notifStub, storage, pilot);
+  return new FinanceService(prisma, notifStub, storage, pilot, new TenantAuditLogService(prisma, new FeatureFlagsService()));
 }
 
 const TENANT_A_RECORD_ID = '00000000-0000-0000-0000-0000000fa001';

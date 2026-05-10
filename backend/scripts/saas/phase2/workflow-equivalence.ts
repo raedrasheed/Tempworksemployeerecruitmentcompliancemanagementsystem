@@ -23,6 +23,7 @@ import { PrismaService } from '../../../src/prisma/prisma.service';
 import { TenantPrismaService } from '../../../src/saas/prisma/tenant-prisma.service';
 import { PilotPrismaAccessor } from '../../../src/saas/prisma/pilot-prisma.accessor';
 import { FeatureFlagsService } from '../../../src/saas/feature-flags/feature-flags.service';
+import { TenantAuditLogService } from '../../../src/saas/audit/tenant-audit-log.service';
 import { WorkflowService } from '../../../src/workflow/workflow.service';
 import { TenantContext, withRequestContext, newRequestId } from '../../../src/saas/context/als';
 
@@ -47,7 +48,7 @@ async function withFlags<T>(env: Record<string, string | undefined>, fn: () => P
 }
 
 function makeService(prisma: PrismaService, pilot: PilotPrismaAccessor): WorkflowService {
-  return new WorkflowService(prisma, pilot);
+  return new WorkflowService(prisma, pilot, new TenantAuditLogService(prisma, new FeatureFlagsService()));
 }
 
 interface Snap {

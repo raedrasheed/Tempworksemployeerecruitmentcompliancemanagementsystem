@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from '../prisma/prisma.service';
 import { PilotPrismaAccessor } from '../saas/prisma/pilot-prisma.accessor';
 import { getPilotScope, PilotScope } from '../saas/prisma/tenant-pilot-scope';
+import { TenantAuditLogService } from '../saas/audit/tenant-audit-log.service';
 import { CreateWorkPermitDto } from './dto/create-work-permit.dto';
 import { CreateVisaDto } from './dto/create-visa.dto';
 import { UpdateWorkflowStageDto } from './dto/update-workflow-stage.dto';
@@ -36,6 +37,7 @@ export class WorkflowService {
   constructor(
     private legacyPrisma: PrismaService,
     private pilot: PilotPrismaAccessor,
+    private tenantAuditLog: TenantAuditLogService,
   ) {}
 
   /** Pilot-aware Prisma surface used by READ paths only. */
@@ -166,14 +168,13 @@ export class WorkflowService {
     });
 
     if (updatedById) {
-      await this.legacyPrisma.auditLog.create({ // @tenant-reviewed: phase226-audit-log
-        data: {
-          userId: updatedById,
-          action: 'WORKFLOW_STAGE_UPDATE',
-          entity: 'EmployeeWorkflowStage',
-          entityId: `${employeeId}:${stageId}`,
-          changes: { status: dto.status } as any,
-        },
+      // @tenant-reviewed: phase230-audit-log-pilot
+      await this.tenantAuditLog.write({
+        userId: updatedById,
+        action: 'WORKFLOW_STAGE_UPDATE',
+        entity: 'EmployeeWorkflowStage',
+        entityId: `${employeeId}:${stageId}`,
+        changes: { status: dto.status },
       });
     }
     return updated;
@@ -201,14 +202,13 @@ export class WorkflowService {
     });
 
     if (updatedById) {
-      await this.legacyPrisma.auditLog.create({ // @tenant-reviewed: phase226-audit-log
-        data: {
-          userId: updatedById,
-          action: 'WORKFLOW_STAGE_UPDATE',
-          entity: 'Employee',
-          entityId: employeeId,
-          changes: { currentStageId: stageId, currentStageName: stage.name } as any,
-        },
+      // @tenant-reviewed: phase230-audit-log-pilot
+      await this.tenantAuditLog.write({
+        userId: updatedById,
+        action: 'WORKFLOW_STAGE_UPDATE',
+        entity: 'Employee',
+        entityId: employeeId,
+        changes: { currentStageId: stageId, currentStageName: stage.name },
       });
     }
 
@@ -333,8 +333,12 @@ export class WorkflowService {
       include: { employee: { select: { id: true, firstName: true, lastName: true } } },
     });
     if (createdById) {
-      await this.legacyPrisma.auditLog.create({ // @tenant-reviewed: phase226-audit-log
-        data: { userId: createdById, action: 'CREATE', entity: 'WorkPermit', entityId: permit.id },
+      // @tenant-reviewed: phase230-audit-log-pilot
+      await this.tenantAuditLog.write({
+        userId: createdById,
+        action: 'CREATE',
+        entity: 'WorkPermit',
+        entityId: permit.id,
       });
     }
     return permit;
@@ -388,8 +392,12 @@ export class WorkflowService {
       },
     });
     if (createdById) {
-      await this.legacyPrisma.auditLog.create({ // @tenant-reviewed: phase226-audit-log
-        data: { userId: createdById, action: 'CREATE', entity: 'Visa', entityId: visa.id },
+      // @tenant-reviewed: phase230-audit-log-pilot
+      await this.tenantAuditLog.write({
+        userId: createdById,
+        action: 'CREATE',
+        entity: 'Visa',
+        entityId: visa.id,
       });
     }
     return visa;

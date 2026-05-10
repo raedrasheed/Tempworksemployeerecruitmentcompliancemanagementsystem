@@ -200,3 +200,14 @@ fire from inside the service. See
 `findAll` / `getStats` and `findOneForActor` /
 `previewRetentionForActor`). Same RBAC binding; adds a row cap.
 See `SAAS_PHASE2_AUDIT_LOG_EXPORT_CSV.md`.
+
+---
+
+# Phase 2.59 cross-link — rate limit ordering
+
+`enforceRateLimit` runs at the controller layer BEFORE the
+service is invoked, but the rate limit never masks an RBAC
+access error: a request with no ALS frame is rejected by Phase
+2.56's `assertAuditReadAccess` after consuming a slot, so the
+caller still sees `ForbiddenException` (case 12 of the rate-limit
+harness). See `SAAS_PHASE2_AUDIT_LOG_HTTP_RATE_LIMIT.md`.

@@ -1257,3 +1257,19 @@ Tags: `phase258-audit-log-export-csv`,
 `phase258-audit-log-export-no-destructive`.
 
 Real-DB harness: 17/17. Cumulative: **730/730**.
+
+## 11.32 — Phase 2.59: Per-tenant audit HTTP rate limit
+
+`src/logs/audit-log-rate-limiter.service.ts` (new) — in-memory
+fixed-window limiter. `TenantAuditController` adds private
+`rateLimitKey(caller)` (tenant-keyed by default; global-keyed
+under `AUDIT_LOG_GLOBAL_READ_ENABLED=true` for FULL_ACCESS) and
+`enforceRateLimit(caller, res?)` invoked at the top of every GET
+handler. Throws `HttpException(429)` on exhaustion BEFORE the
+data path runs. Default-OFF.
+
+Tags: `phase259-audit-log-http-rate-limit`,
+`phase259-audit-log-rate-limit-keying`,
+`phase259-audit-log-rate-limit-disabled-default`.
+
+Real-DB harness: 17/17. Cumulative: **747/747**.

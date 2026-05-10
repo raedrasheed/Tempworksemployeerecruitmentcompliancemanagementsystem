@@ -201,3 +201,18 @@ See `SAAS_PHASE2_AUDIT_LOG_EXPORT_CSV.md`.
 Tags: `phase258-audit-log-export-csv`,
 `phase258-audit-log-export-row-cap`,
 `phase258-audit-log-export-no-destructive`.
+
+---
+
+# Phase 2.59 cross-link — per-tenant rate limit
+
+`TenantAuditController` now gates every GET route through
+`enforceRateLimit(caller, res?)` BEFORE delegating to
+`LogsService`. The limiter is OFF by default; activation requires
+`AUDIT_LOG_HTTP_RATE_LIMIT_ENABLED=true` AND
+`AUDIT_LOG_HTTP_RATE_LIMIT_RPM > 0`. See
+`SAAS_PHASE2_AUDIT_LOG_HTTP_RATE_LIMIT.md`.
+
+Tags: `phase259-audit-log-http-rate-limit`,
+`phase259-audit-log-rate-limit-keying`,
+`phase259-audit-log-rate-limit-disabled-default`.

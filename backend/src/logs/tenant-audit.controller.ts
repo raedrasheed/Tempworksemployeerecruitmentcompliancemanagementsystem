@@ -1,7 +1,9 @@
 import { Controller, Get, Param, Query, Res, UseGuards } from '@nestjs/common';
 import { Response } from 'express';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
-import { LogsService } from './logs.service';
+import { LogsService, FULL_ACCESS_ROLES } from './logs.service';
+import { AuditLogRateLimiter } from './audit-log-rate-limiter.service';
+import { TenantContext } from '../saas/context/als';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -28,7 +30,40 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('admin/tenant-audit')
 export class TenantAuditController {
-  constructor(private readonly logsService: LogsService) {}
+  constructor(
+    private readonly logsService: LogsService,
+    private readonly rateLimiter: AuditLogRateLimiter,
+  ) {}
+
+  /** Phase 2.59 — derive a per-tenant or per-user rate-limit key.
+   *  - tenant-scoped roles ⇒ `tenant:<ALS-tenant-id>` (or `tenant:none`
+   *    when ALS is missing; the caller's RBAC layer will refuse before
+   *    the limiter can mask the access error).
+   *  - FULL_ACCESS roles + global-read gate ⇒ `global:<userId>` so an
+   *    elevated global reader does NOT consume a tenant's quota.
+   *  Tag: phase259-audit-log-rate-limit-keying. */
+  private rateLimitKey(caller: any): string {
+    const isFull = caller && FULL_ACCESS_ROLES.includes(caller.role);
+    const globalGate = String(process.env.AUDIT_LOG_GLOBAL_READ_ENABLED ?? '').toLowerCase() === 'true';
+    if (isFull && globalGate) return `global:${caller.id ?? 'unknown'}`;
+    const tid = TenantContext.optional?.()?.id ?? 'none';
+    return `tenant:${tid}`;
+  }
+
+  /** Phase 2.59 — single throttle hook. ALL TenantAuditController
+   *  GET routes call this BEFORE invoking LogsService so a rejected
+   *  request never reaches the data path.
+   *  Tag: phase259-audit-log-http-rate-limit. */
+  private enforceRateLimit(caller: any, res?: Response): void {
+    const decision = this.rateLimiter.consumeOrThrow(this.rateLimitKey(caller));
+    if (res && decision.enabled) {
+      res.set?.({
+        'X-RateLimit-Limit':     String(decision.limit),
+        'X-RateLimit-Remaining': String(decision.remaining),
+        'X-RateLimit-Window':    String(decision.windowSeconds),
+      });
+    }
+  }
 
   @Get()
   @Roles('System Admin', 'Compliance Officer')
@@ -50,6 +85,7 @@ export class TenantAuditController {
     @Query('fromDate') fromDate?: string,
     @Query('toDate')   toDate?: string,
   ) {
+    this.enforceRateLimit(caller); // @tenant-reviewed: phase259-audit-log-http-rate-limit
     return this.logsService.findAll(
       pagination,
       { entity, entityId, action, userId, fromDate, toDate },
@@ -62,6 +98,7 @@ export class TenantAuditController {
   @ApiOperation({ summary: 'Tenant-scoped audit log statistics (read-only)' })
   // @tenant-reviewed: phase257-audit-log-http-read (delegates to RBAC-bound LogsService.getStats)
   stats(@CurrentUser() caller: any) {
+    this.enforceRateLimit(caller); // @tenant-reviewed: phase259-audit-log-http-rate-limit
     return this.logsService.getStats({
       role: caller.role, userId: caller.id, agencyId: caller.agencyId,
     });
@@ -73,6 +110,7 @@ export class TenantAuditController {
   @ApiQuery({ name: 'days', required: false })
   // @tenant-reviewed: phase257-audit-log-http-retention-preview (count-only; no destructive call)
   retentionPreview(@CurrentUser() caller: any, @Query('days') days?: string) {
+    this.enforceRateLimit(caller); // @tenant-reviewed: phase259-audit-log-http-rate-limit
     const parsedDays = days ? Number(days) : undefined;
     return this.logsService.previewRetentionForActor(
       { role: caller.role, userId: caller.id, agencyId: caller.agencyId },
@@ -100,6 +138,7 @@ export class TenantAuditController {
     @Query('fromDate') fromDate?: string,
     @Query('toDate')   toDate?: string,
   ): Promise<void> {
+    this.enforceRateLimit(caller, res); // @tenant-reviewed: phase259-audit-log-http-rate-limit
     const out = await this.logsService.exportCsvForActor(
       { entity, entityId, action, userId, fromDate, toDate },
       { role: caller.role, userId: caller.id, agencyId: caller.agencyId },
@@ -120,6 +159,7 @@ export class TenantAuditController {
   @ApiOperation({ summary: 'Tenant-scoped audit log by id (read-only)' })
   // @tenant-reviewed: phase257-audit-log-http-read
   byId(@Param('id') id: string, @CurrentUser() caller: any) {
+    this.enforceRateLimit(caller); // @tenant-reviewed: phase259-audit-log-http-rate-limit
     return this.logsService.findOneForActor(id, {
       role: caller.role, userId: caller.id, agencyId: caller.agencyId,
     });

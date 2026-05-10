@@ -1026,3 +1026,20 @@ Tags: `phase258-audit-log-export-csv`,
 `phase258-audit-log-export-no-destructive`.
 
 Real-DB harness: 17/17. Cumulative: **730/730**.
+
+## 56 — Per-tenant audit HTTP rate limit (Phase 2.59)
+
+In-memory per-tenant rate limiter on `/admin/tenant-audit/*` GET
+routes. Activation requires both
+`AUDIT_LOG_HTTP_RATE_LIMIT_ENABLED=true` AND
+`AUDIT_LOG_HTTP_RATE_LIMIT_RPM > 0`. Window default 60s. Key
+strategy: tenant id by default; `global:<userId>` for FULL_ACCESS
+under the global-read gate. 429 is raised before the data path
+runs; an in-pilot caller without an ALS frame still sees Forbidden
+afterwards.
+
+Tags: `phase259-audit-log-http-rate-limit`,
+`phase259-audit-log-rate-limit-keying`,
+`phase259-audit-log-rate-limit-disabled-default`.
+
+Real-DB harness: 17/17. Cumulative: **747/747**.

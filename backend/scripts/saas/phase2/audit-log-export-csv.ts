@@ -35,6 +35,7 @@ import { PilotPrismaAccessor } from '../../../src/saas/prisma/pilot-prisma.acces
 import { FeatureFlagsService } from '../../../src/saas/feature-flags/feature-flags.service';
 import { LogsService } from '../../../src/logs/logs.service';
 import { TenantAuditController } from '../../../src/logs/tenant-audit.controller';
+import { AuditLogRateLimiter } from '../../../src/logs/audit-log-rate-limiter.service';
 import { TenantAuditLogService } from '../../../src/saas/audit/tenant-audit-log.service';
 import { TenantContext, withRequestContext, newRequestId } from '../../../src/saas/context/als';
 
@@ -124,7 +125,7 @@ function makeController(): { ctrl: TenantAuditController; close: () => Promise<v
   const pilot = new PilotPrismaAccessor(prisma, new TenantPrismaService(prisma, ff), ff);
   const tenantAuditLog = new TenantAuditLogService(prisma, ff);
   const svc = new LogsService(prisma, pilot, tenantAuditLog);
-  const ctrl = new TenantAuditController(svc);
+  const ctrl = new TenantAuditController(svc, new AuditLogRateLimiter());
   return { ctrl, close: () => prisma.$disconnect() };
 }
 

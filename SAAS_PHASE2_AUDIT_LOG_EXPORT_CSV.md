@@ -216,3 +216,13 @@ introduce a small in-memory or Redis-backed per-tenant rate
 limiter (`AUDIT_LOG_HTTP_RATE_LIMIT_RPM`, default off) gated by
 the same flag pattern. Defaults must remain off so production
 behaviour stays byte-identical when not configured.
+
+---
+
+# Phase 2.59 cross-link — rate limit
+
+The CSV export is now also subject to the optional per-tenant
+rate limiter (`AUDIT_LOG_HTTP_RATE_LIMIT_*`). Default-OFF; when
+enabled, an exhausted quota returns HTTP 429 BEFORE the service
+runs the underlying `findMany`. See
+`SAAS_PHASE2_AUDIT_LOG_HTTP_RATE_LIMIT.md`.

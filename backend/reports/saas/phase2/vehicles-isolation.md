@@ -1,6 +1,6 @@
 # Phase 2.23 — Vehicles Isolation
 
-Generated: 2026-05-10T19:35:34.212Z
+Generated: 2026-05-10T19:56:44.088Z
 Environment: SAFE_CLONE (localhost + fixture pattern (db=saas_phase1_fixture))
 Tenants: A=`11111111-1111-1111-1111-111111111111` B=`22222222-2222-2222-2222-222222222222`
 

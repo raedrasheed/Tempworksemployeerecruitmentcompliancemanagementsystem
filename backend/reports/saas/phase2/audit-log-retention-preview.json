@@ -35,7 +35,7 @@
     {
       "name": "7. no rows are deleted or modified (snapshot before/after equal)",
       "ok": true,
-      "detail": "before=838 after=838"
+      "detail": "before=875 after=875"
     },
     {
       "name": "8. preview is idempotent",

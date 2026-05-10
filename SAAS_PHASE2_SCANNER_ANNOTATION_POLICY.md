@@ -150,6 +150,9 @@ and counted against the strict-mode threshold.
 | `phase258-audit-log-export-csv` | `GET /admin/tenant-audit/export.csv` and `LogsService.exportCsvForActor` — RFC-4180-style CSV body, CRLF line endings, fixed safe column list. Reuses Phase 2.56 RBAC binding. | `src/logs/**` | 2.58 |
 | `phase258-audit-log-export-row-cap` | `AUDIT_LOG_EXPORT_MAX_ROWS` resolution (default 50000; invalid ⇒ 50000). Response headers `X-Audit-Export-Row-Count` / `Max-Rows` / `Capped`. | `src/logs/**` | 2.58 |
 | `phase258-audit-log-export-no-destructive` | Source-level invariant: the CSV export touches `prisma.auditLog.findMany` only — no destructive Prisma call sites and no imports of Phase 2.53/2.54 scripts. | `src/logs/**` | 2.58 |
+| `phase259-audit-log-http-rate-limit` | `AuditLogRateLimiter` service + `enforceRateLimit(caller, res?)` invoked at the top of every `TenantAuditController` GET handler. Throws HTTP 429 BEFORE the data path runs. | `src/logs/**` | 2.59 |
+| `phase259-audit-log-rate-limit-keying` | `rateLimitKey(caller)` — `tenant:<id>` for tenant-scoped + FULL_ACCESS-without-global-gate; `global:<userId>` for FULL_ACCESS under `AUDIT_LOG_GLOBAL_READ_ENABLED=true`. | `src/logs/**` | 2.59 |
+| `phase259-audit-log-rate-limit-disabled-default` | Limiter activates only when both `AUDIT_LOG_HTTP_RATE_LIMIT_ENABLED=true` and `AUDIT_LOG_HTTP_RATE_LIMIT_RPM > 0`; invalid values fall back to disabled. | `src/logs/**` | 2.59 |
 | `tenant-safe-report-runtime` | Reports engine uses `$queryRawUnsafe` with positional parameters and a registry-validated SQL string. | `src/reports/reports.service.ts` | 2.1 |
 
 ## 3. When annotations are allowed

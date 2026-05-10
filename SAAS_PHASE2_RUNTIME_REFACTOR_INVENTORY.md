@@ -979,3 +979,20 @@ snapshot SQL templates, timing guidance, and a sign-off table.
 Tag: `phase255-audit-retention-runbook`.
 
 Real-DB harness: 22/22. Cumulative: **680/680**.
+
+## 53 — Audit-log RBAC tenant binding (Phase 2.56)
+
+`LogsService.findAll` / `getStats` now compose tenant predicate
+with role visibility through three new helpers
+(`assertAuditReadAccess`, `auditTenantWhereForActor`,
+`isGlobalReadEnabled`). The new `AUDIT_LOG_GLOBAL_READ_ENABLED`
+flag defaults to false; FULL_ACCESS roles are tenant-bound by
+default in pilot mode and require explicit opt-in for global
+visibility. Module opt-out via `TENANT_PRISMA_PILOT_MODULES`
+preserves the legacy union path.
+
+Tags: `phase256-audit-log-rbac-tenant-binding`,
+`phase256-audit-log-global-read-gate`,
+`phase256-audit-log-actor-scope`.
+
+Real-DB harness: 15/15. Cumulative: **695/695**.

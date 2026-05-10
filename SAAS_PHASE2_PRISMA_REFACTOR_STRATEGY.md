@@ -1210,3 +1210,19 @@ scripts. Tag: `phase255-audit-retention-runbook`. No DB I/O.
 
 Real-DB harness: 22/22 (doc + source-level checks).
 Cumulative: **680/680**.
+
+## 11.29 — Phase 2.56: Audit-log RBAC tenant binding
+
+`LogsService` gains `assertAuditReadAccess(scope)`,
+`auditTenantWhereForActor(scope)`, and `isGlobalReadEnabled()`.
+With pilot active and `audit-logs` allow-listed, tenant-scoped
+roles (and FULL_ACCESS without the explicit global-read gate)
+require an active ALS tenant frame; otherwise `ForbiddenException`.
+With `AUDIT_LOG_GLOBAL_READ_ENABLED=true`, FULL_ACCESS roles
+(System Admin, HR Manager, Compliance Officer) bypass the tenant
+predicate. Tag chain:
+`phase256-audit-log-rbac-tenant-binding`,
+`phase256-audit-log-global-read-gate`,
+`phase256-audit-log-actor-scope`.
+
+Real-DB harness: 15/15. Cumulative: **695/695**.

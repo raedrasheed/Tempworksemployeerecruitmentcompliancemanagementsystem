@@ -10,7 +10,7 @@
 - PASS — 6. apply soft-deletes only rows older than cutoff (>=2 expected) — mode=apply updated=5
 - PASS — 6b. tenant A old rows now soft-deleted — old1=true old2=true
 - PASS — 7. apply does not touch newer rows — newA.deletedAt=null
-- PASS — 8. apply does not touch already soft-deleted rows — alreadyDel.deletedAt=Sun May 25 2025 18:53:03 GMT+0000 (Coordinated Universal Time)
+- PASS — 8. apply does not touch already soft-deleted rows — alreadyDel.deletedAt=Sun May 25 2025 19:08:40 GMT+0000 (Coordinated Universal Time)
 - PASS — 9. tenant A retention does not touch tenant B rows — B.deletedAt=null
 - PASS — 10. tenant B retention does not touch tenant A rows — B.deletedAt=true A.new.deletedAt=null updated=3
 - PASS — 11. null-tenant scope affects only NULL-tenant rows — nullDeleted=true updated=2

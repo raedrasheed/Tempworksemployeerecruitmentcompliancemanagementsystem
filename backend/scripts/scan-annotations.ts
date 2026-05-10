@@ -146,6 +146,9 @@ const KNOWN_REASONS: ReadonlyArray<PolicyEntry> = [
   { tag: 'phase253-audit-log-retention-enforce',         allowedPaths: ['scripts/saas/phase2/'] },
   { tag: 'phase254-audit-log-hard-delete',               allowedPaths: ['scripts/saas/phase2/'] },
   { tag: 'phase255-audit-retention-runbook',             allowedPaths: ['scripts/saas/phase2/', 'docs/runbooks/'] },
+  { tag: 'phase256-audit-log-rbac-tenant-binding',       allowedPaths: ['src/logs/'] },
+  { tag: 'phase256-audit-log-global-read-gate',          allowedPaths: ['src/logs/'] },
+  { tag: 'phase256-audit-log-actor-scope',               allowedPaths: ['src/logs/'] },
   { tag: 'tenant-safe-report-runtime',    allowedPaths: ['src/reports/', 'src/saas/reports/'] },
   { tag: 'tenant-resolver-bootstrap',     allowedPaths: ['src/saas/tenancy/'] },
 ];

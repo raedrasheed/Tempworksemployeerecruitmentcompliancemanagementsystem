@@ -141,6 +141,9 @@ and counted against the strict-mode threshold.
 | `phase253-audit-log-retention-enforce` | One-shot dry-run-first soft-delete enforcement for audit_logs. Triple-gated by `AUDIT_LOG_RETENTION_ENABLED=true` + `AUDIT_LOG_RETENTION_APPLY=true` + SAFE_CLONE/SAFE_STAGING. Hard-delete forbidden by source-level harness assertion. | `scripts/saas/phase2/**` | 2.53 |
 | `phase254-audit-log-hard-delete` | One-shot dry-run-first hard-delete pass for already soft-deleted audit_logs rows past `AUDIT_LOG_HARD_DELETE_GRACE_DAYS`. Triple-gated by `AUDIT_LOG_HARD_DELETE_ENABLED=true` + `AUDIT_LOG_HARD_DELETE_APPLY=true` + SAFE_CLONE/SAFE_STAGING + (for scope=tenant) explicit tenant id. Phase 2.54 introduces no new runtime hard-delete site. | `scripts/saas/phase2/**` | 2.54 |
 | `phase255-audit-retention-runbook` | Operator-facing rollout runbook stitching Phases 2.50–2.54 into one production sequence + the doc-level check script that asserts coverage and the soft-delete-only / grace-cutoff invariants. | `scripts/saas/phase2/**`, `docs/runbooks/**` | 2.55 |
+| `phase256-audit-log-rbac-tenant-binding` | Explicit refusal contract on `LogsService` audit reads when pilot is active, audit-logs is allow-listed, and either the actor is tenant-scoped OR FULL_ACCESS without the global-read gate, but no ALS tenant frame is present. | `src/logs/**` | 2.56 |
+| `phase256-audit-log-global-read-gate` | `AUDIT_LOG_GLOBAL_READ_ENABLED` flag — default off; explicit opt-in lets FULL_ACCESS roles bypass the tenant predicate. | `src/logs/**` | 2.56 |
+| `phase256-audit-log-actor-scope` | `auditTenantWhereForActor(scope)` composes the tenant predicate with the global-read gate so audit reads are never tenant-leaky and never silently global. | `src/logs/**` | 2.56 |
 | `tenant-safe-report-runtime` | Reports engine uses `$queryRawUnsafe` with positional parameters and a registry-validated SQL string. | `src/reports/reports.service.ts` | 2.1 |
 
 ## 3. When annotations are allowed

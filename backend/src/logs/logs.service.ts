@@ -1,12 +1,13 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PilotPrismaAccessor } from '../saas/prisma/pilot-prisma.accessor';
-import { getPilotScope, PilotScope } from '../saas/prisma/tenant-pilot-scope';
+import { getPilotScope, isModuleAllowed, PilotScope } from '../saas/prisma/tenant-pilot-scope';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { PaginatedResponse } from '../common/dto/pagination-response.dto';
 
-/** Roles that can see ALL logs with no restrictions */
-const FULL_ACCESS_ROLES = ['System Admin', 'HR Manager', 'Compliance Officer'];
+/** Roles that can see ALL logs with no per-user restriction. Whether
+ *  they see ALL TENANTS depends on the global-read gate (Phase 2.56). */
+export const FULL_ACCESS_ROLES = ['System Admin', 'HR Manager', 'Compliance Officer'];
 
 export interface CallerScope {
   role: string;
@@ -36,6 +37,50 @@ export class LogsService {
 
   private scope(): PilotScope {
     return getPilotScope(this.pilot, 'audit-logs');
+  }
+
+  /** Phase 2.56 — global-read gate. Even FULL_ACCESS roles are
+   *  tenant-bound by default; bypass requires the explicit env flag.
+   *  Tag: phase256-audit-log-global-read-gate. */
+  private isGlobalReadEnabled(): boolean {
+    return String(process.env.AUDIT_LOG_GLOBAL_READ_ENABLED ?? '').toLowerCase() === 'true';
+  }
+
+  /** Phase 2.56 — actor-bound tenant predicate.
+   *  - Pilot inactive ⇒ `{}` (legacy union; byte-identical to pre-2.52).
+   *  - Pilot active + global-read enabled + caller in FULL_ACCESS_ROLES
+   *      ⇒ `{}` (explicit global visibility).
+   *  - Otherwise pilot active ⇒ the regular `tenantWhere()` from the
+   *    pilot scope (i.e. `tenantId = <ALS>`).
+   *  Tag: phase256-audit-log-actor-scope. */
+  private auditTenantWhereForActor(scope?: CallerScope): Record<string, unknown> {
+    const s = this.scope();
+    if (!s.active) return {};
+    if (this.isGlobalReadEnabled() && scope && FULL_ACCESS_ROLES.includes(scope.role)) {
+      return {};
+    }
+    return s.tenantWhere();
+  }
+
+  /** Phase 2.56 — explicit refusal contract. With the pilot active and
+   *  the caller is NOT in FULL_ACCESS_ROLES (or is FULL_ACCESS but the
+   *  global-read gate is OFF), the active ALS tenant frame is required.
+   *  Returns silently when the gate is satisfied; throws
+   *  ForbiddenException otherwise.
+   *  Tag: phase256-audit-log-rbac-tenant-binding. */
+  private assertAuditReadAccess(scope?: CallerScope): void {
+    const r = this.pilot.pilotReason();
+    if (!r.active) return; // pilot inactive ⇒ legacy union; nothing to assert
+    // Module opt-out (TENANT_PRISMA_PILOT_MODULES=nothing or absent
+    // 'audit-logs') is an explicit operator decision — fall through to
+    // legacy union without refusing.
+    if (!isModuleAllowed('audit-logs')) return;
+    const isFull = !!scope && FULL_ACCESS_ROLES.includes(scope.role);
+    if (isFull && this.isGlobalReadEnabled()) return; // explicit global override
+    // Tenant-scoped (or FULL_ACCESS without global gate) requires ALS.
+    if (!this.scope().active) {
+      throw new ForbiddenException('Audit-log read requires an active tenant context');
+    }
   }
 
   /**
@@ -74,7 +119,8 @@ export class LogsService {
     const { page = 1, limit = 20, search } = pagination;
     const skip = (Number(page) - 1) * Number(limit);
 
-    const where: any = { deletedAt: null, ...this.scope().tenantWhere() }; // @tenant-reviewed: phase252-audit-log-read-pilot
+    this.assertAuditReadAccess(scope); // @tenant-reviewed: phase256-audit-log-rbac-tenant-binding
+    const where: any = { deletedAt: null, ...this.auditTenantWhereForActor(scope) }; // @tenant-reviewed: phase256-audit-log-actor-scope
 
     // ── Scope restriction ────────────────────────────────────────────────────
     if (scope) {
@@ -132,7 +178,8 @@ export class LogsService {
     const last7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
     // Build the base scope filter
-    const tenantWhere = this.scope().tenantWhere(); // @tenant-reviewed: phase252-audit-log-read-pilot
+    this.assertAuditReadAccess(scope); // @tenant-reviewed: phase256-audit-log-rbac-tenant-binding
+    const tenantWhere = this.auditTenantWhereForActor(scope); // @tenant-reviewed: phase256-audit-log-actor-scope
     let scopeWhere: any = { deletedAt: null, ...tenantWhere };
     if (scope) {
       const visibleIds = await this.resolveVisibleUserIds(scope);

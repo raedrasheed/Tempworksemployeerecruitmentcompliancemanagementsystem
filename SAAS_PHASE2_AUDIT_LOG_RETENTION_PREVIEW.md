@@ -94,3 +94,12 @@ itself is unchanged.
 
 See `docs/runbooks/audit-retention-rollout.md` for the operator-facing
 production rollout sequence.
+
+---
+
+# Phase 2.56 cross-link — RBAC tenant binding for audit reads
+
+The retention preview is unchanged (still a count helper on
+`TenantAuditLogService`). Phase 2.56 added an explicit RBAC tenant
+binding to the `LogsService` audit *reads* (`findAll` / `getStats`).
+See `SAAS_PHASE2_AUDIT_LOG_RBAC_TENANT_BINDING.md`.

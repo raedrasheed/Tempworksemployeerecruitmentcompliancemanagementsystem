@@ -197,3 +197,18 @@ Tag: `phase253-audit-log-retention-enforce`.
 
 See `docs/runbooks/audit-retention-rollout.md` for the operator-facing
 production rollout sequence covering Phases 2.50–2.54.
+
+---
+
+# Phase 2.56 cross-link — RBAC tenant binding
+
+`LogsService.findAll` / `getStats` now call `assertAuditReadAccess(scope)`
+and use `auditTenantWhereForActor(scope)` to compose tenant predicate
+with the new global-read gate. With `AUDIT_LOG_GLOBAL_READ_ENABLED=false`
+(default) FULL_ACCESS roles in pilot mode are tenant-bound; with
+`true` they bypass the tenant predicate. See
+`SAAS_PHASE2_AUDIT_LOG_RBAC_TENANT_BINDING.md`.
+
+Tags: `phase256-audit-log-rbac-tenant-binding`,
+`phase256-audit-log-global-read-gate`,
+`phase256-audit-log-actor-scope`.

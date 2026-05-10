@@ -134,10 +134,31 @@ Phase 2.14 shipped the orchestrator + ALS adapter:
 - `notifyUploaderAndRoles` and `notifyUsersByRoles` now refuse
   without an ALS tenant when the tenant-aware path is active. Legacy
   behaviour unchanged when flags are off.
-- New annotation tag `phase214-pilot-scope` on the tenant-catalog
-  discovery site. The four `check*` methods themselves keep
-  `phase210-excluded-background` (their per-method narrowing is
-  deferred to **Phase 2.14.1**).
+
+## 6.3 Phase 2.14.1 update — per-method narrowing shipped
+
+Phase 2.14.1 completed the adapter. Every `phase210-excluded-background`
+annotation on a `check*`-method prisma site moved to
+`phase214-pilot-scope` and the bodies now spread `tenantId: tid` /
+`agency: { tenantId: tid }` into their where clauses + create data.
+
+Helper: `private narrowingTenantId(): string | null` returns the
+active tenant id when tenant-aware mode is engaged AND ALS has a
+tenant; `null` everywhere else. Spreads are no-ops when `null`, so
+legacy mode stays byte-identical.
+
+Dedupe key now includes `tenantId` in tenant-aware mode — see
+`SAAS_PHASE2_NOTIFICATIONS_DEDUPE_KEY_REVIEW.md` for rationale +
+transition risks.
+
+Remaining excluded paths in `src/notifications`:
+- `notifyUploaderAndRoles` / `notifyUsersByRoles` — guarded but
+  their internal `User.findMany` + `notification.create` still
+  iterate roles across all tenants. Phase 2.15 candidate.
+- Per-user global preferences (`getOrCreatePreferences`,
+  `updatePreferences`) — kept on `legacyPrisma` with
+  `phase210-global` annotation. Intentional; per-user is the right
+  scope for these.
 
 The legacy `runAllChecks` path is preserved as the production
 default and the rollback target.

@@ -60,6 +60,30 @@ export class NotificationsService {
     return isStagingClassification(env.classification);
   }
 
+  /**
+   * Phase 2.14.1 — per-method tenant narrowing helper.
+   *
+   * Returns the active tenant id when:
+   *   - the tenant-aware scheduler path is engaged, AND
+   *   - a tenant is in the active ALS frame.
+   *
+   * Returns `null` in every other case — including:
+   *   - any flag off,
+   *   - production / unsafe env,
+   *   - inside `runAllChecks` (legacy path; never wrapped in
+   *     `runForTenant`),
+   *   - direct test calls without an ALS frame.
+   *
+   * Each `check*` method consults this once at the top of its body
+   * and spreads the result into its `where` / `data`. When `null`,
+   * the spread is `{}` and the method runs byte-identically to its
+   * pre-Phase-2.14.1 form.
+   */
+  private narrowingTenantId(): string | null {
+    if (!this.tenantAwareSchedulerActive()) return null;
+    return TenantContext.optional()?.id ?? null;
+  }
+
   /** Prisma surface for in-scope read paths. Background workers keep
    *  using `this.legacyPrisma` directly — see scope-split doc. */
   private get prisma(): PrismaService {
@@ -183,12 +207,14 @@ export class NotificationsService {
 
   /// Check for vehicles with expiring compliance dates
   async checkExpiringCompliance(): Promise<void> {
+    const tid = this.narrowingTenantId();
     try {
-      const fleetManagers = await this.legacyPrisma.user.findMany({ // @tenant-reviewed: phase210-excluded-background (scheduler/notify-fanout — Phase 2.11+)
+      const fleetManagers = await this.legacyPrisma.user.findMany({ // @tenant-reviewed: phase214-pilot-scope (narrowed via agency.tenantId when tid)
         where: {
           role: { name: { contains: 'Fleet Manager' } },
           status: 'ACTIVE',
           notificationPreference: { isNot: null },
+          ...(tid ? { agency: { tenantId: tid } } : {}),
         },
         include: { notificationPreference: true, agency: true },
       });
@@ -214,10 +240,11 @@ export class NotificationsService {
         const whereClause: any = {
           agencyId: manager.agencyId,
           deletedAt: null,
+          ...(tid ? { tenantId: tid } : {}),
         };
         whereClause[check.field] = { lte: cutoffDate, gt: new Date() };
 
-        const vehicles = await this.legacyPrisma.vehicle.findMany({ // @tenant-reviewed: phase210-excluded-background (scheduler/notify-fanout — Phase 2.11+)
+        const vehicles = await this.legacyPrisma.vehicle.findMany({ // @tenant-reviewed: phase214-pilot-scope (narrowed via tenantId when tid)
           where: whereClause,
           select: { id: true, registrationNumber: true, motExpiryDate: true, taxExpiryDate: true, insuranceExpiryDate: true, registrationExpiryDate: true, tachographCalibrationExpiry: true, atpCertificateExpiry: true },
         });
@@ -236,18 +263,19 @@ export class NotificationsService {
           const daysUntil = Math.ceil((expiryDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
           const severity = daysUntil <= 7 ? 'HIGH' : daysUntil <= 14 ? 'MEDIUM' : 'LOW';
 
-          const existing = await this.legacyPrisma.notification.findFirst({ // @tenant-reviewed: phase210-excluded-background (scheduler/notify-fanout — Phase 2.11+)
+          const existing = await this.legacyPrisma.notification.findFirst({ // @tenant-reviewed: phase214-pilot-scope (dedupe scoped by tenantId when tid; see DEDUPE_KEY_REVIEW)
             where: {
               userId: manager.id,
               relatedEntityId: vehicle.id,
               type: check.type as NotificationType,
               isRead: false,
               createdAt: { gte: new Date(Date.now() - 86400000) },
+              ...(tid ? { tenantId: tid } : {}),
             },
           });
 
           if (!existing) {
-            await this.legacyPrisma.notification.create({ // @tenant-reviewed: phase210-excluded-background (scheduler/notify-fanout — Phase 2.11+)
+            await this.legacyPrisma.notification.create({ // @tenant-reviewed: phase214-pilot-scope (writes tenantId when tid)
               data: {
                 userId: manager.id,
                 // Pre-rendered English (legacy fallback for old clients).
@@ -268,6 +296,7 @@ export class NotificationsService {
                 relatedEntityId: vehicle.id,
                 daysUntilDue: daysUntil,
                 severity,
+                ...(tid ? { tenantId: tid } : {}),
               },
             });
           }
@@ -286,12 +315,14 @@ export class NotificationsService {
 
   /// Check for vehicles needing service based on mileage
   async checkServiceDue(): Promise<void> {
+    const tid = this.narrowingTenantId();
     try {
-      const fleetManagers = await this.legacyPrisma.user.findMany({ // @tenant-reviewed: phase210-excluded-background (scheduler/notify-fanout — Phase 2.11+)
+      const fleetManagers = await this.legacyPrisma.user.findMany({ // @tenant-reviewed: phase214-pilot-scope (narrowed via agency.tenantId when tid)
         where: {
           role: { name: { contains: 'Fleet Manager' } },
           status: 'ACTIVE',
           notificationPreference: { isNot: null },
+          ...(tid ? { agency: { tenantId: tid } } : {}),
         },
         include: { notificationPreference: true, agency: true },
     });
@@ -300,10 +331,11 @@ export class NotificationsService {
       if (!manager.notificationPreference) continue;
       const kmBefore = manager.notificationPreference.serviceKmBefore;
 
-      const vehicles = await this.legacyPrisma.vehicle.findMany({ // @tenant-reviewed: phase210-excluded-background (scheduler/notify-fanout — Phase 2.11+)
+      const vehicles = await this.legacyPrisma.vehicle.findMany({ // @tenant-reviewed: phase214-pilot-scope (narrowed via tenantId when tid)
         where: {
           agencyId: manager.agencyId,
           deletedAt: null,
+          ...(tid ? { tenantId: tid } : {}),
           maintenanceRecords: {
             some: { nextServiceMileage: { not: null }, deletedAt: null },
           },
@@ -327,18 +359,19 @@ export class NotificationsService {
         if (kmRemaining > 0 && kmRemaining <= kmBefore) {
           const severity = kmRemaining <= 100 ? 'HIGH' : kmRemaining <= 250 ? 'MEDIUM' : 'LOW';
 
-          const existing = await this.legacyPrisma.notification.findFirst({ // @tenant-reviewed: phase210-excluded-background (scheduler/notify-fanout — Phase 2.11+)
+          const existing = await this.legacyPrisma.notification.findFirst({ // @tenant-reviewed: phase214-pilot-scope (dedupe scoped by tenantId when tid)
             where: {
               userId: manager.id,
               relatedEntityId: vehicle.id,
               type: 'VEHICLE_SERVICE_DUE',
               isRead: false,
               createdAt: { gte: new Date(Date.now() - 86400000) },
+              ...(tid ? { tenantId: tid } : {}),
             },
           });
 
           if (!existing) {
-            await this.legacyPrisma.notification.create({ // @tenant-reviewed: phase210-excluded-background (scheduler/notify-fanout — Phase 2.11+)
+            await this.legacyPrisma.notification.create({ // @tenant-reviewed: phase214-pilot-scope (writes tenantId when tid)
               data: {
                 userId: manager.id,
                 title: `${vehicle.registrationNumber}: Service Due Soon`,
@@ -355,6 +388,7 @@ export class NotificationsService {
                 relatedEntityId: vehicle.id,
                 kmUntilDue: kmRemaining,
                 severity,
+                ...(tid ? { tenantId: tid } : {}),
               },
             });
           }
@@ -373,20 +407,23 @@ export class NotificationsService {
 
   /// Check for overdue compliance
   async checkOverdue(): Promise<void> {
+    const tid = this.narrowingTenantId();
     try {
-      const fleetManagers = await this.legacyPrisma.user.findMany({ // @tenant-reviewed: phase210-excluded-background (scheduler/notify-fanout — Phase 2.11+)
+      const fleetManagers = await this.legacyPrisma.user.findMany({ // @tenant-reviewed: phase214-pilot-scope (narrowed via agency.tenantId when tid)
         where: {
           role: { name: { contains: 'Fleet Manager' } },
           status: 'ACTIVE',
+          ...(tid ? { agency: { tenantId: tid } } : {}),
         },
         include: { agency: true },
     });
 
     for (const manager of fleetManagers) {
-      const overduedVehicles = await this.legacyPrisma.vehicle.findMany({ // @tenant-reviewed: phase210-excluded-background (scheduler/notify-fanout — Phase 2.11+)
+      const overduedVehicles = await this.legacyPrisma.vehicle.findMany({ // @tenant-reviewed: phase214-pilot-scope (narrowed via tenantId when tid)
         where: {
           agencyId: manager.agencyId,
           deletedAt: null,
+          ...(tid ? { tenantId: tid } : {}),
           OR: [
             { motExpiryDate: { lt: new Date() } },
             { taxExpiryDate: { lt: new Date() } },
@@ -398,17 +435,18 @@ export class NotificationsService {
       });
 
       for (const vehicle of overduedVehicles) {
-        const existing = await this.legacyPrisma.notification.findFirst({ // @tenant-reviewed: phase210-excluded-background (scheduler/notify-fanout — Phase 2.11+)
+        const existing = await this.legacyPrisma.notification.findFirst({ // @tenant-reviewed: phase214-pilot-scope (dedupe scoped by tenantId when tid)
           where: {
             userId: manager.id,
             relatedEntityId: vehicle.id,
             severity: 'HIGH',
             isRead: false,
+            ...(tid ? { tenantId: tid } : {}),
           },
         });
 
         if (!existing) {
-          await this.legacyPrisma.notification.create({ // @tenant-reviewed: phase210-excluded-background (scheduler/notify-fanout — Phase 2.11+)
+          await this.legacyPrisma.notification.create({ // @tenant-reviewed: phase214-pilot-scope (writes tenantId when tid)
             data: {
               userId: manager.id,
               title: `🚨 ${vehicle.registrationNumber}: Compliance Overdue`,
@@ -423,6 +461,7 @@ export class NotificationsService {
               relatedEntity: 'Vehicle',
               relatedEntityId: vehicle.id,
               severity: 'HIGH',
+              ...(tid ? { tenantId: tid } : {}),
             },
           });
         }
@@ -440,12 +479,14 @@ export class NotificationsService {
 
   /// Check for scheduled maintenance records coming up
   async checkScheduledMaintenance(): Promise<void> {
+    const tid = this.narrowingTenantId();
     try {
-      const fleetManagers = await this.legacyPrisma.user.findMany({ // @tenant-reviewed: phase210-excluded-background (scheduler/notify-fanout — Phase 2.11+)
+      const fleetManagers = await this.legacyPrisma.user.findMany({ // @tenant-reviewed: phase214-pilot-scope (narrowed via agency.tenantId when tid)
         where: {
           role: { name: { contains: 'Fleet Manager' } },
           status: 'ACTIVE',
           notificationPreference: { isNot: null },
+          ...(tid ? { agency: { tenantId: tid } } : {}),
         },
         include: { notificationPreference: true, agency: true },
       });
@@ -457,24 +498,26 @@ export class NotificationsService {
         const upcomingDate = new Date();
         upcomingDate.setDate(upcomingDate.getDate() + maintenanceAlertDays);
 
-        const scheduledRecords = await this.legacyPrisma.maintenanceRecord.findMany({ // @tenant-reviewed: phase210-excluded-background (scheduler/notify-fanout — Phase 2.11+)
+        const scheduledRecords = await this.legacyPrisma.maintenanceRecord.findMany({ // @tenant-reviewed: phase214-pilot-scope (narrowed via tenantId when tid)
           where: {
             vehicle: { agencyId: manager.agencyId, deletedAt: null },
             status: 'SCHEDULED',
             scheduledDate: { lte: upcomingDate, gte: new Date() },
             deletedAt: null,
+            ...(tid ? { tenantId: tid } : {}),
           },
           include: { vehicle: true, maintenanceType: true, workshop: true },
         });
 
         for (const record of scheduledRecords) {
-          const existing = await this.legacyPrisma.notification.findFirst({ // @tenant-reviewed: phase210-excluded-background (scheduler/notify-fanout — Phase 2.11+)
+          const existing = await this.legacyPrisma.notification.findFirst({ // @tenant-reviewed: phase214-pilot-scope (dedupe scoped by tenantId when tid)
             where: {
               userId: manager.id,
               relatedEntityId: record.id,
               type: 'VEHICLE_SERVICE_DUE',
               isRead: false,
               createdAt: { gte: new Date(Date.now() - 86400000) },
+              ...(tid ? { tenantId: tid } : {}),
             },
           });
 
@@ -482,7 +525,7 @@ export class NotificationsService {
             const daysUntil = Math.ceil((record.scheduledDate!.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
             const severity = daysUntil <= 3 ? 'HIGH' : daysUntil <= 7 ? 'MEDIUM' : 'LOW';
 
-            await this.legacyPrisma.notification.create({ // @tenant-reviewed: phase210-excluded-background (scheduler/notify-fanout — Phase 2.11+)
+            await this.legacyPrisma.notification.create({ // @tenant-reviewed: phase214-pilot-scope (writes tenantId when tid)
               data: {
                 userId: manager.id,
                 title: `${record.vehicle.registrationNumber}: Scheduled Maintenance`,
@@ -501,6 +544,7 @@ export class NotificationsService {
                 relatedEntityId: record.id,
                 daysUntilDue: daysUntil,
                 severity,
+                ...(tid ? { tenantId: tid } : {}),
               },
             });
           }

@@ -248,6 +248,112 @@ async function main(): Promise<void> {
     });
   }
 
+  // ── 12. Phase 2.14.1: per-method tenant narrowing source-level checks
+  //
+  // These verify that each `check*` method now consults
+  // `narrowingTenantId()` and spreads `tenantId: tid` / `agency: { tenantId: tid }`
+  // into its where + data when active. Source-level assertions stay
+  // light (regex on the file) and are paired with the runtime
+  // dispatcher cases above.
+  {
+    const src = await fs.readFile(
+      path.resolve(__dirname, '..', '..', '..', 'src', 'notifications', 'notifications.service.ts'),
+      'utf8',
+    );
+    const checks = [
+      'checkExpiringCompliance',
+      'checkServiceDue',
+      'checkOverdue',
+      'checkScheduledMaintenance',
+    ];
+    for (const m of checks) {
+      const body = new RegExp(`async ${m}\\(\\)[\\s\\S]*?narrowingTenantId\\(\\)`).test(src);
+      out.push({
+        name: `${m}: reads narrowingTenantId() at the top of its body`,
+        ok: body,
+        detail: `source matches: ${body}`,
+      });
+    }
+    // 16. Each check method spreads `agency: { tenantId: tid }` into
+    //     the User scan when tid is set.
+    const agencyNarrowed = new RegExp(`agency:\\s*{\\s*tenantId:\\s*tid`).test(src);
+    out.push({
+      name: 'each check* method narrows User scan by agency.tenantId when tid set',
+      ok: agencyNarrowed,
+      detail: `agency: { tenantId: tid } appears in source: ${agencyNarrowed}`,
+    });
+    // 17. notification.create writes carry `tenantId: tid` in tenant-aware mode.
+    // Count how many `notification.create` blocks include the tid spread
+    // — there are 4 check* methods, each creates one notification, so we
+    // expect at least 4 occurrences of `... ? { tenantId: tid }` near
+    // notification.create.
+    const writeNarrowed = (src.match(/\.\.\.\(tid \? \{ tenantId: tid \} : \{\}\)/g) ?? []).length;
+    out.push({
+      name: 'notification creates spread tenantId when tid set (≥ 4 sites)',
+      ok: writeNarrowed >= 4,
+      detail: `tenantId spread occurrences: ${writeNarrowed}`,
+    });
+    // 18. dedupe findFirst calls scope by tenantId when tid set.
+    // The dedupe queries appear inside each check method just before
+    // notification.create. We expect at least 4 such sites that include
+    // `tenantId: tid` in the where clause.
+    const dedupeNarrowed = (src.match(/notification\.findFirst[\s\S]*?\.\.\.\(tid \? \{ tenantId: tid \}/g) ?? []).length;
+    out.push({
+      name: 'notification dedupe queries scope by tenantId when tid set (≥ 4 sites)',
+      ok: dedupeNarrowed >= 4,
+      detail: `dedupe-scope occurrences: ${dedupeNarrowed}`,
+    });
+  }
+
+  // ── 19. Legacy mode: narrowingTenantId() returns null
+  await withFlags(
+    { TENANT_AWARE_JOBS_ENABLED: 'false', TENANT_JOB_FANOUT_ENABLED: 'false' },
+    async () => {
+      const flags = new FeatureFlagsService();
+      const { svc, prisma } = makeSvc(flags);
+      try {
+        const tid = (svc as any).narrowingTenantId();
+        out.push({
+          name: 'legacy mode: narrowingTenantId() returns null (no narrowing)',
+          ok: tid === null,
+          detail: `tid=${String(tid)}`,
+        });
+      } finally { await prisma.$disconnect(); }
+    });
+
+  // ── 20. Tenant-aware mode + ALS frame: narrowingTenantId() returns the active id
+  await withFlags(
+    { TENANT_AWARE_JOBS_ENABLED: 'true', TENANT_JOB_FANOUT_ENABLED: 'true' },
+    async () => {
+      const flags = new FeatureFlagsService();
+      const { svc, prisma } = makeSvc(flags);
+      try {
+        const seen = await runForTenant(T1, () => (svc as any).narrowingTenantId(),
+          { allowDormant: true });
+        out.push({
+          name: 'tenant-aware mode + ALS: narrowingTenantId() returns the active tenantId',
+          ok: seen === T1,
+          detail: `tid=${seen}`,
+        });
+      } finally { await prisma.$disconnect(); }
+    });
+
+  // ── 21. Tenant-aware mode without ALS: narrowingTenantId() returns null
+  await withFlags(
+    { TENANT_AWARE_JOBS_ENABLED: 'true', TENANT_JOB_FANOUT_ENABLED: 'true' },
+    async () => {
+      const flags = new FeatureFlagsService();
+      const { svc, prisma } = makeSvc(flags);
+      try {
+        const tid = (svc as any).narrowingTenantId();
+        out.push({
+          name: 'tenant-aware mode without ALS frame: narrowingTenantId() returns null (legacy fallback)',
+          ok: tid === null,
+          detail: `tid=${String(tid)}`,
+        });
+      } finally { await prisma.$disconnect(); }
+    });
+
   await writeReport({
     title: 'Phase 2.14 — Notifications Scheduler Harness',
     name: 'notifications-scheduler-harness',

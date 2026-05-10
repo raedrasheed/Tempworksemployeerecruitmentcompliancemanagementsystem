@@ -1,8 +1,11 @@
 # Phase 2.14 — Notifications Scheduler Adapter Plan
 
-> Status: **adapter SHIPPED** in Phase 2.14. Per-method narrowing of
-> the four `check*` methods is deferred to **Phase 2.14.1** — see §3
-> for the residual scope.
+> Status: **adapter + per-method narrowing SHIPPED**.
+>   - Phase 2.14: orchestrator + ALS adapter + fanout-writer guards.
+>   - Phase 2.14.1: per-method narrowing of the four `check*` methods
+>     + dedupe key tenant-scoping. See
+>     `SAAS_PHASE2_NOTIFICATIONS_CHECK_METHOD_AUDIT.md` and
+>     `SAAS_PHASE2_NOTIFICATIONS_DEDUPE_KEY_REVIEW.md`.
 >
 > Original design (kept verbatim below for the historical record).
 >

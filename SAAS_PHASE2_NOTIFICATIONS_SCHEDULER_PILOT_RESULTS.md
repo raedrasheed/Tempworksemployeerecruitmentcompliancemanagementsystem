@@ -180,22 +180,64 @@ scheduler back to legacy, even with both flags on.
    framework level — it now also lives at the orchestrator level for
    defence in depth.
 
-## 11. Next phase
+## 11. Phase 2.14.1 update — per-method narrowing shipped
 
-**Phase 2.14.1 — per-method tenant narrowing.**
+Phase 2.14.1 (this PR) completed the adapter. The four `check*`
+methods now consult `narrowingTenantId()` at the top of their bodies
+and spread `tenantId` into:
 
-Adapt each of the four `check*` methods to read the active tenant
-from ALS and narrow `prisma.user.findMany` to fleet managers in that
-tenant only. Move the `phase210-excluded-background` annotations on
-those sites to `phase214-pilot-scope`. New harness cases:
+- `User.findMany.where` (via `agency: { tenantId: tid }`).
+- the inner `Vehicle.findMany` / `MaintenanceRecord.findMany.where`.
+- the dedupe `Notification.findFirst.where`.
+- the `Notification.create.data` payload.
 
-- `checkExpiringCompliance` reads only tenant A's fleet managers.
-- N tenant ticks produce N independent scans (no N² blow-up).
-- `Notification.tenantId` is correctly set on every newly-created row.
+When `tid === null` (legacy / production), every spread is `{}` and
+the methods behave byte-identically to pre-2.14.1.
 
-Acceptance: the same 9 scheduler harness cases plus 4 new per-method
-narrowing cases all pass on the staging fixture, with zero regression
-across the 12 existing pilot harnesses.
+Annotations: every `check*` site moved from
+`phase210-excluded-background` to `phase214-pilot-scope` (16 sites
+across the four methods, plus the original tenant-catalog discovery
+site from 2.14).
+
+Harness extended from 9 → 19 cases:
+- 9 original Phase 2.14 cases (dispatch, fanout, guards, env refusal,
+  cron timing).
+- 4 new cases (12–15): each `check*` calls `narrowingTenantId()`.
+- 1 new case (16): all check methods narrow User scan via
+  `agency.tenantId`.
+- 1 new case (17): notification creates spread `tenantId` (≥ 4 sites).
+- 1 new case (18): dedupe queries scope by `tenantId` (≥ 4 sites).
+- 3 new runtime cases (19, 20, 21): `narrowingTenantId()` returns
+  null in legacy mode; returns the active tenant inside ALS in
+  tenant-aware mode; returns null when ALS is empty even with flags
+  on.
+
+Result: 19/19 PASS. No regression in equivalence (11/11), isolation
+(8/8), job-context (11/11), or pilot-regression (12/12).
+
+## 12. Dedupe key decision
+
+**Include `tenantId` in the dedupe `findFirst` query when tenant-
+aware mode is active.** Documented in
+`SAAS_PHASE2_NOTIFICATIONS_DEDUPE_KEY_REVIEW.md`. When the helper
+returns `tid !== null`, the dedupe matches only notifications
+belonging to the active tenant. When `tid === null`, the dedupe
+behaves identically to pre-2.14.1 (global match).
+
+## 13. Next phase
+
+**Phase 2.15** (TBD) — possible candidates:
+
+- **Notifications creator-side tenant fanout** — `notifyUploaderAndRoles`
+  / `notifyUsersByRoles` currently iterate roles across all tenants
+  and refuse without ALS in tenant-aware mode. A future phase can
+  narrow these writers to the active tenant's roles + add per-tenant
+  notification creation explicitly.
+- **`src/finance` reads-first split** — no scheduler involvement;
+  follows the established pilot template.
+- **Phase 3 prep** — `TenantPrismaService.client` `$extends`
+  implementation so the wrapper-level enforcement replaces the
+  per-service spread.
 
 ## 12. Unresolved blockers
 

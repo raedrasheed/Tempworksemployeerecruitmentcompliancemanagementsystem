@@ -955,3 +955,17 @@ No physical deletion. No schema migration.
 Tag: `phase253-audit-log-retention-enforce`.
 
 Real-DB harness: 17/17. Cumulative: **641/641**.
+
+## 51 — Audit-log hard-delete (Phase 2.54)
+
+Data-only one-shot, physical delete only. Triple-gated by
+`AUDIT_LOG_HARD_DELETE_ENABLED=true` AND
+`AUDIT_LOG_HARD_DELETE_APPLY=true` AND a SAFE classification.
+Eligibility narrows to rows already soft-deleted past the grace
+window. Tenant scope (`tenant` default; `null-tenant` and `all`
+opt-in). Idempotent. Rollback requires a full-row snapshot or
+`pg_dump`.
+
+Tag: `phase254-audit-log-hard-delete`.
+
+Real-DB harness: 17/17. Cumulative: **658/658**.

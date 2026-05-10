@@ -176,3 +176,14 @@ separate, narrower script that physically deletes only rows where
 `deletedAt < now() − HARD_DELETE_GRACE_DAYS`, gated by additional
 flags, with a snapshot capture step and explicit operator
 approval. Out of scope for Phase 2.53.
+
+---
+
+# Phase 2.54 cross-link — Hard-delete grace pass
+
+Hard-delete (Phase 2.54) consumes Phase 2.53's output: only rows
+where `deletedAt IS NOT NULL AND deletedAt < now() − grace_days`
+are eligible. The two scripts are intentionally separate; an
+operator who runs Phase 2.53 today sees rows hard-delete-eligible
+only after the grace window elapses. See
+`SAAS_PHASE2_AUDIT_LOG_HARD_DELETE.md`.

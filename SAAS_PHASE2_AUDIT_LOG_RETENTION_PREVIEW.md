@@ -78,3 +78,12 @@ that performs **soft-delete only** under three gates:
 `AUDIT_LOG_RETENTION_APPLY=true` AND a SAFE classification.
 
 See `SAAS_PHASE2_AUDIT_LOG_RETENTION_ENFORCEMENT.md`.
+
+---
+
+# Phase 2.54 cross-link — Hard-delete pass
+
+Phase 2.54 introduces a separate dry-run-first script that
+**physically removes** rows already soft-deleted by Phase 2.53 once
+the grace window elapses. The Phase 2.52 `previewRetention` API
+itself is unchanged.

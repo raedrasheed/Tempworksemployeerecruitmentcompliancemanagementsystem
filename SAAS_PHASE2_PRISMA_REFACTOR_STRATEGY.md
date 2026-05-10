@@ -1175,3 +1175,20 @@ Tag: `phase253-audit-log-retention-enforce`. Raw SQL lives in
 `scripts/`, baseline unchanged.
 
 Real-DB harness: 17/17. Cumulative: **641/641**.
+
+## 11.27 — Phase 2.54: Audit-log hard-delete (post-soft-delete grace)
+
+`scripts/saas/phase2/audit-log-hard-delete.ts` introduces a
+dry-run-first hard-delete pass for rows already soft-deleted by
+Phase 2.53. Apply requires `AUDIT_LOG_HARD_DELETE_ENABLED=true` AND
+`AUDIT_LOG_HARD_DELETE_APPLY=true` AND a SAFE classification AND
+(for scope=tenant) an explicit tenant id. `AUDIT_LOG_HARD_DELETE_GRACE_DAYS`
+defaults to 90; eligibility is `deletedAt IS NOT NULL AND deletedAt < cutoff`.
+
+Tag: `phase254-audit-log-hard-delete`. Raw SQL lives in `scripts/`,
+baseline unchanged. The harness verifies that `DELETE FROM
+audit_logs` exists only in this script plus the pre-existing
+`src/recycle-bin/database-cleanup.service.ts` System Admin path
+(tagged `phase211-excluded-platform`).
+
+Real-DB harness: 17/17. Cumulative: **658/658**.

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-10T02:10:59.881Z",
+  "generatedAt": "2026-05-10T11:42:41.087Z",
   "counts": {
     "total": 26,
     "BLOCKER": 11,
@@ -242,34 +242,34 @@
     },
     {
       "file": "src/applicants/applicants.service.ts",
-      "line": 1144,
+      "line": 1324,
       "pattern": "$queryRaw",
       "severity": "MEDIUM",
       "blocksPhase2": false,
       "module": "applicants",
-      "snippet": "const result: { current: number }[] = await this.prisma.$queryRaw`",
+      "snippet": "const result: { current: number }[] = await this.legacyPrisma.$queryRaw`",
       "fix": "Wrap call site in TenantPrismaService.withTenant; verify the SQL has a tenant filter.",
       "reviewed": false
     },
     {
       "file": "src/applicants/applicants.service.ts",
-      "line": 1170,
+      "line": 1351,
       "pattern": "$queryRaw",
       "severity": "MEDIUM",
       "blocksPhase2": false,
       "module": "applicants",
-      "snippet": "const result: { current: number }[] = await this.prisma.$queryRaw`",
+      "snippet": "const result: { current: number }[] = await this.legacyPrisma.$queryRaw`",
       "fix": "Wrap call site in TenantPrismaService.withTenant; verify the SQL has a tenant filter.",
       "reviewed": false
     },
     {
       "file": "src/applicants/applicants.service.ts",
-      "line": 1196,
+      "line": 1378,
       "pattern": "$queryRaw",
       "severity": "MEDIUM",
       "blocksPhase2": false,
       "module": "applicants",
-      "snippet": "const result: { current: number }[] = await this.prisma.$queryRaw`",
+      "snippet": "const result: { current: number }[] = await this.legacyPrisma.$queryRaw`",
       "fix": "Wrap call site in TenantPrismaService.withTenant; verify the SQL has a tenant filter.",
       "reviewed": false
     },

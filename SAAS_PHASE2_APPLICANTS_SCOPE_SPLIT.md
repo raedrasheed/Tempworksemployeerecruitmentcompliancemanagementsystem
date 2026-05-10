@@ -20,8 +20,8 @@
 | Agency reassignment (`reassignAgency`) | 2.29+ | NO |
 | Financial profile upsert | 2.29+ | NO |
 | `bulkAction` | 2.29+ | NO |
-| Photo upload (`uploadPhoto`) | 2.30+ (storage) | NO |
-| Public submit (`publicSubmit`) + email notifications | 2.29+ | NO |
+| Photo upload (`uploadPhoto`) | **2.31** | **YES** — storage guard |
+| Public submit (`publicSubmit`) + email notifications | **2.31** | **YES** — hybrid ALS/agency attribution |
 | `requestDelete` / `reviewDeleteRequest` | 2.29+ | NO |
 | Email global uniqueness | Phase 3 product | NO |
 
@@ -100,3 +100,24 @@ The applicants module has the largest mutation surface piloted so far. The mutat
 - [ ] Re-run `saas:phase2-applicants-equivalence` and `…-isolation`.
 - [ ] Add a new harness `saas:phase2-applicants-mutation-equivalence`.
 - [ ] Update the `phase228-excluded-mutation` annotations to `phase229-pilot-scope` once mutation paths engage the pilot.
+
+## 9. Phase 2.31 update — deferred paths closed
+
+`uploadPhoto` and `publicSubmit` are no longer deferred. See
+`SAAS_PHASE231_APPLICANTS_DEFERRED_PATH_AUDIT.md` and
+`SAAS_PHASE231_APPLICANTS_PUBLIC_SUBMIT_ATTRIBUTION_DECISION.md`.
+
+- `uploadPhoto`: parent tenant gate via the existing
+  `findApplicantOrFail` pattern, applied BEFORE `storage.uploadFile`.
+  No storage write occurs for cross-tenant ids.
+  Tag: `phase231-storage-guard`.
+- `publicSubmit`: hybrid Option A + B. Tenant attribution comes from
+  the active ALS frame when present; otherwise from the resolved
+  `agency.tenantId`; otherwise rejected (pilot mode only). NULL-tenant
+  rows still possible in legacy mode (flag off). New error codes
+  `APPLICANT.PUBLIC_SUBMIT_NO_TENANT`,
+  `APPLICANT.PUBLIC_SUBMIT_TENANT_MISMATCH`,
+  `APPLICANT.PUBLIC_SUBMIT_AGENCY_NOT_FOUND`.
+  Tag: `phase231-public-submit-attribution`.
+
+No remaining applicants paths are deferred.

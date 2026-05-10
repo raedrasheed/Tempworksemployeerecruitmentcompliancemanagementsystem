@@ -724,3 +724,37 @@ The next phase is **Phase 2.30** (applicants storage path:
 - **Never enable `TENANT_PRISMA_ENFORCEMENT=true` in production until every P0/P1/P2 module has migrated.** Enabling it with a half-migrated codebase makes the un-migrated services start filtering by tenant when their callers don't expect it.
 - **Never ship a `Prisma.raw` outside the registry** during Phase 2.1+. The scanner blocks new ones; existing ones are migrated, not copied.
 - **Always preserve the legacy code path** behind the flag. Removing the legacy code is Phase 3.
+
+## 11.3 Phase 2.30 — cross-module audit-log tenancy pilot
+
+Consolidates audit emissions across the five piloted modules behind
+a shared `TenantAuditLogService`. Adds an additive nullable
+`AuditLog.tenantId` column gated by a new
+`TENANT_AUDIT_LOG_PILOT_ENABLED` flag (default false). 8/8 cases on
+real DB. Cumulative: **253/253**.
+
+## 11.4 Phase 2.31 — applicants deferred paths closed
+
+Closes the two paths Phase 2.29 deferred:
+
+- `uploadPhoto` — pilot-aware parent tenant gate before
+  `storage.uploadFile`. No bytes for cross-tenant ids.
+  `phase231-storage-guard`.
+- `publicSubmit` — hybrid Option A + B attribution (ALS first, agency
+  fallback, reject otherwise in pilot mode). NULL-tenant rows
+  preserved in legacy. New error codes
+  `APPLICANT.PUBLIC_SUBMIT_NO_TENANT`,
+  `APPLICANT.PUBLIC_SUBMIT_TENANT_MISMATCH`,
+  `APPLICANT.PUBLIC_SUBMIT_AGENCY_NOT_FOUND`.
+  `phase231-public-submit-attribution`.
+
+No new flag. No schema change. Storage keys / ACLs / signed-URL
+behaviour unchanged. Email uniqueness unchanged.
+
+Real-DB: equivalence 6/6 + isolation 9/9 = 15/15. Cumulative across
+modules: **261/261**.
+
+The applicants module has no deferred paths remaining. The natural
+next phase is the **cross-module conversion gate** for
+`convertToEmployee` (Document / FinancialRecord / Employee target
+tenant must equal active tenant).

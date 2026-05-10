@@ -83,6 +83,10 @@ and counted against the strict-mode threshold.
 | `phase229-pilot-scope` | Applicants write sites narrowed in Phase 2.29 — `create` + `convertToEmployee.employee.create` spread `scope.tenantData()`; `findAgencyOrFail` agency gate. | `src/applicants/**` | 2.29 |
 | `phase229-pilot-scope-precheck` | Applicants by-id mutation sites gated by the prior tenant-scoped `findOne` (Phase 2.28). The mutation never reaches a foreign tenant's row in pilot mode. | `src/applicants/**` | 2.29 |
 | `phase229-bulk-filter` | Applicants `bulkAction` id pre-filter — `applicant.findMany({ id: { in }, ...t })` drops cross-tenant ids before the per-id loop. | `src/applicants/**` | 2.29 |
+| `phase230-audit-log-pilot` | Audit-log emissions delegated to the shared `TenantAuditLogService` (replaces per-phase `*-audit-log` tags in piloted modules). | `src/finance/**`, `src/documents/**`, `src/workflow/**`, `src/applicants/**`, `src/saas/audit/**` | 2.30 |
+| `phase231-storage-guard` | Applicants `uploadPhoto` parent tenant gate runs BEFORE `storage.uploadFile`. No bytes for cross-tenant ids in pilot mode. | `src/applicants/**` | 2.31 |
+| `phase231-public-submit-attribution` | Applicants `publicSubmit` tenant attribution: ALS first, agency fallback, reject otherwise (pilot mode). NULL-tenant rows preserved in legacy. | `src/applicants/**` | 2.31 |
+| `phase231-pilot-scope` | Reserved for follow-up applicants pilot sites that engage during Phase 2.31 review. | `src/applicants/**` | 2.31 |
 | `tenant-safe-report-runtime` | Reports engine uses `$queryRawUnsafe` with positional parameters and a registry-validated SQL string. | `src/reports/reports.service.ts` | 2.1 |
 
 ## 3. When annotations are allowed

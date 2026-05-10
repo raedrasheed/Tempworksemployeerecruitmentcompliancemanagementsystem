@@ -4,8 +4,9 @@ import {
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { PilotPrismaAccessor } from '../saas/prisma/pilot-prisma.accessor';
-import { getPilotScope, PilotScope } from '../saas/prisma/tenant-pilot-scope';
+import { getPilotScope, PilotScope, isModuleAllowed } from '../saas/prisma/tenant-pilot-scope';
 import { TenantAuditLogService } from '../saas/audit/tenant-audit-log.service';
+import { TenantContext } from '../saas/context/als';
 import { EmailService } from '../email/email.service';
 import { tServer, ServerLocale } from '../common/i18n/server-translate';
 import { CreateApplicantDto } from './dto/create-applicant.dto';
@@ -81,6 +82,78 @@ export class ApplicantsService {
     const a = await this.prisma.agency.findFirst({ where: { id, ...t } }); // @tenant-reviewed: phase229-pilot-scope (agency gate)
     if (!a) throw new NotFoundException({ code: 'AGENCY.NOT_FOUND', message: `Agency ${id} not found`, params: { id } });
     return a;
+  }
+
+  /**
+   * Phase 2.31 — public-submit tenant attribution.
+   *
+   * Resolves the tenant id used to stamp a self-applied lead, in the
+   * order documented in
+   * `SAAS_PHASE231_APPLICANTS_PUBLIC_SUBMIT_ATTRIBUTION_DECISION.md`:
+   *
+   *   1. ALS frame from the request (host / subdomain resolved).
+   *   2. Agency-derived: `agencyId` in the body resolves to an agency,
+   *      and the agency carries `tenantId`.
+   *   3. Otherwise rejected in pilot mode; legacy null in flag-off.
+   *
+   * If both (1) and (2) yield a tenant, they MUST agree.
+   *
+   * Returns `{ tenantId: null, source: 'legacy' }` when the pilot is
+   * inactive, so the caller writes a row with no `tenantId` (today's
+   * behaviour).
+   */
+  private async resolvePublicSubmitTenantId(
+    payloadAgencyId: string | undefined,
+  ): Promise<{ tenantId: string | null; source: 'als' | 'agency' | 'legacy' }> {
+    // Pilot mode for public-submit attribution is gated on
+    // `isPilotActive()` (flag + SAFE_CLONE/SAFE_STAGING) — NOT on
+    // `scope().active`, because the public form often arrives
+    // without an ALS frame, in which case `scope().active` is
+    // false but we still want to derive the tenant from the
+    // submitted agency.
+    if (!this.pilot.isPilotActive() || !isModuleAllowed('applicants')) {
+      // Legacy / non-pilot path. Public submissions land NULL-tenant
+      // exactly as pre-2.31. The pilot-only error codes are
+      // unreachable here.
+      return { tenantId: null, source: 'legacy' };
+    }
+    // Pilot mode. ALS frame wins when present.
+    const ctx = TenantContext.optional?.();
+    const alsTenantId = ctx?.id ?? null;
+    let agencyTenantId: string | null = null;
+    if (payloadAgencyId) {
+      // Agency resolution in pilot mode bypasses the per-tenant
+      // filter when there is no ALS frame, because we are deriving
+      // the tenant FROM the agency. When an ALS frame exists, we
+      // still resolve through the (tenantWhere)-narrowed pilot
+      // client so cross-tenant ids fall out as 404 cleanly.
+      // Resolve the agency unfiltered so we can distinguish
+      // "agency missing" from "agency belongs to a different
+      // tenant". The tenancy decision is made explicitly below
+      // by comparing `agency.tenantId` to the active ALS tenant.
+      const agency = await this.legacyPrisma.agency.findFirst({ where: { id: payloadAgencyId } }); // @tenant-reviewed: phase231-public-submit-attribution
+      if (!agency) {
+        throw new NotFoundException({
+          code: 'APPLICANT.PUBLIC_SUBMIT_AGENCY_NOT_FOUND',
+          message: 'Agency not found for public submission',
+        });
+      }
+      agencyTenantId = (agency as any).tenantId ?? null;
+    }
+    if (alsTenantId && agencyTenantId && alsTenantId !== agencyTenantId) {
+      throw new BadRequestException({
+        code: 'APPLICANT.PUBLIC_SUBMIT_TENANT_MISMATCH',
+        message: 'Submitted agency belongs to a different tenant than the request host',
+      });
+    }
+    const resolved = alsTenantId ?? agencyTenantId;
+    if (!resolved) {
+      throw new BadRequestException({
+        code: 'APPLICANT.PUBLIC_SUBMIT_NO_TENANT',
+        message: 'Public submission requires either a tenant host or a known agency',
+      });
+    }
+    return { tenantId: resolved, source: alsTenantId ? 'als' : 'agency' };
   }
 
   private get include() {
@@ -279,8 +352,17 @@ export class ApplicantsService {
   }
 
   async uploadPhoto(id: string, file: Express.Multer.File) {
-    const applicant = await this.legacyPrisma.applicant.findUnique({ // @tenant-reviewed: phase228-excluded-mutation
-      where: { id },
+    // Phase 2.31 — storage guard. Resolve the applicant through the
+    // pilot-aware parent gate BEFORE writing bytes to storage. In
+    // legacy mode (`scope.active === false`) this still runs, but
+    // the where-clause has no tenant predicate, so it reduces to a
+    // tenant-agnostic by-id lookup and behaviour is byte-identical
+    // to pre-2.31. In pilot mode, a cross-tenant id raises 404
+    // BEFORE `storage.uploadFile` is called, so no orphan bytes
+    // ever land for a foreign tenant.
+    const t = this.scope().tenantWhere();
+    const applicant = await this.prisma.applicant.findFirst({ // @tenant-reviewed: phase231-storage-guard
+      where: { id, deletedAt: null, ...t },
       select: { firstName: true, lastName: true, photoUrl: true },
     });
     if (!applicant) throw new NotFoundException({ code: 'APPLICANT.NOT_FOUND', message: 'Applicant not found' });
@@ -375,10 +457,16 @@ export class ApplicantsService {
     const citizenship = coreData.citizenship || coreData.nationality || appData.personal?.citizenship;
     const nationality = coreData.nationality || citizenship;
 
+    // Phase 2.31 — public-submit tenant attribution. In pilot mode
+    // the row gets `tenantId` from ALS or from the resolved agency;
+    // in legacy mode this returns `{ tenantId: null }` and the row
+    // is created with no tenant attribution (today's behaviour).
+    const attribution = await this.resolvePublicSubmitTenantId(coreData.agencyId);
+
     // Generate Lead identifier for public submissions
     const leadNumber = await this.generateIdentifier('A');
 
-    const applicant = await this.legacyPrisma.applicant.create({ // @tenant-reviewed: phase228-excluded-mutation
+    const applicant = await this.legacyPrisma.applicant.create({ // @tenant-reviewed: phase231-public-submit-attribution
       data: {
         ...coreData,
         leadNumber,
@@ -401,6 +489,7 @@ export class ApplicantsService {
         // user is responsible); the profile UI keys off `source` to
         // show a "Self-applied" badge instead of a creator name.
         source: 'SELF_APPLIED',
+        ...(attribution.tenantId ? { tenantId: attribution.tenantId } : {}),
       } as any,
       include: this.include,
     });

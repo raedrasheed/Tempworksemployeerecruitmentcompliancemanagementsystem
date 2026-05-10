@@ -164,3 +164,37 @@ and identifier generation are all unchanged.
 - `convertToEmployee` cross-module writes (Document / FinancialRecord / Employee) need explicit cross-module entity validation.
 - `publicSubmit` runs without an ALS tenant frame — needs explicit handling (document as deferred or pin to a default tenant).
 - `bulkAction` operates on multiple ids; mutation pilot must filter the id list by tenant before any mutation (mirror documents 2.22 download-guard pattern).
+
+## 13. Phase 2.31 — deferred paths closed
+
+`uploadPhoto` and `publicSubmit` are now both piloted. See
+`SAAS_PHASE231_APPLICANTS_DEFERRED_PATH_AUDIT.md`,
+`SAAS_PHASE231_APPLICANTS_PUBLIC_SUBMIT_ATTRIBUTION_DECISION.md`,
+and `SAAS_PHASE231_APPLICANTS_DEFERRED_PATHS_RESULTS.md`.
+
+- `uploadPhoto` — parent tenant gate added BEFORE `storage.uploadFile`.
+  No bytes are written for cross-tenant ids in pilot mode. Annotated
+  `phase231-storage-guard`.
+- `publicSubmit` — hybrid attribution (ALS first, agency fallback,
+  reject otherwise in pilot mode). NULL-tenant rows preserved in
+  legacy. Annotated `phase231-public-submit-attribution`.
+
+New harnesses (real-DB SAFE_CLONE):
+- `applicants-deferred-paths-equivalence` — 6/6 PASS
+- `applicants-deferred-paths-isolation` — 9/9 PASS
+
+Cumulative real-DB applicants: **22 + 21 + 6 + 9 = 58/58**.
+Cumulative across modules: finance + documents + vehicles + workflow +
+applicants + audit-log = **261/261** on real Postgres 16.
+
+Audit-log behaviour: neither `uploadPhoto` nor `publicSubmit` emits
+audit rows today; Phase 2.31 does not start emitting them.
+
+Remaining applicants blockers (cross-module / Phase 3+):
+- `Applicant.email @unique` global uniqueness (Phase 3 product).
+- `convertToEmployee` cross-module entity validation
+  (Document/FinancialRecord/Employee target tenant must equal active
+  tenant) — distinct cross-module phase.
+- Custom-domain public form host resolution — Phase 3 product.
+- Photo signed URLs / tenant-scoped storage prefixes — out of scope
+  this phase by design.

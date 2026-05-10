@@ -571,3 +571,30 @@ harnesses. Cumulative finance + documents + vehicles + workflow
 Five modules now fully proven on real DB across reads + writes:
 finance, documents, vehicles, workflow, applicants. Production
 behaviour unchanged.
+
+## 27. Phase 2.30 — Cross-module audit-log tenancy pilot (shipped)
+
+Shared `TenantAuditLogService` (`src/saas/audit/`). Additive
+`AuditLog.tenantId` + 2 indexes. Flag
+`TENANT_AUDIT_LOG_PILOT_ENABLED=false` by default.
+
+Real-DB: 8/8 cases PASS. Cumulative: 253/253.
+
+## 28. Phase 2.31 — Applicants deferred paths (shipped)
+
+Closes the two paths Phase 2.29 deferred.
+
+- `uploadPhoto` — `phase231-storage-guard`. Parent tenant gate runs
+  BEFORE `storage.uploadFile`. No storage write for cross-tenant ids
+  in pilot mode.
+- `publicSubmit` — `phase231-public-submit-attribution`. Hybrid
+  Option A + B (ALS first, agency fallback, reject otherwise).
+  NULL-tenant attribution preserved in legacy mode.
+
+No new flag, no schema change, no storage / ACL / email-uniqueness
+change.
+
+Real-DB: equivalence 6/6 + isolation 9/9 = 15/15. Cumulative across
+modules: **261/261**.
+
+Applicants has no remaining deferred paths.

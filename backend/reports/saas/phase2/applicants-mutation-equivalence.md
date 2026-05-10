@@ -1,6 +1,6 @@
 # Phase 2.29 — Applicants Mutation Equivalence
 
-Generated: 2026-05-10T11:03:32.460Z
+Generated: 2026-05-10T11:38:37.874Z
 Environment: SAFE_CLONE (localhost + fixture pattern (db=saas_phase1_fixture))
 Tenant A: `11111111-1111-1111-1111-111111111111`
 
@@ -9,7 +9,7 @@ Tenant A: `11111111-1111-1111-1111-111111111111`
 
 | # | Case | Result | Detail |
 |--:|------|:------:|--------|
-| 1 | create response shape preserved | PASS | legacy.id=4b0c8e72-1499-4511-bd4e-874ab1f13595 pilot.id=84c9c6c4-b129-4357-b984-5aa5157e8901 |
+| 1 | create response shape preserved | PASS | legacy.id=a7d49d5e-ecdc-456a-8ebc-34ceee8b0ce6 pilot.id=0218cc3e-cc1c-4d88-a35b-e6d779b4bae7 |
 | 2 | create legacy: tenantId NULL | PASS | tid=null |
 | 3 | create pilot: tenantId=A | PASS | tid=11111111-1111-1111-1111-111111111111 |
 | 4 | update (legacy) mutates phone | PASS | phone=+legacy |
@@ -18,4 +18,4 @@ Tenant A: `11111111-1111-1111-1111-111111111111`
 | 7 | pilot remove: deletedAt set | PASS | deletedAt=set |
 | 8 | validation: NotFoundException for missing applicant id in both modes | PASS | legacy=NotFoundException pilot=NotFoundException |
 | 9 | bulk filter (pilot): tenant B id silently dropped; tenant A id processed | PASS | results=1 bIncluded=false |
-| 10 | requestDelete (pilot) creates request for tenant A applicant | PASS | id=45ab21b1-f257-455d-bc8f-27ec57dc606d |
+| 10 | requestDelete (pilot) creates request for tenant A applicant | PASS | id=bf921f50-93ba-43f4-8dd9-795fb04e9ee9 |

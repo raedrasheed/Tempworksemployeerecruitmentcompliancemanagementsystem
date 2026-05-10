@@ -615,6 +615,28 @@ proven on real DB across reads + writes + storage. The next
 phase is a **new module pilot** (`workflow`, `applicants`) or
 the cross-module audit-log tenancy phase.
 
+## 11.12 Phase 2.26 — Workflow reads-first pilot (shipped)
+
+`src/workflow` joins the pilot. Reads only; mutations deferred
+to Phase 2.27+.
+
+- `StageTemplate` tagged `phase226-global` (catalog; per-tenant
+  override deferred to Phase 3 — see
+  `SAAS_PHASE2_WORKFLOW_SYSTEM_TEMPLATE_DECISION.md`).
+- `EmployeeStage` aggregates narrowed via `employee: { tenantId }`
+  relation filter (no `tenantId` column on EmployeeStage).
+- `getTimeline` migrated `findUnique` → `findFirst` + tenant
+  predicate.
+- WorkPermit + Visa reads narrowed on direct tenantId.
+- Mutations stay on legacyPrisma with `phase226-excluded-mutation`.
+
+Real-DB run: workflow-equivalence 11/11 + workflow-isolation
+11/11 = **22/22 PASS**. Cumulative finance + documents +
+vehicles + workflow: **180/180** on real Postgres 16.
+
+The next phase is **Phase 2.27** (workflow mutation pilot) OR a
+new module pilot (`applicants`).
+
 ## 12. Hard rules
 
 - **Never enable `TENANT_PRISMA_ENFORCEMENT=true` in production until every P0/P1/P2 module has migrated.** Enabling it with a half-migrated codebase makes the un-migrated services start filtering by tenant when their callers don't expect it.

@@ -69,6 +69,10 @@ and counted against the strict-mode threshold.
 | `phase225-pilot-scope` | Vehicles storage / vehicle-document write sites narrowed in Phase 2.25 — `addDocument` spreads `scope.tenantData()` on the new `VehicleDocument` row. | `src/vehicles/**` | 2.25 |
 | `phase225-pilot-scope-precheck` | Vehicles `updateDocument` / `deleteDocument` by-id mutation sites gated by the NEW explicit `findVehicleOrFail(vehicleId)` parent gate (Phase 2.25). Closes a real cross-tenant mutation gap. | `src/vehicles/**` | 2.25 |
 | `phase225-storage-guard` | Reserved for future storage-bound vehicle-document refactors (file-replacement, real-delete from bucket); today the storage guard is the parent vehicle gate. | `src/vehicles/**` | 2.25 |
+| `phase226-pilot-scope` | Workflow read sites narrowed via `getPilotScope(...).tenantWhere()` (Applicant/Employee/WorkPermit/Visa direct tenantId) or `employee: { tenantId }` relation filter (EmployeeStage aggregates). Includes `getOverview`, `getAnalytics`, `getTimeline`, `getStageDetails`, `findWorkPermits`, `findVisas`. | `src/workflow/**` | 2.26 |
+| `phase226-global` | Workflow `StageTemplate` reads — global catalog (no `tenantId` column today; per-tenant override deferred to Phase 3 per `SAAS_PHASE2_WORKFLOW_SYSTEM_TEMPLATE_DECISION.md`). | `src/workflow/**` | 2.26 |
+| `phase226-excluded-mutation` | Workflow write/mutation sites (`updateEmployeeWorkflowStage`, `setEmployeeCurrentStage`, `createWorkPermit`, `updateWorkPermit`, `createVisa`, `updateVisa`) kept on `legacyPrisma` until Phase 2.27+. | `src/workflow/**` | 2.26 |
+| `phase226-audit-log` | Workflow audit-log writes — global by design (deferred to cross-module audit phase). | `src/workflow/**` | 2.26 |
 | `tenant-safe-report-runtime` | Reports engine uses `$queryRawUnsafe` with positional parameters and a registry-validated SQL string. | `src/reports/reports.service.ts` | 2.1 |
 
 ## 3. When annotations are allowed

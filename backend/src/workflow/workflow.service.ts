@@ -1,17 +1,54 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { PilotPrismaAccessor } from '../saas/prisma/pilot-prisma.accessor';
+import { getPilotScope, PilotScope } from '../saas/prisma/tenant-pilot-scope';
 import { CreateWorkPermitDto } from './dto/create-work-permit.dto';
 import { CreateVisaDto } from './dto/create-visa.dto';
 import { UpdateWorkflowStageDto } from './dto/update-workflow-stage.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { PaginatedResponse } from '../common/dto/pagination-response.dto';
 
+/**
+ * Phase 2.26 — Workflow reads-first pilot.
+ *
+ * READ paths route through `pilot.client()` and spread
+ * `scope.tenantWhere()` / relation-filter into where clauses when
+ * the pilot scope is active. Production default (flag off) is
+ * byte-identical to pre-2.26.
+ *
+ * `StageTemplate` is a global catalog (no `tenantId` column today).
+ * All `stageTemplate.*` reads are tagged `phase226-global`.
+ *
+ * `EmployeeStage` has no `tenantId` column either; aggregate
+ * counts are narrowed via the `employee: { tenantId }` relation
+ * filter, and direct queries by parent employee id are gated by
+ * the tenant-scoped `findEmployee`.
+ *
+ * WRITE / mutation paths (`updateEmployeeWorkflowStage`,
+ * `setEmployeeCurrentStage`, `createWorkPermit`, `updateWorkPermit`,
+ * `createVisa`, `updateVisa`) explicitly use `legacyPrisma` and
+ * remain annotated `phase226-excluded-mutation` until Phase 2.27+.
+ *
+ * Audit-log writes use `legacyPrisma` always (`phase226-audit-log`).
+ */
 @Injectable()
 export class WorkflowService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private legacyPrisma: PrismaService,
+    private pilot: PilotPrismaAccessor,
+  ) {}
+
+  /** Pilot-aware Prisma surface used by READ paths only. */
+  private get prisma(): PrismaService {
+    return this.pilot.client();
+  }
+
+  private scope(): PilotScope {
+    return getPilotScope(this.pilot, 'workflow');
+  }
 
   async getStages() {
-    return this.prisma.stageTemplate.findMany({
+    return this.prisma.stageTemplate.findMany({ // @tenant-reviewed: phase226-global
       where: { isActive: true },
       orderBy: { order: 'asc' },
       include: { _count: { select: { employeeStages: true } } },
@@ -19,18 +56,23 @@ export class WorkflowService {
   }
 
   async getOverview() {
-    const stages = await this.prisma.stageTemplate.findMany({
+    const t = this.scope().tenantWhere();
+    const stages = await this.prisma.stageTemplate.findMany({ // @tenant-reviewed: phase226-global
       where: { isActive: true },
       orderBy: { order: 'asc' },
     });
 
     const overview = await Promise.all(
       stages.map(async (stage) => {
+        // EmployeeStage has no tenantId; narrow via the parent
+        // Employee relation filter. In legacy mode the spread is
+        // {} and the filter does not apply.
+        const employeeFilter = this.scope().active ? { employee: { tenantId: this.scope().tenantId } } : {};
         const [pending, inProgress, completed, applicantsCount] = await Promise.all([
-          this.prisma.employeeStage.count({ where: { stageId: stage.id, status: 'PENDING' } }),
-          this.prisma.employeeStage.count({ where: { stageId: stage.id, status: 'IN_PROGRESS' } }),
-          this.prisma.employeeStage.count({ where: { stageId: stage.id, status: 'COMPLETED' } }),
-          this.prisma.applicant.count({ where: { currentWorkflowStageId: stage.id, deletedAt: null } }),
+          this.prisma.employeeStage.count({ where: { stageId: stage.id, status: 'PENDING', ...employeeFilter } }), // @tenant-reviewed: phase226-pilot-scope (relation filter via employee.tenantId)
+          this.prisma.employeeStage.count({ where: { stageId: stage.id, status: 'IN_PROGRESS', ...employeeFilter } }), // @tenant-reviewed: phase226-pilot-scope
+          this.prisma.employeeStage.count({ where: { stageId: stage.id, status: 'COMPLETED', ...employeeFilter } }), // @tenant-reviewed: phase226-pilot-scope
+          this.prisma.applicant.count({ where: { currentWorkflowStageId: stage.id, deletedAt: null, ...t } }), // @tenant-reviewed: phase226-pilot-scope
         ]);
         return {
           ...stage,
@@ -46,14 +88,17 @@ export class WorkflowService {
   }
 
   async getAnalytics() {
+    const t = this.scope().tenantWhere();
+    const employeeFilter = this.scope().active ? { employee: { tenantId: this.scope().tenantId } } : {};
     const [totalEmployees, stageBreakdown, recentActivity] = await Promise.all([
-      this.prisma.employee.count({ where: { deletedAt: null } }),
-      this.prisma.employeeStage.groupBy({
+      this.prisma.employee.count({ where: { deletedAt: null, ...t } }), // @tenant-reviewed: phase226-pilot-scope
+      this.prisma.employeeStage.groupBy({ // @tenant-reviewed: phase226-pilot-scope (relation filter via employee.tenantId)
         by: ['status'],
         _count: { id: true },
+        where: employeeFilter as any,
       }),
-      this.prisma.employeeStage.findMany({
-        where: { updatedAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } },
+      this.prisma.employeeStage.findMany({ // @tenant-reviewed: phase226-pilot-scope (relation filter via employee.tenantId)
+        where: { updatedAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }, ...employeeFilter },
         include: {
           employee: { select: { id: true, firstName: true, lastName: true } },
           stage: { select: { id: true, name: true, order: true } },
@@ -71,7 +116,7 @@ export class WorkflowService {
     dto: UpdateWorkflowStageDto,
     updatedById?: string,
   ) {
-    const workflowEntry = await this.prisma.employeeStage.findUnique({
+    const workflowEntry = await this.legacyPrisma.employeeStage.findUnique({ // @tenant-reviewed: phase226-excluded-mutation
       where: { employeeId_stageId: { employeeId, stageId } },
       include: { stage: true },
     });
@@ -89,14 +134,14 @@ export class WorkflowService {
       updateData.completedAt = new Date();
     }
 
-    const updated = await this.prisma.employeeStage.update({
+    const updated = await this.legacyPrisma.employeeStage.update({ // @tenant-reviewed: phase226-excluded-mutation
       where: { employeeId_stageId: { employeeId, stageId } },
       data: updateData,
       include: { stage: true, assignedTo: { select: { id: true, firstName: true, lastName: true } } },
     });
 
     if (updatedById) {
-      await this.prisma.auditLog.create({
+      await this.legacyPrisma.auditLog.create({ // @tenant-reviewed: phase226-audit-log
         data: {
           userId: updatedById,
           action: 'WORKFLOW_STAGE_UPDATE',
@@ -110,20 +155,20 @@ export class WorkflowService {
   }
 
   async setEmployeeCurrentStage(employeeId: string, stageId: string, updatedById?: string) {
-    const employee = await this.prisma.employee.findUnique({ where: { id: employeeId, deletedAt: null } });
+    const employee = await this.legacyPrisma.employee.findUnique({ where: { id: employeeId, deletedAt: null } }); // @tenant-reviewed: phase226-excluded-mutation
     if (!employee) throw new NotFoundException({ code: 'EMPLOYEE.NOT_FOUND', message: 'Employee not found' });
 
-    const stage = await this.prisma.stageTemplate.findUnique({ where: { id: stageId } });
+    const stage = await this.legacyPrisma.stageTemplate.findUnique({ where: { id: stageId } }); // @tenant-reviewed: phase226-global
     if (!stage) throw new NotFoundException({ code: 'WORKFLOW.STAGE_NOT_FOUND', message: 'Workflow stage not found' });
 
     // Complete any currently IN_PROGRESS stages
-    await this.prisma.employeeStage.updateMany({
+    await this.legacyPrisma.employeeStage.updateMany({ // @tenant-reviewed: phase226-excluded-mutation
       where: { employeeId, status: 'IN_PROGRESS' },
       data: { status: 'COMPLETED', completedAt: new Date() },
     });
 
     // Upsert the chosen stage as IN_PROGRESS
-    const result = await this.prisma.employeeStage.upsert({
+    const result = await this.legacyPrisma.employeeStage.upsert({ // @tenant-reviewed: phase226-excluded-mutation
       where: { employeeId_stageId: { employeeId, stageId } },
       create: { employeeId, stageId, status: 'IN_PROGRESS', startedAt: new Date() },
       update: { status: 'IN_PROGRESS', startedAt: new Date(), completedAt: null },
@@ -131,7 +176,7 @@ export class WorkflowService {
     });
 
     if (updatedById) {
-      await this.prisma.auditLog.create({
+      await this.legacyPrisma.auditLog.create({ // @tenant-reviewed: phase226-audit-log
         data: {
           userId: updatedById,
           action: 'WORKFLOW_STAGE_UPDATE',
@@ -146,8 +191,10 @@ export class WorkflowService {
   }
 
   async getTimeline(employeeId: string) {
-    const employee = await this.prisma.employee.findUnique({
-      where: { id: employeeId, deletedAt: null },
+    const t = this.scope().tenantWhere();
+    // findFirst (was findUnique) so we can compose tenant predicate.
+    const employee = await this.prisma.employee.findFirst({ // @tenant-reviewed: phase226-pilot-scope
+      where: { id: employeeId, deletedAt: null, ...t },
       include: {
         employeeStages: {
           include: {
@@ -166,17 +213,19 @@ export class WorkflowService {
   }
 
   async getStageDetails(stageId: string) {
-    const stage = await this.prisma.stageTemplate.findUnique({ where: { id: stageId } });
+    const t = this.scope().tenantWhere();
+    const employeeFilter = this.scope().active ? { employee: { tenantId: this.scope().tenantId } } : {};
+    const stage = await this.prisma.stageTemplate.findUnique({ where: { id: stageId } }); // @tenant-reviewed: phase226-global
     if (!stage) throw new NotFoundException({ code: 'WORKFLOW.STAGE_NOT_FOUND', message: 'Stage not found' });
 
     const [applicants, employeeStages] = await Promise.all([
-      this.prisma.applicant.findMany({
-        where: { currentWorkflowStageId: stageId, deletedAt: null },
+      this.prisma.applicant.findMany({ // @tenant-reviewed: phase226-pilot-scope
+        where: { currentWorkflowStageId: stageId, deletedAt: null, ...t },
         include: { jobType: { select: { id: true, name: true } } },
         orderBy: { createdAt: 'asc' },
       }),
-      this.prisma.employeeStage.findMany({
-        where: { stageId, status: 'IN_PROGRESS' },
+      this.prisma.employeeStage.findMany({ // @tenant-reviewed: phase226-pilot-scope (relation filter via employee.tenantId)
+        where: { stageId, status: 'IN_PROGRESS', ...employeeFilter },
         include: {
           employee: { select: { id: true, firstName: true, lastName: true, email: true, nationality: true, photoUrl: true, status: true } },
         },
@@ -187,8 +236,8 @@ export class WorkflowService {
     // Build document checklist for each person if the stage has required docs
     const buildDocChecklist = async (entityType: string, entityId: string) => {
       if (stage.requirementsDocuments.length === 0) return [];
-      const docs = await this.prisma.document.findMany({
-        where: { entityType: entityType as any, entityId, deletedAt: null },
+      const docs = await this.prisma.document.findMany({ // @tenant-reviewed: phase226-pilot-scope
+        where: { entityType: entityType as any, entityId, deletedAt: null, ...t },
         include: { documentType: { select: { name: true } } },
       });
       return stage.requirementsDocuments.map(reqName => {
@@ -228,24 +277,25 @@ export class WorkflowService {
   // Work Permits
   async findWorkPermits(pagination: PaginationDto, employeeId?: string) {
     const { page = 1, limit = 10 } = pagination;
-    const where: any = employeeId ? { employeeId } : {};
+    const t = this.scope().tenantWhere();
+    const where: any = { ...(employeeId ? { employeeId } : {}), ...t };
     const [items, total] = await Promise.all([
-      this.prisma.workPermit.findMany({
+      this.prisma.workPermit.findMany({ // @tenant-reviewed: phase226-pilot-scope
         where,
         skip: (Number(page) - 1) * Number(limit),
         take: Number(limit),
         orderBy: { createdAt: 'desc' },
         include: { employee: { select: { id: true, firstName: true, lastName: true, email: true } } },
       }),
-      this.prisma.workPermit.count({ where }),
+      this.prisma.workPermit.count({ where }), // @tenant-reviewed: phase226-pilot-scope
     ]);
     return PaginatedResponse.create(items, total, page, limit);
   }
 
   async createWorkPermit(dto: CreateWorkPermitDto, createdById?: string) {
-    const employee = await this.prisma.employee.findUnique({ where: { id: dto.employeeId } });
+    const employee = await this.legacyPrisma.employee.findUnique({ where: { id: dto.employeeId } }); // @tenant-reviewed: phase226-excluded-mutation
     if (!employee) throw new NotFoundException({ code: 'EMPLOYEE.NOT_FOUND', message: 'Employee not found' });
-    const permit = await this.prisma.workPermit.create({
+    const permit = await this.legacyPrisma.workPermit.create({ // @tenant-reviewed: phase226-excluded-mutation
       data: {
         ...dto,
         applicationDate: new Date(dto.applicationDate),
@@ -256,7 +306,7 @@ export class WorkflowService {
       include: { employee: { select: { id: true, firstName: true, lastName: true } } },
     });
     if (createdById) {
-      await this.prisma.auditLog.create({
+      await this.legacyPrisma.auditLog.create({ // @tenant-reviewed: phase226-audit-log
         data: { userId: createdById, action: 'CREATE', entity: 'WorkPermit', entityId: permit.id },
       });
     }
@@ -264,28 +314,29 @@ export class WorkflowService {
   }
 
   async updateWorkPermit(id: string, dto: Partial<CreateWorkPermitDto>, updatedById?: string) {
-    const permit = await this.prisma.workPermit.findUnique({ where: { id } });
+    const permit = await this.legacyPrisma.workPermit.findUnique({ where: { id } }); // @tenant-reviewed: phase226-excluded-mutation
     if (!permit) throw new NotFoundException({ code: 'WORKFLOW.WORK_PERMIT_NOT_FOUND', message: 'Work permit not found' });
     const updateData: any = { ...dto };
     if (dto.applicationDate) updateData.applicationDate = new Date(dto.applicationDate);
     if (dto.approvalDate) updateData.approvalDate = new Date(dto.approvalDate);
     if (dto.expiryDate) updateData.expiryDate = new Date(dto.expiryDate);
-    return this.prisma.workPermit.update({ where: { id }, data: updateData });
+    return this.legacyPrisma.workPermit.update({ where: { id }, data: updateData }); // @tenant-reviewed: phase226-excluded-mutation
   }
 
   // Visas
   async findVisas(pagination: PaginationDto, entityId?: string) {
     const { page = 1, limit = 10 } = pagination;
-    const where: any = entityId ? { entityId } : {};
+    const t = this.scope().tenantWhere();
+    const where: any = { ...(entityId ? { entityId } : {}), ...t };
     const [items, total] = await Promise.all([
-      this.prisma.visa.findMany({ where, skip: (Number(page) - 1) * Number(limit), take: Number(limit), orderBy: { createdAt: 'desc' } }),
-      this.prisma.visa.count({ where }),
+      this.prisma.visa.findMany({ where, skip: (Number(page) - 1) * Number(limit), take: Number(limit), orderBy: { createdAt: 'desc' } }), // @tenant-reviewed: phase226-pilot-scope
+      this.prisma.visa.count({ where }), // @tenant-reviewed: phase226-pilot-scope
     ]);
     return PaginatedResponse.create(items, total, page, limit);
   }
 
   async createVisa(dto: CreateVisaDto, createdById?: string) {
-    const visa = await this.prisma.visa.create({
+    const visa = await this.legacyPrisma.visa.create({ // @tenant-reviewed: phase226-excluded-mutation
       data: {
         ...dto,
         entityType: dto.entityType as any,
@@ -297,7 +348,7 @@ export class WorkflowService {
       },
     });
     if (createdById) {
-      await this.prisma.auditLog.create({
+      await this.legacyPrisma.auditLog.create({ // @tenant-reviewed: phase226-audit-log
         data: { userId: createdById, action: 'CREATE', entity: 'Visa', entityId: visa.id },
       });
     }
@@ -305,13 +356,13 @@ export class WorkflowService {
   }
 
   async updateVisa(id: string, dto: Partial<CreateVisaDto>, updatedById?: string) {
-    const visa = await this.prisma.visa.findUnique({ where: { id } });
+    const visa = await this.legacyPrisma.visa.findUnique({ where: { id } }); // @tenant-reviewed: phase226-excluded-mutation
     if (!visa) throw new NotFoundException({ code: 'WORKFLOW.VISA_NOT_FOUND', message: 'Visa not found' });
     const updateData: any = { ...dto };
     if (dto.applicationDate) updateData.applicationDate = new Date(dto.applicationDate);
     if (dto.appointmentDate) updateData.appointmentDate = new Date(dto.appointmentDate);
     if (dto.approvalDate) updateData.approvalDate = new Date(dto.approvalDate);
     if (dto.expiryDate) updateData.expiryDate = new Date(dto.expiryDate);
-    return this.prisma.visa.update({ where: { id }, data: updateData });
+    return this.legacyPrisma.visa.update({ where: { id }, data: updateData }); // @tenant-reviewed: phase226-excluded-mutation
   }
 }

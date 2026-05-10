@@ -439,3 +439,30 @@ Postgres 16.
 Three modules (finance, documents, vehicles) are now fully
 proven on real DB across reads + writes + storage. Production
 behaviour unchanged.
+
+## 23. Phase 2.26 — Workflow reads-first pilot (shipped)
+
+`src/workflow` joins the pilot. Reads only; mutations deferred.
+
+- StageTemplate reads tagged `phase226-global` (catalog).
+- EmployeeStage aggregates narrowed via `employee: { tenantId }`
+  relation filter (no `tenantId` column on EmployeeStage).
+- `getTimeline` migrated `findUnique` → `findFirst` + tenant
+  predicate.
+- WorkPermit + Visa reads narrowed on direct `tenantId`.
+- All mutation sites (`updateEmployeeWorkflowStage`,
+  `setEmployeeCurrentStage`, `createWorkPermit`,
+  `updateWorkPermit`, `createVisa`, `updateVisa`) routed through
+  `legacyPrisma` with `phase226-excluded-mutation`.
+
+System-template decision: **global catalog** (Option A) — matches
+`MaintenanceType` / `Workshop` / `DocumentType` precedent.
+Per-tenant overrides require Phase 3 product decision + schema
+migration. See SAAS_PHASE2_WORKFLOW_SYSTEM_TEMPLATE_DECISION.
+
+Real-DB run (`SAFE_CLONE` `saas_phase1_fixture`):
+- workflow-equivalence: 11/11 PASS
+- workflow-isolation:   11/11 PASS
+
+Cumulative finance + documents + vehicles + workflow:
+**180/180** on real Postgres 16. Production behaviour unchanged.

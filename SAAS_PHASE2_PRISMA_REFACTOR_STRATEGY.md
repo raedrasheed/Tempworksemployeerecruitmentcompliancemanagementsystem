@@ -352,6 +352,27 @@ The next phase is **Phase 2.14**: notifications scheduler adapter
 following `SAAS_PHASE2_NOTIFICATIONS_SCHEDULER_ADAPTER_PLAN.md`.
 Alternative path: `src/finance` reads-first split (no scheduler).
 
+## 11.8 Phase 2.14 / 2.14.1 / 2.15 — notifications background fully narrowed
+
+The notifications module's background paths are now tenant-narrowed
+end-to-end:
+
+- 2.14: orchestrator + ALS adapter + fanout-writer guards.
+- 2.14.1: per-method narrowing of the four `check*` methods +
+  tenant-aware dedupe key.
+- 2.15: fanout writers (`notifyUploaderAndRoles`,
+  `notifyUsersByRoles`) narrow their User scans + persist `tenantId`
+  on creates + validate uploader belongs to the active tenant.
+
+**Zero `phase210-excluded-background` annotations remain in
+`src/notifications`.** All 28 scheduler-harness cases pass; all 10
+isolation cases pass; all 12 pilot-regression cases pass; the
+job-context-harness still passes 11/11.
+
+The next phase is **Phase 2.16** (TBD): either `src/finance`
+reads-first or Phase 3 prep (`TenantPrismaService.client` `$extends`
+implementation).
+
 ## 12. Hard rules
 
 - **Never enable `TENANT_PRISMA_ENFORCEMENT=true` in production until every P0/P1/P2 module has migrated.** Enabling it with a half-migrated codebase makes the un-migrated services start filtering by tenant when their callers don't expect it.

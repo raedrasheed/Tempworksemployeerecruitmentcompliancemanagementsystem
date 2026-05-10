@@ -151,17 +151,32 @@ Dedupe key now includes `tenantId` in tenant-aware mode — see
 `SAAS_PHASE2_NOTIFICATIONS_DEDUPE_KEY_REVIEW.md` for rationale +
 transition risks.
 
-Remaining excluded paths in `src/notifications`:
-- `notifyUploaderAndRoles` / `notifyUsersByRoles` — guarded but
-  their internal `User.findMany` + `notification.create` still
-  iterate roles across all tenants. Phase 2.15 candidate.
-- Per-user global preferences (`getOrCreatePreferences`,
-  `updatePreferences`) — kept on `legacyPrisma` with
-  `phase210-global` annotation. Intentional; per-user is the right
-  scope for these.
+## 6.4 Phase 2.15 update — fanout writers narrowed
 
-The legacy `runAllChecks` path is preserved as the production
-default and the rollback target.
+Phase 2.15 narrowed the two fanout writers. `notifyUploaderAndRoles`
+and `notifyUsersByRoles` now:
+
+- read `narrowingTenantId()` once at the top.
+- spread `agency: { tenantId: tid }` into the role `User.findMany`.
+- spread `tenantId: tid` into the `notification.create.data`.
+- (uploader-only) probe the uploader's tenant via `findFirst({ id, agency: { tenantId: tid } })`
+  before adding to the recipient set. Cross-tenant uploaders are
+  silently dropped.
+
+Three writer-internal sites annotated `phase215-pilot-scope` (new tag
+added to `KNOWN_REASONS` + scanner policy). The Phase 2.14
+`assertTenantForFanout` guard remains in place (refuses without ALS
+when tenant-aware mode is active).
+
+**No remaining `phase210-excluded-background` annotations in
+`src/notifications`.** The notifications module's background paths
+are now either tenant-narrowed (`phase214-pilot-scope` /
+`phase215-pilot-scope`) or per-user-global by design
+(`phase210-global` on NotificationPreference upsert/update).
+
+The legacy `runAllChecks` path remains the production default and
+rollback target. Caller contract documented in
+`SAAS_PHASE2_NOTIFICATIONS_FANOUT_CALLER_CONTRACT.md`.
 
 ## 7. Operator checklist for Phase 2.11
 

@@ -1,11 +1,11 @@
 # Phase 2.10 — Notifications Isolation
 
-Generated: 2026-05-10T01:52:42.110Z
+Generated: 2026-05-10T02:10:13.023Z
 Environment: SAFE_CLONE (localhost + fixture pattern (db=saas_phase1_fixture))
 Tenants: A=`11111111-1111-1111-1111-111111111111` B=`22222222-2222-2222-2222-222222222222`
 Users: A=`04d09f60-1882-480d-bc03-2ae1d7eb1794` B=`2417d276-bb4f-44c4-941e-8b7650c16086`
 
-- Cases passed: **8** / 8
+- Cases passed: **10** / 10
 - Cases failed: 0
 
 | # | Case | Result | Detail |
@@ -18,3 +18,5 @@ Users: A=`04d09f60-1882-480d-bc03-2ae1d7eb1794` B=`2417d276-bb4f-44c4-941e-8b765
 | 6 | pilot OFF: legacy includes NULL-tenant legacy row | PASS | ids=7; includesNull=true |
 | 7 | allow-list =nothing ⇒ legacy union (notifications opt-out) | PASS | ids=7; includesNull=true |
 | 8 | scheduler/background paths use legacyPrisma (untouched by Phase 2.10) | PASS | 4 check* methods source legacyPrisma.user.findMany: true |
+| 9 | fanout cross-tenant isolation: tenant A fanout creates rows tenantId=A only | PASS | created=5; allTaggedA=true; sampleTids=11111111-1111-1111-1111-111111111111 |
+| 10 | fanout cross-tenant isolation: tenant B notification count unchanged after tenant A fanout | PASS | B before=4 after=4 |

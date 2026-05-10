@@ -354,8 +354,131 @@ async function main(): Promise<void> {
       } finally { await prisma.$disconnect(); }
     });
 
+  // ── Phase 2.15 fanout-writer narrowing — source-level checks ──────
+  {
+    const src = await fs.readFile(
+      path.resolve(__dirname, '..', '..', '..', 'src', 'notifications', 'notifications.service.ts'),
+      'utf8',
+    );
+    for (const m of ['notifyUploaderAndRoles', 'notifyUsersByRoles']) {
+      const reads = new RegExp(`async ${m}\\([\\s\\S]*?narrowingTenantId\\(\\)`).test(src);
+      out.push({
+        name: `fanout: ${m} reads narrowingTenantId()`,
+        ok: reads,
+        detail: `source matches: ${reads}`,
+      });
+      const userScan = new RegExp(
+        `async ${m}\\([\\s\\S]*?legacyPrisma\\.user\\.findMany[\\s\\S]*?agency:\\s*{\\s*tenantId:\\s*tid`,
+      ).test(src);
+      out.push({
+        name: `fanout: ${m} narrows User.findMany via agency.tenantId when tid set`,
+        ok: userScan,
+        detail: `agency narrow present: ${userScan}`,
+      });
+    }
+    const writeNarrowed = (src.match(/legacyPrisma\.notification\.create[\s\S]{1,2000}?\.\.\.\(tid \? \{ tenantId: tid \} : \{\}\)/g) ?? []).length;
+    out.push({
+      name: 'fanout: notification.create payloads spread tenantId when tid set (≥ 6 sites: 4 check* + 2 writers)',
+      ok: writeNarrowed >= 6,
+      detail: `tenantId spread occurrences in create blocks: ${writeNarrowed}`,
+    });
+    const uploaderProbe = /notifyUploaderAndRoles[\s\S]*?legacyPrisma\.user\.findFirst[\s\S]*?agency:\s*{\s*tenantId:\s*tid/.test(src);
+    out.push({
+      name: 'fanout: notifyUploaderAndRoles validates uploader belongs to tid via findFirst probe',
+      ok: uploaderProbe,
+      detail: `uploader probe present: ${uploaderProbe}`,
+    });
+  }
+
+  // ── Phase 2.15 fanout — runtime narrowing checks ──────────────────
+  //
+  // Tenant A invokes notifyUsersByRoles for "Recruiter" (tenant A's
+  // role) and for "HR Manager" (tenant B's role). The first should
+  // create rows tagged tenantId=A; the second should create zero rows
+  // (HR Managers belong to tenant B; the narrowed scan is empty).
+  await withFlags(
+    { TENANT_AWARE_JOBS_ENABLED: 'true', TENANT_JOB_FANOUT_ENABLED: 'true' },
+    async () => {
+      const flags = new FeatureFlagsService();
+      const { svc, prisma } = makeSvc(flags);
+      try {
+        const markerA = 'phase215-fanout-A-' + Math.random().toString(36).slice(2, 8);
+        const markerB = 'phase215-fanout-B-' + Math.random().toString(36).slice(2, 8);
+
+        await runForTenant(T1, async () => {
+          await svc.notifyUsersByRoles(['Recruiter'],
+            'document.uploaded' as any,
+            markerA, 'tenant A → recruiters',
+            'Document', 'rel-A',
+          );
+        }, { allowDormant: true });
+
+        await runForTenant(T1, async () => {
+          await svc.notifyUsersByRoles(['HR Manager'],
+            'document.uploaded' as any,
+            markerB, 'tenant A → HR Managers (should be empty)',
+            'Document', 'rel-A-hrm',
+          );
+        }, { allowDormant: true });
+
+        const recruitedRows: Array<{ tenantId: string | null }> =
+          await (prisma as any).notification.findMany({
+            where: { title: markerA },
+            select: { tenantId: true },
+          });
+        const hrmRows = await (prisma as any).notification.count({
+          where: { title: markerB },
+        });
+
+        const allTidA = recruitedRows.length > 0
+          && recruitedRows.every((r) => r.tenantId === T1);
+        out.push({
+          name: 'fanout: tenant A → notifyUsersByRoles(Recruiter) writes rows tagged tenantId=A',
+          ok: allTidA,
+          detail: `count=${recruitedRows.length}; allTidA=${allTidA}; sampleTids=${[...new Set(recruitedRows.map((r) => r.tenantId))].join(',')}`,
+        });
+        out.push({
+          name: 'fanout: tenant A → notifyUsersByRoles(HR Manager) creates 0 rows (HR Managers are in tenant B only)',
+          ok: hrmRows === 0,
+          detail: `count=${hrmRows}`,
+        });
+
+        // Cleanup.
+        await (prisma as any).notification.deleteMany({
+          where: { OR: [{ title: markerA }, { title: markerB }] },
+        });
+      } finally { await prisma.$disconnect(); }
+    });
+
+  // Runtime legacy: notifyUsersByRoles(HR Manager) without flags
+  // should still reach the B-tenant HR Managers — proving the legacy
+  // path is unchanged.
+  await withFlags(
+    { TENANT_AWARE_JOBS_ENABLED: 'false', TENANT_JOB_FANOUT_ENABLED: 'false' },
+    async () => {
+      const flags = new FeatureFlagsService();
+      const { svc, prisma } = makeSvc(flags);
+      try {
+        const marker = 'phase215-legacy-' + Math.random().toString(36).slice(2, 8);
+        await svc.notifyUsersByRoles(['HR Manager'],
+          'document.uploaded' as any,
+          marker, 'legacy fanout',
+          'Document', 'rel-legacy',
+        );
+        const created = await (prisma as any).notification.count({
+          where: { title: marker },
+        });
+        out.push({
+          name: 'fanout legacy: notifyUsersByRoles(HR Manager) reaches B-tenant users (cross-tenant fanout preserved)',
+          ok: created > 0,
+          detail: `created=${created}`,
+        });
+        await (prisma as any).notification.deleteMany({ where: { title: marker } });
+      } finally { await prisma.$disconnect(); }
+    });
+
   await writeReport({
-    title: 'Phase 2.14 — Notifications Scheduler Harness',
+    title: 'Phase 2.14/2.14.1/2.15 — Notifications Scheduler Harness',
     name: 'notifications-scheduler-harness',
     out,
     environment: env,

@@ -1,6 +1,6 @@
 # Phase 2.12 — Pilot Regression
 
-Generated: 2026-05-10T01:53:22.964Z
+Generated: 2026-05-10T02:10:54.105Z
 Environment: SAFE_CLONE (localhost + fixture pattern (db=saas_phase1_fixture))
 
 - Cases passed: **12** / 12
@@ -17,6 +17,6 @@ Environment: SAFE_CLONE (localhost + fixture pattern (db=saas_phase1_fixture))
 | 7 | job-ads equivalence | PASS | job-ads-equivalence: 13/13 cases PASS | exit=0 |
 | 8 | job-ads isolation | PASS | job-ads-isolation: 9/9 cases PASS | exit=0 |
 | 9 | notifications equivalence | PASS | notifications-equivalence: 11/11 cases PASS | exit=0 |
-| 10 | notifications isolation | PASS | notifications-isolation: 8/8 cases PASS | exit=0 |
+| 10 | notifications isolation | PASS | notifications-isolation: 10/10 cases PASS | exit=0 |
 | 11 | recycle-bin equivalence | PASS | recycle-bin-equivalence: 11/11 cases PASS | exit=0 |
 | 12 | recycle-bin isolation | PASS | recycle-bin-isolation: 7/7 cases PASS | exit=0 |

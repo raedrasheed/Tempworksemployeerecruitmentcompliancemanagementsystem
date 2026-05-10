@@ -224,20 +224,43 @@ returns `tid !== null`, the dedupe matches only notifications
 belonging to the active tenant. When `tid === null`, the dedupe
 behaves identically to pre-2.14.1 (global match).
 
-## 13. Next phase
+## 13. Phase 2.15 update — fanout writers narrowed
 
-**Phase 2.15** (TBD) — possible candidates:
+Phase 2.15 completed the notifications background tenant-safety arc:
 
-- **Notifications creator-side tenant fanout** — `notifyUploaderAndRoles`
-  / `notifyUsersByRoles` currently iterate roles across all tenants
-  and refuse without ALS in tenant-aware mode. A future phase can
-  narrow these writers to the active tenant's roles + add per-tenant
-  notification creation explicitly.
+- `notifyUploaderAndRoles` and `notifyUsersByRoles` both call
+  `narrowingTenantId()` once at the top.
+- User scans spread `agency: { tenantId: tid }` when active.
+- `notifyUploaderAndRoles` adds an uploader-tenant probe via
+  `legacyPrisma.user.findFirst({ where: { id: uploaderId, agency: { tenantId: tid } } })`
+  before adding the uploader to the recipient set. Cross-tenant
+  uploaders are silently dropped (matches existing role-filter
+  semantics).
+- `notification.create.data` spreads `tenantId: tid` so the persisted
+  row carries the active tenant.
+- Three writer-internal sites annotated `phase215-pilot-scope`. The
+  scheduler harness extended 19 → 28 cases (+9 source-level + runtime
+  fanout cases). Notifications isolation harness extended 8 → 10
+  cases (+2 cross-tenant fanout assertions).
+
+Caller contract: no signature change; HTTP callers automatically
+work via existing request middleware; background callers must run
+inside `runForTenant`. See
+`SAAS_PHASE2_NOTIFICATIONS_FANOUT_CALLER_CONTRACT.md`.
+
+Production behaviour unchanged: legacy mode bypasses all narrowing.
+
+## 14. Next phase
+
 - **`src/finance` reads-first split** — no scheduler involvement;
   follows the established pilot template.
 - **Phase 3 prep** — `TenantPrismaService.client` `$extends`
   implementation so the wrapper-level enforcement replaces the
   per-service spread.
+- **`Notification.tenantId` backfill** for legacy NULL-tenant rows
+  (operational task, not a code change).
+- **Email/SMS delivery worker tenant routing** — out of scope for
+  Phase 2; Phase 3 picks it up.
 
 ## 12. Unresolved blockers
 

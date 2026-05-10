@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-10T01:53:12.676Z",
+  "generatedAt": "2026-05-10T02:10:43.808Z",
   "environment": {
     "classification": "SAFE_CLONE",
     "reason": "localhost + fixture pattern (db=saas_phase1_fixture)",
@@ -28,7 +28,7 @@
     {
       "name": "pilot ON tenant A: RestoreService.restore(JOB_AD, tenantB-id) rejected; deletedAt unchanged",
       "ok": true,
-      "detail": "leaked=false after.deletedAt=Sun May 10 2026 01:53:11 GMT+0000 (Coordinated Universal Time)"
+      "detail": "leaked=false after.deletedAt=Sun May 10 2026 02:10:43 GMT+0000 (Coordinated Universal Time)"
     },
     {
       "name": "pilot ON tenant A: HardDeleteService.execute(JOB_AD, tenantB-id) rejected; row preserved",

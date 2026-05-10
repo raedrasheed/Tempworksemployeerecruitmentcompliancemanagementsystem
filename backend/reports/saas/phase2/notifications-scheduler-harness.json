@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-10T01:49:50.249Z",
+  "generatedAt": "2026-05-10T02:07:12.812Z",
   "environment": {
     "classification": "SAFE_CLONE",
     "reason": "localhost + fixture pattern (db=saas_phase1_fixture)",
@@ -8,8 +8,8 @@
     "nodeEnv": "unset"
   },
   "counts": {
-    "total": 19,
-    "passed": 19,
+    "total": 28,
+    "passed": 28,
     "failed": 0
   },
   "results": [
@@ -86,12 +86,12 @@
     {
       "name": "notification creates spread tenantId when tid set (≥ 4 sites)",
       "ok": true,
-      "detail": "tenantId spread occurrences: 12"
+      "detail": "tenantId spread occurrences: 14"
     },
     {
       "name": "notification dedupe queries scope by tenantId when tid set (≥ 4 sites)",
       "ok": true,
-      "detail": "dedupe-scope occurrences: 5"
+      "detail": "dedupe-scope occurrences: 6"
     },
     {
       "name": "legacy mode: narrowingTenantId() returns null (no narrowing)",
@@ -107,6 +107,51 @@
       "name": "tenant-aware mode without ALS frame: narrowingTenantId() returns null (legacy fallback)",
       "ok": true,
       "detail": "tid=null"
+    },
+    {
+      "name": "fanout: notifyUploaderAndRoles reads narrowingTenantId()",
+      "ok": true,
+      "detail": "source matches: true"
+    },
+    {
+      "name": "fanout: notifyUploaderAndRoles narrows User.findMany via agency.tenantId when tid set",
+      "ok": true,
+      "detail": "agency narrow present: true"
+    },
+    {
+      "name": "fanout: notifyUsersByRoles reads narrowingTenantId()",
+      "ok": true,
+      "detail": "source matches: true"
+    },
+    {
+      "name": "fanout: notifyUsersByRoles narrows User.findMany via agency.tenantId when tid set",
+      "ok": true,
+      "detail": "agency narrow present: true"
+    },
+    {
+      "name": "fanout: notification.create payloads spread tenantId when tid set (≥ 6 sites: 4 check* + 2 writers)",
+      "ok": true,
+      "detail": "tenantId spread occurrences in create blocks: 6"
+    },
+    {
+      "name": "fanout: notifyUploaderAndRoles validates uploader belongs to tid via findFirst probe",
+      "ok": true,
+      "detail": "uploader probe present: true"
+    },
+    {
+      "name": "fanout: tenant A → notifyUsersByRoles(Recruiter) writes rows tagged tenantId=A",
+      "ok": true,
+      "detail": "count=5; allTidA=true; sampleTids=11111111-1111-1111-1111-111111111111"
+    },
+    {
+      "name": "fanout: tenant A → notifyUsersByRoles(HR Manager) creates 0 rows (HR Managers are in tenant B only)",
+      "ok": true,
+      "detail": "count=0"
+    },
+    {
+      "name": "fanout legacy: notifyUsersByRoles(HR Manager) reaches B-tenant users (cross-tenant fanout preserved)",
+      "ok": true,
+      "detail": "created=5"
     }
   ]
 }

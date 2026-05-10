@@ -278,6 +278,66 @@ async function main(): Promise<void> {
     detail: '4 check* methods source legacyPrisma.user.findMany: ' + checkBlocksUseLegacy,
   });
 
+  // ── Phase 2.15 fanout cross-tenant isolation ─────────────────────
+  // Pre-Phase 2.15: notifyUsersByRoles created notifications across
+  // every tenant's users. Post-2.15: in tenant-aware mode the writer
+  // only reaches users whose agency belongs to the active tenant, and
+  // the created Notification rows carry tenantId=A. Tenant B's
+  // notification count is unchanged after a tenant-A fanout.
+  await withFlags(
+    { TENANT_AWARE_JOBS_ENABLED: 'true', TENANT_JOB_FANOUT_ENABLED: 'true' },
+    async () => {
+      const flags = new FeatureFlagsService();
+      const prisma = new PrismaService();
+      const tp = new TenantPrismaService(prisma, flags);
+      const pilot = new PilotPrismaAccessor(prisma, tp, flags);
+      const svc = new NotificationsService(prisma, pilot, flags);
+      try {
+        // Snapshot tenant-B notification count BEFORE the tenant-A fanout.
+        const tenantBBefore: number = await (prisma as any).notification.count({
+          where: { tenantId: tB },
+        });
+
+        const marker = 'phase215-iso-' + Math.random().toString(36).slice(2, 8);
+        await withRequestContext({ requestId: newRequestId() }, async () => {
+          TenantContext.attach({ id: tA, slug: 'a', name: 'A', status: 'ACTIVE', region: 'eu' });
+          await svc.notifyUsersByRoles(['Recruiter'],
+            'document.uploaded' as any,
+            marker, 'tenant A → recruiters',
+            'Document', 'rel-A',
+          );
+        });
+
+        // Tenant B count unchanged.
+        const tenantBAfter: number = await (prisma as any).notification.count({
+          where: { tenantId: tB },
+        });
+
+        // Created rows are tagged tenantId=A.
+        const created: Array<{ tenantId: string | null }> =
+          await (prisma as any).notification.findMany({
+            where: { title: marker },
+            select: { tenantId: true },
+          });
+        const allTagged = created.length > 0
+          && created.every((r) => r.tenantId === tA);
+
+        out.push({
+          name: 'fanout cross-tenant isolation: tenant A fanout creates rows tenantId=A only',
+          ok: allTagged,
+          detail: `created=${created.length}; allTaggedA=${allTagged}; sampleTids=${[...new Set(created.map((r) => r.tenantId))].join(',')}`,
+        });
+        out.push({
+          name: 'fanout cross-tenant isolation: tenant B notification count unchanged after tenant A fanout',
+          ok: tenantBAfter === tenantBBefore,
+          detail: `B before=${tenantBBefore} after=${tenantBAfter}`,
+        });
+
+        // Cleanup.
+        await (prisma as any).notification.deleteMany({ where: { title: marker } });
+      } finally { await prisma.$disconnect(); }
+    });
+
   await c.end();
 
   await fs.mkdir(OUT_DIR, { recursive: true });

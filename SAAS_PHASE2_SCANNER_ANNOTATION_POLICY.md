@@ -41,6 +41,7 @@ and counted against the strict-mode threshold.
 | `phase211-global` | Recycle-bin global / catalog entity sites (USER, ROLE, DOCUMENT_TYPE, MAINTENANCE_TYPE, WORKSHOP, REPORT). | `src/recycle-bin/**` | 2.11 |
 | `phase211-excluded-platform` | DatabaseCleanupService — System Admin global wipe; intentionally cross-tenant. | `src/recycle-bin/**` | 2.11 |
 | `phase214-pilot-scope` | Notifications scheduler adapter sites — tenant-catalog discovery and per-tenant fanout entry points wired to the Phase 2.13 job-context framework. | `src/notifications/**` | 2.14 |
+| `phase215-pilot-scope` | Notifications fanout writers (`notifyUploaderAndRoles`, `notifyUsersByRoles`) — User scan narrowed via `agency.tenantId`, uploader probe scoped to active tenant, `notification.create.data` carries `tenantId` when tid is set. | `src/notifications/**` | 2.15 |
 | `tenant-safe-report-runtime` | Reports engine uses `$queryRawUnsafe` with positional parameters and a registry-validated SQL string. | `src/reports/reports.service.ts` | 2.1 |
 
 ## 3. When annotations are allowed

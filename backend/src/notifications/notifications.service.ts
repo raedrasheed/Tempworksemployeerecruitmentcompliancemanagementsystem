@@ -719,15 +719,30 @@ export class NotificationsService {
     i18n?: { titleKey?: string; messageKey?: string; params?: Record<string, unknown> },
   ): Promise<void> {
     this.assertTenantForFanout('notifyUploaderAndRoles');
+    const tid = this.narrowingTenantId();
     const userIds = new Set<string>();
 
-    if (uploaderId) userIds.add(uploaderId);
+    if (uploaderId) {
+      if (tid) {
+        // Phase 2.15 — in tenant-aware mode, the uploader must belong
+        // to the active tenant. Cross-tenant uploader ids are ignored
+        // (the caller should never pass one; this is defence in depth).
+        const ok = await this.legacyPrisma.user.findFirst({ // @tenant-reviewed: phase215-pilot-scope (uploader tenant probe)
+          where: { id: uploaderId, agency: { tenantId: tid } },
+          select: { id: true },
+        });
+        if (ok) userIds.add(uploaderId);
+      } else {
+        userIds.add(uploaderId);
+      }
+    }
 
     if (roles && roles.length > 0) {
-      const users = await this.legacyPrisma.user.findMany({ // @tenant-reviewed: phase210-excluded-background (scheduler/notify-fanout — Phase 2.11+)
+      const users = await this.legacyPrisma.user.findMany({ // @tenant-reviewed: phase215-pilot-scope (role fanout narrowed via agency.tenantId when tid)
         where: {
           role: { name: { in: roles } },
           status: 'ACTIVE',
+          ...(tid ? { agency: { tenantId: tid } } : {}),
         },
         select: { id: true },
       });
@@ -737,7 +752,7 @@ export class NotificationsService {
     const type = (EVENT_TO_TYPE[eventKey] || 'INFO') as NotificationType;
 
     for (const userId of userIds) {
-      await this.legacyPrisma.notification.create({ // @tenant-reviewed: phase210-excluded-background (scheduler/notify-fanout — Phase 2.11+)
+      await this.legacyPrisma.notification.create({ // @tenant-reviewed: phase215-pilot-scope (writes tenantId when tid)
         data: {
           userId,
           title,
@@ -749,6 +764,7 @@ export class NotificationsService {
           channel: 'in_app',
           relatedEntity: relatedEntity || 'Document',
           relatedEntityId,
+          ...(tid ? { tenantId: tid } : {}),
         },
       });
     }
@@ -771,10 +787,12 @@ export class NotificationsService {
     i18n?: { titleKey?: string; messageKey?: string; params?: Record<string, unknown> },
   ): Promise<void> {
     this.assertTenantForFanout('notifyUsersByRoles');
-    const users = await this.legacyPrisma.user.findMany({ // @tenant-reviewed: phase210-excluded-background (scheduler/notify-fanout — Phase 2.11+)
+    const tid = this.narrowingTenantId();
+    const users = await this.legacyPrisma.user.findMany({ // @tenant-reviewed: phase215-pilot-scope (role fanout narrowed via agency.tenantId when tid)
       where: {
         role: { name: { in: roles } },
         status: 'ACTIVE',
+        ...(tid ? { agency: { tenantId: tid } } : {}),
       },
       select: { id: true },
     });
@@ -782,7 +800,7 @@ export class NotificationsService {
     const type = (EVENT_TO_TYPE[eventKey] || 'INFO') as NotificationType;
 
     for (const user of users) {
-      await this.legacyPrisma.notification.create({ // @tenant-reviewed: phase210-excluded-background (scheduler/notify-fanout — Phase 2.11+)
+      await this.legacyPrisma.notification.create({ // @tenant-reviewed: phase215-pilot-scope (writes tenantId when tid)
         data: {
           userId: user.id,
           title,
@@ -794,6 +812,7 @@ export class NotificationsService {
           channel: 'in_app',
           relatedEntity,
           relatedEntityId,
+          ...(tid ? { tenantId: tid } : {}),
         },
       });
     }

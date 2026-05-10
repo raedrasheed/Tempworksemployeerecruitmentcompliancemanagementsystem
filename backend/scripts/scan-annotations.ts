@@ -46,6 +46,7 @@ const KNOWN_REASONS: ReadonlyArray<PolicyEntry> = [
   { tag: 'phase211-global',               allowedPaths: ['src/recycle-bin/'] },
   { tag: 'phase211-excluded-platform',    allowedPaths: ['src/recycle-bin/'] },
   { tag: 'phase214-pilot-scope',          allowedPaths: ['src/notifications/'] },
+  { tag: 'phase215-pilot-scope',          allowedPaths: ['src/notifications/'] },
   { tag: 'tenant-safe-report-runtime',    allowedPaths: ['src/reports/', 'src/saas/reports/'] },
   { tag: 'tenant-resolver-bootstrap',     allowedPaths: ['src/saas/tenancy/'] },
 ];

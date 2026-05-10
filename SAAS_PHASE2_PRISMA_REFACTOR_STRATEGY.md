@@ -666,6 +666,33 @@ fully proven on real DB across reads + writes. The next phase is
 a **new module pilot** (`applicants`) or the cross-module
 audit-log tenancy phase.
 
+## 11.14 Phase 2.28 — Applicants reads-first pilot (shipped)
+
+`src/applicants` joins the pilot. Reads only; mutations deferred
+to Phase 2.29+.
+
+- 7 read sites narrowed via `getPilotScope(this.pilot, 'applicants').tenantWhere()`,
+  including `findAll`, `findOne` (migrated `findUnique`→`findFirst`),
+  parent-gated `getFinancialProfile` / `getAgencyHistory`,
+  exports, and `getDeleteRequests` via `applicant: { tenantId }`
+  relation filter.
+- External-actor agency filter UNCHANGED — pilot tenant
+  predicate is additive.
+- ~37 mutation sites tagged `phase228-excluded-mutation`;
+  `Applicant.email @unique` stays globally unique (Phase 3
+  product question for per-tenant uniqueness).
+- New `findApplicantOrFail` private gate (mirrors
+  `findEmployeeOrFail` pattern from workflow).
+
+Real-DB run: applicants-equivalence 12/12 + applicants-isolation
+10/10 = **22/22 PASS**. Cumulative finance + documents +
+vehicles + workflow + applicants: **224/224** on real Postgres 16.
+
+The next phase is **Phase 2.29** (applicants mutation pilot —
+largest mutation surface piloted yet, including the
+`convertToEmployee` cross-module transactional conversion) OR
+the cross-module audit-log tenancy phase.
+
 ## 12. Hard rules
 
 - **Never enable `TENANT_PRISMA_ENFORCEMENT=true` in production until every P0/P1/P2 module has migrated.** Enabling it with a half-migrated codebase makes the un-migrated services start filtering by tenant when their callers don't expect it.

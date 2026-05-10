@@ -75,6 +75,11 @@ and counted against the strict-mode threshold.
 | `phase226-audit-log` | Workflow audit-log writes — global by design (deferred to cross-module audit phase). | `src/workflow/**` | 2.26 |
 | `phase227-pilot-scope` | Workflow write sites narrowed in Phase 2.27 — `findEmployeeOrFail` / `findApplicantOrFail` parent gates, `createWorkPermit` / `createVisa` `scope.tenantData()` spreads, `updateWorkPermit` / `updateVisa` tenant-scoped pre-checks. | `src/workflow/**` | 2.27 |
 | `phase227-pilot-scope-precheck` | Workflow by-id / by-key mutation sites gated by the prior tenant-scoped pre-check (`findEmployeeOrFail` parent gate or `workPermit/visa.findFirst({ id, ...t })`). The mutation never reaches a foreign tenant's row in pilot mode. | `src/workflow/**` | 2.27 |
+| `phase228-pilot-scope` | Applicants read sites narrowed via `getPilotScope(...).tenantWhere()`. Includes `findAll`, `findOne` (migrated `findUnique`→`findFirst`), `findApplicantOrFail` private gate, `exportCsv`, `exportExcel`, `getDeleteRequests` via `applicant: { tenantId }` relation filter. | `src/applicants/**` | 2.28 |
+| `phase228-pilot-scope-precheck` | Applicants child-of-applicant reads gated by the prior tenant-scoped `findOne` (Phase 2.28). `getFinancialProfile` / `getAgencyHistory` / `reviewDeleteRequest` lookup. | `src/applicants/**` | 2.28 |
+| `phase228-global` | Applicants intentionally global lookups: email duplicate-check (Applicant.email @unique stays globally unique), raw SQL identifier generators, StageTemplate (Phase 2.26 catalog) and SystemSetting reads inside mutation paths. | `src/applicants/**` | 2.28 |
+| `phase228-excluded-mutation` | Applicants write/lifecycle/conversion sites (every CRUD / status / convert / reassign / bulk / delete-request method) kept on `legacyPrisma` until Phase 2.29+. | `src/applicants/**` | 2.28 |
+| `phase228-audit-log` | Applicants audit-log writes — global by design (deferred to cross-module audit phase). | `src/applicants/**` | 2.28 |
 | `tenant-safe-report-runtime` | Reports engine uses `$queryRawUnsafe` with positional parameters and a registry-validated SQL string. | `src/reports/reports.service.ts` | 2.1 |
 
 ## 3. When annotations are allowed

@@ -3,6 +3,8 @@ import {
 } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
+import { PilotPrismaAccessor } from '../saas/prisma/pilot-prisma.accessor';
+import { getPilotScope, PilotScope } from '../saas/prisma/tenant-pilot-scope';
 import { EmailService } from '../email/email.service';
 import { tServer, ServerLocale } from '../common/i18n/server-translate';
 import { CreateApplicantDto } from './dto/create-applicant.dto';
@@ -15,13 +17,51 @@ import { PaginatedResponse } from '../common/dto/pagination-response.dto';
 import { StorageService } from '../common/storage/storage.service';
 import * as ExcelJS from 'exceljs';
 
+/**
+ * Phase 2.28 — Applicants reads-first pilot.
+ *
+ * READ paths route through `pilot.client()` and spread
+ * `scope.tenantWhere()` when the pilot scope is active. Production
+ * default (flag off) is byte-identical to pre-2.28.
+ *
+ * WRITE / mutation paths (every CRUD / lifecycle / conversion
+ * method) explicitly use `legacyPrisma` and remain annotated
+ * `phase228-excluded-mutation` until Phase 2.29+.
+ *
+ * `Applicant.email @unique` stays globally unique; the duplicate-
+ * check inside `update` is intentionally global (`phase228-global`).
+ *
+ * Audit-log writes use `legacyPrisma` always (`phase228-audit-log`).
+ */
 @Injectable()
 export class ApplicantsService {
   constructor(
-    private prisma: PrismaService,
+    private legacyPrisma: PrismaService,
     private email: EmailService,
     private storage: StorageService,
+    private pilot: PilotPrismaAccessor,
   ) {}
+
+  private get prisma(): PrismaService {
+    return this.pilot.client();
+  }
+
+  private scope(): PilotScope {
+    return getPilotScope(this.pilot, 'applicants');
+  }
+
+  /**
+   * Phase 2.28 — parent gate for child-of-applicant reads. Loads
+   * the applicant through the pilot client with `tenantWhere()`.
+   * Cross-tenant ids raise 404. Legacy mode reduces to plain by-id
+   * lookup.
+   */
+  private async findApplicantOrFail(id: string) {
+    const t = this.scope().tenantWhere();
+    const a = await this.prisma.applicant.findFirst({ where: { id, deletedAt: null, ...t } }); // @tenant-reviewed: phase228-pilot-scope (parent gate)
+    if (!a) throw new NotFoundException({ code: 'APPLICANT.NOT_FOUND', message: `Applicant ${id} not found`, params: { id } });
+    return a;
+  }
 
   private get include() {
     return {
@@ -49,7 +89,8 @@ export class ApplicantsService {
             tier, status, agencyId, nationality, jobTypeId } = filter;
     const skip = (Number(page) - 1) * Number(limit);
 
-    const where: any = { deletedAt: null };
+    const t = this.scope().tenantWhere();
+    const where: any = { deletedAt: null, ...t };
 
     // External tenants are scoped to their own agency across every
     // tier. The client-supplied tier filter flows through unchanged,
@@ -80,12 +121,12 @@ export class ApplicantsService {
     const orderField = validSort.includes(sortBy) ? sortBy : 'createdAt';
 
     const [items, total] = await Promise.all([
-      this.prisma.applicant.findMany({
+      this.prisma.applicant.findMany({ // @tenant-reviewed: phase228-pilot-scope
         where, skip, take: Number(limit),
         orderBy: { [orderField]: sortOrder },
         include: this.include,
       }),
-      this.prisma.applicant.count({ where }),
+      this.prisma.applicant.count({ where }), // @tenant-reviewed: phase228-pilot-scope
     ]);
 
     return PaginatedResponse.create(items, total, page, limit);
@@ -94,8 +135,10 @@ export class ApplicantsService {
   // ── Find One ──────────────────────────────────────────────────────────────────
 
   async findOne(id: string, actor?: { role: string; agencyId?: string; agencyIsSystem?: boolean }) {
-    const applicant = await this.prisma.applicant.findUnique({
-      where: { id, deletedAt: null },
+    // findFirst (was findUnique) so we can compose tenant predicate.
+    const t = this.scope().tenantWhere();
+    const applicant = await this.prisma.applicant.findFirst({ // @tenant-reviewed: phase228-pilot-scope
+      where: { id, deletedAt: null, ...t },
       include: this.includeWithRelations,
     });
     if (!applicant) throw new NotFoundException({ code: 'APPLICANT.NOT_FOUND', message: `Applicant ${id} not found`, params: { id } });
@@ -141,7 +184,7 @@ export class ApplicantsService {
     const citizenship = (dto as any).citizenship || (dto as any).nationality;
     const nationality = (dto as any).nationality || citizenship;
 
-    const applicant = await this.prisma.applicant.create({
+    const applicant = await this.legacyPrisma.applicant.create({ // @tenant-reviewed: phase228-excluded-mutation
       data: {
         ...dto,
         citizenship,
@@ -189,7 +232,7 @@ export class ApplicantsService {
     }
 
     if (dto.email && dto.email !== existing.email) {
-      const dup = await this.prisma.applicant.findFirst({ where: { email: dto.email, NOT: { id } } });
+      const dup = await this.legacyPrisma.applicant.findFirst({ where: { email: dto.email, NOT: { id } } }); // @tenant-reviewed: phase228-global
       if (dup) throw new ConflictException({ code: 'APPLICANT.EMAIL_IN_USE', message: 'Email already in use' });
     }
     const updateData: any = { ...dto };
@@ -212,7 +255,7 @@ export class ApplicantsService {
       updateData.rejectionReason = null;
     }
 
-    const applicant = await this.prisma.applicant.update({
+    const applicant = await this.legacyPrisma.applicant.update({ // @tenant-reviewed: phase228-excluded-mutation
       where: { id }, data: updateData, include: this.include,
     });
     await this.auditLog(actorId, 'UPDATE', id, dto as any);
@@ -220,7 +263,7 @@ export class ApplicantsService {
   }
 
   async uploadPhoto(id: string, file: Express.Multer.File) {
-    const applicant = await this.prisma.applicant.findUnique({
+    const applicant = await this.legacyPrisma.applicant.findUnique({ // @tenant-reviewed: phase228-excluded-mutation
       where: { id },
       select: { firstName: true, lastName: true, photoUrl: true },
     });
@@ -233,7 +276,7 @@ export class ApplicantsService {
       inline: true,
     });
 
-    const updated = await this.prisma.applicant.update({
+    const updated = await this.legacyPrisma.applicant.update({ // @tenant-reviewed: phase228-excluded-mutation
       where: { id },
       data: { photoUrl: upload.url },
       include: this.include,
@@ -260,7 +303,7 @@ export class ApplicantsService {
       data.approvedAt = null;
       data.rejectionReason = null;
     }
-    const applicant = await this.prisma.applicant.update({
+    const applicant = await this.legacyPrisma.applicant.update({ // @tenant-reviewed: phase228-excluded-mutation
       where: { id }, data, include: this.include,
     });
     await this.auditLog(actorId, 'STATUS_CHANGE', id, { status });
@@ -274,7 +317,7 @@ export class ApplicantsService {
       throw new ForbiddenException({ code: 'APPLICANT.AGENCY_DELETE_REQUEST_REQUIRED', message: 'Agency users cannot directly delete candidates. Please submit a delete request.' });
     }
     await this.findOne(id);
-    await this.prisma.applicant.update({ where: { id }, data: { deletedAt: new Date() } });
+    await this.legacyPrisma.applicant.update({ where: { id }, data: { deletedAt: new Date() } }); // @tenant-reviewed: phase228-excluded-mutation
     await this.auditLog(actorId, 'DELETE', id);
     return { message: 'Applicant deleted' };
   }
@@ -319,7 +362,7 @@ export class ApplicantsService {
     // Generate Lead identifier for public submissions
     const leadNumber = await this.generateIdentifier('A');
 
-    const applicant = await this.prisma.applicant.create({
+    const applicant = await this.legacyPrisma.applicant.create({ // @tenant-reviewed: phase228-excluded-mutation
       data: {
         ...coreData,
         leadNumber,
@@ -363,10 +406,10 @@ export class ApplicantsService {
       throw new BadRequestException({ code: 'APPLICANT.PENDING_APPROVAL_WORKFLOW', message: 'This candidate is pending Tempworks approval and cannot enter the workflow yet' });
     }
     if (stageId) {
-      const stage = await this.prisma.stageTemplate.findUnique({ where: { id: stageId } });
+      const stage = await this.legacyPrisma.stageTemplate.findUnique({ where: { id: stageId } }); // @tenant-reviewed: phase228-global
       if (!stage) throw new NotFoundException({ code: 'WORKFLOW.STAGE_NOT_FOUND', message: 'Workflow stage not found' });
     }
-    const updated = await this.prisma.applicant.update({
+    const updated = await this.legacyPrisma.applicant.update({ // @tenant-reviewed: phase228-excluded-mutation
       where: { id },
       data: { currentWorkflowStageId: stageId },
       include: this.include,
@@ -380,7 +423,7 @@ export class ApplicantsService {
   async approveApplicant(id: string, actorId?: string) {
     const applicant = await this.findOne(id);
     if ((applicant as any).approvalStatus === 'APPROVED') return applicant;
-    const updated = await this.prisma.applicant.update({
+    const updated = await this.legacyPrisma.applicant.update({ // @tenant-reviewed: phase228-excluded-mutation
       where: { id },
       data: {
         approvalStatus: 'APPROVED' as any,
@@ -396,7 +439,7 @@ export class ApplicantsService {
 
   async rejectApplicant(id: string, reason: string | undefined, actorId?: string) {
     const applicant = await this.findOne(id);
-    const updated = await this.prisma.applicant.update({
+    const updated = await this.legacyPrisma.applicant.update({ // @tenant-reviewed: phase228-excluded-mutation
       where: { id },
       data: {
         approvalStatus: 'REJECTED' as any,
@@ -428,7 +471,7 @@ export class ApplicantsService {
 
     if (!targetAgencyId) {
       // Try to load default holding agency from SystemSetting
-      const setting = await this.prisma.systemSetting.findUnique({
+      const setting = await this.legacyPrisma.systemSetting.findUnique({ // @tenant-reviewed: phase228-global
         where: { key: 'applicants.defaultHoldingAgencyId' },
       });
       if (setting?.value) targetAgencyId = setting.value;
@@ -442,7 +485,7 @@ export class ApplicantsService {
     const candidateNumber = await this.generateIdentifier('C');
     const candidateConvertedAt = new Date();
 
-    const updated = await this.prisma.applicant.update({
+    const updated = await this.legacyPrisma.applicant.update({ // @tenant-reviewed: phase228-excluded-mutation
       where: { id },
       data: {
         tier: 'CANDIDATE',
@@ -455,16 +498,16 @@ export class ApplicantsService {
 
     // Record agency history if agency changed
     if (targetAgencyId && targetAgencyId !== prevAgencyId) {
-      const newAgency = await this.prisma.agency.findUnique({ where: { id: targetAgencyId } });
+      const newAgency = await this.legacyPrisma.agency.findUnique({ where: { id: targetAgencyId } }); // @tenant-reviewed: phase228-excluded-mutation
       // Close previous assignment
       if (prevAgencyId) {
-        await this.prisma.applicantAgencyHistory.updateMany({
+        await this.legacyPrisma.applicantAgencyHistory.updateMany({ // @tenant-reviewed: phase228-excluded-mutation
           where: { applicantId: id, removedAt: null },
           data: { removedAt: new Date() },
         });
       }
       // Open new assignment
-      await this.prisma.applicantAgencyHistory.create({
+      await this.legacyPrisma.applicantAgencyHistory.create({ // @tenant-reviewed: phase228-excluded-mutation
         data: {
           id: this.uuid(),
           applicantId: id,
@@ -496,21 +539,21 @@ export class ApplicantsService {
 
     const applicant = await this.findOne(id);
 
-    const newAgency = await this.prisma.agency.findUnique({ where: { id: dto.agencyId } });
+    const newAgency = await this.legacyPrisma.agency.findUnique({ where: { id: dto.agencyId } }); // @tenant-reviewed: phase228-excluded-mutation
     if (!newAgency) throw new NotFoundException({ code: 'AGENCY.NOT_FOUND', message: 'Agency not found' });
 
     const prevAgencyId = applicant.agencyId;
 
     // Close previous open history entry
     if (prevAgencyId) {
-      await this.prisma.applicantAgencyHistory.updateMany({
+      await this.legacyPrisma.applicantAgencyHistory.updateMany({ // @tenant-reviewed: phase228-excluded-mutation
         where: { applicantId: id, removedAt: null },
         data: { removedAt: new Date() },
       });
     }
 
     // Record new assignment
-    await this.prisma.applicantAgencyHistory.create({
+    await this.legacyPrisma.applicantAgencyHistory.create({ // @tenant-reviewed: phase228-excluded-mutation
       data: {
         id: this.uuid(),
         applicantId: id,
@@ -522,7 +565,7 @@ export class ApplicantsService {
       },
     });
 
-    const updated = await this.prisma.applicant.update({
+    const updated = await this.legacyPrisma.applicant.update({ // @tenant-reviewed: phase228-excluded-mutation
       where: { id },
       data: { agencyId: dto.agencyId },
       include: this.includeWithRelations,
@@ -539,7 +582,7 @@ export class ApplicantsService {
 
   async getFinancialProfile(id: string) {
     await this.findOne(id);
-    const profile = await this.prisma.applicantFinancialProfile.findUnique({
+    const profile = await this.prisma.applicantFinancialProfile.findUnique({ // @tenant-reviewed: phase228-pilot-scope-precheck
       where: { applicantId: id },
     });
     return profile ?? null;
@@ -554,7 +597,7 @@ export class ApplicantsService {
     const data: any = { ...dto };
     if (dto.salaryAgreed !== undefined) data.salaryAgreed = dto.salaryAgreed;
 
-    const profile = await this.prisma.applicantFinancialProfile.upsert({
+    const profile = await this.legacyPrisma.applicantFinancialProfile.upsert({ // @tenant-reviewed: phase228-excluded-mutation
       where: { applicantId: id },
       update: data,
       create: { id: this.uuid(), applicantId: id, ...data },
@@ -568,7 +611,7 @@ export class ApplicantsService {
 
   async getAgencyHistory(id: string) {
     await this.findOne(id);
-    return this.prisma.applicantAgencyHistory.findMany({
+    return this.prisma.applicantAgencyHistory.findMany({ // @tenant-reviewed: phase228-pilot-scope-precheck
       where: { applicantId: id },
       orderBy: { assignedAt: 'desc' },
     });
@@ -585,7 +628,7 @@ export class ApplicantsService {
         switch (action) {
           case BulkActionType.STATUS_CHANGE:
             if (!value) throw new Error('value is required for STATUS_CHANGE');
-            await this.prisma.applicant.update({ where: { id }, data: { status: value as any } });
+            await this.legacyPrisma.applicant.update({ where: { id }, data: { status: value as any } }); // @tenant-reviewed: phase228-excluded-mutation
             await this.auditLog(actorId, 'BULK_STATUS_CHANGE', id, { status: value });
             results.push({ id, success: true });
             break;
@@ -608,7 +651,7 @@ export class ApplicantsService {
               });
             } else {
               // Demotion back to LEAD — rare, just flips the flag.
-              await this.prisma.applicant.update({ where: { id }, data: { tier: 'LEAD' as any } });
+              await this.legacyPrisma.applicant.update({ where: { id }, data: { tier: 'LEAD' as any } }); // @tenant-reviewed: phase228-excluded-mutation
               await this.auditLog(actorId, 'BULK_TIER_CHANGE', id, { tier: 'LEAD' });
               results.push({ id, success: true });
             }
@@ -617,7 +660,7 @@ export class ApplicantsService {
           case BulkActionType.ASSIGN_AGENCY: {
             const targetAgencyId = agencyId ?? value;
             if (!targetAgencyId) throw new Error('agencyId is required for ASSIGN_AGENCY');
-            await this.prisma.applicant.update({ where: { id }, data: { agencyId: targetAgencyId } });
+            await this.legacyPrisma.applicant.update({ where: { id }, data: { agencyId: targetAgencyId } }); // @tenant-reviewed: phase228-excluded-mutation
             await this.auditLog(actorId, 'BULK_ASSIGN_AGENCY', id, { agencyId: targetAgencyId });
             results.push({ id, success: true });
             break;
@@ -629,7 +672,7 @@ export class ApplicantsService {
             // applicant's applicationData blob so operators don't have
             // to re-enter per row. If the mandatory fields still aren't
             // available we report the row as failed and keep going.
-            const applicant = await this.prisma.applicant.findFirst({ where: { id, deletedAt: null } });
+            const applicant = await this.legacyPrisma.applicant.findFirst({ where: { id, deletedAt: null } }); // @tenant-reviewed: phase228-excluded-mutation
             if (!applicant) throw new Error('Applicant not found');
             if (applicant.tier !== 'CANDIDATE') {
               throw new Error('Only Candidates can be converted to employees');
@@ -666,7 +709,7 @@ export class ApplicantsService {
             // applicant to it before conversion so the employee row
             // inherits the new agency.
             if (agencyId && applicant.agencyId !== agencyId) {
-              await this.prisma.applicant.update({ where: { id }, data: { agencyId } });
+              await this.legacyPrisma.applicant.update({ where: { id }, data: { agencyId } }); // @tenant-reviewed: phase228-excluded-mutation
             }
             const { employee, employeeNumber } = await this.convertToEmployee(id, dtoForConvert, actorId, actor);
             results.push({ id, success: true, employeeId: (employee as any).id, employeeNumber });
@@ -674,7 +717,7 @@ export class ApplicantsService {
           }
 
           case BulkActionType.DELETE:
-            await this.prisma.applicant.update({ where: { id }, data: { deletedAt: new Date() } });
+            await this.legacyPrisma.applicant.update({ where: { id }, data: { deletedAt: new Date() } }); // @tenant-reviewed: phase228-excluded-mutation
             await this.auditLog(actorId, 'BULK_DELETE', id);
             results.push({ id, success: true });
             break;
@@ -698,12 +741,13 @@ export class ApplicantsService {
     // (filters are ignored — this is the 'Export Selected' path). The
     // agency/tier guards in findOne still apply.
     let items: any[];
+    const t = this.scope().tenantWhere();
     if (ids && ids.length > 0) {
-      const where: any = { id: { in: ids }, deletedAt: null };
+      const where: any = { id: { in: ids }, deletedAt: null, ...t };
       if (actor && this.isExternalActor(actor) && actor.agencyId) {
         where.agencyId = actor.agencyId;
       }
-      items = await this.prisma.applicant.findMany({
+      items = await this.prisma.applicant.findMany({ // @tenant-reviewed: phase228-pilot-scope
         where,
         include: this.include,
         orderBy: { createdAt: 'desc' },
@@ -767,12 +811,13 @@ export class ApplicantsService {
     locale: ServerLocale = 'en',
   ): Promise<Buffer> {
     let items: any[];
+    const t = this.scope().tenantWhere();
     if (ids && ids.length > 0) {
-      const where: any = { id: { in: ids }, deletedAt: null };
+      const where: any = { id: { in: ids }, deletedAt: null, ...t };
       if (actor && this.isExternalActor(actor) && actor.agencyId) {
         where.agencyId = actor.agencyId;
       }
-      items = await this.prisma.applicant.findMany({
+      items = await this.prisma.applicant.findMany({ // @tenant-reviewed: phase228-pilot-scope
         where,
         include: this.include,
         orderBy: { createdAt: 'desc' },
@@ -881,14 +926,14 @@ export class ApplicantsService {
       throw new ForbiddenException({ code: 'APPLICANT.REJECTED_CANNOT_CONVERT', message: 'This candidate was rejected and cannot be converted.' });
     }
 
-    const existing = await this.prisma.employee.findFirst({
+    const existing = await this.legacyPrisma.employee.findFirst({ // @tenant-reviewed: phase228-excluded-mutation
       where: { email: applicant.email, deletedAt: null },
     });
     if (existing) {
       throw new ConflictException({ code: 'EMPLOYEE.EMAIL_EXISTS', message: `An employee with email ${applicant.email} already exists`, params: { email: applicant.email } });
     }
 
-    const stages = await this.prisma.stageTemplate.findMany({
+    const stages = await this.legacyPrisma.stageTemplate.findMany({ // @tenant-reviewed: phase228-global
       where: { isActive: true },
       orderBy: { order: 'asc' },
     });
@@ -903,7 +948,7 @@ export class ApplicantsService {
     const prevCandidateNumber = (applicant as any).candidateNumber ?? null;
     const prevCandidateConvertedAt = (applicant as any).candidateConvertedAt ?? null;
 
-    const employee = await this.prisma.employee.create({
+    const employee = await this.legacyPrisma.employee.create({ // @tenant-reviewed: phase228-excluded-mutation
       data: {
         employeeNumber,
         // ── Lifecycle traceability ──────────────────────────────────────
@@ -948,7 +993,7 @@ export class ApplicantsService {
     });
 
     // Re-assign documents from applicant to employee
-    await this.prisma.document.updateMany({
+    await this.legacyPrisma.document.updateMany({ // @tenant-reviewed: phase228-excluded-mutation
       where: { entityType: 'APPLICANT', entityId: id, deletedAt: null },
       data: { entityType: 'EMPLOYEE', entityId: employee.id },
     });
@@ -957,7 +1002,7 @@ export class ApplicantsService {
     // Preserve applicantId (stable person reference) for cross-stage queries.
     // stageAtCreation is NOT changed — it records what stage the person was
     // when the record was created, which is historical fact.
-    const financialReassignResult = await this.prisma.financialRecord.updateMany({
+    const financialReassignResult = await this.legacyPrisma.financialRecord.updateMany({ // @tenant-reviewed: phase228-excluded-mutation
       where: { entityType: 'APPLICANT', entityId: id, deletedAt: null },
       data: {
         entityType: 'EMPLOYEE',
@@ -974,7 +1019,7 @@ export class ApplicantsService {
     });
 
     // Mark applicant as converted (soft delete + store employeeId + timestamp)
-    await this.prisma.applicant.update({
+    await this.legacyPrisma.applicant.update({ // @tenant-reviewed: phase228-excluded-mutation
       where: { id },
       data: {
         deletedAt: new Date(),
@@ -1000,16 +1045,16 @@ export class ApplicantsService {
   // ── Candidate Delete Requests ─────────────────────────────────────────────────
 
   async requestDelete(candidateId: string, reason: string, requestedById: string) {
-    const applicant = await this.prisma.applicant.findFirst({ where: { id: candidateId, deletedAt: null } });
+    const applicant = await this.legacyPrisma.applicant.findFirst({ where: { id: candidateId, deletedAt: null } }); // @tenant-reviewed: phase228-excluded-mutation
     if (!applicant) throw new NotFoundException({ code: 'APPLICANT.NOT_FOUND', message: 'Candidate not found' });
 
     // Check no pending request already exists
-    const existing = await this.prisma.candidateDeleteRequest.findFirst({
+    const existing = await this.legacyPrisma.candidateDeleteRequest.findFirst({ // @tenant-reviewed: phase228-excluded-mutation
       where: { candidateId, status: 'PENDING' },
     });
     if (existing) throw new BadRequestException({ code: 'APPLICANT.DELETE_REQUEST_PENDING', message: 'A delete request for this candidate is already pending review.' });
 
-    const request = await this.prisma.candidateDeleteRequest.create({
+    const request = await this.legacyPrisma.candidateDeleteRequest.create({ // @tenant-reviewed: phase228-excluded-mutation
       data: { candidateId, requestedById, reason, status: 'PENDING' },
     });
 
@@ -1020,11 +1065,14 @@ export class ApplicantsService {
 
   async getDeleteRequests(query: any) {
     const { page = 1, limit = 20, status } = query;
-    const where: any = {};
+    // CandidateDeleteRequest has no tenantId column; narrow via the
+    // applicant relation filter when pilot is active.
+    const s = this.scope();
+    const where: any = s.active ? { applicant: { tenantId: s.tenantId } } : {};
     if (status) where.status = status;
 
     const [data, total] = await Promise.all([
-      this.prisma.candidateDeleteRequest.findMany({
+      this.prisma.candidateDeleteRequest.findMany({ // @tenant-reviewed: phase228-pilot-scope
         where,
         include: {
           applicant: { select: { id: true, firstName: true, lastName: true, candidateNumber: true } },
@@ -1035,28 +1083,28 @@ export class ApplicantsService {
         skip: (Number(page) - 1) * Number(limit),
         take: Number(limit),
       }),
-      this.prisma.candidateDeleteRequest.count({ where }),
+      this.prisma.candidateDeleteRequest.count({ where }), // @tenant-reviewed: phase228-pilot-scope
     ]);
 
     return { data, meta: { total, page: Number(page), limit: Number(limit), totalPages: Math.ceil(total / Number(limit)) } };
   }
 
   async reviewDeleteRequest(requestId: string, status: 'APPROVED' | 'REJECTED', reviewNotes: string | undefined, reviewedById: string) {
-    const request = await this.prisma.candidateDeleteRequest.findUnique({
+    const request = await this.prisma.candidateDeleteRequest.findUnique({ // @tenant-reviewed: phase228-pilot-scope-precheck
       where: { id: requestId },
       include: { applicant: true },
     });
     if (!request) throw new NotFoundException({ code: 'APPLICANT.DELETE_REQUEST_NOT_FOUND', message: 'Delete request not found' });
     if (request.status !== 'PENDING') throw new BadRequestException({ code: 'APPLICANT.DELETE_REQUEST_REVIEWED', message: 'This request has already been reviewed.' });
 
-    await this.prisma.candidateDeleteRequest.update({
+    await this.legacyPrisma.candidateDeleteRequest.update({ // @tenant-reviewed: phase228-excluded-mutation
       where: { id: requestId },
       data: { status, reviewedById, reviewedAt: new Date(), reviewNotes },
     });
 
     if (status === 'APPROVED') {
       // Perform soft delete of the candidate
-      await this.prisma.applicant.update({
+      await this.legacyPrisma.applicant.update({ // @tenant-reviewed: phase228-excluded-mutation
         where: { id: request.candidateId },
         data: {
           deletedAt: new Date(),
@@ -1099,7 +1147,7 @@ export class ApplicantsService {
     changes?: Record<string, any>,
   ): Promise<void> {
     try {
-      await this.prisma.auditLog.create({
+      await this.legacyPrisma.auditLog.create({ // @tenant-reviewed: phase228-audit-log
         data: { userId, action, entity: 'Applicant', entityId, changes: changes as any },
       });
     } catch {
@@ -1141,7 +1189,7 @@ export class ApplicantsService {
     if (prefix === 'A') {
       // Lead: serial derived from applicants.leadNumber
       const newId1 = randomUUID();
-      const result: { current: number }[] = await this.prisma.$queryRaw`
+      const result: { current: number }[] = await this.legacyPrisma.$queryRaw` // @tenant-reviewed: phase228-global
         INSERT INTO "identifier_sequences" ("id", "prefix", "year", "month", "current")
         VALUES (
           ${newId1}, ${prefix}, ${year}, ${month},
@@ -1167,7 +1215,7 @@ export class ApplicantsService {
     } else if (prefix === 'C') {
       // Candidate: serial derived from applicants.candidateNumber
       const newId2 = randomUUID();
-      const result: { current: number }[] = await this.prisma.$queryRaw`
+      const result: { current: number }[] = await this.legacyPrisma.$queryRaw` // @tenant-reviewed: phase228-global
         INSERT INTO "identifier_sequences" ("id", "prefix", "year", "month", "current")
         VALUES (
           ${newId2}, ${prefix}, ${year}, ${month},
@@ -1193,7 +1241,7 @@ export class ApplicantsService {
     } else {
       // Employee: serial derived from employees.employeeNumber
       const newId3 = randomUUID();
-      const result: { current: number }[] = await this.prisma.$queryRaw`
+      const result: { current: number }[] = await this.legacyPrisma.$queryRaw` // @tenant-reviewed: phase228-global
         INSERT INTO "identifier_sequences" ("id", "prefix", "year", "month", "current")
         VALUES (
           ${newId3}, ${prefix}, ${year}, ${month},

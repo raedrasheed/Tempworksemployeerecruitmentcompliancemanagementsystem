@@ -501,3 +501,32 @@ Cumulative finance + documents + vehicles + workflow:
 Four modules (finance, documents, vehicles, workflow) are now
 fully proven on real DB across reads + writes. Production
 behaviour unchanged.
+
+## 25. Phase 2.28 — Applicants reads-first pilot (shipped)
+
+`src/applicants` joins the pilot. Reads only; mutations deferred
+to Phase 2.29+.
+
+- 7 read sites: `phase228-pilot-scope` (`findAll`, `findOne`
+  migrated `findUnique`→`findFirst`, `getFinancialProfile`
+  parent-gated, `getAgencyHistory` parent-gated, `exportCsv`,
+  `exportExcel`, `getDeleteRequests` via `applicant: { tenantId }`
+  relation filter).
+- Email duplicate-check + raw SQL identifier generators +
+  StageTemplate / SystemSetting reads tagged `phase228-global`.
+- ~37 mutation sites tagged `phase228-excluded-mutation`.
+- Audit log writes tagged `phase228-audit-log`.
+- New `findApplicantOrFail(id)` private parent-gate helper.
+
+External-actor agency filter UNCHANGED — pilot tenant predicate
+is additive (`where.tenantId AND where.agencyId`).
+
+`Applicant.email @unique` stays globally unique. `CandidateDeleteRequest`
+parent-gated via relation filter (no tenantId column today).
+
+Real-DB run (`SAFE_CLONE` `saas_phase1_fixture`):
+- applicants-equivalence: 12/12 PASS
+- applicants-isolation:   10/10 PASS
+
+Cumulative finance + documents + vehicles + workflow + applicants:
+**224/224** on real Postgres 16. Production behaviour unchanged.

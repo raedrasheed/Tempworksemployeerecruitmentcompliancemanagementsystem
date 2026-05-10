@@ -121,6 +121,7 @@ and counted against the strict-mode threshold.
 | `phase243-compliance-notification-deferred-provider` | Reserved for any future external provider (email/SMS) coupling on compliance events. | `src/compliance/**` | 2.43 |
 | `phase244-compliance-scheduler-health` | Compliance scheduler `summarizeHealth(result)` normalizer + structured `compliance.scheduler.health` log fingerprint emitted once per tick. Counts only; no PII. | `src/compliance/**` | 2.44 |
 | `phase245-notifications-dedup` | Per-recipient in-app notification dedup helper (`createInAppWithDedup`) and the compliance coupling site that supplies a stable `relatedEntityId`. Identity: `(tenantId, userId, type, relatedEntity, relatedEntityId, createdAt >= now - window)`. Default off. | `src/notifications/**`, `src/compliance/**` | 2.45 |
+| `phase246-notifications-internal-scan-dedup` | Internal scheduled notification scans (`checkExpiringCompliance`, `checkServiceDue`, `checkOverdue`, `checkScheduledMaintenance`) route `notification.create` through the Phase 2.45 `createInAppWithDedup` helper. Identity reuses the existing `(relatedEntity, relatedEntityId, type)` triple — no new identity strings. Default off. | `src/notifications/**` | 2.46 |
 | `tenant-safe-report-runtime` | Reports engine uses `$queryRawUnsafe` with positional parameters and a registry-validated SQL string. | `src/reports/reports.service.ts` | 2.1 |
 
 ## 3. When annotations are allowed

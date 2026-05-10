@@ -274,3 +274,30 @@ New harness: `notifications-dedup` — **12/12 PASS**.
 Notifications harnesses still green:
 - `notifications-equivalence` — 11/11
 - `notifications-isolation` — 10/10
+
+---
+
+## Phase 2.46 — internal scan dedup
+
+The four internal scheduled scans
+(`checkExpiringCompliance` / `checkServiceDue` / `checkOverdue` /
+`checkScheduledMaintenance`) now route their `notification.create`
+through the Phase 2.45 `createInAppWithDedup` helper. No identity
+change; existing `(relatedEntity='Vehicle'|'MaintenanceRecord',
+relatedEntityId=<entity.id>, type=<NotificationType>)` is reused as
+the dedup identity. See
+`SAAS_PHASE2_NOTIFICATIONS_INTERNAL_SCAN_DEDUP.md`.
+
+- Default-off via `NOTIFICATION_DEDUP_ENABLED=false`.
+- Pre-existing 24h per-method probe inside each scan is unchanged;
+  the new helper layer is additive.
+
+New tag: `phase246-notifications-internal-scan-dedup`.
+
+New harness: `notifications-internal-scan-dedup` — 13/13 PASS.
+
+Cumulative notifications: equivalence 11/11 + isolation 10/10 +
+dedup 12/12 + internal-scan-dedup 13/13 = **46/46**. Cumulative
+across modules: **503/503**.
+
+No production behaviour change with default flags.

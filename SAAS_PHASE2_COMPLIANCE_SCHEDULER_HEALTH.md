@@ -172,3 +172,17 @@ suppresses a duplicate notification reports `status='ok'` (no
 failure) with `notifyDeduped > 0`. Operators can alert on
 `notifyDeduped > 0` independently if dedup observability is desired.
 See `SAAS_PHASE2_NOTIFICATIONS_DEDUP.md`.
+
+---
+
+# Phase 2.46 addendum — internal scans contribute to scheduler health when fan-out coupling is active
+
+Internal `check*` scans are independent of the Phase 2.43 compliance
+coupling — their dedup outcomes do NOT flow into the
+`compliance.scheduler.health` log line because they are not invoked
+from `generateAlertsForTenant`. The existing health summary already
+covers the compliance pipeline correctly. No change to the schema.
+
+If a future phase wires the internal scans behind the same
+scheduler/cron, the dedup outcomes can flow into the health line
+identically to the Phase 2.45 path.

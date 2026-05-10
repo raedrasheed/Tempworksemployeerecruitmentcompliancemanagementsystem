@@ -175,3 +175,19 @@ No data, no schema migration introduced. Configuration-only rollback.
 - **Apply dedup to internal `check*` scans** — needs identity strings
   per condition (`vehicle:<id>:mot-expiry` etc.).
 - **External provider dedup** — out of scope; in-app only today.
+
+---
+
+# Phase 2.46 addendum — internal `check*` scans now route through the helper
+
+`checkExpiringCompliance`, `checkServiceDue`, `checkOverdue`, and
+`checkScheduledMaintenance` now route their `notification.create`
+through `createInAppWithDedup`. Identity uses the existing
+`(relatedEntity, relatedEntityId, type)` triple — no new identity
+strings introduced. See
+`SAAS_PHASE2_NOTIFICATIONS_INTERNAL_SCAN_DEDUP.md`.
+
+New tag: `phase246-notifications-internal-scan-dedup` (allowed in
+`src/notifications/`).
+
+New harness: `notifications-internal-scan-dedup` — 13/13 PASS.

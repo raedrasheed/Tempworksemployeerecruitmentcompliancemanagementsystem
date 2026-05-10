@@ -825,3 +825,16 @@ shape; scheduler health summary surfaces `notifyDeduped`.
 Tag: `phase245-notifications-dedup`.
 
 Real-DB: 12/12. Cumulative: **490/490**.
+
+## 43. Phase 2.46 — Internal `check*` notification scan dedup (shipped)
+
+Four internal scheduled scans (`checkExpiringCompliance`,
+`checkServiceDue`, `checkOverdue`, `checkScheduledMaintenance`) now
+route every `notification.create` through `createInAppWithDedup`.
+Identity reuses the existing `(relatedEntity, relatedEntityId,
+type)` triple. No identity change, no schema migration. Pre-existing
+24h per-method probe inside each scan is preserved.
+
+Tag: `phase246-notifications-internal-scan-dedup`.
+
+Real-DB: 13/13. Cumulative: **503/503**.

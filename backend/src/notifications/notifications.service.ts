@@ -275,30 +275,28 @@ export class NotificationsService {
           });
 
           if (!existing) {
-            await this.legacyPrisma.notification.create({ // @tenant-reviewed: phase214-pilot-scope (writes tenantId when tid)
-              data: {
-                userId: manager.id,
-                // Pre-rendered English (legacy fallback for old clients).
-                title: `${vehicle.registrationNumber}: ${check.label} Expiring Soon`,
-                message: `${check.label} expires in ${daysUntil} days`,
-                // i18n metadata: reader resolves these against the active
-                // locale and falls back to `title`/`message` when missing.
-                titleKey: 'events.vehicleCheckExpiring.title',
-                messageKey: 'events.vehicleCheckExpiring.body',
-                params: {
-                  registrationNumber: vehicle.registrationNumber,
-                  checkLabel: check.label,
-                  daysUntilDue: daysUntil,
-                },
-                type: check.type as NotificationType,
-                channel: 'in_app',
-                relatedEntity: 'Vehicle',
-                relatedEntityId: vehicle.id,
+            await this.createInAppWithDedup({ // @tenant-reviewed: phase246-notifications-internal-scan-dedup (routes scan creates through dedup helper)
+              userId: manager.id,
+              // Pre-rendered English (legacy fallback for old clients).
+              title: `${vehicle.registrationNumber}: ${check.label} Expiring Soon`,
+              message: `${check.label} expires in ${daysUntil} days`,
+              // i18n metadata: reader resolves these against the active
+              // locale and falls back to `title`/`message` when missing.
+              titleKey: 'events.vehicleCheckExpiring.title',
+              messageKey: 'events.vehicleCheckExpiring.body',
+              params: {
+                registrationNumber: vehicle.registrationNumber,
+                checkLabel: check.label,
                 daysUntilDue: daysUntil,
-                severity,
-                ...(tid ? { tenantId: tid } : {}),
               },
-            });
+              type: check.type as NotificationType,
+              channel: 'in_app',
+              relatedEntity: 'Vehicle',
+              relatedEntityId: vehicle.id,
+              daysUntilDue: daysUntil,
+              severity,
+              ...(tid ? { tenantId: tid } : {}),
+            }, tid);
           }
         }
       }
@@ -371,26 +369,24 @@ export class NotificationsService {
           });
 
           if (!existing) {
-            await this.legacyPrisma.notification.create({ // @tenant-reviewed: phase214-pilot-scope (writes tenantId when tid)
-              data: {
-                userId: manager.id,
-                title: `${vehicle.registrationNumber}: Service Due Soon`,
-                message: `Service due in ${kmRemaining} km`,
-                titleKey: 'events.vehicleServiceDueKm.title',
-                messageKey: 'events.vehicleServiceDueKm.body',
-                params: {
-                  registrationNumber: vehicle.registrationNumber,
-                  kmRemaining,
-                },
-                type: 'VEHICLE_SERVICE_DUE',
-                channel: 'in_app',
-                relatedEntity: 'Vehicle',
-                relatedEntityId: vehicle.id,
-                kmUntilDue: kmRemaining,
-                severity,
-                ...(tid ? { tenantId: tid } : {}),
+            await this.createInAppWithDedup({ // @tenant-reviewed: phase246-notifications-internal-scan-dedup (routes scan creates through dedup helper)
+              userId: manager.id,
+              title: `${vehicle.registrationNumber}: Service Due Soon`,
+              message: `Service due in ${kmRemaining} km`,
+              titleKey: 'events.vehicleServiceDueKm.title',
+              messageKey: 'events.vehicleServiceDueKm.body',
+              params: {
+                registrationNumber: vehicle.registrationNumber,
+                kmRemaining,
               },
-            });
+              type: 'VEHICLE_SERVICE_DUE',
+              channel: 'in_app',
+              relatedEntity: 'Vehicle',
+              relatedEntityId: vehicle.id,
+              kmUntilDue: kmRemaining,
+              severity,
+              ...(tid ? { tenantId: tid } : {}),
+            }, tid);
           }
         }
       }
@@ -446,24 +442,22 @@ export class NotificationsService {
         });
 
         if (!existing) {
-          await this.legacyPrisma.notification.create({ // @tenant-reviewed: phase214-pilot-scope (writes tenantId when tid)
-            data: {
-              userId: manager.id,
-              title: `🚨 ${vehicle.registrationNumber}: Compliance Overdue`,
-              message: 'Vehicle has expired compliance. Service immediately.',
-              titleKey: 'events.vehicleComplianceOverdue.title',
-              messageKey: 'events.vehicleComplianceOverdue.body',
-              params: {
-                registrationNumber: vehicle.registrationNumber,
-              },
-              type: 'VEHICLE_SERVICE_OVERDUE',
-              channel: 'in_app',
-              relatedEntity: 'Vehicle',
-              relatedEntityId: vehicle.id,
-              severity: 'HIGH',
-              ...(tid ? { tenantId: tid } : {}),
+          await this.createInAppWithDedup({ // @tenant-reviewed: phase246-notifications-internal-scan-dedup (routes scan creates through dedup helper)
+            userId: manager.id,
+            title: `🚨 ${vehicle.registrationNumber}: Compliance Overdue`,
+            message: 'Vehicle has expired compliance. Service immediately.',
+            titleKey: 'events.vehicleComplianceOverdue.title',
+            messageKey: 'events.vehicleComplianceOverdue.body',
+            params: {
+              registrationNumber: vehicle.registrationNumber,
             },
-          });
+            type: 'VEHICLE_SERVICE_OVERDUE',
+            channel: 'in_app',
+            relatedEntity: 'Vehicle',
+            relatedEntityId: vehicle.id,
+            severity: 'HIGH',
+            ...(tid ? { tenantId: tid } : {}),
+          }, tid);
         }
       }
       }
@@ -525,28 +519,26 @@ export class NotificationsService {
             const daysUntil = Math.ceil((record.scheduledDate!.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
             const severity = daysUntil <= 3 ? 'HIGH' : daysUntil <= 7 ? 'MEDIUM' : 'LOW';
 
-            await this.legacyPrisma.notification.create({ // @tenant-reviewed: phase214-pilot-scope (writes tenantId when tid)
-              data: {
-                userId: manager.id,
-                title: `${record.vehicle.registrationNumber}: Scheduled Maintenance`,
-                message: `${record.maintenanceType?.name ?? 'Maintenance'} scheduled in ${daysUntil} days at ${record.workshop?.name ?? 'workshop'}`,
-                titleKey: 'events.vehicleScheduledMaintenance.title',
-                messageKey: 'events.vehicleScheduledMaintenance.body',
-                params: {
-                  registrationNumber: record.vehicle.registrationNumber,
-                  maintenanceTypeName: record.maintenanceType?.name ?? 'Maintenance',
-                  daysUntil,
-                  workshopName: record.workshop?.name ?? 'workshop',
-                },
-                type: 'VEHICLE_SERVICE_DUE',
-                channel: 'in_app',
-                relatedEntity: 'MaintenanceRecord',
-                relatedEntityId: record.id,
-                daysUntilDue: daysUntil,
-                severity,
-                ...(tid ? { tenantId: tid } : {}),
+            await this.createInAppWithDedup({ // @tenant-reviewed: phase246-notifications-internal-scan-dedup (routes scan creates through dedup helper)
+              userId: manager.id,
+              title: `${record.vehicle.registrationNumber}: Scheduled Maintenance`,
+              message: `${record.maintenanceType?.name ?? 'Maintenance'} scheduled in ${daysUntil} days at ${record.workshop?.name ?? 'workshop'}`,
+              titleKey: 'events.vehicleScheduledMaintenance.title',
+              messageKey: 'events.vehicleScheduledMaintenance.body',
+              params: {
+                registrationNumber: record.vehicle.registrationNumber,
+                maintenanceTypeName: record.maintenanceType?.name ?? 'Maintenance',
+                daysUntil,
+                workshopName: record.workshop?.name ?? 'workshop',
               },
-            });
+              type: 'VEHICLE_SERVICE_DUE',
+              channel: 'in_app',
+              relatedEntity: 'MaintenanceRecord',
+              relatedEntityId: record.id,
+              daysUntilDue: daysUntil,
+              severity,
+              ...(tid ? { tenantId: tid } : {}),
+            }, tid);
           }
         }
       }

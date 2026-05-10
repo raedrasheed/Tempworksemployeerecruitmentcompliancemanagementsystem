@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-10T15:49:56.296Z",
+  "generatedAt": "2026-05-10T16:05:35.834Z",
   "environment": {
     "classification": "SAFE_CLONE",
     "reason": "localhost + fixture pattern (db=saas_phase1_fixture)",
@@ -48,7 +48,7 @@
     {
       "name": "pilot ON, tenant A: exportVehicles({mixed-tenant ids}) returns a Buffer (filter applies; B silently dropped)",
       "ok": true,
-      "detail": "bufferLen=7025"
+      "detail": "bufferLen=7024"
     },
     {
       "name": "concurrent ALS frames isolated (T_A no B-rows; T_B no A-rows)",

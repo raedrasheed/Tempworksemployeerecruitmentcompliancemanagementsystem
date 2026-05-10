@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-10T15:48:20.590Z",
+  "generatedAt": "2026-05-10T16:04:09.694Z",
   "environment": {
     "classification": "SAFE_CLONE",
     "reason": "localhost + fixture pattern (db=saas_phase1_fixture)",
@@ -22,9 +22,9 @@
       "00000000-0000-0000-0000-00000000c101",
       "00000000-0000-0000-0000-00000000c102",
       "00000000-0000-0000-0000-00000000c999",
-      "0ced7aba-5f0e-4fcd-a945-2afc11f44d97",
-      "87ead645-3aff-4645-b0fb-b3b7ee4f7662",
-      "8f13770c-96d9-4b04-bfab-727513ef5966"
+      "17ffb3c8-ad1d-4d41-9a82-aebebdeb51d2",
+      "919f702e-37d6-4b24-81e6-d3c949165561",
+      "b26e2215-d0f8-4a34-8b86-4f7114a6899f"
     ],
     "dashRecentCount": 8,
     "alertsTotal": 10,

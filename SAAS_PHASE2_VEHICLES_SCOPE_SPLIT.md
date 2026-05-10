@@ -38,7 +38,30 @@ What does NOT land:
 - No schema change (Phase 2.3 denorm already in place).
 - No catalog tenancy.
 
-## 3. Phase 2.24+ — Mutation refactor (FUTURE)
+## 2.1 Phase 2.24 update — mutation pilot shipped
+
+Phase 2.24 narrowed the mutation surface. See
+`SAAS_PHASE2_VEHICLES_MUTATION_AUDIT.md`,
+`SAAS_PHASE2_VEHICLES_MUTATION_SCOPE_DECISION.md`, and
+`SAAS_PHASE2_VEHICLES_REGISTRATION_NUMBER_SAFETY.md`.
+
+- `createVehicle` + `createMaintenanceRecord`: spread
+  `scope.tenantData()` into create data. Tag
+  `phase224-pilot-scope`.
+- `updateVehicle` / `deleteVehicle` / `assignDriver` (with
+  cross-tenant employee probe) / `unassignDriver`: rely on the
+  Phase 2.23 tenant-scoped `findVehicleOrFail` pre-check.
+- `updateMaintenanceRecord` / `deleteMaintenanceRecord`: NEW
+  tenant-scoped pre-check (`this.prisma.maintenanceRecord.findFirst({ id, ...t })`)
+  closes a real cross-tenant mutation gap.
+- `registrationNumber` remains globally `@unique` — Phase 3
+  schema change required for per-tenant uniqueness.
+- Storage paths (`addDocument`, `addMaintenanceAttachment`)
+  still `phase223-excluded-storage` (Phase 2.25+).
+- Catalog mutations (`MaintenanceType`, `Workshop`) still
+  `phase223-excluded-mutation` (Phase 3 product question).
+
+## 3. Phase 2.25+ — Storage refactor (FUTURE)
 
 The `findVehicleOrFail` pre-check is already tenant-scoped after Phase 2.23, so mutation paths inherit a safety gate via the existing pattern from finance 2.17 / documents 2.21:
 

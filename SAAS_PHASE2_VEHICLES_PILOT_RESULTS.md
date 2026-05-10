@@ -133,6 +133,74 @@ Same SAFE_CLONE used by Phase 2.16-2.22. Total cumulative harness cases:
 
 **Total: 114/114 cases PASS** on real Postgres 16.
 
+## 10.1 Phase 2.24 — Mutation pilot delta
+
+Phase 2.24 extended the vehicles pilot to selected mutation
+paths. New annotations:
+
+- `createVehicle`: spreads `scope.tenantData()` into create
+  data. Tag `phase224-pilot-scope`.
+- `updateVehicle` / `deleteVehicle`: rely on the Phase 2.23
+  tenant-scoped `findVehicleOrFail` pre-check. By-id mutation
+  retagged `phase224-pilot-scope-precheck`.
+- `assignDriver`: parent vehicle pre-check + NEW cross-tenant
+  employee probe via `this.prisma.employee.findFirst({ id, ...t })`.
+  Both the deactivate-existing `updateMany` and the new
+  assignment `create` retagged `phase224-pilot-scope-precheck`.
+- `unassignDriver`: NEW explicit `findVehicleOrFail` first;
+  existing assignment lookup + update retagged
+  `phase224-pilot-scope-precheck`.
+- `createMaintenanceRecord`: parent vehicle gate + spreads
+  `scope.tenantData()` on the new record. Tag
+  `phase224-pilot-scope`. Spare parts are nested children
+  (tenant-by-parent). Mileage `vehicle.update` side-effect
+  retagged `phase224-pilot-scope-precheck`.
+- `updateMaintenanceRecord` / `deleteMaintenanceRecord`: NEW
+  pre-check via `this.prisma.maintenanceRecord.findFirst({ id, ...t })`
+  to close a real cross-tenant mutation gap (the prior
+  `findUnique` was by id alone). By-id update / soft-delete
+  retagged `phase224-pilot-scope-precheck`.
+
+`addDocument` / `updateDocument` / `deleteDocument` remain
+`phase223-excluded-storage` (Phase 2.25+ storage guard).
+Catalog mutations (`MaintenanceType`, `Workshop`) remain
+`phase223-excluded-mutation` (Phase 3 product question).
+
+Real bug closed:
+
+- `updateMaintenanceRecord` and `deleteMaintenanceRecord` were
+  doing a by-id `findUnique` pre-check. In pilot mode, a
+  tenant-A caller passing a tenant-B record id could mutate
+  the foreign row. The Phase 2.24 pre-check switch closes this.
+
+`registrationNumber` uniqueness unchanged. Today globally
+`@unique`. Tenant A using tenant B's plate raises `P2002`. See
+`SAAS_PHASE2_VEHICLES_REGISTRATION_NUMBER_SAFETY.md` for the
+Phase 3 transition plan.
+
+New harnesses (real-DB SAFE_CLONE):
+- `vehicles-mutation-equivalence` (12 cases): create shape,
+  tenantId NULL/set, update mutation parity, maintenance
+  create tenantId, maintenance update parity, soft-delete
+  vehicle + maintenance, validation parity.
+- `vehicles-mutation-isolation` (14 cases): pilot create
+  persists tenantId=A; cross-tenant `update`/`delete`/`assign`/
+  `unassign`/maintenance `create`/`update`/`delete` all
+  rejected with target unchanged; cross-tenant employee probe
+  blocks `assignDriver`; dashboard counts excluding tenant B
+  after mutations; legacy mode still mutates without gate;
+  registration-number P2002 collision; source-level
+  meta-assertion of all phase224 patterns.
+
+Real-DB results: **47/47 vehicles harness cases PASS** across
+all 4 harnesses (11 + 10 + 12 + 14). Combined cumulative:
+**finance 41 + documents 52 + vehicles 47 = 140/140** on real
+Postgres 16.
+
+The vehicles module pilot is now complete (reads + writes).
+Storage paths (`addDocument`, `addMaintenanceAttachment`)
+remain deferred to Phase 2.25.
+
 ## 11. Next recommended module
 
 The pattern is now proven on three production-grade modules end-to-end (finance, documents) and one module reads-first (vehicles). Natural follow-ups:

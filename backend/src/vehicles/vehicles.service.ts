@@ -210,19 +210,20 @@ export class VehiclesService {
     const data: any = this.normaliseVehicleDates(dto, true);
     data.createdById = userId;
     data.updatedById = userId;
-    return this.legacyPrisma.vehicle.create({ data, include: VEHICLE_INCLUDE }); // @tenant-reviewed: phase223-excluded-mutation
+    const tdata = this.scope().tenantData();
+    return this.legacyPrisma.vehicle.create({ data: { ...data, ...tdata }, include: VEHICLE_INCLUDE }); // @tenant-reviewed: phase224-pilot-scope (writes tenantId via scope.tenantData)
   }
 
   async updateVehicle(id: string, dto: UpdateVehicleDto, userId: string) {
     await this.findVehicleOrFail(id);
     const data: any = this.normaliseVehicleDates(dto, false);
     data.updatedById = userId;
-    return this.legacyPrisma.vehicle.update({ where: { id }, data, include: VEHICLE_INCLUDE }); // @tenant-reviewed: phase223-excluded-mutation
+    return this.legacyPrisma.vehicle.update({ where: { id }, data, include: VEHICLE_INCLUDE }); // @tenant-reviewed: phase224-pilot-scope-precheck (findVehicleOrFail above is tenant-scoped)
   }
 
   async deleteVehicle(id: string, userId: string) {
     await this.findVehicleOrFail(id);
-    await this.legacyPrisma.vehicle.update({ // @tenant-reviewed: phase223-excluded-mutation
+    await this.legacyPrisma.vehicle.update({ // @tenant-reviewed: phase224-pilot-scope-precheck (findVehicleOrFail above is tenant-scoped)
       where: { id },
       data: { deletedAt: new Date(), deletedBy: userId },
     });
@@ -241,13 +242,23 @@ export class VehiclesService {
   async assignDriver(vehicleId: string, dto: AssignDriverDto, userId: string) {
     await this.findVehicleOrFail(vehicleId);
 
+    // Phase 2.24 — cross-tenant employee probe. In pilot mode the
+    // lookup carries `tenantId = ALS.tenantId`; cross-tenant
+    // employee ids raise NotFoundException before any assignment
+    // mutation. In legacy mode the spread is `{}` and the lookup
+    // matches by id alone (no worse than today, where the employee
+    // was not validated at all).
+    const t = this.scope().tenantWhere();
+    const emp = await this.prisma.employee.findFirst({ where: { id: dto.employeeId, ...t }, select: { id: true } }); // @tenant-reviewed: phase224-pilot-scope (cross-tenant employee probe)
+    if (!emp) throw new NotFoundException('Employee not found');
+
     // Deactivate any existing active assignment for this vehicle
-    await this.legacyPrisma.vehicleDriverAssignment.updateMany({ // @tenant-reviewed: phase223-excluded-mutation
+    await this.legacyPrisma.vehicleDriverAssignment.updateMany({ // @tenant-reviewed: phase224-pilot-scope-precheck (parent vehicle tenant-checked above)
       where: { vehicleId, isActive: true },
       data: { isActive: false, endDate: new Date() },
     });
 
-    return this.legacyPrisma.vehicleDriverAssignment.create({ // @tenant-reviewed: phase223-excluded-mutation
+    return this.legacyPrisma.vehicleDriverAssignment.create({ // @tenant-reviewed: phase224-pilot-scope-precheck (parent vehicle + employee tenant-checked above)
       data: {
         vehicleId,
         employeeId: dto.employeeId,
@@ -262,12 +273,15 @@ export class VehiclesService {
   }
 
   async unassignDriver(vehicleId: string, assignmentId: string) {
-    const assignment = await this.legacyPrisma.vehicleDriverAssignment.findFirst({ // @tenant-reviewed: phase223-excluded-mutation
+    // Phase 2.24 — explicit parent vehicle gate before the
+    // by-id assignment lookup.
+    await this.findVehicleOrFail(vehicleId);
+    const assignment = await this.legacyPrisma.vehicleDriverAssignment.findFirst({ // @tenant-reviewed: phase224-pilot-scope-precheck (parent vehicle tenant-checked above; vehicleId predicate ties this lookup to the same parent)
       where: { id: assignmentId, vehicleId, isActive: true },
     });
     if (!assignment) throw new NotFoundException('Active driver assignment not found');
 
-    return this.legacyPrisma.vehicleDriverAssignment.update({ // @tenant-reviewed: phase223-excluded-mutation
+    return this.legacyPrisma.vehicleDriverAssignment.update({ // @tenant-reviewed: phase224-pilot-scope-precheck
       where: { id: assignmentId },
       data: { isActive: false, endDate: new Date() },
     });
@@ -575,14 +589,18 @@ export class VehiclesService {
 
     // If mileage provided, update vehicle's currentMileage
     if (dto.mileageAtService) {
-      await this.legacyPrisma.vehicle.update({ // @tenant-reviewed: phase223-excluded-mutation
+      await this.legacyPrisma.vehicle.update({ // @tenant-reviewed: phase224-pilot-scope-precheck (parent vehicle tenant-checked by findVehicleOrFail above)
         where: { id: dto.vehicleId },
         data: { currentMileage: dto.mileageAtService },
       });
     }
 
-    const record = await this.legacyPrisma.maintenanceRecord.create({ // @tenant-reviewed: phase223-excluded-mutation
-      data,
+    // Phase 2.24 — write tenantId on the new MaintenanceRecord. Spare
+    // parts are nested-written under the parent so they inherit the
+    // tenant-by-parent guarantee.
+    const tdata = this.scope().tenantData();
+    const record = await this.legacyPrisma.maintenanceRecord.create({ // @tenant-reviewed: phase224-pilot-scope (writes tenantId via scope.tenantData)
+      data: { ...data, ...tdata },
       select: {
         id: true,
         vehicleId: true,
@@ -612,14 +630,19 @@ export class VehiclesService {
     // Compute partsCost from spare parts if not provided
     if (!dto.partsCost && spareParts?.length) {
       const partsCost = record.spareParts.reduce((sum, p) => sum + (p.totalCost ?? 0), 0);
-      await this.legacyPrisma.maintenanceRecord.update({ where: { id: record.id }, data: { partsCost } }); // @tenant-reviewed: phase223-excluded-mutation
+      await this.legacyPrisma.maintenanceRecord.update({ where: { id: record.id }, data: { partsCost } }); // @tenant-reviewed: phase224-pilot-scope-precheck (record just inserted under tenant-checked parent)
     }
 
     return record;
   }
 
   async updateMaintenanceRecord(id: string, dto: UpdateMaintenanceRecordDto, userId: string) {
-    const existing = await this.legacyPrisma.maintenanceRecord.findUnique({ where: { id } }); // @tenant-reviewed: phase223-excluded-mutation
+    // Phase 2.24 — tenant-scoped pre-check. In pilot mode a
+    // cross-tenant id raises NotFoundException BEFORE any update.
+    // Legacy mode (`tenantWhere()` returns `{}`) reduces to plain
+    // by-id lookup — same as pre-2.24.
+    const t = this.scope().tenantWhere();
+    const existing = await this.prisma.maintenanceRecord.findFirst({ where: { id, ...t } }); // @tenant-reviewed: phase224-pilot-scope (mutation pre-check; cross-tenant ids raise 404)
     if (!existing) throw new NotFoundException('Maintenance record not found');
 
     // Strip out new fields - they require the enhance_maintenance_records migration first.
@@ -637,8 +660,8 @@ export class VehiclesService {
     if (nextServiceDate !== undefined) data.nextServiceDate = nextServiceDate ? new Date(nextServiceDate) : null;
 
     if (spareParts !== undefined) {
-      // Replace spare parts
-      await this.legacyPrisma.maintenanceRecordSparePart.deleteMany({ where: { maintenanceRecordId: id } }); // @tenant-reviewed: phase223-excluded-mutation
+      // Replace spare parts (parent maintenance record was tenant-checked above)
+      await this.legacyPrisma.maintenanceRecordSparePart.deleteMany({ where: { maintenanceRecordId: id } }); // @tenant-reviewed: phase224-pilot-scope-precheck (parent record tenant-checked above)
       if (spareParts.length) {
         data.spareParts = {
           create: spareParts.map((p) => ({
@@ -654,13 +677,13 @@ export class VehiclesService {
     }
 
     if (dto.mileageAtService) {
-      await this.legacyPrisma.vehicle.update({ // @tenant-reviewed: phase223-excluded-mutation
+      await this.legacyPrisma.vehicle.update({ // @tenant-reviewed: phase224-pilot-scope-precheck (parent record tenant-checked; vehicleId derives from it)
         where: { id: existing.vehicleId },
         data: { currentMileage: dto.mileageAtService },
       });
     }
 
-    return this.legacyPrisma.maintenanceRecord.update({ // @tenant-reviewed: phase223-excluded-mutation
+    return this.legacyPrisma.maintenanceRecord.update({ // @tenant-reviewed: phase224-pilot-scope-precheck (parent record tenant-checked above)
       where: { id },
       data,
       select: {
@@ -691,10 +714,12 @@ export class VehiclesService {
   }
 
   async deleteMaintenanceRecord(id: string, userId?: string) {
-    const existing = await this.legacyPrisma.maintenanceRecord.findUnique({ where: { id } }); // @tenant-reviewed: phase223-excluded-mutation
+    // Phase 2.24 — tenant-scoped pre-check (mirrors updateMaintenanceRecord).
+    const t = this.scope().tenantWhere();
+    const existing = await this.prisma.maintenanceRecord.findFirst({ where: { id, ...t } }); // @tenant-reviewed: phase224-pilot-scope (mutation pre-check)
     if (!existing) throw new NotFoundException('Maintenance record not found');
     if ((existing as any).deletedAt) throw new NotFoundException('Maintenance record not found');
-    await (this.legacyPrisma.maintenanceRecord as any).update({ // @tenant-reviewed: phase223-excluded-mutation
+    await (this.legacyPrisma.maintenanceRecord as any).update({ // @tenant-reviewed: phase224-pilot-scope-precheck
       where: { id },
       data: { deletedAt: new Date(), deletedBy: userId ?? null },
     });

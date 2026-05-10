@@ -106,6 +106,8 @@
     "saas:phase2-documents-download-isolation":   "ts-node scripts/saas/phase2/documents-download-isolation.ts",
     "saas:phase2-vehicles-equivalence":           "ts-node scripts/saas/phase2/vehicles-equivalence.ts",
     "saas:phase2-vehicles-isolation":             "ts-node scripts/saas/phase2/vehicles-isolation.ts",
+    "saas:phase2-vehicles-mutation-equivalence":  "ts-node scripts/saas/phase2/vehicles-mutation-equivalence.ts",
+    "saas:phase2-vehicles-mutation-isolation":    "ts-node scripts/saas/phase2/vehicles-mutation-isolation.ts",
     "saas:scan:annotations":                      "ts-node scripts/scan-annotations.ts",
     "saas:phase2-pilot-regression":               "ts-node scripts/saas/phase2/pilot-regression.ts",
     "saas:phase2-job-context-harness":            "ts-node scripts/saas/phase2/job-context-harness.ts",

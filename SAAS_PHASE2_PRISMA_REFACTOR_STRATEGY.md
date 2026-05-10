@@ -549,6 +549,39 @@ Real-DB run: vehicles-equivalence 11/11, vehicles-isolation
 The next phase is **Phase 2.24** (vehicles mutation pilot) OR a
 new module pilot (`workflow`, `applicants`).
 
+## 11.10 Phase 2.24 — Vehicles mutation pilot (shipped)
+
+Closes the vehicles module pilot. New tags:
+- `phase224-pilot-scope` (createVehicle tenantData spread,
+  assignDriver employee probe, createMaintenanceRecord
+  tenantData spread, update/delete maintenance pre-checks).
+- `phase224-pilot-scope-precheck` (by-id mutations gated by
+  prior tenant-scoped findVehicleOrFail or maintenance-record
+  pre-check).
+
+Real bug closed: `updateMaintenanceRecord` and
+`deleteMaintenanceRecord` had a by-id `findUnique` pre-check
+that allowed cross-tenant mutation in pilot mode. Phase 2.24
+switches the pre-check to `findFirst({ id, ...t })`.
+
+`registrationNumber` remains globally `@unique`; per-tenant
+uniqueness is a Phase 3 schema change. See
+`SAAS_PHASE2_VEHICLES_REGISTRATION_NUMBER_SAFETY.md`.
+
+New harnesses (real-DB SAFE_CLONE):
+- vehicles-mutation-equivalence: 12/12 PASS
+- vehicles-mutation-isolation: 14/14 PASS
+
+Combined vehicles totals: **47/47 cases PASS**. Cumulative:
+finance 41 + documents 52 + vehicles 47 = **140/140** on real
+Postgres 16. Production behaviour unchanged.
+
+Storage paths (`addDocument`, `addMaintenanceAttachment`)
+remain deferred to Phase 2.25. Catalog mutations
+(`MaintenanceType`, `Workshop`) remain deferred (Phase 3
+product). The next phase is **Phase 2.25** (vehicle-document
+storage guard) OR a new module pilot (`workflow`, `applicants`).
+
 ## 12. Hard rules
 
 - **Never enable `TENANT_PRISMA_ENFORCEMENT=true` in production until every P0/P1/P2 module has migrated.** Enabling it with a half-migrated codebase makes the un-migrated services start filtering by tenant when their callers don't expect it.

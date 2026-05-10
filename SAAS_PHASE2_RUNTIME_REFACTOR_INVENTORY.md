@@ -373,3 +373,37 @@ Cross-module regression: finance 41/41 + documents 52/52 + vehicles
 
 Production default unchanged: `tenantWhere()` collapses to `{}`
 when `TENANT_PRISMA_PILOT_ENABLED=false`.
+
+## 21. Phase 2.24 — Vehicles mutation pilot (shipped)
+
+`src/vehicles` mutation paths brought into the pilot.
+
+- `createVehicle`: writes tenantId via scope.tenantData. Tag
+  phase224-pilot-scope.
+- `updateVehicle` / `deleteVehicle`: gated by Phase 2.23
+  tenant-scoped findVehicleOrFail. Tag phase224-pilot-scope-precheck.
+- `assignDriver`: parent vehicle gate + cross-tenant employee
+  probe via this.prisma.employee.findFirst({ id, ...t }).
+- `unassignDriver`: explicit findVehicleOrFail first; then by-id
+  legacy lookups under the gate.
+- `createMaintenanceRecord`: writes tenantId via scope.tenantData.
+- `updateMaintenanceRecord` / `deleteMaintenanceRecord`: NEW
+  tenant-scoped pre-check via this.prisma.maintenanceRecord.findFirst
+  closes a real cross-tenant mutation gap.
+
+`registrationNumber` remains globally @unique — Phase 3 schema
+change required for per-tenant uniqueness.
+
+Real-DB run (SAFE_CLONE saas_phase1_fixture):
+- vehicles-equivalence:           11/11 PASS
+- vehicles-isolation:             10/10 PASS
+- vehicles-mutation-equivalence:  12/12 PASS
+- vehicles-mutation-isolation:    14/14 PASS
+
+Total **47/47 vehicles harness cases PASS** across 4 harnesses.
+Cumulative finance + documents + vehicles: **140/140** on real
+Postgres 16.
+
+Storage paths (`addDocument`, `addMaintenanceAttachment`) remain
+deferred to Phase 2.25. Catalog mutations (`MaintenanceType`,
+`Workshop`) remain deferred (Phase 3 product question).

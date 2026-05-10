@@ -64,6 +64,8 @@ and counted against the strict-mode threshold.
 | `phase223-global` | Vehicles catalog reads (`MaintenanceType`, `Workshop`) — no `tenantId` column today; per-tenant catalog deferred to Phase 3. | `src/vehicles/**` | 2.23 |
 | `phase223-excluded-mutation` | Vehicles write/mutation sites (`createVehicle`, `updateVehicle`, `deleteVehicle`, `assignDriver`, `unassignDriver`, `createMaintenanceRecord`, `updateMaintenanceRecord`, `deleteMaintenanceRecord`, catalog CRUD) kept on `legacyPrisma` until Phase 2.24+. | `src/vehicles/**` | 2.23 |
 | `phase223-excluded-storage` | Vehicles storage / vehicle-document write sites (`addDocument`, `updateDocument`, `deleteDocument`) kept on `legacyPrisma` until Phase 2.25+. | `src/vehicles/**` | 2.23 |
+| `phase224-pilot-scope` | Vehicles write sites narrowed in Phase 2.24 — `createVehicle` + `createMaintenanceRecord` spread `scope.tenantData()`; `assignDriver` employee probe + `updateMaintenanceRecord` / `deleteMaintenanceRecord` pre-checks via `this.prisma.X.findFirst({ id, ...t })`. | `src/vehicles/**` | 2.24 |
+| `phase224-pilot-scope-precheck` | Vehicles by-id mutation sites gated by the prior tenant-scoped pre-check (`findVehicleOrFail` or `maintenanceRecord.findFirst`). The by-id mutation never reaches a foreign tenant's row in pilot mode. | `src/vehicles/**` | 2.24 |
 | `tenant-safe-report-runtime` | Reports engine uses `$queryRawUnsafe` with positional parameters and a registry-validated SQL string. | `src/reports/reports.service.ts` | 2.1 |
 
 ## 3. When annotations are allowed

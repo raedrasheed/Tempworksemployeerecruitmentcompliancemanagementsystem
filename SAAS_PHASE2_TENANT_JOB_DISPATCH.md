@@ -151,3 +151,12 @@ rollback.
 - **Failure escalation**: one-tenant failures are recorded but not
   alerted. A future phase may emit an operator-visible signal when
   any per-tenant scan fails.
+
+---
+
+## Phase 2.40 update — scheduler wired
+
+`ComplianceScheduler.runScheduledComplianceAlertGeneration()` now
+provides the disabled-by-default scheduler entry-point. It calls only
+`dispatchComplianceAlertGenerationForTenants()`. See
+`SAAS_PHASE2_COMPLIANCE_REAL_SCHEDULER.md`.

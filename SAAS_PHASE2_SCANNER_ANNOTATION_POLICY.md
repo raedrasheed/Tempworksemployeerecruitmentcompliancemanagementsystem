@@ -111,6 +111,7 @@ and counted against the strict-mode threshold.
 | `phase238-audit-log-pilot` | Compliance `updateAlert` audit emission delegated to `TenantAuditLogService` (replaces `phase28-audit-log`). | `src/compliance/**` | 2.38 |
 | `phase238-scheduler-routing` | Compliance `generateAlertsForTenant` scheduler-safe entrypoint with explicit per-tenant ALS frame attach. | `src/compliance/**` | 2.38 |
 | `phase239-tenant-job-dispatch` | Compliance `dispatchComplianceAlertGenerationForTenants` tenant fan-out helper. Refuses by default; gated by `TENANT_JOB_FANOUT_ENABLED` AND active compliance pilot. Calls `generateAlertsForTenant` per tenant. | `src/compliance/**` | 2.39 |
+| `phase240-compliance-real-scheduler` | Compliance scheduler entry-point (`ComplianceScheduler.runScheduledComplianceAlertGeneration`). Disabled by default; calls only the Phase 2.39 dispatch helper. | `src/compliance/**` | 2.40 |
 | `tenant-safe-report-runtime` | Reports engine uses `$queryRawUnsafe` with positional parameters and a registry-validated SQL string. | `src/reports/reports.service.ts` | 2.1 |
 
 ## 3. When annotations are allowed

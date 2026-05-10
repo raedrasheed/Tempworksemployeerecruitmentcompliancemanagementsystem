@@ -273,3 +273,22 @@ Cumulative across modules: **408/408**.
 
 No production behaviour change. No real scheduler is wired. Rollback
 is configuration-only.
+
+---
+
+## Phase 2.40 — real scheduler entry-point
+
+`ComplianceScheduler.runScheduledComplianceAlertGeneration()`
+shipped — disabled-by-default. Calls only the Phase 2.39 dispatch
+helper. New flag `COMPLIANCE_ALERT_SCHEDULER_ENABLED=false`.
+
+New annotation tag: `phase240-compliance-real-scheduler`.
+
+New harness (real Postgres): `compliance-real-scheduler` — **11/11 PASS**.
+
+Cumulative compliance: equivalence 12/12 + isolation 7/7 +
+audit/scheduler 9/9 + tenant-job-dispatch 9/9 + real-scheduler 11/11
+= **48/48**. Cumulative across modules: **419/419**.
+
+No production behaviour change. No cron framework wired. Rollback is
+configuration-only.

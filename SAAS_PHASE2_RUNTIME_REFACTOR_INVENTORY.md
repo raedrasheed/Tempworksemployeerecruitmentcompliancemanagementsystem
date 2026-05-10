@@ -739,3 +739,16 @@ Tag: `phase239-tenant-job-dispatch`.
 No scheduler wired this phase.
 
 Real-DB: 9/9. Cumulative: **408/408**.
+
+## 37. Phase 2.40 — Compliance real scheduler entry-point (shipped)
+
+`ComplianceScheduler` provider added at
+`src/compliance/compliance.scheduler.ts`. Disabled by default
+(`COMPLIANCE_ALERT_SCHEDULER_ENABLED=false`). Calls only the
+Phase 2.39 dispatch helper.
+
+Tag: `phase240-compliance-real-scheduler`.
+
+No cron framework is wired this phase.
+
+Real-DB: 11/11. Cumulative: **419/419**.

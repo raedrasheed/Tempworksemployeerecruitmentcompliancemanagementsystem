@@ -151,3 +151,25 @@ Key invariants:
   dispatch helper and nothing else.
 
 New harness: `compliance-tenant-job-dispatch` — 9/9 PASS.
+
+---
+
+# Phase 2.40 addendum — real scheduler entry-point
+
+`ComplianceScheduler.runScheduledComplianceAlertGeneration()` is now
+the **only** entry-point a future cron / Bull / queue handler is
+allowed to call. See `SAAS_PHASE2_COMPLIANCE_REAL_SCHEDULER.md` for
+the full contract.
+
+Key invariants:
+- Disabled by default (`COMPLIANCE_ALERT_SCHEDULER_ENABLED=false`).
+- Calls only `dispatchComplianceAlertGenerationForTenants()`. Source-level
+  meta-assertion proves the scheduler body never calls
+  `generateAlerts()` or `generateAlertsForTenant()` directly.
+- Returns a structured result; never throws. Unexpected dispatch
+  failures are captured as `{ error }`.
+- Configurable cron via `COMPLIANCE_ALERT_SCHEDULER_CRON` (default
+  `0 [slash]6 [star] [star] [star]`). Informational only — no cron
+  framework is wired this phase.
+
+New harness: `compliance-real-scheduler` — 11/11 PASS.

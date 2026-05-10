@@ -928,3 +928,20 @@ No real scheduler is wired. The dispatch helper is the contract for
 any future scheduler.
 
 Real-DB: `compliance-tenant-job-dispatch` 9/9. Cumulative: **408/408**.
+
+## 11.13 Phase 2.40 — compliance real scheduler entry-point
+
+`ComplianceScheduler.runScheduledComplianceAlertGeneration()` shipped
+on the compliance module. Disabled by default
+(`COMPLIANCE_ALERT_SCHEDULER_ENABLED=false`). Calls only
+`dispatchComplianceAlertGenerationForTenants()`. Source-level
+meta-assertion proves the scheduler body never calls raw
+`generateAlerts()` or `generateAlertsForTenant()`.
+
+Tag: `phase240-compliance-real-scheduler`.
+
+Real-DB: `compliance-real-scheduler` — 11/11 PASS. Cumulative:
+**419/419**.
+
+No cron framework is wired this phase. The scheduler entry-point is
+the contract for any future schedule.

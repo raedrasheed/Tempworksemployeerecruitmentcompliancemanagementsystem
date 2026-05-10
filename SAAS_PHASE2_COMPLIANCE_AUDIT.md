@@ -214,3 +214,19 @@ Tag: `phase239-tenant-job-dispatch`.
 Harness: `compliance-tenant-job-dispatch` — 9/9 PASS.
 
 No scheduler is wired in this phase.
+
+---
+
+# Phase 2.40 addendum — real scheduler entry-point
+
+`ComplianceScheduler` (`src/compliance/compliance.scheduler.ts`) is the
+only allowed path for any future cron / Bull / queue handler. It calls
+`dispatchComplianceAlertGenerationForTenants()` and never calls
+`generateAlerts()` or `generateAlertsForTenant()` directly (source-level
+meta-assertion proves this).
+
+Tag: `phase240-compliance-real-scheduler`.
+
+Harness: `compliance-real-scheduler` — 11/11 PASS.
+
+No cron framework is wired this phase.

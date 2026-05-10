@@ -1,6 +1,6 @@
 # Phase 2.23 — Vehicles Equivalence
 
-Generated: 2026-05-10T08:47:23.712Z
+Generated: 2026-05-10T09:02:15.984Z
 Environment: SAFE_CLONE (localhost + fixture pattern (db=saas_phase1_fixture))
 Tenant A: `11111111-1111-1111-1111-111111111111`
 

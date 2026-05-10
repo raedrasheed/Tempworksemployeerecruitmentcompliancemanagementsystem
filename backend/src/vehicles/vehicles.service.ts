@@ -301,6 +301,10 @@ export class VehiclesService {
   // ── Documents ────────────────────────────────────────────────────────────────
 
   async addDocument(vehicleId: string, dto: CreateVehicleDocumentDto, userId: string, file?: Express.Multer.File) {
+    // Phase 2.25 — STORAGE GUARD. The tenant-scoped findVehicleOrFail
+    // (Phase 2.23) raises 404 BEFORE storage.uploadFile when the
+    // vehicle belongs to another tenant. Pilot mode also writes
+    // tenantId on the new VehicleDocument via scope.tenantData().
     await this.findVehicleOrFail(vehicleId);
     const { expiryDate, issuedDate, ...rest } = dto;
     const data: any = { ...rest, vehicleId, uploadedById: userId };
@@ -317,11 +321,18 @@ export class VehiclesService {
       data.fileName = file.originalname;
       data.fileSize = file.size;
     }
-    return this.legacyPrisma.vehicleDocument.create({ data }); // @tenant-reviewed: phase223-excluded-storage
+    const tdata = this.scope().tenantData();
+    return this.legacyPrisma.vehicleDocument.create({ data: { ...data, ...tdata } }); // @tenant-reviewed: phase225-pilot-scope (writes tenantId via scope.tenantData; parent vehicle tenant-checked above)
   }
 
   async updateDocument(vehicleId: string, docId: string, dto: UpdateVehicleDocumentDto) {
-    const doc = await this.legacyPrisma.vehicleDocument.findFirst({ where: { id: docId, vehicleId } }); // @tenant-reviewed: phase223-excluded-storage
+    // Phase 2.25 — explicit parent-vehicle gate before the by-id
+    // document lookup. Pre-2.25 the lookup was by `{ id, vehicleId }`
+    // alone, which allowed cross-tenant mutation when both ids were
+    // foreign. The findVehicleOrFail call raises 404 in pilot mode
+    // for cross-tenant vehicleIds.
+    await this.findVehicleOrFail(vehicleId);
+    const doc = await this.legacyPrisma.vehicleDocument.findFirst({ where: { id: docId, vehicleId } }); // @tenant-reviewed: phase225-pilot-scope-precheck (parent vehicle tenant-checked above; vehicleId predicate ties this lookup to the same parent)
     if (!doc) throw new NotFoundException('Document not found');
 
     const { expiryDate, issuedDate, ...rest } = dto;
@@ -329,14 +340,16 @@ export class VehiclesService {
     if (expiryDate !== undefined) data.expiryDate = expiryDate ? new Date(expiryDate) : null;
     if (issuedDate !== undefined) data.issuedDate = issuedDate ? new Date(issuedDate) : null;
 
-    return this.legacyPrisma.vehicleDocument.update({ where: { id: docId }, data }); // @tenant-reviewed: phase223-excluded-storage
+    return this.legacyPrisma.vehicleDocument.update({ where: { id: docId }, data }); // @tenant-reviewed: phase225-pilot-scope-precheck
   }
 
   async deleteDocument(vehicleId: string, docId: string, userId?: string) {
-    const doc = await this.legacyPrisma.vehicleDocument.findFirst({ where: { id: docId, vehicleId } as any }); // @tenant-reviewed: phase223-excluded-storage
+    // Phase 2.25 — same explicit parent-vehicle gate.
+    await this.findVehicleOrFail(vehicleId);
+    const doc = await this.legacyPrisma.vehicleDocument.findFirst({ where: { id: docId, vehicleId } as any }); // @tenant-reviewed: phase225-pilot-scope-precheck (parent vehicle tenant-checked above)
     if (!doc) throw new NotFoundException('Document not found');
     if ((doc as any).deletedAt) throw new NotFoundException('Document not found');
-    await (this.legacyPrisma.vehicleDocument as any).update({ // @tenant-reviewed: phase223-excluded-storage
+    await (this.legacyPrisma.vehicleDocument as any).update({ // @tenant-reviewed: phase225-pilot-scope-precheck
       where: { id: docId },
       data: { deletedAt: new Date(), deletedBy: userId ?? null },
     });

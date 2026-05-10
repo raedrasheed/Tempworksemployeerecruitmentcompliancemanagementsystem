@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-10T08:47:55.731Z",
+  "generatedAt": "2026-05-10T09:02:49.138Z",
   "environment": {
     "classification": "SAFE_CLONE",
     "reason": "localhost + fixture pattern (db=saas_phase1_fixture)",
@@ -17,7 +17,7 @@
     {
       "name": "createVehicle response shape preserved (id present)",
       "ok": true,
-      "detail": "legacy.id=8a956887-6cff-4f94-9eac-fb528b7d0dca pilot.id=01739ec6-60e1-4ce9-9dec-7a4d3e18128c"
+      "detail": "legacy.id=946e9692-8e5f-43ff-af2d-25b98213a609 pilot.id=c037d67f-a337-48b2-8c60-ab352977eb4b"
     },
     {
       "name": "createVehicle legacy: tenantId is NULL",

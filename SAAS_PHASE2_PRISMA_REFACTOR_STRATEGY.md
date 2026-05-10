@@ -582,6 +582,39 @@ remain deferred to Phase 2.25. Catalog mutations
 product). The next phase is **Phase 2.25** (vehicle-document
 storage guard) OR a new module pilot (`workflow`, `applicants`).
 
+## 11.11 Phase 2.25 — Vehicles storage pilot (shipped)
+
+Closes the vehicles module pilot. New tags:
+- `phase225-pilot-scope` (addDocument tenantData spread).
+- `phase225-pilot-scope-precheck` (update/deleteDocument by-id
+  mutations gated by NEW explicit findVehicleOrFail).
+- `phase225-storage-guard` (reserved for future storage-bound
+  refactors; today the guard is the parent vehicle gate).
+
+Real bugs closed: `updateDocument` and `deleteDocument` allowed
+cross-tenant mutation in pilot mode (the prior
+`findFirst({ id, vehicleId })` had no tenant filter — both ids
+could be foreign). Phase 2.25 adds explicit
+`findVehicleOrFail(vehicleId)` first.
+
+`addMaintenanceAttachment` / `deleteMaintenanceAttachment`
+remain stubs — DEFERRED_HIGH_RISK until the attachments
+migration ships.
+
+New harnesses (real-DB SAFE_CLONE):
+- vehicles-storage-equivalence: 10/10 PASS
+- vehicles-storage-isolation: 8/8 PASS
+
+Combined vehicles totals: **65/65 cases PASS** across 6
+harnesses. Cumulative finance + documents + vehicles:
+**158/158** on real Postgres 16. Production behaviour
+unchanged.
+
+Three modules (finance, documents, vehicles) are now fully
+proven on real DB across reads + writes + storage. The next
+phase is a **new module pilot** (`workflow`, `applicants`) or
+the cross-module audit-log tenancy phase.
+
 ## 12. Hard rules
 
 - **Never enable `TENANT_PRISMA_ENFORCEMENT=true` in production until every P0/P1/P2 module has migrated.** Enabling it with a half-migrated codebase makes the un-migrated services start filtering by tenant when their callers don't expect it.

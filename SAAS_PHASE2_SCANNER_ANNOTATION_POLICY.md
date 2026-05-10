@@ -66,6 +66,9 @@ and counted against the strict-mode threshold.
 | `phase223-excluded-storage` | Vehicles storage / vehicle-document write sites (`addDocument`, `updateDocument`, `deleteDocument`) kept on `legacyPrisma` until Phase 2.25+. | `src/vehicles/**` | 2.23 |
 | `phase224-pilot-scope` | Vehicles write sites narrowed in Phase 2.24 — `createVehicle` + `createMaintenanceRecord` spread `scope.tenantData()`; `assignDriver` employee probe + `updateMaintenanceRecord` / `deleteMaintenanceRecord` pre-checks via `this.prisma.X.findFirst({ id, ...t })`. | `src/vehicles/**` | 2.24 |
 | `phase224-pilot-scope-precheck` | Vehicles by-id mutation sites gated by the prior tenant-scoped pre-check (`findVehicleOrFail` or `maintenanceRecord.findFirst`). The by-id mutation never reaches a foreign tenant's row in pilot mode. | `src/vehicles/**` | 2.24 |
+| `phase225-pilot-scope` | Vehicles storage / vehicle-document write sites narrowed in Phase 2.25 — `addDocument` spreads `scope.tenantData()` on the new `VehicleDocument` row. | `src/vehicles/**` | 2.25 |
+| `phase225-pilot-scope-precheck` | Vehicles `updateDocument` / `deleteDocument` by-id mutation sites gated by the NEW explicit `findVehicleOrFail(vehicleId)` parent gate (Phase 2.25). Closes a real cross-tenant mutation gap. | `src/vehicles/**` | 2.25 |
+| `phase225-storage-guard` | Reserved for future storage-bound vehicle-document refactors (file-replacement, real-delete from bucket); today the storage guard is the parent vehicle gate. | `src/vehicles/**` | 2.25 |
 | `tenant-safe-report-runtime` | Reports engine uses `$queryRawUnsafe` with positional parameters and a registry-validated SQL string. | `src/reports/reports.service.ts` | 2.1 |
 
 ## 3. When annotations are allowed

@@ -407,3 +407,35 @@ Postgres 16.
 Storage paths (`addDocument`, `addMaintenanceAttachment`) remain
 deferred to Phase 2.25. Catalog mutations (`MaintenanceType`,
 `Workshop`) remain deferred (Phase 3 product question).
+
+## 22. Phase 2.25 — Vehicles storage pilot (shipped)
+
+Closes the vehicles module pilot.
+
+- `addDocument`: parent vehicle gate already in place
+  (Phase 2.23) raises 404 BEFORE storage.uploadFile. Phase 2.25
+  adds scope.tenantData() spread on the new VehicleDocument.
+  Tag phase225-pilot-scope.
+- `updateDocument` / `deleteDocument`: NEW explicit
+  findVehicleOrFail(vehicleId) first. Pre-2.25 the lookup was
+  by { id, vehicleId } alone, allowing cross-tenant mutation.
+  By-id mutation sites tagged phase225-pilot-scope-precheck.
+- `addMaintenanceAttachment` / `deleteMaintenanceAttachment`
+  remain stubs — DEFERRED_HIGH_RISK until the attachments
+  migration ships.
+
+Real-DB run (SAFE_CLONE saas_phase1_fixture):
+- vehicles-equivalence:           11/11 PASS
+- vehicles-isolation:             10/10 PASS
+- vehicles-mutation-equivalence:  12/12 PASS
+- vehicles-mutation-isolation:    14/14 PASS
+- vehicles-storage-equivalence:   10/10 PASS
+- vehicles-storage-isolation:      8/8 PASS
+
+Total **65/65 vehicles harness cases PASS** across 6 harnesses.
+Cumulative finance + documents + vehicles: **158/158** on real
+Postgres 16.
+
+Three modules (finance, documents, vehicles) are now fully
+proven on real DB across reads + writes + storage. Production
+behaviour unchanged.

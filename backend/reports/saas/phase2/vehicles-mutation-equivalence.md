@@ -1,6 +1,6 @@
 # Phase 2.24 — Vehicles Mutation Equivalence
 
-Generated: 2026-05-10T08:47:55.731Z
+Generated: 2026-05-10T09:02:49.138Z
 Environment: SAFE_CLONE (localhost + fixture pattern (db=saas_phase1_fixture))
 Tenant A: `11111111-1111-1111-1111-111111111111`
 
@@ -9,7 +9,7 @@ Tenant A: `11111111-1111-1111-1111-111111111111`
 
 | # | Case | Result | Detail |
 |--:|------|:------:|--------|
-| 1 | createVehicle response shape preserved (id present) | PASS | legacy.id=8a956887-6cff-4f94-9eac-fb528b7d0dca pilot.id=01739ec6-60e1-4ce9-9dec-7a4d3e18128c |
+| 1 | createVehicle response shape preserved (id present) | PASS | legacy.id=946e9692-8e5f-43ff-af2d-25b98213a609 pilot.id=c037d67f-a337-48b2-8c60-ab352977eb4b |
 | 2 | createVehicle legacy: tenantId is NULL | PASS | legacy.tenantId=null |
 | 3 | createVehicle pilot: tenantId is set to active tenant | PASS | pilot.tenantId=11111111-1111-1111-1111-111111111111 tenantA=11111111-1111-1111-1111-111111111111 |
 | 4 | updateVehicle (legacy) mutates make | PASS | make=LegacyUpdated |

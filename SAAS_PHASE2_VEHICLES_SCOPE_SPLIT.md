@@ -61,7 +61,26 @@ Phase 2.24 narrowed the mutation surface. See
 - Catalog mutations (`MaintenanceType`, `Workshop`) still
   `phase223-excluded-mutation` (Phase 3 product question).
 
-## 3. Phase 2.25+ — Storage refactor (FUTURE)
+## 2.2 Phase 2.25 update — storage pilot shipped
+
+Phase 2.25 closes the vehicles module pilot. See
+`SAAS_PHASE2_VEHICLES_STORAGE_AUDIT.md` and
+`SAAS_PHASE2_VEHICLES_STORAGE_SIDE_EFFECT_REVIEW.md`.
+
+- `addDocument`: parent vehicle gate already in place;
+  `scope.tenantData()` spread on the new VehicleDocument.
+  Tag `phase225-pilot-scope`.
+- `updateDocument` / `deleteDocument`: NEW explicit
+  `findVehicleOrFail` first. By-id mutation sites tagged
+  `phase225-pilot-scope-precheck`. Closes a real cross-tenant
+  mutation gap.
+- `addMaintenanceAttachment` / `deleteMaintenanceAttachment`
+  remain stubs — DEFERRED until the attachments migration ships.
+
+Zero `phase223-excluded-storage` annotations remain on the
+active vehicle-document paths.
+
+## 3. Phase 3+ — Catalog tenancy / signed URL refactor (FUTURE)
 
 The `findVehicleOrFail` pre-check is already tenant-scoped after Phase 2.23, so mutation paths inherit a safety gate via the existing pattern from finance 2.17 / documents 2.21:
 

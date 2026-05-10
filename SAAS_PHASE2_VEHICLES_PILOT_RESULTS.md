@@ -201,6 +201,53 @@ The vehicles module pilot is now complete (reads + writes).
 Storage paths (`addDocument`, `addMaintenanceAttachment`)
 remain deferred to Phase 2.25.
 
+## 10.2 Phase 2.25 — Storage pilot delta
+
+Phase 2.25 closes the last vehicles-module deferred path: vehicle
+document upload/update/delete.
+
+- `addDocument`: parent `findVehicleOrFail` gate already in place
+  (Phase 2.23) raises 404 BEFORE `storage.uploadFile` for
+  cross-tenant `vehicleId`. Phase 2.25 adds `scope.tenantData()`
+  spread on the new `VehicleDocument` row. Tag
+  `phase225-pilot-scope`.
+- `updateDocument` / `deleteDocument`: NEW explicit
+  `findVehicleOrFail(vehicleId)` first. Pre-2.25 the lookup was
+  by `{ id, vehicleId }` alone — both predicates could be foreign
+  in pilot mode, allowing cross-tenant mutation. The new gate
+  raises 404 before any DB write. By-id mutation sites tagged
+  `phase225-pilot-scope-precheck`.
+- `addMaintenanceAttachment` / `deleteMaintenanceAttachment`
+  remain stubs that throw `BadRequestException` — DEFERRED
+  until the attachments migration ships.
+
+Real bugs closed:
+
+- `updateDocument` and `deleteDocument` allowed cross-tenant
+  mutation in pilot mode. The new `findVehicleOrFail` gate
+  closes both gaps.
+
+New harnesses (real-DB SAFE_CLONE):
+- `vehicles-storage-equivalence` (10 cases): addDocument shape,
+  tenantId NULL/set, upload count, no-file path, update mutation,
+  soft-delete, validation parity, read-after-write.
+- `vehicles-storage-isolation` (8 cases): STORAGE GUARD blocks
+  cross-tenant addDocument with 0 uploads + 0 rows; same-tenant
+  succeeds with 1 upload + tenantId=A; cross-tenant
+  update/deleteDocument rejected; legacy mode unchanged;
+  concurrent ALS frames isolated; addMaintenanceAttachment stub
+  still throws (DEFERRED documented); source-level
+  meta-assertion.
+
+Real-DB results: **65/65 vehicles harness cases PASS** across
+all 6 harnesses (11 + 10 + 12 + 14 + 10 + 8). Combined cumulative:
+finance 41 + documents 52 + vehicles 65 = **158/158** on real
+Postgres 16.
+
+The vehicles module pilot is now complete (reads + writes +
+storage). Zero `phase223-excluded-storage` annotations remain
+on the active document paths.
+
 ## 11. Next recommended module
 
 The pattern is now proven on three production-grade modules end-to-end (finance, documents) and one module reads-first (vehicles). Natural follow-ups:

@@ -21,6 +21,8 @@
   "systemLogs": "Systémové záznamy",
   "deletedRecords": "Vymazané záznamy",
   "settings": "Nastavenia",
+  "tenants": "Nájomcovia",
+  "platformAdministration": "Správa platformy",
   "sidebar": {
     "platformLabel": "Náborová platforma"
   },

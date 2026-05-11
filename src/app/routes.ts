@@ -47,6 +47,10 @@ import { NotificationSettings } from './pages/notifications/NotificationSettings
 import { UsersList } from './pages/users/UsersList';
 import { AddUser } from './pages/users/AddUser';
 import { EditUser } from './pages/users/EditUser';
+import { TenantsList } from './pages/tenants/TenantsList';
+import { TenantCreate } from './pages/tenants/TenantCreate';
+import { TenantEdit } from './pages/tenants/TenantEdit';
+import { TenantDetails } from './pages/tenants/TenantDetails';
 import { RolesList } from './pages/roles/RolesList';
 import { CreateRole } from './pages/roles/CreateRole';
 import { PermissionsMatrix } from './pages/roles/PermissionsMatrix';
@@ -208,6 +212,12 @@ export const router = createBrowserRouter([
       { path: 'users', Component: UsersList },
       { path: 'users/add', Component: AddUser },
       { path: 'users/:id/edit', Component: EditUser },
+
+      // Phase 3.15 — Tenant Management (Platform Administration)
+      { path: 'tenants', Component: TenantsList },
+      { path: 'tenants/new', Component: TenantCreate },
+      { path: 'tenants/:id', Component: TenantDetails },
+      { path: 'tenants/:id/edit', Component: TenantEdit },
       
       // Roles & Permissions routes
       { path: 'roles', Component: RolesList },

@@ -619,6 +619,15 @@ export class AuthService {
       // @tenant-reviewed: phase390-platform-admin-only-authority
       agency: user.agency ? { id: user.agency.id, name: user.agency.name, isSystem: await this.platformAdminAccess.isPlatformAdmin(user.id) } : null,
       agencyIsSystem: await this.platformAdminAccess.isPlatformAdmin(user.id),
+      // Phase 3.15 — expose PlatformAdmin level so the frontend can gate
+      // the Platform Administration sidebar group and Tenants page.
+      // @tenant-reviewed: phase315-tenant-management-module
+      platformAdmin: await (async () => {
+        const pa = await (this.prisma as any).platformAdmin.findUnique({
+          where: { userId: user.id }, select: { level: true },
+        }).catch(() => null);
+        return { level: pa?.level ?? 'NONE' };
+      })(),
       permissions: effectivePermissions,
       status: user.status,
       lastLoginAt: user.lastLoginAt,

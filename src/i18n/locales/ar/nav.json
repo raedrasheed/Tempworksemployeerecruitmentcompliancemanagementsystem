@@ -21,6 +21,8 @@
   "systemLogs": "سجلات النظام",
   "deletedRecords": "السجلات المحذوفة",
   "settings": "الإعدادات",
+  "tenants": "المستأجرون",
+  "platformAdministration": "إدارة المنصة",
   "sidebar": {
     "platformLabel": "منصة التوظيف"
   },

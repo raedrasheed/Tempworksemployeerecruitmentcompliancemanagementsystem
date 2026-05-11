@@ -5377,5 +5377,100 @@
         "createdAt": "Oluşturuldu"
       }
     }
+  },
+  "tenants": {
+    "list": {
+      "title": "Kiracılar",
+      "subtitle": "Platform genelinde kiracı yönetimi",
+      "addTenant": "Kiracı ekle",
+      "searchPlaceholder": "Ad, slug veya alan adı ile ara…",
+      "allStatuses": "Tüm durumlar",
+      "includeDeleted": "Silinmişleri dahil et",
+      "loading": "Yükleniyor…",
+      "empty": "Kiracı bulunamadı.",
+      "view": "Görüntüle",
+      "edit": "Düzenle",
+      "archive": "Arşivle",
+      "activate": "Etkinleştir",
+      "restore": "Geri yükle",
+      "delete": "Sil",
+      "cols": {
+        "name": "Ad",
+        "slug": "Slug",
+        "domain": "Alan adı",
+        "status": "Durum",
+        "created": "Oluşturuldu",
+        "actions": "İşlemler"
+      }
+    },
+    "form": {
+      "titleCreate": "Yeni kiracı",
+      "titleEdit": "Kiracı düzenle",
+      "subtitle": "Profil ve ayarlar",
+      "save": "Kaydet",
+      "saving": "Kaydediliyor…",
+      "cancel": "İptal",
+      "slugHelp": "Küçük harf, URL uyumlu.",
+      "slugImmutable": "Slug değişikliği SUPER yetkisi gerektirir.",
+      "sections": {
+        "general": "Genel",
+        "branding": "Marka",
+        "contact": "İletişim ve Notlar"
+      }
+    },
+    "fields": {
+      "name": "Ad",
+      "slug": "Slug",
+      "customDomain": "Özel alan adı",
+      "status": "Durum",
+      "region": "Bölge",
+      "logoUrl": "Logo URL",
+      "primaryColor": "Ana renk",
+      "timezone": "Saat dilimi",
+      "locale": "Dil",
+      "contactEmail": "E-posta",
+      "contactPhone": "Telefon",
+      "address": "Adres",
+      "notes": "Notlar",
+      "planId": "Plan",
+      "onboardingStatus": "Onboarding",
+      "createdAt": "Oluşturuldu",
+      "updatedAt": "Güncellendi"
+    },
+    "statuses": {
+      "active": "Aktif",
+      "suspended": "Askıda",
+      "inactive": "Pasif"
+    },
+    "tabs": {
+      "general": "Genel",
+      "branding": "Marka",
+      "access": "Erişim",
+      "stats": "İstatistik",
+      "flags": "Bayraklar"
+    },
+    "stats": {
+      "agencies": "Acenteler",
+      "users": "Kullanıcılar",
+      "employees": "Çalışanlar",
+      "applicants": "Adaylar",
+      "documents": "Belgeler",
+      "memberships": "Üyelikler",
+      "unavailable": "İstatistik mevcut değil."
+    },
+    "flags": {
+      "empty": "Yapılandırılmış bayrak yok."
+    },
+    "deleted": "Silindi",
+    "confirmArchiveTitle": "Kiracıyı arşivle?",
+    "confirmArchiveDesc": "Kiracı askıya alınacak.",
+    "confirmDeleteTitle": "Kiracıyı sil?",
+    "confirmDeleteDesc": "Yumuşak silme. SUPER tarafından geri yüklenebilir.",
+    "toastCreated": "Kiracı oluşturuldu",
+    "toastUpdated": "Kiracı güncellendi",
+    "toastArchived": "Kiracı arşivlendi",
+    "toastActivated": "Kiracı etkinleştirildi",
+    "toastRestored": "Kiracı geri yüklendi",
+    "toastDeleted": "Kiracı silindi"
   }
 }

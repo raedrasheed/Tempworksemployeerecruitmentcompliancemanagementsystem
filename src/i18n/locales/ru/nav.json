@@ -21,6 +21,8 @@
   "systemLogs": "Системные журналы",
   "deletedRecords": "Удалённые записи",
   "settings": "Настройки",
+  "tenants": "Тенанты",
+  "platformAdministration": "Администрирование платформы",
   "sidebar": {
     "platformLabel": "Платформа рекрутинга"
   },

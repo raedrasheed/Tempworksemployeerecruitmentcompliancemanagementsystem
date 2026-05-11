@@ -5423,5 +5423,100 @@
         "createdAt": "Vytvorené"
       }
     }
+  },
+  "tenants": {
+    "list": {
+      "title": "Nájomcovia",
+      "subtitle": "Správa nájomcov platformy",
+      "addTenant": "Pridať nájomcu",
+      "searchPlaceholder": "Hľadať podľa názvu, slug alebo domény…",
+      "allStatuses": "Všetky stavy",
+      "includeDeleted": "Vrátane vymazaných",
+      "loading": "Načítavanie…",
+      "empty": "Žiadni nájomcovia.",
+      "view": "Zobraziť",
+      "edit": "Upraviť",
+      "archive": "Archivovať",
+      "activate": "Aktivovať",
+      "restore": "Obnoviť",
+      "delete": "Vymazať",
+      "cols": {
+        "name": "Názov",
+        "slug": "Slug",
+        "domain": "Doména",
+        "status": "Stav",
+        "created": "Vytvorené",
+        "actions": "Akcie"
+      }
+    },
+    "form": {
+      "titleCreate": "Nový nájomca",
+      "titleEdit": "Upraviť nájomcu",
+      "subtitle": "Profil a nastavenia",
+      "save": "Uložiť",
+      "saving": "Ukladám…",
+      "cancel": "Zrušiť",
+      "slugHelp": "Malé písmená, vhodné pre URL.",
+      "slugImmutable": "Zmena slug vyžaduje SUPER.",
+      "sections": {
+        "general": "Všeobecné",
+        "branding": "Branding",
+        "contact": "Kontakt a poznámky"
+      }
+    },
+    "fields": {
+      "name": "Názov",
+      "slug": "Slug",
+      "customDomain": "Vlastná doména",
+      "status": "Stav",
+      "region": "Región",
+      "logoUrl": "URL loga",
+      "primaryColor": "Hlavná farba",
+      "timezone": "Časové pásmo",
+      "locale": "Jazyk",
+      "contactEmail": "Kontaktný e-mail",
+      "contactPhone": "Telefón",
+      "address": "Adresa",
+      "notes": "Poznámky",
+      "planId": "Plán",
+      "onboardingStatus": "Onboarding",
+      "createdAt": "Vytvorené",
+      "updatedAt": "Upravené"
+    },
+    "statuses": {
+      "active": "Aktívny",
+      "suspended": "Pozastavený",
+      "inactive": "Neaktívny"
+    },
+    "tabs": {
+      "general": "Všeobecné",
+      "branding": "Branding",
+      "access": "Prístup",
+      "stats": "Štatistiky",
+      "flags": "Príznaky"
+    },
+    "stats": {
+      "agencies": "Agentúry",
+      "users": "Používatelia",
+      "employees": "Zamestnanci",
+      "applicants": "Uchádzači",
+      "documents": "Dokumenty",
+      "memberships": "Členstvá",
+      "unavailable": "Štatistiky nie sú k dispozícii."
+    },
+    "flags": {
+      "empty": "Žiadne nakonfigurované príznaky."
+    },
+    "deleted": "Vymazaný",
+    "confirmArchiveTitle": "Archivovať nájomcu?",
+    "confirmArchiveDesc": "Nájomca bude pozastavený.",
+    "confirmDeleteTitle": "Vymazať nájomcu?",
+    "confirmDeleteDesc": "Mäkké mazanie, SUPER môže obnoviť.",
+    "toastCreated": "Nájomca vytvorený",
+    "toastUpdated": "Nájomca aktualizovaný",
+    "toastArchived": "Nájomca archivovaný",
+    "toastActivated": "Nájomca aktivovaný",
+    "toastRestored": "Nájomca obnovený",
+    "toastDeleted": "Nájomca vymazaný"
   }
 }

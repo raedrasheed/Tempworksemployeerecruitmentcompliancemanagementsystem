@@ -5371,5 +5371,100 @@
         "createdAt": "Created"
       }
     }
+  },
+  "tenants": {
+    "list": {
+      "title": "Tenants",
+      "subtitle": "Platform-wide tenant administration",
+      "addTenant": "Add Tenant",
+      "searchPlaceholder": "Search by name, slug, or domain…",
+      "allStatuses": "All statuses",
+      "includeDeleted": "Include deleted",
+      "loading": "Loading…",
+      "empty": "No tenants found.",
+      "view": "View",
+      "edit": "Edit",
+      "archive": "Archive",
+      "activate": "Activate",
+      "restore": "Restore",
+      "delete": "Delete",
+      "cols": {
+        "name": "Name",
+        "slug": "Slug",
+        "domain": "Domain",
+        "status": "Status",
+        "created": "Created",
+        "actions": "Actions"
+      }
+    },
+    "form": {
+      "titleCreate": "New Tenant",
+      "titleEdit": "Edit Tenant",
+      "subtitle": "Tenant profile and operational settings",
+      "save": "Save",
+      "saving": "Saving…",
+      "cancel": "Cancel",
+      "slugHelp": "Lowercase, URL-safe. Used in tenant-aware login.",
+      "slugImmutable": "Slug changes require a SUPER Platform Admin.",
+      "sections": {
+        "general": "General",
+        "branding": "Branding",
+        "contact": "Contact & Notes"
+      }
+    },
+    "fields": {
+      "name": "Name",
+      "slug": "Slug",
+      "customDomain": "Custom Domain",
+      "status": "Status",
+      "region": "Region",
+      "logoUrl": "Logo URL",
+      "primaryColor": "Primary Color",
+      "timezone": "Timezone",
+      "locale": "Locale",
+      "contactEmail": "Contact Email",
+      "contactPhone": "Contact Phone",
+      "address": "Address",
+      "notes": "Notes",
+      "planId": "Plan",
+      "onboardingStatus": "Onboarding",
+      "createdAt": "Created at",
+      "updatedAt": "Updated at"
+    },
+    "statuses": {
+      "active": "Active",
+      "suspended": "Suspended",
+      "inactive": "Inactive"
+    },
+    "tabs": {
+      "general": "General",
+      "branding": "Branding",
+      "access": "Access",
+      "stats": "Statistics",
+      "flags": "Feature Flags"
+    },
+    "stats": {
+      "agencies": "Agencies",
+      "users": "Users",
+      "employees": "Employees",
+      "applicants": "Applicants",
+      "documents": "Documents",
+      "memberships": "Memberships",
+      "unavailable": "Statistics unavailable."
+    },
+    "flags": {
+      "empty": "No feature flags configured."
+    },
+    "deleted": "Deleted",
+    "confirmArchiveTitle": "Archive tenant?",
+    "confirmArchiveDesc": "The tenant will be suspended and unavailable to its users.",
+    "confirmDeleteTitle": "Delete tenant?",
+    "confirmDeleteDesc": "Soft-deletes the tenant. It can be restored by a SUPER admin.",
+    "toastCreated": "Tenant created",
+    "toastUpdated": "Tenant updated",
+    "toastArchived": "Tenant archived",
+    "toastActivated": "Tenant activated",
+    "toastRestored": "Tenant restored",
+    "toastDeleted": "Tenant deleted"
   }
 }

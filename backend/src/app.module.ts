@@ -30,6 +30,7 @@ import { VehiclesModule } from './vehicles/vehicles.module';
 import { BackupModule }   from './backup/backup.module';
 import { EmailModule } from './email/email.module';
 import { TenancyModule } from './saas/tenancy/tenancy.module';
+import { TenantsModule } from './tenants/tenants.module';
 
 @Module({
   imports: [
@@ -68,6 +69,8 @@ import { TenancyModule } from './saas/tenancy/tenancy.module';
     // INERT when MULTI_TENANT_ENABLED=false (production default).
     // Activates only on staging-classified hosts.
     TenancyModule,
+    // Phase 3.15 — Tenant Management module (PlatformAdmin only).
+    TenantsModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

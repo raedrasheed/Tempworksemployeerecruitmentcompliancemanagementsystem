@@ -21,6 +21,8 @@
   "systemLogs": "Systemprotokolle",
   "deletedRecords": "Gelöschte Datensätze",
   "settings": "Einstellungen",
+  "tenants": "Mandanten",
+  "platformAdministration": "Plattformverwaltung",
   "sidebar": {
     "platformLabel": "Recruiting-Plattform"
   },

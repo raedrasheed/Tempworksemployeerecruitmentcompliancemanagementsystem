@@ -26,6 +26,7 @@ import {
   Truck,
   Wrench,
   Factory,
+  Globe,
 } from 'lucide-react';
 import { cn } from '../ui/utils';
 import { useAuthContext } from '../../contexts/AuthContext';
@@ -47,6 +48,12 @@ interface NavItem {
   /** Hide this item for users whose role is in this list, regardless of permissions. */
   hideForRoles?: string[];
   children?: NavChild[];
+  /**
+   * Phase 3.15 — restrict to PlatformAdmin viewers of at least this level.
+   * Bypasses the role/permission filter entirely. Non-PlatformAdmin users
+   * never see the item.
+   */
+  platformAdminLevel?: 'SUPPORT' | 'OPERATOR' | 'SUPER';
 }
 
 // External agency roles — must not see the Leads nav.
@@ -82,7 +89,14 @@ const allNavigationItems: NavItem[] = [
   { icon: Activity,        labelKey: 'systemLogs',          path: '/dashboard/logs',             permission: 'logs:read' },
   { icon: Trash2,          labelKey: 'deletedRecords',      path: '/dashboard/recycle-bin',      permission: 'recycle-bin:read', roles: ['System Admin', 'HR Manager', 'Compliance Officer'], hideForRoles: AGENCY_ROLES },
   { icon: Settings,        labelKey: 'settings',            path: '/dashboard/settings',         permission: 'settings:read' },
+  // Phase 3.15 — Platform Administration > Tenants. Visible only to
+  // PlatformAdmin viewers (SUPPORT+). SUPPORT is read-only; OPERATOR
+  // can update/archive; SUPER can create/delete/restore. Hidden for
+  // every non-PlatformAdmin user regardless of tenant role.
+  { icon: Globe,           labelKey: 'tenants',             path: '/dashboard/tenants',          permission: null, platformAdminLevel: 'SUPPORT' },
 ];
+
+const PA_RANK: Record<string, number> = { NONE: 0, SUPPORT: 1, OPERATOR: 2, SUPER: 3 };
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -115,7 +129,15 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
   const permissions = user?.permissions ?? [];
   const isAdmin = userRole === 'System Admin';
 
+  const viewerPaLevel = (user as any)?.platformAdmin?.level ?? 'NONE';
+
   const navigationItems = allNavigationItems.filter((item) => {
+    // Phase 3.15 — PlatformAdmin-gated items bypass the tenant role/
+    // permission filter entirely; they are visible only to a viewer
+    // whose PlatformAdmin level meets the threshold.
+    if (item.platformAdminLevel) {
+      return PA_RANK[viewerPaLevel] >= PA_RANK[item.platformAdminLevel];
+    }
     // Role-based blocklist takes precedence — agency users must never see
     // internal-only items (e.g. Leads) even if their permission set allows it.
     if (item.hideForRoles && item.hideForRoles.includes(userRole)) return false;

@@ -73,6 +73,32 @@ export interface AuthUser {
   agencyIsSystem?: boolean;
   permissions?: string[];
   photoUrl?: string;
+  /** Phase 3.15 — PlatformAdmin level driving Platform Administration nav. */
+  platformAdmin?: { level: 'NONE' | 'SUPPORT' | 'OPERATOR' | 'SUPER' };
+}
+
+export interface TenantRecord {
+  id: string;
+  name: string;
+  slug: string;
+  customDomain: string | null;
+  status: 'ACTIVE' | 'SUSPENDED' | 'INACTIVE';
+  region: string;
+  planId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  logoUrl: string | null;
+  primaryColor: string | null;
+  timezone: string | null;
+  locale: string | null;
+  contactEmail: string | null;
+  contactPhone: string | null;
+  address: string | null;
+  notes: string | null;
+  featureFlags: Record<string, boolean>;
+  onboardingStatus: string | null;
+  archivedAt: string | null;
+  deletedAt: string | null;
 }
 
 export interface PaginationMeta {
@@ -1947,4 +1973,31 @@ export const backupApi = {
 
   /** Delete a backup */
   delete: (id: string) => apiFetch<any>(`/backup/${id}`, { method: 'DELETE' }),
+};
+
+
+// ── Phase 3.15 — Tenant Management API ──────────────────────────────────────
+export const tenantsApi = {
+  list: (params: {
+    page?: number; limit?: number; search?: string; status?: string; includeDeleted?: boolean;
+  } = {}) => {
+    const qs = new URLSearchParams();
+    if (params.page   != null) qs.set('page',   String(params.page));
+    if (params.limit  != null) qs.set('limit',  String(params.limit));
+    if (params.search)         qs.set('search', params.search);
+    if (params.status)         qs.set('status', params.status);
+    if (params.includeDeleted) qs.set('includeDeleted', 'true');
+    return apiFetch<{ data: TenantRecord[]; meta: PaginationMeta }>(`/tenants?${qs.toString()}`);
+  },
+  get:     (id: string) => apiFetch<TenantRecord>(`/tenants/${id}`),
+  stats:   (id: string) => apiFetch<Record<string, any>>(`/tenants/${id}/stats`),
+  create:  (data: Partial<TenantRecord>) =>
+    apiFetch<TenantRecord>('/tenants', { method: 'POST', body: JSON.stringify(data) }),
+  update:  (id: string, data: Partial<TenantRecord>) =>
+    apiFetch<TenantRecord>(`/tenants/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  archive: (id: string) => apiFetch<TenantRecord>(`/tenants/${id}/archive`,  { method: 'POST' }),
+  activate:(id: string) => apiFetch<TenantRecord>(`/tenants/${id}/activate`, { method: 'POST' }),
+  restore: (id: string) => apiFetch<TenantRecord>(`/tenants/${id}/restore`,  { method: 'POST' }),
+  remove:  (id: string, force = false) =>
+    apiFetch<TenantRecord>(`/tenants/${id}${force ? '?force=true' : ''}`, { method: 'DELETE' }),
 };

@@ -195,9 +195,17 @@ export function JobTypes() {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      await settingsApi.deleteJobType(deleteTarget.id);
-      setJobTypes((prev) => prev.filter((jt) => jt.id !== deleteTarget.id));
-      toast.success(tc('toast.deactivatedSuccessfullyNamed', { name: deleteTarget.name }));
+      const res = await settingsApi.deleteJobType(deleteTarget.id) as any;
+      if (res?.deleted) {
+        setJobTypes((prev) => prev.filter((jt) => jt.id !== deleteTarget.id));
+        toast.success(tc('toast.deletedSuccessfullyNamed', { name: deleteTarget.name, defaultValue: `${deleteTarget.name} deleted` }));
+      } else {
+        // Backend fell back to soft-deactivate because records still reference it.
+        setJobTypes((prev) => prev.map((jt) =>
+          jt.id === deleteTarget.id ? { ...jt, isActive: false } : jt,
+        ));
+        toast.warning(tc('toast.deactivatedSuccessfullyNamed', { name: deleteTarget.name }));
+      }
       setDeleteTarget(null);
     } catch (err: any) {
       toast.error(apiError(err, tc('toast.deleteFailed')));
@@ -486,10 +494,11 @@ export function JobTypes() {
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Deactivate Job Category</AlertDialogTitle>
+            <AlertDialogTitle>Delete Job Category</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to deactivate <strong>{deleteTarget?.name}</strong>? It will no longer appear in
-              job category selectors. Existing applicants and applications will not be affected.
+              Are you sure you want to delete <strong>{deleteTarget?.name}</strong>? The category will be
+              permanently removed if no applicants or employees reference it; otherwise it is deactivated
+              and hidden from selectors so historical records stay intact.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -499,7 +508,7 @@ export function JobTypes() {
               disabled={deleting}
               className="bg-red-600 hover:bg-red-700"
             >
-              {deleting ? 'Deactivating...' : 'Deactivate'}
+              {deleting ? 'Deleting...' : 'Delete'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

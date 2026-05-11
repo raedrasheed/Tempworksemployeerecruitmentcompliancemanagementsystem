@@ -213,15 +213,43 @@ export class SettingsService {
   async deleteJobType(id: string, actorId?: string) {
     const jt = await this.prisma.jobType.findUnique({ where: { id } });
     if (!jt) throw new NotFoundException('Job type not found');
+
+    // Hard-delete when no applicants/employees still reference the
+    // category; otherwise fall back to a soft-deactivate so historical
+    // records stay intact. The response distinguishes the two outcomes
+    // so the UI can surface the right message.
+    const [applicantCount, employeeCount] = await Promise.all([
+      this.prisma.applicant.count({ where: { jobTypeId: id } }),
+      this.prisma.employee.count({ where: { jobTypeId: id } }),
+    ]);
+
+    if (applicantCount === 0 && employeeCount === 0) {
+      await this.prisma.jobType.delete({ where: { id } });
+      await this.auditLog.log({
+        userId: actorId,
+        action: 'DELETE',
+        entity: 'JobType',
+        entityId: id,
+        changes: { name: jt.name, mode: 'hard' },
+      });
+      return { deleted: true, message: 'Job type deleted' };
+    }
+
     await this.prisma.jobType.update({ where: { id }, data: { isActive: false } });
     await this.auditLog.log({
       userId: actorId,
-      action: 'DELETE',
+      action: 'DEACTIVATE',
       entity: 'JobType',
       entityId: id,
-      changes: { name: jt.name },
+      changes: { name: jt.name, mode: 'soft', applicantCount, employeeCount },
     });
-    return { message: 'Job type deactivated' };
+    return {
+      deleted: false,
+      deactivated: true,
+      applicantCount,
+      employeeCount,
+      message: 'Job type deactivated (in use by existing records)',
+    };
   }
 
   // ─── Finance Transaction Types ───────────────────────────────────────────────

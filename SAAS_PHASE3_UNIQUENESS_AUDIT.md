@@ -74,3 +74,13 @@ Anticipated risk areas:
 - Removing `Agency.isSystem` (replaced incrementally by `PlatformAdmin`
   — see `SAAS_PHASE3_PLATFORM_ADMIN_FOUNDATION.md`).
 - UI/API changes to tenant selection.
+
+---
+
+## Phase 3.1 addendum
+
+Production-shaped duplicate scan and tenant-backfill completeness
+report landed (read-only). Confirms the stage-2 trigger (NULL-tenant
+backfill completion) is the gating step for Phase 3.3 constraint
+introduction. See SAAS_PHASE3_PRODUCTION_DUPLICATE_SCAN.md and
+SAAS_PHASE3_TENANT_BACKFILL_COMPLETENESS.md.

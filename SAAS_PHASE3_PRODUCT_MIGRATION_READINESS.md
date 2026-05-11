@@ -71,3 +71,12 @@ report against staging clones of production data. Backfill any
 `tenantId IS NULL` rows on `Employee` and `Applicant`. Then plan
 Phase 3.2 cleanup of the same-tenant duplicate set surfaced by the
 report.
+
+---
+
+## Phase 3.1 addendum
+
+Phase 3.1 lands the production-shaped readiness reports + 16-case
+readiness harness (`saas:phase310-readiness-check`). Phase 3.0
+remains 13/13. Cumulative regression: 853/853. See
+SAAS_PHASE3_1_READINESS.md.

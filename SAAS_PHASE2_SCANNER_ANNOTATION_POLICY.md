@@ -283,3 +283,12 @@ npm run saas:scan -- --strict
 - `phase300-product-migration-readiness` (allowed: `scripts/saas/phase3/`)
 - `phase300-uniqueness-audit` (allowed: `scripts/saas/phase3/`, `src/`)
 - `phase300-platform-admin-foundation` (allowed: `scripts/saas/phase3/`, `src/`)
+
+---
+
+## Phase 3.1 — Production-shaped readiness tags
+
+- `phase310-tenant-backfill-completeness` (allowed: `scripts/saas/phase3/`)
+- `phase310-production-duplicate-scan` (allowed: `scripts/saas/phase3/`)
+- `phase310-platform-admin-readiness` (allowed: `scripts/saas/phase3/`)
+- `phase310-readiness-check` (allowed: `scripts/saas/phase3/`)

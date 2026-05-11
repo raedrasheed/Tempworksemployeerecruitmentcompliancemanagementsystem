@@ -98,3 +98,13 @@ is NOT replaced by `PlatformAdmin`.
 - Wiring `PlatformAdmin` into any guard.
 - Dropping `Agency.isSystem` or `Role.isSystem`.
 - Login/session changes.
+
+---
+
+## Phase 3.1 addendum
+
+Read-only PlatformAdmin readiness report added
+(`saas:phase310-platform-admin-readiness-report`). Confirms the
+`platform_admins` table is in place and surfaces the population that
+would be backfilled in Phase 3.5 (and any orphan / multi-agency
+conflicts to triage first).

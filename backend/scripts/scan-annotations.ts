@@ -178,6 +178,10 @@ const KNOWN_REASONS: ReadonlyArray<PolicyEntry> = [
   { tag: 'phase300-product-migration-readiness',         allowedPaths: ['scripts/saas/phase3/'] },
   { tag: 'phase300-uniqueness-audit',                    allowedPaths: ['scripts/saas/phase3/', 'src/'] },
   { tag: 'phase300-platform-admin-foundation',           allowedPaths: ['scripts/saas/phase3/', 'src/'] },
+  { tag: 'phase310-tenant-backfill-completeness',        allowedPaths: ['scripts/saas/phase3/'] },
+  { tag: 'phase310-production-duplicate-scan',           allowedPaths: ['scripts/saas/phase3/'] },
+  { tag: 'phase310-platform-admin-readiness',            allowedPaths: ['scripts/saas/phase3/'] },
+  { tag: 'phase310-readiness-check',                     allowedPaths: ['scripts/saas/phase3/'] },
   { tag: 'tenant-safe-report-runtime',    allowedPaths: ['src/reports/', 'src/saas/reports/'] },
   { tag: 'tenant-resolver-bootstrap',     allowedPaths: ['src/saas/tenancy/'] },
 ];

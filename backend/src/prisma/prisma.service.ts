@@ -74,33 +74,39 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
    * every time the schema bumps.
    */
   private async healAdditiveDrift(): Promise<void> {
+    // Every table on this list must carry a nullable `tenantId TEXT`
+    // column plus a btree index. Listed centrally so adding a new
+    // tenant-scoped model is a one-line edit.
+    const tenantIdTables = [
+      // Phase 1 baseline (idempotent — usually already present).
+      'agencies', 'applicants', 'employees',
+      // Phase 2.3 entity-keyed denorm + later additions.
+      'documents', 'audit_logs', 'notifications', 'financial_records',
+      'financial_record_attachments', 'financial_record_deductions',
+      'vehicles', 'vehicle_documents', 'maintenance_records',
+      'visas', 'work_permits',
+      'compliance_alerts',
+      'attendance_records', 'attendance_locked_periods',
+      'employee_work_history', 'employee_work_history_attachments',
+      // Phase 2.9 — job ads.
+      'job_ads',
+      // Phase 2.63 — workflows + assignments.
+      'workflows', 'workflow_stages',
+      'candidate_workflow_assignments', 'employee_workflow_assignments',
+      // Phase 3.10 — platform audit log.
+      'platform_audit_logs',
+      // SaaS bookkeeping.
+      'saas_phase1_seq_snapshot',
+    ];
+
     const steps: Array<{ label: string; sql: string }> = [
-      // Phase 2.3 — tenantId denormalisation onto entity tables.
-      { label: 'documents.tenantId',     sql: `ALTER TABLE "documents"     ADD COLUMN IF NOT EXISTS "tenantId" TEXT;` },
-      { label: 'documents.tenantId idx', sql: `CREATE INDEX IF NOT EXISTS "documents_tenantId_idx" ON "documents"("tenantId");` },
-      { label: 'audit_logs.tenantId',    sql: `ALTER TABLE "audit_logs"    ADD COLUMN IF NOT EXISTS "tenantId" TEXT;` },
-      { label: 'audit_logs.tenantId idx',sql: `CREATE INDEX IF NOT EXISTS "audit_logs_tenantId_idx" ON "audit_logs"("tenantId");` },
-      { label: 'notifications.tenantId', sql: `ALTER TABLE "notifications" ADD COLUMN IF NOT EXISTS "tenantId" TEXT;` },
-      { label: 'notifications.tenantId idx', sql: `CREATE INDEX IF NOT EXISTS "notifications_tenantId_idx" ON "notifications"("tenantId");` },
-      { label: 'financial_records.tenantId', sql: `ALTER TABLE "financial_records" ADD COLUMN IF NOT EXISTS "tenantId" TEXT;` },
-      { label: 'financial_records.tenantId idx', sql: `CREATE INDEX IF NOT EXISTS "financial_records_tenantId_idx" ON "financial_records"("tenantId");` },
-      { label: 'vehicles.tenantId',      sql: `ALTER TABLE "vehicles"      ADD COLUMN IF NOT EXISTS "tenantId" TEXT;` },
-      { label: 'vehicles.tenantId idx',  sql: `CREATE INDEX IF NOT EXISTS "vehicles_tenantId_idx" ON "vehicles"("tenantId");` },
-      { label: 'vehicle_documents.tenantId', sql: `ALTER TABLE "vehicle_documents" ADD COLUMN IF NOT EXISTS "tenantId" TEXT;` },
-      { label: 'vehicle_documents.tenantId idx', sql: `CREATE INDEX IF NOT EXISTS "vehicle_documents_tenantId_idx" ON "vehicle_documents"("tenantId");` },
-      { label: 'maintenance_records.tenantId', sql: `ALTER TABLE "maintenance_records" ADD COLUMN IF NOT EXISTS "tenantId" TEXT;` },
-      { label: 'maintenance_records.tenantId idx', sql: `CREATE INDEX IF NOT EXISTS "maintenance_records_tenantId_idx" ON "maintenance_records"("tenantId");` },
+      ...tenantIdTables.flatMap((tbl) => [
+        { label: `${tbl}.tenantId`,     sql: `ALTER TABLE "${tbl}" ADD COLUMN IF NOT EXISTS "tenantId" TEXT;` },
+        { label: `${tbl}.tenantId idx`, sql: `CREATE INDEX IF NOT EXISTS "${tbl}_tenantId_idx" ON "${tbl}"("tenantId");` },
+      ]),
 
-      // Phase 2.9 — job-ads tenant scoping.
-      { label: 'job_ads.tenantId',       sql: `ALTER TABLE "job_ads"       ADD COLUMN IF NOT EXISTS "tenantId" TEXT;` },
-      { label: 'job_ads.tenantId idx',   sql: `CREATE INDEX IF NOT EXISTS "job_ads_tenantId_idx" ON "job_ads"("tenantId");` },
+      // Phase 2.9 — job-ads composite index used by the slug lookups.
       { label: 'job_ads.tenantId slug idx', sql: `CREATE INDEX IF NOT EXISTS "job_ads_tenantId_slug_idx" ON "job_ads"("tenantId","slug");` },
-
-      // Phase 2.63 — workflow tenant scope.
-      { label: 'workflows.tenantId',     sql: `ALTER TABLE "workflows"     ADD COLUMN IF NOT EXISTS "tenantId" TEXT;` },
-      { label: 'workflows.tenantId idx', sql: `CREATE INDEX IF NOT EXISTS "workflows_tenantId_idx" ON "workflows"("tenantId");` },
-      { label: 'workflow_stages.tenantId', sql: `ALTER TABLE "workflow_stages" ADD COLUMN IF NOT EXISTS "tenantId" TEXT;` },
-      { label: 'workflow_stages.tenantId idx', sql: `CREATE INDEX IF NOT EXISTS "workflow_stages_tenantId_idx" ON "workflow_stages"("tenantId");` },
 
       // Phase 3.16 — JobType soft-delete columns.
       { label: 'job_types.deletedAt',       sql: `ALTER TABLE "job_types"     ADD COLUMN IF NOT EXISTS "deletedAt" TIMESTAMP(3);` },

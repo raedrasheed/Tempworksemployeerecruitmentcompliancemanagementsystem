@@ -154,3 +154,13 @@ Dual-read helper landed at `src/saas/platform-admin/platform-admin-access.servic
 `isPlatformAdmin(userId)` OR-combines `Agency.isSystem` with
 `PlatformAdmin`. Helper not yet wired into any guard/endpoint;
 Phase 3.7 will switch JWT decode + service-layer consumers.
+
+---
+
+## Phase 3.7 addendum
+
+PlatformAdmin rows now influence runtime authorization through the
+JWT stamp. Backfilled rows (`grantedBy='phase350-backfill'`) grant
+platform-admin access in every service that consumes
+`actor.agencyIsSystem`. Flip `PLATFORM_ADMIN_DUAL_READ_ENABLED=false`
+to revert.

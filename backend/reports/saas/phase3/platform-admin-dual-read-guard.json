@@ -55,7 +55,7 @@
     {
       "name": "10. source-level inventory includes all Agency.isSystem checks",
       "ok": true,
-      "detail": "totalSites=20 mustHave=3"
+      "detail": "totalSites=19 mustHave=3"
     },
     {
       "name": "12. Phase 3.5 platform-admin-backfill wiring intact",
@@ -126,13 +126,8 @@
     },
     {
       "file": "src/auth/strategies/jwt.strategy.ts",
-      "line": 32,
+      "line": 40,
       "text": "agency: { select: { isSystem: true } },"
-    },
-    {
-      "file": "src/auth/strategies/jwt.strategy.ts",
-      "line": 58,
-      "text": "agencyIsSystem: (user as any).agency?.isSystem ?? false,"
     },
     {
       "file": "src/agencies/agencies.service.ts",
@@ -175,5 +170,5 @@
       "text": "@IsOptional() @IsBoolean() isSystem?: boolean;"
     }
   ],
-  "inventoryTotal": 20
+  "inventoryTotal": 19
 }

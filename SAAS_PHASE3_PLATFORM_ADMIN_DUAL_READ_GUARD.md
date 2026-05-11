@@ -150,3 +150,12 @@ consumer through the new helper, starting with `jwt.strategy.ts`
 (which stamps `req.user.agencyIsSystem`) and the `auth.service.ts`
 login response. Bake under dual-read for one release before Phase
 3.8 retires `Agency.isSystem`.
+
+---
+
+## Phase 3.7 addendum
+
+JwtStrategy now injects PlatformAdminAccessService and stamps
+`req.user.agencyIsSystem` with the OR result. Downstream consumers
+(`actor.agencyIsSystem`) require no signature change. Harness 15/15
+PASS. See SAAS_PHASE3_PLATFORM_ADMIN_JWT_DUAL_READ.md.

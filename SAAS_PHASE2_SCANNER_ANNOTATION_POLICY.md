@@ -332,3 +332,11 @@ npm run saas:scan -- --strict
 - `phase360-platform-admin-dual-read` (allowed: `scripts/saas/phase3/`, `src/`)
 - `phase360-agency-is-system-inventory` (allowed: `scripts/saas/phase3/`, `src/`)
 - `phase360-platform-audit-log-deferred` (allowed: `scripts/saas/phase3/`, `src/`)
+
+---
+
+## Phase 3.7 — JWT dual-read tags
+
+- `phase370-platform-admin-jwt-dual-read` (allowed: `scripts/saas/phase3/`, `src/`)
+- `phase370-agency-is-system-derived-field` (allowed: `scripts/saas/phase3/`, `src/`)
+- `phase370-platform-audit-log-deferred` (allowed: `scripts/saas/phase3/`, `src/`)

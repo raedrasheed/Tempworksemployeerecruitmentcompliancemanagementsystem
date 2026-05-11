@@ -2,10 +2,18 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PrismaService } from '../../prisma/prisma.service';
+import { PlatformAdminAccessService } from '../../saas/platform-admin/platform-admin-access.service';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
-  constructor(private prisma: PrismaService) {
+  constructor(
+    private prisma: PrismaService,
+    // Phase 3.7 — dual-read source for `agencyIsSystem`. The injected
+    // helper OR-combines legacy `Agency.isSystem` with the new
+    // `PlatformAdmin` row (when PLATFORM_ADMIN_DUAL_READ_ENABLED !== 'false').
+    // Tag: phase370-platform-admin-jwt-dual-read
+    private platformAdminAccess: PlatformAdminAccessService,
+  ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
@@ -44,6 +52,13 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
         params: { status: user.status.toLowerCase() },
       });
     }
+    // Phase 3.7 — dual-read stamp. `agencyIsSystem` now means
+    // "platform admin via legacy Agency.isSystem OR backfilled
+    // PlatformAdmin row" when the dual-read flag is on. Downstream
+    // service-layer consumers (`actor.agencyIsSystem`) require no
+    // signature change. Setting the flag to 'false' restores the
+    // legacy meaning. @tenant-reviewed: phase370-platform-admin-jwt-dual-read
+    const agencyIsSystem = await this.platformAdminAccess.isPlatformAdmin(user.id);
     return {
       id: user.id,
       email: user.email,
@@ -52,10 +67,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       role: user.role.name,
       roleId: user.roleId,
       agencyId: user.agencyId,
-      // True when the user's agency is the Tempworks root/owner (seen
-      // globally); false — or missing — means the caller is an
-      // external tenant and every service must scope to their agency.
-      agencyIsSystem: (user as any).agency?.isSystem ?? false,
+      agencyIsSystem,
     };
   }
 }

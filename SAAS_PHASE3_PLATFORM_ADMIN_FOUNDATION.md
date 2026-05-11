@@ -129,3 +129,12 @@ OR semantics over legacy `Agency.isSystem` + new `PlatformAdmin`
 rows. Default flag ON; flip to `PLATFORM_ADMIN_DUAL_READ_ENABLED=false`
 to revert to legacy-only. Harness 14/14 PASS. See
 SAAS_PHASE3_PLATFORM_ADMIN_DUAL_READ_GUARD.md.
+
+---
+
+## Phase 3.7 addendum
+
+JwtStrategy switched to dual-read. `req.user.agencyIsSystem` now
+means "platform admin via legacy Agency.isSystem OR backfilled
+PlatformAdmin". Phase 3.8 will retire `Agency.isSystem` after a
+bake window.

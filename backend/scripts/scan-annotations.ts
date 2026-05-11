@@ -197,6 +197,9 @@ const KNOWN_REASONS: ReadonlyArray<PolicyEntry> = [
   { tag: 'phase360-platform-admin-dual-read',            allowedPaths: ['scripts/saas/phase3/', 'src/'] },
   { tag: 'phase360-agency-is-system-inventory',          allowedPaths: ['scripts/saas/phase3/', 'src/'] },
   { tag: 'phase360-platform-audit-log-deferred',         allowedPaths: ['scripts/saas/phase3/', 'src/'] },
+  { tag: 'phase370-platform-admin-jwt-dual-read',        allowedPaths: ['scripts/saas/phase3/', 'src/'] },
+  { tag: 'phase370-agency-is-system-derived-field',      allowedPaths: ['scripts/saas/phase3/', 'src/'] },
+  { tag: 'phase370-platform-audit-log-deferred',         allowedPaths: ['scripts/saas/phase3/', 'src/'] },
   { tag: 'tenant-safe-report-runtime',    allowedPaths: ['src/reports/', 'src/saas/reports/'] },
   { tag: 'tenant-resolver-bootstrap',     allowedPaths: ['src/saas/tenancy/'] },
 ];

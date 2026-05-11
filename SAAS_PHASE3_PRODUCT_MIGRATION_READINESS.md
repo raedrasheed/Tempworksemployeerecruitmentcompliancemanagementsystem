@@ -120,3 +120,11 @@ through Agency.isSystem until Phase 3.6 dual-read guard.
 PlatformAdmin dual-read helper landed (`isPlatformAdmin(userId)`).
 Default ON via `PLATFORM_ADMIN_DUAL_READ_ENABLED`. Not yet consumed
 by any guard. Phase 3.7 will wire endpoints. Cumulative 944/944.
+
+---
+
+## Phase 3.7 addendum
+
+JWT stamp routed through PlatformAdminAccessService. Downstream
+consumers unchanged. Harness 15/15 PASS. Cumulative 959/959.
+Phase 3.8 will drop Agency.isSystem.

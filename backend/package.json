@@ -135,6 +135,7 @@
     "saas:phase350-platform-admin-backfill":             "ts-node scripts/saas/phase3/platform-admin-backfill.ts",
     "saas:phase350-platform-admin-backfill-harness":     "ts-node scripts/saas/phase3/platform-admin-backfill-harness.ts",
     "saas:phase360-platform-admin-dual-read-guard":      "ts-node scripts/saas/phase3/platform-admin-dual-read-guard.ts",
+    "saas:phase370-platform-admin-jwt-dual-read":        "ts-node scripts/saas/phase3/platform-admin-jwt-dual-read.ts",
     "saas:phase2-job-ads-equivalence": "ts-node scripts/saas/phase2/job-ads-equivalence.ts",
     "saas:phase2-job-ads-isolation": "ts-node scripts/saas/phase2/job-ads-isolation.ts",
     "saas:phase2-notifications-equivalence": "ts-node scripts/saas/phase2/notifications-equivalence.ts",

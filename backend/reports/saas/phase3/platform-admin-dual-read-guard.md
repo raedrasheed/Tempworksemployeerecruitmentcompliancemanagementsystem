@@ -10,11 +10,11 @@
 - PASS — 11. PlatformAuditLog write is not attempted (table absent, no error raised) — tableExists=false
 - PASS — 8. missing user returns false — result=true
 - PASS — 9. PLATFORM_ADMIN_DUAL_READ_ENABLED=false falls back to legacy only — uNewOnly=false uLegacy=true
-- PASS — 10. source-level inventory includes all Agency.isSystem checks — totalSites=20 mustHave=3
+- PASS — 10. source-level inventory includes all Agency.isSystem checks — totalSites=19 mustHave=3
 - PASS — 12. Phase 3.5 platform-admin-backfill wiring intact — pkg.json
 - PASS — 13. Phase 3.4 employee unique harness wiring intact — pkg.json
 - PASS — 14. cumulative regression chain outputs present — present=10/10
-## Agency.isSystem inventory (20 sites)
+## Agency.isSystem inventory (19 sites)
 | file | line | text |
 | --- | --- | --- |
 | src/saas/platform-admin/platform-admin-access.service.ts | 39 | `select: { id: true, agency: { select: { isSystem: true } } },` |
@@ -27,8 +27,7 @@
 | src/recycle-bin/recycle-bin.service.ts | 1147 | `extra: { isSystem: r.isSystem },` |
 | src/auth/auth.service.ts | 542 | `agency: user.agency ? { id: user.agency.id, name: user.agency.name, isSystem: (user.agency as any).isSystem ?? false } : null,` |
 | src/auth/auth.service.ts | 543 | `agencyIsSystem: (user.agency as any)?.isSystem ?? false,` |
-| src/auth/strategies/jwt.strategy.ts | 32 | `agency: { select: { isSystem: true } },` |
-| src/auth/strategies/jwt.strategy.ts | 58 | `agencyIsSystem: (user as any).agency?.isSystem ?? false,` |
+| src/auth/strategies/jwt.strategy.ts | 40 | `agency: { select: { isSystem: true } },` |
 | src/agencies/agencies.service.ts | 64 | `return { AND: [{ OR: [{ tenantId: s.tenantId }, { isSystem: true }] }] };` |
 | src/agencies/agencies.service.ts | 151 | `if (actorRole !== 'System Admin' && 'isSystem' in (dto as any)) {` |
 | src/agencies/agencies.service.ts | 152 | `delete (dto as any).isSystem;` |

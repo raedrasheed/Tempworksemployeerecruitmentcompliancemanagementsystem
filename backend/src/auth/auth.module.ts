@@ -9,6 +9,7 @@ import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
 import { EmailModule } from '../email/email.module';
+import { PlatformAdminAccessService } from '../saas/platform-admin/platform-admin-access.service';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { EmailModule } from '../email/email.module';
     JwtRefreshStrategy,
     JwtAuthGuard,
     RolesGuard,
+    PlatformAdminAccessService, // @tenant-reviewed: phase370-platform-admin-jwt-dual-read
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
   ],

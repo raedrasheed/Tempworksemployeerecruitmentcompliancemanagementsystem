@@ -215,6 +215,18 @@ export class UsersService {
     }
 
     const { passwordHash, refreshToken, ...result } = user as any;
+
+    // Phase 3.14 — enrich with PlatformAdmin level for the User edit
+    // page's "Platform Admin Access" card. @tenant-reviewed:
+    // phase311-platform-admin-grant-revoke
+    try {
+      const pa = await (this.prisma as any).platformAdmin.findUnique({
+        where: { userId: id },
+        select: { level: true, grantedAt: true, grantedBy: true },
+      });
+      (result as any).platformAdmin = pa ? pa : { level: 'NONE' };
+    } catch { /* table may not exist yet */ }
+
     return result;
   }
 
@@ -543,6 +555,65 @@ export class UsersService {
 
     const { passwordHash, refreshToken, ...result } = user as any;
     return result;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Phase 3.14 admin bootstrap — set or clear a user's PlatformAdmin level.
+  // Used by the User edit page. Writes a PlatformAuditLog row (best-effort).
+  // @tenant-reviewed: phase311-platform-admin-grant-revoke
+  async setPlatformAdminLevel(
+    targetUserId: string,
+    level: 'NONE' | 'SUPPORT' | 'OPERATOR' | 'SUPER',
+    reason: string,
+    actorUserId?: string,
+  ) {
+    if (!['NONE', 'SUPPORT', 'OPERATOR', 'SUPER'].includes(level)) {
+      throw new BadRequestException({ code: 'PLATFORM_ADMIN.INVALID_LEVEL' });
+    }
+    if (actorUserId && actorUserId === targetUserId && level === 'NONE') {
+      throw new ForbiddenException({ code: 'PLATFORM_ADMIN.SELF_REVOKE_FORBIDDEN' });
+    }
+    const target = await this.prisma.user.findFirst({
+      where: { id: targetUserId, deletedAt: null },
+      select: { id: true },
+    });
+    if (!target) throw new NotFoundException({ code: 'USER.NOT_FOUND', message: 'User not found' });
+
+    const existing = await (this.prisma as any).platformAdmin.findUnique({
+      where: { userId: targetUserId }, select: { level: true },
+    });
+
+    let action = 'PLATFORM_ADMIN_GRANT_IDEMPOTENT';
+    if (level === 'NONE') {
+      if (!existing) action = 'PLATFORM_ADMIN_REVOKE_IDEMPOTENT';
+      else {
+        await (this.prisma as any).platformAdmin.delete({ where: { userId: targetUserId } });
+        action = 'PLATFORM_ADMIN_REVOKED';
+      }
+    } else if (!existing) {
+      await (this.prisma as any).platformAdmin.create({
+        data: { userId: targetUserId, level: level as any, grantedBy: actorUserId ?? null },
+      });
+      action = 'PLATFORM_ADMIN_GRANTED';
+    } else if (existing.level !== level) {
+      await (this.prisma as any).platformAdmin.update({
+        where: { userId: targetUserId },
+        data: { level: level as any, grantedBy: actorUserId ?? null, grantedAt: new Date() },
+      });
+      action = 'PLATFORM_ADMIN_LEVEL_CHANGED';
+    }
+
+    try {
+      await (this.prisma as any).platformAuditLog.create({
+        data: {
+          actorId: actorUserId ?? 'system',
+          action, reason: reason || 'admin-ui',
+          target: { targetUserId, previousLevel: existing?.level ?? null, newLevel: level === 'NONE' ? null : level },
+        },
+      });
+    } catch { /* table may not exist yet in some envs */ }
+
+    return { action, targetUserId, level };
   }
 
   // ---------------------------------------------------------------------------

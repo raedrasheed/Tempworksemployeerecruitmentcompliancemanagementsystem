@@ -975,6 +975,14 @@ export const usersApi = {
   unlockUser: (id: string) =>
     apiFetch<any>(`/users/${id}/unlock`, { method: 'POST' }),
 
+  // Phase 3.14 admin bootstrap — set or clear PlatformAdmin level for any user.
+  // @tenant-reviewed: phase311-platform-admin-grant-revoke
+  setPlatformAdminLevel: (id: string, level: 'NONE' | 'SUPPORT' | 'OPERATOR' | 'SUPER', reason?: string) =>
+    apiFetch<{ action: string; targetUserId: string; level: string }>(
+      `/users/${id}/platform-admin-level`,
+      { method: 'PUT', body: JSON.stringify({ level, reason: reason ?? 'admin-ui' }) },
+    ),
+
   setPermissionOverride: (id: string, permission: string, granted: boolean) =>
     apiFetch<any>(`/users/${id}/permissions`, { method: 'POST', body: JSON.stringify({ permission, granted }) }),
 

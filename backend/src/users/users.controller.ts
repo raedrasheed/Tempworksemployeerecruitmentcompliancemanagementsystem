@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, UploadedFile, UseInterceptors, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Put, Param, Delete, Query, UseGuards, UploadedFile, UseInterceptors, BadRequestException } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryUpload, IMAGE_MIME } from '../common/storage/multer.config';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery, ApiConsumes } from '@nestjs/swagger';
@@ -109,6 +109,20 @@ export class UsersController {
   })
   update(@Param('id') id: string, @Body() dto: UpdateUserDto, @CurrentUser() caller: any) {
     return this.usersService.update(id, dto, caller?.role, caller?.id, caller?.agencyIsSystem);
+  }
+
+  // Phase 3.11/3.14 bootstrap — System Admin / existing PlatformAdmin can set
+  // the platform-admin level for any user directly. Upserts platform_admins on
+  // SUPPORT|OPERATOR|SUPER and deletes the row on NONE. Self-revoke forbidden.
+  // @tenant-reviewed: phase311-platform-admin-grant-revoke
+  @Put(':id/platform-admin-level')
+  @Roles('System Admin')
+  setPlatformAdminLevel(
+    @Param('id') targetUserId: string,
+    @Body() body: { level: 'NONE' | 'SUPPORT' | 'OPERATOR' | 'SUPER'; reason?: string },
+    @CurrentUser() caller: any,
+  ) {
+    return this.usersService.setPlatformAdminLevel(targetUserId, body.level, body.reason ?? 'admin-ui', caller?.id);
   }
 
   @Delete(':id')

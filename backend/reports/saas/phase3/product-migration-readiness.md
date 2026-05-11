@@ -10,7 +10,7 @@
 - PASS — 6. NULL-tenant duplicate rows reported separately — groups=1
 - PASS — 7. Cross-tenant same email reported (not blocking) — xt=1 blocking=4
 - PASS — 8. script makes no net row changes (counts unchanged after cleanup) — before={"employees":12,"applicants":4,"users":6,"tenants":2,"platform_admins":0} after={"employees":12,"applicants":4,"users":6,"tenants":2,"platform_admins":0}
-- PASS — 9. no Phase 3 unique-constraint migration created in this phase — none
+- PASS — 9. no Phase 3.0 unique-constraint migration created in this phase — none
 - PASS — 10. PlatformAdmin foundation doc exists — present
 - PASS — 11. Uniqueness audit doc exists — present
 - PASS — 12. Phase 2.61/2.62/2.63 harness wiring intact in package.json — all scripts present

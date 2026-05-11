@@ -83,6 +83,10 @@ async function main(): Promise<void> {
     await c.query('ALTER TABLE employees DROP CONSTRAINT IF EXISTS "employees_employeeNumber_key"');
     await c.query('DROP INDEX IF EXISTS "employees_email_key"');
     await c.query('DROP INDEX IF EXISTS "employees_employeeNumber_key"');
+    // Phase 3.3 partial indexes (added later) would also reject our seed dups.
+    await c.query('DROP INDEX IF EXISTS "employees_tenant_email_unique"');
+    await c.query('DROP INDEX IF EXISTS "employees_tenant_employee_number_unique"');
+    await c.query('DROP INDEX IF EXISTS "applicants_tenant_email_unique"');
     await seedHelper(c, tA, tB);
     await c.query('COMMIT');
     seeded = true;
@@ -118,6 +122,15 @@ async function main(): Promise<void> {
       )`);
     await c.query('ALTER TABLE employees ADD CONSTRAINT "employees_email_key" UNIQUE (email)');
     await c.query('ALTER TABLE employees ADD CONSTRAINT "employees_employeeNumber_key" UNIQUE ("employeeNumber")');
+    await c.query(`CREATE UNIQUE INDEX IF NOT EXISTS "employees_tenant_email_unique"
+      ON "employees" ("tenantId", lower(email))
+      WHERE "tenantId" IS NOT NULL AND email IS NOT NULL AND "deletedAt" IS NULL`);
+    await c.query(`CREATE UNIQUE INDEX IF NOT EXISTS "employees_tenant_employee_number_unique"
+      ON "employees" ("tenantId", "employeeNumber")
+      WHERE "tenantId" IS NOT NULL AND "employeeNumber" IS NOT NULL AND "deletedAt" IS NULL`);
+    await c.query(`CREATE UNIQUE INDEX IF NOT EXISTS "applicants_tenant_email_unique"
+      ON "applicants" ("tenantId", lower(email))
+      WHERE "tenantId" IS NOT NULL AND email IS NOT NULL AND "deletedAt" IS NULL`);
   }
 
   const afterCounts = await tableCounts(c);
@@ -159,9 +172,11 @@ async function main(): Promise<void> {
 
   // Case 9 — no Phase 3 unique-constraint migration directory exists
   const migDirs = await fs.readdir(MIGRATIONS_DIR).catch(() => [] as string[]);
-  const phase3Unique = migDirs.filter((d) => /phase3.*unique|unique.*tenant/i.test(d));
-  out.push({ name: '9. no Phase 3 unique-constraint migration created in this phase',
-    ok: phase3Unique.length === 0, detail: phase3Unique.length === 0 ? 'none' : phase3Unique.join(',') });
+  // Phase 3.0 must NOT have created its own constraint migration. Phase 3.3
+  // legitimately adds `saas_phase33_per_tenant_uniques`; we allow that.
+  const phase30Unique = migDirs.filter((d) => /phase30.*unique|^saas_phase30/i.test(d));
+  out.push({ name: '9. no Phase 3.0 unique-constraint migration created in this phase',
+    ok: phase30Unique.length === 0, detail: phase30Unique.length === 0 ? 'none' : phase30Unique.join(',') });
 
   // Cases 10/11 — docs exist
   const paDoc  = await fs.stat(path.join(REPO_ROOT, 'SAAS_PHASE3_PLATFORM_ADMIN_FOUNDATION.md')).then(() => true).catch(() => false);

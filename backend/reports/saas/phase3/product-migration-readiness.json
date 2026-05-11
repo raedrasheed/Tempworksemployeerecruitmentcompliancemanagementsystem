@@ -43,7 +43,7 @@
       "detail": "before={\"employees\":12,\"applicants\":4,\"users\":6,\"tenants\":2,\"platform_admins\":0} after={\"employees\":12,\"applicants\":4,\"users\":6,\"tenants\":2,\"platform_admins\":0}"
     },
     {
-      "name": "9. no Phase 3 unique-constraint migration created in this phase",
+      "name": "9. no Phase 3.0 unique-constraint migration created in this phase",
       "ok": true,
       "detail": "none"
     },

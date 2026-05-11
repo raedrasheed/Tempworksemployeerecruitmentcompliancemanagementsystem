@@ -168,3 +168,10 @@ triggers fire.
 
 Unchanged. No feature flag flipped, no schema migration, no auth path
 touched. The apply step is opt-in and disabled by default.
+
+---
+
+## Phase 3.3 addendum
+
+Additive per-tenant unique indexes have landed. Phase 3.2 cleanup
+remains the prerequisite for any Phase 3.4 global-drop work.

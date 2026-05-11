@@ -82,6 +82,12 @@ async function seed(c: Client, tA: string, tB: string): Promise<void> {
   await c.query('ALTER TABLE employees DROP CONSTRAINT IF EXISTS "employees_employeeNumber_key"');
   await c.query('DROP INDEX IF EXISTS "employees_email_key"');
   await c.query('DROP INDEX IF EXISTS "employees_employeeNumber_key"');
+  // Also drop Phase 3.3 partial unique indexes — they would block our
+  // synthetic exact dups (same-tenant same-email/employeeNumber). Restored
+  // at teardown together with the global constraints.
+  await c.query('DROP INDEX IF EXISTS "employees_tenant_email_unique"');
+  await c.query('DROP INDEX IF EXISTS "employees_tenant_employee_number_unique"');
+  await c.query('DROP INDEX IF EXISTS "applicants_tenant_email_unique"');
 
   // exact employee.email — both active, no dependents
   await c.query(`
@@ -156,6 +162,16 @@ async function teardown(c: Client): Promise<void> {
   await cleanupSeed(c);
   await c.query('ALTER TABLE employees ADD CONSTRAINT "employees_email_key" UNIQUE (email)');
   await c.query('ALTER TABLE employees ADD CONSTRAINT "employees_employeeNumber_key" UNIQUE ("employeeNumber")');
+  // Restore the Phase 3.3 partial unique indexes if they existed before this run.
+  await c.query(`CREATE UNIQUE INDEX IF NOT EXISTS "employees_tenant_email_unique"
+    ON "employees" ("tenantId", lower(email))
+    WHERE "tenantId" IS NOT NULL AND email IS NOT NULL AND "deletedAt" IS NULL`);
+  await c.query(`CREATE UNIQUE INDEX IF NOT EXISTS "employees_tenant_employee_number_unique"
+    ON "employees" ("tenantId", "employeeNumber")
+    WHERE "tenantId" IS NOT NULL AND "employeeNumber" IS NOT NULL AND "deletedAt" IS NULL`);
+  await c.query(`CREATE UNIQUE INDEX IF NOT EXISTS "applicants_tenant_email_unique"
+    ON "applicants" ("tenantId", lower(email))
+    WHERE "tenantId" IS NOT NULL AND email IS NOT NULL AND "deletedAt" IS NULL`);
 }
 
 function runScript(rel: string, env: Record<string, string | undefined>): { stdout: string; code: number } {

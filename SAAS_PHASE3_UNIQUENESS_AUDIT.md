@@ -93,3 +93,16 @@ Same-tenant duplicate cleanup planning landed. Phase 3.3 unique
 constraint introduction is now gated on
 `duplicate-cleanup-plan.json.counts.conflicting_active === 0` AND
 apply completion. See SAAS_PHASE3_DUPLICATE_CLEANUP_PLAN.md.
+
+---
+
+## Phase 3.3 addendum
+
+Three additive partial unique indexes landed:
+- `employees_tenant_email_unique` ON (tenantId, lower(email)) WHERE tenantId IS NOT NULL AND email IS NOT NULL AND deletedAt IS NULL
+- `employees_tenant_employee_number_unique` ON (tenantId, employeeNumber) WHERE … AND deletedAt IS NULL
+- `applicants_tenant_email_unique` ON (tenantId, lower(email)) WHERE … AND deletedAt IS NULL
+
+Existing global Employee.email / Employee.employeeNumber UNIQUEs
+retained. Phase 3.4 will drop the globals after bake. See
+SAAS_PHASE3_PER_TENANT_UNIQUE_CONSTRAINTS.md.

@@ -300,3 +300,11 @@ npm run saas:scan -- --strict
 - `phase320-duplicate-cleanup-plan` (allowed: `scripts/saas/phase3/`)
 - `phase320-duplicate-cleanup-apply` (allowed: `scripts/saas/phase3/`)
 - `phase320-duplicate-cleanup-harness` (allowed: `scripts/saas/phase3/`)
+
+---
+
+## Phase 3.3 — Additive per-tenant unique constraint tags
+
+- `phase330-per-tenant-unique-constraints` (allowed: `scripts/saas/phase3/`, `prisma/`)
+- `phase330-additive-unique-indexes` (allowed: `scripts/saas/phase3/`, `prisma/`)
+- `phase330-global-unique-retained` (allowed: `scripts/saas/phase3/`, `prisma/`)

@@ -88,3 +88,11 @@ SAAS_PHASE3_1_READINESS.md.
 Same-tenant duplicate cleanup planning + gated apply layer
 shipped (dry-run-first; soft-delete only; three-gate apply).
 Harness 22/22 PASS. Cumulative regression: 875/875.
+
+---
+
+## Phase 3.3 addendum
+
+Additive per-tenant partial unique indexes landed via
+`saas_phase33_per_tenant_uniques` migration. Globals retained.
+Harness 19/19 PASS. Cumulative 894/894.

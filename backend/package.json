@@ -143,6 +143,7 @@
     "saas:phase310-platform-admin-cleanup-audit-log":    "ts-node scripts/saas/phase3/platform-admin-cleanup-audit-log.ts",
     "saas:phase311-platform-admin-grant-revoke":         "ts-node scripts/saas/phase3/platform-admin-grant-revoke.ts",
     "saas:phase312-platform-admin-controller":           "ts-node scripts/saas/phase3/platform-admin-controller.ts",
+    "saas:phase313-tenant-aware-login":                  "ts-node scripts/saas/phase3/tenant-aware-login.ts",
     "saas:phase2-job-ads-equivalence": "ts-node scripts/saas/phase2/job-ads-equivalence.ts",
     "saas:phase2-job-ads-isolation": "ts-node scripts/saas/phase2/job-ads-isolation.ts",
     "saas:phase2-notifications-equivalence": "ts-node scripts/saas/phase2/notifications-equivalence.ts",

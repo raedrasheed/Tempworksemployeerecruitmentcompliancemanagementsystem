@@ -14,6 +14,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagg
 import { JwtService } from '@nestjs/jwt';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
+import { LoginV2Dto } from './dto/login-v2.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
@@ -39,9 +40,38 @@ export class AuthController {
   @ApiOperation({ summary: 'Login with email and password' })
   @ApiResponse({ status: 200, description: 'Returns JWT tokens and user info' })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
-  login(@Body() loginDto: LoginDto & { agencyId?: string }, @Req() req: any) {
+  login(@Body() loginDto: LoginDto & { agencyId?: string; company?: string }, @Req() req: any) {
     const ip = req.headers['x-forwarded-for'] || req.ip || 'unknown';
+    // Phase 3.13 — when TENANT_LOGIN_REQUIRED=true the legacy endpoint
+    // requires `company` and routes to the tenant-aware path so frontends
+    // can migrate without dual-endpoint coordination.
+    // @tenant-reviewed: phase313-tenant-aware-login
+    if (process.env.TENANT_LOGIN_REQUIRED === 'true') {
+      if (!loginDto?.company || !loginDto.email || !loginDto.password) {
+        throw new UnauthorizedException({
+          code: 'AUTH.INVALID_CREDENTIALS',
+          message: 'Invalid company, email, or password',
+        });
+      }
+      return this.authService.loginV2(
+        { company: loginDto.company, email: loginDto.email, password: loginDto.password },
+        ip,
+      );
+    }
     return this.authService.login(loginDto, ip);
+  }
+
+  // Phase 3.13 — tenant-aware login. ALWAYS requires `company`, regardless
+  // of TENANT_LOGIN_REQUIRED. @tenant-reviewed: phase313-tenant-aware-login
+  @Public()
+  @Post('login-v2')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Login with company, email, and password (tenant-aware)' })
+  @ApiResponse({ status: 200, description: 'Returns JWT tokens and user info' })
+  @ApiResponse({ status: 401, description: 'Invalid company, email, or password' })
+  loginV2(@Body() loginDto: LoginV2Dto, @Req() req: any) {
+    const ip = req.headers['x-forwarded-for'] || req.ip || 'unknown';
+    return this.authService.loginV2(loginDto, ip);
   }
 
   // ---------------------------------------------------------------------------

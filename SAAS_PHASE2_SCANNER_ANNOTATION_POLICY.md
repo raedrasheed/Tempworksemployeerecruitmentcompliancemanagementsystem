@@ -386,3 +386,9 @@ npm run saas:scan -- --strict
 
 - `phase312-platform-admin-controller` (allowed: `scripts/saas/phase3/`, `src/`)
 - `phase312-platform-admin-http-gate` (allowed: `scripts/saas/phase3/`, `src/`)
+
+---
+
+## Phase 3.13 — Tenant-aware login tags
+
+- `phase313-tenant-aware-login` (allowed: `scripts/saas/phase3/`, `src/`)

@@ -222,6 +222,75 @@ export class AuthService {
   }
 
   // ---------------------------------------------------------------------------
+  // Phase 3.13 — Tenant-aware login (POST /auth/login-v2)
+  //
+  // Resolves a tenant from `company` (slug → customDomain), verifies the
+  // user belongs to that tenant via `User.agencyId → Agency.tenantId`, and
+  // delegates the actual credential check to the existing login() method.
+  //
+  // Every failure mode (tenant not found, user not found, wrong password,
+  // user outside tenant, inactive/deleted, ambiguous match) returns the
+  // SAME generic 401 — operators may correlate via the audit log.
+  //
+  // @tenant-reviewed: phase313-tenant-aware-login
+  // ---------------------------------------------------------------------------
+  async loginV2(
+    dto: { company: string; email: string; password: string },
+    ipAddress?: string,
+  ) {
+    const generic = new UnauthorizedException({
+      code: 'AUTH.INVALID_CREDENTIALS',
+      message: 'Invalid company, email, or password',
+    });
+    const company = (dto.company ?? '').trim().toLowerCase();
+    const email   = (dto.email ?? '').trim().toLowerCase();
+    if (!company || !email || !dto.password) throw generic;
+
+    // Resolve tenant — slug, then customDomain. No fuzzy matching.
+    const tenant = await this.prisma.tenant.findFirst({
+      where: { OR: [{ slug: company }, { customDomain: company }] },
+      select: { id: true },
+    });
+    if (!tenant) {
+      await this.auditLog.log({
+        userEmail: email, action: 'LOGIN_FAILED', entity: 'User', entityId: 'unknown',
+        changes: { reason: 'login-v2: tenant not resolved', company }, ipAddress,
+      }).catch(() => undefined);
+      throw generic;
+    }
+
+    // Resolve user by email + tenant membership via agency.tenantId.
+    const user = await this.prisma.user.findFirst({
+      where: {
+        email,
+        deletedAt: null,
+        agency: { tenantId: tenant.id },
+      },
+      select: { id: true, agencyId: true },
+    });
+    if (!user) {
+      await this.auditLog.log({
+        userEmail: email, action: 'LOGIN_FAILED', entity: 'User', entityId: 'unknown',
+        changes: { reason: 'login-v2: user not in tenant' }, ipAddress,
+      }).catch(() => undefined);
+      throw generic;
+    }
+
+    // Delegate to existing login flow with agencyId pin so the agency-mismatch
+    // path also enforces tenant membership defensively. Translate ANY 401 from
+    // the legacy flow into the same generic message — no information leakage.
+    try {
+      return await this.login(
+        { email, password: dto.password, agencyId: user.agencyId },
+        ipAddress,
+      );
+    } catch (err: any) {
+      if (err instanceof UnauthorizedException) throw generic;
+      throw err;
+    }
+  }
+
+  // ---------------------------------------------------------------------------
   // 2FA: create challenge, verify challenge
   // ---------------------------------------------------------------------------
   private maskEmail(email: string): string {

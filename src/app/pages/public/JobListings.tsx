@@ -255,10 +255,11 @@ export function JobListings() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {jobs.map(job => {
                   const salary = formatSalary(job.salaryMin, job.salaryMax, job.currency);
+                  const applyHref = `/apply?jobAdId=${encodeURIComponent(job.id)}&jobSlug=${encodeURIComponent(job.slug)}&jobTitle=${encodeURIComponent(job.title)}${job.category ? `&jobCategory=${encodeURIComponent(job.category)}` : ''}`;
                   return (
-                    <Link key={job.id} to={`/jobs/${job.slug}`}>
-                      <Card className="h-full hover:shadow-md hover:border-blue-300 transition-all cursor-pointer group">
-                        <CardContent className="p-5 flex flex-col h-full">
+                    <Card key={job.id} className="h-full hover:shadow-md hover:border-blue-300 transition-all group">
+                      <CardContent className="p-5 flex flex-col h-full">
+                        <Link to={`/jobs/${job.slug}`} className="flex flex-col flex-1">
                           <div className="flex items-start justify-between mb-3">
                             <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${CONTRACT_TYPE_COLORS[job.contractType] ?? 'bg-gray-100 text-gray-700'}`}>
                               {enumLabel('contractType', job.contractType)}
@@ -287,9 +288,12 @@ export function JobListings() {
                               </div>
                             )}
                           </div>
-                        </CardContent>
-                      </Card>
-                    </Link>
+                        </Link>
+                        <Button asChild size="sm" className="mt-4 w-full">
+                          <Link to={applyHref}>{t('jobs.headerApply')}</Link>
+                        </Button>
+                      </CardContent>
+                    </Card>
                   );
                 })}
               </div>
@@ -297,10 +301,11 @@ export function JobListings() {
               <div className="flex flex-col gap-3">
                 {jobs.map(job => {
                   const salary = formatSalary(job.salaryMin, job.salaryMax, job.currency);
+                  const applyHref = `/apply?jobAdId=${encodeURIComponent(job.id)}&jobSlug=${encodeURIComponent(job.slug)}&jobTitle=${encodeURIComponent(job.title)}${job.category ? `&jobCategory=${encodeURIComponent(job.category)}` : ''}`;
                   return (
-                    <Link key={job.id} to={`/jobs/${job.slug}`}>
-                      <Card className="hover:shadow-md hover:border-blue-300 transition-all cursor-pointer group">
-                        <CardContent className="p-4 flex items-center gap-4">
+                    <Card key={job.id} className="hover:shadow-md hover:border-blue-300 transition-all group">
+                      <CardContent className="p-4 flex items-center gap-4">
+                        <Link to={`/jobs/${job.slug}`} className="flex items-center gap-4 flex-1 min-w-0">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
                               <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${CONTRACT_TYPE_COLORS[job.contractType] ?? 'bg-gray-100 text-gray-700'}`}>
@@ -331,9 +336,12 @@ export function JobListings() {
                             )}
                           </div>
                           <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all flex-shrink-0" />
-                        </CardContent>
-                      </Card>
-                    </Link>
+                        </Link>
+                        <Button asChild size="sm" className="flex-shrink-0">
+                          <Link to={applyHref}>{t('jobs.headerApply')}</Link>
+                        </Button>
+                      </CardContent>
+                    </Card>
                   );
                 })}
               </div>

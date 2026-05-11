@@ -122,6 +122,7 @@ export class UsersService {
     callerRole?: string,
     callerAgencyId?: string,
     callerAgencyIsSystem?: boolean,
+    callerId?: string,
   ) {
     const { page = 1, limit = 20, search, sortBy = 'createdAt', sortOrder = 'desc', roleId, status } = query;
     const skip = (Number(page) - 1) * Number(limit);
@@ -175,17 +176,27 @@ export class UsersService {
       this.prisma.user.count({ where }),
     ]);
 
-    // Phase 3.14 — attach PlatformAdmin level for the badge in the UI list.
+    // Phase 3.14/3.15 — attach PlatformAdmin level for the badge in the
+    // UI list. Visible only to SUPER PlatformAdmin viewers; for every
+    // other caller the field is omitted entirely so the SUPER badge
+    // does not leak through the list response.
     try {
-      const ids = data.map((u: any) => u.id);
-      if (ids.length) {
-        const pas = await (this.prisma as any).platformAdmin.findMany({
-          where: { userId: { in: ids } },
-          select: { userId: true, level: true },
-        });
-        const byId = new Map<string, string>(pas.map((p: any) => [p.userId, p.level]));
-        for (const u of data as any[]) {
-          u.platformAdmin = { level: byId.get(u.id) ?? 'NONE' };
+      const callerPa = callerId
+        ? await (this.prisma as any).platformAdmin.findUnique({
+            where: { userId: callerId }, select: { level: true },
+          })
+        : null;
+      if (callerPa?.level === 'SUPER') {
+        const ids = data.map((u: any) => u.id);
+        if (ids.length) {
+          const pas = await (this.prisma as any).platformAdmin.findMany({
+            where: { userId: { in: ids } },
+            select: { userId: true, level: true },
+          });
+          const byId = new Map<string, string>(pas.map((p: any) => [p.userId, p.level]));
+          for (const u of data as any[]) {
+            u.platformAdmin = { level: byId.get(u.id) ?? 'NONE' };
+          }
         }
       }
     } catch { /* table may not exist yet in some envs */ }
@@ -196,7 +207,7 @@ export class UsersService {
   // ---------------------------------------------------------------------------
   // Find one
   // ---------------------------------------------------------------------------
-  async findOne(id: string, callerRole?: string, callerAgencyId?: string, callerAgencyIsSystem?: boolean) {
+  async findOne(id: string, callerRole?: string, callerAgencyId?: string, callerAgencyIsSystem?: boolean, callerId?: string) {
     const user = await this.prisma.user.findFirst({
       where: { id, deletedAt: null },
       include: {
@@ -231,15 +242,28 @@ export class UsersService {
 
     const { passwordHash, refreshToken, ...result } = user as any;
 
-    // Phase 3.14 — enrich with PlatformAdmin level for the User edit
-    // page's "Platform Admin Access" card. @tenant-reviewed:
-    // phase311-platform-admin-grant-revoke
+    // Phase 3.14/3.15 — enrich with PlatformAdmin level for the User
+    // edit page's "Platform Admin Access" card. Only visible when the
+    // caller is the target themself (so /users/me always works) OR
+    // when the caller is a SUPER PlatformAdmin. For every other viewer
+    // the field is omitted entirely.
+    // @tenant-reviewed: phase311-platform-admin-grant-revoke
     try {
-      const pa = await (this.prisma as any).platformAdmin.findUnique({
-        where: { userId: id },
-        select: { level: true, grantedAt: true, grantedBy: true },
-      });
-      (result as any).platformAdmin = pa ? pa : { level: 'NONE' };
+      const selfLookup = !!callerId && callerId === id;
+      let allowed = selfLookup;
+      if (!allowed && callerId) {
+        const callerPa = await (this.prisma as any).platformAdmin.findUnique({
+          where: { userId: callerId }, select: { level: true },
+        });
+        allowed = callerPa?.level === 'SUPER';
+      }
+      if (allowed) {
+        const pa = await (this.prisma as any).platformAdmin.findUnique({
+          where: { userId: id },
+          select: { level: true, grantedAt: true, grantedBy: true },
+        });
+        (result as any).platformAdmin = pa ? pa : { level: 'NONE' };
+      }
     } catch { /* table may not exist yet */ }
 
     return result;

@@ -46,7 +46,7 @@ export class UsersController {
     // Pass the caller's own role + agency so the agency-scoping and
     // "hide System Admin from non-admins" checks in findOne don't reject
     // a user looking at their own profile.
-    return this.usersService.findOne(caller.id, caller.role, caller.agencyId);
+    return this.usersService.findOne(caller.id, caller.role, caller.agencyId, caller.agencyIsSystem, caller.id);
   }
 
   @Patch('profile')
@@ -79,7 +79,7 @@ export class UsersController {
   @ApiQuery({ name: 'roleId', required: false })
   @ApiQuery({ name: 'status', required: false })
   findAll(@Query() query: PaginationDto & { roleId?: string; status?: string }, @CurrentUser() caller: any) {
-    return this.usersService.findAll(query, caller?.role, caller?.agencyId, caller?.agencyIsSystem);
+    return this.usersService.findAll(query, caller?.role, caller?.agencyId, caller?.agencyIsSystem, caller?.id);
   }
 
   // ── Single user ───────────────────────────────────────────────────────────────
@@ -88,7 +88,7 @@ export class UsersController {
   @Roles('System Admin', 'HR Manager', 'Agency Manager')
   @ApiOperation({ summary: 'Get user by ID (Agency Manager limited to own-agency users)' })
   findOne(@Param('id') id: string, @CurrentUser() caller: any) {
-    return this.usersService.findOne(id, caller?.role, caller?.agencyId, caller?.agencyIsSystem);
+    return this.usersService.findOne(id, caller?.role, caller?.agencyId, caller?.agencyIsSystem, caller?.id);
   }
 
   @Post()

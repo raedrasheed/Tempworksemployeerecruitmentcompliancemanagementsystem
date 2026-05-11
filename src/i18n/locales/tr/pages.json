@@ -4293,6 +4293,7 @@
         "DOCUMENT": "Belge",
         "DOCUMENT_TYPE": "Belge Türü",
         "JOB_AD": "İş İlanı",
+        "JOB_TYPE": "İş Kategorisi",
         "FINANCIAL_RECORD": "Finansal Kayıt",
         "ROLE": "Rol",
         "NOTIFICATION": "Bildirim",

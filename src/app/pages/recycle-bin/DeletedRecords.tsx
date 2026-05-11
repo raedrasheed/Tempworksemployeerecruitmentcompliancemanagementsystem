@@ -50,6 +50,7 @@ const ENTITY_META: Record<string, { icon: any; color: string }> = {
   DOCUMENT:         { icon: FileText,   color: 'bg-cyan-100 text-cyan-800' },
   DOCUMENT_TYPE:    { icon: FolderOpen, color: 'bg-teal-100 text-teal-800' },
   JOB_AD:           { icon: Briefcase,  color: 'bg-yellow-100 text-yellow-800' },
+  JOB_TYPE:         { icon: Briefcase,  color: 'bg-lime-100 text-lime-800' },
   FINANCIAL_RECORD: { icon: DollarSign, color: 'bg-emerald-100 text-emerald-800' },
   ROLE:             { icon: Shield,     color: 'bg-indigo-100 text-indigo-800' },
   NOTIFICATION:     { icon: Bell,       color: 'bg-gray-100 text-gray-800' },

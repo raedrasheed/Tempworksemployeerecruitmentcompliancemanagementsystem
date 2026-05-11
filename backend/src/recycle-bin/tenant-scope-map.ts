@@ -29,6 +29,7 @@ export const GLOBAL_RECYCLE_ENTITIES: ReadonlySet<string> = new Set([
   'USER',
   'ROLE',
   'DOCUMENT_TYPE',     // global catalog
+  'JOB_TYPE',          // global catalog (soft-delete via isActive=false)
   'MAINTENANCE_TYPE',  // global catalog
   'WORKSHOP',          // shared service-provider table
   'REPORT',            // no tenantId column today

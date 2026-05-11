@@ -1,5 +1,5 @@
 import {
-  Injectable, NotFoundException, ForbiddenException, BadRequestException,
+  Injectable, NotFoundException, ForbiddenException, BadRequestException, ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditLogService } from '../logs/audit-log.service';
@@ -66,6 +66,7 @@ export class HardDeleteService {
       case 'DOCUMENT':    return this.hardDeleteDocument(id, actorId, reason);
       case 'DOCUMENT_TYPE': return this.hardDeleteDocumentType(id, actorId, reason);
       case 'JOB_AD':      return this.hardDeleteJobAd(id, actorId, reason);
+      case 'JOB_TYPE':    return this.hardDeleteJobType(id, actorId, reason);
       case 'FINANCIAL_RECORD': return this.hardDeleteFinancialRecord(id, actorId, reason);
       case 'ROLE':        return this.hardDeleteRole(id, actorId, reason);
       case 'NOTIFICATION': return this.hardDeleteNotification(id, actorId, reason);
@@ -283,6 +284,33 @@ export class HardDeleteService {
       success: true, entityType: 'JOB_AD', id, deleted,
       warnings: [`${deleted.unlinkedApplicants} applicant(s) were unlinked (not deleted).`],
     };
+  }
+
+  private async hardDeleteJobType(id: string, actorId: string, reason?: string): Promise<HardDeleteResult> {
+    const record = await this.legacyPrisma.jobType.findUnique({ where: { id } });
+    if (!record) throw new NotFoundException(`JobType ${id} not found`);
+    if (record.isActive) {
+      throw new ConflictException('Restore the job type before hard-deleting, or deactivate it first.');
+    }
+
+    // Unlink referencing applicants/employees (the FK is nullable) so
+    // the row can be deleted without losing history. Anything left
+    // referencing the type stays pointing to NULL.
+    const deleted: Record<string, number> = {};
+    await this.legacyPrisma.$transaction(async (tx) => {
+      const unlinkedApplicants = await tx.applicant.updateMany({ where: { jobTypeId: id }, data: { jobTypeId: null } });
+      const unlinkedEmployees = await tx.employee.updateMany({ where: { jobTypeId: id }, data: { jobTypeId: null } });
+      deleted.unlinkedApplicants = unlinkedApplicants.count;
+      deleted.unlinkedEmployees = unlinkedEmployees.count;
+      await tx.jobType.delete({ where: { id } });
+      deleted.jobType = 1;
+    });
+
+    await this.logHardDelete('JOB_TYPE', id, actorId, deleted, reason).catch(() => {});
+    const warnings: string[] = [];
+    if (deleted.unlinkedApplicants) warnings.push(`${deleted.unlinkedApplicants} applicant(s) were unlinked.`);
+    if (deleted.unlinkedEmployees)  warnings.push(`${deleted.unlinkedEmployees} employee(s) were unlinked.`);
+    return { success: true, entityType: 'JOB_TYPE', id, deleted, warnings };
   }
 
   private async hardDeleteFinancialRecord(id: string, actorId: string, reason?: string): Promise<HardDeleteResult> {

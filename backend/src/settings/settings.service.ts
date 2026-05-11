@@ -214,28 +214,17 @@ export class SettingsService {
   async deleteJobType(id: string, actorId?: string) {
     const jt = await this.prisma.jobType.findUnique({ where: { id } });
     if (!jt) throw new NotFoundException('Job type not found');
-
-    // Hard-delete when no applicants/employees still reference the
-    // category; otherwise fall back to a soft-deactivate so historical
-    // records stay intact. The response distinguishes the two outcomes
-    // so the UI can surface the right message.
+    // Soft-delete only — the platform-wide rule is "no hard delete from
+    // application flows". JobType has no `deletedAt` column today; the
+    // recycle-bin module handles row-level entities with proper
+    // deletedAt columns (Applicant, Employee, Agency, …). For now we
+    // keep the historical behaviour: flip isActive=false so the row
+    // disappears from every active picker. A SUPER admin can hard-delete
+    // the row from Postgres if needed.
     const [applicantCount, employeeCount] = await Promise.all([
       this.prisma.applicant.count({ where: { jobTypeId: id } }),
       this.prisma.employee.count({ where: { jobTypeId: id } }),
     ]);
-
-    if (applicantCount === 0 && employeeCount === 0) {
-      await this.prisma.jobType.delete({ where: { id } });
-      await this.auditLog.log({
-        userId: actorId,
-        action: 'DELETE',
-        entity: 'JobType',
-        entityId: id,
-        changes: { name: jt.name, mode: 'hard' },
-      });
-      return { deleted: true, message: 'Job type deleted' };
-    }
-
     await this.prisma.jobType.update({ where: { id }, data: { isActive: false } });
     await this.auditLog.log({
       userId: actorId,
@@ -249,7 +238,7 @@ export class SettingsService {
       deactivated: true,
       applicantCount,
       employeeCount,
-      message: 'Job type deactivated (in use by existing records)',
+      message: 'Job type deactivated',
     };
   }
 

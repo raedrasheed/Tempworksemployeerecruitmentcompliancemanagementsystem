@@ -4288,6 +4288,7 @@
         "DOCUMENT": "Document",
         "DOCUMENT_TYPE": "Document Type",
         "JOB_AD": "Job Ad",
+        "JOB_TYPE": "Job Category",
         "FINANCIAL_RECORD": "Financial Record",
         "ROLE": "Role",
         "NOTIFICATION": "Notification",

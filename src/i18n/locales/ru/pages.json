@@ -4341,6 +4341,7 @@
         "DOCUMENT": "Документ",
         "DOCUMENT_TYPE": "Тип документа",
         "JOB_AD": "Объявление",
+        "JOB_TYPE": "Категория вакансии",
         "FINANCIAL_RECORD": "Финансовая запись",
         "ROLE": "Роль",
         "NOTIFICATION": "Уведомление",

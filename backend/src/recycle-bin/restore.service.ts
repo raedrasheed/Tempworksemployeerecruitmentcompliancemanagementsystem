@@ -85,6 +85,7 @@ export class RestoreService {
       case 'DOCUMENT':    return this.restoreDocument(id, actorId, reason);
       case 'DOCUMENT_TYPE': return this.restoreDocumentType(id, actorId, reason);
       case 'JOB_AD':      return this.restoreJobAd(id, actorId, reason);
+      case 'JOB_TYPE':    return this.restoreJobType(id, actorId, reason);
       case 'FINANCIAL_RECORD': return this.restoreFinancialRecord(id, actorId, withRelated, reason);
       case 'ROLE':        return this.restoreRole(id, actorId, reason);
       case 'REPORT':      return this.restoreReport(id, actorId, reason);
@@ -288,6 +289,24 @@ export class RestoreService {
     });
     await this.logRestore('JOB_AD', id, actorId, { jobAd: 1 }, reason).catch(() => {});
     return { success: true, entityType: 'JOB_AD', id, restored: { jobAd: 1 }, skipped: {}, warnings };
+  }
+
+  private async restoreJobType(id: string, actorId: string, reason?: string): Promise<RestoreResult> {
+    const record = await this.legacyPrisma.jobType.findUnique({ where: { id } });
+    if (!record) throw new NotFoundException(`JobType ${id} not found`);
+    if (record.isActive) throw new ConflictException('JobType is not deleted');
+
+    // Name uniqueness — JobType.name is @unique so collisions hard-fail.
+    const nameConflict = await this.legacyPrisma.jobType.findFirst({
+      where: { name: record.name, isActive: true, id: { not: id } },
+    });
+    if (nameConflict) {
+      throw new ConflictException(`Cannot restore: a job type named "${record.name}" is already active`);
+    }
+
+    await this.legacyPrisma.jobType.update({ where: { id }, data: { isActive: true } });
+    await this.logRestore('JOB_TYPE', id, actorId, { jobType: 1 }, reason).catch(() => {});
+    return { success: true, entityType: 'JOB_TYPE', id, restored: { jobType: 1 }, skipped: {}, warnings: [] };
   }
 
   private async restoreFinancialRecord(id: string, actorId: string, withRelated: boolean, reason?: string): Promise<RestoreResult> {

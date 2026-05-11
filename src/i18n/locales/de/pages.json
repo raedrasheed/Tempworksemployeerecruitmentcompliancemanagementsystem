@@ -4293,6 +4293,7 @@
         "DOCUMENT": "Dokument",
         "DOCUMENT_TYPE": "Dokumenttyp",
         "JOB_AD": "Stellenanzeige",
+        "JOB_TYPE": "Tätigkeitskategorie",
         "FINANCIAL_RECORD": "Finanzdatensatz",
         "ROLE": "Rolle",
         "NOTIFICATION": "Benachrichtigung",

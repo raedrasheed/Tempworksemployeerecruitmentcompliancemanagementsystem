@@ -64,6 +64,12 @@ export const ENTITY_POLICIES: Record<
     canHardDelete: true,
     notes: 'Hard delete unlinks applicants before removing the job ad',
   },
+  JOB_TYPE: {
+    canRestore: true,
+    canRestoreWithRelated: false,
+    canHardDelete: true,
+    notes: 'Soft-deleted via isActive=false. Hard delete blocked if any applicant/employee references this category.',
+  },
   FINANCIAL_RECORD: {
     canRestore: true,
     canRestoreWithRelated: true,
@@ -184,7 +190,7 @@ export class RecycleBinService {
       });
     const [
       applicants, employees, users, agencies, documents,
-      docTypes, jobAds, financialRecords, roles, notifications, reports,
+      docTypes, jobAds, jobTypes, financialRecords, roles, notifications, reports,
       vehicles, vehicleDocs, maintenanceRecords, maintenanceTypes, workshops,
     ] = (await Promise.all([
       safeList(this.getDeletedApplicants(filter, 50)),
@@ -194,6 +200,7 @@ export class RecycleBinService {
       safeList(this.getDeletedDocuments(filter, 50)),
       safeList(this.getDeletedDocumentTypes(filter, 50)),
       safeList(this.getDeletedJobAds(filter, 50)),
+      safeList(this.getDeletedJobTypes(filter, 50)),
       safeList(this.getDeletedFinancialRecords(filter, 50)),
       safeList(this.getDeletedRoles(filter, 50)),
       safeList(this.getDeletedNotifications(filter, 50)),
@@ -207,7 +214,7 @@ export class RecycleBinService {
 
     records = [
       ...applicants, ...employees, ...users, ...agencies, ...documents,
-      ...docTypes, ...jobAds, ...financialRecords, ...roles, ...notifications, ...reports,
+      ...docTypes, ...jobAds, ...jobTypes, ...financialRecords, ...roles, ...notifications, ...reports,
       ...vehicles, ...vehicleDocs, ...maintenanceRecords, ...maintenanceTypes, ...workshops,
     ];
 
@@ -234,7 +241,7 @@ export class RecycleBinService {
       });
     const [
       applicants, employees, users, agencies, documents,
-      docTypes, jobAds, financialRecords, roles, notifications, reports,
+      docTypes, jobAds, jobTypes, financialRecords, roles, notifications, reports,
       vehicles, vehicleDocs, maintenanceRecords, maintenanceTypes, workshops,
     ] = await Promise.all([
       safeCount(this.prisma.applicant.count({ where: { deletedAt: { not: null }, ...this.tenantWhereFor('APPLICANT') } })), // @tenant-reviewed: phase211-pilot-scope
@@ -244,6 +251,8 @@ export class RecycleBinService {
       safeCount(this.prisma.document.count({ where: { deletedAt: { not: null }, ...this.tenantWhereFor('DOCUMENT') } })), // @tenant-reviewed: phase211-pilot-scope
       safeCount(this.prisma.documentType.count({ where: { deletedAt: { not: null } } })), // @tenant-reviewed: phase211-global (DocumentType is global catalog)
       safeCount(this.prisma.jobAd.count({ where: { deletedAt: { not: null }, ...this.tenantWhereFor('JOB_AD') } })),       // @tenant-reviewed: phase211-pilot-scope
+      // JobType has no deletedAt column; soft-delete is encoded as isActive=false. Global catalog.
+      safeCount(this.prisma.jobType.count({ where: { isActive: false } })),
       safeCount(this.prisma.financialRecord.count({ where: { deletedAt: { not: null }, ...this.tenantWhereFor('FINANCIAL_RECORD') } })), // @tenant-reviewed: phase211-pilot-scope
       safeCount(this.prisma.role.count({ where: { deletedAt: { not: null } } })),     // @tenant-reviewed: phase211-global (Role is global)
       safeCount(this.prisma.notification.count({ where: { deletedAt: { not: null }, ...this.tenantWhereFor('NOTIFICATION') } })), // @tenant-reviewed: phase211-pilot-scope
@@ -263,6 +272,7 @@ export class RecycleBinService {
       DOCUMENT: documents,
       DOCUMENT_TYPE: docTypes,
       JOB_AD: jobAds,
+      JOB_TYPE: jobTypes,
       FINANCIAL_RECORD: financialRecords,
       ROLE: roles,
       NOTIFICATION: notifications,
@@ -273,7 +283,7 @@ export class RecycleBinService {
       MAINTENANCE_TYPE: maintenanceTypes,
       WORKSHOP: workshops,
       total: applicants + employees + users + agencies + documents + docTypes
-        + jobAds + financialRecords + roles + notifications + reports
+        + jobAds + jobTypes + financialRecords + roles + notifications + reports
         + vehicles + vehicleDocs + maintenanceRecords + maintenanceTypes + workshops,
     };
   }
@@ -557,6 +567,18 @@ export class RecycleBinService {
         ]);
         break;
       }
+      case 'JOB_TYPE': {
+        // JobType uses isActive=false as the soft-delete marker because
+        // the model has no deletedAt column. Search matches the name.
+        const where: any = { isActive: false };
+        if (filter.search) where.name = { contains: filter.search, mode: 'insensitive' };
+        [data, total] = await Promise.all([
+          this.prisma.jobType.findMany({ where, orderBy: { updatedAt: sortOrder }, skip, take: Number(limit) })
+            .then(rs => rs.map(r => this.mapJobType(r))),
+          this.prisma.jobType.count({ where }),
+        ]);
+        break;
+      }
       case 'FINANCIAL_RECORD': {
         const where = this.buildFinancialRecordWhere(filter);
         [data, total] = await Promise.all([
@@ -691,6 +713,14 @@ export class RecycleBinService {
     const where = this.buildJobAdWhere(f);
     const rs = await this.prisma.jobAd.findMany({ where, orderBy: { deletedAt: 'desc' }, take: max }) // @tenant-reviewed: phase211-pilot-scope (where carries tenantWhereFor);
     return rs.map(r => this.mapJobAd(r));
+  }
+
+  private async getDeletedJobTypes(f: ListDeletedDto, max: number) {
+    // JobType soft-delete = isActive=false; no deletedAt column.
+    const where: any = { isActive: false };
+    if (f.search) where.name = { contains: f.search, mode: 'insensitive' };
+    const rs = await this.prisma.jobType.findMany({ where, orderBy: { updatedAt: 'desc' }, take: max });
+    return rs.map(r => this.mapJobType(r));
   }
 
   private async getDeletedFinancialRecords(f: ListDeletedDto, max: number) {
@@ -1111,6 +1141,25 @@ export class RecycleBinService {
       canHardDelete: policy.canHardDelete,
       relatedDeletedCount: 0,
       extra: { category: r.category, status: r.status, city: r.city },
+    };
+  }
+
+  mapJobType(r: any): DeletedRecord {
+    const policy = ENTITY_POLICIES.JOB_TYPE;
+    return {
+      entityType: 'JOB_TYPE',
+      id: r.id,
+      displayName: r.name,
+      // No deletedAt column on JobType — surface updatedAt as the
+      // approximate "deleted at" so the row sorts/filters correctly.
+      deletedAt: r.updatedAt,
+      deletedBy: undefined,
+      deletionReason: undefined,
+      canRestore: policy.canRestore,
+      canRestoreWithRelated: policy.canRestoreWithRelated,
+      canHardDelete: policy.canHardDelete,
+      relatedDeletedCount: 0,
+      extra: { description: r.description ?? null },
     };
   }
 

@@ -4377,6 +4377,7 @@
         "DOCUMENT": "وثيقة",
         "DOCUMENT_TYPE": "نوع وثيقة",
         "JOB_AD": "إعلان وظيفة",
+        "JOB_TYPE": "فئة الوظيفة",
         "FINANCIAL_RECORD": "سجل مالي",
         "ROLE": "دور",
         "NOTIFICATION": "إشعار",

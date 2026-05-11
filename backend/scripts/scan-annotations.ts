@@ -188,6 +188,9 @@ const KNOWN_REASONS: ReadonlyArray<PolicyEntry> = [
   { tag: 'phase330-per-tenant-unique-constraints',       allowedPaths: ['scripts/saas/phase3/', 'prisma/'] },
   { tag: 'phase330-additive-unique-indexes',             allowedPaths: ['scripts/saas/phase3/', 'prisma/'] },
   { tag: 'phase330-global-unique-retained',              allowedPaths: ['scripts/saas/phase3/', 'prisma/'] },
+  { tag: 'phase340-drop-employee-global-uniques',        allowedPaths: ['scripts/saas/phase3/', 'prisma/'] },
+  { tag: 'phase340-global-unique-drop',                  allowedPaths: ['scripts/saas/phase3/', 'prisma/'] },
+  { tag: 'phase340-per-tenant-unique-retained',          allowedPaths: ['scripts/saas/phase3/', 'prisma/'] },
   { tag: 'tenant-safe-report-runtime',    allowedPaths: ['src/reports/', 'src/saas/reports/'] },
   { tag: 'tenant-resolver-bootstrap',     allowedPaths: ['src/saas/tenancy/'] },
 ];

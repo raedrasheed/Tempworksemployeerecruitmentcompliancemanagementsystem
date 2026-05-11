@@ -96,3 +96,11 @@ Harness 22/22 PASS. Cumulative regression: 875/875.
 Additive per-tenant partial unique indexes landed via
 `saas_phase33_per_tenant_uniques` migration. Globals retained.
 Harness 19/19 PASS. Cumulative 894/894.
+
+---
+
+## Phase 3.4 addendum
+
+Destructive migration `saas_phase34_drop_employee_global_uniques`
+landed. Cross-tenant Employee identifier reuse now allowed.
+Harness 20/20 PASS. Cumulative 914/914.

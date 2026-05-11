@@ -308,3 +308,11 @@ npm run saas:scan -- --strict
 - `phase330-per-tenant-unique-constraints` (allowed: `scripts/saas/phase3/`, `prisma/`)
 - `phase330-additive-unique-indexes` (allowed: `scripts/saas/phase3/`, `prisma/`)
 - `phase330-global-unique-retained` (allowed: `scripts/saas/phase3/`, `prisma/`)
+
+---
+
+## Phase 3.4 — Global Employee UNIQUE drop tags
+
+- `phase340-drop-employee-global-uniques` (allowed: `scripts/saas/phase3/`, `prisma/`)
+- `phase340-global-unique-drop` (allowed: `scripts/saas/phase3/`, `prisma/`)
+- `phase340-per-tenant-unique-retained` (allowed: `scripts/saas/phase3/`, `prisma/`)

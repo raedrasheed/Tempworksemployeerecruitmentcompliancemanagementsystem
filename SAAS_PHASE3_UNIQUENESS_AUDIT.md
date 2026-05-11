@@ -106,3 +106,14 @@ Three additive partial unique indexes landed:
 Existing global Employee.email / Employee.employeeNumber UNIQUEs
 retained. Phase 3.4 will drop the globals after bake. See
 SAAS_PHASE3_PER_TENANT_UNIQUE_CONSTRAINTS.md.
+
+---
+
+## Phase 3.4 addendum
+
+Legacy global Employee UNIQUEs dropped. Final state:
+- Employee.email: per-tenant only (employees_tenant_email_unique)
+- Employee.employeeNumber: per-tenant only
+- Applicant.email: per-tenant only (no global)
+- User.email: GLOBAL UNIQUE (unchanged — login identity)
+See SAAS_PHASE3_DROP_EMPLOYEE_GLOBAL_UNIQUES.md.

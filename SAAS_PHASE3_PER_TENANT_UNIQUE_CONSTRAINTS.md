@@ -153,3 +153,13 @@ duplicates would have already hit the global UNIQUE on Employee.
 Only after a bake window under Phase 3.3, with all tenant-onboarding
 paths confirmed to set `tenantId` correctly and Phase 3.1/3.2
 reports re-run clean on production.
+
+---
+
+## Phase 3.4 addendum
+
+Legacy global Employee.email and Employee.employeeNumber UNIQUEs
+dropped via `saas_phase34_drop_employee_global_uniques` migration.
+Cross-tenant Employee identifier reuse is now allowed. Same-tenant
+uniqueness continues to be enforced by the Phase 3.3 partial
+indexes. See SAAS_PHASE3_DROP_EMPLOYEE_GLOBAL_UNIQUES.md.

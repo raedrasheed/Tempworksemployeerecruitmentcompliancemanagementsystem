@@ -287,10 +287,10 @@ export class HardDeleteService {
   }
 
   private async hardDeleteJobType(id: string, actorId: string, reason?: string): Promise<HardDeleteResult> {
-    const record = await this.legacyPrisma.jobType.findUnique({ where: { id } });
+    const record = await (this.legacyPrisma as any).jobType.findUnique({ where: { id } });
     if (!record) throw new NotFoundException(`JobType ${id} not found`);
-    if (record.isActive) {
-      throw new ConflictException('Restore the job type before hard-deleting, or deactivate it first.');
+    if (!record.deletedAt) {
+      throw new ConflictException('JobType must be soft-deleted (moved to the recycle bin) before hard-deleting.');
     }
 
     // Unlink referencing applicants/employees (the FK is nullable) so

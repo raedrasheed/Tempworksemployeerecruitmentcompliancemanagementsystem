@@ -292,19 +292,22 @@ export class RestoreService {
   }
 
   private async restoreJobType(id: string, actorId: string, reason?: string): Promise<RestoreResult> {
-    const record = await this.legacyPrisma.jobType.findUnique({ where: { id } });
+    const record = await (this.legacyPrisma as any).jobType.findUnique({ where: { id } });
     if (!record) throw new NotFoundException(`JobType ${id} not found`);
-    if (record.isActive) throw new ConflictException('JobType is not deleted');
+    if (!record.deletedAt) throw new ConflictException('JobType is not deleted');
 
-    // Name uniqueness — JobType.name is @unique so collisions hard-fail.
+    // JobType.name is @unique so a conflict with a live row is a hard fail.
     const nameConflict = await this.legacyPrisma.jobType.findFirst({
-      where: { name: record.name, isActive: true, id: { not: id } },
+      where: { name: record.name, deletedAt: null, id: { not: id } },
     });
     if (nameConflict) {
-      throw new ConflictException(`Cannot restore: a job type named "${record.name}" is already active`);
+      throw new ConflictException(`Cannot restore: a job type named "${record.name}" already exists`);
     }
 
-    await this.legacyPrisma.jobType.update({ where: { id }, data: { isActive: true } });
+    await this.legacyPrisma.jobType.update({
+      where: { id },
+      data: { deletedAt: null, deletedBy: null, deletionReason: null },
+    });
     await this.logRestore('JOB_TYPE', id, actorId, { jobType: 1 }, reason).catch(() => {});
     return { success: true, entityType: 'JOB_TYPE', id, restored: { jobType: 1 }, skipped: {}, warnings: [] };
   }

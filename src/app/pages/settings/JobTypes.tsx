@@ -195,17 +195,10 @@ export function JobTypes() {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      const res = await settingsApi.deleteJobType(deleteTarget.id) as any;
-      if (res?.deleted) {
-        setJobTypes((prev) => prev.filter((jt) => jt.id !== deleteTarget.id));
-        toast.success(tc('toast.deletedSuccessfullyNamed', { name: deleteTarget.name, defaultValue: `${deleteTarget.name} deleted` }));
-      } else {
-        // Backend fell back to soft-deactivate because records still reference it.
-        setJobTypes((prev) => prev.map((jt) =>
-          jt.id === deleteTarget.id ? { ...jt, isActive: false } : jt,
-        ));
-        toast.warning(tc('toast.deactivatedSuccessfullyNamed', { name: deleteTarget.name }));
-      }
+      await settingsApi.deleteJobType(deleteTarget.id);
+      // Soft-deleted: row leaves this page and shows up in Deleted Records.
+      setJobTypes((prev) => prev.filter((jt) => jt.id !== deleteTarget.id));
+      toast.success(tc('toast.deletedSuccessfullyNamed', { name: deleteTarget.name, defaultValue: `${deleteTarget.name} deleted` }));
       setDeleteTarget(null);
     } catch (err: any) {
       toast.error(apiError(err, tc('toast.deleteFailed')));

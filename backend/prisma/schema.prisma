@@ -520,12 +520,19 @@ model JobType {
   /// Per-locale overrides. Shape: { "ar": { "name": "…", "description": "…" }, "de": { … }, … }.
   /// Reads should fall back to `name`/`description` when the active locale has no entry.
   translations      Json?
+  // Phase 3.16 — soft-delete columns so the Job Categories settings page
+  // can distinguish "Deactivate" (isActive=false) from "Delete" (deletedAt
+  // set). Deleted rows surface in the recycle bin like every other entity.
+  deletedAt         DateTime?
+  deletedBy         String?
+  deletionReason    String?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
   applicants Applicant[]
   employees  Employee[]
 
+  @@index([deletedAt])
   @@map("job_types")
 }
 

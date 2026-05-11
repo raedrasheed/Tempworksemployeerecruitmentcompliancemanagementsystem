@@ -178,8 +178,13 @@ export class SettingsService {
 
   // ─── Job Types ──────────────────────────────────────────────────────────────
   async findJobTypes(opts?: { includeInactive?: boolean }) {
+    // Phase 3.16 — `deletedAt` rows are out of scope here (they live in
+    // the Recycle Bin). `isActive=false` rows are kept when the caller
+    // explicitly asks via includeInactive=true (the Settings page).
+    const where: any = { deletedAt: null };
+    if (!opts?.includeInactive) where.isActive = true;
     return this.prisma.jobType.findMany({
-      where: opts?.includeInactive ? {} : { isActive: true },
+      where,
       orderBy: { name: 'asc' },
       include: { _count: { select: { applicants: true } } },
     });
@@ -214,31 +219,34 @@ export class SettingsService {
   async deleteJobType(id: string, actorId?: string) {
     const jt = await this.prisma.jobType.findUnique({ where: { id } });
     if (!jt) throw new NotFoundException('Job type not found');
-    // Soft-delete only — the platform-wide rule is "no hard delete from
-    // application flows". JobType has no `deletedAt` column today; the
-    // recycle-bin module handles row-level entities with proper
-    // deletedAt columns (Applicant, Employee, Agency, …). For now we
-    // keep the historical behaviour: flip isActive=false so the row
-    // disappears from every active picker. A SUPER admin can hard-delete
-    // the row from Postgres if needed.
+    if (jt.deletedAt) {
+      return { deleted: true, message: 'Job type is already deleted' };
+    }
+    // Phase 3.16 — soft-delete via deletedAt. The row drops out of the
+    // settings list and surfaces in the Recycle Bin for restore or
+    // hard delete. isActive is left untouched so a Restore that does
+    // not also flip isActive returns the row to whatever active/
+    // deactivated state it was in before deletion.
     const [applicantCount, employeeCount] = await Promise.all([
       this.prisma.applicant.count({ where: { jobTypeId: id } }),
       this.prisma.employee.count({ where: { jobTypeId: id } }),
     ]);
-    await this.prisma.jobType.update({ where: { id }, data: { isActive: false } });
+    await this.prisma.jobType.update({
+      where: { id },
+      data: { deletedAt: new Date(), deletedBy: actorId ?? null },
+    });
     await this.auditLog.log({
       userId: actorId,
-      action: 'DEACTIVATE',
+      action: 'DELETE',
       entity: 'JobType',
       entityId: id,
       changes: { name: jt.name, mode: 'soft', applicantCount, employeeCount },
     });
     return {
-      deleted: false,
-      deactivated: true,
+      deleted: true,
       applicantCount,
       employeeCount,
-      message: 'Job type deactivated',
+      message: 'Job type moved to Deleted Records',
     };
   }
 

@@ -68,7 +68,7 @@ export const ENTITY_POLICIES: Record<
     canRestore: true,
     canRestoreWithRelated: false,
     canHardDelete: true,
-    notes: 'Soft-deleted via isActive=false. Hard delete blocked if any applicant/employee references this category.',
+    notes: 'Soft-delete clears the row from settings; hard delete unlinks applicant/employee references before removing it.',
   },
   FINANCIAL_RECORD: {
     canRestore: true,
@@ -251,8 +251,7 @@ export class RecycleBinService {
       safeCount(this.prisma.document.count({ where: { deletedAt: { not: null }, ...this.tenantWhereFor('DOCUMENT') } })), // @tenant-reviewed: phase211-pilot-scope
       safeCount(this.prisma.documentType.count({ where: { deletedAt: { not: null } } })), // @tenant-reviewed: phase211-global (DocumentType is global catalog)
       safeCount(this.prisma.jobAd.count({ where: { deletedAt: { not: null }, ...this.tenantWhereFor('JOB_AD') } })),       // @tenant-reviewed: phase211-pilot-scope
-      // JobType has no deletedAt column; soft-delete is encoded as isActive=false. Global catalog.
-      safeCount(this.prisma.jobType.count({ where: { isActive: false } })),
+      safeCount(this.prisma.jobType.count({ where: { deletedAt: { not: null } } })),
       safeCount(this.prisma.financialRecord.count({ where: { deletedAt: { not: null }, ...this.tenantWhereFor('FINANCIAL_RECORD') } })), // @tenant-reviewed: phase211-pilot-scope
       safeCount(this.prisma.role.count({ where: { deletedAt: { not: null } } })),     // @tenant-reviewed: phase211-global (Role is global)
       safeCount(this.prisma.notification.count({ where: { deletedAt: { not: null }, ...this.tenantWhereFor('NOTIFICATION') } })), // @tenant-reviewed: phase211-pilot-scope
@@ -568,12 +567,10 @@ export class RecycleBinService {
         break;
       }
       case 'JOB_TYPE': {
-        // JobType uses isActive=false as the soft-delete marker because
-        // the model has no deletedAt column. Search matches the name.
-        const where: any = { isActive: false };
+        const where: any = { deletedAt: { not: null } };
         if (filter.search) where.name = { contains: filter.search, mode: 'insensitive' };
         [data, total] = await Promise.all([
-          this.prisma.jobType.findMany({ where, orderBy: { updatedAt: sortOrder }, skip, take: Number(limit) })
+          this.prisma.jobType.findMany({ where, orderBy: { deletedAt: sortOrder }, skip, take: Number(limit) })
             .then(rs => rs.map(r => this.mapJobType(r))),
           this.prisma.jobType.count({ where }),
         ]);
@@ -716,10 +713,9 @@ export class RecycleBinService {
   }
 
   private async getDeletedJobTypes(f: ListDeletedDto, max: number) {
-    // JobType soft-delete = isActive=false; no deletedAt column.
-    const where: any = { isActive: false };
+    const where: any = { deletedAt: { not: null } };
     if (f.search) where.name = { contains: f.search, mode: 'insensitive' };
-    const rs = await this.prisma.jobType.findMany({ where, orderBy: { updatedAt: 'desc' }, take: max });
+    const rs = await this.prisma.jobType.findMany({ where, orderBy: { deletedAt: 'desc' }, take: max });
     return rs.map(r => this.mapJobType(r));
   }
 
@@ -1150,16 +1146,14 @@ export class RecycleBinService {
       entityType: 'JOB_TYPE',
       id: r.id,
       displayName: r.name,
-      // No deletedAt column on JobType — surface updatedAt as the
-      // approximate "deleted at" so the row sorts/filters correctly.
-      deletedAt: r.updatedAt,
-      deletedBy: undefined,
-      deletionReason: undefined,
+      deletedAt: r.deletedAt,
+      deletedBy: r.deletedBy ?? undefined,
+      deletionReason: r.deletionReason ?? undefined,
       canRestore: policy.canRestore,
       canRestoreWithRelated: policy.canRestoreWithRelated,
       canHardDelete: policy.canHardDelete,
       relatedDeletedCount: 0,
-      extra: { description: r.description ?? null },
+      extra: { description: r.description ?? null, isActive: r.isActive },
     };
   }
 

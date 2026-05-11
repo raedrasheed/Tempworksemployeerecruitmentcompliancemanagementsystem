@@ -179,28 +179,17 @@ export class SettingsService {
   // ─── Job Types ──────────────────────────────────────────────────────────────
   async findJobTypes(opts?: { includeInactive?: boolean }) {
     // Phase 3.16 — `deletedAt` rows are out of scope here (they live in
-    // the Recycle Bin). `isActive=false` rows are kept when the caller
-    // explicitly asks via includeInactive=true (the Settings page).
-    // The `deletedAt: null` filter is guarded so dev DBs that haven't
-    // applied the migration yet still serve the list instead of 500ing.
-    const where: any = {};
+    // the Recycle Bin). Ensure the soft-delete columns exist before
+    // querying so dev DBs that have drifted from the migration history
+    // are self-healed on the very first list call.
+    await this.ensureJobTypeSoftDeleteColumns();
+    const where: any = { deletedAt: null };
     if (!opts?.includeInactive) where.isActive = true;
-    try {
-      return await this.prisma.jobType.findMany({
-        where: { ...where, deletedAt: null } as any,
-        orderBy: { name: 'asc' },
-        include: { _count: { select: { applicants: true } } },
-      });
-    } catch (err: any) {
-      if (err?.code === 'P2022' || /column .*deletedAt.* does not exist/i.test(String(err?.message ?? ''))) {
-        return this.prisma.jobType.findMany({
-          where,
-          orderBy: { name: 'asc' },
-          include: { _count: { select: { applicants: true } } },
-        });
-      }
-      throw err;
-    }
+    return this.prisma.jobType.findMany({
+      where,
+      orderBy: { name: 'asc' },
+      include: { _count: { select: { applicants: true } } },
+    });
   }
 
   async createJobType(dto: CreateJobTypeDto, actorId?: string) {
@@ -231,25 +220,34 @@ export class SettingsService {
 
   /**
    * Phase 3.16 — make sure the job_types soft-delete columns exist
-   * before a delete attempts to touch them. Idempotent and additive;
+   * before any read/write touches them. Idempotent and additive;
    * matches the saas_phase316_jobtype_soft_delete migration so dev DBs
-   * that have drifted away from the migration history are auto-healed
-   * the first time a job-type delete is attempted.
+   * that have drifted from the migration history are auto-healed on
+   * the first job-type list or delete call. Memoised per process so
+   * we don't issue redundant ALTERs.
    */
-  private async ensureJobTypeSoftDeleteColumns(): Promise<void> {
-    try {
-      await this.prisma.$executeRawUnsafe(`
-        ALTER TABLE "job_types"
-          ADD COLUMN IF NOT EXISTS "deletedAt"      TIMESTAMP(3),
-          ADD COLUMN IF NOT EXISTS "deletedBy"      TEXT,
-          ADD COLUMN IF NOT EXISTS "deletionReason" TEXT;
-      `);
-      await this.prisma.$executeRawUnsafe(
-        `CREATE INDEX IF NOT EXISTS "job_types_deletedAt_idx" ON "job_types"("deletedAt");`,
-      );
-    } catch {
-      /* best-effort — the Prisma update below will surface the real error */
-    }
+  private jobTypeSoftDeleteReady: Promise<void> | null = null;
+  private ensureJobTypeSoftDeleteColumns(): Promise<void> {
+    if (this.jobTypeSoftDeleteReady) return this.jobTypeSoftDeleteReady;
+    this.jobTypeSoftDeleteReady = (async () => {
+      try {
+        await this.prisma.$executeRawUnsafe(`
+          ALTER TABLE "job_types"
+            ADD COLUMN IF NOT EXISTS "deletedAt"      TIMESTAMP(3),
+            ADD COLUMN IF NOT EXISTS "deletedBy"      TEXT,
+            ADD COLUMN IF NOT EXISTS "deletionReason" TEXT;
+        `);
+        await this.prisma.$executeRawUnsafe(
+          `CREATE INDEX IF NOT EXISTS "job_types_deletedAt_idx" ON "job_types"("deletedAt");`,
+        );
+      } catch {
+        // best-effort: if the ALTER fails the subsequent typed query
+        // will surface the real error. Reset the promise so a retry
+        // is possible on the next call.
+        this.jobTypeSoftDeleteReady = null;
+      }
+    })();
+    return this.jobTypeSoftDeleteReady;
   }
 
   async deleteJobType(id: string, actorId?: string) {

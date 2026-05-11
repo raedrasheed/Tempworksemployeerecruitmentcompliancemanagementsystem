@@ -33,6 +33,21 @@ export function EmployeeProfile() {
   const currentUser = getCurrentUser();
   const isFinanceOrAdmin = currentUser?.role === 'System Admin' || currentUser?.role === 'HR Manager' || currentUser?.role === 'Finance';
   const [employee, setEmployee] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<string>('overview');
+  const scrollToAppSection = (sectionId: string) => {
+    setActiveTab('application');
+    requestAnimationFrame(() => {
+      // The Application tab content needs a frame to mount before the
+      // target node is in the DOM. Fall back to a short retry so the
+      // scroll still fires if the lazy render takes a bit longer.
+      const tryScroll = (attempts: number) => {
+        const el = document.getElementById(sectionId);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        else if (attempts > 0) setTimeout(() => tryScroll(attempts - 1), 60);
+      };
+      tryScroll(5);
+    });
+  };
   const [documents, setDocuments] = useState<any[]>([]);
   const [workflow, setWorkflow] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -387,8 +402,25 @@ export function EmployeeProfile() {
         ))}
       </div>
 
+      {/* Application Quick Nav — jumps to the Application tab and
+          scrolls to the requested section in the rendered
+          ApplicationDataView. */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[
+          { label: t('pages:applicants.profile.quickNav.travel'),         icon: FileText,      target: 'section-travel' },
+          { label: t('pages:applicants.profile.quickNav.driving'),        icon: Award,         target: 'section-driving' },
+          { label: t('pages:applicants.profile.quickNav.education'),      icon: GraduationCap, target: 'section-education' },
+          { label: t('pages:applicants.profile.quickNav.workExperience'), icon: Briefcase,     target: 'section-work-experience' },
+        ].map(({ label, icon: Icon, target }) => (
+          <Button key={label} variant="outline" className="justify-between" onClick={() => scrollToAppSection(target)}>
+            <div className="flex items-center gap-2"><Icon className="w-4 h-4" /><span>{label}</span></div>
+            <ChevronRight className="w-4 h-4 rtl:rotate-180" />
+          </Button>
+        ))}
+      </div>
+
       {/* Tabs */}
-      <Tabs defaultValue="overview" className="space-y-6" dir={dir}>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6" dir={dir}>
         <TabsList>
           <TabsTrigger value="overview">{t('pages:employees.profile.tabs.overview')}</TabsTrigger>
           <TabsTrigger value="application">{t('pages:employees.profile.tabs.application')}</TabsTrigger>

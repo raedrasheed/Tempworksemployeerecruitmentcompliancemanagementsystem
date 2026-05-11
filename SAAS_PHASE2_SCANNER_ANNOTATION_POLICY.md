@@ -275,3 +275,11 @@ npm run saas:scan -- --strict
 - `phase263-workflow-global-template` (allowed: `src/pipeline/`)
 - `phase263-workflow-stage-scope` (allowed: `src/pipeline/`)
 - `phase263-workflow-audit-log` (allowed: `src/pipeline/`)
+
+---
+
+## Phase 3.0 — Product migration tags
+
+- `phase300-product-migration-readiness` (allowed: `scripts/saas/phase3/`)
+- `phase300-uniqueness-audit` (allowed: `scripts/saas/phase3/`, `src/`)
+- `phase300-platform-admin-foundation` (allowed: `scripts/saas/phase3/`, `src/`)

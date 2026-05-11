@@ -1350,3 +1350,14 @@ construct. `Workflow.tenantId text NULL` + `workflows_tenantId_idx`.
 Strategy A: NULL-tenant rows remain readable as global templates but
 mutation is refused. `WorkflowStage` derives tenant via its parent —
 no direct column. See `SAAS_PHASE2_WORKFLOW_TENANT_SCOPE.md`.
+
+---
+
+## Phase 3.0 — Product migration readiness
+
+Per-tenant uniqueness audit + duplicate-detection machinery in place.
+No schema or data changes. Per-tenant unique constraints are deferred
+to Phase 3.3 after duplicate cleanup. PlatformAdmin foundation
+documented; `Agency.isSystem` retirement scheduled for Phase 3.5–3.8.
+See SAAS_PHASE3_UNIQUENESS_AUDIT.md and
+SAAS_PHASE3_PLATFORM_ADMIN_FOUNDATION.md.

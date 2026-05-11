@@ -175,6 +175,9 @@ const KNOWN_REASONS: ReadonlyArray<PolicyEntry> = [
   { tag: 'phase263-workflow-global-template',            allowedPaths: ['src/pipeline/'] },
   { tag: 'phase263-workflow-stage-scope',                allowedPaths: ['src/pipeline/'] },
   { tag: 'phase263-workflow-audit-log',                  allowedPaths: ['src/pipeline/'] },
+  { tag: 'phase300-product-migration-readiness',         allowedPaths: ['scripts/saas/phase3/'] },
+  { tag: 'phase300-uniqueness-audit',                    allowedPaths: ['scripts/saas/phase3/', 'src/'] },
+  { tag: 'phase300-platform-admin-foundation',           allowedPaths: ['scripts/saas/phase3/', 'src/'] },
   { tag: 'tenant-safe-report-runtime',    allowedPaths: ['src/reports/', 'src/saas/reports/'] },
   { tag: 'tenant-resolver-bootstrap',     allowedPaths: ['src/saas/tenancy/'] },
 ];

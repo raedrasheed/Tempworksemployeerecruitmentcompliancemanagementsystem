@@ -1102,3 +1102,10 @@ Real-DB harness: 17/17. Cumulative: **805/805**.
 list/get/create/update/archive/delete/stage/access through them.
 Configuration-only rollback via `TENANT_PRISMA_PILOT_ENABLED=false`.
 See `SAAS_PHASE2_WORKFLOW_TENANT_SCOPE.md`.
+
+---
+
+## Phase 3.0 — Product migration readiness
+
+Two new read-only scripts under `scripts/saas/phase3/`: a duplicate
+detection report and a readiness harness. No runtime code touched.

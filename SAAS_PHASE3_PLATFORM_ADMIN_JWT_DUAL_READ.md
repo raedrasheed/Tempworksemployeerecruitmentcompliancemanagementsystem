@@ -151,3 +151,15 @@ under dual-read. Requires:
 - Operator sign-off + DB backup
 - Service-layer usages of `actor.agencyIsSystem` continue to work
   unchanged (the field is now derived from `PlatformAdmin` only).
+
+---
+
+## Phase 3.7B addendum
+
+Bake verification layer added: read-only signal agreement report
+(`saas:phase37b-platform-admin-signal-agreement-report`) with
+explicit `goPhase38` field, plus JWT bake check
+(`saas:phase37b-platform-admin-jwt-bake-check`) with shape +
+exactly-one-extra-lookup invariants and local timing probe. Phase
+3.8 must wait until the bake checklist completes against a
+production-shaped clone. See SAAS_PHASE3_PLATFORM_ADMIN_BAKE_VERIFICATION.md.

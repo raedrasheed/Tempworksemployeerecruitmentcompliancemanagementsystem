@@ -164,3 +164,12 @@ JWT stamp. Backfilled rows (`grantedBy='phase350-backfill'`) grant
 platform-admin access in every service that consumes
 `actor.agencyIsSystem`. Flip `PLATFORM_ADMIN_DUAL_READ_ENABLED=false`
 to revert.
+
+---
+
+## Phase 3.7B addendum
+
+Operators must re-run the signal agreement report after applying
+Phase 3.5 backfill in production to confirm `legacyOnly === 0`
+before Phase 3.8 destructive migration. See
+SAAS_PHASE3_PLATFORM_ADMIN_BAKE_VERIFICATION.md.

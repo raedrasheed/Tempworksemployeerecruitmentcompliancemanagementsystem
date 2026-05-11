@@ -340,3 +340,10 @@ npm run saas:scan -- --strict
 - `phase370-platform-admin-jwt-dual-read` (allowed: `scripts/saas/phase3/`, `src/`)
 - `phase370-agency-is-system-derived-field` (allowed: `scripts/saas/phase3/`, `src/`)
 - `phase370-platform-audit-log-deferred` (allowed: `scripts/saas/phase3/`, `src/`)
+
+---
+
+## Phase 3.7B — Bake verification tags
+
+- `phase37b-platform-admin-signal-agreement` (allowed: `scripts/saas/phase3/`, `src/`)
+- `phase37b-platform-admin-jwt-bake-check` (allowed: `scripts/saas/phase3/`, `src/`)

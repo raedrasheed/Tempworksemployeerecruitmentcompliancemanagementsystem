@@ -159,3 +159,11 @@ JwtStrategy now injects PlatformAdminAccessService and stamps
 `req.user.agencyIsSystem` with the OR result. Downstream consumers
 (`actor.agencyIsSystem`) require no signature change. Harness 15/15
 PASS. See SAAS_PHASE3_PLATFORM_ADMIN_JWT_DUAL_READ.md.
+
+---
+
+## Phase 3.7B addendum
+
+Signal agreement report enables operator-side go/no-go for the
+upcoming Phase 3.8 destructive migration. See
+SAAS_PHASE3_PLATFORM_ADMIN_BAKE_VERIFICATION.md.

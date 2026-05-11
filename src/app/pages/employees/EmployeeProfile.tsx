@@ -385,23 +385,6 @@ export function EmployeeProfile() {
         </CardContent>
       </Card>
 
-      {/* Quick Nav */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {[
-          { to: `/dashboard/employees/${id}/certifications`, icon: Award, label: t('pages:employees.profile.quickNav.certifications') },
-          { to: `/dashboard/employees/${id}/training`, icon: GraduationCap, label: t('pages:employees.profile.quickNav.training') },
-          { to: `/dashboard/employees/${id}/compliance-timeline`, icon: Shield, label: t('pages:employees.profile.quickNav.complianceTimeline') },
-          { to: `/dashboard/employees/${id}/performance`, icon: TrendingUp, label: t('pages:employees.profile.quickNav.performance') },
-        ].map(({ to, icon: Icon, label }) => (
-          <Button key={to} variant="outline" className="justify-between" asChild>
-            <Link to={to}>
-              <div className="flex items-center gap-2"><Icon className="w-4 h-4" /><span>{label}</span></div>
-              <ChevronRight className="w-4 h-4 rtl:rotate-180" />
-            </Link>
-          </Button>
-        ))}
-      </div>
-
       {/* Application Quick Nav — jumps to the Application tab and
           scrolls to the requested section in the rendered
           ApplicationDataView. */}

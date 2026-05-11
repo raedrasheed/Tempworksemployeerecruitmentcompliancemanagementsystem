@@ -108,7 +108,7 @@ export function JobTypes() {
   async function loadJobTypes() {
     setLoading(true);
     try {
-      const data = await settingsApi.getJobTypes();
+      const data = await settingsApi.getJobTypes(true);
       setJobTypes(data);
     } catch (err: any) {
       toast.error(apiError(err, tc('toast.loadFailed')));

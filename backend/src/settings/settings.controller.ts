@@ -74,9 +74,12 @@ export class SettingsController {
   // Job Types
   @Public()
   @Get('job-types')
-  @ApiOperation({ summary: 'Get all active job types' })
-  async findJobTypes(@Req() req: Request) {
-    const rows = await this.settingsService.findJobTypes();
+  @ApiOperation({ summary: 'Get job types (active only by default; pass ?includeInactive=true for the settings page)' })
+  @ApiQuery({ name: 'includeInactive', required: false })
+  async findJobTypes(@Req() req: Request, @Query('includeInactive') includeInactive?: string) {
+    const rows = await this.settingsService.findJobTypes({
+      includeInactive: includeInactive === 'true' || includeInactive === '1',
+    });
     const locale = this.i18n.resolve(req);
     return rows.map((r: any) => ({
       ...r,

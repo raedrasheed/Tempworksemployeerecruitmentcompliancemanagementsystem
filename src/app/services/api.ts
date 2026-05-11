@@ -1064,7 +1064,8 @@ export const settingsApi = {
     apiFetch<any>('/settings', { method: 'PATCH', body: JSON.stringify({ settings: data }) }),
 
   // Job Types
-  getJobTypes: () => apiFetch<any[]>('/settings/job-types'),
+  getJobTypes: (includeInactive = false) =>
+    apiFetch<any[]>(`/settings/job-types${includeInactive ? '?includeInactive=true' : ''}`),
   createJobType: (data: any) =>
     apiFetch<any>('/settings/job-types', { method: 'POST', body: JSON.stringify(data) }),
   updateJobType: (id: string, data: any) =>

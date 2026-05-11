@@ -177,8 +177,9 @@ export class SettingsService {
   }
 
   // ─── Job Types ──────────────────────────────────────────────────────────────
-  async findJobTypes() {
+  async findJobTypes(opts?: { includeInactive?: boolean }) {
     return this.prisma.jobType.findMany({
+      where: opts?.includeInactive ? {} : { isActive: true },
       orderBy: { name: 'asc' },
       include: { _count: { select: { applicants: true } } },
     });

@@ -136,3 +136,13 @@ Phase 3.8 will drop Agency.isSystem.
 Destructive migration `saas_phase39_drop_agency_is_system` dropped
 the `Agency.isSystem` column. PlatformAdmin is now the sole source
 of platform authority. Harness 14/14 PASS. Cumulative 1003/1003.
+
+---
+
+## Phase 3.10 addendum
+
+Inert flag references removed from runtime source. `platform_audit_logs`
+table migration added (matches the existing Prisma `PlatformAuditLog`
+model). PlatformAuditLog emission documented as **deferred** — there
+is no runtime grant/revoke surface yet. See
+SAAS_PHASE3_PLATFORM_ADMIN_CLEANUP_AUDIT_LOG.md.

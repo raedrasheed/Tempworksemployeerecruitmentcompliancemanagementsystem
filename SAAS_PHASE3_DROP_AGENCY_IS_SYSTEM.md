@@ -135,3 +135,13 @@ is permanently inert.
 from source, scripts, and docs after the bake window completes. Add
 the `platform_audit_log` table migration and wire `PlatformAdmin`
 grants/revokes to emit audit rows.
+
+---
+
+## Phase 3.10 addendum
+
+Inert flag references removed from runtime source. `platform_audit_logs`
+table migration added (matches the existing Prisma `PlatformAuditLog`
+model). PlatformAuditLog emission documented as **deferred** — there
+is no runtime grant/revoke surface yet. See
+SAAS_PHASE3_PLATFORM_ADMIN_CLEANUP_AUDIT_LOG.md.

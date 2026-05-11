@@ -183,3 +183,13 @@ PlatformAdmin row now grants platform authority on its own (Phase
 are the substrate for runtime authority. The Phase 3.5 backfill is
 now strictly required before Phase 3.8 rollout in production to
 avoid `legacyOnly > 0` users losing access.
+
+---
+
+## Phase 3.10 addendum
+
+Inert flag references removed from runtime source. `platform_audit_logs`
+table migration added (matches the existing Prisma `PlatformAuditLog`
+model). PlatformAuditLog emission documented as **deferred** — there
+is no runtime grant/revoke surface yet. See
+SAAS_PHASE3_PLATFORM_ADMIN_CLEANUP_AUDIT_LOG.md.

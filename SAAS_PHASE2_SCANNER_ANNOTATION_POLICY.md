@@ -363,3 +363,11 @@ npm run saas:scan -- --strict
 - `phase390-drop-agency-is-system` (allowed: `scripts/saas/phase3/`, `src/`, `prisma/`)
 - `phase390-platform-admin-only-authority` (allowed: `scripts/saas/phase3/`, `src/`, `prisma/`)
 - `phase390-agency-is-system-removed` (allowed: `scripts/saas/phase3/`, `src/`, `prisma/`)
+
+---
+
+## Phase 3.10 — Cleanup + PlatformAuditLog migration tags
+
+- `phase310-platform-admin-cleanup` (allowed: `scripts/saas/phase3/`, `src/`, `prisma/`)
+- `phase310-platform-audit-log-migration` (allowed: `scripts/saas/phase3/`, `src/`, `prisma/`)
+- `phase310-platform-audit-log-emission-deferred` (allowed: `scripts/saas/phase3/`, `src/`, `prisma/`)

@@ -178,3 +178,13 @@ The Phase 3.7 OR semantics this doc describes are now reachable via
 the fallback flag. The Phase 3.7 harness sets the flag at the top
 of its module to keep its OR-semantics assertions valid; this is
 explicit, not silent. See SAAS_PHASE3_PLATFORM_ADMIN_RUNTIME_RETIREMENT.md.
+
+---
+
+## Phase 3.10 addendum
+
+Inert flag references removed from runtime source. `platform_audit_logs`
+table migration added (matches the existing Prisma `PlatformAuditLog`
+model). PlatformAuditLog emission documented as **deferred** — there
+is no runtime grant/revoke surface yet. See
+SAAS_PHASE3_PLATFORM_ADMIN_CLEANUP_AUDIT_LOG.md.

@@ -137,7 +137,9 @@ async function main(): Promise<void> {
   out.push({ name: '13. source-level: scripts contain no INSERT/UPDATE/DELETE', ok: allReadOnly, detail: `noWrites=${allReadOnly}` });
   // 14 — no Phase 3.1 schema migration added
   const migDirs = await fs.readdir(MIGRATIONS_DIR).catch(() => [] as string[]);
-  const phase31 = migDirs.filter((d) => /phase31|saas_phase31/.test(d));
+  // Match Phase 3.1 migrations specifically — exclude Phase 3.10+ which
+  // share the `phase31` prefix but are not Phase 3.1 work.
+  const phase31 = migDirs.filter((d) => /(^|_)saas_phase31_/.test(d) || /(^|_)phase31_/.test(d));
   out.push({ name: '14. no Phase 3.1 schema migration added',
     ok: phase31.length === 0, detail: phase31.length === 0 ? 'none' : phase31.join(',') });
   // 15 — Phase 3.0 wiring intact

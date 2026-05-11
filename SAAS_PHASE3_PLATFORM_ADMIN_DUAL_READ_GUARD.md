@@ -177,3 +177,13 @@ make PlatformAdmin authoritative. The OR semantics this doc describes
 remain reachable via `PLATFORM_ADMIN_LEGACY_AGENCY_FALLBACK=true`.
 Phase 3.6 harness sets the flag at the top of its module to preserve
 its OR-semantics assertions. See SAAS_PHASE3_PLATFORM_ADMIN_RUNTIME_RETIREMENT.md.
+
+---
+
+## Phase 3.10 addendum
+
+Inert flag references removed from runtime source. `platform_audit_logs`
+table migration added (matches the existing Prisma `PlatformAuditLog`
+model). PlatformAuditLog emission documented as **deferred** — there
+is no runtime grant/revoke surface yet. See
+SAAS_PHASE3_PLATFORM_ADMIN_CLEANUP_AUDIT_LOG.md.

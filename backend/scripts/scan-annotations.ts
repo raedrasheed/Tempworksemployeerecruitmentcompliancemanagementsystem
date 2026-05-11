@@ -208,6 +208,9 @@ const KNOWN_REASONS: ReadonlyArray<PolicyEntry> = [
   { tag: 'phase390-drop-agency-is-system',               allowedPaths: ['scripts/saas/phase3/', 'src/', 'prisma/'] },
   { tag: 'phase390-platform-admin-only-authority',       allowedPaths: ['scripts/saas/phase3/', 'src/', 'prisma/'] },
   { tag: 'phase390-agency-is-system-removed',            allowedPaths: ['scripts/saas/phase3/', 'src/', 'prisma/'] },
+  { tag: 'phase310-platform-admin-cleanup',              allowedPaths: ['scripts/saas/phase3/', 'src/', 'prisma/'] },
+  { tag: 'phase310-platform-audit-log-migration',        allowedPaths: ['scripts/saas/phase3/', 'src/', 'prisma/'] },
+  { tag: 'phase310-platform-audit-log-emission-deferred', allowedPaths: ['scripts/saas/phase3/', 'src/', 'prisma/'] },
   { tag: 'tenant-safe-report-runtime',    allowedPaths: ['src/reports/', 'src/saas/reports/'] },
   { tag: 'tenant-resolver-bootstrap',     allowedPaths: ['src/saas/tenancy/'] },
 ];

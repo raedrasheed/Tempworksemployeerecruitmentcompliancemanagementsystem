@@ -148,3 +148,13 @@ authoritative by default. `Agency.isSystem` is consulted only when
 the new emergency flag `PLATFORM_ADMIN_LEGACY_AGENCY_FALLBACK=true`
 is set. The column remains in the schema; destructive drop deferred
 to Phase 3.9. See SAAS_PHASE3_PLATFORM_ADMIN_RUNTIME_RETIREMENT.md.
+
+---
+
+## Phase 3.10 addendum
+
+Inert flag references removed from runtime source. `platform_audit_logs`
+table migration added (matches the existing Prisma `PlatformAuditLog`
+model). PlatformAuditLog emission documented as **deferred** — there
+is no runtime grant/revoke surface yet. See
+SAAS_PHASE3_PLATFORM_ADMIN_CLEANUP_AUDIT_LOG.md.

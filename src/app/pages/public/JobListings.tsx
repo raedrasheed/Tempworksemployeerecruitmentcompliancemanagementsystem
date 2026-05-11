@@ -257,14 +257,16 @@ export function JobListings() {
                   const salary = formatSalary(job.salaryMin, job.salaryMax, job.currency);
                   const applyHref = `/apply?jobAdId=${encodeURIComponent(job.id)}&jobSlug=${encodeURIComponent(job.slug)}&jobTitle=${encodeURIComponent(job.title)}${job.category ? `&jobCategory=${encodeURIComponent(job.category)}` : ''}`;
                   return (
-                    <Card key={job.id} className="h-full hover:shadow-md hover:border-blue-300 transition-all group">
+                    <Card key={job.id} className="h-full hover:shadow-md hover:border-blue-300 transition-all group relative">
+                      <Button asChild size="sm" className="absolute top-3 end-3 z-10">
+                        <Link to={applyHref}>{t('jobs.headerApply')}</Link>
+                      </Button>
                       <CardContent className="p-5 flex flex-col h-full">
                         <Link to={`/jobs/${job.slug}`} className="flex flex-col flex-1">
                           <div className="flex items-start justify-between mb-3">
                             <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${CONTRACT_TYPE_COLORS[job.contractType] ?? 'bg-gray-100 text-gray-700'}`}>
                               {enumLabel('contractType', job.contractType)}
                             </span>
-                            <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
                           </div>
                           <h3 className="font-semibold text-foreground text-base mb-1 line-clamp-2 group-hover:text-primary transition-colors">
                             {job.title}
@@ -289,9 +291,6 @@ export function JobListings() {
                             )}
                           </div>
                         </Link>
-                        <Button asChild size="sm" className="mt-4 w-full">
-                          <Link to={applyHref}>{t('jobs.headerApply')}</Link>
-                        </Button>
                       </CardContent>
                     </Card>
                   );

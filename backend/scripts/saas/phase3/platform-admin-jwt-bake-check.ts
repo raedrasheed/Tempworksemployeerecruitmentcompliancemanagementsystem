@@ -74,9 +74,9 @@ async function seed(c: Client): Promise<void> {
   const ro = await c.query<{ id: string }>(`SELECT id FROM roles LIMIT 1`);
   const roleId = ro.rows[0].id;
   await c.query(`
-    INSERT INTO agencies (id, name, country, "contactPerson", email, phone, "isSystem", "createdAt", "updatedAt")
-    VALUES ($1, 'P37B Sys', 'XX', 'C', 's@p37b.test', '0', true, now(), now()),
-           ($2, 'P37B Norm','XX', 'C', 'n@p37b.test', '0', false, now(), now())
+    INSERT INTO agencies (id, name, country, "contactPerson", email, phone, "createdAt", "updatedAt")
+    VALUES ($1, 'P37B Sys', 'XX', 'C', 's@p37b.test', '0', now(), now()),
+           ($2, 'P37B Norm','XX', 'C', 'n@p37b.test', '0', now(), now())
     ON CONFLICT (id) DO NOTHING
   `, [ID.sysAgency, ID.normAgency]);
   await c.query(`

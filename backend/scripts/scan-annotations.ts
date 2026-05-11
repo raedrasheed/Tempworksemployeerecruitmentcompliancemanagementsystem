@@ -205,6 +205,9 @@ const KNOWN_REASONS: ReadonlyArray<PolicyEntry> = [
   { tag: 'phase380-platform-admin-runtime-retirement',   allowedPaths: ['scripts/saas/phase3/', 'src/'] },
   { tag: 'phase380-agency-is-system-fallback',           allowedPaths: ['scripts/saas/phase3/', 'src/'] },
   { tag: 'phase380-agency-is-system-inventory',          allowedPaths: ['scripts/saas/phase3/', 'src/'] },
+  { tag: 'phase390-drop-agency-is-system',               allowedPaths: ['scripts/saas/phase3/', 'src/', 'prisma/'] },
+  { tag: 'phase390-platform-admin-only-authority',       allowedPaths: ['scripts/saas/phase3/', 'src/', 'prisma/'] },
+  { tag: 'phase390-agency-is-system-removed',            allowedPaths: ['scripts/saas/phase3/', 'src/', 'prisma/'] },
   { tag: 'tenant-safe-report-runtime',    allowedPaths: ['src/reports/', 'src/saas/reports/'] },
   { tag: 'tenant-resolver-bootstrap',     allowedPaths: ['src/saas/tenancy/'] },
 ];

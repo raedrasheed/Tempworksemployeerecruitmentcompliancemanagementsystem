@@ -59,9 +59,13 @@ export class AgenciesService {
   private tenantWhereOrSystem(): Record<string, unknown> {
     const s = this.scope();
     if (!s.active) return {};
-    // Wrap in AND so a caller's existing top-level `OR` (e.g. search
-    // filter on `findAll`) does not collide with this OR clause.
-    return { AND: [{ OR: [{ tenantId: s.tenantId }, { isSystem: true }] }] };
+    // Phase 3.9 — `Agency.isSystem` column dropped. The legacy
+    // `OR isSystem: true` branch is removed; tenant scoping is now
+    // the sole filter. Platform admins continue to bypass scoping
+    // because the request user's `agencyIsSystem` flag is checked
+    // by `isExternalActor`, which is sourced from PlatformAdmin.
+    // @tenant-reviewed: phase390-agency-is-system-removed
+    return { AND: [{ tenantId: s.tenantId }] };
   }
 
   private get include() {
@@ -146,11 +150,12 @@ export class AgenciesService {
   async create(dto: CreateAgencyDto, createdById?: string, actorRole?: string) {
     const contactPerson = this.deriveContactPerson(dto);
     if (!contactPerson) throw new BadRequestException('Contact person name is required');
-    // isSystem can only be set by System Admin — strip it from any
-    // create payload originating from a lower-privileged caller.
-    if (actorRole !== 'System Admin' && 'isSystem' in (dto as any)) {
-      delete (dto as any).isSystem;
-    }
+    // Phase 3.9 — `Agency.isSystem` column dropped. Any legacy payload
+    // still carrying the field is silently ignored. Platform authority
+    // is granted exclusively through PlatformAdmin rows.
+    // @tenant-reviewed: phase390-agency-is-system-removed
+    if ('isSystem' in (dto as any)) delete (dto as any).isSystem;
+    void actorRole;
     const tdata = this.scope().tenantData();
     const agency = await this.legacyPrisma.agency.create({ // @tenant-reviewed: phase236-pilot-scope (writes tenantId via scope.tenantData when ALS frame present)
       data: {
@@ -179,7 +184,7 @@ export class AgenciesService {
     // Business-identity fields Agency Manager must never change.
     'name', 'country', 'status',
     // Admin-only fields.
-    'managerId', 'maxUsersPerAgency', 'isSystem',
+    'managerId', 'maxUsersPerAgency',
     'deletedAt', 'deletedBy', 'deletionReason',
   ];
 
@@ -200,12 +205,9 @@ export class AgenciesService {
       }
     }
 
-    // isSystem is a tenancy-model switch (makes every user of this agency
-    // global-scope) and must only be flipped by System Admins, regardless
-    // of which caller reached PATCH /agencies/:id.
-    if (actor?.role !== 'System Admin' && 'isSystem' in (dto as any)) {
-      delete (dto as any).isSystem;
-    }
+    // Phase 3.9 — `Agency.isSystem` column dropped. Strip any legacy
+    // payload still carrying it. @tenant-reviewed: phase390-agency-is-system-removed
+    if ('isSystem' in (dto as any)) delete (dto as any).isSystem;
 
     const data: any = { ...dto };
     const derived = this.deriveContactPerson(dto);

@@ -139,6 +139,7 @@
     "saas:phase37b-platform-admin-signal-agreement-report":"ts-node scripts/saas/phase3/platform-admin-signal-agreement-report.ts",
     "saas:phase37b-platform-admin-jwt-bake-check":       "ts-node scripts/saas/phase3/platform-admin-jwt-bake-check.ts",
     "saas:phase380-platform-admin-runtime-retirement":   "ts-node scripts/saas/phase3/platform-admin-runtime-retirement.ts",
+    "saas:phase390-drop-agency-is-system":               "ts-node scripts/saas/phase3/drop-agency-is-system.ts",
     "saas:phase2-job-ads-equivalence": "ts-node scripts/saas/phase2/job-ads-equivalence.ts",
     "saas:phase2-job-ads-isolation": "ts-node scripts/saas/phase2/job-ads-isolation.ts",
     "saas:phase2-notifications-equivalence": "ts-node scripts/saas/phase2/notifications-equivalence.ts",

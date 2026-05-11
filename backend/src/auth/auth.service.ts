@@ -9,6 +9,7 @@ import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
 import * as crypto from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
+import { PlatformAdminAccessService } from '../saas/platform-admin/platform-admin-access.service';
 import { AuditLogService } from '../logs/audit-log.service';
 import { EmailService } from '../email/email.service';
 
@@ -31,6 +32,9 @@ export class AuthService {
     private config: ConfigService,
     private auditLog: AuditLogService,
     private emailService: EmailService,
+    // Phase 3.9 — authority now resolved from PlatformAdmin only.
+    // @tenant-reviewed: phase390-platform-admin-only-authority
+    private platformAdminAccess: PlatformAdminAccessService,
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -539,8 +543,13 @@ export class AuthService {
       role: user.role.name,
       roleId: user.roleId,
       agencyId: user.agencyId,
-      agency: user.agency ? { id: user.agency.id, name: user.agency.name, isSystem: (user.agency as any).isSystem ?? false } : null,
-      agencyIsSystem: (user.agency as any)?.isSystem ?? false,
+      // Phase 3.9 — `agency.isSystem` column dropped. `agencyIsSystem` is
+      // now derived from PlatformAdmin authority; the legacy nested
+      // `agency.isSystem` field is kept in the payload for one release
+      // mirroring the derived value for backwards-compatible clients.
+      // @tenant-reviewed: phase390-platform-admin-only-authority
+      agency: user.agency ? { id: user.agency.id, name: user.agency.name, isSystem: await this.platformAdminAccess.isPlatformAdmin(user.id) } : null,
+      agencyIsSystem: await this.platformAdminAccess.isPlatformAdmin(user.id),
       permissions: effectivePermissions,
       status: user.status,
       lastLoginAt: user.lastLoginAt,

@@ -3,9 +3,9 @@
   "total": 15,
   "cases": [
     {
-      "name": "1. legacy Agency.isSystem=true user stamps agencyIsSystem=true",
+      "name": "1. legacy user (no PlatformAdmin) stamps agencyIsSystem=false (Phase 3.9 supersedes legacy)",
       "ok": true,
-      "detail": "agencyIsSystem=true"
+      "detail": "agencyIsSystem=false"
     },
     {
       "name": "2. PlatformAdmin-only user stamps agencyIsSystem=true",
@@ -23,9 +23,9 @@
       "detail": "agencyIsSystem=false"
     },
     {
-      "name": "5. PLATFORM_ADMIN_DUAL_READ_ENABLED=false → PlatformAdmin-only user stamps false",
+      "name": "5. PLATFORM_ADMIN_DUAL_READ_ENABLED flag inert under Phase 3.9",
       "ok": true,
-      "detail": "uNewOnly=false uLegacy=true"
+      "detail": "uNewOnly=true uLegacy=false"
     },
     {
       "name": "6. inactive user → existing UnauthorizedException preserved",
@@ -40,7 +40,7 @@
     {
       "name": "8. downstream check (isExternalActor) consumes agencyIsSystem unchanged",
       "ok": true,
-      "detail": "legacy.ext=false newOnly.ext=false neither.ext=true"
+      "detail": "legacy.ext=true newOnly.ext=false neither.ext=true"
     },
     {
       "name": "9. PlatformAdminAccessService called exactly once per validate",
@@ -53,9 +53,9 @@
       "detail": "tableExists=false"
     },
     {
-      "name": "11. Agency.isSystem unchanged after validate",
+      "name": "11. Agency row unchanged after validate (Phase 3.9 — column dropped)",
       "ok": true,
-      "detail": "isSystem=true"
+      "detail": "sysAgency=00000000-0000-0000-0000-0000000037SA"
     },
     {
       "name": "12. PlatformAdmin rows unchanged after validate",

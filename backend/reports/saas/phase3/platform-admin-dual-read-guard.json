@@ -3,7 +3,7 @@
   "total": 14,
   "cases": [
     {
-      "name": "1. legacy Agency.isSystem=true user returns platform admin",
+      "name": "1. legacy user with no PlatformAdmin returns false (Phase 3.9 supersedes legacy signal)",
       "ok": true,
       "detail": "uLegacy"
     },
@@ -33,9 +33,9 @@
       "detail": "level=SUPER grantedBy=phase360-test"
     },
     {
-      "name": "7. Agency.isSystem is not mutated by isPlatformAdmin()",
+      "name": "7. Agency row is not mutated by isPlatformAdmin() (column dropped in Phase 3.9; row presence preserved)",
       "ok": true,
-      "detail": "isSystem=true"
+      "detail": "sysAgency=00000000-0000-0000-0000-0000000036SA"
     },
     {
       "name": "11. PlatformAuditLog write is not attempted (table absent, no error raised)",
@@ -48,14 +48,14 @@
       "detail": "result=true"
     },
     {
-      "name": "9. PLATFORM_ADMIN_DUAL_READ_ENABLED=false falls back to legacy only",
+      "name": "9. PLATFORM_ADMIN_DUAL_READ_ENABLED flag inert under Phase 3.9 (PlatformAdmin sole authority)",
       "ok": true,
-      "detail": "uNewOnly=false uLegacy=true"
+      "detail": "uNewOnly=true uLegacy=false"
     },
     {
-      "name": "10. source-level inventory includes all Agency.isSystem checks",
+      "name": "10. source-level inventory captures remaining Agency.isSystem references",
       "ok": true,
-      "detail": "totalSites=20 mustHave=3"
+      "detail": "totalSites=9 mustHave=2"
     },
     {
       "name": "12. Phase 3.5 platform-admin-backfill wiring intact",
@@ -74,21 +74,6 @@
     }
   ],
   "inventory": [
-    {
-      "file": "src/saas/platform-admin/platform-admin-access.service.ts",
-      "line": 46,
-      "text": "select: { id: true, agency: { select: { isSystem: true } } },"
-    },
-    {
-      "file": "src/saas/platform-admin/platform-admin-access.service.ts",
-      "line": 52,
-      "text": "return user.agency?.isSystem === true; // @tenant-reviewed: phase380-agency-is-system-fallback"
-    },
-    {
-      "file": "src/saas/platform-admin/platform-admin-access.service.ts",
-      "line": 64,
-      "text": "if (this.legacyFallback && user.agency?.isSystem === true) {"
-    },
     {
       "file": "src/saas/jobs/tenant-job-fanout-planner.ts",
       "line": 28,
@@ -121,59 +106,19 @@
     },
     {
       "file": "src/auth/auth.service.ts",
-      "line": 542,
-      "text": "agency: user.agency ? { id: user.agency.id, name: user.agency.name, isSystem: (user.agency as any).isSystem ?? false } : null,"
-    },
-    {
-      "file": "src/auth/auth.service.ts",
-      "line": 543,
-      "text": "agencyIsSystem: (user.agency as any)?.isSystem ?? false,"
-    },
-    {
-      "file": "src/auth/strategies/jwt.strategy.ts",
-      "line": 40,
-      "text": "agency: { select: { isSystem: true } },"
+      "line": 551,
+      "text": "agency: user.agency ? { id: user.agency.id, name: user.agency.name, isSystem: await this.platformAdminAccess.isPlatformAdmin(user.id) } : null,"
     },
     {
       "file": "src/agencies/agencies.service.ts",
-      "line": 64,
-      "text": "return { AND: [{ OR: [{ tenantId: s.tenantId }, { isSystem: true }] }] };"
+      "line": 157,
+      "text": "if ('isSystem' in (dto as any)) delete (dto as any).isSystem;"
     },
     {
       "file": "src/agencies/agencies.service.ts",
-      "line": 151,
-      "text": "if (actorRole !== 'System Admin' && 'isSystem' in (dto as any)) {"
-    },
-    {
-      "file": "src/agencies/agencies.service.ts",
-      "line": 152,
-      "text": "delete (dto as any).isSystem;"
-    },
-    {
-      "file": "src/agencies/agencies.service.ts",
-      "line": 182,
-      "text": "'managerId', 'maxUsersPerAgency', 'isSystem',"
-    },
-    {
-      "file": "src/agencies/agencies.service.ts",
-      "line": 206,
-      "text": "if (actor?.role !== 'System Admin' && 'isSystem' in (dto as any)) {"
-    },
-    {
-      "file": "src/agencies/agencies.service.ts",
-      "line": 207,
-      "text": "delete (dto as any).isSystem;"
-    },
-    {
-      "file": "src/agencies/dto/create-agency.dto.ts",
-      "line": 39,
-      "text": "@ApiPropertyOptional({ description: 'Mark this agency as the Tempworks root/owner. Users attached to an isSystem agency bypass tenancy scoping. Only System Admins can set this — the service silently d"
-    },
-    {
-      "file": "src/agencies/dto/create-agency.dto.ts",
-      "line": 40,
-      "text": "@IsOptional() @IsBoolean() isSystem?: boolean;"
+      "line": 210,
+      "text": "if ('isSystem' in (dto as any)) delete (dto as any).isSystem;"
     }
   ],
-  "inventoryTotal": 20
+  "inventoryTotal": 9
 }

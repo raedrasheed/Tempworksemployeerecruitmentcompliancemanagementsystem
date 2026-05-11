@@ -78,9 +78,9 @@ async function seed(c: Client): Promise<void> {
   const ro = await c.query<{ id: string }>(`SELECT id FROM roles LIMIT 1`);
   const roleId = ro.rows[0].id;
   await c.query(`
-    INSERT INTO agencies (id, name, country, "contactPerson", email, phone, "isSystem", "createdAt", "updatedAt")
-    VALUES ($1, 'P380 Sys', 'XX', 'C', 's@p380.test', '0', true,  now(), now()),
-           ($2, 'P380 Norm','XX', 'C', 'n@p380.test', '0', false, now(), now())
+    INSERT INTO agencies (id, name, country, "contactPerson", email, phone, "createdAt", "updatedAt")
+    VALUES ($1, 'P380 Sys', 'XX', 'C', 's@p380.test', '0', now(), now()),
+           ($2, 'P380 Norm','XX', 'C', 'n@p380.test', '0', now(), now())
     ON CONFLICT (id) DO NOTHING
   `, [ID.sysAgency, ID.normAgency]);
   await c.query(`
@@ -126,14 +126,15 @@ async function main(): Promise<void> {
     out.push({ name: '2. legacy Agency.isSystem-only user stamps false (default)',
       ok: r2.agencyIsSystem === false, detail: `agencyIsSystem=${r2.agencyIsSystem}` });
 
-    // 3 — fallback flag flips legacy to true.
+    // 3 — Phase 3.9: fallback flag is INERT (Agency.isSystem column dropped).
+    // Setting it has no effect; legacy-only user still stamps false.
     process.env.PLATFORM_ADMIN_LEGACY_AGENCY_FALLBACK = 'true';
     const fallbackAccess = new PlatformAdminAccessService(prisma);
     const fallbackStrategy = new JwtStrategy(prisma, fallbackAccess);
     delete process.env.PLATFORM_ADMIN_LEGACY_AGENCY_FALLBACK;
     const r3 = await fallbackStrategy.validate({ sub: ID.uLegacy });
-    out.push({ name: '3. legacy Agency.isSystem-only user stamps true with fallback=true',
-      ok: r3.agencyIsSystem === true, detail: `agencyIsSystem=${r3.agencyIsSystem}` });
+    out.push({ name: '3. PLATFORM_ADMIN_LEGACY_AGENCY_FALLBACK is inert under Phase 3.9 (column dropped)',
+      ok: r3.agencyIsSystem === false, detail: `agencyIsSystem=${r3.agencyIsSystem}` });
 
     const r4 = await defaultStrategy.validate({ sub: ID.uNeither });
     out.push({ name: '4. user with neither signal stamps false',
@@ -169,15 +170,15 @@ async function main(): Promise<void> {
     ok: !jwtUsesAgencyIsSystemDirectly,
     detail: jwtUsesAgencyIsSystemDirectly ? 'direct read found' : 'no direct read' });
 
-  // 8 — PlatformAdminAccessService source: agency.isSystem reads ARE allowed
-  // but must each be tagged with phase380-agency-is-system-fallback.
-  const svcSrc = await fs.readFile(path.join(SRC_DIR, 'saas', 'platform-admin', 'platform-admin-access.service.ts'), 'utf8');
-  // Count agency.isSystem references and ensure each is in a guarded branch.
-  const agencyReads = svcSrc.match(/agency\??\.isSystem/g) ?? [];
-  const fallbackTags = svcSrc.match(/phase380-agency-is-system-fallback/g) ?? [];
-  out.push({ name: '8. PlatformAdminAccessService reads Agency.isSystem only inside fallback branches',
-    ok: agencyReads.length >= 1 && fallbackTags.length >= 2,
-    detail: `agencyReads=${agencyReads.length} fallbackTags=${fallbackTags.length}` });
+  // 8 — Phase 3.9: PlatformAdminAccessService source must contain NO
+  // `agency.isSystem` reads at all (column dropped). Doc comments are
+  // stripped before the check.
+  const svcSrcRaw = await fs.readFile(path.join(SRC_DIR, 'saas', 'platform-admin', 'platform-admin-access.service.ts'), 'utf8');
+  const svcSrcStripped = svcSrcRaw.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '');
+  const agencyReads = svcSrcStripped.match(/agency\??\.isSystem/g) ?? [];
+  out.push({ name: '8. PlatformAdminAccessService no longer reads Agency.isSystem (Phase 3.9 column removed)',
+    ok: agencyReads.length === 0,
+    detail: `agencyReads=${agencyReads.length}` });
 
   // 9 — runtime inventory: walk src/ and find every non-comment, non-string
   // reference to `agency.isSystem`. Allowed callers:
@@ -223,11 +224,11 @@ async function main(): Promise<void> {
     ok: violations.length === 0,
     detail: violations.length === 0 ? 'clean' : `${violations.length} sites: ${violations.slice(0, 3).map((v) => v.file + ':' + v.line).join(', ')}` });
 
-  // 10 — schema still has Agency.isSystem
+  // 10 — Phase 3.9 — Agency.isSystem REMOVED from Prisma schema.
   const schemaSrc = await fs.readFile(SCHEMA_PATH, 'utf8');
   const schemaHasField = /model\s+Agency[\s\S]+?\bisSystem\s+Boolean/.test(schemaSrc);
-  out.push({ name: '10. Agency.isSystem column still exists in Prisma schema',
-    ok: schemaHasField, detail: schemaHasField ? 'present' : 'MISSING' });
+  out.push({ name: '10. Agency.isSystem REMOVED from Prisma schema (Phase 3.9)',
+    ok: !schemaHasField, detail: schemaHasField ? 'still present' : 'removed' });
 
   // 11 — PlatformAuditLog not attempted: table absent, no writes
   const c2 = pgClient(url); await c2.connect();

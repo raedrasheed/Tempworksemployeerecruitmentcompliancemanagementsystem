@@ -74,10 +74,10 @@ async function seed(c: Client): Promise<{ roleId: string }> {
 
   // Two synthetic agencies — one isSystem, one not.
   await c.query(`
-    INSERT INTO agencies (id, name, country, "contactPerson", email, phone, "isSystem", "createdAt", "updatedAt")
+    INSERT INTO agencies (id, name, country, "contactPerson", email, phone, "createdAt", "updatedAt")
     VALUES
-      ($1, 'Phase350 System', 'XX', 'C', 'sys@p350.test', '0', true,  now(), now()),
-      ($2, 'Phase350 Normal', 'XX', 'C', 'nor@p350.test', '0', false, now(), now())
+      ($1, 'Phase350 System', 'XX', 'C', 'sys@p350.test', '0', now(), now()),
+      ($2, 'Phase350 Normal', 'XX', 'C', 'nor@p350.test', '0', now(), now())
     ON CONFLICT (id) DO NOTHING
   `, [ID.sysAgency, ID.normAgency]);
 
@@ -134,8 +134,10 @@ async function main(): Promise<void> {
       ok: dryJson.mode === 'dry-run' && dryJson.insertedCount === 0 && beforeC === afterDry,
       detail: `mode=${dryJson.mode} inserted=${dryJson.insertedCount} before=${beforeC} after=${afterDry}` });
     // 2 — dry-run reports eligible system-agency user
-    out.push({ name: '2. dry-run reports eligible system-agency user',
-      ok: dryJson.eligibleCount >= 1, detail: `eligible=${dryJson.eligibleCount}` });
+    // Phase 3.9 — Agency.isSystem column dropped; the backfill discovery
+    // criterion is now unreachable. Dry-run reports 0 eligible users.
+    out.push({ name: '2. dry-run reports 0 eligible (Phase 3.9 retired legacy criterion)',
+      ok: dryJson.eligibleCount === 0, detail: `eligible=${dryJson.eligibleCount}` });
 
     // 3 — apply refused when ENABLED=false
     runScript({ DATABASE_URL: url, PLATFORM_ADMIN_BACKFILL_ENABLED: 'false', PLATFORM_ADMIN_BACKFILL_APPLY: 'true' });
@@ -158,15 +160,14 @@ async function main(): Promise<void> {
       ok: j5.mode === 'dry-run' && /SAFE|classification/.test(j5.refusalReason ?? '') && j5.insertedCount === 0,
       detail: `mode=${j5.mode} reason="${j5.refusalReason}"` });
 
-    // 6 — apply with both gates open. Should insert exactly the one eligible user.
+    // 6 — Phase 3.9 supersedes: Agency.isSystem column dropped, so the
+    // backfill script always finds 0 eligible candidates (legacy criterion
+    // unreachable). Apply runs cleanly with 0 inserts.
     runScript({ DATABASE_URL: url, PLATFORM_ADMIN_BACKFILL_ENABLED: 'true', PLATFORM_ADMIN_BACKFILL_APPLY: 'true' });
     const j6 = JSON.parse(await fs.readFile(path.join(PHASE3_REPORTS, 'platform-admin-backfill.json'), 'utf8'));
-    const eligibleRow = (await c.query<{ level: string; grantedBy: string }>(
-      `SELECT level, "grantedBy" FROM platform_admins WHERE "userId" = $1`, [ID.eligible])).rows[0];
-    out.push({ name: '6. apply inserts PlatformAdmin SUPER for eligible user',
-      ok: j6.mode === 'apply' && j6.insertedCount === 1
-          && eligibleRow?.level === 'SUPER' && eligibleRow?.grantedBy === 'phase350-backfill',
-      detail: `inserted=${j6.insertedCount} level=${eligibleRow?.level} grantedBy=${eligibleRow?.grantedBy}` });
+    out.push({ name: '6. apply inserts 0 PlatformAdmin rows (Phase 3.9 retired legacy criterion)',
+      ok: j6.mode === 'apply' && j6.insertedCount === 0,
+      detail: `inserted=${j6.insertedCount} mode=${j6.mode}` });
 
     // 7 — pre-existing PlatformAdmin row was not modified
     const preRow = (await c.query<{ level: string; grantedBy: string }>(
@@ -193,11 +194,12 @@ async function main(): Promise<void> {
       ok: typeof j6.skippedCounts?.multipleSystemAgencies === 'number',
       detail: `multiSystemAgencies=${j6.skippedCounts?.multipleSystemAgencies}` });
 
-    // 11 — Agency.isSystem unchanged
-    const sysRow = (await c.query<{ isSystem: boolean }>(
-      `SELECT "isSystem" FROM agencies WHERE id = $1`, [ID.sysAgency])).rows[0];
-    out.push({ name: '11. Agency.isSystem remains unchanged after apply',
-      ok: sysRow?.isSystem === true, detail: `isSystem=${sysRow?.isSystem}` });
+    // 11 — Phase 3.9 — Agency.isSystem column dropped. Verify the agency
+    // row itself is intact (not mutated by backfill apply).
+    const sysRow = (await c.query<{ id: string }>(
+      `SELECT id FROM agencies WHERE id = $1`, [ID.sysAgency])).rows[0];
+    out.push({ name: '11. Agency row remains unchanged after apply (Phase 3.9 — column dropped)',
+      ok: sysRow?.id === ID.sysAgency, detail: `sysAgency=${sysRow?.id ?? 'missing'}` });
 
     // 12 — idempotency: second apply inserts 0
     runScript({ DATABASE_URL: url, PLATFORM_ADMIN_BACKFILL_ENABLED: 'true', PLATFORM_ADMIN_BACKFILL_APPLY: 'true' });

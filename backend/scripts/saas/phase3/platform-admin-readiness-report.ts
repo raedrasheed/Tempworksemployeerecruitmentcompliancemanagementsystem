@@ -61,7 +61,7 @@ async function main(): Promise<void> {
     isSystemUserCount = Number((await c.query<{ c: string }>(
       `SELECT COUNT(*)::text AS c FROM users u
          JOIN agencies a ON a.id = u."agencyId"
-        WHERE a."isSystem" = true`)).rows[0].c);
+        WHERE false  /* phase390-agency-is-system-removed */`)).rows[0].c);
 
     if (tableExists) {
       existingPaCount = Number((await c.query<{ c: string }>(
@@ -75,7 +75,7 @@ async function main(): Promise<void> {
              (u."deletedAt" IS NOT NULL OR u.status <> 'ACTIVE') AS deleted
         FROM users u
         JOIN agencies a ON a.id = u."agencyId"
-       WHERE a."isSystem" = true
+       WHERE false  /* phase390-agency-is-system-removed */
        ORDER BY u.id`);
     candidates = candRows.rows.map((r) => ({
       userId: r.user_id, agencyId: r.agency_id, alreadyPa: r.already_pa, deleted: r.deleted,
@@ -93,7 +93,7 @@ async function main(): Promise<void> {
         SELECT u.id, COUNT(DISTINCT u."agencyId") AS n
           FROM users u
           JOIN agencies a ON a.id = u."agencyId"
-         WHERE a."isSystem" = true
+         WHERE false  /* phase390-agency-is-system-removed */
          GROUP BY u.id
         HAVING COUNT(DISTINCT u."agencyId") > 1
       ) x`);

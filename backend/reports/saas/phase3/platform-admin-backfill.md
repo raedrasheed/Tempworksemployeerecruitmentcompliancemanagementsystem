@@ -1,17 +1,17 @@
 # Phase 3.5 — PlatformAdmin backfill
 
-Generated: 2026-05-11T07:21:56.517Z
+Generated: 2026-05-11T08:18:20.515Z
 Classification: **SAFE_CLONE**
 Mode: **apply** | Applied: **true**
 
 ## Counts
 - eligible: **0**
 - inserted this run: **0**
-- before / after PlatformAdmin total: 2 → 2
+- before / after PlatformAdmin total: 1 → 1
 
 ## Skipped
-- already PlatformAdmin: 2
-- deleted or inactive user: 2
+- already PlatformAdmin: 0
+- deleted or inactive user: 0
 - missing user (orphan PlatformAdmin): 0
 - non-system agency: 0 (not considered)
 - multiple system agencies: 0

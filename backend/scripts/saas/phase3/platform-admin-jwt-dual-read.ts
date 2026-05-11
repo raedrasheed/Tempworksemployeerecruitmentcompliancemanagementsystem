@@ -78,10 +78,10 @@ async function seed(c: Client): Promise<void> {
   const ro = await c.query<{ id: string }>(`SELECT id FROM roles LIMIT 1`);
   const roleId = ro.rows[0].id;
   await c.query(`
-    INSERT INTO agencies (id, name, country, "contactPerson", email, phone, "isSystem", "createdAt", "updatedAt")
+    INSERT INTO agencies (id, name, country, "contactPerson", email, phone, "createdAt", "updatedAt")
     VALUES
-      ($1, 'Phase370 System', 'XX', 'C', 'sys@p370.test', '0', true,  now(), now()),
-      ($2, 'Phase370 Normal', 'XX', 'C', 'nor@p370.test', '0', false, now(), now())
+      ($1, 'Phase370 System', 'XX', 'C', 'sys@p370.test', '0', now(), now()),
+      ($2, 'Phase370 Normal', 'XX', 'C', 'nor@p370.test', '0', now(), now())
     ON CONFLICT (id) DO NOTHING
   `, [ID.sysAgency, ID.normAgency]);
   await c.query(`
@@ -128,9 +128,11 @@ async function main(): Promise<void> {
     const counting = new CountingAccess(prisma);
     const strategy = new JwtStrategy(prisma, counting);
 
+    // Phase 3.9 — `Agency.isSystem` column dropped; uLegacy now stamps false
+    // because it has no PlatformAdmin row.
     const r1 = await strategy.validate({ sub: ID.uLegacy });
-    out.push({ name: '1. legacy Agency.isSystem=true user stamps agencyIsSystem=true',
-      ok: r1.agencyIsSystem === true, detail: `agencyIsSystem=${r1.agencyIsSystem}` });
+    out.push({ name: '1. legacy user (no PlatformAdmin) stamps agencyIsSystem=false (Phase 3.9 supersedes legacy)',
+      ok: r1.agencyIsSystem === false, detail: `agencyIsSystem=${r1.agencyIsSystem}` });
 
     const r2 = await strategy.validate({ sub: ID.uNewOnly });
     out.push({ name: '2. PlatformAdmin-only user stamps agencyIsSystem=true',
@@ -144,17 +146,16 @@ async function main(): Promise<void> {
     out.push({ name: '4. user with neither signal stamps false',
       ok: r4.agencyIsSystem === false, detail: `agencyIsSystem=${r4.agencyIsSystem}` });
 
-    // 5 — flag off → PlatformAdmin-only stamps false. Construct a new
-    // strategy under the flag-off env so the access service captures
-    // dualReadEnabled=false at construction time.
+    // 5 — Phase 3.9: PLATFORM_ADMIN_DUAL_READ_ENABLED flag inert (Agency.isSystem
+    // column dropped). Service always answers PlatformAdmin-only.
     process.env.PLATFORM_ADMIN_DUAL_READ_ENABLED = 'false';
     const legacyOnlyAccess = new PlatformAdminAccessService(prisma);
     const legacyStrategy = new JwtStrategy(prisma, legacyOnlyAccess);
     process.env.PLATFORM_ADMIN_DUAL_READ_ENABLED = 'true';
     const r5 = await legacyStrategy.validate({ sub: ID.uNewOnly });
     const r5b = await legacyStrategy.validate({ sub: ID.uLegacy });
-    out.push({ name: '5. PLATFORM_ADMIN_DUAL_READ_ENABLED=false → PlatformAdmin-only user stamps false',
-      ok: r5.agencyIsSystem === false && r5b.agencyIsSystem === true,
+    out.push({ name: '5. PLATFORM_ADMIN_DUAL_READ_ENABLED flag inert under Phase 3.9',
+      ok: r5.agencyIsSystem === true && r5b.agencyIsSystem === false,
       detail: `uNewOnly=${r5.agencyIsSystem} uLegacy=${r5b.agencyIsSystem}` });
 
     // 6 — inactive user: existing UnauthorizedException preserved
@@ -173,11 +174,13 @@ async function main(): Promise<void> {
       ok: JSON.stringify(actualKeys) === JSON.stringify(expectedKeys),
       detail: `keys=${actualKeys.join(',')}` });
 
-    // 8 — representative downstream check (mirrors agencies.service.isExternalActor)
+    // 8 — downstream check still uses agencyIsSystem; Phase 3.9 reverses
+    // the legacy expectation (uLegacy is now external because it has no
+    // PlatformAdmin row).
     const isExternalActor = (actor: any) => !!actor && !!actor.agencyId && actor.agencyIsSystem !== true;
     out.push({ name: '8. downstream check (isExternalActor) consumes agencyIsSystem unchanged',
-      ok: isExternalActor(r1) === false   // uLegacy: not external (agencyIsSystem=true)
-       && isExternalActor(r2) === false   // uNewOnly: not external under dual-read
+      ok: isExternalActor(r1) === true    // uLegacy: external (no PlatformAdmin)
+       && isExternalActor(r2) === false   // uNewOnly: not external (has PlatformAdmin)
        && isExternalActor(r4) === true,   // uNeither: external
       detail: `legacy.ext=${isExternalActor(r1)} newOnly.ext=${isExternalActor(r2)} neither.ext=${isExternalActor(r4)}` });
 
@@ -194,10 +197,10 @@ async function main(): Promise<void> {
       out.push({ name: '10. PlatformAuditLog write is not attempted (table absent, no error raised)',
         ok: !auditTableExists, detail: `tableExists=${auditTableExists}` });
 
-      const sysRow = (await c2.query<{ isSystem: boolean }>(
-        `SELECT "isSystem" FROM agencies WHERE id = $1`, [ID.sysAgency])).rows[0];
-      out.push({ name: '11. Agency.isSystem unchanged after validate',
-        ok: sysRow?.isSystem === true, detail: `isSystem=${sysRow?.isSystem}` });
+      const sysRow = (await c2.query<{ id: string }>(
+        `SELECT id FROM agencies WHERE id = $1`, [ID.sysAgency])).rows[0];
+      out.push({ name: '11. Agency row unchanged after validate (Phase 3.9 — column dropped)',
+        ok: sysRow?.id === ID.sysAgency, detail: `sysAgency=${sysRow?.id ?? 'missing'}` });
 
       const paRow = (await c2.query<{ level: string; grantedBy: string }>(
         `SELECT level, "grantedBy" FROM platform_admins WHERE "userId" = $1`, [ID.uNewOnly])).rows[0];

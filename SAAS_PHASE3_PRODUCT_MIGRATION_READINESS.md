@@ -128,3 +128,11 @@ by any guard. Phase 3.7 will wire endpoints. Cumulative 944/944.
 JWT stamp routed through PlatformAdminAccessService. Downstream
 consumers unchanged. Harness 15/15 PASS. Cumulative 959/959.
 Phase 3.8 will drop Agency.isSystem.
+
+---
+
+## Phase 3.9 addendum
+
+Destructive migration `saas_phase39_drop_agency_is_system` dropped
+the `Agency.isSystem` column. PlatformAdmin is now the sole source
+of platform authority. Harness 14/14 PASS. Cumulative 1003/1003.

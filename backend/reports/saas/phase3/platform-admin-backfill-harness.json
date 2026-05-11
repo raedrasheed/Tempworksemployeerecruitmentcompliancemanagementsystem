@@ -8,9 +8,9 @@
       "detail": "mode=dry-run inserted=0 before=1 after=1"
     },
     {
-      "name": "2. dry-run reports eligible system-agency user",
+      "name": "2. dry-run reports 0 eligible (Phase 3.9 retired legacy criterion)",
       "ok": true,
-      "detail": "eligible=1"
+      "detail": "eligible=0"
     },
     {
       "name": "3. apply refused when PLATFORM_ADMIN_BACKFILL_ENABLED=false",
@@ -28,9 +28,9 @@
       "detail": "mode=dry-run reason=\"classification=UNKNOWN is not SAFE_CLONE/SAFE_STAGING\""
     },
     {
-      "name": "6. apply inserts PlatformAdmin SUPER for eligible user",
+      "name": "6. apply inserts 0 PlatformAdmin rows (Phase 3.9 retired legacy criterion)",
       "ok": true,
-      "detail": "inserted=1 level=SUPER grantedBy=phase350-backfill"
+      "detail": "inserted=0 mode=apply"
     },
     {
       "name": "7. apply does not duplicate or modify existing PlatformAdmin row",
@@ -53,9 +53,9 @@
       "detail": "multiSystemAgencies=0"
     },
     {
-      "name": "11. Agency.isSystem remains unchanged after apply",
+      "name": "11. Agency row remains unchanged after apply (Phase 3.9 — column dropped)",
       "ok": true,
-      "detail": "isSystem=true"
+      "detail": "sysAgency=00000000-0000-0000-0000-0000000035SA"
     },
     {
       "name": "12. rerun apply is idempotent (second run inserts 0)",

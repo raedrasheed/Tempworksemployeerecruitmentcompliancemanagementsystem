@@ -76,10 +76,10 @@ async function seed(c: Client): Promise<void> {
   const ro = await c.query<{ id: string }>(`SELECT id FROM roles LIMIT 1`);
   const roleId = ro.rows[0].id;
   await c.query(`
-    INSERT INTO agencies (id, name, country, "contactPerson", email, phone, "isSystem", "createdAt", "updatedAt")
+    INSERT INTO agencies (id, name, country, "contactPerson", email, phone, "createdAt", "updatedAt")
     VALUES
-      ($1, 'Phase360 System', 'XX', 'C', 'sys@p360.test', '0', true,  now(), now()),
-      ($2, 'Phase360 Normal', 'XX', 'C', 'nor@p360.test', '0', false, now(), now())
+      ($1, 'Phase360 System', 'XX', 'C', 'sys@p360.test', '0', now(), now()),
+      ($2, 'Phase360 Normal', 'XX', 'C', 'nor@p360.test', '0', now(), now())
     ON CONFLICT (id) DO NOTHING
   `, [ID.sysAgency, ID.normAgency]);
   await c.query(`
@@ -117,8 +117,12 @@ async function main(): Promise<void> {
   try {
     const svc = new PlatformAdminAccessService(prisma);
 
-    out.push({ name: '1. legacy Agency.isSystem=true user returns platform admin',
-      ok: (await svc.isPlatformAdmin(ID.uLegacy)) === true, detail: `uLegacy` });
+    // Phase 3.9 — `Agency.isSystem` column dropped; the legacy signal
+    // no longer exists. uLegacy has no PlatformAdmin row, so the new
+    // PlatformAdmin-only authority resolver returns false. The legacy
+    // fallback flag is inert because there's nothing to read.
+    out.push({ name: '1. legacy user with no PlatformAdmin returns false (Phase 3.9 supersedes legacy signal)',
+      ok: (await svc.isPlatformAdmin(ID.uLegacy)) === false, detail: `uLegacy` });
     out.push({ name: '2. PlatformAdmin row user (non-system agency) returns platform admin',
       ok: (await svc.isPlatformAdmin(ID.uNewOnly)) === true, detail: `uNewOnly` });
     out.push({ name: '3. user with both signals returns platform admin',
@@ -133,23 +137,24 @@ async function main(): Promise<void> {
     try {
       const beforeRow = (await c2.query<{ level: string; grantedBy: string }>(
         `SELECT level, "grantedBy" FROM platform_admins WHERE "userId" = $1`, [ID.uNewOnly])).rows[0];
-      const sysRow = (await c2.query<{ isSystem: boolean }>(
-        `SELECT "isSystem" FROM agencies WHERE id = $1`, [ID.sysAgency])).rows[0];
-      // Run several more probes (also re-check 1-5 idempotency).
+      // Phase 3.9 — `agencies.isSystem` column dropped; we now verify the
+      // agency row itself remains untouched (id present).
+      const sysRow = (await c2.query<{ id: string }>(
+        `SELECT id FROM agencies WHERE id = $1`, [ID.sysAgency])).rows[0];
       for (const id of [ID.uLegacy, ID.uNewOnly, ID.uBoth, ID.uNeither, ID.uDeleted]) {
         await svc.isPlatformAdmin(id);
       }
       const afterRow = (await c2.query<{ level: string; grantedBy: string }>(
         `SELECT level, "grantedBy" FROM platform_admins WHERE "userId" = $1`, [ID.uNewOnly])).rows[0];
-      const sysAfter = (await c2.query<{ isSystem: boolean }>(
-        `SELECT "isSystem" FROM agencies WHERE id = $1`, [ID.sysAgency])).rows[0];
+      const sysAfter = (await c2.query<{ id: string }>(
+        `SELECT id FROM agencies WHERE id = $1`, [ID.sysAgency])).rows[0];
 
       out.push({ name: '6. existing PlatformAdmin row is not mutated by isPlatformAdmin()',
         ok: beforeRow?.level === afterRow?.level && beforeRow?.grantedBy === afterRow?.grantedBy,
         detail: `level=${afterRow?.level} grantedBy=${afterRow?.grantedBy}` });
-      out.push({ name: '7. Agency.isSystem is not mutated by isPlatformAdmin()',
-        ok: sysRow?.isSystem === true && sysAfter?.isSystem === true,
-        detail: `isSystem=${sysAfter?.isSystem}` });
+      out.push({ name: '7. Agency row is not mutated by isPlatformAdmin() (column dropped in Phase 3.9; row presence preserved)',
+        ok: sysRow?.id === ID.sysAgency && sysAfter?.id === ID.sysAgency,
+        detail: `sysAgency=${sysAfter?.id ?? 'missing'}` });
 
       // 11 — PlatformAuditLog: ensure no rows were attempted. The
       // `platform_audit_log` table is absent in this fixture, so attempting
@@ -169,16 +174,17 @@ async function main(): Promise<void> {
     out.push({ name: '8. missing user returns false',
       ok: missingFalse, detail: `result=${missingFalse}` });
 
-    // 9 — PLATFORM_ADMIN_DUAL_READ_ENABLED=false → legacy-only path.
-    // Construct a new service instance under the flag-off env so the
-    // private `dualReadEnabled` captures false.
+    // 9 — Phase 3.9 — legacy-fallback flag is now INERT (Agency.isSystem
+    // column dropped). Setting it has no effect; authority is sourced
+    // exclusively from PlatformAdmin. uNewOnly has a row → true; uLegacy
+    // does not → false.
     process.env.PLATFORM_ADMIN_DUAL_READ_ENABLED = 'false';
     const svcLegacy = new PlatformAdminAccessService(prisma);
-    process.env.PLATFORM_ADMIN_DUAL_READ_ENABLED = 'true'; // restore for downstream
+    process.env.PLATFORM_ADMIN_DUAL_READ_ENABLED = 'true';
     const legacyOnlyForNewOnly = await svcLegacy.isPlatformAdmin(ID.uNewOnly);
     const legacyOnlyForLegacy  = await svcLegacy.isPlatformAdmin(ID.uLegacy);
-    out.push({ name: '9. PLATFORM_ADMIN_DUAL_READ_ENABLED=false falls back to legacy only',
-      ok: legacyOnlyForNewOnly === false && legacyOnlyForLegacy === true,
+    out.push({ name: '9. PLATFORM_ADMIN_DUAL_READ_ENABLED flag inert under Phase 3.9 (PlatformAdmin sole authority)',
+      ok: legacyOnlyForNewOnly === true && legacyOnlyForLegacy === false,
       detail: `uNewOnly=${legacyOnlyForNewOnly} uLegacy=${legacyOnlyForLegacy}` });
   } finally {
     await prisma.$disconnect();
@@ -209,12 +215,12 @@ async function main(): Promise<void> {
       }
     }
   }
-  // Should find at least the well-known sites we surveyed: jwt.strategy.ts,
-  // auth.service.ts, agencies.service.ts, employees.service.ts, etc.
-  const minExpected = ['src/auth/strategies/jwt.strategy.ts',
-    'src/auth/auth.service.ts', 'src/agencies/agencies.service.ts'];
+  // Phase 3.9 — `jwt.strategy.ts` no longer has a non-comment isSystem
+  // reference because the column was dropped. The other historical
+  // sites still surface their (residual) references for audit purposes.
+  const minExpected = ['src/auth/auth.service.ts', 'src/agencies/agencies.service.ts'];
   const haveAll = minExpected.every((f) => inventory.some((i) => i.file === f));
-  out.push({ name: '10. source-level inventory includes all Agency.isSystem checks',
+  out.push({ name: '10. source-level inventory captures remaining Agency.isSystem references',
     ok: haveAll && inventory.length >= minExpected.length,
     detail: `totalSites=${inventory.length} mustHave=${minExpected.length}` });
 

@@ -124,7 +124,7 @@ async function main(): Promise<void> {
              (u."deletedAt" IS NOT NULL OR u.status <> 'ACTIVE') AS deleted
         FROM users u
         JOIN agencies a ON a.id = u."agencyId"
-       WHERE a."isSystem" = true
+       WHERE false  /* phase390-agency-is-system-removed */
        ORDER BY u.id`);
 
     out.skippedCounts.alreadyPlatformAdmin = candidates.rows.filter((r) => r.alreadyPa).length;
@@ -137,7 +137,7 @@ async function main(): Promise<void> {
       SELECT COUNT(*)::text AS c FROM (
         SELECT u.id FROM users u
           JOIN agencies a ON a.id = u."agencyId"
-         WHERE a."isSystem" = true
+         WHERE false  /* phase390-agency-is-system-removed */
          GROUP BY u.id HAVING COUNT(DISTINCT u."agencyId") > 1
       ) x`)).rows[0].c);
 

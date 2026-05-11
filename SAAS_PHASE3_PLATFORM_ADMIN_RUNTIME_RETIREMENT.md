@@ -172,3 +172,12 @@ removes the column from `agencies`, plus a corresponding Prisma
 schema update. Requires: Phase 3.8 baked ≥1 release, no audit
 findings for `Agency.isSystem` authorization reads, operator
 sign-off + DB backup.
+
+---
+
+## Phase 3.9 addendum
+
+`Agency.isSystem` column dropped. The legacy fallback branches are
+removed from `PlatformAdminAccessService`; the `PLATFORM_ADMIN_*`
+flags described above are now **inert**. See
+SAAS_PHASE3_DROP_AGENCY_IS_SYSTEM.md.

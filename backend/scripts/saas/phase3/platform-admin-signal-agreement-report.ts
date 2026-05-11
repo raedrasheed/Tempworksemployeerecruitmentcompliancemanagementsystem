@@ -61,7 +61,7 @@ async function main(): Promise<void> {
     legacyTrue = await count(c, `
       SELECT COUNT(*)::text AS c FROM users u
         JOIN agencies a ON a.id = u."agencyId"
-       WHERE u."deletedAt" IS NULL AND u.status = 'ACTIVE' AND a."isSystem" = true`);
+       WHERE u."deletedAt" IS NULL AND u.status = 'ACTIVE' AND false  /* phase390-agency-is-system-removed */`);
     platformRow = await count(c, `
       SELECT COUNT(*)::text AS c FROM users u
         JOIN platform_admins p ON p."userId" = u.id
@@ -70,19 +70,19 @@ async function main(): Promise<void> {
       SELECT COUNT(*)::text AS c FROM users u
         JOIN agencies a ON a.id = u."agencyId"
         JOIN platform_admins p ON p."userId" = u.id
-       WHERE u."deletedAt" IS NULL AND u.status = 'ACTIVE' AND a."isSystem" = true`);
+       WHERE u."deletedAt" IS NULL AND u.status = 'ACTIVE' AND false  /* phase390-agency-is-system-removed */`);
     legacyOnly = await count(c, `
       SELECT COUNT(*)::text AS c FROM users u
         JOIN agencies a ON a.id = u."agencyId"
        WHERE u."deletedAt" IS NULL AND u.status = 'ACTIVE'
-         AND a."isSystem" = true
+         AND false  /* phase390-agency-is-system-removed */
          AND NOT EXISTS (SELECT 1 FROM platform_admins p WHERE p."userId" = u.id)`);
     platformOnly = await count(c, `
       SELECT COUNT(*)::text AS c FROM users u
         JOIN platform_admins p ON p."userId" = u.id
         LEFT JOIN agencies a ON a.id = u."agencyId"
        WHERE u."deletedAt" IS NULL AND u.status = 'ACTIVE'
-         AND COALESCE(a."isSystem", false) = false`);
+         AND true  /* phase390-agency-is-system-removed */`);
     neitherCount = totalActiveUsers - (agreementBoth + legacyOnly + platformOnly);
     inactivePlatform = await count(c, `
       SELECT COUNT(*)::text AS c FROM platform_admins p

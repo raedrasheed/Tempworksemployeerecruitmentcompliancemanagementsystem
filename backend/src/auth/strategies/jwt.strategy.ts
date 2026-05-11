@@ -8,10 +8,10 @@ import { PlatformAdminAccessService } from '../../saas/platform-admin/platform-a
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   constructor(
     private prisma: PrismaService,
-    // Phase 3.7 — dual-read source for `agencyIsSystem`. The injected
-    // helper OR-combines legacy `Agency.isSystem` with the new
-    // `PlatformAdmin` row (when PLATFORM_ADMIN_DUAL_READ_ENABLED !== 'false').
-    // Tag: phase370-platform-admin-jwt-dual-read
+    // Phase 3.7/3.9 — authority resolver for `agencyIsSystem`. As of
+    // Phase 3.9 the legacy `Agency.isSystem` column is removed and the
+    // service answers exclusively from `PlatformAdmin`.
+    // Tag: phase390-platform-admin-only-authority
     private platformAdminAccess: PlatformAdminAccessService,
   ) {
     super({
@@ -37,7 +37,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
         roleId: true,
         agencyId: true,
         role: { select: { name: true } },
-        agency: { select: { isSystem: true } },
+        // Phase 3.9 — Agency.isSystem column removed; no longer selected here.
       },
     });
     if (!user) {
@@ -52,12 +52,10 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
         params: { status: user.status.toLowerCase() },
       });
     }
-    // Phase 3.7 — dual-read stamp. `agencyIsSystem` now means
-    // "platform admin via legacy Agency.isSystem OR backfilled
-    // PlatformAdmin row" when the dual-read flag is on. Downstream
-    // service-layer consumers (`actor.agencyIsSystem`) require no
-    // signature change. Setting the flag to 'false' restores the
-    // legacy meaning. @tenant-reviewed: phase370-platform-admin-jwt-dual-read
+    // Phase 3.9 — `agencyIsSystem` means "platform admin per
+    // PlatformAdmin row". The field name is preserved for downstream
+    // compatibility; the column it once derived from has been dropped.
+    // @tenant-reviewed: phase390-platform-admin-only-authority
     const agencyIsSystem = await this.platformAdminAccess.isPlatformAdmin(user.id);
     return {
       id: user.id,

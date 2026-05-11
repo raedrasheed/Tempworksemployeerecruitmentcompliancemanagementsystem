@@ -355,3 +355,11 @@ npm run saas:scan -- --strict
 - `phase380-platform-admin-runtime-retirement` (allowed: `scripts/saas/phase3/`, `src/`)
 - `phase380-agency-is-system-fallback` (allowed: `scripts/saas/phase3/`, `src/`)
 - `phase380-agency-is-system-inventory` (allowed: `scripts/saas/phase3/`, `src/`)
+
+---
+
+## Phase 3.9 — Agency.isSystem removal tags
+
+- `phase390-drop-agency-is-system` (allowed: `scripts/saas/phase3/`, `src/`, `prisma/`)
+- `phase390-platform-admin-only-authority` (allowed: `scripts/saas/phase3/`, `src/`, `prisma/`)
+- `phase390-agency-is-system-removed` (allowed: `scripts/saas/phase3/`, `src/`, `prisma/`)

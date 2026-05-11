@@ -118,3 +118,14 @@ Backfill script + harness landed
 three-gate apply, idempotent. PlatformAuditLog deferred (table not
 present); inserted rows tagged `grantedBy='phase350-backfill'`. Phase
 3.6 wires the dual-read guard. See SAAS_PHASE3_PLATFORM_ADMIN_BACKFILL.md.
+
+---
+
+## Phase 3.6 addendum
+
+Dual-read helper `PlatformAdminAccessService.isPlatformAdmin(userId)`
+lands at `src/saas/platform-admin/platform-admin-access.service.ts`.
+OR semantics over legacy `Agency.isSystem` + new `PlatformAdmin`
+rows. Default flag ON; flip to `PLATFORM_ADMIN_DUAL_READ_ENABLED=false`
+to revert to legacy-only. Harness 14/14 PASS. See
+SAAS_PHASE3_PLATFORM_ADMIN_DUAL_READ_GUARD.md.

@@ -145,3 +145,12 @@ isSystem-agency cohort, but no auth/guard/endpoint reads
 checks BOTH `Agency.isSystem` and `PlatformAdmin` (OR-ed). No
 behaviour change while both signals agree; sets up Phase 3.7/3.8
 endpoint switch + flag retirement.
+
+---
+
+## Phase 3.6 addendum
+
+Dual-read helper landed at `src/saas/platform-admin/platform-admin-access.service.ts`.
+`isPlatformAdmin(userId)` OR-combines `Agency.isSystem` with
+`PlatformAdmin`. Helper not yet wired into any guard/endpoint;
+Phase 3.7 will switch JWT decode + service-layer consumers.

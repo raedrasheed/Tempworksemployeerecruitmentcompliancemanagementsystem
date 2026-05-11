@@ -112,3 +112,11 @@ Harness 20/20 PASS. Cumulative 914/914.
 PlatformAdmin backfill (dry-run-first, three-gate apply) landed.
 Harness 16/16 PASS. Cumulative 930/930. Auth path still flows
 through Agency.isSystem until Phase 3.6 dual-read guard.
+
+---
+
+## Phase 3.6 addendum
+
+PlatformAdmin dual-read helper landed (`isPlatformAdmin(userId)`).
+Default ON via `PLATFORM_ADMIN_DUAL_READ_ENABLED`. Not yet consumed
+by any guard. Phase 3.7 will wire endpoints. Cumulative 944/944.

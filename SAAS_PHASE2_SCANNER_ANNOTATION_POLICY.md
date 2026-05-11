@@ -324,3 +324,11 @@ npm run saas:scan -- --strict
 - `phase350-platform-admin-backfill` (allowed: `scripts/saas/phase3/`, `src/`)
 - `phase350-platform-admin-audit-log` (allowed: `scripts/saas/phase3/`, `src/`)
 - `phase350-agency-is-system-retirement` (allowed: `scripts/saas/phase3/`, `src/`)
+
+---
+
+## Phase 3.6 — PlatformAdmin dual-read guard tags
+
+- `phase360-platform-admin-dual-read` (allowed: `scripts/saas/phase3/`, `src/`)
+- `phase360-agency-is-system-inventory` (allowed: `scripts/saas/phase3/`, `src/`)
+- `phase360-platform-audit-log-deferred` (allowed: `scripts/saas/phase3/`, `src/`)

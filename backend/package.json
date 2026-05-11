@@ -134,6 +134,7 @@
     "saas:phase340-drop-employee-global-uniques":        "ts-node scripts/saas/phase3/drop-employee-global-uniques.ts",
     "saas:phase350-platform-admin-backfill":             "ts-node scripts/saas/phase3/platform-admin-backfill.ts",
     "saas:phase350-platform-admin-backfill-harness":     "ts-node scripts/saas/phase3/platform-admin-backfill-harness.ts",
+    "saas:phase360-platform-admin-dual-read-guard":      "ts-node scripts/saas/phase3/platform-admin-dual-read-guard.ts",
     "saas:phase2-job-ads-equivalence": "ts-node scripts/saas/phase2/job-ads-equivalence.ts",
     "saas:phase2-job-ads-isolation": "ts-node scripts/saas/phase2/job-ads-isolation.ts",
     "saas:phase2-notifications-equivalence": "ts-node scripts/saas/phase2/notifications-equivalence.ts",

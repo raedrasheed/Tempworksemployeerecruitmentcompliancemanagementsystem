@@ -65,6 +65,15 @@ export function EditUser() {
   // Flipping the per-user manager override flags is a tenancy-model
   // control — System Admin only.
   const isSystemAdmin = currentUser?.role === 'System Admin';
+  // Platform Admin Access card is restricted to SUPER PlatformAdmin viewers.
+  const [viewerIsSuperPa, setViewerIsSuperPa] = useState(false);
+
+  useEffect(() => {
+    if (!currentUser?.id) return;
+    usersApi.get(currentUser.id)
+      .then((u: any) => setViewerIsSuperPa(u?.platformAdmin?.level === 'SUPER'))
+      .catch(() => setViewerIsSuperPa(false));
+  }, [currentUser?.id]);
 
   const [roles, setRoles] = useState<any[]>([]);
   const [agencies, setAgencies] = useState<any[]>([]);
@@ -649,7 +658,7 @@ export function EditUser() {
               OPERATOR / SUPER / NONE). Calls users.setPlatformAdminLevel
               which upserts the platform_admins row and writes a
               PlatformAuditLog entry. */}
-          {isSystemAdmin && (
+          {viewerIsSuperPa && (
             <PlatformAdminAccessCard targetUserId={id!} currentUserId={currentUser?.id} />
           )}
 

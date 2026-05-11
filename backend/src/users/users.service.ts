@@ -570,7 +570,16 @@ export class UsersService {
     if (!['NONE', 'SUPPORT', 'OPERATOR', 'SUPER'].includes(level)) {
       throw new BadRequestException({ code: 'PLATFORM_ADMIN.INVALID_LEVEL' });
     }
-    if (actorUserId && actorUserId === targetUserId && level === 'NONE') {
+    if (!actorUserId) {
+      throw new ForbiddenException({ code: 'PLATFORM_ADMIN.MISSING_ACTOR' });
+    }
+    const actorPa = await (this.prisma as any).platformAdmin.findUnique({
+      where: { userId: actorUserId }, select: { level: true },
+    });
+    if (!actorPa || actorPa.level !== 'SUPER') {
+      throw new ForbiddenException({ code: 'PLATFORM_ADMIN.ACTOR_NOT_SUPER' });
+    }
+    if (actorUserId === targetUserId && level === 'NONE') {
       throw new ForbiddenException({ code: 'PLATFORM_ADMIN.SELF_REVOKE_FORBIDDEN' });
     }
     const target = await this.prisma.user.findFirst({

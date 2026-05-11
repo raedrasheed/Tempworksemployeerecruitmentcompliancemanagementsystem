@@ -65,3 +65,12 @@ per-bucket remediation runbook (soft-delete the lower-priority row
 in each `exact` group, escalate `conflicting_active` to product),
 then implement a dry-run-first cleanup script gated by the existing
 SAFE classification flag pattern.
+
+---
+
+## Phase 3.2 addendum
+
+Cleanup planner + gated apply added
+(`saas:phase320-duplicate-cleanup-{plan,apply,harness}`). Harness
+22/22 PASS. Cumulative regression: 875/875. See
+SAAS_PHASE3_DUPLICATE_CLEANUP_PLAN.md.

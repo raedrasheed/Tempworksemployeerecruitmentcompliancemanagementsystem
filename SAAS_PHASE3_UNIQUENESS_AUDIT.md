@@ -84,3 +84,12 @@ report landed (read-only). Confirms the stage-2 trigger (NULL-tenant
 backfill completion) is the gating step for Phase 3.3 constraint
 introduction. See SAAS_PHASE3_PRODUCTION_DUPLICATE_SCAN.md and
 SAAS_PHASE3_TENANT_BACKFILL_COMPLETENESS.md.
+
+---
+
+## Phase 3.2 addendum
+
+Same-tenant duplicate cleanup planning landed. Phase 3.3 unique
+constraint introduction is now gated on
+`duplicate-cleanup-plan.json.counts.conflicting_active === 0` AND
+apply completion. See SAAS_PHASE3_DUPLICATE_CLEANUP_PLAN.md.

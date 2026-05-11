@@ -182,6 +182,9 @@ const KNOWN_REASONS: ReadonlyArray<PolicyEntry> = [
   { tag: 'phase310-production-duplicate-scan',           allowedPaths: ['scripts/saas/phase3/'] },
   { tag: 'phase310-platform-admin-readiness',            allowedPaths: ['scripts/saas/phase3/'] },
   { tag: 'phase310-readiness-check',                     allowedPaths: ['scripts/saas/phase3/'] },
+  { tag: 'phase320-duplicate-cleanup-plan',              allowedPaths: ['scripts/saas/phase3/'] },
+  { tag: 'phase320-duplicate-cleanup-apply',             allowedPaths: ['scripts/saas/phase3/'] },
+  { tag: 'phase320-duplicate-cleanup-harness',           allowedPaths: ['scripts/saas/phase3/'] },
   { tag: 'tenant-safe-report-runtime',    allowedPaths: ['src/reports/', 'src/saas/reports/'] },
   { tag: 'tenant-resolver-bootstrap',     allowedPaths: ['src/saas/tenancy/'] },
 ];

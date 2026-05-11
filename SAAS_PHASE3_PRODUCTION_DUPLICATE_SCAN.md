@@ -58,3 +58,13 @@ Constraints can only be introduced once `blockingDuplicateGroups=0`.
 
 ## Rollback
 No data or schema changes. Revert script + docs only.
+
+---
+
+## Phase 3.2 addendum
+
+Cleanup planning + gated apply layer landed (dry-run-first).
+`exact` groups are auto-cleanable via soft-delete;
+`conflicting_active` are never auto-mutated;
+NULL-tenant and cross-tenant groups remain untouched.
+See SAAS_PHASE3_DUPLICATE_CLEANUP_PLAN.md.

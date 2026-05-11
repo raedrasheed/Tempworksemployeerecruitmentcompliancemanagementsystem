@@ -80,3 +80,11 @@ Phase 3.1 lands the production-shaped readiness reports + 16-case
 readiness harness (`saas:phase310-readiness-check`). Phase 3.0
 remains 13/13. Cumulative regression: 853/853. See
 SAAS_PHASE3_1_READINESS.md.
+
+---
+
+## Phase 3.2 addendum
+
+Same-tenant duplicate cleanup planning + gated apply layer
+shipped (dry-run-first; soft-delete only; three-gate apply).
+Harness 22/22 PASS. Cumulative regression: 875/875.

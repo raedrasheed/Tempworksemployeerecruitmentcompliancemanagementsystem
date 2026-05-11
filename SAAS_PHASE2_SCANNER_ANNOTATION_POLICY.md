@@ -292,3 +292,11 @@ npm run saas:scan -- --strict
 - `phase310-production-duplicate-scan` (allowed: `scripts/saas/phase3/`)
 - `phase310-platform-admin-readiness` (allowed: `scripts/saas/phase3/`)
 - `phase310-readiness-check` (allowed: `scripts/saas/phase3/`)
+
+---
+
+## Phase 3.2 — Duplicate cleanup tags
+
+- `phase320-duplicate-cleanup-plan` (allowed: `scripts/saas/phase3/`)
+- `phase320-duplicate-cleanup-apply` (allowed: `scripts/saas/phase3/`)
+- `phase320-duplicate-cleanup-harness` (allowed: `scripts/saas/phase3/`)

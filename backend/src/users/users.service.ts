@@ -175,6 +175,21 @@ export class UsersService {
       this.prisma.user.count({ where }),
     ]);
 
+    // Phase 3.14 — attach PlatformAdmin level for the badge in the UI list.
+    try {
+      const ids = data.map((u: any) => u.id);
+      if (ids.length) {
+        const pas = await (this.prisma as any).platformAdmin.findMany({
+          where: { userId: { in: ids } },
+          select: { userId: true, level: true },
+        });
+        const byId = new Map<string, string>(pas.map((p: any) => [p.userId, p.level]));
+        for (const u of data as any[]) {
+          u.platformAdmin = { level: byId.get(u.id) ?? 'NONE' };
+        }
+      }
+    } catch { /* table may not exist yet in some envs */ }
+
     return PaginatedResponse.create(data, total, page, limit);
   }
 

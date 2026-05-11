@@ -511,13 +511,24 @@ export function UsersList() {
                     {col('email')  && <TableCell className="text-sm">{user.email}</TableCell>}
                     {col('role')   && (
                       <TableCell>
-                        <Badge variant="outline" className={
-                          user.role?.name?.toLowerCase().includes('admin') ? 'bg-[#EFF6FF] text-[#2563EB] border-[#2563EB]' :
-                          user.role?.name?.toLowerCase().includes('hr')    ? 'bg-[#F0FDF4] text-[#22C55E] border-[#22C55E]' :
-                          'bg-[#F8FAFC] text-[#64748B] border-[#E2E8F0]'
-                        }>
-                          {user.role?.name ?? '—'}
-                        </Badge>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <Badge variant="outline" className={
+                            user.role?.name?.toLowerCase().includes('admin') ? 'bg-[#EFF6FF] text-[#2563EB] border-[#2563EB]' :
+                            user.role?.name?.toLowerCase().includes('hr')    ? 'bg-[#F0FDF4] text-[#22C55E] border-[#22C55E]' :
+                            'bg-[#F8FAFC] text-[#64748B] border-[#E2E8F0]'
+                          }>
+                            {user.role?.name ?? '—'}
+                          </Badge>
+                          {user.platformAdmin?.level && user.platformAdmin.level !== 'NONE' && (
+                            <Badge variant="outline" className={
+                              user.platformAdmin.level === 'SUPER'    ? 'bg-[#FEF2F2] text-[#DC2626] border-[#DC2626]' :
+                              user.platformAdmin.level === 'OPERATOR' ? 'bg-[#FFF7ED] text-[#EA580C] border-[#EA580C]' :
+                              'bg-[#F5F3FF] text-[#7C3AED] border-[#7C3AED]'
+                            }>
+                              {user.platformAdmin.level}
+                            </Badge>
+                          )}
+                        </div>
                       </TableCell>
                     )}
                     {col('agency')    && <TableCell className="text-sm">{user.agency?.name ?? '—'}</TableCell>}

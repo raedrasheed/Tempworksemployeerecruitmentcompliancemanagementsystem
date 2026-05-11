@@ -169,3 +169,13 @@ and `.revoke` (tenant-admin-only, MFA-gated) backed by an `/
 _platform/admin/grants` endpoint. Emit `PlatformAuditLog` rows for
 every operation. Wire the existing `PlatformAdminGuard` to enforce
 authority on the new endpoint.
+
+---
+
+## Phase 3.11 addendum
+
+`PlatformAdminService` (grant / revoke / list) lands at
+`src/saas/platform-admin/platform-admin.service.ts`. SUPER-only
+authority gate; PlatformAuditLog emission for every operation. No
+HTTP controller registered yet — service is module-only. See
+SAAS_PHASE3_PLATFORM_ADMIN_GRANT_REVOKE.md.

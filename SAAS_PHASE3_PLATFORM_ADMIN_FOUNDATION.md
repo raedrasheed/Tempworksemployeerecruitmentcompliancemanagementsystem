@@ -158,3 +158,13 @@ table migration added (matches the existing Prisma `PlatformAuditLog`
 model). PlatformAuditLog emission documented as **deferred** — there
 is no runtime grant/revoke surface yet. See
 SAAS_PHASE3_PLATFORM_ADMIN_CLEANUP_AUDIT_LOG.md.
+
+---
+
+## Phase 3.11 addendum
+
+`PlatformAdminService` (grant / revoke / list) lands at
+`src/saas/platform-admin/platform-admin.service.ts`. SUPER-only
+authority gate; PlatformAuditLog emission for every operation. No
+HTTP controller registered yet — service is module-only. See
+SAAS_PHASE3_PLATFORM_ADMIN_GRANT_REVOKE.md.

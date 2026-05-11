@@ -141,6 +141,7 @@
     "saas:phase380-platform-admin-runtime-retirement":   "ts-node scripts/saas/phase3/platform-admin-runtime-retirement.ts",
     "saas:phase390-drop-agency-is-system":               "ts-node scripts/saas/phase3/drop-agency-is-system.ts",
     "saas:phase310-platform-admin-cleanup-audit-log":    "ts-node scripts/saas/phase3/platform-admin-cleanup-audit-log.ts",
+    "saas:phase311-platform-admin-grant-revoke":         "ts-node scripts/saas/phase3/platform-admin-grant-revoke.ts",
     "saas:phase2-job-ads-equivalence": "ts-node scripts/saas/phase2/job-ads-equivalence.ts",
     "saas:phase2-job-ads-isolation": "ts-node scripts/saas/phase2/job-ads-isolation.ts",
     "saas:phase2-notifications-equivalence": "ts-node scripts/saas/phase2/notifications-equivalence.ts",

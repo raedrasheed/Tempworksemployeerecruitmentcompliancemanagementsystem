@@ -68,9 +68,9 @@
       "detail": "agencyIsSystem=false"
     },
     {
-      "name": "14. PlatformAdmin grant/revoke audit emission deferred (no runtime surface)",
+      "name": "14. PlatformAdmin grant/revoke audit emission: implemented (Phase 3.11) or deferred",
       "ok": true,
-      "detail": "no runtime grant/revoke surface; documented as deferred"
+      "detail": "implemented in PlatformAdminService"
     },
     {
       "name": "15. Phase 3.9 drop-agency-is-system wiring intact",

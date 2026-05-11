@@ -15,7 +15,7 @@
 - PASS — 11. req.user.agencyIsSystem output shape preserved (8 keys) — keys=agencyId,agencyIsSystem,email,firstName,id,lastName,role,roleId
 - PASS — 12. PlatformAdmin user stamps agencyIsSystem=true — agencyIsSystem=true
 - PASS — 13. non-PlatformAdmin user stamps agencyIsSystem=false — agencyIsSystem=false
-- PASS — 14. PlatformAdmin grant/revoke audit emission deferred (no runtime surface) — no runtime grant/revoke surface; documented as deferred
+- PASS — 14. PlatformAdmin grant/revoke audit emission: implemented (Phase 3.11) or deferred — implemented in PlatformAdminService
 - PASS — 15. Phase 3.9 drop-agency-is-system wiring intact — pkg.json
 - PASS — 16. Phase 3.8 runtime retirement wiring intact — pkg.json
 - PASS — 17. Phase 3.7B bake check wiring intact — pkg.json

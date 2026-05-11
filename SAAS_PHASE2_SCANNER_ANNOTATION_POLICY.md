@@ -371,3 +371,11 @@ npm run saas:scan -- --strict
 - `phase310-platform-admin-cleanup` (allowed: `scripts/saas/phase3/`, `src/`, `prisma/`)
 - `phase310-platform-audit-log-migration` (allowed: `scripts/saas/phase3/`, `src/`, `prisma/`)
 - `phase310-platform-audit-log-emission-deferred` (allowed: `scripts/saas/phase3/`, `src/`, `prisma/`)
+
+---
+
+## Phase 3.11 — Grant/revoke service tags
+
+- `phase311-platform-admin-grant-revoke` (allowed: `scripts/saas/phase3/`, `src/`)
+- `phase311-platform-audit-log-emission` (allowed: `scripts/saas/phase3/`, `src/`)
+- `phase311-platform-admin-super-only` (allowed: `scripts/saas/phase3/`, `src/`)

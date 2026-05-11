@@ -227,9 +227,17 @@ async function main(): Promise<void> {
     }
     return found;
   })();
-  out.push({ name: '14. PlatformAdmin grant/revoke audit emission deferred (no runtime surface)',
-    ok: grantSrc === false,
-    detail: grantSrc ? 'grant/revoke surface found — needs emission' : 'no runtime grant/revoke surface; documented as deferred' });
+  // Phase 3.11 supersedes: runtime grant/revoke surface now exists in
+  // PlatformAdminService and emits PlatformAuditLog rows. Either state
+  // (deferred-no-surface OR implemented-with-emission) is acceptable.
+  let emissionWired = false;
+  try {
+    const svcImpl = await fs.readFile(path.join(SRC_DIR, 'saas', 'platform-admin', 'platform-admin.service.ts'), 'utf8');
+    emissionWired = /platformAuditLog\.create/.test(svcImpl);
+  } catch { /* file may not exist */ }
+  out.push({ name: '14. PlatformAdmin grant/revoke audit emission: implemented (Phase 3.11) or deferred',
+    ok: emissionWired || grantSrc === false,
+    detail: emissionWired ? 'implemented in PlatformAdminService' : (grantSrc ? 'unhandled grant surface' : 'deferred') });
 
   // 15-17 — cross-phase wiring
   const pkg = await fs.readFile(path.join(BACKEND_ROOT, 'package.json'), 'utf8');

@@ -347,3 +347,11 @@ npm run saas:scan -- --strict
 
 - `phase37b-platform-admin-signal-agreement` (allowed: `scripts/saas/phase3/`, `src/`)
 - `phase37b-platform-admin-jwt-bake-check` (allowed: `scripts/saas/phase3/`, `src/`)
+
+---
+
+## Phase 3.8 — Runtime retirement tags
+
+- `phase380-platform-admin-runtime-retirement` (allowed: `scripts/saas/phase3/`, `src/`)
+- `phase380-agency-is-system-fallback` (allowed: `scripts/saas/phase3/`, `src/`)
+- `phase380-agency-is-system-inventory` (allowed: `scripts/saas/phase3/`, `src/`)

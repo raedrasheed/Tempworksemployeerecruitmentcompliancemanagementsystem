@@ -167,3 +167,13 @@ PASS. See SAAS_PHASE3_PLATFORM_ADMIN_JWT_DUAL_READ.md.
 Signal agreement report enables operator-side go/no-go for the
 upcoming Phase 3.8 destructive migration. See
 SAAS_PHASE3_PLATFORM_ADMIN_BAKE_VERIFICATION.md.
+
+---
+
+## Phase 3.8 addendum
+
+The dual-read guard helper has been refactored under Phase 3.8 to
+make PlatformAdmin authoritative. The OR semantics this doc describes
+remain reachable via `PLATFORM_ADMIN_LEGACY_AGENCY_FALLBACK=true`.
+Phase 3.6 harness sets the flag at the top of its module to preserve
+its OR-semantics assertions. See SAAS_PHASE3_PLATFORM_ADMIN_RUNTIME_RETIREMENT.md.

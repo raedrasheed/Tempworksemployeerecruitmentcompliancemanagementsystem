@@ -55,7 +55,7 @@
     {
       "name": "10. source-level inventory includes all Agency.isSystem checks",
       "ok": true,
-      "detail": "totalSites=19 mustHave=3"
+      "detail": "totalSites=20 mustHave=3"
     },
     {
       "name": "12. Phase 3.5 platform-admin-backfill wiring intact",
@@ -76,13 +76,18 @@
   "inventory": [
     {
       "file": "src/saas/platform-admin/platform-admin-access.service.ts",
-      "line": 39,
+      "line": 46,
       "text": "select: { id: true, agency: { select: { isSystem: true } } },"
     },
     {
       "file": "src/saas/platform-admin/platform-admin-access.service.ts",
-      "line": 44,
-      "text": "if (user.agency?.isSystem === true) return true;"
+      "line": 52,
+      "text": "return user.agency?.isSystem === true; // @tenant-reviewed: phase380-agency-is-system-fallback"
+    },
+    {
+      "file": "src/saas/platform-admin/platform-admin-access.service.ts",
+      "line": 64,
+      "text": "if (this.legacyFallback && user.agency?.isSystem === true) {"
     },
     {
       "file": "src/saas/jobs/tenant-job-fanout-planner.ts",
@@ -170,5 +175,5 @@
       "text": "@IsOptional() @IsBoolean() isSystem?: boolean;"
     }
   ],
-  "inventoryTotal": 19
+  "inventoryTotal": 20
 }

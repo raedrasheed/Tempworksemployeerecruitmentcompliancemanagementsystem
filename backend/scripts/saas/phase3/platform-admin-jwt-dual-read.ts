@@ -33,6 +33,13 @@ import { JwtStrategy } from '../../../src/auth/strategies/jwt.strategy';
 
 autoLoadEnv(__filename);
 
+// Phase 3.8 — this harness was authored under Phase 3.7 OR-semantics.
+// Set the legacy fallback flag so PlatformAdminAccessService grants
+// authority for legacy Agency.isSystem-only users. Phase 3.8's new
+// default (PlatformAdmin only) is asserted by
+// saas:phase380-platform-admin-runtime-retirement.
+process.env.PLATFORM_ADMIN_LEGACY_AGENCY_FALLBACK = 'true';
+
 const BACKEND_ROOT = path.resolve(__dirname, '..', '..', '..');
 const PHASE3_REPORTS = path.resolve(BACKEND_ROOT, 'reports', 'saas', 'phase3');
 

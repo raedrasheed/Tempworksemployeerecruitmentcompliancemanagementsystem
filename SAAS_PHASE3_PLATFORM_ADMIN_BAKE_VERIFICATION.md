@@ -106,3 +106,16 @@ runtime code paths.
 **Phase 3.8 — Retire `Agency.isSystem`.** Only after the bake
 checklist has been completed and the signal agreement report
 returns `goPhase38: true` against the production-shaped clone.
+
+---
+
+## Phase 3.8 addendum
+
+Phase 3.8 supersedes Phase 3.7 dual-read by default. The bake
+verification scripts remain useful but now answer different
+questions:
+- signal agreement: still drives go/no-go for Phase 3.9 schema drop
+  (rather than Phase 3.8 enablement)
+- jwt bake check: shape + call-count invariants are unchanged
+
+See SAAS_PHASE3_PLATFORM_ADMIN_RUNTIME_RETIREMENT.md.

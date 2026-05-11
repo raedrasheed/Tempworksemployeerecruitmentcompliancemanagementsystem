@@ -173,3 +173,13 @@ Operators must re-run the signal agreement report after applying
 Phase 3.5 backfill in production to confirm `legacyOnly === 0`
 before Phase 3.8 destructive migration. See
 SAAS_PHASE3_PLATFORM_ADMIN_BAKE_VERIFICATION.md.
+
+---
+
+## Phase 3.8 addendum
+
+PlatformAdmin row now grants platform authority on its own (Phase
+3.8 default). Backfilled rows tagged `grantedBy='phase350-backfill'`
+are the substrate for runtime authority. The Phase 3.5 backfill is
+now strictly required before Phase 3.8 rollout in production to
+avoid `legacyOnly > 0` users losing access.

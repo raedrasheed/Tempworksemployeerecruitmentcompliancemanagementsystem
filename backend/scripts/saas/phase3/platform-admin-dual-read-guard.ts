@@ -29,6 +29,14 @@ import { PlatformAdminAccessService } from '../../../src/saas/platform-admin/pla
 
 autoLoadEnv(__filename);
 
+// Phase 3.8 — this harness was authored under Phase 3.6 OR-semantics.
+// Set the legacy fallback flag so PlatformAdminAccessService continues
+// to grant authority for legacy Agency.isSystem-only users (the OR
+// behaviour this harness asserts). Phase 3.8 introduces a new default
+// where PlatformAdmin is the sole authority; that default is asserted
+// by the Phase 3.8 harness (saas:phase380-platform-admin-runtime-retirement).
+process.env.PLATFORM_ADMIN_LEGACY_AGENCY_FALLBACK = 'true';
+
 const BACKEND_ROOT = path.resolve(__dirname, '..', '..', '..');
 const SRC_DIR = path.resolve(BACKEND_ROOT, 'src');
 const PHASE3_REPORTS = path.resolve(BACKEND_ROOT, 'reports', 'saas', 'phase3');

@@ -2,60 +2,70 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 
 /**
- * Phase 3.6 — PlatformAdmin dual-read access helper.
+ * Phase 3.8 — PlatformAdmin authoritative resolver.
  *
- * Returns true if a user is a platform admin via either signal:
- *   - legacy: `user.agency.isSystem === true`
- *   - new:    a `PlatformAdmin` row exists for the user
+ * Default behaviour: PlatformAdmin row is the SOLE source of platform
+ * authority. `Agency.isSystem` is read only when the legacy fallback
+ * flag is explicitly enabled.
  *
- * OR semantics — when both signals agree, behaviour is identical to
- * the legacy path. When PlatformAdmin has been backfilled (Phase 3.5),
- * a row may grant access to a user whose agency is no longer
- * `isSystem` (e.g. agency reorganisation). This is the intended
- * transition behaviour.
+ * Flag precedence (highest first):
+ *   - PLATFORM_ADMIN_DUAL_READ_ENABLED=false
+ *       → pre-Phase-3.6 emulation: only Agency.isSystem grants access.
+ *         Reserved for emergency rollback after Phase 3.5 backfill
+ *         issues that block PlatformAdmin reads.
+ *   - PLATFORM_ADMIN_LEGACY_AGENCY_FALLBACK=true
+ *       → OR semantics: PlatformAdmin row OR Agency.isSystem grants.
+ *         This is the Phase 3.6/3.7 default behaviour, retained for
+ *         emergency rollback without redeploying.
+ *   - otherwise (Phase 3.8 default)
+ *       → PlatformAdmin row only. `Agency.isSystem` is ignored for
+ *         authorization. The column remains in the schema for Phase 3.9
+ *         destructive drop.
  *
- * `PLATFORM_ADMIN_DUAL_READ_ENABLED=false` reverts to legacy-only
- * (legacy path is checked, PlatformAdmin is ignored). Default true.
+ * Read-only. No data mutation. No PlatformAuditLog writes (table
+ * absent; deferred). Inactive/deleted users always resolve to false.
  *
- * Read-only. Never mutates data. Never writes PlatformAuditLog
- * (table not present — deferred).
- *
- * @tenant-reviewed: phase360-platform-admin-dual-read
+ * @tenant-reviewed: phase380-platform-admin-runtime-retirement
  */
 @Injectable()
 export class PlatformAdminAccessService {
-  // Read the flag at construction so behaviour is stable across a request
-  // (matches the rest of the SaaS feature-flag pattern in this codebase).
+  // Flags captured at construction time for stable per-request behaviour.
   private readonly dualReadEnabled = process.env.PLATFORM_ADMIN_DUAL_READ_ENABLED !== 'false';
+  private readonly legacyFallback  = process.env.PLATFORM_ADMIN_LEGACY_AGENCY_FALLBACK === 'true';
 
   constructor(private readonly prisma: PrismaService) {}
 
-  /** Returns true iff the user has platform-admin authority via legacy OR new signal. */
+  /** Returns true iff the user is a platform admin per the precedence above. */
   async isPlatformAdmin(userId: string | null | undefined): Promise<boolean> {
     if (!userId) return false;
 
-    const user = await this.prisma.user.findFirst({ // @tenant-reviewed: phase360-platform-admin-dual-read
+    // We need active-user gating plus optional agency lookup for the
+    // fallback branches. A single findFirst with `select` keeps it cheap.
+    const user = await this.prisma.user.findFirst({ // @tenant-reviewed: phase380-platform-admin-runtime-retirement
       where: { id: userId, deletedAt: null, status: 'ACTIVE' as any },
       select: { id: true, agency: { select: { isSystem: true } } },
     });
     if (!user) return false;
 
-    // Legacy signal — always honoured.
-    if (user.agency?.isSystem === true) return true;
+    // Pre-3.6 emulation — legacy-only.
+    if (!this.dualReadEnabled) {
+      return user.agency?.isSystem === true; // @tenant-reviewed: phase380-agency-is-system-fallback
+    }
 
-    // New signal — gated by the dual-read flag. When OFF, behave as
-    // legacy-only.
-    if (!this.dualReadEnabled) return false;
-
-    const pa = await (this.prisma as any).platformAdmin.findUnique({ // @tenant-reviewed: phase360-platform-admin-dual-read
+    // Phase 3.8 default: PlatformAdmin is the authoritative source.
+    const pa = await (this.prisma as any).platformAdmin.findUnique({ // @tenant-reviewed: phase380-platform-admin-runtime-retirement
       where: { userId: user.id },
       select: { level: true },
     });
-    if (!pa) return false;
-    // Allowed levels — all three are platform-level today; the runtime
-    // guard in `platform-admin.guard.ts` enforces level ordering for
-    // specific routes. Here we only answer the binary "is platform admin".
-    return ['SUPPORT', 'OPERATOR', 'SUPER'].includes(pa.level);
+    if (pa && ['SUPPORT', 'OPERATOR', 'SUPER'].includes(pa.level)) return true;
+
+    // Optional emergency OR fallback — reverts to Phase 3.6/3.7 semantics
+    // without code changes.
+    if (this.legacyFallback && user.agency?.isSystem === true) {
+      return true; // @tenant-reviewed: phase380-agency-is-system-fallback
+    }
+
+    return false;
   }
 
   /** Optional ergonomic helper. */

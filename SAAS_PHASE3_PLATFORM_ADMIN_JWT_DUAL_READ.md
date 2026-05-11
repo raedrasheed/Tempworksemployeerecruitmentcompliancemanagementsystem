@@ -163,3 +163,18 @@ explicit `goPhase38` field, plus JWT bake check
 exactly-one-extra-lookup invariants and local timing probe. Phase
 3.8 must wait until the bake checklist completes against a
 production-shaped clone. See SAAS_PHASE3_PLATFORM_ADMIN_BAKE_VERIFICATION.md.
+
+---
+
+## Phase 3.8 addendum
+
+Phase 3.8 supersedes the default semantics described above. As of
+Phase 3.8 default:
+- PlatformAdmin row is the SOLE source of authority.
+- `Agency.isSystem` is read only when
+  `PLATFORM_ADMIN_LEGACY_AGENCY_FALLBACK=true`.
+
+The Phase 3.7 OR semantics this doc describes are now reachable via
+the fallback flag. The Phase 3.7 harness sets the flag at the top
+of its module to keep its OR-semantics assertions valid; this is
+explicit, not silent. See SAAS_PHASE3_PLATFORM_ADMIN_RUNTIME_RETIREMENT.md.

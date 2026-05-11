@@ -138,3 +138,13 @@ JwtStrategy switched to dual-read. `req.user.agencyIsSystem` now
 means "platform admin via legacy Agency.isSystem OR backfilled
 PlatformAdmin". Phase 3.8 will retire `Agency.isSystem` after a
 bake window.
+
+---
+
+## Phase 3.8 addendum
+
+PlatformAdminAccessService refactored to make PlatformAdmin
+authoritative by default. `Agency.isSystem` is consulted only when
+the new emergency flag `PLATFORM_ADMIN_LEGACY_AGENCY_FALLBACK=true`
+is set. The column remains in the schema; destructive drop deferred
+to Phase 3.9. See SAAS_PHASE3_PLATFORM_ADMIN_RUNTIME_RETIREMENT.md.

@@ -10,15 +10,16 @@
 - PASS — 11. PlatformAuditLog write is not attempted (table absent, no error raised) — tableExists=false
 - PASS — 8. missing user returns false — result=true
 - PASS — 9. PLATFORM_ADMIN_DUAL_READ_ENABLED=false falls back to legacy only — uNewOnly=false uLegacy=true
-- PASS — 10. source-level inventory includes all Agency.isSystem checks — totalSites=19 mustHave=3
+- PASS — 10. source-level inventory includes all Agency.isSystem checks — totalSites=20 mustHave=3
 - PASS — 12. Phase 3.5 platform-admin-backfill wiring intact — pkg.json
 - PASS — 13. Phase 3.4 employee unique harness wiring intact — pkg.json
 - PASS — 14. cumulative regression chain outputs present — present=10/10
-## Agency.isSystem inventory (19 sites)
+## Agency.isSystem inventory (20 sites)
 | file | line | text |
 | --- | --- | --- |
-| src/saas/platform-admin/platform-admin-access.service.ts | 39 | `select: { id: true, agency: { select: { isSystem: true } } },` |
-| src/saas/platform-admin/platform-admin-access.service.ts | 44 | `if (user.agency?.isSystem === true) return true;` |
+| src/saas/platform-admin/platform-admin-access.service.ts | 46 | `select: { id: true, agency: { select: { isSystem: true } } },` |
+| src/saas/platform-admin/platform-admin-access.service.ts | 52 | `return user.agency?.isSystem === true; // @tenant-reviewed: phase380-agency-is-system-fallback` |
+| src/saas/platform-admin/platform-admin-access.service.ts | 64 | `if (this.legacyFallback && user.agency?.isSystem === true) {` |
 | src/saas/jobs/tenant-job-fanout-planner.ts | 28 | `readonly isSystem?: boolean;` |
 | src/saas/jobs/tenant-job-fanout-planner.ts | 122 | `if (excludeSys && c.isSystem === true) {` |
 | src/roles/roles.service.ts | 92 | `if (role.isSystem && dto.name && dto.name !== role.name) throw new BadRequestException('Cannot rename system roles');` |

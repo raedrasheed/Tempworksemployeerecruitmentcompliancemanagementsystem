@@ -50,7 +50,7 @@
     {
       "name": "10. JWT bake check reports validation timings",
       "ok": true,
-      "detail": "avg=3562μs p95=5682μs p99=7909μs (LOCAL FIXTURE — NOT PROD)"
+      "detail": "avg=4373μs p95=8073μs p99=9258μs (LOCAL FIXTURE — NOT PROD)"
     },
     {
       "name": "11. no INSERT/UPDATE/DELETE in bake script source (outside seed templates)",
@@ -75,8 +75,8 @@
   ],
   "probes": 50,
   "timingsMicros": {
-    "avg": 3561.88754,
-    "p95": 5682.443,
-    "p99": 7908.562
+    "avg": 4372.5022,
+    "p95": 8072.526,
+    "p99": 9258.358
   }
 }

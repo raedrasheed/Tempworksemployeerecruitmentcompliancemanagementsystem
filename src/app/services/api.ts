@@ -240,12 +240,34 @@ export type LoginResult =
   | { twoFactorRequired: true; challengeId: string; expiresAt: string; emailHint?: string }
   | { accessToken: string; refreshToken: string; user: AuthUser; passwordExpired?: boolean };
 
+// Phase 3.14 — last successful tenant slug, persisted to prefill the
+// Company field on next visit. Never includes credentials.
+const LAST_COMPANY_KEY = 'auth.lastCompany';
+export function getLastCompany(): string {
+  try { return localStorage.getItem(LAST_COMPANY_KEY) ?? ''; } catch { return ''; }
+}
+function rememberCompany(company: string): void {
+  try {
+    const c = company.trim().toLowerCase();
+    if (c) localStorage.setItem(LAST_COMPANY_KEY, c);
+  } catch { /* storage may be disabled */ }
+}
+
 export const authApi = {
-  login: async (email: string, password: string, agencyId?: string): Promise<LoginResult> => {
-    const data = await apiFetch<any>(
-      '/auth/login',
-      { method: 'POST', body: JSON.stringify({ email, password, ...(agencyId && { agencyId }) }) },
-    );
+  // Phase 3.14 — tenant-aware login. Routes through /auth/login-v2 and
+  // sends a normalized `company` (slug or customDomain). Falls through
+  // to the legacy /auth/login when company is empty so the change is
+  // backwards-compatible for callers that have not yet been updated.
+  // @tenant-reviewed: phase314-frontend-tenant-login
+  login: async (email: string, password: string, company?: string): Promise<LoginResult> => {
+    const normalizedEmail   = email.trim().toLowerCase();
+    const normalizedCompany = (company ?? '').trim().toLowerCase();
+    const path = normalizedCompany ? '/auth/login-v2' : '/auth/login';
+    const body = normalizedCompany
+      ? { company: normalizedCompany, email: normalizedEmail, password }
+      : { email: normalizedEmail, password };
+    const data = await apiFetch<any>(path, { method: 'POST', body: JSON.stringify(body) });
+    if (normalizedCompany && !data?.twoFactorRequired) rememberCompany(normalizedCompany);
     // 2FA-enabled account: server did not issue tokens yet.
     if (data?.twoFactorRequired) {
       return data as LoginResult;

@@ -392,3 +392,9 @@ npm run saas:scan -- --strict
 ## Phase 3.13 — Tenant-aware login tags
 
 - `phase313-tenant-aware-login` (allowed: `scripts/saas/phase3/`, `src/`)
+
+---
+
+## Phase 3.14 — Frontend tenant-login tags
+
+- `phase314-frontend-tenant-login` (allowed: `scripts/saas/phase3/`, `src/`, `../src/`)

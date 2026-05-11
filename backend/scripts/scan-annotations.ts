@@ -217,6 +217,7 @@ const KNOWN_REASONS: ReadonlyArray<PolicyEntry> = [
   { tag: 'phase312-platform-admin-controller',           allowedPaths: ['scripts/saas/phase3/', 'src/'] },
   { tag: 'phase312-platform-admin-http-gate',            allowedPaths: ['scripts/saas/phase3/', 'src/'] },
   { tag: 'phase313-tenant-aware-login',                  allowedPaths: ['scripts/saas/phase3/', 'src/'] },
+  { tag: 'phase314-frontend-tenant-login',               allowedPaths: ['scripts/saas/phase3/', 'src/', '../src/'] },
   { tag: 'tenant-safe-report-runtime',    allowedPaths: ['src/reports/', 'src/saas/reports/'] },
   { tag: 'tenant-resolver-bootstrap',     allowedPaths: ['src/saas/tenancy/'] },
 ];

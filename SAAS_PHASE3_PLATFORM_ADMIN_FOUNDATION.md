@@ -168,3 +168,13 @@ SAAS_PHASE3_PLATFORM_ADMIN_CLEANUP_AUDIT_LOG.md.
 authority gate; PlatformAuditLog emission for every operation. No
 HTTP controller registered yet — service is module-only. See
 SAAS_PHASE3_PLATFORM_ADMIN_GRANT_REVOKE.md.
+
+---
+
+## Phase 3.12 addendum
+
+`PlatformAdminController` exposes `POST/DELETE/GET /_platform/admin/grants`
+behind `PlatformAdminGuard` + `PLATFORM_ADMIN_HTTP_ENABLED` feature
+flag. Module-only (not yet imported by AppModule). Service-level
+SUPER assertion remains as defense-in-depth. See
+SAAS_PHASE3_PLATFORM_ADMIN_CONTROLLER.md.

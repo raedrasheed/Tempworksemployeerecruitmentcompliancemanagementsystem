@@ -379,3 +379,10 @@ npm run saas:scan -- --strict
 - `phase311-platform-admin-grant-revoke` (allowed: `scripts/saas/phase3/`, `src/`)
 - `phase311-platform-audit-log-emission` (allowed: `scripts/saas/phase3/`, `src/`)
 - `phase311-platform-admin-super-only` (allowed: `scripts/saas/phase3/`, `src/`)
+
+---
+
+## Phase 3.12 — Controller tags
+
+- `phase312-platform-admin-controller` (allowed: `scripts/saas/phase3/`, `src/`)
+- `phase312-platform-admin-http-gate` (allowed: `scripts/saas/phase3/`, `src/`)

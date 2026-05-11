@@ -183,3 +183,13 @@ or deletes are immediately visible to authorization.
 existing `PlatformAdminGuard`. Plug the controller into the (not
 yet AppModule-registered) `PlatformAdminModule` and register the
 module conditionally so the surface is opt-in per environment.
+
+---
+
+## Phase 3.12 addendum
+
+`PlatformAdminController` exposes `POST/DELETE/GET /_platform/admin/grants`
+behind `PlatformAdminGuard` + `PLATFORM_ADMIN_HTTP_ENABLED` feature
+flag. Module-only (not yet imported by AppModule). Service-level
+SUPER assertion remains as defense-in-depth. See
+SAAS_PHASE3_PLATFORM_ADMIN_CONTROLLER.md.

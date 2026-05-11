@@ -1,0 +1,22 @@
+{
+  "generatedAt": "2026-05-11T06:26:23.947Z",
+  "mode": "apply",
+  "applied": true,
+  "safeClassification": true,
+  "classification": "SAFE_CLONE",
+  "refusalReason": null,
+  "eligibleCount": 0,
+  "insertedCount": 0,
+  "skippedCounts": {
+    "alreadyPlatformAdmin": 2,
+    "deletedOrInactiveUser": 2,
+    "missingUser": 0,
+    "nonSystemAgency": 0,
+    "multipleSystemAgencies": 0,
+    "ambiguousMembership": 0
+  },
+  "beforePlatformAdminCount": 2,
+  "afterPlatformAdminCount": 2,
+  "insertedUserIds": [],
+  "platformAuditLogDeferred": true
+}

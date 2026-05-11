@@ -108,3 +108,13 @@ Read-only PlatformAdmin readiness report added
 `platform_admins` table is in place and surfaces the population that
 would be backfilled in Phase 3.5 (and any orphan / multi-agency
 conflicts to triage first).
+
+---
+
+## Phase 3.5 addendum
+
+Backfill script + harness landed
+(`saas:phase350-platform-admin-backfill{,-harness}`). Dry-run-first,
+three-gate apply, idempotent. PlatformAuditLog deferred (table not
+present); inserted rows tagged `grantedBy='phase350-backfill'`. Phase
+3.6 wires the dual-read guard. See SAAS_PHASE3_PLATFORM_ADMIN_BACKFILL.md.

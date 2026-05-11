@@ -48,3 +48,12 @@ Outputs:
 
 ## Rollback
 No data or schema changes. Revert script + docs only.
+
+---
+
+## Phase 3.5 addendum
+
+Backfill script now exists (see SAAS_PHASE3_PLATFORM_ADMIN_BACKFILL.md).
+Apply requires `PLATFORM_ADMIN_BACKFILL_ENABLED=true` + `_APPLY=true`
++ SAFE classification. Rollback:
+`DELETE FROM platform_admins WHERE "grantedBy" = 'phase350-backfill'`.

@@ -104,3 +104,11 @@ Harness 19/19 PASS. Cumulative 894/894.
 Destructive migration `saas_phase34_drop_employee_global_uniques`
 landed. Cross-tenant Employee identifier reuse now allowed.
 Harness 20/20 PASS. Cumulative 914/914.
+
+---
+
+## Phase 3.5 addendum
+
+PlatformAdmin backfill (dry-run-first, three-gate apply) landed.
+Harness 16/16 PASS. Cumulative 930/930. Auth path still flows
+through Agency.isSystem until Phase 3.6 dual-read guard.

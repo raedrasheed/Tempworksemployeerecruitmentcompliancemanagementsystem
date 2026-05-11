@@ -132,6 +132,8 @@
     "saas:phase320-duplicate-cleanup-harness":           "ts-node scripts/saas/phase3/duplicate-cleanup-harness.ts",
     "saas:phase330-per-tenant-unique-constraints":       "ts-node scripts/saas/phase3/per-tenant-unique-constraints.ts",
     "saas:phase340-drop-employee-global-uniques":        "ts-node scripts/saas/phase3/drop-employee-global-uniques.ts",
+    "saas:phase350-platform-admin-backfill":             "ts-node scripts/saas/phase3/platform-admin-backfill.ts",
+    "saas:phase350-platform-admin-backfill-harness":     "ts-node scripts/saas/phase3/platform-admin-backfill-harness.ts",
     "saas:phase2-job-ads-equivalence": "ts-node scripts/saas/phase2/job-ads-equivalence.ts",
     "saas:phase2-job-ads-isolation": "ts-node scripts/saas/phase2/job-ads-isolation.ts",
     "saas:phase2-notifications-equivalence": "ts-node scripts/saas/phase2/notifications-equivalence.ts",

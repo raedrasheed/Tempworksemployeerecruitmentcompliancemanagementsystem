@@ -316,3 +316,11 @@ npm run saas:scan -- --strict
 - `phase340-drop-employee-global-uniques` (allowed: `scripts/saas/phase3/`, `prisma/`)
 - `phase340-global-unique-drop` (allowed: `scripts/saas/phase3/`, `prisma/`)
 - `phase340-per-tenant-unique-retained` (allowed: `scripts/saas/phase3/`, `prisma/`)
+
+---
+
+## Phase 3.5 — PlatformAdmin backfill tags
+
+- `phase350-platform-admin-backfill` (allowed: `scripts/saas/phase3/`, `src/`)
+- `phase350-platform-admin-audit-log` (allowed: `scripts/saas/phase3/`, `src/`)
+- `phase350-agency-is-system-retirement` (allowed: `scripts/saas/phase3/`, `src/`)

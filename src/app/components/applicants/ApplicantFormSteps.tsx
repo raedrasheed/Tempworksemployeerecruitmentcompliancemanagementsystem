@@ -464,10 +464,17 @@ export function getStepErrors(
   // ── Tab 3: Identification & Legal Status ──────────────────────────────────
   if (actualTab === 3) {
     if (!d.passportNumber?.trim()) errors.push(tf('validation.passportNumberRequired'));
-    // Job-ad required uploads handled on this tab (upload widgets are here)
+    // Passport upload is mandatory across the application form — not only
+    // when the job ad declares it as a required document. Accept either
+    // the job-ad-keyed slot (`required:<name>`) or the generic `passport`
+    // slot used when no required-docs list applies.
     const passportDocName = requiredDocuments?.find(n => n.toLowerCase() === 'passport');
-    if (passportDocName && !hasFile(`required:${passportDocName}`))
+    const passportUploaded =
+      (passportDocName && hasFile(`required:${passportDocName}`)) ||
+      hasFile('passport');
+    if (!passportUploaded) {
       errors.push(tf('validation.requiredPassportUpload'));
+    }
     const nationalIdDocName = requiredDocuments?.find(n => n.toLowerCase().includes('national id'));
     if (nationalIdDocName && !hasFile(`required:${nationalIdDocName}`))
       errors.push(tf('validation.requiredNationalIdUpload'));
@@ -605,10 +612,21 @@ export function getStepErrors(
   }
 
   // ── Tab 10: Documents ─────────────────────────────────────────────────────
-  if (actualTab === 10 && requiredDocuments && requiredDocuments.length > 0) {
-    for (const docName of requiredDocuments) {
-      if (!hasFile(`required:${docName}`))
-        errors.push(tf('validation.requiredDocByName', { name: docName }));
+  if (actualTab === 10) {
+    // Passport upload is mandatory on every application, regardless of
+    // the job ad's required-docs list.
+    const passportDocName = requiredDocuments?.find(n => n.toLowerCase() === 'passport');
+    const passportUploaded =
+      (passportDocName && hasFile(`required:${passportDocName}`)) ||
+      hasFile('passport');
+    if (!passportUploaded) {
+      errors.push(tf('validation.requiredPassportUpload'));
+    }
+    if (requiredDocuments && requiredDocuments.length > 0) {
+      for (const docName of requiredDocuments) {
+        if (!hasFile(`required:${docName}`))
+          errors.push(tf('validation.requiredDocByName', { name: docName }));
+      }
     }
   }
 
@@ -1342,12 +1360,12 @@ function Step3Identification({ d, u, settings, uploadedFiles, onFilesChange, req
       <SectionTitle title={t('applicants.form.step3.title')} subtitle={t('applicants.form.step3.subtitle')} />
       <div className="space-y-4">
         <SubSection title={t('applicants.form.step3.passport')} />
-        {passportDocName && (
-          <div className="flex items-center gap-2 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded-md px-3 py-2">
-            <span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
-            {t('applicants.form.step3.passportRequiredBanner')}
-          </div>
-        )}
+        {/* Passport upload is mandatory for every application — banner
+            always shown, not gated on the job ad's required-docs list. */}
+        <div className="flex items-center gap-2 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+          <span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
+          {t('applicants.form.step3.passportRequiredBanner')}
+        </div>
         <div className="grid md:grid-cols-2 gap-4">
           <div className="space-y-1">
             <Label className="text-xs">{t('applicants.form.step3.passportNumber')} *</Label>

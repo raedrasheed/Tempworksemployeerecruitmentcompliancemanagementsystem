@@ -261,8 +261,9 @@ export function JobListings() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {jobs.map(job => {
                   const salary = formatSalary(job.salaryMin, job.salaryMax, job.currency);
-                  const applyHref = `/apply?jobAdId=${encodeURIComponent(job.id)}&jobSlug=${encodeURIComponent(job.slug)}&jobTitle=${encodeURIComponent(job.title)}${job.category ? `&jobCategory=${encodeURIComponent(job.category)}` : ''}${tenantSlug ? `&company=${encodeURIComponent(tenantSlug)}` : ''}${Array.isArray(job.requiredDocuments) && job.requiredDocuments.length ? `&requiredDocs=${encodeURIComponent(JSON.stringify(job.requiredDocuments))}` : ''}`;
-                  const detailHref = tenantSlug ? `/t/${tenantSlug}/jobs/${job.slug}` : `/jobs/${job.slug}`;
+                  const adTenantSlug = tenantSlug ?? job.tenant?.slug ?? '';
+                  const applyHref = `/apply?jobAdId=${encodeURIComponent(job.id)}&jobSlug=${encodeURIComponent(job.slug)}&jobTitle=${encodeURIComponent(job.title)}${job.category ? `&jobCategory=${encodeURIComponent(job.category)}` : ''}${adTenantSlug ? `&company=${encodeURIComponent(adTenantSlug)}` : ''}${Array.isArray(job.requiredDocuments) && job.requiredDocuments.length ? `&requiredDocs=${encodeURIComponent(JSON.stringify(job.requiredDocuments))}` : ''}`;
+                  const detailHref = adTenantSlug ? `/t/${adTenantSlug}/jobs/${job.slug}` : `/jobs/${job.slug}`;
                   return (
                     <Card key={job.id} className="h-full hover:shadow-md hover:border-blue-300 transition-all group relative">
                       <Button asChild size="sm" className="absolute top-3 end-3 z-10">
@@ -278,7 +279,12 @@ export function JobListings() {
                           <h3 className="font-semibold text-foreground text-base mb-1 line-clamp-2 group-hover:text-primary transition-colors">
                             {job.title}
                           </h3>
-                          <p className="text-xs text-muted-foreground mb-3">{job.category}</p>
+                          <p className="text-xs text-muted-foreground mb-1">{job.category}</p>
+                          {!tenantSlug && job.tenant?.name && (
+                            <p className="text-[11px] text-muted-foreground mb-2">
+                              {t('jobs.byTenant', { defaultValue: 'by {{tenant}}', tenant: job.tenant.name })}
+                            </p>
+                          )}
                           <div className="space-y-1.5 mt-auto">
                             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                               <MapPin className="w-3.5 h-3.5" />
@@ -307,18 +313,24 @@ export function JobListings() {
               <div className="flex flex-col gap-3">
                 {jobs.map(job => {
                   const salary = formatSalary(job.salaryMin, job.salaryMax, job.currency);
-                  const applyHref = `/apply?jobAdId=${encodeURIComponent(job.id)}&jobSlug=${encodeURIComponent(job.slug)}&jobTitle=${encodeURIComponent(job.title)}${job.category ? `&jobCategory=${encodeURIComponent(job.category)}` : ''}${tenantSlug ? `&company=${encodeURIComponent(tenantSlug)}` : ''}${Array.isArray(job.requiredDocuments) && job.requiredDocuments.length ? `&requiredDocs=${encodeURIComponent(JSON.stringify(job.requiredDocuments))}` : ''}`;
-                  const detailHref = tenantSlug ? `/t/${tenantSlug}/jobs/${job.slug}` : `/jobs/${job.slug}`;
+                  const adTenantSlug = tenantSlug ?? job.tenant?.slug ?? '';
+                  const applyHref = `/apply?jobAdId=${encodeURIComponent(job.id)}&jobSlug=${encodeURIComponent(job.slug)}&jobTitle=${encodeURIComponent(job.title)}${job.category ? `&jobCategory=${encodeURIComponent(job.category)}` : ''}${adTenantSlug ? `&company=${encodeURIComponent(adTenantSlug)}` : ''}${Array.isArray(job.requiredDocuments) && job.requiredDocuments.length ? `&requiredDocs=${encodeURIComponent(JSON.stringify(job.requiredDocuments))}` : ''}`;
+                  const detailHref = adTenantSlug ? `/t/${adTenantSlug}/jobs/${job.slug}` : `/jobs/${job.slug}`;
                   return (
                     <Card key={job.id} className="hover:shadow-md hover:border-blue-300 transition-all group">
                       <CardContent className="p-4 flex items-center gap-4">
                         <Link to={detailHref} className="flex items-center gap-4 flex-1 min-w-0">
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
+                            <div className="flex items-center gap-2 mb-1 flex-wrap">
                               <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${CONTRACT_TYPE_COLORS[job.contractType] ?? 'bg-gray-100 text-gray-700'}`}>
                                 {enumLabel('contractType', job.contractType)}
                               </span>
                               <span className="text-xs text-muted-foreground">{job.category}</span>
+                              {!tenantSlug && job.tenant?.name && (
+                                <span className="text-[11px] text-muted-foreground">
+                                  · {t('jobs.byTenant', { defaultValue: 'by {{tenant}}', tenant: job.tenant.name })}
+                                </span>
+                              )}
                             </div>
                             <h3 className="font-semibold text-foreground text-sm group-hover:text-primary transition-colors truncate">
                               {job.title}

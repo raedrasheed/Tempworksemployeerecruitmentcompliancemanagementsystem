@@ -201,10 +201,11 @@ export class JobAdsService {
     const skip = (Number(page) - 1) * Number(limit);
 
     // Phase 3.18 — public tenant scoping.
-    //  - WITH hint:  resolve slug/customDomain → only that tenant's ads.
-    //  - WITHOUT hint: the legacy global /jobs URL now returns ONLY the
-    //    tenant-less (global) ads. Tenant-owned ads must come from
-    //    /t/<slug>/jobs so each tenant keeps its catalogue separate.
+    //  - WITH hint:      resolve slug/customDomain → only that tenant's ads.
+    //  - WITHOUT hint:   the legacy global /jobs URL aggregates ads from
+    //                    every tenant (and any tenant-less / global ads).
+    //                    Each row carries `tenant: { id, name, slug }` so
+    //                    the public listing card can label the owner.
     // @tenant-reviewed: phase318-tenant-public-jobs
     let publicTenantWhere: any;
     if (tenantHint) {
@@ -217,7 +218,7 @@ export class JobAdsService {
         ? { tenantId: tenant.id }
         : { tenantId: '__no_such_tenant__' }; // unresolved → empty result
     } else {
-      publicTenantWhere = { tenantId: null };
+      publicTenantWhere = {}; // global aggregator
     }
 
     const where: any = { deletedAt: null, status: 'PUBLISHED', ...scope.tenantWhere(), ...publicTenantWhere };
@@ -246,20 +247,29 @@ export class JobAdsService {
           city: true, country: true, contractType: true,
           salaryMin: true, salaryMax: true, currency: true,
           publishedAt: true,
-          // Carry the required-docs list into the public listing so the
-          // /jobs cards can pre-populate the Apply URL even before the
-          // form's detail fetch resolves. Bandwidth impact is small
-          // (one short JSON-encoded string per row).
           requiredDocuments: true,
-          // Exclude description for listing (save bandwidth; use detail endpoint for full text)
+          tenantId: true,
         },
       }),
       this.prisma.jobAd.count({ where }), // @tenant-reviewed: phase29-pilot-scope
     ]);
 
+    // Phase 3.18 — batch-load the owning tenants so each listing card
+    // can display "from <Tenant>" on the global aggregator at /jobs.
+    // @tenant-reviewed: phase318-tenant-public-jobs
+    const tenantIds = Array.from(new Set(items.map((r: any) => r.tenantId).filter(Boolean)));
+    const tenants = tenantIds.length
+      ? await this.prisma.tenant.findMany({
+          where: { id: { in: tenantIds as string[] } },
+          select: { id: true, name: true, slug: true },
+        }).catch(() => [])
+      : [];
+    const tenantById = new Map<string, any>(tenants.map((t: any): [string, any] => [t.id, t]));
+
     const mapped = items.map((ad: any) => ({
       ...ad,
       requiredDocuments: this.parseRequiredDocuments(ad.requiredDocuments),
+      tenant: ad.tenantId ? tenantById.get(ad.tenantId) ?? null : null,
     }));
     return PaginatedResponse.create(mapped, total, Number(page), Number(limit));
   }
@@ -277,10 +287,10 @@ export class JobAdsService {
   // ALS, the slug lookup is global — preserving today's public URLs.
   async findBySlug(slug: string, tenantHint?: string) {
     const scope = this.scope();
-    // Phase 3.18 — same isolation as findPublished: a slug lookup
-    // without a tenant hint only resolves a tenant-less (global) ad,
-    // never one owned by a tenant. Tenant-owned ads must be reached
-    // via /public/tenants/<slug>/jobs/<jobSlug>.
+    // Phase 3.18 — slug lookup: scope to the named tenant when a hint
+    // is provided; otherwise allow the slug to resolve against any
+    // tenant (the global /jobs/:slug page should still work for ads
+    // owned by a tenant, since the public list links to them).
     // @tenant-reviewed: phase318-tenant-public-jobs
     let publicTenantWhere: any;
     if (tenantHint) {
@@ -293,13 +303,22 @@ export class JobAdsService {
         ? { tenantId: tenant.id }
         : { tenantId: '__no_such_tenant__' };
     } else {
-      publicTenantWhere = { tenantId: null };
+      publicTenantWhere = {};
     }
     const ad = await this.prisma.jobAd.findFirst({ // @tenant-reviewed: phase29-pilot-scope
       where: { slug, deletedAt: null, status: 'PUBLISHED', ...scope.tenantWhere(), ...publicTenantWhere },
     });
     if (!ad) throw new NotFoundException(`Job ad '${slug}' not found`);
-    return { ...ad, requiredDocuments: this.parseRequiredDocuments(ad.requiredDocuments) };
+    // Phase 3.18 — attach the owning tenant so the public detail page
+    // can show which tenant the ad belongs to.
+    let owningTenant: any = null;
+    if ((ad as any).tenantId) {
+      owningTenant = await this.prisma.tenant.findUnique({
+        where: { id: (ad as any).tenantId },
+        select: { id: true, name: true, slug: true },
+      }).catch(() => null);
+    }
+    return { ...ad, tenant: owningTenant, requiredDocuments: this.parseRequiredDocuments(ad.requiredDocuments) };
   }
 
   // ── Dashboard detail by ID ────────────────────────────────────────────────────
